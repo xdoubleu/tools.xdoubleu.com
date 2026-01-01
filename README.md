@@ -10,7 +10,7 @@ The folder structure of tools follow the usual one for go projects:
 - templates: html templates used for tool
 - internal: logic internal to that app
 - pkg: logic that could (if I would want to) become their own project
-- root level files (?) HTTP endpoints of tools
+- root level files: HTTP endpoints of tools
 
 Existing tools:
 
