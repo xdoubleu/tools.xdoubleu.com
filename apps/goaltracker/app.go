@@ -5,7 +5,6 @@ import (
 	"embed"
 	"html/template"
 	"log/slog"
-
 	// needed for embedding timezone data.
 	_ "time/tzdata"
 
