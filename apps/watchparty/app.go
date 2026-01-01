@@ -1,3 +1,4 @@
+//nolint:revive //it is what it is
 package watchparty
 
 import (
@@ -5,7 +6,6 @@ import (
 	"embed"
 	"html/template"
 	"log/slog"
-	// needed for embedding timezone data.
 	_ "time/tzdata"
 
 	"github.com/jackc/pgx/v5/pgxpool"
