@@ -1,0 +1,28 @@
+{{template "header"}}
+{{template "navbar"}}
+    <div class="container">
+        {{template "ws" "todoist"}}
+        <br/>
+        <br/>
+
+        {{range $pair := .}}
+            <h2>{{$pair.State}}</h2>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col"/>
+                    <th scope="col"/>
+                </tr>
+                </thead>
+                <tbody>
+                    {{range $goal := $pair.Goals}}
+                        {{template "goal" $goal}}
+                    {{end}}
+                </tbody>
+            </table>
+            <br/>
+
+        {{end}}
+    </div>
+{{template "footer"}}

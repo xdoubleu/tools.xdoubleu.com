@@ -1,0 +1,71 @@
+{{template "header"}}
+{{template "navbar"}}
+    <div class="container">
+        <h1>{{.Goal.Name}}</h1>
+        <form method="POST" action="/goaltracker/api/goals/{{.Goal.ID}}/edit" class="col-lg-6">
+            <div class="mb-3">
+                <label for="typeId" class="form-label">Type</label>
+                <select class="form-select" id="type" name="typeId">
+                    <option selected disabled hidden>Select a type</option>
+                    {{range $source := .Sources}}
+                        <optgroup label="{{$source.Name}}">
+                            {{range $type := $source.Types}}
+                                <option value="{{$type.ID}}">{{$type.Name}}</option>
+                            {{end}}
+                        </optgroup>
+                    {{end}}
+                </select>
+            </div>
+            <div id="targetValue" class="mb-3" style="display: none;">
+                <label for="targetValue" class="form-label">Target value</label>
+                <input type="number" class="form-control" name="targetValue" value="{{.Goal.TargetValue}}">
+            </div>
+            <div id="tag" class="mb-3" style="display: none;">
+                <label for="tag" class="form-label">Tag</label>
+                <select class="form-select" name="tag" id="tagSelect">
+                    <option selected value="">Select a Tag</option>
+                    {{range $tag := .Tags}}
+                        <option value="{{$tag}}">{{$tag}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-dark">Save</button>
+        </form>
+        <script>
+            function typeChange(typeId, resetValues) {
+                let targetValue = document.getElementById("targetValue");
+                let tag = document.getElementById("tag");
+    
+                targetValue.style.display = "none";
+                tag.style.display = "none";
+    
+                if (resetValues) {
+                    targetValue.getElementsByTagName("input")[0].value = "";
+                    tag.getElementsByTagName("select")[0].selectedIndex = 0;
+                }
+    
+                switch (typeId) {
+                    case "0":
+                    case "1":
+                        targetValue.style.display = "block";
+                        break;
+                    case "3":
+                        targetValue.style.display = "block";
+                        tag.style.display = "block";
+                        break;
+                }
+            }
+
+            let type = document.getElementById("type");
+            type.onchange = (e) => {
+                typeChange(e.target.value, true)
+            }
+
+            if ("{{.Goal.TypeID}}" != "<nil>") {
+                document.getElementById("type").value = "{{.Goal.TypeID}}";
+                document.getElementById("tagSelect").value = {{index .Goal.Config "tag"}};
+                typeChange("{{.Goal.TypeID}}", false);
+            }
+        </script>
+    </div>
+{{template "footer"}}

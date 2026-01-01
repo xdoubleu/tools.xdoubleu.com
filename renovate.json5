@@ -1,0 +1,39 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+  ],
+  customManagers: [
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^api/Makefile$/',
+      ],
+      matchStrings: [
+        'go install (?<depName>[^@]+)@(?<currentValue>[0-9a-zA-Z.]+)',
+      ],
+      datasourceTemplate: 'go',
+    },
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^api/go.mod$/',
+      ],
+      matchStrings: [
+        '\\sgo (?<currentValue>.+?)\\s',
+      ],
+      depNameTemplate: 'golang',
+      datasourceTemplate: 'docker',
+    },
+  ],
+  timezone: 'Europe/Brussels',
+  labels: [
+    'dependencies',
+  ],
+  dependencyDashboardLabels: [
+    'dependencies',
+  ],
+  schedule: [
+    'monthly',
+  ],
+}

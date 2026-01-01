@@ -1,0 +1,68 @@
+{{template "header"}}
+{{template "navbar"}}
+  <div class="container">
+    <h1>{{.Goal.Name}}</h1>
+    <a class="btn btn-dark" href="/goaltracker/edit/{{.Goal.ID}}">Edit</a>
+    {{template "ws" .Goal.SourceID}}
+    <br/>
+    <br/>
+
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary-tab-pane" type="button" role="tab" aria-controls="summary-tab-pane" aria-selected="true">Summary</button>
+      </li>
+      <li class="nav-item d-none d-lg-block" role="presentation">
+        <button class="nav-link" id="graph-tab" data-bs-toggle="tab" data-bs-target="#graph-tab-pane" type="button" role="tab" aria-controls="graph-tab-pane">Graph</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="details-tab" data-bs-toggle="tab" data-bs-target="#details-tab-pane" type="button" role="tab" aria-controls="details-tab-pane">Details</button>
+      </li>
+    </ul>
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="summary-tab-pane" role="tabpanel" aria-labelledby="summary-tab" tabindex="0">
+        <h1 class="display-1 text-center" style="font-size:6rem">{{.CurrentProgressValue}}</h1>
+        <h2 class="display-2 text-center">Expected: {{.CurrentTargetValue}}</h2>
+        <h2 class="display-2 text-center">Target: {{.Goal.TargetValue}}</h2>
+      </div>
+      <div class="tab-pane fade" id="graph-tab-pane" role="tabpanel" aria-labelledby="graph-tab" tabindex="0">
+        <canvas id="chart"></canvas>
+      </div>
+      <div class="tab-pane fade" id="details-tab-pane" role="tabpanel" aria-labelledby="details-tab" tabindex="0">
+        <br/>
+        <ul>
+          {{range $listItem := .Details}}
+            <li>{{$listItem.Value}}</li>
+          {{end}}
+      </ul>
+      </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('chart');
+
+        const dateLabels = {{.DateLabels}};
+        const progressValues = {{.ProgressValues}};
+        const targetValues = {{.TargetValues}};
+      
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: dateLabels,
+            datasets: [{
+                label: 'Progress',
+                data: progressValues
+            },
+            {
+                label: 'Target',
+                data: targetValues,
+                borderDash: [5, 10]
+            }]
+          },
+          options: {
+            maintainAspectRatio: true
+          }
+        });
+    </script>
+  </div>
+{{template "footer"}}

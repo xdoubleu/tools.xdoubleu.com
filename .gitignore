@@ -1,0 +1,10 @@
+bin
+coverage.out
+coverage.out.tmp
+coverage.html
+cpu.prof
+mem.prof
+api.test
+.env
+
+.DS_Store

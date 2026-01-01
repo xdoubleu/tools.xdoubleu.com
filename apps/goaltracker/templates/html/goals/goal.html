@@ -1,0 +1,35 @@
+{{define "goal"}}
+    <tr>
+        <th scope="row">
+            {{if .IsLinked}}
+                <a href="/goaltracker/goals/{{.ID}}">{{.Name}}</a>
+            {{else}}
+                {{.Name}}
+            {{end}}
+        </th>
+        <td>
+            {{if .Period}}
+                <b>{{.PeriodStart.Format "2006-01-02"}}</b> to <b>{{.PeriodEnd.Format "2006-01-02"}}</b>
+            {{else if .DueTime}}
+                <b>{{.DueTime.Format "2006-01-02"}}</b>
+            {{end}}
+
+            {{if .Progress}}
+                {{.Progress}}/{{.TargetValue}}
+            {{end}}
+        </td>
+        <td>
+            {{if .IsLinked}}
+                <a class="btn btn-dark" href="/goaltracker/api/goals/{{.ID}}/unlink">Unlink</a>
+            {{else}}
+                <a class="btn btn-dark" href="/goaltracker/edit/{{.ID}}">Link</a>
+            {{end}}
+
+            {{if .IsCompletable}}
+                <br/>
+                <br/>
+                <a class="btn btn-dark" href="/goaltracker/api/goals/{{.ID}}/complete">Mark as completed</a>
+            {{end}}
+        </td>
+    </tr>
+{{end}}

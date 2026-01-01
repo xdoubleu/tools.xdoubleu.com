@@ -1,0 +1,54 @@
+{{define "ws"}}
+    <button class="btn btn-dark" id="refresh-btn">Refresh</button>
+    <script>
+        let url = window.location.origin;
+        let wsUrl = url;
+
+        wsUrl.replace("https://", "wss://")
+        wsUrl.replace("http://", "ws://")
+
+        function connectWebSocket() {
+            let webSocket = new WebSocket(`${wsUrl}/goaltracker/api/progress`);
+
+            webSocket.onclose = () => {
+                connectWebSocket();
+            }
+
+            webSocket.onopen = async () => {
+                webSocket.send(JSON.stringify({
+                    subject: "{{.}}"
+                }));
+            };
+
+            webSocket.onmessage = e => {
+                let t = JSON.parse(e.data);
+
+                let btn = document.getElementById("refresh-btn");
+
+                if (t.isRefreshing) {
+                    btn.disabled = true;
+                    btn.innerHTML = "Refreshing...";
+                    return;
+                }
+
+                if (!t.isRefreshing && btn.disabled) {
+                    location.reload();
+                    return;
+                }
+
+                btn.innerHTML = `Refresh (last: ${new Date(t.lastRefresh).toLocaleString("en-GB")})`
+            };
+
+            window.onbeforeunload = () => {
+                webSocket.close();
+            };
+        }
+
+        connectWebSocket();
+
+        document.getElementById("refresh-btn").onclick = () => {
+            fetch(`${url}/goaltracker/api/progress/{{.}}/refresh`)
+        };
+    </script>
+{{end}}
+
