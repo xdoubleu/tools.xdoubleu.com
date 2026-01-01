@@ -53,8 +53,8 @@ CREATE TABLE IF NOT EXISTS goaltracker.steam_games (
     user_id varchar(255) NOT NULL,
     name varchar(255) NOT NULL,
     is_delisted boolean NOT NULL DEFAULT false,
-    completion_rate VARCHAR(255) DEFAULT '',
-    contribution VARCHAR(255) DEFAULT '',
+    completion_rate varchar(255) DEFAULT '',
+    contribution varchar(255) DEFAULT '',
     PRIMARY KEY (id, user_id)
 );
 

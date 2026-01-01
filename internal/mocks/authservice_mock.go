@@ -11,19 +11,19 @@ import (
 
 func NewMockedAuthService(userID string) auth.Service {
 	return &MockedAuthService{
-		userId: userID,
+		userID: userID,
 	}
 }
 
 type MockedAuthService struct {
-	userId string
+	userID string
 }
 
 func (m *MockedAuthService) Access(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Inject a mock user into the context
 		user := models.User{
-			ID:    m.userId,
+			ID:    m.userID,
 			Email: "<EMAIL>",
 		}
 
@@ -38,7 +38,7 @@ func (m *MockedAuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Inject a mock user into the context
 		user := models.User{
-			ID:    m.userId,
+			ID:    m.userID,
 			Email: "<EMAIL>",
 		}
 

@@ -119,7 +119,7 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	return app.apps.ApplyMigrations(db)
 }
 
-func (app *Application) Home(w http.ResponseWriter, r *http.Request) {
+func (app *Application) Home(w http.ResponseWriter, _ *http.Request) {
 	data := []string{}
 	for _, a := range app.apps.apps {
 		data = append(data, a.GetName())
