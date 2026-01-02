@@ -21,7 +21,7 @@ func TestEditGoalHandler(t *testing.T) {
 	)
 
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodPost,
 		fmt.Sprintf("/%s/api/goals/%s/edit", testApp.GetName(), goalID),
 	)
@@ -66,7 +66,7 @@ func TestUnlinkGoalHandler(t *testing.T) {
 	)
 
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodGet,
 		fmt.Sprintf("/%s/api/goals/%s/unlink", testApp.GetName(), goalID),
 	)
@@ -101,7 +101,7 @@ func TestCompleteGoalHandler(t *testing.T) {
 	)
 
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodGet,
 		fmt.Sprintf("/%s/api/goals/%s/complete", testApp.GetName(), goalID),
 	)

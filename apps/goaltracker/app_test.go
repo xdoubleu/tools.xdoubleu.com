@@ -76,3 +76,9 @@ func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 }
+
+func getRoutes() http.Handler {
+	mux := http.NewServeMux()
+	testApp.Routes(testApp.GetName(), mux)
+	return mux
+}

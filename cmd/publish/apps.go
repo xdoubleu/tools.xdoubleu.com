@@ -17,7 +17,7 @@ type Apps struct {
 }
 
 type App interface {
-	Routes(prefix string, mux *http.ServeMux) http.Handler
+	Routes(prefix string, mux *http.ServeMux)
 	ApplyMigrations(db *pgxpool.Pool) error
 	GetName() string
 }
