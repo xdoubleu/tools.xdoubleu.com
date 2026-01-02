@@ -19,7 +19,7 @@ func TestRoot(t *testing.T) {
 	}
 
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodGet,
 		testApp.GetName(),
 	)
@@ -39,7 +39,7 @@ func TestLink(t *testing.T) {
 	}
 
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodGet,
 		fmt.Sprintf("/%s/edit/123", testApp.GetName()),
 	)
@@ -74,7 +74,7 @@ func TestGoalProgressGraph(t *testing.T) {
 	}
 
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodGet,
 		fmt.Sprintf("/%s/goals/123", testApp.GetName()),
 	)
@@ -110,7 +110,7 @@ func TestGoalProgressList(t *testing.T) {
 	}
 
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodGet,
 		fmt.Sprintf("/%s/goals/123", testApp.GetName()),
 	)

@@ -14,7 +14,6 @@ import (
 	"github.com/XDoubleU/essentia/pkg/database/postgres"
 	"github.com/XDoubleU/essentia/pkg/logging"
 	sentrytools "github.com/XDoubleU/essentia/pkg/sentry"
-	"github.com/XDoubleU/essentia/pkg/tpl"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/supabase-community/gotrue-go"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
@@ -104,26 +103,6 @@ func NewApplication(
 	return app
 }
 
-func (app *Application) Routes() http.Handler {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("GET /{$}", app.services.Auth.TemplateAccess(app.Home))
-	app.authRoutes("api", mux)
-
-	app.apps.Routes(mux)
-
-	return mux
-}
-
 func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	return app.apps.ApplyMigrations(db)
-}
-
-func (app *Application) Home(w http.ResponseWriter, _ *http.Request) {
-	data := []string{}
-	for _, a := range app.apps.apps {
-		data = append(data, a.GetName())
-	}
-
-	tpl.RenderWithPanic(app.tpl, w, "home.html", data)
 }

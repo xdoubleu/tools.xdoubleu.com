@@ -11,7 +11,7 @@ import (
 
 func TestRefreshProgressHandler(t *testing.T) {
 	tReq := test.CreateRequestTester(
-		testApp.Routes(testApp.GetName(), http.NewServeMux()),
+		getRoutes(),
 		http.MethodGet,
 		fmt.Sprintf("%s/api/progress/0/refresh", testApp.GetName()),
 	)
