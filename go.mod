@@ -1,6 +1,8 @@
 module tools.xdoubleu.com
 
-go 1.23.0
+go 1.24.0
+
+toolchain go1.24.11
 
 require github.com/justinas/alice v1.2.0
 
@@ -16,14 +18,14 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/supabase-community/gotrue-go v1.2.1
 	github.com/xhit/go-str2duration/v2 v2.1.0
-	golang.org/x/net v0.42.0
+	golang.org/x/net v0.48.0
 )
 
 require (
 	github.com/goddtriffin/helmet v1.0.2 // indirect
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 )
 
@@ -52,9 +54,9 @@ require (
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
