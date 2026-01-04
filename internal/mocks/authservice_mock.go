@@ -55,6 +55,7 @@ func (m *MockedAuthService) GetAllUsers() ([]models.User, error) {
 
 func (m *MockedAuthService) SignOut(
 	_ string,
+	_ bool,
 ) (*http.Cookie, *http.Cookie, error) {
 	return nil, nil, nil
 }

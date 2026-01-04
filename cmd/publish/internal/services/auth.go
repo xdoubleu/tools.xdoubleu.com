@@ -83,6 +83,7 @@ func (service *AuthService) SignInWithRefreshToken(
 
 func (service *AuthService) SignOut(
 	accessToken string,
+	secure bool,
 ) (*http.Cookie, *http.Cookie, error) {
 	err := service.client.WithToken(accessToken).Logout()
 	if err != nil {
@@ -95,6 +96,7 @@ func (service *AuthService) SignOut(
 		MaxAge:   -1,
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
+		Secure:   secure,
 		Path:     "/",
 	}
 
@@ -104,6 +106,7 @@ func (service *AuthService) SignOut(
 		MaxAge:   -1,
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
+		Secure:   secure,
 		Path:     "/",
 	}
 
