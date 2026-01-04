@@ -9,7 +9,7 @@ require github.com/justinas/alice v1.2.0
 require (
 	github.com/XDoubleU/essentia v1.0.3
 	github.com/coder/websocket v1.8.14
-	github.com/getsentry/sentry-go v0.35.3
+	github.com/getsentry/sentry-go v0.40.0
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
