@@ -31,7 +31,10 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	if user == nil {
 		accessToken, _ := r.Cookie("accessToken")
-		aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(accessToken.Value, secure)
+		aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(
+			accessToken.Value,
+			secure,
+		)
 		http.SetCookie(w, aTokenRemoval)
 		http.SetCookie(w, rTokenRemoval)
 		httptools.RedirectWithError(

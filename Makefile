@@ -3,10 +3,10 @@ tools: tools/lint
 tools/lint: tools/lint/go tools/lint/sql
 
 tools/lint/go:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.2
-	go install github.com/segmentio/golines@v0.12.2
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7.2
+	go install github.com/segmentio/golines@v0.13.0
 	go install github.com/daixiang0/gci@v0.13.5
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
+	go install github.com/securego/gosec/v2/cmd/gosec@v2.22.11
 
 tools/lint/sql:
 ifeq ($(UNAME_S),Darwin)
