@@ -7,7 +7,7 @@ toolchain go1.24.11
 require github.com/justinas/alice v1.2.0
 
 require (
-	github.com/XDoubleU/essentia v1.0.3
+	github.com/XDoubleU/essentia v1.0.4
 	github.com/coder/websocket v1.8.14
 	github.com/getsentry/sentry-go v0.40.0
 	github.com/gocolly/colly/v2 v2.2.0
@@ -23,7 +23,7 @@ require (
 
 require (
 	github.com/goddtriffin/helmet v1.0.2 // indirect
-	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438 // indirect
+	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
