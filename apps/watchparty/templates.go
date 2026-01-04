@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	httptools "github.com/XDoubleU/essentia/pkg/communication/http"
+	config "github.com/XDoubleU/essentia/pkg/config"
 	"github.com/XDoubleU/essentia/pkg/context"
 	tpltools "github.com/XDoubleU/essentia/pkg/tpl"
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
@@ -26,10 +27,11 @@ type rootData struct {
 
 func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 	user := context.GetValue[models.User](r.Context(), constants.UserContextKey)
+	secure := app.config.Env == config.ProdEnv
 
 	if user == nil {
 		accessToken, _ := r.Cookie("accessToken")
-		aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(accessToken.Value)
+		aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(accessToken.Value, secure)
 		http.SetCookie(w, aTokenRemoval)
 		http.SetCookie(w, rTokenRemoval)
 		httptools.RedirectWithError(
@@ -47,6 +49,7 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 		if accessToken != nil {
 			aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(
 				accessToken.Value,
+				secure,
 			)
 			http.SetCookie(w, aTokenRemoval)
 			http.SetCookie(w, rTokenRemoval)

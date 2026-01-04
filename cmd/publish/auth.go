@@ -75,8 +75,10 @@ func (app *Application) signOutHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, _ := r.Cookie("accessToken")
 	refreshToken, _ := r.Cookie("refreshToken")
 
+	secure := app.config.Env == config.ProdEnv
 	deleteAccessTokenCookie, deleteRefreshTokenCookie, err := app.services.Auth.SignOut(
 		accessToken.Value,
+		secure,
 	)
 	if err != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
