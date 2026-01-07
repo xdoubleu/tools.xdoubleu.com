@@ -21,7 +21,7 @@ func (repo *SteamRepository) GetAllGames(
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution
 		FROM goaltracker.steam_games
-		WHERE user_id = $1 AND completion_rate != 'NaN'
+		WHERE user_id = $1 AND contribution != '0.0000'
 	`
 
 	rows, err := repo.db.Query(ctx, query, userID)
