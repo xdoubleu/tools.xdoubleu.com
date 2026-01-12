@@ -44,15 +44,19 @@ func (app *Application) checkAuth(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
+	//nolint:mnd //2 is fine here
 	parts := strings.SplitN(string(decoded), ":", 2)
+
+	//nolint:mnd //2 is fine here
 	if len(parts) != 2 {
 		unauthorized(w)
 		return false
 	}
 
 	_, _, err = app.services.Auth.SignInWithEmail(&dtos.SignInDto{
-		Email:    parts[0],
-		Password: parts[1],
+		Email:      parts[0],
+		Password:   parts[1],
+		RememberMe: true,
 	})
 
 	if err != nil {
@@ -71,13 +75,14 @@ func unauthorized(w http.ResponseWriter) {
 func handleHTTP(w http.ResponseWriter, r *http.Request) {
 	rewritten := rewriteGoogleQuery(r.URL)
 
-	req, err := http.NewRequest(
+	req, err := http.NewRequestWithContext(
+		r.Context(),
 		r.Method,
 		rewritten.String(),
 		r.Body,
 	)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -86,32 +91,38 @@ func handleHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err != nil {
-		http.Error(w, err.Error(), 502)
+		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
 
 	copyHeader(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func handleHTTPS(w http.ResponseWriter, r *http.Request) {
-	destConn, err := net.Dial("tcp", r.Host)
+	//nolint:exhaustruct //fields are optional
+	dialer := &net.Dialer{}
+	destConn, err := dialer.DialContext(r.Context(), "tcp", r.Host)
 	if err != nil {
-		http.Error(w, err.Error(), 502)
+		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
 
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
-		http.Error(w, "Hijacking not supported", 500)
+		http.Error(w, "Hijacking not supported", http.StatusInternalServerError)
 		return
 	}
 
 	clientConn, _, err := hijacker.Hijack()
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -124,7 +135,10 @@ func handleHTTPS(w http.ResponseWriter, r *http.Request) {
 func transfer(dst io.WriteCloser, src io.ReadCloser) {
 	defer dst.Close()
 	defer src.Close()
-	io.Copy(dst, src)
+	_, err := io.Copy(dst, src)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func rewriteGoogleQuery(u *url.URL) *url.URL {
