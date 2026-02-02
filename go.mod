@@ -7,9 +7,8 @@ toolchain go1.24.11
 require github.com/justinas/alice v1.2.0
 
 require (
-	github.com/XDoubleU/essentia/v2 v2.0.1
 	github.com/coder/websocket v1.8.14
-	github.com/getsentry/sentry-go v0.40.0
+	github.com/getsentry/sentry-go v0.42.0
 	github.com/gocolly/colly/v2 v2.3.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
@@ -17,6 +16,7 @@ require (
 	github.com/sgreben/piecewiselinear v1.2.0
 	github.com/stretchr/testify v1.11.1
 	github.com/supabase-community/gotrue-go v1.2.1
+	github.com/xdoubleu/essentia/v2 v2.0.2
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	golang.org/x/net v0.48.0
 )
@@ -26,7 +26,7 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/time v0.12.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 )
 
 require (

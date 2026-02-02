@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/XDoubleU/essentia/pkg/parse"
+	"github.com/xdoubleu/essentia/v2/pkg/parse"
 )
 
 func (app *GoalTracker) progressRoutes(prefix string, mux *http.ServeMux) {

@@ -3,7 +3,7 @@ package dtos
 import (
 	"encoding/json"
 
-	"github.com/XDoubleU/essentia/pkg/validate"
+	"github.com/xdoubleu/essentia/v2/pkg/validate"
 )
 
 type SubscribeMessageDto struct {

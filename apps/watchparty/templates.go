@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	httptools "github.com/XDoubleU/essentia/pkg/communication/http"
-	config "github.com/XDoubleU/essentia/pkg/config"
-	"github.com/XDoubleU/essentia/pkg/context"
-	tpltools "github.com/XDoubleU/essentia/pkg/tpl"
+	"github.com/xdoubleu/essentia/v2/pkg/communication/httptools"
+	config "github.com/xdoubleu/essentia/v2/pkg/config"
+	"github.com/xdoubleu/essentia/v2/pkg/contexttools"
+	tpltools "github.com/xdoubleu/essentia/v2/pkg/tpl"
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
@@ -26,7 +26,7 @@ type rootData struct {
 }
 
 func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
-	user := context.GetValue[models.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
 	secure := app.config.Env == config.ProdEnv
 
 	if user == nil {

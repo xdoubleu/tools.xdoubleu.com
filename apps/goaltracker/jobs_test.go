@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/XDoubleU/essentia/pkg/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/xdoubleu/essentia/v2/pkg/logging"
 	"tools.xdoubleu.com/apps/goaltracker/internal/dtos"
 	"tools.xdoubleu.com/apps/goaltracker/internal/jobs"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"

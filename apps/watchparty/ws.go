@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	wstools "github.com/XDoubleU/essentia/pkg/communication/ws"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	wstools "github.com/xdoubleu/essentia/v2/pkg/communication/wstools"
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 )
 

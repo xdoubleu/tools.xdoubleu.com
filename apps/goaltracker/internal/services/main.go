@@ -3,7 +3,7 @@ package services
 import (
 	"log/slog"
 
-	"github.com/XDoubleU/essentia/pkg/threading"
+	"github.com/xdoubleu/essentia/v2/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/repositories"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/goodreads"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/steam"

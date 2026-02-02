@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/XDoubleU/essentia/pkg/grapher"
+	"github.com/xdoubleu/essentia/v2/pkg/grapher"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
 	"tools.xdoubleu.com/apps/goaltracker/internal/services"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/goodreads"

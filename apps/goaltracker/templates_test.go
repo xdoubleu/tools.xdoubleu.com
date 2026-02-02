@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/XDoubleU/essentia/pkg/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/xdoubleu/essentia/v2/pkg/test"
 	"tools.xdoubleu.com/apps/goaltracker/internal/dtos"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
 )

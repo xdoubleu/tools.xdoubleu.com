@@ -8,11 +8,11 @@ import (
 	"log/slog"
 	_ "time/tzdata"
 
-	"github.com/XDoubleU/essentia/pkg/database/postgres"
-	"github.com/XDoubleU/essentia/pkg/threading"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v2/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/jobs"
 	"tools.xdoubleu.com/apps/goaltracker/internal/repositories"
 	"tools.xdoubleu.com/apps/goaltracker/internal/services"

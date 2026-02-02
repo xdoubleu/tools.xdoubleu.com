@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	configtools "github.com/XDoubleU/essentia/pkg/config"
-	"github.com/XDoubleU/essentia/pkg/database/postgres"
-	"github.com/XDoubleU/essentia/pkg/logging"
+	configtools "github.com/xdoubleu/essentia/v2/pkg/config"
+	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v2/pkg/logging"
 	"tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/apps/goaltracker/internal/mocks"
 	"tools.xdoubleu.com/internal/config"
