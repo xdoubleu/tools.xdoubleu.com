@@ -3,8 +3,8 @@ package repositories
 import (
 	"context"
 
-	"github.com/XDoubleU/essentia/pkg/database"
-	"github.com/XDoubleU/essentia/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v2/pkg/database"
+	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
 )
 

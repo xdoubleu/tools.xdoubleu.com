@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	wstools "github.com/XDoubleU/essentia/pkg/communication/ws"
-	"github.com/XDoubleU/essentia/pkg/threading"
+	wstools "github.com/xdoubleu/essentia/v2/pkg/communication/wstools"
+	"github.com/xdoubleu/essentia/v2/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/dtos"
 )
 

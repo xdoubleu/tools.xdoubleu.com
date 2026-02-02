@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/XDoubleU/essentia/pkg/database/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
 	goaltracker "tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"

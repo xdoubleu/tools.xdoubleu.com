@@ -3,8 +3,8 @@ package repositories
 import (
 	"context"
 
-	"github.com/XDoubleU/essentia/pkg/database/postgres"
 	"github.com/jackc/pgx/v5"
+	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/goodreads"
 )
 

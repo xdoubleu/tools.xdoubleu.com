@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/XDoubleU/essentia/pkg/threading"
+	"github.com/xdoubleu/essentia/v2/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
 	"tools.xdoubleu.com/apps/goaltracker/internal/repositories"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/steam"

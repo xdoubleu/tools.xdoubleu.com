@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	httptools "github.com/XDoubleU/essentia/pkg/communication/http"
-	"github.com/XDoubleU/essentia/pkg/context"
-	"github.com/XDoubleU/essentia/pkg/parse"
+	httptools "github.com/xdoubleu/essentia/v2/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v2/pkg/contexttools"
+	"github.com/xdoubleu/essentia/v2/pkg/parse"
 	"tools.xdoubleu.com/apps/goaltracker/internal/dtos"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
@@ -34,7 +34,7 @@ func (app *GoalTracker) editGoalHandler(w http.ResponseWriter, r *http.Request) 
 		panic(err)
 	}
 
-	user := context.GetValue[models.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}
@@ -67,7 +67,7 @@ func (app *GoalTracker) unlinkGoalHandler(w http.ResponseWriter, r *http.Request
 		panic(err)
 	}
 
-	user := context.GetValue[models.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}
@@ -86,7 +86,7 @@ func (app *GoalTracker) completeGoalHandler(w http.ResponseWriter, r *http.Reque
 		panic(err)
 	}
 
-	user := context.GetValue[models.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}

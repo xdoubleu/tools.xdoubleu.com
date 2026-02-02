@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	httptools "github.com/XDoubleU/essentia/pkg/communication/http"
+	httptools "github.com/xdoubleu/essentia/v2/pkg/communication/httptools"
 )
 
 const BaseURLRESTAPI = "http://api.steampowered.com"

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/XDoubleU/essentia/pkg/context"
-	"github.com/XDoubleU/essentia/pkg/parse"
-	tpltools "github.com/XDoubleU/essentia/pkg/tpl"
+	"github.com/xdoubleu/essentia/v2/pkg/contexttools"
+	"github.com/xdoubleu/essentia/v2/pkg/parse"
+	tpltools "github.com/xdoubleu/essentia/v2/pkg/tpl"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -34,7 +34,7 @@ func (app *GoalTracker) templateRoutes(prefix string, mux *http.ServeMux) {
 }
 
 func (app *GoalTracker) rootHandler(w http.ResponseWriter, r *http.Request) {
-	user := context.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}
@@ -65,7 +65,7 @@ func (app *GoalTracker) editHandler(
 		panic(err)
 	}
 
-	user := context.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}
@@ -95,7 +95,7 @@ func (app *GoalTracker) goalProgressHandler(w http.ResponseWriter, r *http.Reque
 		panic(err)
 	}
 
-	user := context.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}

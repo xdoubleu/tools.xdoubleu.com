@@ -3,8 +3,8 @@ package services
 import (
 	"html/template"
 
-	"github.com/XDoubleU/essentia/pkg/config"
 	"github.com/supabase-community/gotrue-go"
+	"github.com/xdoubleu/essentia/v2/pkg/config"
 	cfg "tools.xdoubleu.com/internal/config"
 )
 
