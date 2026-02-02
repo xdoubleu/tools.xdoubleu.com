@@ -12,7 +12,10 @@ import (
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /{$}", app.services.Auth.TemplateAccess(app.Home))
+	mux.HandleFunc("GET /", app.services.Auth.TemplateAccess(app.Home))
+
+	mux.HandleFunc("GET /proxy", app.Proxy)
+
 	app.authRoutes("api", mux)
 
 	app.apps.Routes(mux)
