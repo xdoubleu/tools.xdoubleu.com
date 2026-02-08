@@ -1,0 +1,93 @@
+{{template "header"}}
+
+<div class="container-fluid p-4">
+
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+
+  <div class="card shadow-sm">
+  <div class="card-header bg-dark text-white">
+    <h4 class="mb-0">Review & filter your calendar</h4>
+  </div>
+
+  <div class="card-body">
+
+  <div class="alert alert-info">
+    <strong>How holidays work:</strong><br>
+    Only events you explicitly mark as <strong>Holiday</strong> will trigger
+    “hide everything else”.
+  </div>
+
+  <form method="POST" action="/icsproxy/create">
+    <input type="hidden" name="source_url" value="{{.SourceURL}}">
+
+    <table class="table table-hover table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Hide?</th>
+          <th>Holiday?</th>
+          <th>Title</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Recurring</th>
+          <th>Hide whole series</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{range .Events}}
+      <tr>
+        <td>
+          <input class="form-check-input" 
+                 type="checkbox" 
+                 name="hide_uid" 
+                 value="{{.UID}}">
+        </td>
+
+        <td>
+          <input class="form-check-input"
+                 type="checkbox"
+                 name="holiday_uid"
+                 value="{{.UID}}">
+        </td>
+
+        <td><strong>{{.Summary}}</strong></td>
+        <td>{{.StartNice}}</td>
+        <td>{{.EndNice}}</td>
+
+        <td>
+          {{if .RRule}}
+            <span class="badge bg-secondary">Recurring</span>
+          {{else}}
+            <span class="badge bg-light text-muted">One-time</span>
+          {{end}}
+        </td>
+
+        <td>
+          {{if .RRule}}
+          <input class="form-check-input"
+                 type="checkbox"
+                 name="hide_rec_{{.Summary}}|{{.RRule}}">
+          {{else}}
+          —
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+      </tbody>
+    </table>
+
+    <div class="d-flex justify-content-between mt-3">
+      <a href="/icsproxy" class="btn btn-outline-secondary">Back</a>
+      <button class="btn btn-dark">Create filtered calendar</button>
+    </div>
+
+  </form>
+
+  </div>
+  </div>
+
+  </div>
+</div>
+</div>
+
+{{template "footer"}}
