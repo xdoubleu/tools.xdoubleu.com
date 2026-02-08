@@ -62,6 +62,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	}
 
 	client := &http.Client{
+		//nolint:mnd // this is a reasonable timeout for fetching external calendars
 		Timeout: 10 * time.Second,
 	}
 
@@ -159,7 +160,6 @@ func (s *CalendarService) ApplyFilter(
 	data []byte,
 	cfg models.FilterConfig,
 ) ([]byte, error) {
-
 	cal, err := ics.ParseCalendar(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
@@ -199,12 +199,11 @@ type holidayWindow struct {
 	end   time.Time
 }
 
-// Find the time window of the selected holiday (timezone-safe)
+// Find the time window of the selected holiday (timezone-safe).
 func (s *CalendarService) findHolidayWindow(
 	events []models.EventInfo,
 	cfg models.FilterConfig,
 ) (holidayWindow, bool) {
-
 	var w holidayWindow
 
 	for _, ev := range events {
@@ -228,14 +227,13 @@ func (s *CalendarService) findHolidayWindow(
 	return w, false
 }
 
-// Decide whether to hide an event
+// Decide whether to hide an event.
 func (s *CalendarService) shouldHideEvent(
 	ev *ics.VEvent,
 	cfg models.FilterConfig,
 	w holidayWindow,
 	hasHoliday bool,
 ) bool {
-
 	uid := ev.GetProperty("UID").Value
 	summary := ev.GetProperty("SUMMARY").Value
 
@@ -281,12 +279,11 @@ func (s *CalendarService) isExplicitlyHidden(
 	return false
 }
 
-// Timezone-safe overlap check
+// Timezone-safe overlap check.
 func (s *CalendarService) overlapsHoliday(
 	ev *ics.VEvent,
 	w holidayWindow,
 ) bool {
-
 	startRaw := ev.GetProperty("DTSTART").Value
 	endRaw := ev.GetProperty("DTEND").Value
 
@@ -307,7 +304,6 @@ func (s *CalendarService) overlapsHoliday(
 // ============================================================
 
 func parseICSTime(raw string) (time.Time, error) {
-
 	// Strip VALUE=DATE prefixes if present
 	raw = strings.ReplaceAll(raw, "DTSTART;VALUE=DATE:", "")
 	raw = strings.ReplaceAll(raw, "DTEND;VALUE=DATE:", "")
