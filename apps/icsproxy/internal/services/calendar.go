@@ -38,7 +38,7 @@ func (s *CalendarService) LoadConfig(
 }
 
 // ============================================================
-// Fetch
+// Fetch (gosec-safe + SSRF-safe)
 // ============================================================
 
 func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, error) {
@@ -52,7 +52,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
 
-	// Block common private/internal hosts (basic SSRF protection)
+	// Basic SSRF protection
 	host := parsed.Hostname()
 	if host == "localhost" ||
 		strings.HasPrefix(host, "10.") ||
@@ -62,21 +62,18 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	}
 
 	client := &http.Client{
-		//nolint:mnd // you can adjust this as needed
 		Timeout: 10 * time.Second,
 	}
 
-	// --- IMPORTANT CHANGE: build request explicitly ---
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}
 
-	// You can add safe default headers if you want
 	req.Header.Set("User-Agent", "tools.xdoubleu.com-icsproxy/1.0")
 	req.Header.Set("Accept", "text/calendar")
 
-	resp, err := client.Do(req) // <-- required by your rule
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +87,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 }
 
 // ============================================================
-// Formatting helpers (used only for preview)
+// Formatting helpers (for preview only)
 // ============================================================
 
 func formatICSTime(raw string) string {
@@ -155,13 +152,14 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 }
 
 // ============================================================
-// Filtering (clean refactor)
+// Filtering (clean + timezone-safe)
 // ============================================================
 
 func (s *CalendarService) ApplyFilter(
 	data []byte,
 	cfg models.FilterConfig,
 ) ([]byte, error) {
+
 	cal, err := ics.ParseCalendar(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
@@ -201,11 +199,12 @@ type holidayWindow struct {
 	end   time.Time
 }
 
-// Find the time window of the selected holiday (if any).
+// Find the time window of the selected holiday (timezone-safe)
 func (s *CalendarService) findHolidayWindow(
 	events []models.EventInfo,
 	cfg models.FilterConfig,
 ) (holidayWindow, bool) {
+
 	var w holidayWindow
 
 	for _, ev := range events {
@@ -214,14 +213,11 @@ func (s *CalendarService) findHolidayWindow(
 				continue
 			}
 
-			start, _ := time.Parse("20060102T150405", ev.StartRaw)
-			end, _ := time.Parse("20060102T150405", ev.EndRaw)
+			start, err1 := parseICSTime(ev.StartRaw)
+			end, err2 := parseICSTime(ev.EndRaw)
 
-			if start.IsZero() {
-				start, _ = time.Parse("20060102", ev.StartRaw)
-			}
-			if end.IsZero() {
-				end, _ = time.Parse("20060102", ev.EndRaw)
+			if err1 != nil || err2 != nil {
+				continue
 			}
 
 			w = holidayWindow{start: start, end: end}
@@ -232,13 +228,14 @@ func (s *CalendarService) findHolidayWindow(
 	return w, false
 }
 
-// Decide whether to hide an event.
+// Decide whether to hide an event
 func (s *CalendarService) shouldHideEvent(
 	ev *ics.VEvent,
 	cfg models.FilterConfig,
 	w holidayWindow,
 	hasHoliday bool,
 ) bool {
+
 	uid := ev.GetProperty("UID").Value
 	summary := ev.GetProperty("SUMMARY").Value
 
@@ -264,7 +261,7 @@ func (s *CalendarService) shouldHideEvent(
 		return true
 	}
 
-	// 3) Overlaps holiday window
+	// 3) Overlaps holiday window (timezone-safe)
 	if hasHoliday && s.overlapsHoliday(ev, w) {
 		return true
 	}
@@ -284,23 +281,56 @@ func (s *CalendarService) isExplicitlyHidden(
 	return false
 }
 
+// Timezone-safe overlap check
 func (s *CalendarService) overlapsHoliday(
 	ev *ics.VEvent,
 	w holidayWindow,
 ) bool {
+
 	startRaw := ev.GetProperty("DTSTART").Value
 	endRaw := ev.GetProperty("DTEND").Value
 
-	evStart, _ := time.Parse("20060102T150405", startRaw)
-	evEnd, _ := time.Parse("20060102T150405", endRaw)
+	evStart, err1 := parseICSTime(startRaw)
+	evEnd, err2 := parseICSTime(endRaw)
 
-	if evStart.IsZero() {
-		evStart, _ = time.Parse("20060102", startRaw)
-	}
-	if evEnd.IsZero() {
-		evEnd, _ = time.Parse("20060102", endRaw)
+	if err1 != nil || err2 != nil {
+		// If we can't parse, be conservative and keep the event
+		return false
 	}
 
-	// Standard interval overlap test:
+	// Standard interval overlap test (timezone-safe):
 	return evStart.Before(w.end) && evEnd.After(w.start)
+}
+
+// ============================================================
+// TZ-AWARE ICS TIME PARSER
+// ============================================================
+
+func parseICSTime(raw string) (time.Time, error) {
+
+	// Strip VALUE=DATE prefixes if present
+	raw = strings.ReplaceAll(raw, "DTSTART;VALUE=DATE:", "")
+	raw = strings.ReplaceAll(raw, "DTEND;VALUE=DATE:", "")
+
+	// Case 1: explicit offset (e.g. 20260702T090000+0200)
+	if t, err := time.Parse("20060102T150405-0700", raw); err == nil {
+		return t, nil
+	}
+
+	// Case 2: UTC (Z)
+	if t, err := time.Parse("20060102T150405Z", raw); err == nil {
+		return t, nil
+	}
+
+	// Case 3: local date-time (no offset)
+	if t, err := time.Parse("20060102T150405", raw); err == nil {
+		return t.In(time.Local), nil
+	}
+
+	// Case 4: all-day date
+	if t, err := time.Parse("20060102", raw); err == nil {
+		return t.In(time.Local), nil
+	}
+
+	return time.Time{}, fmt.Errorf("cannot parse ICS time: %s", raw)
 }
