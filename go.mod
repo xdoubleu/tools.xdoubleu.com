@@ -7,6 +7,7 @@ toolchain go1.24.11
 require github.com/justinas/alice v1.2.0
 
 require (
+	github.com/arran4/golang-ical v0.3.2
 	github.com/coder/websocket v1.8.14
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/gocolly/colly/v2 v2.3.0

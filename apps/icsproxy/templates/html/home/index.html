@@ -1,0 +1,48 @@
+{{template "header"}}
+
+<div class="container-fluid p-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+
+      <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+          <h4 class="mb-0">ICS Proxy Filter</h4>
+        </div>
+
+        <div class="card-body">
+
+          <form method="POST" action="/icsproxy/preview">
+
+            <div class="mb-3">
+              <label class="form-label">Original ICS URL</label>
+              <input 
+                type="text" 
+                name="source_url" 
+                class="form-control"
+                required
+              >
+            </div>
+
+            <button type="submit" class="btn btn-dark">
+              Load & Preview Events
+            </button>
+          </form>
+
+          {{if .GeneratedURL}}
+          <hr>
+          <div class="alert alert-success mt-3">
+            <h5>Your filtered calendar:</h5>
+            <div class="bg-light p-2 border rounded text-break">
+              https://tools.xdoubleu.com{{.GeneratedURL}}
+            </div>
+          </div>
+          {{end}}
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{{template "footer"}}

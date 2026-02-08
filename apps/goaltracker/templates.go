@@ -34,7 +34,10 @@ func (app *GoalTracker) templateRoutes(prefix string, mux *http.ServeMux) {
 }
 
 func (app *GoalTracker) rootHandler(w http.ResponseWriter, r *http.Request) {
-	user := contexttools.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[sharedmodels.User](
+		r.Context(),
+		constants.UserContextKey,
+	)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}
@@ -65,7 +68,10 @@ func (app *GoalTracker) editHandler(
 		panic(err)
 	}
 
-	user := contexttools.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[sharedmodels.User](
+		r.Context(),
+		constants.UserContextKey,
+	)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}
@@ -95,7 +101,10 @@ func (app *GoalTracker) goalProgressHandler(w http.ResponseWriter, r *http.Reque
 		panic(err)
 	}
 
-	user := contexttools.GetValue[sharedmodels.User](r.Context(), constants.UserContextKey)
+	user := contexttools.GetValue[sharedmodels.User](
+		r.Context(),
+		constants.UserContextKey,
+	)
 	if user == nil {
 		panic(errors.New("not signed in"))
 	}

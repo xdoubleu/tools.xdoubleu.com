@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
 	goaltracker "tools.xdoubleu.com/apps/goaltracker"
+	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -34,6 +35,7 @@ func NewApps(
 
 	apps.addApp(goaltracker.New(authService, logger, cfg, db))
 	apps.addApp(watchparty.New(authService, logger, cfg))
+	apps.addApp(icsproxy.New(authService, logger, cfg, db))
 
 	return apps
 }
