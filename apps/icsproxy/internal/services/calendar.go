@@ -62,7 +62,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	}
 
 	client := &http.Client{
-		//nolint:mnd // this is a reasonable timeout for fetching external calendars
+		//nolint:mnd // reasonable default for external calls
 		Timeout: 10 * time.Second,
 	}
 
@@ -105,7 +105,7 @@ func formatICSTime(raw string) string {
 }
 
 // ============================================================
-// Parsing
+// Parsing (for preview)
 // ============================================================
 
 func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error) {
@@ -153,7 +153,7 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 }
 
 // ============================================================
-// Filtering (clean + timezone-safe)
+// Filtering — IN-PLACE (preserves all timezones)
 // ============================================================
 
 func (s *CalendarService) ApplyFilter(
@@ -172,22 +172,29 @@ func (s *CalendarService) ApplyFilter(
 
 	holidayWindow, hasHoliday := s.findHolidayWindow(events, cfg)
 
-	out := ics.NewCalendar()
+	// We will build a new component list from the ORIGINAL calendar
+	var newComponents []ics.Component
 
 	for _, comp := range cal.Components {
 		ev, ok := comp.(*ics.VEvent)
 		if !ok {
+			// Keep all non-VEVENT components (VTIMEZONE, PRODID, etc.)
+			newComponents = append(newComponents, comp)
 			continue
 		}
 
 		if s.shouldHideEvent(ev, cfg, holidayWindow, hasHoliday) {
+			// Skip (delete) this event
 			continue
 		}
 
-		out.AddVEvent(ev)
+		newComponents = append(newComponents, ev)
 	}
 
-	return []byte(out.Serialize()), nil
+	// Replace components in the original calendar (in-place mutation)
+	cal.Components = newComponents
+
+	return []byte(cal.Serialize()), nil
 }
 
 // ============================================================
@@ -199,7 +206,7 @@ type holidayWindow struct {
 	end   time.Time
 }
 
-// Find the time window of the selected holiday (timezone-safe).
+// Find holiday window from selected holiday UID (timezone-safe).
 func (s *CalendarService) findHolidayWindow(
 	events []models.EventInfo,
 	cfg models.FilterConfig,
@@ -249,17 +256,17 @@ func (s *CalendarService) shouldHideEvent(
 		return "SINGLE"
 	}()
 
-	// 1) Explicit single-event hide
+	// 1) Hide explicitly selected single events
 	if s.isExplicitlyHidden(uid, cfg) {
 		return true
 	}
 
-	// 2) Whole-series hide
+	// 2) Hide whole selected series
 	if cfg.HideSeries[seriesKey] {
 		return true
 	}
 
-	// 3) Overlaps holiday window (timezone-safe)
+	// 3) Hide events overlapping holiday window
 	if hasHoliday && s.overlapsHoliday(ev, w) {
 		return true
 	}
@@ -284,49 +291,59 @@ func (s *CalendarService) overlapsHoliday(
 	ev *ics.VEvent,
 	w holidayWindow,
 ) bool {
-	startRaw := ev.GetProperty("DTSTART").Value
-	endRaw := ev.GetProperty("DTEND").Value
+	startProp := ev.GetProperty("DTSTART")
+	endProp := ev.GetProperty("DTEND")
 
-	evStart, err1 := parseICSTime(startRaw)
-	evEnd, err2 := parseICSTime(endRaw)
+	evStart, err1 := parseICSTimeWithTZID(startProp)
+	evEnd, err2 := parseICSTimeWithTZID(endProp)
 
 	if err1 != nil || err2 != nil {
-		// If we can't parse, be conservative and keep the event
-		return false
+		return false // keep event if we can't parse safely
 	}
 
-	// Standard interval overlap test (timezone-safe):
 	return evStart.Before(w.end) && evEnd.After(w.start)
 }
 
 // ============================================================
-// TZ-AWARE ICS TIME PARSER
+// TZ-AWARE ICS TIME PARSERS
 // ============================================================
 
 func parseICSTime(raw string) (time.Time, error) {
-	// Strip VALUE=DATE prefixes if present
 	raw = strings.ReplaceAll(raw, "DTSTART;VALUE=DATE:", "")
 	raw = strings.ReplaceAll(raw, "DTEND;VALUE=DATE:", "")
 
-	// Case 1: explicit offset (e.g. 20260702T090000+0200)
 	if t, err := time.Parse("20060102T150405-0700", raw); err == nil {
 		return t, nil
 	}
 
-	// Case 2: UTC (Z)
 	if t, err := time.Parse("20060102T150405Z", raw); err == nil {
 		return t, nil
 	}
 
-	// Case 3: local date-time (no offset)
 	if t, err := time.Parse("20060102T150405", raw); err == nil {
 		return t.In(time.Local), nil
 	}
 
-	// Case 4: all-day date
 	if t, err := time.Parse("20060102", raw); err == nil {
 		return t.In(time.Local), nil
 	}
 
 	return time.Time{}, fmt.Errorf("cannot parse ICS time: %s", raw)
+}
+
+// Honor TZID if present (critical for correct comparisons).
+func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
+	raw := p.Value
+
+	if tzid, ok := p.ICalParameters["TZID"]; ok && len(tzid) > 0 {
+		loc, err := time.LoadLocation(tzid[0])
+		if err == nil {
+			var t time.Time
+			if t, err = time.ParseInLocation("20060102T150405", raw, loc); err == nil {
+				return t, nil
+			}
+		}
+	}
+
+	return parseICSTime(raw)
 }
