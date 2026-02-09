@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	neturl "net/url"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -22,7 +24,7 @@ type CalendarService struct {
 }
 
 // ============================================================
-// Persistence
+// Persistence (unchanged)
 // ============================================================
 
 func (s *CalendarService) SaveConfig(
@@ -50,11 +52,7 @@ func (s *CalendarService) ListConfigSummaries(
 ) ([]repositories.FilterSummary, error) {
 	return s.repo.ListFilterSummaries(ctx)
 }
-
-func (s *CalendarService) DeleteConfig(
-	ctx context.Context,
-	token string,
-) error {
+func (s *CalendarService) DeleteConfig(ctx context.Context, token string) error {
 	return s.repo.DeleteFilterConfig(ctx, token)
 }
 
@@ -67,7 +65,6 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	if err != nil {
 		return nil, fmt.Errorf("invalid calendar url: %w", err)
 	}
-
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
@@ -80,14 +77,9 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("private hosts are not allowed: %s", host)
 	}
 
-	//nolint:mnd // It's clearer to have the timeout here inlined
+	//nolint:mnd //10s is a reasonable default for calendar fetches
 	client := &http.Client{Timeout: 10 * time.Second}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %w", err)
-	}
-
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("User-Agent", "tools.xdoubleu.com-icsproxy/1.0")
 	req.Header.Set("Accept", "text/calendar")
 
@@ -105,7 +97,32 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 }
 
 // ============================================================
-// Formatting helpers
+// SMART NAME NORMALIZATION
+// ============================================================
+
+var dateSuffixRegex = regexp.MustCompile(
+	`(?i)\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s*-\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$`,
+)
+
+var versionSuffixRegex = regexp.MustCompile(
+	`(?i)\s*-\s*(v?\d+(\.\d+)+)$`,
+)
+
+// Strip trailing dates or versions.
+func normalizeSummary(summary string) string {
+	base := strings.TrimSpace(summary)
+	base = dateSuffixRegex.ReplaceAllString(base, "")
+	base = versionSuffixRegex.ReplaceAllString(base, "")
+	return strings.TrimSpace(base)
+}
+
+// This is the TRUE grouping key.
+func makeSeriesKey(summary string) string {
+	return normalizeSummary(summary)
+}
+
+// ============================================================
+// Formatting helper
 // ============================================================
 
 func formatICSTime(raw string) string {
@@ -122,7 +139,7 @@ func formatICSTime(raw string) string {
 }
 
 // ============================================================
-// Parsing — **UPDATED FOR YOUR REQUIREMENT**
+// 🔥 KEY FIX: GROUP EVENTS FOR PREVIEW 🔥
 // ============================================================
 
 func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error) {
@@ -131,7 +148,11 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 		return nil, err
 	}
 
-	var events []models.EventInfo
+	type rawEvent struct {
+		info models.EventInfo
+	}
+
+	grouped := map[string]rawEvent{} // key = normalized name
 
 	for _, comp := range cal.Components {
 		ev, ok := comp.(*ics.VEvent)
@@ -139,53 +160,59 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 			continue
 		}
 
-		// -----------------------------------------------------------
-		// 🔥 YOUR REQUIREMENT: hide modified instances from preview
-		// -----------------------------------------------------------
+		// Hide modified instances from preview
 		if ev.GetProperty("RECURRENCE-ID") != nil {
-			s.logger.Debug(
-				"Skipping modified instance in preview",
-				"uid", ev.GetProperty("UID").Value,
-			)
 			continue
 		}
-		// -----------------------------------------------------------
+
+		rawSummary := ev.GetProperty("SUMMARY").Value
+		baseName := normalizeSummary(rawSummary)
+		baseKey := makeSeriesKey(rawSummary)
 
 		startRaw := ev.GetProperty("DTSTART").Value
 		endRaw := ev.GetProperty("DTEND").Value
 		uid := ev.GetProperty("UID").Value
-		summary := ev.GetProperty("SUMMARY").Value
 
-		rrule := ""
+		// Only set RRule if this event truly has one
+		var rrule string
 		if p := ev.GetProperty("RRULE"); p != nil {
 			rrule = p.Value
 		}
 
-		// RDATE-only series should still count as recurring
-		if rrule == "" && ev.GetProperty("RDATE") != nil {
-			rrule = "RDATE"
+		// Keep first occurrence per group
+		if _, exists := grouped[baseKey]; !exists {
+			grouped[baseKey] = rawEvent{
+				info: models.EventInfo{
+					UID:       uid,
+					Summary:   baseName,
+					StartRaw:  startRaw,
+					EndRaw:    endRaw,
+					StartNice: formatICSTime(startRaw),
+					EndNice:   formatICSTime(endRaw),
+					RRule:     rrule,
+					SeriesKey: baseKey,
+				},
+			}
 		}
-
-		// Stable key for the series (important for filtering)
-		seriesKey := summary + "|" + uid
-
-		events = append(events, models.EventInfo{
-			UID:       uid,
-			Summary:   summary,
-			StartRaw:  startRaw,
-			EndRaw:    endRaw,
-			StartNice: formatICSTime(startRaw),
-			EndNice:   formatICSTime(endRaw),
-			RRule:     rrule,
-			SeriesKey: seriesKey,
-		})
 	}
+
+	// ---- NEW: convert map to slice AND sort by date ----
+	var events []models.EventInfo
+	for _, v := range grouped {
+		events = append(events, v.info)
+	}
+
+	sort.Slice(events, func(i, j int) bool {
+		ti, _ := parseICSTime(events[i].StartRaw)
+		tj, _ := parseICSTime(events[j].StartRaw)
+		return ti.Before(tj)
+	})
 
 	return events, nil
 }
 
 // ============================================================
-// Filtering — IN-PLACE (still hides RECURRENCE-ID instances)
+// APPLY FILTER (works on ALL instances)
 // ============================================================
 
 func (s *CalendarService) ApplyFilter(
@@ -196,9 +223,6 @@ func (s *CalendarService) ApplyFilter(
 	if err != nil {
 		return nil, err
 	}
-
-	// NOTE: ExtractEvents no longer includes RECURRENCE-ID events,
-	// but that's OK — we only need it to find holidays + build keys.
 
 	events, err := s.ExtractEvents(data)
 	if err != nil {
@@ -216,11 +240,6 @@ func (s *CalendarService) ApplyFilter(
 			continue
 		}
 
-		// IMPORTANT:
-		// Even though RECURRENCE-ID events were hidden from the preview,
-		// they are still passed through shouldHideEvent here and will be
-		// removed when their series is hidden.
-
 		if s.shouldHideEvent(ev, cfg, holidayWindow, hasHoliday) {
 			continue
 		}
@@ -233,7 +252,7 @@ func (s *CalendarService) ApplyFilter(
 }
 
 // ============================================================
-// Helpers
+// HELPERS
 // ============================================================
 
 type holidayWindow struct {
@@ -255,16 +274,13 @@ func (s *CalendarService) findHolidayWindow(
 
 			start, err1 := parseICSTime(ev.StartRaw)
 			end, err2 := parseICSTime(ev.EndRaw)
-
 			if err1 != nil || err2 != nil {
 				continue
 			}
-
 			w = holidayWindow{start: start, end: end}
 			return w, true
 		}
 	}
-
 	return w, false
 }
 
@@ -274,21 +290,21 @@ func (s *CalendarService) shouldHideEvent(
 	w holidayWindow,
 	hasHoliday bool,
 ) bool {
+	rawSummary := ev.GetProperty("SUMMARY").Value
+	baseKey := makeSeriesKey(rawSummary)
 	uid := ev.GetProperty("UID").Value
-	summary := ev.GetProperty("SUMMARY").Value
 
-	// Series key must match ExtractEvents logic
-	seriesKey := summary + "|" + uid
-
+	// 1) Explicit UID hide
 	if s.isExplicitlyHidden(uid, cfg) {
 		return true
 	}
 
-	// 🔥 This is why your modified instances STILL get hidden:
-	if cfg.HideSeries[seriesKey] {
+	// 2) Hide whole FUZZY series
+	if cfg.HideSeries[baseKey] {
 		return true
 	}
 
+	// 3) Holiday window applies to ALL matching names
 	if hasHoliday && s.overlapsHoliday(ev, w) {
 		return true
 	}
@@ -296,10 +312,7 @@ func (s *CalendarService) shouldHideEvent(
 	return false
 }
 
-func (s *CalendarService) isExplicitlyHidden(
-	uid string,
-	cfg models.FilterConfig,
-) bool {
+func (s *CalendarService) isExplicitlyHidden(uid string, cfg models.FilterConfig) bool {
 	for _, h := range cfg.HideEventUIDs {
 		if h == uid {
 			return true
@@ -308,25 +321,20 @@ func (s *CalendarService) isExplicitlyHidden(
 	return false
 }
 
-func (s *CalendarService) overlapsHoliday(
-	ev *ics.VEvent,
-	w holidayWindow,
-) bool {
+func (s *CalendarService) overlapsHoliday(ev *ics.VEvent, w holidayWindow) bool {
 	startProp := ev.GetProperty("DTSTART")
 	endProp := ev.GetProperty("DTEND")
 
 	evStart, err1 := parseICSTimeWithTZID(startProp)
 	evEnd, err2 := parseICSTimeWithTZID(endProp)
-
 	if err1 != nil || err2 != nil {
 		return false
 	}
-
 	return evStart.Before(w.end) && evEnd.After(w.start)
 }
 
 // ============================================================
-// TZ-AWARE ICS TIME PARSERS
+// TZ PARSERS (unchanged)
 // ============================================================
 
 func parseICSTime(raw string) (time.Time, error) {
@@ -345,13 +353,11 @@ func parseICSTime(raw string) (time.Time, error) {
 	if t, err := time.Parse("20060102", raw); err == nil {
 		return t.In(time.Local), nil
 	}
-
 	return time.Time{}, fmt.Errorf("cannot parse ICS time: %s", raw)
 }
 
 func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
 	raw := p.Value
-
 	if tzid, ok := p.ICalParameters["TZID"]; ok && len(tzid) > 0 {
 		loc, err := time.LoadLocation(tzid[0])
 		if err == nil {
@@ -361,6 +367,5 @@ func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
 			}
 		}
 	}
-
 	return parseICSTime(raw)
 }
