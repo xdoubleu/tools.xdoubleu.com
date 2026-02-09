@@ -80,7 +80,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("private hosts are not allowed: %s", host)
 	}
 
-	//nolint:mnd // It's clearer to have the timeout here inlined
+	//nolint:mnd // reasonable default for calendar fetches
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -122,7 +122,7 @@ func formatICSTime(raw string) string {
 }
 
 // ============================================================
-// Parsing — **UPDATED FOR YOUR REQUIREMENT**
+// Parsing — FIXED (preview skips RECURRENCE-ID but keeps keys correct)
 // ============================================================
 
 func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error) {
@@ -139,35 +139,35 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 			continue
 		}
 
-		// -----------------------------------------------------------
-		// 🔥 YOUR REQUIREMENT: hide modified instances from preview
-		// -----------------------------------------------------------
+		// Hide modified instances from preview ONLY
 		if ev.GetProperty("RECURRENCE-ID") != nil {
-			s.logger.Debug(
-				"Skipping modified instance in preview",
-				"uid", ev.GetProperty("UID").Value,
-			)
 			continue
 		}
-		// -----------------------------------------------------------
 
 		startRaw := ev.GetProperty("DTSTART").Value
 		endRaw := ev.GetProperty("DTEND").Value
 		uid := ev.GetProperty("UID").Value
 		summary := ev.GetProperty("SUMMARY").Value
 
+		// ---- CRITICAL FIX: determine recurrence consistently ----
 		rrule := ""
 		if p := ev.GetProperty("RRULE"); p != nil {
 			rrule = p.Value
 		}
 
-		// RDATE-only series should still count as recurring
 		if rrule == "" && ev.GetProperty("RDATE") != nil {
 			rrule = "RDATE"
 		}
 
-		// Stable key for the series (important for filtering)
-		seriesKey := summary + "|" + uid
+		// If neither exists, treat as SINGLE (matches your template)
+		if rrule == "" {
+			rrule = "SINGLE"
+		}
+		// ----------------------------------------------------------
+
+		// 🔥 THIS MUST MATCH THE HTML FORM KEY:
+		// hide_rec_{{.Summary}}|{{.RRule}}
+		seriesKey := summary + "|" + rrule
 
 		events = append(events, models.EventInfo{
 			UID:       uid,
@@ -185,7 +185,7 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 }
 
 // ============================================================
-// Filtering — IN-PLACE (still hides RECURRENCE-ID instances)
+// Filtering — FIXED (keys now match preview + form)
 // ============================================================
 
 func (s *CalendarService) ApplyFilter(
@@ -196,9 +196,6 @@ func (s *CalendarService) ApplyFilter(
 	if err != nil {
 		return nil, err
 	}
-
-	// NOTE: ExtractEvents no longer includes RECURRENCE-ID events,
-	// but that's OK — we only need it to find holidays + build keys.
 
 	events, err := s.ExtractEvents(data)
 	if err != nil {
@@ -215,11 +212,6 @@ func (s *CalendarService) ApplyFilter(
 			newComponents = append(newComponents, comp)
 			continue
 		}
-
-		// IMPORTANT:
-		// Even though RECURRENCE-ID events were hidden from the preview,
-		// they are still passed through shouldHideEvent here and will be
-		// removed when their series is hidden.
 
 		if s.shouldHideEvent(ev, cfg, holidayWindow, hasHoliday) {
 			continue
@@ -277,14 +269,25 @@ func (s *CalendarService) shouldHideEvent(
 	uid := ev.GetProperty("UID").Value
 	summary := ev.GetProperty("SUMMARY").Value
 
-	// Series key must match ExtractEvents logic
-	seriesKey := summary + "|" + uid
+	// ---- REBUILD THE SAME KEY AS ExtractEvents ----
+	rrule := ""
+	if p := ev.GetProperty("RRULE"); p != nil {
+		rrule = p.Value
+	}
+	if rrule == "" && ev.GetProperty("RDATE") != nil {
+		rrule = "RDATE"
+	}
+	if rrule == "" {
+		rrule = "SINGLE"
+	}
+	seriesKey := summary + "|" + rrule
+	// ------------------------------------------------
 
 	if s.isExplicitlyHidden(uid, cfg) {
 		return true
 	}
 
-	// 🔥 This is why your modified instances STILL get hidden:
+	// NOW this will actually work again 👇
 	if cfg.HideSeries[seriesKey] {
 		return true
 	}
