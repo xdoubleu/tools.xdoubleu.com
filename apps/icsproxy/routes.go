@@ -10,15 +10,31 @@ func (app *ICSProxy) Routes(prefix string, mux *http.ServeMux) {
 		fmt.Sprintf("GET /%s", prefix),
 		app.services.Auth.TemplateAccess(app.indexHandler),
 	)
+
 	mux.HandleFunc(
 		fmt.Sprintf("POST /%s/preview", prefix),
 		app.services.Auth.TemplateAccess(app.previewHandler),
 	)
+
 	mux.HandleFunc(
 		fmt.Sprintf("POST /%s/create", prefix),
 		app.services.Auth.TemplateAccess(app.createHandler),
 	)
-	mux.HandleFunc(fmt.Sprintf("GET /%s/", prefix), app.feedHandler) // dynamic token
+
+	// Edit existing filters
+	mux.HandleFunc(
+		fmt.Sprintf("GET /%s/edit/", prefix),
+		app.services.Auth.TemplateAccess(app.editHandler),
+	)
+
+	// Delete existing filters
+	mux.HandleFunc(
+		fmt.Sprintf("POST /%s/delete/", prefix),
+		app.services.Auth.TemplateAccess(app.deleteHandler),
+	)
+
+	// Feed endpoint (must stay last)
+	mux.HandleFunc(fmt.Sprintf("GET /%s/", prefix), app.feedHandler)
 }
 
 func (app *ICSProxy) feedHandler(w http.ResponseWriter, r *http.Request) {
