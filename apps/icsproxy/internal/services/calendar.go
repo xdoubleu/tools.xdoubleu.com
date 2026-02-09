@@ -290,18 +290,35 @@ func (s *CalendarService) shouldHideEvent(
 	w holidayWindow,
 	hasHoliday bool,
 ) bool {
+
 	rawSummary := ev.GetProperty("SUMMARY").Value
-	baseKey := makeSeriesKey(rawSummary)
+	baseKey := makeSeriesKey(rawSummary) // e.g. "Absent"
 	uid := ev.GetProperty("UID").Value
 
-	// 1) Explicit UID hide
+	// Build the SAME key format the FORM sends: "Summary|RRULE"
+	rrule := ""
+	if p := ev.GetProperty("RRULE"); p != nil {
+		rrule = p.Value
+	}
+	uiKey := normalizeSummary(rawSummary) + "|" + rrule
+
+	// 1) Explicit single-event hide
 	if s.isExplicitlyHidden(uid, cfg) {
 		return true
 	}
 
-	// 2) Hide whole FUZZY series
-	if cfg.HideSeries[baseKey] {
-		return true
+	// 2) Hide whole series — MATCH BOTH POSSIBLE KEYS
+	for hideKey := range cfg.HideSeries {
+
+		// Case A: exact match with UI key (normal case)
+		if hideKey == uiKey {
+			return true
+		}
+
+		// Case B: fuzzy name match (your grouping case)
+		if hideKey == baseKey {
+			return true
+		}
 	}
 
 	// 3) Holiday window applies to ALL matching names
