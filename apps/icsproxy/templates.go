@@ -15,7 +15,6 @@ import (
 // =======================
 
 func (app *ICSProxy) indexHandler(w http.ResponseWriter, r *http.Request) {
-
 	summaries, _ := app.services.Calendar.ListConfigSummaries(r.Context())
 
 	tpltools.RenderWithPanic(app.tpl, w, "index.html", map[string]any{
@@ -57,7 +56,6 @@ func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
 // =======================
 
 func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
-
 	parts := strings.Split(strings.TrimSuffix(r.URL.Path, "/"), "/")
 	token := parts[len(parts)-1]
 
@@ -150,7 +148,6 @@ func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
 // =======================
 
 func (app *ICSProxy) deleteHandler(w http.ResponseWriter, r *http.Request) {
-
 	parts := strings.Split(strings.TrimSuffix(r.URL.Path, "/"), "/")
 	token := parts[len(parts)-1]
 

@@ -16,7 +16,7 @@ type CalendarRepository struct {
 // CREATE / UPSERT
 // =====================================================
 
-// Explicit alias (nicer API)
+// Explicit alias (nicer API).
 func (r *CalendarRepository) UpsertFilterConfig(
 	ctx context.Context,
 	cfg models.FilterConfig,
@@ -58,7 +58,7 @@ func (r *CalendarRepository) UpsertFilterConfig(
 // READ ONE
 // =====================================================
 
-// Clearer public name
+// Clearer public name.
 func (r *CalendarRepository) GetFilterConfig(
 	ctx context.Context,
 	token string,
@@ -95,11 +95,10 @@ func (r *CalendarRepository) GetFilterConfig(
 // READ ALL
 // =====================================================
 
-// Returns full configs (useful for edit pages)
+// Returns full configs (useful for edit pages).
 func (r *CalendarRepository) ListFilterConfigs(
 	ctx context.Context,
 ) ([]models.FilterConfig, error) {
-
 	rows, err := r.db.Query(ctx, `
 		SELECT token, source_url, hide_event_uids, holiday_uids, hide_series
 		FROM icsproxy.feeds
@@ -116,7 +115,7 @@ func (r *CalendarRepository) ListFilterConfigs(
 		var cfg models.FilterConfig
 		var seriesJSON []byte
 
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&cfg.Token,
 			&cfg.SourceURL,
 			&cfg.HideEventUIDs,
@@ -138,7 +137,7 @@ func (r *CalendarRepository) ListFilterConfigs(
 	return configs, rows.Err()
 }
 
-// Lightweight list for homepage (recommended)
+// Lightweight list for homepage (recommended).
 type FilterSummary struct {
 	Token     string
 	SourceURL string
@@ -147,7 +146,6 @@ type FilterSummary struct {
 func (r *CalendarRepository) ListFilterSummaries(
 	ctx context.Context,
 ) ([]FilterSummary, error) {
-
 	rows, err := r.db.Query(ctx, `
 		SELECT token, source_url
 		FROM icsproxy.feeds
@@ -162,7 +160,7 @@ func (r *CalendarRepository) ListFilterSummaries(
 
 	for rows.Next() {
 		var s FilterSummary
-		if err := rows.Scan(&s.Token, &s.SourceURL); err != nil {
+		if err = rows.Scan(&s.Token, &s.SourceURL); err != nil {
 			return nil, err
 		}
 		out = append(out, s)
@@ -179,7 +177,6 @@ func (r *CalendarRepository) DeleteFilterConfig(
 	ctx context.Context,
 	token string,
 ) error {
-
 	_, err := r.db.Exec(ctx, `
 		DELETE FROM icsproxy.feeds
 		WHERE token = $1

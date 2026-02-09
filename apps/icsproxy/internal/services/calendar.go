@@ -23,7 +23,7 @@ type CalendarService struct {
 // Persistence (UPDATED TO MATCH YOUR NEW REPO)
 // ============================================================
 
-// Save or update a filter config (upsert)
+// Save or update a filter config (upsert).
 func (s *CalendarService) SaveConfig(
 	ctx context.Context,
 	cfg models.FilterConfig,
@@ -31,7 +31,7 @@ func (s *CalendarService) SaveConfig(
 	return s.repo.UpsertFilterConfig(ctx, cfg)
 }
 
-// Load a single config by token
+// Load a single config by token.
 func (s *CalendarService) LoadConfig(
 	ctx context.Context,
 	token string,
@@ -39,21 +39,21 @@ func (s *CalendarService) LoadConfig(
 	return s.repo.GetFilterConfig(ctx, token)
 }
 
-// List all configs (full objects)
+// List all configs (full objects).
 func (s *CalendarService) ListConfigs(
 	ctx context.Context,
 ) ([]models.FilterConfig, error) {
 	return s.repo.ListFilterConfigs(ctx)
 }
 
-// List lightweight summaries for homepage
+// List lightweight summaries for homepage.
 func (s *CalendarService) ListConfigSummaries(
 	ctx context.Context,
 ) ([]repositories.FilterSummary, error) {
 	return s.repo.ListFilterSummaries(ctx)
 }
 
-// Delete a config
+// Delete a config.
 func (s *CalendarService) DeleteConfig(
 	ctx context.Context,
 	token string,
@@ -86,6 +86,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	}
 
 	client := &http.Client{
+		//nolint:mnd // Set a reasonable timeout for fetching external calendars
 		Timeout: 10 * time.Second,
 	}
 

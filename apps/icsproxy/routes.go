@@ -6,7 +6,6 @@ import (
 )
 
 func (app *ICSProxy) Routes(prefix string, mux *http.ServeMux) {
-
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s", prefix),
 		app.services.Auth.TemplateAccess(app.indexHandler),
