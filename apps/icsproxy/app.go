@@ -44,7 +44,7 @@ func New(
 		logger:   logger,
 		config:   cfg,
 		tpl:      tpl,
-		services: services.New(repositories.New(db), authService),
+		services: services.New(logger, repositories.New(db), authService),
 	}
 
 	app.setContext()

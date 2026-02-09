@@ -1,6 +1,8 @@
 package services
 
 import (
+	"log/slog"
+
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
 	"tools.xdoubleu.com/internal/auth"
 )
@@ -10,9 +12,13 @@ type Services struct {
 	Calendar *CalendarService
 }
 
-func New(repos *repositories.Repositories, auth auth.Service) *Services {
+func New(
+	logger *slog.Logger,
+	repos *repositories.Repositories,
+	auth auth.Service,
+) *Services {
 	return &Services{
 		Auth:     auth,
-		Calendar: &CalendarService{repo: repos.Calendar},
+		Calendar: &CalendarService{logger: logger, repo: repos.Calendar},
 	}
 }
