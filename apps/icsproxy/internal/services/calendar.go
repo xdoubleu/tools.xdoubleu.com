@@ -20,21 +20,45 @@ type CalendarService struct {
 }
 
 // ============================================================
-// Persistence
+// Persistence (UPDATED TO MATCH YOUR NEW REPO)
 // ============================================================
 
+// Save or update a filter config (upsert)
 func (s *CalendarService) SaveConfig(
 	ctx context.Context,
 	cfg models.FilterConfig,
 ) error {
-	return s.repo.SaveFilterConfig(ctx, cfg)
+	return s.repo.UpsertFilterConfig(ctx, cfg)
 }
 
+// Load a single config by token
 func (s *CalendarService) LoadConfig(
 	ctx context.Context,
 	token string,
 ) (models.FilterConfig, bool) {
-	return s.repo.LoadFilterConfig(ctx, token)
+	return s.repo.GetFilterConfig(ctx, token)
+}
+
+// List all configs (full objects)
+func (s *CalendarService) ListConfigs(
+	ctx context.Context,
+) ([]models.FilterConfig, error) {
+	return s.repo.ListFilterConfigs(ctx)
+}
+
+// List lightweight summaries for homepage
+func (s *CalendarService) ListConfigSummaries(
+	ctx context.Context,
+) ([]repositories.FilterSummary, error) {
+	return s.repo.ListFilterSummaries(ctx)
+}
+
+// Delete a config
+func (s *CalendarService) DeleteConfig(
+	ctx context.Context,
+	token string,
+) error {
+	return s.repo.DeleteFilterConfig(ctx, token)
 }
 
 // ============================================================
@@ -62,7 +86,6 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	}
 
 	client := &http.Client{
-		//nolint:mnd // reasonable default for external calls
 		Timeout: 10 * time.Second,
 	}
 
@@ -172,26 +195,22 @@ func (s *CalendarService) ApplyFilter(
 
 	holidayWindow, hasHoliday := s.findHolidayWindow(events, cfg)
 
-	// We will build a new component list from the ORIGINAL calendar
 	var newComponents []ics.Component
 
 	for _, comp := range cal.Components {
 		ev, ok := comp.(*ics.VEvent)
 		if !ok {
-			// Keep all non-VEVENT components (VTIMEZONE, PRODID, etc.)
 			newComponents = append(newComponents, comp)
 			continue
 		}
 
 		if s.shouldHideEvent(ev, cfg, holidayWindow, hasHoliday) {
-			// Skip (delete) this event
 			continue
 		}
 
 		newComponents = append(newComponents, ev)
 	}
 
-	// Replace components in the original calendar (in-place mutation)
 	cal.Components = newComponents
 
 	return []byte(cal.Serialize()), nil
@@ -206,7 +225,6 @@ type holidayWindow struct {
 	end   time.Time
 }
 
-// Find holiday window from selected holiday UID (timezone-safe).
 func (s *CalendarService) findHolidayWindow(
 	events []models.EventInfo,
 	cfg models.FilterConfig,
@@ -234,7 +252,6 @@ func (s *CalendarService) findHolidayWindow(
 	return w, false
 }
 
-// Decide whether to hide an event.
 func (s *CalendarService) shouldHideEvent(
 	ev *ics.VEvent,
 	cfg models.FilterConfig,
@@ -256,17 +273,14 @@ func (s *CalendarService) shouldHideEvent(
 		return "SINGLE"
 	}()
 
-	// 1) Hide explicitly selected single events
 	if s.isExplicitlyHidden(uid, cfg) {
 		return true
 	}
 
-	// 2) Hide whole selected series
 	if cfg.HideSeries[seriesKey] {
 		return true
 	}
 
-	// 3) Hide events overlapping holiday window
 	if hasHoliday && s.overlapsHoliday(ev, w) {
 		return true
 	}
@@ -286,7 +300,6 @@ func (s *CalendarService) isExplicitlyHidden(
 	return false
 }
 
-// Timezone-safe overlap check.
 func (s *CalendarService) overlapsHoliday(
 	ev *ics.VEvent,
 	w holidayWindow,
@@ -298,7 +311,7 @@ func (s *CalendarService) overlapsHoliday(
 	evEnd, err2 := parseICSTimeWithTZID(endProp)
 
 	if err1 != nil || err2 != nil {
-		return false // keep event if we can't parse safely
+		return false
 	}
 
 	return evStart.Before(w.end) && evEnd.After(w.start)
@@ -331,7 +344,6 @@ func parseICSTime(raw string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("cannot parse ICS time: %s", raw)
 }
 
-// Honor TZID if present (critical for correct comparisons).
 func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
 	raw := p.Value
 

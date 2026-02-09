@@ -12,13 +12,16 @@ type CalendarRepository struct {
 	db postgres.DB
 }
 
-// -------- WRITE (FIXED FOR YOUR STACK) --------
+// =====================================================
+// CREATE / UPSERT
+// =====================================================
 
-func (r *CalendarRepository) SaveFilterConfig(
+// Explicit alias (nicer API)
+func (r *CalendarRepository) UpsertFilterConfig(
 	ctx context.Context,
 	cfg models.FilterConfig,
 ) error {
-	// --- FIX: never send NULL arrays to Postgres ---
+	// Ensure Postgres never receives NULL arrays/maps
 	if cfg.HideEventUIDs == nil {
 		cfg.HideEventUIDs = []string{}
 	}
@@ -43,17 +46,20 @@ func (r *CalendarRepository) SaveFilterConfig(
 	`,
 		cfg.Token,
 		cfg.SourceURL,
-		cfg.HideEventUIDs, // now always []string, never nil
-		cfg.HolidayUIDs,   // now always []string, never nil
+		cfg.HideEventUIDs,
+		cfg.HolidayUIDs,
 		string(seriesStr),
 	)
 
 	return err
 }
 
-// -------- READ (UNCHANGED LOGIC, JUST SIMPLER TYPES) --------
+// =====================================================
+// READ ONE
+// =====================================================
 
-func (r *CalendarRepository) LoadFilterConfig(
+// Clearer public name
+func (r *CalendarRepository) GetFilterConfig(
 	ctx context.Context,
 	token string,
 ) (models.FilterConfig, bool) {
@@ -83,4 +89,101 @@ func (r *CalendarRepository) LoadFilterConfig(
 	}
 
 	return cfg, true
+}
+
+// =====================================================
+// READ ALL
+// =====================================================
+
+// Returns full configs (useful for edit pages)
+func (r *CalendarRepository) ListFilterConfigs(
+	ctx context.Context,
+) ([]models.FilterConfig, error) {
+
+	rows, err := r.db.Query(ctx, `
+		SELECT token, source_url, hide_event_uids, holiday_uids, hide_series
+		FROM icsproxy.feeds
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var configs []models.FilterConfig
+
+	for rows.Next() {
+		var cfg models.FilterConfig
+		var seriesJSON []byte
+
+		if err := rows.Scan(
+			&cfg.Token,
+			&cfg.SourceURL,
+			&cfg.HideEventUIDs,
+			&cfg.HolidayUIDs,
+			&seriesJSON,
+		); err != nil {
+			return nil, err
+		}
+
+		if len(seriesJSON) > 0 {
+			_ = json.Unmarshal(seriesJSON, &cfg.HideSeries)
+		} else {
+			cfg.HideSeries = map[string]bool{}
+		}
+
+		configs = append(configs, cfg)
+	}
+
+	return configs, rows.Err()
+}
+
+// Lightweight list for homepage (recommended)
+type FilterSummary struct {
+	Token     string
+	SourceURL string
+}
+
+func (r *CalendarRepository) ListFilterSummaries(
+	ctx context.Context,
+) ([]FilterSummary, error) {
+
+	rows, err := r.db.Query(ctx, `
+		SELECT token, source_url
+		FROM icsproxy.feeds
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []FilterSummary
+
+	for rows.Next() {
+		var s FilterSummary
+		if err := rows.Scan(&s.Token, &s.SourceURL); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+
+	return out, rows.Err()
+}
+
+// =====================================================
+// DELETE
+// =====================================================
+
+func (r *CalendarRepository) DeleteFilterConfig(
+	ctx context.Context,
+	token string,
+) error {
+
+	_, err := r.db.Exec(ctx, `
+		DELETE FROM icsproxy.feeds
+		WHERE token = $1
+	`, token)
+
+	return err
 }
