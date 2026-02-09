@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	neturl "net/url"
 	"strings"
@@ -16,14 +17,14 @@ import (
 )
 
 type CalendarService struct {
-	repo *repositories.CalendarRepository
+	logger *slog.Logger
+	repo   *repositories.CalendarRepository
 }
 
 // ============================================================
-// Persistence (UPDATED TO MATCH YOUR NEW REPO)
+// Persistence
 // ============================================================
 
-// Save or update a filter config (upsert).
 func (s *CalendarService) SaveConfig(
 	ctx context.Context,
 	cfg models.FilterConfig,
@@ -31,7 +32,6 @@ func (s *CalendarService) SaveConfig(
 	return s.repo.UpsertFilterConfig(ctx, cfg)
 }
 
-// Load a single config by token.
 func (s *CalendarService) LoadConfig(
 	ctx context.Context,
 	token string,
@@ -39,21 +39,18 @@ func (s *CalendarService) LoadConfig(
 	return s.repo.GetFilterConfig(ctx, token)
 }
 
-// List all configs (full objects).
 func (s *CalendarService) ListConfigs(
 	ctx context.Context,
 ) ([]models.FilterConfig, error) {
 	return s.repo.ListFilterConfigs(ctx)
 }
 
-// List lightweight summaries for homepage.
 func (s *CalendarService) ListConfigSummaries(
 	ctx context.Context,
 ) ([]repositories.FilterSummary, error) {
 	return s.repo.ListFilterSummaries(ctx)
 }
 
-// Delete a config.
 func (s *CalendarService) DeleteConfig(
 	ctx context.Context,
 	token string,
@@ -62,7 +59,7 @@ func (s *CalendarService) DeleteConfig(
 }
 
 // ============================================================
-// Fetch (gosec-safe + SSRF-safe)
+// Fetch (unchanged)
 // ============================================================
 
 func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, error) {
@@ -71,12 +68,10 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("invalid calendar url: %w", err)
 	}
 
-	// Allow only HTTP/HTTPS
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
 
-	// Basic SSRF protection
 	host := parsed.Hostname()
 	if host == "localhost" ||
 		strings.HasPrefix(host, "10.") ||
@@ -85,10 +80,8 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("private hosts are not allowed: %s", host)
 	}
 
-	client := &http.Client{
-		//nolint:mnd // Set a reasonable timeout for fetching external calendars
-		Timeout: 10 * time.Second,
-	}
+	//nolint:mnd // It's clearer to have the timeout here inlined
+	client := &http.Client{Timeout: 10 * time.Second}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -112,7 +105,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 }
 
 // ============================================================
-// Formatting helpers (for preview only)
+// Formatting helpers
 // ============================================================
 
 func formatICSTime(raw string) string {
@@ -129,7 +122,7 @@ func formatICSTime(raw string) string {
 }
 
 // ============================================================
-// Parsing (for preview)
+// Parsing — **UPDATED FOR YOUR REQUIREMENT**
 // ============================================================
 
 func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error) {
@@ -146,24 +139,39 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 			continue
 		}
 
+		// -----------------------------------------------------------
+		// 🔥 YOUR REQUIREMENT: hide modified instances from preview
+		// -----------------------------------------------------------
+		if ev.GetProperty("RECURRENCE-ID") != nil {
+			s.logger.Debug(
+				"Skipping modified instance in preview",
+				"uid", ev.GetProperty("UID").Value,
+			)
+			continue
+		}
+		// -----------------------------------------------------------
+
 		startRaw := ev.GetProperty("DTSTART").Value
 		endRaw := ev.GetProperty("DTEND").Value
+		uid := ev.GetProperty("UID").Value
+		summary := ev.GetProperty("SUMMARY").Value
 
 		rrule := ""
 		if p := ev.GetProperty("RRULE"); p != nil {
 			rrule = p.Value
 		}
 
-		seriesKey := ev.GetProperty("SUMMARY").Value + "|"
-		if rrule != "" {
-			seriesKey += rrule
-		} else {
-			seriesKey += "SINGLE"
+		// RDATE-only series should still count as recurring
+		if rrule == "" && ev.GetProperty("RDATE") != nil {
+			rrule = "RDATE"
 		}
 
+		// Stable key for the series (important for filtering)
+		seriesKey := summary + "|" + uid
+
 		events = append(events, models.EventInfo{
-			UID:       ev.GetProperty("UID").Value,
-			Summary:   ev.GetProperty("SUMMARY").Value,
+			UID:       uid,
+			Summary:   summary,
 			StartRaw:  startRaw,
 			EndRaw:    endRaw,
 			StartNice: formatICSTime(startRaw),
@@ -177,7 +185,7 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 }
 
 // ============================================================
-// Filtering — IN-PLACE (preserves all timezones)
+// Filtering — IN-PLACE (still hides RECURRENCE-ID instances)
 // ============================================================
 
 func (s *CalendarService) ApplyFilter(
@@ -188,6 +196,9 @@ func (s *CalendarService) ApplyFilter(
 	if err != nil {
 		return nil, err
 	}
+
+	// NOTE: ExtractEvents no longer includes RECURRENCE-ID events,
+	// but that's OK — we only need it to find holidays + build keys.
 
 	events, err := s.ExtractEvents(data)
 	if err != nil {
@@ -205,6 +216,11 @@ func (s *CalendarService) ApplyFilter(
 			continue
 		}
 
+		// IMPORTANT:
+		// Even though RECURRENCE-ID events were hidden from the preview,
+		// they are still passed through shouldHideEvent here and will be
+		// removed when their series is hidden.
+
 		if s.shouldHideEvent(ev, cfg, holidayWindow, hasHoliday) {
 			continue
 		}
@@ -213,7 +229,6 @@ func (s *CalendarService) ApplyFilter(
 	}
 
 	cal.Components = newComponents
-
 	return []byte(cal.Serialize()), nil
 }
 
@@ -262,22 +277,14 @@ func (s *CalendarService) shouldHideEvent(
 	uid := ev.GetProperty("UID").Value
 	summary := ev.GetProperty("SUMMARY").Value
 
-	rrule := ""
-	if p := ev.GetProperty("RRULE"); p != nil {
-		rrule = p.Value
-	}
-
-	seriesKey := summary + "|" + func() string {
-		if rrule != "" {
-			return rrule
-		}
-		return "SINGLE"
-	}()
+	// Series key must match ExtractEvents logic
+	seriesKey := summary + "|" + uid
 
 	if s.isExplicitlyHidden(uid, cfg) {
 		return true
 	}
 
+	// 🔥 This is why your modified instances STILL get hidden:
 	if cfg.HideSeries[seriesKey] {
 		return true
 	}
@@ -329,15 +336,12 @@ func parseICSTime(raw string) (time.Time, error) {
 	if t, err := time.Parse("20060102T150405-0700", raw); err == nil {
 		return t, nil
 	}
-
 	if t, err := time.Parse("20060102T150405Z", raw); err == nil {
 		return t, nil
 	}
-
 	if t, err := time.Parse("20060102T150405", raw); err == nil {
 		return t.In(time.Local), nil
 	}
-
 	if t, err := time.Parse("20060102", raw); err == nil {
 		return t.In(time.Local), nil
 	}
