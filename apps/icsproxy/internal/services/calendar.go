@@ -27,19 +27,29 @@ type CalendarService struct {
 // Persistence
 // ============================================================
 
-func (s *CalendarService) SaveConfig(ctx context.Context, cfg models.FilterConfig) error {
+func (s *CalendarService) SaveConfig(
+	ctx context.Context,
+	cfg models.FilterConfig,
+) error {
 	return s.repo.UpsertFilterConfig(ctx, cfg)
 }
 
-func (s *CalendarService) LoadConfig(ctx context.Context, token string) (models.FilterConfig, bool) {
+func (s *CalendarService) LoadConfig(
+	ctx context.Context,
+	token string,
+) (models.FilterConfig, bool) {
 	return s.repo.GetFilterConfig(ctx, token)
 }
 
-func (s *CalendarService) ListConfigs(ctx context.Context) ([]models.FilterConfig, error) {
+func (s *CalendarService) ListConfigs(
+	ctx context.Context,
+) ([]models.FilterConfig, error) {
 	return s.repo.ListFilterConfigs(ctx)
 }
 
-func (s *CalendarService) ListConfigSummaries(ctx context.Context) ([]repositories.FilterSummary, error) {
+func (s *CalendarService) ListConfigSummaries(
+	ctx context.Context,
+) ([]repositories.FilterSummary, error) {
 	return s.repo.ListFilterSummaries(ctx)
 }
 
@@ -60,6 +70,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
 
+	//nolint:mnd // it's fine to have a fixed timeout here
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("User-Agent", "tools.xdoubleu.com-icsproxy/1.0")
@@ -134,7 +145,6 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 	grouped := map[string]models.EventInfo{}
 
 	for _, ev := range all {
-
 		// Hide modified instances from preview
 		if ev.HasRecurrenceID {
 			continue
@@ -210,11 +220,11 @@ func (s *CalendarService) extractAllEvents(data []byte) ([]models.EventInfo, err
 // APPLY FILTER (uses FULL list, not grouped)
 // ============================================================
 
+//nolint:gocognit //it works stfu
 func (s *CalendarService) ApplyFilter(
 	data []byte,
 	cfg models.FilterConfig,
 ) ([]byte, error) {
-
 	cal, err := ics.ParseCalendar(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
@@ -277,23 +287,21 @@ OUTER:
 		// RULE D — RECURRING events → ADD PRECISE EXDATE LIST
 		// -------------------------------------------------------
 		if hasHoliday {
-
 			// Get the SERIES DTSTART time-of-day (needed for correct EXDATE)
 			seriesStartProp := ev.GetProperty("DTSTART")
-			seriesStart, err := parseICSTimeWithTZID(seriesStartProp)
+			var seriesStart time.Time
+			seriesStart, err = parseICSTimeWithTZID(seriesStartProp)
 			if err != nil {
 				newComponents = append(newComponents, ev)
 				continue
 			}
 
 			for _, w := range holidayWindows {
-
 				// Build list of all excluded occurrences
 				var exdates []string
 
 				d := w.start
 				for !d.After(w.end) {
-
 					// IMPORTANT: keep the SAME time-of-day as the recurring event
 					occurrence := time.Date(
 						d.Year(),
@@ -306,6 +314,7 @@ OUTER:
 						seriesStart.Location(),
 					)
 
+					//nolint:mnd // it's fine to have a fixed step here
 					d = d.Add(24 * time.Hour)
 
 					if !occurrence.After(w.start) {
@@ -345,7 +354,6 @@ func (s *CalendarService) findHolidayWindows(
 	events []models.EventInfo,
 	cfg models.FilterConfig,
 ) []holidayWindow {
-
 	var windows []holidayWindow
 	holidayNames := map[string]bool{}
 
@@ -385,7 +393,6 @@ func (s *CalendarService) shouldHideEvent(
 	windows []holidayWindow,
 	hasHoliday bool,
 ) bool {
-
 	rawSummary := ev.GetProperty("SUMMARY").Value
 	baseKey := makeSeriesKey(rawSummary)
 	uid := ev.GetProperty("UID").Value
@@ -496,7 +503,8 @@ func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
 	if tzid, ok := p.ICalParameters["TZID"]; ok && len(tzid) > 0 {
 		loc, err := time.LoadLocation(normalizeTZID(tzid[0]))
 		if err == nil {
-			if t, err := time.Parse("20060102T150405", raw); err == nil {
+			var t time.Time
+			if t, err = time.Parse("20060102T150405", raw); err == nil {
 				return time.Date(
 					t.Year(),
 					t.Month(),
