@@ -230,6 +230,7 @@ func (s *CalendarService) ApplyFilter(
 
 	var newComponents []ics.Component
 
+OUTER:
 	for _, comp := range cal.Components {
 		ev, ok := comp.(*ics.VEvent)
 		if !ok {
@@ -238,6 +239,8 @@ func (s *CalendarService) ApplyFilter(
 		}
 
 		uid := ev.GetProperty("UID").Value
+		rawSummary := ev.GetProperty("SUMMARY").Value
+		baseKey := makeSeriesKey(rawSummary)
 
 		// -------------------------------------------------------
 		// RULE A — NEVER hide holiday events themselves
@@ -261,7 +264,17 @@ func (s *CalendarService) ApplyFilter(
 		}
 
 		// -------------------------------------------------------
-		// RULE C — RECURRING events → ADD PRECISE EXDATE LIST
+		// RULE C — Hidden RECURRING events
+		// -------------------------------------------------------
+		for hideKey := range cfg.HideSeries {
+			if hideKey == baseKey {
+				// ❌ remove the entire recurring series
+				continue OUTER
+			}
+		}
+
+		// -------------------------------------------------------
+		// RULE D — RECURRING events → ADD PRECISE EXDATE LIST
 		// -------------------------------------------------------
 		if hasHoliday {
 
