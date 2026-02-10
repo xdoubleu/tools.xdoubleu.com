@@ -9,12 +9,13 @@ type FilterConfig struct {
 }
 
 type EventInfo struct {
-	UID       string
-	Summary   string
-	StartRaw  string
-	EndRaw    string
-	StartNice string
-	EndNice   string
-	RRule     string
-	SeriesKey string
+	UID             string
+	Summary         string
+	StartRaw        string
+	EndRaw          string
+	StartNice       string
+	EndNice         string
+	RRule           string
+	SeriesKey       string
+	HasRecurrenceID bool
 }
