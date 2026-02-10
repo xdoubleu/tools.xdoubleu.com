@@ -35,6 +35,9 @@ build:
 run:
 	go run ./...
 
+debug:
+	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient ./cmd/publish
+
 test:
 	go test ./...
 
