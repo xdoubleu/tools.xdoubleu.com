@@ -8,3 +8,4 @@ api.test
 .env
 
 .DS_Store
+__debug_*

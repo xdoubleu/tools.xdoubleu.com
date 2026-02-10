@@ -24,40 +24,31 @@ type CalendarService struct {
 }
 
 // ============================================================
-// Persistence (unchanged)
+// Persistence
 // ============================================================
 
-func (s *CalendarService) SaveConfig(
-	ctx context.Context,
-	cfg models.FilterConfig,
-) error {
+func (s *CalendarService) SaveConfig(ctx context.Context, cfg models.FilterConfig) error {
 	return s.repo.UpsertFilterConfig(ctx, cfg)
 }
 
-func (s *CalendarService) LoadConfig(
-	ctx context.Context,
-	token string,
-) (models.FilterConfig, bool) {
+func (s *CalendarService) LoadConfig(ctx context.Context, token string) (models.FilterConfig, bool) {
 	return s.repo.GetFilterConfig(ctx, token)
 }
 
-func (s *CalendarService) ListConfigs(
-	ctx context.Context,
-) ([]models.FilterConfig, error) {
+func (s *CalendarService) ListConfigs(ctx context.Context) ([]models.FilterConfig, error) {
 	return s.repo.ListFilterConfigs(ctx)
 }
 
-func (s *CalendarService) ListConfigSummaries(
-	ctx context.Context,
-) ([]repositories.FilterSummary, error) {
+func (s *CalendarService) ListConfigSummaries(ctx context.Context) ([]repositories.FilterSummary, error) {
 	return s.repo.ListFilterSummaries(ctx)
 }
+
 func (s *CalendarService) DeleteConfig(ctx context.Context, token string) error {
 	return s.repo.DeleteFilterConfig(ctx, token)
 }
 
 // ============================================================
-// Fetch (unchanged)
+// Fetch
 // ============================================================
 
 func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, error) {
@@ -69,15 +60,6 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
 
-	host := parsed.Hostname()
-	if host == "localhost" ||
-		strings.HasPrefix(host, "10.") ||
-		strings.HasPrefix(host, "192.168.") ||
-		strings.HasPrefix(host, "172.") {
-		return nil, fmt.Errorf("private hosts are not allowed: %s", host)
-	}
-
-	//nolint:mnd //10s is a reasonable default for calendar fetches
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("User-Agent", "tools.xdoubleu.com-icsproxy/1.0")
@@ -108,7 +90,6 @@ var versionSuffixRegex = regexp.MustCompile(
 	`(?i)\s*-\s*(v?\d+(\.\d+)+)$`,
 )
 
-// Strip trailing dates or versions.
 func normalizeSummary(summary string) string {
 	base := strings.TrimSpace(summary)
 	base = dateSuffixRegex.ReplaceAllString(base, "")
@@ -116,7 +97,6 @@ func normalizeSummary(summary string) string {
 	return strings.TrimSpace(base)
 }
 
-// This is the TRUE grouping key.
 func makeSeriesKey(summary string) string {
 	return normalizeSummary(summary)
 }
@@ -139,67 +119,35 @@ func formatICSTime(raw string) string {
 }
 
 // ============================================================
-// 🔥 KEY FIX: GROUP EVENTS FOR PREVIEW 🔥
+// 🔥 TWO EXTRACTION MODES 🔥
 // ============================================================
 
+// ----------- FOR PREVIEW (grouped) -----------
+
 func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error) {
-	cal, err := ics.ParseCalendar(bytes.NewReader(data))
+	all, err := s.extractAllEvents(data)
 	if err != nil {
 		return nil, err
 	}
 
-	type rawEvent struct {
-		info models.EventInfo
-	}
+	// Group by base name for UI
+	grouped := map[string]models.EventInfo{}
 
-	grouped := map[string]rawEvent{} // key = normalized name
-
-	for _, comp := range cal.Components {
-		ev, ok := comp.(*ics.VEvent)
-		if !ok {
-			continue
-		}
+	for _, ev := range all {
 
 		// Hide modified instances from preview
-		if ev.GetProperty("RECURRENCE-ID") != nil {
+		if ev.HasRecurrenceID {
 			continue
 		}
 
-		rawSummary := ev.GetProperty("SUMMARY").Value
-		baseName := normalizeSummary(rawSummary)
-		baseKey := makeSeriesKey(rawSummary)
-
-		startRaw := ev.GetProperty("DTSTART").Value
-		endRaw := ev.GetProperty("DTEND").Value
-		uid := ev.GetProperty("UID").Value
-
-		// Only set RRule if this event truly has one
-		var rrule string
-		if p := ev.GetProperty("RRULE"); p != nil {
-			rrule = p.Value
-		}
-
-		// Keep first occurrence per group
-		if _, exists := grouped[baseKey]; !exists {
-			grouped[baseKey] = rawEvent{
-				info: models.EventInfo{
-					UID:       uid,
-					Summary:   baseName,
-					StartRaw:  startRaw,
-					EndRaw:    endRaw,
-					StartNice: formatICSTime(startRaw),
-					EndNice:   formatICSTime(endRaw),
-					RRule:     rrule,
-					SeriesKey: baseKey,
-				},
-			}
+		if _, exists := grouped[ev.SeriesKey]; !exists {
+			grouped[ev.SeriesKey] = ev
 		}
 	}
 
-	// ---- NEW: convert map to slice AND sort by date ----
 	var events []models.EventInfo
 	for _, v := range grouped {
-		events = append(events, v.info)
+		events = append(events, v)
 	}
 
 	sort.Slice(events, func(i, j int) bool {
@@ -211,25 +159,75 @@ func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error)
 	return events, nil
 }
 
+// ----------- FOR FILTERING (full fidelity) -----------
+
+func (s *CalendarService) extractAllEvents(data []byte) ([]models.EventInfo, error) {
+	cal, err := ics.ParseCalendar(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+
+	var events []models.EventInfo
+
+	for _, comp := range cal.Components {
+		ev, ok := comp.(*ics.VEvent)
+		if !ok {
+			continue
+		}
+
+		rawSummary := ev.GetProperty("SUMMARY").Value
+		baseName := normalizeSummary(rawSummary)
+		baseKey := makeSeriesKey(rawSummary)
+
+		startRaw := ev.GetProperty("DTSTART").Value
+		endRaw := ev.GetProperty("DTEND").Value
+		uid := ev.GetProperty("UID").Value
+
+		var rrule string
+		if p := ev.GetProperty("RRULE"); p != nil {
+			rrule = p.Value
+		}
+
+		hasRecID := ev.GetProperty("RECURRENCE-ID") != nil
+
+		events = append(events, models.EventInfo{
+			UID:             uid,
+			Summary:         baseName,
+			StartRaw:        startRaw,
+			EndRaw:          endRaw,
+			StartNice:       formatICSTime(startRaw),
+			EndNice:         formatICSTime(endRaw),
+			RRule:           rrule,
+			SeriesKey:       baseKey,
+			HasRecurrenceID: hasRecID,
+		})
+	}
+
+	return events, nil
+}
+
 // ============================================================
-// APPLY FILTER (works on ALL instances)
+// APPLY FILTER (uses FULL list, not grouped)
 // ============================================================
 
 func (s *CalendarService) ApplyFilter(
 	data []byte,
 	cfg models.FilterConfig,
 ) ([]byte, error) {
+
 	cal, err := ics.ParseCalendar(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
 
-	events, err := s.ExtractEvents(data)
+	// IMPORTANT: use FULL extraction for filtering
+	events, err := s.extractAllEvents(data)
 	if err != nil {
 		return nil, err
 	}
 
-	holidayWindow, hasHoliday := s.findHolidayWindow(events, cfg)
+	holidayWindows := s.findHolidayWindows(events, cfg)
+	hasHoliday := len(holidayWindows) > 0
 
 	var newComponents []ics.Component
 
@@ -240,7 +238,7 @@ func (s *CalendarService) ApplyFilter(
 			continue
 		}
 
-		if s.shouldHideEvent(ev, cfg, holidayWindow, hasHoliday) {
+		if s.shouldHideEvent(ev, cfg, holidayWindows, hasHoliday) {
 			continue
 		}
 
@@ -252,7 +250,7 @@ func (s *CalendarService) ApplyFilter(
 }
 
 // ============================================================
-// HELPERS
+// HELPERS — MULTI HOLIDAY WINDOWS
 // ============================================================
 
 type holidayWindow struct {
@@ -260,70 +258,103 @@ type holidayWindow struct {
 	end   time.Time
 }
 
-func (s *CalendarService) findHolidayWindow(
+func (s *CalendarService) findHolidayWindows(
 	events []models.EventInfo,
 	cfg models.FilterConfig,
-) (holidayWindow, bool) {
-	var w holidayWindow
+) []holidayWindow {
 
+	var windows []holidayWindow
+	holidayNames := map[string]bool{}
+
+	// Collect base names marked as holiday
 	for _, ev := range events {
 		for _, h := range cfg.HolidayUIDs {
-			if ev.UID != h {
-				continue
+			if ev.UID == h {
+				holidayNames[ev.SeriesKey] = true
 			}
-
-			start, err1 := parseICSTime(ev.StartRaw)
-			end, err2 := parseICSTime(ev.EndRaw)
-			if err1 != nil || err2 != nil {
-				continue
-			}
-			w = holidayWindow{start: start, end: end}
-			return w, true
 		}
 	}
-	return w, false
+
+	// Any event with that base name becomes a holiday window
+	for _, ev := range events {
+		if !holidayNames[ev.SeriesKey] {
+			continue
+		}
+
+		start, err1 := parseICSTime(ev.StartRaw)
+		end, err2 := parseICSTime(ev.EndRaw)
+		if err1 != nil || err2 != nil {
+			continue
+		}
+
+		windows = append(windows, holidayWindow{
+			start: start,
+			end:   end,
+		})
+	}
+
+	return windows
 }
 
 func (s *CalendarService) shouldHideEvent(
 	ev *ics.VEvent,
 	cfg models.FilterConfig,
-	w holidayWindow,
+	windows []holidayWindow,
 	hasHoliday bool,
 ) bool {
+
 	rawSummary := ev.GetProperty("SUMMARY").Value
-	baseKey := makeSeriesKey(rawSummary) // e.g. "Absent"
+	baseKey := makeSeriesKey(rawSummary)
 	uid := ev.GetProperty("UID").Value
 
-	// Build the SAME key format the FORM sends: "Summary|RRULE"
-	rrule := ""
-	if p := ev.GetProperty("RRULE"); p != nil {
-		rrule = p.Value
-	} else if p = ev.GetProperty("RECURRENCE-ID"); p != nil {
-		rrule = p.Value
+	// -------------------------------------------------------
+	// 🔥 FIX #1 — NEVER hide the holiday events themselves
+	// -------------------------------------------------------
+	for _, h := range cfg.HolidayUIDs {
+		if uid == h {
+			return false
+		}
 	}
-	uiKey := normalizeSummary(rawSummary) + "|" + rrule
 
-	// 1) Explicit single-event hide
+	// Also protect all events with the SAME base name as a holiday
+	// (so "Absent 01/01" is kept if ANY "Absent" was marked holiday)
+	if hasHoliday {
+		for _, w := range windows {
+			start, _ := parseICSTime(ev.GetProperty("DTSTART").Value)
+			end, _ := parseICSTime(ev.GetProperty("DTEND").Value)
+
+			// If THIS event *is* one of the holiday windows → keep it
+			if start.Equal(w.start) && end.Equal(w.end) {
+				return false
+			}
+		}
+	}
+
+	// -------------------------------------------------------
+	// 1) Explicit single-event hide (non-holiday only)
+	// -------------------------------------------------------
 	if s.isExplicitlyHidden(uid, cfg) {
 		return true
 	}
 
-	// 2) Hide whole series — MATCH BOTH POSSIBLE KEYS
+	// -------------------------------------------------------
+	// 2) Hide whole fuzzy series (non-holiday only)
+	// -------------------------------------------------------
 	for hideKey := range cfg.HideSeries {
-		// Case A: exact match with UI key (normal case)
-		if hideKey == uiKey {
-			return true
-		}
-
-		// Case B: fuzzy name match (your grouping case)
 		if hideKey == baseKey {
 			return true
 		}
 	}
 
-	// 3) Holiday window applies to ALL matching names
-	if hasHoliday && s.overlapsHoliday(ev, w) {
-		return true
+	// -------------------------------------------------------
+	// 3) Hide events that OVERLAP any holiday window
+	// -------------------------------------------------------
+	if hasHoliday {
+		for _, w := range windows {
+			if s.overlapsHoliday(ev, w) {
+				return true
+			}
+		}
 	}
 
 	return false
@@ -344,14 +375,16 @@ func (s *CalendarService) overlapsHoliday(ev *ics.VEvent, w holidayWindow) bool 
 
 	evStart, err1 := parseICSTimeWithTZID(startProp)
 	evEnd, err2 := parseICSTimeWithTZID(endProp)
+
 	if err1 != nil || err2 != nil {
 		return false
 	}
+
 	return evStart.Before(w.end) && evEnd.After(w.start)
 }
 
 // ============================================================
-// TZ PARSERS (unchanged)
+// TZ PARSERS
 // ============================================================
 
 func parseICSTime(raw string) (time.Time, error) {
@@ -370,19 +403,21 @@ func parseICSTime(raw string) (time.Time, error) {
 	if t, err := time.Parse("20060102", raw); err == nil {
 		return t.In(time.Local), nil
 	}
+
 	return time.Time{}, fmt.Errorf("cannot parse ICS time: %s", raw)
 }
 
 func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
 	raw := p.Value
+
 	if tzid, ok := p.ICalParameters["TZID"]; ok && len(tzid) > 0 {
 		loc, err := time.LoadLocation(tzid[0])
 		if err == nil {
-			var t time.Time
-			if t, err = time.ParseInLocation("20060102T150405", raw, loc); err == nil {
+			if t, err := time.ParseInLocation("20060102T150405", raw, loc); err == nil {
 				return t, nil
 			}
 		}
 	}
+
 	return parseICSTime(raw)
 }

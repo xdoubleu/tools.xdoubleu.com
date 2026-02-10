@@ -79,8 +79,8 @@
           {{if .RRule}}
           <input class="form-check-input"
                  type="checkbox"
-                 name="hide_rec_{{.Summary}}|{{.RRule}}"
-                 {{if index $.CheckedRecs (printf "%s|%s" .Summary .RRule)}}checked{{end}}>
+                 name="hide_rec_{{.Summary}}"
+                 {{if index $.CheckedRecs (.Summary)}}checked{{end}}>
           {{else}}
           —
           {{end}}
