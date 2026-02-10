@@ -220,7 +220,6 @@ func (s *CalendarService) ApplyFilter(
 		return nil, err
 	}
 
-	// IMPORTANT: use FULL extraction for filtering
 	events, err := s.extractAllEvents(data)
 	if err != nil {
 		return nil, err
@@ -238,8 +237,79 @@ func (s *CalendarService) ApplyFilter(
 			continue
 		}
 
-		if s.shouldHideEvent(ev, cfg, holidayWindows, hasHoliday) {
+		uid := ev.GetProperty("UID").Value
+
+		// -------------------------------------------------------
+		// RULE A — NEVER hide holiday events themselves
+		// -------------------------------------------------------
+		for _, h := range cfg.HolidayUIDs {
+			if uid == h {
+				newComponents = append(newComponents, ev)
+				continue
+			}
+		}
+
+		// -------------------------------------------------------
+		// RULE B — NON-RECURRING events → delete if needed
+		// -------------------------------------------------------
+		if ev.GetProperty("RRULE") == nil {
+			if s.shouldHideEvent(ev, cfg, holidayWindows, hasHoliday) {
+				continue
+			}
+			newComponents = append(newComponents, ev)
 			continue
+		}
+
+		// -------------------------------------------------------
+		// RULE C — RECURRING events → ADD PRECISE EXDATE LIST
+		// -------------------------------------------------------
+		if hasHoliday {
+
+			// Get the SERIES DTSTART time-of-day (needed for correct EXDATE)
+			seriesStartProp := ev.GetProperty("DTSTART")
+			seriesStart, err := parseICSTimeWithTZID(seriesStartProp)
+			if err != nil {
+				newComponents = append(newComponents, ev)
+				continue
+			}
+
+			for _, w := range holidayWindows {
+
+				// Build list of all excluded occurrences
+				var exdates []string
+
+				d := w.start
+				for !d.After(w.end) {
+
+					// IMPORTANT: keep the SAME time-of-day as the recurring event
+					occurrence := time.Date(
+						d.Year(),
+						d.Month(),
+						d.Day(),
+						seriesStart.Hour(),
+						seriesStart.Minute(),
+						seriesStart.Second(),
+						0,
+						seriesStart.Location(),
+					)
+
+					d = d.Add(24 * time.Hour)
+
+					if !occurrence.After(w.start) {
+						continue
+					}
+
+					exdates = append(
+						exdates,
+						occurrence.UTC().Format("20060102T150405"),
+					)
+				}
+
+				// Add a single EXDATE with comma-separated values
+				if len(exdates) > 0 {
+					ev.AddProperty("EXDATE", strings.Join(exdates, ","))
+				}
+			}
 		}
 
 		newComponents = append(newComponents, ev)
@@ -411,13 +481,37 @@ func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
 	raw := p.Value
 
 	if tzid, ok := p.ICalParameters["TZID"]; ok && len(tzid) > 0 {
-		loc, err := time.LoadLocation(tzid[0])
+		loc, err := time.LoadLocation(normalizeTZID(tzid[0]))
 		if err == nil {
-			if t, err := time.ParseInLocation("20060102T150405", raw, loc); err == nil {
-				return t, nil
+			if t, err := time.Parse("20060102T150405", raw); err == nil {
+				return time.Date(
+					t.Year(),
+					t.Month(),
+					t.Day(),
+					t.Hour(),
+					t.Minute(),
+					t.Second(),
+					0,
+					loc,
+				), nil
 			}
 		}
 	}
 
 	return parseICSTime(raw)
+}
+
+func normalizeTZID(tz string) string {
+	switch tz {
+	case "Romance Standard Time":
+		return "Europe/Brussels"
+	case "Central Europe Standard Time":
+		return "Europe/Berlin"
+	case "W. Europe Standard Time":
+		return "Europe/Amsterdam"
+	case "GMT Standard Time":
+		return "Europe/London"
+	default:
+		return tz
+	}
 }
