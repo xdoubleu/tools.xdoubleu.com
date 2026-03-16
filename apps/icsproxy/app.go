@@ -71,6 +71,7 @@ func (app *ICSProxy) ApplyMigrations(db *pgxpool.Pool) error {
 }
 
 func (app *ICSProxy) setContext() {
+	//nolint:gosec // cancel is called later
 	ctx, cancel := context.WithCancel(context.Background())
 	app.ctx = ctx
 	app.ctxCancel = cancel

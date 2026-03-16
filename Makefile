@@ -3,7 +3,7 @@ tools: tools/lint
 tools/lint: tools/lint/go tools/lint/sql
 
 tools/lint/go:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
 	go install github.com/segmentio/golines@v0.13.0
 	go install github.com/daixiang0/gci@v0.13.7
 	go install github.com/securego/gosec/v2/cmd/gosec@v2.22.11
@@ -23,7 +23,7 @@ lint: tools/lint
 	golangci-lint run
 	make lint/sql
 
-lint/fix:
+lint/fix: tools/lint
 	golines . -m 88 -w
 	golangci-lint run --fix
 	gci write --skip-generated -s standard -s default .
