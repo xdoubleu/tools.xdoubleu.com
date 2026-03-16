@@ -11,9 +11,9 @@ import (
 )
 
 func (app *Application) authRoutes(prefix string, mux *http.ServeMux) {
-	mux.HandleFunc(fmt.Sprintf("POST /%s/auth/signin", prefix), app.signInHandler)
+	mux.HandleFunc(fmt.Sprintf("POST /%s/signin", prefix), app.signInHandler)
 	mux.HandleFunc(
-		fmt.Sprintf("GET /%s/auth/signout", prefix),
+		fmt.Sprintf("GET /%s/signout", prefix),
 		app.services.Auth.Access(app.signOutHandler),
 	)
 }
