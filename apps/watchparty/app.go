@@ -51,6 +51,7 @@ func (app *WatchParty) ApplyMigrations(_ *pgxpool.Pool) error {
 }
 
 func (app *WatchParty) setContext() {
+	//nolint:gosec //cancel called later
 	ctx, cancel := context.WithCancel(context.Background())
 	app.ctx = ctx
 	app.ctxCancel = cancel

@@ -10,16 +10,16 @@
 <body>
     <div class="container">
         <br/>
-        <form method="POST" action="/api/auth/signin" class="col-lg-6 offset-lg-3">
+        <form method="POST" action="/auth/signin" class="col-lg-6 offset-lg-3">
             <h1>tools.xdoubleu.com</h1>
             <br/>
             <div class="justify-content-center mb-3">
                 <label for="email" class="form-label">Email address</label>
-                <input type="email" class="form-control" name="email">
+                <input type="email" class="form-control" name="email" required autocomplete="username">
             </div>
             <div class="justify-content-center mb-3">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" name="password">
+                <input type="password" class="form-control" name="password" required autocomplete="password">
             </div>
             <div class="justify-content-center form-check mb-3">
                 <input type="checkbox" class="form-check-input" name="rememberMe">

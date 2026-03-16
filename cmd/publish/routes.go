@@ -14,9 +14,7 @@ func (app *Application) Routes() http.Handler {
 
 	mux.HandleFunc("GET /", app.services.Auth.TemplateAccess(app.Home))
 
-	mux.HandleFunc("GET /proxy", app.Proxy)
-
-	app.authRoutes("api", mux)
+	app.authRoutes("auth", mux)
 
 	app.apps.Routes(mux)
 

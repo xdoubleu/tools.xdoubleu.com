@@ -13,7 +13,7 @@ func TestSignInHandler(t *testing.T) {
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
-		"/api/auth/signin",
+		"/auth/signin",
 	)
 
 	signInDto := dtos.SignInDto{
@@ -35,7 +35,7 @@ func TestSignOutHandler(t *testing.T) {
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodGet,
-		"/api/auth/signout",
+		"/auth/signout",
 	)
 
 	tReq.SetFollowRedirect(false)

@@ -27,6 +27,14 @@ func (app *ICSProxy) indexHandler(w http.ResponseWriter, r *http.Request) {
 // =======================
 
 func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
+	//nolint:mnd //no magic number
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
 	sourceURL := r.FormValue("source_url")
 
 	data, err := app.services.Calendar.FetchICS(r.Context(), sourceURL)
@@ -105,6 +113,14 @@ func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
 // =======================
 
 func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
+	//nolint:mnd //no magic number
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
 	sourceURL := r.FormValue("source_url")
 
 	token := r.FormValue("token")
