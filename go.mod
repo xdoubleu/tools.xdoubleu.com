@@ -17,7 +17,7 @@ require (
 	github.com/sgreben/piecewiselinear v1.2.0
 	github.com/stretchr/testify v1.11.1
 	github.com/supabase-community/gotrue-go v1.2.1
-	github.com/xdoubleu/essentia/v2 v2.0.2
+	github.com/xdoubleu/essentia/v2 v2.0.3
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	golang.org/x/net v0.49.0
 )
