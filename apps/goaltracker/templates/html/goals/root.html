@@ -1,4 +1,5 @@
-{{define "content"}}
+{{ template "header" }}
+{{ template "navbar" }}
 <div class="container">
         {{template "ws" "todoist"}}
         <br/>
@@ -24,6 +25,4 @@
 
         {{end}}
     </div>
-{{end}}
-
-{{template "baseNav" .}}
+{{ template "footer" }}

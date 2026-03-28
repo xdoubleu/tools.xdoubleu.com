@@ -1,4 +1,5 @@
-{{define "content"}}
+{{ template "header" }}
+{{ template "navbar" }}
 <div class="container">
     <h1>{{.Goal.Name}}</h1>
     <a class="btn btn-dark" href="/goaltracker/edit/{{.Goal.ID}}">Edit</a>
@@ -64,6 +65,4 @@
         });
     </script>
   </div>
-{{end}}
-
-{{template "baseNav" .}}
+{{ template "footer" }}

@@ -1,4 +1,5 @@
-{{define "content"}}
+{{ template "header" }}
+{{ template "navbar" }}
 <div class="container">
         <h1>{{.Goal.Name}}</h1>
         <form method="POST" action="/goaltracker/api/goals/{{.Goal.ID}}/edit" class="col-lg-6">
@@ -67,6 +68,4 @@
             }
         </script>
     </div>
-{{end}}
-
-{{template "baseNav" .}}
+{{ template "footer" }}

@@ -182,7 +182,9 @@ func (service *AuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFu
 		}
 
 		if user == nil {
-			tpltools.RenderWithPanic(service.tpl, w, "sign-in.html", nil)
+			tpltools.RenderWithPanic(service.tpl, w, "sign-in.html", map[string]any{
+				"HideNav": true,
+			})
 			return
 		}
 

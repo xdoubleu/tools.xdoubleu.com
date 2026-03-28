@@ -1,4 +1,5 @@
-{{define "content"}}
+{{ template "header" }}
+{{ template "navbar" }}
 <style>
     body {
         background: #f8f9fa;
@@ -38,6 +39,4 @@
         {{ end }}
     </div>
 </div>
-{{end}}
-
-{{template "baseNav" .}}
+{{ template "footer" }}
