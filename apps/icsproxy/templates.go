@@ -144,7 +144,12 @@ func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := app.services.Calendar.SaveConfig(r.Context(), cfg); err != nil {
-		app.logger.ErrorContext(r.Context(), "Failed to save calendar config", "error", err)
+		app.logger.ErrorContext(
+			r.Context(),
+			"Failed to save calendar config",
+			"error",
+			err,
+		)
 		http.Error(w, "Failed to save config", http.StatusInternalServerError)
 		return
 	}

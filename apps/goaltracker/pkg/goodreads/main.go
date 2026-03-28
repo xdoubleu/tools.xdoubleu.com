@@ -50,7 +50,10 @@ func (client client) GetBooks(ctx context.Context, userID string) ([]Book, error
 	books := map[int64]*Book{}
 
 	for _, shelf := range shelves {
-		client.logger.DebugContext(ctx, fmt.Sprintf("fetching books on shelf %s", shelf))
+		client.logger.DebugContext(
+			ctx,
+			fmt.Sprintf("fetching books on shelf %s", shelf),
+		)
 
 		var booksOnShelf []Book
 		booksOnShelf, err = getBooksForShelfOrTag(userID, &shelf, nil)

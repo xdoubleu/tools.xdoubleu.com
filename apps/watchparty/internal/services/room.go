@@ -99,7 +99,11 @@ func (rs *RoomService) RemoveRoom(ctx context.Context, code string) bool {
 // WebSocket / Client Handling
 // ----------------------
 
-func (rs *RoomService) JoinPresenter(ctx context.Context, code string, conn *websocket.Conn) bool {
+func (rs *RoomService) JoinPresenter(
+	ctx context.Context,
+	code string,
+	conn *websocket.Conn,
+) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -139,7 +143,11 @@ func (rs *RoomService) JoinViewer(ctx context.Context, code, userID string) bool
 	return true
 }
 
-func (rs *RoomService) JoinViewerWS(ctx context.Context, code string, conn *websocket.Conn) bool {
+func (rs *RoomService) JoinViewerWS(
+	ctx context.Context,
+	code string,
+	conn *websocket.Conn,
+) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -178,7 +186,11 @@ func (rs *RoomService) LeaveViewer(ctx context.Context, code string) {
 // Messaging
 // ----------------------
 
-func (rs *RoomService) SendToViewer(ctx context.Context, code string, trackMsg dtos.TrackMessage) {
+func (rs *RoomService) SendToViewer(
+	ctx context.Context,
+	code string,
+	trackMsg dtos.TrackMessage,
+) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -196,7 +208,11 @@ func (rs *RoomService) SendToViewer(ctx context.Context, code string, trackMsg d
 	}
 }
 
-func (rs *RoomService) SendToPresenter(ctx context.Context, code string, trackMsg dtos.TrackMessage) {
+func (rs *RoomService) SendToPresenter(
+	ctx context.Context,
+	code string,
+	trackMsg dtos.TrackMessage,
+) {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -218,7 +234,10 @@ func (rs *RoomService) SendToPresenter(ctx context.Context, code string, trackMs
 // Automatic Cleanup
 // ----------------------
 
-func (rs *RoomService) startCleanup(ctx context.Context, interval, maxAge time.Duration) {
+func (rs *RoomService) startCleanup(
+	ctx context.Context,
+	interval, maxAge time.Duration,
+) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -236,7 +255,11 @@ func (rs *RoomService) cleanupOldRooms(ctx context.Context, maxAge time.Duration
 	now := time.Now()
 	for code, room := range rs.activeRooms {
 		if now.Sub(room.LastActive) > maxAge {
-			rs.logger.InfoContext(ctx, "Removing inactive room", slog.String("code", code))
+			rs.logger.InfoContext(
+				ctx,
+				"Removing inactive room",
+				slog.String("code", code),
+			)
 
 			if room.Viewer.WS != nil {
 				room.Viewer.WS.Close(websocket.StatusNormalClosure, "room expired")

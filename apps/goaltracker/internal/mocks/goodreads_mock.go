@@ -15,7 +15,10 @@ func NewMockGoodreadsClient() goodreads.Client {
 	return MockGoodreadsClient{}
 }
 
-func (m MockGoodreadsClient) GetBooks(_ context.Context, _ string) ([]goodreads.Book, error) {
+func (m MockGoodreadsClient) GetBooks(
+	_ context.Context,
+	_ string,
+) ([]goodreads.Book, error) {
 	return []goodreads.Book{
 		{
 			ID:        1,
