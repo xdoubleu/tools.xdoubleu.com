@@ -48,15 +48,13 @@ func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	for _, user := range users {
-		logger.Debug("fetching owned games")
+		logger.DebugContext(ctx, "fetching owned games")
 		var ownedGames []models.Game
 		ownedGames, err = j.steamService.ImportOwnedGames(ctx, user.ID)
 		if err != nil {
 			return err
 		}
-		logger.Debug(
-			fmt.Sprintf("fetched %d games", len(ownedGames)),
-		)
+		logger.DebugContext(ctx, fmt.Sprintf("fetched %d games", len(ownedGames)))
 
 		gamesIDNameMap := map[int]string{}
 		for _, game := range ownedGames {
@@ -98,7 +96,7 @@ func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
 			}
 
 			if achievedForGame > 0 {
-				logger.Debug(
+				logger.DebugContext(ctx,
 					fmt.Sprintf(
 						"achieved %d achievements in '%s'",
 						achievedForGame,
@@ -110,7 +108,7 @@ func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
 			}
 		}
 
-		logger.Debug(
+		logger.DebugContext(ctx,
 			fmt.Sprintf(
 				"achieved %d achievements in %d games",
 				totalAchievedAchievements,
@@ -120,7 +118,7 @@ func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
 
 		progressLabels, progressValues := grapher.ToSlices()
 
-		logger.Debug("saving progress")
+		logger.DebugContext(ctx, "saving progress")
 		err = j.goalService.SaveProgress(
 			ctx,
 			models.SteamCompletionRate.ID,

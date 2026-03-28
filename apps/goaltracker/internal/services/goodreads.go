@@ -25,12 +25,12 @@ func (service *GoodreadsService) ImportAllBooks(
 		return nil, err
 	}
 
-	books, err := service.client.GetBooks(*goodreadsUserID)
+	books, err := service.client.GetBooks(ctx, *goodreadsUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	service.logger.Debug(fmt.Sprintf("saving %d books", len(books)))
+	service.logger.DebugContext(ctx, fmt.Sprintf("saving %d books", len(books)))
 	err = service.goodreads.UpsertBooks(ctx, books, userID)
 	if err != nil {
 		return nil, err

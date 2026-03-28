@@ -1,6 +1,7 @@
 package goodreads
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -40,7 +41,7 @@ func (client client) GetUserID(profileURL string) (*string, error) {
 	return &userID, nil
 }
 
-func (client client) GetBooks(userID string) ([]Book, error) {
+func (client client) GetBooks(ctx context.Context, userID string) ([]Book, error) {
 	shelves, err := getAllShelves(userID)
 	if err != nil {
 		return nil, err
@@ -49,7 +50,10 @@ func (client client) GetBooks(userID string) ([]Book, error) {
 	books := map[int64]*Book{}
 
 	for _, shelf := range shelves {
-		client.logger.Debug(fmt.Sprintf("fetching books on shelf %s", shelf))
+		client.logger.DebugContext(
+			ctx,
+			fmt.Sprintf("fetching books on shelf %s", shelf),
+		)
 
 		var booksOnShelf []Book
 		booksOnShelf, err = getBooksForShelfOrTag(userID, &shelf, nil)
@@ -68,7 +72,7 @@ func (client client) GetBooks(userID string) ([]Book, error) {
 	}
 
 	for _, tag := range tags {
-		client.logger.Debug(fmt.Sprintf("fetching books for tag %s", tag))
+		client.logger.DebugContext(ctx, fmt.Sprintf("fetching books for tag %s", tag))
 
 		var booksWithTag []Book
 		booksWithTag, err = getBooksForShelfOrTag(userID, nil, &tag)
