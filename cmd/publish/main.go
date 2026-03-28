@@ -18,13 +18,11 @@ import (
 	"github.com/xdoubleu/essentia/v2/pkg/sentrytools"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/templates"
 )
 
 //go:embed templates/html/**/*html
 var htmlTemplates embed.FS
-
-//go:embed templates/shared/*html
-var sharedTemplates embed.FS
 
 type Application struct {
 	logger   *slog.Logger
@@ -84,9 +82,7 @@ func NewApplication(
 	db *pgxpool.Pool,
 	supabaseClient gotrue.Client,
 ) *Application {
-	sharedTpl := template.Must(
-		template.ParseFS(sharedTemplates, "templates/shared/*.html"),
-	)
+	sharedTpl := templates.LoadShared()
 	tpl := template.Must(sharedTpl.Clone())
 	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
