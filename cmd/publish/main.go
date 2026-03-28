@@ -84,7 +84,9 @@ func NewApplication(
 	db *pgxpool.Pool,
 	supabaseClient gotrue.Client,
 ) *Application {
-	sharedTpl := template.Must(template.ParseFS(sharedTemplates, "templates/shared/*.html"))
+	sharedTpl := template.Must(
+		template.ParseFS(sharedTemplates, "templates/shared/*.html"),
+	)
 	tpl := template.Must(sharedTpl.Clone())
 	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
