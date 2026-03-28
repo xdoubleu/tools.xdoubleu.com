@@ -48,13 +48,13 @@ func (j GoodreadsJob) Run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	for _, user := range users {
-		logger.Debug("fetching books")
+		logger.DebugContext(ctx, "fetching books")
 		var books []goodreads.Book
 		books, err = j.goodreadsService.ImportAllBooks(ctx, user.ID)
 		if err != nil {
 			return err
 		}
-		logger.Debug(fmt.Sprintf("fetched %d books", len(books)))
+		logger.DebugContext(ctx, fmt.Sprintf("fetched %d books", len(books)))
 
 		err = j.updateProgress(ctx, logger, user.ID, books)
 		if err != nil {
@@ -127,7 +127,7 @@ func (j GoodreadsJob) updateProgress(
 		progressValues = append(progressValues, pV[""]...)
 	}
 
-	logger.Debug("saving progress")
+	logger.DebugContext(ctx, "saving progress")
 	return j.goalService.SaveProgress(
 		ctx,
 		models.FinishedBooksThisYear.ID,

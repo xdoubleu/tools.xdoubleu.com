@@ -37,13 +37,13 @@ func New(
 
 	//nolint:exhaustruct //other fields are optional
 	app := &WatchParty{
-		logger:   logger,
-		config:   cfg,
-		tpl:      tpl,
-		services: services.New(logger, authService),
+		logger: logger,
+		config: cfg,
+		tpl:    tpl,
 	}
 
 	app.setContext()
+	app.services = services.New(app.ctx, logger, authService)
 
 	return app
 }
