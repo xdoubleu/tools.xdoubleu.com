@@ -1,5 +1,4 @@
-{{template "header"}}
-{{template "navbar"}}
+{{define "content"}}
 <style>
     body {
         background: #f8f9fa;
@@ -39,4 +38,6 @@
         {{ end }}
     </div>
 </div>
-{{template "footer"}}
+{{end}}
+
+{{template "baseNav" .}}

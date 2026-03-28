@@ -1,6 +1,4 @@
-{{template "header"}}
-{{template "navbar"}}
-
+{{define "content"}}
 <div class="container-fluid p-4">
 
 <div class="row justify-content-center">
@@ -106,5 +104,6 @@
   </div>
 </div>
 </div>
+{{end}}
 
-{{template "footer"}}
+{{template "baseNav" .}}
