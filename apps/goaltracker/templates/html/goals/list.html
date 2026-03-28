@@ -1,6 +1,5 @@
-{{template "header"}}
-{{template "navbar"}}
-    <div class="container">
+{{define "content"}}
+<div class="container">
         <h1>{{.Goal.Name}}</h1>
         <a class="btn btn-dark" href="/goaltracker/edit/{{.Goal.ID}}">Edit</a>
         {{template "ws" .Goal.SourceID}}
@@ -17,4 +16,6 @@
             {{end}}
         </ul>
     </div>
-{{template "footer"}}
+{{end}}
+
+{{template "baseNav" .}}

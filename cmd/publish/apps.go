@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"log/slog"
 	"net/http"
 
@@ -28,14 +29,15 @@ func NewApps(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	sharedTpl *template.Template,
 ) *Apps {
 	apps := &Apps{
 		apps: []App{},
 	}
 
-	apps.addApp(goaltracker.New(authService, logger, cfg, db))
-	apps.addApp(watchparty.New(authService, logger, cfg))
-	apps.addApp(icsproxy.New(authService, logger, cfg, db))
+	apps.addApp(goaltracker.New(authService, logger, cfg, db, sharedTpl))
+	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
+	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
 
 	return apps
 }

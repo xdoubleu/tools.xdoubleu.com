@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/goaltracker/internal/mocks"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/templates"
 )
 
 var testApp *goaltracker.GoalTracker //nolint:gochecknoglobals //needed for tests
@@ -67,6 +68,7 @@ func TestMain(m *testing.M) {
 		cfg,
 		postgresDB,
 		clients,
+		templates.LoadShared(),
 	)
 
 	err = testApp.ApplyMigrations(postgresDB)

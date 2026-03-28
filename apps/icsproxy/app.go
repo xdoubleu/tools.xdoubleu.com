@@ -36,8 +36,10 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	sharedTpl *template.Template,
 ) *ICSProxy {
-	tpl := template.Must(template.ParseFS(htmlTemplates, "templates/html/**/*.html"))
+	tpl := template.Must(sharedTpl.Clone())
+	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
 	//nolint:exhaustruct //other fields are optional
 	app := &ICSProxy{

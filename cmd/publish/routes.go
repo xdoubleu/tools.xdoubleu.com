@@ -15,6 +15,7 @@ func (app *Application) Routes() http.Handler {
 	mux.HandleFunc("GET /", app.services.Auth.TemplateAccess(app.Home))
 
 	app.authRoutes("auth", mux)
+	app.imageRoutes("images", mux)
 
 	app.apps.Routes(mux)
 
