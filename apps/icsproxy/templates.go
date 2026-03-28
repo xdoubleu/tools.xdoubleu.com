@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	tpltools "github.com/xdoubleu/essentia/v2/pkg/tpl"
+	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 )
 

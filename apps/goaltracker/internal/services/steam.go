@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/xdoubleu/essentia/v2/pkg/threading"
+	"github.com/xdoubleu/essentia/v3/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
 	"tools.xdoubleu.com/apps/goaltracker/internal/repositories"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/steam"
@@ -90,7 +90,12 @@ func (service *SteamService) importAchievementsForGames(
 
 	//nolint:mnd //no magic number
 	amountWorkers := (len(gameIDs) / 10) + 1
-	workerPool := threading.NewWorkerPool(service.logger, amountWorkers, len(gameIDs))
+	workerPool := threading.NewWorkerPool(
+		ctx,
+		service.logger,
+		amountWorkers,
+		len(gameIDs),
+	)
 
 	mu := sync.Mutex{}
 	achievementsPerGame := map[int][]steam.Achievement{}

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	wstools "github.com/xdoubleu/essentia/v2/pkg/communication/wstools"
-	"github.com/xdoubleu/essentia/v2/pkg/threading"
+	wstools "github.com/xdoubleu/essentia/v3/pkg/communication/wstools"
+	"github.com/xdoubleu/essentia/v3/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/dtos"
 )
 
@@ -19,6 +19,7 @@ type WebSocketService struct {
 }
 
 func NewWebSocketService(
+	ctx context.Context,
 	logger *slog.Logger,
 	allowedOrigins []string,
 	jobQueue *threading.JobQueue,
@@ -31,6 +32,7 @@ func NewWebSocketService(
 	}
 
 	handler := wstools.CreateWebSocketHandler[dtos.SubscribeMessageDto](
+		ctx,
 		logger,
 		1,
 		100, //nolint:mnd //no magic number

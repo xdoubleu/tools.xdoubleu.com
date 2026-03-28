@@ -1,9 +1,10 @@
 package services
 
 import (
+	"context"
 	"log/slog"
 
-	"github.com/xdoubleu/essentia/v2/pkg/threading"
+	"github.com/xdoubleu/essentia/v3/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/repositories"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/goodreads"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/steam"
@@ -22,6 +23,7 @@ type Services struct {
 }
 
 func New(
+	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
 	jobQueue *threading.JobQueue,
@@ -63,6 +65,6 @@ func New(
 		Todoist:   todoist,
 		Steam:     steam,
 		Goodreads: goodreads,
-		WebSocket: NewWebSocketService(logger, []string{config.WebURL}, jobQueue),
+		WebSocket: NewWebSocketService(ctx, logger, []string{config.WebURL}, jobQueue),
 	}
 }

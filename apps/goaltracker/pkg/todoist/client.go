@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	httptools "github.com/xdoubleu/essentia/v2/pkg/communication/httptools"
+	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 )
 
 const BaseURLRESTAPI = "https://api.todoist.com/rest/v2"

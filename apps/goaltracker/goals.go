@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	httptools "github.com/xdoubleu/essentia/v2/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v2/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v2/pkg/parse"
+	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
+	"github.com/xdoubleu/essentia/v3/pkg/parse"
 	"tools.xdoubleu.com/apps/goaltracker/internal/dtos"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
