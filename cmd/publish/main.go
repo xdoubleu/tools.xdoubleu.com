@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -10,12 +11,13 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/supabase-community/gotrue-go"
-	"github.com/xdoubleu/essentia/v2/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v2/pkg/logging"
-	"github.com/xdoubleu/essentia/v2/pkg/sentrytools"
+	"github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	"github.com/xdoubleu/essentia/v3/pkg/sentrytools"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/templates"
@@ -25,6 +27,7 @@ import (
 var htmlTemplates embed.FS
 
 type Application struct {
+	ctx      context.Context
 	logger   *slog.Logger
 	config   config.Config
 	services *services.Services
@@ -86,15 +89,23 @@ func NewApplication(
 	tpl := template.Must(sharedTpl.Clone())
 	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
+	ctx := context.Background()
+
+	sentryHub := initSentryGetHub(config)
+	if sentryHub != nil {
+		ctx = sentry.SetHubOnContext(ctx, sentryHub)
+	}
+
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
+		ctx:      ctx,
 		logger:   logger,
 		config:   config,
 		services: services.New(config, supabaseClient, tpl),
 		tpl:      tpl,
 	}
 
-	apps := NewApps(app.services.Auth, logger, config, db, sharedTpl)
+	apps := NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl)
 
 	err := apps.ApplyMigrations(db)
 	if err != nil {
@@ -104,6 +115,30 @@ func NewApplication(
 	app.apps = apps
 
 	return app
+}
+
+func initSentryGetHub(config config.Config) *sentry.Hub {
+	if len(config.SentryDsn) == 0 {
+		return nil
+	}
+
+	//nolint:exhaustruct //other fields are optional
+	sentryClientOptions := sentry.ClientOptions{
+		Dsn:              config.SentryDsn,
+		Environment:      config.Env,
+		Release:          config.Release,
+		EnableTracing:    true,
+		TracesSampleRate: config.SampleRate,
+		SampleRate:       config.SampleRate,
+	}
+
+	err := sentry.Init(sentryClientOptions)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return sentry.CurrentHub().Clone()
 }
 
 func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {

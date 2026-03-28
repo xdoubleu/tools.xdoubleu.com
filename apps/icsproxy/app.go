@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
 	"tools.xdoubleu.com/apps/icsproxy/internal/services"
 	"tools.xdoubleu.com/internal/auth"

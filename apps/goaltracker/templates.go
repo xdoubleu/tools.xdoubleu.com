@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/xdoubleu/essentia/v2/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v2/pkg/parse"
-	tpltools "github.com/xdoubleu/essentia/v2/pkg/tpl"
+	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
+	"github.com/xdoubleu/essentia/v3/pkg/parse"
+	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"

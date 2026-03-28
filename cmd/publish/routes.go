@@ -5,8 +5,8 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/justinas/alice"
-	"github.com/xdoubleu/essentia/v2/pkg/middleware"
-	"github.com/xdoubleu/essentia/v2/pkg/tpl"
+	"github.com/xdoubleu/essentia/v3/pkg/middleware"
+	"github.com/xdoubleu/essentia/v3/pkg/tpl"
 )
 
 func (app *Application) Routes() http.Handler {

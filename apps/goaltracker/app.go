@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v2/pkg/threading"
+	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v3/pkg/threading"
 	"tools.xdoubleu.com/apps/goaltracker/internal/jobs"
 	"tools.xdoubleu.com/apps/goaltracker/internal/repositories"
 	"tools.xdoubleu.com/apps/goaltracker/internal/services"
@@ -47,6 +47,7 @@ type GoalTracker struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -59,10 +60,11 @@ func New(
 		Goodreads: goodreads.New(logger),
 	}
 
-	return NewInner(authService, logger, cfg, db, clients, sharedTpl)
+	return NewInner(ctx, authService, logger, cfg, db, clients, sharedTpl)
 }
 
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -73,20 +75,20 @@ func NewInner(
 	tpl := template.Must(sharedTpl.Clone())
 	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
-	//nolint:mnd //no magic number
-	jobQueue := threading.NewJobQueue(logger, 2, 100)
-
 	//nolint:exhaustruct //other fields are optional
 	app := &GoalTracker{
-		logger:   logger,
-		clients:  clients,
-		Config:   cfg,
-		images:   images,
-		tpl:      tpl,
-		jobQueue: jobQueue,
+		logger:  logger,
+		clients: clients,
+		Config:  cfg,
+		images:  images,
+		tpl:     tpl,
 	}
 
-	app.setContext()
+	app.setContext(ctx)
+
+	//nolint:mnd //no magic number
+	app.jobQueue = threading.NewJobQueue(app.ctx, logger, 2, 100)
+
 	app.setDB(db, authService)
 	app.setJobs()
 
@@ -97,17 +99,12 @@ func (app *GoalTracker) setDB(
 	db postgres.DB,
 	authService auth.Service,
 ) {
-	// make sure previous app is cancelled internally
-	app.ctxCancel()
-	app.jobQueue.Clear()
-
-	app.setContext()
-
 	spandb := postgres.NewSpanDB(db)
 	app.db = spandb
 
 	app.Repositories = repositories.New(app.db)
 	app.Services = services.New(
+		app.ctx,
 		app.logger,
 		app.Config,
 		app.jobQueue,
@@ -151,8 +148,12 @@ func (app *GoalTracker) setJobs() {
 	app.Services.WebSocket.RegisterTopics(app.jobQueue.FetchJobIDs())
 }
 
-func (app *GoalTracker) setContext() {
-	ctx, cancel := context.WithCancel(context.Background())
+func (app *GoalTracker) setContext(originalCtx context.Context) {
+	if app.ctxCancel != nil {
+		app.ctxCancel()
+	}
+
+	ctx, cancel := context.WithCancel(originalCtx)
 	app.ctx = ctx
 	app.ctxCancel = cancel
 }

@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"html/template"
 	"log/slog"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	goaltracker "tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/watchparty"
@@ -25,6 +26,7 @@ type App interface {
 }
 
 func NewApps(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -35,7 +37,7 @@ func NewApps(
 		apps: []App{},
 	}
 
-	apps.addApp(goaltracker.New(authService, logger, cfg, db, sharedTpl))
+	apps.addApp(goaltracker.New(ctx, authService, logger, cfg, db, sharedTpl))
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
 

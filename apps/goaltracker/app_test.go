@@ -1,14 +1,15 @@
 package goaltracker_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	configtools "github.com/xdoubleu/essentia/v2/pkg/config"
-	"github.com/xdoubleu/essentia/v2/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v2/pkg/logging"
+	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
+	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v3/pkg/logging"
 	"tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/apps/goaltracker/internal/mocks"
 	"tools.xdoubleu.com/internal/config"
@@ -63,6 +64,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testApp = goaltracker.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		cfg,

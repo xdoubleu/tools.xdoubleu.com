@@ -9,7 +9,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
-	wstools "github.com/xdoubleu/essentia/v2/pkg/communication/wstools"
+	wstools "github.com/xdoubleu/essentia/v3/pkg/communication/wstools"
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 )
 

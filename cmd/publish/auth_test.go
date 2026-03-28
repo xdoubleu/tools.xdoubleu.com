@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v2/pkg/test"
+	"github.com/xdoubleu/essentia/v3/pkg/test"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 )
 
