@@ -23,6 +23,9 @@ import (
 //go:embed templates/html/**/*html
 var htmlTemplates embed.FS
 
+//go:embed templates/shared/*html
+var sharedTemplates embed.FS
+
 type Application struct {
 	logger   *slog.Logger
 	config   config.Config
@@ -81,7 +84,9 @@ func NewApplication(
 	db *pgxpool.Pool,
 	supabaseClient gotrue.Client,
 ) *Application {
-	tpl := template.Must(template.ParseFS(htmlTemplates, "templates/html/**/*.html"))
+	sharedTpl := template.Must(template.ParseFS(sharedTemplates, "templates/shared/*.html"))
+	tpl := template.Must(sharedTpl.Clone())
+	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
@@ -91,7 +96,7 @@ func NewApplication(
 		tpl:      tpl,
 	}
 
-	apps := NewApps(app.services.Auth, logger, config, db)
+	apps := NewApps(app.services.Auth, logger, config, db, sharedTpl)
 
 	err := apps.ApplyMigrations(db)
 	if err != nil {

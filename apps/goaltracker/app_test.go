@@ -67,6 +67,7 @@ func TestMain(m *testing.M) {
 		cfg,
 		postgresDB,
 		clients,
+		nil,
 	)
 
 	err = testApp.ApplyMigrations(postgresDB)

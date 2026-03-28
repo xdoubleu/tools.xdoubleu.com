@@ -51,6 +51,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	sharedTpl *template.Template,
 ) *GoalTracker {
 	clients := Clients{
 		Todoist:   todoist.New(cfg.TodoistAPIKey),
@@ -58,7 +59,7 @@ func New(
 		Goodreads: goodreads.New(logger),
 	}
 
-	return NewInner(authService, logger, cfg, db, clients)
+	return NewInner(authService, logger, cfg, db, clients, sharedTpl)
 }
 
 func NewInner(
@@ -67,8 +68,10 @@ func NewInner(
 	cfg config.Config,
 	db postgres.DB,
 	clients Clients,
+	sharedTpl *template.Template,
 ) *GoalTracker {
-	tpl := template.Must(template.ParseFS(htmlTemplates, "templates/html/**/*.html"))
+	tpl := template.Must(sharedTpl.Clone())
+	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
 	//nolint:mnd //no magic number
 	jobQueue := threading.NewJobQueue(logger, 2, 100)

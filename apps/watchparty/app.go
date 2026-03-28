@@ -30,8 +30,10 @@ func New(
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
+	sharedTpl *template.Template,
 ) *WatchParty {
-	tpl := template.Must(template.ParseFS(htmlTemplates, "templates/html/**/*.html"))
+	tpl := template.Must(sharedTpl.Clone())
+	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
 	//nolint:exhaustruct //other fields are optional
 	app := &WatchParty{
