@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
 	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 )
 
-const BaseURLRESTAPI = "https://api.todoist.com/rest/v2"
+const BaseURLRESTAPI = "https://api.todoist.com/api/v1"
 
 type client struct {
 	apiToken string
@@ -71,6 +72,23 @@ func (client client) sendRequest(
 		return err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		bodyBytes, err := io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf(
+				"request failed with status code %d and failed to read response body; error: %s",
+				res.StatusCode,
+				err,
+			)
+		}
+
+		return fmt.Errorf(
+			"request failed with status code %d and response body: %s",
+			res.StatusCode,
+			string(bodyBytes),
+		)
+	}
 
 	err = httptools.ReadJSON(res.Body, dst)
 	if err != nil && err.Error() != "body must not be empty" {

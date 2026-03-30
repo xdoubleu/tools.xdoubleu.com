@@ -62,9 +62,9 @@ func (client MockTodoistClient) GetAllSections(
 ) ([]todoist.Section, error) {
 	return []todoist.Section{
 		{
-			ID:    "1",
-			Name:  "State1",
-			Order: 1,
+			ID:           "1",
+			Name:         "State1",
+			SectionOrder: 1,
 		},
 	}, nil
 }

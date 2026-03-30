@@ -29,16 +29,12 @@ var embedMigrations embed.FS
 //go:embed templates/html/**/*html
 var htmlTemplates embed.FS
 
-//go:embed images/**
-var images embed.FS
-
 type GoalTracker struct {
 	logger       *slog.Logger
 	ctx          context.Context
 	ctxCancel    context.CancelFunc
 	db           postgres.DB
 	Config       config.Config
-	images       embed.FS
 	clients      Clients
 	Services     *services.Services
 	Repositories *repositories.Repositories
@@ -80,7 +76,6 @@ func NewInner(
 		logger:  logger,
 		clients: clients,
 		Config:  cfg,
-		images:  images,
 		tpl:     tpl,
 	}
 

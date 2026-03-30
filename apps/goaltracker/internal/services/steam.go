@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 
@@ -107,7 +108,8 @@ func (service *SteamService) importAchievementsForGames(
 				ID,
 			)
 			if errIn != nil {
-				return errIn
+				service.logger.WarnContext(ctx, fmt.Sprintf("failed to fetch achievements for %d; error: %s", ID, errIn))
+				return nil
 			}
 
 			mu.Lock()
