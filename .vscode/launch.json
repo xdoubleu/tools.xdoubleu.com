@@ -6,7 +6,8 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "${workspaceFolder}/cmd/publish"
+      "program": "${workspaceFolder}/cmd/publish",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

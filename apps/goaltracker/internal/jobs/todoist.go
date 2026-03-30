@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -43,13 +44,13 @@ func (j TodoistJob) Run(ctx context.Context, logger *slog.Logger) error {
 		logger.DebugContext(ctx, "importing states")
 		err = j.goalService.ImportStatesFromTodoist(ctx, user.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("todoist job: failed to import states; error: %w", err)
 		}
 
 		logger.DebugContext(ctx, "importing goals")
 		err = j.goalService.ImportGoalsFromTodoist(ctx, user.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("todoist job: failed to import goals; error: %w", err)
 		}
 	}
 

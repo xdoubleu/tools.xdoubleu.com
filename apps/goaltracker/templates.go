@@ -15,10 +15,6 @@ import (
 )
 
 func (app *GoalTracker) templateRoutes(prefix string, mux *http.ServeMux) {
-	mux.Handle(
-		fmt.Sprintf("GET /%s/images/", prefix),
-		http.FileServerFS(app.images),
-	)
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/{$}", prefix),
 		app.Services.Auth.TemplateAccess(app.rootHandler),

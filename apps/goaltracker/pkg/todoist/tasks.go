@@ -39,35 +39,28 @@ type UpdateTaskDto struct {
 }
 
 type Due struct {
-	String      string   `json:"string"`
-	Date        Date     `json:"date"`
-	IsRecurring bool     `json:"is_recurring"`
-	Datetime    DateTime `json:"datetime"`
-	Timezone    string   `json:"timezone"`
+	String      string `json:"string"`
+	Date        Date   `json:"date"`
+	IsRecurring bool   `json:"is_recurring"`
+	Timezone    string `json:"timezone"`
 }
 
 type Date struct {
 	time.Time
 }
 
-type DateTime struct {
-	time.Time
-}
-
 func (d *Date) UnmarshalJSON(bytes []byte) error {
-	date, err := time.Parse(`"2006-01-02"`, string(bytes))
-	if err != nil {
-		return err
-	}
-	d.Time = date
-	return nil
-}
+	var date time.Time
+	var err error
 
-func (d *DateTime) UnmarshalJSON(bytes []byte) error {
-	date, err := time.Parse(`"2006-01-02T15:04:05"`, string(bytes))
+	date, err = time.Parse(`"2006-01-02T15:04:05"`, string(bytes))
 	if err != nil {
-		return err
+		date, err = time.Parse(`"2006-01-02"`, string(bytes))
+		if err != nil {
+			return err
+		}
 	}
+
 	d.Time = date
 	return nil
 }
@@ -84,7 +77,7 @@ func (client client) GetActiveTasks(
 	query := fmt.Sprintf("project_id=%s", projectID)
 
 	var tasks []Task
-	err := client.sendRequest(ctx, http.MethodGet, TasksEndpoint, query, nil, &tasks)
+	err := getPaginatedResults(ctx, client, TasksEndpoint, query, &tasks)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package steam
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -78,6 +79,24 @@ func sendRequest(
 		//nolint:mnd //no magic number
 		time.Sleep(60 * time.Second)
 		return sendRequest(ctx, logger, apiToken, baseURL, endpoint, query, dst)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		var bodyBytes []byte
+		bodyBytes, err = io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf(
+				"request failed with status code %d and failed to read response body; error: %w",
+				res.StatusCode,
+				err,
+			)
+		}
+
+		return fmt.Errorf(
+			"request failed with status code %d and response body: %s",
+			res.StatusCode,
+			string(bodyBytes),
+		)
 	}
 
 	err = httptools.ReadJSON(res.Body, dst)
