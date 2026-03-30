@@ -108,7 +108,14 @@ func (service *SteamService) importAchievementsForGames(
 				ID,
 			)
 			if errIn != nil {
-				service.logger.WarnContext(ctx, fmt.Sprintf("failed to fetch achievements for %d; error: %s", ID, errIn))
+				service.logger.WarnContext(
+					ctx,
+					fmt.Sprintf(
+						"failed to fetch achievements for %d; error: %s",
+						ID,
+						errIn,
+					),
+				)
 				return nil
 			}
 

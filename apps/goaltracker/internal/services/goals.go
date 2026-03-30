@@ -137,7 +137,7 @@ func (service *GoalService) ImportStatesFromTodoist(
 ) error {
 	sections, err := service.todoist.GetSections(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get sections; error: %s", err)
+		return fmt.Errorf("failed to get sections; error: %w", err)
 	}
 
 	sectionsMap := map[string]todoist.Section{}
@@ -147,7 +147,7 @@ func (service *GoalService) ImportStatesFromTodoist(
 
 	existingStates, err := service.states.GetAll(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to get existing states; error: %s", err)
+		return fmt.Errorf("failed to get existing states; error: %w", err)
 	}
 
 	for _, state := range existingStates {
@@ -185,7 +185,7 @@ func (service *GoalService) ImportGoalsFromTodoist(
 ) error {
 	tasks, err := service.todoist.GetTasks(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get tasks; error: %s", err)
+		return fmt.Errorf("failed to get tasks; error: %w", err)
 	}
 
 	tasksMap := map[string]todoist.Task{}

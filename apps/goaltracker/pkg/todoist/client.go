@@ -74,10 +74,11 @@ func (client client) sendRequest(
 	defer res.Body.Close()
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		bodyBytes, err := io.ReadAll(res.Body)
+		var bodyBytes []byte
+		bodyBytes, err = io.ReadAll(res.Body)
 		if err != nil {
 			return fmt.Errorf(
-				"request failed with status code %d and failed to read response body; error: %s",
+				"request failed with status code %d and failed to read response body; error: %w",
 				res.StatusCode,
 				err,
 			)
