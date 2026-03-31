@@ -113,58 +113,6 @@ func (repo *GoalRepository) GetByID(
 	return &goal, nil
 }
 
-func (repo *GoalRepository) GetByTypeID(
-	ctx context.Context,
-	id int64,
-	userID string,
-) ([]models.Goal, error) {
-	query := `
-		SELECT id, name, source_id, target_value, state_id,
-		is_linked, period, due_time, "order", config
-		FROM goaltracker.goals
-		WHERE type_id = $1 AND user_id = $2
-	`
-
-	rows, err := repo.db.Query(ctx, query, id, userID)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	goals := []models.Goal{}
-	for rows.Next() {
-		//nolint:exhaustruct //other fields are assigned later
-		goal := models.Goal{
-			TypeID: &id,
-		}
-
-		err = rows.Scan(
-			&goal.ID,
-			&goal.Name,
-			&goal.SourceID,
-			&goal.TargetValue,
-			&goal.StateID,
-			&goal.IsLinked,
-			&goal.Period,
-			&goal.DueTime,
-			&goal.Order,
-			&goal.Config,
-		)
-
-		if err != nil {
-			return nil, postgres.PgxErrorToHTTPError(err)
-		}
-
-		goals = append(goals, goal)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return goals, nil
-}
-
 func (repo *GoalRepository) Upsert(
 	ctx context.Context,
 	id string,

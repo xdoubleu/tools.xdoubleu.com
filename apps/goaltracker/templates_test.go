@@ -49,7 +49,7 @@ func TestLink(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rs.StatusCode)
 }
 
-func TestGoalProgressGraph(t *testing.T) {
+func TestGoalProgressGraphSteam(t *testing.T) {
 	err := testApp.Services.Goals.ImportGoalsFromTodoist(
 		context.Background(),
 		testApp.Config.SupabaseUserID,
@@ -65,6 +65,46 @@ func TestGoalProgressGraph(t *testing.T) {
 		userID,
 		&dtos.LinkGoalDto{
 			TypeID:      models.SteamCompletionRate.ID,
+			TargetValue: &val,
+			Tag:         nil,
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	tReq := test.CreateRequestTester(
+		getRoutes(),
+		http.MethodGet,
+		fmt.Sprintf("/%s/goals/123", testApp.GetName()),
+	)
+	tReq.AddCookie(&accessToken)
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
+}
+
+func TestGoalProgressGraphGoodreads(t *testing.T) {
+	err := testApp.Services.Goals.ImportGoalsFromTodoist(
+		t.Context(),
+		testApp.Config.SupabaseUserID,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = testApp.Services.Goodreads.ImportAllBooks(t.Context(), testApp.Config.SupabaseUserID)
+	if err != nil {
+		panic(err)
+	}
+
+	val := int64(50)
+	err = testApp.Services.Goals.LinkGoal(
+		context.Background(),
+		goalID,
+		userID,
+		&dtos.LinkGoalDto{
+			TypeID:      models.FinishedBooksThisYear.ID,
 			TargetValue: &val,
 			Tag:         nil,
 		},

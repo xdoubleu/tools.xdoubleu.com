@@ -60,11 +60,3 @@ func (service *GoodreadsService) GetBooksByTag(
 ) ([]goodreads.Book, error) {
 	return service.goodreads.GetBooksByTag(ctx, tag, userID)
 }
-
-func (service *GoodreadsService) GetBooksByIDs(
-	ctx context.Context,
-	ids []int64,
-	userID string,
-) ([]goodreads.Book, error) {
-	return service.goodreads.GetBooksByIDs(ctx, ids, userID)
-}

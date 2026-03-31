@@ -34,8 +34,8 @@ func TestGoodreadsJob(t *testing.T) {
 		testApp.Services.Goodreads,
 		testApp.Services.Goals,
 	)
-	job.ID()
-	job.RunEvery()
+	assert.NotNil(t, job.ID())
+	assert.NotNil(t, job.RunEvery())
 
 	err = job.Run(context.Background(), logging.NewNopLogger())
 	assert.Nil(t, err)
@@ -47,8 +47,8 @@ func TestSteamJob(t *testing.T) {
 		testApp.Services.Steam,
 		testApp.Services.Goals,
 	)
-	job.ID()
-	job.RunEvery()
+	assert.NotNil(t, job.ID())
+	assert.NotNil(t, job.RunEvery())
 
 	err := job.Run(context.Background(), logging.NewNopLogger())
 	assert.Nil(t, err)
@@ -56,8 +56,8 @@ func TestSteamJob(t *testing.T) {
 
 func TestTodoistJob(t *testing.T) {
 	job := jobs.NewTodoistJob(testApp.Services.Auth, testApp.Services.Goals)
-	job.ID()
-	job.RunEvery()
+	assert.NotNil(t, job.ID())
+	assert.NotNil(t, job.RunEvery())
 
 	err := job.Run(context.Background(), logging.NewNopLogger())
 	assert.Nil(t, err)

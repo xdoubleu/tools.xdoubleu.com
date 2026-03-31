@@ -50,7 +50,12 @@ func (m *MockedAuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFu
 }
 
 func (m *MockedAuthService) GetAllUsers() ([]models.User, error) {
-	return []models.User{}, nil
+	return []models.User{
+		{
+			ID:    m.userID,
+			Email: "<EMAIL>",
+		},
+	}, nil
 }
 
 func (m *MockedAuthService) SignOut(
