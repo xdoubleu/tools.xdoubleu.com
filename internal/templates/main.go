@@ -14,7 +14,7 @@ var sharedFS embed.FS
 func LoadShared(cfg config.Config) *template.Template {
 	return template.Must(template.New("shared").Funcs(template.FuncMap{
 		"release": func() string {
-			return cfg.Release
+			return cfg.Release[0:7]
 		},
 		"copyrightYear": func() int {
 			return time.Now().Year()
