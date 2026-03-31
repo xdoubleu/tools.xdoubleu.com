@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 		cfg,
 		postgresDB,
 		clients,
-		templates.LoadShared(),
+		templates.LoadShared(cfg),
 	)
 
 	err = testApp.ApplyMigrations(postgresDB)
