@@ -47,9 +47,14 @@ func (client MockSteamClient) GetPlayerAchievements(
 			GameName: "test",
 			Achievements: []steam.Achievement{
 				{
-					APIName:     "TEST",
-					Achieved:    1,
-					UnlockTime:  int64(time.Now().UTC().Second()),
+					APIName:  "TEST",
+					Achieved: 1,
+					UnlockTime: int64(
+						time.Now().
+							UTC().
+							Sub(time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)).
+							Seconds(),
+					),
 					Name:        "test",
 					Description: "Hello, World!",
 				},

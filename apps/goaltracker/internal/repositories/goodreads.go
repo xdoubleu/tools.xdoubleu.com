@@ -120,50 +120,6 @@ func (repo *GoodreadsRepository) GetBooksByTag(
 	return books, nil
 }
 
-func (repo *GoodreadsRepository) GetBooksByIDs(
-	ctx context.Context,
-	ids []int64,
-	userID string,
-) ([]goodreads.Book, error) {
-	query := `
-		SELECT id, shelf, tags, title, author, dates_read
-		FROM goaltracker.goodreads_books 
-		WHERE id = ANY($1) AND user_id = $2
-	`
-
-	rows, err := repo.db.Query(ctx, query, ids, userID)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	books := []goodreads.Book{}
-	for rows.Next() {
-		var book goodreads.Book
-
-		err = rows.Scan(
-			&book.ID,
-			&book.Shelf,
-			&book.Tags,
-			&book.Title,
-			&book.Author,
-			&book.DatesRead,
-		)
-
-		if err != nil {
-			return nil, postgres.PgxErrorToHTTPError(err)
-		}
-
-		books = append(books, book)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return books, nil
-}
-
 func (repo *GoodreadsRepository) UpsertBooks(
 	ctx context.Context,
 	books []goodreads.Book,

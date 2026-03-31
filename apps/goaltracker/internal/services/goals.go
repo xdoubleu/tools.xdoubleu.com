@@ -123,14 +123,6 @@ func (service *GoalService) GetGoalByID(
 	return service.goals.GetByID(ctx, id, userID)
 }
 
-func (service *GoalService) GetGoalsByTypeID(
-	ctx context.Context,
-	id int64,
-	userID string,
-) ([]models.Goal, error) {
-	return service.goals.GetByTypeID(ctx, id, userID)
-}
-
 func (service *GoalService) ImportStatesFromTodoist(
 	ctx context.Context,
 	userID string,
