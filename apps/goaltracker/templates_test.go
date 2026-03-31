@@ -93,7 +93,10 @@ func TestGoalProgressGraphGoodreads(t *testing.T) {
 		panic(err)
 	}
 
-	_, err = testApp.Services.Goodreads.ImportAllBooks(t.Context(), testApp.Config.SupabaseUserID)
+	_, err = testApp.Services.Goodreads.ImportAllBooks(
+		t.Context(),
+		testApp.Config.SupabaseUserID,
+	)
 	if err != nil {
 		panic(err)
 	}
