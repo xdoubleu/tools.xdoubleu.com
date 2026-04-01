@@ -48,7 +48,11 @@ func New(
 	return app
 }
 
-func (app *WatchParty) ApplyMigrations(_ *pgxpool.Pool) error {
+func (app *WatchParty) ApplyMigrations(_ context.Context, _ *pgxpool.Pool) error {
+	return nil
+}
+
+func (app *WatchParty) Start() error {
 	return nil
 }
 

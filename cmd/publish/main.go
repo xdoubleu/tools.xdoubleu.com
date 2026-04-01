@@ -105,14 +105,19 @@ func NewApplication(
 		tpl:      tpl,
 	}
 
-	apps := NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl)
+	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl)
 
-	err := apps.ApplyMigrations(db)
+	err := app.ApplyMigrations(db)
 	if err != nil {
 		panic(err)
 	}
 
-	app.apps = apps
+	for _, app := range *app.apps {
+		err = app.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return app
 }
@@ -142,5 +147,5 @@ func initSentryGetHub(config config.Config) *sentry.Hub {
 }
 
 func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
-	return app.apps.ApplyMigrations(db)
+	return app.apps.ApplyMigrations(app.ctx, db)
 }

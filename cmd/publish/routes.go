@@ -50,7 +50,7 @@ func (app *Application) Routes() http.Handler {
 
 func (app *Application) Home(w http.ResponseWriter, _ *http.Request) {
 	data := []string{}
-	for _, a := range app.apps.apps {
+	for _, a := range *app.apps {
 		data = append(data, a.GetName())
 	}
 

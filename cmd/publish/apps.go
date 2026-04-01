@@ -15,14 +15,13 @@ import (
 	"tools.xdoubleu.com/internal/config"
 )
 
-type Apps struct {
-	apps []App
-}
+type Apps []App
 
 type App interface {
 	Routes(prefix string, mux *http.ServeMux)
-	ApplyMigrations(db *pgxpool.Pool) error
+	ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error
 	GetName() string
+	Start() error
 }
 
 func NewApps(
@@ -33,20 +32,18 @@ func NewApps(
 	db postgres.DB,
 	sharedTpl *template.Template,
 ) *Apps {
-	apps := &Apps{
-		apps: []App{},
-	}
+	var apps Apps = []App{}
 
 	apps.addApp(goaltracker.New(ctx, authService, logger, cfg, db, sharedTpl))
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
 
-	return apps
+	return &apps
 }
 
-func (apps *Apps) ApplyMigrations(db *pgxpool.Pool) error {
-	for _, app := range apps.apps {
-		err := app.ApplyMigrations(db)
+func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	for _, app := range *apps {
+		err := app.ApplyMigrations(ctx, db)
 		if err != nil {
 			return err
 		}
@@ -55,12 +52,12 @@ func (apps *Apps) ApplyMigrations(db *pgxpool.Pool) error {
 }
 
 func (apps *Apps) Routes(mux *http.ServeMux) http.Handler {
-	for _, app := range apps.apps {
+	for _, app := range *apps {
 		app.Routes(app.GetName(), mux)
 	}
 	return mux
 }
 
 func (apps *Apps) addApp(app App) {
-	apps.apps = append(apps.apps, app)
+	*apps = append(*apps, app)
 }

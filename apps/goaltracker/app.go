@@ -4,6 +4,7 @@ package goaltracker
 import (
 	"context"
 	"embed"
+	"fmt"
 	"html/template"
 	"log/slog"
 	_ "time/tzdata"
@@ -85,9 +86,13 @@ func NewInner(
 	app.jobQueue = threading.NewJobQueue(app.ctx, logger, 2, 100)
 
 	app.setDB(db, authService)
-	app.setJobs()
 
 	return app
+}
+
+func (app *GoalTracker) Start() error {
+	app.setJobs()
+	return nil
 }
 
 func (app *GoalTracker) setDB(
@@ -153,18 +158,25 @@ func (app *GoalTracker) setContext(originalCtx context.Context) {
 	app.ctxCancel = cancel
 }
 
-func (app *GoalTracker) ApplyMigrations(db *pgxpool.Pool) error {
-	migrationsDB := stdlib.OpenDBFromPool(db)
-
-	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
-
-	goose.SetBaseFS(embedMigrations)
-
-	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
+func (app *GoalTracker) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	_, err := db.Exec(
+		ctx,
+		fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", app.GetName()),
+	)
+	if err != nil {
 		return err
 	}
 
-	if err := goose.Up(migrationsDB, "migrations"); err != nil {
+	goose.SetTableName(fmt.Sprintf("%s.goose_db_version", app.GetName()))
+	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
+	goose.SetBaseFS(embedMigrations)
+
+	if err = goose.SetDialect(string(goose.DialectPostgres)); err != nil {
+		return err
+	}
+
+	migrationsDB := stdlib.OpenDBFromPool(db)
+	if err = goose.Up(migrationsDB, "migrations"); err != nil {
 		return err
 	}
 
