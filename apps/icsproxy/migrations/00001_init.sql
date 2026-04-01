@@ -1,8 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE SCHEMA icsproxy;
+CREATE SCHEMA IF NOT EXISTS icsproxy;
 
-CREATE TABLE icsproxy.feeds (
+CREATE TABLE IF NOT EXISTS icsproxy.feeds (
     token TEXT PRIMARY KEY,
     source_url TEXT NOT NULL,
     hide_event_uids TEXT [] NOT NULL DEFAULT '{}',

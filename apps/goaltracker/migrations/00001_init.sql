@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- noqa: L057
 
-CREATE SCHEMA goaltracker;
+CREATE SCHEMA IF NOT EXISTS goaltracker;
 
 CREATE TABLE IF NOT EXISTS goaltracker.states (
     id varchar(255) NOT NULL,
