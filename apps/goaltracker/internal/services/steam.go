@@ -50,6 +50,7 @@ func (service *SteamService) ImportOwnedGames(
 			continue
 		}
 
+		service.logger.DebugContext(ctx, fmt.Sprintf("game '%s' (%d) is delisted", game.Name, game.ID))
 		game.IsDelisted = true
 		gamesMap[game.ID] = &game
 	}
@@ -64,6 +65,7 @@ func (service *SteamService) ImportOwnedGames(
 	}
 
 	for ID := range gamesMap {
+		service.logger.DebugContext(ctx, fmt.Sprintf("calculating completion rate for '%s' (%d) with %d achievements", gamesMap[ID].Name, gamesMap[ID].ID, len(achievementsPerGame[ID])))
 		gamesMap[ID].SetCalculatedInfo(achievementsPerGame[ID], len(gamesMap))
 	}
 
@@ -122,6 +124,8 @@ func (service *SteamService) importAchievementsForGames(
 			mu.Lock()
 			achievementsPerGame[ID] = achievementsForGame.PlayerStats.Achievements
 			mu.Unlock()
+
+			service.logger.DebugContext(ctx, fmt.Sprintf("fetched %d achievements for '%s' (%d)", len(achievementsForGame.PlayerStats.Achievements), gamesMap[ID].Name, ID))
 
 			return nil
 		})
