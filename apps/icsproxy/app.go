@@ -78,7 +78,7 @@ func (app *ICSProxy) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) erro
 		return err
 	}
 
-	if err := goose.Up(migrationsDB, "migrations"); err != nil {
+	if err = goose.Up(migrationsDB, "migrations"); err != nil {
 		return err
 	}
 

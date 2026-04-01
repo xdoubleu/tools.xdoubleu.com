@@ -171,12 +171,12 @@ func (app *GoalTracker) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) e
 	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
+	if err = goose.SetDialect(string(goose.DialectPostgres)); err != nil {
 		return err
 	}
 
 	migrationsDB := stdlib.OpenDBFromPool(db)
-	if err := goose.Up(migrationsDB, "migrations"); err != nil {
+	if err = goose.Up(migrationsDB, "migrations"); err != nil {
 		return err
 	}
 
