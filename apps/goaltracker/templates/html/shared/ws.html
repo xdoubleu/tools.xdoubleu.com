@@ -3,7 +3,6 @@
     <script>
         let url = window.location.origin;
         let wsUrl = url;
-        let wasRefreshing = false;
 
         wsUrl.replace("https://", "wss://")
         wsUrl.replace("http://", "ws://")
@@ -27,14 +26,12 @@
                 let btn = document.getElementById("refresh-btn");
 
                 if (t.isRefreshing) {
-                    wasRefreshing = true;
                     btn.disabled = true;
                     btn.innerHTML = "Refreshing...";
                     return;
                 }
 
-                if (!t.isRefreshing && wasRefreshing) {
-                    wasRefreshing = false;
+                if (!t.isRefreshing && btn.disabled) {
                     location.reload();
                     return;
                 }

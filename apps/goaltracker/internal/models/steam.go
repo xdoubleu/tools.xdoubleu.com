@@ -7,12 +7,11 @@ import (
 )
 
 type Game struct {
-	ID              int    `json:"id"`
-	Name            string `json:"name"`
-	IsDelisted      bool   `json:"isDelisted"`
-	CompletionRate  string `json:"completionRate"`
-	Contribution    string `json:"contribution"`
-	HasAchievements bool   `json:"hasAchievements"`
+	ID             int    `json:"id"`
+	Name           string `json:"name"`
+	IsDelisted     bool   `json:"isDelisted"`
+	CompletionRate string `json:"completionRate"`
+	Contribution   string `json:"contribution"`
 }
 
 type Achievement struct {
