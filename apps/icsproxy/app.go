@@ -3,6 +3,7 @@ package icsproxy
 import (
 	"context"
 	"embed"
+	"fmt"
 	"html/template"
 	"log/slog"
 
@@ -58,11 +59,19 @@ func (app *ICSProxy) Start() error {
 	return nil
 }
 
-func (app *ICSProxy) ApplyMigrations(db *pgxpool.Pool) error {
+func (app *ICSProxy) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 	migrationsDB := stdlib.OpenDBFromPool(db)
 
-	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
+	_, err := db.Exec(
+		ctx,
+		fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", app.GetName()),
+	)
+	if err != nil {
+		return err
+	}
 
+	goose.SetTableName(fmt.Sprintf("%s.goose_db_version", app.GetName()))
+	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {

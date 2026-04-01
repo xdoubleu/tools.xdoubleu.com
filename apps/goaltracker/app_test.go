@@ -73,7 +73,7 @@ func TestMain(m *testing.M) {
 		templates.LoadShared(cfg),
 	)
 
-	err = testApp.ApplyMigrations(postgresDB)
+	err = testApp.ApplyMigrations(context.Background(), postgresDB)
 	if err != nil {
 		panic(err)
 	}

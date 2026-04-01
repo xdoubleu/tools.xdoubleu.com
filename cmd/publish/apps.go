@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pressly/goose/v3"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	goaltracker "tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/apps/icsproxy"
@@ -21,7 +19,7 @@ type Apps []App
 
 type App interface {
 	Routes(prefix string, mux *http.ServeMux)
-	ApplyMigrations(db *pgxpool.Pool) error
+	ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error
 	GetName() string
 	Start() error
 }
@@ -45,16 +43,7 @@ func NewApps(
 
 func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 	for _, app := range *apps {
-		_, err := db.Exec(
-			ctx,
-			fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", app.GetName()),
-		)
-		if err != nil {
-			return err
-		}
-
-		goose.SetTableName(fmt.Sprintf("%s.goose_db_version", app.GetName()))
-		err = app.ApplyMigrations(db)
+		err := app.ApplyMigrations(ctx, db)
 		if err != nil {
 			return err
 		}
