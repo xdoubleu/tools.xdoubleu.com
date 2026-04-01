@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
 	"github.com/xdoubleu/essentia/v3/pkg/parse"
@@ -127,6 +128,8 @@ type GraphData struct {
 	CurrentProgressValue string
 	CurrentTargetValue   string
 	Details              []models.ListItem
+	StartDate            string
+	EndDate              string
 }
 
 func (app *GoalTracker) graphViewProgress(
@@ -135,12 +138,33 @@ func (app *GoalTracker) graphViewProgress(
 	goal *models.Goal,
 	userID string,
 ) {
+	dateStart := goal.PeriodStart()
+	dateEnd := goal.PeriodEnd()
+
+	if start := r.URL.Query().Get("start"); start != "" {
+		parsedStart, parseErr := time.Parse(models.ProgressDateFormat, start)
+		if parseErr == nil {
+			dateStart = parsedStart
+		}
+	}
+
+	if end := r.URL.Query().Get("end"); end != "" {
+		parsedEnd, parseErr := time.Parse(models.ProgressDateFormat, end)
+		if parseErr == nil {
+			dateEnd = parsedEnd
+		}
+	}
+
+	if dateStart.After(dateEnd) {
+		dateStart, dateEnd = dateEnd, dateStart
+	}
+
 	progressLabels, progressValues, err := app.Services.Goals.GetProgressByTypeIDAndDates(
 		r.Context(),
 		*goal.TypeID,
 		userID,
-		goal.PeriodStart(),
-		goal.PeriodEnd(),
+		dateStart,
+		dateEnd,
 	)
 	if err != nil {
 		panic(err)
@@ -153,17 +177,29 @@ func (app *GoalTracker) graphViewProgress(
 
 	//nolint:exhaustruct //others are defined later
 	graphData := GraphData{
-		Goal:           *goal,
-		DateLabels:     progressLabels,
-		ProgressValues: progressValues,
-		Details:        details,
+		Goal:               *goal,
+		DateLabels:         progressLabels,
+		ProgressValues:     progressValues,
+		TargetValues:       []string{},
+		CurrentTargetValue: "Unknown",
+		Details:            details,
+		StartDate:          dateStart.Format(models.ProgressDateFormat),
+		EndDate:            dateEnd.Format(models.ProgressDateFormat),
 	}
 
 	if len(progressValues) > 0 {
 		startProgress, _ := strconv.ParseFloat(progressValues[0], 64)
-		graphData.TargetValues = goal.AdaptiveTargetValues(int(startProgress))
+		targetValues := goal.AdaptiveTargetValuesBetween(
+			progressLabels,
+			int(startProgress),
+		)
+
 		graphData.CurrentProgressValue = progressValues[len(progressValues)-1]
-		graphData.CurrentTargetValue = graphData.TargetValues[len(progressValues)-1]
+
+		if dateStart.Equal(goal.PeriodStart()) && dateEnd.Equal(goal.PeriodEnd()) {
+			graphData.TargetValues = targetValues
+			graphData.CurrentTargetValue = targetValues[len(targetValues)-1]
+		}
 	}
 
 	tpltools.RenderWithPanic(app.tpl, w, "graph.html", graphData)
