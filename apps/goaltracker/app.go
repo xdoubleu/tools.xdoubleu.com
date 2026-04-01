@@ -85,9 +85,13 @@ func NewInner(
 	app.jobQueue = threading.NewJobQueue(app.ctx, logger, 2, 100)
 
 	app.setDB(db, authService)
-	app.setJobs()
 
 	return app
+}
+
+func (app *GoalTracker) Start() error {
+	app.setJobs()
+	return nil
 }
 
 func (app *GoalTracker) setDB(
@@ -157,7 +161,6 @@ func (app *GoalTracker) ApplyMigrations(db *pgxpool.Pool) error {
 	migrationsDB := stdlib.OpenDBFromPool(db)
 
 	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
-
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {

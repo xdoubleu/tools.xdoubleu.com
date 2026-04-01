@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pressly/goose/v3"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	goaltracker "tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/apps/icsproxy"
@@ -23,6 +25,7 @@ type App interface {
 	Routes(prefix string, mux *http.ServeMux)
 	ApplyMigrations(db *pgxpool.Pool) error
 	GetName() string
+	Start() error
 }
 
 func NewApps(
@@ -46,6 +49,7 @@ func NewApps(
 
 func (apps *Apps) ApplyMigrations(db *pgxpool.Pool) error {
 	for _, app := range apps.apps {
+		goose.SetTableName(fmt.Sprintf("%s.goose_db_version", app.GetName()))
 		err := app.ApplyMigrations(db)
 		if err != nil {
 			return err

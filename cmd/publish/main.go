@@ -114,6 +114,13 @@ func NewApplication(
 
 	app.apps = apps
 
+	for _, app := range apps.apps {
+		err = app.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	return app
 }
 

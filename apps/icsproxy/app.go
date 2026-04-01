@@ -54,6 +54,10 @@ func New(
 	return app
 }
 
+func (app *ICSProxy) Start() error {
+	return nil
+}
+
 func (app *ICSProxy) ApplyMigrations(db *pgxpool.Pool) error {
 	migrationsDB := stdlib.OpenDBFromPool(db)
 
