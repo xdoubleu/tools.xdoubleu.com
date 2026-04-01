@@ -74,7 +74,7 @@ func (app *ICSProxy) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) erro
 	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
 	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
+	if err = goose.SetDialect(string(goose.DialectPostgres)); err != nil {
 		return err
 	}
 
