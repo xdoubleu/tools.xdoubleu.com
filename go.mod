@@ -1,8 +1,6 @@
 module tools.xdoubleu.com
 
-go 1.24.0
-
-toolchain go1.24.11
+go 1.25
 
 require github.com/justinas/alice v1.2.0
 

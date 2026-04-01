@@ -32,9 +32,10 @@ func (service *SteamService) ImportOwnedGames(
 	for _, game := range ownedGamesResponse.Response.Games {
 		//nolint:exhaustruct //others are defined later
 		gamesMap[game.AppID] = &models.Game{
-			ID:         game.AppID,
-			Name:       game.Name,
-			IsDelisted: false,
+			ID:              game.AppID,
+			Name:            game.Name,
+			IsDelisted:      false,
+			HasAchievements: game.HasCommunityVisibleStats,
 		}
 	}
 
@@ -44,14 +45,15 @@ func (service *SteamService) ImportOwnedGames(
 	}
 
 	for _, game := range games {
-		_, ok := gamesMap[game.ID]
+		newGame, ok := gamesMap[game.ID]
 
 		if ok {
-			continue
+			if !game.HasAchievements && newGame.HasAchievements {
+				gamesMap[game.ID].HasAchievements = true
+			}
+		} else {
+			gamesMap[game.ID].IsDelisted = true
 		}
-
-		game.IsDelisted = true
-		gamesMap[game.ID] = &game
 	}
 
 	achievementsPerGame, err := service.importAchievementsForGames(
@@ -85,8 +87,10 @@ func (service *SteamService) importAchievementsForGames(
 	userID string,
 ) (map[int][]models.Achievement, error) {
 	gameIDs := []int{}
-	for ID := range gamesMap {
-		gameIDs = append(gameIDs, ID)
+	for ID, game := range gamesMap {
+		if game.HasAchievements {
+			gameIDs = append(gameIDs, ID)
+		}
 	}
 
 	//nolint:mnd //no magic number

@@ -63,10 +63,10 @@ func (repo *SteamRepository) UpsertGames(
 ) error {
 	query := `
 		INSERT INTO goaltracker.steam_games (id, user_id, name, is_delisted, 
-		completion_rate, contribution)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		completion_rate, contribution, has_achievements)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (id, user_id)
-		DO UPDATE SET name = $3, is_delisted = $4, completion_rate = $5, contribution = $6
+		DO UPDATE SET name = $3, is_delisted = $4, completion_rate = $5, contribution = $6, has_achievements = $7
 	`
 
 	//nolint:exhaustruct //fields are optional
@@ -80,6 +80,7 @@ func (repo *SteamRepository) UpsertGames(
 			game.IsDelisted,
 			game.CompletionRate,
 			game.Contribution,
+			game.HasAchievements,
 		)
 	}
 
