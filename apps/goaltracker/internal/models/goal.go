@@ -99,6 +99,39 @@ func (goal Goal) AdaptiveTargetValues(startProgress int) []string {
 	return result
 }
 
+func (goal Goal) AdaptiveTargetValuesBetween(
+	dateLabels []string,
+	startProgress int,
+) []string {
+	if len(dateLabels) == 0 {
+		return []string{}
+	}
+
+	secondsInADay := 86400
+	f := piecewiselinear.Function{
+		X: []float64{
+			float64(goal.PeriodStart().Unix() / int64(secondsInADay)),
+			float64(goal.PeriodEnd().Unix() / int64(secondsInADay)),
+		},
+		Y: []float64{float64(startProgress), float64(*goal.TargetValue)},
+	}
+
+	result := make([]string, 0, len(dateLabels))
+	for _, dateLabel := range dateLabels {
+		date, err := time.Parse(ProgressDateFormat, dateLabel)
+		if err != nil {
+			continue
+		}
+
+		result = append(
+			result,
+			fmt.Sprintf("%.2f", f.At(float64(date.Unix()/int64(secondsInADay)))),
+		)
+	}
+
+	return result
+}
+
 func (goal Goal) IsCompletable() bool {
 	if goal.Progress == nil || goal.TargetValue == nil {
 		return false
