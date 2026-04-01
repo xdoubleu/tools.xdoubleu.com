@@ -52,7 +52,8 @@ func (service *SteamService) ImportOwnedGames(
 				gamesMap[game.ID].HasAchievements = true
 			}
 		} else {
-			gamesMap[game.ID].IsDelisted = true
+			game.IsDelisted = true
+			gamesMap[game.ID] = &game
 		}
 	}
 
