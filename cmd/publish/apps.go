@@ -17,9 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/config"
 )
 
-type Apps struct {
-	apps []App
-}
+type Apps []App
 
 type App interface {
 	Routes(prefix string, mux *http.ServeMux)
@@ -36,21 +34,27 @@ func NewApps(
 	db postgres.DB,
 	sharedTpl *template.Template,
 ) *Apps {
-	apps := &Apps{
-		apps: []App{},
-	}
+	var apps Apps = []App{}
 
 	apps.addApp(goaltracker.New(ctx, authService, logger, cfg, db, sharedTpl))
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
 
-	return apps
+	return &apps
 }
 
-func (apps *Apps) ApplyMigrations(db *pgxpool.Pool) error {
-	for _, app := range apps.apps {
+func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	for _, app := range *apps {
+		_, err := db.Exec(
+			ctx,
+			fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", app.GetName()),
+		)
+		if err != nil {
+			return err
+		}
+
 		goose.SetTableName(fmt.Sprintf("%s.goose_db_version", app.GetName()))
-		err := app.ApplyMigrations(db)
+		err = app.ApplyMigrations(db)
 		if err != nil {
 			return err
 		}
@@ -59,12 +63,12 @@ func (apps *Apps) ApplyMigrations(db *pgxpool.Pool) error {
 }
 
 func (apps *Apps) Routes(mux *http.ServeMux) http.Handler {
-	for _, app := range apps.apps {
+	for _, app := range *apps {
 		app.Routes(app.GetName(), mux)
 	}
 	return mux
 }
 
 func (apps *Apps) addApp(app App) {
-	apps.apps = append(apps.apps, app)
+	*apps = append(*apps, app)
 }

@@ -1,7 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE SCHEMA IF NOT EXISTS icsproxy;
-
 CREATE TABLE IF NOT EXISTS icsproxy.feeds (
     token TEXT PRIMARY KEY,
     source_url TEXT NOT NULL,
@@ -14,5 +12,5 @@ CREATE TABLE IF NOT EXISTS icsproxy.feeds (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP SCHEMA IF EXISTS icsproxy CASCADE;
+DROP TABLE IF EXISTS icsproxy.feeds;
 -- +goose StatementEnd

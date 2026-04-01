@@ -2,8 +2,6 @@
 -- +goose StatementBegin
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- noqa: L057
 
-CREATE SCHEMA IF NOT EXISTS goaltracker;
-
 CREATE TABLE IF NOT EXISTS goaltracker.states (
     id varchar(255) NOT NULL,
     user_id varchar(255) NOT NULL,
@@ -70,5 +68,10 @@ CREATE TABLE IF NOT EXISTS goaltracker.steam_achievements (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP SCHEMA IF EXISTS goaltracker CASCADE;
+DROP TABLE IF EXISTS goaltracker.states;
+DROP TABLE IF EXISTS goaltracker.goals;
+DROP TABLE IF EXISTS goaltracker.progress;
+DROP TABLE IF EXISTS goaltracker.goodreads_books;
+DROP TABLE IF EXISTS goaltracker.steam_games;
+DROP TABLE IF EXISTS goaltracker.steam_achievements;
 -- +goose StatementEnd
