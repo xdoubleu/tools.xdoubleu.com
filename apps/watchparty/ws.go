@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/coder/websocket"
@@ -29,13 +29,14 @@ func (app *WatchParty) WsSignalingHandler() http.HandlerFunc {
 			&websocket.AcceptOptions{InsecureSkipVerify: true},
 		)
 		if err != nil {
-			log.Printf("websocket accept error: %v", err)
+			app.logger.ErrorContext(
+				r.Context(),
+				"websocket accept error",
+				slog.Any("err", err),
+			)
 			return
 		}
-		defer conn.Close(
-			websocket.StatusNormalClosure,
-			"closing connection",
-		) // normal closure
+		defer conn.Close(websocket.StatusNormalClosure, "closing connection")
 
 		var msg dtos.SubscribeMessageDto
 		err = wsjson.Read(r.Context(), conn, &msg)
@@ -44,8 +45,8 @@ func (app *WatchParty) WsSignalingHandler() http.HandlerFunc {
 			return
 		}
 
-		if valid, errors := msg.Validate(); !valid {
-			wstools.FailedValidationResponse(r.Context(), conn, errors)
+		if valid, errs := msg.Validate(); !valid {
+			wstools.FailedValidationResponse(r.Context(), conn, errs)
 			return
 		}
 
@@ -74,16 +75,15 @@ func (app *WatchParty) handlePresenter(
 
 	for {
 		var trackMsg dtos.TrackMessage
-		err := wsjson.Read(ctx, conn, &trackMsg)
-		if err != nil {
-			log.Printf("read error: %v", err)
+		if err := wsjson.Read(ctx, conn, &trackMsg); err != nil {
+			app.logger.DebugContext(ctx, "presenter read closed", slog.Any("err", err))
 			return
 		}
 
-		log.Printf(
-			"⬅️ Received message (presenter) (%s) (%s)",
-			trackMsg.Type,
-			trackMsg.TrackType,
+		app.logger.DebugContext(ctx, "received message",
+			slog.String("role", "presenter"),
+			slog.String("type", string(trackMsg.Type)),
+			slog.String("trackType", trackMsg.TrackType),
 		)
 		app.Services.Room.SendToViewer(ctx, msg.RoomCode, trackMsg)
 	}
@@ -99,16 +99,15 @@ func (app *WatchParty) handleViewer(
 
 	for {
 		var trackMsg dtos.TrackMessage
-		err := wsjson.Read(ctx, conn, &trackMsg)
-		if err != nil {
-			log.Printf("read error: %v", err)
+		if err := wsjson.Read(ctx, conn, &trackMsg); err != nil {
+			app.logger.DebugContext(ctx, "viewer read closed", slog.Any("err", err))
 			return
 		}
 
-		log.Printf(
-			"⬅️ Received message (viewer) (%s) (%s)",
-			trackMsg.Type,
-			trackMsg.TrackType,
+		app.logger.DebugContext(ctx, "received message",
+			slog.String("role", "viewer"),
+			slog.String("type", string(trackMsg.Type)),
+			slog.String("trackType", trackMsg.TrackType),
 		)
 		app.Services.Room.SendToPresenter(ctx, msg.RoomCode, trackMsg)
 	}

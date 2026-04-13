@@ -10,9 +10,8 @@ import (
 )
 
 type RoomUser struct {
-	ID           string
-	WS           *websocket.Conn
-	ScreenActive bool
+	ID string
+	WS *websocket.Conn
 }
 
 type Room struct {
@@ -20,17 +19,14 @@ type Room struct {
 	Presenter  RoomUser
 	Viewer     RoomUser
 
-	// buffered messages
+	// buffered messages sent while the target has no WS connection
 	pendingForPresenter []dtos.TrackMessage
 	pendingForViewer    []dtos.TrackMessage
 
-	// store last offers to resend to reconnecting clients
-	lastOfferFromPresenter map[string]*dtos.TrackMessage // key: "cam"/"screen"
+	// last offers from each side — resent to a reconnecting peer so it can
+	// trigger a fresh full negotiation cycle on its recreated peer connections
+	lastOfferFromPresenter map[string]*dtos.TrackMessage // key: "cam" / "screen"
 	lastOfferFromViewer    map[string]*dtos.TrackMessage
-
-	// store last answers
-	lastAnswerFromPresenter map[string]*dtos.TrackMessage
-	lastAnswerFromViewer    map[string]*dtos.TrackMessage
 }
 
 func NewRoom(presenterID string) Room {
@@ -38,66 +34,56 @@ func NewRoom(presenterID string) Room {
 	return Room{
 		LastActive: time.Now(),
 		//nolint:exhaustruct //other fields are optional
-		Presenter:               RoomUser{ID: presenterID},
-		lastOfferFromPresenter:  make(map[string]*dtos.TrackMessage),
-		lastOfferFromViewer:     make(map[string]*dtos.TrackMessage),
-		lastAnswerFromPresenter: make(map[string]*dtos.TrackMessage),
-		lastAnswerFromViewer:    make(map[string]*dtos.TrackMessage),
+		Presenter:              RoomUser{ID: presenterID},
+		lastOfferFromPresenter: make(map[string]*dtos.TrackMessage),
+		lastOfferFromViewer:    make(map[string]*dtos.TrackMessage),
 	}
 }
 
 func (r *Room) updateLastActive() { r.LastActive = time.Now() }
 
-// Presenter connects/reconnects.
+// SetPresenterWS is called when the presenter's WebSocket connects or reconnects.
 func (r *Room) SetPresenterWS(ws *websocket.Conn) {
 	r.Presenter.WS = ws
 	r.updateLastActive()
 
-	// flush pending
+	// flush buffered messages
 	for _, msg := range r.pendingForPresenter {
 		_ = wsjson.Write(context.Background(), ws, msg)
 	}
 	r.pendingForPresenter = nil
 
-	// resend last viewer offers & answers
+	// resend the viewer's last offers so the presenter can renegotiate its
+	// peer connections with fresh ICE credentials
 	for _, offer := range r.lastOfferFromViewer {
 		if offer != nil {
 			_ = wsjson.Write(context.Background(), ws, offer)
 		}
 	}
-	for _, ans := range r.lastAnswerFromViewer {
-		if ans != nil {
-			_ = wsjson.Write(context.Background(), ws, ans)
-		}
-	}
 }
 
-// Viewer sets ID.
+// SetViewer records the viewer's user ID.
 func (r *Room) SetViewer(viewerID string) {
 	r.Viewer.ID = viewerID
 	r.updateLastActive()
 }
 
-// Viewer connects/reconnects.
+// SetViewerWS is called when the viewer's WebSocket connects or reconnects.
 func (r *Room) SetViewerWS(ws *websocket.Conn) {
 	r.Viewer.WS = ws
 	r.updateLastActive()
 
-	// flush pending
+	// flush buffered messages
 	for _, msg := range r.pendingForViewer {
 		_ = wsjson.Write(context.Background(), ws, msg)
 	}
 	r.pendingForViewer = nil
 
-	// resend last presenter offers & answers
+	// resend the presenter's last offers so the viewer can renegotiate its
+	// peer connections with fresh ICE credentials
 	for _, offer := range r.lastOfferFromPresenter {
 		if offer != nil {
 			_ = wsjson.Write(context.Background(), ws, offer)
-		}
-	}
-	for _, ans := range r.lastAnswerFromPresenter {
-		if ans != nil {
-			_ = wsjson.Write(context.Background(), ws, ans)
 		}
 	}
 }
@@ -111,14 +97,8 @@ func (r *Room) RemoveViewer() {
 func (r *Room) SendToViewer(ctx context.Context, trackMsg dtos.TrackMessage) error {
 	r.updateLastActive()
 
-	key := trackMsg.TrackType // "cam" or "screen"
-	switch trackMsg.Type {
-	case dtos.Offer:
-		r.lastOfferFromPresenter[key] = &trackMsg
-	case dtos.Answer:
-		r.lastAnswerFromPresenter[key] = &trackMsg
-	case dtos.Candidate:
-		// do nothing
+	if trackMsg.Type == dtos.Offer {
+		r.lastOfferFromPresenter[trackMsg.TrackType] = &trackMsg
 	}
 
 	if r.Viewer.WS == nil {
@@ -131,14 +111,8 @@ func (r *Room) SendToViewer(ctx context.Context, trackMsg dtos.TrackMessage) err
 func (r *Room) SendToPresenter(ctx context.Context, trackMsg dtos.TrackMessage) error {
 	r.updateLastActive()
 
-	key := trackMsg.TrackType
-	switch trackMsg.Type {
-	case dtos.Offer:
-		r.lastOfferFromViewer[key] = &trackMsg
-	case dtos.Answer:
-		r.lastAnswerFromViewer[key] = &trackMsg
-	case dtos.Candidate:
-		// do nothing
+	if trackMsg.Type == dtos.Offer {
+		r.lastOfferFromViewer[trackMsg.TrackType] = &trackMsg
 	}
 
 	if r.Presenter.WS == nil {
