@@ -1,22 +1,40 @@
 {{template "header"}}
-<div class="container-fluid p-3">
-  <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
-    <span class="text-muted">Room: <strong id="room-code">{{.RoomCode}}</strong></span>
-    <button id="start-screen-btn" class="btn btn-dark btn-sm">Start Screen</button>
-    <button id="stop-screen-btn" class="btn btn-outline-danger btn-sm" style="display:none;">Stop Screen</button>
-    <a href="/watchparty/api/rooms/leave" class="btn btn-outline-secondary btn-sm">Leave Room</a>
-  </div>
+<nav class="navbar bg-dark navbar-expand-lg" data-bs-theme="dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">tools.xdoubleu.com</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <span class="navbar-text">Room: <strong>{{.RoomCode}}</strong></span>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center gap-2">
+                <li class="nav-item">
+                    <button id="start-screen-btn" class="btn btn-sm btn-outline-light">Start Screen</button>
+                </li>
+                <li class="nav-item">
+                    <button id="stop-screen-btn" class="btn btn-sm btn-outline-warning" style="display:none;">Stop Screen</button>
+                </li>
+                <li class="nav-item">
+                    <a href="/watchparty/api/rooms/leave" class="btn btn-sm btn-outline-danger">Leave Room</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
 
-  <div class="card shadow-sm" style="position:relative;">
+<div style="position:relative;">
     <video id="screenVideo" autoplay playsinline
-           style="width:100%; height:90vh; background:#000; object-fit:contain;"></video>
+           style="width:100%; height:calc(100vh - 56px); background:#000; object-fit:contain; display:block;"></video>
 
     <video id="selfCam" autoplay playsinline muted
            style="position:absolute; bottom:10px; right:10px; width:18%; border:2px solid #fff;"></video>
 
     <video id="remoteCam" autoplay playsinline
            style="position:absolute; top:10px; right:10px; width:18%; border:2px solid #fff; display:none;"></video>
-  </div>
 </div>
 
 <script>

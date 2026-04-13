@@ -1,4 +1,5 @@
 {{template "header"}}
+{{template "navbar"}}
 <div class="container py-5" style="max-width: 480px;">
   <h1 class="mb-4 text-center fw-bold">WatchParty</h1>
 
@@ -29,9 +30,5 @@
   {{if .Error}}
   <div class="alert alert-danger mt-3">{{.Error}}</div>
   {{end}}
-
-  <div class="text-center mt-4">
-    <a href="/auth/signout" class="text-muted small">Sign out</a>
-  </div>
 </div>
 {{template "footer"}}

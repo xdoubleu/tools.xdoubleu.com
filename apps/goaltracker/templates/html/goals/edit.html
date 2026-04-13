@@ -1,6 +1,6 @@
 {{ template "header" }}
 {{ template "navbar" }}
-<div class="container">
+<div class="container py-3">
         <h1>{{.Goal.Name}}</h1>
         <form method="POST" action="/goaltracker/api/goals/{{.Goal.ID}}/edit" class="col-lg-6">
             <div class="mb-3">
