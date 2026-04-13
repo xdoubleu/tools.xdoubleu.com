@@ -16,7 +16,7 @@ import (
 func (app *WatchParty) wsRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("GET %s/signaling", prefix),
-		app.services.Auth.Access(app.WsSignalingHandler()),
+		app.Services.Auth.Access(app.WsSignalingHandler()),
 	)
 }
 
@@ -63,7 +63,7 @@ func (app *WatchParty) handlePresenter(
 	conn *websocket.Conn,
 	msg dtos.SubscribeMessageDto,
 ) {
-	if !app.services.Room.JoinPresenter(ctx, msg.RoomCode, conn) {
+	if !app.Services.Room.JoinPresenter(ctx, msg.RoomCode, conn) {
 		wstools.ServerErrorResponse(
 			ctx,
 			conn,
@@ -85,7 +85,7 @@ func (app *WatchParty) handlePresenter(
 			trackMsg.Type,
 			trackMsg.TrackType,
 		)
-		app.services.Room.SendToViewer(ctx, msg.RoomCode, trackMsg)
+		app.Services.Room.SendToViewer(ctx, msg.RoomCode, trackMsg)
 	}
 }
 
@@ -94,8 +94,8 @@ func (app *WatchParty) handleViewer(
 	conn *websocket.Conn,
 	msg dtos.SubscribeMessageDto,
 ) {
-	app.services.Room.JoinViewerWS(ctx, msg.RoomCode, conn)
-	defer app.services.Room.LeaveViewer(ctx, msg.RoomCode)
+	app.Services.Room.JoinViewerWS(ctx, msg.RoomCode, conn)
+	defer app.Services.Room.LeaveViewer(ctx, msg.RoomCode)
 
 	for {
 		var trackMsg dtos.TrackMessage
@@ -110,6 +110,6 @@ func (app *WatchParty) handleViewer(
 			trackMsg.Type,
 			trackMsg.TrackType,
 		)
-		app.services.Room.SendToPresenter(ctx, msg.RoomCode, trackMsg)
+		app.Services.Room.SendToPresenter(ctx, msg.RoomCode, trackMsg)
 	}
 }

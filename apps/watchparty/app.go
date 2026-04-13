@@ -22,7 +22,7 @@ type WatchParty struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 	config    config.Config
-	services  *services.Services
+	Services  *services.Services
 	tpl       *template.Template
 }
 
@@ -43,7 +43,7 @@ func New(
 	}
 
 	app.setContext()
-	app.services = services.New(app.ctx, logger, authService)
+	app.Services = services.New(app.ctx, logger, authService)
 
 	return app
 }
