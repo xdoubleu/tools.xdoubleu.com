@@ -65,6 +65,7 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 	exists, roomCode, role := app.services.Room.GetRoomForUser(user.ID)
 	if !exists {
 		// Show lobby where user can create or join a room
+		//nolint:exhaustruct // No need to initialize lobbyData with zero values
 		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{})
 		return
 	}
@@ -105,8 +106,11 @@ func (app *WatchParty) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//nolint:mnd //no magic number
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
+
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
 		return
 	}
 
