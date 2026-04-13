@@ -38,11 +38,7 @@ Tracks goals by pulling progress from external sources (Todoist, Steam, Goodread
 
 Real-time screen sharing and video conferencing using WebRTC.
 Users create or join a room; the creator becomes the presenter and can share their screen.
-
-**Open ideas:**
-
-- When not sharing a screen, show the other person's camera full screen with own camera in corner
-- Make cameras drag-and-droppable
+Camera overlays are draggable. When no screen is being shared, the remote camera fills the main area.
 
 ### icsproxy
 

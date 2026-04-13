@@ -20,15 +20,15 @@
     </div>
 </nav>
 
-<div style="position:relative;">
+<div id="video-container" style="position:relative;">
     <video id="screenVideo" autoplay playsinline
            style="width:100%; height:calc(100vh - 56px); background:#000; object-fit:contain; display:block;"></video>
 
     <video id="selfCam" autoplay playsinline muted
-           style="position:absolute; bottom:10px; right:10px; width:18%; border:2px solid #fff;"></video>
+           style="position:absolute; bottom:10px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px;"></video>
 
     <video id="remoteCam" autoplay playsinline
-           style="position:absolute; top:10px; right:10px; width:18%; border:2px solid #fff; display:none;"></video>
+           style="position:absolute; top:10px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px; display:none;"></video>
 </div>
 
 <script>
@@ -39,6 +39,47 @@ let localCam, isSharingScreen = false, remoteCamStream = null;
 const selfCamEl   = document.getElementById("selfCam");
 const remoteCamEl = document.getElementById("remoteCam");
 const mainVideoEl = document.getElementById("screenVideo");
+
+// ── Drag-and-drop for PiP overlays ──────────────────────────────────────────
+
+function makeDraggable(el) {
+    let startX, startY, origLeft, origTop;
+
+    el.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        el.setPointerCapture(e.pointerId);
+        el.style.cursor = "grabbing";
+
+        const container = el.parentElement.getBoundingClientRect();
+        const rect      = el.getBoundingClientRect();
+
+        el.style.right  = "auto";
+        el.style.bottom = "auto";
+        el.style.left   = (rect.left - container.left) + "px";
+        el.style.top    = (rect.top  - container.top)  + "px";
+
+        startX   = e.clientX;
+        startY   = e.clientY;
+        origLeft = parseFloat(el.style.left);
+        origTop  = parseFloat(el.style.top);
+    });
+
+    el.addEventListener("pointermove", e => {
+        if (!el.hasPointerCapture(e.pointerId)) return;
+        el.style.left = (origLeft + e.clientX - startX) + "px";
+        el.style.top  = (origTop  + e.clientY - startY) + "px";
+    });
+
+    el.addEventListener("pointerup", e => {
+        el.releasePointerCapture(e.pointerId);
+        el.style.cursor = "grab";
+    });
+}
+
+makeDraggable(selfCamEl);
+makeDraggable(remoteCamEl);
+
+// ── WebRTC helpers ───────────────────────────────────────────────────────────
 
 function wsUrl() {
     return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/watchparty/api/signaling`;
@@ -89,15 +130,36 @@ function createPC(trackType) {
     return pc;
 }
 
+// ── Camera ───────────────────────────────────────────────────────────────────
+
 async function startCamera() {
     localCam = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     selfCamEl.srcObject = localCam;
     pcCam = createPC("cam");
     localCam.getTracks().forEach(t => pcCam.addTrack(t, localCam));
-
     const offer = await pcCam.createOffer();
     await pcCam.setLocalDescription(offer);
     send("offer", offer, "cam");
+}
+
+// ── WebSocket & renegotiation ────────────────────────────────────────────────
+
+// Called on every WS (re)connect. Closes stale peer connections and creates
+// fresh ones. The server will resend the presenter's last screen offer, which
+// will be processed by onmessage and create a new pcScreen automatically.
+async function renegotiateAll() {
+    if (pcCam) { pcCam.close(); pcCam = null; }
+    if (localCam) {
+        pcCam = createPC("cam");
+        localCam.getTracks().forEach(t => pcCam.addTrack(t, localCam));
+        const offer = await pcCam.createOffer();
+        await pcCam.setLocalDescription(offer);
+        send("offer", offer, "cam");
+    }
+
+    // Close the screen PC — the server will resend the presenter's screen
+    // offer, which onmessage will handle by creating a new pcScreen.
+    if (pcScreen) { pcScreen.close(); pcScreen = null; }
 }
 
 function initWS() {
@@ -105,16 +167,10 @@ function initWS() {
 
     ws.onopen = () => {
         ws.send(JSON.stringify({ roomCode: ROOM, role: "viewer" }));
-        // Re-send camera offer so presenter gets it after reconnect
-        if (pcCam && pcCam.localDescription) {
-            send("offer", pcCam.localDescription, "cam");
-        }
+        renegotiateAll();
     };
 
-    ws.onclose = () => {
-        setTimeout(initWS, 1500);
-    };
-
+    ws.onclose = () => setTimeout(initWS, 1500);
     ws.onerror = () => ws.close();
 
     ws.onmessage = async evt => {
@@ -125,7 +181,7 @@ function initWS() {
             if (!pc) {
                 pc = createPC(msg.trackType);
                 if (msg.trackType === "screen") pcScreen = pc;
-                if (msg.trackType === "cam") pcCam = pc;
+                if (msg.trackType === "cam")    pcCam    = pc;
             }
             await pc.setRemoteDescription(msg.payload);
             const answer = await pc.createAnswer();
