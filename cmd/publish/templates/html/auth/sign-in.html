@@ -1,32 +1,34 @@
 {{ template "header" }}
-<div class="container">
-        <br/>
-        <form method="POST" action="/auth/signin" class="col-lg-6 offset-lg-3">
-            <h1>tools.xdoubleu.com</h1>
-            <br/>
-            <div class="justify-content-center mb-3">
-                <label for="email" class="form-label">Email address</label>
-                <input type="email" class="form-control" name="email" required autocomplete="username">
-            </div>
-            <div class="justify-content-center mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" name="password" required autocomplete="password">
-            </div>
-            <div class="justify-content-center form-check mb-3">
-                <input type="checkbox" class="form-check-input" name="rememberMe">
-                <label class="form-check-label" for="rememberMe">Remember me</label>
-            </div>
-            <div class="alert alert-danger d-none" role="alert" id="error-alert"></div>
-            <button type="submit" class="btn btn-dark">Sign in</button>
-        </form>
-        <script>
-            var error = new URLSearchParams(window.location.search).get("error")
-    
-            if (error != null) {
-                var alert = document.getElementById("error-alert")
-                alert.innerHTML = error
-                alert.classList.remove("d-none")
-            }
-        </script>
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="card shadow-sm" style="width: 100%; max-width: 420px;">
+        <div class="card-body p-4">
+            <h1 class="h3 fw-bold text-center mb-4">tools.xdoubleu.com</h1>
+            <form method="POST" action="/auth/signin">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" name="email" required autocomplete="username">
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" name="rememberMe" id="rememberMe">
+                    <label class="form-check-label" for="rememberMe">Remember me</label>
+                </div>
+                <div class="alert alert-danger d-none" role="alert" id="error-alert"></div>
+                <button type="submit" class="btn btn-dark w-100">Sign in</button>
+            </form>
+        </div>
     </div>
+</div>
+<script>
+    var error = new URLSearchParams(window.location.search).get("error")
+
+    if (error != null) {
+        var alert = document.getElementById("error-alert")
+        alert.innerHTML = error
+        alert.classList.remove("d-none")
+    }
+</script>
 {{ template "footer" }}

@@ -19,17 +19,17 @@
             {{end}}
         </td>
         <td>
-            {{if .IsLinked}}
-                <a class="btn btn-dark" href="/goaltracker/api/goals/{{.ID}}/unlink">Unlink</a>
-            {{else}}
-                <a class="btn btn-dark" href="/goaltracker/edit/{{.ID}}">Link</a>
-            {{end}}
+            <div class="d-flex flex-column gap-2">
+                {{if .IsLinked}}
+                    <a class="btn btn-dark btn-sm" href="/goaltracker/api/goals/{{.ID}}/unlink">Unlink</a>
+                {{else}}
+                    <a class="btn btn-dark btn-sm" href="/goaltracker/edit/{{.ID}}">Link</a>
+                {{end}}
 
-            {{if .IsCompletable}}
-                <br/>
-                <br/>
-                <a class="btn btn-dark" href="/goaltracker/api/goals/{{.ID}}/complete">Mark as completed</a>
-            {{end}}
+                {{if .IsCompletable}}
+                    <a class="btn btn-dark btn-sm" href="/goaltracker/api/goals/{{.ID}}/complete">Mark as completed</a>
+                {{end}}
+            </div>
         </td>
     </tr>
 {{end}}

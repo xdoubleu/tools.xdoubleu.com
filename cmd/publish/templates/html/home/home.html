@@ -1,15 +1,6 @@
 {{ template "header" }}
 {{ template "navbar" }}
 <style>
-    body {
-        background: #f8f9fa;
-    }
-
-    .header {
-        text-align: center;
-        margin-bottom: 40px;
-    }
-
     .tool-card {
         border-radius: 12px;
         border: none;
@@ -22,14 +13,14 @@
     }
 </style>
 <div class="container py-5">
-    <div class="header">
+    <div class="text-center mb-5">
         <h1 class="fw-bold">tools.xdoubleu.com</h1>
     </div>
     <div class="row g-4">
         {{ range . }}
             <div class="col-md-4 col-lg-3">
                 <a href="/{{ . }}" class="text-decoration-none">
-                    <div class="card tool-card text-center p-4">
+                    <div class="card tool-card text-center p-4 shadow-sm">
                         <h5 class="mb-0 text-dark">
                             {{ . }}
                         </h5>

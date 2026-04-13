@@ -1,20 +1,20 @@
 {{ template "header" }}
 {{ template "navbar" }}
-<div class="container">
-        <h1>{{.Goal.Name}}</h1>
-        <a class="btn btn-dark" href="/goaltracker/edit/{{.Goal.ID}}">Edit</a>
+<div class="container py-3">
+    <h1 class="mb-3">{{.Goal.Name}}</h1>
+    <div class="d-flex gap-2 mb-3">
+        <a class="btn btn-dark btn-sm" href="/goaltracker/edit/{{.Goal.ID}}">Edit</a>
         {{template "ws" .Goal.SourceID}}
-        <br/>
-        <br/>
-
-        <ul>
-            {{range $listItem := .ListItems}}
-                {{if $listItem.CompletedDate}}
-                    <li><s>{{$listItem.Value}}</s></li>
-                {{else}}
-                    <li>{{$listItem.Value}}</li>
-                {{end}}
-            {{end}}
-        </ul>
     </div>
+
+    <ul class="mt-2">
+        {{range $listItem := .ListItems}}
+            {{if $listItem.CompletedDate}}
+                <li><s>{{$listItem.Value}}</s></li>
+            {{else}}
+                <li>{{$listItem.Value}}</li>
+            {{end}}
+        {{end}}
+    </ul>
+</div>
 {{ template "footer" }}
