@@ -19,10 +19,26 @@ func (app *WatchParty) templateRoutes(prefix string, mux *http.ServeMux) {
 		fmt.Sprintf("GET /%s/{$}", prefix),
 		app.services.Auth.TemplateAccess(app.rootHandler),
 	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST /%s/api/rooms/create", prefix),
+		app.services.Auth.Access(app.createRoomHandler),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST /%s/api/rooms/join", prefix),
+		app.services.Auth.Access(app.joinRoomHandler),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("GET /%s/api/rooms/leave", prefix),
+		app.services.Auth.Access(app.leaveRoomHandler),
+	)
 }
 
 type rootData struct {
 	RoomCode string
+}
+
+type lobbyData struct {
+	Error string
 }
 
 func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,16 +64,8 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	exists, roomCode, role := app.services.Room.GetRoomForUser(user.ID)
 	if !exists {
-		accessToken, _ := r.Cookie("accessToken")
-		if accessToken != nil {
-			aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(
-				accessToken.Value,
-				secure,
-			)
-			http.SetCookie(w, aTokenRemoval)
-			http.SetCookie(w, rTokenRemoval)
-		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		// Show lobby where user can create or join a room
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{})
 		return
 	}
 
@@ -71,4 +79,82 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 			RoomCode: roomCode,
 		})
 	}
+}
+
+func (app *WatchParty) createRoomHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
+	if user == nil {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	// If already in a room, redirect to it
+	if exists, _, _ := app.services.Room.GetRoomForUser(user.ID); exists {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	app.services.Room.CreateRoom(r.Context(), user.ID)
+	http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+}
+
+func (app *WatchParty) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
+	if user == nil {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	roomCode := r.FormValue("roomCode")
+	if roomCode == "" {
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+			Error: "Room code is required.",
+		})
+		return
+	}
+
+	if !app.services.Room.RoomExists(roomCode) {
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+			Error: fmt.Sprintf("Room %q does not exist.", roomCode),
+		})
+		return
+	}
+
+	ok := app.services.Room.JoinViewer(r.Context(), roomCode, user.ID)
+	if !ok {
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+			Error: "Could not join room.",
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+}
+
+func (app *WatchParty) leaveRoomHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
+	if user == nil {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	exists, roomCode, role := app.services.Room.GetRoomForUser(user.ID)
+	if !exists {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	switch role {
+	case dtos.Viewer:
+		app.services.Room.LeaveViewer(r.Context(), roomCode)
+	case dtos.Presenter:
+		app.services.Room.RemoveRoom(r.Context(), roomCode)
+	}
+
+	http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
 }

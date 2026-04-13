@@ -4,7 +4,7 @@
     <span class="text-muted">Room: <strong id="room-code">{{.RoomCode}}</strong></span>
     <button id="start-screen-btn" class="btn btn-dark btn-sm">Start Screen</button>
     <button id="stop-screen-btn" class="btn btn-outline-danger btn-sm" style="display:none;">Stop Screen</button>
-    <a href="/auth/signout" class="btn btn-outline-secondary btn-sm">Sign out</a>
+    <a href="/watchparty/api/rooms/leave" class="btn btn-outline-secondary btn-sm">Leave Room</a>
   </div>
 
   <div class="card shadow-sm" style="position:relative;">
@@ -26,30 +26,32 @@ let localCam, localScreen;
 let isSharingScreen = false;
 let remoteCamStream = null;
 
-const selfCamEl = document.getElementById("selfCam");
+const selfCamEl   = document.getElementById("selfCam");
 const remoteCamEl = document.getElementById("remoteCam");
 const mainVideoEl = document.getElementById("screenVideo");
 
-function log(...msg){ console.log("%c[PRESENTER]", "color:#4b8bf4", ...msg); }
+function wsUrl() {
+    return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/watchparty/api/signaling`;
+}
 
-function send(type, payload, trackType){
-    const msg = {type, payload, trackType};
-    if(ws.readyState === WebSocket.OPEN){
+function send(type, payload, trackType) {
+    const msg = { type, payload, trackType };
+    if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(msg));
     } else {
-        // buffer messages if WS not ready
-        setTimeout(()=>send(type,payload,trackType),200);
+        setTimeout(() => send(type, payload, trackType), 200);
     }
 }
 
-function createPC(trackType){
-    const pc = new RTCPeerConnection({ iceServers:[{urls:"stun:stun.l.google.com:19302"}] });
+function createPC(trackType) {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
 
-    pc.onicecandidate = e => { if(e.candidate) send("candidate", e.candidate, trackType); };
+    pc.onicecandidate = e => { if (e.candidate) send("candidate", e.candidate, trackType); };
+
     pc.ontrack = e => {
-        if(trackType==="cam"){
+        if (trackType === "cam") {
             remoteCamStream = e.streams[0];
-            if(isSharingScreen){
+            if (isSharingScreen) {
                 remoteCamEl.srcObject = remoteCamStream;
                 remoteCamEl.style.display = "block";
             } else {
@@ -57,7 +59,7 @@ function createPC(trackType){
                 remoteCamEl.style.display = "none";
             }
         }
-        if(trackType==="screen"){
+        if (trackType === "screen") {
             isSharingScreen = true;
             mainVideoEl.srcObject = e.streams[0];
             remoteCamEl.srcObject = remoteCamStream;
@@ -65,26 +67,33 @@ function createPC(trackType){
             document.getElementById("stop-screen-btn").style.display = "inline-block";
         }
     };
+
+    // When the remote screen track ends, revert to camera view
+    pc.onconnectionstatechange = () => {
+        if (trackType === "screen" &&
+            (pc.connectionState === "disconnected" || pc.connectionState === "failed")) {
+            stopScreenUI();
+        }
+    };
+
     return pc;
 }
 
-// start local camera immediately
-async function startCamera(){
-    localCam = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+async function startCamera() {
+    localCam = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     selfCamEl.srcObject = localCam;
     pcCam = createPC("cam");
-    localCam.getTracks().forEach(t=>pcCam.addTrack(t, localCam));
+    localCam.getTracks().forEach(t => pcCam.addTrack(t, localCam));
 
     const offer = await pcCam.createOffer();
     await pcCam.setLocalDescription(offer);
     send("offer", offer, "cam");
 }
 
-// start screen sharing
-async function startScreen(){
-    localScreen = await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
+async function startScreen() {
+    localScreen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
     pcScreen = createPC("screen");
-    localScreen.getTracks().forEach(t=>pcScreen.addTrack(t, localScreen));
+    localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
 
     const offer = await pcScreen.createOffer();
     await pcScreen.setLocalDescription(offer);
@@ -96,49 +105,77 @@ async function startScreen(){
     localScreen.getVideoTracks()[0].onended = stopScreen;
 }
 
-// stop screen sharing
-function stopScreen(){
-    if(!localScreen) return;
-    localScreen.getTracks().forEach(t=>t.stop());
-    localScreen = null;
+function stopScreenUI() {
     isSharingScreen = false;
     document.getElementById("stop-screen-btn").style.display = "none";
     document.getElementById("start-screen-btn").style.display = "inline-block";
-
-    // main view back to remote camera
-    if(remoteCamStream) mainVideoEl.srcObject = remoteCamStream;
+    if (remoteCamStream) mainVideoEl.srcObject = remoteCamStream;
     remoteCamEl.style.display = "none";
 }
 
-// WebSocket init
-function initWS(){
-    ws = new WebSocket(`${location.protocol==="https:"?"wss":"ws"}://${location.host}/watchparty/api/signaling`);
-    ws.onopen = ()=>{ ws.send(JSON.stringify({roomCode: ROOM, role:"presenter"})); };
-    ws.onmessage = async evt=>{
+function stopScreen() {
+    if (localScreen) {
+        localScreen.getTracks().forEach(t => t.stop());
+        localScreen = null;
+    }
+    if (pcScreen) {
+        pcScreen.close();
+        pcScreen = null;
+    }
+    stopScreenUI();
+}
+
+function initWS() {
+    ws = new WebSocket(wsUrl());
+
+    ws.onopen = () => {
+        ws.send(JSON.stringify({ roomCode: ROOM, role: "presenter" }));
+        // Re-send camera offer so viewer gets it after reconnect
+        if (pcCam && pcCam.localDescription) {
+            send("offer", pcCam.localDescription, "cam");
+        }
+        // Re-send screen offer if sharing
+        if (isSharingScreen && pcScreen && pcScreen.localDescription) {
+            send("offer", pcScreen.localDescription, "screen");
+        }
+    };
+
+    ws.onclose = () => {
+        // Auto-reconnect after a short delay
+        setTimeout(initWS, 1500);
+    };
+
+    ws.onerror = () => ws.close();
+
+    ws.onmessage = async evt => {
         const msg = JSON.parse(evt.data);
-        if(msg.type==="offer"){
-            let pc = msg.trackType==="cam"? pcCam : pcScreen;
-            if(!pc) pc = createPC(msg.trackType);
+
+        if (msg.type === "offer") {
+            let pc = msg.trackType === "cam" ? pcCam : pcScreen;
+            if (!pc) pc = createPC(msg.trackType);
             await pc.setRemoteDescription(msg.payload);
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             send("answer", answer, msg.trackType);
         }
-        if(msg.type==="answer"){
-            let pc = msg.trackType==="cam"? pcCam : pcScreen;
-            if(pc && pc.signalingState==="have-local-offer") await pc.setRemoteDescription(msg.payload);
+
+        if (msg.type === "answer") {
+            const pc = msg.trackType === "cam" ? pcCam : pcScreen;
+            if (pc && pc.signalingState === "have-local-offer") {
+                await pc.setRemoteDescription(msg.payload);
+            }
         }
-        if(msg.type==="candidate"){
-            let pc = msg.trackType==="cam"? pcCam : pcScreen;
-            if(pc) await pc.addIceCandidate(msg.payload);
+
+        if (msg.type === "candidate") {
+            const pc = msg.trackType === "cam" ? pcCam : pcScreen;
+            if (pc) await pc.addIceCandidate(msg.payload);
         }
     };
 }
 
-// initialize
 initWS();
 startCamera();
 document.getElementById("start-screen-btn").onclick = startScreen;
-document.getElementById("stop-screen-btn").onclick = stopScreen;
+document.getElementById("stop-screen-btn").onclick  = stopScreen;
 </script>
 {{template "footer"}}
