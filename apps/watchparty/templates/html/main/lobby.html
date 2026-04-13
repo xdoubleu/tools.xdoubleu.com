@@ -1,0 +1,37 @@
+{{template "header"}}
+<div class="container py-5" style="max-width: 480px;">
+  <h1 class="mb-4 text-center fw-bold">WatchParty</h1>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Create a room</h5>
+      <p class="text-muted small">You'll be the presenter.</p>
+      <form method="POST" action="/watchparty/api/rooms/create">
+        <button type="submit" class="btn btn-dark w-100">Create Room</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title">Join a room</h5>
+      <p class="text-muted small">Enter the room code to join as a viewer.</p>
+      <form method="POST" action="/watchparty/api/rooms/join">
+        <div class="mb-3">
+          <input type="text" name="roomCode" class="form-control"
+                 placeholder="Room code" required maxlength="6">
+        </div>
+        <button type="submit" class="btn btn-dark w-100">Join Room</button>
+      </form>
+    </div>
+  </div>
+
+  {{if .Error}}
+  <div class="alert alert-danger mt-3">{{.Error}}</div>
+  {{end}}
+
+  <div class="text-center mt-4">
+    <a href="/auth/signout" class="text-muted small">Sign out</a>
+  </div>
+</div>
+{{template "footer"}}

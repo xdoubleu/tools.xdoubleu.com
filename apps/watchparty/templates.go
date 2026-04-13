@@ -17,12 +17,28 @@ import (
 func (app *WatchParty) templateRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/{$}", prefix),
-		app.services.Auth.TemplateAccess(app.rootHandler),
+		app.Services.Auth.TemplateAccess(app.rootHandler),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST /%s/api/rooms/create", prefix),
+		app.Services.Auth.Access(app.createRoomHandler),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST /%s/api/rooms/join", prefix),
+		app.Services.Auth.Access(app.joinRoomHandler),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("GET /%s/api/rooms/leave", prefix),
+		app.Services.Auth.Access(app.leaveRoomHandler),
 	)
 }
 
 type rootData struct {
 	RoomCode string
+}
+
+type lobbyData struct {
+	Error string
 }
 
 func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +47,7 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	if user == nil {
 		accessToken, _ := r.Cookie("accessToken")
-		aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(
+		aTokenRemoval, rTokenRemoval, _ := app.Services.Auth.SignOut(
 			accessToken.Value,
 			secure,
 		)
@@ -46,18 +62,11 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, roomCode, role := app.services.Room.GetRoomForUser(user.ID)
+	exists, roomCode, role := app.Services.Room.GetRoomForUser(user.ID)
 	if !exists {
-		accessToken, _ := r.Cookie("accessToken")
-		if accessToken != nil {
-			aTokenRemoval, rTokenRemoval, _ := app.services.Auth.SignOut(
-				accessToken.Value,
-				secure,
-			)
-			http.SetCookie(w, aTokenRemoval)
-			http.SetCookie(w, rTokenRemoval)
-		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		// Show lobby where user can create or join a room
+		//nolint:exhaustruct // No need to initialize lobbyData with zero values
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{})
 		return
 	}
 
@@ -71,4 +80,85 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 			RoomCode: roomCode,
 		})
 	}
+}
+
+func (app *WatchParty) createRoomHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
+	if user == nil {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	// If already in a room, redirect to it
+	if exists, _, _ := app.Services.Room.GetRoomForUser(user.ID); exists {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	app.Services.Room.CreateRoom(r.Context(), user.ID)
+	http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+}
+
+func (app *WatchParty) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
+	if user == nil {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	//nolint:mnd //no magic number
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	roomCode := r.FormValue("roomCode")
+	if roomCode == "" {
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+			Error: "Room code is required.",
+		})
+		return
+	}
+
+	if !app.Services.Room.RoomExists(roomCode) {
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+			Error: fmt.Sprintf("Room %q does not exist.", roomCode),
+		})
+		return
+	}
+
+	ok := app.Services.Room.JoinViewer(r.Context(), roomCode, user.ID)
+	if !ok {
+		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+			Error: "Could not join room.",
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+}
+
+func (app *WatchParty) leaveRoomHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
+	if user == nil {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	exists, roomCode, role := app.Services.Room.GetRoomForUser(user.ID)
+	if !exists {
+		http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
+		return
+	}
+
+	switch role {
+	case dtos.Viewer:
+		app.Services.Room.LeaveViewer(r.Context(), roomCode)
+	case dtos.Presenter:
+		app.Services.Room.RemoveRoom(r.Context(), roomCode)
+	}
+
+	http.Redirect(w, r, "/watchparty/", http.StatusSeeOther)
 }
