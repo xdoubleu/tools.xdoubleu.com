@@ -1,44 +1,64 @@
 # tools.xdoubleu.com
 
-Each tool has it's own folder, however all are combined in cmd/publish.
-cmd/publish also takes care of authentication.
+Each tool has its own folder, however all are combined in `cmd/publish`.
+`cmd/publish` also takes care of authentication.
 
-The folder structure of tools follow the usual one for go projects:
+The folder structure of tools follows the usual one for Go projects:
 
-- images: images used for tool
-- migrations: db migrations used for tool
-- templates: html templates used for tool
-- internal: logic internal to that app
-- pkg: logic that could (if I would want to) become their own project
-- root level files: HTTP endpoints of tools
+- `images` — images used for tool
+- `migrations` — DB migrations used for tool
+- `templates` — HTML templates used for tool
+- `internal` — logic internal to that app
+- `pkg` — logic that could become its own project
+- root level files — HTTP endpoints of tool
 
-Existing tools:
+## Development
 
-## goaltracker
+```bash
+# Start the database
+docker-compose up -d
 
-## watchparty
+# Run all tests
+make test
 
-TODO: need room code input template (removed from sign in dto)
+# Stop the database
+docker-compose down
 
-TODO: on refresh screen sharing not coming through
+# Lint and auto-fix
+make lint/fix
+```
 
-TODO: when not sharing a screen show other person camera full screen and own in small corner
-TODO: make cameras drag and droppable
+## Existing tools
 
-TODO: tests
-TODO: cleanup code
+### goaltracker
 
-Ideas:
+Tracks goals by pulling progress from external sources (Todoist, Steam, Goodreads).
 
-## own todolist
+### watchparty
 
-Todoist is lots of fun and works very nice but I have some specific needs for todolists that they can't deal with:
+Real-time screen sharing and video conferencing using WebRTC.
+Users create or join a room; the creator becomes the presenter and can share their screen.
 
-- Recurring todos can be hidden until I need them
-- I want to be able to order by priority and then also DnD todos
-- Next to all existing todoist features
-- Note: they do have a great app, mobile experience should be goated if I create this
-  
-## proxy search engine that adds -AI to every google search
+**Open ideas:**
 
-I hate AI summaries in Google
+- When not sharing a screen, show the other person's camera full screen with own camera in corner
+- Make cameras drag-and-droppable
+
+### icsproxy
+
+Calendar (ICS) filter and proxy. Takes an existing ICS feed URL, lets you hide specific events or mark holidays, and generates a new filtered calendar URL.
+
+## Future tool ideas
+
+### own todolist
+
+Todoist is great but doesn't cover some specific needs:
+
+- Recurring todos hidden until needed
+- Order by priority + drag-and-drop
+- Next to all existing Todoist features
+- Note: mobile experience should be excellent
+
+### proxy search engine
+
+Appends `-AI` to every Google search to filter out AI summaries.
