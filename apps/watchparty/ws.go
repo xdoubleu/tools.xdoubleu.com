@@ -6,12 +6,49 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	wstools "github.com/xdoubleu/essentia/v3/pkg/communication/wstools"
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 )
+
+const (
+	pingInterval = 30 * time.Second
+	pingTimeout  = 10 * time.Second
+)
+
+func pingLoop(
+	ctx context.Context,
+	conn *websocket.Conn,
+	interval, timeout time.Duration,
+) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			pingCtx, cancel := context.WithTimeout(ctx, timeout)
+			err := conn.Ping(pingCtx)
+			cancel()
+			if err != nil {
+				return
+			}
+		}
+	}
+}
+
+func isExpectedCloseErr(err error) bool {
+	status := websocket.CloseStatus(err)
+	if status == websocket.StatusNormalClosure || status == websocket.StatusGoingAway {
+		return true
+	}
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
 
 func (app *WatchParty) wsRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
@@ -73,10 +110,20 @@ func (app *WatchParty) handlePresenter(
 		return
 	}
 
+	go pingLoop(ctx, conn, pingInterval, pingTimeout)
+
 	for {
 		var trackMsg dtos.TrackMessage
 		if err := wsjson.Read(ctx, conn, &trackMsg); err != nil {
-			app.logger.DebugContext(ctx, "presenter read closed", slog.Any("err", err))
+			if isExpectedCloseErr(err) {
+				app.logger.DebugContext(
+					ctx,
+					"presenter disconnected",
+					slog.Any("err", err),
+				)
+			} else {
+				app.logger.ErrorContext(ctx, "presenter read error", slog.Any("err", err))
+			}
 			return
 		}
 
@@ -97,10 +144,20 @@ func (app *WatchParty) handleViewer(
 	app.Services.Room.JoinViewerWS(ctx, msg.RoomCode, conn)
 	defer app.Services.Room.LeaveViewer(ctx, msg.RoomCode)
 
+	go pingLoop(ctx, conn, pingInterval, pingTimeout)
+
 	for {
 		var trackMsg dtos.TrackMessage
 		if err := wsjson.Read(ctx, conn, &trackMsg); err != nil {
-			app.logger.DebugContext(ctx, "viewer read closed", slog.Any("err", err))
+			if isExpectedCloseErr(err) {
+				app.logger.DebugContext(
+					ctx,
+					"viewer disconnected",
+					slog.Any("err", err),
+				)
+			} else {
+				app.logger.ErrorContext(ctx, "viewer read error", slog.Any("err", err))
+			}
 			return
 		}
 

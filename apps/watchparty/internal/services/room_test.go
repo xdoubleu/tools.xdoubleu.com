@@ -2,12 +2,58 @@ package services_test
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/apps/watchparty/internal/services"
 )
+
+// closedWSConn creates a real websocket connection on the server side and
+// immediately closes it so that any subsequent write to it returns an error.
+func closedWSConn(t *testing.T) *websocket.Conn {
+	t.Helper()
+
+	connCh := make(chan *websocket.Conn, 1)
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			conn, err := websocket.Accept(w, r, nil)
+			if err != nil {
+				return
+			}
+			connCh <- conn
+			<-r.Context().Done()
+		}),
+	)
+	t.Cleanup(srv.Close)
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
+
+	clientConn, _, err := websocket.Dial(context.Background(), wsURL, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = clientConn.CloseNow() })
+
+	srvConn := <-connCh
+	// Close the server-side connection so any write attempt returns an error.
+	_ = srvConn.CloseNow()
+	return srvConn
+}
+
+func trackMsg() dtos.TrackMessage {
+	payload, _ := json.Marshal(map[string]string{"type": "offer", "sdp": "v=0"})
+	return dtos.TrackMessage{
+		Type:      dtos.Offer,
+		Payload:   payload,
+		TrackType: "cam",
+	}
+}
 
 func newRoomService(t *testing.T) *services.RoomService {
 	t.Helper()
@@ -125,6 +171,55 @@ func TestLeaveViewerFromNonExistentRoom(t *testing.T) {
 
 	// Should not panic
 	rs.LeaveViewer(context.Background(), "XXXXXX")
+}
+
+func TestJoinPresenterToNonExistentRoom(t *testing.T) {
+	rs := newRoomService(t)
+
+	ok := rs.JoinPresenter(t.Context(), "XXXXXX", nil)
+
+	assert.False(t, ok)
+}
+
+func TestJoinViewerWSToNonExistentRoom(t *testing.T) {
+	rs := newRoomService(t)
+
+	ok := rs.JoinViewerWS(t.Context(), "XXXXXX", nil)
+
+	assert.False(t, ok)
+}
+
+func TestSendToViewerToNonExistentRoom(t *testing.T) {
+	rs := newRoomService(t)
+
+	// Should not panic
+	rs.SendToViewer(t.Context(), "XXXXXX", trackMsg())
+}
+
+func TestSendToPresenterToNonExistentRoom(t *testing.T) {
+	rs := newRoomService(t)
+
+	// Should not panic
+	rs.SendToPresenter(t.Context(), "XXXXXX", trackMsg())
+}
+
+func TestSendToViewerWriteError(t *testing.T) {
+	rs := newRoomService(t)
+	code := rs.CreateRoom(t.Context(), "presenter-1")
+	rs.JoinViewer(t.Context(), code, "viewer-1")
+	rs.JoinViewerWS(t.Context(), code, closedWSConn(t))
+
+	// Write to a closed connection — the service must log the error and not panic.
+	rs.SendToViewer(t.Context(), code, trackMsg())
+}
+
+func TestSendToPresenterWriteError(t *testing.T) {
+	rs := newRoomService(t)
+	code := rs.CreateRoom(t.Context(), "presenter-1")
+	rs.JoinPresenter(t.Context(), code, closedWSConn(t))
+
+	// Write to a closed connection — the service must log the error and not panic.
+	rs.SendToPresenter(t.Context(), code, trackMsg())
 }
 
 func TestGetRoomForUserAfterPresenterRemovesRoom(t *testing.T) {
