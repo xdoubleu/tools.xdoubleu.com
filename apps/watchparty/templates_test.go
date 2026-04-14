@@ -237,3 +237,23 @@ func TestRoomViewerContainsControls(t *testing.T) {
 	assert.Contains(t, body, "Stream vol")
 	assert.Contains(t, body, "Auto-duck: On")
 }
+
+func TestRoomPresenterContainsReconnectLogic(t *testing.T) {
+	app, routes := newTestApp()
+	app.Services.Room.CreateRoom(context.Background(), userID)
+
+	body := roomHTML(t, routes)
+
+	// Presenter re-initiates screen share when a stale answer arrives
+	assert.Contains(t, body, "isSharingScreen && localScreen")
+}
+
+func TestRoomContainsStaleOfferGuard(t *testing.T) {
+	app, routes := newTestApp()
+	app.Services.Room.CreateRoom(context.Background(), userID)
+
+	body := roomHTML(t, routes)
+
+	// Failed/closed screen PC is replaced before accepting a new remote offer
+	assert.Contains(t, body, `pc.connectionState === "failed"`)
+}
