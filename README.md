@@ -43,18 +43,3 @@ Camera overlays are draggable. When no screen is being shared, the remote camera
 ### icsproxy
 
 Calendar (ICS) filter and proxy. Takes an existing ICS feed URL, lets you hide specific events or mark holidays, and generates a new filtered calendar URL.
-
-## Future tool ideas
-
-### own todolist
-
-Todoist is great but doesn't cover some specific needs:
-
-- Recurring todos hidden until needed
-- Order by priority + drag-and-drop
-- Next to all existing Todoist features
-- Note: mobile experience should be excellent
-
-### proxy search engine
-
-Appends `-AI` to every Google search to filter out AI summaries.
