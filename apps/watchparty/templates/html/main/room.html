@@ -256,6 +256,14 @@ function initWS() {
 
         if (msg.type === "offer") {
             let pc = msg.trackType === "cam" ? pcCam : pcScreen;
+            // A failed/closed screen PC can't accept a new offer — replace it
+            if (pc && msg.trackType === "screen" &&
+                (pc.signalingState === "closed" || pc.connectionState === "failed" ||
+                 pc.connectionState === "closed")) {
+                pc.close();
+                pc = null;
+                pcScreen = null;
+            }
             if (!pc) {
                 pc = createPC(msg.trackType);
                 if (msg.trackType === "screen") pcScreen = pc;
@@ -271,6 +279,15 @@ function initWS() {
             const pc = msg.trackType === "cam" ? pcCam : pcScreen;
             if (pc && pc.signalingState === "have-local-offer") {
                 await pc.setRemoteDescription(msg.payload);
+            } else if (msg.trackType === "screen" && IS_PRESENTER &&
+                       isSharingScreen && localScreen) {
+                // Stale answer from viewer reconnect: re-initiate screen with fresh offer
+                if (pcScreen) { pcScreen.close(); pcScreen = null; }
+                pcScreen = createPC("screen");
+                localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
+                const offer = await pcScreen.createOffer();
+                await pcScreen.setLocalDescription(offer);
+                send("offer", offer, "screen");
             }
         }
 
