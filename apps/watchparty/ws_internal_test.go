@@ -57,7 +57,6 @@ func TestPingLoopExitsOnContextCancel(t *testing.T) {
 	// (coder/websocket handles pong responses transparently).
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			conn, err := websocket.Accept(w, r, nil)
 			if err != nil {
 				return
@@ -99,7 +98,6 @@ func TestPingLoopExitsOnConnectionClose(t *testing.T) {
 	// random-disconnect bug).
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			conn, err := websocket.Accept(w, r, nil)
 			if err != nil {
 				return
