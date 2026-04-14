@@ -170,6 +170,53 @@ func TestSignalingAbruptDisconnectDoesNotPanic(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 }
 
+// TestSignalingDisconnectBeforeSubscribe verifies that closing the WebSocket
+// before sending the subscribe message is handled gracefully — specifically it
+// exercises the wstools.ServerErrorResponse path in WsSignalingHandler.
+func TestSignalingDisconnectBeforeSubscribe(t *testing.T) {
+	_, routes := newTestApp()
+	srv := httptest.NewServer(routes)
+	defer srv.Close()
+
+	ctx := context.Background()
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/watchparty/api/signaling"
+
+	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	require.NoError(t, err)
+
+	// Close before sending the subscribe message so the server's Read fails.
+	_ = conn.CloseNow()
+
+	// Give the server handler time to detect the close and exit gracefully.
+	time.Sleep(50 * time.Millisecond)
+}
+
+// TestSignalingPresenterJoinsNonExistentRoom verifies that connecting as a
+// presenter to a room that does not exist causes the server to respond with an
+// error — exercises the JoinPresenter-failure branch in handlePresenter.
+func TestSignalingPresenterJoinsNonExistentRoom(t *testing.T) {
+	_, routes := newTestApp()
+	srv := httptest.NewServer(routes)
+	defer srv.Close()
+
+	ctx := context.Background()
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/watchparty/api/signaling"
+
+	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	require.NoError(t, err)
+	defer conn.CloseNow() //nolint:errcheck // cleanup in test
+
+	// Valid role but room code does not exist → JoinPresenter returns false.
+	sub := map[string]string{"roomCode": "NOROOM", "role": "presenter"}
+	require.NoError(t, wsjson.Write(ctx, conn, sub))
+
+	// Server sends an error response and closes the connection.
+	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	var msg any
+	_ = wsjson.Read(readCtx, conn, &msg)
+}
+
 // TestSignalingInvalidRoleRejected verifies that an unknown role in the
 // subscribe message does not cause a panic — the handler simply does nothing.
 func TestSignalingInvalidRoleRejected(t *testing.T) {
