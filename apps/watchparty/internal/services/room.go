@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"log"
 	"log/slog"
 	"sync"
 	"time"
@@ -204,7 +203,7 @@ func (rs *RoomService) SendToViewer(
 	}
 
 	if err := room.SendToViewer(context.Background(), trackMsg); err != nil {
-		log.Printf("Write to viewer failed: %v", err)
+		rs.logger.ErrorContext(ctx, "write to viewer failed", slog.Any("err", err))
 	}
 }
 
@@ -226,7 +225,7 @@ func (rs *RoomService) SendToPresenter(
 	}
 
 	if err := room.SendToPresenter(context.Background(), trackMsg); err != nil {
-		log.Printf("Write to presenter failed: %v", err)
+		rs.logger.ErrorContext(ctx, "write to presenter failed", slog.Any("err", err))
 	}
 }
 
