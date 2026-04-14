@@ -3,6 +3,7 @@ package watchparty_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
@@ -194,4 +195,45 @@ func TestLeaveRoomAsViewer(t *testing.T) {
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+}
+
+func roomHTML(t *testing.T, routes http.Handler) string {
+	t.Helper()
+	tReq := test.CreateRequestTester(
+		routes,
+		http.MethodGet,
+		fmt.Sprintf("/%s/", "watchparty"),
+	)
+	tReq.AddCookie(&accessToken)
+	rs := tReq.Do(t)
+	body, err := io.ReadAll(rs.Body)
+	assert.NoError(t, err)
+	return string(body)
+}
+
+func TestRoomPresenterContainsControls(t *testing.T) {
+	app, routes := newTestApp()
+	app.Services.Room.CreateRoom(context.Background(), userID)
+
+	body := roomHTML(t, routes)
+
+	assert.Contains(t, body, "Mute Mic")
+	assert.Contains(t, body, "Disable Cam")
+	assert.Contains(t, body, "Hide Self")
+	assert.Contains(t, body, "Stream vol")
+	assert.Contains(t, body, "Auto-duck: On")
+}
+
+func TestRoomViewerContainsControls(t *testing.T) {
+	app, routes := newTestApp()
+	roomCode := app.Services.Room.CreateRoom(context.Background(), presenterID)
+	app.Services.Room.JoinViewer(context.Background(), roomCode, userID)
+
+	body := roomHTML(t, routes)
+
+	assert.Contains(t, body, "Mute Mic")
+	assert.Contains(t, body, "Disable Cam")
+	assert.Contains(t, body, "Hide Self")
+	assert.Contains(t, body, "Stream vol")
+	assert.Contains(t, body, "Auto-duck: On")
 }
