@@ -34,7 +34,8 @@ func (app *WatchParty) templateRoutes(prefix string, mux *http.ServeMux) {
 }
 
 type rootData struct {
-	RoomCode string
+	RoomCode    string
+	IsPresenter bool
 }
 
 type lobbyData struct {
@@ -72,12 +73,14 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch role {
 	case dtos.Presenter:
-		tpltools.RenderWithPanic(app.tpl, w, "presenter.html", rootData{
-			RoomCode: roomCode,
+		tpltools.RenderWithPanic(app.tpl, w, "room.html", rootData{
+			RoomCode:    roomCode,
+			IsPresenter: true,
 		})
 	case dtos.Viewer:
-		tpltools.RenderWithPanic(app.tpl, w, "viewer.html", rootData{
-			RoomCode: roomCode,
+		tpltools.RenderWithPanic(app.tpl, w, "room.html", rootData{
+			RoomCode:    roomCode,
+			IsPresenter: false,
 		})
 	}
 }

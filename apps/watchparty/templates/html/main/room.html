@@ -12,12 +12,14 @@
                 </li>
             </ul>
             <ul class="navbar-nav ms-auto align-items-center gap-2">
+                {{if .IsPresenter}}
                 <li class="nav-item">
                     <button id="start-screen-btn" class="btn btn-sm btn-outline-light">Start Screen</button>
                 </li>
                 <li class="nav-item">
                     <button id="stop-screen-btn" class="btn btn-sm btn-outline-warning" style="display:none;">Stop Screen</button>
                 </li>
+                {{end}}
                 <li class="nav-item">
                     <a href="/watchparty/api/rooms/leave" class="btn btn-sm btn-outline-danger">Leave Room</a>
                 </li>
@@ -31,7 +33,7 @@
            style="width:100%; height:calc(100vh - 56px); background:#000; object-fit:contain; display:block;"></video>
 
     <video id="selfCam" autoplay playsinline muted
-           style="position:absolute; bottom:10px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px;"></video>
+           style="position:absolute; bottom:10px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px; -webkit-transform: scaleX(-1); transform: scaleX(-1);"></video>
 
     <video id="remoteCam" autoplay playsinline
            style="position:absolute; top:10px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px; display:none;"></video>
@@ -39,8 +41,9 @@
 
 <script>
 const ROOM = "{{.RoomCode}}";
+const IS_PRESENTER = {{.IsPresenter}};
 let ws, pcCam, pcScreen;
-let localCam, localScreen;
+let localCam{{if .IsPresenter}}, localScreen{{end}};
 let isSharingScreen = false;
 let remoteCamStream = null;
 
@@ -61,7 +64,6 @@ function makeDraggable(el) {
         const container = el.parentElement.getBoundingClientRect();
         const rect      = el.getBoundingClientRect();
 
-        // Normalise to left/top so drag math is simple
         el.style.right  = "auto";
         el.style.bottom = "auto";
         el.style.left   = (rect.left - container.left) + "px";
@@ -124,21 +126,29 @@ function createPC(trackType) {
             mainVideoEl.srcObject = e.streams[0];
             remoteCamEl.srcObject = remoteCamStream;
             remoteCamEl.style.display = "block";
+            {{if .IsPresenter}}
             document.getElementById("stop-screen-btn").style.display = "inline-block";
+            {{end}}
         }
     };
 
     pc.onconnectionstatechange = () => {
         if (trackType === "screen" &&
             (pc.connectionState === "disconnected" || pc.connectionState === "failed")) {
+            {{if .IsPresenter}}
             stopScreenUI();
+            {{else}}
+            isSharingScreen = false;
+            if (remoteCamStream) mainVideoEl.srcObject = remoteCamStream;
+            remoteCamEl.style.display = "none";
+            {{end}}
         }
     };
 
     return pc;
 }
 
-// ── Camera & screen share ────────────────────────────────────────────────────
+// ── Camera ───────────────────────────────────────────────────────────────────
 
 async function startCamera() {
     localCam = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -149,6 +159,9 @@ async function startCamera() {
     await pcCam.setLocalDescription(offer);
     send("offer", offer, "cam");
 }
+
+{{if .IsPresenter}}
+// ── Screen share ─────────────────────────────────────────────────────────────
 
 async function startScreen() {
     localScreen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
@@ -183,11 +196,10 @@ function stopScreen() {
     }
     stopScreenUI();
 }
+{{end}}
 
 // ── WebSocket & renegotiation ────────────────────────────────────────────────
 
-// Called on every WS (re)connect. Closes stale peer connections and creates
-// fresh ones with new ICE credentials so signaling completes cleanly.
 async function renegotiateAll() {
     if (pcCam) { pcCam.close(); pcCam = null; }
     if (localCam) {
@@ -198,8 +210,7 @@ async function renegotiateAll() {
         send("offer", offer, "cam");
     }
 
-    // Recreate the screen PC if sharing, so the viewer gets a fresh offer
-    // with new ICE credentials instead of the stale saved one.
+    {{if .IsPresenter}}
     if (pcScreen) { pcScreen.close(); pcScreen = null; }
     if (isSharingScreen && localScreen) {
         pcScreen = createPC("screen");
@@ -208,13 +219,18 @@ async function renegotiateAll() {
         await pcScreen.setLocalDescription(offer);
         send("offer", offer, "screen");
     }
+    {{else}}
+    // Close the screen PC — the server will resend the presenter's screen
+    // offer, which onmessage will handle by creating a new pcScreen.
+    if (pcScreen) { pcScreen.close(); pcScreen = null; }
+    {{end}}
 }
 
 function initWS() {
     ws = new WebSocket(wsUrl());
 
     ws.onopen = () => {
-        ws.send(JSON.stringify({ roomCode: ROOM, role: "presenter" }));
+        ws.send(JSON.stringify({ roomCode: ROOM, role: IS_PRESENTER ? "presenter" : "viewer" }));
         renegotiateAll();
     };
 
@@ -226,7 +242,11 @@ function initWS() {
 
         if (msg.type === "offer") {
             let pc = msg.trackType === "cam" ? pcCam : pcScreen;
-            if (!pc) pc = createPC(msg.trackType);
+            if (!pc) {
+                pc = createPC(msg.trackType);
+                if (msg.trackType === "screen") pcScreen = pc;
+                if (msg.trackType === "cam")    pcCam    = pc;
+            }
             await pc.setRemoteDescription(msg.payload);
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
@@ -249,7 +269,9 @@ function initWS() {
 
 initWS();
 startCamera();
+{{if .IsPresenter}}
 document.getElementById("start-screen-btn").onclick = startScreen;
 document.getElementById("stop-screen-btn").onclick  = stopScreen;
+{{end}}
 </script>
 {{template "footer"}}
