@@ -33,10 +33,23 @@
            style="width:100%; height:calc(100vh - 56px); background:#000; object-fit:contain; display:block;"></video>
 
     <video id="selfCam" autoplay playsinline muted
-           style="position:absolute; bottom:10px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px; -webkit-transform: scaleX(-1); transform: scaleX(-1);"></video>
+           style="position:absolute; bottom:50px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px; -webkit-transform: scaleX(-1); transform: scaleX(-1);"></video>
 
     <video id="remoteCam" autoplay playsinline
            style="position:absolute; top:10px; right:10px; width:18%; border:2px solid #fff; cursor:grab; border-radius:4px; display:none;"></video>
+
+    <div id="controls-bar" style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); padding:6px 12px; display:flex; align-items:center; gap:8px; z-index:10;">
+        <button id="mic-btn"      class="btn btn-sm btn-outline-light">Mute Mic</button>
+        <button id="cam-btn"      class="btn btn-sm btn-outline-light">Disable Cam</button>
+        <button id="hide-self-btn" class="btn btn-sm btn-outline-light">Hide Self</button>
+        <div class="ms-auto d-flex align-items-center gap-3">
+            <label class="text-white small mb-0 d-flex align-items-center gap-2">
+                Stream vol
+                <input id="stream-vol" type="range" min="0" max="1" step="0.05" value="1" style="width:90px; cursor:pointer;">
+            </label>
+            <button id="auto-duck-btn" class="btn btn-sm btn-outline-info">Auto-duck: On</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -158,6 +171,7 @@ async function startCamera() {
     const offer = await pcCam.createOffer();
     await pcCam.setLocalDescription(offer);
     send("offer", offer, "cam");
+    initAutoDuck();
 }
 
 {{if .IsPresenter}}
@@ -273,5 +287,105 @@ startCamera();
 document.getElementById("start-screen-btn").onclick = startScreen;
 document.getElementById("stop-screen-btn").onclick  = stopScreen;
 {{end}}
+
+// ── Mic / camera controls ────────────────────────────────────────────────────
+
+let micEnabled = true;
+let camEnabled = true;
+let selfCamVisible = true;
+
+document.getElementById("mic-btn").onclick = () => {
+    micEnabled = !micEnabled;
+    if (localCam) localCam.getAudioTracks().forEach(t => { t.enabled = micEnabled; });
+    const btn = document.getElementById("mic-btn");
+    btn.textContent = micEnabled ? "Mute Mic" : "Unmute Mic";
+    btn.className   = micEnabled ? "btn btn-sm btn-outline-light" : "btn btn-sm btn-outline-warning";
+};
+
+document.getElementById("cam-btn").onclick = () => {
+    camEnabled = !camEnabled;
+    if (localCam) localCam.getVideoTracks().forEach(t => { t.enabled = camEnabled; });
+    // also hide/show self preview to match
+    selfCamEl.style.display = (camEnabled && selfCamVisible) ? "block" : "none";
+    const btn = document.getElementById("cam-btn");
+    btn.textContent = camEnabled ? "Disable Cam" : "Enable Cam";
+    btn.className   = camEnabled ? "btn btn-sm btn-outline-light" : "btn btn-sm btn-outline-warning";
+};
+
+document.getElementById("hide-self-btn").onclick = () => {
+    selfCamVisible = !selfCamVisible;
+    selfCamEl.style.display = (selfCamVisible && camEnabled) ? "block" : "none";
+    const btn = document.getElementById("hide-self-btn");
+    btn.textContent = selfCamVisible ? "Hide Self" : "Show Self";
+    btn.className   = selfCamVisible ? "btn btn-sm btn-outline-light" : "btn btn-sm btn-outline-secondary";
+};
+
+// ── Audio mixing ─────────────────────────────────────────────────────────────
+
+const DUCK_THRESHOLD = 15;  // 0-255 average amplitude to trigger ducking
+const DUCK_FACTOR    = 0.3; // reduce stream to 30% of manual volume when speaking
+
+let audioCtx     = null;
+let duckAnalyser = null;
+let duckSrcNode  = null;
+let duckTimer    = null;
+let autoDuck     = true;
+let manualVol    = 1.0;
+
+function applyVol(v) {
+    mainVideoEl.volume = v;
+    remoteCamEl.volume = v;
+}
+
+function startDuckMonitor() {
+    if (duckTimer || !localCam) return;
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        duckSrcNode  = audioCtx.createMediaStreamSource(localCam);
+        duckAnalyser = audioCtx.createAnalyser();
+        duckAnalyser.fftSize = 256;
+        duckSrcNode.connect(duckAnalyser);
+        const buf = new Uint8Array(duckAnalyser.frequencyBinCount);
+        duckTimer = setInterval(() => {
+            if (!autoDuck) { applyVol(manualVol); return; }
+            duckAnalyser.getByteFrequencyData(buf);
+            const avg = buf.reduce((s, v) => s + v, 0) / buf.length;
+            applyVol(avg > DUCK_THRESHOLD ? manualVol * DUCK_FACTOR : manualVol);
+        }, 100);
+    } catch (_) {
+        // AudioContext not available — skip auto-duck silently
+    }
+}
+
+function stopDuckMonitor() {
+    clearInterval(duckTimer); duckTimer = null;
+    if (duckSrcNode) { duckSrcNode.disconnect(); duckSrcNode = null; }
+    duckAnalyser = null;
+    applyVol(manualVol);
+}
+
+function initAutoDuck() {
+    if (autoDuck) startDuckMonitor();
+}
+
+document.getElementById("stream-vol").oninput = e => {
+    manualVol = parseFloat(e.target.value);
+    if (!autoDuck) applyVol(manualVol);
+};
+
+document.getElementById("auto-duck-btn").onclick = () => {
+    autoDuck = !autoDuck;
+    const btn = document.getElementById("auto-duck-btn");
+    if (autoDuck) {
+        btn.textContent = "Auto-duck: On";
+        btn.className   = "btn btn-sm btn-outline-info";
+        startDuckMonitor();
+    } else {
+        btn.textContent = "Auto-duck: Off";
+        btn.className   = "btn btn-sm btn-outline-secondary";
+        stopDuckMonitor();
+    }
+};
 </script>
 {{template "footer"}}
