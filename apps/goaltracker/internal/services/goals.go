@@ -328,7 +328,7 @@ func (service *GoalService) GetCompletionRateDistribution(
 		}
 		var bucket int
 		if rate >= 100 { //nolint:mnd // 100% is its own bucket at index 10
-			bucket = 10 //nolint:mnd // last bucket index
+			bucket = 10
 		} else {
 			//nolint:mnd // floor(rate/10) gives bucket index 0-9
 			bucket = int(math.Floor(rate / 10))
