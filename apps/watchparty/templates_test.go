@@ -220,8 +220,7 @@ func TestRoomPresenterContainsControls(t *testing.T) {
 	assert.Contains(t, body, "Mute Mic")
 	assert.Contains(t, body, "Disable Cam")
 	assert.Contains(t, body, "Hide Self")
-	assert.Contains(t, body, "Stream vol")
-	assert.Contains(t, body, "Auto-duck: On")
+	assert.NotContains(t, body, "Stream vol")
 }
 
 func TestRoomViewerContainsControls(t *testing.T) {
@@ -235,7 +234,6 @@ func TestRoomViewerContainsControls(t *testing.T) {
 	assert.Contains(t, body, "Disable Cam")
 	assert.Contains(t, body, "Hide Self")
 	assert.Contains(t, body, "Stream vol")
-	assert.Contains(t, body, "Auto-duck: On")
 }
 
 func TestRoomPresenterContainsReconnectLogic(t *testing.T) {
@@ -256,4 +254,17 @@ func TestRoomContainsStaleOfferGuard(t *testing.T) {
 
 	// Failed/closed screen PC is replaced before accepting a new remote offer
 	assert.Contains(t, body, `pc.connectionState === "failed"`)
+}
+
+func TestRoomViewerAudioMixingUsesScreenStream(t *testing.T) {
+	app, routes := newTestApp()
+	roomCode := app.Services.Room.CreateRoom(context.Background(), presenterID)
+	app.Services.Room.JoinViewer(context.Background(), roomCode, userID)
+
+	body := roomHTML(t, routes)
+
+	// Viewer applyVol only affects mainVideoEl when screen is being shared
+	assert.Contains(t, body, "isSharingScreen")
+	// remoteCamEl volume is never touched by the duck/vol controls
+	assert.NotContains(t, body, "remoteCamEl.volume")
 }
