@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"time"
@@ -304,6 +305,38 @@ func (service *GoalService) GetProgressByTypeIDAndDates(
 	}
 
 	return progressLabels, progressValues, nil
+}
+
+func (service *GoalService) GetCompletionRateDistribution(
+	ctx context.Context,
+	userID string,
+) ([]int, error) {
+	games, err := service.steam.GetAllGames(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	//nolint:mnd // 11 buckets: [0-9], [10-19], ..., [90-99], [100]
+	counts := make([]int, 11)
+	for _, game := range games {
+		rate, parseErr := strconv.ParseFloat(game.CompletionRate, 64)
+		if parseErr != nil {
+			continue
+		}
+		if rate <= 0 {
+			continue
+		}
+		var bucket int
+		if rate >= 100 { //nolint:mnd // 100% is its own bucket at index 10
+			bucket = 10
+		} else {
+			//nolint:mnd // floor(rate/10) gives bucket index 0-9
+			bucket = int(math.Floor(rate / 10))
+		}
+		counts[bucket]++
+	}
+
+	return counts, nil
 }
 
 func (service *GoalService) SaveProgress(

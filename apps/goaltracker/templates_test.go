@@ -3,6 +3,7 @@ package goaltracker_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
@@ -125,6 +126,46 @@ func TestGoalProgressGraphGoodreads(t *testing.T) {
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusOK, rs.StatusCode)
+}
+
+func TestGoalProgressGraphSteamContainsDistributionTab(t *testing.T) {
+	err := testApp.Services.Goals.ImportGoalsFromTodoist(
+		context.Background(),
+		testApp.Config.SupabaseUserID,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	val := int64(50)
+	err = testApp.Services.Goals.LinkGoal(
+		context.Background(),
+		goalID,
+		userID,
+		&dtos.LinkGoalDto{
+			TypeID:      models.SteamCompletionRate.ID,
+			TargetValue: &val,
+			Tag:         nil,
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	tReq := test.CreateRequestTester(
+		getRoutes(),
+		http.MethodGet,
+		fmt.Sprintf("/%s/goals/123", testApp.GetName()),
+	)
+	tReq.AddCookie(&accessToken)
+
+	rs := tReq.Do(t)
+	body, err := io.ReadAll(rs.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
+	assert.Contains(t, string(body), "Distribution")
+	assert.Contains(t, string(body), "distributionValues")
+	assert.Contains(t, string(body), "distribution-chart")
 }
 
 func TestGoalProgressList(t *testing.T) {

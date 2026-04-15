@@ -130,6 +130,7 @@ type GraphData struct {
 	Details              []models.ListItem
 	StartDate            string
 	EndDate              string
+	DistributionValues   []int
 }
 
 func (app *GoalTracker) graphViewProgress(
@@ -200,6 +201,17 @@ func (app *GoalTracker) graphViewProgress(
 			graphData.TargetValues = targetValues
 			graphData.CurrentTargetValue = targetValues[len(targetValues)-1]
 		}
+	}
+
+	if *goal.TypeID == models.SteamCompletionRate.ID {
+		distribution, distErr := app.Services.Goals.GetCompletionRateDistribution(
+			r.Context(),
+			userID,
+		)
+		if distErr != nil {
+			panic(distErr)
+		}
+		graphData.DistributionValues = distribution
 	}
 
 	tpltools.RenderWithPanic(app.tpl, w, "graph.html", graphData)
