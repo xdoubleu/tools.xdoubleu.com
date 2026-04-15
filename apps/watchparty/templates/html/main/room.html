@@ -42,13 +42,14 @@
         <button id="mic-btn"      class="btn btn-sm btn-outline-light">Mute Mic</button>
         <button id="cam-btn"      class="btn btn-sm btn-outline-light">Disable Cam</button>
         <button id="hide-self-btn" class="btn btn-sm btn-outline-light">Hide Self</button>
-        <div class="ms-auto d-flex align-items-center gap-3">
+        {{if not .IsPresenter}}
+        <div class="ms-auto d-flex align-items-center gap-2">
             <label class="text-white small mb-0 d-flex align-items-center gap-2">
                 Stream vol
                 <input id="stream-vol" type="range" min="0" max="1" step="0.05" value="1" style="width:90px; cursor:pointer;">
             </label>
-            <button id="auto-duck-btn" class="btn btn-sm btn-outline-info">Auto-duck: On</button>
         </div>
+        {{end}}
     </div>
 </div>
 
@@ -171,7 +172,6 @@ async function startCamera() {
     const offer = await pcCam.createOffer();
     await pcCam.setLocalDescription(offer);
     send("offer", offer, "cam");
-    initAutoDuck();
 }
 
 {{if .IsPresenter}}
@@ -179,6 +179,7 @@ async function startCamera() {
 
 async function startScreen() {
     localScreen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    isSharingScreen = true;
     pcScreen = createPC("screen");
     localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
     const offer = await pcScreen.createOffer();
@@ -210,6 +211,7 @@ function stopScreen() {
     }
     stopScreenUI();
 }
+
 {{end}}
 
 // ── WebSocket & renegotiation ────────────────────────────────────────────────
@@ -337,72 +339,19 @@ document.getElementById("hide-self-btn").onclick = () => {
     btn.className   = selfCamVisible ? "btn btn-sm btn-outline-light" : "btn btn-sm btn-outline-secondary";
 };
 
-// ── Audio mixing ─────────────────────────────────────────────────────────────
+// ── Audio mixing (viewer only) ───────────────────────────────────────────────
 
-const DUCK_THRESHOLD = 15;  // 0-255 average amplitude to trigger ducking
-const DUCK_FACTOR    = 0.3; // reduce stream to 30% of manual volume when speaking
-
-let audioCtx     = null;
-let duckAnalyser = null;
-let duckSrcNode  = null;
-let duckTimer    = null;
-let autoDuck     = true;
-let manualVol    = 1.0;
+let manualVol = 1.0;
 
 function applyVol(v) {
-    mainVideoEl.volume = v;
-    remoteCamEl.volume = v;
+    if (isSharingScreen) mainVideoEl.volume = v;
 }
 
-function startDuckMonitor() {
-    if (duckTimer || !localCam) return;
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === "suspended") audioCtx.resume();
-        duckSrcNode  = audioCtx.createMediaStreamSource(localCam);
-        duckAnalyser = audioCtx.createAnalyser();
-        duckAnalyser.fftSize = 256;
-        duckSrcNode.connect(duckAnalyser);
-        const buf = new Uint8Array(duckAnalyser.frequencyBinCount);
-        duckTimer = setInterval(() => {
-            if (!autoDuck) { applyVol(manualVol); return; }
-            duckAnalyser.getByteFrequencyData(buf);
-            const avg = buf.reduce((s, v) => s + v, 0) / buf.length;
-            applyVol(avg > DUCK_THRESHOLD ? manualVol * DUCK_FACTOR : manualVol);
-        }, 100);
-    } catch (_) {
-        // AudioContext not available — skip auto-duck silently
-    }
-}
-
-function stopDuckMonitor() {
-    clearInterval(duckTimer); duckTimer = null;
-    if (duckSrcNode) { duckSrcNode.disconnect(); duckSrcNode = null; }
-    duckAnalyser = null;
-    applyVol(manualVol);
-}
-
-function initAutoDuck() {
-    if (autoDuck) startDuckMonitor();
-}
-
+{{if not .IsPresenter}}
 document.getElementById("stream-vol").oninput = e => {
     manualVol = parseFloat(e.target.value);
-    if (!autoDuck) applyVol(manualVol);
+    applyVol(manualVol);
 };
-
-document.getElementById("auto-duck-btn").onclick = () => {
-    autoDuck = !autoDuck;
-    const btn = document.getElementById("auto-duck-btn");
-    if (autoDuck) {
-        btn.textContent = "Auto-duck: On";
-        btn.className   = "btn btn-sm btn-outline-info";
-        startDuckMonitor();
-    } else {
-        btn.textContent = "Auto-duck: Off";
-        btn.className   = "btn btn-sm btn-outline-secondary";
-        stopDuckMonitor();
-    }
-};
+{{end}}
 </script>
 {{template "footer"}}
