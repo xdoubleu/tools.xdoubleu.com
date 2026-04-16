@@ -26,6 +26,8 @@ type Config struct {
 	SteamAPIKey      string
 	SteamUserID      string
 	GoodreadsURL     string
+	GitHubToken      string
+	GitHubRepo       string
 }
 
 func New(logger *slog.Logger) Config {
@@ -55,6 +57,9 @@ func New(logger *slog.Logger) Config {
 	cfg.SteamUserID = parser.EnvStr("STEAM_USER_ID", "")
 
 	cfg.GoodreadsURL = parser.EnvStr("GOODREADS_URL", "")
+
+	cfg.GitHubToken = parser.EnvStr("GITHUB_TOKEN", "")
+	cfg.GitHubRepo = parser.EnvStr("GITHUB_REPO", "")
 
 	return cfg
 }

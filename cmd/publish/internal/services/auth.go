@@ -15,6 +15,7 @@ import (
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"github.com/xhit/go-str2duration/v2"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
+	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
 )
@@ -264,6 +265,12 @@ func (service *AuthService) contextSetUser(
 			Email: user.Email,
 		})
 	}
+
+	if carrier, ok := ctx.Value(logging.CarrierKey).(*logging.UserIDCarrier); ok {
+		carrier.ID = user.ID
+	}
+
+	ctx = context.WithValue(ctx, logging.UserIDContextKey, user.ID)
 
 	return context.WithValue(ctx, constants.UserContextKey, user)
 }
