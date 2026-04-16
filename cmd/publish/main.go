@@ -16,8 +16,9 @@ import (
 	"github.com/supabase-community/gotrue-go"
 	"github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	essentialogger "github.com/xdoubleu/essentia/v3/pkg/logging"
 	"github.com/xdoubleu/essentia/v3/pkg/sentrytools"
+	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/templates"
@@ -27,12 +28,13 @@ import (
 var htmlTemplates embed.FS
 
 type Application struct {
-	ctx      context.Context
-	logger   *slog.Logger
-	config   config.Config
-	services *services.Services
-	apps     *Apps
-	tpl      *template.Template
+	ctx           context.Context
+	logger        *slog.Logger
+	config        config.Config
+	services      *services.Services
+	apps          *Apps
+	tpl           *template.Template
+	requestBuffer *logging.UserLogBuffer
 }
 
 //	@title			tools
@@ -75,7 +77,7 @@ func main() {
 	}
 	err = httptools.Serve(logger, srv, cfg.Env)
 	if err != nil {
-		logger.Error("failed to serve server", logging.ErrAttr(err))
+		logger.Error("failed to serve server", essentialogger.ErrAttr(err))
 	}
 }
 
@@ -96,13 +98,17 @@ func NewApplication(
 		ctx = sentry.SetHubOnContext(ctx, sentryHub)
 	}
 
+	//nolint:mnd // 100 log entries per user
+	logBuffer := logging.NewUserLogBuffer(100)
+
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
-		ctx:      ctx,
-		logger:   logger,
-		config:   config,
-		services: services.New(config, supabaseClient, tpl),
-		tpl:      tpl,
+		ctx:           ctx,
+		logger:        slog.New(logging.NewUserLogHandler(logger.Handler(), logBuffer)),
+		config:        config,
+		services:      services.New(config, supabaseClient, tpl),
+		tpl:           tpl,
+		requestBuffer: logBuffer,
 	}
 
 	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl)
