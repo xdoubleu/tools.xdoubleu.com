@@ -15,13 +15,14 @@ import (
 )
 
 type GoalService struct {
-	webURL    string
-	goals     *repositories.GoalRepository
-	states    *repositories.StateRepository
-	progress  *repositories.ProgressRepository
-	todoist   *TodoistService
-	goodreads *GoodreadsService
-	steam     *SteamService
+	webURL       string
+	goals        *repositories.GoalRepository
+	states       *repositories.StateRepository
+	progress     *repositories.ProgressRepository
+	todoist      *TodoistService
+	goodreads    *GoodreadsService
+	steam        *SteamService
+	integrations *IntegrationsService
 }
 
 type StateGoalsPair struct {
@@ -128,7 +129,15 @@ func (service *GoalService) ImportStatesFromTodoist(
 	ctx context.Context,
 	userID string,
 ) error {
-	sections, err := service.todoist.GetSections(ctx)
+	creds, err := service.integrations.Get(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if creds.TodoistAPIKey == "" {
+		return nil
+	}
+
+	sections, err := service.todoist.GetSections(ctx, creds)
 	if err != nil {
 		return fmt.Errorf("failed to get sections; error: %w", err)
 	}
@@ -176,7 +185,15 @@ func (service *GoalService) ImportGoalsFromTodoist(
 	ctx context.Context,
 	userID string,
 ) error {
-	tasks, err := service.todoist.GetTasks(ctx)
+	creds, err := service.integrations.Get(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if creds.TodoistAPIKey == "" {
+		return nil
+	}
+
+	tasks, err := service.todoist.GetTasks(ctx, creds)
 	if err != nil {
 		return fmt.Errorf("failed to get tasks; error: %w", err)
 	}
@@ -272,7 +289,15 @@ func (service *GoalService) CompleteGoal(
 		return err
 	}
 
-	return service.todoist.CompleteTask(ctx, goal.ID)
+	creds, err := service.integrations.Get(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if creds.TodoistAPIKey == "" {
+		return nil
+	}
+
+	return service.todoist.CompleteTask(ctx, goal.ID, creds)
 }
 
 func (service *GoalService) GetProgressByTypeIDAndDates(

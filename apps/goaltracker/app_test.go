@@ -12,6 +12,8 @@ import (
 	"github.com/xdoubleu/essentia/v3/pkg/logging"
 	"tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/apps/goaltracker/internal/mocks"
+	"tools.xdoubleu.com/apps/goaltracker/pkg/steam"
+	"tools.xdoubleu.com/apps/goaltracker/pkg/todoist"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/templates"
@@ -42,7 +44,6 @@ func TestMain(m *testing.M) {
 	cfg := config.New(logging.NewNopLogger())
 	cfg.Env = configtools.TestEnv
 	cfg.Throttle = false
-	cfg.SupabaseUserID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 
 	postgresDB, err := postgres.Connect(
 		logging.NewNopLogger(),
@@ -58,9 +59,9 @@ func TestMain(m *testing.M) {
 	}
 
 	clients := goaltracker.Clients{
-		Todoist:   mocks.NewMockTodoistClient(),
-		Steam:     mocks.NewMockSteamClient(),
-		Goodreads: mocks.NewMockGoodreadsClient(),
+		TodoistFactory: func(_ string) todoist.Client { return mocks.NewMockTodoistClient() },
+		SteamFactory:   func(_ string) steam.Client { return mocks.NewMockSteamClient() },
+		Goodreads:      mocks.NewMockGoodreadsClient(),
 	}
 
 	testApp = goaltracker.NewInner(
@@ -74,6 +75,16 @@ func TestMain(m *testing.M) {
 	)
 
 	err = testApp.ApplyMigrations(context.Background(), postgresDB)
+	if err != nil {
+		panic(err)
+	}
+
+	err = testApp.SaveIntegrations(
+		context.Background(),
+		userID,
+		//nolint:exhaustruct //intentionally empty to mark user as onboarded
+		goaltracker.Integrations{},
+	)
 	if err != nil {
 		panic(err)
 	}

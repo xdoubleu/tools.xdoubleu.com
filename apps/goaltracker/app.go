@@ -52,9 +52,9 @@ func New(
 	sharedTpl *template.Template,
 ) *GoalTracker {
 	clients := Clients{
-		Todoist:   todoist.New(cfg.TodoistAPIKey),
-		Steam:     steam.New(logger, cfg.SteamAPIKey),
-		Goodreads: goodreads.New(logger),
+		TodoistFactory: todoist.New,
+		SteamFactory:   func(apiKey string) steam.Client { return steam.New(logger, apiKey) },
+		Goodreads:      goodreads.New(logger),
 	}
 
 	return NewInner(ctx, authService, logger, cfg, db, clients, sharedTpl)
@@ -109,8 +109,8 @@ func (app *GoalTracker) setDB(
 		app.Config,
 		app.jobQueue,
 		app.Repositories,
-		app.clients.Todoist,
-		app.clients.Steam,
+		app.clients.TodoistFactory,
+		app.clients.SteamFactory,
 		app.clients.Goodreads,
 		authService,
 	)

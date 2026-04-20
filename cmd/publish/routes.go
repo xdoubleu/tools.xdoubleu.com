@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -17,6 +19,22 @@ func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", app.services.Auth.TemplateAccess(app.Home))
+	mux.HandleFunc(
+		"GET /settings",
+		app.services.Auth.TemplateAccess(app.settingsHandler),
+	)
+	mux.HandleFunc(
+		"POST /settings",
+		app.services.Auth.TemplateAccess(app.saveSettingsHandler),
+	)
+	mux.HandleFunc(
+		"GET /onboarding",
+		app.services.Auth.TemplateAccess(app.onboardingHandler),
+	)
+	mux.HandleFunc(
+		"POST /onboarding",
+		app.services.Auth.TemplateAccess(app.saveOnboardingHandler),
+	)
 	mux.HandleFunc(
 		"POST /api/bug-report",
 		app.services.Auth.Access(app.bugReportHandler),
@@ -65,6 +83,16 @@ type statusWriter struct {
 func (sw *statusWriter) WriteHeader(code int) {
 	sw.status = code
 	sw.ResponseWriter.WriteHeader(code)
+}
+
+func (sw *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := sw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf(
+			"underlying ResponseWriter does not implement http.Hijacker",
+		)
+	}
+	return hj.Hijack()
 }
 
 func (app *Application) requestLogMiddleware(next http.Handler) http.Handler {

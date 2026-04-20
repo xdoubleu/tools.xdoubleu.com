@@ -1,0 +1,96 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="d-flex justify-content-center py-5 px-3">
+    <div style="max-width: 480px; width: 100%;">
+        <h2 class="fw-bold mb-1">Welcome!</h2>
+        <p class="text-muted mb-4">Set up your integrations to get started. You can always update these later in Settings.</p>
+
+        <!-- progress bubbles -->
+        <div class="d-flex align-items-center mb-5">
+            <span id="bubble-1" class="d-flex align-items-center justify-content-center fw-bold text-white" style="width:32px;height:32px;border-radius:0;background:#000;flex-shrink:0;">1</span>
+            <div class="flex-grow-1 mx-2" style="height:2px;background:#dee2e6;"></div>
+            <span id="bubble-2" class="d-flex align-items-center justify-content-center fw-bold text-muted" style="width:32px;height:32px;border-radius:0;border:2px solid #dee2e6;flex-shrink:0;">2</span>
+            <div class="flex-grow-1 mx-2" style="height:2px;background:#dee2e6;"></div>
+            <span id="bubble-3" class="d-flex align-items-center justify-content-center fw-bold text-muted" style="width:32px;height:32px;border-radius:0;border:2px solid #dee2e6;flex-shrink:0;">3</span>
+        </div>
+
+        <form method="POST" action="/onboarding" id="onboarding-form">
+            <!-- Step 1: Todoist -->
+            <div id="step-1">
+                <h5 class="mb-3">Todoist</h5>
+                <div class="mb-3">
+                    <label for="todoist_api_key" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="todoist_api_key" name="todoist_api_key" autocomplete="off">
+                </div>
+                <div class="mb-4">
+                    <label for="todoist_project_id" class="form-label">Project ID</label>
+                    <input type="text" class="form-control" id="todoist_project_id" name="todoist_project_id">
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="skipStep(1)">Skip</button>
+                    <button type="button" class="btn btn-dark" onclick="nextStep(1)">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Steam -->
+            <div id="step-2" style="display:none;">
+                <h5 class="mb-3">Steam</h5>
+                <div class="mb-3">
+                    <label for="steam_api_key" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="steam_api_key" name="steam_api_key" autocomplete="off">
+                </div>
+                <div class="mb-4">
+                    <label for="steam_user_id" class="form-label">Steam User ID</label>
+                    <input type="text" class="form-control" id="steam_user_id" name="steam_user_id">
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="skipStep(2)">Skip</button>
+                    <button type="button" class="btn btn-dark" onclick="nextStep(2)">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Goodreads -->
+            <div id="step-3" style="display:none;">
+                <h5 class="mb-3">Goodreads</h5>
+                <div class="mb-4">
+                    <label for="goodreads_url" class="form-label">Profile URL</label>
+                    <input type="url" class="form-control" id="goodreads_url" name="goodreads_url" placeholder="https://www.goodreads.com/user/show/...">
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('onboarding-form').submit()">Skip</button>
+                    <button type="submit" class="btn btn-dark">Finish</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showStep(n) {
+        for (var i = 1; i <= 3; i++) {
+            document.getElementById('step-' + i).style.display = 'none';
+            var b = document.getElementById('bubble-' + i);
+            b.style.background = '';
+            b.style.border = '2px solid #dee2e6';
+            b.classList.remove('text-white');
+            b.classList.add('text-muted');
+        }
+        document.getElementById('step-' + n).style.display = '';
+        var active = document.getElementById('bubble-' + n);
+        active.style.background = '#000';
+        active.style.border = 'none';
+        active.classList.remove('text-muted');
+        active.classList.add('text-white');
+    }
+
+    function nextStep(current) {
+        showStep(current + 1);
+    }
+
+    function skipStep(current) {
+        var fields = document.getElementById('step-' + current).querySelectorAll('input');
+        fields.forEach(function(f) { f.value = ''; });
+        showStep(current + 1);
+    }
+</script>
+{{ template "footer" }}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -18,24 +19,23 @@ import (
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/repositories"
 )
 
 type AuthService struct {
-	supabaseUserID   string
 	client           gotrue.Client
 	tpl              *template.Template
 	useSecureCookies bool
 	accessExpiry     string
 	refreshExpiry    string
+	appUsersRepo     *repositories.AppUsersRepository
 }
 
 func (service *AuthService) GetAllUsers() ([]models.User, error) {
-	//nolint:exhaustruct //skip
-	return []models.User{
-		{
-			ID: service.supabaseUserID,
-		},
-	}, nil
+	if service.appUsersRepo != nil {
+		return service.appUsersRepo.GetAll(context.Background())
+	}
+	return []models.User{}, nil
 }
 
 func (service *AuthService) SignInWithEmail(
@@ -271,6 +271,12 @@ func (service *AuthService) contextSetUser(
 	}
 
 	ctx = context.WithValue(ctx, logging.UserIDContextKey, user.ID)
+
+	if service.appUsersRepo != nil {
+		if err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email); err != nil {
+			slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
+		}
+	}
 
 	return context.WithValue(ctx, constants.UserContextKey, user)
 }

@@ -2,6 +2,7 @@ package models
 
 type FilterConfig struct {
 	Token         string
+	UserID        string
 	SourceURL     string
 	HideEventUIDs []string
 	HolidayUIDs   []string

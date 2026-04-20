@@ -5,8 +5,8 @@
         let wsUrl = url;
         let wasRefreshing = false;
 
-        wsUrl.replace("https://", "wss://")
-        wsUrl.replace("http://", "ws://")
+        wsUrl = wsUrl.replace("https://", "wss://")
+        wsUrl = wsUrl.replace("http://", "ws://")
 
         function connectWebSocket() {
             let webSocket = new WebSocket(`${wsUrl}/goaltracker/api/progress`);

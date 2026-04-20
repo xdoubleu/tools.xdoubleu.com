@@ -39,6 +39,15 @@ func (app *GoalTracker) rootHandler(w http.ResponseWriter, r *http.Request) {
 		panic(errors.New("not signed in"))
 	}
 
+	onboarded, err := app.HasCompletedOnboarding(r.Context(), user.ID)
+	if err != nil {
+		panic(err)
+	}
+	if !onboarded {
+		http.Redirect(w, r, "/onboarding", http.StatusSeeOther)
+		return
+	}
+
 	goals, err := app.Services.Goals.GetAllGoalsGroupedByStateAndParentGoal(
 		r.Context(),
 		user.ID,

@@ -16,12 +16,10 @@ type CalendarRepository struct {
 // CREATE / UPSERT
 // =====================================================
 
-// Explicit alias (nicer API).
 func (r *CalendarRepository) UpsertFilterConfig(
 	ctx context.Context,
 	cfg models.FilterConfig,
 ) error {
-	// Ensure Postgres never receives NULL arrays/maps
 	if cfg.HideEventUIDs == nil {
 		cfg.HideEventUIDs = []string{}
 	}
@@ -36,15 +34,17 @@ func (r *CalendarRepository) UpsertFilterConfig(
 
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO icsproxy.feeds
-		(token, source_url, hide_event_uids, holiday_uids, hide_series)
-		VALUES ($1,$2,$3,$4,$5::jsonb)
+		(token, user_id, source_url, hide_event_uids, holiday_uids, hide_series)
+		VALUES ($1,$2,$3,$4,$5,$6::jsonb)
 		ON CONFLICT (token) DO UPDATE SET
-		  source_url=$2,
-		  hide_event_uids=$3,
-		  holiday_uids=$4,
-		  hide_series=$5::jsonb
+		  source_url=$3,
+		  hide_event_uids=$4,
+		  holiday_uids=$5,
+		  hide_series=$6::jsonb
+		WHERE icsproxy.feeds.user_id = EXCLUDED.user_id
 	`,
 		cfg.Token,
+		cfg.UserID,
 		cfg.SourceURL,
 		cfg.HideEventUIDs,
 		cfg.HolidayUIDs,
@@ -58,7 +58,6 @@ func (r *CalendarRepository) UpsertFilterConfig(
 // READ ONE
 // =====================================================
 
-// Clearer public name.
 func (r *CalendarRepository) GetFilterConfig(
 	ctx context.Context,
 	token string,
@@ -67,11 +66,12 @@ func (r *CalendarRepository) GetFilterConfig(
 	var seriesJSON []byte
 
 	err := r.db.QueryRow(ctx, `
-		SELECT token, source_url, hide_event_uids, holiday_uids, hide_series
+		SELECT token, user_id, source_url, hide_event_uids, holiday_uids, hide_series
 		FROM icsproxy.feeds
 		WHERE token=$1
 	`, token).Scan(
 		&cfg.Token,
+		&cfg.UserID,
 		&cfg.SourceURL,
 		&cfg.HideEventUIDs,
 		&cfg.HolidayUIDs,
@@ -92,18 +92,19 @@ func (r *CalendarRepository) GetFilterConfig(
 }
 
 // =====================================================
-// READ ALL
+// READ ALL (user-scoped)
 // =====================================================
 
-// Returns full configs (useful for edit pages).
 func (r *CalendarRepository) ListFilterConfigs(
 	ctx context.Context,
+	userID string,
 ) ([]models.FilterConfig, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT token, source_url, hide_event_uids, holiday_uids, hide_series
+		SELECT token, user_id, source_url, hide_event_uids, holiday_uids, hide_series
 		FROM icsproxy.feeds
+		WHERE user_id = $1
 		ORDER BY created_at DESC
-	`)
+	`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +118,7 @@ func (r *CalendarRepository) ListFilterConfigs(
 
 		if err = rows.Scan(
 			&cfg.Token,
+			&cfg.UserID,
 			&cfg.SourceURL,
 			&cfg.HideEventUIDs,
 			&cfg.HolidayUIDs,
@@ -137,7 +139,10 @@ func (r *CalendarRepository) ListFilterConfigs(
 	return configs, rows.Err()
 }
 
-// Lightweight list for homepage (recommended).
+// =====================================================
+// READ SUMMARIES (user-scoped)
+// =====================================================
+
 type FilterSummary struct {
 	Token     string
 	SourceURL string
@@ -145,12 +150,14 @@ type FilterSummary struct {
 
 func (r *CalendarRepository) ListFilterSummaries(
 	ctx context.Context,
+	userID string,
 ) ([]FilterSummary, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT token, source_url
 		FROM icsproxy.feeds
+		WHERE user_id = $1
 		ORDER BY created_at DESC
-	`)
+	`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -170,17 +177,19 @@ func (r *CalendarRepository) ListFilterSummaries(
 }
 
 // =====================================================
-// DELETE
+// DELETE (user-scoped)
 // =====================================================
 
 func (r *CalendarRepository) DeleteFilterConfig(
 	ctx context.Context,
 	token string,
+	userID string,
 ) error {
 	_, err := r.db.Exec(ctx, `
 		DELETE FROM icsproxy.feeds
 		WHERE token = $1
-	`, token)
+		  AND user_id = $2
+	`, token, userID)
 
 	return err
 }

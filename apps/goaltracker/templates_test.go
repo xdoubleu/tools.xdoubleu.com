@@ -33,7 +33,7 @@ func TestRoot(t *testing.T) {
 func TestLink(t *testing.T) {
 	err := testApp.Services.Goals.ImportGoalsFromTodoist(
 		context.Background(),
-		testApp.Config.SupabaseUserID,
+		userID,
 	)
 	if err != nil {
 		panic(err)
@@ -53,7 +53,7 @@ func TestLink(t *testing.T) {
 func TestGoalProgressGraphSteam(t *testing.T) {
 	err := testApp.Services.Goals.ImportGoalsFromTodoist(
 		context.Background(),
-		testApp.Config.SupabaseUserID,
+		userID,
 	)
 	if err != nil {
 		panic(err)
@@ -88,7 +88,7 @@ func TestGoalProgressGraphSteam(t *testing.T) {
 func TestGoalProgressGraphGoodreads(t *testing.T) {
 	err := testApp.Services.Goals.ImportGoalsFromTodoist(
 		t.Context(),
-		testApp.Config.SupabaseUserID,
+		userID,
 	)
 	if err != nil {
 		panic(err)
@@ -96,7 +96,7 @@ func TestGoalProgressGraphGoodreads(t *testing.T) {
 
 	_, err = testApp.Services.Goodreads.ImportAllBooks(
 		t.Context(),
-		testApp.Config.SupabaseUserID,
+		userID,
 	)
 	if err != nil {
 		panic(err)
@@ -131,7 +131,7 @@ func TestGoalProgressGraphGoodreads(t *testing.T) {
 func TestGoalProgressGraphSteamContainsDistributionTab(t *testing.T) {
 	err := testApp.Services.Goals.ImportGoalsFromTodoist(
 		context.Background(),
-		testApp.Config.SupabaseUserID,
+		userID,
 	)
 	if err != nil {
 		panic(err)
@@ -171,7 +171,7 @@ func TestGoalProgressGraphSteamContainsDistributionTab(t *testing.T) {
 func TestGoalProgressList(t *testing.T) {
 	err := testApp.Services.Goals.ImportGoalsFromTodoist(
 		context.Background(),
-		testApp.Config.SupabaseUserID,
+		userID,
 	)
 	if err != nil {
 		panic(err)

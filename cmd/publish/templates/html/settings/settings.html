@@ -1,0 +1,63 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="d-flex">
+    <nav class="border-end bg-white flex-shrink-0 pt-4" style="width: 220px;">
+        <div class="px-3 mb-1">
+            <small class="text-uppercase text-muted fw-semibold" style="font-size: .65rem; letter-spacing: .08em;">GoalTracker</small>
+        </div>
+        <ul class="list-unstyled mb-0">
+            <li>
+                <a href="/settings" class="d-block px-3 py-2 text-decoration-none text-dark fw-medium"
+                    style="border-left: 3px solid #000; background-color: rgba(0,0,0,.04);">Integrations</a>
+            </li>
+        </ul>
+    </nav>
+    <main class="flex-grow-1 py-5 px-5">
+        <div style="max-width: 540px;">
+            <h2 class="fw-bold mb-4">Integrations</h2>
+
+            {{ if .Saved }}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                Settings saved successfully.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {{ end }}
+
+            <form method="POST" action="/settings">
+                <h5 class="mb-3">Todoist</h5>
+                <div class="mb-3">
+                    <label for="todoist_api_key" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="todoist_api_key" name="todoist_api_key"
+                        value="{{ .Integrations.TodoistAPIKey }}" autocomplete="off">
+                </div>
+                <div class="mb-4">
+                    <label for="todoist_project_id" class="form-label">Project ID</label>
+                    <input type="text" class="form-control" id="todoist_project_id" name="todoist_project_id"
+                        value="{{ .Integrations.TodoistProjectID }}">
+                </div>
+
+                <h5 class="mb-3">Steam</h5>
+                <div class="mb-3">
+                    <label for="steam_api_key" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="steam_api_key" name="steam_api_key"
+                        value="{{ .Integrations.SteamAPIKey }}" autocomplete="off">
+                </div>
+                <div class="mb-4">
+                    <label for="steam_user_id" class="form-label">Steam User ID</label>
+                    <input type="text" class="form-control" id="steam_user_id" name="steam_user_id"
+                        value="{{ .Integrations.SteamUserID }}">
+                </div>
+
+                <h5 class="mb-3">Goodreads</h5>
+                <div class="mb-4">
+                    <label for="goodreads_url" class="form-label">Profile URL</label>
+                    <input type="url" class="form-control" id="goodreads_url" name="goodreads_url"
+                        value="{{ .Integrations.GoodreadsURL }}">
+                </div>
+
+                <button type="submit" class="btn btn-dark">Save</button>
+            </form>
+        </div>
+    </main>
+</div>
+{{ template "footer" }}

@@ -34,7 +34,6 @@ func TestMain(m *testing.M) {
 	cfg := config.New(logging.NewNopLogger())
 	cfg.Env = configtools.TestEnv
 	cfg.Throttle = false
-	cfg.SupabaseUserID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 
 	postgresDB, err := postgres.Connect(
 		logging.NewNopLogger(),
@@ -59,7 +58,6 @@ func TestMain(m *testing.M) {
 	cfgWithGitHub := config.New(logging.NewNopLogger())
 	cfgWithGitHub.Env = configtools.TestEnv
 	cfgWithGitHub.Throttle = false
-	cfgWithGitHub.SupabaseUserID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 	cfgWithGitHub.GitHubToken = "test-token"
 	cfgWithGitHub.GitHubRepo = "owner/repo"
 

@@ -13,17 +13,27 @@ import (
 )
 
 type SteamService struct {
-	logger *slog.Logger
-	client steam.Client
-	userID string
-	steam  *repositories.SteamRepository
+	logger        *slog.Logger
+	clientFactory func(apiKey string) steam.Client
+	steam         *repositories.SteamRepository
+	integrations  *IntegrationsService
 }
 
 func (service *SteamService) ImportOwnedGames(
 	ctx context.Context,
 	userID string,
 ) ([]models.Game, error) {
-	ownedGamesResponse, err := service.client.GetOwnedGames(ctx, service.userID)
+	creds, err := service.integrations.Get(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if creds.SteamAPIKey == "" || creds.SteamUserID == "" {
+		return nil, nil
+	}
+
+	client := service.clientFactory(creds.SteamAPIKey)
+
+	ownedGamesResponse, err := client.GetOwnedGames(ctx, creds.SteamUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -45,11 +55,9 @@ func (service *SteamService) ImportOwnedGames(
 
 	for _, game := range games {
 		_, ok := gamesMap[game.ID]
-
 		if ok {
 			continue
 		}
-
 		service.logger.DebugContext(
 			ctx,
 			fmt.Sprintf("game '%s' (%d) is delisted", game.Name, game.ID),
@@ -60,6 +68,8 @@ func (service *SteamService) ImportOwnedGames(
 
 	achievementsPerGame, err := service.importAchievementsForGames(
 		ctx,
+		client,
+		creds.SteamUserID,
 		gamesMap,
 		userID,
 	)
@@ -80,11 +90,7 @@ func (service *SteamService) ImportOwnedGames(
 		gamesMap[ID].SetCalculatedInfo(achievementsPerGame[ID], len(gamesMap))
 	}
 
-	err = service.steam.UpsertGames(
-		ctx,
-		gamesMap,
-		userID,
-	)
+	err = service.steam.UpsertGames(ctx, gamesMap, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +100,8 @@ func (service *SteamService) ImportOwnedGames(
 
 func (service *SteamService) importAchievementsForGames(
 	ctx context.Context,
+	client steam.Client,
+	steamUserID string,
 	gamesMap map[int]*models.Game,
 	userID string,
 ) (map[int][]models.Achievement, error) {
@@ -115,9 +123,9 @@ func (service *SteamService) importAchievementsForGames(
 	achievementsPerGame := map[int][]steam.Achievement{}
 	for _, ID := range gameIDs {
 		workerPool.EnqueueWork(func(ctx context.Context, _ *slog.Logger) error {
-			achievementsForGame, errIn := service.client.GetPlayerAchievements(
+			achievementsForGame, errIn := client.GetPlayerAchievements(
 				ctx,
-				service.userID,
+				steamUserID,
 				ID,
 			)
 			if errIn != nil {
@@ -154,21 +162,15 @@ func (service *SteamService) importAchievementsForGames(
 
 	for gameID, achievements := range achievementsPerGame {
 		if len(achievements) != 0 {
-			err := service.steam.UpsertAchievements(
-				ctx,
-				achievements,
-				userID,
-				gameID,
-			)
+			err := service.steam.UpsertAchievements(ctx, achievements, userID, gameID)
 			if err != nil {
 				return nil, err
 			}
-
 			continue
 		}
 
 		var achievementSchemasForGame *steam.GetSchemaForGameResponse
-		achievementSchemasForGame, err := service.client.GetSchemaForGame(ctx, gameID)
+		achievementSchemasForGame, err := client.GetSchemaForGame(ctx, gameID)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +198,6 @@ func (service *SteamService) GetAchievementsForGames(
 	for _, game := range games {
 		gameIDs = append(gameIDs, game.ID)
 	}
-
 	return service.steam.GetAchievementsForGames(ctx, gameIDs, userID)
 }
 
