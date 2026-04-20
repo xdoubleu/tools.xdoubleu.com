@@ -10,17 +10,25 @@ import (
 )
 
 type GoodreadsService struct {
-	logger     *slog.Logger
-	goodreads  *repositories.GoodreadsRepository
-	client     goodreads.Client
-	profileURL string
+	logger       *slog.Logger
+	goodreads    *repositories.GoodreadsRepository
+	client       goodreads.Client
+	integrations *IntegrationsService
 }
 
 func (service *GoodreadsService) ImportAllBooks(
 	ctx context.Context,
 	userID string,
 ) ([]goodreads.Book, error) {
-	goodreadsUserID, err := service.client.GetUserID(service.profileURL)
+	creds, err := service.integrations.Get(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if creds.GoodreadsURL == "" {
+		return nil, nil
+	}
+
+	goodreadsUserID, err := service.client.GetUserID(creds.GoodreadsURL)
 	if err != nil {
 		return nil, err
 	}

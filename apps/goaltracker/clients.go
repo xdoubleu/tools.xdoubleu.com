@@ -7,7 +7,7 @@ import (
 )
 
 type Clients struct {
-	Steam     steam.Client
-	Todoist   todoist.Client
-	Goodreads goodreads.Client
+	SteamFactory   func(apiKey string) steam.Client
+	TodoistFactory func(apiKey string) todoist.Client
+	Goodreads      goodreads.Client
 }

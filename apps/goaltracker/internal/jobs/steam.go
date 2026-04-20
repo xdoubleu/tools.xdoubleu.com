@@ -54,6 +54,10 @@ func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
 		if err != nil {
 			return err
 		}
+		if ownedGames == nil {
+			logger.DebugContext(ctx, "steam not configured for user", "userID", user.ID)
+			continue
+		}
 		logger.DebugContext(ctx, fmt.Sprintf("fetched %d games", len(ownedGames)))
 
 		gamesIDNameMap := map[int]string{}
@@ -91,7 +95,6 @@ func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
 				}
 
 				achievedForGame++
-
 				grapher.AddPoint(*achievement.UnlockTime, gameID)
 			}
 

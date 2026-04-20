@@ -5,11 +5,12 @@ import (
 )
 
 type Repositories struct {
-	Goals     *GoalRepository
-	States    *StateRepository
-	Progress  *ProgressRepository
-	Goodreads *GoodreadsRepository
-	Steam     *SteamRepository
+	Goals        *GoalRepository
+	States       *StateRepository
+	Progress     *ProgressRepository
+	Goodreads    *GoodreadsRepository
+	Steam        *SteamRepository
+	Integrations *IntegrationsRepository
 }
 
 func New(db postgres.DB) *Repositories {
@@ -18,12 +19,14 @@ func New(db postgres.DB) *Repositories {
 	progress := &ProgressRepository{db: db}
 	goodreads := &GoodreadsRepository{db: db}
 	steam := &SteamRepository{db: db}
+	integrations := &IntegrationsRepository{db: db}
 
 	return &Repositories{
-		Goals:     goals,
-		States:    states,
-		Progress:  progress,
-		Goodreads: goodreads,
-		Steam:     steam,
+		Goals:        goals,
+		States:       states,
+		Progress:     progress,
+		Goodreads:    goodreads,
+		Steam:        steam,
+		Integrations: integrations,
 	}
 }

@@ -13,19 +13,26 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/supabase-community/gotrue-go"
 	"github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	essentialogger "github.com/xdoubleu/essentia/v3/pkg/logging"
 	"github.com/xdoubleu/essentia/v3/pkg/sentrytools"
+	goaltracker "tools.xdoubleu.com/apps/goaltracker"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/templates"
 )
 
 //go:embed templates/html/**/*html
 var htmlTemplates embed.FS
+
+//go:embed migrations/*.sql
+var globalMigrations embed.FS
 
 type Application struct {
 	ctx           context.Context
@@ -33,6 +40,7 @@ type Application struct {
 	config        config.Config
 	services      *services.Services
 	apps          *Apps
+	goalTracker   *goaltracker.GoalTracker
 	tpl           *template.Template
 	requestBuffer *logging.UserLogBuffer
 }
@@ -101,25 +109,31 @@ func NewApplication(
 	//nolint:mnd // 100 log entries per user
 	logBuffer := logging.NewUserLogBuffer(100)
 
+	appUsersRepo := repositories.NewAppUsersRepository(db)
+	svc := services.New(config, supabaseClient, tpl, appUsersRepo)
+
+	gt := goaltracker.New(ctx, svc.Auth, logger, config, db, sharedTpl)
+
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
 		ctx:           ctx,
 		logger:        slog.New(logging.NewUserLogHandler(logger.Handler(), logBuffer)),
 		config:        config,
-		services:      services.New(config, supabaseClient, tpl),
+		services:      svc,
+		goalTracker:   gt,
 		tpl:           tpl,
 		requestBuffer: logBuffer,
 	}
 
-	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl)
+	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl, gt)
 
 	err := app.ApplyMigrations(db)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, app := range *app.apps {
-		err = app.Start()
+	for _, a := range *app.apps {
+		err = a.Start()
 		if err != nil {
 			panic(err)
 		}
@@ -153,5 +167,25 @@ func initSentryGetHub(config config.Config) *sentry.Hub {
 }
 
 func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
+	if err := app.applyGlobalMigrations(db); err != nil {
+		return err
+	}
 	return app.apps.ApplyMigrations(app.ctx, db)
+}
+
+func (app *Application) applyGlobalMigrations(db *pgxpool.Pool) error {
+	if _, err := db.Exec(app.ctx, "CREATE SCHEMA IF NOT EXISTS global"); err != nil {
+		return err
+	}
+
+	goose.SetTableName("global.goose_db_version")
+	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
+	goose.SetBaseFS(globalMigrations)
+
+	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
+		return err
+	}
+
+	migrationsDB := stdlib.OpenDBFromPool(db)
+	return goose.Up(migrationsDB, "migrations")
 }

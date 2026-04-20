@@ -3,27 +3,36 @@ package services
 import (
 	"context"
 
+	"tools.xdoubleu.com/apps/goaltracker/internal/repositories"
 	"tools.xdoubleu.com/apps/goaltracker/pkg/todoist"
 )
 
 type TodoistService struct {
-	client    todoist.Client
-	projectID string
+	clientFactory func(apiKey string) todoist.Client
 }
 
 func (service *TodoistService) GetSections(
 	ctx context.Context,
+	creds repositories.UserIntegrations,
 ) ([]todoist.Section, error) {
-	sections, err := service.client.GetAllSections(ctx, service.projectID)
+	sections, err := service.clientFactory(creds.TodoistAPIKey).GetAllSections(
+		ctx,
+		creds.TodoistProjectID,
+	)
 	if err != nil {
 		return nil, err
 	}
-
 	return sections, nil
 }
 
-func (service *TodoistService) GetTasks(ctx context.Context) ([]todoist.Task, error) {
-	tasks, err := service.client.GetActiveTasks(ctx, service.projectID)
+func (service *TodoistService) GetTasks(
+	ctx context.Context,
+	creds repositories.UserIntegrations,
+) ([]todoist.Task, error) {
+	tasks, err := service.clientFactory(creds.TodoistAPIKey).GetActiveTasks(
+		ctx,
+		creds.TodoistProjectID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +41,6 @@ func (service *TodoistService) GetTasks(ctx context.Context) ([]todoist.Task, er
 		if tasks[i].ParentID == nil {
 			continue
 		}
-
 		tasks = append(tasks[:i], tasks[i+1:]...)
 		i--
 	}
@@ -43,13 +51,15 @@ func (service *TodoistService) GetTasks(ctx context.Context) ([]todoist.Task, er
 func (service *TodoistService) GetTaskByID(
 	ctx context.Context,
 	id string,
+	creds repositories.UserIntegrations,
 ) (*todoist.Task, error) {
-	return service.client.GetActiveTask(ctx, id)
+	return service.clientFactory(creds.TodoistAPIKey).GetActiveTask(ctx, id)
 }
 
 func (service *TodoistService) CompleteTask(
 	ctx context.Context,
 	id string,
+	creds repositories.UserIntegrations,
 ) error {
-	return service.client.CloseTask(ctx, id)
+	return service.clientFactory(creds.TodoistAPIKey).CloseTask(ctx, id)
 }

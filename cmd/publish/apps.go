@@ -25,16 +25,17 @@ type App interface {
 }
 
 func NewApps(
-	ctx context.Context,
+	_ context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
 	sharedTpl *template.Template,
+	gt *goaltracker.GoalTracker,
 ) *Apps {
 	var apps Apps = []App{}
 
-	apps.addApp(goaltracker.New(ctx, authService, logger, cfg, db, sharedTpl))
+	apps.addApp(gt)
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
 

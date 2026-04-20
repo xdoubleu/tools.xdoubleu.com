@@ -6,6 +6,7 @@ import (
 	"github.com/supabase-community/gotrue-go"
 	"github.com/xdoubleu/essentia/v3/pkg/config"
 	cfg "tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/repositories"
 )
 
 type Services struct {
@@ -16,15 +17,16 @@ func New(
 	cfg cfg.Config,
 	supabaseClient gotrue.Client,
 	tpl *template.Template,
+	appUsersRepo *repositories.AppUsersRepository,
 ) *Services {
 	return &Services{
 		Auth: &AuthService{
-			supabaseUserID:   cfg.SupabaseUserID,
 			client:           supabaseClient,
 			tpl:              tpl,
 			useSecureCookies: cfg.Env == config.ProdEnv,
 			accessExpiry:     cfg.AccessExpiry,
 			refreshExpiry:    cfg.RefreshExpiry,
+			appUsersRepo:     appUsersRepo,
 		},
 	}
 }

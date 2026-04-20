@@ -43,18 +43,24 @@ func (s *CalendarService) LoadConfig(
 
 func (s *CalendarService) ListConfigs(
 	ctx context.Context,
+	userID string,
 ) ([]models.FilterConfig, error) {
-	return s.repo.ListFilterConfigs(ctx)
+	return s.repo.ListFilterConfigs(ctx, userID)
 }
 
 func (s *CalendarService) ListConfigSummaries(
 	ctx context.Context,
+	userID string,
 ) ([]repositories.FilterSummary, error) {
-	return s.repo.ListFilterSummaries(ctx)
+	return s.repo.ListFilterSummaries(ctx, userID)
 }
 
-func (s *CalendarService) DeleteConfig(ctx context.Context, token string) error {
-	return s.repo.DeleteFilterConfig(ctx, token)
+func (s *CalendarService) DeleteConfig(
+	ctx context.Context,
+	token string,
+	userID string,
+) error {
+	return s.repo.DeleteFilterConfig(ctx, token, userID)
 }
 
 // ============================================================

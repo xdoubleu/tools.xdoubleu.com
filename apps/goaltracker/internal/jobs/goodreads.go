@@ -54,6 +54,15 @@ func (j GoodreadsJob) Run(ctx context.Context, logger *slog.Logger) error {
 		if err != nil {
 			return err
 		}
+		if books == nil {
+			logger.DebugContext(
+				ctx,
+				"goodreads not configured for user",
+				"userID",
+				user.ID,
+			)
+			continue
+		}
 		logger.DebugContext(ctx, fmt.Sprintf("fetched %d books", len(books)))
 
 		err = j.updateProgress(ctx, logger, user.ID, books)
@@ -121,8 +130,8 @@ func (j GoodreadsJob) updateProgress(
 	}
 
 	progressLabels, progressValues := []string{}, []string{}
-	for _, grapher := range graphers {
-		pL, pV := grapher.ToStringSlices()
+	for _, g := range graphers {
+		pL, pV := g.ToStringSlices()
 		progressLabels = append(progressLabels, pL...)
 		progressValues = append(progressValues, pV[""]...)
 	}

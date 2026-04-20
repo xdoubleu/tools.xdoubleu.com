@@ -14,12 +14,13 @@ import (
 )
 
 type Services struct {
-	Auth      auth.Service
-	Goals     *GoalService
-	Todoist   *TodoistService
-	Steam     *SteamService
-	Goodreads *GoodreadsService
-	WebSocket *WebSocketService
+	Auth         auth.Service
+	Goals        *GoalService
+	Todoist      *TodoistService
+	Steam        *SteamService
+	Goodreads    *GoodreadsService
+	Integrations *IntegrationsService
+	WebSocket    *WebSocketService
 }
 
 func New(
@@ -28,43 +29,53 @@ func New(
 	config config.Config,
 	jobQueue *threading.JobQueue,
 	repositories *repositories.Repositories,
-	todoistClient todoist.Client,
-	steamClient steam.Client,
+	todoistFactory func(apiKey string) todoist.Client,
+	steamFactory func(apiKey string) steam.Client,
 	goodreadsClient goodreads.Client,
 	authService auth.Service,
 ) *Services {
-	goodreads := &GoodreadsService{
-		logger:     logger,
-		profileURL: config.GoodreadsURL,
-		goodreads:  repositories.Goodreads,
-		client:     goodreadsClient,
+	integrations := &IntegrationsService{
+		repo: repositories.Integrations,
 	}
-	todoist := &TodoistService{
-		client:    todoistClient,
-		projectID: config.TodoistProjectID,
+
+	goodreadsSvc := &GoodreadsService{
+		logger:       logger,
+		goodreads:    repositories.Goodreads,
+		client:       goodreadsClient,
+		integrations: integrations,
 	}
-	steam := &SteamService{
-		logger: logger,
-		client: steamClient,
-		userID: config.SteamUserID,
-		steam:  repositories.Steam,
+	todoistSvc := &TodoistService{
+		clientFactory: todoistFactory,
+	}
+	steamSvc := &SteamService{
+		logger:        logger,
+		clientFactory: steamFactory,
+		steam:         repositories.Steam,
+		integrations:  integrations,
 	}
 	goals := &GoalService{
-		webURL:    config.WebURL,
-		states:    repositories.States,
-		goals:     repositories.Goals,
-		progress:  repositories.Progress,
-		todoist:   todoist,
-		goodreads: goodreads,
-		steam:     steam,
+		webURL:       config.WebURL,
+		states:       repositories.States,
+		goals:        repositories.Goals,
+		progress:     repositories.Progress,
+		todoist:      todoistSvc,
+		goodreads:    goodreadsSvc,
+		steam:        steamSvc,
+		integrations: integrations,
 	}
 
 	return &Services{
-		Auth:      authService,
-		Goals:     goals,
-		Todoist:   todoist,
-		Steam:     steam,
-		Goodreads: goodreads,
-		WebSocket: NewWebSocketService(ctx, logger, []string{config.WebURL}, jobQueue),
+		Auth:         authService,
+		Goals:        goals,
+		Todoist:      todoistSvc,
+		Steam:        steamSvc,
+		Goodreads:    goodreadsSvc,
+		Integrations: integrations,
+		WebSocket: NewWebSocketService(
+			ctx,
+			logger,
+			[]string{config.WebURL},
+			jobQueue,
+		),
 	}
 }
