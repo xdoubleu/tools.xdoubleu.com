@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"tools.xdoubleu.com/internal/models"
 )
@@ -47,10 +46,6 @@ func (r *AppUsersRepository) GetAll(ctx context.Context) ([]models.User, error) 
 
 	if err = rows.Err(); err != nil {
 		return nil, err
-	}
-
-	if len(users) == 0 {
-		return nil, pgx.ErrNoRows
 	}
 
 	return users, nil
