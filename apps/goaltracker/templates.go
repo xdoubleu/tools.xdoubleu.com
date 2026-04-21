@@ -18,15 +18,15 @@ import (
 func (app *GoalTracker) templateRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/{$}", prefix),
-		app.Services.Auth.TemplateAccess(app.rootHandler),
+		app.Services.Auth.AppAccess(prefix, app.rootHandler),
 	)
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/edit/{id}", prefix),
-		app.Services.Auth.TemplateAccess(app.editHandler),
+		app.Services.Auth.AppAccess(prefix, app.editHandler),
 	)
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/goals/{id}", prefix),
-		app.Services.Auth.TemplateAccess(app.goalProgressHandler),
+		app.Services.Auth.AppAccess(prefix, app.goalProgressHandler),
 	)
 }
 

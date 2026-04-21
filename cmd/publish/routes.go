@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -13,12 +14,22 @@ import (
 	"github.com/xdoubleu/essentia/v3/pkg/middleware"
 	"github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
+	"tools.xdoubleu.com/internal/models"
 )
 
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", app.services.Auth.TemplateAccess(app.Home))
+	mux.HandleFunc("GET /admin", app.services.Auth.AdminAccess(app.adminHandler))
+	mux.HandleFunc(
+		"POST /admin/users/{userID}/role",
+		app.services.Auth.AdminAccess(app.adminSetRoleHandler),
+	)
+	mux.HandleFunc(
+		"POST /admin/users/{userID}/access/{appName}",
+		app.services.Auth.AdminAccess(app.adminSetAppAccessHandler),
+	)
 	mux.HandleFunc(
 		"GET /settings",
 		app.services.Auth.TemplateAccess(app.settingsHandler),
@@ -112,10 +123,14 @@ func (app *Application) requestLogMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (app *Application) Home(w http.ResponseWriter, _ *http.Request) {
+func (app *Application) Home(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
 	data := []string{}
 	for _, a := range *app.apps {
-		data = append(data, a.GetName())
+		if user != nil && (user.Role == models.RoleAdmin ||
+			slices.Contains(user.AppAccess, a.GetName())) {
+			data = append(data, a.GetName())
+		}
 	}
 
 	tpl.RenderWithPanic(app.tpl, w, "home.html", data)

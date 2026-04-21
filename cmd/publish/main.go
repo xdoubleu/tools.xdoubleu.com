@@ -43,6 +43,7 @@ type Application struct {
 	goalTracker   *goaltracker.GoalTracker
 	tpl           *template.Template
 	requestBuffer *logging.UserLogBuffer
+	appUsersRepo  *repositories.AppUsersRepository
 }
 
 //	@title			tools
@@ -97,6 +98,16 @@ func NewApplication(
 ) *Application {
 	sharedTpl := templates.LoadShared(config)
 	tpl := template.Must(sharedTpl.Clone())
+	tpl = tpl.Funcs(template.FuncMap{
+		"hasAccess": func(access []string, appName string) bool {
+			for _, a := range access {
+				if a == appName {
+					return true
+				}
+			}
+			return false
+		},
+	})
 	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
 	ctx := context.Background()
@@ -123,6 +134,7 @@ func NewApplication(
 		goalTracker:   gt,
 		tpl:           tpl,
 		requestBuffer: logBuffer,
+		appUsersRepo:  appUsersRepo,
 	}
 
 	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl, gt)

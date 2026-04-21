@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -272,11 +273,56 @@ func (service *AuthService) contextSetUser(
 
 	ctx = context.WithValue(ctx, logging.UserIDContextKey, user.ID)
 
-	if service.appUsersRepo != nil {
-		if err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email); err != nil {
-			slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
-		}
+	if service.appUsersRepo == nil {
+		return context.WithValue(ctx, constants.UserContextKey, user)
+	}
+
+	err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email)
+
+	if err != nil {
+		slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
+		return context.WithValue(ctx, constants.UserContextKey, user)
+	}
+
+	var enriched *models.User
+	enriched, err = service.appUsersRepo.GetByID(ctx, user.ID)
+	if err != nil {
+		slog.Default().ErrorContext(ctx, "failed to enrich user from db", "error", err)
+		return context.WithValue(ctx, constants.UserContextKey, user)
+	}
+
+	if enriched != nil {
+		user = *enriched
 	}
 
 	return context.WithValue(ctx, constants.UserContextKey, user)
+}
+
+func (service *AuthService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
+	return service.TemplateAccess(func(w http.ResponseWriter, r *http.Request) {
+		user, ok := r.Context().Value(constants.UserContextKey).(models.User)
+		if !ok || user.Role != models.RoleAdmin {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		next(w, r)
+	})
+}
+
+func (service *AuthService) AppAccess(
+	appName string,
+	next http.HandlerFunc,
+) http.HandlerFunc {
+	return service.TemplateAccess(func(w http.ResponseWriter, r *http.Request) {
+		user, ok := r.Context().Value(constants.UserContextKey).(models.User)
+		if !ok {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		if user.Role == models.RoleAdmin || slices.Contains(user.AppAccess, appName) {
+			next(w, r)
+			return
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	})
 }

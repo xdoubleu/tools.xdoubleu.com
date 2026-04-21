@@ -1,0 +1,46 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-5">
+    <h2 class="fw-bold mb-4">User Management</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    {{ range $.AppNames }}
+                    <th class="text-center">{{ . }}</th>
+                    {{ end }}
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Users }}
+                {{ $user := . }}
+                <tr>
+                    <td>{{ .Email }}</td>
+                    <td>
+                        <form method="POST" action="/admin/users/{{ .ID }}/role">
+                            <select name="role" onchange="this.form.submit()" class="form-select form-select-sm">
+                                <option value="user" {{ if eq .Role "user" }}selected{{ end }}>user</option>
+                                <option value="admin" {{ if eq .Role "admin" }}selected{{ end }}>admin</option>
+                            </select>
+                        </form>
+                    </td>
+                    {{ range $.AppNames }}
+                    <td class="text-center">
+                        {{ $access := hasAccess $user.AppAccess . }}
+                        <form method="POST" action="/admin/users/{{ $user.ID }}/access/{{ . }}">
+                            <input type="hidden" name="grant" value="{{ if $access }}false{{ else }}true{{ end }}">
+                            <button type="submit" class="btn btn-sm {{ if $access }}btn-dark{{ else }}btn-outline-dark{{ end }}">
+                                {{ if $access }}Revoke{{ else }}Grant{{ end }}
+                            </button>
+                        </form>
+                    </td>
+                    {{ end }}
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{ template "footer" }}

@@ -8,29 +8,29 @@ import (
 func (app *ICSProxy) Routes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s", prefix),
-		app.services.Auth.TemplateAccess(app.indexHandler),
+		app.services.Auth.AppAccess(prefix, app.indexHandler),
 	)
 
 	mux.HandleFunc(
 		fmt.Sprintf("POST /%s/preview", prefix),
-		app.services.Auth.TemplateAccess(app.previewHandler),
+		app.services.Auth.AppAccess(prefix, app.previewHandler),
 	)
 
 	mux.HandleFunc(
 		fmt.Sprintf("POST /%s/create", prefix),
-		app.services.Auth.TemplateAccess(app.createHandler),
+		app.services.Auth.AppAccess(prefix, app.createHandler),
 	)
 
 	// Edit existing filters
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/edit/", prefix),
-		app.services.Auth.TemplateAccess(app.editHandler),
+		app.services.Auth.AppAccess(prefix, app.editHandler),
 	)
 
 	// Delete existing filters
 	mux.HandleFunc(
 		fmt.Sprintf("POST /%s/delete/", prefix),
-		app.services.Auth.TemplateAccess(app.deleteHandler),
+		app.services.Auth.AppAccess(prefix, app.deleteHandler),
 	)
 
 	// Feed endpoint (must stay last)

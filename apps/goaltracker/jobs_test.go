@@ -23,6 +23,17 @@ func (m *noUsersAuthService) TemplateAccess(next http.HandlerFunc) http.HandlerF
 	return next
 }
 
+func (m *noUsersAuthService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
+	return next
+}
+
+func (m *noUsersAuthService) AppAccess(
+	_ string,
+	next http.HandlerFunc,
+) http.HandlerFunc {
+	return next
+}
+
 func (m *noUsersAuthService) GetAllUsers() ([]internalmodels.User, error) {
 	return []internalmodels.User{}, nil
 }
