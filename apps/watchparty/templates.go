@@ -17,7 +17,7 @@ import (
 func (app *WatchParty) templateRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/{$}", prefix),
-		app.Services.Auth.TemplateAccess(app.rootHandler),
+		app.Services.Auth.AppAccess(prefix, app.rootHandler),
 	)
 	mux.HandleFunc(
 		fmt.Sprintf("POST /%s/api/rooms/create", prefix),

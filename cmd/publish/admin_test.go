@@ -1,0 +1,126 @@
+package main
+
+import (
+	"context"
+	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"tools.xdoubleu.com/internal/models"
+)
+
+const testUserID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
+
+func promoteToAdmin(t *testing.T) {
+	t.Helper()
+	ctx := context.Background()
+	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
+	require.NoError(t, testApp.appUsersRepo.SetRole(ctx, testUserID, models.RoleAdmin))
+}
+
+func demoteToUser(t *testing.T) {
+	t.Helper()
+	require.NoError(t,
+		testApp.appUsersRepo.SetRole(context.Background(), testUserID, models.RoleUser))
+}
+
+func TestAdminHandlerNonAdmin(t *testing.T) {
+	ctx := context.Background()
+	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
+	demoteToUser(t)
+
+	tReq := test.CreateRequestTester(testApp.Routes(), http.MethodGet, "/admin")
+	tReq.AddCookie(&accessToken)
+	tReq.SetFollowRedirect(false)
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+	assert.Equal(t, "/", rs.Header.Get("Location"))
+}
+
+func TestAdminHandlerAsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	tReq := test.CreateRequestTester(testApp.Routes(), http.MethodGet, "/admin")
+	tReq.AddCookie(&accessToken)
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
+}
+
+func TestAdminSetRoleHandler(t *testing.T) {
+	ctx := context.Background()
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	type roleForm struct {
+		Role string `schema:"role"`
+	}
+
+	// Demote self via handler
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/admin/users/"+testUserID+"/role",
+	)
+	tReq.AddCookie(&accessToken)
+	tReq.SetFollowRedirect(false)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(roleForm{Role: "user"})
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	user, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
+	require.NoError(t, err)
+	assert.Equal(t, models.RoleUser, user.Role)
+}
+
+func TestAdminSetAppAccessHandler(t *testing.T) {
+	ctx := context.Background()
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	type accessForm struct {
+		Grant string `schema:"grant"`
+	}
+
+	// Grant access to goaltracker
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/admin/users/"+testUserID+"/access/goaltracker",
+	)
+	tReq.AddCookie(&accessToken)
+	tReq.SetFollowRedirect(false)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(accessForm{Grant: "true"})
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	user, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
+	require.NoError(t, err)
+	assert.Contains(t, user.AppAccess, "goaltracker")
+
+	// Revoke access
+	tReq2 := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/admin/users/"+testUserID+"/access/goaltracker",
+	)
+	tReq2.AddCookie(&accessToken)
+	tReq2.SetFollowRedirect(false)
+	tReq2.SetContentType(test.FormContentType)
+	tReq2.SetData(accessForm{Grant: "false"})
+
+	rs2 := tReq2.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs2.StatusCode)
+
+	user2, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
+	require.NoError(t, err)
+	assert.NotContains(t, user2.AppAccess, "goaltracker")
+}

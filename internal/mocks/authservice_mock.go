@@ -11,51 +11,73 @@ import (
 
 func NewMockedAuthService(userID string) auth.Service {
 	return &MockedAuthService{
-		userID: userID,
+		userID:  userID,
+		isAdmin: false,
+	}
+}
+
+func NewMockedAdminAuthService(userID string) auth.Service {
+	return &MockedAuthService{
+		userID:  userID,
+		isAdmin: true,
 	}
 }
 
 type MockedAuthService struct {
-	userID string
+	userID  string
+	isAdmin bool
+}
+
+func (m *MockedAuthService) mockUser() models.User {
+	role := models.RoleUser
+	if m.isAdmin {
+		role = models.RoleAdmin
+	}
+	return models.User{
+		ID:        m.userID,
+		Email:     "user@example.com",
+		Role:      role,
+		AppAccess: []string{"goaltracker", "watchparty", "icsproxy"},
+	}
 }
 
 func (m *MockedAuthService) Access(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Inject a mock user into the context
-		user := models.User{
-			ID:    m.userID,
-			Email: "<EMAIL>",
-		}
-
-		ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
-		r = r.WithContext(ctx)
-
-		next(w, r)
+		ctx := context.WithValue(r.Context(), constants.UserContextKey, m.mockUser())
+		next(w, r.WithContext(ctx))
 	}
 }
 
 func (m *MockedAuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Inject a mock user into the context
-		user := models.User{
-			ID:    m.userID,
-			Email: "<EMAIL>",
+		ctx := context.WithValue(r.Context(), constants.UserContextKey, m.mockUser())
+		next(w, r.WithContext(ctx))
+	}
+}
+
+func (m *MockedAuthService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !m.isAdmin {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
 		}
+		ctx := context.WithValue(r.Context(), constants.UserContextKey, m.mockUser())
+		next(w, r.WithContext(ctx))
+	}
+}
 
-		ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
-		r = r.WithContext(ctx)
-
-		next(w, r)
+func (m *MockedAuthService) AppAccess(
+	_ string,
+	next http.HandlerFunc,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), constants.UserContextKey, m.mockUser())
+		next(w, r.WithContext(ctx))
 	}
 }
 
 func (m *MockedAuthService) GetAllUsers() ([]models.User, error) {
-	return []models.User{
-		{
-			ID:    m.userID,
-			Email: "<EMAIL>",
-		},
-	}, nil
+	return []models.User{m.mockUser()}, nil
 }
 
 func (m *MockedAuthService) SignOut(
