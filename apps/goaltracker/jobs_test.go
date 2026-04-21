@@ -2,6 +2,7 @@ package goaltracker_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,55 @@ import (
 	"tools.xdoubleu.com/apps/goaltracker/internal/dtos"
 	"tools.xdoubleu.com/apps/goaltracker/internal/jobs"
 	"tools.xdoubleu.com/apps/goaltracker/internal/models"
+	internalmodels "tools.xdoubleu.com/internal/models"
 )
+
+type noUsersAuthService struct{}
+
+func (m *noUsersAuthService) Access(next http.HandlerFunc) http.HandlerFunc {
+	return next
+}
+
+func (m *noUsersAuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFunc {
+	return next
+}
+
+func (m *noUsersAuthService) GetAllUsers() ([]internalmodels.User, error) {
+	return []internalmodels.User{}, nil
+}
+
+func (m *noUsersAuthService) SignOut(
+	_ string,
+	_ bool,
+) (*http.Cookie, *http.Cookie, error) {
+	return nil, nil, nil
+}
+
+func TestGoodreadsJobNoUsers(t *testing.T) {
+	job := jobs.NewGoodreadsJob(
+		&noUsersAuthService{},
+		testApp.Services.Goodreads,
+		testApp.Services.Goals,
+	)
+	err := job.Run(context.Background(), logging.NewNopLogger())
+	assert.Nil(t, err)
+}
+
+func TestSteamJobNoUsers(t *testing.T) {
+	job := jobs.NewSteamJob(
+		&noUsersAuthService{},
+		testApp.Services.Steam,
+		testApp.Services.Goals,
+	)
+	err := job.Run(context.Background(), logging.NewNopLogger())
+	assert.Nil(t, err)
+}
+
+func TestTodoistJobNoUsers(t *testing.T) {
+	job := jobs.NewTodoistJob(&noUsersAuthService{}, testApp.Services.Goals)
+	err := job.Run(context.Background(), logging.NewNopLogger())
+	assert.Nil(t, err)
+}
 
 func TestGoodreadsJob(t *testing.T) {
 	err := testApp.Services.Goals.ImportGoalsFromTodoist(context.Background(), userID)
