@@ -20,6 +20,7 @@ func TestSignInHandler(t *testing.T) {
 		Email:      "valid@example.com",
 		Password:   "password",
 		RememberMe: true,
+		Redirect:   "/",
 	}
 
 	tReq.SetFollowRedirect(false)
@@ -55,7 +56,9 @@ func TestSignInHandlerValidationFailure(t *testing.T) {
 	)
 
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.SignInDto{Email: "", Password: "", RememberMe: false})
+	tReq.SetData(
+		dtos.SignInDto{Email: "", Password: "", RememberMe: false, Redirect: "/"},
+	)
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
@@ -74,6 +77,7 @@ func TestSignInHandlerNoRememberMe(t *testing.T) {
 		Email:      "valid@example.com",
 		Password:   "password",
 		RememberMe: false,
+		Redirect:   "/",
 	})
 
 	rs := tReq.Do(t)

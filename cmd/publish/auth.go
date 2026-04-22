@@ -21,6 +21,8 @@ func (app *Application) authRoutes(prefix string, mux *http.ServeMux) {
 func (app *Application) signInHandler(w http.ResponseWriter, r *http.Request) {
 	var signInDto dtos.SignInDto
 
+	//nolint:mnd //no magic number
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	err := httptools.ReadForm(r, &signInDto)
 	if err != nil {
 		httptools.RedirectWithError(w, r, "/", err)
@@ -68,7 +70,7 @@ func (app *Application) signInHandler(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, refreshTokenCookie)
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, signInDto.Redirect, http.StatusSeeOther)
 }
 
 func (app *Application) signOutHandler(w http.ResponseWriter, r *http.Request) {
