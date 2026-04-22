@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -46,13 +47,18 @@ func (j GoodreadsJob) Run(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 
+	var errs []error
 	for _, user := range users {
 		if err = j.runForUser(ctx, logger, user.ID); err != nil {
-			return err
+			logger.ErrorContext(ctx, "goodreads job failed for user",
+				slog.String("userID", user.ID),
+				slog.Any("error", err),
+			)
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (j GoodreadsJob) runForUser(

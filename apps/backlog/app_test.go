@@ -24,6 +24,12 @@ var testApp *backlog.Backlog //nolint:gochecknoglobals //needed for tests
 var userID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 
 //nolint:gochecknoglobals //needed for tests
+var testCfg config.Config
+
+//nolint:gochecknoglobals //needed for tests
+var testDB postgres.DB
+
+//nolint:gochecknoglobals //needed for tests
 var accessToken = http.Cookie{
 	Name:  "accessToken",
 	Value: "access",
@@ -32,13 +38,13 @@ var accessToken = http.Cookie{
 func TestMain(m *testing.M) {
 	var err error
 
-	cfg := config.New(logging.NewNopLogger())
-	cfg.Env = configtools.TestEnv
-	cfg.Throttle = false
+	testCfg = config.New(logging.NewNopLogger())
+	testCfg.Env = configtools.TestEnv
+	testCfg.Throttle = false
 
 	postgresDB, err := postgres.Connect(
 		logging.NewNopLogger(),
-		cfg.DBDsn,
+		testCfg.DBDsn,
 		25,
 		"15m",
 		5,
@@ -48,6 +54,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+	testDB = postgresDB
 
 	clients := backlog.Clients{
 		SteamFactory: func(_ string) steam.Client { return mocks.NewMockSteamClient() },
@@ -58,10 +65,10 @@ func TestMain(m *testing.M) {
 		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
-		cfg,
+		testCfg,
 		postgresDB,
 		clients,
-		templates.LoadShared(cfg),
+		templates.LoadShared(testCfg),
 	)
 
 	err = testApp.ApplyMigrations(context.Background(), postgresDB)
