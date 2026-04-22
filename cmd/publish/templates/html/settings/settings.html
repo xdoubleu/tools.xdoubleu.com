@@ -3,7 +3,7 @@
 <div class="d-flex">
     <nav class="border-end bg-white flex-shrink-0 pt-4" style="width: 220px;">
         <div class="px-3 mb-1">
-            <small class="text-uppercase text-muted fw-semibold" style="font-size: .65rem; letter-spacing: .08em;">GoalTracker</small>
+            <small class="text-uppercase text-muted fw-semibold" style="font-size: .65rem; letter-spacing: .08em;">Backlog</small>
         </div>
         <ul class="list-unstyled mb-0">
             <li>
@@ -24,18 +24,6 @@
             {{ end }}
 
             <form method="POST" action="/settings">
-                <h5 class="mb-3">Todoist</h5>
-                <div class="mb-3">
-                    <label for="todoist_api_key" class="form-label">API Key</label>
-                    <input type="password" class="form-control" id="todoist_api_key" name="todoist_api_key"
-                        value="{{ .Integrations.TodoistAPIKey }}" autocomplete="off">
-                </div>
-                <div class="mb-4">
-                    <label for="todoist_project_id" class="form-label">Project ID</label>
-                    <input type="text" class="form-control" id="todoist_project_id" name="todoist_project_id"
-                        value="{{ .Integrations.TodoistProjectID }}">
-                </div>
-
                 <h5 class="mb-3">Steam</h5>
                 <div class="mb-3">
                     <label for="steam_api_key" class="form-label">API Key</label>

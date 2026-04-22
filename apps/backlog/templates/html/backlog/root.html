@@ -1,0 +1,31 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+    <div class="row g-4">
+
+        <div class="col-md-6">
+            <a href="/backlog/steam" class="text-decoration-none">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                        <h4 class="card-title mb-2">Steam</h4>
+                        <span class="badge bg-secondary fs-6">{{ .SteamCount }} unplayed</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a href="/backlog/goodreads" class="text-decoration-none">
+                <div class="card h-100 border-warning">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                        <h4 class="card-title mb-2">Goodreads</h4>
+                        <span class="badge bg-secondary fs-6 mb-2">{{ .GoodreadsCount }} to read</span>
+                        <span class="badge bg-warning text-dark">Not working</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+    </div>
+</div>
+{{ template "footer" }}

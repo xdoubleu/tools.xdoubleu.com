@@ -5,14 +5,13 @@ import (
 	"net/http"
 
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
-	goaltracker "tools.xdoubleu.com/apps/goaltracker"
+	"tools.xdoubleu.com/apps/backlog"
 )
 
 func (app *Application) onboardingHandler(w http.ResponseWriter, _ *http.Request) {
 	tpltools.RenderWithPanic(app.tpl, w, "onboarding.html", nil)
 }
 
-//nolint:dupl //similar to saveSettingsHandler but redirects to /goaltracker
 func (app *Application) saveOnboardingHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
@@ -27,20 +26,18 @@ func (app *Application) saveOnboardingHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	integrations := goaltracker.Integrations{
-		TodoistAPIKey:    r.FormValue("todoist_api_key"),
-		TodoistProjectID: r.FormValue("todoist_project_id"),
-		SteamAPIKey:      r.FormValue("steam_api_key"),
-		SteamUserID:      r.FormValue("steam_user_id"),
-		GoodreadsURL:     r.FormValue("goodreads_url"),
+	integrations := backlog.Integrations{
+		SteamAPIKey:  r.FormValue("steam_api_key"),
+		SteamUserID:  r.FormValue("steam_user_id"),
+		GoodreadsURL: r.FormValue("goodreads_url"),
 	}
 
-	if err := app.goalTracker.SaveIntegrations(
+	if err := app.backlog.SaveIntegrations(
 		r.Context(), user.ID, integrations,
 	); err != nil {
 		http.Error(w, "Failed to save settings", http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, "/goaltracker", http.StatusSeeOther)
+	http.Redirect(w, r, "/backlog", http.StatusSeeOther)
 }

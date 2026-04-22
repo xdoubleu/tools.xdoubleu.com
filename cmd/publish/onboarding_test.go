@@ -22,11 +22,9 @@ func TestGetOnboardingHandler(t *testing.T) {
 
 func TestSaveOnboardingHandler(t *testing.T) {
 	type onboardingForm struct {
-		TodoistAPIKey    string `form:"todoist_api_key"`
-		TodoistProjectID string `form:"todoist_project_id"`
-		SteamAPIKey      string `form:"steam_api_key"`
-		SteamUserID      string `form:"steam_user_id"`
-		GoodreadsURL     string `form:"goodreads_url"`
+		SteamAPIKey  string `form:"steam_api_key"`
+		SteamUserID  string `form:"steam_user_id"`
+		GoodreadsURL string `form:"goodreads_url"`
 	}
 
 	tReq := test.CreateRequestTester(
@@ -38,14 +36,12 @@ func TestSaveOnboardingHandler(t *testing.T) {
 	tReq.SetFollowRedirect(false)
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetData(onboardingForm{
-		TodoistAPIKey:    "test-todoist-key",
-		TodoistProjectID: "test-project-id",
-		SteamAPIKey:      "test-steam-key",
-		SteamUserID:      "test-steam-user",
-		GoodreadsURL:     "https://goodreads.com/user/123",
+		SteamAPIKey:  "test-steam-key",
+		SteamUserID:  "test-steam-user",
+		GoodreadsURL: "https://goodreads.com/user/123",
 	})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
-	assert.Equal(t, "/goaltracker", rs.Header.Get("Location"))
+	assert.Equal(t, "/backlog", rs.Header.Get("Location"))
 }

@@ -60,7 +60,6 @@ func TestAdminSetRoleHandler(t *testing.T) {
 		Role string `schema:"role"`
 	}
 
-	// Demote self via handler
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
@@ -88,11 +87,10 @@ func TestAdminSetAppAccessHandler(t *testing.T) {
 		Grant string `schema:"grant"`
 	}
 
-	// Grant access to goaltracker
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
-		"/admin/users/"+testUserID+"/access/goaltracker",
+		"/admin/users/"+testUserID+"/access/backlog",
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetFollowRedirect(false)
@@ -104,13 +102,12 @@ func TestAdminSetAppAccessHandler(t *testing.T) {
 
 	user, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
 	require.NoError(t, err)
-	assert.Contains(t, user.AppAccess, "goaltracker")
+	assert.Contains(t, user.AppAccess, "backlog")
 
-	// Revoke access
 	tReq2 := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
-		"/admin/users/"+testUserID+"/access/goaltracker",
+		"/admin/users/"+testUserID+"/access/backlog",
 	)
 	tReq2.AddCookie(&accessToken)
 	tReq2.SetFollowRedirect(false)
@@ -122,5 +119,5 @@ func TestAdminSetAppAccessHandler(t *testing.T) {
 
 	user2, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
 	require.NoError(t, err)
-	assert.NotContains(t, user2.AppAccess, "goaltracker")
+	assert.NotContains(t, user2.AppAccess, "backlog")
 }

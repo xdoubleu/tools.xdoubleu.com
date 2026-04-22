@@ -1,0 +1,186 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Steam</h2>
+        {{ template "ws" "steam" }}
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="steamTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">Summary</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button" role="tab">Progress</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="distribution-tab" data-bs-toggle="tab" data-bs-target="#distribution" type="button" role="tab">Distribution</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="backlog-tab" data-bs-toggle="tab" data-bs-target="#backlog" type="button" role="tab">
+                Backlog <span class="badge bg-secondary ms-1">{{ .TotalBacklog }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <div class="tab-pane fade show active" id="summary" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <p class="mb-0 fs-5">Overall completion rate: <strong>{{ .CurrentRate }}%</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="progress" role="tabpanel">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="get" class="row g-2 align-items-end">
+                        <div class="col-auto">
+                            <label class="form-label mb-1">From</label>
+                            <input type="date" name="from" class="form-control form-control-sm" value="{{ .DateStart }}">
+                        </div>
+                        <div class="col-auto">
+                            <label class="form-label mb-1">To</label>
+                            <input type="date" name="to" class="form-control form-control-sm" value="{{ .DateEnd }}">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">Achievement Completion Rate</div>
+                <div class="card-body">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="distribution" role="tabpanel">
+            <div class="card">
+                <div class="card-header">Completion Rate Distribution</div>
+                <div class="card-body">
+                    <canvas id="distChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="backlog" role="tabpanel">
+
+            {{ if .InProgress }}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#sectionInProgress">
+                        <span>In Progress</span>
+                        <span class="badge bg-secondary">{{ len .InProgress }}</span>
+                    </button>
+                </div>
+                <div id="sectionInProgress" class="collapse show">
+                    <ul class="list-group list-group-flush">
+                        {{ range .InProgress }}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ .Name }}
+                            <span class="badge bg-primary">{{ .CompletionRate }}%</span>
+                        </li>
+                        {{ end }}
+                    </ul>
+                </div>
+            </div>
+            {{ end }}
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#sectionNotStarted">
+                        <span>Not Started</span>
+                        <span class="badge bg-secondary">{{ len .NotStarted }}</span>
+                    </button>
+                </div>
+                <div id="sectionNotStarted" class="collapse show">
+                    {{ if .NotStarted }}
+                    <ul class="list-group list-group-flush">
+                        {{ range .NotStarted }}
+                        <li class="list-group-item">{{ .Name }}</li>
+                        {{ end }}
+                    </ul>
+                    {{ else }}
+                    <div class="card-body text-muted">No unplayed games.</div>
+                    {{ end }}
+                </div>
+            </div>
+
+            {{ if .Completed }}
+            <div class="card">
+                <div class="card-header">
+                    <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#sectionCompleted">
+                        <span>Completed</span>
+                        <span class="badge bg-success">{{ len .Completed }}</span>
+                    </button>
+                </div>
+                <div id="sectionCompleted" class="collapse">
+                    <ul class="list-group list-group-flush">
+                        {{ range .Completed }}
+                        <li class="list-group-item">{{ .Name }}</li>
+                        {{ end }}
+                    </ul>
+                </div>
+            </div>
+            {{ end }}
+
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const progressLabels = {{ .Labels }};
+    const progressValues = {{ .Values }};
+    const distData = {{ .Distribution }};
+    const distLabels = ["0–9%","10–19%","20–29%","30–39%","40–49%","50–59%","60–69%","70–79%","80–89%","90–99%","100%"];
+
+    if (progressLabels && progressLabels.length > 0) {
+        new Chart(document.getElementById("progressChart"), {
+            type: "line",
+            data: {
+                labels: progressLabels,
+                datasets: [{
+                    label: "Avg. Completion %",
+                    data: progressValues,
+                    borderColor: "rgb(75,192,192)",
+                    tension: 0.1,
+                    fill: false,
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    if (distData && distData.length > 0) {
+        new Chart(document.getElementById("distChart"), {
+            type: "bar",
+            data: {
+                labels: distLabels,
+                datasets: [{
+                    label: "Games",
+                    data: distData,
+                    backgroundColor: "rgba(75,192,192,0.5)",
+                    borderColor: "rgb(75,192,192)",
+                    borderWidth: 1,
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("from") || params.has("to")) {
+        document.getElementById("progress-tab").click();
+    }
+</script>
+{{ template "footer" }}

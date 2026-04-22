@@ -20,7 +20,7 @@ import (
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	essentialogger "github.com/xdoubleu/essentia/v3/pkg/logging"
 	"github.com/xdoubleu/essentia/v3/pkg/sentrytools"
-	goaltracker "tools.xdoubleu.com/apps/goaltracker"
+	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
 	"tools.xdoubleu.com/internal/config"
@@ -40,7 +40,7 @@ type Application struct {
 	config        config.Config
 	services      *services.Services
 	apps          *Apps
-	goalTracker   *goaltracker.GoalTracker
+	backlog       *backlog.Backlog
 	tpl           *template.Template
 	requestBuffer *logging.UserLogBuffer
 	appUsersRepo  *repositories.AppUsersRepository
@@ -123,7 +123,7 @@ func NewApplication(
 	appUsersRepo := repositories.NewAppUsersRepository(db)
 	svc := services.New(config, supabaseClient, tpl, appUsersRepo)
 
-	gt := goaltracker.New(ctx, svc.Auth, logger, config, db, sharedTpl)
+	bl := backlog.New(ctx, svc.Auth, logger, config, db, sharedTpl)
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
@@ -131,13 +131,13 @@ func NewApplication(
 		logger:        slog.New(logging.NewUserLogHandler(logger.Handler(), logBuffer)),
 		config:        config,
 		services:      svc,
-		goalTracker:   gt,
+		backlog:       bl,
 		tpl:           tpl,
 		requestBuffer: logBuffer,
 		appUsersRepo:  appUsersRepo,
 	}
 
-	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl, gt)
+	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl, bl)
 
 	err := app.ApplyMigrations(db)
 	if err != nil {

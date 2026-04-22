@@ -6,7 +6,7 @@ import (
 
 	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
-	goaltracker "tools.xdoubleu.com/apps/goaltracker"
+	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
 )
@@ -21,7 +21,7 @@ func (app *Application) settingsHandler(w http.ResponseWriter, r *http.Request) 
 		panic(errors.New("not signed in"))
 	}
 
-	integrations, err := app.goalTracker.GetIntegrations(r.Context(), user.ID)
+	integrations, err := app.backlog.GetIntegrations(r.Context(), user.ID)
 	if err != nil {
 		http.Error(w, "Failed to load settings", http.StatusInternalServerError)
 		return
@@ -33,7 +33,6 @@ func (app *Application) settingsHandler(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-//nolint:dupl //similar to saveOnboardingHandler but redirects to /settings?saved=1
 func (app *Application) saveSettingsHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
@@ -48,15 +47,13 @@ func (app *Application) saveSettingsHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	integrations := goaltracker.Integrations{
-		TodoistAPIKey:    r.FormValue("todoist_api_key"),
-		TodoistProjectID: r.FormValue("todoist_project_id"),
-		SteamAPIKey:      r.FormValue("steam_api_key"),
-		SteamUserID:      r.FormValue("steam_user_id"),
-		GoodreadsURL:     r.FormValue("goodreads_url"),
+	integrations := backlog.Integrations{
+		SteamAPIKey:  r.FormValue("steam_api_key"),
+		SteamUserID:  r.FormValue("steam_user_id"),
+		GoodreadsURL: r.FormValue("goodreads_url"),
 	}
 
-	if err := app.goalTracker.SaveIntegrations(
+	if err := app.backlog.SaveIntegrations(
 		r.Context(), user.ID, integrations,
 	); err != nil {
 		http.Error(w, "Failed to save settings", http.StatusInternalServerError)

@@ -10,30 +10,11 @@
             <span id="bubble-1" class="d-flex align-items-center justify-content-center fw-bold text-white" style="width:32px;height:32px;border-radius:0;background:#000;flex-shrink:0;">1</span>
             <div class="flex-grow-1 mx-2" style="height:2px;background:#dee2e6;"></div>
             <span id="bubble-2" class="d-flex align-items-center justify-content-center fw-bold text-muted" style="width:32px;height:32px;border-radius:0;border:2px solid #dee2e6;flex-shrink:0;">2</span>
-            <div class="flex-grow-1 mx-2" style="height:2px;background:#dee2e6;"></div>
-            <span id="bubble-3" class="d-flex align-items-center justify-content-center fw-bold text-muted" style="width:32px;height:32px;border-radius:0;border:2px solid #dee2e6;flex-shrink:0;">3</span>
         </div>
 
         <form method="POST" action="/onboarding" id="onboarding-form">
-            <!-- Step 1: Todoist -->
+            <!-- Step 1: Steam -->
             <div id="step-1">
-                <h5 class="mb-3">Todoist</h5>
-                <div class="mb-3">
-                    <label for="todoist_api_key" class="form-label">API Key</label>
-                    <input type="password" class="form-control" id="todoist_api_key" name="todoist_api_key" autocomplete="off">
-                </div>
-                <div class="mb-4">
-                    <label for="todoist_project_id" class="form-label">Project ID</label>
-                    <input type="text" class="form-control" id="todoist_project_id" name="todoist_project_id">
-                </div>
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" onclick="skipStep(1)">Skip</button>
-                    <button type="button" class="btn btn-dark" onclick="nextStep(1)">Next</button>
-                </div>
-            </div>
-
-            <!-- Step 2: Steam -->
-            <div id="step-2" style="display:none;">
                 <h5 class="mb-3">Steam</h5>
                 <div class="mb-3">
                     <label for="steam_api_key" class="form-label">API Key</label>
@@ -44,13 +25,13 @@
                     <input type="text" class="form-control" id="steam_user_id" name="steam_user_id">
                 </div>
                 <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" onclick="skipStep(2)">Skip</button>
-                    <button type="button" class="btn btn-dark" onclick="nextStep(2)">Next</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="skipStep(1)">Skip</button>
+                    <button type="button" class="btn btn-dark" onclick="nextStep(1)">Next</button>
                 </div>
             </div>
 
-            <!-- Step 3: Goodreads -->
-            <div id="step-3" style="display:none;">
+            <!-- Step 2: Goodreads -->
+            <div id="step-2" style="display:none;">
                 <h5 class="mb-3">Goodreads</h5>
                 <div class="mb-4">
                     <label for="goodreads_url" class="form-label">Profile URL</label>
@@ -67,7 +48,7 @@
 
 <script>
     function showStep(n) {
-        for (var i = 1; i <= 3; i++) {
+        for (var i = 1; i <= 2; i++) {
             document.getElementById('step-' + i).style.display = 'none';
             var b = document.getElementById('bubble-' + i);
             b.style.background = '';
