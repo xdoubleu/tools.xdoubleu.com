@@ -1,4 +1,3 @@
-//nolint:revive //it is what it is
 package backlog
 
 import (
@@ -7,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"log/slog"
-	_ "time/tzdata"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -80,8 +78,9 @@ func NewInner(
 
 	app.setContext(ctx)
 
-	//nolint:mnd //no magic number
-	app.jobQueue = threading.NewJobQueue(app.ctx, logger, 2, 100)
+	const amountOfWorkers = 2
+	const jobQueueSize = 100
+	app.jobQueue = threading.NewJobQueue(app.ctx, logger, amountOfWorkers, jobQueueSize)
 
 	app.setDB(db, authService)
 

@@ -40,11 +40,19 @@ func (game *Game) SetCalculatedInfo(achievements []Achievement, totalGames int) 
 		return
 	}
 
-	//nolint:mnd // this is a percentage
-	game.CompletionRate = fmt.Sprintf(
+	game.CompletionRate = CalculateAvgCompletionRate(float64(achieved), total)
+
+	const percentage = 100.0
+	game.Contribution = fmt.Sprintf("%.4f", percentage/float64(totalGames*total))
+}
+
+func CalculateAvgCompletionRate(percentageSum float64, totalGames int) string {
+	const percentagePrecision = 100
+	const doublePercentagePrecision = 10000
+	return fmt.Sprintf(
 		"%.2f",
-		math.Floor(float64(achieved)/float64(total)*10000)/100,
+		math.Floor(
+			percentageSum/float64(totalGames)*doublePercentagePrecision,
+		)/percentagePrecision,
 	)
-	//nolint:mnd // this is a percentage
-	game.Contribution = fmt.Sprintf("%.4f", 100.0/float64(totalGames*total))
 }

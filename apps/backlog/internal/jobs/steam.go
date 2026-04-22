@@ -37,8 +37,8 @@ func (j SteamJob) ID() string {
 }
 
 func (j SteamJob) RunEvery() time.Duration {
-	//nolint:mnd //no magic number
-	return 24 * time.Hour
+	const hoursInDay = 24
+	return hoursInDay * time.Hour
 }
 
 func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
