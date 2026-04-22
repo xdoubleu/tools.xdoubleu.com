@@ -78,6 +78,27 @@ func TestAdminSetRoleHandler(t *testing.T) {
 	assert.Equal(t, models.RoleUser, user.Role)
 }
 
+func TestAdminSetRoleHandlerInvalidRole(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	type roleForm struct {
+		Role string `schema:"role"`
+	}
+
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/admin/users/"+testUserID+"/role",
+	)
+	tReq.AddCookie(&accessToken)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(roleForm{Role: "superuser"})
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusBadRequest, rs.StatusCode)
+}
+
 func TestAdminSetAppAccessHandler(t *testing.T) {
 	ctx := context.Background()
 	promoteToAdmin(t)
