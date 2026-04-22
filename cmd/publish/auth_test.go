@@ -47,6 +47,54 @@ func TestSignOutHandler(t *testing.T) {
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
 }
 
+func TestSignInHandlerValidationFailure(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/auth/signin",
+	)
+
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(dtos.SignInDto{Email: "", Password: "", RememberMe: false})
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
+}
+
+func TestSignInHandlerNoRememberMe(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/auth/signin",
+	)
+
+	tReq.SetFollowRedirect(false)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(dtos.SignInDto{
+		Email:      "valid@example.com",
+		Password:   "password",
+		RememberMe: false,
+	})
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+}
+
+func TestSignOutHandlerNoRefreshToken(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodGet,
+		"/auth/signout",
+	)
+
+	tReq.SetFollowRedirect(false)
+	tReq.AddCookie(&accessToken)
+	// no refresh token cookie — exercises the refreshToken == nil branch
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+}
+
 func TestSignIn(t *testing.T) {
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
