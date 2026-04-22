@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
-	goaltracker "tools.xdoubleu.com/apps/goaltracker"
+	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
@@ -31,11 +31,11 @@ func NewApps(
 	cfg config.Config,
 	db postgres.DB,
 	sharedTpl *template.Template,
-	gt *goaltracker.GoalTracker,
+	bl *backlog.Backlog,
 ) *Apps {
 	var apps Apps = []App{}
 
-	apps.addApp(gt)
+	apps.addApp(bl)
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
 

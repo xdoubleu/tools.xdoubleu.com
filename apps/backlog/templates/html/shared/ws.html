@@ -1,0 +1,57 @@
+{{define "ws"}}
+    <button class="btn btn-dark" id="refresh-btn">Refresh</button>
+    <script>
+        let url = window.location.origin;
+        let wsUrl = url;
+        let wasRefreshing = false;
+
+        wsUrl = wsUrl.replace("https://", "wss://")
+        wsUrl = wsUrl.replace("http://", "ws://")
+
+        function connectWebSocket() {
+            let webSocket = new WebSocket(`${wsUrl}/backlog/api/progress`);
+
+            webSocket.onclose = () => {
+                connectWebSocket();
+            }
+
+            webSocket.onopen = async () => {
+                webSocket.send(JSON.stringify({
+                    subject: "{{.}}"
+                }));
+            };
+
+            webSocket.onmessage = e => {
+                let t = JSON.parse(e.data);
+
+                let btn = document.getElementById("refresh-btn");
+
+                if (t.isRefreshing) {
+                    wasRefreshing = true;
+                    btn.disabled = true;
+                    btn.innerHTML = "Refreshing...";
+                    return;
+                }
+
+                if (!t.isRefreshing && wasRefreshing) {
+                    wasRefreshing = false;
+                    location.reload();
+                    return;
+                }
+
+                btn.innerHTML = `Refresh (last: ${new Date(t.lastRefresh).toLocaleString("en-GB")})`
+            };
+
+            window.onbeforeunload = () => {
+                webSocket.close();
+            };
+        }
+
+        connectWebSocket();
+
+        document.getElementById("refresh-btn").onclick = () => {
+            fetch(`${url}/backlog/api/progress/{{.}}/refresh`)
+        };
+    </script>
+{{end}}
+
