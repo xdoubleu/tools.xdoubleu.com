@@ -31,11 +31,13 @@ func NewWebSocketService(
 		topics:         make(map[string]*wstools.Topic),
 	}
 
+	const topicWorkers = 1
+	const topicQueueSize = 100
 	handler := wstools.CreateWebSocketHandler[dtos.SubscribeMessageDto](
 		ctx,
 		logger,
-		1,
-		100, //nolint:mnd //no magic number
+		topicWorkers,
+		topicQueueSize,
 	)
 
 	service.handler = &handler

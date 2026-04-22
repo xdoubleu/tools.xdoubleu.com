@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"fmt"
 	"math"
 	"slices"
 	"time"
@@ -123,7 +122,7 @@ func (grapher AchievementsGrapher) ToSlices() ([]string, []string) {
 
 		percentages = append(
 			percentages,
-			calculateAvgCompletionRate(totalPercentageDay, games),
+			models.CalculateAvgCompletionRate(totalPercentageDay, games),
 		)
 	}
 
@@ -132,9 +131,4 @@ func (grapher AchievementsGrapher) ToSlices() ([]string, []string) {
 
 func calculateCompletionRate(achieved int, total int) float64 {
 	return float64(achieved) / float64(total)
-}
-
-func calculateAvgCompletionRate(percentageSum float64, totalGames int) string {
-	//nolint:mnd //no magic number
-	return fmt.Sprintf("%.2f", math.Floor(percentageSum/float64(totalGames)*10000)/100)
 }

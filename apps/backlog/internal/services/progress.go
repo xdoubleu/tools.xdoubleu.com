@@ -70,8 +70,10 @@ func (s *ProgressService) GetCompletionRateDistribution(
 		return nil, err
 	}
 
-	//nolint:mnd // 11 buckets: [0-9], [10-19], ..., [90-99], [100]
-	counts := make([]int, 11)
+	// 11 buckets: [0-9], [10-19], ..., [90-99], [100]
+	const buckets = 11
+	const maxCompletionRate = 100.0
+	counts := make([]int, buckets)
 	for _, game := range games {
 		rate, parseErr := strconv.ParseFloat(game.CompletionRate, 64)
 		if parseErr != nil || rate <= 0 {
@@ -79,11 +81,10 @@ func (s *ProgressService) GetCompletionRateDistribution(
 		}
 
 		var bucket int
-		if rate >= 100 { //nolint:mnd // 100% is its own bucket
-			bucket = 10
+		if rate >= maxCompletionRate {
+			bucket = buckets - 1 // last bucket
 		} else {
-			//nolint:mnd // floor(rate/10) gives bucket index 0-9
-			bucket = int(math.Floor(rate / 10))
+			bucket = int(math.Floor(rate / (buckets - 1)))
 		}
 		counts[bucket]++
 	}

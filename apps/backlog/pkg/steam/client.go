@@ -75,9 +75,8 @@ func sendRequest(
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusTooManyRequests {
-		logger.DebugContext(ctx, "hit 429, sleeping 60s")
-		//nolint:mnd //no magic number
-		time.Sleep(60 * time.Second)
+		logger.DebugContext(ctx, "hit 429, sleeping 1m")
+		time.Sleep(time.Minute)
 		return sendRequest(ctx, logger, apiToken, baseURL, endpoint, query, dst)
 	}
 
