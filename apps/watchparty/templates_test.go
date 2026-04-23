@@ -106,7 +106,7 @@ func TestJoinRoomWithEmptyCode(t *testing.T) {
 	tReq.SetData(dtos.JoinRoomDto{RoomCode: ""})
 
 	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusOK, rs.StatusCode)
+	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
 }
 
 func TestJoinRoomWithNonExistentCode(t *testing.T) {

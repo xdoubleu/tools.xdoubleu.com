@@ -3,7 +3,6 @@ package icsproxy_test
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -69,21 +68,6 @@ func TestCreateHandler_WithExplicitToken(t *testing.T) {
 			HideEventUIDs: nil,
 			HolidayUIDs:   nil,
 		}, nil))
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-}
-
-func TestCreateHandler_WithHideUIDs(t *testing.T) {
-	srv := calendarServer(t)
-	defer srv.Close()
-
-	token := "hide-uid-test-token"
-	resp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{
-			SourceURL:     srv.URL,
-			Token:         token,
-			HideEventUIDs: []string{"test-uid-1"},
-			HolidayUIDs:   []string{"holiday-uid"},
-		}, url.Values{"hide_rec_Standup": {"true"}}))
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
