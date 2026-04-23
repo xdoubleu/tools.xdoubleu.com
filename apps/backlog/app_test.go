@@ -12,6 +12,7 @@ import (
 	"github.com/xdoubleu/essentia/v3/pkg/logging"
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/mocks"
+	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -57,8 +58,8 @@ func TestMain(m *testing.M) {
 	testDB = postgresDB
 
 	clients := backlog.Clients{
-		SteamFactory: func(_ string) steam.Client { return mocks.NewMockSteamClient() },
-		Goodreads:    mocks.NewMockGoodreadsClient(),
+		SteamFactory:     func(_ string) steam.Client { return mocks.NewMockSteamClient() },
+		HardcoverFactory: func(_ string) hardcover.Client { return mocks.NewMockHardcoverClient() },
 	}
 
 	testApp = backlog.NewInner(

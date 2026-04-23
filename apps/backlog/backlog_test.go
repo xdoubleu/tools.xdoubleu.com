@@ -10,6 +10,7 @@ import (
 	"github.com/xdoubleu/essentia/v3/pkg/test"
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/mocks"
+	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/templates"
@@ -24,8 +25,8 @@ func TestRootUnboarded(t *testing.T) {
 		testCfg,
 		testDB,
 		backlog.Clients{
-			SteamFactory: func(_ string) steam.Client { return mocks.NewMockSteamClient() },
-			Goodreads:    mocks.NewMockGoodreadsClient(),
+			SteamFactory:     func(_ string) steam.Client { return mocks.NewMockSteamClient() },
+			HardcoverFactory: func(_ string) hardcover.Client { return mocks.NewMockHardcoverClient() },
 		},
 		templates.LoadShared(testCfg),
 	)
@@ -78,35 +79,11 @@ func TestSteamPage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rs.StatusCode)
 }
 
-func TestGoodreadsPage(t *testing.T) {
-	tReq := test.CreateRequestTester(
-		getRoutes(),
-		http.MethodGet,
-		"/"+testApp.GetName()+"/goodreads",
-	)
-	tReq.AddCookie(&accessToken)
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusOK, rs.StatusCode)
-}
-
 func TestSteamPageWithDateRange(t *testing.T) {
 	tReq := test.CreateRequestTester(
 		getRoutes(),
 		http.MethodGet,
 		"/"+testApp.GetName()+"/steam?from=2024-01-01&to=2024-12-31",
-	)
-	tReq.AddCookie(&accessToken)
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusOK, rs.StatusCode)
-}
-
-func TestGoodreadsPageWithDateRange(t *testing.T) {
-	tReq := test.CreateRequestTester(
-		getRoutes(),
-		http.MethodGet,
-		"/"+testApp.GetName()+"/goodreads?from=2024-01-01&to=2024-12-31",
 	)
 	tReq.AddCookie(&accessToken)
 

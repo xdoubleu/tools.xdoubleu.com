@@ -1,0 +1,168 @@
+package services
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"log/slog"
+	"slices"
+	"time"
+
+	"tools.xdoubleu.com/apps/backlog/internal/models"
+	"tools.xdoubleu.com/apps/backlog/internal/repositories"
+	"tools.xdoubleu.com/apps/backlog/pkg/books"
+	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+)
+
+type BookService struct {
+	logger          *slog.Logger
+	books           *repositories.BooksRepository
+	providerFactory func(apiKey string) hardcover.Client
+	integrations    *IntegrationsService
+}
+
+func (s *BookService) Search(
+	ctx context.Context,
+	userID string,
+	query string,
+) ([]hardcover.ExternalBook, error) {
+	creds, err := s.integrations.Get(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if creds.HardcoverAPIKey == "" {
+		return nil, nil
+	}
+
+	return s.providerFactory(creds.HardcoverAPIKey).Search(ctx, query)
+}
+
+func (s *BookService) AddToLibrary(
+	ctx context.Context,
+	userID string,
+	ext hardcover.ExternalBook,
+	status string,
+) (*models.UserBook, error) {
+	book := externalToBook(ext)
+	saved, err := s.books.UpsertBook(ctx, book)
+	if err != nil {
+		return nil, err
+	}
+
+	ub := models.UserBook{ //nolint:exhaustruct //optional fields
+		UserID: userID,
+		BookID: saved.ID,
+		Status: status,
+	}
+	if err = s.books.UpsertUserBook(ctx, ub); err != nil {
+		return nil, err
+	}
+
+	return s.books.GetUserBook(ctx, userID, saved.ID)
+}
+
+func (s *BookService) UpdateStatus(
+	ctx context.Context,
+	userID string,
+	ub models.UserBook,
+) error {
+	return s.books.UpsertUserBook(ctx, ub)
+}
+
+func (s *BookService) GetByStatus(
+	ctx context.Context,
+	userID string,
+	status string,
+) ([]models.UserBook, error) {
+	return s.books.GetByStatus(ctx, userID, status)
+}
+
+func (s *BookService) GetLibrary(
+	ctx context.Context,
+	userID string,
+) ([]models.UserBook, error) {
+	return s.books.GetLibrary(ctx, userID)
+}
+
+// ImportFromCSV parses a Goodreads CSV export and upserts all entries into the library.
+// Returns the number of entries successfully imported.
+func (s *BookService) ImportFromCSV(
+	ctx context.Context,
+	userID string,
+	r io.Reader,
+) (int, error) {
+	entries, err := books.ParseCSV(r)
+	if err != nil {
+		return 0, err
+	}
+
+	bookList := make([]models.Book, len(entries))
+	ubList := make([]models.UserBook, len(entries))
+	for i, e := range entries {
+		bookList[i] = e.Book
+		ubList[i] = e.UserBook
+		ubList[i].UserID = userID
+	}
+
+	s.logger.DebugContext(ctx, fmt.Sprintf("importing %d books from CSV", len(entries)))
+
+	if err = s.books.BatchUpsert(ctx, userID, bookList, ubList); err != nil {
+		return 0, err
+	}
+
+	return len(entries), nil
+}
+
+// BuildReadProgress returns sorted cumulative labels+values suitable for the progress chart.
+func (s *BookService) BuildReadProgress(
+	ctx context.Context,
+	userID string,
+) ([]string, []string, error) {
+	dates, err := s.books.GetFinishedDates(ctx, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	uniqueDates := []string{}
+	for _, d := range dates {
+		ds := d.Format(models.ProgressDateFormat)
+		if !slices.Contains(uniqueDates, ds) {
+			uniqueDates = append(uniqueDates, ds)
+		}
+	}
+	slices.Sort(uniqueDates)
+
+	labels := make([]string, 0, len(uniqueDates))
+	values := make([]string, 0, len(uniqueDates))
+	cumulative := 0
+	for _, ds := range uniqueDates {
+		count := countDatesOn(dates, ds)
+		cumulative += count
+		labels = append(labels, ds)
+		values = append(values, fmt.Sprintf("%d", cumulative))
+	}
+
+	return labels, values, nil
+}
+
+func countDatesOn(dates []time.Time, dateStr string) int {
+	count := 0
+	for _, d := range dates {
+		if d.Format(models.ProgressDateFormat) == dateStr {
+			count++
+		}
+	}
+	return count
+}
+
+func externalToBook(ext hardcover.ExternalBook) models.Book {
+	return models.Book{ //nolint:exhaustruct //optional fields
+		Title:        ext.Title,
+		Authors:      ext.Authors,
+		ISBN13:       ext.ISBN13,
+		ISBN10:       ext.ISBN10,
+		CoverURL:     ext.CoverURL,
+		Description:  ext.Description,
+		ExternalRefs: map[string]string{ext.Provider: ext.ProviderID},
+	}
+}

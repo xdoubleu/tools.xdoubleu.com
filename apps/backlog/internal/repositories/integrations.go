@@ -9,10 +9,10 @@ import (
 )
 
 type UserIntegrations struct {
-	UserID       string
-	SteamAPIKey  string
-	SteamUserID  string
-	GoodreadsURL string
+	UserID          string
+	SteamAPIKey     string
+	SteamUserID     string
+	HardcoverAPIKey string
 }
 
 type IntegrationsRepository struct {
@@ -25,14 +25,14 @@ func (r *IntegrationsRepository) Get(
 ) (UserIntegrations, error) {
 	var i UserIntegrations
 	err := r.db.QueryRow(ctx, `
-		SELECT user_id, steam_api_key, steam_user_id, goodreads_url
+		SELECT user_id, steam_api_key, steam_user_id, hardcover_api_key
 		FROM goaltracker.user_integrations
 		WHERE user_id = $1
 	`, userID).Scan(
 		&i.UserID,
 		&i.SteamAPIKey,
 		&i.SteamUserID,
-		&i.GoodreadsURL,
+		&i.HardcoverAPIKey,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return UserIntegrations{ //nolint:exhaustruct //other fields default to ""
@@ -59,18 +59,18 @@ func (r *IntegrationsRepository) Upsert(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO goaltracker.user_integrations
-		    (user_id, steam_api_key, steam_user_id, goodreads_url, updated_at)
+		    (user_id, steam_api_key, steam_user_id, hardcover_api_key, updated_at)
 		VALUES ($1, $2, $3, $4, now())
 		ON CONFLICT (user_id) DO UPDATE SET
-			steam_api_key = EXCLUDED.steam_api_key,
-			steam_user_id = EXCLUDED.steam_user_id,
-			goodreads_url = EXCLUDED.goodreads_url,
-			updated_at    = now()
+			steam_api_key     = EXCLUDED.steam_api_key,
+			steam_user_id     = EXCLUDED.steam_user_id,
+			hardcover_api_key = EXCLUDED.hardcover_api_key,
+			updated_at        = now()
 	`,
 		i.UserID,
 		i.SteamAPIKey,
 		i.SteamUserID,
-		i.GoodreadsURL,
+		i.HardcoverAPIKey,
 	)
 	return err
 }

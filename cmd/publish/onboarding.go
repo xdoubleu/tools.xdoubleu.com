@@ -27,9 +27,9 @@ func (app *Application) saveOnboardingHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	integrations := backlog.Integrations{
-		SteamAPIKey:  dto.SteamAPIKey,
-		SteamUserID:  dto.SteamUserID,
-		GoodreadsURL: dto.GoodreadsURL,
+		SteamAPIKey:     dto.SteamAPIKey,
+		SteamUserID:     dto.SteamUserID,
+		HardcoverAPIKey: dto.HardcoverAPIKey,
 	}
 
 	if err := app.backlog.SaveIntegrations(

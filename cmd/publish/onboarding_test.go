@@ -31,9 +31,9 @@ func TestSaveOnboardingHandler(t *testing.T) {
 	tReq.SetFollowRedirect(false)
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetData(dtos.IntegrationsDto{
-		SteamAPIKey:  "test-steam-key",
-		SteamUserID:  "test-steam-user",
-		GoodreadsURL: "https://goodreads.com/user/123",
+		SteamAPIKey:     "test-steam-key",
+		SteamUserID:     "test-steam-user",
+		HardcoverAPIKey: "test-hardcover-key",
 	})
 
 	rs := tReq.Do(t)

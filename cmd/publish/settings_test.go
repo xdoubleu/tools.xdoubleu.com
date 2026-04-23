@@ -31,9 +31,9 @@ func TestSaveSettingsHandler(t *testing.T) {
 	tReq.SetFollowRedirect(false)
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetData(dtos.IntegrationsDto{
-		SteamAPIKey:  "test-steam-key",
-		SteamUserID:  "test-steam-user",
-		GoodreadsURL: "https://goodreads.com/user/123",
+		SteamAPIKey:     "test-steam-key",
+		SteamUserID:     "test-steam-user",
+		HardcoverAPIKey: "test-hardcover-key",
 	})
 
 	rs := tReq.Do(t)
@@ -49,9 +49,9 @@ func TestSaveSettingsRoundTrip(t *testing.T) {
 	postReq.SetFollowRedirect(false)
 	postReq.SetContentType(test.FormContentType)
 	postReq.SetData(dtos.IntegrationsDto{
-		SteamAPIKey:  "round-trip-key",
-		SteamUserID:  "round-trip-user",
-		GoodreadsURL: "https://goodreads.com/user/123",
+		SteamAPIKey:     "round-trip-key",
+		SteamUserID:     "round-trip-user",
+		HardcoverAPIKey: "round-trip-hardcover-key",
 	})
 	rs := postReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)

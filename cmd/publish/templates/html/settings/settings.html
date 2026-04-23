@@ -36,11 +36,12 @@
                         value="{{ .Integrations.SteamUserID }}">
                 </div>
 
-                <h5 class="mb-3">Goodreads</h5>
+                <h5 class="mb-3">Hardcover</h5>
                 <div class="mb-4">
-                    <label for="goodreads_url" class="form-label">Profile URL</label>
-                    <input type="url" class="form-control" id="goodreads_url" name="goodreads_url"
-                        value="{{ .Integrations.GoodreadsURL }}">
+                    <label for="hardcover_api_key" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="hardcover_api_key" name="hardcover_api_key"
+                        value="{{ .Integrations.HardcoverAPIKey }}" autocomplete="off">
+                    <div class="form-text">Find your API key at hardcover.app → Settings → API.</div>
                 </div>
 
                 <button type="submit" class="btn btn-dark">Save</button>
