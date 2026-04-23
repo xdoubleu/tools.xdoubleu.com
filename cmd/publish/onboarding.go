@@ -4,8 +4,10 @@ import (
 	"errors"
 	"net/http"
 
+	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog"
+	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 )
 
 func (app *Application) onboardingHandler(w http.ResponseWriter, _ *http.Request) {
@@ -18,18 +20,16 @@ func (app *Application) saveOnboardingHandler(w http.ResponseWriter, r *http.Req
 		panic(errors.New("not signed in"))
 	}
 
-	//nolint:mnd //no magic number
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+	var dto dtos.IntegrationsDto
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		httptools.HandleError(w, r, err)
 		return
 	}
 
 	integrations := backlog.Integrations{
-		SteamAPIKey:  r.FormValue("steam_api_key"),
-		SteamUserID:  r.FormValue("steam_user_id"),
-		GoodreadsURL: r.FormValue("goodreads_url"),
+		SteamAPIKey:  dto.SteamAPIKey,
+		SteamUserID:  dto.SteamUserID,
+		GoodreadsURL: dto.GoodreadsURL,
 	}
 
 	if err := app.backlog.SaveIntegrations(

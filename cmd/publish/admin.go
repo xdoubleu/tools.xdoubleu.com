@@ -4,11 +4,10 @@ import (
 	"errors"
 	"net/http"
 
+	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
-	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 )
-
-const adminMaxBodySize = 1 << 20
 
 func (app *Application) adminHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := app.appUsersRepo.GetAllWithAccess(r.Context())
@@ -36,15 +35,18 @@ func (app *Application) adminSetRoleHandler(w http.ResponseWriter, r *http.Reque
 
 	userID := r.PathValue("userID")
 
-	r.Body = http.MaxBytesReader(w, r.Body, adminMaxBodySize)
-	role := models.Role(r.FormValue("role"))
-
-	if role != models.RoleAdmin && role != models.RoleUser {
-		http.Error(w, "invalid role", http.StatusBadRequest)
+	var dto dtos.SetRoleDto
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		httptools.HandleError(w, r, err)
 		return
 	}
 
-	if err := app.appUsersRepo.SetRole(r.Context(), userID, role); err != nil {
+	if ok, errs := dto.Validate(); !ok {
+		httptools.FailedValidationResponse(w, r, errs)
+		return
+	}
+
+	if err := app.appUsersRepo.SetRole(r.Context(), userID, dto.Role); err != nil {
 		http.Error(w, "failed to update role", http.StatusInternalServerError)
 		return
 	}
@@ -64,14 +66,17 @@ func (app *Application) adminSetAppAccessHandler(
 	userID := r.PathValue("userID")
 	appName := r.PathValue("appName")
 
-	r.Body = http.MaxBytesReader(w, r.Body, adminMaxBodySize)
-	grant := r.FormValue("grant") == "true"
+	var dto dtos.SetAppAccessDto
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		httptools.HandleError(w, r, err)
+		return
+	}
 
 	if err := app.appUsersRepo.SetAppAccess(
 		r.Context(),
 		userID,
 		appName,
-		grant); err != nil {
+		dto.Grant); err != nil {
 		http.Error(w, "failed to update app access", http.StatusInternalServerError)
 		return
 	}
