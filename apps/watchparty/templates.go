@@ -109,30 +109,25 @@ func (app *WatchParty) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//nolint:mnd //no magic number
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+	var dto dtos.JoinRoomDto
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		httptools.HandleError(w, r, err)
 		return
 	}
 
-	roomCode := r.FormValue("roomCode")
-	if roomCode == "" {
+	if ok, errs := dto.Validate(); !ok {
+		httptools.FailedValidationResponse(w, r, errs)
+		return
+	}
+
+	if !app.Services.Room.RoomExists(dto.RoomCode) {
 		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
-			Error: "Room code is required.",
+			Error: fmt.Sprintf("Room %q does not exist.", dto.RoomCode),
 		})
 		return
 	}
 
-	if !app.Services.Room.RoomExists(roomCode) {
-		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
-			Error: fmt.Sprintf("Room %q does not exist.", roomCode),
-		})
-		return
-	}
-
-	ok := app.Services.Room.JoinViewer(r.Context(), roomCode, user.ID)
+	ok := app.Services.Room.JoinViewer(r.Context(), dto.RoomCode, user.ID)
 	if !ok {
 		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
 			Error: "Could not join room.",

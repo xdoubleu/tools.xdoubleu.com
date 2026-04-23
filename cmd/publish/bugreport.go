@@ -13,16 +13,11 @@ import (
 	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
 	"github.com/xdoubleu/essentia/v3/pkg/errortools"
+	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
-
-type bugReportDto struct {
-	Title       string `schema:"title"`
-	Description string `schema:"description"`
-	Page        string `schema:"page"`
-}
 
 type githubIssueRequest struct {
 	Title string `json:"title"`
@@ -42,7 +37,7 @@ func (app *Application) bugReportHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var dto bugReportDto
+	var dto dtos.BugReportDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
 		httptools.HandleError(w, r, err)
 		return

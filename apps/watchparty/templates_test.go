@@ -9,13 +9,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 )
 
 const presenterID = "presenter-user-id-for-testing"
-
-type joinRoomForm struct {
-	RoomCode string `schema:"roomCode"`
-}
 
 func TestRootShowsLobbyWhenNotInRoom(t *testing.T) {
 	_, routes := newTestApp()
@@ -106,10 +103,10 @@ func TestJoinRoomWithEmptyCode(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(joinRoomForm{RoomCode: ""})
+	tReq.SetData(dtos.JoinRoomDto{RoomCode: ""})
 
 	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusOK, rs.StatusCode)
+	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
 }
 
 func TestJoinRoomWithNonExistentCode(t *testing.T) {
@@ -122,7 +119,7 @@ func TestJoinRoomWithNonExistentCode(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(joinRoomForm{RoomCode: "NONEXISTENT"})
+	tReq.SetData(dtos.JoinRoomDto{RoomCode: "NONEXISTENT"})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusOK, rs.StatusCode)
@@ -141,7 +138,7 @@ func TestJoinRoomSuccess(t *testing.T) {
 	tReq.SetFollowRedirect(false)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(joinRoomForm{RoomCode: roomCode})
+	tReq.SetData(dtos.JoinRoomDto{RoomCode: roomCode})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -56,10 +57,6 @@ func TestAdminSetRoleHandler(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	type roleForm struct {
-		Role string `schema:"role"`
-	}
-
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
@@ -68,7 +65,7 @@ func TestAdminSetRoleHandler(t *testing.T) {
 	tReq.AddCookie(&accessToken)
 	tReq.SetFollowRedirect(false)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(roleForm{Role: "user"})
+	tReq.SetData(dtos.SetRoleDto{Role: models.RoleUser})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
@@ -82,10 +79,6 @@ func TestAdminSetRoleHandlerInvalidRole(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	type roleForm struct {
-		Role string `schema:"role"`
-	}
-
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
@@ -93,20 +86,16 @@ func TestAdminSetRoleHandlerInvalidRole(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(roleForm{Role: "superuser"})
+	tReq.SetData(dtos.SetRoleDto{Role: "superuser"})
 
 	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusBadRequest, rs.StatusCode)
+	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
 }
 
 func TestAdminSetAppAccessHandler(t *testing.T) {
 	ctx := context.Background()
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
-
-	type accessForm struct {
-		Grant string `schema:"grant"`
-	}
 
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
@@ -116,7 +105,7 @@ func TestAdminSetAppAccessHandler(t *testing.T) {
 	tReq.AddCookie(&accessToken)
 	tReq.SetFollowRedirect(false)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(accessForm{Grant: "true"})
+	tReq.SetData(dtos.SetAppAccessDto{Grant: true})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
@@ -133,7 +122,7 @@ func TestAdminSetAppAccessHandler(t *testing.T) {
 	tReq2.AddCookie(&accessToken)
 	tReq2.SetFollowRedirect(false)
 	tReq2.SetContentType(test.FormContentType)
-	tReq2.SetData(accessForm{Grant: "false"})
+	tReq2.SetData(dtos.SetAppAccessDto{Grant: false})
 
 	rs2 := tReq2.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs2.StatusCode)

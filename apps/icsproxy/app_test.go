@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -87,19 +86,4 @@ func getRoutes() http.Handler {
 	mux := http.NewServeMux()
 	testApp.Routes(testApp.GetName(), mux)
 	return mux
-}
-
-func doRequest(t *testing.T, method, path, body string) *http.Response {
-	t.Helper()
-	var req *http.Request
-	if body != "" {
-		req = httptest.NewRequest(method, path,
-			strings.NewReader(body))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	} else {
-		req = httptest.NewRequest(method, path, nil)
-	}
-	rr := httptest.NewRecorder()
-	getRoutes().ServeHTTP(rr, req)
-	return rr.Result()
 }

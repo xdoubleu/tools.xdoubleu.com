@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
+	"tools.xdoubleu.com/apps/icsproxy/internal/dtos"
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -43,17 +45,18 @@ func (app *ICSProxy) indexHandler(w http.ResponseWriter, r *http.Request) {
 // =======================
 
 func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
-	//nolint:mnd //no magic number
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+	var dto dtos.PreviewDto
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		httptools.HandleError(w, r, err)
 		return
 	}
 
-	sourceURL := r.FormValue("source_url")
+	if ok, errs := dto.Validate(); !ok {
+		httptools.FailedValidationResponse(w, r, errs)
+		return
+	}
 
-	data, err := app.services.Calendar.FetchICS(r.Context(), sourceURL)
+	data, err := app.services.Calendar.FetchICS(r.Context(), dto.SourceURL)
 	if err != nil {
 		http.Error(w, "Failed to fetch calendar", http.StatusBadGateway)
 		return
@@ -66,7 +69,7 @@ func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tpltools.RenderWithPanic(app.tpl, w, "preview.html", map[string]any{
-		"SourceURL":          sourceURL,
+		"SourceURL":          dto.SourceURL,
 		"Events":             events,
 		"CheckedHideUIDs":    map[string]bool{},
 		"CheckedHolidayUIDs": map[string]bool{},
@@ -143,35 +146,28 @@ func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
 		panic(errors.New("not signed in"))
 	}
 
-	//nolint:mnd //no magic number
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+	var dto dtos.CreateFilterDto
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		httptools.HandleError(w, r, err)
 		return
 	}
 
-	sourceURL := r.FormValue("source_url")
+	if ok, errs := dto.Validate(); !ok {
+		httptools.FailedValidationResponse(w, r, errs)
+		return
+	}
 
-	token := r.FormValue("token")
-	if token == "" {
-		token = uuid.NewString()
+	if dto.Token == "" {
+		dto.Token = uuid.NewString()
 	}
 
 	cfg := models.FilterConfig{
-		Token:         token,
+		Token:         dto.Token,
 		UserID:        user.ID,
-		SourceURL:     sourceURL,
-		HideEventUIDs: r.Form["hide_uid"],
-		HolidayUIDs:   r.Form["holiday_uid"],
-		HideSeries:    map[string]bool{},
-	}
-
-	for key := range r.Form {
-		if strings.HasPrefix(key, "hide_rec_") {
-			recKey := strings.TrimPrefix(key, "hide_rec_")
-			cfg.HideSeries[recKey] = true
-		}
+		SourceURL:     dto.SourceURL,
+		HideEventUIDs: dto.HideEventUIDs,
+		HolidayUIDs:   dto.HolidayUIDs,
+		HideSeries:    dto.HideSeries(r.Form),
 	}
 
 	if err := app.services.Calendar.SaveConfig(r.Context(), cfg); err != nil {
@@ -185,7 +181,7 @@ func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	downloadURL := fmt.Sprintf("/icsproxy/%s.ics", token)
+	downloadURL := fmt.Sprintf("/icsproxy/%s.ics", dto.Token)
 
 	summaries, _ := app.services.Calendar.ListConfigSummaries(r.Context(), user.ID)
 
