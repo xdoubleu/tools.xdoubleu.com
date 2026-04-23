@@ -3,6 +3,7 @@ package backlog
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
@@ -26,6 +27,25 @@ type steamPageData struct {
 	DateEnd      string
 }
 
+var distLabels = []string{ //nolint:gochecknoglobals //shared by handlers
+	"0–9%",
+	"10–19%",
+	"20–29%",
+	"30–39%",
+	"40–49%",
+	"50–59%",
+	"60–69%",
+	"70–79%",
+	"80–89%",
+	"90–99%",
+	"100%",
+}
+
+type distributionPageData struct {
+	Label string
+	Games []models.Game
+}
+
 type goodreadsPageData struct {
 	Books     []goodreads.Book
 	Labels    []string
@@ -46,6 +66,10 @@ func (app *Backlog) backlogRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"GET /"+prefix+"/steam",
 		app.Services.Auth.AppAccess(prefix, app.steamPageHandler),
+	)
+	mux.HandleFunc(
+		"GET /"+prefix+"/steam/distribution/{bucket}",
+		app.Services.Auth.AppAccess(prefix, app.steamDistributionHandler),
 	)
 	mux.HandleFunc(
 		"GET /"+prefix+"/goodreads",
@@ -138,10 +162,8 @@ func (app *Backlog) steamPageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	distribution, err := app.Services.Progress.GetCompletionRateDistribution(
-		r.Context(),
-		user.ID,
-	)
+	distribution, _, err := app.Services.Progress.
+		GetCompletionRateDistribution(r.Context(), user.ID)
 	if err != nil {
 		panic(err)
 	}
@@ -178,6 +200,33 @@ func (app *Backlog) steamPageHandler(w http.ResponseWriter, r *http.Request) {
 		Values:       values,
 		DateStart:    dateStart.Format(models.ProgressDateFormat),
 		DateEnd:      dateEnd.Format(models.ProgressDateFormat),
+	})
+}
+
+func (app *Backlog) steamDistributionHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[sharedmodels.User](
+		r.Context(),
+		constants.UserContextKey,
+	)
+	if user == nil {
+		panic(errors.New("not signed in"))
+	}
+
+	bucket, err := strconv.Atoi(r.PathValue("bucket"))
+	if err != nil || bucket < 0 || bucket >= len(distLabels) {
+		http.NotFound(w, r)
+		return
+	}
+
+	_, bucketGames, err := app.Services.Progress.
+		GetCompletionRateDistribution(r.Context(), user.ID)
+	if err != nil {
+		panic(err)
+	}
+
+	tpltools.RenderWithPanic(app.tpl, w, "distribution.html", distributionPageData{
+		Label: distLabels[bucket],
+		Games: bucketGames[bucket],
 	})
 }
 

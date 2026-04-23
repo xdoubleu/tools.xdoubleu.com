@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"math"
+	"sort"
 	"strconv"
 	"time"
 
@@ -64,16 +65,21 @@ func (s *ProgressService) GetCurrentSteamCompletionRate(
 func (s *ProgressService) GetCompletionRateDistribution(
 	ctx context.Context,
 	userID string,
-) ([]int, error) {
+) ([]int, [][]models.Game, error) {
 	games, err := s.steam.GetAllGames(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// 11 buckets: [0-9], [10-19], ..., [90-99], [100]
 	const buckets = 11
 	const maxCompletionRate = 100.0
 	counts := make([]int, buckets)
+	bucketGames := make([][]models.Game, buckets)
+	for i := range bucketGames {
+		bucketGames[i] = []models.Game{}
+	}
+
 	for _, game := range games {
 		rate, parseErr := strconv.ParseFloat(game.CompletionRate, 64)
 		if parseErr != nil || rate <= 0 {
@@ -87,7 +93,19 @@ func (s *ProgressService) GetCompletionRateDistribution(
 			bucket = int(math.Floor(rate / (buckets - 1)))
 		}
 		counts[bucket]++
+		bucketGames[bucket] = append(bucketGames[bucket], game)
 	}
 
-	return counts, nil
+	for i := range bucketGames {
+		sort.Slice(bucketGames[i], func(a, b int) bool {
+			rateA, _ := strconv.ParseFloat(bucketGames[i][a].CompletionRate, 64)
+			rateB, _ := strconv.ParseFloat(bucketGames[i][b].CompletionRate, 64)
+			if rateA != rateB {
+				return rateA < rateB
+			}
+			return bucketGames[i][a].Name < bucketGames[i][b].Name
+		})
+	}
+
+	return counts, bucketGames, nil
 }
