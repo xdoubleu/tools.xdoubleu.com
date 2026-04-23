@@ -4,14 +4,10 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v3/pkg/logging"
@@ -90,29 +86,4 @@ func getRoutes() http.Handler {
 	mux := http.NewServeMux()
 	testApp.Routes(testApp.GetName(), mux)
 	return mux
-}
-
-func encodeForm(t *testing.T, dto any, extra url.Values) string {
-	t.Helper()
-	values, err := httptools.WriteForm(dto)
-	require.NoError(t, err)
-	for k, vs := range extra {
-		values[k] = vs
-	}
-	return values.Encode()
-}
-
-func doRequest(t *testing.T, method, path, body string) *http.Response {
-	t.Helper()
-	var req *http.Request
-	if body != "" {
-		req = httptest.NewRequest(method, path,
-			strings.NewReader(body))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	} else {
-		req = httptest.NewRequest(method, path, nil)
-	}
-	rr := httptest.NewRecorder()
-	getRoutes().ServeHTTP(rr, req)
-	return rr.Result()
 }
