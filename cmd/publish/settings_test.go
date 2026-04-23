@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 )
 
 func TestGetSettingsHandler(t *testing.T) {
@@ -21,14 +22,6 @@ func TestGetSettingsHandler(t *testing.T) {
 }
 
 func TestSaveSettingsHandler(t *testing.T) {
-	type settingsForm struct {
-		TodoistAPIKey    string `form:"todoist_api_key"`
-		TodoistProjectID string `form:"todoist_project_id"`
-		SteamAPIKey      string `form:"steam_api_key"`
-		SteamUserID      string `form:"steam_user_id"`
-		GoodreadsURL     string `form:"goodreads_url"`
-	}
-
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
@@ -37,12 +30,10 @@ func TestSaveSettingsHandler(t *testing.T) {
 	tReq.AddCookie(&accessToken)
 	tReq.SetFollowRedirect(false)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(settingsForm{
-		TodoistAPIKey:    "test-todoist-key",
-		TodoistProjectID: "test-project-id",
-		SteamAPIKey:      "test-steam-key",
-		SteamUserID:      "test-steam-user",
-		GoodreadsURL:     "https://goodreads.com/user/123",
+	tReq.SetData(dtos.IntegrationsDto{
+		SteamAPIKey:  "test-steam-key",
+		SteamUserID:  "test-steam-user",
+		GoodreadsURL: "https://goodreads.com/user/123",
 	})
 
 	rs := tReq.Do(t)
@@ -51,26 +42,16 @@ func TestSaveSettingsHandler(t *testing.T) {
 }
 
 func TestSaveSettingsRoundTrip(t *testing.T) {
-	type settingsForm struct {
-		TodoistAPIKey    string `form:"todoist_api_key"`
-		TodoistProjectID string `form:"todoist_project_id"`
-		SteamAPIKey      string `form:"steam_api_key"`
-		SteamUserID      string `form:"steam_user_id"`
-		GoodreadsURL     string `form:"goodreads_url"`
-	}
-
 	routes := testApp.Routes()
 
 	postReq := test.CreateRequestTester(routes, http.MethodPost, "/settings")
 	postReq.AddCookie(&accessToken)
 	postReq.SetFollowRedirect(false)
 	postReq.SetContentType(test.FormContentType)
-	postReq.SetData(settingsForm{
-		TodoistAPIKey:    "round-trip-key",
-		TodoistProjectID: "round-trip-project",
-		SteamAPIKey:      "",
-		SteamUserID:      "",
-		GoodreadsURL:     "",
+	postReq.SetData(dtos.IntegrationsDto{
+		SteamAPIKey:  "round-trip-key",
+		SteamUserID:  "round-trip-user",
+		GoodreadsURL: "https://goodreads.com/user/123",
 	})
 	rs := postReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)

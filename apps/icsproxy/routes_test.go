@@ -3,11 +3,11 @@ package icsproxy_test
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"tools.xdoubleu.com/apps/icsproxy/internal/dtos"
 )
 
 // ── feedHandler ──────────────────────────────────────────────────────────────
@@ -17,11 +17,8 @@ func TestFeedHandler_ValidToken(t *testing.T) {
 	defer srv.Close()
 
 	token := "feed-test-token-001"
-	form := url.Values{
-		"source_url": {srv.URL},
-		"token":      {token},
-	}.Encode()
-	createResp := doRequest(t, http.MethodPost, "/icsproxy/create", form)
+	createResp := doRequest(t, http.MethodPost, "/icsproxy/create",
+		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	resp := doRequest(t, http.MethodGet,
@@ -39,11 +36,8 @@ func TestFeedHandler_SourceDown(t *testing.T) {
 	srv := calendarServer(t)
 
 	token := "feed-broken-source-001"
-	form := url.Values{
-		"source_url": {srv.URL},
-		"token":      {token},
-	}.Encode()
-	createResp := doRequest(t, http.MethodPost, "/icsproxy/create", form)
+	createResp := doRequest(t, http.MethodPost, "/icsproxy/create",
+		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	// Shut down the source server so the feed fetch fails

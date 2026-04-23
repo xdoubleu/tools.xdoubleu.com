@@ -4,14 +4,17 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
 	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
+	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	"github.com/stretchr/testify/require"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -87,6 +90,16 @@ func getRoutes() http.Handler {
 	mux := http.NewServeMux()
 	testApp.Routes(testApp.GetName(), mux)
 	return mux
+}
+
+func encodeForm(t *testing.T, dto any, extra url.Values) string {
+	t.Helper()
+	values, err := httptools.WriteForm(dto)
+	require.NoError(t, err)
+	for k, vs := range extra {
+		values[k] = vs
+	}
+	return values.Encode()
 }
 
 func doRequest(t *testing.T, method, path, body string) *http.Response {

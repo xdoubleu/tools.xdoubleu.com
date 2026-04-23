@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 )
 
 func TestGetOnboardingHandler(t *testing.T) {
@@ -21,12 +22,6 @@ func TestGetOnboardingHandler(t *testing.T) {
 }
 
 func TestSaveOnboardingHandler(t *testing.T) {
-	type onboardingForm struct {
-		SteamAPIKey  string `form:"steam_api_key"`
-		SteamUserID  string `form:"steam_user_id"`
-		GoodreadsURL string `form:"goodreads_url"`
-	}
-
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
@@ -35,7 +30,7 @@ func TestSaveOnboardingHandler(t *testing.T) {
 	tReq.AddCookie(&accessToken)
 	tReq.SetFollowRedirect(false)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(onboardingForm{
+	tReq.SetData(dtos.IntegrationsDto{
 		SteamAPIKey:  "test-steam-key",
 		SteamUserID:  "test-steam-user",
 		GoodreadsURL: "https://goodreads.com/user/123",

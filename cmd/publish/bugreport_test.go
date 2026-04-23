@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 )
 
@@ -23,11 +24,6 @@ func (f roundTripFunc) RoundTrip(
 	return f(r)
 }
 
-type bugReportFormData struct {
-	Title       string `schema:"title"`
-	Description string `schema:"description"`
-}
-
 func TestBugReportNotConfigured(t *testing.T) {
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
@@ -36,7 +32,7 @@ func TestBugReportNotConfigured(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(bugReportFormData{"Test bug", "Something broke"})
+	tReq.SetData(dtos.BugReportDto{Title: "Test bug", Description: "Something broke"})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusServiceUnavailable, rs.StatusCode)
@@ -49,7 +45,7 @@ func TestBugReportUnauthorized(t *testing.T) {
 		"/api/bug-report",
 	)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(bugReportFormData{"Test bug", "Something broke"})
+	tReq.SetData(dtos.BugReportDto{Title: "Test bug", Description: "Something broke"})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusUnauthorized, rs.StatusCode)
@@ -63,7 +59,7 @@ func TestBugReportEmptyFields(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(bugReportFormData{"", ""})
+	tReq.SetData(dtos.BugReportDto{Title: "", Description: ""})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
@@ -100,7 +96,7 @@ func TestBugReportSuccess(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(bugReportFormData{"Real bug", "Something broke on page /settings"})
+	tReq.SetData(dtos.BugReportDto{Title: "Real bug", Description: "Something broke on page /settings"})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusOK, rs.StatusCode)
