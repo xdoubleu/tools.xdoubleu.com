@@ -65,7 +65,7 @@ func (repo *SteamRepository) GetBacklog(
 		       sg.contribution, sg.playtime_forever
 		FROM goaltracker.steam_games sg
 		WHERE sg.user_id = $1
-		    AND sg.playtime_forever = 0
+		    AND CAST(sg.completion_rate AS FLOAT) = 0
 		    AND sg.is_delisted = false
 		    AND EXISTS (
 		        SELECT 1 FROM goaltracker.steam_achievements sa
@@ -115,14 +115,14 @@ func (repo *SteamRepository) GetInProgress(
 		       sg.contribution, sg.playtime_forever
 		FROM goaltracker.steam_games sg
 		WHERE sg.user_id = $1
-		    AND sg.playtime_forever > 0
+		    AND CAST(sg.completion_rate AS FLOAT) > 0
 		    AND sg.is_delisted = false
 		    AND CAST(sg.completion_rate AS FLOAT) < 100
 		    AND EXISTS (
 		        SELECT 1 FROM goaltracker.steam_achievements sa
 		        WHERE sa.game_id = sg.id AND sa.user_id = $1
 		    )
-		ORDER BY sg.name
+		ORDER BY CAST(sg.completion_rate AS FLOAT) ASC, sg.name
 	`
 
 	rows, err := repo.db.Query(ctx, query, userID)
@@ -172,7 +172,7 @@ func (repo *SteamRepository) GetCompleted(
 		        SELECT 1 FROM goaltracker.steam_achievements sa
 		        WHERE sa.game_id = sg.id AND sa.user_id = $1
 		    )
-		ORDER BY sg.name
+		ORDER BY CAST(sg.completion_rate AS FLOAT) ASC, sg.name
 	`
 
 	rows, err := repo.db.Query(ctx, query, userID)

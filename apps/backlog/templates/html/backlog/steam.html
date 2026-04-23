@@ -63,7 +63,7 @@
             <div class="card">
                 <div class="card-header">Completion Rate Distribution</div>
                 <div class="card-body">
-                    <canvas id="distChart"></canvas>
+                    <canvas id="distChart" style="cursor:pointer"></canvas>
                 </div>
             </div>
         </div>
@@ -80,14 +80,24 @@
                     </button>
                 </div>
                 <div id="sectionInProgress" class="collapse show">
-                    <ul class="list-group list-group-flush">
-                        {{ range .InProgress }}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ .Name }}
-                            <span class="badge bg-primary">{{ .CompletionRate }}%</span>
-                        </li>
-                        {{ end }}
-                    </ul>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {{ range .InProgress }}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="card h-100">
+                                    <img src="https://cdn.akamai.steamstatic.com/steam/apps/{{ .ID }}/header.jpg"
+                                         class="card-img-top" alt="{{ .Name }}"
+                                         style="aspect-ratio:460/215;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    <div class="card-body p-2">
+                                        <p class="card-text small mb-1 fw-semibold">{{ .Name }}</p>
+                                        <span class="badge bg-primary">{{ .CompletionRate }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
                 </div>
             </div>
             {{ end }}
@@ -100,13 +110,25 @@
                         <span class="badge bg-secondary">{{ len .NotStarted }}</span>
                     </button>
                 </div>
-                <div id="sectionNotStarted" class="collapse show">
+                <div id="sectionNotStarted" class="collapse">
                     {{ if .NotStarted }}
-                    <ul class="list-group list-group-flush">
-                        {{ range .NotStarted }}
-                        <li class="list-group-item">{{ .Name }}</li>
-                        {{ end }}
-                    </ul>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {{ range .NotStarted }}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="card h-100">
+                                    <img src="https://cdn.akamai.steamstatic.com/steam/apps/{{ .ID }}/header.jpg"
+                                         class="card-img-top" alt="{{ .Name }}"
+                                         style="aspect-ratio:460/215;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    <div class="card-body p-2">
+                                        <p class="card-text small mb-1 fw-semibold">{{ .Name }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
                     {{ else }}
                     <div class="card-body text-muted">No unplayed games.</div>
                     {{ end }}
@@ -123,11 +145,24 @@
                     </button>
                 </div>
                 <div id="sectionCompleted" class="collapse">
-                    <ul class="list-group list-group-flush">
-                        {{ range .Completed }}
-                        <li class="list-group-item">{{ .Name }}</li>
-                        {{ end }}
-                    </ul>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {{ range .Completed }}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="card h-100">
+                                    <img src="https://cdn.akamai.steamstatic.com/steam/apps/{{ .ID }}/header.jpg"
+                                         class="card-img-top" alt="{{ .Name }}"
+                                         style="aspect-ratio:460/215;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    <div class="card-body p-2">
+                                        <p class="card-text small mb-1 fw-semibold">{{ .Name }}</p>
+                                        <span class="badge bg-success">{{ .CompletionRate }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
                 </div>
             </div>
             {{ end }}
@@ -174,13 +209,36 @@
                     borderWidth: 1,
                 }]
             },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } },
+                onClick: (_evt, elements) => {
+                    if (!elements.length) return;
+                    window.location.href = "/backlog/steam/distribution/" + elements[0].index;
+                }
+            }
         });
     }
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("from") || params.has("to")) {
-        document.getElementById("progress-tab").click();
-    }
+    window.addEventListener("load", () => {
+        const TAB_KEY = "steamActiveTab";
+        const params = new URLSearchParams(window.location.search);
+
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
+            btn.addEventListener("shown.bs.tab", () => {
+                sessionStorage.setItem(TAB_KEY, btn.getAttribute("data-bs-target"));
+            });
+        });
+
+        if (params.has("from") || params.has("to")) {
+            document.getElementById("progress-tab").click();
+        } else {
+            const savedTab = sessionStorage.getItem(TAB_KEY);
+            if (savedTab) {
+                const btn = document.querySelector(`[data-bs-target="${savedTab}"]`);
+                if (btn) btn.click();
+            }
+        }
+    });
 </script>
 {{ template "footer" }}
