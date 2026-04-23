@@ -32,7 +32,9 @@ func TestBugReportNotConfigured(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.BugReportDto{Title: "Test bug", Description: "Something broke"})
+	tReq.SetData(dtos.BugReportDto{
+		Title: "Test bug", Description: "Something broke", Page: "",
+	})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusServiceUnavailable, rs.StatusCode)
@@ -45,7 +47,9 @@ func TestBugReportUnauthorized(t *testing.T) {
 		"/api/bug-report",
 	)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.BugReportDto{Title: "Test bug", Description: "Something broke"})
+	tReq.SetData(dtos.BugReportDto{
+		Title: "Test bug", Description: "Something broke", Page: "",
+	})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusUnauthorized, rs.StatusCode)
@@ -59,7 +63,7 @@ func TestBugReportEmptyFields(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.BugReportDto{Title: "", Description: ""})
+	tReq.SetData(dtos.BugReportDto{Title: "", Description: "", Page: ""})
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
@@ -96,7 +100,13 @@ func TestBugReportSuccess(t *testing.T) {
 	)
 	tReq.AddCookie(&accessToken)
 	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.BugReportDto{Title: "Real bug", Description: "Something broke on page /settings"})
+	tReq.SetData(
+		dtos.BugReportDto{
+			Title:       "Real bug",
+			Description: "Something broke on page /settings",
+			Page:        "",
+		},
+	)
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusOK, rs.StatusCode)

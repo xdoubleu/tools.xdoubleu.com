@@ -48,7 +48,12 @@ func TestCreateHandler_CreatesConfig(t *testing.T) {
 	defer srv.Close()
 
 	resp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL}, nil))
+		encodeForm(t, dtos.CreateFilterDto{
+			SourceURL:     srv.URL,
+			Token:         "",
+			HideEventUIDs: nil,
+			HolidayUIDs:   nil,
+		}, nil))
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
@@ -58,7 +63,12 @@ func TestCreateHandler_WithExplicitToken(t *testing.T) {
 
 	token := "explicit-test-token-001"
 	resp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
+		encodeForm(t, dtos.CreateFilterDto{
+			SourceURL:     srv.URL,
+			Token:         token,
+			HideEventUIDs: nil,
+			HolidayUIDs:   nil,
+		}, nil))
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
@@ -85,7 +95,12 @@ func TestEditHandler_ExistingConfig(t *testing.T) {
 
 	token := "edit-test-token-001"
 	createResp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
+		encodeForm(t, dtos.CreateFilterDto{
+			SourceURL:     srv.URL,
+			Token:         token,
+			HideEventUIDs: nil,
+			HolidayUIDs:   nil,
+		}, nil))
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	resp := doRequest(t, http.MethodGet,
@@ -105,7 +120,12 @@ func TestEditHandler_WrongUser(t *testing.T) {
 
 	token := "wrong-user-token-001"
 	createResp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
+		encodeForm(t, dtos.CreateFilterDto{
+			SourceURL:     srv.URL,
+			Token:         token,
+			HideEventUIDs: nil,
+			HolidayUIDs:   nil,
+		}, nil))
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	// The mock auth always returns the same user, so this user IS the owner
@@ -123,7 +143,12 @@ func TestDeleteHandler_ExistingConfig(t *testing.T) {
 
 	token := "delete-test-token-001"
 	createResp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
+		encodeForm(t, dtos.CreateFilterDto{
+			SourceURL:     srv.URL,
+			Token:         token,
+			HideEventUIDs: nil,
+			HolidayUIDs:   nil,
+		}, nil))
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	resp := doRequest(t, http.MethodPost,

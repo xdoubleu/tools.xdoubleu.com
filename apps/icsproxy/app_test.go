@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
+	"github.com/stretchr/testify/require"
 	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
+	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v3/pkg/logging"
-	"github.com/stretchr/testify/require"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"

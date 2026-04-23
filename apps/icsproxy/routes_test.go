@@ -18,7 +18,12 @@ func TestFeedHandler_ValidToken(t *testing.T) {
 
 	token := "feed-test-token-001"
 	createResp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
+		encodeForm(t, dtos.CreateFilterDto{
+			SourceURL:     srv.URL,
+			Token:         token,
+			HideEventUIDs: nil,
+			HolidayUIDs:   nil,
+		}, nil))
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	resp := doRequest(t, http.MethodGet,
@@ -37,7 +42,12 @@ func TestFeedHandler_SourceDown(t *testing.T) {
 
 	token := "feed-broken-source-001"
 	createResp := doRequest(t, http.MethodPost, "/icsproxy/create",
-		encodeForm(t, dtos.CreateFilterDto{SourceURL: srv.URL, Token: token}, nil))
+		encodeForm(t, dtos.CreateFilterDto{
+			SourceURL:     srv.URL,
+			Token:         token,
+			HideEventUIDs: nil,
+			HolidayUIDs:   nil,
+		}, nil))
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	// Shut down the source server so the feed fetch fails
