@@ -27,17 +27,17 @@ func (repo *BooksRepository) UpsertBook(
 
 	// Try match by ISBN13 first, then fall back to title+first author.
 	query := `
-		INSERT INTO goaltracker.books
+		INSERT INTO backlog.books
 		    (title, authors, isbn13, isbn10, cover_url, description, external_refs)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
 		    authors       = EXCLUDED.authors,
-		    isbn10        = COALESCE(EXCLUDED.isbn10, goaltracker.books.isbn10),
-		    cover_url     = COALESCE(EXCLUDED.cover_url, goaltracker.books.cover_url),
-		    description   = COALESCE(EXCLUDED.description, goaltracker.books.description),
-		    external_refs = goaltracker.books.external_refs || EXCLUDED.external_refs,
+		    isbn10        = COALESCE(EXCLUDED.isbn10, backlog.books.isbn10),
+		    cover_url     = COALESCE(EXCLUDED.cover_url, backlog.books.cover_url),
+		    description   = COALESCE(EXCLUDED.description, backlog.books.description),
+		    external_refs = backlog.books.external_refs || EXCLUDED.external_refs,
 		    updated_at    = now()
 		RETURNING id, title, authors, isbn13, isbn10, cover_url, description,
 		          external_refs, created_at, updated_at
@@ -64,7 +64,7 @@ func (repo *BooksRepository) FindBookByTitleAndAuthor(
 	query := `
 		SELECT id, title, authors, isbn13, isbn10, cover_url, description,
 		       external_refs, created_at, updated_at
-		FROM goaltracker.books
+		FROM backlog.books
 		WHERE title = $1 AND $2 = ANY(authors)
 		LIMIT 1
 	`
@@ -83,13 +83,14 @@ func (repo *BooksRepository) UpsertUserBook(
 	ub models.UserBook,
 ) error {
 	query := `
-		INSERT INTO goaltracker.user_books
-		    (user_id, book_id, status, rating, notes, finished_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO backlog.user_books
+		    (user_id, book_id, status, tags, rating, notes, finished_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (user_id, book_id) DO UPDATE SET
 		    status      = EXCLUDED.status,
-		    rating      = COALESCE(EXCLUDED.rating, goaltracker.user_books.rating),
-		    notes       = COALESCE(EXCLUDED.notes, goaltracker.user_books.notes),
+		    tags        = EXCLUDED.tags,
+		    rating      = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
+		    notes       = COALESCE(EXCLUDED.notes, backlog.user_books.notes),
 		    finished_at = EXCLUDED.finished_at,
 		    updated_at  = now()
 	`
@@ -98,6 +99,7 @@ func (repo *BooksRepository) UpsertUserBook(
 		ub.UserID,
 		ub.BookID,
 		ub.Status,
+		ub.Tags,
 		ub.Rating,
 		ub.Notes,
 		ub.FinishedAt,
@@ -112,12 +114,12 @@ func (repo *BooksRepository) GetByStatus(
 	status string,
 ) ([]models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.rating, ub.notes,
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
 		       ub.finished_at, ub.added_at, ub.updated_at,
 		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
 		       b.description, b.external_refs, b.created_at, b.updated_at
-		FROM goaltracker.user_books ub
-		JOIN goaltracker.books b ON b.id = ub.book_id
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1 AND ub.status = $2
 		ORDER BY b.title
 	`
@@ -130,12 +132,12 @@ func (repo *BooksRepository) GetLibrary(
 	userID string,
 ) ([]models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.rating, ub.notes,
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
 		       ub.finished_at, ub.added_at, ub.updated_at,
 		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
 		       b.description, b.external_refs, b.created_at, b.updated_at
-		FROM goaltracker.user_books ub
-		JOIN goaltracker.books b ON b.id = ub.book_id
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1
 		ORDER BY b.title
 	`
@@ -149,7 +151,7 @@ func (repo *BooksRepository) GetFinishedDates(
 ) ([]time.Time, error) {
 	query := `
 		SELECT UNNEST(finished_at) AS finished_date
-		FROM goaltracker.user_books
+		FROM backlog.user_books
 		WHERE user_id = $1 AND status = 'finished'
 		ORDER BY finished_date
 	`
@@ -239,6 +241,7 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&ub.UserID,
 		&ub.BookID,
 		&ub.Status,
+		&ub.Tags,
 		&ub.Rating,
 		&ub.Notes,
 		&ub.FinishedAt,
@@ -256,13 +259,13 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&book.UpdatedAt,
 	)
 	if err != nil {
-		return models.UserBook{}, err //nolint:exhaustruct //zero value
+		return models.UserBook{}, err
 	}
 
 	book.ExternalRefs = map[string]string{}
 	if len(refsJSON) > 0 {
 		if jsonErr := json.Unmarshal(refsJSON, &book.ExternalRefs); jsonErr != nil {
-			return models.UserBook{}, jsonErr //nolint:exhaustruct //zero value
+			return models.UserBook{}, jsonErr
 		}
 	}
 
@@ -270,6 +273,7 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 	return ub, nil
 }
 
+//nolint:funlen // two-phase batch upsert; hard to split without obscuring the boundary
 func (repo *BooksRepository) BatchUpsert(
 	ctx context.Context,
 	userID string,
@@ -282,30 +286,35 @@ func (repo *BooksRepository) BatchUpsert(
 
 	// 🔒 Hard guard: must align
 	if len(books) != len(userBooks) {
-		return fmt.Errorf("books and userBooks length mismatch: %d vs %d", len(books), len(userBooks))
+		return fmt.Errorf(
+			"books and userBooks length mismatch: %d vs %d",
+			len(books),
+			len(userBooks),
+		)
 	}
 
 	// ---------------------------
 	// 1. UPSERT BOOKS
 	// ---------------------------
 	upsertBookQuery := `
-		INSERT INTO goaltracker.books
+		INSERT INTO backlog.books
 		    (title, authors, isbn13, isbn10, cover_url, description, external_refs)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
 		    authors       = EXCLUDED.authors,
-		    cover_url     = COALESCE(EXCLUDED.cover_url, goaltracker.books.cover_url),
-		    description   = COALESCE(EXCLUDED.description, goaltracker.books.description),
-		    external_refs = goaltracker.books.external_refs || COALESCE(EXCLUDED.external_refs, '{}'),
+		    cover_url     = COALESCE(EXCLUDED.cover_url, backlog.books.cover_url),
+		    description   = COALESCE(EXCLUDED.description, backlog.books.description),
+		    external_refs = backlog.books.external_refs
+		              || COALESCE(EXCLUDED.external_refs, '{}'),
 		    updated_at    = now()
 		RETURNING id
 	`
 
 	bookIDs := make([]string, len(books))
 
-	batch := &pgx.Batch{}
+	batch := &pgx.Batch{} //nolint:exhaustruct //QueuedQueries populated via Queue()
 
 	for _, book := range books {
 		refsJSON, err := json.Marshal(book.ExternalRefs)
@@ -348,17 +357,17 @@ func (repo *BooksRepository) BatchUpsert(
 	// 3. UPSERT USER_BOOKS
 	// ---------------------------
 	upsertUserBookQuery := `
-		INSERT INTO goaltracker.user_books
+		INSERT INTO backlog.user_books
 		    (user_id, book_id, status, rating, notes, finished_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (user_id, book_id) DO UPDATE SET
 		    status      = EXCLUDED.status,
-		    rating      = COALESCE(EXCLUDED.rating, goaltracker.user_books.rating),
+		    rating      = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
 		    finished_at = EXCLUDED.finished_at,
 		    updated_at  = now()
 	`
 
-	batch = &pgx.Batch{}
+	batch = &pgx.Batch{} //nolint:exhaustruct //QueuedQueries populated via Queue()
 
 	for _, ub := range userBooks {
 		batch.Queue(
@@ -396,7 +405,7 @@ func (repo *BooksRepository) FindByExternalRef(
 	query := `
 		SELECT id, title, authors, isbn13, isbn10, cover_url, description,
 		       external_refs, created_at, updated_at
-		FROM goaltracker.books
+		FROM backlog.books
 		WHERE external_refs->>$1 = $2
 		LIMIT 1
 	`
@@ -417,12 +426,12 @@ func (repo *BooksRepository) GetUserBook(
 	bookID uuid.UUID,
 ) (*models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.rating, ub.notes,
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
 		       ub.finished_at, ub.added_at, ub.updated_at,
 		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
 		       b.description, b.external_refs, b.created_at, b.updated_at
-		FROM goaltracker.user_books ub
-		JOIN goaltracker.books b ON b.id = ub.book_id
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1 AND ub.book_id = $2
 	`
 
@@ -433,7 +442,7 @@ func (repo *BooksRepository) GetUserBook(
 	defer rows.Close()
 
 	if !rows.Next() {
-		return nil, nil
+		return nil, nil //nolint:nilnil //caller uses nil check for not-found
 	}
 
 	ub, err := scanUserBookWithBook(rows)
@@ -442,4 +451,30 @@ func (repo *BooksRepository) GetUserBook(
 	}
 
 	return &ub, nil
+}
+
+// SearchLibrary does a case-insensitive substring search across the user's own books.
+func (repo *BooksRepository) SearchLibrary(
+	ctx context.Context,
+	userID string,
+	query string,
+) ([]models.UserBook, error) {
+	q := `
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
+		       ub.finished_at, ub.added_at, ub.updated_at,
+		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
+		       b.description, b.external_refs, b.created_at, b.updated_at
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
+		WHERE ub.user_id = $1
+		  AND (
+		        b.title ILIKE '%' || $2 || '%'
+		        OR EXISTS (
+		            SELECT 1 FROM UNNEST(b.authors) a WHERE a ILIKE '%' || $2 || '%'
+		        )
+		  )
+		ORDER BY b.title
+	`
+
+	return repo.queryUserBooks(ctx, q, userID, query)
 }

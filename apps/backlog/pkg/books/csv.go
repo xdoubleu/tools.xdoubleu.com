@@ -11,11 +11,15 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 )
 
-const goodreadsDateFormat = "2006/01/02"
+const (
+	goodreadsDateFormat = "2006/01/02"
+	isbn13Len           = 13
+	isbn10Len           = 10
+)
 
 // ParsedEntry holds the extracted data from one row of a Goodreads CSV export.
 type ParsedEntry struct {
-	Book   models.Book
+	Book     models.Book
 	UserBook models.UserBook
 }
 
@@ -66,13 +70,19 @@ func buildIndex(header []string) map[string]int {
 	return idx
 }
 
+//nolint:gocognit // many optional CSV fields with independent nil guards
 func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 	goodreadsID := get(row, idx, "Book Id")
 	if goodreadsID == "" {
-		return ParsedEntry{}, fmt.Errorf("empty Book Id") //nolint:exhaustruct //zero value
+		return ParsedEntry{}, fmt.Errorf(
+			"empty Book Id",
+		)
 	}
 	if _, err := strconv.ParseInt(goodreadsID, 10, 64); err != nil {
-		return ParsedEntry{}, fmt.Errorf("invalid Book Id %q", goodreadsID) //nolint:exhaustruct //zero value
+		return ParsedEntry{}, fmt.Errorf(
+			"invalid Book Id %q",
+			goodreadsID,
+		)
 	}
 
 	title := get(row, idx, "Title")
@@ -81,13 +91,13 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 	var isbn13, isbn10 *string
 	if v := get(row, idx, "ISBN13"); v != "" && v != `=""` {
 		clean := strings.Trim(v, `="`)
-		if len(clean) == 13 {
+		if len(clean) == isbn13Len {
 			isbn13 = &clean
 		}
 	}
 	if v := get(row, idx, "ISBN"); v != "" && v != `=""` {
 		clean := strings.Trim(v, `="`)
-		if len(clean) == 10 {
+		if len(clean) == isbn10Len {
 			isbn10 = &clean
 		}
 	}
@@ -109,6 +119,15 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 		}
 	}
 
+	var tags []string
+	if v := get(row, idx, "Bookshelves"); v != "" {
+		for _, tag := range strings.Split(v, ",") {
+			if tag = strings.TrimSpace(tag); tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+	}
+
 	book := models.Book{ //nolint:exhaustruct //optional fields
 		Title:   title,
 		Authors: []string{author},
@@ -121,6 +140,7 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 
 	userBook := models.UserBook{ //nolint:exhaustruct //IDs assigned later
 		Status:     shelf,
+		Tags:       tags,
 		Rating:     rating,
 		FinishedAt: finishedAt,
 	}

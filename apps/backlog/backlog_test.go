@@ -25,8 +25,12 @@ func TestRootUnboarded(t *testing.T) {
 		testCfg,
 		testDB,
 		backlog.Clients{
-			SteamFactory:     func(_ string) steam.Client { return mocks.NewMockSteamClient() },
-			HardcoverFactory: func(_ string) hardcover.Client { return mocks.NewMockHardcoverClient() },
+			SteamFactory: func(_ string) steam.Client {
+				return mocks.NewMockSteamClient()
+			},
+			HardcoverFactory: func(_ string) hardcover.Client {
+				return mocks.NewMockHardcoverClient()
+			},
 		},
 		templates.LoadShared(testCfg),
 	)

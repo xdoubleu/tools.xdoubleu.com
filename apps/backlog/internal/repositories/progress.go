@@ -22,7 +22,7 @@ func (repo *ProgressRepository) GetByTypeIDAndDates(
 ) ([]models.Progress, error) {
 	query := `
 		SELECT value, date
-		FROM goaltracker.progress
+		FROM backlog.progress
 		WHERE type_id = $1 AND user_id = $2 AND date >= $3 AND date <= $4
 		ORDER BY date ASC
 	`
@@ -60,7 +60,7 @@ func (repo *ProgressRepository) GetLatestByTypeID(
 ) (string, error) {
 	query := `
 		SELECT value
-		FROM goaltracker.progress
+		FROM backlog.progress
 		WHERE type_id = $1 AND user_id = $2
 		ORDER BY date DESC
 		LIMIT 1
@@ -82,7 +82,7 @@ func (repo *ProgressRepository) Upsert(
 	values []string,
 ) error {
 	query := `
-		INSERT INTO goaltracker.progress (type_id, user_id, date, value)
+		INSERT INTO backlog.progress (type_id, user_id, date, value)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (type_id, user_id, date)
 		DO UPDATE SET value = $4

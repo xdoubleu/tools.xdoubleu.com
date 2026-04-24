@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
@@ -29,9 +30,17 @@ func (app *Application) settingsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	var importedCount *int
+	if v := r.URL.Query().Get("imported"); v != "" {
+		if n, convErr := strconv.Atoi(v); convErr == nil {
+			importedCount = &n
+		}
+	}
+
 	tpltools.RenderWithPanic(app.tpl, w, "settings.html", map[string]any{
-		"Integrations": integrations,
-		"Saved":        r.URL.Query().Get("saved") == "1",
+		"Integrations":  integrations,
+		"Saved":         r.URL.Query().Get("saved") == "1",
+		"ImportedCount": importedCount,
 	})
 }
 

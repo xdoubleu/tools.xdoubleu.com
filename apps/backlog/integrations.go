@@ -26,7 +26,7 @@ func (app *Backlog) GetIntegrations(
 ) (Integrations, error) {
 	i, err := app.Services.Integrations.Get(ctx, userID)
 	if err != nil {
-		return Integrations{}, err //nolint:exhaustruct //zero value
+		return Integrations{}, err
 	}
 	return Integrations{
 		SteamAPIKey:     i.SteamAPIKey,

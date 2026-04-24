@@ -26,7 +26,7 @@ func (r *IntegrationsRepository) Get(
 	var i UserIntegrations
 	err := r.db.QueryRow(ctx, `
 		SELECT user_id, steam_api_key, steam_user_id, hardcover_api_key
-		FROM goaltracker.user_integrations
+		FROM backlog.user_integrations
 		WHERE user_id = $1
 	`, userID).Scan(
 		&i.UserID,
@@ -48,7 +48,7 @@ func (r *IntegrationsRepository) Exists(
 ) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM goaltracker.user_integrations WHERE user_id = $1)
+		SELECT EXISTS(SELECT 1 FROM backlog.user_integrations WHERE user_id = $1)
 	`, userID).Scan(&exists)
 	return exists, err
 }
@@ -58,7 +58,7 @@ func (r *IntegrationsRepository) Upsert(
 	i UserIntegrations,
 ) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO goaltracker.user_integrations
+		INSERT INTO backlog.user_integrations
 		    (user_id, steam_api_key, steam_user_id, hardcover_api_key, updated_at)
 		VALUES ($1, $2, $3, $4, now())
 		ON CONFLICT (user_id) DO UPDATE SET

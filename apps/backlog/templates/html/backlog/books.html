@@ -3,37 +3,156 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Books</h2>
-        {{ template "ws" "steam" }}
     </div>
-
-    {{ if .ImportedCount }}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        Imported {{ .ImportedCount }} books successfully.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {{ end }}
 
     <ul class="nav nav-tabs mb-4" id="booksTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button" role="tab">Progress</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">Library</button>
+            <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab">Search</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="wishlist-tab" data-bs-toggle="tab" data-bs-target="#wishlist" type="button" role="tab">Want to Read <span class="badge bg-secondary ms-1">{{ len .Wishlist }}</span></button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab">Search</button>
+            <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">Library</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button" role="tab">Import</button>
+            <button class="nav-link" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button" role="tab">Progress</button>
         </li>
     </ul>
 
     <div class="tab-content">
 
-        <div class="tab-pane fade show active" id="progress" role="tabpanel">
+        {{/* ── Search tab (library-first, Hardcover fallback) ── */}}
+        <div class="tab-pane fade show active" id="search" role="tabpanel">
+            <div class="mb-3">
+                <input type="text" id="searchInput" class="form-control"
+                    placeholder="Search by title or author…"
+                    hx-get="/backlog/books/search"
+                    hx-trigger="keyup changed delay:400ms, search"
+                    hx-target="#searchResults"
+                    name="q">
+            </div>
+            <div id="searchResults"></div>
+        </div>
+
+        {{/* ── Want to Read tab ── */}}
+        <div class="tab-pane fade" id="wishlist" role="tabpanel">
+            <div class="card">
+                <div class="card-header">Want to Read</div>
+                {{ if .Wishlist }}
+                <ul class="list-group list-group-flush">
+                    {{ range .Wishlist }}
+                    <li class="list-group-item">
+                        <div class="d-flex gap-3 align-items-start">
+                            {{ if and .Book .Book.CoverURL }}
+                            <img src="{{ .Book.CoverURL }}" alt="{{ .Book.Title }}"
+                                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
+                            {{ end }}
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ if .Book }}{{ .Book.Title }}{{ end }}</div>
+                                {{ if and .Book .Book.Authors }}
+                                <div class="text-muted small">{{ index .Book.Authors 0 }}</div>
+                                {{ end }}
+                                {{ if .Tags }}
+                                <div class="mt-1">
+                                    {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal">{{ . }}</span>{{ end }}
+                                </div>
+                                {{ end }}
+                            </div>
+                            <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-shrink-0">
+                                <input type="hidden" name="status" value="reading">
+                                <button class="btn btn-sm btn-outline-primary">Start reading</button>
+                            </form>
+                        </div>
+                    </li>
+                    {{ end }}
+                </ul>
+                {{ else }}
+                <div class="card-body text-muted">No books in want-to-read list.</div>
+                {{ end }}
+            </div>
+        </div>
+
+        {{/* ── Library tab (reading + finished) ── */}}
+        <div class="tab-pane fade" id="library" role="tabpanel">
+
+            {{ if .Reading }}
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Currently Reading</span>
+                    <span class="badge bg-primary">{{ len .Reading }}</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {{ range .Reading }}
+                    <li class="list-group-item">
+                        <div class="d-flex gap-3 align-items-start">
+                            {{ if and .Book .Book.CoverURL }}
+                            <img src="{{ .Book.CoverURL }}" alt="{{ .Book.Title }}"
+                                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
+                            {{ end }}
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ if .Book }}{{ .Book.Title }}{{ end }}</div>
+                                {{ if and .Book .Book.Authors }}
+                                <div class="text-muted small">{{ index .Book.Authors 0 }}</div>
+                                {{ end }}
+                                {{ if .Tags }}
+                                <div class="mt-1">
+                                    {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal">{{ . }}</span>{{ end }}
+                                </div>
+                                {{ end }}
+                            </div>
+                            <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-shrink-0">
+                                <input type="hidden" name="status" value="finished">
+                                <button class="btn btn-sm btn-outline-success">Mark finished</button>
+                            </form>
+                        </div>
+                    </li>
+                    {{ end }}
+                </ul>
+            </div>
+            {{ end }}
+
+            {{ if .Finished }}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Finished</span>
+                    <span class="badge bg-success">{{ len .Finished }}</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {{ range .Finished }}
+                    <li class="list-group-item">
+                        <div class="d-flex gap-3 align-items-start">
+                            {{ if and .Book .Book.CoverURL }}
+                            <img src="{{ .Book.CoverURL }}" alt="{{ .Book.Title }}"
+                                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
+                            {{ end }}
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ if .Book }}{{ .Book.Title }}{{ end }}</div>
+                                {{ if and .Book .Book.Authors }}
+                                <div class="text-muted small">{{ index .Book.Authors 0 }}</div>
+                                {{ end }}
+                                {{ if .Rating }}<span class="badge bg-warning text-dark mt-1">{{ .Rating }}/5</span>{{ end }}
+                                {{ if .Tags }}
+                                <div class="mt-1">
+                                    {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal">{{ . }}</span>{{ end }}
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+                    </li>
+                    {{ end }}
+                </ul>
+            </div>
+            {{ end }}
+
+            {{ if and (not .Reading) (not .Finished) }}
+            <p class="text-muted">No books in library yet. Use Search to add some.</p>
+            {{ end }}
+
+        </div>
+
+        {{/* ── Progress tab ── */}}
+        <div class="tab-pane fade" id="progress" role="tabpanel">
             <div class="card mb-3">
                 <div class="card-body">
                     <form method="get" class="row g-2 align-items-end">
@@ -55,115 +174,6 @@
                 <div class="card-header">Books Read (cumulative)</div>
                 <div class="card-body">
                     <canvas id="progressChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="library" role="tabpanel">
-            {{ if .Reading }}
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Currently Reading</span>
-                    <span class="badge bg-primary">{{ len .Reading }}</span>
-                </div>
-                <ul class="list-group list-group-flush">
-                    {{ range .Reading }}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ .Book.Title }}</strong>
-                            {{ if .Book.Authors }}<span class="text-muted"> — {{ index .Book.Authors 0 }}</span>{{ end }}
-                        </div>
-                        <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="d-inline">
-                            <input type="hidden" name="status" value="finished">
-                            <button class="btn btn-sm btn-outline-success">Mark finished</button>
-                        </form>
-                    </li>
-                    {{ end }}
-                </ul>
-            </div>
-            {{ end }}
-
-            {{ if .Finished }}
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Finished</span>
-                    <span class="badge bg-success">{{ len .Finished }}</span>
-                </div>
-                <ul class="list-group list-group-flush">
-                    {{ range .Finished }}
-                    <li class="list-group-item">
-                        <strong>{{ .Book.Title }}</strong>
-                        {{ if .Book.Authors }}<span class="text-muted"> — {{ index .Book.Authors 0 }}</span>{{ end }}
-                        {{ if .Rating }}<span class="badge bg-warning text-dark ms-2">{{ .Rating }}/5</span>{{ end }}
-                    </li>
-                    {{ end }}
-                </ul>
-            </div>
-            {{ end }}
-
-            {{ if and (not .Reading) (not .Finished) }}
-            <div class="text-muted">No books in library yet. Use Search or Import to add some.</div>
-            {{ end }}
-        </div>
-
-        <div class="tab-pane fade" id="wishlist" role="tabpanel">
-            <div class="card">
-                <div class="card-header">Want to Read</div>
-                {{ if .Wishlist }}
-                <ul class="list-group list-group-flush">
-                    {{ range .Wishlist }}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            {{ .Book.Title }}
-                            {{ if .Book.Authors }}<span class="text-muted"> — {{ index .Book.Authors 0 }}</span>{{ end }}
-                        </div>
-                        <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="d-inline">
-                            <input type="hidden" name="status" value="reading">
-                            <button class="btn btn-sm btn-outline-primary">Start reading</button>
-                        </form>
-                    </li>
-                    {{ end }}
-                </ul>
-                {{ else }}
-                <div class="card-body text-muted">No books in want-to-read list.</div>
-                {{ end }}
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="search" role="tabpanel">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col">
-                            <input type="text" id="searchInput" class="form-control"
-                                placeholder="Search by title or author…"
-                                hx-get="/backlog/books/search"
-                                hx-trigger="keyup changed delay:400ms, search"
-                                hx-target="#searchResults"
-                                hx-include="[name='q']"
-                                name="q">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="searchResults"></div>
-        </div>
-
-        <div class="tab-pane fade" id="import" role="tabpanel">
-            <div class="card">
-                <div class="card-header">Import from Goodreads</div>
-                <div class="card-body">
-                    <p class="text-muted mb-3">
-                        Export your library from Goodreads (<em>My Books → Import and export → Export library</em>),
-                        then upload the CSV file here.
-                    </p>
-                    <form method="POST" action="/backlog/books/import" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="goodreads_csv" class="form-label">Goodreads export CSV</label>
-                            <input class="form-control" type="file" id="goodreads_csv" name="goodreads_csv" accept=".csv" required>
-                        </div>
-                        <button type="submit" class="btn btn-dark">Import</button>
-                    </form>
                 </div>
             </div>
         </div>
@@ -206,8 +216,6 @@
 
         if (params.has("from") || params.has("to")) {
             document.getElementById("progress-tab").click();
-        } else if (params.has("imported")) {
-            document.getElementById("library-tab").click();
         } else {
             const savedTab = sessionStorage.getItem(TAB_KEY);
             if (savedTab) {

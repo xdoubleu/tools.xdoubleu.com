@@ -11,6 +11,7 @@ import (
 	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
+	"tools.xdoubleu.com/apps/backlog/internal/dtos"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/internal/constants"
@@ -50,18 +51,19 @@ type distributionPageData struct {
 }
 
 type booksPageData struct {
-	Wishlist      []models.UserBook
-	Reading       []models.UserBook
-	Finished      []models.UserBook
-	Labels        []string
-	Values        []string
-	DateStart     string
-	DateEnd       string
-	ImportedCount *int
+	Wishlist  []models.UserBook
+	Reading   []models.UserBook
+	Finished  []models.UserBook
+	Labels    []string
+	Values    []string
+	DateStart string
+	DateEnd   string
 }
 
 type searchResultsData struct {
-	Results []hardcover.ExternalBook
+	LibraryResults   []models.UserBook
+	HardcoverResults []hardcover.ExternalBook
+	FromHardcover    bool
 }
 
 func (app *Backlog) backlogRoutes(prefix string, mux *http.ServeMux) {
@@ -265,17 +267,29 @@ func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(errors.New("not signed in"))
 	}
 
-	wishlist, err := app.Services.Books.GetByStatus(r.Context(), user.ID, models.StatusWishlist)
+	wishlist, err := app.Services.Books.GetByStatus(
+		r.Context(),
+		user.ID,
+		models.StatusWishlist,
+	)
 	if err != nil {
 		panic(err)
 	}
 
-	reading, err := app.Services.Books.GetByStatus(r.Context(), user.ID, models.StatusReading)
+	reading, err := app.Services.Books.GetByStatus(
+		r.Context(),
+		user.ID,
+		models.StatusReading,
+	)
 	if err != nil {
 		panic(err)
 	}
 
-	finished, err := app.Services.Books.GetByStatus(r.Context(), user.ID, models.StatusFinished)
+	finished, err := app.Services.Books.GetByStatus(
+		r.Context(),
+		user.ID,
+		models.StatusFinished,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -310,18 +324,53 @@ func (app *Backlog) booksSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		tpltools.RenderWithPanic(app.tpl, w, "books_search_results.html", searchResultsData{})
+		tpltools.RenderWithPanic(
+			app.tpl,
+			w,
+			"books_search_results.html",
+			searchResultsData{
+				LibraryResults:   nil,
+				HardcoverResults: nil,
+				FromHardcover:    false,
+			},
+		)
 		return
 	}
 
-	results, err := app.Services.Books.Search(r.Context(), user.ID, query)
+	// Search library first; fall back to Hardcover only when library has no matches.
+	libraryResults, err := app.Services.Books.SearchLibrary(r.Context(), user.ID, query)
 	if err != nil {
 		panic(err)
 	}
+	if len(libraryResults) > 0 {
+		tpltools.RenderWithPanic(
+			app.tpl,
+			w,
+			"books_search_results.html",
+			searchResultsData{ //nolint:exhaustruct //other fields are zero value
+				LibraryResults: libraryResults,
+			},
+		)
+		return
+	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "books_search_results.html", searchResultsData{
-		Results: results,
-	})
+	hardcoverResults, err := app.Services.Books.SearchHardcover(
+		r.Context(),
+		user.ID,
+		query,
+	)
+	if err != nil {
+		panic(err)
+	}
+	tpltools.RenderWithPanic(
+		app.tpl,
+		w,
+		"books_search_results.html",
+		searchResultsData{ //nolint:exhaustruct //LibraryResults is zero value
+			HardcoverResults: hardcoverResults,
+			FromHardcover:    len(hardcoverResults) > 0,
+		},
+	)
 }
 
 func (app *Backlog) addBookHandler(w http.ResponseWriter, r *http.Request) {
@@ -333,16 +382,7 @@ func (app *Backlog) addBookHandler(w http.ResponseWriter, r *http.Request) {
 		panic(errors.New("not signed in"))
 	}
 
-	var dto struct {
-		ProviderID  string `schema:"provider_id"`
-		Provider    string `schema:"provider"`
-		Title       string `schema:"title"`
-		Author      string `schema:"author"`
-		ISBN13      string `schema:"isbn13"`
-		CoverURL    string `schema:"cover_url"`
-		Description string `schema:"description"`
-		Status      string `schema:"status"`
-	}
+	var dto dtos.AddBookDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
@@ -371,11 +411,14 @@ func (app *Backlog) addBookHandler(w http.ResponseWriter, r *http.Request) {
 		Title:       dto.Title,
 		Authors:     []string{dto.Author},
 		ISBN13:      isbn13,
+		ISBN10:      nil,
 		CoverURL:    coverURL,
 		Description: desc,
 	}
 
-	if _, err := app.Services.Books.AddToLibrary(r.Context(), user.ID, ext, dto.Status); err != nil {
+	if _, err := app.Services.Books.AddToLibrary(
+		r.Context(), user.ID, ext, dto.Status,
+	); err != nil {
 		panic(err)
 	}
 
@@ -397,9 +440,7 @@ func (app *Backlog) updateBookStatusHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var dto struct {
-		Status string `schema:"status"`
-	}
+	var dto dtos.UpdateBookStatusDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
@@ -417,7 +458,10 @@ func (app *Backlog) updateBookStatusHandler(w http.ResponseWriter, r *http.Reque
 
 	// After marking finished, rebuild and save progress.
 	if dto.Status == models.StatusFinished {
-		labels, values, buildErr := app.Services.Books.BuildReadProgress(r.Context(), user.ID)
+		labels, values, buildErr := app.Services.Books.BuildReadProgress(
+			r.Context(),
+			user.ID,
+		)
 		if buildErr != nil {
 			panic(buildErr)
 		}
@@ -441,6 +485,7 @@ func (app *Backlog) importBooksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	const maxUploadBytes = 10 << 20 // 10 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
 		http.Error(w, "file too large", http.StatusBadRequest)
 		return
@@ -469,7 +514,12 @@ func (app *Backlog) importBooksHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/backlog/books?imported=%d", count), http.StatusSeeOther)
+	http.Redirect(
+		w,
+		r,
+		fmt.Sprintf("/backlog/books?imported=%d", count),
+		http.StatusSeeOther,
+	)
 }
 
 func (app *Backlog) refreshHandler(w http.ResponseWriter, r *http.Request) {

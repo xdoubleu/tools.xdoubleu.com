@@ -21,7 +21,17 @@ type BookService struct {
 	integrations    *IntegrationsService
 }
 
-func (s *BookService) Search(
+// SearchLibrary searches the user's own library by title/author substring.
+func (s *BookService) SearchLibrary(
+	ctx context.Context,
+	userID string,
+	query string,
+) ([]models.UserBook, error) {
+	return s.books.SearchLibrary(ctx, userID, query)
+}
+
+// SearchHardcover calls the Hardcover API. Returns nil if no API key configured.
+func (s *BookService) SearchHardcover(
 	ctx context.Context,
 	userID string,
 	query string,
@@ -63,7 +73,7 @@ func (s *BookService) AddToLibrary(
 
 func (s *BookService) UpdateStatus(
 	ctx context.Context,
-	userID string,
+	_ string,
 	ub models.UserBook,
 ) error {
 	return s.books.UpsertUserBook(ctx, ub)
@@ -113,7 +123,7 @@ func (s *BookService) ImportFromCSV(
 	return len(entries), nil
 }
 
-// BuildReadProgress returns sorted cumulative labels+values suitable for the progress chart.
+// BuildReadProgress returns sorted cumulative labels+values for the progress chart.
 func (s *BookService) BuildReadProgress(
 	ctx context.Context,
 	userID string,

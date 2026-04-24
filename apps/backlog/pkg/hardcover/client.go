@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -11,7 +12,11 @@ import (
 	"strconv"
 )
 
-const baseURL = "https://api.hardcover.app/v1/graphql"
+// ErrNotFound is returned by GetByID when no book matches the given ID.
+var ErrNotFound = errors.New("hardcover: book not found")
+
+//nolint:gochecknoglobals // overridable in tests
+var baseURL = "https://api.hardcover.app/v1/graphql"
 
 type client struct {
 	logger   *slog.Logger
@@ -80,29 +85,33 @@ func (c client) GetByID(ctx context.Context, id string) (*ExternalBook, error) {
 		return nil, fmt.Errorf("hardcover get book error: %s", resp.Errors[0].Message)
 	}
 	if len(resp.Data.Books) == 0 {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 
 	rec := resp.Data.Books[0]
-	doc := searchDocument{
-		ID:             rec.ID,
-		Title:          rec.Title,
-		Contributions:  rec.Contributions,
-		Description:    rec.Description,
-		DefaultEdition: rec.DefaultEdition,
-	}
+	doc := searchDocument(rec)
 	book := toExternalBook(doc)
 
 	return &book, nil
 }
 
-func (c client) do(ctx context.Context, query string, variables map[string]any, dst any) error {
+func (c client) do(
+	ctx context.Context,
+	query string,
+	variables map[string]any,
+	dst any,
+) error {
 	body, err := json.Marshal(graphQLRequest{Query: query, Variables: variables})
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		baseURL,
+		bytes.NewReader(body),
+	)
 	if err != nil {
 		return err
 	}
@@ -115,7 +124,8 @@ func (c client) do(ctx context.Context, query string, variables map[string]any, 
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices {
 		raw, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("hardcover API returned %d: %s", resp.StatusCode, string(raw))
 	}
@@ -132,7 +142,8 @@ func toExternalBook(doc searchDocument) ExternalBook {
 	}
 
 	var coverURL *string
-	if doc.DefaultEdition != nil && doc.DefaultEdition.Image != nil && doc.DefaultEdition.Image.URL != "" {
+	if doc.DefaultEdition != nil && doc.DefaultEdition.Image != nil &&
+		doc.DefaultEdition.Image.URL != "" {
 		coverURL = &doc.DefaultEdition.Image.URL
 	}
 

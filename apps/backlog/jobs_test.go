@@ -43,50 +43,6 @@ func (m *noUsersAuthService) SignOut(
 	return nil, nil, nil
 }
 
-type twoUsersAuthService struct {
-	userID  string
-	userID2 string
-}
-
-func (m *twoUsersAuthService) Access(
-	next http.HandlerFunc,
-) http.HandlerFunc {
-	return next
-}
-
-func (m *twoUsersAuthService) TemplateAccess(
-	next http.HandlerFunc,
-) http.HandlerFunc {
-	return next
-}
-
-func (m *twoUsersAuthService) AdminAccess(
-	next http.HandlerFunc,
-) http.HandlerFunc {
-	return next
-}
-
-func (m *twoUsersAuthService) AppAccess(
-	_ string,
-	next http.HandlerFunc,
-) http.HandlerFunc {
-	return next
-}
-
-func (m *twoUsersAuthService) SignOut(
-	_ string,
-	_ bool,
-) (*http.Cookie, *http.Cookie, error) {
-	return nil, nil, nil
-}
-func (m *twoUsersAuthService) GetAllUsers() ([]internalmodels.User, error) {
-	//nolint:exhaustruct //test stub
-	return []internalmodels.User{
-		{ID: m.userID},
-		{ID: m.userID2},
-	}, nil
-}
-
 func TestSteamJobNoUsers(t *testing.T) {
 	job := jobs.NewSteamJob(
 		&noUsersAuthService{},

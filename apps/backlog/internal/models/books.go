@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	StatusWishlist  = "wishlist"
-	StatusReading   = "reading"
-	StatusFinished  = "finished"
-	StatusDropped   = "dropped"
+	StatusWishlist = "wishlist"
+	StatusReading  = "reading"
+	StatusFinished = "finished"
+	StatusDropped  = "dropped"
 )
 
 type Book struct {
@@ -32,6 +32,7 @@ type UserBook struct {
 	BookID     uuid.UUID
 	Book       *Book
 	Status     string
+	Tags       []string
 	Rating     *int16
 	Notes      *string
 	FinishedAt []time.Time

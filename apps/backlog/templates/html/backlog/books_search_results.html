@@ -1,22 +1,49 @@
 {{ define "books_search_results.html" }}
-{{ if .Results }}
+{{ if .LibraryResults }}
 <div class="list-group">
-    {{ range .Results }}
+    {{ range .LibraryResults }}
     <div class="list-group-item">
-        <div class="d-flex justify-content-between align-items-start gap-3">
-            {{ if .CoverURL }}
-            <img src="{{ .CoverURL }}" alt="{{ .Title }}" style="width:48px;height:72px;object-fit:cover;flex-shrink:0;">
+        <div class="d-flex gap-3 align-items-start">
+            {{ if and .Book .Book.CoverURL }}
+            <img src="{{ .Book.CoverURL }}" alt="{{ .Book.Title }}"
+                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
             {{ end }}
             <div class="flex-grow-1">
-                <strong>{{ .Title }}</strong>
+                <div class="fw-semibold">{{ if .Book }}{{ .Book.Title }}{{ end }}</div>
+                {{ if and .Book .Book.Authors }}
+                <div class="text-muted small">{{ index .Book.Authors 0 }}</div>
+                {{ end }}
+                <span class="badge bg-secondary mt-1">{{ .Status }}</span>
+                {{ if .Tags }}
+                <div class="mt-1">
+                    {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal">{{ . }}</span>{{ end }}
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+</div>
+{{ else if .HardcoverResults }}
+<p class="text-muted small mb-2">No results in your library — showing results from Hardcover.</p>
+<div class="list-group">
+    {{ range .HardcoverResults }}
+    <div class="list-group-item">
+        <div class="d-flex gap-3 align-items-start">
+            {{ if .CoverURL }}
+            <img src="{{ .CoverURL }}" alt="{{ .Title }}"
+                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
+            {{ end }}
+            <div class="flex-grow-1">
+                <div class="fw-semibold">{{ .Title }}</div>
                 {{ if .Authors }}<div class="text-muted small">{{ index .Authors 0 }}</div>{{ end }}
                 {{ if .ISBN13 }}<div class="text-muted small">ISBN: {{ .ISBN13 }}</div>{{ end }}
             </div>
             <div class="d-flex flex-column gap-1 flex-shrink-0">
                 <form method="POST" action="/backlog/books">
-                    <input type="hidden" name="provider"    value="{{ .Provider }}">
-                    <input type="hidden" name="provider_id" value="{{ .ProviderID }}">
-                    <input type="hidden" name="title"       value="{{ .Title }}">
+                    <input type="hidden" name="provider"     value="{{ .Provider }}">
+                    <input type="hidden" name="provider_id"  value="{{ .ProviderID }}">
+                    <input type="hidden" name="title"        value="{{ .Title }}">
                     {{ if .Authors }}<input type="hidden" name="author" value="{{ index .Authors 0 }}">{{ end }}
                     {{ if .ISBN13 }}<input type="hidden" name="isbn13"  value="{{ .ISBN13 }}">{{ end }}
                     {{ if .CoverURL }}<input type="hidden" name="cover_url" value="{{ .CoverURL }}">{{ end }}
@@ -25,22 +52,20 @@
                     <button class="btn btn-sm btn-outline-secondary">Want to read</button>
                 </form>
                 <form method="POST" action="/backlog/books">
-                    <input type="hidden" name="provider"    value="{{ .Provider }}">
-                    <input type="hidden" name="provider_id" value="{{ .ProviderID }}">
-                    <input type="hidden" name="title"       value="{{ .Title }}">
+                    <input type="hidden" name="provider"     value="{{ .Provider }}">
+                    <input type="hidden" name="provider_id"  value="{{ .ProviderID }}">
+                    <input type="hidden" name="title"        value="{{ .Title }}">
                     {{ if .Authors }}<input type="hidden" name="author" value="{{ index .Authors 0 }}">{{ end }}
                     {{ if .ISBN13 }}<input type="hidden" name="isbn13"  value="{{ .ISBN13 }}">{{ end }}
                     {{ if .CoverURL }}<input type="hidden" name="cover_url" value="{{ .CoverURL }}">{{ end }}
                     {{ if .Description }}<input type="hidden" name="description" value="{{ .Description }}">{{ end }}
                     <input type="hidden" name="status" value="reading">
-                    <button class="btn btn-sm btn-outline-primary">Reading</button>
+                    <button class="btn btn-sm btn-outline-primary">Start reading</button>
                 </form>
             </div>
         </div>
     </div>
     {{ end }}
 </div>
-{{ else }}
-<p class="text-muted">No results found.</p>
 {{ end }}
 {{ end }}

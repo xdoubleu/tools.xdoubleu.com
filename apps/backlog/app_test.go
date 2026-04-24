@@ -58,8 +58,12 @@ func TestMain(m *testing.M) {
 	testDB = postgresDB
 
 	clients := backlog.Clients{
-		SteamFactory:     func(_ string) steam.Client { return mocks.NewMockSteamClient() },
-		HardcoverFactory: func(_ string) hardcover.Client { return mocks.NewMockHardcoverClient() },
+		SteamFactory: func(_ string) steam.Client {
+			return mocks.NewMockSteamClient()
+		},
+		HardcoverFactory: func(_ string) hardcover.Client {
+			return mocks.NewMockHardcoverClient()
+		},
 	}
 
 	testApp = backlog.NewInner(
