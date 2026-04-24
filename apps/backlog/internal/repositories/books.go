@@ -114,8 +114,8 @@ func (repo *BooksRepository) GetByStatus(
 	status string,
 ) ([]models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
-		       ub.finished_at, ub.added_at, ub.updated_at,
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
+		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
 		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
 		       b.description, b.external_refs, b.created_at, b.updated_at
 		FROM backlog.user_books ub
@@ -358,12 +358,14 @@ func (repo *BooksRepository) BatchUpsert(
 	// ---------------------------
 	upsertUserBookQuery := `
 		INSERT INTO backlog.user_books
-		    (user_id, book_id, status, rating, notes, finished_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		    (user_id, book_id, status, tags, rating, notes, finished_at, added_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (user_id, book_id) DO UPDATE SET
 		    status      = EXCLUDED.status,
+		    tags        = EXCLUDED.tags,
 		    rating      = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
 		    finished_at = EXCLUDED.finished_at,
+			added_at    = COALESCE(EXCLUDED.added_at, backlog.user_books.added_at),
 		    updated_at  = now()
 	`
 
@@ -375,9 +377,11 @@ func (repo *BooksRepository) BatchUpsert(
 			userID,
 			ub.BookID,
 			ub.Status,
+			ub.Tags,
 			ub.Rating,
 			ub.Notes,
 			ub.FinishedAt,
+			ub.AddedAt,
 		)
 	}
 

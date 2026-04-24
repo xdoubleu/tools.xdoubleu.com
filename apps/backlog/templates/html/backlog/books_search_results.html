@@ -48,7 +48,7 @@
                     {{ if .ISBN13 }}<input type="hidden" name="isbn13"  value="{{ .ISBN13 }}">{{ end }}
                     {{ if .CoverURL }}<input type="hidden" name="cover_url" value="{{ .CoverURL }}">{{ end }}
                     {{ if .Description }}<input type="hidden" name="description" value="{{ .Description }}">{{ end }}
-                    <input type="hidden" name="status" value="wishlist">
+                    <input type="hidden" name="status" value="to-read">
                     <button class="btn btn-sm btn-outline-secondary">Want to read</button>
                 </form>
                 <form method="POST" action="/backlog/books">
@@ -59,7 +59,7 @@
                     {{ if .ISBN13 }}<input type="hidden" name="isbn13"  value="{{ .ISBN13 }}">{{ end }}
                     {{ if .CoverURL }}<input type="hidden" name="cover_url" value="{{ .CoverURL }}">{{ end }}
                     {{ if .Description }}<input type="hidden" name="description" value="{{ .Description }}">{{ end }}
-                    <input type="hidden" name="status" value="reading">
+                    <input type="hidden" name="status" value="currently-reading">
                     <button class="btn btn-sm btn-outline-primary">Start reading</button>
                 </form>
             </div>

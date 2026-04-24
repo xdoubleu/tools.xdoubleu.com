@@ -31,16 +31,16 @@ func TestParseCSV_HappyPath(t *testing.T) {
 	assert.Equal(t, "9780140449112", *e0.Book.ISBN13)
 	assert.Equal(t, "0140449116", *e0.Book.ISBN10)
 	assert.Equal(t, "12345", e0.Book.ExternalRefs["goodreads"])
-	assert.Equal(t, models.StatusFinished, e0.UserBook.Status)
+	assert.Equal(t, models.StatusRead, e0.UserBook.Status)
 	assert.NotEmpty(t, e0.UserBook.FinishedAt)
 	assert.EqualValues(t, 5, *e0.UserBook.Rating)
 	assert.Contains(t, e0.UserBook.Tags, "read")
 	assert.Contains(t, e0.UserBook.Tags, "own-physical")
 
-	// Wishlist book (to-read → wishlist)
+	// To-read book
 	e1 := entries[1]
 	assert.Equal(t, "Dune", e1.Book.Title)
-	assert.Equal(t, models.StatusWishlist, e1.UserBook.Status)
+	assert.Equal(t, models.StatusToRead, e1.UserBook.Status)
 	assert.Nil(t, e1.UserBook.Rating) // rating=0 → nil
 	assert.Empty(t, e1.UserBook.FinishedAt)
 	assert.Contains(t, e1.UserBook.Tags, "own-digital")

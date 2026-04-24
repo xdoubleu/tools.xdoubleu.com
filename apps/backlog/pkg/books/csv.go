@@ -35,13 +35,6 @@ func ParseCSV(r io.Reader) ([]ParsedEntry, error) {
 
 	idx := buildIndex(header)
 
-	required := []string{"Book Id", "Title", "Author", "Exclusive Shelf"}
-	for _, col := range required {
-		if _, ok := idx[col]; !ok {
-			return nil, fmt.Errorf("CSV missing required column %q", col)
-		}
-	}
-
 	var entries []ParsedEntry
 	for {
 		row, readErr := reader.Read()
@@ -102,7 +95,7 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 		}
 	}
 
-	shelf := shelfToStatus(get(row, idx, "Exclusive Shelf"))
+	status := shelfToStatus(get(row, idx, "Exclusive Shelf"))
 
 	var rating *int16
 	if v := get(row, idx, "My Rating"); v != "" && v != "0" {
@@ -119,10 +112,17 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 		}
 	}
 
+	var addedAt time.Time
+	if v := get(row, idx, "Date Added"); v != "" {
+		if t, err := time.Parse(goodreadsDateFormat, v); err == nil {
+			addedAt = t
+		}
+	}
+
 	var tags []string
 	if v := get(row, idx, "Bookshelves"); v != "" {
 		for _, tag := range strings.Split(v, ",") {
-			if tag = strings.TrimSpace(tag); tag != "" {
+			if tag = strings.TrimSpace(tag); tag != "" && tag != status {
 				tags = append(tags, tag)
 			}
 		}
@@ -139,24 +139,21 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 	}
 
 	userBook := models.UserBook{ //nolint:exhaustruct //IDs assigned later
-		Status:     shelf,
+		Status:     status,
 		Tags:       tags,
 		Rating:     rating,
 		FinishedAt: finishedAt,
+		AddedAt:    addedAt,
 	}
 
 	return ParsedEntry{Book: book, UserBook: userBook}, nil
 }
 
 func shelfToStatus(shelf string) string {
-	switch shelf {
-	case "read":
-		return models.StatusFinished
-	case "currently-reading":
-		return models.StatusReading
-	default:
-		return models.StatusWishlist
+	if shelf == "" {
+		return models.StatusToRead
 	}
+	return shelf
 }
 
 func get(row []string, idx map[string]int, col string) string {

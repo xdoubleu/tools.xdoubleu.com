@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -50,14 +51,39 @@ type distributionPageData struct {
 	Games []models.Game
 }
 
+type bookShelf struct {
+	Name  string
+	Books []models.UserBook
+}
+
 type booksPageData struct {
-	Wishlist  []models.UserBook
 	Reading   []models.UserBook
+	Wishlist  []models.UserBook
 	Finished  []models.UserBook
+	Shelves   []bookShelf
 	Labels    []string
 	Values    []string
 	DateStart string
 	DateEnd   string
+}
+
+func groupByTags(userBooks []models.UserBook) []bookShelf {
+	seen := map[string][]models.UserBook{}
+	var order []string
+	for _, ub := range userBooks {
+		for _, tag := range ub.Tags {
+			if _, ok := seen[tag]; !ok {
+				order = append(order, tag)
+			}
+			seen[tag] = append(seen[tag], ub)
+		}
+	}
+	slices.Sort(order)
+	shelves := make([]bookShelf, 0, len(order))
+	for _, name := range order {
+		shelves = append(shelves, bookShelf{Name: name, Books: seen[name]})
+	}
+	return shelves
 }
 
 type searchResultsData struct {
@@ -267,31 +293,21 @@ func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(errors.New("not signed in"))
 	}
 
-	wishlist, err := app.Services.Books.GetByStatus(
-		r.Context(),
-		user.ID,
-		models.StatusWishlist,
-	)
+	library, err := app.Services.Books.GetLibrary(r.Context(), user.ID)
 	if err != nil {
 		panic(err)
 	}
 
-	reading, err := app.Services.Books.GetByStatus(
-		r.Context(),
-		user.ID,
-		models.StatusReading,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	finished, err := app.Services.Books.GetByStatus(
-		r.Context(),
-		user.ID,
-		models.StatusFinished,
-	)
-	if err != nil {
-		panic(err)
+	var reading, wishlist, finished []models.UserBook
+	for _, ub := range library {
+		switch ub.Status {
+		case models.StatusReading:
+			reading = append(reading, ub)
+		case models.StatusToRead:
+			wishlist = append(wishlist, ub)
+		case models.StatusRead:
+			finished = append(finished, ub)
+		}
 	}
 
 	dateStart, dateEnd := parseDateRange(r)
@@ -303,9 +319,10 @@ func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tpltools.RenderWithPanic(app.tpl, w, "books.html", booksPageData{
-		Wishlist:  wishlist,
 		Reading:   reading,
+		Wishlist:  wishlist,
 		Finished:  finished,
+		Shelves:   groupByTags(library),
 		Labels:    labels,
 		Values:    values,
 		DateStart: dateStart.Format(models.ProgressDateFormat),
@@ -389,7 +406,7 @@ func (app *Backlog) addBookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if dto.Status == "" {
-		dto.Status = models.StatusWishlist
+		dto.Status = models.StatusToRead
 	}
 
 	var isbn13 *string
@@ -457,7 +474,7 @@ func (app *Backlog) updateBookStatusHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// After marking finished, rebuild and save progress.
-	if dto.Status == models.StatusFinished {
+	if dto.Status == models.StatusRead {
 		labels, values, buildErr := app.Services.Books.BuildReadProgress(
 			r.Context(),
 			user.ID,

@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	StatusWishlist = "wishlist"
-	StatusReading  = "reading"
-	StatusFinished = "finished"
-	StatusDropped  = "dropped"
+	StatusToRead  = "to-read"
+	StatusReading = "currently-reading"
+	StatusRead    = "read"
+	StatusDropped = "dropped"
 )
 
 type Book struct {
@@ -27,15 +27,16 @@ type Book struct {
 }
 
 type UserBook struct {
-	ID         uuid.UUID
-	UserID     string
-	BookID     uuid.UUID
-	Book       *Book
-	Status     string
-	Tags       []string
-	Rating     *int16
-	Notes      *string
-	FinishedAt []time.Time
-	AddedAt    time.Time
-	UpdatedAt  time.Time
+	ID             uuid.UUID
+	UserID         string
+	BookID         uuid.UUID
+	Book           *Book
+	Status         string
+	Tags           []string
+	ShelfPositions map[string]int
+	Rating         *int16
+	Notes          *string
+	FinishedAt     []time.Time
+	AddedAt        time.Time
+	UpdatedAt      time.Time
 }

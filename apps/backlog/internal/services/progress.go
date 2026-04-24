@@ -40,11 +40,34 @@ func (s *ProgressService) GetByTypeIDAndDates(
 		return nil, nil, err
 	}
 
-	labels := []string{}
-	values := []string{}
+	if len(progresses) == 0 {
+		return nil, nil, nil
+	}
+
+	// Index stored records by date string.
+	byDate := make(map[string]string, len(progresses))
 	for _, p := range progresses {
-		labels = append(labels, p.Date.Format(models.ProgressDateFormat))
-		values = append(values, p.Value)
+		byDate[p.Date.Format(models.ProgressDateFormat)] = p.Value
+	}
+
+	// Fill every calendar day from first record to today (or dateEnd).
+	const day = 24 * time.Hour
+	first := progresses[0].Date.UTC().Truncate(day)
+	end := dateEnd.UTC().Truncate(day)
+	if today := time.Now().UTC().Truncate(day); today.Before(end) {
+		end = today
+	}
+
+	labels := make([]string, 0, int(end.Sub(first)/day)+1)
+	values := make([]string, 0, len(labels))
+	lastValue := ""
+	for d := first; !d.After(end); d = d.AddDate(0, 0, 1) {
+		ds := d.Format(models.ProgressDateFormat)
+		if v, ok := byDate[ds]; ok {
+			lastValue = v
+		}
+		labels = append(labels, ds)
+		values = append(values, lastValue)
 	}
 
 	return labels, values, nil

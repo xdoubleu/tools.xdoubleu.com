@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+
+	"tools.xdoubleu.com/apps/backlog/internal/models"
 )
 
 type BacklogSummary struct {
@@ -23,7 +25,7 @@ func (s *BacklogService) GetSummary(
 		return BacklogSummary{}, err
 	}
 
-	wishlist, err := s.books.GetByStatus(ctx, userID, "wishlist")
+	wishlist, err := s.books.GetByStatus(ctx, userID, models.StatusToRead)
 	if err != nil {
 		return BacklogSummary{}, err
 	}

@@ -1,16 +1,13 @@
 {{ template "header" }}
 {{ template "navbar" }}
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Books</h2>
     </div>
 
     <ul class="nav nav-tabs mb-4" id="booksTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab">Search</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="wishlist-tab" data-bs-toggle="tab" data-bs-target="#wishlist" type="button" role="tab">Want to Read <span class="badge bg-secondary ms-1">{{ len .Wishlist }}</span></button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">Library</button>
@@ -22,7 +19,7 @@
 
     <div class="tab-content">
 
-        {{/* ── Search tab (library-first, Hardcover fallback) ── */}}
+        {{/* ── Search tab ── */}}
         <div class="tab-pane fade show active" id="search" role="tabpanel">
             <div class="mb-3">
                 <input type="text" id="searchInput" class="form-control"
@@ -35,117 +32,188 @@
             <div id="searchResults"></div>
         </div>
 
-        {{/* ── Want to Read tab ── */}}
-        <div class="tab-pane fade" id="wishlist" role="tabpanel">
-            <div class="card">
-                <div class="card-header">Want to Read</div>
-                {{ if .Wishlist }}
-                <ul class="list-group list-group-flush">
-                    {{ range .Wishlist }}
-                    <li class="list-group-item">
-                        <div class="d-flex gap-3 align-items-start">
-                            {{ if and .Book .Book.CoverURL }}
-                            <img src="{{ .Book.CoverURL }}" alt="{{ .Book.Title }}"
-                                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
-                            {{ end }}
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold">{{ if .Book }}{{ .Book.Title }}{{ end }}</div>
-                                {{ if and .Book .Book.Authors }}
-                                <div class="text-muted small">{{ index .Book.Authors 0 }}</div>
-                                {{ end }}
-                                {{ if .Tags }}
-                                <div class="mt-1">
-                                    {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal">{{ . }}</span>{{ end }}
-                                </div>
-                                {{ end }}
-                            </div>
-                            <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-shrink-0">
-                                <input type="hidden" name="status" value="reading">
-                                <button class="btn btn-sm btn-outline-primary">Start reading</button>
-                            </form>
-                        </div>
-                    </li>
-                    {{ end }}
-                </ul>
-                {{ else }}
-                <div class="card-body text-muted">No books in want-to-read list.</div>
-                {{ end }}
-            </div>
-        </div>
-
-        {{/* ── Library tab (reading + finished) ── */}}
+        {{/* ── Library tab ── */}}
         <div class="tab-pane fade" id="library" role="tabpanel">
 
             {{ if .Reading }}
             <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Currently Reading</span>
-                    <span class="badge bg-primary">{{ len .Reading }}</span>
+                <div class="card-header">
+                    <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#sectionReading">
+                        <span>Currently Reading</span>
+                        <span class="badge bg-primary">{{ len .Reading }}</span>
+                    </button>
                 </div>
-                <ul class="list-group list-group-flush">
-                    {{ range .Reading }}
-                    <li class="list-group-item">
-                        <div class="d-flex gap-3 align-items-start">
-                            {{ if and .Book .Book.CoverURL }}
-                            <img src="{{ .Book.CoverURL }}" alt="{{ .Book.Title }}"
-                                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
-                            {{ end }}
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold">{{ if .Book }}{{ .Book.Title }}{{ end }}</div>
-                                {{ if and .Book .Book.Authors }}
-                                <div class="text-muted small">{{ index .Book.Authors 0 }}</div>
-                                {{ end }}
-                                {{ if .Tags }}
-                                <div class="mt-1">
-                                    {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal">{{ . }}</span>{{ end }}
+                <div id="sectionReading" class="collapse show">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {{ range .Reading }}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="card h-100">
+                                    {{ if and .Book .Book.CoverURL }}
+                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else if and .Book .Book.ISBN13 }}
+                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
+                                         class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else }}
+                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
+                                    {{ end }}
+                                    <div class="card-body p-2">
+                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
+                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
+                                        {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>{{ end }}
+                                    </div>
+                                    <div class="card-footer p-1">
+                                        <form method="POST" action="/backlog/books/{{ .BookID }}/status">
+                                            <input type="hidden" name="status" value="read">
+                                            <button class="btn btn-sm btn-outline-success w-100">Mark finished</button>
+                                        </form>
+                                    </div>
                                 </div>
-                                {{ end }}
                             </div>
-                            <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-shrink-0">
-                                <input type="hidden" name="status" value="finished">
-                                <button class="btn btn-sm btn-outline-success">Mark finished</button>
-                            </form>
+                            {{ end }}
                         </div>
-                    </li>
-                    {{ end }}
-                </ul>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+
+            {{ if .Wishlist }}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#sectionWishlist">
+                        <span>Want to Read</span>
+                        <span class="badge bg-secondary">{{ len .Wishlist }}</span>
+                    </button>
+                </div>
+                <div id="sectionWishlist" class="collapse">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {{ range .Wishlist }}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="card h-100">
+                                    {{ if and .Book .Book.CoverURL }}
+                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else if and .Book .Book.ISBN13 }}
+                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
+                                         class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else }}
+                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
+                                    {{ end }}
+                                    <div class="card-body p-2">
+                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
+                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
+                                        {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>{{ end }}
+                                    </div>
+                                    <div class="card-footer p-1">
+                                        <form method="POST" action="/backlog/books/{{ .BookID }}/status">
+                                            <input type="hidden" name="status" value="currently-reading">
+                                            <button class="btn btn-sm btn-outline-primary w-100">Start reading</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
+                </div>
             </div>
             {{ end }}
 
             {{ if .Finished }}
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Finished</span>
-                    <span class="badge bg-success">{{ len .Finished }}</span>
+            <div class="card mb-3">
+                <div class="card-header">
+                    <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#sectionFinished">
+                        <span>Finished</span>
+                        <span class="badge bg-success">{{ len .Finished }}</span>
+                    </button>
                 </div>
-                <ul class="list-group list-group-flush">
-                    {{ range .Finished }}
-                    <li class="list-group-item">
-                        <div class="d-flex gap-3 align-items-start">
-                            {{ if and .Book .Book.CoverURL }}
-                            <img src="{{ .Book.CoverURL }}" alt="{{ .Book.Title }}"
-                                 style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px">
-                            {{ end }}
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold">{{ if .Book }}{{ .Book.Title }}{{ end }}</div>
-                                {{ if and .Book .Book.Authors }}
-                                <div class="text-muted small">{{ index .Book.Authors 0 }}</div>
-                                {{ end }}
-                                {{ if .Rating }}<span class="badge bg-warning text-dark mt-1">{{ .Rating }}/5</span>{{ end }}
-                                {{ if .Tags }}
-                                <div class="mt-1">
-                                    {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal">{{ . }}</span>{{ end }}
+                <div id="sectionFinished" class="collapse">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {{ range .Finished }}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="card h-100">
+                                    {{ if and .Book .Book.CoverURL }}
+                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else if and .Book .Book.ISBN13 }}
+                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
+                                         class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else }}
+                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
+                                    {{ end }}
+                                    <div class="card-body p-2">
+                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
+                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
+                                        {{ if .Rating }}<span class="badge bg-warning text-dark mb-1">{{ .Rating }}/5</span>{{ end }}
+                                        {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>{{ end }}
+                                    </div>
                                 </div>
-                                {{ end }}
                             </div>
+                            {{ end }}
                         </div>
-                    </li>
-                    {{ end }}
-                </ul>
+                    </div>
+                </div>
             </div>
             {{ end }}
 
-            {{ if and (not .Reading) (not .Finished) }}
+            {{ range $i, $shelf := .Shelves }}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#shelf-{{ $i }}">
+                        <span>{{ $shelf.Name }}</span>
+                        <span class="badge bg-secondary">{{ len $shelf.Books }}</span>
+                    </button>
+                </div>
+                <div id="shelf-{{ $i }}" class="collapse">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {{ range $shelf.Books }}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="card h-100">
+                                    {{ if and .Book .Book.CoverURL }}
+                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else if and .Book .Book.ISBN13 }}
+                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
+                                         class="card-img-top"
+                                         style="aspect-ratio:2/3;object-fit:cover"
+                                         onerror="this.style.display='none'">
+                                    {{ else }}
+                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
+                                    {{ end }}
+                                    <div class="card-body p-2">
+                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
+                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
+                                        <span class="badge bg-secondary fw-normal mb-1" style="font-size:0.65em">{{ .Status }}</span>
+                                        {{ if .Rating }}<span class="badge bg-warning text-dark mb-1">{{ .Rating }}/5</span>{{ end }}
+                                    </div>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+
+            {{ if and (not .Reading) (not .Wishlist) (not .Finished) }}
             <p class="text-muted">No books in library yet. Use Search to add some.</p>
             {{ end }}
 
@@ -188,6 +256,9 @@
     const progressValues = {{ .Values }};
 
     if (progressLabels && progressLabels.length > 0) {
+        const booksRadii = progressValues.map((v, i) =>
+            i === 0 || v !== progressValues[i - 1] ? 4 : 0
+        );
         new Chart(document.getElementById("progressChart"), {
             type: "line",
             data: {
@@ -196,8 +267,10 @@
                     label: "Books Read",
                     data: progressValues,
                     borderColor: "rgb(153,102,255)",
-                    tension: 0.1,
+                    tension: 0,
                     fill: false,
+                    pointRadius: booksRadii,
+                    pointHoverRadius: 4,
                 }]
             },
             options: { responsive: true, scales: { y: { beginAtZero: true } } }
