@@ -315,7 +315,7 @@ func (app *Backlog) steamDistributionHandler(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Backlog) booksPageHandler(w http.ResponseWriter, _ *http.Request) {
 	tpltools.RenderWithPanic(app.tpl, w, "books.html", nil)
 }
 
