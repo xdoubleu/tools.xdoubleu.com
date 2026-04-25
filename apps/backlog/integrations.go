@@ -8,9 +8,9 @@ import (
 
 // Integrations is the public-facing settings type for Backlog integrations.
 type Integrations struct {
-	SteamAPIKey  string
-	SteamUserID  string
-	GoodreadsURL string
+	SteamAPIKey     string
+	SteamUserID     string
+	HardcoverAPIKey string
 }
 
 func (app *Backlog) HasCompletedOnboarding(
@@ -29,9 +29,9 @@ func (app *Backlog) GetIntegrations(
 		return Integrations{}, err
 	}
 	return Integrations{
-		SteamAPIKey:  i.SteamAPIKey,
-		SteamUserID:  i.SteamUserID,
-		GoodreadsURL: i.GoodreadsURL,
+		SteamAPIKey:     i.SteamAPIKey,
+		SteamUserID:     i.SteamUserID,
+		HardcoverAPIKey: i.HardcoverAPIKey,
 	}, nil
 }
 
@@ -41,9 +41,9 @@ func (app *Backlog) SaveIntegrations(
 	i Integrations,
 ) error {
 	return app.Services.Integrations.Save(ctx, repositories.UserIntegrations{
-		UserID:       userID,
-		SteamAPIKey:  i.SteamAPIKey,
-		SteamUserID:  i.SteamUserID,
-		GoodreadsURL: i.GoodreadsURL,
+		UserID:          userID,
+		SteamAPIKey:     i.SteamAPIKey,
+		SteamUserID:     i.SteamUserID,
+		HardcoverAPIKey: i.HardcoverAPIKey,
 	})
 }

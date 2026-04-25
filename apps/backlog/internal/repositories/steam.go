@@ -20,7 +20,7 @@ func (repo *SteamRepository) GetAllGames(
 ) ([]models.Game, error) {
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution, playtime_forever
-		FROM goaltracker.steam_games
+		FROM backlog.steam_games
 		WHERE user_id = $1
 	`
 
@@ -63,12 +63,12 @@ func (repo *SteamRepository) GetBacklog(
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
 		       sg.contribution, sg.playtime_forever
-		FROM goaltracker.steam_games sg
+		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) = 0
 		    AND sg.is_delisted = false
 		    AND EXISTS (
-		        SELECT 1 FROM goaltracker.steam_achievements sa
+		        SELECT 1 FROM backlog.steam_achievements sa
 		        WHERE sa.game_id = sg.id AND sa.user_id = $1
 		    )
 		ORDER BY sg.name
@@ -113,13 +113,13 @@ func (repo *SteamRepository) GetInProgress(
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
 		       sg.contribution, sg.playtime_forever
-		FROM goaltracker.steam_games sg
+		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) > 0
 		    AND sg.is_delisted = false
 		    AND CAST(sg.completion_rate AS FLOAT) < 100
 		    AND EXISTS (
-		        SELECT 1 FROM goaltracker.steam_achievements sa
+		        SELECT 1 FROM backlog.steam_achievements sa
 		        WHERE sa.game_id = sg.id AND sa.user_id = $1
 		    )
 		ORDER BY CAST(sg.completion_rate AS FLOAT) ASC, sg.name
@@ -164,12 +164,12 @@ func (repo *SteamRepository) GetCompleted(
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
 		       sg.contribution, sg.playtime_forever
-		FROM goaltracker.steam_games sg
+		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND sg.is_delisted = false
 		    AND CAST(sg.completion_rate AS FLOAT) >= 100
 		    AND EXISTS (
-		        SELECT 1 FROM goaltracker.steam_achievements sa
+		        SELECT 1 FROM backlog.steam_achievements sa
 		        WHERE sa.game_id = sg.id AND sa.user_id = $1
 		    )
 		ORDER BY CAST(sg.completion_rate AS FLOAT) ASC, sg.name
@@ -213,7 +213,7 @@ func (repo *SteamRepository) UpsertGames(
 	userID string,
 ) error {
 	query := `
-		INSERT INTO goaltracker.steam_games
+		INSERT INTO backlog.steam_games
 		    (id, user_id, name, is_delisted, completion_rate, contribution, playtime_forever)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (id, user_id)
@@ -251,7 +251,7 @@ func (repo *SteamRepository) GetAchievementsForGames(
 ) (map[int][]models.Achievement, error) {
 	query := `
 		SELECT game_id, name, achieved, unlock_time
-		FROM goaltracker.steam_achievements
+		FROM backlog.steam_achievements
 		WHERE game_id = ANY($1) AND user_id = $2
 	`
 
@@ -306,7 +306,7 @@ func (repo *SteamRepository) UpsertAchievements(
 
 	_, err = tx.Exec(
 		ctx,
-		"DELETE FROM goaltracker.steam_achievements WHERE game_id = $1 AND user_id = $2",
+		"DELETE FROM backlog.steam_achievements WHERE game_id = $1 AND user_id = $2",
 		gameID,
 		userID,
 	)
@@ -315,7 +315,7 @@ func (repo *SteamRepository) UpsertAchievements(
 	}
 
 	query := `
-		INSERT INTO goaltracker.steam_achievements
+		INSERT INTO backlog.steam_achievements
 		(name, user_id, game_id, achieved, unlock_time)
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (name, user_id, game_id)
@@ -360,7 +360,7 @@ func (repo *SteamRepository) UpsertAchievementSchemas(
 	gameID int,
 ) error {
 	query := `
-		INSERT INTO goaltracker.steam_achievements (name, user_id, game_id)
+		INSERT INTO backlog.steam_achievements (name, user_id, game_id)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (name, user_id, game_id)
 		DO NOTHING

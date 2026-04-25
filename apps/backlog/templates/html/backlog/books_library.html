@@ -1,0 +1,91 @@
+{{ define "books_library.html" }}
+
+{{ if .Reading }}
+<div class="card mb-3">
+    <div class="card-header">
+        <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                type="button" data-bs-toggle="collapse" data-bs-target="#sectionReading">
+            <span>Currently Reading</span>
+            <span class="badge bg-primary">{{ len .Reading }}</span>
+        </button>
+    </div>
+    <div id="sectionReading" class="collapse show">
+        <div class="card-body">
+            <div class="row g-3">
+                {{ range .Reading }}
+                <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ if .Wishlist }}
+<div class="card mb-3">
+    <div class="card-header">
+        <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                type="button" data-bs-toggle="collapse" data-bs-target="#sectionWishlist">
+            <span>Want to Read</span>
+            <span class="badge bg-secondary">{{ len .Wishlist }}</span>
+        </button>
+    </div>
+    <div id="sectionWishlist" class="collapse">
+        <div class="card-body">
+            <div class="row g-3">
+                {{ range .Wishlist }}
+                <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ if .Finished }}
+<div class="card mb-3">
+    <div class="card-header">
+        <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                type="button" data-bs-toggle="collapse" data-bs-target="#sectionFinished">
+            <span>Finished</span>
+            <span class="badge bg-success">{{ len .Finished }}</span>
+        </button>
+    </div>
+    <div id="sectionFinished" class="collapse">
+        <div class="card-body">
+            <div class="row g-3">
+                {{ range .Finished }}
+                <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ range $i, $shelf := .Shelves }}
+<div class="card mb-3">
+    <div class="card-header">
+        <button class="btn btn-link p-0 text-decoration-none text-body d-flex w-100 justify-content-between align-items-center"
+                type="button" data-bs-toggle="collapse" data-bs-target="#shelf-{{ $i }}">
+            <span>{{ $shelf.Name }}</span>
+            <span class="badge bg-secondary">{{ len $shelf.Books }}</span>
+        </button>
+    </div>
+    <div id="shelf-{{ $i }}" class="collapse">
+        <div class="card-body">
+            <div class="row g-3">
+                {{ range $shelf.Books }}
+                <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ if and (not .Reading) (not .Wishlist) (not .Finished) }}
+<p class="text-muted">No books in library yet. Use Search to add some.</p>
+{{ end }}
+
+{{ end }}

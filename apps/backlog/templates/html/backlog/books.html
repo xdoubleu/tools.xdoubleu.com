@@ -1,0 +1,301 @@
+{{ template "header" }}
+{{ template "navbar" }}
+
+{{/* ── Finish-reading modal ── */}}
+<div class="modal fade" id="finishModal" tabindex="-1" aria-labelledby="finishModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="finishForm">
+                <input type="hidden" name="status" value="read">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="finishModalLabel">Finished reading</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="fw-semibold mb-3" id="finishBookTitle"></p>
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <select name="rating" class="form-select form-select-sm">
+                            <option value="">No rating</option>
+                            <option value="1">1 ★</option>
+                            <option value="2">2 ★★</option>
+                            <option value="3">3 ★★★</option>
+                            <option value="4">4 ★★★★</option>
+                            <option value="5">5 ★★★★★</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Optional notes…"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="favourite" class="form-check-input" id="favouriteCheck">
+                        <label class="form-check-label" for="favouriteCheck">Add to favourites ★</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success">Mark Finished</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{/* ── Actions modal (shared — JS populates book ID and toggle states) ── */}}
+<div class="modal fade" id="actionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <small class="fw-semibold text-truncate me-2" id="actionsTitle" style="max-width:200px"></small>
+                <button type="button" class="btn-close btn-sm ms-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="d-grid gap-1" style="font-size:0.85em">
+                    <div class="text-muted small fw-semibold px-1">Status</div>
+                    <button class="btn btn-sm btn-outline-secondary text-start"
+                            onclick="submitAction('status','status','to-read')">Want to Read</button>
+                    <button class="btn btn-sm btn-outline-primary text-start"
+                            onclick="submitAction('status','status','currently-reading')">Currently Reading</button>
+                    <button class="btn btn-sm btn-outline-success text-start"
+                            onclick="openFinishFromActions()">Mark Finished…</button>
+                    <button class="btn btn-sm btn-outline-danger text-start"
+                            onclick="submitAction('status','status','dropped')">Dropped</button>
+                    <hr class="my-1">
+                    <div class="text-muted small fw-semibold px-1">Ownership</div>
+                    <button class="btn btn-sm btn-outline-secondary text-start" id="ownPhysBtn"
+                            onclick="submitAction('tags','tag','own-physical')">📚 Own Physical</button>
+                    <button class="btn btn-sm btn-outline-secondary text-start" id="ownDigBtn"
+                            onclick="submitAction('tags','tag','own-digital')">💻 Own Digital</button>
+                    <hr class="my-1">
+                    <button class="btn btn-sm btn-outline-warning text-start" id="favBtn"
+                            onclick="submitAction('tags','tag','favourite')">★ Favourite</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Books</h2>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="booksTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab">Search</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">Library</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button" role="tab">Progress</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        {{/* ── Search tab ── */}}
+        <div class="tab-pane fade show active" id="search" role="tabpanel">
+            <div class="mb-3">
+                <input type="text" id="searchInput" class="form-control"
+                    placeholder="Search by title or author…"
+                    hx-get="/backlog/books/search"
+                    hx-trigger="keyup changed delay:400ms, search"
+                    hx-target="#searchResults"
+                    hx-sync="this:replace"
+                    name="q">
+            </div>
+            <div id="searchResults"></div>
+        </div>
+
+        {{/* ── Library tab — loaded lazily on first open ── */}}
+        <div class="tab-pane fade" id="library" role="tabpanel">
+            <div class="text-center text-muted py-5 small" id="libraryPlaceholder">Loading…</div>
+        </div>
+
+        {{/* ── Progress tab — loaded lazily on first open ── */}}
+        <div class="tab-pane fade" id="progress" role="tabpanel">
+            <div class="text-center text-muted py-5 small" id="progressPlaceholder">Loading…</div>
+        </div>
+
+    </div>
+</div>
+
+{{/* ── Single book card template ── */}}
+{{ define "book_card" }}
+<div class="card h-100">
+    {{/* cover */}}
+    <div style="aspect-ratio:2/3;background:#e9ecef;position:relative;overflow:hidden">
+        {{ if and .Book .Book.CoverURL }}
+        <img src="{{ .Book.CoverURL }}" class="w-100 h-100" loading="lazy"
+             style="object-fit:cover;position:absolute;top:0;left:0"
+             onerror="this.style.display='none'">
+        {{ else if and .Book .Book.ISBN13 }}
+        <img src="https://books.google.com/books/content?vid=ISBN{{ .Book.ISBN13 }}&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+             class="w-100 h-100" loading="lazy"
+             style="object-fit:cover;position:absolute;top:0;left:0"
+             onerror="this.style.display='none'">
+        {{ end }}
+    </div>
+    {{/* body */}}
+    <div class="card-body p-2">
+        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
+        {{ if and .Book .Book.Authors }}
+        <p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>
+        {{ end }}
+        <div class="mb-1">
+            {{ if .HasTag "favourite" }}<span class="text-warning me-1" title="Favourite">★</span>{{ end }}
+            {{ if .HasTag "own-physical" }}<span class="me-1" title="Own physical">📚</span>{{ end }}
+            {{ if .HasTag "own-digital" }}<span class="me-1" title="Own digital">💻</span>{{ end }}
+            {{ if .Rating }}<span class="badge bg-warning text-dark">{{ .Rating }}/5</span>{{ end }}
+        </div>
+        {{ range .DisplayTags }}
+        <span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>
+        {{ end }}
+    </div>
+    {{/* footer */}}
+    <div class="card-footer p-1 d-flex gap-1">
+        {{ if eq .Status "currently-reading" }}
+        <button class="btn btn-sm btn-outline-success flex-grow-1"
+                data-bs-toggle="modal" data-bs-target="#finishModal"
+                data-book-id="{{ .BookID }}"
+                data-book-title="{{ if .Book }}{{ .Book.Title }}{{ end }}">
+            Mark Finished
+        </button>
+        {{ else if eq .Status "to-read" }}
+        <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-grow-1">
+            <input type="hidden" name="status" value="currently-reading">
+            <button class="btn btn-sm btn-outline-primary w-100">Start Reading</button>
+        </form>
+        {{ end }}
+        <button class="btn btn-sm btn-outline-secondary{{ if not (or (eq .Status "currently-reading") (eq .Status "to-read")) }} w-100{{ end }}"
+                data-bs-toggle="modal" data-bs-target="#actionsModal"
+                data-book-id="{{ .BookID }}"
+                data-book-title="{{ if .Book }}{{ .Book.Title }}{{ end }}"
+                data-own-physical="{{ if .HasTag "own-physical" }}1{{ end }}"
+                data-own-digital="{{ if .HasTag "own-digital" }}1{{ end }}"
+                data-favourite="{{ if .HasTag "favourite" }}1{{ end }}">⋯</button>
+    </div>
+</div>
+{{ end }}
+
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script>
+    // ── Actions modal ──────────────────────────────────────────────────────────
+    let currentBookId = null;
+
+    document.getElementById("actionsModal").addEventListener("show.bs.modal", e => {
+        const btn = e.relatedTarget;
+        currentBookId = btn.dataset.bookId;
+        document.getElementById("actionsTitle").textContent = btn.dataset.bookTitle || "";
+        setToggle("ownPhysBtn", btn.dataset.ownPhysical === "1");
+        setToggle("ownDigBtn",  btn.dataset.ownDigital  === "1");
+        setToggle("favBtn",     btn.dataset.favourite   === "1");
+    });
+
+    function setToggle(id, active) {
+        const btn = document.getElementById(id);
+        const labels = {
+            ownPhysBtn: ["📚 Own Physical",  "📚 Remove Physical"],
+            ownDigBtn:  ["💻 Own Digital",    "💻 Remove Digital"],
+            favBtn:     ["★ Favourite",       "★ Remove Favourite"],
+        };
+        btn.textContent = labels[id][active ? 1 : 0];
+        if (id === "favBtn") {
+            btn.classList.toggle("btn-warning",         active);
+            btn.classList.toggle("btn-outline-warning", !active);
+            btn.classList.remove("btn-secondary", "btn-outline-secondary");
+        } else {
+            btn.classList.toggle("btn-secondary",         active);
+            btn.classList.toggle("btn-outline-secondary", !active);
+            btn.classList.remove("btn-warning", "btn-outline-warning");
+        }
+    }
+
+    function submitAction(endpoint, fieldName, fieldValue) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = `/backlog/books/${currentBookId}/${endpoint}`;
+        const inp = document.createElement("input");
+        inp.type = "hidden"; inp.name = fieldName; inp.value = fieldValue;
+        form.appendChild(inp);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function openFinishFromActions() {
+        bootstrap.Modal.getInstance(document.getElementById("actionsModal")).hide();
+        const title = document.getElementById("actionsTitle").textContent;
+        document.getElementById("finishForm").action = `/backlog/books/${currentBookId}/status`;
+        document.getElementById("finishBookTitle").textContent = title;
+        document.getElementById("favouriteCheck").checked = false;
+        document.querySelector("#finishForm select[name='rating']").value = "";
+        document.querySelector("#finishForm textarea[name='notes']").value = "";
+        new bootstrap.Modal(document.getElementById("finishModal")).show();
+    }
+
+    // ── Finish modal (direct trigger from card) ────────────────────────────────
+    document.getElementById("finishModal").addEventListener("show.bs.modal", e => {
+        const btn = e.relatedTarget;
+        if (!btn) return; // opened programmatically via openFinishFromActions()
+        document.getElementById("finishForm").action = `/backlog/books/${btn.dataset.bookId}/status`;
+        document.getElementById("finishBookTitle").textContent = btn.dataset.bookTitle || "";
+        document.getElementById("favouriteCheck").checked = false;
+        document.querySelector("#finishForm select[name='rating']").value = "";
+        document.querySelector("#finishForm textarea[name='notes']").value = "";
+    });
+
+    // ── Lazy loaders ───────────────────────────────────────────────────────────
+    let libraryLoaded  = false;
+    let progressLoaded = false;
+
+    function loadLibrary() {
+        if (libraryLoaded) return;
+        libraryLoaded = true;
+        htmx.ajax("GET", "/backlog/books/library", {
+            target: "#library",
+            swap: "innerHTML",
+        });
+    }
+
+    function loadProgress(qs) {
+        if (progressLoaded) return;
+        progressLoaded = true;
+        htmx.ajax("GET", "/backlog/books/progress" + (qs || ""), {
+            target: "#progress",
+            swap: "innerHTML",
+        });
+    }
+
+    document.getElementById("library-tab").addEventListener("show.bs.tab", () => loadLibrary());
+    document.getElementById("progress-tab").addEventListener("show.bs.tab", () => loadProgress());
+
+    // ── Tab persistence + background preloads ─────────────────────────────────
+    window.addEventListener("load", () => {
+        const TAB_KEY = "booksActiveTab";
+        const params = new URLSearchParams(window.location.search);
+
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
+            btn.addEventListener("shown.bs.tab", () => {
+                sessionStorage.setItem(TAB_KEY, btn.getAttribute("data-bs-target"));
+            });
+        });
+
+        const qs = (params.has("from") || params.has("to")) ? "?" + params.toString() : "";
+        if (qs) {
+            document.getElementById("progress-tab").click();
+        } else {
+            const saved = sessionStorage.getItem(TAB_KEY);
+            if (saved) {
+                const btn = document.querySelector(`[data-bs-target="${saved}"]`);
+                if (btn) btn.click();
+            }
+        }
+
+        // Preload library and progress in the background so they're ready instantly.
+        loadLibrary();
+        loadProgress(qs);
+    });
+</script>
+{{ template "footer" }}

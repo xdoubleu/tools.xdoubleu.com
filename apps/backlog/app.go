@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/jobs"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/internal/services"
-	"tools.xdoubleu.com/apps/backlog/pkg/goodreads"
+	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -49,8 +49,12 @@ func New(
 	sharedTpl *template.Template,
 ) *Backlog {
 	clients := Clients{
-		SteamFactory: func(apiKey string) steam.Client { return steam.New(logger, apiKey) },
-		Goodreads:    goodreads.New(logger),
+		SteamFactory: func(apiKey string) steam.Client {
+			return steam.New(logger, apiKey)
+		},
+		HardcoverFactory: func(apiKey string) hardcover.Client {
+			return hardcover.New(logger, apiKey)
+		},
 	}
 
 	return NewInner(ctx, authService, logger, cfg, db, clients, sharedTpl)
@@ -107,25 +111,13 @@ func (app *Backlog) setDB(
 		app.jobQueue,
 		app.Repositories,
 		app.clients.SteamFactory,
-		app.clients.Goodreads,
+		app.clients.HardcoverFactory,
 		authService,
 	)
 }
 
 func (app *Backlog) setJobs() {
 	err := app.jobQueue.AddJob(
-		jobs.NewGoodreadsJob(
-			app.Services.Auth,
-			app.Services.Goodreads,
-			app.Services.Progress,
-		),
-		app.Services.WebSocket.UpdateState,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	err = app.jobQueue.AddJob(
 		jobs.NewSteamJob(app.Services.Auth, app.Services.Steam, app.Services.Progress),
 		app.Services.WebSocket.UpdateState,
 	)
@@ -147,9 +139,20 @@ func (app *Backlog) setContext(originalCtx context.Context) {
 }
 
 func (app *Backlog) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
-	// Schema is always "goaltracker" in the DB for backward compatibility.
-	// GetName() returns "backlog" for RBAC/URL routing.
-	const schemaName = "goaltracker"
+	// Use goaltracker for the goose table when backlog doesn't exist yet;
+	// after migrations run we rename goaltracker → backlog programmatically.
+	// On subsequent starts, backlog already exists so we use it directly.
+	schemaName := "goaltracker"
+
+	var backlogExists bool
+	if err := db.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'backlog')",
+	).Scan(&backlogExists); err != nil {
+		return err
+	}
+	if backlogExists {
+		schemaName = "backlog"
+	}
 
 	_, err := db.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schemaName))
 	if err != nil {
@@ -167,6 +170,13 @@ func (app *Backlog) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error
 	migrationsDB := stdlib.OpenDBFromPool(db)
 	if err = goose.Up(migrationsDB, "migrations"); err != nil {
 		return err
+	}
+
+	// Rename goaltracker → backlog once all migrations have applied.
+	if !backlogExists {
+		if _, err = db.Exec(ctx, "ALTER SCHEMA goaltracker RENAME TO backlog"); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -6,7 +6,7 @@ import (
 
 	"github.com/xdoubleu/essentia/v3/pkg/threading"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
-	"tools.xdoubleu.com/apps/backlog/pkg/goodreads"
+	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -15,7 +15,7 @@ import (
 type Services struct {
 	Auth         auth.Service
 	Steam        *SteamService
-	Goodreads    *GoodreadsService
+	Books        *BookService
 	Progress     *ProgressService
 	Backlog      *BacklogService
 	Integrations *IntegrationsService
@@ -29,18 +29,18 @@ func New(
 	jobQueue *threading.JobQueue,
 	repositories *repositories.Repositories,
 	steamFactory func(apiKey string) steam.Client,
-	goodreadsClient goodreads.Client,
+	hardcoverFactory func(apiKey string) hardcover.Client,
 	authService auth.Service,
 ) *Services {
 	integrations := &IntegrationsService{
 		repo: repositories.Integrations,
 	}
 
-	goodreadsSvc := &GoodreadsService{
-		logger:       logger,
-		goodreads:    repositories.Goodreads,
-		client:       goodreadsClient,
-		integrations: integrations,
+	booksSvc := &BookService{
+		logger:          logger,
+		books:           repositories.Books,
+		providerFactory: hardcoverFactory,
+		integrations:    integrations,
 	}
 	steamSvc := &SteamService{
 		logger:        logger,
@@ -53,14 +53,14 @@ func New(
 		steam:    steamSvc,
 	}
 	backlogSvc := &BacklogService{
-		steam:     steamSvc,
-		goodreads: goodreadsSvc,
+		steam: steamSvc,
+		books: booksSvc,
 	}
 
 	return &Services{
 		Auth:         authService,
 		Steam:        steamSvc,
-		Goodreads:    goodreadsSvc,
+		Books:        booksSvc,
 		Progress:     progressSvc,
 		Backlog:      backlogSvc,
 		Integrations: integrations,

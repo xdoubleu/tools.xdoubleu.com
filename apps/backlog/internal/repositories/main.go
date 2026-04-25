@@ -5,7 +5,7 @@ import (
 )
 
 type Repositories struct {
-	Goodreads    *GoodreadsRepository
+	Books        *BooksRepository
 	Steam        *SteamRepository
 	Progress     *ProgressRepository
 	Integrations *IntegrationsRepository
@@ -13,7 +13,7 @@ type Repositories struct {
 
 func New(db postgres.DB) *Repositories {
 	return &Repositories{
-		Goodreads:    &GoodreadsRepository{db: db},
+		Books:        &BooksRepository{db: db},
 		Steam:        &SteamRepository{db: db},
 		Progress:     &ProgressRepository{db: db},
 		Integrations: &IntegrationsRepository{db: db},

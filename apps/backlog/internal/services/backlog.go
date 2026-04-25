@@ -2,16 +2,18 @@ package services
 
 import (
 	"context"
+
+	"tools.xdoubleu.com/apps/backlog/internal/models"
 )
 
 type BacklogSummary struct {
-	SteamCount     int
-	GoodreadsCount int
+	SteamCount int
+	BooksCount int
 }
 
 type BacklogService struct {
-	steam     *SteamService
-	goodreads *GoodreadsService
+	steam *SteamService
+	books *BookService
 }
 
 func (s *BacklogService) GetSummary(
@@ -23,13 +25,13 @@ func (s *BacklogService) GetSummary(
 		return BacklogSummary{}, err
 	}
 
-	books, err := s.goodreads.GetWantToRead(ctx, userID)
+	wishlist, err := s.books.GetByStatus(ctx, userID, models.StatusToRead)
 	if err != nil {
 		return BacklogSummary{}, err
 	}
 
 	return BacklogSummary{
-		SteamCount:     len(games),
-		GoodreadsCount: len(books),
+		SteamCount: len(games),
+		BooksCount: len(wishlist),
 	}, nil
 }
