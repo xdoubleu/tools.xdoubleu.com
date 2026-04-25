@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"time"
-
-	"html/template"
 
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
@@ -128,6 +127,7 @@ func (app *Application) setMFATokenCookie(
 }
 
 func (app *Application) clearMFACookies(w http.ResponseWriter) {
+	secure := app.config.Env == config.ProdEnv
 	mfaCookieNames := []string{
 		"mfaToken",
 		"mfaFactorID",
@@ -135,7 +135,7 @@ func (app *Application) clearMFACookies(w http.ResponseWriter) {
 		"mfaRedirect",
 	}
 	for _, name := range mfaCookieNames {
-		http.SetCookie(w, &http.Cookie{Name: name, Value: "", MaxAge: -1, Path: "/"})
+		http.SetCookie(w, &http.Cookie{Name: name, Value: "", MaxAge: -1, Secure: secure, Path: "/"})
 	}
 }
 
@@ -188,9 +188,11 @@ func (app *Application) mfaEnrollGetHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	//nolint:gosec //SVG originates from Supabase, not user input
+	qrCode := template.HTML(enroll.TOTP.QRCode)
 	tpltools.RenderWithPanic(app.tpl, w, "mfa-enroll.html", map[string]any{
 		"HideNav":  true,
-		"QRCode":   template.HTML(enroll.TOTP.QRCode), //nolint:gosec //SVG from Supabase, not user input
+		"QRCode":   qrCode,
 		"Secret":   enroll.TOTP.Secret,
 		"FactorID": enroll.ID.String(),
 	})

@@ -359,7 +359,9 @@ func (service *AuthService) EnrollTOTP(
 	if resp, err := authedClient.GetUser(); err == nil {
 		for _, f := range resp.Factors {
 			if f.FactorType == "totp" && f.Status == "unverified" {
-				_, _ = authedClient.UnenrollFactor(types.UnenrollFactorRequest{FactorID: f.ID})
+				_, _ = authedClient.UnenrollFactor(
+					types.UnenrollFactorRequest{FactorID: f.ID},
+				)
 			}
 		}
 	}
