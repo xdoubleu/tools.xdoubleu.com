@@ -111,16 +111,42 @@
 
         {{/* ── Library tab — loaded lazily on first open ── */}}
         <div class="tab-pane fade" id="library" role="tabpanel">
-            <div class="text-center text-muted py-5 small" id="libraryPlaceholder">Loading…</div>
+            <div class="text-center py-5" id="libraryPlaceholder">
+                <div class="spinner-border text-secondary" role="status">
+                    <span class="visually-hidden">Loading…</span>
+                </div>
+            </div>
         </div>
 
         {{/* ── Progress tab — loaded lazily on first open ── */}}
         <div class="tab-pane fade" id="progress" role="tabpanel">
-            <div class="text-center text-muted py-5 small" id="progressPlaceholder">Loading…</div>
+            <div class="text-center py-5" id="progressPlaceholder">
+                <div class="spinner-border text-secondary" role="status">
+                    <span class="visually-hidden">Loading…</span>
+                </div>
+            </div>
         </div>
 
     </div>
 </div>
+
+<script>
+(function () {
+    const saved = sessionStorage.getItem('booksActiveTab');
+    if (!saved || saved === '#search') return;
+    const btn  = document.querySelector(`[data-bs-target="${saved}"]`);
+    const pane = document.querySelector(saved);
+    if (!btn || !pane) return;
+    const defBtn  = document.getElementById('search-tab');
+    const defPane = document.getElementById('search');
+    defBtn.classList.remove('active');
+    defBtn.setAttribute('aria-selected', 'false');
+    defPane.classList.remove('show', 'active');
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    pane.classList.add('show', 'active');
+})();
+</script>
 
 {{/* ── Single book card template ── */}}
 {{ define "book_card" }}
@@ -272,7 +298,7 @@
     document.getElementById("progress-tab").addEventListener("show.bs.tab", () => loadProgress());
 
     // ── Tab persistence + background preloads ─────────────────────────────────
-    window.addEventListener("load", () => {
+    document.addEventListener("DOMContentLoaded", () => {
         const TAB_KEY = "booksActiveTab";
         const params = new URLSearchParams(window.location.search);
 
@@ -283,14 +309,11 @@
         });
 
         const qs = (params.has("from") || params.has("to")) ? "?" + params.toString() : "";
+
+        // Tab visual state is already set by the inline script above.
+        // Only switch to Progress programmatically when a date-range param is present.
         if (qs) {
             document.getElementById("progress-tab").click();
-        } else {
-            const saved = sessionStorage.getItem(TAB_KEY);
-            if (saved) {
-                const btn = document.querySelector(`[data-bs-target="${saved}"]`);
-                if (btn) btn.click();
-            }
         }
 
         // Preload library and progress in the background so they're ready instantly.

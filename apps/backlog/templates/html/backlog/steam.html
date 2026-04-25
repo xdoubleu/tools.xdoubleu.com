@@ -172,6 +172,24 @@
     </div>
 </div>
 
+<script>
+(function () {
+    const saved = sessionStorage.getItem('steamActiveTab');
+    if (!saved || saved === '#summary') return;
+    const btn  = document.querySelector(`[data-bs-target="${saved}"]`);
+    const pane = document.querySelector(saved);
+    if (!btn || !pane) return;
+    const defBtn  = document.getElementById('summary-tab');
+    const defPane = document.getElementById('summary');
+    defBtn.classList.remove('active');
+    defBtn.setAttribute('aria-selected', 'false');
+    defPane.classList.remove('show', 'active');
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    pane.classList.add('show', 'active');
+})();
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const progressLabels = {{ .Labels }};
@@ -225,7 +243,7 @@
         });
     }
 
-    window.addEventListener("load", () => {
+    document.addEventListener("DOMContentLoaded", () => {
         const TAB_KEY = "steamActiveTab";
         const params = new URLSearchParams(window.location.search);
 
@@ -235,14 +253,10 @@
             });
         });
 
+        // Tab visual state is already set by the inline script above.
+        // Only switch to Progress programmatically when a date-range param is present.
         if (params.has("from") || params.has("to")) {
             document.getElementById("progress-tab").click();
-        } else {
-            const savedTab = sessionStorage.getItem(TAB_KEY);
-            if (savedTab) {
-                const btn = document.querySelector(`[data-bs-target="${savedTab}"]`);
-                if (btn) btn.click();
-            }
         }
     });
 </script>
