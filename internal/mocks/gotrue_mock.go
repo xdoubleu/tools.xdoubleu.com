@@ -1,12 +1,18 @@
-//nolint:nilnil,exhaustruct,revive,lll //ignore
+//nolint:nilnil,exhaustruct,revive,lll,gosec //test-only mock
 package mocks
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/supabase-community/gotrue-go"
 	"github.com/supabase-community/gotrue-go/types"
+)
+
+// MockedFactorID is the TOTP factor ID returned by the mock for tests.
+var MockedFactorID, _ = uuid.Parse( //nolint:gochecknoglobals //shared test fixture
+	"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
 )
 
 type MockedGoTrueClient struct {
@@ -125,19 +131,37 @@ func (client MockedGoTrueClient) Authorize(
 func (client MockedGoTrueClient) EnrollFactor(
 	req types.EnrollFactorRequest,
 ) (*types.EnrollFactorResponse, error) {
-	return nil, nil
+	return &types.EnrollFactorResponse{
+		ID:   MockedFactorID,
+		Type: types.FactorTypeTOTP,
+		TOTP: types.TOTPObject{
+			QRCode: "<svg/>",
+			Secret: "JBSWY3DPEHPK3PXP",
+			URI:    "otpauth://totp/test?secret=JBSWY3DPEHPK3PXP",
+		},
+	}, nil
 }
 
 func (client MockedGoTrueClient) ChallengeFactor(
 	req types.ChallengeFactorRequest,
 ) (*types.ChallengeFactorResponse, error) {
-	return nil, nil
+	challengeID, _ := uuid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc")
+	return &types.ChallengeFactorResponse{
+		ID: challengeID,
+		ExpiresAt: time.Now().
+			Add(5 * time.Minute), //nolint:mnd //5-minute challenge TTL
+	}, nil
 }
 
 func (client MockedGoTrueClient) VerifyFactor(
 	req types.VerifyFactorRequest,
 ) (*types.VerifyFactorResponse, error) {
-	return nil, nil
+	return &types.VerifyFactorResponse{
+		Session: types.Session{
+			AccessToken:  "mfa-access",
+			RefreshToken: "mfa-refresh",
+		},
+	}, nil
 }
 
 func (client MockedGoTrueClient) UnenrollFactor(
@@ -216,16 +240,25 @@ func (client MockedGoTrueClient) Token(
 }
 
 func (client MockedGoTrueClient) GetUser() (*types.UserResponse, error) {
-	if client.token == "access" {
-		uuid, _ := uuid.Parse("4001e9cf-3fbe-4b09-863f-bd1654cfbf76")
+	userID, _ := uuid.Parse("4001e9cf-3fbe-4b09-863f-bd1654cfbf76")
+	switch client.token {
+	case "access":
+		// aal1 token — no verified MFA factors yet
+		return &types.UserResponse{
+			User: types.User{ID: userID, Email: "user@example.com"},
+		}, nil
+	case "mfa-access":
+		// aal2 token — verified TOTP factor present
 		return &types.UserResponse{
 			User: types.User{
-				ID:    uuid,
+				ID:    userID,
 				Email: "user@example.com",
+				Factors: []types.Factor{
+					{ID: MockedFactorID, FactorType: "totp", Status: "verified"},
+				},
 			},
 		}, nil
 	}
-
 	return nil, nil
 }
 

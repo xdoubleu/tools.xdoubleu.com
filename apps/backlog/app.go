@@ -103,7 +103,7 @@ func (app *Backlog) setDB(
 	spandb := postgres.NewSpanDB(db)
 	app.db = spandb
 
-	app.Repositories = repositories.New(app.db)
+	app.Repositories = repositories.New(app.db, app.Config.EncryptionKey)
 	app.Services = services.New(
 		app.ctx,
 		app.logger,

@@ -32,7 +32,7 @@ func TestSaveOnboardingHandler(t *testing.T) {
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetData(dtos.IntegrationsDto{
 		SteamAPIKey:     "test-steam-key",
-		SteamUserID:     "test-steam-user",
+		SteamUserID:     "76561197960287930",
 		HardcoverAPIKey: "test-hardcover-key",
 	})
 

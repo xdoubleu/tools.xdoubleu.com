@@ -11,11 +11,11 @@ type Repositories struct {
 	Integrations *IntegrationsRepository
 }
 
-func New(db postgres.DB) *Repositories {
+func New(db postgres.DB, encryptionKey []byte) *Repositories {
 	return &Repositories{
 		Books:        &BooksRepository{db: db},
 		Steam:        &SteamRepository{db: db},
 		Progress:     &ProgressRepository{db: db},
-		Integrations: &IntegrationsRepository{db: db},
+		Integrations: &IntegrationsRepository{db: db, encryptionKey: encryptionKey},
 	}
 }

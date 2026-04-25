@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"tools.xdoubleu.com/internal/crypto"
 )
 
 type UserIntegrations struct {
@@ -16,7 +17,8 @@ type UserIntegrations struct {
 }
 
 type IntegrationsRepository struct {
-	db postgres.DB
+	db            postgres.DB
+	encryptionKey []byte
 }
 
 func (r *IntegrationsRepository) Get(
@@ -39,7 +41,21 @@ func (r *IntegrationsRepository) Get(
 			UserID: userID,
 		}, nil
 	}
-	return i, err
+	if err != nil {
+		return i, err
+	}
+
+	i.SteamAPIKey, err = crypto.Decrypt(r.encryptionKey, i.SteamAPIKey)
+	if err != nil {
+		return i, err
+	}
+
+	i.HardcoverAPIKey, err = crypto.Decrypt(r.encryptionKey, i.HardcoverAPIKey)
+	if err != nil {
+		return i, err
+	}
+
+	return i, nil
 }
 
 func (r *IntegrationsRepository) Exists(
@@ -57,7 +73,17 @@ func (r *IntegrationsRepository) Upsert(
 	ctx context.Context,
 	i UserIntegrations,
 ) error {
-	_, err := r.db.Exec(ctx, `
+	encSteamKey, err := crypto.Encrypt(r.encryptionKey, i.SteamAPIKey)
+	if err != nil {
+		return err
+	}
+
+	encHardcoverKey, err := crypto.Encrypt(r.encryptionKey, i.HardcoverAPIKey)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.Exec(ctx, `
 		INSERT INTO backlog.user_integrations
 		    (user_id, steam_api_key, steam_user_id, hardcover_api_key, updated_at)
 		VALUES ($1, $2, $3, $4, now())
@@ -68,9 +94,9 @@ func (r *IntegrationsRepository) Upsert(
 			updated_at        = now()
 	`,
 		i.UserID,
-		i.SteamAPIKey,
+		encSteamKey,
 		i.SteamUserID,
-		i.HardcoverAPIKey,
+		encHardcoverKey,
 	)
 	return err
 }

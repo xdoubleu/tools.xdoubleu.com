@@ -2,9 +2,18 @@
 package config
 
 import (
+	"encoding/base64"
 	"log/slog"
 
 	"github.com/xdoubleu/essentia/v3/pkg/config"
+)
+
+// devEncryptionKey is a well-known 32-byte key used only in dev/test environments.
+// Production deployments must set ENCRYPTION_KEY to a securely generated value.
+//
+//nolint:gochecknoglobals //dev-only default, replaced by ENCRYPTION_KEY in prod
+var devEncryptionKey = []byte(
+	"dev-tools-xdoubleu-encrypt-key!!",
 )
 
 type Config struct {
@@ -22,6 +31,7 @@ type Config struct {
 	SupabaseAPIKey  string
 	GitHubToken     string
 	GitHubRepo      string
+	EncryptionKey   []byte
 }
 
 func New(logger *slog.Logger) Config {
@@ -45,6 +55,17 @@ func New(logger *slog.Logger) Config {
 
 	cfg.GitHubToken = parser.EnvStr("GITHUB_TOKEN", "")
 	cfg.GitHubRepo = parser.EnvStr("GITHUB_REPO", "")
+
+	encKeyStr := parser.EnvStr("ENCRYPTION_KEY", "")
+	if encKeyStr == "" {
+		cfg.EncryptionKey = devEncryptionKey
+	} else {
+		key, err := base64.StdEncoding.DecodeString(encKeyStr)
+		if err != nil || len(key) != 32 {
+			panic("ENCRYPTION_KEY must be a base64-encoded 32-byte value")
+		}
+		cfg.EncryptionKey = key
+	}
 
 	return cfg
 }
