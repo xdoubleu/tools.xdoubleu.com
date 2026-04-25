@@ -135,7 +135,17 @@ func (app *Application) clearMFACookies(w http.ResponseWriter) {
 		"mfaRedirect",
 	}
 	for _, name := range mfaCookieNames {
-		http.SetCookie(w, &http.Cookie{Name: name, Value: "", MaxAge: -1, Secure: secure, Path: "/"})
+		http.SetCookie(
+			w,
+			&http.Cookie{
+				Name:     name,
+				Value:    "",
+				MaxAge:   -1,
+				Secure:   secure,
+				HttpOnly: true,
+				Path:     "/",
+			},
+		)
 	}
 }
 
