@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/books"
@@ -52,6 +53,7 @@ func (s *BookService) AddToLibrary(
 	userID string,
 	ext hardcover.ExternalBook,
 	status string,
+	initialTags []string,
 ) (*models.UserBook, error) {
 	book := externalToBook(ext)
 	saved, err := s.books.UpsertBook(ctx, book)
@@ -63,6 +65,7 @@ func (s *BookService) AddToLibrary(
 		UserID: userID,
 		BookID: saved.ID,
 		Status: status,
+		Tags:   initialTags,
 	}
 	if err = s.books.UpsertUserBook(ctx, ub); err != nil {
 		return nil, err
@@ -77,6 +80,45 @@ func (s *BookService) UpdateStatus(
 	ub models.UserBook,
 ) error {
 	return s.books.UpsertUserBook(ctx, ub)
+}
+
+// ToggleTag adds or removes a tag from a user_book atomically.
+func (s *BookService) ToggleTag(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	tag string,
+) error {
+	ub, err := s.books.GetUserBook(ctx, userID, bookID)
+	if err != nil {
+		return err
+	}
+	if ub == nil {
+		return fmt.Errorf("book not found")
+	}
+
+	newTags := make([]string, 0, len(ub.Tags))
+	found := false
+	for _, t := range ub.Tags {
+		if t == tag {
+			found = true
+			continue
+		}
+		newTags = append(newTags, t)
+	}
+	if !found {
+		newTags = append(newTags, tag)
+	}
+
+	return s.books.UpdateTags(ctx, userID, bookID, newTags)
+}
+
+func (s *BookService) GetUserBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (*models.UserBook, error) {
+	return s.books.GetUserBook(ctx, userID, bookID)
 }
 
 func (s *BookService) GetByStatus(

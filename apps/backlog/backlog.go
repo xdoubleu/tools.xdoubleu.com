@@ -57,14 +57,30 @@ type bookShelf struct {
 }
 
 type booksPageData struct {
-	Reading   []models.UserBook
-	Wishlist  []models.UserBook
-	Finished  []models.UserBook
-	Shelves   []bookShelf
+	Reading  []models.UserBook
+	Wishlist []models.UserBook
+	Finished []models.UserBook
+	Shelves  []bookShelf
+}
+
+type booksProgressData struct {
 	Labels    []string
 	Values    []string
 	DateStart string
 	DateEnd   string
+}
+
+func toggleTag(tags []string, tag string, enable bool) []string {
+	result := make([]string, 0, len(tags))
+	for _, t := range tags {
+		if t != tag {
+			result = append(result, t)
+		}
+	}
+	if enable {
+		result = append(result, tag)
+	}
+	return result
 }
 
 func groupByTags(userBooks []models.UserBook) []bookShelf {
@@ -72,6 +88,9 @@ func groupByTags(userBooks []models.UserBook) []bookShelf {
 	var order []string
 	for _, ub := range userBooks {
 		for _, tag := range ub.Tags {
+			if models.IsSpecialTag(tag) {
+				continue
+			}
 			if _, ok := seen[tag]; !ok {
 				order = append(order, tag)
 			}
@@ -128,6 +147,14 @@ func (app *Backlog) backlogRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"POST /"+prefix+"/books/import",
 		app.Services.Auth.AppAccess(prefix, app.importBooksHandler),
+	)
+	mux.HandleFunc(
+		"POST /"+prefix+"/books/{id}/tags",
+		app.Services.Auth.AppAccess(prefix, app.toggleTagHandler),
+	)
+	mux.HandleFunc(
+		"GET /"+prefix+"/books/progress",
+		app.Services.Auth.AppAccess(prefix, app.booksProgressHandler),
 	)
 	mux.HandleFunc(
 		"GET /"+prefix+"/api/progress",
@@ -310,6 +337,23 @@ func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	tpltools.RenderWithPanic(app.tpl, w, "books.html", booksPageData{
+		Reading:  reading,
+		Wishlist: wishlist,
+		Finished: finished,
+		Shelves:  groupByTags(library),
+	})
+}
+
+func (app *Backlog) booksProgressHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[sharedmodels.User](
+		r.Context(),
+		constants.UserContextKey,
+	)
+	if user == nil {
+		panic(errors.New("not signed in"))
+	}
+
 	dateStart, dateEnd := parseDateRange(r)
 	labels, values, err := app.Services.Progress.GetByTypeIDAndDates(
 		r.Context(), models.BooksTypeID, user.ID, dateStart, dateEnd,
@@ -318,11 +362,7 @@ func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "books.html", booksPageData{
-		Reading:   reading,
-		Wishlist:  wishlist,
-		Finished:  finished,
-		Shelves:   groupByTags(library),
+	tpltools.RenderWithPanic(app.tpl, w, "books_progress.html", booksProgressData{
 		Labels:    labels,
 		Values:    values,
 		DateStart: dateStart.Format(models.ProgressDateFormat),
@@ -377,7 +417,8 @@ func (app *Backlog) booksSearchHandler(w http.ResponseWriter, r *http.Request) {
 		query,
 	)
 	if err != nil {
-		panic(err)
+		// Log but don't fail the page — external API may be slow or unavailable.
+		app.logger.WarnContext(r.Context(), "hardcover search failed", "error", err)
 	}
 	tpltools.RenderWithPanic(
 		app.tpl,
@@ -433,8 +474,16 @@ func (app *Backlog) addBookHandler(w http.ResponseWriter, r *http.Request) {
 		Description: desc,
 	}
 
+	var initialTags []string
+	if dto.OwnPhysical {
+		initialTags = append(initialTags, models.TagOwnPhysical)
+	}
+	if dto.OwnDigital {
+		initialTags = append(initialTags, models.TagOwnDigital)
+	}
+
 	if _, err := app.Services.Books.AddToLibrary(
-		r.Context(), user.ID, ext, dto.Status,
+		r.Context(), user.ID, ext, dto.Status, initialTags,
 	); err != nil {
 		panic(err)
 	}
@@ -463,11 +512,50 @@ func (app *Backlog) updateBookStatusHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Fetch existing entry to preserve tags and other fields.
+	existing, err := app.Services.Books.GetUserBook(r.Context(), user.ID, bookID)
+	if err != nil {
+		panic(err)
+	}
+
+	var existingTags []string
+	if existing != nil {
+		existingTags = existing.Tags
+	}
+
+	// Toggle favourite tag.
+	existingTags = toggleTag(existingTags, models.TagFavourite, dto.Favourite)
+
+	var rating *int16
+	if dto.Rating != "" && dto.Rating != "0" {
+		if n, parseErr := strconv.ParseInt(dto.Rating, 10, 16); parseErr == nil &&
+			n > 0 {
+			r16 := int16(n)
+			rating = &r16
+		}
+	}
+
+	var notes *string
+	if dto.Notes != "" {
+		notes = &dto.Notes
+	}
+
+	var finishedAt []time.Time
+	if dto.Status == models.StatusRead {
+		if existing != nil {
+			finishedAt = append(finishedAt, existing.FinishedAt...)
+		}
+		finishedAt = append(finishedAt, time.Now())
+	}
+
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
 		UserID:     user.ID,
 		BookID:     bookID,
 		Status:     dto.Status,
-		FinishedAt: []time.Time{time.Now()},
+		Tags:       existingTags,
+		Rating:     rating,
+		Notes:      notes,
+		FinishedAt: finishedAt,
 	}
 	if err = app.Services.Books.UpdateStatus(r.Context(), user.ID, ub); err != nil {
 		panic(err)
@@ -487,6 +575,36 @@ func (app *Backlog) updateBookStatusHandler(w http.ResponseWriter, r *http.Reque
 		); saveErr != nil {
 			panic(saveErr)
 		}
+	}
+
+	http.Redirect(w, r, "/backlog/books", http.StatusSeeOther)
+}
+
+func (app *Backlog) toggleTagHandler(w http.ResponseWriter, r *http.Request) {
+	user := contexttools.GetValue[sharedmodels.User](
+		r.Context(),
+		constants.UserContextKey,
+	)
+	if user == nil {
+		panic(errors.New("not signed in"))
+	}
+
+	bookID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	var dto dtos.ToggleTagDto
+	if err = httptools.ReadForm(r, &dto); err != nil || dto.Tag == "" {
+		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
+
+	if err = app.Services.Books.ToggleTag(
+		r.Context(), user.ID, bookID, dto.Tag,
+	); err != nil {
+		panic(err)
 	}
 
 	http.Redirect(w, r, "/backlog/books", http.StatusSeeOther)

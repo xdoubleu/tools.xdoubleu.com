@@ -9,8 +9,17 @@ type AddBookDto struct {
 	CoverURL    string `schema:"cover_url"`
 	Description string `schema:"description"`
 	Status      string `schema:"status"`
+	OwnPhysical bool   `schema:"own_physical"`
+	OwnDigital  bool   `schema:"own_digital"`
 }
 
 type UpdateBookStatusDto struct {
-	Status string `schema:"status"`
+	Status    string `schema:"status"`
+	Rating    string `schema:"rating"`
+	Notes     string `schema:"notes"`
+	Favourite bool   `schema:"favourite"`
+}
+
+type ToggleTagDto struct {
+	Tag string `schema:"tag"`
 }

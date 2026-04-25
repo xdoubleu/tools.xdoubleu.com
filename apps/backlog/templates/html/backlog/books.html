@@ -1,5 +1,81 @@
 {{ template "header" }}
 {{ template "navbar" }}
+
+{{/* ── Finish-reading modal ── */}}
+<div class="modal fade" id="finishModal" tabindex="-1" aria-labelledby="finishModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="finishForm">
+                <input type="hidden" name="status" value="read">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="finishModalLabel">Finished reading</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="fw-semibold mb-3" id="finishBookTitle"></p>
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <select name="rating" class="form-select form-select-sm">
+                            <option value="">No rating</option>
+                            <option value="1">1 ★</option>
+                            <option value="2">2 ★★</option>
+                            <option value="3">3 ★★★</option>
+                            <option value="4">4 ★★★★</option>
+                            <option value="5">5 ★★★★★</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Optional notes…"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="favourite" class="form-check-input" id="favouriteCheck">
+                        <label class="form-check-label" for="favouriteCheck">Add to favourites ★</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success">Mark Finished</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{/* ── Actions modal (shared — JS populates book ID and toggle states) ── */}}
+<div class="modal fade" id="actionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <small class="fw-semibold text-truncate me-2" id="actionsTitle" style="max-width:200px"></small>
+                <button type="button" class="btn-close btn-sm ms-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="d-grid gap-1" style="font-size:0.85em">
+                    <div class="text-muted small fw-semibold px-1">Status</div>
+                    <button class="btn btn-sm btn-outline-secondary text-start"
+                            onclick="submitAction('status','status','to-read')">Want to Read</button>
+                    <button class="btn btn-sm btn-outline-primary text-start"
+                            onclick="submitAction('status','status','currently-reading')">Currently Reading</button>
+                    <button class="btn btn-sm btn-outline-success text-start"
+                            onclick="openFinishFromActions()">Mark Finished…</button>
+                    <button class="btn btn-sm btn-outline-danger text-start"
+                            onclick="submitAction('status','status','dropped')">Dropped</button>
+                    <hr class="my-1">
+                    <div class="text-muted small fw-semibold px-1">Ownership</div>
+                    <button class="btn btn-sm btn-outline-secondary text-start" id="ownPhysBtn"
+                            onclick="submitAction('tags','tag','own-physical')">📚 Own Physical</button>
+                    <button class="btn btn-sm btn-outline-secondary text-start" id="ownDigBtn"
+                            onclick="submitAction('tags','tag','own-digital')">💻 Own Digital</button>
+                    <hr class="my-1">
+                    <button class="btn btn-sm btn-outline-warning text-start" id="favBtn"
+                            onclick="submitAction('tags','tag','favourite')">★ Favourite</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Books</h2>
@@ -27,6 +103,7 @@
                     hx-get="/backlog/books/search"
                     hx-trigger="keyup changed delay:400ms, search"
                     hx-target="#searchResults"
+                    hx-sync="this:replace"
                     name="q">
             </div>
             <div id="searchResults"></div>
@@ -48,33 +125,7 @@
                     <div class="card-body">
                         <div class="row g-3">
                             {{ range .Reading }}
-                            <div class="col-6 col-md-4 col-lg-3">
-                                <div class="card h-100">
-                                    {{ if and .Book .Book.CoverURL }}
-                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else if and .Book .Book.ISBN13 }}
-                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
-                                         class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else }}
-                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
-                                    {{ end }}
-                                    <div class="card-body p-2">
-                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
-                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
-                                        {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>{{ end }}
-                                    </div>
-                                    <div class="card-footer p-1">
-                                        <form method="POST" action="/backlog/books/{{ .BookID }}/status">
-                                            <input type="hidden" name="status" value="read">
-                                            <button class="btn btn-sm btn-outline-success w-100">Mark finished</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
                             {{ end }}
                         </div>
                     </div>
@@ -95,33 +146,7 @@
                     <div class="card-body">
                         <div class="row g-3">
                             {{ range .Wishlist }}
-                            <div class="col-6 col-md-4 col-lg-3">
-                                <div class="card h-100">
-                                    {{ if and .Book .Book.CoverURL }}
-                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else if and .Book .Book.ISBN13 }}
-                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
-                                         class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else }}
-                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
-                                    {{ end }}
-                                    <div class="card-body p-2">
-                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
-                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
-                                        {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>{{ end }}
-                                    </div>
-                                    <div class="card-footer p-1">
-                                        <form method="POST" action="/backlog/books/{{ .BookID }}/status">
-                                            <input type="hidden" name="status" value="currently-reading">
-                                            <button class="btn btn-sm btn-outline-primary w-100">Start reading</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
                             {{ end }}
                         </div>
                     </div>
@@ -142,28 +167,7 @@
                     <div class="card-body">
                         <div class="row g-3">
                             {{ range .Finished }}
-                            <div class="col-6 col-md-4 col-lg-3">
-                                <div class="card h-100">
-                                    {{ if and .Book .Book.CoverURL }}
-                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else if and .Book .Book.ISBN13 }}
-                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
-                                         class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else }}
-                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
-                                    {{ end }}
-                                    <div class="card-body p-2">
-                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
-                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
-                                        {{ if .Rating }}<span class="badge bg-warning text-dark mb-1">{{ .Rating }}/5</span>{{ end }}
-                                        {{ range .Tags }}<span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>{{ end }}
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
                             {{ end }}
                         </div>
                     </div>
@@ -184,28 +188,7 @@
                     <div class="card-body">
                         <div class="row g-3">
                             {{ range $shelf.Books }}
-                            <div class="col-6 col-md-4 col-lg-3">
-                                <div class="card h-100">
-                                    {{ if and .Book .Book.CoverURL }}
-                                    <img src="{{ .Book.CoverURL }}" class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else if and .Book .Book.ISBN13 }}
-                                    <img src="https://covers.openlibrary.org/b/isbn/{{ .Book.ISBN13 }}-M.jpg"
-                                         class="card-img-top"
-                                         style="aspect-ratio:2/3;object-fit:cover"
-                                         onerror="this.style.display='none'">
-                                    {{ else }}
-                                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted small" style="aspect-ratio:2/3"></div>
-                                    {{ end }}
-                                    <div class="card-body p-2">
-                                        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
-                                        {{ if and .Book .Book.Authors }}<p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>{{ end }}
-                                        <span class="badge bg-secondary fw-normal mb-1" style="font-size:0.65em">{{ .Status }}</span>
-                                        {{ if .Rating }}<span class="badge bg-warning text-dark mb-1">{{ .Rating }}/5</span>{{ end }}
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="col-6 col-md-4 col-lg-3">{{ template "book_card" . }}</div>
                             {{ end }}
                         </div>
                     </div>
@@ -219,64 +202,141 @@
 
         </div>
 
-        {{/* ── Progress tab ── */}}
+        {{/* ── Progress tab — loaded lazily on first open ── */}}
         <div class="tab-pane fade" id="progress" role="tabpanel">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <form method="get" class="row g-2 align-items-end">
-                        <div class="col-auto">
-                            <label class="form-label mb-1">From</label>
-                            <input type="date" name="from" class="form-control form-control-sm" value="{{ .DateStart }}">
-                        </div>
-                        <div class="col-auto">
-                            <label class="form-label mb-1">To</label>
-                            <input type="date" name="to" class="form-control form-control-sm" value="{{ .DateEnd }}">
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header">Books Read (cumulative)</div>
-                <div class="card-body">
-                    <canvas id="progressChart"></canvas>
-                </div>
-            </div>
+            <div class="text-center text-muted py-5 small" id="progressPlaceholder">Loading…</div>
         </div>
 
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{{/* ── Single book card template ── */}}
+{{ define "book_card" }}
+<div class="card h-100">
+    {{/* cover */}}
+    <div style="aspect-ratio:2/3;background:#e9ecef;position:relative;overflow:hidden">
+        {{ if and .Book .Book.CoverURL }}
+        <img src="{{ .Book.CoverURL }}" class="w-100 h-100" loading="lazy"
+             style="object-fit:cover;position:absolute;top:0;left:0"
+             onerror="this.style.display='none'">
+        {{ else if and .Book .Book.ISBN13 }}
+        <img src="https://books.google.com/books/content?vid=ISBN{{ .Book.ISBN13 }}&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+             class="w-100 h-100" loading="lazy"
+             style="object-fit:cover;position:absolute;top:0;left:0"
+             onerror="this.style.display='none'">
+        {{ end }}
+    </div>
+    {{/* body */}}
+    <div class="card-body p-2">
+        <p class="card-text small fw-semibold mb-1">{{ if .Book }}{{ .Book.Title }}{{ end }}</p>
+        {{ if and .Book .Book.Authors }}
+        <p class="card-text small text-muted mb-1">{{ index .Book.Authors 0 }}</p>
+        {{ end }}
+        <div class="mb-1">
+            {{ if .HasTag "favourite" }}<span class="text-warning me-1" title="Favourite">★</span>{{ end }}
+            {{ if .HasTag "own-physical" }}<span class="me-1" title="Own physical">📚</span>{{ end }}
+            {{ if .HasTag "own-digital" }}<span class="me-1" title="Own digital">💻</span>{{ end }}
+            {{ if .Rating }}<span class="badge bg-warning text-dark">{{ .Rating }}/5</span>{{ end }}
+        </div>
+        {{ range .DisplayTags }}
+        <span class="badge bg-secondary me-1 fw-normal" style="font-size:0.65em">{{ . }}</span>
+        {{ end }}
+    </div>
+    {{/* footer */}}
+    <div class="card-footer p-1 d-flex gap-1">
+        {{ if eq .Status "currently-reading" }}
+        <button class="btn btn-sm btn-outline-success flex-grow-1"
+                data-bs-toggle="modal" data-bs-target="#finishModal"
+                data-book-id="{{ .BookID }}"
+                data-book-title="{{ if .Book }}{{ .Book.Title }}{{ end }}">
+            Mark Finished
+        </button>
+        {{ else if eq .Status "to-read" }}
+        <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-grow-1">
+            <input type="hidden" name="status" value="currently-reading">
+            <button class="btn btn-sm btn-outline-primary w-100">Start Reading</button>
+        </form>
+        {{ end }}
+        <button class="btn btn-sm btn-outline-secondary{{ if not (or (eq .Status "currently-reading") (eq .Status "to-read")) }} w-100{{ end }}"
+                data-bs-toggle="modal" data-bs-target="#actionsModal"
+                data-book-id="{{ .BookID }}"
+                data-book-title="{{ if .Book }}{{ .Book.Title }}{{ end }}"
+                data-own-physical="{{ if .HasTag "own-physical" }}1{{ end }}"
+                data-own-digital="{{ if .HasTag "own-digital" }}1{{ end }}"
+                data-favourite="{{ if .HasTag "favourite" }}1{{ end }}">⋯</button>
+    </div>
+</div>
+{{ end }}
+
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 <script>
-    const progressLabels = {{ .Labels }};
-    const progressValues = {{ .Values }};
+    // ── Actions modal ──────────────────────────────────────────────────────────
+    let currentBookId = null;
 
-    if (progressLabels && progressLabels.length > 0) {
-        const booksRadii = progressValues.map((v, i) =>
-            i === 0 || v !== progressValues[i - 1] ? 4 : 0
-        );
-        new Chart(document.getElementById("progressChart"), {
-            type: "line",
-            data: {
-                labels: progressLabels,
-                datasets: [{
-                    label: "Books Read",
-                    data: progressValues,
-                    borderColor: "rgb(153,102,255)",
-                    tension: 0,
-                    fill: false,
-                    pointRadius: booksRadii,
-                    pointHoverRadius: 4,
-                }]
-            },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
-        });
+    document.getElementById("actionsModal").addEventListener("show.bs.modal", e => {
+        const btn = e.relatedTarget;
+        currentBookId = btn.dataset.bookId;
+        document.getElementById("actionsTitle").textContent = btn.dataset.bookTitle || "";
+        setToggle("ownPhysBtn", btn.dataset.ownPhysical === "1");
+        setToggle("ownDigBtn",  btn.dataset.ownDigital  === "1");
+        setToggle("favBtn",     btn.dataset.favourite   === "1");
+    });
+
+    function setToggle(id, active) {
+        const btn = document.getElementById(id);
+        btn.classList.toggle("btn-secondary",         active);
+        btn.classList.toggle("btn-outline-secondary", !active);
+        btn.classList.toggle("btn-warning",           id === "favBtn" && active);
+        btn.classList.toggle("btn-outline-warning",   id === "favBtn" && !active);
     }
 
+    function submitAction(endpoint, fieldName, fieldValue) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = `/backlog/books/${currentBookId}/${endpoint}`;
+        const inp = document.createElement("input");
+        inp.type = "hidden"; inp.name = fieldName; inp.value = fieldValue;
+        form.appendChild(inp);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function openFinishFromActions() {
+        bootstrap.Modal.getInstance(document.getElementById("actionsModal")).hide();
+        const title = document.getElementById("actionsTitle").textContent;
+        document.getElementById("finishForm").action = `/backlog/books/${currentBookId}/status`;
+        document.getElementById("finishBookTitle").textContent = title;
+        document.getElementById("favouriteCheck").checked = false;
+        document.querySelector("#finishForm select[name='rating']").value = "";
+        document.querySelector("#finishForm textarea[name='notes']").value = "";
+        new bootstrap.Modal(document.getElementById("finishModal")).show();
+    }
+
+    // ── Finish modal (direct trigger from card) ────────────────────────────────
+    document.getElementById("finishModal").addEventListener("show.bs.modal", e => {
+        const btn = e.relatedTarget;
+        if (!btn) return; // opened programmatically via openFinishFromActions()
+        document.getElementById("finishForm").action = `/backlog/books/${btn.dataset.bookId}/status`;
+        document.getElementById("finishBookTitle").textContent = btn.dataset.bookTitle || "";
+        document.getElementById("favouriteCheck").checked = false;
+        document.querySelector("#finishForm select[name='rating']").value = "";
+        document.querySelector("#finishForm textarea[name='notes']").value = "";
+    });
+
+    // ── Progress tab — lazy load on first open ─────────────────────────────────
+    let progressLoaded = false;
+    document.getElementById("progress-tab").addEventListener("show.bs.tab", () => {
+        if (progressLoaded) return;
+        progressLoaded = true;
+        const params = new URLSearchParams(window.location.search);
+        const qs = (params.has("from") || params.has("to")) ? "?" + params.toString() : "";
+        htmx.ajax("GET", "/backlog/books/progress" + qs, {
+            target: "#progress",
+            swap: "innerHTML",
+        });
+    });
+
+    // ── Tab persistence ────────────────────────────────────────────────────────
     window.addEventListener("load", () => {
         const TAB_KEY = "booksActiveTab";
         const params = new URLSearchParams(window.location.search);
@@ -290,9 +350,9 @@
         if (params.has("from") || params.has("to")) {
             document.getElementById("progress-tab").click();
         } else {
-            const savedTab = sessionStorage.getItem(TAB_KEY);
-            if (savedTab) {
-                const btn = document.querySelector(`[data-bs-target="${savedTab}"]`);
+            const saved = sessionStorage.getItem(TAB_KEY);
+            if (saved) {
+                const btn = document.querySelector(`[data-bs-target="${saved}"]`);
                 if (btn) btn.click();
             }
         }

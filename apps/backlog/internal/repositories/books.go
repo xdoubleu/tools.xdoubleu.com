@@ -82,27 +82,36 @@ func (repo *BooksRepository) UpsertUserBook(
 	ctx context.Context,
 	ub models.UserBook,
 ) error {
+	posJSON, err := json.Marshal(ub.ShelfPositions)
+	if err != nil {
+		return err
+	}
+
 	query := `
 		INSERT INTO backlog.user_books
-		    (user_id, book_id, status, tags, rating, notes, finished_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		    (user_id, book_id, status, tags, shelf_positions,
+		     rating, notes, finished_at, added_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, now()))
 		ON CONFLICT (user_id, book_id) DO UPDATE SET
-		    status      = EXCLUDED.status,
-		    tags        = EXCLUDED.tags,
-		    rating      = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
-		    notes       = COALESCE(EXCLUDED.notes, backlog.user_books.notes),
-		    finished_at = EXCLUDED.finished_at,
-		    updated_at  = now()
+		    status          = EXCLUDED.status,
+		    tags            = EXCLUDED.tags,
+		    shelf_positions = EXCLUDED.shelf_positions,
+		    rating          = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
+		    notes           = COALESCE(EXCLUDED.notes, backlog.user_books.notes),
+		    finished_at     = EXCLUDED.finished_at,
+		    updated_at      = now()
 	`
 
-	_, err := repo.db.Exec(ctx, query,
+	_, err = repo.db.Exec(ctx, query,
 		ub.UserID,
 		ub.BookID,
 		ub.Status,
 		ub.Tags,
+		posJSON,
 		ub.Rating,
 		ub.Notes,
 		ub.FinishedAt,
+		nullTime(ub.AddedAt),
 	)
 
 	return postgres.PgxErrorToHTTPError(err)
@@ -132,8 +141,8 @@ func (repo *BooksRepository) GetLibrary(
 	userID string,
 ) ([]models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
-		       ub.finished_at, ub.added_at, ub.updated_at,
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
+		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
 		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
 		       b.description, b.external_refs, b.created_at, b.updated_at
 		FROM backlog.user_books ub
@@ -152,7 +161,7 @@ func (repo *BooksRepository) GetFinishedDates(
 	query := `
 		SELECT UNNEST(finished_at) AS finished_date
 		FROM backlog.user_books
-		WHERE user_id = $1 AND status = 'finished'
+		WHERE user_id = $1 AND status = 'read'
 		ORDER BY finished_date
 	`
 
@@ -201,6 +210,13 @@ func (repo *BooksRepository) queryUserBooks(
 	return userBooks, nil
 }
 
+func nullTime(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
+}
+
 func scanBook(row pgx.Row) (*models.Book, error) {
 	var book models.Book
 	var refsJSON []byte
@@ -234,7 +250,7 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 	var ub models.UserBook
 	var book models.Book
-	var refsJSON []byte
+	var refsJSON, posJSON []byte
 
 	err := rows.Scan(
 		&ub.ID,
@@ -242,6 +258,7 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&ub.BookID,
 		&ub.Status,
 		&ub.Tags,
+		&posJSON,
 		&ub.Rating,
 		&ub.Notes,
 		&ub.FinishedAt,
@@ -265,6 +282,13 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 	book.ExternalRefs = map[string]string{}
 	if len(refsJSON) > 0 {
 		if jsonErr := json.Unmarshal(refsJSON, &book.ExternalRefs); jsonErr != nil {
+			return models.UserBook{}, jsonErr
+		}
+	}
+
+	ub.ShelfPositions = map[string]int{}
+	if len(posJSON) > 0 {
+		if jsonErr := json.Unmarshal(posJSON, &ub.ShelfPositions); jsonErr != nil {
 			return models.UserBook{}, jsonErr
 		}
 	}
@@ -358,30 +382,37 @@ func (repo *BooksRepository) BatchUpsert(
 	// ---------------------------
 	upsertUserBookQuery := `
 		INSERT INTO backlog.user_books
-		    (user_id, book_id, status, tags, rating, notes, finished_at, added_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		    (user_id, book_id, status, tags, shelf_positions,
+		     rating, notes, finished_at, added_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, now()))
 		ON CONFLICT (user_id, book_id) DO UPDATE SET
-		    status      = EXCLUDED.status,
-		    tags        = EXCLUDED.tags,
-		    rating      = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
-		    finished_at = EXCLUDED.finished_at,
-			added_at    = COALESCE(EXCLUDED.added_at, backlog.user_books.added_at),
-		    updated_at  = now()
+		    status          = EXCLUDED.status,
+		    tags            = EXCLUDED.tags,
+		    shelf_positions = EXCLUDED.shelf_positions,
+		    rating          = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
+		    finished_at     = EXCLUDED.finished_at,
+		    added_at        = COALESCE(backlog.user_books.added_at, EXCLUDED.added_at),
+		    updated_at      = now()
 	`
 
 	batch = &pgx.Batch{} //nolint:exhaustruct //QueuedQueries populated via Queue()
 
 	for _, ub := range userBooks {
+		posJSON, marshalErr := json.Marshal(ub.ShelfPositions)
+		if marshalErr != nil {
+			return fmt.Errorf("marshal shelf positions: %w", marshalErr)
+		}
 		batch.Queue(
 			upsertUserBookQuery,
 			userID,
 			ub.BookID,
 			ub.Status,
 			ub.Tags,
+			posJSON,
 			ub.Rating,
 			ub.Notes,
 			ub.FinishedAt,
-			ub.AddedAt,
+			nullTime(ub.AddedAt),
 		)
 	}
 
@@ -430,8 +461,8 @@ func (repo *BooksRepository) GetUserBook(
 	bookID uuid.UUID,
 ) (*models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
-		       ub.finished_at, ub.added_at, ub.updated_at,
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
+		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
 		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
 		       b.description, b.external_refs, b.created_at, b.updated_at
 		FROM backlog.user_books ub
@@ -464,8 +495,8 @@ func (repo *BooksRepository) SearchLibrary(
 	query string,
 ) ([]models.UserBook, error) {
 	q := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.rating, ub.notes,
-		       ub.finished_at, ub.added_at, ub.updated_at,
+		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
+		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
 		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
 		       b.description, b.external_refs, b.created_at, b.updated_at
 		FROM backlog.user_books ub
@@ -481,4 +512,20 @@ func (repo *BooksRepository) SearchLibrary(
 	`
 
 	return repo.queryUserBooks(ctx, q, userID, query)
+}
+
+// UpdateTags replaces the tag list for a user_book.
+func (repo *BooksRepository) UpdateTags(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	tags []string,
+) error {
+	query := `
+		UPDATE backlog.user_books
+		SET tags = $3, updated_at = now()
+		WHERE user_id = $1 AND book_id = $2
+	`
+	_, err := repo.db.Exec(ctx, query, userID, bookID, tags)
+	return postgres.PgxErrorToHTTPError(err)
 }

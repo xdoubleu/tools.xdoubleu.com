@@ -35,6 +35,13 @@ func ParseCSV(r io.Reader) ([]ParsedEntry, error) {
 
 	idx := buildIndex(header)
 
+	required := []string{"Book Id", "Title", "Author", "Exclusive Shelf"}
+	for _, col := range required {
+		if _, ok := idx[col]; !ok {
+			return nil, fmt.Errorf("missing required column: %q", col)
+		}
+	}
+
 	var entries []ParsedEntry
 	for {
 		row, readErr := reader.Read()
@@ -119,14 +126,10 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 		}
 	}
 
-	var tags []string
-	if v := get(row, idx, "Bookshelves"); v != "" {
-		for _, tag := range strings.Split(v, ",") {
-			if tag = strings.TrimSpace(tag); tag != "" && tag != status {
-				tags = append(tags, tag)
-			}
-		}
-	}
+	tags, shelfPositions := parseShelvesWithPositions(
+		get(row, idx, "Bookshelves with positions"),
+		status,
+	)
 
 	book := models.Book{ //nolint:exhaustruct //optional fields
 		Title:   title,
@@ -139,14 +142,73 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 	}
 
 	userBook := models.UserBook{ //nolint:exhaustruct //IDs assigned later
-		Status:     status,
-		Tags:       tags,
-		Rating:     rating,
-		FinishedAt: finishedAt,
-		AddedAt:    addedAt,
+		Status:         status,
+		Tags:           tags,
+		ShelfPositions: shelfPositions,
+		Rating:         rating,
+		FinishedAt:     finishedAt,
+		AddedAt:        addedAt,
 	}
 
 	return ParsedEntry{Book: book, UserBook: userBook}, nil
+}
+
+// parseShelvesWithPositions parses the "Bookshelves with positions" CSV column.
+// Format: "to-read (#3), technical (#1), own-physical"
+// The exclusive shelf (status) is excluded from tags; others become tags.
+// Returns tags (non-exclusive shelves) and a position map for all named shelves.
+func parseShelvesWithPositions(raw, exclusiveShelf string) ([]string, map[string]int) {
+	positions := map[string]int{}
+	var tags []string
+
+	if raw == "" {
+		return tags, positions
+	}
+
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		name, pos := parseShelfEntry(part)
+		if name == "" {
+			continue
+		}
+
+		if pos > 0 {
+			positions[name] = pos
+		}
+
+		if name != exclusiveShelf {
+			tags = append(tags, name)
+		}
+	}
+
+	return tags, positions
+}
+
+// parseShelfEntry splits "shelf-name (#42)" into ("shelf-name", 42).
+// Returns ("", 0) for empty input.
+func parseShelfEntry(s string) (string, int) {
+	open := strings.LastIndex(s, "(#")
+	if open < 0 {
+		return strings.TrimSpace(s), 0
+	}
+
+	name := strings.TrimSpace(s[:open])
+	rest := s[open+2:]
+	closeParen := strings.Index(rest, ")")
+	if closeParen < 0 {
+		return name, 0
+	}
+
+	pos, err := strconv.Atoi(strings.TrimSpace(rest[:closeParen]))
+	if err != nil || pos < 0 {
+		return name, 0
+	}
+
+	return name, pos
 }
 
 func shelfToStatus(shelf string) string {

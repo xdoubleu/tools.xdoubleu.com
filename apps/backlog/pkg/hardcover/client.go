@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // ErrNotFound is returned by GetByID when no book matches the given ID.
@@ -18,15 +19,21 @@ var ErrNotFound = errors.New("hardcover: book not found")
 //nolint:gochecknoglobals // overridable in tests
 var baseURL = "https://api.hardcover.app/v1/graphql"
 
+const apiTimeout = 5 * time.Second
+
 type client struct {
-	logger   *slog.Logger
-	apiToken string
+	logger     *slog.Logger
+	apiToken   string
+	httpClient *http.Client
 }
 
 func New(logger *slog.Logger, apiToken string) Client {
 	return client{
 		logger:   logger,
 		apiToken: apiToken,
+		httpClient: &http.Client{
+			Timeout: apiTimeout,
+		},
 	}
 }
 
@@ -118,7 +125,7 @@ func (c client) do(
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
