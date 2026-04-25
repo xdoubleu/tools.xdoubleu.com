@@ -153,6 +153,10 @@ func (app *Backlog) backlogRoutes(prefix string, mux *http.ServeMux) {
 		app.Services.Auth.AppAccess(prefix, app.toggleTagHandler),
 	)
 	mux.HandleFunc(
+		"GET /"+prefix+"/books/library",
+		app.Services.Auth.AppAccess(prefix, app.booksLibraryHandler),
+	)
+	mux.HandleFunc(
 		"GET /"+prefix+"/books/progress",
 		app.Services.Auth.AppAccess(prefix, app.booksProgressHandler),
 	)
@@ -312,6 +316,10 @@ func (app *Backlog) steamDistributionHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
+	tpltools.RenderWithPanic(app.tpl, w, "books.html", nil)
+}
+
+func (app *Backlog) booksLibraryHandler(w http.ResponseWriter, r *http.Request) {
 	user := contexttools.GetValue[sharedmodels.User](
 		r.Context(),
 		constants.UserContextKey,
@@ -337,7 +345,7 @@ func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "books.html", booksPageData{
+	tpltools.RenderWithPanic(app.tpl, w, "books_library.html", booksPageData{
 		Reading:  reading,
 		Wishlist: wishlist,
 		Finished: finished,
