@@ -32,7 +32,7 @@ func TestSaveSettingsHandler(t *testing.T) {
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetData(dtos.IntegrationsDto{
 		SteamAPIKey:     "test-steam-key",
-		SteamUserID:     "test-steam-user",
+		SteamUserID:     "76561197960287930",
 		HardcoverAPIKey: "test-hardcover-key",
 	})
 
@@ -50,7 +50,7 @@ func TestSaveSettingsRoundTrip(t *testing.T) {
 	postReq.SetContentType(test.FormContentType)
 	postReq.SetData(dtos.IntegrationsDto{
 		SteamAPIKey:     "round-trip-key",
-		SteamUserID:     "round-trip-user",
+		SteamUserID:     "76561197960287930",
 		HardcoverAPIKey: "round-trip-hardcover-key",
 	})
 	rs := postReq.Do(t)

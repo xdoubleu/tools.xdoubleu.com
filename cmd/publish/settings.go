@@ -56,6 +56,11 @@ func (app *Application) saveSettingsHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if ok, errs := dto.Validate(); !ok {
+		httptools.FailedValidationResponse(w, r, errs)
+		return
+	}
+
 	integrations := backlog.Integrations{
 		SteamAPIKey:     dto.SteamAPIKey,
 		SteamUserID:     dto.SteamUserID,
