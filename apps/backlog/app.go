@@ -151,7 +151,7 @@ func (app *Backlog) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error
 		return err
 	}
 	if backlogExists {
-
+		schemaName = "backlog"
 	}
 
 	_, err := db.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schemaName))
