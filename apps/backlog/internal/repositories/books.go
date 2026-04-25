@@ -50,7 +50,7 @@ func (repo *BooksRepository) UpsertBook(
 		book.ISBN10,
 		book.CoverURL,
 		book.Description,
-		string(externalRefsJSON),
+		externalRefsJSON,
 	)
 
 	return scanBook(row)
@@ -408,7 +408,7 @@ func (repo *BooksRepository) BatchUpsert(
 			ub.BookID,
 			ub.Status,
 			ub.Tags,
-			posJSON,
+			string(posJSON),
 			ub.Rating,
 			ub.Notes,
 			ub.FinishedAt,
