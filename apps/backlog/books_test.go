@@ -331,6 +331,43 @@ const goodreadsCSVForImport = `Book Id,Title,Author,ISBN,ISBN13,My Rating,Exclus
 99001,Import Test Book,Import Author,"=""0140449116""","=""9780140449112""",4,read,"read (#1)",2023/05/20
 `
 
+func TestUpdateBookStatus_ReadThenReSaveNoSpike(t *testing.T) {
+	ub := addTestBook(t, "ReSaveNoSpikeBook")
+
+	markRead := func(notes string) {
+		tReq := test.CreateRequestTester(
+			getRoutes(),
+			http.MethodPost,
+			"/"+testApp.GetName()+"/books/"+ub.BookID.String()+"/status",
+		)
+		tReq.SetContentType(test.FormContentType)
+		tReq.SetData(dtos.UpdateBookStatusDto{ //nolint:exhaustruct //optional fields
+			Status: models.StatusRead,
+			Notes:  notes,
+		})
+		tReq.AddCookie(&accessToken)
+		tReq.SetFollowRedirect(false)
+		rs := tReq.Do(t)
+		assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+	}
+
+	markRead("First save.")
+	markRead("Second save — just updating notes, should not add a timestamp.")
+
+	got, err := testApp.Services.Books.GetUserBook(
+		context.Background(),
+		userID,
+		ub.BookID,
+	)
+	require.NoError(t, err)
+	assert.Len(
+		t,
+		got.FinishedAt,
+		1,
+		"re-saving a read book must not append extra FinishedAt timestamps",
+	)
+}
+
 func TestImportBooks(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	defer ts.Close()
