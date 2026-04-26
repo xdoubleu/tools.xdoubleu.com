@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/templates"
 )
 
 func currentUser(r *http.Request) *sharedmodels.User {
@@ -58,13 +59,23 @@ func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err := app.services.Calendar.FetchICS(r.Context(), dto.SourceURL)
 	if err != nil {
-		http.Error(w, "Failed to fetch calendar", http.StatusBadGateway)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusBadGateway,
+			"Failed to fetch calendar",
+		)
 		return
 	}
 
 	events, err := app.services.Calendar.ExtractEvents(data)
 	if err != nil {
-		http.Error(w, "Failed to parse calendar", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to parse calendar",
+		)
 		return
 	}
 
@@ -94,24 +105,39 @@ func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
 
 	cfg, ok := app.services.Calendar.LoadConfig(r.Context(), token)
 	if !ok {
-		http.Error(w, "Filter not found", http.StatusNotFound)
+		templates.RenderError(app.tpl, w, http.StatusNotFound, "Filter not found")
 		return
 	}
 
 	if cfg.UserID != user.ID {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusForbidden,
+			"You do not have access to this filter",
+		)
 		return
 	}
 
 	data, err := app.services.Calendar.FetchICS(r.Context(), cfg.SourceURL)
 	if err != nil {
-		http.Error(w, "Failed to fetch calendar", http.StatusBadGateway)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusBadGateway,
+			"Failed to fetch calendar",
+		)
 		return
 	}
 
 	events, err := app.services.Calendar.ExtractEvents(data)
 	if err != nil {
-		http.Error(w, "Failed to parse calendar", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to parse calendar",
+		)
 		return
 	}
 
@@ -177,7 +203,12 @@ func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
 			"error",
 			err,
 		)
-		http.Error(w, "Failed to save config", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to save config",
+		)
 		return
 	}
 
@@ -206,7 +237,12 @@ func (app *ICSProxy) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := app.services.Calendar.DeleteConfig(r.Context(), token, user.ID); err != nil {
 		app.logger.ErrorContext(r.Context(), "Failed to delete filter", "error", err)
-		http.Error(w, "Failed to delete filter", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to delete filter",
+		)
 		return
 	}
 

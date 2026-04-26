@@ -12,9 +12,13 @@ import (
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/templates"
 )
 
-const mfaCookieTTL = 5 * time.Minute
+const (
+	mfaCookieTTL = 5 * time.Minute
+	maxBodyBytes = 1 << 20 // 1 MB
+)
 
 func (app *Application) authRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(fmt.Sprintf("POST /%s/signin", prefix), app.signInHandler)
@@ -37,8 +41,7 @@ func (app *Application) authRoutes(prefix string, mux *http.ServeMux) {
 func (app *Application) signInHandler(w http.ResponseWriter, r *http.Request) {
 	var signInDto dtos.SignInDto
 
-	//nolint:mnd //no magic number
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	err := httptools.ReadForm(r, &signInDto)
 	if err != nil {
 		httptools.RedirectWithError(w, r, "/", err)
@@ -164,7 +167,12 @@ func (app *Application) completeMFA(
 		models.AccessScope, accessToken, app.config.AccessExpiry, secure,
 	)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to create session",
+		)
 		return
 	}
 	http.SetCookie(w, accessCookie)
@@ -174,7 +182,12 @@ func (app *Application) completeMFA(
 			models.RefreshScope, refreshToken, app.config.RefreshExpiry, secure,
 		)
 		if refErr != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			templates.RenderError(
+				app.tpl,
+				w,
+				http.StatusInternalServerError,
+				"Failed to create session",
+			)
 			return
 		}
 		http.SetCookie(w, refreshCookie)
@@ -216,8 +229,7 @@ func (app *Application) mfaEnrollPostHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	//nolint:mnd //no magic number
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 
 	if err = r.ParseForm(); err != nil {
 		httptools.RedirectWithError(w, r, "/auth/mfa/enroll", err)
@@ -287,8 +299,7 @@ func (app *Application) mfaChallengePostHandler(
 		return
 	}
 
-	//nolint:mnd //no magic number
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 
 	if err = r.ParseForm(); err != nil {
 		httptools.RedirectWithError(w, r, "/auth/mfa/challenge", err)

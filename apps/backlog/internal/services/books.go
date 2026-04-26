@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/xdoubleu/essentia/v3/pkg/database"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/books"
@@ -91,10 +93,10 @@ func (s *BookService) ToggleTag(
 ) error {
 	ub, err := s.books.GetUserBook(ctx, userID, bookID)
 	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return fmt.Errorf("book not found")
+		}
 		return err
-	}
-	if ub == nil {
-		return fmt.Errorf("book not found")
 	}
 
 	newTags := make([]string, 0, len(ub.Tags))

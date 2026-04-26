@@ -15,32 +15,42 @@
             </thead>
             <tbody>
                 {{ range .Users }}
-                {{ $user := . }}
-                <tr>
-                    <td>{{ .Email }}</td>
-                    <td>
-                        <form method="POST" action="/admin/users/{{ .ID }}/role">
-                            <select name="role" onchange="this.form.submit()" class="form-select form-select-sm">
-                                <option value="user" {{ if eq .Role "user" }}selected{{ end }}>user</option>
-                                <option value="admin" {{ if eq .Role "admin" }}selected{{ end }}>admin</option>
-                            </select>
-                        </form>
-                    </td>
-                    {{ range $.AppNames }}
-                    <td class="text-center">
-                        {{ $access := hasAccess $user.AppAccess . }}
-                        <form method="POST" action="/admin/users/{{ $user.ID }}/access/{{ . }}">
-                            <input type="hidden" name="grant" value="{{ if $access }}false{{ else }}true{{ end }}">
-                            <button type="submit" class="btn btn-sm {{ if $access }}btn-dark{{ else }}btn-outline-dark{{ end }}">
-                                {{ if $access }}Revoke{{ else }}Grant{{ end }}
-                            </button>
-                        </form>
-                    </td>
-                    {{ end }}
-                </tr>
+                {{ template "admin_user_row" (dict "User" . "AppNames" $.AppNames) }}
                 {{ end }}
             </tbody>
         </table>
     </div>
 </div>
 {{ template "footer" }}
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+{{ template "page_end" }}
+
+{{define "admin_user_row"}}
+{{ $user := .User }}
+<tr id="user-row-{{ $user.ID }}">
+    <td>{{ $user.Email }}</td>
+    <td>
+        <form hx-post="/admin/users/{{ $user.ID }}/role"
+              hx-target="#user-row-{{ $user.ID }}"
+              hx-swap="outerHTML">
+            <select name="role" onchange="this.form.requestSubmit()" class="form-select form-select-sm">
+                <option value="user" {{ if eq $user.Role "user" }}selected{{ end }}>user</option>
+                <option value="admin" {{ if eq $user.Role "admin" }}selected{{ end }}>admin</option>
+            </select>
+        </form>
+    </td>
+    {{ range .AppNames }}
+    <td class="text-center">
+        {{ $access := hasAccess $user.AppAccess . }}
+        <form hx-post="/admin/users/{{ $user.ID }}/access/{{ . }}"
+              hx-target="#user-row-{{ $user.ID }}"
+              hx-swap="outerHTML">
+            <input type="hidden" name="grant" value="{{ if $access }}false{{ else }}true{{ end }}">
+            <button type="submit" class="btn btn-sm {{ if $access }}btn-dark{{ else }}btn-outline-dark{{ end }}">
+                {{ if $access }}Revoke{{ else }}Grant{{ end }}
+            </button>
+        </form>
+    </td>
+    {{ end }}
+</tr>
+{{end}}

@@ -19,12 +19,13 @@
         </div>
     </div>
 </div>
+{{ template "footer" }}
 <script>
-    var error = new URLSearchParams(window.location.search).get("error")
+    var error = new URLSearchParams(window.location.search).get("error");
     if (error != null) {
-        var alert = document.getElementById("error-alert")
-        alert.innerHTML = error
-        alert.classList.remove("d-none")
+        var alert = document.getElementById("error-alert");
+        alert.innerHTML = error;
+        alert.classList.remove("d-none");
     }
 </script>
-{{ template "footer" }}
+{{ template "page_end" }}

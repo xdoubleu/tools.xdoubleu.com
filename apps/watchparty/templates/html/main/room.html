@@ -53,6 +53,7 @@
     </div>
 </div>
 
+{{template "footer"}}
 <script>
 const ROOM = "{{.RoomCode}}";
 const IS_PRESENTER = {{.IsPresenter}};
@@ -354,4 +355,4 @@ document.getElementById("stream-vol").oninput = e => {
 };
 {{end}}
 </script>
-{{template "footer"}}
+{{template "page_end"}}

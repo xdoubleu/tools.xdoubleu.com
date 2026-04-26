@@ -109,18 +109,26 @@
             <div id="searchResults"></div>
         </div>
 
-        {{/* ── Library tab — loaded lazily on first open ── */}}
-        <div class="tab-pane fade" id="library" role="tabpanel">
-            <div class="text-center py-5" id="libraryPlaceholder">
+        {{/* ── Library tab — loaded when tab is first clicked ── */}}
+        <div class="tab-pane fade" id="library" role="tabpanel"
+             hx-get="/backlog/books/library"
+             hx-trigger="shown.bs.tab from:#library-tab once"
+             hx-target="this"
+             hx-swap="innerHTML">
+            <div class="text-center py-5">
                 <div class="spinner-border text-secondary" role="status">
                     <span class="visually-hidden">Loading…</span>
                 </div>
             </div>
         </div>
 
-        {{/* ── Progress tab — loaded lazily on first open ── */}}
-        <div class="tab-pane fade" id="progress" role="tabpanel">
-            <div class="text-center py-5" id="progressPlaceholder">
+        {{/* ── Progress tab — loaded when tab is first clicked ── */}}
+        <div class="tab-pane fade" id="progress" role="tabpanel"
+             hx-get="/backlog/books/progress"
+             hx-trigger="shown.bs.tab from:#progress-tab once"
+             hx-target="this"
+             hx-swap="innerHTML">
+            <div class="text-center py-5">
                 <div class="spinner-border text-secondary" role="status">
                     <span class="visually-hidden">Loading…</span>
                 </div>
@@ -129,24 +137,6 @@
 
     </div>
 </div>
-
-<script>
-(function () {
-    const saved = sessionStorage.getItem('booksActiveTab');
-    if (!saved || saved === '#search') return;
-    const btn  = document.querySelector(`[data-bs-target="${saved}"]`);
-    const pane = document.querySelector(saved);
-    if (!btn || !pane) return;
-    const defBtn  = document.getElementById('search-tab');
-    const defPane = document.getElementById('search');
-    defBtn.classList.remove('active');
-    defBtn.setAttribute('aria-selected', 'false');
-    defPane.classList.remove('show', 'active');
-    btn.classList.add('active');
-    btn.setAttribute('aria-selected', 'true');
-    pane.classList.add('show', 'active');
-})();
-</script>
 
 {{/* ── Single book card template ── */}}
 {{ define "book_card" }}
@@ -206,7 +196,9 @@
 </div>
 {{ end }}
 
+{{ template "footer" }}
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // ── Actions modal ──────────────────────────────────────────────────────────
     let currentBookId = null;
@@ -272,53 +264,31 @@
         document.querySelector("#finishForm textarea[name='notes']").value = "";
     });
 
-    // ── Lazy loaders ───────────────────────────────────────────────────────────
-    let libraryLoaded  = false;
-    let progressLoaded = false;
-
-    function loadLibrary() {
-        if (libraryLoaded) return;
-        libraryLoaded = true;
-        htmx.ajax("GET", "/backlog/books/library", {
-            target: "#library",
-            swap: "innerHTML",
-        });
-    }
-
-    function loadProgress(qs) {
-        if (progressLoaded) return;
-        progressLoaded = true;
-        htmx.ajax("GET", "/backlog/books/progress" + (qs || ""), {
-            target: "#progress",
-            swap: "innerHTML",
-        });
-    }
-
-    document.getElementById("library-tab").addEventListener("show.bs.tab", () => loadLibrary());
-    document.getElementById("progress-tab").addEventListener("show.bs.tab", () => loadProgress());
-
-    // ── Tab persistence + background preloads ─────────────────────────────────
+    // ── Tab restoration + persistence ─────────────────────────────────────────
     document.addEventListener("DOMContentLoaded", () => {
         const TAB_KEY = "booksActiveTab";
-        const params = new URLSearchParams(window.location.search);
+
+        const saved = sessionStorage.getItem(TAB_KEY);
+        if (saved && saved !== '#search') {
+            const btn  = document.querySelector(`[data-bs-target="${saved}"]`);
+            const pane = document.querySelector(saved);
+            if (btn && pane) {
+                const defBtn  = document.getElementById('search-tab');
+                const defPane = document.getElementById('search');
+                defBtn.classList.remove('active');
+                defBtn.setAttribute('aria-selected', 'false');
+                defPane.classList.remove('show', 'active');
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                pane.classList.add('show', 'active');
+            }
+        }
 
         document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
             btn.addEventListener("shown.bs.tab", () => {
                 sessionStorage.setItem(TAB_KEY, btn.getAttribute("data-bs-target"));
             });
         });
-
-        const qs = (params.has("from") || params.has("to")) ? "?" + params.toString() : "";
-
-        // Tab visual state is already set by the inline script above.
-        // Only switch to Progress programmatically when a date-range param is present.
-        if (qs) {
-            document.getElementById("progress-tab").click();
-        }
-
-        // Preload library and progress in the background so they're ready instantly.
-        loadLibrary();
-        loadProgress(qs);
     });
 </script>
-{{ template "footer" }}
+{{ template "page_end" }}

@@ -21,3 +21,7 @@ func (dto *SetRoleDto) Validate() (bool, map[string]string) {
 type SetAppAccessDto struct {
 	Grant bool `schema:"grant"`
 }
+
+func (dto *SetAppAccessDto) Validate() (bool, map[string]string) {
+	return true, nil
+}

@@ -25,9 +25,11 @@ func NewRoomService(ctx context.Context, logger *slog.Logger) *RoomService {
 		activeRooms: make(map[string]*models.Room),
 	}
 
-	// Start automatic cleanup
-	//nolint:mnd //time durations
-	rs.startCleanup(ctx, 5*time.Minute, 12*time.Hour)
+	const (
+		cleanupInterval = 5 * time.Minute
+		roomMaxAge      = 12 * time.Hour
+	)
+	rs.startCleanup(ctx, cleanupInterval, roomMaxAge)
 
 	return rs
 }

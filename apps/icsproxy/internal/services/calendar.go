@@ -18,6 +18,11 @@ import (
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
 )
 
+const (
+	calendarFetchTimeout = 10 * time.Second
+	oneDay               = 24 * time.Hour
+)
+
 type CalendarService struct {
 	logger *slog.Logger
 	repo   *repositories.CalendarRepository
@@ -76,8 +81,7 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
 
-	//nolint:mnd // it's fine to have a fixed timeout here
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: calendarFetchTimeout}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("User-Agent", "tools.xdoubleu.com-icsproxy/1.0")
 	req.Header.Set("Accept", "text/calendar")
@@ -320,8 +324,7 @@ OUTER:
 						seriesStart.Location(),
 					)
 
-					//nolint:mnd // it's fine to have a fixed step here
-					d = d.Add(24 * time.Hour)
+					d = d.Add(oneDay)
 
 					if !occurrence.After(w.start) {
 						continue
