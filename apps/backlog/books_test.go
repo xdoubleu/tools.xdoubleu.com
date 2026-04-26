@@ -7,8 +7,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -330,6 +332,52 @@ func TestToggleTag_EmptyTag(t *testing.T) {
 const goodreadsCSVForImport = `Book Id,Title,Author,ISBN,ISBN13,My Rating,Exclusive Shelf,Bookshelves with positions,Date Read
 99001,Import Test Book,Import Author,"=""0140449116""","=""9780140449112""",4,read,"read (#1)",2023/05/20
 `
+
+func TestBooksProgress_CarryForwardAfterWindow(t *testing.T) {
+	// Simulate a progress record from 2 years ago (outside the default 1-year window).
+	twoYearsAgo := time.Now().AddDate(-2, 0, 0).Format(models.ProgressDateFormat)
+	err := testApp.Services.Progress.Save(
+		context.Background(),
+		models.BooksTypeID,
+		userID,
+		[]string{twoYearsAgo},
+		[]string{"7"},
+	)
+	require.NoError(t, err)
+
+	// Query a window that starts yesterday and ends today — no records fall
+	// inside it, but "7" from 2 years ago should carry forward.
+	yesterday := time.Now().AddDate(0, 0, -1)
+	today := time.Now()
+	labels, values, err := testApp.Services.Progress.GetByTypeIDAndDates(
+		context.Background(),
+		models.BooksTypeID,
+		userID,
+		yesterday,
+		today,
+	)
+	require.NoError(t, err)
+	assert.NotEmpty(
+		t,
+		labels,
+		"window with no records must still return labels via carry-forward",
+	)
+	assert.NotEmpty(
+		t,
+		values,
+		"window with no records must still return values via carry-forward",
+	)
+	if len(values) > 0 {
+		v, parseErr := strconv.Atoi(values[0])
+		require.NoError(t, parseErr)
+		assert.GreaterOrEqual(
+			t,
+			v,
+			7,
+			"first value must carry forward the cumulative count from before the window",
+		)
+	}
+}
 
 func TestUpdateBookStatus_ReadThenReSaveNoSpike(t *testing.T) {
 	ub := addTestBook(t, "ReSaveNoSpikeBook")
