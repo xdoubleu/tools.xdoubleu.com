@@ -35,6 +35,12 @@ func (s *ProgressService) GetByTypeIDAndDates(
 	dateStart time.Time,
 	dateEnd time.Time,
 ) ([]string, []string, error) {
+	// Carry-forward baseline: last cumulative value recorded before the window.
+	baseline, err := s.progress.GetLastValueBefore(ctx, typeID, userID, dateStart)
+	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
+		return nil, nil, err
+	}
+
 	progresses, err := s.progress.GetByTypeIDAndDates(
 		ctx, typeID, userID, dateStart, dateEnd,
 	)
@@ -42,7 +48,7 @@ func (s *ProgressService) GetByTypeIDAndDates(
 		return nil, nil, err
 	}
 
-	if len(progresses) == 0 {
+	if baseline == "" && len(progresses) == 0 {
 		return nil, nil, nil
 	}
 
@@ -52,18 +58,19 @@ func (s *ProgressService) GetByTypeIDAndDates(
 		byDate[p.Date.Format(models.ProgressDateFormat)] = p.Value
 	}
 
-	// Fill every calendar day from first record to today (or dateEnd).
+	// Fill every calendar day from dateStart to today (or dateEnd), seeding
+	// with the carry-forward baseline so the graph never resets mid-window.
 	const day = 24 * time.Hour
-	first := progresses[0].Date.UTC().Truncate(day)
+	start := dateStart.UTC().Truncate(day)
 	end := dateEnd.UTC().Truncate(day)
 	if today := time.Now().UTC().Truncate(day); today.Before(end) {
 		end = today
 	}
 
-	labels := make([]string, 0, int(end.Sub(first)/day)+1)
+	labels := make([]string, 0, int(end.Sub(start)/day)+1)
 	values := make([]string, 0, len(labels))
-	lastValue := ""
-	for d := first; !d.After(end); d = d.AddDate(0, 0, 1) {
+	lastValue := baseline
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
 		ds := d.Format(models.ProgressDateFormat)
 		if v, ok := byDate[ds]; ok {
 			lastValue = v

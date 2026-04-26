@@ -74,6 +74,29 @@ func (repo *ProgressRepository) GetLatestByTypeID(
 	return value, nil
 }
 
+func (repo *ProgressRepository) GetLastValueBefore(
+	ctx context.Context,
+	typeID string,
+	userID string,
+	date time.Time,
+) (string, error) {
+	query := `
+		SELECT value
+		FROM backlog.progress
+		WHERE type_id = $1 AND user_id = $2 AND date < $3::date
+		ORDER BY date DESC
+		LIMIT 1
+	`
+
+	var value string
+	err := repo.db.QueryRow(ctx, query, typeID, userID, date).Scan(&value)
+	if err != nil {
+		return "", postgres.PgxErrorToHTTPError(err)
+	}
+
+	return value, nil
+}
+
 func (repo *ProgressRepository) Upsert(
 	ctx context.Context,
 	typeID string,
