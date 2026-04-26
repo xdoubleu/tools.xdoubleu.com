@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/xdoubleu/essentia/v3/pkg/threading"
+	"golang.org/x/sync/errgroup"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
@@ -118,26 +118,21 @@ func (service *SteamService) importAchievementsForGames(
 	}
 
 	const gamesPerWorker = 10
-	amountWorkers := (len(gameIDs) / gamesPerWorker) + 1
-	workerPool := threading.NewWorkerPool(
-		ctx,
-		service.logger,
-		amountWorkers,
-		len(gameIDs),
-	)
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(gamesPerWorker)
 
 	mu := sync.Mutex{}
 	achievementsPerGame := map[int][]steam.Achievement{}
 	for _, ID := range gameIDs {
-		workerPool.EnqueueWork(func(ctx context.Context, _ *slog.Logger) error {
+		eg.Go(func() error {
 			achievementsForGame, errIn := client.GetPlayerAchievements(
-				ctx,
+				egCtx,
 				steamUserID,
 				ID,
 			)
 			if errIn != nil {
 				service.logger.WarnContext(
-					ctx,
+					egCtx,
 					fmt.Sprintf(
 						"failed to fetch achievements for %d; error: %s",
 						ID,
@@ -152,7 +147,7 @@ func (service *SteamService) importAchievementsForGames(
 			mu.Unlock()
 
 			service.logger.DebugContext(
-				ctx,
+				egCtx,
 				fmt.Sprintf(
 					"fetched %d achievements for '%s' (%d)",
 					len(achievementsForGame.PlayerStats.Achievements),
@@ -165,7 +160,9 @@ func (service *SteamService) importAchievementsForGames(
 		})
 	}
 
-	workerPool.WaitUntilDone()
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
 
 	for gameID, achievements := range achievementsPerGame {
 		if len(achievements) != 0 {
