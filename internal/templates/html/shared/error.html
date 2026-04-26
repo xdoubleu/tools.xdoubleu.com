@@ -1,0 +1,16 @@
+{{define "error.html"}}
+{{template "header"}}
+{{template "navbar"}}
+<main class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <h1 class="display-1 fw-bold">{{.Status}}</h1>
+            <p class="fs-3">{{.Title}}</p>
+            <p class="text-body-secondary">{{.Message}}</p>
+            <a href="/" class="btn btn-dark mt-3">Back to home</a>
+        </div>
+    </div>
+</main>
+{{template "footer"}}
+{{template "page_end"}}
+{{end}}

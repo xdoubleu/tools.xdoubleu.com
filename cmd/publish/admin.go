@@ -1,18 +1,23 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 
 	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
+	"tools.xdoubleu.com/internal/templates"
 )
 
 func (app *Application) adminHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := app.appUsersRepo.GetAllWithAccess(r.Context())
 	if err != nil {
-		http.Error(w, "failed to load users", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to load users",
+		)
 		return
 	}
 
@@ -28,11 +33,6 @@ func (app *Application) adminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) adminSetRoleHandler(w http.ResponseWriter, r *http.Request) {
-	user := currentUser(r)
-	if user == nil {
-		panic(errors.New("not signed in"))
-	}
-
 	userID := r.PathValue("userID")
 
 	var dto dtos.SetRoleDto
@@ -47,22 +47,22 @@ func (app *Application) adminSetRoleHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := app.appUsersRepo.SetRole(r.Context(), userID, dto.Role); err != nil {
-		http.Error(w, "failed to update role", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to update role",
+		)
 		return
 	}
 
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	app.renderAdminRowOrRedirect(w, r, userID)
 }
 
 func (app *Application) adminSetAppAccessHandler(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	user := currentUser(r)
-	if user == nil {
-		panic(errors.New("not signed in"))
-	}
-
 	userID := r.PathValue("userID")
 	appName := r.PathValue("appName")
 
@@ -77,9 +77,48 @@ func (app *Application) adminSetAppAccessHandler(
 		userID,
 		appName,
 		dto.Grant); err != nil {
-		http.Error(w, "failed to update app access", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to update app access",
+		)
 		return
 	}
 
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	app.renderAdminRowOrRedirect(w, r, userID)
+}
+
+// renderAdminRowOrRedirect renders the updated user row for HTMX requests,
+// or redirects for plain form submissions.
+func (app *Application) renderAdminRowOrRedirect(
+	w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+) {
+	if r.Header.Get("HX-Request") != "true" {
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+
+	user, err := app.appUsersRepo.GetByID(r.Context(), userID)
+	if err != nil {
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to load user",
+		)
+		return
+	}
+
+	appNames := []string{}
+	for _, a := range *app.apps {
+		appNames = append(appNames, a.GetName())
+	}
+
+	tpltools.RenderWithPanic(app.tpl, w, "admin_user_row", map[string]any{
+		"User":     *user,
+		"AppNames": appNames,
+	})
 }

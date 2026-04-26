@@ -3,7 +3,6 @@ package backlog
 import (
 	"context"
 	"embed"
-	"fmt"
 	"html/template"
 	"log/slog"
 
@@ -139,47 +138,20 @@ func (app *Backlog) setContext(originalCtx context.Context) {
 }
 
 func (app *Backlog) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
-	// Use goaltracker for the goose table when backlog doesn't exist yet;
-	// after migrations run we rename goaltracker → backlog programmatically.
-	// On subsequent starts, backlog already exists so we use it directly.
-	schemaName := "goaltracker"
-
-	var backlogExists bool
-	if err := db.QueryRow(ctx,
-		"SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'backlog')",
-	).Scan(&backlogExists); err != nil {
-		return err
-	}
-	if backlogExists {
-		schemaName = "backlog"
-	}
-
-	_, err := db.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schemaName))
-	if err != nil {
+	if _, err := db.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS backlog"); err != nil {
 		return err
 	}
 
-	goose.SetTableName(fmt.Sprintf("%s.goose_db_version", schemaName))
+	goose.SetTableName("backlog.goose_db_version")
 	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
 	goose.SetBaseFS(embedMigrations)
 
-	if err = goose.SetDialect(string(goose.DialectPostgres)); err != nil {
+	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
 		return err
 	}
 
 	migrationsDB := stdlib.OpenDBFromPool(db)
-	if err = goose.Up(migrationsDB, "migrations"); err != nil {
-		return err
-	}
-
-	// Rename goaltracker → backlog once all migrations have applied.
-	if !backlogExists {
-		if _, err = db.Exec(ctx, "ALTER SCHEMA goaltracker RENAME TO backlog"); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return goose.Up(migrationsDB, "migrations")
 }
 
 func (app *Backlog) GetName() string {

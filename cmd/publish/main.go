@@ -52,6 +52,17 @@ type Application struct {
 //	@Accept			json
 //	@Produce		json
 
+const (
+	dbMaxConns       = 25
+	dbMaxIdleTime    = "15m"
+	dbMaxLifetime    = 60
+	dbConnectTimeout = 10 * time.Second
+	dbHealthCheck    = 5 * time.Minute
+	httpReadTimeout  = 5 * time.Second
+	httpWriteTimeout = 10 * time.Second
+	userLogBufSize   = 100
+)
+
 func main() {
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
@@ -60,11 +71,11 @@ func main() {
 	db, err := postgres.Connect(
 		logger,
 		cfg.DBDsn,
-		25, //nolint:mnd //no magic number
-		"15m",
-		60,             //nolint:mnd //no magic number
-		10*time.Second, //nolint:mnd //no magic number
-		5*time.Minute,  //nolint:mnd //no magic number
+		dbMaxConns,
+		dbMaxIdleTime,
+		dbMaxLifetime,
+		dbConnectTimeout,
+		dbHealthCheck,
 	)
 	if err != nil {
 		panic(err)
@@ -81,8 +92,8 @@ func main() {
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
-		ReadTimeout:  5 * time.Second,  //nolint:mnd //no magic number
-		WriteTimeout: 10 * time.Second, //nolint:mnd //no magic number
+		ReadTimeout:  httpReadTimeout,
+		WriteTimeout: httpWriteTimeout,
 	}
 	err = httptools.Serve(logger, srv, cfg.Env)
 	if err != nil {
@@ -107,6 +118,16 @@ func NewApplication(
 			}
 			return false
 		},
+		"dict": func(kv ...any) map[string]any {
+			const kvPairSize = 2
+			m := make(map[string]any, len(kv)/kvPairSize)
+			for i := 0; i+1 < len(kv); i += kvPairSize {
+				if key, ok := kv[i].(string); ok {
+					m[key] = kv[i+1]
+				}
+			}
+			return m
+		},
 	})
 	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
 
@@ -117,8 +138,7 @@ func NewApplication(
 		ctx = sentry.SetHubOnContext(ctx, sentryHub)
 	}
 
-	//nolint:mnd // 100 log entries per user
-	logBuffer := logging.NewUserLogBuffer(100)
+	logBuffer := logging.NewUserLogBuffer(userLogBufSize)
 
 	appUsersRepo := repositories.NewAppUsersRepository(db)
 	svc := services.New(config, supabaseClient, tpl, appUsersRepo)

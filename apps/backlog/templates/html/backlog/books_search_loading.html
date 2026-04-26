@@ -1,0 +1,12 @@
+{{ define "books_search_loading.html" }}
+<div hx-get="/backlog/books/search/external?q={{ .Query }}"
+     hx-trigger="load"
+     hx-swap="outerHTML">
+    <div class="d-flex align-items-center gap-2 py-3 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">Loading…</span>
+        </div>
+        <span>Searching Hardcover…</span>
+    </div>
+</div>
+{{ end }}

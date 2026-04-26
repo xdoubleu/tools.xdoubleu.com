@@ -110,8 +110,8 @@ func (service *SteamService) importAchievementsForGames(
 		gameIDs = append(gameIDs, ID)
 	}
 
-	//nolint:mnd //no magic number
-	amountWorkers := (len(gameIDs) / 10) + 1
+	const gamesPerWorker = 10
+	amountWorkers := (len(gameIDs) / gamesPerWorker) + 1
 	workerPool := threading.NewWorkerPool(
 		ctx,
 		service.logger,

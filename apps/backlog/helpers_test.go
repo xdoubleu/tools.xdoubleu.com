@@ -82,3 +82,45 @@ func TestGroupByTags_MixedSpecialAndNormal(t *testing.T) {
 	assert.Len(t, shelves, 1)
 	assert.Equal(t, "fantasy", shelves[0].Name)
 }
+
+func TestGroupByStatus_Empty(t *testing.T) {
+	shelves := groupByStatus(nil)
+	assert.Empty(t, shelves)
+}
+
+func TestGroupByStatus_SkipsStandardStatuses(t *testing.T) {
+	books := []models.UserBook{
+		{Status: models.StatusToRead},  //nolint:exhaustruct //only Status needed
+		{Status: models.StatusReading}, //nolint:exhaustruct //only Status needed
+		{Status: models.StatusRead},    //nolint:exhaustruct //only Status needed
+		{Status: models.StatusDropped}, //nolint:exhaustruct //only Status needed
+	}
+	shelves := groupByStatus(books)
+	assert.Empty(t, shelves)
+}
+
+func TestGroupByStatus_CustomStatusBecomesShelf(t *testing.T) {
+	id1 := uuid.New()
+	id2 := uuid.New()
+	books := []models.UserBook{
+		{ //nolint:exhaustruct //only ID and Status needed
+			ID:     id1,
+			Status: "favorites",
+		},
+		{ //nolint:exhaustruct //only ID and Status needed
+			ID:     id2,
+			Status: "favorites",
+		},
+		{ //nolint:exhaustruct //only ID and Status needed
+			ID:     uuid.New(),
+			Status: "abandoned",
+		},
+	}
+	shelves := groupByStatus(books)
+
+	assert.Len(t, shelves, 2)
+	assert.Equal(t, "abandoned", shelves[0].Name)
+	assert.Len(t, shelves[0].Books, 1)
+	assert.Equal(t, "favorites", shelves[1].Name)
+	assert.Len(t, shelves[1].Books, 2)
+}

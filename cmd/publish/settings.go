@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -12,42 +11,27 @@ import (
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/templates"
 )
 
 func currentUser(r *http.Request) *models.User {
 	return contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
 }
 
-func (app *Application) settingsHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) saveIntegrations(
+	w http.ResponseWriter,
+	r *http.Request,
+	redirectURL string,
+) {
 	user := currentUser(r)
 	if user == nil {
-		panic(errors.New("not signed in"))
-	}
-
-	integrations, err := app.backlog.GetIntegrations(r.Context(), user.ID)
-	if err != nil {
-		http.Error(w, "Failed to load settings", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusUnauthorized,
+			"Sign in to access this page",
+		)
 		return
-	}
-
-	var importedCount *int
-	if v := r.URL.Query().Get("imported"); v != "" {
-		if n, convErr := strconv.Atoi(v); convErr == nil {
-			importedCount = &n
-		}
-	}
-
-	tpltools.RenderWithPanic(app.tpl, w, "settings.html", map[string]any{
-		"Integrations":  integrations,
-		"Saved":         r.URL.Query().Get("saved") == "1",
-		"ImportedCount": importedCount,
-	})
-}
-
-func (app *Application) saveSettingsHandler(w http.ResponseWriter, r *http.Request) {
-	user := currentUser(r)
-	if user == nil {
-		panic(errors.New("not signed in"))
 	}
 
 	var dto dtos.IntegrationsDto
@@ -70,9 +54,55 @@ func (app *Application) saveSettingsHandler(w http.ResponseWriter, r *http.Reque
 	if err := app.backlog.SaveIntegrations(
 		r.Context(), user.ID, integrations,
 	); err != nil {
-		http.Error(w, "Failed to save settings", http.StatusInternalServerError)
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to save settings",
+		)
 		return
 	}
 
-	http.Redirect(w, r, "/settings?saved=1", http.StatusSeeOther)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+}
+
+func (app *Application) settingsHandler(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if user == nil {
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusUnauthorized,
+			"Sign in to access this page",
+		)
+		return
+	}
+
+	integrations, err := app.backlog.GetIntegrations(r.Context(), user.ID)
+	if err != nil {
+		templates.RenderError(
+			app.tpl,
+			w,
+			http.StatusInternalServerError,
+			"Failed to load settings",
+		)
+		return
+	}
+
+	var importedCount *int
+	if v := r.URL.Query().Get("imported"); v != "" {
+		if n, convErr := strconv.Atoi(v); convErr == nil {
+			importedCount = &n
+		}
+	}
+
+	tpltools.RenderWithPanic(app.tpl, w, "settings.html", map[string]any{
+		"Integrations":  integrations,
+		"Saved":         r.URL.Query().Get("saved") == "1",
+		"ImportedCount": importedCount,
+	})
+}
+
+func (app *Application) saveSettingsHandler(w http.ResponseWriter, r *http.Request) {
+	app.saveIntegrations(w, r, "/settings?saved=1")
 }

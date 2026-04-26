@@ -13,7 +13,7 @@
                     <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
                 </div>
                 <div class="form-check mb-3">
-                    <input type="checkbox" class="form-check-input" name="rememberMe" id="rememberMe">
+                    <input type="checkbox" class="form-check-input" name="rememberMe" id="rememberMe" checked>
                     <label class="form-check-label" for="rememberMe">Remember me</label>
                 </div>
                 <div class="alert alert-danger d-none" role="alert" id="error-alert"></div>
@@ -23,13 +23,13 @@
         </div>
     </div>
 </div>
+{{ template "footer" }}
 <script>
-    var error = new URLSearchParams(window.location.search).get("error")
-
+    var error = new URLSearchParams(window.location.search).get("error");
     if (error != null) {
-        var alert = document.getElementById("error-alert")
-        alert.innerHTML = error
-        alert.classList.remove("d-none")
+        var alert = document.getElementById("error-alert");
+        alert.innerHTML = error;
+        alert.classList.remove("d-none");
     }
 </script>
-{{ template "footer" }}
+{{ template "page_end" }}

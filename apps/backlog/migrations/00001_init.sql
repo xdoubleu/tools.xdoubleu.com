@@ -1,77 +1,93 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- noqa: L057
+CREATE SCHEMA IF NOT EXISTS backlog;
 
-CREATE TABLE IF NOT EXISTS goaltracker.states (
-    id varchar(255) NOT NULL,
-    user_id varchar(255) NOT NULL,
-    name varchar(255) NOT NULL,
-    "order" integer NOT NULL,
+CREATE TABLE IF NOT EXISTS backlog.books (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    authors TEXT [] NOT NULL DEFAULT '{}',
+    isbn13 TEXT,
+    isbn10 TEXT,
+    cover_url TEXT,
+    description TEXT,
+    external_refs JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS books_isbn13_idx ON backlog.books (
+    isbn13
+) WHERE isbn13 IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS backlog.user_books (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    book_id UUID NOT NULL REFERENCES backlog.books (id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
+    notes TEXT,
+    finished_at TIMESTAMPTZ [],
+    tags TEXT [] DEFAULT '{}',
+    shelf_positions JSONB NOT NULL DEFAULT '{}',
+    added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (user_id, book_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_books_user_id ON backlog.user_books (
+    user_id
+);
+CREATE INDEX IF NOT EXISTS idx_user_books_status ON backlog.user_books (status);
+
+CREATE TABLE IF NOT EXISTS backlog.steam_games (
+    id BIGINT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    name TEXT NOT NULL, is_delisted BOOL NOT NULL DEFAULT FALSE,
+    completion_rate VARCHAR NOT NULL DEFAULT '0.00',
+    contribution REAL NOT NULL DEFAULT 0,
+    playtime_forever BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (id, user_id)
 );
 
-CREATE TABLE IF NOT EXISTS goaltracker.goals (
-    id varchar(255) NOT NULL,
-    user_id varchar(255) NOT NULL,
-    parent_id varchar(255),
-    name varchar(255) NOT NULL,
-    state_id varchar(255) NOT NULL,
-    "order" integer NOT NULL,
-    is_linked boolean NOT NULL DEFAULT false,
-    source_id integer,
-    type_id integer,
-    target_value integer,
-    period integer,
-    due_time timestamp,
-    config json,
-    PRIMARY KEY (id, user_id)
+CREATE INDEX IF NOT EXISTS idx_steam_games_user_id ON backlog.steam_games (
+    user_id
 );
 
-CREATE TABLE IF NOT EXISTS goaltracker.progress (
-    type_id integer NOT NULL,
-    user_id varchar(255) NOT NULL,
-    date timestamp NOT NULL,
-    value varchar(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS backlog.steam_achievements (
+    name TEXT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    game_id BIGINT NOT NULL,
+    achieved BOOL NOT NULL DEFAULT FALSE,
+    unlock_time TIMESTAMPTZ,
+    PRIMARY KEY (name, user_id, game_id),
+    FOREIGN KEY (game_id, user_id) REFERENCES backlog.steam_games (
+        id, user_id
+    ) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS backlog.progress (
+    type_id TEXT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    value VARCHAR NOT NULL,
     PRIMARY KEY (type_id, user_id, date)
 );
 
-CREATE TABLE IF NOT EXISTS goaltracker.goodreads_books (
-    id integer NOT NULL,
-    user_id varchar(255) NOT NULL,
-    shelf varchar(255) NOT NULL,
-    tags varchar(255) [] NOT NULL,
-    title varchar(255) NOT NULL,
-    author varchar(255) NOT NULL,
-    dates_read timestamp [],
-    PRIMARY KEY (id, user_id)
+CREATE INDEX IF NOT EXISTS idx_progress_user_date ON backlog.progress (
+    user_id, date
 );
 
-CREATE TABLE IF NOT EXISTS goaltracker.steam_games (
-    id integer NOT NULL,
-    user_id varchar(255) NOT NULL,
-    name varchar(255) NOT NULL,
-    is_delisted boolean NOT NULL DEFAULT false,
-    completion_rate varchar(255) DEFAULT '',
-    contribution varchar(255) DEFAULT '',
-    PRIMARY KEY (id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS goaltracker.steam_achievements (
-    name varchar(255) NOT NULL,
-    user_id varchar(255) NOT NULL,
-    game_id integer NOT NULL,
-    achieved boolean NOT NULL DEFAULT false,
-    unlock_time timestamp,
-    PRIMARY KEY (name, user_id, game_id)
+CREATE TABLE IF NOT EXISTS backlog.user_integrations (
+    user_id TEXT PRIMARY KEY REFERENCES global.app_users (id) ON DELETE CASCADE,
+    steam_api_key TEXT,
+    steam_user_id TEXT,
+    goodreads_url TEXT,
+    hardcover_api_key TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS goaltracker.states;
-DROP TABLE IF EXISTS goaltracker.goals;
-DROP TABLE IF EXISTS goaltracker.progress;
-DROP TABLE IF EXISTS goaltracker.goodreads_books;
-DROP TABLE IF EXISTS goaltracker.steam_games;
-DROP TABLE IF EXISTS goaltracker.steam_achievements;
+DROP SCHEMA IF EXISTS backlog CASCADE;
 -- +goose StatementEnd

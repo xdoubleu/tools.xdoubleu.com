@@ -2,11 +2,13 @@ package services
 
 import (
 	"context"
+	"errors"
 	"math"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/xdoubleu/essentia/v3/pkg/database"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 )
@@ -79,8 +81,10 @@ func (s *ProgressService) GetCurrentSteamCompletionRate(
 ) (string, error) {
 	value, err := s.progress.GetLatestByTypeID(ctx, models.SteamTypeID, userID)
 	if err != nil {
-		// no progress recorded yet
-		return "0.00", nil //nolint:nilerr // absence of data is not an error
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return "0.00", nil
+		}
+		return "", err
 	}
 	return value, nil
 }

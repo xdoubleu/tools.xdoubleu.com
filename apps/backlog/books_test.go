@@ -370,6 +370,52 @@ func TestImportBooks(t *testing.T) {
 	)
 }
 
+func TestImportBooks_DeadlineExceeded(t *testing.T) {
+	// Wrap routes with a middleware that pre-cancels the request context,
+	// simulating an expired HTTP server deadline during a large CSV import.
+	// Before the fix, DB batch operations would fail with "context canceled".
+	// After the fix, importBooksHandler uses context.WithoutCancel so the
+	// import still completes.
+	routes := getRoutes()
+	wrapped := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithCancel(r.Context())
+		cancel()
+		routes.ServeHTTP(w, r.WithContext(ctx))
+	})
+
+	ts := httptest.NewServer(wrapped)
+	defer ts.Close()
+
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	fw, err := mw.CreateFormFile("goodreads_csv", "goodreads.csv")
+	require.NoError(t, err)
+	_, err = fw.Write([]byte(goodreadsCSVForImport))
+	require.NoError(t, err)
+	require.NoError(t, mw.Close())
+
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		ts.URL+"/"+testApp.GetName()+"/books/import",
+		&body,
+	)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.AddCookie(&accessToken)
+
+	client := ts.Client()
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	rs, err := client.Do(req)
+	require.NoError(t, err)
+	defer rs.Body.Close()
+
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+}
+
 func TestImportBooks_MissingFile(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	defer ts.Close()

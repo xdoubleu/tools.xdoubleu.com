@@ -37,7 +37,7 @@ func (m *MockedAuthService) mockUser() models.User {
 		ID:        m.userID,
 		Email:     "user@example.com",
 		Role:      role,
-		AppAccess: []string{"goaltracker", "watchparty", "icsproxy"},
+		AppAccess: []string{"backlog", "watchparty", "icsproxy"},
 	}
 }
 

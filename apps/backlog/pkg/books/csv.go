@@ -159,7 +159,7 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 // Returns tags (non-exclusive shelves) and a position map for all named shelves.
 func parseShelvesWithPositions(raw, exclusiveShelf string) ([]string, map[string]int) {
 	positions := map[string]int{}
-	var tags []string
+	tags := []string{}
 
 	if raw == "" {
 		return tags, positions

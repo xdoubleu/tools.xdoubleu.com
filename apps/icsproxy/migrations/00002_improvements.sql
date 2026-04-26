@@ -1,12 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
-
-ALTER TABLE goaltracker.user_books
-ALTER COLUMN tags DROP NOT NULL;
-
+CREATE INDEX IF NOT EXISTS idx_feeds_user_id ON icsproxy.feeds (user_id);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-
+DROP INDEX IF EXISTS icsproxy.idx_feeds_user_id;
 -- +goose StatementEnd

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/xdoubleu/essentia/v3/pkg/database"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 )
@@ -477,7 +478,7 @@ func (repo *BooksRepository) GetUserBook(
 	defer rows.Close()
 
 	if !rows.Next() {
-		return nil, nil //nolint:nilnil //caller uses nil check for not-found
+		return nil, database.ErrResourceNotFound
 	}
 
 	ub, err := scanUserBookWithBook(rows)

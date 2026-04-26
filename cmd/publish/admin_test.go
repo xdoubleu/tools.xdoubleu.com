@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -130,4 +133,56 @@ func TestAdminSetAppAccessHandler(t *testing.T) {
 	user2, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
 	require.NoError(t, err)
 	assert.NotContains(t, user2.AppAccess, "backlog")
+}
+
+func TestAdminSetRoleHandlerHTMX(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	ts := httptest.NewServer(testApp.Routes())
+	defer ts.Close()
+
+	body := url.Values{"role": {"user"}}
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		ts.URL+"/admin/users/"+testUserID+"/role",
+		strings.NewReader(body.Encode()),
+	)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	req.AddCookie(&accessToken)
+
+	rs, err := ts.Client().Do(req)
+	require.NoError(t, err)
+	defer rs.Body.Close()
+
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
+}
+
+func TestAdminSetAppAccessHandlerHTMX(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	ts := httptest.NewServer(testApp.Routes())
+	defer ts.Close()
+
+	body := url.Values{"grant": {"true"}}
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		ts.URL+"/admin/users/"+testUserID+"/access/backlog",
+		strings.NewReader(body.Encode()),
+	)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	req.AddCookie(&accessToken)
+
+	rs, err := ts.Client().Do(req)
+	require.NoError(t, err)
+	defer rs.Body.Close()
+
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
 }
