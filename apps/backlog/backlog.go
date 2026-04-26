@@ -571,7 +571,7 @@ func (app *Backlog) addBookHandler(w http.ResponseWriter, r *http.Request) error
 		Description: desc,
 	}
 
-	var initialTags []string
+	initialTags := []string{}
 	if dto.OwnPhysical {
 		initialTags = append(initialTags, models.TagOwnPhysical)
 	}

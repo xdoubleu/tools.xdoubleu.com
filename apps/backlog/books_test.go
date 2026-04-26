@@ -177,7 +177,7 @@ func addTestBook(t *testing.T, title string) *models.UserBook {
 		userID,
 		ext,
 		models.StatusToRead,
-		nil,
+		[]string{},
 	)
 	require.NoError(t, err)
 	require.NotNil(t, ub)
