@@ -633,8 +633,12 @@ func (app *Backlog) updateBookStatusHandler(
 	if dto.Status == models.StatusRead {
 		if existing != nil {
 			finishedAt = append(finishedAt, existing.FinishedAt...)
+			if existing.Status != models.StatusRead {
+				finishedAt = append(finishedAt, time.Now())
+			}
+		} else {
+			finishedAt = append(finishedAt, time.Now())
 		}
-		finishedAt = append(finishedAt, time.Now())
 	}
 
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
