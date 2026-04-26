@@ -20,7 +20,7 @@ type ProgressService struct {
 
 func (s *ProgressService) Save(
 	ctx context.Context,
-	typeID int64,
+	typeID string,
 	userID string,
 	dates []string,
 	values []string,
@@ -30,7 +30,7 @@ func (s *ProgressService) Save(
 
 func (s *ProgressService) GetByTypeIDAndDates(
 	ctx context.Context,
-	typeID int64,
+	typeID string,
 	userID string,
 	dateStart time.Time,
 	dateEnd time.Time,

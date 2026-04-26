@@ -15,7 +15,7 @@ type ProgressRepository struct {
 
 func (repo *ProgressRepository) GetByTypeIDAndDates(
 	ctx context.Context,
-	typeID int64,
+	typeID string,
 	userID string,
 	dateStart time.Time,
 	dateEnd time.Time,
@@ -55,7 +55,7 @@ func (repo *ProgressRepository) GetByTypeIDAndDates(
 
 func (repo *ProgressRepository) GetLatestByTypeID(
 	ctx context.Context,
-	typeID int64,
+	typeID string,
 	userID string,
 ) (string, error) {
 	query := `
@@ -76,7 +76,7 @@ func (repo *ProgressRepository) GetLatestByTypeID(
 
 func (repo *ProgressRepository) Upsert(
 	ctx context.Context,
-	typeID int64,
+	typeID string,
 	userID string,
 	dates []string,
 	values []string,
