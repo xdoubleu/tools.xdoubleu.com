@@ -40,11 +40,13 @@ func (service *SteamService) ImportOwnedGames(
 
 	gamesMap := map[int]*models.Game{}
 	for _, game := range ownedGamesResponse.Response.Games {
-		//nolint:exhaustruct //others are defined later
 		gamesMap[game.AppID] = &models.Game{
-			ID:       game.AppID,
-			Name:     game.Name,
-			Playtime: game.PlaytimeForever,
+			ID:             game.AppID,
+			Name:           game.Name,
+			Playtime:       game.PlaytimeForever,
+			CompletionRate: "0.00",
+			Contribution:   "0.0000",
+			IsDelisted:     false,
 		}
 	}
 
@@ -64,6 +66,11 @@ func (service *SteamService) ImportOwnedGames(
 		)
 		game.IsDelisted = true
 		gamesMap[game.ID] = &game
+	}
+
+	err = service.steam.UpsertGames(ctx, gamesMap, userID)
+	if err != nil {
+		return nil, err
 	}
 
 	achievementsPerGame, err := service.importAchievementsForGames(
