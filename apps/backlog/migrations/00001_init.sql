@@ -21,7 +21,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS books_isbn13_idx ON backlog.books (
 
 CREATE TABLE IF NOT EXISTS backlog.user_books (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     book_id UUID NOT NULL REFERENCES backlog.books (id) ON DELETE CASCADE,
     status TEXT NOT NULL,
     rating SMALLINT CHECK (rating BETWEEN 1 AND 5),
@@ -41,7 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_user_books_status ON backlog.user_books (status);
 
 CREATE TABLE IF NOT EXISTS backlog.steam_games (
     id BIGINT NOT NULL,
-    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     name TEXT NOT NULL, is_delisted BOOL NOT NULL DEFAULT FALSE,
     completion_rate VARCHAR NOT NULL DEFAULT '0.00',
     contribution REAL NOT NULL DEFAULT 0,
@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_steam_games_user_id ON backlog.steam_games (
 
 CREATE TABLE IF NOT EXISTS backlog.steam_achievements (
     name TEXT NOT NULL,
-    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     game_id BIGINT NOT NULL,
     achieved BOOL NOT NULL DEFAULT FALSE,
     unlock_time TIMESTAMPTZ,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS backlog.steam_achievements (
 
 CREATE TABLE IF NOT EXISTS backlog.progress (
     type_id TEXT NOT NULL,
-    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     date DATE NOT NULL,
     value VARCHAR NOT NULL,
     PRIMARY KEY (type_id, user_id, date)
@@ -78,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_progress_user_date ON backlog.progress (
 );
 
 CREATE TABLE IF NOT EXISTS backlog.user_integrations (
-    user_id TEXT PRIMARY KEY REFERENCES global.app_users (id) ON DELETE CASCADE,
+    user_id TEXT PRIMARY KEY,
     steam_api_key TEXT,
     steam_user_id TEXT,
     goodreads_url TEXT,

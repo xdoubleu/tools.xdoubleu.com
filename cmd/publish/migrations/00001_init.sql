@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS global.app_users (
 );
 
 CREATE TABLE IF NOT EXISTS global.app_access (
-    user_id TEXT NOT NULL REFERENCES global.app_users (id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     app_name TEXT NOT NULL,
     PRIMARY KEY (user_id, app_name)
 );
