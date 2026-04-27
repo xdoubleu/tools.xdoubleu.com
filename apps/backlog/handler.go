@@ -28,20 +28,20 @@ func (app *Backlog) handle(h handler) http.HandlerFunc {
 		if err := h(w, r); err != nil {
 			var httpErr *HTTPError
 			if errors.As(err, &httpErr) {
-				app.logger.WarnContext(r.Context(), httpErr.Message,
+				app.Logger.WarnContext(r.Context(), httpErr.Message,
 					"status", httpErr.Status,
 					"method", r.Method,
 					"path", r.URL.Path,
 				)
-				templates.RenderError(app.tpl, w, httpErr.Status, httpErr.Message)
+				templates.RenderError(app.Tpl, w, httpErr.Status, httpErr.Message)
 			} else {
-				app.logger.ErrorContext(r.Context(), "unexpected handler error",
+				app.Logger.ErrorContext(r.Context(), "unexpected handler error",
 					"error", err,
 					"method", r.Method,
 					"path", r.URL.Path,
 				)
 				templates.RenderError(
-					app.tpl, w, http.StatusInternalServerError,
+					app.Tpl, w, http.StatusInternalServerError,
 					"An unexpected error occurred.",
 				)
 			}

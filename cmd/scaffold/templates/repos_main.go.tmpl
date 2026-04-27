@@ -1,0 +1,12 @@
+package repositories
+
+import "github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+
+type Repositories struct {
+	// TODO: add repository fields
+}
+
+func New(db postgres.DB) *Repositories {
+	_ = db
+	return &Repositories{}
+}

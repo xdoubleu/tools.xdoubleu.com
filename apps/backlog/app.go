@@ -7,8 +7,6 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v3/pkg/threading"
 	"tools.xdoubleu.com/apps/backlog/internal/jobs"
@@ -16,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/services"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
+	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 )
@@ -27,15 +26,11 @@ var embedMigrations embed.FS
 var htmlTemplates embed.FS
 
 type Backlog struct {
-	logger       *slog.Logger
-	ctx          context.Context
-	ctxCancel    context.CancelFunc
+	app.Base
 	db           postgres.DB
-	Config       config.Config
 	clients      Clients
 	Services     *services.Services
 	Repositories *repositories.Repositories
-	tpl          *template.Template
 	jobQueue     *threading.JobQueue
 }
 
@@ -68,26 +63,19 @@ func NewInner(
 	clients Clients,
 	sharedTpl *template.Template,
 ) *Backlog {
-	tpl := template.Must(sharedTpl.Clone())
-	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
-
-	//nolint:exhaustruct //other fields are optional
-	app := &Backlog{
-		logger:  logger,
+	//nolint:exhaustruct //jobQueue, Repositories, Services initialised below
+	bl := &Backlog{
+		Base:    app.NewBase(ctx, authService, logger, cfg, htmlTemplates, sharedTpl),
 		clients: clients,
-		Config:  cfg,
-		tpl:     tpl,
 	}
-
-	app.setContext(ctx)
 
 	const amountOfWorkers = 2
 	const jobQueueSize = 100
-	app.jobQueue = threading.NewJobQueue(app.ctx, logger, amountOfWorkers, jobQueueSize)
+	bl.jobQueue = threading.NewJobQueue(bl.Ctx, logger, amountOfWorkers, jobQueueSize)
 
-	app.setDB(db, authService)
+	bl.setDB(db, authService)
 
-	return app
+	return bl
 }
 
 func (app *Backlog) Start() error {
@@ -104,8 +92,8 @@ func (app *Backlog) setDB(
 
 	app.Repositories = repositories.New(app.db, app.Config.EncryptionKey)
 	app.Services = services.New(
-		app.ctx,
-		app.logger,
+		app.Ctx,
+		app.Logger,
 		app.Config,
 		app.jobQueue,
 		app.Repositories,
@@ -127,31 +115,8 @@ func (app *Backlog) setJobs() {
 	app.Services.WebSocket.RegisterTopics(app.jobQueue.FetchJobIDs())
 }
 
-func (app *Backlog) setContext(originalCtx context.Context) {
-	if app.ctxCancel != nil {
-		app.ctxCancel()
-	}
-
-	ctx, cancel := context.WithCancel(originalCtx)
-	app.ctx = ctx
-	app.ctxCancel = cancel
-}
-
 func (app *Backlog) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
-	if _, err := db.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS backlog"); err != nil {
-		return err
-	}
-
-	goose.SetTableName("backlog.goose_db_version")
-	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
-	goose.SetBaseFS(embedMigrations)
-
-	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
-		return err
-	}
-
-	migrationsDB := stdlib.OpenDBFromPool(db)
-	return goose.Up(migrationsDB, "migrations")
+	return app.ApplyMigrationsFromFS(ctx, db, embedMigrations, app.GetName())
 }
 
 func (app *Backlog) GetName() string {

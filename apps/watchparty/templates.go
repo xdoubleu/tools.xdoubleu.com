@@ -44,7 +44,7 @@ type lobbyData struct {
 
 func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 	user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
-	secure := app.config.Env == config.ProdEnv
+	secure := app.Config.Env == config.ProdEnv
 
 	if user == nil {
 		accessToken, _ := r.Cookie("accessToken")
@@ -67,18 +67,18 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		// Show lobby where user can create or join a room
 		//nolint:exhaustruct // No need to initialize lobbyData with zero values
-		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{})
+		tpltools.RenderWithPanic(app.Tpl, w, "lobby.html", lobbyData{})
 		return
 	}
 
 	switch role {
 	case dtos.Presenter:
-		tpltools.RenderWithPanic(app.tpl, w, "room.html", rootData{
+		tpltools.RenderWithPanic(app.Tpl, w, "room.html", rootData{
 			RoomCode:    roomCode,
 			IsPresenter: true,
 		})
 	case dtos.Viewer:
-		tpltools.RenderWithPanic(app.tpl, w, "room.html", rootData{
+		tpltools.RenderWithPanic(app.Tpl, w, "room.html", rootData{
 			RoomCode:    roomCode,
 			IsPresenter: false,
 		})
@@ -121,7 +121,7 @@ func (app *WatchParty) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !app.Services.Room.RoomExists(dto.RoomCode) {
-		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+		tpltools.RenderWithPanic(app.Tpl, w, "lobby.html", lobbyData{
 			Error: fmt.Sprintf("Room %q does not exist.", dto.RoomCode),
 		})
 		return
@@ -129,7 +129,7 @@ func (app *WatchParty) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	ok := app.Services.Room.JoinViewer(r.Context(), dto.RoomCode, user.ID)
 	if !ok {
-		tpltools.RenderWithPanic(app.tpl, w, "lobby.html", lobbyData{
+		tpltools.RenderWithPanic(app.Tpl, w, "lobby.html", lobbyData{
 			Error: "Could not join room.",
 		})
 		return

@@ -38,6 +38,7 @@ func NewApps(
 	apps.addApp(bl)
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
+	// scaffold:app
 
 	return &apps
 }

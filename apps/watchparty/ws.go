@@ -66,7 +66,7 @@ func (app *WatchParty) WsSignalingHandler() http.HandlerFunc {
 			&websocket.AcceptOptions{InsecureSkipVerify: true},
 		)
 		if err != nil {
-			app.logger.ErrorContext(
+			app.Logger.ErrorContext(
 				r.Context(),
 				"websocket accept error",
 				slog.Any("err", err),
@@ -116,18 +116,18 @@ func (app *WatchParty) handlePresenter(
 		var trackMsg dtos.TrackMessage
 		if err := wsjson.Read(ctx, conn, &trackMsg); err != nil {
 			if isExpectedCloseErr(err) {
-				app.logger.DebugContext(
+				app.Logger.DebugContext(
 					ctx,
 					"presenter disconnected",
 					slog.Any("err", err),
 				)
 			} else {
-				app.logger.ErrorContext(ctx, "presenter read error", slog.Any("err", err))
+				app.Logger.ErrorContext(ctx, "presenter read error", slog.Any("err", err))
 			}
 			return
 		}
 
-		app.logger.DebugContext(ctx, "received message",
+		app.Logger.DebugContext(ctx, "received message",
 			slog.String("role", "presenter"),
 			slog.String("type", string(trackMsg.Type)),
 			slog.String("trackType", trackMsg.TrackType),
@@ -150,18 +150,18 @@ func (app *WatchParty) handleViewer(
 		var trackMsg dtos.TrackMessage
 		if err := wsjson.Read(ctx, conn, &trackMsg); err != nil {
 			if isExpectedCloseErr(err) {
-				app.logger.DebugContext(
+				app.Logger.DebugContext(
 					ctx,
 					"viewer disconnected",
 					slog.Any("err", err),
 				)
 			} else {
-				app.logger.ErrorContext(ctx, "viewer read error", slog.Any("err", err))
+				app.Logger.ErrorContext(ctx, "viewer read error", slog.Any("err", err))
 			}
 			return
 		}
 
-		app.logger.DebugContext(ctx, "received message",
+		app.Logger.DebugContext(ctx, "received message",
 			slog.String("role", "viewer"),
 			slog.String("type", string(trackMsg.Type)),
 			slog.String("trackType", trackMsg.TrackType),

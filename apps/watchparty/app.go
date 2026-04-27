@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"tools.xdoubleu.com/apps/watchparty/internal/services"
+	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 )
@@ -18,12 +19,8 @@ import (
 var htmlTemplates embed.FS
 
 type WatchParty struct {
-	logger    *slog.Logger
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	config    config.Config
-	Services  *services.Services
-	tpl       *template.Template
+	app.Base
+	Services *services.Services
 }
 
 func New(
@@ -32,20 +29,20 @@ func New(
 	cfg config.Config,
 	sharedTpl *template.Template,
 ) *WatchParty {
-	tpl := template.Must(sharedTpl.Clone())
-	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
-
-	//nolint:exhaustruct //other fields are optional
-	app := &WatchParty{
-		logger: logger,
-		config: cfg,
-		tpl:    tpl,
+	//nolint:exhaustruct //Services initialised below
+	wp := &WatchParty{
+		Base: app.NewBase(
+			context.Background(),
+			authService,
+			logger,
+			cfg,
+			htmlTemplates,
+			sharedTpl,
+		),
 	}
+	wp.Services = services.New(wp.Ctx, logger, authService)
 
-	app.setContext()
-	app.Services = services.New(app.ctx, logger, authService)
-
-	return app
+	return wp
 }
 
 func (app *WatchParty) ApplyMigrations(_ context.Context, _ *pgxpool.Pool) error {
@@ -54,13 +51,6 @@ func (app *WatchParty) ApplyMigrations(_ context.Context, _ *pgxpool.Pool) error
 
 func (app *WatchParty) Start() error {
 	return nil
-}
-
-func (app *WatchParty) setContext() {
-	//nolint:gosec //cancel called later
-	ctx, cancel := context.WithCancel(context.Background())
-	app.ctx = ctx
-	app.ctxCancel = cancel
 }
 
 func (app *WatchParty) GetName() string {

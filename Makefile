@@ -29,7 +29,14 @@ lint/fix: tools/lint
 	gci write --skip-generated -s standard -s default .
 	sqlfluff fix --dialect postgres .
 
-build: 
+scaffold:
+	@if [ -z "$(NAME)" ]; then echo "Usage: make scaffold NAME=myapp [DB=true] [JOBS=true]"; exit 1; fi
+	go run ./cmd/scaffold \
+		--name $(NAME) \
+		$(if $(filter true,$(DB)),--with-db) \
+		$(if $(filter true,$(JOBS)),--with-jobs)
+
+build:
 	go build -o=./bin/publish ./cmd/publish
 
 run:
