@@ -251,7 +251,7 @@ func (app *Backlog) rootHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "root.html", data)
+	tpltools.RenderWithPanic(app.Tpl, w, "root.html", data)
 	return nil
 }
 
@@ -263,7 +263,7 @@ func (app *Backlog) userBacklogHandler(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "root.html", data)
+	tpltools.RenderWithPanic(app.Tpl, w, "root.html", data)
 	return nil
 }
 
@@ -327,7 +327,7 @@ func (app *Backlog) steamPageHandler(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "steam.html", steamPageData{
+	tpltools.RenderWithPanic(app.Tpl, w, "steam.html", steamPageData{
 		NotStarted:   notStarted,
 		InProgress:   inProgress,
 		Completed:    completed,
@@ -364,7 +364,7 @@ func (app *Backlog) steamDistributionHandler(
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "distribution.html", distributionPageData{
+	tpltools.RenderWithPanic(app.Tpl, w, "distribution.html", distributionPageData{
 		Label: labels[bucket],
 		Games: bucketGames[bucket],
 	})
@@ -372,7 +372,7 @@ func (app *Backlog) steamDistributionHandler(
 }
 
 func (app *Backlog) booksPageHandler(w http.ResponseWriter, _ *http.Request) error {
-	tpltools.RenderWithPanic(app.tpl, w, "books.html", nil)
+	tpltools.RenderWithPanic(app.Tpl, w, "books.html", nil)
 	return nil
 }
 
@@ -410,7 +410,7 @@ func (app *Backlog) booksLibraryHandler(w http.ResponseWriter, r *http.Request) 
 		return 0
 	})
 
-	tpltools.RenderWithPanic(app.tpl, w, "books_library.html", booksPageData{
+	tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", booksPageData{
 		Reading:  reading,
 		Wishlist: wishlist,
 		Finished: finished,
@@ -433,7 +433,7 @@ func (app *Backlog) booksProgressHandler(w http.ResponseWriter, r *http.Request)
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "books_progress.html", booksProgressData{
+	tpltools.RenderWithPanic(app.Tpl, w, "books_progress.html", booksProgressData{
 		Labels:    labels,
 		Values:    values,
 		DateStart: dateStart.Format(models.ProgressDateFormat),
@@ -457,7 +457,7 @@ func (app *Backlog) booksSearchLibraryHandler(
 	query := r.URL.Query().Get("q")
 	if query == "" {
 		tpltools.RenderWithPanic(
-			app.tpl,
+			app.Tpl,
 			w,
 			"books_search_results.html",
 			searchResultsData{}, //nolint:exhaustruct //empty results
@@ -471,7 +471,7 @@ func (app *Backlog) booksSearchLibraryHandler(
 	}
 	if len(libraryResults) > 0 {
 		tpltools.RenderWithPanic(
-			app.tpl,
+			app.Tpl,
 			w,
 			"books_search_results.html",
 			searchResultsData{ //nolint:exhaustruct //other fields are zero value
@@ -482,7 +482,7 @@ func (app *Backlog) booksSearchLibraryHandler(
 	}
 
 	// No library results — render a loading spinner that triggers the external search.
-	tpltools.RenderWithPanic(app.tpl, w, "books_search_loading.html", searchLoadingData{
+	tpltools.RenderWithPanic(app.Tpl, w, "books_search_loading.html", searchLoadingData{
 		Query: query,
 	})
 	return nil
@@ -502,7 +502,7 @@ func (app *Backlog) booksSearchExternalHandler(
 	query := r.URL.Query().Get("q")
 	if query == "" {
 		tpltools.RenderWithPanic(
-			app.tpl,
+			app.Tpl,
 			w,
 			"books_search_results.html",
 			searchResultsData{}, //nolint:exhaustruct //empty results
@@ -517,11 +517,11 @@ func (app *Backlog) booksSearchExternalHandler(
 	)
 	if err != nil {
 		// Log but show empty results — external API may be unavailable.
-		app.logger.WarnContext(r.Context(), "hardcover search failed", "error", err)
+		app.Logger.WarnContext(r.Context(), "hardcover search failed", "error", err)
 	}
 
 	tpltools.RenderWithPanic(
-		app.tpl,
+		app.Tpl,
 		w,
 		"books_search_results.html",
 		searchResultsData{ //nolint:exhaustruct //LibraryResults is zero value

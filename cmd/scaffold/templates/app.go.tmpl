@@ -1,0 +1,73 @@
+package {{.Name}}
+
+import (
+	"context"
+	"embed"
+	"html/template"
+	"log/slog"
+{{- if .WithDB}}
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"{{.Module}}/apps/{{.Name}}/internal/repositories"
+{{- else}}
+
+	"github.com/jackc/pgx/v5/pgxpool"
+{{- end}}
+	"{{.Module}}/apps/{{.Name}}/internal/services"
+	"{{.Module}}/internal/app"
+	"{{.Module}}/internal/auth"
+	"{{.Module}}/internal/config"
+)
+
+{{- if .WithDB}}
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
+{{- end}}
+//go:embed templates/html/**/*.html
+var htmlTemplates embed.FS
+
+type {{.NameTitle}} struct {
+	app.Base
+	services *services.Services
+}
+
+func New(
+	authService auth.Service,
+	logger *slog.Logger,
+	cfg config.Config,
+{{- if .WithDB}}
+	db postgres.DB,
+{{- end}}
+	sharedTpl *template.Template,
+) *{{.NameTitle}} {
+	//nolint:exhaustruct //services initialised below
+	a := &{{.NameTitle}}{
+		Base: app.NewBase(context.Background(), authService, logger, cfg, htmlTemplates, sharedTpl),
+	}
+{{- if .WithDB}}
+	a.services = services.New(a.Logger, repositories.New(db), authService)
+{{- else}}
+	a.services = services.New(a.Ctx, a.Logger, authService)
+{{- end}}
+
+	return a
+}
+
+func (a *{{.NameTitle}}) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+{{- if .WithDB}}
+	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())
+{{- else}}
+	_, _ = ctx, db
+	return nil
+{{- end}}
+}
+
+func (a *{{.NameTitle}}) Start() error {
+	return nil
+}
+
+func (a *{{.NameTitle}}) GetName() string {
+	return "{{.Name}}"
+}

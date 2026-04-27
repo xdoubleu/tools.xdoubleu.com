@@ -3,16 +3,14 @@ package icsproxy
 import (
 	"context"
 	"embed"
-	"fmt"
 	"html/template"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
 	"tools.xdoubleu.com/apps/icsproxy/internal/services"
+	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 )
@@ -24,12 +22,8 @@ var embedMigrations embed.FS
 var htmlTemplates embed.FS
 
 type ICSProxy struct {
-	logger    *slog.Logger
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	config    config.Config
-	tpl       *template.Template
-	services  *services.Services
+	app.Base
+	services *services.Services
 }
 
 func New(
@@ -39,57 +33,28 @@ func New(
 	db postgres.DB,
 	sharedTpl *template.Template,
 ) *ICSProxy {
-	tpl := template.Must(sharedTpl.Clone())
-	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
-
-	//nolint:exhaustruct //other fields are optional
-	app := &ICSProxy{
-		logger:   logger,
-		config:   cfg,
-		tpl:      tpl,
-		services: services.New(logger, repositories.New(db), authService),
+	//nolint:exhaustruct //services initialised below
+	proxy := &ICSProxy{
+		Base: app.NewBase(
+			context.Background(),
+			authService,
+			logger,
+			cfg,
+			htmlTemplates,
+			sharedTpl,
+		),
 	}
+	proxy.services = services.New(logger, repositories.New(db), authService)
 
-	app.setContext()
+	return proxy
+}
 
-	return app
+func (app *ICSProxy) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	return app.ApplyMigrationsFromFS(ctx, db, embedMigrations, app.GetName())
 }
 
 func (app *ICSProxy) Start() error {
 	return nil
-}
-
-func (app *ICSProxy) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
-	migrationsDB := stdlib.OpenDBFromPool(db)
-
-	_, err := db.Exec(
-		ctx,
-		fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", app.GetName()),
-	)
-	if err != nil {
-		return err
-	}
-
-	goose.SetTableName(fmt.Sprintf("%s.goose_db_version", app.GetName()))
-	goose.SetLogger(slog.NewLogLogger(app.logger.Handler(), slog.LevelInfo))
-	goose.SetBaseFS(embedMigrations)
-
-	if err = goose.SetDialect(string(goose.DialectPostgres)); err != nil {
-		return err
-	}
-
-	if err = goose.Up(migrationsDB, "migrations"); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (app *ICSProxy) setContext() {
-	//nolint:gosec // cancel is called later
-	ctx, cancel := context.WithCancel(context.Background())
-	app.ctx = ctx
-	app.ctxCancel = cancel
 }
 
 func (app *ICSProxy) GetName() string {

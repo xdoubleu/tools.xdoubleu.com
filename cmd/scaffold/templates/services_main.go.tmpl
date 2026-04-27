@@ -1,0 +1,33 @@
+package services
+
+import (
+	"log/slog"
+{{- if .WithDB}}
+
+	"{{.Module}}/apps/{{.Name}}/internal/repositories"
+{{- else}}
+
+	"context"
+{{- end}}
+	"{{.Module}}/internal/auth"
+)
+
+type Services struct {
+	Auth auth.Service
+	// TODO: add service fields
+}
+
+func New(
+{{- if .WithDB}}
+	_ *slog.Logger,
+	_ *repositories.Repositories,
+{{- else}}
+	_ context.Context,
+	_ *slog.Logger,
+{{- end}}
+	authService auth.Service,
+) *Services {
+	return &Services{
+		Auth: authService,
+	}
+}

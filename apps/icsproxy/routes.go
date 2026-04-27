@@ -73,7 +73,7 @@ func (app *ICSProxy) feedHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/calendar")
 	_, err = w.Write(filtered)
 	if err != nil {
-		app.logger.ErrorContext(
+		app.Logger.ErrorContext(
 			r.Context(),
 			"Failed to write filtered calendar",
 			"error",

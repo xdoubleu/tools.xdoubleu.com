@@ -1,16 +1,19 @@
 # tools.xdoubleu.com
 
-Each tool has its own folder, however all are combined in `cmd/publish`.
+Each tool has its own folder under `apps/`, however all are combined in `cmd/publish`.
 `cmd/publish` also takes care of authentication.
 
-The folder structure of tools follows the usual one for Go projects:
+The folder structure of apps follows the usual one for Go projects:
 
-- `images` — images used for tool
-- `migrations` — DB migrations used for tool
-- `templates` — HTML templates used for tool
+- `images` — images used for app
+- `migrations` — DB migrations used for app
+- `templates` — HTML templates used for app
 - `internal` — logic internal to that app
 - `pkg` — logic that could become its own project
-- root level files — HTTP endpoints of tool
+- root level files — HTTP endpoints of app
+
+All apps share common bootstrapping via `internal/app.Base`, which provides logging,
+config, template rendering, and auth middleware wiring.
 
 ## Development
 
@@ -28,11 +31,35 @@ docker-compose down
 make lint/fix
 ```
 
-## Existing tools
+## Adding a new app
 
-### goaltracker
+Use the scaffold command to generate a new app with all the boilerplate:
 
-Tracks goals by pulling progress from external sources (Todoist, Steam, Goodreads).
+```bash
+# Minimal app (no DB, no background jobs)
+make scaffold NAME=myapp
+
+# App with DB support (repositories + goose migrations)
+make scaffold NAME=myapp DB=true
+
+# App with DB and background job queue
+make scaffold NAME=myapp DB=true JOBS=true
+```
+
+This generates `apps/myapp/` with the full directory structure and automatically
+registers the new app in `cmd/publish/apps.go`. After scaffolding:
+
+1. Implement handlers and register routes in `apps/myapp/routes.go`
+2. Add domain logic to `apps/myapp/internal/`
+3. If using DB, edit `apps/myapp/migrations/00001_init.sql` with your schema
+4. Run `go build ./...` to verify
+
+## Existing apps
+
+### backlog
+
+Tracks goals by pulling progress from external sources (Steam, Hardcover/Goodreads).
+Supports background sync jobs and WebSocket-based live updates.
 
 ### watchparty
 
