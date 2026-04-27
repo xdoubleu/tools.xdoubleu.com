@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -14,6 +15,7 @@ import (
 	"github.com/xdoubleu/essentia/v3/pkg/middleware"
 	"github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
+	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -70,6 +72,12 @@ func (app *Application) Routes() http.Handler {
 	}
 
 	allowedOrigins := []string{app.config.WebURL}
+	for _, a := range *app.apps {
+		if d := a.GetDomain(); d != "" {
+			allowedOrigins = append(allowedOrigins, "https://"+d)
+		}
+	}
+
 	handlers, err := middleware.DefaultWithSentry(
 		app.logger,
 		allowedOrigins,
@@ -81,8 +89,40 @@ func (app *Application) Routes() http.Handler {
 		panic(err)
 	}
 
-	standard := alice.New(append(handlers, app.requestLogMiddleware)...)
+	standard := alice.New(append(handlers, app.domainMiddleware, app.requestLogMiddleware)...)
 	return standard.Then(mux)
+}
+
+func (app *Application) domainMiddleware(next http.Handler) http.Handler {
+	domainToApp := make(map[string]App)
+	for _, a := range *app.apps {
+		if d := a.GetDomain(); d != "" {
+			domainToApp[d] = a
+		}
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host := r.Host
+		if i := strings.IndexByte(host, ':'); i != -1 {
+			host = host[:i]
+		}
+
+		if a, ok := domainToApp[host]; ok {
+			originalPath := r.URL.Path
+			prefix := "/" + a.GetName()
+			if r.URL.Path == "/" {
+				r.URL.Path = prefix + "/"
+			} else {
+				r.URL.Path = prefix + r.URL.Path
+			}
+
+			ctx := context.WithValue(r.Context(), constants.AppDisplayNameContextKey, a.GetDisplayName())
+			ctx = context.WithValue(ctx, constants.OriginalPathContextKey, originalPath)
+			r = r.WithContext(ctx)
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 // statusWriter captures the HTTP status code written by a handler.

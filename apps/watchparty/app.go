@@ -56,3 +56,11 @@ func (app *WatchParty) Start() error {
 func (app *WatchParty) GetName() string {
 	return "watchparty"
 }
+
+func (app *WatchParty) GetDisplayName() string {
+	return "WatchParty"
+}
+
+func (app *WatchParty) GetDomain() string {
+	return "watchparty.xdoubleu.com"
+}
