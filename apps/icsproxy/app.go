@@ -60,3 +60,7 @@ func (app *ICSProxy) Start() error {
 func (app *ICSProxy) GetName() string {
 	return "icsproxy"
 }
+
+func (app *ICSProxy) GetDisplayName() string {
+	return "ICS Proxy"
+}

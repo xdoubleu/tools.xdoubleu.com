@@ -21,6 +21,8 @@ type App interface {
 	Routes(prefix string, mux *http.ServeMux)
 	ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error
 	GetName() string
+	GetDisplayName() string
+	GetDomain() string
 	Start() error
 }
 

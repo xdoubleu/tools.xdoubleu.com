@@ -52,6 +52,10 @@ func NewBase(
 	}
 }
 
+func (b *Base) GetDisplayName() string { return "" }
+
+func (b *Base) GetDomain() string { return "" }
+
 // ApplyMigrationsFromFS runs goose migrations from the given embed.FS under
 // a dedicated schema named schemaName.
 //

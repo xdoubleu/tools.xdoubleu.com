@@ -122,3 +122,7 @@ func (app *Backlog) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error
 func (app *Backlog) GetName() string {
 	return "backlog"
 }
+
+func (app *Backlog) GetDisplayName() string {
+	return "Backlog"
+}
