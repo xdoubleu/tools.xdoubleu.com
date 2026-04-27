@@ -89,7 +89,8 @@ func (app *Application) Routes() http.Handler {
 		panic(err)
 	}
 
-	standard := alice.New(append(handlers, app.domainMiddleware, app.requestLogMiddleware)...)
+	standard := alice.New(
+		append(handlers, app.domainMiddleware, app.requestLogMiddleware)...)
 	return standard.Then(mux)
 }
 
@@ -116,7 +117,11 @@ func (app *Application) domainMiddleware(next http.Handler) http.Handler {
 				r.URL.Path = prefix + r.URL.Path
 			}
 
-			ctx := context.WithValue(r.Context(), constants.AppDisplayNameContextKey, a.GetDisplayName())
+			ctx := context.WithValue(
+				r.Context(),
+				constants.AppDisplayNameContextKey,
+				a.GetDisplayName(),
+			)
 			ctx = context.WithValue(ctx, constants.OriginalPathContextKey, originalPath)
 			r = r.WithContext(ctx)
 		}
