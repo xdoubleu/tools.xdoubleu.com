@@ -1,0 +1,35 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container-fluid p-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Recipes</h3>
+        <div class="d-flex gap-2">
+          <a href="/recipes/plans" class="btn btn-outline-dark btn-sm">Meal Plans</a>
+          <a href="/recipes/new" class="btn btn-dark btn-sm">+ New Recipe</a>
+        </div>
+      </div>
+
+      {{if not .Recipes}}
+      <div class="text-muted">No recipes yet. <a href="/recipes/new">Add your first recipe.</a></div>
+      {{else}}
+      <div class="list-group">
+        {{range .Recipes}}
+        <a href="/recipes/{{.ID}}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{.Name}}</strong>
+            {{if .IsShared}}<span class="badge bg-secondary ms-2">Shared</span>{{end}}
+            {{if .Description}}<div class="text-muted small">{{.Description}}</div>{{end}}
+          </div>
+          <small class="text-muted">{{.BaseServings}} servings</small>
+        </a>
+        {{end}}
+      </div>
+      {{end}}
+
+    </div>
+  </div>
+</div>
+{{ template "footer" }}{{ template "page_end" }}

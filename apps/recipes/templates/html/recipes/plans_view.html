@@ -1,0 +1,143 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container-fluid p-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h3 class="mb-0">{{.Plan.Name}}</h3>
+          <small class="text-muted">
+            {{.Plan.StartDate.Format "Jan 2"}} – {{.Plan.EndDate.Format "Jan 2, 2006"}}
+          </small>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="/recipes/plans/{{.Plan.ID}}/shopping" class="btn btn-outline-success btn-sm">Shopping List</a>
+          {{if .IsOwner}}
+          <a href="/recipes/plans/{{.Plan.ID}}/edit" class="btn btn-outline-dark btn-sm">Edit</a>
+          <form method="POST" action="/recipes/plans/{{.Plan.ID}}/delete" onsubmit="return confirm('Delete this plan?');">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+          </form>
+          {{end}}
+          <a href="/recipes/plans" class="btn btn-outline-secondary btn-sm">← Plans</a>
+        </div>
+      </div>
+
+      <!-- iCal subscription -->
+      <div class="alert alert-light border mb-3 py-2">
+        <small class="text-muted me-2">Subscribe in Apple/Google Calendar:</small>
+        <code class="small">https://tools.xdoubleu.com{{.ICalURL}}</code>
+        <button class="btn btn-outline-secondary btn-sm ms-2 py-0"
+          onclick="navigator.clipboard.writeText('https://tools.xdoubleu.com{{.ICalURL}}')">Copy</button>
+      </div>
+
+      <!-- Calendar grid -->
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th style="width:120px">Date</th>
+              <th>Noon</th>
+              <th>Evening</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Days}}
+            <tr>
+              <td class="fw-semibold small">{{.Date.Format "Mon Jan 2"}}</td>
+
+              <!-- Noon slot -->
+              <td>
+                {{if .Noon}}
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>
+                    <a href="/recipes/{{.Noon.RecipeID}}">{{.Noon.Recipe.Name}}</a>
+                    <small class="text-muted ms-1">×{{.Noon.Servings}}</small>
+                  </span>
+                  {{if $.Plan.CanEdit}}
+                  <form method="POST" action="/recipes/plans/{{$.Plan.ID}}/meals/{{.Noon.ID}}/delete" class="d-inline">
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">×</button>
+                  </form>
+                  {{end}}
+                </div>
+                {{else if $.Plan.CanEdit}}
+                <form method="POST" action="/recipes/plans/{{$.Plan.ID}}/meals" class="d-flex gap-1">
+                  <input type="hidden" name="meal_date" value="{{.Date.Format "2006-01-02"}}">
+                  <input type="hidden" name="meal_slot" value="noon">
+                  <select name="recipe_id" class="form-select form-select-sm" required>
+                    <option value="">— pick recipe —</option>
+                    {{range $.Recipes}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                  </select>
+                  <input type="number" name="servings" class="form-control form-control-sm" style="width:65px" placeholder="×" min="1" value="2">
+                  <button type="submit" class="btn btn-dark btn-sm">+</button>
+                </form>
+                {{else}}
+                <span class="text-muted small">—</span>
+                {{end}}
+              </td>
+
+              <!-- Evening slot -->
+              <td>
+                {{if .Evening}}
+                <div class="d-flex justify-content-between align-items-center">
+                  <span>
+                    <a href="/recipes/{{.Evening.RecipeID}}">{{.Evening.Recipe.Name}}</a>
+                    <small class="text-muted ms-1">×{{.Evening.Servings}}</small>
+                  </span>
+                  {{if $.Plan.CanEdit}}
+                  <form method="POST" action="/recipes/plans/{{$.Plan.ID}}/meals/{{.Evening.ID}}/delete" class="d-inline">
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">×</button>
+                  </form>
+                  {{end}}
+                </div>
+                {{else if $.Plan.CanEdit}}
+                <form method="POST" action="/recipes/plans/{{$.Plan.ID}}/meals" class="d-flex gap-1">
+                  <input type="hidden" name="meal_date" value="{{.Date.Format "2006-01-02"}}">
+                  <input type="hidden" name="meal_slot" value="evening">
+                  <select name="recipe_id" class="form-select form-select-sm" required>
+                    <option value="">— pick recipe —</option>
+                    {{range $.Recipes}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                  </select>
+                  <input type="number" name="servings" class="form-control form-control-sm" style="width:65px" placeholder="×" min="1" value="2">
+                  <button type="submit" class="btn btn-dark btn-sm">+</button>
+                </form>
+                {{else}}
+                <span class="text-muted small">—</span>
+                {{end}}
+              </td>
+
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Share plan (owners only) -->
+      {{if .IsOwner}}
+      <div class="card shadow-sm mt-4">
+        <div class="card-header">Share plan</div>
+        <div class="card-body">
+          <form method="POST" action="/recipes/plans/{{.Plan.ID}}/share" class="row g-2">
+            <div class="col-sm-6">
+              <input type="email" name="email" class="form-control" placeholder="Email address" required>
+            </div>
+            <div class="col-sm-auto d-flex align-items-center">
+              <div class="form-check me-3">
+                <input class="form-check-input" type="checkbox" name="can_edit" id="canEdit" value="true">
+                <label class="form-check-label" for="canEdit">Can edit</label>
+              </div>
+              <button type="submit" class="btn btn-dark btn-sm">Share</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {{end}}
+
+    </div>
+  </div>
+</div>
+{{ template "footer" }}{{ template "page_end" }}

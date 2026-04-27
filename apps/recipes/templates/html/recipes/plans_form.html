@@ -1,0 +1,46 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container-fluid p-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">{{if .Plan.ID}}Edit Plan{{else}}New Plan{{end}}</h3>
+        <a href="/recipes/plans" class="btn btn-outline-dark btn-sm">← Back</a>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <form method="POST" action="{{.Action}}">
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Plan name</label>
+              <input type="text" name="name" class="form-control" value="{{.Plan.Name}}" placeholder="e.g. Week of April 28" required>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col">
+                <label class="form-label fw-semibold">Start date</label>
+                <input type="date" name="start_date" class="form-control"
+                  value="{{if .Plan.StartDate.IsZero}}{{else}}{{.Plan.StartDate.Format "2006-01-02"}}{{end}}" required>
+              </div>
+              <div class="col">
+                <label class="form-label fw-semibold">End date</label>
+                <input type="date" name="end_date" class="form-control"
+                  value="{{if .Plan.EndDate.IsZero}}{{else}}{{.Plan.EndDate.Format "2006-01-02"}}{{end}}" required>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-dark">Save</button>
+              <a href="/recipes/plans{{if .Plan.ID}}/{{.Plan.ID}}{{end}}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{{ template "footer" }}{{ template "page_end" }}
