@@ -63,6 +63,21 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	// Ensure global schema and contacts table exist (normally created by cmd/publish).
+	if _, err = postgresDB.Exec(context.Background(), `
+		CREATE SCHEMA IF NOT EXISTS global;
+		CREATE TABLE IF NOT EXISTS global.contacts (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			owner_user_id TEXT NOT NULL,
+			contact_user_id TEXT NOT NULL,
+			display_name TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			UNIQUE (owner_user_id, contact_user_id)
+		)`); err != nil {
+		panic(err)
+	}
+
 	if err = testApp.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)
 	}
