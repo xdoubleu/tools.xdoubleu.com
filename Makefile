@@ -40,7 +40,7 @@ build:
 	go build -o=./bin/publish ./cmd/publish
 
 run:
-	go run ./...
+	go run ./cmd/publish
 
 debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient ./cmd/publish

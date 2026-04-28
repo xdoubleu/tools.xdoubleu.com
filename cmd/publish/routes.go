@@ -53,6 +53,27 @@ func (app *Application) Routes() http.Handler {
 		app.services.Auth.Access(app.bugReportHandler),
 	)
 
+	mux.HandleFunc(
+		"GET /contacts",
+		app.services.Auth.Access(app.listContactsHandler),
+	)
+	mux.HandleFunc(
+		"POST /contacts",
+		app.services.Auth.Access(app.createContactHandler),
+	)
+	mux.HandleFunc(
+		"POST /contacts/{id}/delete",
+		app.services.Auth.Access(app.deleteContactHandler),
+	)
+	mux.HandleFunc(
+		"POST /contacts/{id}/accept",
+		app.services.Auth.Access(app.acceptContactHandler),
+	)
+	mux.HandleFunc(
+		"POST /contacts/{id}/decline",
+		app.services.Auth.Access(app.declineContactHandler),
+	)
+
 	app.authRoutes("auth", mux)
 	app.imageRoutes("images", mux)
 

@@ -1,0 +1,95 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+
+      <h3 class="mb-4">Contacts</h3>
+
+      {{if .Error}}
+      <div class="alert alert-danger py-2 small">{{.Error}}</div>
+      {{end}}
+
+      <!-- Add contact -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">Add contact</div>
+        <div class="card-body">
+          <form method="POST" action="/contacts" class="row g-2">
+            <div class="col-sm-9">
+              <input type="email" name="email" class="form-control"
+                placeholder="Email address" required>
+            </div>
+            <div class="col-sm-3">
+              <button type="submit" class="btn btn-dark w-100">Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Incoming requests -->
+      {{if .Incoming}}
+      <div class="card shadow-sm mb-4 border-warning">
+        <div class="card-header fw-semibold">Contact requests</div>
+        <div class="list-group list-group-flush">
+          {{range .Incoming}}
+          <div class="list-group-item">
+            <p class="mb-2 fw-semibold">{{.DisplayName}} wants to connect</p>
+            <div class="d-flex gap-2 align-items-end">
+              <form method="POST" action="/contacts/{{.ID}}/accept"
+                class="d-flex gap-2 align-items-end flex-fill">
+                <div class="flex-fill">
+                  <label class="form-label small mb-1">Name for them</label>
+                  <input type="text" name="display_name" class="form-control form-control-sm"
+                    value="{{.DisplayName}}" required>
+                </div>
+                <button type="submit" class="btn btn-dark btn-sm">Accept</button>
+              </form>
+              <form method="POST" action="/contacts/{{.ID}}/decline">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Decline</button>
+              </form>
+            </div>
+          </div>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+
+      <!-- Accepted contacts -->
+      {{if .Contacts}}
+      <div class="list-group mb-4">
+        {{range .Contacts}}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">{{.DisplayName}}</span>
+          <form method="POST" action="/contacts/{{.ID}}/delete"
+            onsubmit="return confirm('Remove {{.DisplayName}} from contacts?');">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+          </form>
+        </div>
+        {{end}}
+      </div>
+      {{else if not .Incoming}}
+      <p class="text-muted">No contacts yet. Add someone by email above.</p>
+      {{end}}
+
+      <!-- Pending sent requests -->
+      {{if .Pending}}
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold text-muted">Sent (awaiting acceptance)</div>
+        <div class="list-group list-group-flush">
+          {{range .Pending}}
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <span class="text-muted">{{.DisplayName}}</span>
+            <form method="POST" action="/contacts/{{.ID}}/delete"
+              onsubmit="return confirm('Cancel request to {{.DisplayName}}?');">
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Cancel</button>
+            </form>
+          </div>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+
+    </div>
+  </div>
+</div>
+{{ template "footer" }}{{ template "page_end" }}
