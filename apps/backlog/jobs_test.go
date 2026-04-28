@@ -59,8 +59,8 @@ func TestSteamJob(t *testing.T) {
 		testApp.Services.Steam,
 		testApp.Services.Progress,
 	)
-	assert.NotNil(t, job.ID())
-	assert.NotNil(t, job.RunEvery())
+	assert.NotEmpty(t, job.ID())
+	assert.NotZero(t, job.RunEvery())
 
 	err := job.Run(context.Background(), logging.NewNopLogger())
 	assert.Nil(t, err)
