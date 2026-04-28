@@ -3,7 +3,10 @@
 <div class="container py-4">
 
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">{{.Recipe.Name}}</h3>
+    <div class="d-flex align-items-center gap-3">
+      <a href="/recipes/list" class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+      <h3 class="mb-0">{{.Recipe.Name}}</h3>
+    </div>
     <div class="d-flex gap-2">
       {{if .IsOwner}}
       <a href="/recipes/{{.Recipe.ID}}?edit=1" class="btn btn-outline-dark btn-sm">Edit</a>

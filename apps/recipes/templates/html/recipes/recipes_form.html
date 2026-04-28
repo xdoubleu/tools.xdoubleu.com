@@ -2,7 +2,11 @@
 {{ template "navbar" }}
 <div class="container py-4">
 
-  <h3 class="mb-3">{{if .Recipe.ID}}Edit Recipe{{else}}New Recipe{{end}}</h3>
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <a href="{{if .IsEdit}}/recipes/{{.Recipe.ID}}{{else}}/recipes/list{{end}}"
+      class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+    <h3 class="mb-0">{{if .Recipe.ID}}Edit Recipe{{else}}New Recipe{{end}}</h3>
+  </div>
 
   <div class="card shadow-sm">
     <div class="card-body">
