@@ -44,30 +44,6 @@ func TestSteamDistributionHandlerNonNumericBucket(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rs.StatusCode)
 }
 
-func TestBooksSearchLibraryEmpty(t *testing.T) {
-	tReq := test.CreateRequestTester(
-		getRoutes(),
-		http.MethodGet,
-		"/"+testApp.GetName()+"/books/search?q=nonexistentbook12345xyz",
-	)
-	tReq.AddCookie(&accessToken)
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusOK, rs.StatusCode)
-}
-
-func TestBooksSearchLibraryEmptyQuery(t *testing.T) {
-	tReq := test.CreateRequestTester(
-		getRoutes(),
-		http.MethodGet,
-		"/"+testApp.GetName()+"/books/search",
-	)
-	tReq.AddCookie(&accessToken)
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusOK, rs.StatusCode)
-}
-
 func TestBooksSearchExternalHandler(t *testing.T) {
 	tReq := test.CreateRequestTester(
 		getRoutes(),

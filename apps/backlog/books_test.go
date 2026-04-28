@@ -334,12 +334,17 @@ const goodreadsCSVForImport = `Book Id,Title,Author,ISBN,ISBN13,My Rating,Exclus
 `
 
 func TestBooksProgress_CarryForwardAfterWindow(t *testing.T) {
+	// Use an isolated userID so accumulated progress entries from other tests
+	// (which write to the shared userID on varying calendar dates) don't become
+	// the most-recent baseline and override the carry-forward value being tested.
+	const isolatedUserID = "test-carry-forward-isolation"
+
 	// Simulate a progress record from 2 years ago (outside the default 1-year window).
 	twoYearsAgo := time.Now().AddDate(-2, 0, 0).Format(models.ProgressDateFormat)
 	err := testApp.Services.Progress.Save(
 		context.Background(),
 		models.BooksTypeID,
-		userID,
+		isolatedUserID,
 		[]string{twoYearsAgo},
 		[]string{"7"},
 	)
@@ -352,7 +357,7 @@ func TestBooksProgress_CarryForwardAfterWindow(t *testing.T) {
 	labels, values, err := testApp.Services.Progress.GetByTypeIDAndDates(
 		context.Background(),
 		models.BooksTypeID,
-		userID,
+		isolatedUserID,
 		yesterday,
 		today,
 	)
