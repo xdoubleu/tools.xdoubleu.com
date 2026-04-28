@@ -3,6 +3,7 @@ package recipes
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 )
@@ -35,9 +36,13 @@ func renderICalFeed(plan *models.Plan, meals []models.PlanMeal) string {
 		}
 		summary := fmt.Sprintf("%s – %s (×%d)", slot, meal.Recipe.Name, meal.Servings)
 
+		nextDay := meal.MealDate.AddDate(0, 0, 1).Format("20060102")
+		dtstamp := time.Now().UTC().Format("20060102T150405Z")
 		writeln("BEGIN:VEVENT")
 		writeln("UID:" + meal.ID.String() + "@tools.xdoubleu.com")
+		writeln("DTSTAMP:" + dtstamp)
 		writeln("DTSTART;VALUE=DATE:" + dateStr)
+		writeln("DTEND;VALUE=DATE:" + nextDay)
 		writeln("SUMMARY:" + escapeICalText(summary))
 		writeln("END:VEVENT")
 	}

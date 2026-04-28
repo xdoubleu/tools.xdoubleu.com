@@ -10,12 +10,12 @@ type Recipe struct {
 	ID           uuid.UUID
 	UserID       string
 	Name         string
-	Description  string
+	Instructions string
 	BaseServings int
-	IsShared     bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Ingredients  []Ingredient
+	SharedWith   []string
 }
 
 type Ingredient struct {
@@ -27,17 +27,22 @@ type Ingredient struct {
 	SortOrder int
 }
 
+type PlanSharedUser struct {
+	UserID      string
+	CanEdit     bool
+	DisplayName string
+}
+
 type Plan struct {
 	ID          uuid.UUID
 	OwnerUserID string
 	Name        string
-	StartDate   time.Time
-	EndDate     time.Time
 	ICalToken   uuid.UUID
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	CanEdit     bool
 	Meals       []PlanMeal
+	SharedWith  []PlanSharedUser
 }
 
 type PlanMeal struct {

@@ -2,18 +2,15 @@ package dtos
 
 type CreateRecipeDto struct {
 	Name              string   `schema:"name"`
-	Description       string   `schema:"description"`
+	Instructions      string   `schema:"instructions"`
 	BaseServings      int      `schema:"base_servings"`
-	IsShared          bool     `schema:"is_shared"`
 	IngredientNames   []string `schema:"ingredient_name"`
 	IngredientAmounts []string `schema:"ingredient_amount"`
 	IngredientUnits   []string `schema:"ingredient_unit"`
 }
 
 type CreatePlanDto struct {
-	Name      string `schema:"name"`
-	StartDate string `schema:"start_date"`
-	EndDate   string `schema:"end_date"`
+	Name string `schema:"name"`
 }
 
 type AddMealDto struct {
@@ -24,6 +21,10 @@ type AddMealDto struct {
 }
 
 type SharePlanDto struct {
-	Email   string `schema:"email"`
-	CanEdit bool   `schema:"can_edit"`
+	ContactUserID string `schema:"contact_user_id"`
+	CanEdit       bool   `schema:"can_edit"`
+}
+
+type ShareRecipeDto struct {
+	ContactUserID string `schema:"contact_user_id"`
 }

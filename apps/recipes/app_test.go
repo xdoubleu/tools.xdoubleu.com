@@ -52,7 +52,16 @@ func TestMain(m *testing.M) {
 		testCfg,
 		postgresDB,
 		templates.LoadShared(testCfg),
+		sharedmocks.NewMockedContactsService(),
 	)
+
+	// Drop the schema so the rewritten migration is applied from scratch.
+	if _, err = postgresDB.Exec(
+		context.Background(),
+		"DROP SCHEMA IF EXISTS recipes CASCADE",
+	); err != nil {
+		panic(err)
+	}
 
 	if err = testApp.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)

@@ -3,16 +3,15 @@ package services
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/repositories"
-	"tools.xdoubleu.com/internal/auth"
 )
 
 type PlanService struct {
 	repo *repositories.PlansRepository
-	auth auth.Service
 }
 
 func (s *PlanService) List(
@@ -31,13 +30,25 @@ func (s *PlanService) Get(
 	if err != nil {
 		return nil, err
 	}
+	if plan.OwnerUserID == userID {
+		plan.SharedWith, err = s.repo.GetSharedWith(ctx, id, userID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return plan, nil
+}
 
-	meals, err := s.repo.GetMealsWithRecipes(ctx, id)
-	if err != nil {
+func (s *PlanService) GetMeals(
+	ctx context.Context,
+	planID uuid.UUID,
+	userID string,
+	start, end time.Time,
+) ([]models.PlanMeal, error) {
+	if _, err := s.repo.GetByID(ctx, planID, userID); err != nil {
 		return nil, err
 	}
-	plan.Meals = meals
-	return plan, nil
+	return s.repo.GetMealsInWindow(ctx, planID, start, end)
 }
 
 func (s *PlanService) GetByICalToken(
@@ -49,7 +60,7 @@ func (s *PlanService) GetByICalToken(
 		return nil, err
 	}
 
-	meals, err := s.repo.GetMealsWithRecipes(ctx, plan.ID)
+	meals, err := s.repo.GetMealsInWindow(ctx, plan.ID, time.Time{}, time.Time{})
 	if err != nil {
 		return nil, err
 	}
@@ -143,11 +154,30 @@ func (s *PlanService) DeleteMeal(
 	return s.repo.DeleteMeal(ctx, mealID, planID)
 }
 
-func (s *PlanService) ShareByEmail(
+func (s *PlanService) Unshare(
 	ctx context.Context,
 	planID uuid.UUID,
 	ownerID string,
-	email string,
+	targetUserID string,
+) error {
+	existing, err := s.repo.GetByID(ctx, planID, ownerID)
+	if err != nil {
+		return err
+	}
+	if existing.OwnerUserID != ownerID {
+		return &HTTPError{
+			Status:  http.StatusForbidden,
+			Message: "Only the owner can modify sharing",
+		}
+	}
+	return s.repo.UnshareUser(ctx, planID, targetUserID)
+}
+
+func (s *PlanService) Share(
+	ctx context.Context,
+	planID uuid.UUID,
+	ownerID string,
+	contactUserID string,
 	canEdit bool,
 ) error {
 	existing, err := s.repo.GetByID(ctx, planID, ownerID)
@@ -160,20 +190,5 @@ func (s *PlanService) ShareByEmail(
 			Message: "Only the owner can share this plan",
 		}
 	}
-
-	users, err := s.auth.GetAllUsers()
-	if err != nil {
-		return err
-	}
-
-	for _, u := range users {
-		if u.Email == email {
-			return s.repo.SharePlan(ctx, planID, u.ID, canEdit)
-		}
-	}
-
-	return &HTTPError{
-		Status:  http.StatusNotFound,
-		Message: "No user found with that email address",
-	}
+	return s.repo.SharePlan(ctx, planID, contactUserID, canEdit)
 }

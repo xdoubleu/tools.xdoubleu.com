@@ -24,6 +24,7 @@ import (
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/templates"
 )
@@ -39,6 +40,7 @@ type Application struct {
 	logger        *slog.Logger
 	config        config.Config
 	services      *services.Services
+	contacts      contacts.Service
 	apps          *Apps
 	backlog       *backlog.Backlog
 	tpl           *template.Template
@@ -141,7 +143,9 @@ func NewApplication(
 	logBuffer := logging.NewUserLogBuffer(userLogBufSize)
 
 	appUsersRepo := repositories.NewAppUsersRepository(db)
+	contactsRepo := repositories.NewContactsRepository(db)
 	svc := services.New(config, supabaseClient, tpl, appUsersRepo)
+	contactsSvc := contacts.New(contactsRepo, svc.Auth)
 
 	bl := backlog.New(ctx, svc.Auth, logger, config, db, sharedTpl)
 
@@ -151,13 +155,16 @@ func NewApplication(
 		logger:        slog.New(logging.NewUserLogHandler(logger.Handler(), logBuffer)),
 		config:        config,
 		services:      svc,
+		contacts:      contactsSvc,
 		backlog:       bl,
 		tpl:           tpl,
 		requestBuffer: logBuffer,
 		appUsersRepo:  appUsersRepo,
 	}
 
-	app.apps = NewApps(app.ctx, app.services.Auth, logger, config, db, sharedTpl, bl)
+	app.apps = NewApps(
+		app.ctx, app.services.Auth, logger, config, db, sharedTpl, bl, contactsSvc,
+	)
 
 	err := app.ApplyMigrations(db)
 	if err != nil {

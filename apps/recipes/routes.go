@@ -11,8 +11,15 @@ func (a *Recipes) Routes(prefix string, mux *http.ServeMux) {
 	// ── Recipe routes ──────────────────────────────────────────────────────────
 	// All recipe item mutations use POST /recipes/{id} with a _action field to
 	// avoid depth-3 route conflicts with /recipes/plans/{id}.
+	// /recipes redirects to plans (primary feature); /recipes/list shows all recipes.
 	mux.HandleFunc(
 		fmt.Sprintf("GET %s", p),
+		a.services.Auth.AppAccess(prefix, func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, p+"/plans", http.StatusSeeOther)
+		}),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("GET %s/list", p),
 		a.services.Auth.AppAccess(prefix, a.handle(a.listRecipesHandler)),
 	)
 	mux.HandleFunc(
@@ -32,6 +39,14 @@ func (a *Recipes) Routes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("POST %s/{id}", p),
 		a.services.Auth.AppAccess(prefix, a.handle(a.updateOrDeleteRecipeHandler)),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST %s/{id}/share", p),
+		a.services.Auth.AppAccess(prefix, a.handle(a.shareRecipeHandler)),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST %s/{id}/share/{userID}/delete", p),
+		a.services.Auth.AppAccess(prefix, a.handle(a.unshareRecipeHandler)),
 	)
 
 	// ── Plan routes ────────────────────────────────────────────────────────────
@@ -84,5 +99,9 @@ func (a *Recipes) Routes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("POST %s/plans/{id}/share", p),
 		a.services.Auth.AppAccess(prefix, a.handle(a.sharePlanHandler)),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST %s/plans/{id}/share/{userID}/delete", p),
+		a.services.Auth.AppAccess(prefix, a.handle(a.unsharePlanHandler)),
 	)
 }

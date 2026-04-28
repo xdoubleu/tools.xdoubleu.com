@@ -3,6 +3,7 @@ package recipes
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
@@ -23,7 +24,10 @@ func (a *Recipes) shoppingListHandler(w http.ResponseWriter, r *http.Request) er
 		return err
 	}
 
-	items, err := a.services.Shopping.GetList(r.Context(), id)
+	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+	end := today.AddDate(0, 0, daysPerWeek-1)
+
+	items, err := a.services.Shopping.GetList(r.Context(), id, today, end)
 	if err != nil {
 		return err
 	}

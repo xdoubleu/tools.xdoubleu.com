@@ -32,7 +32,7 @@ func TestCreateRecipe_Redirects(t *testing.T) {
 	})
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
-	assert.Equal(t, "/recipes", rs.Header.Get("Location"))
+	assert.Equal(t, "/recipes/list", rs.Header.Get("Location"))
 }
 
 // ── View recipe ───────────────────────────────────────────────────────────────
@@ -75,9 +75,7 @@ func TestCreatePlan_Redirects(t *testing.T) {
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetFollowRedirect(false)
 	tReq.SetData(dtos.CreatePlanDto{
-		Name:      "Test Week",
-		StartDate: "2026-04-28",
-		EndDate:   "2026-05-04",
+		Name: "Test Week",
 	})
 	rs := tReq.Do(t)
 	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
@@ -112,9 +110,7 @@ func TestICalFeed_ValidToken(t *testing.T) {
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetFollowRedirect(false)
 	tReq.SetData(dtos.CreatePlanDto{
-		Name:      "iCal Test Plan",
-		StartDate: "2026-05-05",
-		EndDate:   "2026-05-11",
+		Name: "iCal Test Plan",
 	})
 	rs := tReq.Do(t)
 	require.Equal(t, http.StatusSeeOther, rs.StatusCode)

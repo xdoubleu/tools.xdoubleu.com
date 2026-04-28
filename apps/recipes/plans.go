@@ -3,6 +3,7 @@ package recipes
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,11 @@ import (
 	"tools.xdoubleu.com/apps/recipes/internal/dtos"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
+)
+
+const (
+	daysPerWeek = 7
+	hoursPerDay = 24
 )
 
 type planDay struct {
@@ -58,13 +64,8 @@ func (a *Recipes) createPlanHandler(w http.ResponseWriter, r *http.Request) erro
 		}
 	}
 
-	plan, err := parsePlanDto(dto)
-	if err != nil {
-		return &services.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid dates: " + err.Error(),
-		}
-	}
+	//nolint:exhaustruct // other fields set by service
+	plan := models.Plan{Name: dto.Name}
 
 	created, err := a.services.Plans.Create(r.Context(), user.ID, plan)
 	if err != nil {
@@ -92,9 +93,37 @@ func (a *Recipes) viewPlanHandler(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 
-	days := buildCalendarDays(plan)
+	offset := 0
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, parseErr := strconv.Atoi(v); parseErr == nil {
+			offset = n
+		}
+	}
+
+	windowStart := time.Now().UTC().Truncate(hoursPerDay*time.Hour).
+		AddDate(0, 0, offset*daysPerWeek)
+	windowEnd := windowStart.AddDate(0, 0, daysPerWeek-1)
+
+	meals, err := a.services.Plans.GetMeals(
+		r.Context(),
+		id,
+		user.ID,
+		windowStart,
+		windowEnd,
+	)
+	if err != nil {
+		return err
+	}
+	plan.Meals = meals
+
+	days := buildCalendarDays(windowStart, windowEnd, meals)
 
 	recipeList, err := a.services.Recipes.List(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
+
+	contactList, err := a.contacts.List(r.Context(), user.ID)
 	if err != nil {
 		return err
 	}
@@ -102,11 +131,17 @@ func (a *Recipes) viewPlanHandler(w http.ResponseWriter, r *http.Request) error 
 	icalURL := fmt.Sprintf("/recipes/ical/%s.ics", plan.ICalToken)
 
 	tpltools.RenderWithPanic(a.Tpl, w, "plans_view.html", map[string]any{
-		"Plan":    plan,
-		"Days":    days,
-		"Recipes": recipeList,
-		"ICalURL": icalURL,
-		"IsOwner": plan.OwnerUserID == user.ID,
+		"Plan":        plan,
+		"Days":        days,
+		"Recipes":     recipeList,
+		"Contacts":    contactList,
+		"ICalURL":     icalURL,
+		"IsOwner":     plan.OwnerUserID == user.ID,
+		"Offset":      offset,
+		"PrevOffset":  offset - 1,
+		"NextOffset":  offset + 1,
+		"WindowStart": windowStart,
+		"WindowEnd":   windowEnd,
 	})
 	return nil
 }
@@ -155,14 +190,8 @@ func (a *Recipes) updatePlanHandler(w http.ResponseWriter, r *http.Request) erro
 		}
 	}
 
-	plan, err := parsePlanDto(dto)
-	if err != nil {
-		return &services.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid dates: " + err.Error(),
-		}
-	}
-	plan.ID = id
+	//nolint:exhaustruct // other fields set by service
+	plan := models.Plan{ID: id, Name: dto.Name}
 
 	if err = a.services.Plans.Update(r.Context(), user.ID, plan); err != nil {
 		return err
@@ -245,7 +274,13 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	http.Redirect(w, r, "/recipes/plans/"+planID.String(), http.StatusSeeOther)
+	// Preserve the offset so the user returns to the same week view.
+	redirect := "/recipes/plans/" + planID.String()
+	//nolint:gosec // form body already size-limited by httptools.ReadForm above
+	if offset := r.FormValue("offset"); offset != "" {
+		redirect += "?offset=" + offset
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 	return nil
 }
 
@@ -275,7 +310,11 @@ func (a *Recipes) deleteMealHandler(w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 
-	http.Redirect(w, r, "/recipes/plans/"+planID.String(), http.StatusSeeOther)
+	redirect := "/recipes/plans/" + planID.String()
+	if offset := r.URL.Query().Get("offset"); offset != "" {
+		redirect += "?offset=" + offset
+	}
+	http.Redirect(w, r, redirect, http.StatusSeeOther)
 	return nil
 }
 
@@ -299,8 +338,38 @@ func (a *Recipes) sharePlanHandler(w http.ResponseWriter, r *http.Request) error
 		}
 	}
 
-	if err = a.services.Plans.ShareByEmail(
-		r.Context(), planID, user.ID, dto.Email, dto.CanEdit,
+	if err = a.services.Plans.Share(
+		r.Context(), planID, user.ID, dto.ContactUserID, dto.CanEdit,
+	); err != nil {
+		return err
+	}
+
+	http.Redirect(w, r, "/recipes/plans/"+planID.String(), http.StatusSeeOther)
+	return nil
+}
+
+// ── Unshare plan ──────────────────────────────────────────────────────────────
+
+func (a *Recipes) unsharePlanHandler(w http.ResponseWriter, r *http.Request) error {
+	planID, err := parsePlanUUID(r)
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Plan not found",
+		}
+	}
+	user := currentUser(r)
+
+	targetUserID := r.PathValue("userID")
+	if targetUserID == "" {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Missing user",
+		}
+	}
+
+	if err = a.services.Plans.Unshare(
+		r.Context(), planID, user.ID, targetUserID,
 	); err != nil {
 		return err
 	}
@@ -312,7 +381,6 @@ func (a *Recipes) sharePlanHandler(w http.ResponseWriter, r *http.Request) error
 // ── iCal feed (public, no auth) ───────────────────────────────────────────────
 
 func (a *Recipes) icalFeedHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract token from path: /recipes/plans/ical/<token>.ics
 	parts := strings.Split(strings.TrimSuffix(r.URL.Path, "/"), "/")
 	raw := parts[len(parts)-1]
 	raw = strings.TrimSuffix(raw, ".ics")
@@ -347,33 +415,16 @@ func parsePlanUUID(r *http.Request) (uuid.UUID, error) {
 	return uuid.Parse(r.PathValue("id"))
 }
 
-func parsePlanDto(dto dtos.CreatePlanDto) (models.Plan, error) {
-	startDate, err := time.Parse("2006-01-02", dto.StartDate)
-	if err != nil {
-		return models.Plan{}, err
-	}
-	endDate, err := time.Parse("2006-01-02", dto.EndDate)
-	if err != nil {
-		return models.Plan{}, err
-	}
-	//nolint:exhaustruct //other fields optional
-	return models.Plan{
-		Name:      dto.Name,
-		StartDate: startDate,
-		EndDate:   endDate,
-	}, nil
-}
-
-func buildCalendarDays(plan *models.Plan) []planDay {
+func buildCalendarDays(start, end time.Time, meals []models.PlanMeal) []planDay {
 	mealsByDateSlot := make(map[string]*models.PlanMeal)
-	for i := range plan.Meals {
-		meal := &plan.Meals[i]
-		key := meal.MealDate.Format("2006-01-02") + ":" + meal.MealSlot
-		mealsByDateSlot[key] = meal
+	for i := range meals {
+		m := &meals[i]
+		key := m.MealDate.Format("2006-01-02") + ":" + m.MealSlot
+		mealsByDateSlot[key] = m
 	}
 
 	var days []planDay
-	for d := plan.StartDate; !d.After(plan.EndDate); d = d.AddDate(0, 0, 1) {
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
 		dateStr := d.Format("2006-01-02")
 		//nolint:exhaustruct //other fields optional
 		day := planDay{Date: d}

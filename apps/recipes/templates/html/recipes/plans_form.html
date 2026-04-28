@@ -15,25 +15,14 @@
 
             <div class="mb-3">
               <label class="form-label fw-semibold">Plan name</label>
-              <input type="text" name="name" class="form-control" value="{{.Plan.Name}}" placeholder="e.g. Week of April 28" required>
-            </div>
-
-            <div class="row mb-3">
-              <div class="col">
-                <label class="form-label fw-semibold">Start date</label>
-                <input type="date" name="start_date" class="form-control"
-                  value="{{if .Plan.StartDate.IsZero}}{{else}}{{.Plan.StartDate.Format "2006-01-02"}}{{end}}" required>
-              </div>
-              <div class="col">
-                <label class="form-label fw-semibold">End date</label>
-                <input type="date" name="end_date" class="form-control"
-                  value="{{if .Plan.EndDate.IsZero}}{{else}}{{.Plan.EndDate.Format "2006-01-02"}}{{end}}" required>
-              </div>
+              <input type="text" name="name" class="form-control"
+                value="{{.Plan.Name}}" placeholder="e.g. Weekly meals" required>
             </div>
 
             <div class="d-flex gap-2">
               <button type="submit" class="btn btn-dark">Save</button>
-              <a href="/recipes/plans{{if .Plan.ID}}/{{.Plan.ID}}{{end}}" class="btn btn-outline-secondary">Cancel</a>
+              <a href="/recipes/plans{{if .Plan.ID}}/{{.Plan.ID}}{{end}}"
+                class="btn btn-outline-secondary">Cancel</a>
             </div>
 
           </form>

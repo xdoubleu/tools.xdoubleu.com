@@ -22,7 +22,7 @@ func New(
 	return &Services{
 		Auth:     authService,
 		Recipes:  &RecipeService{repo: repos.Recipes},
-		Plans:    &PlanService{repo: repos.Plans, auth: authService},
+		Plans:    &PlanService{repo: repos.Plans},
 		Shopping: &ShoppingService{repo: repos.Shopping},
 	}
 }

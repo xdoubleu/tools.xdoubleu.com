@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/contacts"
 )
 
 type Apps []App
@@ -35,13 +36,14 @@ func NewApps(
 	db postgres.DB,
 	sharedTpl *template.Template,
 	bl *backlog.Backlog,
+	contactsSvc contacts.Service,
 ) *Apps {
 	var apps Apps = []App{}
 
 	apps.addApp(bl)
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
-	apps.addApp(recipes.New(authService, logger, cfg, db, sharedTpl))
+	apps.addApp(recipes.New(authService, logger, cfg, db, sharedTpl, contactsSvc))
 	// scaffold:app
 
 	return &apps

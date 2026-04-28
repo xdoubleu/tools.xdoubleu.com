@@ -49,6 +49,7 @@ func (a *Recipes) newRecipeFormHandler(w http.ResponseWriter, _ *http.Request) e
 		//nolint:exhaustruct,mnd // other fields optional and no magic number
 		"Recipe": models.Recipe{BaseServings: 2},
 		"Action": "/recipes/new",
+		"IsEdit": false,
 	})
 	return nil
 }
@@ -73,7 +74,7 @@ func (a *Recipes) createRecipeHandler(w http.ResponseWriter, r *http.Request) er
 		return err
 	}
 
-	http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+	http.Redirect(w, r, "/recipes/list", http.StatusSeeOther)
 	return nil
 }
 
@@ -103,6 +104,7 @@ func (a *Recipes) viewOrEditRecipeHandler(
 		tpltools.RenderWithPanic(a.Tpl, w, "recipes_form.html", map[string]any{
 			"Recipe": recipe,
 			"Action": "/recipes/" + id.String(),
+			"IsEdit": true,
 		})
 		return nil
 	}
@@ -123,11 +125,17 @@ func (a *Recipes) viewOrEditRecipeHandler(
 		}
 	}
 
+	contacts, err := a.contacts.List(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
+
 	tpltools.RenderWithPanic(a.Tpl, w, "recipes_view.html", map[string]any{
 		"Recipe":   recipe,
 		"Servings": servings,
 		"Scaled":   scaled,
 		"IsOwner":  recipe.UserID == user.ID,
+		"Contacts": contacts,
 	})
 	return nil
 }
@@ -162,7 +170,7 @@ func (a *Recipes) updateOrDeleteRecipeHandler(
 		if err = a.services.Recipes.Delete(r.Context(), id, user.ID); err != nil {
 			return err
 		}
-		http.Redirect(w, r, "/recipes", http.StatusSeeOther)
+		http.Redirect(w, r, "/recipes/list", http.StatusSeeOther)
 		return nil
 	}
 
@@ -186,6 +194,66 @@ func (a *Recipes) updateOrDeleteRecipeHandler(
 	return nil
 }
 
+// ── Share recipe ──────────────────────────────────────────────────────────────
+
+func (a *Recipes) shareRecipeHandler(w http.ResponseWriter, r *http.Request) error {
+	id, err := parseUUID(r)
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Recipe not found",
+		}
+	}
+	user := currentUser(r)
+
+	var dto dtos.ShareRecipeDto
+	if err = httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+
+	if err = a.services.Recipes.Share(
+		r.Context(), id, user.ID, dto.ContactUserID,
+	); err != nil {
+		return err
+	}
+
+	http.Redirect(w, r, "/recipes/"+id.String(), http.StatusSeeOther)
+	return nil
+}
+
+// ── Unshare recipe ────────────────────────────────────────────────────────────
+
+func (a *Recipes) unshareRecipeHandler(w http.ResponseWriter, r *http.Request) error {
+	id, err := parseUUID(r)
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Recipe not found",
+		}
+	}
+	user := currentUser(r)
+
+	targetUserID := r.PathValue("userID")
+	if targetUserID == "" {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Missing user",
+		}
+	}
+
+	if err = a.services.Recipes.Unshare(
+		r.Context(), id, user.ID, targetUserID,
+	); err != nil {
+		return err
+	}
+
+	http.Redirect(w, r, "/recipes/"+id.String(), http.StatusSeeOther)
+	return nil
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 func parseUUID(r *http.Request) (uuid.UUID, error) {
@@ -196,9 +264,8 @@ func dtoToRecipe(dto dtos.CreateRecipeDto) (models.Recipe, []models.Ingredient) 
 	//nolint:exhaustruct //other fields optional
 	recipe := models.Recipe{
 		Name:         dto.Name,
-		Description:  dto.Description,
+		Instructions: dto.Instructions,
 		BaseServings: dto.BaseServings,
-		IsShared:     dto.IsShared,
 	}
 	if recipe.BaseServings <= 0 {
 		recipe.BaseServings = 2

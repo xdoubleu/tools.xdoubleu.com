@@ -2,8 +2,10 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 )
@@ -17,13 +19,13 @@ func (r *PlansRepository) ListForUser(
 	userID string,
 ) ([]models.Plan, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT p.id, p.owner_user_id, p.name, p.start_date, p.end_date,
+		SELECT p.id, p.owner_user_id, p.name,
 		       p.ical_token, p.created_at, p.updated_at,
 		       COALESCE(pa.can_edit, p.owner_user_id = $1) AS can_edit
 		FROM recipes.plans p
 		LEFT JOIN recipes.plan_access pa ON pa.plan_id = p.id AND pa.user_id = $1
 		WHERE p.owner_user_id = $1 OR pa.user_id = $1
-		ORDER BY p.start_date DESC`,
+		ORDER BY p.name`,
 		userID,
 	)
 	if err != nil {
@@ -35,7 +37,7 @@ func (r *PlansRepository) ListForUser(
 	for rows.Next() {
 		var plan models.Plan
 		if err = rows.Scan(
-			&plan.ID, &plan.OwnerUserID, &plan.Name, &plan.StartDate, &plan.EndDate,
+			&plan.ID, &plan.OwnerUserID, &plan.Name,
 			&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt, &plan.CanEdit,
 		); err != nil {
 			return nil, err
@@ -52,7 +54,7 @@ func (r *PlansRepository) GetByID(
 ) (*models.Plan, error) {
 	var plan models.Plan
 	err := r.db.QueryRow(ctx, `
-		SELECT p.id, p.owner_user_id, p.name, p.start_date, p.end_date,
+		SELECT p.id, p.owner_user_id, p.name,
 		       p.ical_token, p.created_at, p.updated_at,
 		       COALESCE(pa.can_edit, p.owner_user_id = $2) AS can_edit
 		FROM recipes.plans p
@@ -60,7 +62,7 @@ func (r *PlansRepository) GetByID(
 		WHERE p.id = $1 AND (p.owner_user_id = $2 OR pa.user_id = $2)`,
 		id, userID,
 	).Scan(
-		&plan.ID, &plan.OwnerUserID, &plan.Name, &plan.StartDate, &plan.EndDate,
+		&plan.ID, &plan.OwnerUserID, &plan.Name,
 		&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt, &plan.CanEdit,
 	)
 	if err != nil {
@@ -75,13 +77,13 @@ func (r *PlansRepository) GetByICalToken(
 ) (*models.Plan, error) {
 	var plan models.Plan
 	err := r.db.QueryRow(ctx, `
-		SELECT id, owner_user_id, name, start_date, end_date,
+		SELECT id, owner_user_id, name,
 		       ical_token, created_at, updated_at
 		FROM recipes.plans
 		WHERE ical_token = $1`,
 		token,
 	).Scan(
-		&plan.ID, &plan.OwnerUserID, &plan.Name, &plan.StartDate, &plan.EndDate,
+		&plan.ID, &plan.OwnerUserID, &plan.Name,
 		&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt,
 	)
 	if err != nil {
@@ -95,10 +97,10 @@ func (r *PlansRepository) Create(
 	plan models.Plan,
 ) (*models.Plan, error) {
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO recipes.plans (owner_user_id, name, start_date, end_date)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO recipes.plans (owner_user_id, name)
+		VALUES ($1, $2)
 		RETURNING id, ical_token, created_at, updated_at`,
-		plan.OwnerUserID, plan.Name, plan.StartDate, plan.EndDate,
+		plan.OwnerUserID, plan.Name,
 	).Scan(&plan.ID, &plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -113,9 +115,9 @@ func (r *PlansRepository) Update(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE recipes.plans
-		SET name = $3, start_date = $4, end_date = $5, updated_at = now()
+		SET name = $3, updated_at = now()
 		WHERE id = $1 AND owner_user_id = $2`,
-		plan.ID, plan.OwnerUserID, plan.Name, plan.StartDate, plan.EndDate,
+		plan.ID, plan.OwnerUserID, plan.Name,
 	)
 	return err
 }
@@ -162,19 +164,38 @@ func (r *PlansRepository) DeleteMeal(
 	return err
 }
 
-func (r *PlansRepository) GetMealsWithRecipes(
+// GetMealsInWindow returns meals for a plan within the given date range.
+// When start is zero, all meals are returned (used for iCal export).
+func (r *PlansRepository) GetMealsInWindow(
 	ctx context.Context,
 	planID uuid.UUID,
+	start, end time.Time,
 ) ([]models.PlanMeal, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot, pm.recipe_id, pm.servings,
-		       r.id, r.user_id, r.name, r.description, r.base_servings, r.is_shared
-		FROM recipes.plan_meals pm
-		JOIN recipes.recipes r ON r.id = pm.recipe_id
-		WHERE pm.plan_id = $1
-		ORDER BY pm.meal_date, pm.meal_slot`,
-		planID,
-	)
+	var rows pgx.Rows
+	var err error
+
+	if start.IsZero() {
+		rows, err = r.db.Query(ctx, `
+			SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot, pm.recipe_id, pm.servings,
+			       r.id, r.user_id, r.name, r.instructions, r.base_servings
+			FROM recipes.plan_meals pm
+			JOIN recipes.recipes r ON r.id = pm.recipe_id
+			WHERE pm.plan_id = $1
+			ORDER BY pm.meal_date, pm.meal_slot`,
+			planID,
+		)
+	} else {
+		rows, err = r.db.Query(ctx, `
+			SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot, pm.recipe_id, pm.servings,
+			       r.id, r.user_id, r.name, r.instructions, r.base_servings
+			FROM recipes.plan_meals pm
+			JOIN recipes.recipes r ON r.id = pm.recipe_id
+			WHERE pm.plan_id = $1
+			  AND pm.meal_date BETWEEN $2 AND $3
+			ORDER BY pm.meal_date, pm.meal_slot`,
+			planID, start, end,
+		)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -191,8 +212,8 @@ func (r *PlansRepository) GetMealsWithRecipes(
 			&meal.MealSlot,
 			&meal.RecipeID,
 			&meal.Servings,
-			&recipe.ID, &recipe.UserID, &recipe.Name, &recipe.Description,
-			&recipe.BaseServings, &recipe.IsShared,
+			&recipe.ID, &recipe.UserID, &recipe.Name,
+			&recipe.Instructions, &recipe.BaseServings,
 		); err != nil {
 			return nil, err
 		}
@@ -200,6 +221,49 @@ func (r *PlansRepository) GetMealsWithRecipes(
 		result = append(result, meal)
 	}
 	return result, rows.Err()
+}
+
+func (r *PlansRepository) GetSharedWith(
+	ctx context.Context,
+	planID uuid.UUID,
+	ownerID string,
+) ([]models.PlanSharedUser, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT pa.user_id, pa.can_edit,
+		       COALESCE(c.display_name, pa.user_id) AS display_name
+		FROM recipes.plan_access pa
+		LEFT JOIN global.contacts c
+		       ON c.owner_user_id = $2 AND c.contact_user_id = pa.user_id
+		WHERE pa.plan_id = $1
+		ORDER BY display_name`,
+		planID, ownerID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.PlanSharedUser
+	for rows.Next() {
+		var u models.PlanSharedUser
+		if err = rows.Scan(&u.UserID, &u.CanEdit, &u.DisplayName); err != nil {
+			return nil, err
+		}
+		result = append(result, u)
+	}
+	return result, rows.Err()
+}
+
+func (r *PlansRepository) UnshareUser(
+	ctx context.Context,
+	planID uuid.UUID,
+	targetUserID string,
+) error {
+	_, err := r.db.Exec(ctx,
+		`DELETE FROM recipes.plan_access WHERE plan_id = $1 AND user_id = $2`,
+		planID, targetUserID,
+	)
+	return err
 }
 
 func (r *PlansRepository) SharePlan(

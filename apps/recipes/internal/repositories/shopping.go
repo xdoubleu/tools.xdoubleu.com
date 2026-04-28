@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
@@ -15,6 +16,7 @@ type ShoppingRepository struct {
 func (r *ShoppingRepository) GetShoppingList(
 	ctx context.Context,
 	planID uuid.UUID,
+	start, end time.Time,
 ) ([]models.ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
@@ -25,9 +27,10 @@ func (r *ShoppingRepository) GetShoppingList(
 		JOIN recipes.recipes r ON r.id = pm.recipe_id
 		JOIN recipes.ingredients i ON i.recipe_id = r.id
 		WHERE pm.plan_id = $1
+		  AND pm.meal_date BETWEEN $2 AND $3
 		GROUP BY LOWER(i.name), i.unit
 		ORDER BY LOWER(i.name)`,
-		planID,
+		planID, start, end,
 	)
 	if err != nil {
 		return nil, err

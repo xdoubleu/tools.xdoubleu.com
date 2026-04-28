@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/contacts"
 )
 
 //go:embed migrations/*.sql
@@ -24,6 +25,7 @@ var htmlTemplates embed.FS
 type Recipes struct {
 	app.Base
 	services *services.Services
+	contacts contacts.Service
 }
 
 func New(
@@ -32,6 +34,7 @@ func New(
 	cfg config.Config,
 	db postgres.DB,
 	sharedTpl *template.Template,
+	contactsSvc contacts.Service,
 ) *Recipes {
 	//nolint:exhaustruct //services initialised below
 	a := &Recipes{
@@ -43,6 +46,7 @@ func New(
 			htmlTemplates,
 			sharedTpl,
 		),
+		contacts: contactsSvc,
 	}
 	a.services = services.New(a.Logger, repositories.New(db), authService)
 
