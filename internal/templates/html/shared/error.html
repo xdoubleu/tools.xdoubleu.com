@@ -7,7 +7,8 @@
             <h1 class="display-1 fw-bold">{{.Status}}</h1>
             <p class="fs-3">{{.Title}}</p>
             <p class="text-body-secondary">{{.Message}}</p>
-            <a href="/" class="btn btn-dark mt-3">Back to home</a>
+            <a href="/" onclick="if(history.length > 1){event.preventDefault();history.back();}"
+                class="btn btn-dark mt-3">&larr; Back</a>
         </div>
     </div>
 </main>

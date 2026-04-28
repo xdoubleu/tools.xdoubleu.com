@@ -3,11 +3,14 @@
 <div class="container py-4">
 
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-      <h3 class="mb-0">{{.Plan.Name}}</h3>
-      <small class="text-muted">
-        {{.WindowStart.Format "Jan 2"}} – {{.WindowEnd.Format "Jan 2, 2006"}}
-      </small>
+    <div class="d-flex align-items-center gap-3">
+      <a href="/recipes/plans" class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+      <div>
+        <h3 class="mb-0">{{.Plan.Name}}</h3>
+        <small class="text-muted">
+          {{.WindowStart.Format "Jan 2"}} – {{.WindowEnd.Format "Jan 2, 2006"}}
+        </small>
+      </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
       <a href="?offset={{.PrevOffset}}" class="btn btn-outline-secondary btn-sm">← prev</a>
