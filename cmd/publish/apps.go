@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/recipes"
+	"tools.xdoubleu.com/apps/todos"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -44,6 +45,7 @@ func NewApps(
 	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
 	apps.addApp(recipes.New(authService, logger, cfg, db, sharedTpl, contactsSvc))
+	apps.addApp(todos.New(authService, logger, cfg, db, sharedTpl))
 	// scaffold:app
 
 	return &apps

@@ -1,0 +1,323 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="/todos" class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+    <h3 class="mb-0">Todo Settings</h3>
+    {{if .UserSettings}}
+    <div class="ms-auto">
+      {{if .UserSettings.ActiveWorkspace}}
+      <form method="POST" action="/todos/mode" class="m-0">
+        <input type="hidden" name="workspace_id" value="">
+        <input type="hidden" name="back" value="/todos/settings">
+        <button type="submit" class="btn btn-sm btn-warning">
+          {{.UserSettings.ActiveWorkspace.Name}}
+        </button>
+      </form>
+      {{else if .Workspaces}}
+      <form method="POST" action="/todos/mode" class="m-0">
+        <input type="hidden" name="workspace_id"
+          value="{{(index .Workspaces 0).ID}}">
+        <input type="hidden" name="back" value="/todos/settings">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+          Private
+        </button>
+      </form>
+      {{else}}
+      <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+        Private
+      </button>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+
+  {{/* ── Personal policies ──────────────────────────────────────────────────── */}}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Personal policies</div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Policies appear as a dismissable banner at the top of your task list.
+        Each policy reappears after the configured number of hours.
+        Set to 0 to show once until dismissed permanently.
+      </p>
+      <ul class="list-group list-group-flush mb-3">
+        {{range .Policies}}
+        <li class="list-group-item px-0">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="flex-grow-1">
+              <div class="small">{{.Text}}</div>
+              <div class="text-muted" style="font-size:.75rem">
+                Reappears every {{.ReappearAfterHours}}h
+              </div>
+            </div>
+            <form method="POST"
+              action="/todos/settings/policies/{{.ID}}/delete"
+              class="flex-shrink-0">
+              <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
+            </form>
+          </div>
+        </li>
+        {{else}}
+        <li class="list-group-item px-0 text-muted small">No policies yet.</li>
+        {{end}}
+      </ul>
+      <form method="POST" action="/todos/settings/policies">
+        <div class="row g-2 align-items-end">
+          <div class="col-sm-7">
+            <label class="form-label small">Policy text</label>
+            <input type="text" name="text" class="form-control form-control-sm"
+              placeholder="e.g. Break tasks down before starting" required>
+          </div>
+          <div class="col-sm-3">
+            <label class="form-label small">Reappear after (hours)</label>
+            <input type="number" name="reappear_after_hours"
+              class="form-control form-control-sm"
+              value="24" min="0">
+          </div>
+          <div class="col-sm-2">
+            <button type="submit" class="btn btn-dark btn-sm w-100">Add</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {{/* ── Sections ─────────────────────────────────────────────────────────── */}}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Sections</div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Sections group your open tasks into named buckets on the main view.
+        Tasks without a section appear at the top.
+      </p>
+      <ul class="list-group list-group-flush mb-3">
+        {{range .Sections}}
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+          <span>{{.Name}}</span>
+          <form method="POST"
+            action="/todos/settings/sections/{{.ID}}/delete">
+            <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
+          </form>
+        </li>
+        {{else}}
+        <li class="list-group-item px-0 text-muted small">No sections yet.</li>
+        {{end}}
+      </ul>
+      <form method="POST" action="/todos/settings/sections" class="d-flex gap-2">
+        <input type="text" name="name" class="form-control form-control-sm"
+          placeholder="e.g. Action points, Waiting, Side work…" required>
+        <button type="submit" class="btn btn-dark btn-sm">Add</button>
+      </form>
+    </div>
+  </div>
+
+  {{/* ── Archive ─────────────────────────────────────────────────────────── */}}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Auto-archive</div>
+    <div class="card-body">
+      <form method="POST" action="/todos/settings/archive"
+        class="d-flex align-items-end gap-3">
+        <div>
+          <label class="form-label small">Archive completed tasks after</label>
+          <div class="input-group">
+            <input type="number" name="archive_after_hours" class="form-control"
+              value="{{.Archive.ArchiveAfterHours}}" min="0"
+              style="max-width:100px">
+            <span class="input-group-text">hours</span>
+          </div>
+          <div class="form-text">Set to 0 to never auto-archive.</div>
+        </div>
+        <button type="submit" class="btn btn-dark btn-sm">Save</button>
+      </form>
+    </div>
+  </div>
+
+  {{/* ── Labels ──────────────────────────────────────────────────────────── */}}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Labels</div>
+    <div class="card-body">
+      <div class="row g-4">
+
+        <div class="col-sm-6">
+          <h6 class="fw-semibold">Setup labels</h6>
+          <ul class="list-group list-group-flush mb-2">
+            {{range .Presets.Setups}}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="badge bg-light text-dark border">{{.}}</span>
+              <form method="POST"
+                action="/todos/settings/labels/setup/{{.}}/delete">
+                <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
+              </form>
+            </li>
+            {{else}}
+            <li class="list-group-item px-0 text-muted small">No setup labels yet.</li>
+            {{end}}
+          </ul>
+          <form method="POST" action="/todos/settings/labels" class="d-flex gap-2">
+            <input type="hidden" name="category" value="setup">
+            <input type="text" name="value" class="form-control form-control-sm"
+              placeholder="e.g. DM-Single1" required>
+            <button type="submit" class="btn btn-dark btn-sm">Add</button>
+          </form>
+        </div>
+
+        <div class="col-sm-6">
+          <h6 class="fw-semibold">Type labels</h6>
+          <ul class="list-group list-group-flush mb-2">
+            {{range .Presets.Types}}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="badge bg-secondary">{{.}}</span>
+              <form method="POST"
+                action="/todos/settings/labels/type/{{.}}/delete">
+                <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
+              </form>
+            </li>
+            {{else}}
+            <li class="list-group-item px-0 text-muted small">No type labels yet.</li>
+            {{end}}
+          </ul>
+          <form method="POST" action="/todos/settings/labels" class="d-flex gap-2">
+            <input type="hidden" name="category" value="type">
+            <input type="text" name="value" class="form-control form-control-sm"
+              placeholder="e.g. DEV, CR, QA" required>
+            <button type="submit" class="btn btn-dark btn-sm">Add</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {{/* ── URL patterns ────────────────────────────────────────────────────── */}}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">URL detection patterns</div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        When you paste a matching URL into the quick-add bar, the task title is
+        extracted from the URL path and the URL is attached as a work link.
+        No type label is applied automatically.
+      </p>
+
+      {{if .Patterns}}
+      <table class="table table-sm mb-3">
+        <thead>
+          <tr>
+            <th>URL prefix</th>
+            <th>Platform</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Patterns}}
+          <tr>
+            <td class="font-monospace small">{{.URLPrefix}}</td>
+            <td>{{.PlatformName}}</td>
+            <td>
+              <form method="POST"
+                action="/todos/settings/url-patterns/{{.ID}}/delete">
+                <button type="submit"
+                  class="btn btn-outline-danger btn-sm py-0">×</button>
+              </form>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{end}}
+
+      <form method="POST" action="/todos/settings/url-patterns">
+        <div class="row g-2 align-items-end">
+          <div class="col-sm-6">
+            <label class="form-label small">URL prefix</label>
+            <input type="text" name="url_prefix"
+              class="form-control form-control-sm"
+              placeholder="https://jira.company.com/browse/" required>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label small">Platform name</label>
+            <input type="text" name="platform_name"
+              class="form-control form-control-sm"
+              placeholder="Jira" required>
+          </div>
+          <div class="col-sm-2">
+            <button type="submit" class="btn btn-dark btn-sm w-100">Add</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {{/* ── Workspaces (employers) ─────────────────────────────────────────────── */}}
+  <div class="card mb-4">
+    <div class="card-header fw-semibold">Workspaces (employers)</div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Tasks created in Work mode are linked to the active workspace.
+        Deleting a workspace permanently deletes all its tasks.
+      </p>
+      {{if .Workspaces}}
+      <ul class="list-group mb-3">
+        {{range .Workspaces}}
+        <li class="list-group-item d-flex justify-content-between align-items-center
+          px-3 py-2">
+          <span>
+            {{.Name}}
+            {{if and $.UserSettings $.UserSettings.ActiveWorkspaceID}}
+              {{if eq $.UserSettings.ActiveWorkspaceID.String .ID.String}}
+              <span class="badge bg-warning text-dark ms-1">active</span>
+              {{end}}
+            {{end}}
+          </span>
+          <div class="d-flex gap-2">
+            {{if and $.UserSettings $.UserSettings.ActiveWorkspaceID}}
+              {{if eq $.UserSettings.ActiveWorkspaceID.String .ID.String}}
+              <form method="POST" action="/todos/mode" class="m-0">
+                <input type="hidden" name="workspace_id" value="">
+                <input type="hidden" name="back" value="/todos/settings">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                  Switch to Private
+                </button>
+              </form>
+              {{else}}
+              <form method="POST" action="/todos/mode" class="m-0">
+                <input type="hidden" name="workspace_id" value="{{.ID}}">
+                <input type="hidden" name="back" value="/todos/settings">
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                  Activate
+                </button>
+              </form>
+              {{end}}
+            {{else}}
+            <form method="POST" action="/todos/mode" class="m-0">
+              <input type="hidden" name="workspace_id" value="{{.ID}}">
+              <input type="hidden" name="back" value="/todos/settings">
+              <button type="submit" class="btn btn-outline-primary btn-sm">
+                Activate
+              </button>
+            </form>
+            {{end}}
+            <form method="POST"
+              action="/todos/settings/workspaces/{{.ID}}/delete"
+              onsubmit="return confirm('Delete workspace and ALL its tasks?')">
+              <button type="submit"
+                class="btn btn-outline-danger btn-sm">Delete</button>
+            </form>
+          </div>
+        </li>
+        {{end}}
+      </ul>
+      {{else}}
+      <p class="text-muted small">No workspaces yet.</p>
+      {{end}}
+      <form method="POST" action="/todos/settings/workspaces" class="d-flex gap-2">
+        <input type="text" name="name" class="form-control form-control-sm"
+          placeholder="Employer name…" required>
+        <button type="submit" class="btn btn-dark btn-sm">Add</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{{ template "footer" }}{{ template "page_end" }}

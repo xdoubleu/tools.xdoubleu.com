@@ -1,0 +1,131 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <a href="/todos/" class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+    <h3 class="mb-0 flex-grow-1">{{.Task.Title}}</h3>
+    <span class="badge {{if eq .Task.Status "done"}}bg-success{{else if eq .Task.Status "archived"}}bg-secondary{{else}}bg-primary{{end}}">
+      {{.Task.Status}}
+    </span>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    {{if .Task.TypeLabel}}<span class="badge bg-secondary">{{.Task.TypeLabel}}</span>{{end}}
+    {{if .Task.SetupLabel}}<span class="badge bg-light text-dark border">{{.Task.SetupLabel}}</span>{{end}}
+    {{if .Task.DueDate}}<span class="badge bg-warning text-dark">Due {{.Task.DueDate.Format "2 Jan 2006"}}</span>{{end}}
+    {{if gt .Task.RecurDays 0}}<span class="badge bg-info text-dark">&#8635; every {{.Task.RecurDays}} days</span>{{end}}
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    {{if eq .Task.Status "open"}}
+    <form method="POST" action="/todos/{{.Task.ID}}/complete">
+      <button type="submit" class="btn btn-success btn-sm">&#10003; Mark done</button>
+    </form>
+    {{else if eq .Task.Status "done"}}
+    <form method="POST" action="/todos/{{.Task.ID}}/reopen">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">&#8629; Reopen</button>
+    </form>
+    {{end}}
+    <a href="/todos/{{.Task.ID}}/edit" class="btn btn-outline-dark btn-sm">Edit</a>
+    <form method="POST" action="/todos/{{.Task.ID}}/delete"
+      onsubmit="return confirm('Delete this task?')">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+    </form>
+  </div>
+
+  {{if .Task.Description}}
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="markdown-body">{{.DescHTML}}</div>
+    </div>
+  </div>
+  {{end}}
+
+  {{/* ── Subtasks ─────────────────────────────────────────────────────────── */}}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+      <span class="fw-semibold small">Subtasks</span>
+      {{if gt .Task.SubtaskTotal 0}}
+      <span class="text-muted small">{{.Task.SubtaskDone}}/{{.Task.SubtaskTotal}} done</span>
+      {{end}}
+      <span class="text-muted small ms-auto">press <kbd>n</kbd> to add</span>
+    </div>
+    <ul class="list-group list-group-flush">
+      {{range .Task.Subtasks}}
+      <li class="list-group-item d-flex align-items-center gap-2 py-2">
+        <form method="POST" action="/todos/{{$.Task.ID}}/subtasks/{{.ID}}/toggle" class="m-0">
+          <button type="submit"
+            class="btn btn-sm p-0 border-0 lh-1"
+            style="font-size:1.1rem;color:{{if .Done}}var(--bs-success){{else}}var(--bs-secondary){{end}}">
+            {{if .Done}}&#9745;{{else}}&#9744;{{end}}
+          </button>
+        </form>
+        <span class="flex-grow-1 {{if .Done}}text-decoration-line-through text-muted{{end}}">
+          {{.Title}}
+        </span>
+        <form method="POST" action="/todos/{{$.Task.ID}}/subtasks/{{.ID}}/delete" class="m-0">
+          <button type="submit" class="btn btn-link btn-sm text-danger p-0 lh-1">&#10005;</button>
+        </form>
+      </li>
+      {{end}}
+      <li class="list-group-item py-2">
+        <form method="POST" action="/todos/{{.Task.ID}}/subtasks"
+          class="d-flex gap-2">
+          <input type="text" name="title" id="subtaskInput"
+            class="form-control form-control-sm"
+            placeholder="Add a subtask…" autocomplete="off">
+          <button type="submit" class="btn btn-outline-secondary btn-sm flex-shrink-0">
+            Add
+          </button>
+        </form>
+      </li>
+    </ul>
+  </div>
+
+  {{if .Task.Links}}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold small py-2">Work links</div>
+    <ul class="list-group list-group-flush">
+      {{range .Task.Links}}
+      <li class="list-group-item">
+        <a href="{{.URL}}" target="_blank" rel="noopener noreferrer">
+          {{if .Label}}{{.Label}}{{else}}{{.URL}}{{end}}
+        </a>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+  {{end}}
+
+  <p class="text-muted small mt-3">
+    Created {{.Task.CreatedAt.Format "2 Jan 2006 15:04"}}
+    {{if .Task.CompletedAt}}&middot; Completed {{.Task.CompletedAt.Format "2 Jan 2006 15:04"}}{{end}}
+    {{if .Task.ArchivedAt}}&middot; Archived {{.Task.ArchivedAt.Format "2 Jan 2006 15:04"}}{{end}}
+  </p>
+
+</div>
+
+<style>
+.markdown-body h1,.markdown-body h2,.markdown-body h3{margin-top:1rem;margin-bottom:.5rem}
+.markdown-body ul,.markdown-body ol{padding-left:1.5rem}
+.markdown-body code{background:var(--bs-secondary-bg);padding:.1em .3em;border-radius:3px}
+.markdown-body pre code{background:none;padding:0}
+.markdown-body pre{background:var(--bs-secondary-bg);padding:.75rem 1rem;border-radius:.375rem;overflow-x:auto}
+.markdown-body blockquote{border-left:4px solid var(--bs-secondary);padding-left:1rem;color:var(--bs-secondary-color)}
+</style>
+
+<script>
+document.addEventListener('keydown', function (e) {
+  var tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+      || e.target.isContentEditable) { return; }
+  if (e.key === 'n') {
+    e.preventDefault();
+    var input = document.getElementById('subtaskInput');
+    if (input) { input.focus(); }
+  }
+});
+</script>
+
+{{ template "footer" }}{{ template "page_end" }}

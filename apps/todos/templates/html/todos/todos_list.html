@@ -1,0 +1,879 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+
+  {{/* ── Shared search bar ──────────────────────────────────────────────────── */}}
+  <form method="GET" action="/todos/search" class="mb-3">
+    <div class="input-group input-group-sm">
+      <input type="text" name="q" class="form-control"
+        placeholder="Search all tasks…" autocomplete="off">
+      <button type="submit" class="btn btn-outline-secondary">Search</button>
+    </div>
+  </form>
+
+  {{/* ── Main nav tabs (Open + sections + Done + Archive + Settings) ─────── */}}
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link {{if eq .ActiveTab "open"}}active{{end}}"
+        href="/todos/">Open</a>
+    </li>
+    {{range .Sections}}
+    <li class="nav-item">
+      <a class="nav-link {{if eq $.ActiveTab .ID.String}}active{{end}}"
+        href="/todos/?section={{.ID}}">{{.Name}}</a>
+    </li>
+    {{end}}
+    <li class="nav-item">
+      <a class="nav-link" href="/todos/done">Done</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="/todos/archive">Archive</a>
+    </li>
+    <li class="nav-item ms-auto">
+      <a class="nav-link" href="/todos/settings">Settings</a>
+    </li>
+    {{/* ── Mode toggle ─────────────────────────────────────────────────────── */}}
+    {{if .UserSettings}}
+    <li class="nav-item d-flex align-items-center ms-2">
+      {{if .UserSettings.ActiveWorkspace}}
+      <form method="POST" action="/todos/mode" class="m-0">
+        <input type="hidden" name="workspace_id" value="">
+        <input type="hidden" name="back" value="/todos/">
+        <button type="submit" class="btn btn-sm btn-warning">
+          {{.UserSettings.ActiveWorkspace.Name}}
+        </button>
+      </form>
+      {{else if .Workspaces}}
+      <form method="POST" action="/todos/mode" class="m-0">
+        <input type="hidden" name="workspace_id"
+          value="{{(index .Workspaces 0).ID}}">
+        <input type="hidden" name="back" value="/todos/">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+          Private
+        </button>
+      </form>
+      {{else}}
+      <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+        Private
+      </button>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+
+  {{/* ── Overtime counter ─────────────────────────────────────────────────── */}}
+  <div id="overtimeWidget" class="d-flex align-items-center gap-1 mb-3 small">
+    <span class="text-muted">Overtime:</span>
+    <button id="otDec60" class="btn btn-outline-secondary btn-sm py-0 px-1">−1h</button>
+    <button id="otDec15" class="btn btn-outline-secondary btn-sm py-0 px-1">−15m</button>
+    <span id="otDisplay"
+      class="fw-semibold font-monospace px-2 py-0 border rounded"
+      style="cursor:pointer;min-width:5rem;text-align:center;line-height:1.6"
+      title="Click to set manually">0h 00m</span>
+    <input id="otInput" type="number"
+      class="form-control form-control-sm font-monospace text-center"
+      style="display:none;width:5.5rem"
+      placeholder="min">
+    <button id="otInc15" class="btn btn-outline-secondary btn-sm py-0 px-1">+15m</button>
+    <button id="otInc60" class="btn btn-outline-secondary btn-sm py-0 px-1">+1h</button>
+    <button id="otReset" class="btn btn-link btn-sm py-0 px-1 text-muted">Reset</button>
+  </div>
+
+  {{/* ── Policies banner (all in one dismissable alert) ─────────────────── */}}
+  {{if .Policies}}
+  <div id="policiesBanner" class="alert alert-info d-flex justify-content-between
+    align-items-start py-2 mb-3" role="alert">
+    <div class="flex-grow-1 small">
+      {{if gt (len .Policies) 1}}
+      <ul class="mb-0 ps-3">
+        {{range .Policies}}<li>{{.Text}}</li>{{end}}
+      </ul>
+      {{else}}
+      {{(index .Policies 0).Text}}
+      {{end}}
+    </div>
+    <button type="button" id="policiesDismiss"
+      class="btn-close btn-sm ms-3 flex-shrink-0"
+      aria-label="Dismiss"></button>
+  </div>
+  <script>
+  (function () {
+    var POLICIES = [
+      {{range .Policies}}
+      {id: "{{.ID}}", reappear: {{.ReappearAfterHours}}},
+      {{end}}
+    ];
+    var ids = POLICIES.map(function (p) { return p.id; }).sort().join(',');
+    var minReappear = POLICIES.reduce(
+      function (m, p) { return Math.min(m, p.reappear); }, Infinity
+    );
+    var storageKey = 'policies:' + ids;
+    var stored = localStorage.getItem(storageKey);
+    var banner = document.getElementById('policiesBanner');
+    var dismissed = false;
+    if (stored) {
+      if (minReappear === 0) {
+        dismissed = true;
+      } else {
+        var elapsed = (Date.now() - parseInt(stored, 10)) / 3600000;
+        if (elapsed < minReappear) { dismissed = true; }
+      }
+    }
+    if (dismissed) {
+      banner.classList.add('d-none');
+    } else {
+      document.getElementById('policiesDismiss').addEventListener('click',
+        function () {
+          localStorage.setItem(storageKey, String(Date.now()));
+          banner.classList.add('d-none');
+        }
+      );
+    }
+  }());
+  </script>
+  {{end}}
+
+  {{/* ── Quick-add bar (hidden until / is pressed) ──────────────────────── */}}
+  <div id="quickAddBar" class="mb-1 position-relative" style="display:none">
+    <form method="POST"
+      action="/todos/?back={{if .CurrentSection}}/todos/?section={{.CurrentSection.ID}}{{else}}/todos/{{end}}">
+      <div class="input-group">
+        <input type="text" name="input" id="quickAddInput"
+          class="form-control"
+          placeholder="New task… · @type · /setup · #section · p1 p2 p3 · next monday"
+          autocomplete="off">
+        <button type="button" class="btn btn-dark"
+          data-bs-toggle="modal" data-bs-target="#taskModal" data-mode="new"
+          title="Full form">+ Full</button>
+      </div>
+    </form>
+    <div id="quickAddTags"
+      class="mt-1 d-flex flex-wrap gap-1"
+      style="min-height:1.4rem"></div>
+    <ul id="acDropdown"
+      class="list-group position-absolute w-100 shadow-sm"
+      style="display:none;z-index:1000;top:100%;left:0;max-height:180px;overflow-y:auto">
+    </ul>
+  </div>
+  <p id="quickAddHint" class="text-muted small mb-3">
+    <kbd>/</kbd> new task &nbsp;&middot;&nbsp; <kbd>↑↓</kbd> navigate
+    &nbsp;&middot;&nbsp; <kbd>s</kbd> add subtask
+  </p>
+
+  {{if not .Tasks}}
+  <p class="text-muted">No tasks here.</p>
+  {{else}}
+  <div class="list-group mb-3" id="taskSortable">
+    {{range .Tasks}}
+    {{$tid := .ID}}
+    <div class="list-group-item px-3 py-2 task-row"
+      data-task-id="{{.ID}}"
+      data-title="{{.Title}}"
+      data-setup="{{.SetupLabel}}"
+      data-type="{{.TypeLabel}}"
+      data-priority="{{.Priority}}"
+      data-due="{{if .DueDate}}{{.DueDate.Format "2006-01-02"}}{{end}}"
+      data-section-id="{{if .SectionID}}{{.SectionID}}{{end}}"
+      data-recur-days="{{.RecurDays}}">
+      <textarea hidden class="task-desc-store">{{.Description}}</textarea>
+      <div class="d-flex align-items-start gap-2">
+        <span class="drag-handle text-muted px-1 pt-1" style="cursor:grab;user-select:none"
+          title="Drag to reorder">⠿</span>
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            {{if eq .Priority 1}}<span class="priority-badge p1" title="P1 – high">P1</span>{{end}}
+            {{if eq .Priority 2}}<span class="priority-badge p2" title="P2 – medium">P2</span>{{end}}
+            {{if eq .Priority 3}}<span class="priority-badge p3" title="P3 – low">P3</span>{{end}}
+            <a href="/todos/{{.ID}}" class="text-decoration-none text-body fw-semibold text-truncate">
+              {{.Title}}
+            </a>
+          </div>
+          <div class="d-flex flex-wrap gap-1">
+            {{if .TypeLabel}}<span class="badge bg-secondary">{{.TypeLabel}}</span>{{end}}
+            {{if .SetupLabel}}<span class="badge bg-light text-dark border">{{.SetupLabel}}</span>{{end}}
+            {{if .DueDate}}<span class="badge bg-warning text-dark">{{.DueDate.Format "2 Jan"}}</span>{{end}}
+            {{if gt .RecurDays 0}}<span class="badge bg-info text-dark">&#8635; {{.RecurDays}}d</span>{{end}}
+            {{if gt .SubtaskTotal 0}}
+            <span class="badge bg-light text-dark border">{{.SubtaskDone}}/{{.SubtaskTotal}}</span>
+            {{end}}
+          </div>
+          {{/* Inline subtasks */}}
+          {{if .Subtasks}}
+          <div class="mt-2 ms-1">
+            {{range .Subtasks}}
+            <div class="d-flex align-items-center gap-1 mb-1">
+              <form method="POST"
+                action="/todos/{{$tid}}/subtasks/{{.ID}}/toggle?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}"
+                class="m-0">
+                <button type="submit" class="btn p-0 border-0 lh-1"
+                  style="font-size:1rem">
+                  {{if .Done}}
+                  <span class="text-success">&#10003;</span>
+                  {{else}}
+                  <span class="text-muted">&#9675;</span>
+                  {{end}}
+                </button>
+              </form>
+              <span class="small {{if .Done}}text-muted text-decoration-line-through{{end}}">
+                {{.Title}}
+              </span>
+            </div>
+            {{end}}
+          </div>
+          {{end}}
+          <details class="subtask-details mt-1">
+            <summary class="small text-muted" style="cursor:pointer;list-style:none">
+              + subtask
+            </summary>
+            <form method="POST"
+              action="/todos/{{.ID}}/subtasks?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}"
+              class="mt-1">
+              <div class="input-group input-group-sm" style="max-width:320px">
+                <input type="text" name="title"
+                  class="form-control form-control-sm subtask-input"
+                  placeholder="Subtask title…">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                  Add
+                </button>
+              </div>
+            </form>
+          </details>
+        </div>
+        <div class="d-flex gap-1 flex-shrink-0 align-items-start pt-1">
+          <button class="btn btn-outline-secondary btn-sm"
+            data-bs-toggle="modal" data-bs-target="#taskModal" data-mode="edit"
+            title="Edit">&#9998;</button>
+          <form method="POST" action="/todos/{{.ID}}/complete?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}" class="m-0">
+            <button type="submit" class="btn btn-outline-success btn-sm"
+              title="Mark done">&#10003;</button>
+          </form>
+          <form method="POST" action="/todos/{{.ID}}/delete?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}" class="m-0">
+            <button type="submit" class="btn btn-outline-danger btn-sm"
+              title="Delete">&#10005;</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+</div>
+
+{{/* ── Task modal (new + edit) ───────────────────────────────────────────────── */}}
+<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header py-2 border-0">
+        <h6 class="modal-title mb-0 fw-semibold" id="taskModalLabel">New Task</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-0">
+        <form id="taskForm" method="POST" action="/todos/new">
+
+          <div class="mb-2">
+            <input type="text" name="title" id="modalTitle"
+              class="form-control form-control-lg border-0 border-bottom rounded-0 px-0 fw-semibold"
+              placeholder="Task title" required>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-2">
+              <select name="priority" id="modalPriority" class="form-select form-select-sm">
+                <option value="0">— priority —</option>
+                <option value="1">🔴 P1 – high</option>
+                <option value="2">🟠 P2 – medium</option>
+                <option value="3">🔵 P3 – low</option>
+              </select>
+            </div>
+            <div class="col-sm-2">
+              <select name="setup_label" id="modalSetup" class="form-select form-select-sm">
+                <option value="">— setup —</option>
+                {{range .Presets.Setups}}
+                <option value="{{.}}">{{.}}</option>
+                {{end}}
+              </select>
+            </div>
+            <div class="col-sm-2">
+              <select name="type_label" id="modalType" class="form-select form-select-sm">
+                <option value="">— type —</option>
+                {{range .Presets.Types}}
+                <option value="{{.}}">{{.}}</option>
+                {{end}}
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <input type="date" name="due_date" id="modalDue"
+                class="form-control form-control-sm">
+            </div>
+            <div class="col-sm-2">
+              <select name="section_id" id="modalSection"
+                class="form-select form-select-sm">
+                <option value="">— no section —</option>
+                {{range .Sections}}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+              </select>
+            </div>
+            <div class="col-sm-1">
+              <input type="number" name="recur_days" id="modalRecurDays"
+                class="form-control form-control-sm text-center"
+                min="0" placeholder="↻d" title="Recur every N days (0 = off)">
+            </div>
+          </div>
+
+          <div class="mb-1">
+            <label class="form-label small text-muted mb-1">Description
+              <span class="fw-normal">(markdown — click to edit)</span>
+            </label>
+            <div id="modalDescView"
+              class="border rounded p-3 markdown-body"
+              style="cursor:text; min-height:3em">
+              <span class="text-muted fst-italic small">Click to add a description…</span>
+            </div>
+            <textarea name="description" id="modalDesc"
+              class="form-control font-monospace mt-0"
+              style="display:none; border-radius:.375rem .375rem 0 0"
+              placeholder="Write notes in markdown…"></textarea>
+            <div id="modalDescLivePreview"
+              class="border border-top-0 rounded-bottom p-3 markdown-body"
+              style="display:none; min-height:2rem; background:var(--bs-tertiary-bg)">
+            </div>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer py-2">
+        <a id="modalFullEdit" href="#" class="btn btn-link btn-sm ps-0 text-muted"
+          style="display:none">Open full edit ›</a>
+        <form id="modalDeleteForm" method="POST" action="#" class="me-auto"
+          style="display:none">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+        </form>
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+          data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="taskForm" class="btn btn-dark btn-sm">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.priority-badge{display:inline-block;padding:.15em .45em;border-radius:.25rem;font-size:.7rem;font-weight:700;line-height:1}
+.priority-badge.p1{background:#dc3545;color:#fff}
+.priority-badge.p2{background:#fd7e14;color:#fff}
+.priority-badge.p3{background:#0d6efd;color:#fff}
+.drag-handle{opacity:.4;transition:opacity .15s}
+.task-row:hover .drag-handle{opacity:1}
+.task-row.kb-focus{outline:2px solid #0d6efd;outline-offset:-2px}
+.sortable-ghost{opacity:.4;background:#f8f9fa}
+.markdown-body h1,.markdown-body h2,.markdown-body h3{margin-top:1rem;margin-bottom:.5rem}
+.markdown-body ul,.markdown-body ol{padding-left:1.5rem}
+.markdown-body code{background:var(--bs-secondary-bg);padding:.1em .3em;border-radius:3px}
+.markdown-body pre code{background:none;padding:0}
+.markdown-body pre{background:var(--bs-secondary-bg);padding:.75rem 1rem;border-radius:.375rem;overflow-x:auto}
+.markdown-body blockquote{border-left:4px solid var(--bs-secondary);padding-left:1rem;color:var(--bs-secondary-color)}
+details summary::-webkit-details-marker{display:none}
+.task-row{cursor:default}
+#acDropdown .list-group-item{cursor:pointer;padding:.35rem .75rem;font-size:.875rem}
+#acDropdown .list-group-item.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
+#overtimeWidget button{font-size:.75rem;line-height:1.4}
+#quickAddTags .badge{font-size:.8rem;font-weight:600}
+#quickAddTags .badge-type{background:#6c757d;color:#fff}
+#quickAddTags .badge-setup{background:#f8f9fa;color:#212529;border:1px solid #dee2e6}
+#quickAddTags .badge-section{background:#0dcaf0;color:#fff}
+#quickAddTags .badge-priority-p1{background:#dc3545;color:#fff}
+#quickAddTags .badge-priority-p2{background:#fd7e14;color:#fff}
+#quickAddTags .badge-priority-p3{background:#0d6efd;color:#fff}
+#quickAddTags .badge-due{background:#ffc107;color:#212529}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
+<script>
+(function () {
+  var PRESET_TYPES  = [{{range .Presets.Types}}"{{.}}",{{end}}];
+  var PRESET_SETUPS = [{{range .Presets.Setups}}"{{.}}",{{end}}];
+  var PRESET_SECTIONS = [
+    {{range .Sections}}{id:"{{.ID}}",name:"{{.Name}}"},{{end}}
+  ];
+  var ACTIVE_WORKSPACE_ID =
+    "{{if and .UserSettings .UserSettings.ActiveWorkspaceID}}{{.UserSettings.ActiveWorkspaceID}}{{end}}";
+
+  /* ── Quick-add show/hide ─────────────────────────────────────────────────── */
+  var quickAddBar  = document.getElementById('quickAddBar');
+  var quickAddHint = document.getElementById('quickAddHint');
+  var quickAddInput = document.getElementById('quickAddInput');
+
+  function showQuickAdd() {
+    quickAddBar.style.display  = '';
+    quickAddHint.style.display = 'none';
+    quickAddInput.focus();
+  }
+
+  function hideQuickAdd() {
+    acClose();
+    quickAddBar.style.display  = 'none';
+    quickAddHint.style.display = '';
+    quickAddInput.value = '';
+    renderQuickAddTags('');
+  }
+
+  /* ── Overtime counter ────────────────────────────────────────────────────── */
+  var OT_KEY     = 'todos:overtime:' + (ACTIVE_WORKSPACE_ID || 'personal');
+  var otDisplay  = document.getElementById('otDisplay');
+  var otInput    = document.getElementById('otInput');
+
+  function otGet() {
+    return parseInt(localStorage.getItem(OT_KEY) || '0', 10);
+  }
+  function otSet(min) {
+    localStorage.setItem(OT_KEY, String(min));
+    otRender(min);
+  }
+  function otRender(min) {
+    var neg = min < 0;
+    var abs = Math.abs(min);
+    var h   = Math.floor(abs / 60);
+    var m   = abs % 60;
+    otDisplay.textContent =
+      (neg ? '−' : '+') + h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
+    otDisplay.style.color = neg
+      ? 'var(--bs-danger)'
+      : min > 0 ? 'var(--bs-success)' : '';
+    otDisplay.style.borderColor = neg
+      ? 'var(--bs-danger)' : min > 0 ? 'var(--bs-success)' : '';
+  }
+  function otAdjust(delta) { otSet(otGet() + delta); }
+
+  document.getElementById('otDec60')
+    .addEventListener('click', function () { otAdjust(-60); });
+  document.getElementById('otDec15')
+    .addEventListener('click', function () { otAdjust(-15); });
+  document.getElementById('otInc15')
+    .addEventListener('click', function () { otAdjust(15); });
+  document.getElementById('otInc60')
+    .addEventListener('click', function () { otAdjust(60); });
+  document.getElementById('otReset')
+    .addEventListener('click', function () { otSet(0); });
+
+  otDisplay.addEventListener('click', function () {
+    otInput.value           = otGet();
+    otDisplay.style.display = 'none';
+    otInput.style.display   = '';
+    otInput.focus();
+    otInput.select();
+  });
+  otInput.addEventListener('blur', function () {
+    var v = parseInt(otInput.value, 10);
+    if (!isNaN(v)) { otSet(v); }
+    otInput.style.display   = 'none';
+    otDisplay.style.display = '';
+  });
+  otInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter')  { otInput.blur(); }
+    if (e.key === 'Escape') {
+      otInput.style.display   = 'none';
+      otDisplay.style.display = '';
+    }
+  });
+
+  otRender(otGet());
+
+  /* ── Autocomplete ────────────────────────────────────────────────────────── */
+  var acDrop    = document.getElementById('acDropdown');
+  var acItems   = [];
+  var acIndex   = -1;
+  var acTrigger = null; // '@' or '/'
+  var acStart   = -1;   // index in input where trigger char is
+
+  function acOptions(trigger, filter) {
+    var list = trigger === '@' ? PRESET_TYPES : PRESET_SETUPS;
+    filter = filter.toLowerCase();
+    return filter
+      ? list.filter(function (v) { return v.toLowerCase().startsWith(filter); })
+      : list;
+  }
+
+  function acRender(opts) {
+    acDrop.innerHTML = '';
+    acItems = opts;
+    acIndex = -1;
+    opts.forEach(function (val, i) {
+      var li = document.createElement('li');
+      li.className = 'list-group-item';
+      li.textContent = acTrigger + val;
+      li.addEventListener('mousedown', function (e) {
+        e.preventDefault(); // keep focus in input
+        acSelect(i);
+      });
+      acDrop.appendChild(li);
+    });
+    acDrop.style.display = opts.length ? '' : 'none';
+  }
+
+  function acHighlight() {
+    Array.from(acDrop.children).forEach(function (li, i) {
+      li.classList.toggle('active', i === acIndex);
+    });
+  }
+
+  function acSelect(i) {
+    var val = acItems[i];
+    if (val == null) { return; }
+    var cur   = quickAddInput.value;
+    var after = cur.slice(quickAddInput.selectionStart);
+    // replace from trigger position to current cursor
+    quickAddInput.value =
+      cur.slice(0, acStart) + acTrigger + val + ' ' + after.trimStart();
+    var newPos = acStart + 1 + val.length + 1;
+    quickAddInput.setSelectionRange(newPos, newPos);
+    acClose();
+  }
+
+  function acClose() {
+    acDrop.style.display = 'none';
+    acItems  = [];
+    acIndex  = -1;
+    acTrigger = null;
+    acStart   = -1;
+  }
+
+  function acUpdate() {
+    var val = quickAddInput.value;
+    var pos = quickAddInput.selectionStart;
+    // walk back to find trigger
+    var i = pos - 1;
+    while (i >= 0 && val[i] !== ' ') { i--; }
+    var wordStart = i + 1;
+    var word = val.slice(wordStart, pos);
+    if (word.startsWith('@') || word.startsWith('/')) {
+      acTrigger = word[0];
+      acStart   = wordStart;
+      acRender(acOptions(acTrigger, word.slice(1)));
+    } else {
+      acClose();
+    }
+  }
+
+  /* ── Quick-add tag preview ───────────────────────────────────────────────── */
+  var quickAddTagsEl = document.getElementById('quickAddTags');
+
+  var TAG_BADGE = {
+    type:     function (lbl) {
+      var sp = document.createElement('span');
+      sp.className   = 'badge badge-type';
+      sp.textContent = '@' + lbl;
+      return sp;
+    },
+    setup:    function (lbl) {
+      var sp = document.createElement('span');
+      sp.className   = 'badge badge-setup';
+      sp.textContent = '/' + lbl;
+      return sp;
+    },
+    section:  function (lbl) {
+      var sp = document.createElement('span');
+      sp.className   = 'badge badge-section';
+      sp.textContent = '#' + lbl;
+      return sp;
+    },
+    priority: function (lbl) {
+      var sp = document.createElement('span');
+      sp.className   = 'badge badge-priority-' + lbl.toLowerCase();
+      sp.textContent = lbl;
+      return sp;
+    },
+    due:      function (lbl) {
+      var sp = document.createElement('span');
+      sp.className   = 'badge badge-due';
+      sp.textContent = lbl;
+      return sp;
+    }
+  };
+
+  var DUE_WORDS = [
+    'today','tomorrow','monday','tuesday','wednesday',
+    'thursday','friday','saturday','sunday',
+    'next monday','next tuesday','next wednesday',
+    'next thursday','next friday','next saturday','next sunday'
+  ];
+
+  function parseTagsFromInput(val) {
+    var tags  = [];
+    var words = val.trim().split(/\s+/);
+    // also check bigrams for "next <day>"
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (!w) { continue; }
+      if (w[0] === '@' && w.length > 1) {
+        tags.push({kind: 'type', label: w.slice(1)});
+      } else if (w[0] === '/' && w.length > 1) {
+        tags.push({kind: 'setup', label: w.slice(1)});
+      } else if (w[0] === '#' && w.length > 1) {
+        tags.push({kind: 'section', label: w.slice(1)});
+      } else if (/^p[123]$/i.test(w)) {
+        tags.push({kind: 'priority', label: w.toUpperCase()});
+      } else {
+        var bigram = (w + (words[i + 1] ? ' ' + words[i + 1] : '')).toLowerCase();
+        if (DUE_WORDS.indexOf(bigram) !== -1) {
+          tags.push({kind: 'due', label: bigram});
+          i++; // skip next word
+        } else if (DUE_WORDS.indexOf(w.toLowerCase()) !== -1) {
+          tags.push({kind: 'due', label: w.toLowerCase()});
+        }
+      }
+    }
+    return tags;
+  }
+
+  function renderQuickAddTags(val) {
+    var tags = parseTagsFromInput(val);
+    quickAddTagsEl.innerHTML = '';
+    tags.forEach(function (tag) {
+      var fn = TAG_BADGE[tag.kind];
+      if (fn) { quickAddTagsEl.appendChild(fn(tag.label)); }
+    });
+  }
+
+  quickAddInput.addEventListener('input', function () {
+    acUpdate();
+    renderQuickAddTags(quickAddInput.value);
+  });
+  quickAddInput.addEventListener('keydown', function (e) {
+    if (acDrop.style.display === 'none') {
+      if (e.key === 'Escape') { hideQuickAdd(); }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      acIndex = Math.min(acIndex + 1, acItems.length - 1);
+      acHighlight();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      acIndex = Math.max(acIndex - 1, 0);
+      acHighlight();
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (acIndex >= 0) {
+        e.preventDefault();
+        acSelect(acIndex);
+      } else if (acItems.length === 1) {
+        e.preventDefault();
+        acSelect(0);
+      } else {
+        acClose();
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      acClose();
+    }
+  });
+  quickAddInput.addEventListener('blur', function () {
+    // small delay so mousedown on item fires first
+    setTimeout(acClose, 150);
+  });
+
+  /* ── Task keyboard navigation ────────────────────────────────────────────── */
+  var taskRows   = Array.from(document.querySelectorAll('.task-row'));
+  var kbIndex    = -1; // currently keyboard-focused row (-1 = none)
+  var hoveredRow = null;
+
+  function setKbFocus(idx) {
+    taskRows.forEach(function (r) { r.classList.remove('kb-focus'); });
+    kbIndex = idx;
+    if (idx >= 0 && idx < taskRows.length) {
+      taskRows[idx].classList.add('kb-focus');
+      taskRows[idx].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  taskRows.forEach(function (row) {
+    row.addEventListener('mouseenter', function () {
+      hoveredRow = row;
+      setKbFocus(-1); // clear keyboard focus on mouse
+    });
+    row.addEventListener('mouseleave', function () { hoveredRow = null; });
+  });
+
+  function openSubtaskInput(row) {
+    var details = row.querySelector('.subtask-details');
+    if (!details) { return; }
+    details.open = true;
+    var input = details.querySelector('.subtask-input');
+    if (input) { input.focus(); }
+  }
+
+  /* ── Global keyboard handler ─────────────────────────────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    var tag    = e.target.tagName;
+    var inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+        || e.target.isContentEditable;
+    var modalOpen = !!document.querySelector('.modal.show');
+    if (modalOpen) { return; }
+
+    // '/' shows and focuses quick add
+    if (!inInput && e.key === '/') {
+      e.preventDefault();
+      showQuickAdd();
+      return;
+    }
+
+    // Left/right: navigate between tabs (sections, Done, Archive)
+    if (!inInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      var tabLinks = Array.from(
+        document.querySelectorAll('.nav-tabs .nav-link')
+      ).filter(function (l) {
+        return l.getAttribute('href') !== '/todos/settings';
+      });
+      var activeTabIdx = tabLinks.findIndex(function (l) {
+        return l.classList.contains('active');
+      });
+      if (activeTabIdx !== -1) {
+        var nextTabIdx = e.key === 'ArrowRight'
+          ? activeTabIdx + 1 : activeTabIdx - 1;
+        if (nextTabIdx >= 0 && nextTabIdx < tabLinks.length) {
+          e.preventDefault();
+          window.location.href = tabLinks[nextTabIdx].getAttribute('href');
+        }
+      }
+      return;
+    }
+
+    // Arrow navigation between task rows
+    if (!inInput && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      var next = e.key === 'ArrowDown'
+        ? Math.min(kbIndex + 1, taskRows.length - 1)
+        : Math.max(kbIndex - 1, 0);
+      if (kbIndex === -1) { next = e.key === 'ArrowDown' ? 0 : taskRows.length - 1; }
+      setKbFocus(next);
+      return;
+    }
+
+    // 's' opens subtask on keyboard-focused or hovered row
+    if (!inInput && e.key === 's') {
+      var target = kbIndex >= 0 ? taskRows[kbIndex] : hoveredRow;
+      if (target) {
+        e.preventDefault();
+        openSubtaskInput(target);
+      }
+    }
+  });
+
+  /* ── Drag-drop reorder via SortableJS ───────────────────────────────────── */
+  var sortable = document.getElementById('taskSortable');
+  if (sortable) {
+    Sortable.create(sortable, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: function () {
+        var ids = Array.from(sortable.querySelectorAll('[data-task-id]'))
+          .map(function (el) { return el.dataset.taskId; });
+        fetch('/todos/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids })
+        });
+      }
+    });
+  }
+
+  /* ── Inline description editor ───────────────────────────────────────────── */
+  var descView        = document.getElementById('modalDescView');
+  var descEl          = document.getElementById('modalDesc');
+  var descLivePreview = document.getElementById('modalDescLivePreview');
+
+  var PLACEHOLDER = '<span class="text-muted fst-italic small">'
+    + 'Click to add a description…</span>';
+
+  function renderDesc() {
+    var src = descEl.value.trim();
+    descView.innerHTML = src ? marked.parse(src) : PLACEHOLDER;
+  }
+
+  function updateLivePreview() {
+    var src = descEl.value.trim();
+    descLivePreview.innerHTML = src ? marked.parse(src) : '';
+    descLivePreview.style.display = src ? '' : 'none';
+  }
+
+  function startEdit() {
+    descView.style.display = 'none';
+    descEl.style.display   = '';
+    descEl.style.height    = 'auto';
+    descEl.style.height    = Math.max(120, descEl.scrollHeight) + 'px';
+    updateLivePreview();
+    descEl.focus();
+  }
+
+  function endEdit() {
+    renderDesc();
+    descEl.style.display          = 'none';
+    descLivePreview.style.display = 'none';
+    descView.style.display        = '';
+  }
+
+  descView.addEventListener('click', startEdit);
+  descEl.addEventListener('blur', endEdit);
+  descEl.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.max(120, this.scrollHeight) + 'px';
+    updateLivePreview();
+  });
+
+  /* ── Task modal ──────────────────────────────────────────────────────────── */
+  var modal       = document.getElementById('taskModal');
+  var form        = document.getElementById('taskForm');
+  var titleEl     = document.getElementById('modalTitle');
+  var priorityEl  = document.getElementById('modalPriority');
+  var setupEl     = document.getElementById('modalSetup');
+  var typeEl      = document.getElementById('modalType');
+  var dueEl       = document.getElementById('modalDue');
+  var sectionEl   = document.getElementById('modalSection');
+  var recurDaysEl = document.getElementById('modalRecurDays');
+  var lbl         = document.getElementById('taskModalLabel');
+  var fullEdit    = document.getElementById('modalFullEdit');
+  var deleteForm  = document.getElementById('modalDeleteForm');
+
+  modal.addEventListener('show.bs.modal', function (e) {
+    var btn  = e.relatedTarget;
+    var mode = btn ? btn.dataset.mode : 'new';
+
+    if (mode === 'edit') {
+      var row = btn.closest('[data-task-id]');
+      var id  = row.dataset.taskId;
+      lbl.textContent           = 'Edit Task';
+      form.action               = '/todos/' + id + '/edit?back=' + window.location.pathname;
+      titleEl.value             = row.dataset.title;
+      priorityEl.value          = row.dataset.priority || '0';
+      setupEl.value             = row.dataset.setup;
+      typeEl.value              = row.dataset.type;
+      dueEl.value               = row.dataset.due;
+      sectionEl.value           = row.dataset.sectionId || '';
+      recurDaysEl.value         = row.dataset.recurDays || '0';
+      descEl.value              = row.querySelector('.task-desc-store').value;
+      fullEdit.href             = '/todos/' + id + '/edit';
+      fullEdit.style.display    = '';
+      deleteForm.action         = '/todos/' + id + '/delete?back=' + window.location.pathname;
+      deleteForm.style.display  = '';
+    } else {
+      lbl.textContent           = 'New Task';
+      form.action               = '/todos/new';
+      form.reset();
+      descEl.value              = '';
+      recurDaysEl.value         = '0';
+      fullEdit.style.display    = 'none';
+      deleteForm.style.display  = 'none';
+    }
+    endEdit();
+  });
+
+  modal.addEventListener('shown.bs.modal', function () {
+    titleEl.focus();
+    titleEl.select();
+  });
+}());
+</script>
+
+{{ template "footer" }}{{ template "page_end" }}
