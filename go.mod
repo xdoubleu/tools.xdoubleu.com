@@ -26,8 +26,6 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 )
 
-replace github.com/xdoubleu/essentia/v4 => ../essentia
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
