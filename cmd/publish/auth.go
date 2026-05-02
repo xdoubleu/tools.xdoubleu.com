@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v3/pkg/config"
-	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
+	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v4/pkg/config"
+	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/templates"

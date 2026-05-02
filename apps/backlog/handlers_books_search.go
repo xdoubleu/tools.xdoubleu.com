@@ -3,7 +3,7 @@ package backlog
 import (
 	"net/http"
 
-	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
+	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 )

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"

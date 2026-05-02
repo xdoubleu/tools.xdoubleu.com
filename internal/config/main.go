@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"log/slog"
 
-	"github.com/xdoubleu/essentia/v3/pkg/config"
+	"github.com/xdoubleu/essentia/v4/pkg/config"
 )
 
 // devEncryptionKey is a well-known 32-byte key used only in dev/test environments.

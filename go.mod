@@ -13,7 +13,7 @@ require (
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/stretchr/testify v1.11.1
 	github.com/supabase-community/gotrue-go v1.2.1
-	github.com/xdoubleu/essentia/v3 v3.0.0
+	github.com/xdoubleu/essentia/v4 v4.0.1
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	golang.org/x/sync v0.19.0
 )

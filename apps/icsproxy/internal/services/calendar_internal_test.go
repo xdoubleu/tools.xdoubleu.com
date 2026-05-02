@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -193,7 +194,7 @@ func TestExtractEvents_Basic(t *testing.T) {
 		vevent("uid-2", "Sprint Review", "20240116T090000Z", "20240116T100000Z"),
 	)
 
-	events, err := svc.ExtractEvents(data)
+	events, err := svc.ExtractEvents(context.Background(), data)
 	require.NoError(t, err)
 	assert.Len(t, events, 2)
 }
@@ -213,7 +214,7 @@ func TestExtractEvents_DeduplicatesRecurring(t *testing.T) {
 			"RECURRENCE-ID:20240102T090000Z"),
 	)
 
-	events, err := svc.ExtractEvents(data)
+	events, err := svc.ExtractEvents(context.Background(), data)
 	require.NoError(t, err)
 	// Modified instance (RECURRENCE-ID) should be excluded from grouped view
 	assert.Len(t, events, 1)
@@ -230,7 +231,7 @@ func TestExtractEvents_NormalizesSeriesKey(t *testing.T) {
 			"20240201T090000Z", "20240201T100000Z"),
 	)
 
-	events, err := svc.ExtractEvents(data)
+	events, err := svc.ExtractEvents(context.Background(), data)
 	require.NoError(t, err)
 	// Both have the same series key "Sprint Review" → only one in grouped
 	assert.Len(t, events, 1)
@@ -239,7 +240,7 @@ func TestExtractEvents_NormalizesSeriesKey(t *testing.T) {
 func TestExtractEvents_InvalidICS(t *testing.T) {
 	svc := newTestService()
 	// ics.ParseCalendar is lenient; verify it does not panic
-	_, _ = svc.ExtractEvents([]byte("not valid ics"))
+	_, _ = svc.ExtractEvents(context.Background(), []byte("not valid ics"))
 	t.Log("no panic on invalid ICS")
 }
 
@@ -381,7 +382,7 @@ func TestApplyFilter_HidesExplicitUID(t *testing.T) {
 		HideEventUIDs: []string{"hide-me"},
 	}
 
-	out, err := svc.ApplyFilter(data, cfg)
+	out, err := svc.ApplyFilter(context.Background(), data, cfg)
 	require.NoError(t, err)
 	outStr := string(out)
 	assert.NotContains(t, outStr, "Secret")
@@ -400,7 +401,7 @@ func TestApplyFilter_HidesSeries(t *testing.T) {
 		HideSeries: map[string]bool{"Daily Standup": true},
 	}
 
-	out, err := svc.ApplyFilter(data, cfg)
+	out, err := svc.ApplyFilter(context.Background(), data, cfg)
 	require.NoError(t, err)
 	outStr := string(out)
 	assert.NotContains(t, outStr, "Daily Standup")
@@ -419,7 +420,7 @@ func TestApplyFilter_PreservesHolidayEvent(t *testing.T) {
 		HolidayUIDs: []string{"holiday-uid"},
 	}
 
-	out, err := svc.ApplyFilter(data, cfg)
+	out, err := svc.ApplyFilter(context.Background(), data, cfg)
 	require.NoError(t, err)
 	outStr := string(out)
 	assert.Contains(t, outStr, "Holiday")
@@ -429,7 +430,11 @@ func TestApplyFilter_PreservesHolidayEvent(t *testing.T) {
 func TestApplyFilter_InvalidICS(t *testing.T) {
 	svc := newTestService()
 	//nolint:exhaustruct // only needed fields
-	_, err := svc.ApplyFilter([]byte("garbage"), models.FilterConfig{})
+	_, err := svc.ApplyFilter(
+		context.Background(),
+		[]byte("garbage"),
+		models.FilterConfig{},
+	)
 	require.Error(t, err)
 }
 
@@ -441,7 +446,7 @@ func TestApplyFilter_EmptyConfig(t *testing.T) {
 		vevent("uid-2", "Event Two", "20240116T090000Z", "20240116T100000Z"),
 	)
 	//nolint:exhaustruct // intentionally empty config
-	out, err := svc.ApplyFilter(data, models.FilterConfig{})
+	out, err := svc.ApplyFilter(context.Background(), data, models.FilterConfig{})
 	require.NoError(t, err)
 	outStr := string(out)
 	assert.Contains(t, outStr, "Event One")
@@ -461,7 +466,7 @@ func TestApplyFilter_RecurringWithHolidayWindow(t *testing.T) {
 		HolidayUIDs: []string{"holiday-uid"},
 	}
 
-	out, err := svc.ApplyFilter(data, cfg)
+	out, err := svc.ApplyFilter(context.Background(), data, cfg)
 	require.NoError(t, err)
 	outStr := string(out)
 	assert.Contains(t, outStr, "EXDATE")

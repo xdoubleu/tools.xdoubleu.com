@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/xdoubleu/essentia/v3/pkg/database"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 	"tools.xdoubleu.com/internal/templates"
 )

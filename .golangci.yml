@@ -107,6 +107,8 @@ linters:
           paramsOnly: false
         underef:
           skipRecvDeref: false
+    gomoddirectives:
+      replace-local: true
     gomodguard:
       blocked:
         modules:

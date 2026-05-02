@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	wstools "github.com/xdoubleu/essentia/v3/pkg/communication/wstools"
-	"github.com/xdoubleu/essentia/v3/pkg/threading"
+	wstools "github.com/xdoubleu/essentia/v4/pkg/communication/wstools"
+	"github.com/xdoubleu/essentia/v4/pkg/threading"
 	"tools.xdoubleu.com/apps/backlog/internal/dtos"
 )
 

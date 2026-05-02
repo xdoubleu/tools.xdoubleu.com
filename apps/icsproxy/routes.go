@@ -64,7 +64,7 @@ func (app *ICSProxy) feedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filtered, err := app.services.Calendar.ApplyFilter(data, cfg)
+	filtered, err := app.services.Calendar.ApplyFilter(r.Context(), data, cfg)
 	if err != nil {
 		http.Error(w, "Failed to process calendar", http.StatusInternalServerError)
 		return

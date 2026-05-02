@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
-	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/xdoubleu/essentia/v3/pkg/database"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 )

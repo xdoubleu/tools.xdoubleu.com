@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v3/pkg/logging"
-	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
+	"github.com/xdoubleu/essentia/v4/pkg/test"
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/mocks"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
