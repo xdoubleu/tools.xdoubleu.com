@@ -19,11 +19,13 @@
     </div>
   </div>
 
-  {{if .Recipe.Instructions}}
+  {{if .Steps}}
   <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">Instructions</div>
-    <div class="card-body">
-      <p class="mb-0" style="white-space: pre-wrap;">{{.Recipe.Instructions}}</p>
+    <div class="card-header fw-semibold">Steps</div>
+    <div class="card-body p-0">
+      <ol class="mb-0 ps-4 py-3">
+        {{range .Steps}}<li class="mb-2">{{.Text}}</li>{{end}}
+      </ol>
     </div>
   </div>
   {{end}}
