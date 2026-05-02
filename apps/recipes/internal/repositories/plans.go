@@ -139,12 +139,16 @@ func (r *PlansRepository) AddMeal(
 	meal models.PlanMeal,
 ) (*models.PlanMeal, error) {
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO recipes.plan_meals (plan_id, meal_date, meal_slot, recipe_id, servings)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO recipes.plan_meals
+		       (plan_id, meal_date, meal_slot, recipe_id, custom_name, servings)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (plan_id, meal_date, meal_slot)
-		DO UPDATE SET recipe_id = EXCLUDED.recipe_id, servings = EXCLUDED.servings
+		DO UPDATE SET recipe_id   = EXCLUDED.recipe_id,
+		              custom_name = EXCLUDED.custom_name,
+		              servings    = EXCLUDED.servings
 		RETURNING id`,
-		meal.PlanID, meal.MealDate, meal.MealSlot, meal.RecipeID, meal.Servings,
+		meal.PlanID, meal.MealDate, meal.MealSlot,
+		meal.RecipeID, meal.CustomName, meal.Servings,
 	).Scan(&meal.ID)
 	if err != nil {
 		return nil, err
@@ -174,22 +178,23 @@ func (r *PlansRepository) GetMealsInWindow(
 	var rows pgx.Rows
 	var err error
 
+	const baseCols = `
+		SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot,
+		       pm.recipe_id, pm.custom_name, pm.servings,
+		       r.id, r.user_id, r.name, r.instructions, r.base_servings
+		FROM recipes.plan_meals pm
+		LEFT JOIN recipes.recipes r ON r.id = pm.recipe_id`
+
 	if start.IsZero() {
-		rows, err = r.db.Query(ctx, `
-			SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot, pm.recipe_id, pm.servings,
-			       r.id, r.user_id, r.name, r.instructions, r.base_servings
-			FROM recipes.plan_meals pm
-			JOIN recipes.recipes r ON r.id = pm.recipe_id
+		rows, err = r.db.Query(ctx,
+			baseCols+`
 			WHERE pm.plan_id = $1
 			ORDER BY pm.meal_date, pm.meal_slot`,
 			planID,
 		)
 	} else {
-		rows, err = r.db.Query(ctx, `
-			SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot, pm.recipe_id, pm.servings,
-			       r.id, r.user_id, r.name, r.instructions, r.base_servings
-			FROM recipes.plan_meals pm
-			JOIN recipes.recipes r ON r.id = pm.recipe_id
+		rows, err = r.db.Query(ctx,
+			baseCols+`
 			WHERE pm.plan_id = $1
 			  AND pm.meal_date BETWEEN $2 AND $3
 			ORDER BY pm.meal_date, pm.meal_slot`,
@@ -204,20 +209,31 @@ func (r *PlansRepository) GetMealsInWindow(
 	var result []models.PlanMeal
 	for rows.Next() {
 		var meal models.PlanMeal
-		var recipe models.Recipe
+		var rID *uuid.UUID
+		var rUserID, rName, rInstructions *string
+		var rBaseServings *int
 		if err = rows.Scan(
 			&meal.ID,
 			&meal.PlanID,
 			&meal.MealDate,
 			&meal.MealSlot,
 			&meal.RecipeID,
+			&meal.CustomName,
 			&meal.Servings,
-			&recipe.ID, &recipe.UserID, &recipe.Name,
-			&recipe.Instructions, &recipe.BaseServings,
+			&rID, &rUserID, &rName, &rInstructions, &rBaseServings,
 		); err != nil {
 			return nil, err
 		}
-		meal.Recipe = &recipe
+		if rID != nil {
+			//nolint:exhaustruct // other fields not needed here
+			meal.Recipe = &models.Recipe{
+				ID:           *rID,
+				UserID:       *rUserID,
+				Name:         *rName,
+				Instructions: *rInstructions,
+				BaseServings: *rBaseServings,
+			}
+		}
 		result = append(result, meal)
 	}
 	return result, rows.Err()

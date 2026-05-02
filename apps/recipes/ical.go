@@ -26,23 +26,36 @@ func renderICalFeed(plan *models.Plan, meals []models.PlanMeal) string {
 	writeln("X-WR-CALNAME:" + escapeICalText(plan.Name))
 
 	for _, meal := range meals {
-		if meal.Recipe == nil {
-			continue
-		}
 		dateStr := meal.MealDate.Format("20060102")
-		slot := "Noon"
-		if meal.MealSlot == "evening" {
-			slot = "Evening"
-		}
-		summary := fmt.Sprintf("%s – %s (×%d)", slot, meal.Recipe.Name, meal.Servings)
 
-		nextDay := meal.MealDate.AddDate(0, 0, 1).Format("20060102")
+		var slot, dtstart, dtend string
+		switch meal.MealSlot {
+		case "breakfast":
+			slot = "Breakfast"
+			dtstart = dateStr + "T080000"
+			dtend = dateStr + "T090000"
+		case "evening":
+			slot = "Evening"
+			dtstart = dateStr + "T190000"
+			dtend = dateStr + "T200000"
+		default: // noon
+			slot = "Noon"
+			dtstart = dateStr + "T120000"
+			dtend = dateStr + "T130000"
+		}
+
+		name := meal.CustomName
+		if meal.Recipe != nil {
+			name = meal.Recipe.Name
+		}
+		summary := fmt.Sprintf("%s – %s (×%d)", slot, name, meal.Servings)
+
 		dtstamp := time.Now().UTC().Format("20060102T150405Z")
 		writeln("BEGIN:VEVENT")
 		writeln("UID:" + meal.ID.String() + "@tools.xdoubleu.com")
 		writeln("DTSTAMP:" + dtstamp)
-		writeln("DTSTART;VALUE=DATE:" + dateStr)
-		writeln("DTEND;VALUE=DATE:" + nextDay)
+		writeln("DTSTART:" + dtstart)
+		writeln("DTEND:" + dtend)
 		writeln("SUMMARY:" + escapeICalText(summary))
 		writeln("END:VEVENT")
 	}

@@ -21,9 +21,10 @@ const (
 )
 
 type planDay struct {
-	Date    time.Time
-	Noon    *models.PlanMeal
-	Evening *models.PlanMeal
+	Date      time.Time
+	Breakfast *models.PlanMeal
+	Noon      *models.PlanMeal
+	Evening   *models.PlanMeal
 }
 
 // ── List plans ────────────────────────────────────────────────────────────────
@@ -249,11 +250,23 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	recipeID, err := uuid.Parse(dto.RecipeID)
-	if err != nil {
+	var recipeID *uuid.UUID
+	if dto.RecipeID != "" {
+		parsed, parseErr := uuid.Parse(dto.RecipeID)
+		if parseErr != nil {
+			return &services.HTTPError{
+				Status:  http.StatusBadRequest,
+				Message: "Invalid recipe",
+			}
+		}
+		recipeID = &parsed
+	}
+
+	customName := strings.TrimSpace(dto.CustomName)
+	if recipeID == nil && customName == "" {
 		return &services.HTTPError{
 			Status:  http.StatusBadRequest,
-			Message: "Invalid recipe",
+			Message: "A recipe or meal name is required",
 		}
 	}
 
@@ -264,10 +277,11 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 
 	//nolint:exhaustruct //other fields optional
 	meal := models.PlanMeal{
-		MealDate: mealDate,
-		MealSlot: dto.MealSlot,
-		RecipeID: recipeID,
-		Servings: servings,
+		MealDate:   mealDate,
+		MealSlot:   dto.MealSlot,
+		RecipeID:   recipeID,
+		CustomName: customName,
+		Servings:   servings,
 	}
 
 	if err = a.services.Plans.AddMeal(r.Context(), planID, user.ID, meal); err != nil {
@@ -428,6 +442,9 @@ func buildCalendarDays(start, end time.Time, meals []models.PlanMeal) []planDay 
 		dateStr := d.Format("2006-01-02")
 		//nolint:exhaustruct //other fields optional
 		day := planDay{Date: d}
+		if m, ok := mealsByDateSlot[dateStr+":breakfast"]; ok {
+			day.Breakfast = m
+		}
 		if m, ok := mealsByDateSlot[dateStr+":noon"]; ok {
 			day.Noon = m
 		}

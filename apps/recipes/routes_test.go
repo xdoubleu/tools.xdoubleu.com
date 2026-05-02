@@ -26,7 +26,7 @@ func createTestRecipeWithIngredients(t *testing.T) string {
 	tReq.SetFollowRedirect(false)
 	tReq.SetData(dtos.CreateRecipeDto{
 		Name:              "Pasta",
-		Instructions:      "Boil water, cook pasta.",
+		Steps:             []string{"Boil water, cook pasta."},
 		BaseServings:      2,
 		IngredientNames:   []string{"pasta"},
 		IngredientAmounts: []string{"200"},
@@ -54,7 +54,7 @@ func createTestRecipe(t *testing.T) string {
 	//nolint:exhaustruct //ingredient fields optional
 	tReq.SetData(dtos.CreateRecipeDto{
 		Name:         "Test Pasta",
-		Instructions: "Boil water.",
+		Steps:        []string{"Boil water."},
 		BaseServings: 2,
 	})
 	rs := tReq.Do(t)
@@ -92,6 +92,7 @@ func addTestMeal(t *testing.T, planID, recipeID string) string {
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetFollowRedirect(false)
 	tReq.SetQuery(url.Values{"offset": {"0"}})
+	//nolint:exhaustruct // CustomName not needed when RecipeID is set
 	tReq.SetData(dtos.AddMealDto{
 		MealDate: today,
 		MealSlot: "noon",
@@ -197,7 +198,7 @@ func TestUpdateRecipe_Redirects(t *testing.T) {
 	//nolint:exhaustruct //ingredient fields optional
 	tReq.SetData(dtos.CreateRecipeDto{
 		Name:         "Updated Pasta",
-		Instructions: "Boil more water.",
+		Steps:        []string{"Boil more water."},
 		BaseServings: 4,
 	})
 	rs := tReq.Do(t)
@@ -312,6 +313,7 @@ func TestAddMeal_Redirects(t *testing.T) {
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetFollowRedirect(false)
 	tReq.SetQuery(url.Values{"offset": {"0"}})
+	//nolint:exhaustruct // CustomName not needed when RecipeID is set
 	tReq.SetData(dtos.AddMealDto{
 		MealDate: today,
 		MealSlot: "noon",
@@ -334,6 +336,7 @@ func TestAddMeal_InvalidPlan(t *testing.T) {
 	)
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetQuery(url.Values{"offset": {"0"}})
+	//nolint:exhaustruct // CustomName not needed when RecipeID is set
 	tReq.SetData(dtos.AddMealDto{
 		MealDate: time.Now().UTC().Format("2006-01-02"),
 		MealSlot: "noon",
@@ -452,8 +455,8 @@ func TestICalFeed_WithMeals(t *testing.T) {
 	bodyStr := string(body)
 
 	assert.Contains(t, bodyStr, "BEGIN:VEVENT")
-	assert.Contains(t, bodyStr, "DTSTART;VALUE=DATE:")
-	assert.Contains(t, bodyStr, "DTEND;VALUE=DATE:")
+	assert.Contains(t, bodyStr, "DTSTART:")
+	assert.Contains(t, bodyStr, "DTEND:")
 	assert.Contains(t, bodyStr, "DTSTAMP:")
 	assert.Contains(t, bodyStr, "SUMMARY:Noon – Test Pasta")
 }
@@ -552,7 +555,7 @@ func TestUpdateRecipe_WithIngredients(t *testing.T) {
 	tReq.SetQuery(url.Values{"_action": {"update"}})
 	tReq.SetData(dtos.CreateRecipeDto{
 		Name:              "Updated Pasta",
-		Instructions:      "New instructions.",
+		Steps:             []string{"New instructions."},
 		BaseServings:      4,
 		IngredientNames:   []string{"pasta", "sauce"},
 		IngredientAmounts: []string{"300", "150"},

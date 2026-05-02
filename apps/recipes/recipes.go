@@ -3,6 +3,7 @@ package recipes
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
@@ -28,6 +29,11 @@ type scaledIngredient struct {
 	Unit   string
 }
 
+type stepEntry struct {
+	N    int
+	Text string
+}
+
 // ── List recipes ──────────────────────────────────────────────────────────────
 
 func (a *Recipes) listRecipesHandler(w http.ResponseWriter, r *http.Request) error {
@@ -48,6 +54,7 @@ func (a *Recipes) newRecipeFormHandler(w http.ResponseWriter, _ *http.Request) e
 	tpltools.RenderWithPanic(a.Tpl, w, "recipes_form.html", map[string]any{
 		//nolint:exhaustruct,mnd // other fields optional and no magic number
 		"Recipe": models.Recipe{BaseServings: 2},
+		"Steps":  []stepEntry{},
 		"Action": "/recipes/new",
 		"IsEdit": false,
 	})
@@ -100,9 +107,12 @@ func (a *Recipes) viewOrEditRecipeHandler(
 		return err
 	}
 
+	steps := splitSteps(recipe.Instructions)
+
 	if r.URL.Query().Get("edit") == "1" && recipe.UserID == user.ID {
 		tpltools.RenderWithPanic(a.Tpl, w, "recipes_form.html", map[string]any{
 			"Recipe": recipe,
+			"Steps":  steps,
 			"Action": "/recipes/" + id.String(),
 			"IsEdit": true,
 		})
@@ -132,12 +142,28 @@ func (a *Recipes) viewOrEditRecipeHandler(
 
 	tpltools.RenderWithPanic(a.Tpl, w, "recipes_view.html", map[string]any{
 		"Recipe":   recipe,
+		"Steps":    steps,
 		"Servings": servings,
 		"Scaled":   scaled,
 		"IsOwner":  recipe.UserID == user.ID,
 		"Contacts": contacts,
 	})
 	return nil
+}
+
+func splitSteps(instructions string) []stepEntry {
+	if instructions == "" {
+		return nil
+	}
+	var steps []stepEntry
+	n := 1
+	for _, s := range strings.Split(instructions, "\n") {
+		if t := strings.TrimSpace(s); t != "" {
+			steps = append(steps, stepEntry{N: n, Text: t})
+			n++
+		}
+	}
+	return steps
 }
 
 // ── Update or delete recipe (POST) ────────────────────────────────────────────
@@ -261,10 +287,17 @@ func parseUUID(r *http.Request) (uuid.UUID, error) {
 }
 
 func dtoToRecipe(dto dtos.CreateRecipeDto) (models.Recipe, []models.Ingredient) {
+	var nonEmpty []string
+	for _, s := range dto.Steps {
+		if t := strings.TrimSpace(s); t != "" {
+			nonEmpty = append(nonEmpty, t)
+		}
+	}
+
 	//nolint:exhaustruct //other fields optional
 	recipe := models.Recipe{
 		Name:         dto.Name,
-		Instructions: dto.Instructions,
+		Instructions: strings.Join(nonEmpty, "\n"),
 		BaseServings: dto.BaseServings,
 	}
 	if recipe.BaseServings <= 0 {
@@ -279,13 +312,15 @@ func dtoToRecipe(dto dtos.CreateRecipeDto) (models.Recipe, []models.Ingredient) 
 		}
 		var amount float64
 		if i < len(dto.IngredientAmounts) {
-			if v, err := strconv.ParseFloat(dto.IngredientAmounts[i], 64); err == nil {
+			if v, err := strconv.ParseFloat(
+				strings.TrimSpace(dto.IngredientAmounts[i]), 64,
+			); err == nil {
 				amount = v
 			}
 		}
 		unit := ""
 		if i < len(dto.IngredientUnits) {
-			unit = dto.IngredientUnits[i]
+			unit = strings.TrimSpace(dto.IngredientUnits[i])
 		}
 		//nolint:exhaustruct // other fields optional
 		ingredients = append(ingredients, models.Ingredient{

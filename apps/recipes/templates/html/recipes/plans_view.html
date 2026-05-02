@@ -41,6 +41,7 @@
       <thead class="table-dark">
         <tr>
           <th style="width:120px">Date</th>
+          <th>Breakfast</th>
           <th>Noon</th>
           <th>Evening</th>
         </tr>
@@ -50,13 +51,62 @@
         <tr>
           <td class="fw-semibold small">{{.Date.Format "Mon Jan 2"}}</td>
 
+          <!-- Breakfast slot -->
+          <td>
+            {{if .Breakfast}}
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="badge bg-dark text-white fw-normal px-2 py-1">
+                {{if .Breakfast.Recipe}}
+                <a href="/recipes/{{.Breakfast.Recipe.ID}}"
+                  class="text-white text-decoration-none">{{.Breakfast.Recipe.Name}}</a>
+                {{else}}
+                {{.Breakfast.CustomName}}
+                {{end}}
+                <span class="ms-1 opacity-75">×{{.Breakfast.Servings}}</span>
+              </span>
+              {{if $.Plan.CanEdit}}
+              <form method="POST"
+                action="/recipes/plans/{{$.Plan.ID}}/meals/{{.Breakfast.ID}}/delete?offset={{$.Offset}}"
+                class="d-inline ms-1">
+                <button type="submit" class="btn btn-link btn-sm text-danger p-0">×</button>
+              </form>
+              {{end}}
+            </div>
+            {{else if $.Plan.CanEdit}}
+            <form method="POST"
+              action="/recipes/plans/{{$.Plan.ID}}/meals?offset={{$.Offset}}"
+              class="d-flex gap-1 align-items-center">
+              <input type="hidden" name="meal_date" value="{{.Date.Format "2006-01-02"}}">
+              <input type="hidden" name="meal_slot" value="breakfast">
+              <input type="hidden" name="recipe_id"
+                id="rid-{{.Date.Format "20060102"}}-breakfast">
+              <input type="text" name="custom_name"
+                list="rlist-{{.Date.Format "20060102"}}-breakfast"
+                placeholder="Add meal…" class="form-control form-control-sm"
+                data-rid-target="rid-{{.Date.Format "20060102"}}-breakfast">
+              <datalist id="rlist-{{.Date.Format "20060102"}}-breakfast">
+                {{range $.Recipes}}<option value="{{.Name}}" data-id="{{.ID}}">{{end}}
+              </datalist>
+              <input type="number" name="servings" class="form-control form-control-sm"
+                style="width:60px" value="2" min="1" title="Servings">
+              <button type="submit" class="btn btn-dark btn-sm">+</button>
+            </form>
+            {{else}}
+            <span class="text-muted small">—</span>
+            {{end}}
+          </td>
+
           <!-- Noon slot -->
           <td>
             {{if .Noon}}
             <div class="d-flex justify-content-between align-items-center">
               <span class="badge bg-dark text-white fw-normal px-2 py-1">
-                <a href="/recipes/{{.Noon.RecipeID}}"
+                {{if .Noon.Recipe}}
+                <a href="/recipes/{{.Noon.Recipe.ID}}"
                   class="text-white text-decoration-none">{{.Noon.Recipe.Name}}</a>
+                {{else}}
+                {{.Noon.CustomName}}
+                {{end}}
                 <span class="ms-1 opacity-75">×{{.Noon.Servings}}</span>
               </span>
               {{if $.Plan.CanEdit}}
@@ -73,15 +123,18 @@
               class="d-flex gap-1 align-items-center">
               <input type="hidden" name="meal_date" value="{{.Date.Format "2006-01-02"}}">
               <input type="hidden" name="meal_slot" value="noon">
-              <select name="recipe_id" class="form-select form-select-sm"
-                onchange="if(this.value) this.form.submit()">
-                <option value="">— add recipe —</option>
-                {{range $.Recipes}}
-                <option value="{{.ID}}">{{.Name}}</option>
-                {{end}}
-              </select>
+              <input type="hidden" name="recipe_id"
+                id="rid-{{.Date.Format "20060102"}}-noon">
+              <input type="text" name="custom_name"
+                list="rlist-{{.Date.Format "20060102"}}-noon"
+                placeholder="Add meal…" class="form-control form-control-sm"
+                data-rid-target="rid-{{.Date.Format "20060102"}}-noon">
+              <datalist id="rlist-{{.Date.Format "20060102"}}-noon">
+                {{range $.Recipes}}<option value="{{.Name}}" data-id="{{.ID}}">{{end}}
+              </datalist>
               <input type="number" name="servings" class="form-control form-control-sm"
                 style="width:60px" value="2" min="1" title="Servings">
+              <button type="submit" class="btn btn-dark btn-sm">+</button>
             </form>
             {{else}}
             <span class="text-muted small">—</span>
@@ -93,8 +146,12 @@
             {{if .Evening}}
             <div class="d-flex justify-content-between align-items-center">
               <span class="badge bg-dark text-white fw-normal px-2 py-1">
-                <a href="/recipes/{{.Evening.RecipeID}}"
+                {{if .Evening.Recipe}}
+                <a href="/recipes/{{.Evening.Recipe.ID}}"
                   class="text-white text-decoration-none">{{.Evening.Recipe.Name}}</a>
+                {{else}}
+                {{.Evening.CustomName}}
+                {{end}}
                 <span class="ms-1 opacity-75">×{{.Evening.Servings}}</span>
               </span>
               {{if $.Plan.CanEdit}}
@@ -111,15 +168,18 @@
               class="d-flex gap-1 align-items-center">
               <input type="hidden" name="meal_date" value="{{.Date.Format "2006-01-02"}}">
               <input type="hidden" name="meal_slot" value="evening">
-              <select name="recipe_id" class="form-select form-select-sm"
-                onchange="if(this.value) this.form.submit()">
-                <option value="">— add recipe —</option>
-                {{range $.Recipes}}
-                <option value="{{.ID}}">{{.Name}}</option>
-                {{end}}
-              </select>
+              <input type="hidden" name="recipe_id"
+                id="rid-{{.Date.Format "20060102"}}-evening">
+              <input type="text" name="custom_name"
+                list="rlist-{{.Date.Format "20060102"}}-evening"
+                placeholder="Add meal…" class="form-control form-control-sm"
+                data-rid-target="rid-{{.Date.Format "20060102"}}-evening">
+              <datalist id="rlist-{{.Date.Format "20060102"}}-evening">
+                {{range $.Recipes}}<option value="{{.Name}}" data-id="{{.ID}}">{{end}}
+              </datalist>
               <input type="number" name="servings" class="form-control form-control-sm"
                 style="width:60px" value="2" min="1" title="Servings">
+              <button type="submit" class="btn btn-dark btn-sm">+</button>
             </form>
             {{else}}
             <span class="text-muted small">—</span>
@@ -185,4 +245,22 @@
   {{end}}
 
 </div>
+
+<script>
+document.querySelectorAll('[data-rid-target]').forEach(function(input) {
+  input.addEventListener('input', function() {
+    var listId = input.getAttribute('list');
+    var target = document.getElementById(input.dataset.ridTarget);
+    var opts = document.querySelectorAll('#' + listId + ' option');
+    target.value = '';
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].value === input.value) {
+        target.value = opts[i].dataset.id;
+        break;
+      }
+    }
+  });
+});
+</script>
+
 {{ template "footer" }}{{ template "page_end" }}
