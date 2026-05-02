@@ -60,7 +60,7 @@ apps/<name>/
 
 - **`app.Base`** — Embedded struct providing logger, config, templates, and auth service to every app
 - **`auth/`** — Supabase GoTrue authentication (`gotrue-go`)
-- **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v3`
+- **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v4`
 - **`crypto/`** — Encryption utilities
 - **`repositories/`** — Shared DB repositories
 - **`templates/`** — Shared HTML templates
@@ -75,7 +75,7 @@ apps/<name>/
 | Auth | `supabase-community/gotrue-go` |
 | WebSocket | `coder/websocket` |
 | Error tracking | `getsentry/sentry-go` |
-| Job queue | `xdoubleu/essentia/v3` threading.JobQueue |
+| Job queue | `xdoubleu/essentia/v4` threading.JobQueue |
 | Testing | `stretchr/testify` |
 
 ### Apps

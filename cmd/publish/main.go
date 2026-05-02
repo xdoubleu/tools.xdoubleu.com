@@ -16,10 +16,10 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/supabase-community/gotrue-go"
-	"github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
-	essentialogger "github.com/xdoubleu/essentia/v3/pkg/logging"
-	"github.com/xdoubleu/essentia/v3/pkg/sentrytools"
+	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
+	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/cmd/publish/internal/services"
@@ -135,7 +135,18 @@ func NewApplication(
 
 	ctx := context.Background()
 
-	sentryHub := initSentryGetHub(config)
+	//nolint:exhaustruct //other fields are optional
+	sentryHub, err := sentrytools.Init(config.Env, sentry.ClientOptions{
+		Dsn:              config.SentryDsn,
+		Environment:      config.Env,
+		Release:          config.Release,
+		EnableTracing:    true,
+		TracesSampleRate: config.SampleRate,
+		SampleRate:       config.SampleRate,
+	})
+	if err != nil {
+		panic(err)
+	}
 	if sentryHub != nil {
 		ctx = sentry.SetHubOnContext(ctx, sentryHub)
 	}
@@ -166,7 +177,7 @@ func NewApplication(
 		app.ctx, app.services.Auth, logger, config, db, sharedTpl, bl, contactsSvc,
 	)
 
-	err := app.ApplyMigrations(db)
+	err = app.ApplyMigrations(db)
 	if err != nil {
 		panic(err)
 	}
@@ -179,30 +190,6 @@ func NewApplication(
 	}
 
 	return app
-}
-
-func initSentryGetHub(config config.Config) *sentry.Hub {
-	if len(config.SentryDsn) == 0 {
-		return nil
-	}
-
-	//nolint:exhaustruct //other fields are optional
-	sentryClientOptions := sentry.ClientOptions{
-		Dsn:              config.SentryDsn,
-		Environment:      config.Env,
-		Release:          config.Release,
-		EnableTracing:    true,
-		TracesSampleRate: config.SampleRate,
-		SampleRate:       config.SampleRate,
-	}
-
-	err := sentry.Init(sentryClientOptions)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return sentry.CurrentHub().Clone()
 }
 
 func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {

@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/justinas/alice"
-	"github.com/xdoubleu/essentia/v3/pkg/middleware"
-	"github.com/xdoubleu/essentia/v3/pkg/tpl"
+	"github.com/xdoubleu/essentia/v4/pkg/middleware"
+	"github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
@@ -79,19 +78,6 @@ func (app *Application) Routes() http.Handler {
 
 	app.apps.Routes(mux)
 
-	var sentryClientOptions sentry.ClientOptions
-	if len(app.config.SentryDsn) > 0 {
-		//nolint:exhaustruct //other fields are optional
-		sentryClientOptions = sentry.ClientOptions{
-			Dsn:              app.config.SentryDsn,
-			Environment:      app.config.Env,
-			Release:          app.config.Release,
-			EnableTracing:    true,
-			TracesSampleRate: app.config.SampleRate,
-			SampleRate:       app.config.SampleRate,
-		}
-	}
-
 	allowedOrigins := []string{app.config.WebURL}
 	for _, a := range *app.apps {
 		if d := a.GetDomain(); d != "" {
@@ -103,7 +89,6 @@ func (app *Application) Routes() http.Handler {
 		app.logger,
 		allowedOrigins,
 		app.config.Env,
-		sentryClientOptions,
 	)
 
 	if err != nil {

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
-	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
+	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/recipes/internal/dtos"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/services"

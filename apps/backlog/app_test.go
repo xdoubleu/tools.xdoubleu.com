@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/mocks"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/xdoubleu/essentia/v3/pkg/threading"
+	"github.com/xdoubleu/essentia/v4/pkg/threading"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v3/pkg/test"
+	"github.com/xdoubleu/essentia/v4/pkg/test"
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 )
 

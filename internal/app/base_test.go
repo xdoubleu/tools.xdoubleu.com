@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	configtools "github.com/xdoubleu/essentia/v3/pkg/config"
-	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/mocks"

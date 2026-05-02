@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 
-	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
-	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
+	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/templates"
 )

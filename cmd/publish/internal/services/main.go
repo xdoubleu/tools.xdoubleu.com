@@ -4,7 +4,7 @@ import (
 	"html/template"
 
 	"github.com/supabase-community/gotrue-go"
-	"github.com/xdoubleu/essentia/v3/pkg/config"
+	"github.com/xdoubleu/essentia/v4/pkg/config"
 	cfg "tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/repositories"
 )

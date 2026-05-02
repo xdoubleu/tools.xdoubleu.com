@@ -14,6 +14,7 @@ import (
 	"time"
 
 	ics "github.com/arran4/golang-ical"
+	"github.com/getsentry/sentry-go"
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
 )
@@ -81,8 +82,15 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
 
+	span := sentry.StartSpan(
+		ctx,
+		"http.client",
+		sentry.WithDescription("FetchICS "+url),
+	)
+	defer span.Finish()
+
 	client := &http.Client{Timeout: calendarFetchTimeout}
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, _ := http.NewRequestWithContext(span.Context(), http.MethodGet, url, nil)
 	req.Header.Set("User-Agent", "tools.xdoubleu.com-icsproxy/1.0")
 	req.Header.Set("Accept", "text/calendar")
 
@@ -145,7 +153,13 @@ func formatICSTime(raw string) string {
 
 // ----------- FOR PREVIEW (grouped) -----------
 
-func (s *CalendarService) ExtractEvents(data []byte) ([]models.EventInfo, error) {
+func (s *CalendarService) ExtractEvents(
+	ctx context.Context,
+	data []byte,
+) ([]models.EventInfo, error) {
+	span := sentry.StartSpan(ctx, "function", sentry.WithDescription("ExtractEvents"))
+	defer span.Finish()
+
 	all, err := s.extractAllEvents(data)
 	if err != nil {
 		return nil, err
@@ -230,11 +244,14 @@ func (s *CalendarService) extractAllEvents(data []byte) ([]models.EventInfo, err
 // APPLY FILTER (uses FULL list, not grouped)
 // ============================================================
 
-//nolint:gocognit //it works stfu
+//nolint:gocognit,funlen //it works stfu
 func (s *CalendarService) ApplyFilter(
+	ctx context.Context,
 	data []byte,
 	cfg models.FilterConfig,
 ) ([]byte, error) {
+	span := sentry.StartSpan(ctx, "function", sentry.WithDescription("ApplyFilter"))
+	defer span.Finish()
 	cal, err := ics.ParseCalendar(bytes.NewReader(data))
 	if err != nil {
 		return nil, err

@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
-	tpltools "github.com/xdoubleu/essentia/v3/pkg/tpl"
+	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
+	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/icsproxy/internal/dtos"
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/internal/constants"
@@ -68,7 +68,7 @@ func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := app.services.Calendar.ExtractEvents(data)
+	events, err := app.services.Calendar.ExtractEvents(r.Context(), data)
 	if err != nil {
 		templates.RenderError(
 			app.Tpl,
@@ -130,7 +130,7 @@ func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := app.services.Calendar.ExtractEvents(data)
+	events, err := app.services.Calendar.ExtractEvents(r.Context(), data)
 	if err != nil {
 		templates.RenderError(
 			app.Tpl,

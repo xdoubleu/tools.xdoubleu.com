@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/recipes/internal/repositories"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 	"tools.xdoubleu.com/internal/app"

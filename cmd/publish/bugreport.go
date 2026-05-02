@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"strings"
 
-	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v3/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v3/pkg/errortools"
+	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
+	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/internal/constants"

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
 	"tools.xdoubleu.com/apps/icsproxy/internal/services"
 	"tools.xdoubleu.com/internal/app"
@@ -44,7 +44,11 @@ func New(
 			sharedTpl,
 		),
 	}
-	proxy.services = services.New(logger, repositories.New(db), authService)
+	proxy.services = services.New(
+		logger,
+		repositories.New(postgres.NewSpanDB(db)),
+		authService,
+	)
 
 	return proxy
 }

@@ -7,8 +7,8 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v3/pkg/threading"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v4/pkg/threading"
 	"tools.xdoubleu.com/apps/backlog/internal/jobs"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/internal/services"

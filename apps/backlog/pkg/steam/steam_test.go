@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v3/pkg/logging"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 )
 

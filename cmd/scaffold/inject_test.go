@@ -19,7 +19,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/watchparty"

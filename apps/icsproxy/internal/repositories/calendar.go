@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"github.com/xdoubleu/essentia/v3/pkg/database/postgres"
+	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 )
 

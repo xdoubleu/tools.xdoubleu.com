@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	httptools "github.com/xdoubleu/essentia/v3/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v3/pkg/database"
+	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"tools.xdoubleu.com/apps/backlog/internal/dtos"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
