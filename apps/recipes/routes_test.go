@@ -455,8 +455,8 @@ func TestICalFeed_WithMeals(t *testing.T) {
 	bodyStr := string(body)
 
 	assert.Contains(t, bodyStr, "BEGIN:VEVENT")
-	assert.Contains(t, bodyStr, "DTSTART;VALUE=DATE:")
-	assert.Contains(t, bodyStr, "DTEND;VALUE=DATE:")
+	assert.Contains(t, bodyStr, "DTSTART:")
+	assert.Contains(t, bodyStr, "DTEND:")
 	assert.Contains(t, bodyStr, "DTSTAMP:")
 	assert.Contains(t, bodyStr, "SUMMARY:Noon – Test Pasta")
 }
