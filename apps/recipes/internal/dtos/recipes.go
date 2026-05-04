@@ -13,6 +13,12 @@ type CreatePlanDto struct {
 	Name string `schema:"name"`
 }
 
+type UpdatePlanDto struct {
+	Name          string   `schema:"name"`
+	ICalHideSlots []string `schema:"ical_hide_slots"`
+	ICalHidePast  bool     `schema:"ical_hide_past"`
+}
+
 type AddMealDto struct {
 	MealDate   string `schema:"meal_date"`
 	MealSlot   string `schema:"meal_slot"`

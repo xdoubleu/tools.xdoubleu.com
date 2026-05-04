@@ -19,6 +19,38 @@
                 value="{{.Plan.Name}}" placeholder="e.g. Weekly meals" required>
             </div>
 
+            {{if .Plan.ID}}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">iCal feed</label>
+              <div class="d-flex flex-column gap-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox"
+                    name="ical_hide_slots" value="breakfast" id="hideBreakfast"
+                    {{if .HideBreakfast}}checked{{end}}>
+                  <label class="form-check-label" for="hideBreakfast">Hide breakfast</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox"
+                    name="ical_hide_slots" value="noon" id="hideNoon"
+                    {{if .HideNoon}}checked{{end}}>
+                  <label class="form-check-label" for="hideNoon">Hide noon</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox"
+                    name="ical_hide_slots" value="evening" id="hideEvening"
+                    {{if .HideEvening}}checked{{end}}>
+                  <label class="form-check-label" for="hideEvening">Hide evening</label>
+                </div>
+                <div class="form-check mt-1">
+                  <input class="form-check-input" type="checkbox"
+                    name="ical_hide_past" value="true" id="hidePast"
+                    {{if .Plan.ICalHidePast}}checked{{end}}>
+                  <label class="form-check-label" for="hidePast">Hide past meals</label>
+                </div>
+              </div>
+            </div>
+            {{end}}
+
             <div class="d-flex gap-2">
               <button type="submit" class="btn btn-dark">Save</button>
               <a href="/recipes/plans{{if .Plan.ID}}/{{.Plan.ID}}{{end}}"

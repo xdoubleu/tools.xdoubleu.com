@@ -19,6 +19,12 @@ func renderICalFeed(plan *models.Plan, meals []models.PlanMeal) string {
 		sb.WriteString("\r\n")
 	}
 
+	hideSlots := make(map[string]bool, len(plan.ICalHideSlots))
+	for _, s := range plan.ICalHideSlots {
+		hideSlots[s] = true
+	}
+	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+
 	writeln("BEGIN:VCALENDAR")
 	writeln("VERSION:2.0")
 	writeln("PRODID:-//tools.xdoubleu.com//Recipes//EN")
@@ -26,6 +32,12 @@ func renderICalFeed(plan *models.Plan, meals []models.PlanMeal) string {
 	writeln("X-WR-CALNAME:" + escapeICalText(plan.Name))
 
 	for _, meal := range meals {
+		if hideSlots[meal.MealSlot] {
+			continue
+		}
+		if plan.ICalHidePast && meal.MealDate.Before(today) {
+			continue
+		}
 		dateStr := meal.MealDate.Format("20060102")
 
 		var slot, dtstart, dtend string
