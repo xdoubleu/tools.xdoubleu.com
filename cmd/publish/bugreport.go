@@ -71,6 +71,8 @@ func (app *Application) bugReportHandler(w http.ResponseWriter, r *http.Request)
 		app.config.Env,
 		user.ID,
 		app.requestBuffer.Get(user.ID),
+		dto.ConsoleLogs,
+		dto.WSLog,
 	)
 
 	issueURL, err := createGitHubIssue(
@@ -98,6 +100,7 @@ func (app *Application) bugReportHandler(w http.ResponseWriter, r *http.Request)
 func buildIssueBody(
 	description, page, userAgent, release, env, userID string,
 	entries []logging.LogEntry,
+	consoleLogs, wsLog string,
 ) string {
 	var sb strings.Builder
 	sb.WriteString("## Description\n\n")
@@ -127,6 +130,24 @@ func buildIssueBody(
 				escapeMDTableCell(e.Message),
 			)
 		}
+	}
+
+	sb.WriteString("\n\n## Console logs\n\n")
+	if strings.TrimSpace(consoleLogs) == "" {
+		sb.WriteString("_No console logs captured._\n")
+	} else {
+		sb.WriteString("```\n")
+		sb.WriteString(consoleLogs)
+		sb.WriteString("\n```\n")
+	}
+
+	sb.WriteString("\n\n## WebSocket log\n\n")
+	if strings.TrimSpace(wsLog) == "" {
+		sb.WriteString("_No WebSocket messages captured._\n")
+	} else {
+		sb.WriteString("```\n")
+		sb.WriteString(wsLog)
+		sb.WriteString("\n```\n")
 	}
 
 	return sb.String()

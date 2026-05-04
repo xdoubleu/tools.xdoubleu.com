@@ -62,6 +62,12 @@ let localCam{{if .IsPresenter}}, localScreen{{end}};
 let isSharingScreen = false;
 let remoteCamStream = null;
 
+// ICE candidates queued while remote description is not yet set
+const pendingCandidates = { cam: [], screen: [] };
+
+// WS message log for bug reports (last 30 entries, no payloads — SDPs are large)
+window.__wsLog = [];
+
 const selfCamEl   = document.getElementById("selfCam");
 const remoteCamEl = document.getElementById("remoteCam");
 const mainVideoEl = document.getElementById("screenVideo");
@@ -111,9 +117,15 @@ function wsUrl() {
     return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/watchparty/api/signaling`;
 }
 
+function logWS(dir, type, trackType) {
+    window.__wsLog.push({ t: new Date().toISOString(), dir, type, trackType });
+    if (window.__wsLog.length > 30) window.__wsLog.shift();
+}
+
 function send(type, payload, trackType) {
     const msg = { type, payload, trackType };
     if (ws && ws.readyState === WebSocket.OPEN) {
+        logWS("send", type, trackType);
         ws.send(JSON.stringify(msg));
     } else {
         setTimeout(() => send(type, payload, trackType), 200);
@@ -218,7 +230,7 @@ function stopScreen() {
 // ── WebSocket & renegotiation ────────────────────────────────────────────────
 
 async function renegotiateAll() {
-    if (pcCam) { pcCam.close(); pcCam = null; }
+    if (pcCam) { pcCam.close(); pcCam = null; pendingCandidates.cam = []; }
     if (localCam) {
         pcCam = createPC("cam");
         localCam.getTracks().forEach(t => pcCam.addTrack(t, localCam));
@@ -228,7 +240,7 @@ async function renegotiateAll() {
     }
 
     {{if .IsPresenter}}
-    if (pcScreen) { pcScreen.close(); pcScreen = null; }
+    if (pcScreen) { pcScreen.close(); pcScreen = null; pendingCandidates.screen = []; }
     if (isSharingScreen && localScreen) {
         pcScreen = createPC("screen");
         localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
@@ -239,7 +251,7 @@ async function renegotiateAll() {
     {{else}}
     // Close the screen PC — the server will resend the presenter's screen
     // offer, which onmessage will handle by creating a new pcScreen.
-    if (pcScreen) { pcScreen.close(); pcScreen = null; }
+    if (pcScreen) { pcScreen.close(); pcScreen = null; pendingCandidates.screen = []; }
     {{end}}
 }
 
@@ -256,6 +268,7 @@ function initWS() {
 
     ws.onmessage = async evt => {
         const msg = JSON.parse(evt.data);
+        logWS("recv", msg.type, msg.trackType);
 
         if (msg.type === "offer") {
             let pc = msg.trackType === "cam" ? pcCam : pcScreen;
@@ -266,13 +279,17 @@ function initWS() {
                 pc.close();
                 pc = null;
                 pcScreen = null;
+                pendingCandidates.screen = [];
             }
             if (!pc) {
                 pc = createPC(msg.trackType);
                 if (msg.trackType === "screen") pcScreen = pc;
                 if (msg.trackType === "cam")    pcCam    = pc;
+                pendingCandidates[msg.trackType] = [];
             }
             await pc.setRemoteDescription(msg.payload);
+            const drained = pendingCandidates[msg.trackType].splice(0);
+            for (const c of drained) await pc.addIceCandidate(c);
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             send("answer", answer, msg.trackType);
@@ -282,10 +299,13 @@ function initWS() {
             const pc = msg.trackType === "cam" ? pcCam : pcScreen;
             if (pc && pc.signalingState === "have-local-offer") {
                 await pc.setRemoteDescription(msg.payload);
+                const drained = pendingCandidates[msg.trackType].splice(0);
+                for (const c of drained) await pc.addIceCandidate(c);
             } else if (msg.trackType === "screen" && IS_PRESENTER &&
                        isSharingScreen && localScreen) {
                 // Stale answer from viewer reconnect: re-initiate screen with fresh offer
                 if (pcScreen) { pcScreen.close(); pcScreen = null; }
+                pendingCandidates.screen = [];
                 pcScreen = createPC("screen");
                 localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
                 const offer = await pcScreen.createOffer();
@@ -296,7 +316,11 @@ function initWS() {
 
         if (msg.type === "candidate") {
             const pc = msg.trackType === "cam" ? pcCam : pcScreen;
-            if (pc) await pc.addIceCandidate(msg.payload);
+            if (pc && pc.remoteDescription) {
+                await pc.addIceCandidate(msg.payload);
+            } else if (pc) {
+                pendingCandidates[msg.trackType].push(msg.payload);
+            }
         }
     };
 }

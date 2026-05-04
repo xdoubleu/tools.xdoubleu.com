@@ -37,7 +37,11 @@ func TestIsExpectedCloseErrContextDeadlineExceeded(t *testing.T) {
 }
 
 func TestIsExpectedCloseErrEOF(t *testing.T) {
-	assert.False(t, isExpectedCloseErr(io.EOF))
+	assert.True(t, isExpectedCloseErr(io.EOF))
+}
+
+func TestIsExpectedCloseErrUnexpectedEOF(t *testing.T) {
+	assert.True(t, isExpectedCloseErr(io.ErrUnexpectedEOF))
 }
 
 func TestIsExpectedCloseErrArbitraryError(t *testing.T) {
