@@ -34,15 +34,17 @@ type PlanSharedUser struct {
 }
 
 type Plan struct {
-	ID          uuid.UUID
-	OwnerUserID string
-	Name        string
-	ICalToken   uuid.UUID
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	CanEdit     bool
-	Meals       []PlanMeal
-	SharedWith  []PlanSharedUser
+	ID            uuid.UUID
+	OwnerUserID   string
+	Name          string
+	ICalToken     uuid.UUID
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	CanEdit       bool
+	ICalHideSlots []string
+	ICalHidePast  bool
+	Meals         []PlanMeal
+	SharedWith    []PlanSharedUser
 }
 
 type PlanMeal struct {

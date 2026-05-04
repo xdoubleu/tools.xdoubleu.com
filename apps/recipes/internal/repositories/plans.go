@@ -21,7 +21,8 @@ func (r *PlansRepository) ListForUser(
 	rows, err := r.db.Query(ctx, `
 		SELECT p.id, p.owner_user_id, p.name,
 		       p.ical_token, p.created_at, p.updated_at,
-		       COALESCE(pa.can_edit, p.owner_user_id = $1) AS can_edit
+		       COALESCE(pa.can_edit, p.owner_user_id = $1) AS can_edit,
+		       p.ical_hide_slots, p.ical_hide_past
 		FROM recipes.plans p
 		LEFT JOIN recipes.plan_access pa ON pa.plan_id = p.id AND pa.user_id = $1
 		WHERE p.owner_user_id = $1 OR pa.user_id = $1
@@ -39,6 +40,7 @@ func (r *PlansRepository) ListForUser(
 		if err = rows.Scan(
 			&plan.ID, &plan.OwnerUserID, &plan.Name,
 			&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt, &plan.CanEdit,
+			&plan.ICalHideSlots, &plan.ICalHidePast,
 		); err != nil {
 			return nil, err
 		}
@@ -56,7 +58,8 @@ func (r *PlansRepository) GetByID(
 	err := r.db.QueryRow(ctx, `
 		SELECT p.id, p.owner_user_id, p.name,
 		       p.ical_token, p.created_at, p.updated_at,
-		       COALESCE(pa.can_edit, p.owner_user_id = $2) AS can_edit
+		       COALESCE(pa.can_edit, p.owner_user_id = $2) AS can_edit,
+		       p.ical_hide_slots, p.ical_hide_past
 		FROM recipes.plans p
 		LEFT JOIN recipes.plan_access pa ON pa.plan_id = p.id AND pa.user_id = $2
 		WHERE p.id = $1 AND (p.owner_user_id = $2 OR pa.user_id = $2)`,
@@ -64,6 +67,7 @@ func (r *PlansRepository) GetByID(
 	).Scan(
 		&plan.ID, &plan.OwnerUserID, &plan.Name,
 		&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt, &plan.CanEdit,
+		&plan.ICalHideSlots, &plan.ICalHidePast,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -78,13 +82,15 @@ func (r *PlansRepository) GetByICalToken(
 	var plan models.Plan
 	err := r.db.QueryRow(ctx, `
 		SELECT id, owner_user_id, name,
-		       ical_token, created_at, updated_at
+		       ical_token, created_at, updated_at,
+		       ical_hide_slots, ical_hide_past
 		FROM recipes.plans
 		WHERE ical_token = $1`,
 		token,
 	).Scan(
 		&plan.ID, &plan.OwnerUserID, &plan.Name,
 		&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt,
+		&plan.ICalHideSlots, &plan.ICalHidePast,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -115,9 +121,11 @@ func (r *PlansRepository) Update(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE recipes.plans
-		SET name = $3, updated_at = now()
+		SET name = $3, ical_hide_slots = $4, ical_hide_past = $5,
+		    updated_at = now()
 		WHERE id = $1 AND owner_user_id = $2`,
 		plan.ID, plan.OwnerUserID, plan.Name,
+		plan.ICalHideSlots, plan.ICalHidePast,
 	)
 	return err
 }

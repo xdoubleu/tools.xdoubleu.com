@@ -3,6 +3,7 @@ package recipes
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -46,8 +47,11 @@ func (a *Recipes) listPlansHandler(w http.ResponseWriter, r *http.Request) error
 func (a *Recipes) newPlanFormHandler(w http.ResponseWriter, _ *http.Request) error {
 	tpltools.RenderWithPanic(a.Tpl, w, "plans_form.html", map[string]any{
 		//nolint:exhaustruct // other fields optional
-		"Plan":   models.Plan{},
-		"Action": "/recipes/plans/new",
+		"Plan":          models.Plan{},
+		"Action":        "/recipes/plans/new",
+		"HideBreakfast": false,
+		"HideNoon":      false,
+		"HideEvening":   false,
 	})
 	return nil
 }
@@ -165,8 +169,11 @@ func (a *Recipes) editPlanFormHandler(w http.ResponseWriter, r *http.Request) er
 	}
 
 	tpltools.RenderWithPanic(a.Tpl, w, "plans_form.html", map[string]any{
-		"Plan":   plan,
-		"Action": "/recipes/plans/" + id.String() + "/edit",
+		"Plan":          plan,
+		"Action":        "/recipes/plans/" + id.String() + "/edit",
+		"HideBreakfast": slices.Contains(plan.ICalHideSlots, "breakfast"),
+		"HideNoon":      slices.Contains(plan.ICalHideSlots, "noon"),
+		"HideEvening":   slices.Contains(plan.ICalHideSlots, "evening"),
 	})
 	return nil
 }
@@ -183,7 +190,7 @@ func (a *Recipes) updatePlanHandler(w http.ResponseWriter, r *http.Request) erro
 	}
 	user := currentUser(r)
 
-	var dto dtos.CreatePlanDto
+	var dto dtos.UpdatePlanDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
 		return &services.HTTPError{
 			Status:  http.StatusBadRequest,
@@ -191,8 +198,18 @@ func (a *Recipes) updatePlanHandler(w http.ResponseWriter, r *http.Request) erro
 		}
 	}
 
+	hideSlots := dto.ICalHideSlots
+	if hideSlots == nil {
+		hideSlots = []string{}
+	}
+
 	//nolint:exhaustruct // other fields set by service
-	plan := models.Plan{ID: id, Name: dto.Name}
+	plan := models.Plan{
+		ID:            id,
+		Name:          dto.Name,
+		ICalHideSlots: hideSlots,
+		ICalHidePast:  dto.ICalHidePast,
+	}
 
 	if err = a.services.Plans.Update(r.Context(), user.ID, plan); err != nil {
 		return err

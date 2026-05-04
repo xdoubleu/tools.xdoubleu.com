@@ -461,6 +461,103 @@ func TestICalFeed_WithMeals(t *testing.T) {
 	assert.Contains(t, bodyStr, "SUMMARY:Noon – Test Pasta")
 }
 
+// ── iCal feed slot / past filtering ──────────────────────────────────────────
+
+func TestICalFeed_HidesSlot(t *testing.T) {
+	planID := createTestPlan(t)
+	recipeID := createTestRecipe(t)
+	addTestMeal(t, planID, recipeID)
+
+	_, err := testDB.Exec(
+		t.Context(),
+		`UPDATE recipes.plans SET ical_hide_slots = '{noon}' WHERE id = $1`,
+		planID,
+	)
+	require.NoError(t, err)
+
+	var icalToken string
+	err = testDB.QueryRow(
+		t.Context(),
+		"SELECT ical_token::text FROM recipes.plans WHERE id = $1",
+		planID,
+	).Scan(&icalToken)
+	require.NoError(t, err)
+
+	tReq := test.CreateRequestTester(getRoutes(), http.MethodGet,
+		fmt.Sprintf("/recipes/ical/%s.ics", icalToken))
+	rs := tReq.Do(t)
+	require.Equal(t, http.StatusOK, rs.StatusCode)
+
+	body, err := io.ReadAll(rs.Body)
+	require.NoError(t, err)
+	assert.NotContains(t, string(body), "BEGIN:VEVENT")
+}
+
+func TestICalFeed_HidesPastMeals(t *testing.T) {
+	planID := createTestPlan(t)
+
+	_, err := testDB.Exec(
+		t.Context(),
+		`UPDATE recipes.plans SET ical_hide_past = true WHERE id = $1`,
+		planID,
+	)
+	require.NoError(t, err)
+
+	yesterday := time.Now().UTC().AddDate(0, 0, -1).Format("2006-01-02")
+	_, err = testDB.Exec(
+		t.Context(),
+		`INSERT INTO recipes.plan_meals (plan_id, meal_date, meal_slot, custom_name, servings)
+		 VALUES ($1, $2, 'noon', 'Yesterday meal', 2)`,
+		planID,
+		yesterday,
+	)
+	require.NoError(t, err)
+
+	var icalToken string
+	err = testDB.QueryRow(
+		t.Context(),
+		"SELECT ical_token::text FROM recipes.plans WHERE id = $1",
+		planID,
+	).Scan(&icalToken)
+	require.NoError(t, err)
+
+	tReq := test.CreateRequestTester(getRoutes(), http.MethodGet,
+		fmt.Sprintf("/recipes/ical/%s.ics", icalToken))
+	rs := tReq.Do(t)
+	require.Equal(t, http.StatusOK, rs.StatusCode)
+
+	body, err := io.ReadAll(rs.Body)
+	require.NoError(t, err)
+	assert.NotContains(t, string(body), "BEGIN:VEVENT")
+}
+
+func TestUpdatePlan_WithICalSettings(t *testing.T) {
+	planID := createTestPlan(t)
+
+	tReq := test.CreateRequestTester(getRoutes(), http.MethodPost,
+		"/recipes/plans/"+planID+"/edit")
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetFollowRedirect(false)
+	tReq.SetData(dtos.UpdatePlanDto{
+		Name:          "Updated Week",
+		ICalHideSlots: []string{"breakfast"},
+		ICalHidePast:  true,
+	})
+	rs := tReq.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	var hideSlots []string
+	var hidePast bool
+	err := testDB.QueryRow(
+		t.Context(),
+		`SELECT ical_hide_slots, ical_hide_past FROM recipes.plans WHERE id = $1`,
+		planID,
+	).Scan(&hideSlots, &hidePast)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"breakfast"}, hideSlots)
+	assert.True(t, hidePast)
+}
+
 // ── New plan form ─────────────────────────────────────────────────────────────
 
 func TestNewPlanForm_OK(t *testing.T) {
