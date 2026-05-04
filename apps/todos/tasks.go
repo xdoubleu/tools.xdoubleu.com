@@ -439,6 +439,28 @@ func (a *Todos) editTaskFormHandler(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
+func safeLocalRedirectTarget(rawBack string, fallback string) string {
+	if rawBack == "" {
+		return fallback
+	}
+
+	normalized := strings.ReplaceAll(rawBack, "\\", "/")
+	target, err := url.Parse(normalized)
+	if err != nil {
+		return fallback
+	}
+
+	if target.Hostname() != "" || target.Scheme != "" {
+		return fallback
+	}
+
+	if !strings.HasPrefix(target.Path, "/") {
+		return fallback
+	}
+
+	return target.String()
+}
+
 // ── Update task ───────────────────────────────────────────────────────────────
 
 func (a *Todos) updateTaskHandler(w http.ResponseWriter, r *http.Request) error {
@@ -460,10 +482,7 @@ func (a *Todos) updateTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	if err = a.services.Tasks.Update(r.Context(), id, user.ID, dto); err != nil {
 		return err
 	}
-	back := r.URL.Query().Get("back")
-	if back == "" {
-		back = "/todos/" + id.String()
-	}
+	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), "/todos/"+id.String())
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -482,10 +501,7 @@ func (a *Todos) completeTaskHandler(w http.ResponseWriter, r *http.Request) erro
 	if err = a.services.Tasks.Complete(r.Context(), id, user.ID); err != nil {
 		return err
 	}
-	back := r.URL.Query().Get("back")
-	if back == "" {
-		back = todosRoot
-	}
+	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
