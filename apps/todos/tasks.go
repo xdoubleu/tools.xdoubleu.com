@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
@@ -173,6 +175,12 @@ func (a *Todos) quickAddHandler(w http.ResponseWriter, r *http.Request) error {
 	back := r.URL.Query().Get("back")
 	if back == "" {
 		back = todosRoot
+	} else {
+		back = strings.ReplaceAll(back, "\\", "/")
+		target, parseErr := url.Parse(back)
+		if parseErr != nil || target.Hostname() != "" {
+			back = todosRoot
+		}
 	}
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
