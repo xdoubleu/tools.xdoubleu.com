@@ -1,0 +1,122 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+
+  <form method="GET" action="/todos/search" class="mb-3">
+    <div class="input-group input-group-sm">
+      <input type="text" name="q" class="form-control"
+        placeholder="Search all tasks…" value="{{.Query}}" autocomplete="off">
+      <button type="submit" class="btn btn-outline-secondary">Search</button>
+      {{if .Query}}
+      <a href="/todos/archive" class="btn btn-outline-secondary">Clear</a>
+      {{end}}
+    </div>
+  </form>
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="/todos/">Open</a>
+    </li>
+    {{range .Sections}}
+    <li class="nav-item">
+      <a class="nav-link" href="/todos/?section={{.ID}}">{{.Name}}</a>
+    </li>
+    {{end}}
+    <li class="nav-item">
+      <a class="nav-link" href="/todos/done">Done</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="/todos/archive">Archive</a>
+    </li>
+    <li class="nav-item ms-auto">
+      <a class="nav-link" href="/todos/settings">Settings</a>
+    </li>
+    {{if .UserSettings}}
+    <li class="nav-item d-flex align-items-center ms-2">
+      {{if .UserSettings.ActiveWorkspace}}
+      <form method="POST" action="/todos/mode" class="m-0">
+        <input type="hidden" name="workspace_id" value="">
+        <input type="hidden" name="back" value="/todos/archive">
+        <button type="submit" class="btn btn-sm btn-warning">
+          {{.UserSettings.ActiveWorkspace.Name}}
+        </button>
+      </form>
+      {{else if .Workspaces}}
+      <form method="POST" action="/todos/mode" class="m-0">
+        <input type="hidden" name="workspace_id"
+          value="{{(index .Workspaces 0).ID}}">
+        <input type="hidden" name="back" value="/todos/archive">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+          Private
+        </button>
+      </form>
+      {{else}}
+      <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+        Private
+      </button>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+
+  {{if not .Tasks}}
+  <p class="text-muted">{{if .Query}}No tasks match "{{.Query}}".{{else}}Archive is empty.{{end}}</p>
+  {{else}}
+  <div class="list-group">
+    {{range .Tasks}}
+    <a href="/todos/{{.ID}}"
+      class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2">
+      <div class="min-w-0 flex-grow-1">
+        <div class="d-flex align-items-center gap-1 mb-1">
+          {{if eq .Priority 1}}<span class="priority-badge p1">P1</span>{{end}}
+          {{if eq .Priority 2}}<span class="priority-badge p2">P2</span>{{end}}
+          {{if eq .Priority 3}}<span class="priority-badge p3">P3</span>{{end}}
+          <span class="fw-semibold text-truncate text-muted">{{.Title}}</span>
+        </div>
+        <div class="d-flex flex-wrap gap-1">
+          {{if .TypeLabel}}<span class="badge bg-secondary">{{.TypeLabel}}</span>{{end}}
+          {{if .SetupLabel}}<span class="badge bg-light text-dark border">{{.SetupLabel}}</span>{{end}}
+          {{if .ArchivedAt}}<span class="badge bg-light text-muted border">
+            archived {{.ArchivedAt.Format "2 Jan 2006"}}</span>{{end}}
+        </div>
+      </div>
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+
+</div>
+
+<style>
+.priority-badge{display:inline-block;padding:.15em .45em;border-radius:.25rem;font-size:.7rem;font-weight:700;line-height:1}
+.priority-badge.p1{background:#dc3545;color:#fff}
+.priority-badge.p2{background:#fd7e14;color:#fff}
+.priority-badge.p3{background:#0d6efd;color:#fff}
+</style>
+
+<script>
+document.addEventListener('keydown', function (e) {
+  var tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+      || e.target.isContentEditable) { return; }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    var tabLinks = Array.from(
+      document.querySelectorAll('.nav-tabs .nav-link')
+    ).filter(function (l) {
+      return l.getAttribute('href') !== '/todos/settings';
+    });
+    var activeIdx = tabLinks.findIndex(function (l) {
+      return l.classList.contains('active');
+    });
+    if (activeIdx !== -1) {
+      var nextIdx = e.key === 'ArrowRight' ? activeIdx + 1 : activeIdx - 1;
+      if (nextIdx >= 0 && nextIdx < tabLinks.length) {
+        e.preventDefault();
+        window.location.href = tabLinks[nextIdx].getAttribute('href');
+      }
+    }
+  }
+});
+</script>
+
+{{ template "footer" }}{{ template "page_end" }}

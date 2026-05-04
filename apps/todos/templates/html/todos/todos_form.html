@@ -1,0 +1,183 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <a href="{{if .IsEdit}}/todos/{{.Task.ID}}{{else}}/todos/{{end}}"
+      class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+    <h3 class="mb-0">{{if .IsEdit}}Edit Task{{else}}New Task{{end}}</h3>
+  </div>
+
+  <form method="POST" action="{{.Action}}">
+
+    <div class="mb-3">
+      <input type="text" name="title" class="form-control form-control-lg fw-semibold"
+        value="{{.Task.Title}}" placeholder="Task title" required autofocus>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-sm-2">
+        <label class="form-label small fw-semibold">Priority</label>
+        <select name="priority" class="form-select">
+          <option value="0" {{if eq .Task.Priority 0}}selected{{end}}>— none —</option>
+          <option value="1" {{if eq .Task.Priority 1}}selected{{end}}>🔴 P1 – high</option>
+          <option value="2" {{if eq .Task.Priority 2}}selected{{end}}>🟠 P2 – medium</option>
+          <option value="3" {{if eq .Task.Priority 3}}selected{{end}}>🔵 P3 – low</option>
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small fw-semibold">Setup</label>
+        <select name="setup_label" class="form-select">
+          <option value="">— none —</option>
+          {{range .Presets.Setups}}
+          <option value="{{.}}" {{if eq . $.Task.SetupLabel}}selected{{end}}>{{.}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small fw-semibold">Type</label>
+        <select name="type_label" class="form-select">
+          <option value="">— none —</option>
+          {{range .Presets.Types}}
+          <option value="{{.}}" {{if eq . $.Task.TypeLabel}}selected{{end}}>{{.}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small fw-semibold">Due date</label>
+        <input type="date" name="due_date" class="form-control"
+          value="{{if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}">
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small fw-semibold">Section</label>
+        <select name="section_id" class="form-select">
+          <option value="">— none —</option>
+          {{range .Sections}}
+          <option value="{{.ID}}"
+            {{if and $.Task.SectionID (eq $.Task.SectionID.String .ID.String)}}
+            selected
+            {{end}}>{{.Name}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="col-sm-1">
+        <label class="form-label small fw-semibold">Recur</label>
+        <input type="number" name="recur_days" class="form-control text-center"
+          min="0" placeholder="days" title="Recur every N days (0 = off)"
+          value="{{.Task.RecurDays}}">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label small fw-semibold">Description
+        <span class="fw-normal text-muted">(markdown — click to edit)</span>
+      </label>
+      <div id="formDescView"
+        class="border rounded p-3 markdown-body"
+        style="cursor:text; min-height:3em">
+        <span class="text-muted fst-italic small">Click to add a description…</span>
+      </div>
+      <textarea name="description" id="formDesc"
+        class="form-control font-monospace mt-0"
+        style="display:none; border-top-left-radius:0; border-top-right-radius:0"
+        placeholder="Write notes in markdown…">{{.Task.Description}}</textarea>
+    </div>
+
+    <hr>
+    <h6 class="fw-semibold mb-2">Work links</h6>
+    <div id="links">
+      {{range .Task.Links}}
+      <div class="row g-2 mb-2 link-row">
+        <div class="col-7">
+          <input type="url" name="link_url" class="form-control form-control-sm"
+            placeholder="https://…" value="{{.URL}}">
+        </div>
+        <div class="col-4">
+          <input type="text" name="link_label" class="form-control form-control-sm"
+            placeholder="Label (e.g. PR #42)" value="{{.Label}}">
+        </div>
+        <div class="col-1">
+          <button type="button" class="btn btn-outline-danger btn-sm w-100"
+            onclick="this.closest('.link-row').remove()">×</button>
+        </div>
+      </div>
+      {{end}}
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-3"
+      id="addLink">+ Add link</button>
+
+    <hr>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-dark">Save</button>
+      <a href="{{if .IsEdit}}/todos/{{.Task.ID}}{{else}}/todos/{{end}}"
+        class="btn btn-outline-secondary">Cancel</a>
+    </div>
+
+  </form>
+
+</div>
+
+<style>
+.markdown-body h1,.markdown-body h2,.markdown-body h3{margin-top:1rem;margin-bottom:.5rem}
+.markdown-body ul,.markdown-body ol{padding-left:1.5rem}
+.markdown-body code{background:var(--bs-secondary-bg);padding:.1em .3em;border-radius:3px}
+.markdown-body pre code{background:none;padding:0}
+.markdown-body pre{background:var(--bs-secondary-bg);padding:.75rem 1rem;border-radius:.375rem;overflow-x:auto}
+.markdown-body blockquote{border-left:4px solid var(--bs-secondary);padding-left:1rem;color:var(--bs-secondary-color)}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script>
+(function () {
+  var descView = document.getElementById('formDescView');
+  var descEl   = document.getElementById('formDesc');
+
+  var PLACEHOLDER = '<span class="text-muted fst-italic small">'
+    + 'Click to add a description…</span>';
+
+  function renderDesc() {
+    var src = descEl.value.trim();
+    descView.innerHTML = src ? marked.parse(src) : PLACEHOLDER;
+  }
+
+  function startEdit() {
+    descView.style.display = 'none';
+    descEl.style.display   = '';
+    descEl.style.height    = 'auto';
+    descEl.style.height    = Math.max(120, descEl.scrollHeight) + 'px';
+    descEl.focus();
+  }
+
+  function endEdit() {
+    renderDesc();
+    descEl.style.display  = 'none';
+    descView.style.display = '';
+  }
+
+  descView.addEventListener('click', startEdit);
+  descEl.addEventListener('blur', endEdit);
+  descEl.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.max(120, this.scrollHeight) + 'px';
+  });
+
+  renderDesc();
+
+  document.getElementById('addLink').addEventListener('click', function () {
+    var row = document.createElement('div');
+    row.className = 'row g-2 mb-2 link-row';
+    row.innerHTML =
+      '<div class="col-7"><input type="url" name="link_url"'
+      + ' class="form-control form-control-sm" placeholder="https://…"></div>'
+      + '<div class="col-4"><input type="text" name="link_label"'
+      + ' class="form-control form-control-sm"'
+      + ' placeholder="Label (e.g. PR #42)"></div>'
+      + '<div class="col-1"><button type="button"'
+      + ' class="btn btn-outline-danger btn-sm w-100"'
+      + ' onclick="this.closest(\'.link-row\').remove()">×</button></div>';
+    document.getElementById('links').appendChild(row);
+  });
+}());
+</script>
+
+{{ template "footer" }}{{ template "page_end" }}
