@@ -28,6 +28,30 @@ var (
 	sanitizer = bluemonday.UGCPolicy()
 )
 
+func safeBackRedirect(back string, fallback string) string {
+	if back == "" {
+		return fallback
+	}
+
+	normalized := strings.ReplaceAll(back, "\\", "/")
+	target, err := url.Parse(normalized)
+	if err != nil {
+		return fallback
+	}
+
+	// Allow only local redirects (no host/scheme).
+	if target.Hostname() != "" || target.IsAbs() {
+		return fallback
+	}
+
+	// Require an absolute local path for predictable behavior.
+	if !strings.HasPrefix(target.Path, "/") {
+		return fallback
+	}
+
+	return target.String()
+}
+
 const todosRoot = "/todos/"
 
 type workspaceCtx struct {
@@ -538,10 +562,7 @@ func (a *Todos) deleteTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	if err = a.services.Tasks.Delete(r.Context(), id, user.ID); err != nil {
 		return err
 	}
-	back := r.URL.Query().Get("back")
-	if back == "" {
-		back = todosRoot
-	}
+	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -569,10 +590,7 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 	); err != nil {
 		return err
 	}
-	back := r.URL.Query().Get("back")
-	if back == "" {
-		back = "/todos/" + taskID.String()
-	}
+	back := safeBackRedirect(r.URL.Query().Get("back"), "/todos/"+taskID.String())
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -600,10 +618,7 @@ func (a *Todos) handleSubtaskAction(
 	if err = action(r.Context(), sid, taskID, user.ID); err != nil {
 		return err
 	}
-	back := r.URL.Query().Get("back")
-	if back == "" {
-		back = "/todos/" + taskID.String()
-	}
+	back := safeBackRedirect(r.URL.Query().Get("back"), "/todos/"+taskID.String())
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
