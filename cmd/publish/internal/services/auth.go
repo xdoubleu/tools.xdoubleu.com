@@ -329,6 +329,11 @@ func (service *AuthService) AppAccess(
 	})
 }
 
+func (service *AuthService) ForgotPassword(email string) error {
+	//nolint:exhaustruct //CaptchaToken is optional
+	return service.client.Recover(types.RecoverRequest{Email: email})
+}
+
 // HasVerifiedTOTP returns the factor ID of the first verified TOTP factor, or
 // (zero, false) when the user has not enrolled MFA yet.
 func (service *AuthService) HasVerifiedTOTP(

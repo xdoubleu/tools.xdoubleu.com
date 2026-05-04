@@ -25,3 +25,13 @@ func IsRelativeURL(url string) (bool, string) {
 	}
 	return false, "invalid relative URL"
 }
+
+type ForgotPasswordDto struct {
+	Email string `schema:"email"`
+}
+
+func (dto *ForgotPasswordDto) Validate() (bool, map[string]string) {
+	v := validate.New()
+	validate.Check(v, "email", dto.Email, validate.IsNotEmpty)
+	return v.Valid(), v.Errors()
+}

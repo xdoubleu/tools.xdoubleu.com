@@ -23,6 +23,14 @@ const (
 func (app *Application) authRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(fmt.Sprintf("POST /%s/signin", prefix), app.signInHandler)
 	mux.HandleFunc(
+		fmt.Sprintf("GET /%s/forgot-password", prefix),
+		app.forgotPasswordGetHandler,
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("POST /%s/forgot-password", prefix),
+		app.forgotPasswordPostHandler,
+	)
+	mux.HandleFunc(
 		fmt.Sprintf("GET /%s/signout", prefix),
 		app.services.Auth.Access(app.signOutHandler),
 	)
@@ -338,6 +346,37 @@ func (app *Application) mfaChallengePostHandler(
 	}
 
 	app.completeMFA(w, r, *accessToken, *refreshToken, rememberMe, redirect)
+}
+
+func (app *Application) forgotPasswordGetHandler(
+	w http.ResponseWriter,
+	_ *http.Request,
+) {
+	tpltools.RenderWithPanic(app.tpl, w, "forgot-password.html", map[string]any{
+		"HideNav": true,
+	})
+}
+
+func (app *Application) forgotPasswordPostHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	var dto dtos.ForgotPasswordDto
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		httptools.RedirectWithError(w, r, "/auth/forgot-password", err)
+		return
+	}
+
+	if ok, errs := dto.Validate(); !ok {
+		httptools.FailedValidationResponse(w, r, errs)
+		return
+	}
+
+	// Always redirect with sent=1 to avoid leaking whether the email exists.
+	_ = app.services.Auth.ForgotPassword(dto.Email)
+	http.Redirect(w, r, "/auth/forgot-password?sent=1", http.StatusSeeOther)
 }
 
 func (app *Application) signOutHandler(w http.ResponseWriter, r *http.Request) {
