@@ -17,6 +17,23 @@
                 document.documentElement.setAttribute('data-bs-theme', e.matches ? 'dark' : 'light');
             });
         })();
+        (function() {
+            var buf = [], max = 50;
+            window.__consoleLogs = buf;
+            ['log', 'warn', 'error'].forEach(function(level) {
+                var orig = console[level];
+                console[level] = function() {
+                    var args = Array.prototype.slice.call(arguments);
+                    var msg = args.map(function(a) {
+                        try { return typeof a === 'object' ? JSON.stringify(a) : String(a); }
+                        catch (_) { return String(a); }
+                    }).join(' ');
+                    buf.push({ t: new Date().toISOString(), level: level, msg: msg });
+                    if (buf.length > max) buf.shift();
+                    orig.apply(console, args);
+                };
+            });
+        })();
     </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <style>
@@ -61,6 +78,8 @@
             <div class="modal-content">
                 <form id="bug-report-form">
                     <input type="hidden" name="page" id="bug-report-page">
+                    <input type="hidden" name="consoleLogs" id="bug-report-console-logs">
+                    <input type="hidden" name="wsLog" id="bug-report-ws-log">
                     <div class="modal-header">
                         <h5 class="modal-title" id="bugReportModalLabel">Report a bug</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -90,6 +109,14 @@
         document.getElementById('bug-report-form').onsubmit = async e => {
             e.preventDefault();
             document.getElementById('bug-report-page').value = window.location.href;
+            document.getElementById('bug-report-console-logs').value =
+                (window.__consoleLogs || [])
+                    .map(function(e) { return '[' + e.t + '] ' + e.level.toUpperCase() + ': ' + e.msg; })
+                    .join('\n');
+            document.getElementById('bug-report-ws-log').value =
+                (window.__wsLog || [])
+                    .map(function(e) { return '[' + e.t + '] ' + e.dir + ' ' + e.type + ' (' + e.trackType + ')'; })
+                    .join('\n');
             const result = document.getElementById('bug-report-result');
             result.className = 'd-none';
             const res = await fetch('/api/bug-report', {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -47,7 +48,10 @@ func isExpectedCloseErr(err error) bool {
 	if status == websocket.StatusNormalClosure || status == websocket.StatusGoingAway {
 		return true
 	}
-	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+	return errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, io.EOF) ||
+		errors.Is(err, io.ErrUnexpectedEOF)
 }
 
 func (app *WatchParty) wsRoutes(prefix string, mux *http.ServeMux) {
