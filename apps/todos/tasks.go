@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
@@ -26,6 +28,24 @@ import (
 var (
 	md        = goldmark.New()
 	sanitizer = bluemonday.UGCPolicy()
+func safeBackRedirect(back string, fallback string) string {
+	if back == "" {
+		return fallback
+	}
+
+	normalized := strings.ReplaceAll(back, "\\", "/")
+	target, err := url.Parse(normalized)
+	if err != nil {
+		return fallback
+	}
+
+	if target.Hostname() != "" || !strings.HasPrefix(target.Path, "/") {
+		return fallback
+	}
+
+	return target.String()
+}
+
 )
 
 const todosRoot = "/todos/"
@@ -514,10 +534,7 @@ func (a *Todos) deleteTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	user := currentUser(r)
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		return &services.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Task not found",
-		}
+	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
 	}
 	if err = a.services.Tasks.Delete(r.Context(), id, user.ID); err != nil {
 		return err
@@ -545,10 +562,7 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 	if err = httptools.ReadForm(r, &dto); err != nil {
 		return &services.HTTPError{
 			Status:  http.StatusBadRequest,
-			Message: "Invalid form data",
-		}
-	}
-	if err = a.services.Tasks.AddSubtask(
+	back := safeBackRedirect(r.URL.Query().Get("back"), "/todos/"+taskID.String())
 		r.Context(), taskID, user.ID, dto.Title,
 	); err != nil {
 		return err
