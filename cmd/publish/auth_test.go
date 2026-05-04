@@ -110,6 +110,47 @@ func TestSignIn(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rs.StatusCode)
 }
 
+func TestForgotPasswordGetHandler(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodGet,
+		"/auth/forgot-password",
+	)
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
+}
+
+func TestForgotPasswordPostHandler(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/auth/forgot-password",
+	)
+
+	tReq.SetFollowRedirect(false)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(dtos.ForgotPasswordDto{Email: "user@example.com"})
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+	assert.Contains(t, rs.Header.Get("Location"), "sent=1")
+}
+
+func TestForgotPasswordPostHandlerValidationFailure(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(),
+		http.MethodPost,
+		"/auth/forgot-password",
+	)
+
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(dtos.ForgotPasswordDto{Email: ""})
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
+}
+
 func TestRefreshTokens(t *testing.T) {
 	tReq := test.CreateRequestTester(
 		testApp.Routes(),
