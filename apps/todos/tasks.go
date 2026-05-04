@@ -28,6 +28,15 @@ import (
 var (
 	md        = goldmark.New()
 	sanitizer = bluemonday.UGCPolicy()
+)
+
+const todosRoot = "/todos/"
+
+type workspaceCtx struct {
+	Settings   *models.UserSettings
+	Workspaces []models.Workspace
+}
+
 func safeBackRedirect(back string, fallback string) string {
 	if back == "" {
 		return fallback
@@ -44,15 +53,6 @@ func safeBackRedirect(back string, fallback string) string {
 	}
 
 	return target.String()
-}
-
-)
-
-const todosRoot = "/todos/"
-
-type workspaceCtx struct {
-	Settings   *models.UserSettings
-	Workspaces []models.Workspace
 }
 
 func (a *Todos) loadWorkspaceCtx(
