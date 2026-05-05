@@ -54,6 +54,10 @@ func safeBackRedirect(back string, fallback string) string {
 
 const todosRoot = "/todos/"
 
+func isHXRequest(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true"
+}
+
 type workspaceCtx struct {
 	Settings   *models.UserSettings
 	Workspaces []models.Workspace
@@ -149,6 +153,15 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
+	if isHXRequest(r) {
+		tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
+			"Tasks":          taskList,
+			"CurrentSection": currentSection,
+		})
+		return nil
+	}
+
 	presets, err := a.services.Settings.GetLabelPresets(
 		r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
 	)
@@ -176,6 +189,57 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 
 // ── Quick-add (persistent input at top of list) ───────────────────────────────
 
+func (a *Todos) resolveSection(
+	ctx context.Context,
+	userID string,
+	workspaceID *uuid.UUID,
+	rawSectionID string,
+) (*uuid.UUID, *models.Section, error) {
+	if rawSectionID == "" {
+		return nil, nil, nil
+	}
+	sid, err := uuid.Parse(rawSectionID)
+	if err != nil {
+		return nil, nil, nil //nolint:nilerr // invalid UUID → treat as no section
+	}
+	sections, err := a.services.Sections.List(ctx, userID, workspaceID)
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := range sections {
+		if sections[i].ID == sid {
+			return &sid, &sections[i], nil
+		}
+	}
+	return nil, nil, nil
+}
+
+func (a *Todos) quickAddHTMX(
+	w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+	dto dtos.QuickAddDto,
+	wsCtx *workspaceCtx,
+) error {
+	sectionID, currentSection, err := a.resolveSection(
+		r.Context(), userID, wsCtx.Settings.ActiveWorkspaceID, dto.SectionID,
+	)
+	if err != nil {
+		return err
+	}
+	taskList, err := a.services.Tasks.ListOpen(
+		r.Context(), userID, sectionID, wsCtx.Settings.ActiveWorkspaceID,
+	)
+	if err != nil {
+		return err
+	}
+	tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
+		"Tasks":          taskList,
+		"CurrentSection": currentSection,
+	})
+	return nil
+}
+
 func (a *Todos) quickAddHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
 	var dto dtos.QuickAddDto
@@ -191,11 +255,16 @@ func (a *Todos) quickAddHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if err = a.services.Tasks.QuickAdd(
+	if _, err = a.services.Tasks.QuickAdd(
 		r.Context(), user.ID, dto.Input, wsCtx.Settings.ActiveWorkspaceID,
 	); err != nil {
 		return err
 	}
+
+	if isHXRequest(r) {
+		return a.quickAddHTMX(w, r, user.ID, dto, wsCtx)
+	}
+
 	back := r.URL.Query().Get("back")
 	if back == "" {
 		back = todosRoot
@@ -525,6 +594,10 @@ func (a *Todos) completeTaskHandler(w http.ResponseWriter, r *http.Request) erro
 	if err = a.services.Tasks.Complete(r.Context(), id, user.ID); err != nil {
 		return err
 	}
+	if isHXRequest(r) {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
 	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
@@ -562,6 +635,10 @@ func (a *Todos) deleteTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	if err = a.services.Tasks.Delete(r.Context(), id, user.ID); err != nil {
 		return err
 	}
+	if isHXRequest(r) {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
 	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
@@ -585,10 +662,17 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 			Message: "Invalid form data",
 		}
 	}
-	if err = a.services.Tasks.AddSubtask(
-		r.Context(), taskID, user.ID, dto.Title,
-	); err != nil {
+	subtask, err := a.services.Tasks.AddSubtask(r.Context(), taskID, user.ID, dto.Title)
+	if err != nil {
 		return err
+	}
+	if isHXRequest(r) {
+		tpltools.RenderWithPanic(a.Tpl, w, "_subtask_item", map[string]any{
+			"Subtask":        subtask,
+			"TaskID":         taskID,
+			"CurrentSection": (*models.Section)(nil),
+		})
+		return nil
 	}
 	back := safeBackRedirect(r.URL.Query().Get("back"), "/todos/"+taskID.String())
 	http.Redirect(w, r, back, http.StatusSeeOther)
@@ -617,6 +701,10 @@ func (a *Todos) handleSubtaskAction(
 	}
 	if err = action(r.Context(), sid, taskID, user.ID); err != nil {
 		return err
+	}
+	if isHXRequest(r) {
+		w.WriteHeader(http.StatusOK)
+		return nil
 	}
 	back := safeBackRedirect(r.URL.Query().Get("back"), "/todos/"+taskID.String())
 	http.Redirect(w, r, back, http.StatusSeeOther)

@@ -1,7 +1,8 @@
 package dtos
 
 type QuickAddDto struct {
-	Input string `schema:"input"`
+	Input     string `schema:"input"`
+	SectionID string `schema:"section_id"`
 }
 
 type SaveTaskDto struct {

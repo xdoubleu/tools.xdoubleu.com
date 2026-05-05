@@ -80,15 +80,13 @@ func (app *Backlog) booksPageHandler(w http.ResponseWriter, _ *http.Request) err
 	return nil
 }
 
-func (app *Backlog) booksLibraryHandler(w http.ResponseWriter, r *http.Request) error {
-	user := currentBacklogUser(r)
-	if user == nil {
-		return httpError(http.StatusUnauthorized, "Sign in to access this page")
-	}
-
-	library, err := app.Services.Books.GetLibrary(r.Context(), user.ID)
+func (app *Backlog) buildLibraryData(
+	r *http.Request,
+	userID string,
+) (booksPageData, error) {
+	library, err := app.Services.Books.GetLibrary(r.Context(), userID)
 	if err != nil {
-		return err
+		return booksPageData{}, err
 	}
 
 	var reading, wishlist, finished []models.UserBook
@@ -114,12 +112,26 @@ func (app *Backlog) booksLibraryHandler(w http.ResponseWriter, r *http.Request) 
 		return 0
 	})
 
-	tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", booksPageData{
+	return booksPageData{
 		Reading:  reading,
 		Wishlist: wishlist,
 		Finished: finished,
 		Shelves:  shelves,
-	})
+	}, nil
+}
+
+func (app *Backlog) booksLibraryHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentBacklogUser(r)
+	if user == nil {
+		return httpError(http.StatusUnauthorized, "Sign in to access this page")
+	}
+
+	data, err := app.buildLibraryData(r, user.ID)
+	if err != nil {
+		return err
+	}
+
+	tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", data)
 	return nil
 }
 

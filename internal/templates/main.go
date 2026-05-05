@@ -75,6 +75,21 @@ func LoadShared(cfg config.Config) *template.Template {
 			return time.Now().Year()
 		},
 		"toFraction": ToFraction,
+		"dict": func(keysAndValues ...any) (map[string]any, error) {
+			const pairSize = 2
+			if len(keysAndValues)%pairSize != 0 {
+				return nil, fmt.Errorf("dict: odd number of arguments")
+			}
+			m := make(map[string]any, len(keysAndValues)/pairSize)
+			for i := 0; i < len(keysAndValues); i += pairSize {
+				key, ok := keysAndValues[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict: key must be a string")
+				}
+				m[key] = keysAndValues[i+1]
+			}
+			return m, nil
+		},
 	}).ParseFS(
 		sharedFS,
 		"html/shared/*.html",

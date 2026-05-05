@@ -1,0 +1,9 @@
+{{if not .Tasks}}
+<p class="text-muted">No tasks here.</p>
+{{else}}
+<div class="list-group mb-3" id="taskSortable">
+  {{range .Tasks}}
+  {{template "_task_row" (dict "Task" . "CurrentSection" $.CurrentSection)}}
+  {{end}}
+</div>
+{{end}}

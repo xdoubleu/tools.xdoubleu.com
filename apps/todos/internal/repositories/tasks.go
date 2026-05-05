@@ -338,8 +338,10 @@ func (r *TasksRepository) AddSubtask(
 	taskID uuid.UUID,
 	userID string,
 	title string,
-) error {
-	_, err := r.db.Exec(ctx, `
+) (*models.Subtask, error) {
+	var s models.Subtask
+	s.TaskID = taskID
+	err := r.db.QueryRow(ctx, `
 		INSERT INTO todos.subtasks (task_id, title, sort_order)
 		SELECT $1, $2,
 		    COALESCE((SELECT MAX(sort_order)+1 FROM todos.subtasks
@@ -347,10 +349,14 @@ func (r *TasksRepository) AddSubtask(
 		WHERE EXISTS (
 		    SELECT 1 FROM todos.tasks
 		    WHERE id = $1 AND owner_user_id = $3
-		)`,
+		)
+		RETURNING id, title, done, sort_order, created_at`,
 		taskID, title, userID,
-	)
-	return err
+	).Scan(&s.ID, &s.Title, &s.Done, &s.SortOrder, &s.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 func (r *TasksRepository) ToggleSubtask(

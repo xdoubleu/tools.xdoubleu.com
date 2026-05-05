@@ -11,10 +11,37 @@ import (
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
+	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog/internal/dtos"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 )
+
+func isHXRequest(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true"
+}
+
+func buildFinishedAt(existing *models.UserBook, newStatus string) []time.Time {
+	if newStatus != models.StatusRead {
+		return nil
+	}
+	if existing == nil {
+		return []time.Time{time.Now()}
+	}
+	result := append([]time.Time{}, existing.FinishedAt...)
+	if existing.Status != models.StatusRead {
+		result = append(result, time.Now())
+	}
+	return result
+}
+
+func (app *Backlog) rebuildReadProgress(ctx context.Context, userID string) error {
+	labels, values, err := app.Services.Books.BuildReadProgress(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return app.Services.Progress.Save(ctx, models.BooksTypeID, userID, labels, values)
+}
 
 func toggleTag(tags []string, tag string, enable bool) []string {
 	result := make([]string, 0, len(tags))
@@ -138,18 +165,6 @@ func (app *Backlog) updateBookStatusHandler(
 		notes = &dto.Notes
 	}
 
-	var finishedAt []time.Time
-	if dto.Status == models.StatusRead {
-		if existing != nil {
-			finishedAt = append(finishedAt, existing.FinishedAt...)
-			if existing.Status != models.StatusRead {
-				finishedAt = append(finishedAt, time.Now())
-			}
-		} else {
-			finishedAt = append(finishedAt, time.Now())
-		}
-	}
-
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
 		UserID:     user.ID,
 		BookID:     bookID,
@@ -157,25 +172,25 @@ func (app *Backlog) updateBookStatusHandler(
 		Tags:       existingTags,
 		Rating:     rating,
 		Notes:      notes,
-		FinishedAt: finishedAt,
+		FinishedAt: buildFinishedAt(existing, dto.Status),
 	}
 	if err = app.Services.Books.UpdateStatus(r.Context(), user.ID, ub); err != nil {
 		return err
 	}
 
 	if dto.Status == models.StatusRead {
-		labels, values, buildErr := app.Services.Books.BuildReadProgress(
-			r.Context(),
-			user.ID,
-		)
-		if buildErr != nil {
-			return buildErr
+		if rebuildErr := app.rebuildReadProgress(r.Context(), user.ID); rebuildErr != nil {
+			return rebuildErr
 		}
-		if saveErr := app.Services.Progress.Save(
-			r.Context(), models.BooksTypeID, user.ID, labels, values,
-		); saveErr != nil {
-			return saveErr
+	}
+
+	if isHXRequest(r) {
+		data, libErr := app.buildLibraryData(r, user.ID)
+		if libErr != nil {
+			return libErr
 		}
+		tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", data)
+		return nil
 	}
 
 	http.Redirect(w, r, "/backlog/books", http.StatusSeeOther)
@@ -203,6 +218,15 @@ func (app *Backlog) toggleTagHandler(w http.ResponseWriter, r *http.Request) err
 		r.Context(), user.ID, bookID, dto.Tag,
 	); err != nil {
 		return err
+	}
+
+	if isHXRequest(r) {
+		data, libErr := app.buildLibraryData(r, user.ID)
+		if libErr != nil {
+			return libErr
+		}
+		tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", data)
+		return nil
 	}
 
 	http.Redirect(w, r, "/backlog/books", http.StatusSeeOther)
@@ -237,13 +261,7 @@ func (app *Backlog) importBooksHandler(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	labels, values, err := app.Services.Books.BuildReadProgress(importCtx, user.ID)
-	if err != nil {
-		return err
-	}
-	if err = app.Services.Progress.Save(
-		importCtx, models.BooksTypeID, user.ID, labels, values,
-	); err != nil {
+	if err = app.rebuildReadProgress(importCtx, user.ID); err != nil {
 		return err
 	}
 

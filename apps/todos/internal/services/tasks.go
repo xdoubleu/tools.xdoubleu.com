@@ -208,9 +208,9 @@ func (s *TaskService) AddSubtask(
 	taskID uuid.UUID,
 	userID string,
 	title string,
-) error {
+) (*models.Subtask, error) {
 	if title == "" {
-		return &HTTPError{
+		return nil, &HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Subtask title cannot be empty",
 		}
@@ -243,10 +243,10 @@ func (s *TaskService) QuickAdd(
 	userID string,
 	input string,
 	workspaceID *uuid.UUID,
-) error {
+) (*models.Task, error) {
 	sectionList, err := s.sections.ListByUser(ctx, userID, workspaceID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	title, parsedDTO := parseQuickInput(input, sectionList, time.Now())
@@ -276,13 +276,16 @@ func (s *TaskService) QuickAdd(
 	}
 	created, err := s.tasks.Create(ctx, t)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(links) > 0 {
 		links[0].TaskID = created.ID
-		return s.tasks.ReplaceLinks(ctx, created.ID, links)
+		if err = s.tasks.ReplaceLinks(ctx, created.ID, links); err != nil {
+			return nil, err
+		}
+		created.Links = links
 	}
-	return nil
+	return created, nil
 }
 
 func (s *TaskService) detectURLLink(
