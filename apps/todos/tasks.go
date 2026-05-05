@@ -102,8 +102,36 @@ func renderMarkdown(src string) (template.HTML, error) {
 
 // ── List open tasks (optionally filtered by ?section=<uuid>) ─────────────────
 
+// applyWorkspaceURL handles the ?w=UUID shortcut that lets users bookmark a
+// specific workspace. It sets the active workspace and redirects to the clean
+// root URL. Returns true when a redirect was sent (caller should return nil).
+func (a *Todos) applyWorkspaceURL(
+	w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+) bool {
+	raw := r.URL.Query().Get("w")
+	if raw == "" {
+		return false
+	}
+	var wsID *uuid.UUID
+	if raw != "private" {
+		id, err := uuid.Parse(raw)
+		if err == nil {
+			wsID = &id
+		}
+	}
+	_ = a.services.Settings.SetActiveWorkspace(r.Context(), userID, wsID)
+	http.Redirect(w, r, todosRoot, http.StatusSeeOther)
+	return true
+}
+
 func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
+
+	if a.applyWorkspaceURL(w, r, user.ID) {
+		return nil
+	}
 
 	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
 	if err != nil {

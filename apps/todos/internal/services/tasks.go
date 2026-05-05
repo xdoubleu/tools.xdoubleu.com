@@ -31,7 +31,11 @@ func (s *TaskService) ListOpen(
 	if err != nil {
 		return nil, err
 	}
-	return s.attachSubtasks(ctx, tasks)
+	tasks, err = s.attachSubtasks(ctx, tasks)
+	if err != nil {
+		return nil, err
+	}
+	return s.attachLinks(ctx, tasks)
 }
 
 func (s *TaskService) List(
@@ -44,7 +48,11 @@ func (s *TaskService) List(
 	if err != nil {
 		return nil, err
 	}
-	return s.attachSubtasks(ctx, tasks)
+	tasks, err = s.attachSubtasks(ctx, tasks)
+	if err != nil {
+		return nil, err
+	}
+	return s.attachLinks(ctx, tasks)
 }
 
 func (s *TaskService) Search(
@@ -53,6 +61,9 @@ func (s *TaskService) Search(
 	query string,
 	workspaceID *uuid.UUID,
 ) ([]models.Task, error) {
+	if tasks, ok, err := s.searchByShortcut(ctx, userID, query, workspaceID); ok {
+		return tasks, err
+	}
 	return s.tasks.ListArchived(ctx, userID, query, workspaceID)
 }
 
@@ -62,6 +73,9 @@ func (s *TaskService) SearchAll(
 	query string,
 	workspaceID *uuid.UUID,
 ) ([]models.Task, error) {
+	if tasks, ok, err := s.searchByShortcut(ctx, userID, query, workspaceID); ok {
+		return tasks, err
+	}
 	return s.tasks.SearchAll(ctx, userID, query, workspaceID)
 }
 
@@ -88,6 +102,7 @@ func (s *TaskService) Create(
 		Priority:    dto.Priority,
 		RecurDays:   dto.RecurDays,
 		DueDate:     parseDatePtr(dto.DueDate),
+		Deadline:    parseDatePtr(dto.Deadline),
 		SectionID:   parseSectionID(dto.SectionID),
 	}
 	created, err := s.tasks.Create(ctx, t)
@@ -119,6 +134,7 @@ func (s *TaskService) Update(
 	existing.Priority = dto.Priority
 	existing.RecurDays = dto.RecurDays
 	existing.DueDate = parseDatePtr(dto.DueDate)
+	existing.Deadline = parseDatePtr(dto.Deadline)
 	existing.SectionID = parseSectionID(dto.SectionID)
 	if err = s.tasks.Update(ctx, *existing); err != nil {
 		return err
@@ -236,8 +252,9 @@ func (s *TaskService) DeleteSubtask(
 	return s.tasks.DeleteSubtask(ctx, id, taskID, userID)
 }
 
-// QuickAdd creates a task from a plain title or URL, parsing Todoist-style
-// shortcuts: #section, @type, /setup, p1/p2/p3, natural-language due dates.
+// QuickAdd creates a task from a plain title, fancy Markdown link [Title](URL),
+// or bare URL, parsing Todoist-style shortcuts: #section, @type, /setup,
+// p1/p2/p3, natural-language due dates.
 func (s *TaskService) QuickAdd(
 	ctx context.Context,
 	userID string,
@@ -249,11 +266,21 @@ func (s *TaskService) QuickAdd(
 		return nil, err
 	}
 
-	title, parsedDTO := parseQuickInput(input, sectionList, time.Now())
+	var title string
+	var linkURL, linkLabel string
+	var parsedDTO dtos.SaveTaskDto
 
-	linkURL, linkLabel := s.detectURLLink(ctx, userID, workspaceID, title)
-	if linkURL != "" {
-		title = urlToTitle(linkURL)
+	if fancyTitle, fancyURL, rest, ok := parseFancyURL(input); ok {
+		title = fancyTitle
+		linkURL = fancyURL
+		linkLabel = s.matchURLPattern(ctx, userID, workspaceID, fancyURL)
+		_, parsedDTO = parseQuickInput(rest, sectionList, time.Now())
+	} else {
+		title, parsedDTO = parseQuickInput(input, sectionList, time.Now())
+		linkURL, linkLabel = s.detectURLLink(ctx, userID, workspaceID, title)
+		if linkURL != "" {
+			title = urlToTitle(linkURL)
+		}
 	}
 
 	var links []models.TaskLink
@@ -318,7 +345,62 @@ func (s *TaskService) matchURLPattern(
 	return ""
 }
 
+// shortcutQueryPattern matches strings like "DCP1234" or "PROJ-42".
+var shortcutQueryPattern = regexp.MustCompile(`^([A-Z]+)([0-9A-Za-z-]+)$`)
+
+// searchByShortcut checks if query matches a configured URL shortcut
+// (e.g. "DCP1234") and, if so, searches by the reconstructed link URL.
+// Returns (tasks, true, err) when a shortcut matched; (nil, false, nil) otherwise.
+func (s *TaskService) searchByShortcut(
+	ctx context.Context,
+	userID string,
+	query string,
+	workspaceID *uuid.UUID,
+) ([]models.Task, bool, error) {
+	m := shortcutQueryPattern.FindStringSubmatch(strings.ToUpper(query))
+	if m == nil {
+		return nil, false, nil
+	}
+	shortcut := m[1]
+	identifier := strings.ToUpper(query)[len(shortcut):]
+
+	patterns, err := s.settings.GetURLPatterns(ctx, userID, workspaceID)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(patterns) == 0 {
+		return nil, false, nil
+	}
+	for _, p := range patterns {
+		if strings.ToUpper(p.Shortcut) != shortcut {
+			continue
+		}
+		linkURL := p.URLPrefix + identifier
+		tasks, searchErr := s.tasks.SearchByLinkURL(
+			ctx, userID, workspaceID, linkURL,
+		)
+		return tasks, true, searchErr
+	}
+	return nil, false, nil
+}
+
 // ── quick-add input parser ────────────────────────────────────────────────────
+
+// fancyURLPattern matches Edge-style "Copy as link": [Title](https://…)
+// with an optional trailing string of shortcuts.
+var fancyURLPattern = regexp.MustCompile(
+	`^\[([^\]]+)\]\((https?://[^\)]+)\)(.*)$`,
+)
+
+// parseFancyURL detects a Markdown link at the start of input and returns
+// (title, url, rest, true) when matched, or ("","","",false) otherwise.
+func parseFancyURL(input string) (string, string, string, bool) {
+	m := fancyURLPattern.FindStringSubmatch(strings.TrimSpace(input))
+	if m == nil {
+		return "", "", "", false
+	}
+	return strings.TrimSpace(m[1]), m[2], strings.TrimSpace(m[3]), true
+}
 
 // parseQuickInput extracts Todoist-style shortcuts from a raw input string and
 // returns the cleaned title plus a partially-filled SaveTaskDto.
@@ -457,6 +539,27 @@ func (s *TaskService) attachSubtasks(
 	}
 	for i := range tasks {
 		tasks[i].Subtasks = subtaskMap[tasks[i].ID]
+	}
+	return tasks, nil
+}
+
+func (s *TaskService) attachLinks(
+	ctx context.Context,
+	tasks []models.Task,
+) ([]models.Task, error) {
+	if len(tasks) == 0 {
+		return tasks, nil
+	}
+	ids := make([]uuid.UUID, len(tasks))
+	for i, t := range tasks {
+		ids[i] = t.ID
+	}
+	linkMap, err := s.tasks.ListLinksForTasks(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range tasks {
+		tasks[i].Links = linkMap[tasks[i].ID]
 	}
 	return tasks, nil
 }

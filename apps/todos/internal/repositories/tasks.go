@@ -23,7 +23,7 @@ func (r *TasksRepository) ListOpen(
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
 		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
-		       t.completed_at, t.archived_at, t.due_date,
+		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
 		       COUNT(s.id) FILTER (WHERE s.done) AS subtask_done,
@@ -53,7 +53,7 @@ func (r *TasksRepository) ListByStatus(
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
 		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
-		       t.completed_at, t.archived_at, t.due_date,
+		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
@@ -82,7 +82,7 @@ func (r *TasksRepository) ListArchived(
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
 		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
-		       t.completed_at, t.archived_at, t.due_date,
+		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
@@ -113,7 +113,7 @@ func (r *TasksRepository) SearchAll(
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
 		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
-		       t.completed_at, t.archived_at, t.due_date,
+		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
@@ -134,6 +134,38 @@ func (r *TasksRepository) SearchAll(
 	return scanTasks(rows)
 }
 
+// SearchByLinkURL finds tasks that have a link whose URL matches the given value.
+func (r *TasksRepository) SearchByLinkURL(
+	ctx context.Context,
+	userID string,
+	workspaceID *uuid.UUID,
+	linkURL string,
+) ([]models.Task, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT t.id, t.owner_user_id, t.title, t.description,
+		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
+		       t.completed_at, t.archived_at, t.due_date, t.deadline,
+		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
+		       t.recur_days,
+		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
+		       COUNT(s.id)                         AS subtask_total
+		FROM todos.tasks t
+		JOIN todos.task_links l ON l.task_id = t.id
+		LEFT JOIN todos.subtasks s ON s.task_id = t.id
+		WHERE t.owner_user_id = $1
+		  AND (t.workspace_id = $2 OR ($2::uuid IS NULL AND t.workspace_id IS NULL))
+		  AND l.url = $3
+		GROUP BY t.id
+		ORDER BY t.status ASC, t.created_at DESC`,
+		userID, workspaceID, linkURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanTasks(rows)
+}
+
 func (r *TasksRepository) GetByID(
 	ctx context.Context,
 	id uuid.UUID,
@@ -143,7 +175,7 @@ func (r *TasksRepository) GetByID(
 	err := r.db.QueryRow(ctx, `
 		SELECT id, owner_user_id, title, description, setup_label, type_label,
 		       status, priority, sort_order, completed_at, archived_at, due_date,
-		       created_at, updated_at, section_id, workspace_id, recur_days
+		       deadline, created_at, updated_at, section_id, workspace_id, recur_days
 		FROM todos.tasks
 		WHERE id = $1 AND owner_user_id = $2`,
 		id, userID,
@@ -151,7 +183,7 @@ func (r *TasksRepository) GetByID(
 		&t.ID, &t.OwnerUserID, &t.Title, &t.Description,
 		&t.SetupLabel, &t.TypeLabel, &t.Status,
 		&t.Priority, &t.SortOrder,
-		&t.CompletedAt, &t.ArchivedAt, &t.DueDate,
+		&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 		&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID, &t.RecurDays,
 	)
 	if err != nil {
@@ -228,12 +260,13 @@ func (r *TasksRepository) Create(
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO todos.tasks
 		    (owner_user_id, title, description, setup_label, type_label,
-		     due_date, section_id, workspace_id, priority, sort_order,
+		     due_date, deadline, section_id, workspace_id, priority, sort_order,
 		     recur_days)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, created_at, updated_at`,
 		t.OwnerUserID, t.Title, t.Description,
-		t.SetupLabel, t.TypeLabel, t.DueDate, t.SectionID, t.WorkspaceID,
+		t.SetupLabel, t.TypeLabel, t.DueDate, t.Deadline,
+		t.SectionID, t.WorkspaceID,
 		t.Priority, t.SortOrder, t.RecurDays,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
@@ -250,11 +283,13 @@ func (r *TasksRepository) Update(
 	_, err := r.db.Exec(ctx, `
 		UPDATE todos.tasks
 		SET title = $1, description = $2, setup_label = $3, type_label = $4,
-		    due_date = $5, section_id = $6, priority = $7, recur_days = $8,
+		    due_date = $5, deadline = $6, section_id = $7,
+		    priority = $8, recur_days = $9,
 		    updated_at = now()
-		WHERE id = $9 AND owner_user_id = $10`,
+		WHERE id = $10 AND owner_user_id = $11`,
 		t.Title, t.Description, t.SetupLabel, t.TypeLabel,
-		t.DueDate, t.SectionID, t.Priority, t.RecurDays, t.ID, t.OwnerUserID,
+		t.DueDate, t.Deadline, t.SectionID,
+		t.Priority, t.RecurDays, t.ID, t.OwnerUserID,
 	)
 	return err
 }
@@ -428,13 +463,47 @@ func (r *TasksRepository) ListSubtasksForTasks(
 	return result, rows.Err()
 }
 
+// ListLinksForTasks batch-fetches task links for a set of task IDs.
+func (r *TasksRepository) ListLinksForTasks(
+	ctx context.Context,
+	taskIDs []uuid.UUID,
+) (map[uuid.UUID][]models.TaskLink, error) {
+	strIDs := make([]string, len(taskIDs))
+	for i, id := range taskIDs {
+		strIDs[i] = id.String()
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT id, task_id, url, label, sort_order
+		FROM todos.task_links
+		WHERE task_id = ANY($1::uuid[])
+		ORDER BY task_id, sort_order`,
+		strIDs,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID][]models.TaskLink)
+	for rows.Next() {
+		var l models.TaskLink
+		if err = rows.Scan(
+			&l.ID, &l.TaskID, &l.URL, &l.Label, &l.SortOrder,
+		); err != nil {
+			return nil, err
+		}
+		result[l.TaskID] = append(result[l.TaskID], l)
+	}
+	return result, rows.Err()
+}
+
 func (r *TasksRepository) ListDoneForArchiving(
 	ctx context.Context,
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
 		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
-		       t.completed_at, t.archived_at, t.due_date,
+		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
@@ -536,7 +605,7 @@ func scanTasks(rows pgx.Rows) ([]models.Task, error) {
 			&t.ID, &t.OwnerUserID, &t.Title, &t.Description,
 			&t.SetupLabel, &t.TypeLabel, &t.Status,
 			&t.Priority, &t.SortOrder,
-			&t.CompletedAt, &t.ArchivedAt, &t.DueDate,
+			&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 			&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID,
 			&t.RecurDays, &t.SubtaskDone, &t.SubtaskTotal,
 		); err != nil {

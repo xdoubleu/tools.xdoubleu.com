@@ -75,6 +75,46 @@ func LoadShared(cfg config.Config) *template.Template {
 			return time.Now().Year()
 		},
 		"toFraction": ToFraction,
+		"humanDate": func(t *time.Time) string {
+			if t == nil {
+				return ""
+			}
+			now := time.Now()
+			today := time.Date(
+				now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local,
+			)
+			d := time.Date(
+				t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local,
+			)
+			//nolint:mnd // 24h/day, 7 days/week are fixed constants
+			days := int(math.Round(d.Sub(today).Hours() / 24))
+			switch days {
+			case -1:
+				return "Yesterday"
+			case 0:
+				return "Today"
+			case 1:
+				return "Tomorrow"
+			default:
+				if days > 1 && days < 7 {
+					return d.Format("Mon")
+				}
+				return d.Format("2 Jan")
+			}
+		},
+		"isOverdue": func(t *time.Time) bool {
+			if t == nil {
+				return false
+			}
+			now := time.Now()
+			today := time.Date(
+				now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local,
+			)
+			d := time.Date(
+				t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local,
+			)
+			return d.Before(today)
+		},
 		"dict": func(keysAndValues ...any) (map[string]any, error) {
 			const pairSize = 2
 			if len(keysAndValues)%pairSize != 0 {

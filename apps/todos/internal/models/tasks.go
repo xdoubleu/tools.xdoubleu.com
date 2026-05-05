@@ -33,6 +33,7 @@ type Task struct {
 	CompletedAt  *time.Time
 	ArchivedAt   *time.Time
 	DueDate      *time.Time
+	Deadline     *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	SectionID    *uuid.UUID
@@ -81,6 +82,7 @@ type URLPattern struct {
 	URLPrefix    string
 	PlatformName string
 	TypeLabel    string
+	Shortcut     string
 	SortOrder    int
 	WorkspaceID  *uuid.UUID
 }

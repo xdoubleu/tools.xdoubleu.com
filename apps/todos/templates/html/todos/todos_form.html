@@ -43,10 +43,17 @@
           {{end}}
         </select>
       </div>
-      <div class="col-sm-3">
+      <div class="col-sm-2">
         <label class="form-label small fw-semibold">Due date</label>
         <input type="date" name="due_date" class="form-control"
-          value="{{if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}">
+          value="{{if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}"
+          title="When you plan to work on it">
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small fw-semibold">Deadline</label>
+        <input type="date" name="deadline" class="form-control"
+          value="{{if .Task.Deadline}}{{.Task.Deadline.Format "2006-01-02"}}{{end}}"
+          title="Hard deadline — must be done by">
       </div>
       <div class="col-sm-2">
         <label class="form-label small fw-semibold">Section</label>

@@ -11,6 +11,7 @@ type SaveTaskDto struct {
 	SetupLabel  string   `schema:"setup_label"`
 	TypeLabel   string   `schema:"type_label"`
 	DueDate     string   `schema:"due_date"`
+	Deadline    string   `schema:"deadline"`
 	SectionID   string   `schema:"section_id"`
 	Priority    int      `schema:"priority"`
 	RecurDays   int      `schema:"recur_days"`
@@ -31,6 +32,7 @@ type AddURLPatternDto struct {
 	URLPrefix    string `schema:"url_prefix"`
 	PlatformName string `schema:"platform_name"`
 	TypeLabel    string `schema:"type_label"`
+	Shortcut     string `schema:"shortcut"`
 }
 
 type UpdateArchiveDto struct {

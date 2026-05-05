@@ -2,6 +2,8 @@
 {{$task := .Task}}
 {{$section := .CurrentSection}}
 {{$tid := $task.ID}}
+{{$back := ""}}
+{{if $section}}{{$back = printf "/todos/?section=%s" ($section.ID.String)}}{{else}}{{$back = "/todos/"}}{{end}}
 <div class="list-group-item px-3 py-2 task-row"
   data-task-id="{{$task.ID}}"
   data-title="{{$task.Title}}"
@@ -9,74 +11,110 @@
   data-type="{{$task.TypeLabel}}"
   data-priority="{{$task.Priority}}"
   data-due="{{if $task.DueDate}}{{$task.DueDate.Format "2006-01-02"}}{{end}}"
+  data-deadline="{{if $task.Deadline}}{{$task.Deadline.Format "2006-01-02"}}{{end}}"
   data-section-id="{{if $task.SectionID}}{{$task.SectionID}}{{end}}"
   data-recur-days="{{$task.RecurDays}}">
   <textarea hidden class="task-desc-store">{{$task.Description}}</textarea>
   <div class="d-flex align-items-start gap-2">
-    <span class="drag-handle text-muted px-1 pt-1" style="cursor:grab;user-select:none"
+
+    {{/* ── Drag handle ─────────────────────────────────────────── */}}
+    <span class="drag-handle text-muted pt-1" style="cursor:grab;user-select:none"
       title="Drag to reorder">⠿</span>
-    <div class="flex-grow-1 min-w-0">
-      <div class="d-flex align-items-center gap-1 mb-1">
-        {{if eq $task.Priority 1}}<span class="priority-badge p1" title="P1 – high">P1</span>{{end}}
-        {{if eq $task.Priority 2}}<span class="priority-badge p2" title="P2 – medium">P2</span>{{end}}
-        {{if eq $task.Priority 3}}<span class="priority-badge p3" title="P3 – low">P3</span>{{end}}
-        <a href="/todos/{{$task.ID}}"
-          class="text-decoration-none text-body fw-semibold text-truncate">
-          {{$task.Title}}
-        </a>
-      </div>
-      <div class="d-flex flex-wrap gap-1">
-        {{if $task.TypeLabel}}<span class="badge bg-secondary">{{$task.TypeLabel}}</span>{{end}}
-        {{if $task.SetupLabel}}<span class="badge bg-light text-dark border">{{$task.SetupLabel}}</span>{{end}}
-        {{if $task.DueDate}}<span class="badge bg-warning text-dark">{{$task.DueDate.Format "2 Jan"}}</span>{{end}}
-        {{if gt $task.RecurDays 0}}<span class="badge bg-info text-dark">&#8635; {{$task.RecurDays}}d</span>{{end}}
-        {{if gt $task.SubtaskTotal 0}}
-        <span class="badge bg-light text-dark border">{{$task.SubtaskDone}}/{{$task.SubtaskTotal}}</span>
+
+    {{/* ── Complete checkbox ────────────────────────────────────── */}}
+    <form method="POST"
+      action="/todos/{{$task.ID}}/complete?back={{$back}}"
+      hx-post="/todos/{{$task.ID}}/complete"
+      hx-target="closest .task-row"
+      hx-swap="delete"
+      class="m-0 flex-shrink-0 d-flex align-items-center pt-1">
+      <button type="submit"
+        class="task-check task-check-p{{$task.Priority}}"
+        title="Mark done"></button>
+    </form>
+
+    {{/* ── Main content (click body → task detail) ─────────────── */}}
+    <div class="flex-grow-1 min-w-0 task-body"
+      onclick="if(!event.target.closest('a,button,form,details,input,summary,textarea'))window.location='/todos/{{$task.ID}}'">
+
+      <div class="mb-1">
+        {{if $task.Links}}
+        <a href="{{(index $task.Links 0).URL}}" target="_blank"
+          rel="noopener noreferrer"
+          class="text-decoration-none text-body fw-semibold task-title-link"
+          onclick="event.stopPropagation()">{{$task.Title}}&nbsp;↗</a>
+        {{else}}
+        <span class="fw-semibold">{{$task.Title}}</span>
         {{end}}
       </div>
+
+      <div class="d-flex flex-wrap gap-1 align-items-center">
+        {{if $task.TypeLabel}}
+        <span class="badge bg-secondary">{{$task.TypeLabel}}</span>
+        {{end}}
+        {{if $task.SetupLabel}}
+        <span class="badge bg-light text-dark border">{{$task.SetupLabel}}</span>
+        {{end}}
+        {{if $task.DueDate}}
+        <span class="badge {{if isOverdue $task.DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}">
+          {{humanDate $task.DueDate}}
+        </span>
+        {{end}}
+        {{if $task.Deadline}}
+        <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
+          ⚑&nbsp;{{humanDate $task.Deadline}}
+        </span>
+        {{end}}
+        {{if gt $task.RecurDays 0}}
+        <span class="badge bg-info text-dark">&#8635;&nbsp;{{$task.RecurDays}}d</span>
+        {{end}}
+        {{if gt $task.SubtaskTotal 0}}
+        <span class="badge bg-light text-dark border">
+          {{$task.SubtaskDone}}/{{$task.SubtaskTotal}}
+        </span>
+        {{end}}
+      </div>
+
       {{/* Inline subtasks */}}
       <div class="mt-2 ms-1 subtask-list" id="subtasks-{{$task.ID}}">
         {{range $task.Subtasks}}
         {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid "CurrentSection" $section)}}
         {{end}}
       </div>
-      <details class="subtask-details mt-1">
-        <summary class="small text-muted" style="cursor:pointer;list-style:none">
-          + subtask
-        </summary>
-        <form method="POST"
-          action="/todos/{{$task.ID}}/subtasks?back={{if $section}}/todos/?section={{$section.ID}}{{else}}/todos/{{end}}"
-          hx-post="/todos/{{$task.ID}}/subtasks"
-          hx-target="#subtasks-{{$task.ID}}"
-          hx-swap="beforeend"
-          hx-on::after-request="this.reset()"
-          class="mt-1">
-          <div class="input-group input-group-sm" style="max-width:320px">
-            <input type="text" name="title"
-              class="form-control form-control-sm subtask-input"
-              placeholder="Subtask title…">
-            <button type="submit" class="btn btn-outline-secondary btn-sm">
-              Add
-            </button>
-          </div>
-        </form>
-      </details>
+
+      {{/* Add-subtask form (hidden; shown by JS) */}}
+      <form id="subtask-add-{{$task.ID}}"
+        method="POST"
+        action="/todos/{{$task.ID}}/subtasks?back={{$back}}"
+        hx-post="/todos/{{$task.ID}}/subtasks"
+        hx-target="#subtasks-{{$task.ID}}"
+        hx-swap="beforeend"
+        hx-on::after-request="this.reset();this.style.display='none'"
+        class="mt-1"
+        style="display:none">
+        <div class="input-group input-group-sm" style="max-width:320px">
+          <input type="text" name="title"
+            class="form-control form-control-sm subtask-input"
+            placeholder="Subtask title…">
+          <button type="submit" class="btn btn-outline-secondary btn-sm">Add</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm"
+            onclick="document.getElementById('subtask-add-{{$task.ID}}').style.display='none'">
+            ✕
+          </button>
+        </div>
+      </form>
     </div>
-    <div class="d-flex gap-1 flex-shrink-0 align-items-start pt-1">
+
+    {{/* ── Hover-only action buttons ────────────────────────────── */}}
+    <div class="d-flex gap-1 flex-shrink-0 align-items-start pt-1 task-actions">
       <button class="btn btn-outline-secondary btn-sm"
         data-bs-toggle="modal" data-bs-target="#taskModal" data-mode="edit"
         title="Edit">&#9998;</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm"
+        onclick="(function(id){var f=document.getElementById('subtask-add-'+id);f.style.display='';f.querySelector('.subtask-input').focus()})('{{$task.ID}}')"
+        title="Add subtask">+</button>
       <form method="POST"
-        action="/todos/{{$task.ID}}/complete?back={{if $section}}/todos/?section={{$section.ID}}{{else}}/todos/{{end}}"
-        hx-post="/todos/{{$task.ID}}/complete"
-        hx-target="closest .task-row"
-        hx-swap="delete"
-        class="m-0">
-        <button type="submit" class="btn btn-outline-success btn-sm"
-          title="Mark done">&#10003;</button>
-      </form>
-      <form method="POST"
-        action="/todos/{{$task.ID}}/delete?back={{if $section}}/todos/?section={{$section.ID}}{{else}}/todos/{{end}}"
+        action="/todos/{{$task.ID}}/delete?back={{$back}}"
         hx-post="/todos/{{$task.ID}}/delete"
         hx-target="closest .task-row"
         hx-swap="delete"
@@ -85,6 +123,7 @@
           title="Delete">&#10005;</button>
       </form>
     </div>
+
   </div>
 </div>
 {{end}}

@@ -192,6 +192,7 @@ func TestSettingsURLPatterns(t *testing.T) {
 		URLPrefix:    "https://jira.example.com/browse/",
 		PlatformName: "Jira",
 		TypeLabel:    "CR",
+		Shortcut:     "",
 	})
 	rs := add.Do(t)
 	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
