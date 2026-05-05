@@ -11,8 +11,7 @@ const (
 	StatusDone     = "done"
 	StatusArchived = "archived"
 
-	LabelCategorySetup = "setup"
-	LabelCategoryType  = "type"
+	LabelCategory = "label"
 
 	PriorityNone = 0
 	PriorityP1   = 1
@@ -25,8 +24,7 @@ type Task struct {
 	OwnerUserID  string
 	Title        string
 	Description  string
-	SetupLabel   string
-	TypeLabel    string
+	Label        string
 	Status       string
 	Priority     int
 	SortOrder    int
@@ -72,8 +70,7 @@ type Section struct {
 }
 
 type LabelPresets struct {
-	Setups []string
-	Types  []string
+	Labels []string
 }
 
 type URLPattern struct {
@@ -81,7 +78,7 @@ type URLPattern struct {
 	UserID       string
 	URLPrefix    string
 	PlatformName string
-	TypeLabel    string
+	Label        string
 	Shortcut     string
 	SortOrder    int
 	WorkspaceID  *uuid.UUID

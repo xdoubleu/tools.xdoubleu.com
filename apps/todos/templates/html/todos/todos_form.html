@@ -3,7 +3,7 @@
 <div class="container py-4">
 
   <div class="d-flex align-items-center gap-3 mb-3">
-    <a href="{{if .IsEdit}}/todos/{{.Task.ID}}{{else}}/todos/{{end}}"
+    <a href="/todos/"
       class="btn btn-outline-secondary btn-sm">&larr; Back</a>
     <h3 class="mb-0">{{if .IsEdit}}Edit Task{{else}}New Task{{end}}</h3>
   </div>
@@ -26,20 +26,11 @@
         </select>
       </div>
       <div class="col-sm-2">
-        <label class="form-label small fw-semibold">Setup</label>
-        <select name="setup_label" class="form-select">
+        <label class="form-label small fw-semibold">Label</label>
+        <select name="label" class="form-select">
           <option value="">— none —</option>
-          {{range .Presets.Setups}}
-          <option value="{{.}}" {{if eq . $.Task.SetupLabel}}selected{{end}}>{{.}}</option>
-          {{end}}
-        </select>
-      </div>
-      <div class="col-sm-2">
-        <label class="form-label small fw-semibold">Type</label>
-        <select name="type_label" class="form-select">
-          <option value="">— none —</option>
-          {{range .Presets.Types}}
-          <option value="{{.}}" {{if eq . $.Task.TypeLabel}}selected{{end}}>{{.}}</option>
+          {{range .Presets.Labels}}
+          <option value="{{.}}" {{if eq . $.Task.Label}}selected{{end}}>{{.}}</option>
           {{end}}
         </select>
       </div>
@@ -77,17 +68,16 @@
 
     <div class="mb-3">
       <label class="form-label small fw-semibold">Description
-        <span class="fw-normal text-muted">(markdown — click to edit)</span>
+        <span class="fw-normal text-muted">(markdown)</span>
       </label>
-      <div id="formDescView"
-        class="border rounded p-3 markdown-body"
-        style="cursor:text; min-height:3em">
-        <span class="text-muted fst-italic small">Click to add a description…</span>
-      </div>
       <textarea name="description" id="formDesc"
-        class="form-control font-monospace mt-0"
-        style="display:none; border-top-left-radius:0; border-top-right-radius:0"
+        class="form-control font-monospace"
+        rows="8"
         placeholder="Write notes in markdown…">{{.Task.Description}}</textarea>
+      <div id="formDescPreview"
+        class="border border-top-0 rounded-bottom p-3 markdown-body"
+        style="display:none; min-height:2rem; background:var(--bs-tertiary-bg)">
+      </div>
     </div>
 
     <hr>
@@ -116,7 +106,7 @@
     <hr>
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-dark">Save</button>
-      <a href="{{if .IsEdit}}/todos/{{.Task.ID}}{{else}}/todos/{{end}}"
+      <a href="/todos/"
         class="btn btn-outline-secondary">Cancel</a>
     </div>
 
@@ -136,39 +126,28 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script>
 (function () {
-  var descView = document.getElementById('formDescView');
-  var descEl   = document.getElementById('formDesc');
+  var descEl      = document.getElementById('formDesc');
+  var descPreview = document.getElementById('formDescPreview');
 
-  var PLACEHOLDER = '<span class="text-muted fst-italic small">'
-    + 'Click to add a description…</span>';
-
-  function renderDesc() {
+  function updatePreview() {
     var src = descEl.value.trim();
-    descView.innerHTML = src ? marked.parse(src) : PLACEHOLDER;
+    if (src) {
+      descPreview.innerHTML    = marked.parse(src);
+      descPreview.style.display = '';
+    } else {
+      descPreview.style.display = 'none';
+    }
   }
 
-  function startEdit() {
-    descView.style.display = 'none';
-    descEl.style.display   = '';
-    descEl.style.height    = 'auto';
-    descEl.style.height    = Math.max(120, descEl.scrollHeight) + 'px';
-    descEl.focus();
-  }
-
-  function endEdit() {
-    renderDesc();
-    descEl.style.display  = 'none';
-    descView.style.display = '';
-  }
-
-  descView.addEventListener('click', startEdit);
-  descEl.addEventListener('blur', endEdit);
   descEl.addEventListener('input', function () {
     this.style.height = 'auto';
     this.style.height = Math.max(120, this.scrollHeight) + 'px';
+    updatePreview();
   });
 
-  renderDesc();
+  // Size and preview on load.
+  descEl.style.height = Math.max(120, descEl.scrollHeight) + 'px';
+  updatePreview();
 
   document.getElementById('addLink').addEventListener('click', function () {
     var row = document.createElement('div');

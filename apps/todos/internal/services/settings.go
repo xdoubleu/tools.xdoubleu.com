@@ -35,8 +35,7 @@ func (s *SettingsService) AddLabelPreset(
 			Message: "Label value cannot be empty",
 		}
 	}
-	if dto.Category != models.LabelCategorySetup &&
-		dto.Category != models.LabelCategoryType {
+	if dto.Category != models.LabelCategory {
 		return &HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid label category",
@@ -80,7 +79,7 @@ func (s *SettingsService) AddURLPattern(
 		UserID:       userID,
 		URLPrefix:    dto.URLPrefix,
 		PlatformName: dto.PlatformName,
-		TypeLabel:    dto.TypeLabel,
+		Label:        dto.Label,
 		Shortcut:     strings.ToUpper(strings.TrimSpace(dto.Shortcut)),
 		WorkspaceID:  workspaceID,
 	})

@@ -1,31 +1,21 @@
 package todos
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"html/template"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/microcosm-cc/bluemonday"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
-	"github.com/yuin/goldmark"
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/models"
 	"tools.xdoubleu.com/apps/todos/internal/services"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-)
-
-//nolint:gochecknoglobals // stateless renderers, safe to share
-var (
-	md        = goldmark.New()
-	sanitizer = bluemonday.UGCPolicy()
 )
 
 func safeBackRedirect(back string, fallback string) string {
@@ -91,51 +81,79 @@ func currentUser(r *http.Request) *sharedmodels.User {
 	)
 }
 
-func renderMarkdown(src string) (template.HTML, error) {
-	var buf bytes.Buffer
-	if err := md.Convert([]byte(src), &buf); err != nil {
-		return "", err
-	}
-	safe := sanitizer.SanitizeBytes(buf.Bytes())
-	return template.HTML(safe), nil //nolint:gosec // sanitised by bluemonday
-}
-
 // ── List open tasks (optionally filtered by ?section=<uuid>) ─────────────────
 
-// applyWorkspaceURL handles the ?w=UUID shortcut that lets users bookmark a
-// specific workspace. It sets the active workspace and redirects to the clean
-// root URL. Returns true when a redirect was sent (caller should return nil).
-func (a *Todos) applyWorkspaceURL(
-	w http.ResponseWriter,
-	r *http.Request,
-	userID string,
-) bool {
-	raw := r.URL.Query().Get("w")
-	if raw == "" {
+// workspaceQuery returns the URL query segment that encodes the active workspace,
+// e.g. "w=550e8400-…" or "w=private".
+func workspaceQuery(wsID *uuid.UUID) string {
+	if wsID == nil {
+		return "w=private"
+	}
+	return "w=" + wsID.String()
+}
+
+func wsIDsEqual(a, b *uuid.UUID) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
 		return false
 	}
-	var wsID *uuid.UUID
-	if raw != "private" {
-		id, err := uuid.Parse(raw)
-		if err == nil {
-			wsID = &id
+	return *a == *b
+}
+
+// applyWorkspaceParam reads ?w= from r, updates DB if it changed, and returns
+// true + a redirect URL when the caller should redirect (missing ?w= on a full
+// page load). The wsCtx is updated in-place when ?w= is present.
+func (a *Todos) applyWorkspaceParam(
+	r *http.Request,
+	wsCtx *workspaceCtx,
+	userID string,
+) (string, bool) {
+	rawW := r.URL.Query().Get("w")
+	if rawW == "" {
+		if isHXRequest(r) {
+			return "", false // HTMX partial — use DB workspace, no redirect
+		}
+		target := "/todos/?" + workspaceQuery(wsCtx.Settings.ActiveWorkspaceID)
+		if s := r.URL.Query().Get("section"); s != "" {
+			target += "&section=" + s
+		}
+		return target, true
+	}
+	var newWsID *uuid.UUID
+	if rawW != "private" {
+		if id, parseErr := uuid.Parse(rawW); parseErr == nil {
+			newWsID = &id
 		}
 	}
-	_ = a.services.Settings.SetActiveWorkspace(r.Context(), userID, wsID)
-	http.Redirect(w, r, todosRoot, http.StatusSeeOther)
-	return true
+	if !wsIDsEqual(wsCtx.Settings.ActiveWorkspaceID, newWsID) {
+		_ = a.services.Settings.SetActiveWorkspace(r.Context(), userID, newWsID)
+		wsCtx.Settings.ActiveWorkspaceID = newWsID
+		wsCtx.Settings.ActiveWorkspace = nil
+		if newWsID != nil {
+			for i := range wsCtx.Workspaces {
+				if wsCtx.Workspaces[i].ID == *newWsID {
+					wsCtx.Settings.ActiveWorkspace = &wsCtx.Workspaces[i]
+					break
+				}
+			}
+		}
+	}
+	return "", false
 }
 
 func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
 
-	if a.applyWorkspaceURL(w, r, user.ID) {
-		return nil
-	}
-
 	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
 	if err != nil {
 		return err
+	}
+
+	if target, redirect := a.applyWorkspaceParam(r, wsCtx, user.ID); redirect {
+		http.Redirect(w, r, target, http.StatusSeeOther)
+		return nil
 	}
 
 	var sectionID *uuid.UUID
@@ -211,6 +229,7 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 		"CurrentSection": currentSection,
 		"UserSettings":   wsCtx.Settings,
 		"Workspaces":     wsCtx.Workspaces,
+		"WorkspaceQuery": workspaceQuery(wsCtx.Settings.ActiveWorkspaceID),
 	})
 	return nil
 }
@@ -493,32 +512,6 @@ func (a *Todos) createTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
-// ── View task ─────────────────────────────────────────────────────────────────
-
-func (a *Todos) viewTaskHandler(w http.ResponseWriter, r *http.Request) error {
-	user := currentUser(r)
-	id, err := uuid.Parse(r.PathValue("id"))
-	if err != nil {
-		return &services.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Task not found",
-		}
-	}
-	task, err := a.services.Tasks.Get(r.Context(), id, user.ID)
-	if err != nil {
-		return err
-	}
-	descHTML, err := renderMarkdown(task.Description)
-	if err != nil {
-		return err
-	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_view.html", map[string]any{
-		"Task":     task,
-		"DescHTML": descHTML,
-	})
-	return nil
-}
-
 // ── Edit task form ────────────────────────────────────────────────────────────
 
 func (a *Todos) editTaskFormHandler(w http.ResponseWriter, r *http.Request) error {
@@ -603,7 +596,7 @@ func (a *Todos) updateTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	if err = a.services.Tasks.Update(r.Context(), id, user.ID, dto); err != nil {
 		return err
 	}
-	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), "/todos/"+id.String())
+	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -702,7 +695,7 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 		})
 		return nil
 	}
-	back := safeBackRedirect(r.URL.Query().Get("back"), "/todos/"+taskID.String())
+	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -734,7 +727,7 @@ func (a *Todos) handleSubtaskAction(
 		w.WriteHeader(http.StatusOK)
 		return nil
 	}
-	back := safeBackRedirect(r.URL.Query().Get("back"), "/todos/"+taskID.String())
+	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
