@@ -32,19 +32,15 @@ func (r *SettingsRepository) GetLabelPresets(
 	defer rows.Close()
 
 	presets := &models.LabelPresets{
-		Setups: []string{},
-		Types:  []string{},
+		Labels: []string{},
 	}
 	for rows.Next() {
 		var category, value string
 		if err = rows.Scan(&category, &value); err != nil {
 			return nil, err
 		}
-		switch category {
-		case models.LabelCategorySetup:
-			presets.Setups = append(presets.Setups, value)
-		case models.LabelCategoryType:
-			presets.Types = append(presets.Types, value)
+		if category == models.LabelCategory {
+			presets.Labels = append(presets.Labels, value)
 		}
 	}
 	return presets, rows.Err()
@@ -94,7 +90,7 @@ func (r *SettingsRepository) GetURLPatterns(
 	workspaceID *uuid.UUID,
 ) ([]models.URLPattern, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, user_id, url_prefix, platform_name, type_label, shortcut,
+		SELECT id, user_id, url_prefix, platform_name, label, shortcut,
 		       sort_order
 		FROM todos.url_patterns
 		WHERE user_id = $1 AND workspace_id IS NOT DISTINCT FROM $2
@@ -114,7 +110,7 @@ func (r *SettingsRepository) AddURLPattern(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO todos.url_patterns
-		    (user_id, url_prefix, platform_name, type_label, shortcut,
+		    (user_id, url_prefix, platform_name, label, shortcut,
 		     sort_order, workspace_id)
 		VALUES ($1, $2, $3, $4, $5,
 		    COALESCE((
@@ -122,7 +118,7 @@ func (r *SettingsRepository) AddURLPattern(
 		        FROM todos.url_patterns
 		        WHERE user_id = $1 AND workspace_id IS NOT DISTINCT FROM $6
 		    ), 0), $6)`,
-		p.UserID, p.URLPrefix, p.PlatformName, p.TypeLabel, p.Shortcut,
+		p.UserID, p.URLPrefix, p.PlatformName, p.Label, p.Shortcut,
 		p.WorkspaceID,
 	)
 	return err
@@ -245,7 +241,7 @@ func scanURLPatterns(rows pgx.Rows) ([]models.URLPattern, error) {
 		var p models.URLPattern
 		if err := rows.Scan(
 			&p.ID, &p.UserID, &p.URLPrefix, &p.PlatformName,
-			&p.TypeLabel, &p.Shortcut, &p.SortOrder,
+			&p.Label, &p.Shortcut, &p.SortOrder,
 		); err != nil {
 			return nil, err
 		}

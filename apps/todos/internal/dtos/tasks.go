@@ -8,8 +8,7 @@ type QuickAddDto struct {
 type SaveTaskDto struct {
 	Title       string   `schema:"title"`
 	Description string   `schema:"description"`
-	SetupLabel  string   `schema:"setup_label"`
-	TypeLabel   string   `schema:"type_label"`
+	Label       string   `schema:"label"`
 	DueDate     string   `schema:"due_date"`
 	Deadline    string   `schema:"deadline"`
 	SectionID   string   `schema:"section_id"`
@@ -31,7 +30,7 @@ type AddLabelPresetDto struct {
 type AddURLPatternDto struct {
 	URLPrefix    string `schema:"url_prefix"`
 	PlatformName string `schema:"platform_name"`
-	TypeLabel    string `schema:"type_label"`
+	Label        string `schema:"label"`
 	Shortcut     string `schema:"shortcut"`
 }
 

@@ -15,8 +15,8 @@
   <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
       <a class="nav-link {{if eq .ActiveTab "open"}}active{{end}}"
-        href="/todos/"
-        hx-get="/todos/"
+        href="/todos/?{{.WorkspaceQuery}}"
+        hx-get="/todos/?{{.WorkspaceQuery}}"
         hx-target="#taskListContainer"
         hx-swap="innerHTML"
         hx-push-url="true">Open</a>
@@ -24,8 +24,8 @@
     {{range .Sections}}
     <li class="nav-item">
       <a class="nav-link {{if eq $.ActiveTab .ID.String}}active{{end}}"
-        href="/todos/?section={{.ID}}"
-        hx-get="/todos/?section={{.ID}}"
+        href="/todos/?{{$.WorkspaceQuery}}&section={{.ID}}"
+        hx-get="/todos/?{{$.WorkspaceQuery}}&section={{.ID}}"
         hx-target="#taskListContainer"
         hx-swap="innerHTML"
         hx-push-url="true">{{.Name}}</a>
@@ -45,13 +45,13 @@
     <li class="nav-item d-flex align-items-center ms-2">
       {{if .UserSettings.ActiveWorkspace}}
       <a href="/todos/?w=private" class="btn btn-sm btn-warning"
-        title="Click to switch to Private · Bookmark /todos/?w={{.UserSettings.ActiveWorkspaceID}} for this workspace">
+        title="Switch to Private">
         {{.UserSettings.ActiveWorkspace.Name}}
       </a>
       {{else if .Workspaces}}
       <a href="/todos/?w={{(index .Workspaces 0).ID}}"
         class="btn btn-sm btn-outline-secondary"
-        title="Click to switch to {{(index .Workspaces 0).Name}} · Bookmark this link">
+        title="Switch to {{(index .Workspaces 0).Name}}">
         Private
       </a>
       {{else}}
@@ -137,7 +137,7 @@
 
   {{/* ── Quick-add bar (hidden until / is pressed) ──────────────────────── */}}
   <div id="quickAddBar" class="mb-1 position-relative" style="display:none">
-    <form hx-post="/todos/"
+    <form hx-post="/todos/?{{.WorkspaceQuery}}"
       hx-target="#taskListContainer"
       hx-swap="innerHTML"
       hx-on::after-request="hideQuickAdd()">
@@ -146,13 +146,21 @@
       <div class="input-group">
         <input type="text" name="input" id="quickAddInput"
           class="form-control"
-          placeholder="New task… · @type · /setup · #section · p1 p2 p3 · next monday"
+          placeholder="New task…"
           autocomplete="off">
         <button type="button" class="btn btn-dark"
-          data-bs-toggle="modal" data-bs-target="#taskModal" data-mode="new"
+          data-bs-toggle="modal" data-bs-target="#taskModal"
           title="Full form">+ Full</button>
       </div>
     </form>
+    <p class="mb-1 text-muted small">
+      <kbd>@</kbd> label &nbsp;&middot;&nbsp;
+      <kbd>#</kbd> section &nbsp;&middot;&nbsp;
+      <kbd>p1</kbd> <kbd>p2</kbd> <kbd>p3</kbd> priority &nbsp;&middot;&nbsp;
+      <kbd>next monday</kbd> due date &nbsp;&middot;&nbsp;
+      <kbd>!YYYY-MM-DD</kbd> deadline &nbsp;&middot;&nbsp;
+      <kbd>~N</kbd> recur days
+    </p>
     <div id="quickAddTags"
       class="mt-1 d-flex flex-wrap gap-1"
       style="min-height:1.4rem"></div>
@@ -200,17 +208,9 @@
               </select>
             </div>
             <div class="col-sm-2">
-              <select name="setup_label" id="modalSetup" class="form-select form-select-sm">
-                <option value="">— setup —</option>
-                {{range .Presets.Setups}}
-                <option value="{{.}}">{{.}}</option>
-                {{end}}
-              </select>
-            </div>
-            <div class="col-sm-2">
-              <select name="type_label" id="modalType" class="form-select form-select-sm">
-                <option value="">— type —</option>
-                {{range .Presets.Types}}
+              <select name="label" id="modalLabel" class="form-select form-select-sm">
+                <option value="">— label —</option>
+                {{range .Presets.Labels}}
                 <option value="{{.}}">{{.}}</option>
                 {{end}}
               </select>
@@ -263,12 +263,6 @@
         </form>
       </div>
       <div class="modal-footer py-2">
-        <a id="modalFullEdit" href="#" class="btn btn-link btn-sm ps-0 text-muted"
-          style="display:none">Open full edit ›</a>
-        <form id="modalDeleteForm" method="POST" action="#" class="me-auto"
-          style="display:none">
-          <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
-        </form>
         <button type="button" class="btn btn-outline-secondary btn-sm"
           data-bs-dismiss="modal">Cancel</button>
         <button type="submit" form="taskForm" class="btn btn-dark btn-sm">Save</button>
@@ -300,8 +294,8 @@
 .task-body{cursor:pointer}
 .task-title-link{cursor:pointer}
 /* ── misc ──────────────────────────────────────────────────────────────── */
-.drag-handle{opacity:.4;transition:opacity .15s}
-.task-row:hover .drag-handle{opacity:1}
+.drag-handle{visibility:hidden;opacity:0;transition:opacity .15s}
+.task-row:hover .drag-handle{visibility:visible;opacity:1}
 .task-row.kb-focus{outline:2px solid #0d6efd;outline-offset:-2px}
 .sortable-ghost{opacity:.4;background:#f8f9fa}
 .markdown-body h1,.markdown-body h2,.markdown-body h3{
@@ -322,8 +316,7 @@ details summary::-webkit-details-marker{display:none}
 #acDropdown .list-group-item.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
 #overtimeWidget button{font-size:.75rem;line-height:1.4}
 #quickAddTags .badge{font-size:.8rem;font-weight:600}
-#quickAddTags .badge-type{background:#6c757d;color:#fff}
-#quickAddTags .badge-setup{background:#f8f9fa;color:#212529;border:1px solid #dee2e6}
+#quickAddTags .badge-label{background:#6c757d;color:#fff}
 #quickAddTags .badge-section{background:#0dcaf0;color:#fff}
 #quickAddTags .badge-priority-p1{background:#dc3545;color:#fff}
 #quickAddTags .badge-priority-p2{background:#fd7e14;color:#fff}
@@ -336,8 +329,7 @@ details summary::-webkit-details-marker{display:none}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
 <script>
 (function () {
-  var PRESET_TYPES  = [{{range .Presets.Types}}"{{.}}",{{end}}];
-  var PRESET_SETUPS = [{{range .Presets.Setups}}"{{.}}",{{end}}];
+  var PRESET_LABELS = [{{range .Presets.Labels}}"{{.}}",{{end}}];
   var PRESET_SECTIONS = [
     {{range .Sections}}{id:"{{.ID}}",name:"{{.Name}}"},{{end}}
   ];
@@ -452,12 +444,13 @@ details summary::-webkit-details-marker{display:none}
   var acTrigger = null; // '@' or '/'
   var acStart   = -1;   // index in input where trigger char is
 
-  function acOptions(trigger, filter) {
-    var list = trigger === '@' ? PRESET_TYPES : PRESET_SETUPS;
+  function acOptions(filter) {
     filter = filter.toLowerCase();
     return filter
-      ? list.filter(function (v) { return v.toLowerCase().startsWith(filter); })
-      : list;
+      ? PRESET_LABELS.filter(function (v) {
+          return v.toLowerCase().startsWith(filter);
+        })
+      : PRESET_LABELS;
   }
 
   function acRender(opts) {
@@ -510,10 +503,10 @@ details summary::-webkit-details-marker{display:none}
     while (i >= 0 && val[i] !== ' ') { i--; }
     var wordStart = i + 1;
     var word = val.slice(wordStart, pos);
-    if (word.startsWith('@') || word.startsWith('/')) {
-      acTrigger = word[0];
+    if (word.startsWith('@')) {
+      acTrigger = '@';
       acStart   = wordStart;
-      acRender(acOptions(acTrigger, word.slice(1)));
+      acRender(acOptions(word.slice(1)));
     } else {
       acClose();
     }
@@ -523,16 +516,10 @@ details summary::-webkit-details-marker{display:none}
   var quickAddTagsEl = document.getElementById('quickAddTags');
 
   var TAG_BADGE = {
-    type:     function (lbl) {
+    label:    function (lbl) {
       var sp = document.createElement('span');
-      sp.className   = 'badge badge-type';
+      sp.className   = 'badge badge-label';
       sp.textContent = '@' + lbl;
-      return sp;
-    },
-    setup:    function (lbl) {
-      var sp = document.createElement('span');
-      sp.className   = 'badge badge-setup';
-      sp.textContent = '/' + lbl;
       return sp;
     },
     section:  function (lbl) {
@@ -569,9 +556,7 @@ details summary::-webkit-details-marker{display:none}
       var w = words[i];
       if (!w) { continue; }
       if (w[0] === '@' && w.length > 1) {
-        tags.push({kind: 'type', label: w.slice(1)});
-      } else if (w[0] === '/' && w.length > 1) {
-        tags.push({kind: 'setup', label: w.slice(1)});
+        tags.push({kind: 'label', label: w.slice(1)});
       } else if (w[0] === '#' && w.length > 1) {
         tags.push({kind: 'section', label: w.slice(1)});
       } else if (/^p[123]$/i.test(w)) {
@@ -690,10 +675,8 @@ details summary::-webkit-details-marker{display:none}
 
     if (!inInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       var tabLinks = Array.from(
-        document.querySelectorAll('.nav-tabs .nav-link')
-      ).filter(function (l) {
-        return l.getAttribute('href') !== '/todos/settings';
-      });
+        document.querySelectorAll('.nav-tabs .nav-link[hx-get]')
+      );
       var activeTabIdx = tabLinks.findIndex(function (l) {
         return l.classList.contains('active');
       });
@@ -702,7 +685,15 @@ details summary::-webkit-details-marker{display:none}
           ? activeTabIdx + 1 : activeTabIdx - 1;
         if (nextTabIdx >= 0 && nextTabIdx < tabLinks.length) {
           e.preventDefault();
-          tabLinks[nextTabIdx].click();
+          var nextTab = tabLinks[nextTabIdx];
+          var nextHref = nextTab.getAttribute('hx-get');
+          tabLinks.forEach(function (l) { l.classList.remove('active'); });
+          nextTab.classList.add('active');
+          htmx.ajax('GET', nextHref, {
+            target: '#taskListContainer',
+            swap: 'innerHTML'
+          });
+          history.pushState({}, '', nextHref);
         }
       }
       return;
@@ -762,6 +753,15 @@ details summary::-webkit-details-marker{display:none}
     kbIndex = -1;
   });
 
+  /* ── Sync nav-tab active class after HTMX pushes a new URL ──────────────── */
+  function syncActiveTab() {
+    var currentHref = window.location.pathname + window.location.search;
+    document.querySelectorAll('.nav-tabs .nav-link').forEach(function (l) {
+      l.classList.toggle('active', l.getAttribute('href') === currentHref);
+    });
+  }
+  document.body.addEventListener('htmx:pushedIntoHistory', syncActiveTab);
+
   /* ── Inline description editor ───────────────────────────────────────────── */
   var descView        = document.getElementById('modalDescView');
   var descEl          = document.getElementById('modalDesc');
@@ -810,47 +810,19 @@ details summary::-webkit-details-marker{display:none}
   var form         = document.getElementById('taskForm');
   var titleEl      = document.getElementById('modalTitle');
   var priorityEl   = document.getElementById('modalPriority');
-  var setupEl      = document.getElementById('modalSetup');
-  var typeEl       = document.getElementById('modalType');
+  var labelEl      = document.getElementById('modalLabel');
   var dueEl        = document.getElementById('modalDue');
   var deadlineEl   = document.getElementById('modalDeadline');
   var sectionEl    = document.getElementById('modalSection');
   var recurDaysEl  = document.getElementById('modalRecurDays');
   var lbl          = document.getElementById('taskModalLabel');
-  var fullEdit     = document.getElementById('modalFullEdit');
-  var deleteForm   = document.getElementById('modalDeleteForm');
 
-  modal.addEventListener('show.bs.modal', function (e) {
-    var btn  = e.relatedTarget;
-    var mode = btn ? btn.dataset.mode : 'new';
-
-    if (mode === 'edit') {
-      var row = btn.closest('[data-task-id]');
-      var id  = row.dataset.taskId;
-      lbl.textContent           = 'Edit Task';
-      form.action               = '/todos/' + id + '/edit?back=' + window.location.pathname;
-      titleEl.value             = row.dataset.title;
-      priorityEl.value          = row.dataset.priority || '0';
-      setupEl.value             = row.dataset.setup;
-      typeEl.value              = row.dataset.type;
-      dueEl.value               = row.dataset.due || '';
-      deadlineEl.value          = row.dataset.deadline || '';
-      sectionEl.value           = row.dataset.sectionId || '';
-      recurDaysEl.value         = row.dataset.recurDays || '0';
-      descEl.value              = row.querySelector('.task-desc-store').value;
-      fullEdit.href             = '/todos/' + id + '/edit';
-      fullEdit.style.display    = '';
-      deleteForm.action         = '/todos/' + id + '/delete?back=' + window.location.pathname;
-      deleteForm.style.display  = '';
-    } else {
-      lbl.textContent           = 'New Task';
-      form.action               = '/todos/new';
-      form.reset();
-      descEl.value              = '';
-      recurDaysEl.value         = '0';
-      fullEdit.style.display    = 'none';
-      deleteForm.style.display  = 'none';
-    }
+  modal.addEventListener('show.bs.modal', function () {
+    lbl.textContent = 'New Task';
+    form.action     = '/todos/new';
+    form.reset();
+    descEl.value    = '';
+    recurDaysEl.value = '0';
     endEdit();
   });
 

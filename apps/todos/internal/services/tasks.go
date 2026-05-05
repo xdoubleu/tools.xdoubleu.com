@@ -97,8 +97,7 @@ func (s *TaskService) Create(
 		OwnerUserID: userID,
 		Title:       dto.Title,
 		Description: dto.Description,
-		SetupLabel:  dto.SetupLabel,
-		TypeLabel:   dto.TypeLabel,
+		Label:       dto.Label,
 		Priority:    dto.Priority,
 		RecurDays:   dto.RecurDays,
 		DueDate:     parseDatePtr(dto.DueDate),
@@ -129,8 +128,7 @@ func (s *TaskService) Update(
 	}
 	existing.Title = dto.Title
 	existing.Description = dto.Description
-	existing.SetupLabel = dto.SetupLabel
-	existing.TypeLabel = dto.TypeLabel
+	existing.Label = dto.Label
 	existing.Priority = dto.Priority
 	existing.RecurDays = dto.RecurDays
 	existing.DueDate = parseDatePtr(dto.DueDate)
@@ -175,8 +173,7 @@ func (s *TaskService) Complete(
 		OwnerUserID: task.OwnerUserID,
 		Title:       task.Title,
 		Description: task.Description,
-		SetupLabel:  task.SetupLabel,
-		TypeLabel:   task.TypeLabel,
+		Label:       task.Label,
 		Priority:    task.Priority,
 		RecurDays:   task.RecurDays,
 		DueDate:     &due,
@@ -293,8 +290,7 @@ func (s *TaskService) QuickAdd(
 	t := models.Task{
 		OwnerUserID: userID,
 		Title:       title,
-		TypeLabel:   parsedDTO.TypeLabel,
-		SetupLabel:  parsedDTO.SetupLabel,
+		Label:       parsedDTO.Label,
 		Priority:    parsedDTO.Priority,
 		RecurDays:   parsedDTO.RecurDays,
 		DueDate:     parseDatePtr(parsedDTO.DueDate),
@@ -422,11 +418,9 @@ func parseQuickInput(
 		case tok == "p3":
 			dto.Priority = models.PriorityP3
 		case strings.HasPrefix(tok, "@") && len(tok) > 1:
-			dto.TypeLabel = tok[1:]
-		case strings.HasPrefix(tok, "/") && len(tok) > 1:
-			dto.SetupLabel = tok[1:]
+			dto.Label = tok[1:]
 		case strings.HasPrefix(tok, "~") && len(tok) > 1:
-			if n, atoiErr := strconv.Atoi(tok[1:]); atoiErr == nil && n > 0 {
+			if n, ok := parsePositiveInt(tok[1:]); ok {
 				dto.RecurDays = n
 			} else {
 				titleTokens = append(titleTokens, tok)
@@ -434,6 +428,12 @@ func parseQuickInput(
 		case strings.HasPrefix(tok, "#") && len(tok) > 1:
 			if sec := findSection(sections, tok[1:]); sec != nil {
 				dto.SectionID = sec.ID.String()
+			} else {
+				titleTokens = append(titleTokens, tok)
+			}
+		case strings.HasPrefix(tok, "!") && len(tok) > 1:
+			if d, parseErr := time.Parse("2006-01-02", tok[1:]); parseErr == nil {
+				dto.Deadline = d.Format("2006-01-02")
 			} else {
 				titleTokens = append(titleTokens, tok)
 			}
@@ -448,6 +448,11 @@ func parseQuickInput(
 		dto.DueDate = due.Format("2006-01-02")
 	}
 	return strings.TrimSpace(title), dto
+}
+
+func parsePositiveInt(s string) (int, bool) {
+	n, atoiErr := strconv.Atoi(s)
+	return n, atoiErr == nil && n > 0
 }
 
 func findSection(sections []models.Section, name string) *models.Section {

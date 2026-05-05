@@ -155,20 +155,20 @@ func TestSettingsLabels(t *testing.T) {
 	)
 	add.SetContentType(test.FormContentType)
 	add.SetFollowRedirect(false)
-	add.SetData(dtos.AddLabelPresetDto{Category: "setup", Value: "DM-Single1"})
+	add.SetData(dtos.AddLabelPresetDto{Category: "label", Value: "DM-Single1"})
 	rs := add.Do(t)
 	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
 
 	var count int
 	err := testDB.QueryRow(t.Context(), `
 		SELECT COUNT(*) FROM todos.label_presets
-		WHERE user_id = $1 AND category = 'setup' AND value = 'DM-Single1'`, userID,
+		WHERE user_id = $1 AND category = 'label' AND value = 'DM-Single1'`, userID,
 	).Scan(&count)
 	require.NoError(t, err)
 	assert.Equal(t, 1, count)
 
 	remove := test.CreateRequestTester(
-		getRoutes(), http.MethodPost, "/todos/settings/labels/setup/DM-Single1/delete",
+		getRoutes(), http.MethodPost, "/todos/settings/labels/label/DM-Single1/delete",
 	)
 	remove.SetFollowRedirect(false)
 	rs = remove.Do(t)
@@ -176,7 +176,7 @@ func TestSettingsLabels(t *testing.T) {
 
 	err = testDB.QueryRow(t.Context(), `
 		SELECT COUNT(*) FROM todos.label_presets
-		WHERE user_id = $1 AND category = 'setup' AND value = 'DM-Single1'`, userID,
+		WHERE user_id = $1 AND category = 'label' AND value = 'DM-Single1'`, userID,
 	).Scan(&count)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
@@ -191,7 +191,7 @@ func TestSettingsURLPatterns(t *testing.T) {
 	add.SetData(dtos.AddURLPatternDto{
 		URLPrefix:    "https://jira.example.com/browse/",
 		PlatformName: "Jira",
-		TypeLabel:    "CR",
+		Label:        "CR",
 		Shortcut:     "",
 	})
 	rs := add.Do(t)

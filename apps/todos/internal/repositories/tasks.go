@@ -22,7 +22,7 @@ func (r *TasksRepository) ListOpen(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
+		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
@@ -52,7 +52,7 @@ func (r *TasksRepository) ListByStatus(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
+		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
@@ -81,7 +81,7 @@ func (r *TasksRepository) ListArchived(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
+		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
@@ -112,7 +112,7 @@ func (r *TasksRepository) SearchAll(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
+		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
@@ -143,7 +143,7 @@ func (r *TasksRepository) SearchByLinkURL(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
+		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
@@ -173,7 +173,7 @@ func (r *TasksRepository) GetByID(
 ) (*models.Task, error) {
 	var t models.Task
 	err := r.db.QueryRow(ctx, `
-		SELECT id, owner_user_id, title, description, setup_label, type_label,
+		SELECT id, owner_user_id, title, description, label,
 		       status, priority, sort_order, completed_at, archived_at, due_date,
 		       deadline, created_at, updated_at, section_id, workspace_id, recur_days
 		FROM todos.tasks
@@ -181,7 +181,7 @@ func (r *TasksRepository) GetByID(
 		id, userID,
 	).Scan(
 		&t.ID, &t.OwnerUserID, &t.Title, &t.Description,
-		&t.SetupLabel, &t.TypeLabel, &t.Status,
+		&t.Label, &t.Status,
 		&t.Priority, &t.SortOrder,
 		&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 		&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID, &t.RecurDays,
@@ -259,13 +259,13 @@ func (r *TasksRepository) Create(
 
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO todos.tasks
-		    (owner_user_id, title, description, setup_label, type_label,
+		    (owner_user_id, title, description, label,
 		     due_date, deadline, section_id, workspace_id, priority, sort_order,
 		     recur_days)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, created_at, updated_at`,
 		t.OwnerUserID, t.Title, t.Description,
-		t.SetupLabel, t.TypeLabel, t.DueDate, t.Deadline,
+		t.Label, t.DueDate, t.Deadline,
 		t.SectionID, t.WorkspaceID,
 		t.Priority, t.SortOrder, t.RecurDays,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
@@ -282,12 +282,12 @@ func (r *TasksRepository) Update(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE todos.tasks
-		SET title = $1, description = $2, setup_label = $3, type_label = $4,
-		    due_date = $5, deadline = $6, section_id = $7,
-		    priority = $8, recur_days = $9,
+		SET title = $1, description = $2, label = $3,
+		    due_date = $4, deadline = $5, section_id = $6,
+		    priority = $7, recur_days = $8,
 		    updated_at = now()
-		WHERE id = $10 AND owner_user_id = $11`,
-		t.Title, t.Description, t.SetupLabel, t.TypeLabel,
+		WHERE id = $9 AND owner_user_id = $10`,
+		t.Title, t.Description, t.Label,
 		t.DueDate, t.Deadline, t.SectionID,
 		t.Priority, t.RecurDays, t.ID, t.OwnerUserID,
 	)
@@ -502,7 +502,7 @@ func (r *TasksRepository) ListDoneForArchiving(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.setup_label, t.type_label, t.status, t.priority, t.sort_order,
+		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days,
@@ -603,7 +603,7 @@ func scanTasks(rows pgx.Rows) ([]models.Task, error) {
 		var t models.Task
 		if err := rows.Scan(
 			&t.ID, &t.OwnerUserID, &t.Title, &t.Description,
-			&t.SetupLabel, &t.TypeLabel, &t.Status,
+			&t.Label, &t.Status,
 			&t.Priority, &t.SortOrder,
 			&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 			&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID,

@@ -11,10 +11,7 @@
   </div>
 
   <div class="d-flex flex-wrap gap-2 mb-3">
-    {{if .Task.TypeLabel}}<span class="badge bg-secondary">{{.Task.TypeLabel}}</span>{{end}}
-    {{if .Task.SetupLabel}}
-    <span class="badge bg-light text-dark border">{{.Task.SetupLabel}}</span>
-    {{end}}
+    {{if .Task.Label}}<span class="badge bg-secondary">{{.Task.Label}}</span>{{end}}
     {{if .Task.DueDate}}
     <span class="badge {{if isOverdue .Task.DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}">
       Due&nbsp;{{humanDate .Task.DueDate}}

@@ -138,55 +138,25 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold">Labels</div>
     <div class="card-body">
-      <div class="row g-4">
-
-        <div class="col-sm-6">
-          <h6 class="fw-semibold">Setup labels</h6>
-          <ul class="list-group list-group-flush mb-2">
-            {{range .Presets.Setups}}
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-              <span class="badge bg-light text-dark border">{{.}}</span>
-              <form method="POST"
-                action="/todos/settings/labels/setup/{{.}}/delete">
-                <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
-              </form>
-            </li>
-            {{else}}
-            <li class="list-group-item px-0 text-muted small">No setup labels yet.</li>
-            {{end}}
-          </ul>
-          <form method="POST" action="/todos/settings/labels" class="d-flex gap-2">
-            <input type="hidden" name="category" value="setup">
-            <input type="text" name="value" class="form-control form-control-sm"
-              placeholder="e.g. DM-Single1" required>
-            <button type="submit" class="btn btn-dark btn-sm">Add</button>
+      <ul class="list-group list-group-flush mb-2">
+        {{range .Presets.Labels}}
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+          <span class="badge bg-secondary">{{.}}</span>
+          <form method="POST"
+            action="/todos/settings/labels/label/{{.}}/delete">
+            <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
           </form>
-        </div>
-
-        <div class="col-sm-6">
-          <h6 class="fw-semibold">Type labels</h6>
-          <ul class="list-group list-group-flush mb-2">
-            {{range .Presets.Types}}
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-              <span class="badge bg-secondary">{{.}}</span>
-              <form method="POST"
-                action="/todos/settings/labels/type/{{.}}/delete">
-                <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
-              </form>
-            </li>
-            {{else}}
-            <li class="list-group-item px-0 text-muted small">No type labels yet.</li>
-            {{end}}
-          </ul>
-          <form method="POST" action="/todos/settings/labels" class="d-flex gap-2">
-            <input type="hidden" name="category" value="type">
-            <input type="text" name="value" class="form-control form-control-sm"
-              placeholder="e.g. DEV, CR, QA" required>
-            <button type="submit" class="btn btn-dark btn-sm">Add</button>
-          </form>
-        </div>
-
-      </div>
+        </li>
+        {{else}}
+        <li class="list-group-item px-0 text-muted small">No labels yet.</li>
+        {{end}}
+      </ul>
+      <form method="POST" action="/todos/settings/labels" class="d-flex gap-2">
+        <input type="hidden" name="category" value="label">
+        <input type="text" name="value" class="form-control form-control-sm"
+          placeholder="e.g. DEV, CR, QA" required>
+        <button type="submit" class="btn btn-dark btn-sm">Add</button>
+      </form>
     </div>
   </div>
 

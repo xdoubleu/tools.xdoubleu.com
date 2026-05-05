@@ -74,8 +74,7 @@
           <span class="fw-semibold text-truncate text-muted">{{.Title}}</span>
         </div>
         <div class="d-flex flex-wrap gap-1">
-          {{if .TypeLabel}}<span class="badge bg-secondary">{{.TypeLabel}}</span>{{end}}
-          {{if .SetupLabel}}<span class="badge bg-light text-dark border">{{.SetupLabel}}</span>{{end}}
+          {{if .Label}}<span class="badge bg-secondary">{{.Label}}</span>{{end}}
           {{if .ArchivedAt}}<span class="badge bg-light text-muted border">
             archived {{.ArchivedAt.Format "2 Jan 2006"}}</span>{{end}}
         </div>

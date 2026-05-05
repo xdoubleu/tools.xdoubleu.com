@@ -79,8 +79,7 @@
       <div class="min-w-0 flex-grow-1">
         <div class="fw-semibold text-truncate">{{.Title}}</div>
         <div class="d-flex flex-wrap gap-1 mt-1">
-          {{if .TypeLabel}}<span class="badge bg-secondary">{{.TypeLabel}}</span>{{end}}
-          {{if .SetupLabel}}<span class="badge bg-light text-dark border">{{.SetupLabel}}</span>{{end}}
+          {{if .Label}}<span class="badge bg-secondary">{{.Label}}</span>{{end}}
           {{if .DueDate}}<span class="badge bg-warning text-dark">{{.DueDate.Format "2 Jan"}}</span>{{end}}
         </div>
       </div>
