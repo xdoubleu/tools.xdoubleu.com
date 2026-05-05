@@ -20,6 +20,10 @@ func (app *Backlog) backlogRoutes(prefix string, mux *http.ServeMux) {
 		app.Services.Auth.AppAccess(prefix, app.handle(app.steamDistributionHandler)),
 	)
 	mux.HandleFunc(
+		"GET /"+prefix+"/steam/games/{gameID}",
+		app.Services.Auth.AppAccess(prefix, app.handle(app.steamGameHandler)),
+	)
+	mux.HandleFunc(
 		"GET /"+prefix+"/books",
 		app.Services.Auth.AppAccess(prefix, app.handle(app.booksPageHandler)),
 	)

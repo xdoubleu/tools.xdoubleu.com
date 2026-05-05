@@ -72,3 +72,15 @@ func (client MockSteamClient) GetSchemaForGame(
 	//nolint:exhaustruct //skip
 	return &steam.GetSchemaForGameResponse{}, nil
 }
+
+func (client MockSteamClient) GetGlobalAchievementPercentagesForApp(
+	_ context.Context,
+	_ int,
+) (*steam.GlobalAchievementPercentagesResponse, error) {
+	//nolint:exhaustruct //anonymous inner struct initialised via field assignment
+	resp := steam.GlobalAchievementPercentagesResponse{}
+	resp.AchievementPercentages.Achievements = []steam.GlobalAchievementPercent{
+		{Name: "TEST", Percent: "42.0"},
+	}
+	return &resp, nil
+}

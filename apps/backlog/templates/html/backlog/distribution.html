@@ -10,7 +10,8 @@
     <div class="row g-3">
         {{ range .Games }}
         <div class="col-6 col-md-4 col-lg-3">
-            <div class="card h-100">
+            <a href="/backlog/steam/games/{{ .ID }}" class="text-decoration-none text-body">
+            <div class="card h-100" style="cursor:pointer">
                 <img src="https://cdn.akamai.steamstatic.com/steam/apps/{{ .ID }}/header.jpg"
                      class="card-img-top" alt="{{ .Name }}"
                      style="aspect-ratio:460/215;object-fit:cover"
@@ -20,6 +21,7 @@
                     <span class="badge bg-primary">{{ .CompletionRate }}%</span>
                 </div>
             </div>
+            </a>
         </div>
         {{ end }}
     </div>

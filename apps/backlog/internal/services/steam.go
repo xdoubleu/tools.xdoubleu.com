@@ -165,32 +165,83 @@ func (service *SteamService) importAchievementsForGames(
 	}
 
 	for gameID, achievements := range achievementsPerGame {
-		if len(achievements) != 0 {
-			err := service.steam.UpsertAchievements(ctx, achievements, userID, gameID)
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-
-		var achievementSchemasForGame *steam.GetSchemaForGameResponse
-		achievementSchemasForGame, err := client.GetSchemaForGame(ctx, gameID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = service.steam.UpsertAchievementSchemas(
-			ctx,
-			achievementSchemasForGame.Game.AvailableGameStats.Achievements,
-			userID,
-			gameID,
-		)
-		if err != nil {
+		if err := service.upsertAchievementsForGame(
+			ctx, client, achievements, userID, gameID,
+		); err != nil {
 			return nil, err
 		}
 	}
 
 	return service.steam.GetAchievementsForGames(ctx, gameIDs, userID)
+}
+
+func (service *SteamService) upsertAchievementsForGame(
+	ctx context.Context,
+	client steam.Client,
+	achievements []steam.Achievement,
+	userID string,
+	gameID int,
+) error {
+	globalPercents, err := fetchGlobalPercents(ctx, client, gameID)
+	if err != nil {
+		service.logger.WarnContext(
+			ctx,
+			fmt.Sprintf(
+				"failed to fetch global percents for %d; error: %s",
+				gameID,
+				err,
+			),
+		)
+		globalPercents = map[string]float64{}
+	}
+
+	schemaResp, err := client.GetSchemaForGame(ctx, gameID)
+	if err != nil {
+		return err
+	}
+
+	schemaMap := make(
+		map[string]steam.AchievementSchema,
+		len(schemaResp.Game.AvailableGameStats.Achievements),
+	)
+	for _, s := range schemaResp.Game.AvailableGameStats.Achievements {
+		schemaMap[s.Name] = s
+	}
+
+	if len(achievements) != 0 {
+		return service.steam.UpsertAchievements(
+			ctx, achievements, globalPercents, schemaMap, userID, gameID,
+		)
+	}
+
+	return service.steam.UpsertAchievementSchemas(
+		ctx,
+		schemaResp.Game.AvailableGameStats.Achievements,
+		globalPercents,
+		userID,
+		gameID,
+	)
+}
+
+func fetchGlobalPercents(
+	ctx context.Context,
+	client steam.Client,
+	gameID int,
+) (map[string]float64, error) {
+	resp, err := client.GetGlobalAchievementPercentagesForApp(ctx, gameID)
+	if err != nil {
+		return nil, err
+	}
+
+	percents := make(map[string]float64, len(resp.AchievementPercentages.Achievements))
+	for _, a := range resp.AchievementPercentages.Achievements {
+		p, parseErr := a.Percent.Float64()
+		if parseErr == nil {
+			percents[a.Name] = p
+		}
+	}
+
+	return percents, nil
 }
 
 func (service *SteamService) GetAchievementsForGames(
@@ -231,4 +282,28 @@ func (service *SteamService) GetCompleted(
 	userID string,
 ) ([]models.Game, error) {
 	return service.steam.GetCompleted(ctx, userID)
+}
+
+func (service *SteamService) GetGameByID(
+	ctx context.Context,
+	gameID int,
+	userID string,
+) (*models.Game, error) {
+	return service.steam.GetGameByID(ctx, gameID, userID)
+}
+
+func (service *SteamService) GetAchievementsForGame(
+	ctx context.Context,
+	gameID int,
+	userID string,
+) ([]models.Achievement, error) {
+	achievementsMap, err := service.steam.GetAchievementsForGames(
+		ctx,
+		[]int{gameID},
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return achievementsMap[gameID], nil
 }

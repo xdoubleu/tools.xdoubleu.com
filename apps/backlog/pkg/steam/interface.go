@@ -10,4 +10,8 @@ type Client interface {
 		appID int,
 	) (*AchievementsResponse, error)
 	GetSchemaForGame(ctx context.Context, appID int) (*GetSchemaForGameResponse, error)
+	GetGlobalAchievementPercentagesForApp(
+		ctx context.Context,
+		appID int,
+	) (*GlobalAchievementPercentagesResponse, error)
 }

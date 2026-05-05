@@ -2,6 +2,7 @@ package steam
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 )
 
@@ -113,6 +114,7 @@ type AchievementSchema struct {
 	Name         string `json:"name"`
 	DefaultValue int    `json:"defaultValue"`
 	DisplayName  string `json:"displayName"`
+	Description  string `json:"description"`
 	Hidden       int    `json:"hidden"`
 	Icon         string `json:"icon"`
 	IconGray     string `json:"icongray"`
@@ -135,4 +137,34 @@ func (client client) GetSchemaForGame(
 	}
 
 	return &getSchemaForGameResponse, nil
+}
+
+type GlobalAchievementPercent struct {
+	Name    string      `json:"name"`
+	Percent json.Number `json:"percent"`
+}
+
+type GlobalAchievementPercentagesResponse struct {
+	AchievementPercentages struct {
+		Achievements []GlobalAchievementPercent `json:"achievements"`
+	} `json:"achievementpercentages"`
+}
+
+func (client client) GetGlobalAchievementPercentagesForApp(
+	ctx context.Context,
+	appID int,
+) (*GlobalAchievementPercentagesResponse, error) {
+	var resp GlobalAchievementPercentagesResponse
+
+	err := client.sendRequestAPI(
+		ctx,
+		"ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002",
+		fmt.Sprintf("gameid=%d", appID),
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
 }

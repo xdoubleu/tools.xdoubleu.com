@@ -2,6 +2,7 @@ package backlog
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 
 	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
@@ -96,6 +97,59 @@ func (app *Backlog) steamPageHandler(w http.ResponseWriter, r *http.Request) err
 		Values:       values,
 		DateStart:    dateStart.Format(models.ProgressDateFormat),
 		DateEnd:      dateEnd.Format(models.ProgressDateFormat),
+	})
+	return nil
+}
+
+type steamGamePageData struct {
+	Game         models.Game
+	Achievements []models.Achievement
+}
+
+func (app *Backlog) steamGameHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentBacklogUser(r)
+	if user == nil {
+		return httpError(http.StatusUnauthorized, "Sign in to access this page")
+	}
+
+	gameID, err := strconv.Atoi(r.PathValue("gameID"))
+	if err != nil {
+		http.NotFound(w, r)
+		return nil //nolint:nilerr // parse error is handled as 404
+	}
+
+	game, err := app.Services.Steam.GetGameByID(r.Context(), gameID, user.ID)
+	if err != nil {
+		return err
+	}
+
+	achievements, err := app.Services.Steam.GetAchievementsForGame(
+		r.Context(),
+		gameID,
+		user.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(achievements, func(i, j int) bool {
+		pi := achievements[i].GlobalPercent
+		pj := achievements[j].GlobalPercent
+		if pi == nil && pj == nil {
+			return achievements[i].DisplayName < achievements[j].DisplayName
+		}
+		if pi == nil {
+			return false
+		}
+		if pj == nil {
+			return true
+		}
+		return *pi > *pj
+	})
+
+	tpltools.RenderWithPanic(app.Tpl, w, "steam_game.html", steamGamePageData{
+		Game:         *game,
+		Achievements: achievements,
 	})
 	return nil
 }
