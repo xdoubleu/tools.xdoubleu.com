@@ -1,0 +1,26 @@
+{{define "_subtask_item"}}
+{{$sub := .Subtask}}
+{{$tid := .TaskID}}
+{{$section := .CurrentSection}}
+<div class="d-flex align-items-center gap-1 mb-1 subtask-item">
+  <form method="POST"
+    action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle?back={{if $section}}/todos/?section={{$section.ID}}{{else}}/todos/{{end}}"
+    hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle"
+    hx-swap="none"
+    hx-on::after-request="todoToggleSubtask(this)"
+    class="m-0">
+    <button type="submit" class="btn p-0 border-0 lh-1"
+      data-done="{{if $sub.Done}}1{{else}}0{{end}}"
+      style="font-size:1rem">
+      {{if $sub.Done}}
+      <span class="text-success">&#10003;</span>
+      {{else}}
+      <span class="text-muted">&#9675;</span>
+      {{end}}
+    </button>
+  </form>
+  <span class="small {{if $sub.Done}}text-muted text-decoration-line-through{{end}}">
+    {{$sub.Title}}
+  </span>
+</div>
+{{end}}

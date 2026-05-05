@@ -15,12 +15,20 @@
   <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
       <a class="nav-link {{if eq .ActiveTab "open"}}active{{end}}"
-        href="/todos/">Open</a>
+        href="/todos/"
+        hx-get="/todos/"
+        hx-target="#taskListContainer"
+        hx-swap="innerHTML"
+        hx-push-url="true">Open</a>
     </li>
     {{range .Sections}}
     <li class="nav-item">
       <a class="nav-link {{if eq $.ActiveTab .ID.String}}active{{end}}"
-        href="/todos/?section={{.ID}}">{{.Name}}</a>
+        href="/todos/?section={{.ID}}"
+        hx-get="/todos/?section={{.ID}}"
+        hx-target="#taskListContainer"
+        hx-swap="innerHTML"
+        hx-push-url="true">{{.Name}}</a>
     </li>
     {{end}}
     <li class="nav-item">
@@ -135,8 +143,12 @@
 
   {{/* ── Quick-add bar (hidden until / is pressed) ──────────────────────── */}}
   <div id="quickAddBar" class="mb-1 position-relative" style="display:none">
-    <form method="POST"
-      action="/todos/?back={{if .CurrentSection}}/todos/?section={{.CurrentSection.ID}}{{else}}/todos/{{end}}">
+    <form hx-post="/todos/"
+      hx-target="#taskListContainer"
+      hx-swap="innerHTML"
+      hx-on::after-request="hideQuickAdd()">
+      <input type="hidden" name="section_id"
+        value="{{if .CurrentSection}}{{.CurrentSection.ID}}{{end}}">
       <div class="input-group">
         <input type="text" name="input" id="quickAddInput"
           class="form-control"
@@ -160,103 +172,10 @@
     &nbsp;&middot;&nbsp; <kbd>s</kbd> add subtask
   </p>
 
-  {{if not .Tasks}}
-  <p class="text-muted">No tasks here.</p>
-  {{else}}
-  <div class="list-group mb-3" id="taskSortable">
-    {{range .Tasks}}
-    {{$tid := .ID}}
-    <div class="list-group-item px-3 py-2 task-row"
-      data-task-id="{{.ID}}"
-      data-title="{{.Title}}"
-      data-setup="{{.SetupLabel}}"
-      data-type="{{.TypeLabel}}"
-      data-priority="{{.Priority}}"
-      data-due="{{if .DueDate}}{{.DueDate.Format "2006-01-02"}}{{end}}"
-      data-section-id="{{if .SectionID}}{{.SectionID}}{{end}}"
-      data-recur-days="{{.RecurDays}}">
-      <textarea hidden class="task-desc-store">{{.Description}}</textarea>
-      <div class="d-flex align-items-start gap-2">
-        <span class="drag-handle text-muted px-1 pt-1" style="cursor:grab;user-select:none"
-          title="Drag to reorder">⠿</span>
-        <div class="flex-grow-1 min-w-0">
-          <div class="d-flex align-items-center gap-1 mb-1">
-            {{if eq .Priority 1}}<span class="priority-badge p1" title="P1 – high">P1</span>{{end}}
-            {{if eq .Priority 2}}<span class="priority-badge p2" title="P2 – medium">P2</span>{{end}}
-            {{if eq .Priority 3}}<span class="priority-badge p3" title="P3 – low">P3</span>{{end}}
-            <a href="/todos/{{.ID}}" class="text-decoration-none text-body fw-semibold text-truncate">
-              {{.Title}}
-            </a>
-          </div>
-          <div class="d-flex flex-wrap gap-1">
-            {{if .TypeLabel}}<span class="badge bg-secondary">{{.TypeLabel}}</span>{{end}}
-            {{if .SetupLabel}}<span class="badge bg-light text-dark border">{{.SetupLabel}}</span>{{end}}
-            {{if .DueDate}}<span class="badge bg-warning text-dark">{{.DueDate.Format "2 Jan"}}</span>{{end}}
-            {{if gt .RecurDays 0}}<span class="badge bg-info text-dark">&#8635; {{.RecurDays}}d</span>{{end}}
-            {{if gt .SubtaskTotal 0}}
-            <span class="badge bg-light text-dark border">{{.SubtaskDone}}/{{.SubtaskTotal}}</span>
-            {{end}}
-          </div>
-          {{/* Inline subtasks */}}
-          {{if .Subtasks}}
-          <div class="mt-2 ms-1">
-            {{range .Subtasks}}
-            <div class="d-flex align-items-center gap-1 mb-1">
-              <form method="POST"
-                action="/todos/{{$tid}}/subtasks/{{.ID}}/toggle?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}"
-                class="m-0">
-                <button type="submit" class="btn p-0 border-0 lh-1"
-                  style="font-size:1rem">
-                  {{if .Done}}
-                  <span class="text-success">&#10003;</span>
-                  {{else}}
-                  <span class="text-muted">&#9675;</span>
-                  {{end}}
-                </button>
-              </form>
-              <span class="small {{if .Done}}text-muted text-decoration-line-through{{end}}">
-                {{.Title}}
-              </span>
-            </div>
-            {{end}}
-          </div>
-          {{end}}
-          <details class="subtask-details mt-1">
-            <summary class="small text-muted" style="cursor:pointer;list-style:none">
-              + subtask
-            </summary>
-            <form method="POST"
-              action="/todos/{{.ID}}/subtasks?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}"
-              class="mt-1">
-              <div class="input-group input-group-sm" style="max-width:320px">
-                <input type="text" name="title"
-                  class="form-control form-control-sm subtask-input"
-                  placeholder="Subtask title…">
-                <button type="submit" class="btn btn-outline-secondary btn-sm">
-                  Add
-                </button>
-              </div>
-            </form>
-          </details>
-        </div>
-        <div class="d-flex gap-1 flex-shrink-0 align-items-start pt-1">
-          <button class="btn btn-outline-secondary btn-sm"
-            data-bs-toggle="modal" data-bs-target="#taskModal" data-mode="edit"
-            title="Edit">&#9998;</button>
-          <form method="POST" action="/todos/{{.ID}}/complete?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}" class="m-0">
-            <button type="submit" class="btn btn-outline-success btn-sm"
-              title="Mark done">&#10003;</button>
-          </form>
-          <form method="POST" action="/todos/{{.ID}}/delete?back={{if $.CurrentSection}}/todos/?section={{$.CurrentSection.ID}}{{else}}/todos/{{end}}" class="m-0">
-            <button type="submit" class="btn btn-outline-danger btn-sm"
-              title="Delete">&#10005;</button>
-          </form>
-        </div>
-      </div>
-    </div>
-    {{end}}
+  {{/* ── Task list (HTMX tab-switching target) ──────────────────────────── */}}
+  <div id="taskListContainer">
+    {{template "_task_list.html" .}}
   </div>
-  {{end}}
 
 </div>
 
@@ -388,6 +307,7 @@ details summary::-webkit-details-marker{display:none}
 #quickAddTags .badge-due{background:#ffc107;color:#212529}
 </style>
 
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
 <script>
@@ -411,13 +331,34 @@ details summary::-webkit-details-marker{display:none}
     quickAddInput.focus();
   }
 
-  function hideQuickAdd() {
+  window.hideQuickAdd = function () {
     acClose();
     quickAddBar.style.display  = 'none';
     quickAddHint.style.display = '';
     quickAddInput.value = '';
     renderQuickAddTags('');
-  }
+  };
+
+  /* ── Subtask toggle (client-side state flip after HTMX post) ────────────── */
+  window.todoToggleSubtask = function (form) {
+    var btn  = form.querySelector('button[data-done]');
+    var span = btn.querySelector('span');
+    var wasDone = btn.dataset.done === '1';
+    if (wasDone) {
+      btn.dataset.done = '0';
+      span.className   = 'text-muted';
+      span.innerHTML   = '&#9675;';
+    } else {
+      btn.dataset.done = '1';
+      span.className   = 'text-success';
+      span.innerHTML   = '&#10003;';
+    }
+    var label = form.closest('.subtask-item').querySelector('span:last-child');
+    if (label) {
+      label.classList.toggle('text-muted', !wasDone);
+      label.classList.toggle('text-decoration-line-through', !wasDone);
+    }
+  };
 
   /* ── Overtime counter ────────────────────────────────────────────────────── */
   var OT_KEY     = 'todos:overtime:' + (ACTIVE_WORKSPACE_ID || 'personal');
@@ -523,7 +464,6 @@ details summary::-webkit-details-marker{display:none}
     if (val == null) { return; }
     var cur   = quickAddInput.value;
     var after = cur.slice(quickAddInput.selectionStart);
-    // replace from trigger position to current cursor
     quickAddInput.value =
       cur.slice(0, acStart) + acTrigger + val + ' ' + after.trimStart();
     var newPos = acStart + 1 + val.length + 1;
@@ -542,7 +482,6 @@ details summary::-webkit-details-marker{display:none}
   function acUpdate() {
     var val = quickAddInput.value;
     var pos = quickAddInput.selectionStart;
-    // walk back to find trigger
     var i = pos - 1;
     while (i >= 0 && val[i] !== ' ') { i--; }
     var wordStart = i + 1;
@@ -602,7 +541,6 @@ details summary::-webkit-details-marker{display:none}
   function parseTagsFromInput(val) {
     var tags  = [];
     var words = val.trim().split(/\s+/);
-    // also check bigrams for "next <day>"
     for (var i = 0; i < words.length; i++) {
       var w = words[i];
       if (!w) { continue; }
@@ -618,7 +556,7 @@ details summary::-webkit-details-marker{display:none}
         var bigram = (w + (words[i + 1] ? ' ' + words[i + 1] : '')).toLowerCase();
         if (DUE_WORDS.indexOf(bigram) !== -1) {
           tags.push({kind: 'due', label: bigram});
-          i++; // skip next word
+          i++;
         } else if (DUE_WORDS.indexOf(w.toLowerCase()) !== -1) {
           tags.push({kind: 'due', label: w.toLowerCase()});
         }
@@ -669,31 +607,39 @@ details summary::-webkit-details-marker{display:none}
     }
   });
   quickAddInput.addEventListener('blur', function () {
-    // small delay so mousedown on item fires first
     setTimeout(acClose, 150);
   });
 
   /* ── Task keyboard navigation ────────────────────────────────────────────── */
-  var taskRows   = Array.from(document.querySelectorAll('.task-row'));
-  var kbIndex    = -1; // currently keyboard-focused row (-1 = none)
+  var kbIndex    = -1;
   var hoveredRow = null;
 
+  function getTaskRows() {
+    return Array.from(document.querySelectorAll('.task-row'));
+  }
+
   function setKbFocus(idx) {
-    taskRows.forEach(function (r) { r.classList.remove('kb-focus'); });
+    getTaskRows().forEach(function (r) { r.classList.remove('kb-focus'); });
     kbIndex = idx;
-    if (idx >= 0 && idx < taskRows.length) {
-      taskRows[idx].classList.add('kb-focus');
-      taskRows[idx].scrollIntoView({ block: 'nearest' });
+    var rows = getTaskRows();
+    if (idx >= 0 && idx < rows.length) {
+      rows[idx].classList.add('kb-focus');
+      rows[idx].scrollIntoView({ block: 'nearest' });
     }
   }
 
-  taskRows.forEach(function (row) {
-    row.addEventListener('mouseenter', function () {
-      hoveredRow = row;
-      setKbFocus(-1); // clear keyboard focus on mouse
+  function bindTaskRowEvents() {
+    getTaskRows().forEach(function (row) {
+      if (row._todosBound) { return; }
+      row._todosBound = true;
+      row.addEventListener('mouseenter', function () {
+        hoveredRow = row;
+        setKbFocus(-1);
+      });
+      row.addEventListener('mouseleave', function () { hoveredRow = null; });
     });
-    row.addEventListener('mouseleave', function () { hoveredRow = null; });
-  });
+  }
+  bindTaskRowEvents();
 
   function openSubtaskInput(row) {
     var details = row.querySelector('.subtask-details');
@@ -711,14 +657,12 @@ details summary::-webkit-details-marker{display:none}
     var modalOpen = !!document.querySelector('.modal.show');
     if (modalOpen) { return; }
 
-    // '/' shows and focuses quick add
     if (!inInput && e.key === '/') {
       e.preventDefault();
       showQuickAdd();
       return;
     }
 
-    // Left/right: navigate between tabs (sections, Done, Archive)
     if (!inInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       var tabLinks = Array.from(
         document.querySelectorAll('.nav-tabs .nav-link')
@@ -733,26 +677,26 @@ details summary::-webkit-details-marker{display:none}
           ? activeTabIdx + 1 : activeTabIdx - 1;
         if (nextTabIdx >= 0 && nextTabIdx < tabLinks.length) {
           e.preventDefault();
-          window.location.href = tabLinks[nextTabIdx].getAttribute('href');
+          tabLinks[nextTabIdx].click();
         }
       }
       return;
     }
 
-    // Arrow navigation between task rows
     if (!inInput && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       e.preventDefault();
+      var rows = getTaskRows();
       var next = e.key === 'ArrowDown'
-        ? Math.min(kbIndex + 1, taskRows.length - 1)
+        ? Math.min(kbIndex + 1, rows.length - 1)
         : Math.max(kbIndex - 1, 0);
-      if (kbIndex === -1) { next = e.key === 'ArrowDown' ? 0 : taskRows.length - 1; }
+      if (kbIndex === -1) { next = e.key === 'ArrowDown' ? 0 : rows.length - 1; }
       setKbFocus(next);
       return;
     }
 
-    // 's' opens subtask on keyboard-focused or hovered row
     if (!inInput && e.key === 's') {
-      var target = kbIndex >= 0 ? taskRows[kbIndex] : hoveredRow;
+      var rows2 = getTaskRows();
+      var target = kbIndex >= 0 ? rows2[kbIndex] : hoveredRow;
       if (target) {
         e.preventDefault();
         openSubtaskInput(target);
@@ -761,23 +705,37 @@ details summary::-webkit-details-marker{display:none}
   });
 
   /* ── Drag-drop reorder via SortableJS ───────────────────────────────────── */
-  var sortable = document.getElementById('taskSortable');
-  if (sortable) {
-    Sortable.create(sortable, {
-      handle: '.drag-handle',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      onEnd: function () {
-        var ids = Array.from(sortable.querySelectorAll('[data-task-id]'))
-          .map(function (el) { return el.dataset.taskId; });
-        fetch('/todos/reorder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: ids })
-        });
-      }
-    });
+  var sortableOpts = {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd: function () {
+      var el = document.getElementById('taskSortable');
+      if (!el) { return; }
+      var ids = Array.from(el.querySelectorAll('[data-task-id]'))
+        .map(function (e) { return e.dataset.taskId; });
+      fetch('/todos/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ids })
+      });
+    }
+  };
+
+  function initSortable() {
+    var el = document.getElementById('taskSortable');
+    if (el && !Sortable.get(el)) {
+      Sortable.create(el, sortableOpts);
+    }
   }
+  initSortable();
+
+  /* ── Re-init after HTMX swaps ────────────────────────────────────────────── */
+  document.body.addEventListener('htmx:afterSettle', function () {
+    initSortable();
+    bindTaskRowEvents();
+    kbIndex = -1;
+  });
 
   /* ── Inline description editor ───────────────────────────────────────────── */
   var descView        = document.getElementById('modalDescView');

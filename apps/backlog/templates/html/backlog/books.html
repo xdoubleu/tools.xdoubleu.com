@@ -180,7 +180,10 @@
             Mark Finished
         </button>
         {{ else if eq .Status "to-read" }}
-        <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-grow-1">
+        <form method="POST" action="/backlog/books/{{ .BookID }}/status" class="flex-grow-1"
+              hx-post="/backlog/books/{{ .BookID }}/status"
+              hx-target="#library"
+              hx-swap="innerHTML">
             <input type="hidden" name="status" value="currently-reading">
             <button class="btn btn-sm btn-outline-primary w-100">Start Reading</button>
         </form>
@@ -232,14 +235,12 @@
     }
 
     function submitAction(endpoint, fieldName, fieldValue) {
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = `/backlog/books/${currentBookId}/${endpoint}`;
-        const inp = document.createElement("input");
-        inp.type = "hidden"; inp.name = fieldName; inp.value = fieldValue;
-        form.appendChild(inp);
-        document.body.appendChild(form);
-        form.submit();
+        htmx.ajax("POST", `/backlog/books/${currentBookId}/${endpoint}`, {
+            target: "#library",
+            swap: "innerHTML",
+            values: { [fieldName]: fieldValue },
+        });
+        bootstrap.Modal.getInstance(document.getElementById("actionsModal")).hide();
     }
 
     function openFinishFromActions() {
@@ -262,6 +263,16 @@
         document.getElementById("favouriteCheck").checked = false;
         document.querySelector("#finishForm select[name='rating']").value = "";
         document.querySelector("#finishForm textarea[name='notes']").value = "";
+    });
+
+    document.getElementById("finishForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        htmx.ajax("POST", this.action, {
+            target: "#library",
+            swap: "innerHTML",
+            values: Object.fromEntries(new FormData(this)),
+        });
+        bootstrap.Modal.getInstance(document.getElementById("finishModal")).hide();
     });
 
     // ── Tab restoration + persistence ─────────────────────────────────────────
