@@ -197,7 +197,9 @@
       <p class="text-muted small mb-3">
         When you paste a matching URL into the quick-add bar, the task title is
         extracted from the URL path and the URL is attached as a work link.
-        No type label is applied automatically.
+        Set a <strong>Shortcut</strong> (e.g. <code>PROJ</code>) to search for
+        a task by typing <code>PROJ123</code> in the search bar — it will find
+        the task created for <code>…/123</code>.
       </p>
 
       {{if .Patterns}}
@@ -206,6 +208,7 @@
           <tr>
             <th>URL prefix</th>
             <th>Platform</th>
+            <th>Shortcut</th>
             <th></th>
           </tr>
         </thead>
@@ -214,6 +217,13 @@
           <tr>
             <td class="font-monospace small">{{.URLPrefix}}</td>
             <td>{{.PlatformName}}</td>
+            <td>
+              {{if .Shortcut}}
+              <code class="small">{{.Shortcut}}</code>
+              {{else}}
+              <span class="text-muted small">—</span>
+              {{end}}
+            </td>
             <td>
               <form method="POST"
                 action="/todos/settings/url-patterns/{{.ID}}/delete">
@@ -229,17 +239,24 @@
 
       <form method="POST" action="/todos/settings/url-patterns">
         <div class="row g-2 align-items-end">
-          <div class="col-sm-6">
+          <div class="col-sm-5">
             <label class="form-label small">URL prefix</label>
             <input type="text" name="url_prefix"
               class="form-control form-control-sm"
               placeholder="https://jira.company.com/browse/" required>
           </div>
-          <div class="col-sm-4">
+          <div class="col-sm-3">
             <label class="form-label small">Platform name</label>
             <input type="text" name="platform_name"
               class="form-control form-control-sm"
               placeholder="Jira" required>
+          </div>
+          <div class="col-sm-2">
+            <label class="form-label small">Shortcut (e.g. PROJ)</label>
+            <input type="text" name="shortcut"
+              class="form-control form-control-sm text-uppercase"
+              placeholder="PROJ"
+              title="Search shortcut: type PROJ123 to find the task for …/123">
           </div>
           <div class="col-sm-2">
             <button type="submit" class="btn btn-dark btn-sm w-100">Add</button>

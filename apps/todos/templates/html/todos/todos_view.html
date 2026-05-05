@@ -12,9 +12,22 @@
 
   <div class="d-flex flex-wrap gap-2 mb-3">
     {{if .Task.TypeLabel}}<span class="badge bg-secondary">{{.Task.TypeLabel}}</span>{{end}}
-    {{if .Task.SetupLabel}}<span class="badge bg-light text-dark border">{{.Task.SetupLabel}}</span>{{end}}
-    {{if .Task.DueDate}}<span class="badge bg-warning text-dark">Due {{.Task.DueDate.Format "2 Jan 2006"}}</span>{{end}}
-    {{if gt .Task.RecurDays 0}}<span class="badge bg-info text-dark">&#8635; every {{.Task.RecurDays}} days</span>{{end}}
+    {{if .Task.SetupLabel}}
+    <span class="badge bg-light text-dark border">{{.Task.SetupLabel}}</span>
+    {{end}}
+    {{if .Task.DueDate}}
+    <span class="badge {{if isOverdue .Task.DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}">
+      Due&nbsp;{{humanDate .Task.DueDate}}
+    </span>
+    {{end}}
+    {{if .Task.Deadline}}
+    <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
+      ⚑&nbsp;Deadline&nbsp;{{humanDate .Task.Deadline}}
+    </span>
+    {{end}}
+    {{if gt .Task.RecurDays 0}}
+    <span class="badge bg-info text-dark">&#8635; every {{.Task.RecurDays}} days</span>
+    {{end}}
   </div>
 
   <div class="d-flex flex-wrap gap-2 mb-4">

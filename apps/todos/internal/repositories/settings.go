@@ -94,7 +94,8 @@ func (r *SettingsRepository) GetURLPatterns(
 	workspaceID *uuid.UUID,
 ) ([]models.URLPattern, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, user_id, url_prefix, platform_name, type_label, sort_order
+		SELECT id, user_id, url_prefix, platform_name, type_label, shortcut,
+		       sort_order
 		FROM todos.url_patterns
 		WHERE user_id = $1 AND workspace_id IS NOT DISTINCT FROM $2
 		ORDER BY sort_order, platform_name`,
@@ -113,14 +114,16 @@ func (r *SettingsRepository) AddURLPattern(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO todos.url_patterns
-		    (user_id, url_prefix, platform_name, type_label, sort_order, workspace_id)
-		VALUES ($1, $2, $3, $4,
+		    (user_id, url_prefix, platform_name, type_label, shortcut,
+		     sort_order, workspace_id)
+		VALUES ($1, $2, $3, $4, $5,
 		    COALESCE((
 		        SELECT MAX(sort_order) + 1
 		        FROM todos.url_patterns
-		        WHERE user_id = $1 AND workspace_id IS NOT DISTINCT FROM $5
-		    ), 0), $5)`,
-		p.UserID, p.URLPrefix, p.PlatformName, p.TypeLabel, p.WorkspaceID,
+		        WHERE user_id = $1 AND workspace_id IS NOT DISTINCT FROM $6
+		    ), 0), $6)`,
+		p.UserID, p.URLPrefix, p.PlatformName, p.TypeLabel, p.Shortcut,
+		p.WorkspaceID,
 	)
 	return err
 }
@@ -241,7 +244,8 @@ func scanURLPatterns(rows pgx.Rows) ([]models.URLPattern, error) {
 	for rows.Next() {
 		var p models.URLPattern
 		if err := rows.Scan(
-			&p.ID, &p.UserID, &p.URLPrefix, &p.PlatformName, &p.TypeLabel, &p.SortOrder,
+			&p.ID, &p.UserID, &p.URLPrefix, &p.PlatformName,
+			&p.TypeLabel, &p.Shortcut, &p.SortOrder,
 		); err != nil {
 			return nil, err
 		}

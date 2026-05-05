@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
@@ -80,6 +81,7 @@ func (s *SettingsService) AddURLPattern(
 		URLPrefix:    dto.URLPrefix,
 		PlatformName: dto.PlatformName,
 		TypeLabel:    dto.TypeLabel,
+		Shortcut:     strings.ToUpper(strings.TrimSpace(dto.Shortcut)),
 		WorkspaceID:  workspaceID,
 	})
 }
