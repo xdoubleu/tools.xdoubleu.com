@@ -1,0 +1,67 @@
+{{ template "header" }}
+{{ template "navbar" }}
+<div class="container py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/backlog/steam" onclick="if(history.length>1){history.back();return false;}" class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+        <h2 class="mb-0">{{ .Game.Name }}</h2>
+        <span class="badge bg-primary fs-6">{{ .Game.CompletionRate }}%</span>
+    </div>
+
+    <img src="https://cdn.akamai.steamstatic.com/steam/apps/{{ .Game.ID }}/header.jpg"
+         alt="{{ .Game.Name }}"
+         class="rounded mb-4"
+         style="max-width:460px;width:100%;object-fit:cover"
+         onerror="this.style.display='none'">
+
+    {{ if .Achievements }}
+    <h5 class="mb-3">Achievements ({{ len .Achievements }})</h5>
+    <div class="list-group">
+        {{ range .Achievements }}
+        <div class="list-group-item">
+            <div class="d-flex align-items-start gap-3">
+                {{ if .IconURL }}
+                <img src="{{ .IconURL }}"
+                     alt=""
+                     width="64" height="64"
+                     style="flex-shrink:0;border-radius:4px{{ if not .Achieved }};filter:grayscale(100%) opacity(0.45){{ end }}"
+                     onerror="this.style.display='none'">
+                {{ end }}
+                <div class="flex-grow-1 min-width-0">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        {{ if .Achieved }}
+                        <span class="text-success fw-bold" title="Achieved">&#10003;</span>
+                        {{ else }}
+                        <span class="text-muted" title="Not achieved">&#9711;</span>
+                        {{ end }}
+                        <span class="fw-semibold">{{ .DisplayName }}</span>
+                        {{ if .UnlockTime }}
+                        <small class="text-muted ms-auto text-nowrap">
+                            {{ .UnlockTime.Format "2006-01-02" }}
+                        </small>
+                        {{ end }}
+                    </div>
+                    {{ if .Description }}
+                    <p class="mb-1 text-muted small">{{ .Description }}</p>
+                    {{ end }}
+                    {{ if .HasGlobalPercent }}
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        <div class="progress flex-grow-1" style="height:6px;max-width:200px">
+                            <div class="progress-bar bg-info"
+                                 style="width:{{ .GlobalPercentValue }}%"></div>
+                        </div>
+                        <span class="text-muted small">
+                            {{ printf "%.1f" .GlobalPercentValue }}% globally
+                        </span>
+                    </div>
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ else }}
+    <p class="text-muted">No achievement data available.</p>
+    {{ end }}
+</div>
+{{ template "footer" }}
+{{ template "page_end" }}

@@ -16,10 +16,25 @@ type Game struct {
 }
 
 type Achievement struct {
-	Name       string     `json:"name"`
-	GameID     int        `json:"gameId"`
-	Achieved   bool       `json:"achieved"`
-	UnlockTime *time.Time `json:"unlockTime"`
+	Name          string     `json:"name"`
+	DisplayName   string     `json:"displayName"`
+	Description   string     `json:"description"`
+	IconURL       string     `json:"iconUrl"`
+	GameID        int        `json:"gameId"`
+	Achieved      bool       `json:"achieved"`
+	UnlockTime    *time.Time `json:"unlockTime"`
+	GlobalPercent *float64   `json:"globalPercent"`
+}
+
+func (a Achievement) HasGlobalPercent() bool {
+	return a.GlobalPercent != nil
+}
+
+func (a Achievement) GlobalPercentValue() float64 {
+	if a.GlobalPercent == nil {
+		return 0
+	}
+	return *a.GlobalPercent
 }
 
 func (game *Game) SetCalculatedInfo(achievements []Achievement, totalGames int) {

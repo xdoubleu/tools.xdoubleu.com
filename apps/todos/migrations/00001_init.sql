@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS todos.workspaces (
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_workspaces_owner ON todos.workspaces (owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_workspaces_owner ON todos.workspaces (
+    owner_user_id
+);
 
 CREATE TABLE IF NOT EXISTS todos.sections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -41,7 +43,9 @@ CREATE TABLE IF NOT EXISTS todos.tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_owner ON todos.tasks (owner_user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON todos.tasks (owner_user_id, status);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON todos.tasks (
+    owner_user_id, status
+);
 
 CREATE TABLE IF NOT EXISTS todos.task_links (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -81,7 +85,9 @@ CREATE TABLE IF NOT EXISTS todos.url_patterns (
     sort_order INT NOT NULL DEFAULT 0,
     workspace_id UUID REFERENCES todos.workspaces (id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_url_patterns_user ON todos.url_patterns (user_id);
+CREATE INDEX IF NOT EXISTS idx_url_patterns_user ON todos.url_patterns (
+    user_id
+);
 
 CREATE TABLE IF NOT EXISTS todos.archive_settings (
     user_id TEXT PRIMARY KEY,
