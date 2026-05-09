@@ -70,7 +70,7 @@ func ToFraction(f float64) string {
 	return fmt.Sprintf("%d%s", whole, fracStr)
 }
 
-var mdLinkRE = regexp.MustCompile(`\[([^\]]+)\]\((https?://[^)]+)\)`)
+var mdLinkRE = regexp.MustCompile(`\[([^\]]+)\]\(((?:https?://)?[^\s)]+)\)`)
 
 // renderTitleLinks replaces [title](url) markdown links in s with HTML <a> tags.
 func renderTitleLinks(s string) template.HTML {
@@ -79,12 +79,15 @@ func renderTitleLinks(s string) template.HTML {
 	for _, m := range mdLinkRE.FindAllStringSubmatchIndex(s, -1) {
 		b.WriteString(html.EscapeString(s[last:m[0]]))
 		title := html.EscapeString(s[m[2]:m[3]])
-		rawURL := html.EscapeString(s[m[4]:m[5]])
+		u := s[m[4]:m[5]]
+		if !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+			u = "https://" + u
+		}
+		rawURL := html.EscapeString(u)
 		fmt.Fprintf(&b,
 			`<a href="%s" target="_blank" rel="noopener noreferrer"`+
 				` onclick="event.stopPropagation()"`+
-				` class="text-decoration-none text-body`+
-				` fw-semibold task-title-link">%s&nbsp;&#8599;</a>`,
+				` class="text-decoration-underline text-body task-title-link">%s</a>`,
 			rawURL, title,
 		)
 		last = m[1]

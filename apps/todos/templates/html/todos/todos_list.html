@@ -355,18 +355,8 @@ details summary::-webkit-details-marker{display:none}
   color:var(--bs-secondary-color);
   pointer-events:none;
 }
-.qa-md-link{
-  display:inline-flex;align-items:center;
-  background:var(--bs-primary-bg-subtle);
-  border:1px solid var(--bs-primary-border-subtle);
-  border-radius:.25rem;padding:0 .3em;
-  font-size:.9em;white-space:nowrap;
-  user-select:none;
-}
-.qa-md-link a{
-  color:var(--bs-primary);text-decoration:none;font-weight:600;
-}
-.qa-md-link a:hover{text-decoration:underline}
+.qa-md-link{display:inline;}
+.qa-md-link a{color:inherit;text-decoration:underline;}
 </style>
 
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
@@ -395,7 +385,7 @@ details summary::-webkit-details-marker{display:none}
     var hidden = document.getElementById('quickAddInputValue');
 
     function renderContent(md) {
-      var re = /\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g;
+      var re = /\[([^\]]*)\]\(((?:https?:\/\/)?[^\s)]+)\)/g;
       div.innerHTML = '';
       var last = 0, m;
       while ((m = re.exec(md)) !== null) {
@@ -407,8 +397,9 @@ details summary::-webkit-details-marker{display:none}
         span.contentEditable = 'false';
         span.dataset.md = m[0];
         var a = document.createElement('a');
-        a.href = m[2]; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        a.textContent = m[1] + ' ↗';
+        a.href = /^https?:\/\//.test(m[2]) ? m[2] : 'https://' + m[2];
+        a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.textContent = m[1];
         a.addEventListener('click', function (e) { e.stopPropagation(); });
         span.appendChild(a);
         div.appendChild(span);
@@ -1027,16 +1018,26 @@ details summary::-webkit-details-marker{display:none}
     }
     // Plain URL paste — sync after browser inserts the text, then run indicator.
     setTimeout(function () {
-      quickAddInput._sync();
+      var md = quickAddInput._sync();
+      if (/\[[^\]]*\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
+        var caretPos = quickAddInput.selectionStart;
+        quickAddInput._render(md);
+        quickAddInput.setSelectionRange(caretPos);
+      }
       updateUrlIndicator(quickAddInput.value);
     }, 0);
   });
 
   quickAddInput.addEventListener('input', function () {
-    quickAddInput._sync();
+    var md = quickAddInput._sync();
+    if (/\[[^\]]*\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
+      var caretPos = quickAddInput.selectionStart;
+      quickAddInput._render(md);
+      quickAddInput.setSelectionRange(caretPos);
+    }
     acUpdate();
-    syncControlsFromDetections(parseShortcutRanges(quickAddInput.value).detections);
-    updateUrlIndicator(quickAddInput.value);
+    syncControlsFromDetections(parseShortcutRanges(md).detections);
+    updateUrlIndicator(md);
   });
   quickAddInput.addEventListener('keydown', function (e) {
     // Always prevent Enter from inserting <br> in the contenteditable

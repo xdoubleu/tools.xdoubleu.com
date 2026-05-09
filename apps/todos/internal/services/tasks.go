@@ -502,7 +502,7 @@ func (s *TaskService) searchByShortcut(
 // fancyURLPattern matches Edge-style "Copy as link": [Title](https://…)
 // with an optional trailing string of shortcuts.
 var fancyURLPattern = regexp.MustCompile(
-	`^\[([^\]]+)\]\((https?://[^\)]+)\)(.*)$`,
+	`^\[([^\]]+)\]\(((?:https?://)?[^\s\)]+)\)(.*)$`,
 )
 
 // parseFancyURL detects a Markdown link at the start of input and returns
@@ -512,7 +512,11 @@ func parseFancyURL(input string) (string, string, string, bool) {
 	if m == nil {
 		return "", "", "", false
 	}
-	return strings.TrimSpace(m[1]), m[2], strings.TrimSpace(m[3]), true
+	u := m[2]
+	if !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+		u = "https://" + u
+	}
+	return strings.TrimSpace(m[1]), u, strings.TrimSpace(m[3]), true
 }
 
 // parseDeadlineTok parses a "!<date>" token from the quick-add input.

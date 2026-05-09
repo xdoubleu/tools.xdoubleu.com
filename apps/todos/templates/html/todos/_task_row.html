@@ -42,8 +42,8 @@
         {{else if $task.Links}}
         <a href="{{(index $task.Links 0).URL}}" target="_blank"
           rel="noopener noreferrer"
-          class="text-decoration-none text-body fw-semibold task-title-link"
-          onclick="event.stopPropagation()">{{$task.Title}}&nbsp;↗</a>
+          class="text-decoration-underline text-body task-title-link"
+          onclick="event.stopPropagation()">{{$task.Title}}</a>
         {{else}}
         <span class="fw-semibold">{{$task.Title}}</span>
         {{end}}
