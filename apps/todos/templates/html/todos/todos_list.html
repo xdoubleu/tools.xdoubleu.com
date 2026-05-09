@@ -385,7 +385,7 @@ details summary::-webkit-details-marker{display:none}
     var hidden = document.getElementById('quickAddInputValue');
 
     function renderContent(md) {
-      var re = /\[([^\]]*)\]\(((?:https?:\/\/)?[^\s)]+)\)/g;
+      var re = /\[(.+)\]\(((?:https?:\/\/)?[^\s)]+)\)/g;
       div.innerHTML = '';
       var last = 0, m;
       while ((m = re.exec(md)) !== null) {
@@ -756,7 +756,7 @@ details summary::-webkit-details-marker{display:none}
 
     // Build ranges for markdown link titles [title](url) so shortcuts inside
     // a fetched page title are not misdetected.
-    var mdLinkRe = /\[([^\]]*)\]\([^)]*\)/g;
+    var mdLinkRe = /\[(.+)\]\([^)]*\)/g;
     var mdTitleRanges = [];
     while ((match = mdLinkRe.exec(val)) !== null) {
       mdTitleRanges.push({ start: match.index + 1, end: match.index + 1 + match[1].length });
@@ -1019,7 +1019,7 @@ details summary::-webkit-details-marker{display:none}
     // Plain URL paste — sync after browser inserts the text, then run indicator.
     setTimeout(function () {
       var md = quickAddInput._sync();
-      if (/\[[^\]]*\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
+      if (/\[.+\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
         var caretPos = quickAddInput.selectionStart;
         quickAddInput._render(md);
         quickAddInput.setSelectionRange(caretPos);
@@ -1030,7 +1030,7 @@ details summary::-webkit-details-marker{display:none}
 
   quickAddInput.addEventListener('input', function () {
     var md = quickAddInput._sync();
-    if (/\[[^\]]*\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
+    if (/\[.+\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
       var caretPos = quickAddInput.selectionStart;
       quickAddInput._render(md);
       quickAddInput.setSelectionRange(caretPos);

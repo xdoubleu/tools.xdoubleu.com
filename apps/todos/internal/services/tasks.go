@@ -502,7 +502,7 @@ func (s *TaskService) searchByShortcut(
 // fancyURLPattern matches Edge-style "Copy as link": [Title](https://…)
 // with an optional trailing string of shortcuts.
 var fancyURLPattern = regexp.MustCompile(
-	`^\[([^\]]+)\]\(((?:https?://)?[^\s\)]+)\)(.*)$`,
+	`^\[(.+)\]\(((?:https?://)?[^\s\)]+)\)(.*)$`,
 )
 
 // parseFancyURL detects a Markdown link at the start of input and returns

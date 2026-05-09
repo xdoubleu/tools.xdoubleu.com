@@ -164,6 +164,16 @@ func TestParseFancyURL_PlainTitle(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestParseFancyURL_NestedBrackets(t *testing.T) {
+	const input = "[[TAG1] [Category] Some task title [REF#123] | Project ABC123]" +
+		"(https://example.com/task/123)"
+	title, rawURL, rest, ok := parseFancyURL(input)
+	require.True(t, ok)
+	assert.Equal(t, "[TAG1] [Category] Some task title [REF#123] | Project ABC123", title)
+	assert.Equal(t, "https://example.com/task/123", rawURL)
+	assert.Equal(t, "", rest)
+}
+
 func TestParseFancyURL_MissingURL(t *testing.T) {
 	title, rawURL, rest, ok := parseFancyURL("[Title](not-a-url)")
 	require.True(t, ok)
