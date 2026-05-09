@@ -37,7 +37,9 @@
       onclick="if(!event.target.closest('a,button,form,details,input,summary,textarea'))window.location='/todos/{{$task.ID}}/edit'">
 
       <div class="mb-1">
-        {{if $task.Links}}
+        {{if hasMdLink $task.Title}}
+        <span class="fw-semibold">{{renderTitleLinks $task.Title}}</span>
+        {{else if $task.Links}}
         <a href="{{(index $task.Links 0).URL}}" target="_blank"
           rel="noopener noreferrer"
           class="text-decoration-none text-body fw-semibold task-title-link"

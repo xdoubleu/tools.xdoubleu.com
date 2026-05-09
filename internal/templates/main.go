@@ -3,9 +3,11 @@ package templates
 import (
 	"embed"
 	"fmt"
+	"html"
 	"html/template"
 	"math"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -66,6 +68,29 @@ func ToFraction(f float64) string {
 		return fracStr
 	}
 	return fmt.Sprintf("%d%s", whole, fracStr)
+}
+
+var mdLinkRE = regexp.MustCompile(`\[([^\]]+)\]\((https?://[^)]+)\)`)
+
+// renderTitleLinks replaces [title](url) markdown links in s with HTML <a> tags.
+func renderTitleLinks(s string) template.HTML {
+	var b strings.Builder
+	last := 0
+	for _, m := range mdLinkRE.FindAllStringSubmatchIndex(s, -1) {
+		b.WriteString(html.EscapeString(s[last:m[0]]))
+		title := html.EscapeString(s[m[2]:m[3]])
+		rawURL := html.EscapeString(s[m[4]:m[5]])
+		fmt.Fprintf(&b,
+			`<a href="%s" target="_blank" rel="noopener noreferrer"`+
+				` onclick="event.stopPropagation()"`+
+				` class="text-decoration-none text-body`+
+				` fw-semibold task-title-link">%s&nbsp;&#8599;</a>`,
+			rawURL, title,
+		)
+		last = m[1]
+	}
+	b.WriteString(html.EscapeString(s[last:]))
+	return template.HTML(b.String()) //nolint:gosec // output is sanitised
 }
 
 var recurOrdinals = map[int]string{ //nolint:gochecknoglobals // read-only lookup table
@@ -163,6 +188,8 @@ func LoadShared(cfg config.Config) *template.Template {
 			}
 			return strings.TrimSpace(s)
 		},
+		"hasMdLink":        func(s string) bool { return mdLinkRE.MatchString(s) },
+		"renderTitleLinks": renderTitleLinks,
 		"dict": func(keysAndValues ...any) (map[string]any, error) {
 			const pairSize = 2
 			if len(keysAndValues)%pairSize != 0 {
