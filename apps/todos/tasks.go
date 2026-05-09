@@ -485,11 +485,12 @@ func (a *Todos) newTaskFormHandler(w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	tpltools.RenderWithPanic(a.Tpl, w, "todos_form.html", map[string]any{
-		"Task":     models.Task{}, //nolint:exhaustruct // empty task for new-task form
-		"Action":   "/todos/new",
-		"IsEdit":   false,
-		"Presets":  presets,
-		"Sections": sections,
+		"Task":       models.Task{}, //nolint:exhaustruct // empty task for new-task form
+		"Action":     "/todos/new",
+		"IsEdit":     false,
+		"Presets":    presets,
+		"Sections":   sections,
+		"RecurInput": "",
 	})
 	return nil
 }
@@ -498,14 +499,20 @@ func (a *Todos) newTaskFormHandler(w http.ResponseWriter, r *http.Request) error
 
 func (a *Todos) createTaskHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
 	var dto dtos.SaveTaskDto
-	if err := httptools.ReadForm(r, &dto); err != nil {
+	if err = httptools.ReadForm(r, &dto); err != nil {
 		return &services.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
 	}
-	if _, err := a.services.Tasks.Create(r.Context(), user.ID, dto); err != nil {
+	if _, err = a.services.Tasks.Create(
+		r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID, dto,
+	); err != nil {
 		return err
 	}
 	http.Redirect(w, r, todosRoot, http.StatusSeeOther)
@@ -544,11 +551,12 @@ func (a *Todos) editTaskFormHandler(w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 	tpltools.RenderWithPanic(a.Tpl, w, "todos_form.html", map[string]any{
-		"Task":     task,
-		"Action":   "/todos/" + id.String() + "/edit",
-		"IsEdit":   true,
-		"Presets":  presets,
-		"Sections": sections,
+		"Task":       task,
+		"Action":     "/todos/" + id.String() + "/edit",
+		"IsEdit":     true,
+		"Presets":    presets,
+		"Sections":   sections,
+		"RecurInput": a.services.Tasks.FormatRecurRule(task.RecurRule, task.RecurDays),
 	})
 	return nil
 }
@@ -579,6 +587,10 @@ func safeLocalRedirectTarget(rawBack string, fallback string) string {
 
 func (a *Todos) updateTaskHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		return &services.HTTPError{
@@ -593,7 +605,9 @@ func (a *Todos) updateTaskHandler(w http.ResponseWriter, r *http.Request) error 
 			Message: "Invalid form data",
 		}
 	}
-	if err = a.services.Tasks.Update(r.Context(), id, user.ID, dto); err != nil {
+	if err = a.services.Tasks.Update(
+		r.Context(), id, user.ID, wsCtx.Settings.ActiveWorkspaceID, dto,
+	); err != nil {
 		return err
 	}
 	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), todosRoot)

@@ -11,6 +11,7 @@ type SaveTaskDto struct {
 	Label       string   `schema:"label"`
 	DueDate     string   `schema:"due_date"`
 	Deadline    string   `schema:"deadline"`
+	Recur       string   `schema:"recur"`
 	SectionID   string   `schema:"section_id"`
 	Priority    int      `schema:"priority"`
 	RecurDays   int      `schema:"recur_days"`

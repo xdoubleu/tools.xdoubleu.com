@@ -6,6 +6,8 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
@@ -66,6 +68,45 @@ func ToFraction(f float64) string {
 	return fmt.Sprintf("%d%s", whole, fracStr)
 }
 
+var recurOrdinals = map[int]string{ //nolint:gochecknoglobals // read-only lookup table
+	1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth", -1: "last",
+}
+
+// recurInputDisplay converts a stored recur rule (e.g. "weekday:4") to its
+// human-readable form (e.g. "every thursday").
+func recurInputDisplay(rule string) string {
+	if rule == "" {
+		return ""
+	}
+	parts := strings.Split(rule, ":")
+	switch parts[0] {
+	case "days":
+		if len(parts) == 2 { //nolint:mnd // 2-part rule is self-documenting
+			return "every " + parts[1] + " days"
+		}
+	case "weekday":
+		if len(parts) == 2 { //nolint:mnd // 2-part rule is self-documenting
+			if w, err := strconv.Atoi(parts[1]); err == nil && w >= 0 &&
+				w <= 6 {
+				return "every " + strings.ToLower(time.Weekday(w).String())
+			}
+		}
+	case "monthweekday":
+		if len(parts) == 3 { //nolint:mnd // 3-part rule is self-documenting
+			o, err1 := strconv.Atoi(parts[1])
+			w, err2 := strconv.Atoi(parts[2])
+			if err1 == nil && err2 == nil && w >= 0 &&
+				w <= 6 {
+				if name, ok := recurOrdinals[o]; ok {
+					return "every " + name + " " +
+						strings.ToLower(time.Weekday(w).String())
+				}
+			}
+		}
+	}
+	return rule
+}
+
 func LoadShared(cfg config.Config) *template.Template {
 	return template.Must(template.New("shared").Funcs(template.FuncMap{
 		"release": func() string {
@@ -102,6 +143,7 @@ func LoadShared(cfg config.Config) *template.Template {
 				return d.Format("2 Jan")
 			}
 		},
+		"recurInput": recurInputDisplay,
 		"isOverdue": func(t *time.Time) bool {
 			if t == nil {
 				return false

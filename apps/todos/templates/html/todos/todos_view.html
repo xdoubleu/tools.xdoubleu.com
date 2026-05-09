@@ -22,7 +22,9 @@
       ⚑&nbsp;Deadline&nbsp;{{humanDate .Task.Deadline}}
     </span>
     {{end}}
-    {{if gt .Task.RecurDays 0}}
+    {{if .Task.RecurRule}}
+    <span class="badge bg-info text-dark">&#8635; {{recurInput .Task.RecurRule}}</span>
+    {{else if gt .Task.RecurDays 0}}
     <span class="badge bg-info text-dark">&#8635; every {{.Task.RecurDays}} days</span>
     {{end}}
   </div>

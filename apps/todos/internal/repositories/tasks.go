@@ -25,7 +25,7 @@ func (r *TasksRepository) ListOpen(
 		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
-		       t.recur_days,
+		       t.recur_days, t.recur_rule,
 		       COUNT(s.id) FILTER (WHERE s.done) AS subtask_done,
 		       COUNT(s.id)                        AS subtask_total
 		FROM todos.tasks t
@@ -55,7 +55,7 @@ func (r *TasksRepository) ListByStatus(
 		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
-		       t.recur_days,
+		       t.recur_days, t.recur_rule,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
 		       COUNT(s.id)                         AS subtask_total
 		FROM todos.tasks t
@@ -84,7 +84,7 @@ func (r *TasksRepository) ListArchived(
 		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
-		       t.recur_days,
+		       t.recur_days, t.recur_rule,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
 		       COUNT(s.id)                         AS subtask_total
 		FROM todos.tasks t
@@ -115,7 +115,7 @@ func (r *TasksRepository) SearchAll(
 		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
-		       t.recur_days,
+		       t.recur_days, t.recur_rule,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
 		       COUNT(s.id)                         AS subtask_total
 		FROM todos.tasks t
@@ -146,7 +146,7 @@ func (r *TasksRepository) SearchByLinkURL(
 		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
-		       t.recur_days,
+		       t.recur_days, t.recur_rule,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
 		       COUNT(s.id)                         AS subtask_total
 		FROM todos.tasks t
@@ -175,7 +175,7 @@ func (r *TasksRepository) GetByID(
 	err := r.db.QueryRow(ctx, `
 		SELECT id, owner_user_id, title, description, label,
 		       status, priority, sort_order, completed_at, archived_at, due_date,
-		       deadline, created_at, updated_at, section_id, workspace_id, recur_days
+		       deadline, created_at, updated_at, section_id, workspace_id, recur_days, recur_rule
 		FROM todos.tasks
 		WHERE id = $1 AND owner_user_id = $2`,
 		id, userID,
@@ -185,6 +185,7 @@ func (r *TasksRepository) GetByID(
 		&t.Priority, &t.SortOrder,
 		&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 		&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID, &t.RecurDays,
+		&t.RecurRule,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -261,13 +262,13 @@ func (r *TasksRepository) Create(
 		INSERT INTO todos.tasks
 		    (owner_user_id, title, description, label,
 		     due_date, deadline, section_id, workspace_id, priority, sort_order,
-		     recur_days)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		     recur_days, recur_rule)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, created_at, updated_at`,
 		t.OwnerUserID, t.Title, t.Description,
 		t.Label, t.DueDate, t.Deadline,
 		t.SectionID, t.WorkspaceID,
-		t.Priority, t.SortOrder, t.RecurDays,
+		t.Priority, t.SortOrder, t.RecurDays, t.RecurRule,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -284,12 +285,12 @@ func (r *TasksRepository) Update(
 		UPDATE todos.tasks
 		SET title = $1, description = $2, label = $3,
 		    due_date = $4, deadline = $5, section_id = $6,
-		    priority = $7, recur_days = $8,
+		    priority = $7, recur_days = $8, recur_rule = $9,
 		    updated_at = now()
-		WHERE id = $9 AND owner_user_id = $10`,
+		WHERE id = $10 AND owner_user_id = $11`,
 		t.Title, t.Description, t.Label,
 		t.DueDate, t.Deadline, t.SectionID,
-		t.Priority, t.RecurDays, t.ID, t.OwnerUserID,
+		t.Priority, t.RecurDays, t.RecurRule, t.ID, t.OwnerUserID,
 	)
 	return err
 }
@@ -505,7 +506,7 @@ func (r *TasksRepository) ListDoneForArchiving(
 		       t.label, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
-		       t.recur_days,
+		       t.recur_days, t.recur_rule,
 		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
 		       COUNT(s.id)                         AS subtask_total
 		FROM todos.tasks t
@@ -607,7 +608,7 @@ func scanTasks(rows pgx.Rows) ([]models.Task, error) {
 			&t.Priority, &t.SortOrder,
 			&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 			&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID,
-			&t.RecurDays, &t.SubtaskDone, &t.SubtaskTotal,
+			&t.RecurDays, &t.RecurRule, &t.SubtaskDone, &t.SubtaskTotal,
 		); err != nil {
 			return nil, err
 		}

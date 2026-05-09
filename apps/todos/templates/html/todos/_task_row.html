@@ -61,7 +61,9 @@
           ⚑&nbsp;{{humanDate $task.Deadline}}
         </span>
         {{end}}
-        {{if gt $task.RecurDays 0}}
+        {{if $task.RecurRule}}
+        <span class="badge bg-info text-dark">&#8635;&nbsp;{{recurInput $task.RecurRule}}</span>
+        {{else if gt $task.RecurDays 0}}
         <span class="badge bg-info text-dark">&#8635;&nbsp;{{$task.RecurDays}}d</span>
         {{end}}
         {{if gt $task.SubtaskTotal 0}}

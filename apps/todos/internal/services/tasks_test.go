@@ -3,9 +3,11 @@ package services
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"tools.xdoubleu.com/apps/todos/internal/dtos"
 )
 
 func TestURLToTitle_LastSegment(t *testing.T) {
@@ -36,6 +38,86 @@ func TestParseDatePtr_Empty(t *testing.T) {
 
 func TestParseDatePtr_Invalid(t *testing.T) {
 	assert.Nil(t, parseDatePtr("not-a-date"))
+}
+
+func TestParseHumanDate_EveryThursday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC) // Friday
+	d, recurring, err := parseHumanDate("every thursday", now, true)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, 7, recurring.recurDays)
+	assert.Equal(t, "weekday:4", recurring.recurRule)
+	assert.Equal(t, time.Thursday, d.Weekday())
+}
+
+func TestParseHumanDate_EveryFirstSunday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	d, recurring, err := parseHumanDate("every first sunday", now, true)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, "monthweekday:1:0", recurring.recurRule)
+	assert.Equal(t, 7, d.Day())
+	assert.Equal(t, time.Sunday, d.Weekday())
+}
+
+func TestParseHumanDate_DeadlineRejectsRecurring(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	_, _, err := parseHumanDate("every thursday", now, false)
+	require.Error(t, err)
+}
+
+func TestParseScheduleDTO_DueEveryThursdaySetsRecurDays(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	//nolint:exhaustruct // only schedule fields needed
+	dto := dtos.SaveTaskDto{DueDate: "every thursday"}
+	due, _, recurDays, recurRule, err := parseScheduleDTO(dto, now)
+	require.NoError(t, err)
+	require.NotNil(t, due)
+	assert.Equal(t, 7, recurDays)
+	assert.Equal(t, "weekday:4", recurRule)
+	assert.Equal(t, time.Thursday, due.Weekday())
+}
+
+func TestParseScheduleDTO_DeadlineHumanDate(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	//nolint:exhaustruct // only schedule fields needed
+	dto := dtos.SaveTaskDto{Deadline: "tomorrow"}
+	_, deadline, recurDays, recurRule, err := parseScheduleDTO(dto, now)
+	require.NoError(t, err)
+	require.NotNil(t, deadline)
+	assert.Equal(t, 0, recurDays)
+	assert.Equal(t, "", recurRule)
+	assert.Equal(t, 9, deadline.Day())
+}
+
+func TestParseQuickInput_DeadlineShortcutToday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Ship patch !today", nil, now)
+	assert.Equal(t, "Ship patch", title)
+	assert.Equal(t, "2026-05-08", dto.Deadline)
+}
+
+func TestParseQuickInput_DeadlineShortcutNextWeekday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC) // Friday
+	title, dto := parseQuickInput("Ship patch !next thursday", nil, now)
+	assert.Equal(t, "Ship patch", title)
+	assert.Equal(t, "2026-05-14", dto.Deadline)
+}
+
+func TestParseQuickInput_RecurringEveryThursday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Workout every thursday", nil, now)
+	assert.Equal(t, "Workout", title)
+	assert.Equal(t, "2026-05-14", dto.DueDate)
+	assert.Equal(t, "every thursday", dto.Recur)
+}
+
+func TestParseQuickInput_RecurringEveryFirstSunday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Call grandma every first sunday", nil, now)
+	assert.Equal(t, "Call grandma", title)
+	assert.Equal(t, "2026-06-07", dto.DueDate)
+	assert.Equal(t, "every first sunday", dto.Recur)
 }
 
 // ── parseFancyURL ─────────────────────────────────────────────────────────────
