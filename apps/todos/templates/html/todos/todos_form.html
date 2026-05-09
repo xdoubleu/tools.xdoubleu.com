@@ -27,24 +27,30 @@
       </div>
       <div class="col-sm-2">
         <label class="form-label small fw-semibold">Label</label>
-        <select name="label" class="form-select">
-          <option value="">— none —</option>
-          {{range .Presets.Labels}}
-          <option value="{{.}}" {{if eq . $.Task.Label}}selected{{end}}>{{.}}</option>
-          {{end}}
-        </select>
+        <input type="text" name="label" class="form-control"
+          list="form-label-list"
+          value="{{.Task.Label}}"
+          placeholder="— none —">
+        <datalist id="form-label-list">
+          {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+        </datalist>
       </div>
       <div class="col-sm-2">
         <label class="form-label small fw-semibold">Due date</label>
-        <input type="date" name="due_date" class="form-control"
+        <input type="text" name="due_date" class="form-control"
           value="{{if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}"
-          title="When you plan to work on it">
+          placeholder="today, next thursday, every first sunday"
+          title="When you plan to work on it — supports recurring (e.g. every thursday, every first sunday)">
+        {{if and .IsEdit .Task.RecurRule}}
+        <div class="mt-1 small text-info">&#8635; {{.RecurInput}}</div>
+        {{end}}
       </div>
       <div class="col-sm-2">
         <label class="form-label small fw-semibold">Deadline</label>
-        <input type="date" name="deadline" class="form-control"
+        <input type="text" name="deadline" class="form-control"
           value="{{if .Task.Deadline}}{{.Task.Deadline.Format "2006-01-02"}}{{end}}"
-          title="Hard deadline — must be done by">
+          placeholder="today, tomorrow, next friday"
+          title="Hard deadline — one-off date, no recurring">
       </div>
       <div class="col-sm-2">
         <label class="form-label small fw-semibold">Section</label>
@@ -60,9 +66,10 @@
       </div>
       <div class="col-sm-1">
         <label class="form-label small fw-semibold">Recur</label>
-        <input type="number" name="recur_days" class="form-control text-center"
-          min="0" placeholder="days" title="Recur every N days (0 = off)"
-          value="{{.Task.RecurDays}}">
+        <input type="text" name="recur" class="form-control text-center"
+          placeholder="optional override"
+          title="e.g. every thursday, every first sunday, or every 7 days"
+          value="{{.RecurInput}}">
       </div>
     </div>
 

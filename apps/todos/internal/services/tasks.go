@@ -15,6 +15,16 @@ import (
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
 )
 
+const (
+	ordinalSecond  = 2
+	ordinalThird   = 3
+	ordinalFourth  = 4
+	ordinalFifth   = 5
+	daysInWeek     = 7
+	twoRuleParts   = 2
+	threeRuleParts = 3
+)
+
 type TaskService struct {
 	tasks    *repositories.TasksRepository
 	settings *repositories.SettingsRepository
@@ -90,8 +100,18 @@ func (s *TaskService) Get(
 func (s *TaskService) Create(
 	ctx context.Context,
 	userID string,
+	workspaceID *uuid.UUID,
 	dto dtos.SaveTaskDto,
 ) (*models.Task, error) {
+	dueDate, deadline, recurDays, recurRule, err := parseScheduleDTO(dto, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	if dto.Label != "" {
+		dto.Label = s.normalizeAndAddLabel(ctx, userID, workspaceID, dto.Label)
+	}
+
 	//nolint:exhaustruct // ID, Status, timestamps set by DB
 	t := models.Task{
 		OwnerUserID: userID,
@@ -99,9 +119,10 @@ func (s *TaskService) Create(
 		Description: dto.Description,
 		Label:       dto.Label,
 		Priority:    dto.Priority,
-		RecurDays:   dto.RecurDays,
-		DueDate:     parseDatePtr(dto.DueDate),
-		Deadline:    parseDatePtr(dto.Deadline),
+		RecurDays:   recurDays,
+		RecurRule:   recurRule,
+		DueDate:     dueDate,
+		Deadline:    deadline,
 		SectionID:   parseSectionID(dto.SectionID),
 	}
 	created, err := s.tasks.Create(ctx, t)
@@ -120,8 +141,18 @@ func (s *TaskService) Update(
 	ctx context.Context,
 	id uuid.UUID,
 	userID string,
+	workspaceID *uuid.UUID,
 	dto dtos.SaveTaskDto,
 ) error {
+	dueDate, deadline, recurDays, recurRule, err := parseScheduleDTO(dto, time.Now())
+	if err != nil {
+		return err
+	}
+
+	if dto.Label != "" {
+		dto.Label = s.normalizeAndAddLabel(ctx, userID, workspaceID, dto.Label)
+	}
+
 	existing, err := s.tasks.GetByID(ctx, id, userID)
 	if err != nil {
 		return err
@@ -130,9 +161,10 @@ func (s *TaskService) Update(
 	existing.Description = dto.Description
 	existing.Label = dto.Label
 	existing.Priority = dto.Priority
-	existing.RecurDays = dto.RecurDays
-	existing.DueDate = parseDatePtr(dto.DueDate)
-	existing.Deadline = parseDatePtr(dto.Deadline)
+	existing.RecurDays = recurDays
+	existing.RecurRule = recurRule
+	existing.DueDate = dueDate
+	existing.Deadline = deadline
 	existing.SectionID = parseSectionID(dto.SectionID)
 	if err = s.tasks.Update(ctx, *existing); err != nil {
 		return err
@@ -163,11 +195,13 @@ func (s *TaskService) Complete(
 	); err != nil {
 		return err
 	}
-	if task.RecurDays <= 0 {
+	if task.RecurDays <= 0 && task.RecurRule == "" {
 		return nil
 	}
-	d := now.AddDate(0, 0, task.RecurDays)
-	due := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, now.Location())
+	due, recurDays := nextRecurringDue(now, task.RecurRule, task.RecurDays)
+	if due == nil {
+		return nil
+	}
 	//nolint:exhaustruct // ID/Status/timestamps set by DB
 	newTask := models.Task{
 		OwnerUserID: task.OwnerUserID,
@@ -175,8 +209,9 @@ func (s *TaskService) Complete(
 		Description: task.Description,
 		Label:       task.Label,
 		Priority:    task.Priority,
-		RecurDays:   task.RecurDays,
-		DueDate:     &due,
+		RecurDays:   recurDays,
+		RecurRule:   task.RecurRule,
+		DueDate:     due,
 		SectionID:   task.SectionID,
 		WorkspaceID: task.WorkspaceID,
 	}
@@ -271,13 +306,32 @@ func (s *TaskService) QuickAdd(
 		title = fancyTitle
 		linkURL = fancyURL
 		linkLabel = s.matchURLPattern(ctx, userID, workspaceID, fancyURL)
+		sectionList = s.ensureSections(ctx, userID, workspaceID, rest, sectionList)
 		_, parsedDTO = parseQuickInput(rest, sectionList, time.Now())
 	} else {
+		sectionList = s.ensureSections(ctx, userID, workspaceID, input, sectionList)
 		title, parsedDTO = parseQuickInput(input, sectionList, time.Now())
 		linkURL, linkLabel = s.detectURLLink(ctx, userID, workspaceID, title)
 		if linkURL != "" {
 			title = urlToTitle(linkURL)
 		}
+	}
+
+	if parsedDTO.Label != "" {
+		parsedDTO.Label = s.normalizeAndAddLabel(
+			ctx, userID, workspaceID, parsedDTO.Label,
+		)
+	}
+
+	recurDays := parsedDTO.RecurDays
+	recurRule := ""
+	if parsedDTO.Recur != "" {
+		if rd, rr, parseErr := parseRecurOnly(parsedDTO.Recur, time.Now()); parseErr == nil {
+			recurDays = rd
+			recurRule = rr
+		}
+	} else if recurDays > 0 {
+		recurRule = "days:" + strconv.Itoa(recurDays)
 	}
 
 	var links []models.TaskLink
@@ -292,7 +346,8 @@ func (s *TaskService) QuickAdd(
 		Title:       title,
 		Label:       parsedDTO.Label,
 		Priority:    parsedDTO.Priority,
-		RecurDays:   parsedDTO.RecurDays,
+		RecurDays:   recurDays,
+		RecurRule:   recurRule,
 		DueDate:     parseDatePtr(parsedDTO.DueDate),
 		SectionID:   parseSectionID(parsedDTO.SectionID),
 		WorkspaceID: workspaceID,
@@ -309,6 +364,67 @@ func (s *TaskService) QuickAdd(
 		created.Links = links
 	}
 	return created, nil
+}
+
+func (s *TaskService) ensureSections(
+	ctx context.Context,
+	userID string,
+	workspaceID *uuid.UUID,
+	input string,
+	sections []models.Section,
+) []models.Section {
+	for _, tok := range strings.Fields(input) {
+		if !strings.HasPrefix(tok, "#") || len(tok) < 2 {
+			continue
+		}
+		name := tok[1:]
+		if findSection(sections, name) != nil {
+			continue
+		}
+		//nolint:exhaustruct // SortOrder/ID/CreatedAt set by DB
+		newSec, err := s.sections.Create(ctx, models.Section{
+			OwnerUserID: userID,
+			Name:        name,
+			WorkspaceID: workspaceID,
+		})
+		if err == nil {
+			sections = append(sections, *newSec)
+		}
+	}
+	return sections
+}
+
+func (s *TaskService) normalizeAndAddLabel(
+	ctx context.Context,
+	userID string,
+	workspaceID *uuid.UUID,
+	label string,
+) string {
+	presets, err := s.settings.GetLabelPresets(ctx, userID, workspaceID)
+	if err != nil {
+		return label
+	}
+	for _, l := range presets.Labels {
+		if strings.EqualFold(l, label) {
+			return l
+		}
+	}
+	_ = s.settings.AddLabelPreset(ctx, userID, models.LabelCategory, label, workspaceID)
+	return label
+}
+
+// FormatRecurRule converts a stored recur rule to its human-readable form,
+// falling back to "every N days" if only a day-count is available.
+func (s *TaskService) FormatRecurRule(rule string, fallbackDays int) string {
+	if rule != "" {
+		if r := recurRuleToInput(rule); r != "" {
+			return r
+		}
+	}
+	if fallbackDays > 0 {
+		return "every " + strconv.Itoa(fallbackDays) + " days"
+	}
+	return ""
 }
 
 func (s *TaskService) detectURLLink(
@@ -398,6 +514,27 @@ func parseFancyURL(input string) (string, string, string, bool) {
 	return strings.TrimSpace(m[1]), m[2], strings.TrimSpace(m[3]), true
 }
 
+// parseDeadlineTok parses a "!<date>" token from the quick-add input.
+// skip is the number of extra tokens consumed (0 or 1 for "!next <weekday>").
+// ok is false when the token is not a valid deadline and should be kept as title text.
+func parseDeadlineTok(
+	tok string, tokens []string, i int, now time.Time,
+) (string, int, bool) {
+	raw := tok[1:]
+	skip := 0
+	if strings.EqualFold(raw, "next") && i+1 < len(tokens) {
+		raw += " " + tokens[i+1]
+		skip = 1
+	}
+	if d, _, err := parseHumanDate(raw, now, false); err == nil {
+		return d.Format("2006-01-02"), skip, true
+	}
+	if d, err := time.Parse("2006-01-02", tok[1:]); err == nil {
+		return d.Format("2006-01-02"), skip, true
+	}
+	return "", skip, false
+}
+
 // parseQuickInput extracts Todoist-style shortcuts from a raw input string and
 // returns the cleaned title plus a partially-filled SaveTaskDto.
 func parseQuickInput(
@@ -409,7 +546,8 @@ func parseQuickInput(
 	tokens := strings.Fields(input)
 	var titleTokens []string
 
-	for _, tok := range tokens {
+	for i := 0; i < len(tokens); i++ {
+		tok := tokens[i]
 		switch {
 		case tok == "p1":
 			dto.Priority = models.PriorityP1
@@ -420,11 +558,7 @@ func parseQuickInput(
 		case strings.HasPrefix(tok, "@") && len(tok) > 1:
 			dto.Label = tok[1:]
 		case strings.HasPrefix(tok, "~") && len(tok) > 1:
-			if n, ok := parsePositiveInt(tok[1:]); ok {
-				dto.RecurDays = n
-			} else {
-				titleTokens = append(titleTokens, tok)
-			}
+			titleTokens = append(titleTokens, tok)
 		case strings.HasPrefix(tok, "#") && len(tok) > 1:
 			if sec := findSection(sections, tok[1:]); sec != nil {
 				dto.SectionID = sec.ID.String()
@@ -432,8 +566,10 @@ func parseQuickInput(
 				titleTokens = append(titleTokens, tok)
 			}
 		case strings.HasPrefix(tok, "!") && len(tok) > 1:
-			if d, parseErr := time.Parse("2006-01-02", tok[1:]); parseErr == nil {
-				dto.Deadline = d.Format("2006-01-02")
+			dl, skip, dlOK := parseDeadlineTok(tok, tokens, i, now)
+			i += skip
+			if dlOK {
+				dto.Deadline = dl
 			} else {
 				titleTokens = append(titleTokens, tok)
 			}
@@ -443,9 +579,13 @@ func parseQuickInput(
 	}
 
 	title := strings.Join(titleTokens, " ")
-	title, due := parseDateFromTitle(title, now)
+	title, due, recurRule, recurDays := parseDateFromTitle(title, now)
 	if due != nil {
 		dto.DueDate = due.Format("2006-01-02")
+	}
+	if recurRule != "" {
+		dto.Recur = recurRuleToInput(recurRule)
+		dto.RecurDays = recurDays
 	}
 	return strings.TrimSpace(title), dto
 }
@@ -486,34 +626,46 @@ func weekdayByName(name string) (time.Weekday, bool) {
 	return wd, ok
 }
 
-// parseDateFromTitle extracts a natural-language date phrase from the title and
-// returns the cleaned title and parsed date. Supported: "today", "tomorrow",
-// "next <weekday>", "next <weekday> at HH", "next <weekday> at HH:MM".
-func parseDateFromTitle(title string, now time.Time) (string, *time.Time) {
+var recurringInTitlePattern = regexp.MustCompile(
+	`(?i)\bevery\s+((first|second|third|fourth|fifth|last)\s+)?` +
+		`(monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d+\s+days?)\b`,
+)
+
+// parseDateFromTitle extracts a natural-language due date phrase from title and
+// returns cleaned title, due date, and optional recurrence metadata.
+func parseDateFromTitle(title string, now time.Time) (string, *time.Time, string, int) {
 	lower := strings.ToLower(title)
+
+	if loc := recurringInTitlePattern.FindStringIndex(lower); loc != nil {
+		phrase := strings.TrimSpace(title[loc[0]:loc[1]])
+		if d, recurring, err := parseHumanDate(phrase, now, true); err == nil {
+			cleaned := strings.TrimSpace(title[:loc[0]] + title[loc[1]:])
+			return cleaned, d, recurring.recurRule, recurring.recurDays
+		}
+	}
 
 	if loc := weekdayPattern.FindStringIndex(lower); loc != nil {
 		m := weekdayPattern.FindStringSubmatch(lower)
 		wd, _ := weekdayByName(m[1])
 		d := nextWeekday(now, wd)
 		cleaned := strings.TrimSpace(title[:loc[0]] + title[loc[1]:])
-		return cleaned, &d
+		return cleaned, &d, "", 0
 	}
 
 	if idx := strings.Index(lower, "tomorrow"); idx >= 0 {
 		d := now.AddDate(0, 0, 1)
 		t := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, now.Location())
 		cleaned := strings.TrimSpace(title[:idx] + title[idx+len("tomorrow"):])
-		return cleaned, &t
+		return cleaned, &t, "", 0
 	}
 
 	if idx := strings.Index(lower, "today"); idx >= 0 {
 		t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		cleaned := strings.TrimSpace(title[:idx] + title[idx+len("today"):])
-		return cleaned, &t
+		return cleaned, &t, "", 0
 	}
 
-	return title, nil
+	return title, nil, "", 0
 }
 
 func nextWeekday(from time.Time, wd time.Weekday) time.Time {
@@ -523,6 +675,171 @@ func nextWeekday(from time.Time, wd time.Weekday) time.Time {
 	}
 	d := from.AddDate(0, 0, days)
 	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, from.Location())
+}
+
+func ordinalByName(name string) (int, bool) {
+	m := map[string]int{
+		"first":  1,
+		"second": ordinalSecond,
+		"third":  ordinalThird,
+		"fourth": ordinalFourth,
+		"fifth":  ordinalFifth,
+		"last":   -1,
+	}
+	v, ok := m[strings.ToLower(name)]
+	return v, ok
+}
+
+func ordinalToName(o int) string {
+	switch o {
+	case 1:
+		return "first"
+	case ordinalSecond:
+		return "second"
+	case ordinalThird:
+		return "third"
+	case ordinalFourth:
+		return "fourth"
+	case ordinalFifth:
+		return "fifth"
+	case -1:
+		return "last"
+	default:
+		return ""
+	}
+}
+
+func nthWeekdayOfMonth(
+	year int,
+	month time.Month,
+	wd time.Weekday,
+	ordinal int,
+	loc *time.Location,
+) (time.Time, bool) {
+	if ordinal == 0 || ordinal < -1 || ordinal > 5 {
+		return time.Time{}, false
+	}
+	if ordinal == -1 {
+		last := time.Date(year, month+1, 0, 0, 0, 0, 0, loc)
+		diff := (int(last.Weekday()) - int(wd) + daysInWeek) % daysInWeek
+		d := last.AddDate(0, 0, -diff)
+		return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, loc), true
+	}
+	first := time.Date(year, month, 1, 0, 0, 0, 0, loc)
+	diff := (int(wd) - int(first.Weekday()) + daysInWeek) % daysInWeek
+	day := 1 + diff + (ordinal-1)*daysInWeek
+	lastDay := time.Date(year, month+1, 0, 0, 0, 0, 0, loc).Day()
+	if day > lastDay {
+		return time.Time{}, false
+	}
+	return time.Date(year, month, day, 0, 0, 0, 0, loc), true
+}
+
+func nextMonthlyWeekday(
+	from time.Time,
+	wd time.Weekday,
+	ordinal int,
+) (time.Time, bool) {
+	base := time.Date(
+		from.Year(),
+		from.Month(),
+		from.Day(),
+		0,
+		0,
+		0,
+		0,
+		from.Location(),
+	)
+	for offset := 0; offset < 24; offset++ {
+		m := from.AddDate(0, offset, 0)
+		candidate, ok := nthWeekdayOfMonth(
+			m.Year(), m.Month(), wd, ordinal, from.Location(),
+		)
+		if !ok {
+			continue
+		}
+		if candidate.After(base) {
+			return candidate, true
+		}
+	}
+	return time.Time{}, false
+}
+
+func nextRecurringDue(now time.Time, rule string, fallbackDays int) (*time.Time, int) {
+	if rule == "" {
+		if fallbackDays <= 0 {
+			return nil, 0
+		}
+		d := now.AddDate(0, 0, fallbackDays)
+		t := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, now.Location())
+		return &t, fallbackDays
+	}
+	parts := strings.Split(rule, ":")
+	switch parts[0] {
+	case "days":
+		if len(parts) != twoRuleParts {
+			return nil, fallbackDays
+		}
+		n, ok := parsePositiveInt(parts[1])
+		if !ok {
+			return nil, fallbackDays
+		}
+		d := now.AddDate(0, 0, n)
+		t := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, now.Location())
+		return &t, n
+	case "weekday":
+		if len(parts) != twoRuleParts {
+			return nil, fallbackDays
+		}
+		w, err := strconv.Atoi(parts[1])
+		if err != nil || w < 0 || w > 6 {
+			return nil, fallbackDays
+		}
+		t := nextWeekday(now, time.Weekday(w))
+		return &t, daysInWeek
+	case "monthweekday":
+		if len(parts) != threeRuleParts {
+			return nil, fallbackDays
+		}
+		ordinal, err1 := strconv.Atoi(parts[1])
+		w, err2 := strconv.Atoi(parts[2])
+		if err1 != nil || err2 != nil || w < 0 || w > 6 {
+			return nil, fallbackDays
+		}
+		t, ok := nextMonthlyWeekday(now, time.Weekday(w), ordinal)
+		if !ok {
+			return nil, fallbackDays
+		}
+		return &t, 0
+	default:
+		return nil, fallbackDays
+	}
+}
+
+func recurRuleToInput(rule string) string {
+	parts := strings.Split(rule, ":")
+	switch parts[0] {
+	case "days":
+		if len(parts) == twoRuleParts {
+			return "every " + parts[1] + " days"
+		}
+	case "weekday":
+		if len(parts) == twoRuleParts {
+			if w, err := strconv.Atoi(parts[1]); err == nil && w >= 0 && w <= 6 {
+				return "every " + strings.ToLower(time.Weekday(w).String())
+			}
+		}
+	case "monthweekday":
+		if len(parts) == threeRuleParts {
+			o, err1 := strconv.Atoi(parts[1])
+			w, err2 := strconv.Atoi(parts[2])
+			if err1 == nil && err2 == nil && w >= 0 && w <= 6 {
+				return "every " + ordinalToName(o) + " " +
+					strings.ToLower(time.Weekday(w).String())
+			}
+		}
+	}
+	return ""
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -592,6 +909,173 @@ func parseDatePtr(s string) *time.Time {
 		return nil
 	}
 	return &t
+}
+
+type recurringParseResult struct {
+	recurDays int
+	recurRule string
+}
+
+var everyPattern = regexp.MustCompile(
+	`(?i)^\s*every\s+((first|second|third|fourth|fifth|last)\s+)?([a-z]+|\d+\s+days?)\s*$`,
+)
+
+func parseScheduleDTO(
+	dto dtos.SaveTaskDto,
+	now time.Time,
+) (*time.Time, *time.Time, int, string, error) {
+	due, dueRecurring, err := parseHumanDate(dto.DueDate, now, true)
+	if err != nil {
+		return nil, nil, 0, "", &HTTPError{
+			Status: http.StatusBadRequest,
+			Message: "Invalid due date. Use e.g. today, tomorrow, next thursday," +
+				" every thursday, or every first sunday.",
+		}
+	}
+	deadline, _, err := parseHumanDate(dto.Deadline, now, false)
+	if err != nil {
+		return nil, nil, 0, "", &HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid deadline. Use e.g. today, tomorrow, next thursday, or YYYY-MM-DD.",
+		}
+	}
+
+	recurDays := dto.RecurDays
+	recurRule := ""
+	if strings.TrimSpace(dto.Recur) != "" {
+		recurDays, recurRule, err = parseRecurOnly(dto.Recur, now)
+		if err != nil {
+			return nil, nil, 0, "", &HTTPError{
+				Status: http.StatusBadRequest,
+				Message: "Invalid recur value." +
+					" Use e.g. every thursday, every first sunday, or every 7 days.",
+			}
+		}
+	}
+	if dueRecurring.recurDays > 0 && strings.TrimSpace(dto.Recur) == "" {
+		recurDays = dueRecurring.recurDays
+	}
+	if dueRecurring.recurRule != "" && strings.TrimSpace(dto.Recur) == "" {
+		recurRule = dueRecurring.recurRule
+	}
+	if recurRule == "" && recurDays > 0 {
+		recurRule = "days:" + strconv.Itoa(recurDays)
+	}
+
+	return due, deadline, recurDays, recurRule, nil
+}
+
+func parseEveryDate(
+	m []string,
+	now time.Time,
+) (*time.Time, recurringParseResult, error) {
+	empty := recurringParseResult{recurDays: 0, recurRule: ""}
+	ordinalWord := strings.ToLower(strings.TrimSpace(m[2]))
+	everyBody := strings.ToLower(strings.TrimSpace(m[3]))
+	wd, wdOK := weekdayByName(everyBody)
+	if wdOK && ordinalWord == "" {
+		d := nextWeekday(now, wd)
+		return &d, recurringParseResult{
+			recurDays: daysInWeek,
+			recurRule: "weekday:" + strconv.Itoa(int(wd)),
+		}, nil
+	}
+	if wdOK && ordinalWord != "" {
+		ordinal, ordOK := ordinalByName(ordinalWord)
+		if !ordOK {
+			return nil, empty, strconv.ErrSyntax
+		}
+		d, monthlyOK := nextMonthlyWeekday(now, wd, ordinal)
+		if !monthlyOK {
+			return nil, empty, strconv.ErrSyntax
+		}
+		return &d, recurringParseResult{
+			recurDays: 0,
+			recurRule: "monthweekday:" + strconv.Itoa(ordinal) +
+				":" + strconv.Itoa(int(wd)),
+		}, nil
+	}
+	parts := strings.Fields(everyBody)
+	if len(parts) == twoRuleParts && strings.HasPrefix(parts[1], "day") {
+		if n, ok := parsePositiveInt(parts[0]); ok {
+			d := now.AddDate(0, 0, n)
+			t := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, now.Location())
+			return &t, recurringParseResult{
+				recurDays: n,
+				recurRule: "days:" + strconv.Itoa(n),
+			}, nil
+		}
+	}
+	return nil, empty, strconv.ErrSyntax
+}
+
+func parseHumanDate(
+	input string,
+	now time.Time,
+	allowRecurring bool,
+) (*time.Time, recurringParseResult, error) {
+	empty := recurringParseResult{recurDays: 0, recurRule: ""}
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return nil, empty, nil
+	}
+
+	if t, err := time.Parse("2006-01-02", trimmed); err == nil {
+		d := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, now.Location())
+		return &d, empty, nil
+	}
+
+	lower := strings.ToLower(trimmed)
+	switch lower {
+	case "today":
+		d := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		return &d, empty, nil
+	case "tomorrow":
+		d := now.AddDate(0, 0, 1)
+		t := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, now.Location())
+		return &t, empty, nil
+	}
+
+	if m := everyPattern.FindStringSubmatch(lower); m != nil {
+		if !allowRecurring {
+			return nil, empty, strconv.ErrSyntax
+		}
+		return parseEveryDate(m, now)
+	}
+
+	if wd, ok := weekdayByName(lower); ok {
+		d := nextWeekday(now, wd)
+		return &d, empty, nil
+	}
+
+	if m := weekdayPattern.FindStringSubmatch(lower); m != nil {
+		wd, ok := weekdayByName(m[1])
+		if !ok {
+			return nil, empty, strconv.ErrSyntax
+		}
+		d := nextWeekday(now, wd)
+		return &d, empty, nil
+	}
+
+	return nil, empty, strconv.ErrSyntax
+}
+
+func parseRecurOnly(input string, now time.Time) (int, string, error) {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return 0, "", nil
+	}
+	if n, ok := parsePositiveInt(trimmed); ok {
+		return n, "days:" + strconv.Itoa(n), nil
+	}
+	_, recurring, err := parseHumanDate(trimmed, now, true)
+	if err != nil {
+		return 0, "", err
+	}
+	if recurring.recurRule == "" {
+		return 0, "", strconv.ErrSyntax
+	}
+	return recurring.recurDays, recurring.recurRule, nil
 }
 
 func parseSectionID(s string) *uuid.UUID {

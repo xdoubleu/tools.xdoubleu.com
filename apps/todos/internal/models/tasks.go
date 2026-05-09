@@ -37,6 +37,7 @@ type Task struct {
 	SectionID    *uuid.UUID
 	WorkspaceID  *uuid.UUID
 	RecurDays    int
+	RecurRule    string
 	Links        []TaskLink
 	Subtasks     []Subtask
 	SubtaskDone  int

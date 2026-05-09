@@ -10,6 +10,11 @@
       <button type="submit" class="btn btn-outline-secondary">Search</button>
     </div>
   </form>
+  <div class="d-flex justify-content-end mb-2">
+    <button type="button" class="btn btn-dark btn-sm"
+      data-bs-toggle="modal" data-bs-target="#taskModal"
+      title="Open full task form">+</button>
+  </div>
 
   {{/* ── Main nav tabs (Open + sections + Done + Archive + Settings) ─────── */}}
   <ul class="nav nav-tabs mb-3">
@@ -143,30 +148,44 @@
       hx-on::after-request="hideQuickAdd()">
       <input type="hidden" name="section_id"
         value="{{if .CurrentSection}}{{.CurrentSection.ID}}{{end}}">
-      <div class="input-group">
+      <div class="input-group quick-add-input-wrap">
+        <div id="quickAddHighlight" class="quick-add-highlight" aria-hidden="true"></div>
         <input type="text" name="input" id="quickAddInput"
-          class="form-control"
+          class="form-control quick-add-input-highlighted"
           placeholder="New task…"
           autocomplete="off">
-        <button type="button" class="btn btn-dark"
-          data-bs-toggle="modal" data-bs-target="#taskModal"
-          title="Full form">+ Full</button>
+      </div>
+      <div id="quickAddControls" class="d-flex gap-2 flex-wrap mt-2 align-items-center">
+        <select id="qaPriority" class="form-select form-select-sm qa-ctrl"
+          style="max-width:8rem" title="Priority — or type p1/p2/p3">
+          <option value="">p1/p2/p3</option>
+          <option value="p1">🔴 P1 – high</option>
+          <option value="p2">🟠 P2 – med</option>
+          <option value="p3">🔵 P3 – low</option>
+        </select>
+        <input type="text" id="qaLabel" class="form-control form-control-sm qa-ctrl"
+          list="qa-label-list" style="max-width:9rem"
+          placeholder="@label" autocomplete="off">
+        <datalist id="qa-label-list">
+          {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+        </datalist>
+        <input id="qaDue" type="text" class="form-control form-control-sm qa-ctrl"
+          placeholder="next monday" style="max-width:10rem" autocomplete="off"
+          title="Due date — supports recurring, e.g. every thursday, every first sunday">
+        <input id="qaDeadline" type="text" class="form-control form-control-sm qa-ctrl"
+          placeholder="!deadline" style="max-width:9rem" autocomplete="off"
+          title="Deadline — or type !today / !next friday">
+        <input type="text" id="qaSection" class="form-control form-control-sm qa-ctrl"
+          list="qa-section-list" style="max-width:9rem"
+          placeholder="#section" autocomplete="off">
+        <datalist id="qa-section-list">
+          {{range .Sections}}<option value="{{.Name}}">{{end}}
+        </datalist>
       </div>
     </form>
-    <p class="mb-1 text-muted small">
-      <kbd>@</kbd> label &nbsp;&middot;&nbsp;
-      <kbd>#</kbd> section &nbsp;&middot;&nbsp;
-      <kbd>p1</kbd> <kbd>p2</kbd> <kbd>p3</kbd> priority &nbsp;&middot;&nbsp;
-      <kbd>next monday</kbd> due date &nbsp;&middot;&nbsp;
-      <kbd>!YYYY-MM-DD</kbd> deadline &nbsp;&middot;&nbsp;
-      <kbd>~N</kbd> recur days
-    </p>
-    <div id="quickAddTags"
-      class="mt-1 d-flex flex-wrap gap-1"
-      style="min-height:1.4rem"></div>
     <ul id="acDropdown"
-      class="list-group position-absolute w-100 shadow-sm"
-      style="display:none;z-index:1000;top:100%;left:0;max-height:180px;overflow-y:auto">
+      class="list-group shadow-sm"
+      style="display:none;z-index:1000;position:fixed;max-height:180px;overflow-y:auto">
     </ul>
   </div>
   <p id="quickAddHint" class="text-muted small mb-3">
@@ -208,22 +227,24 @@
               </select>
             </div>
             <div class="col-sm-2">
-              <select name="label" id="modalLabel" class="form-select form-select-sm">
-                <option value="">— label —</option>
-                {{range .Presets.Labels}}
-                <option value="{{.}}">{{.}}</option>
-                {{end}}
-              </select>
+              <input type="text" name="label" id="modalLabel"
+                class="form-control form-control-sm"
+                list="modal-label-list" placeholder="— label —">
+              <datalist id="modal-label-list">
+                {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+              </datalist>
             </div>
             <div class="col-sm-2">
-              <input type="date" name="due_date" id="modalDue"
+              <input type="text" name="due_date" id="modalDue"
                 class="form-control form-control-sm"
-                placeholder="Due date" title="Due date (when planned)">
+                placeholder="today / next thursday / every first sunday"
+                title="Due date (supports natural language and recurring)">
             </div>
             <div class="col-sm-2">
-              <input type="date" name="deadline" id="modalDeadline"
+              <input type="text" name="deadline" id="modalDeadline"
                 class="form-control form-control-sm"
-                placeholder="Deadline" title="Deadline (hard limit)">
+                placeholder="today / tomorrow / next friday"
+                title="Deadline (one-off, no recurring)">
             </div>
             <div class="col-sm-1">
               <select name="section_id" id="modalSection"
@@ -235,9 +256,10 @@
               </select>
             </div>
             <div class="col-sm-1">
-              <input type="number" name="recur_days" id="modalRecurDays"
+              <input type="text" name="recur" id="modalRecurDays"
                 class="form-control form-control-sm text-center"
-                min="0" placeholder="↻d" title="Recur every N days (0 = off)">
+                placeholder="optional override"
+                title="Optional recurrence override (every thursday / every first sunday / every 7 days)">
             </div>
           </div>
 
@@ -315,13 +337,31 @@ details summary::-webkit-details-marker{display:none}
 #acDropdown .list-group-item{cursor:pointer;padding:.35rem .75rem;font-size:.875rem}
 #acDropdown .list-group-item.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
 #overtimeWidget button{font-size:.75rem;line-height:1.4}
-#quickAddTags .badge{font-size:.8rem;font-weight:600}
-#quickAddTags .badge-label{background:#6c757d;color:#fff}
-#quickAddTags .badge-section{background:#0dcaf0;color:#fff}
-#quickAddTags .badge-priority-p1{background:#dc3545;color:#fff}
-#quickAddTags .badge-priority-p2{background:#fd7e14;color:#fff}
-#quickAddTags .badge-priority-p3{background:#0d6efd;color:#fff}
-#quickAddTags .badge-due{background:#ffc107;color:#212529}
+.quick-add-input-wrap{position:relative}
+.quick-add-highlight{
+  position:absolute;left:0;right:0;top:0;bottom:0;
+  display:flex;align-items:center;
+  padding:.375rem .75rem;
+  pointer-events:none;white-space:pre;overflow:hidden;
+  font-size:1rem;line-height:1.5;
+}
+.quick-add-highlight-text{color:transparent}
+.quick-add-highlight .qa-token{
+  font-weight:600;border-radius:.25rem;padding:0 .1rem
+}
+.quick-add-highlight .qa-label{background:rgba(108,117,125,.18);color:#495057}
+.quick-add-highlight .qa-section{background:rgba(13,110,253,.14);color:#0a58ca}
+.quick-add-highlight .qa-priority{background:rgba(220,53,69,.14);color:#b02a37}
+.quick-add-highlight .qa-due{background:rgba(255,193,7,.22);color:#7a4f01}
+.quick-add-highlight .qa-deadline{background:rgba(220,53,69,.22);color:#842029}
+.quick-add-highlight .qa-recurring{background:rgba(25,135,84,.2);color:#0f5132}
+.quick-add-input-highlighted{
+  position:relative;z-index:2;background:transparent;
+  color:var(--bs-body-color);caret-color:var(--bs-body-color);
+}
+.quick-add-input-highlighted::placeholder{color:var(--bs-secondary-color)}
+.qa-helper-label{font-weight:600}
+.qa-ctrl{font-size:.8rem}
 </style>
 
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
@@ -340,10 +380,17 @@ details summary::-webkit-details-marker{display:none}
   var quickAddBar  = document.getElementById('quickAddBar');
   var quickAddHint = document.getElementById('quickAddHint');
   var quickAddInput = document.getElementById('quickAddInput');
+  var quickAddHighlight = document.getElementById('quickAddHighlight');
+  var qaPriorityEl  = document.getElementById('qaPriority');
+  var qaLabelEl     = document.getElementById('qaLabel');
+  var qaDueEl       = document.getElementById('qaDue');
+  var qaDeadlineEl  = document.getElementById('qaDeadline');
+  var qaSectionEl   = document.getElementById('qaSection');
 
   function showQuickAdd() {
     quickAddBar.style.display  = '';
     quickAddHint.style.display = 'none';
+    renderQuickAddHighlight(quickAddInput.value);
     quickAddInput.focus();
   }
 
@@ -352,7 +399,12 @@ details summary::-webkit-details-marker{display:none}
     quickAddBar.style.display  = 'none';
     quickAddHint.style.display = '';
     quickAddInput.value = '';
-    renderQuickAddTags('');
+    renderQuickAddHighlight('');
+    qaPriorityEl.value = '';
+    qaLabelEl.value    = '';
+    qaDueEl.value      = '';
+    qaDeadlineEl.value = '';
+    qaSectionEl.value  = '';
   };
 
   /* ── Subtask toggle (client-side state flip after HTMX post) ────────────── */
@@ -441,16 +493,53 @@ details summary::-webkit-details-marker{display:none}
   var acDrop    = document.getElementById('acDropdown');
   var acItems   = [];
   var acIndex   = -1;
-  var acTrigger = null; // '@' or '/'
+  var acTrigger = null; // '@' | '#' | '!' | 'date'
   var acStart   = -1;   // index in input where trigger char is
 
   function acOptions(filter) {
     filter = filter.toLowerCase();
-    return filter
-      ? PRESET_LABELS.filter(function (v) {
-          return v.toLowerCase().startsWith(filter);
-        })
-      : PRESET_LABELS;
+    return filter ? PRESET_LABELS.filter(function (v) {
+      return v.toLowerCase().startsWith(filter);
+    }) : PRESET_LABELS;
+  }
+
+  function acSectionOptions(filter) {
+    filter = filter.toLowerCase();
+    var names = PRESET_SECTIONS.map(function (s) { return s.name; });
+    return filter ? names.filter(function (v) {
+      return v.toLowerCase().startsWith(filter);
+    }) : names;
+  }
+
+  function acDateOptions(filter) {
+    var opts = [
+      'today',
+      'tomorrow',
+      'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+      'next monday', 'next tuesday', 'next wednesday', 'next thursday',
+      'next friday', 'next saturday', 'next sunday',
+      'every monday', 'every tuesday', 'every wednesday', 'every thursday',
+      'every friday', 'every saturday', 'every sunday',
+      'every first sunday', 'every last friday'
+    ];
+    var f = filter.toLowerCase();
+    return f ? opts.filter(function (v) {
+      return v.toLowerCase().startsWith(f);
+    }) : opts;
+  }
+
+  function acGetAnchorEl() {
+    if (acTrigger === '@') { return qaLabelEl; }
+    if (acTrigger === '#') { return qaSectionEl; }
+    if (acTrigger === '!') { return qaDeadlineEl; }
+    return quickAddInput;
+  }
+
+  function acPositionBelow(el) {
+    var rect = el.getBoundingClientRect();
+    acDrop.style.top   = (rect.bottom + 2) + 'px';
+    acDrop.style.left  = rect.left + 'px';
+    acDrop.style.width = Math.max(rect.width, 160) + 'px';
   }
 
   function acRender(opts) {
@@ -460,14 +549,19 @@ details summary::-webkit-details-marker{display:none}
     opts.forEach(function (val, i) {
       var li = document.createElement('li');
       li.className = 'list-group-item';
-      li.textContent = acTrigger + val;
+      li.textContent = acTrigger === 'date' ? val : (acTrigger + val);
       li.addEventListener('mousedown', function (e) {
         e.preventDefault(); // keep focus in input
         acSelect(i);
       });
       acDrop.appendChild(li);
     });
-    acDrop.style.display = opts.length ? '' : 'none';
+    if (opts.length) {
+      acPositionBelow(acGetAnchorEl());
+      acDrop.style.display = '';
+    } else {
+      acDrop.style.display = 'none';
+    }
   }
 
   function acHighlight() {
@@ -481,10 +575,12 @@ details summary::-webkit-details-marker{display:none}
     if (val == null) { return; }
     var cur   = quickAddInput.value;
     var after = cur.slice(quickAddInput.selectionStart);
+    var replacement = acTrigger === 'date' ? val : (acTrigger + val);
     quickAddInput.value =
-      cur.slice(0, acStart) + acTrigger + val + ' ' + after.trimStart();
-    var newPos = acStart + 1 + val.length + 1;
+      cur.slice(0, acStart) + replacement + ' ' + after.trimStart();
+    var newPos = acStart + replacement.length + 1;
     quickAddInput.setSelectionRange(newPos, newPos);
+    renderQuickAddHighlight(quickAddInput.value);
     acClose();
   }
 
@@ -507,85 +603,253 @@ details summary::-webkit-details-marker{display:none}
       acTrigger = '@';
       acStart   = wordStart;
       acRender(acOptions(word.slice(1)));
+    } else if (word.startsWith('#')) {
+      acTrigger = '#';
+      acStart   = wordStart;
+      acRender(acSectionOptions(word.slice(1)));
+    } else if (word.startsWith('!')) {
+      acTrigger = '!';
+      acStart   = wordStart;
+      acRender(acDateOptions(word.slice(1)));
     } else {
       acClose();
     }
   }
 
-  /* ── Quick-add tag preview ───────────────────────────────────────────────── */
-  var quickAddTagsEl = document.getElementById('quickAddTags');
-
-  var TAG_BADGE = {
-    label:    function (lbl) {
-      var sp = document.createElement('span');
-      sp.className   = 'badge badge-label';
-      sp.textContent = '@' + lbl;
-      return sp;
-    },
-    section:  function (lbl) {
-      var sp = document.createElement('span');
-      sp.className   = 'badge badge-section';
-      sp.textContent = '#' + lbl;
-      return sp;
-    },
-    priority: function (lbl) {
-      var sp = document.createElement('span');
-      sp.className   = 'badge badge-priority-' + lbl.toLowerCase();
-      sp.textContent = lbl;
-      return sp;
-    },
-    due:      function (lbl) {
-      var sp = document.createElement('span');
-      sp.className   = 'badge badge-due';
-      sp.textContent = lbl;
-      return sp;
+  /* ── Quick-add inline highlighting ───────────────────────────────────────── */
+  function parseShortcutRanges(val) {
+    var ranges = [];
+    var detections = [];
+    var words = [];
+    var match;
+    var rx = /\S+/g;
+    while ((match = rx.exec(val)) !== null) {
+      words.push({
+        raw: match[0],
+        lower: match[0].toLowerCase(),
+        start: match.index,
+        end: match.index + match[0].length
+      });
     }
-  };
 
-  var DUE_WORDS = [
-    'today','tomorrow','monday','tuesday','wednesday',
-    'thursday','friday','saturday','sunday',
-    'next monday','next tuesday','next wednesday',
-    'next thursday','next friday','next saturday','next sunday'
-  ];
+    var weekdays = {
+      monday: true, tuesday: true, wednesday: true, thursday: true,
+      friday: true, saturday: true, sunday: true
+    };
+    var ordinals = {
+      first: true, second: true, third: true, fourth: true, fifth: true, last: true
+    };
 
-  function parseTagsFromInput(val) {
-    var tags  = [];
-    var words = val.trim().split(/\s+/);
     for (var i = 0; i < words.length; i++) {
-      var w = words[i];
+      var w = words[i].lower;
       if (!w) { continue; }
       if (w[0] === '@' && w.length > 1) {
-        tags.push({kind: 'label', label: w.slice(1)});
+        var label = words[i].raw.slice(1);
+        var canonicalLabel = PRESET_LABELS.find(function (l) {
+          return l.toLowerCase() === label.toLowerCase();
+        });
+        var displayLabel = canonicalLabel || label;
+        ranges.push({
+          start: words[i].start, end: words[i].end,
+          kind: 'label', display: '@' + displayLabel
+        });
+        detections.push({kind: 'label', value: displayLabel});
       } else if (w[0] === '#' && w.length > 1) {
-        tags.push({kind: 'section', label: w.slice(1)});
+        var section = words[i].raw.slice(1);
+        var canonicalSection = PRESET_SECTIONS.find(function (s) {
+          return s.name.toLowerCase() === section.toLowerCase();
+        });
+        var displaySection = canonicalSection ? canonicalSection.name : section;
+        ranges.push({
+          start: words[i].start, end: words[i].end,
+          kind: 'section', display: '#' + displaySection
+        });
+        detections.push({kind: 'section', value: displaySection});
       } else if (/^p[123]$/i.test(w)) {
-        tags.push({kind: 'priority', label: w.toUpperCase()});
-      } else {
-        var bigram = (w + (words[i + 1] ? ' ' + words[i + 1] : '')).toLowerCase();
-        if (DUE_WORDS.indexOf(bigram) !== -1) {
-          tags.push({kind: 'due', label: bigram});
+        ranges.push({start: words[i].start, end: words[i].end, kind: 'priority'});
+        detections.push({kind: 'priority', value: w.toUpperCase()});
+      } else if (w[0] === '!' && w.length > 1) {
+        var dl = words[i].raw.slice(1).toLowerCase();
+        var startIx = words[i].start;
+        var endIx = words[i].end;
+        if (dl === 'next' && i + 1 < words.length) {
+          dl += ' ' + words[i + 1].raw.toLowerCase();
+          endIx = words[i + 1].end;
           i++;
-        } else if (DUE_WORDS.indexOf(w.toLowerCase()) !== -1) {
-          tags.push({kind: 'due', label: w.toLowerCase()});
+        }
+        ranges.push({start: startIx, end: endIx, kind: 'deadline'});
+        detections.push({kind: 'deadline', value: dl});
+      } else if (w === 'every') {
+        if (i + 2 < words.length && ordinals[words[i + 1].lower] &&
+            weekdays[words[i + 2].lower]) {
+          ranges.push({start: words[i].start, end: words[i + 2].end, kind: 'recurring'});
+          detections.push({
+            kind: 'recurring',
+            value: 'every ' + words[i + 1].lower + ' ' + words[i + 2].lower
+          });
+          i += 2;
+        } else if (i + 1 < words.length && weekdays[words[i + 1].lower]) {
+          ranges.push({start: words[i].start, end: words[i + 1].end, kind: 'recurring'});
+          detections.push({kind: 'recurring', value: 'every ' + words[i + 1].lower});
+          i += 1;
+        } else if (i + 2 < words.length && /^\d+$/.test(words[i + 1].raw) &&
+            /^days?$/i.test(words[i + 2].raw)) {
+          ranges.push({start: words[i].start, end: words[i + 2].end, kind: 'recurring'});
+          detections.push({
+            kind: 'recurring',
+            value: 'every ' + words[i + 1].raw + ' ' + words[i + 2].lower
+          });
+          i += 2;
+        }
+      } else {
+        var w2 = i + 1 < words.length ? words[i + 1].lower : '';
+        if (w === 'next' && weekdays[w2]) {
+          ranges.push({start: words[i].start, end: words[i + 1].end, kind: 'due'});
+          detections.push({kind: 'due', value: 'next ' + w2});
+          i++;
+        } else if (w === 'today' || w === 'tomorrow' || weekdays[w]) {
+          ranges.push({start: words[i].start, end: words[i].end, kind: 'due'});
+          detections.push({kind: 'due', value: w});
         }
       }
     }
-    return tags;
+    return { ranges: ranges, detections: detections };
   }
 
-  function renderQuickAddTags(val) {
-    var tags = parseTagsFromInput(val);
-    quickAddTagsEl.innerHTML = '';
-    tags.forEach(function (tag) {
-      var fn = TAG_BADGE[tag.kind];
-      if (fn) { quickAddTagsEl.appendChild(fn(tag.label)); }
+  function escapeHtml(s) {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function renderQuickAddHighlight(val) {
+    var parsed = parseShortcutRanges(val);
+    var ranges = parsed.ranges;
+    ranges.sort(function (a, b) { return a.start - b.start; });
+
+    var html = '';
+    var pos = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      var r = ranges[i];
+      if (r.start < pos) { continue; }
+      if (r.start > pos) {
+        html += '<span class="quick-add-highlight-text">'
+          + escapeHtml(val.slice(pos, r.start))
+          + '</span>';
+      }
+      html += '<span class="qa-token qa-' + r.kind + '">'
+        + escapeHtml(r.display || val.slice(r.start, r.end))
+        + '</span>';
+      pos = r.end;
+    }
+    if (pos < val.length) {
+      html += '<span class="quick-add-highlight-text">'
+        + escapeHtml(val.slice(pos))
+        + '</span>';
+    }
+    if (!html) {
+      html = '<span class="quick-add-highlight-text"></span>';
+    }
+    quickAddHighlight.innerHTML = html;
+    syncControlsFromDetections(parsed.detections);
+  }
+
+  function syncControlsFromDetections(items) {
+    qaPriorityEl.value = '';
+    qaLabelEl.value    = '';
+    qaDueEl.value      = '';
+    qaDeadlineEl.value = '';
+    qaSectionEl.value  = '';
+    items.forEach(function (d) {
+      if (d.kind === 'priority')  { qaPriorityEl.value = d.value.toLowerCase(); }
+      if (d.kind === 'label')     { qaLabelEl.value    = d.value; }
+      if (d.kind === 'due')       { qaDueEl.value      = d.value; }
+      if (d.kind === 'recurring') { qaDueEl.value      = d.value; }
+      if (d.kind === 'deadline')  { qaDeadlineEl.value = d.value; }
+      if (d.kind === 'section')   { qaSectionEl.value  = d.value; }
     });
   }
 
+  function removeKindFromText(val, kind) {
+    var parsed = parseShortcutRanges(val);
+    var toRemove = parsed.ranges.filter(function (r) { return r.kind === kind; });
+    if (!toRemove.length) { return val; }
+    toRemove.sort(function (a, b) { return b.start - a.start; });
+    toRemove.forEach(function (r) {
+      val = (val.slice(0, r.start) + ' ' + val.slice(r.end))
+        .replace(/\s+/g, ' ').trim();
+    });
+    return val;
+  }
+
+  function applyControlToText(kind, shortcut) {
+    var val = removeKindFromText(quickAddInput.value, kind);
+    if (shortcut) { val = (val + ' ' + shortcut).trim(); }
+    quickAddInput.value = val;
+    renderQuickAddHighlight(val);
+  }
+
+  qaPriorityEl.addEventListener('change', function () {
+    applyControlToText('priority', qaPriorityEl.value);
+    quickAddInput.focus();
+  });
+  (function () {
+    function commitLabel() {
+      var v = qaLabelEl.value.trim();
+      applyControlToText('label', v ? ('@' + v) : '');
+    }
+    qaLabelEl.addEventListener('change', commitLabel);
+    qaLabelEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commitLabel(); quickAddInput.focus(); }
+      if (e.key === 'Escape') { qaLabelEl.value = ''; commitLabel(); quickAddInput.focus(); }
+    });
+  }());
+  (function () {
+    function commitSection() {
+      var v = qaSectionEl.value.trim();
+      applyControlToText('section', v ? ('#' + v) : '');
+    }
+    qaSectionEl.addEventListener('change', commitSection);
+    qaSectionEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault(); commitSection(); quickAddInput.focus();
+      }
+      if (e.key === 'Escape') {
+        qaSectionEl.value = ''; commitSection(); quickAddInput.focus();
+      }
+    });
+  }());
+  (function () {
+    function commitDue() {
+      applyControlToText('due', qaDueEl.value.trim());
+    }
+    qaDueEl.addEventListener('change', commitDue);
+    qaDueEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commitDue(); quickAddInput.focus(); }
+      if (e.key === 'Escape') { qaDueEl.value = ''; commitDue(); quickAddInput.focus(); }
+    });
+  }());
+  (function () {
+    function commitDeadline() {
+      var v = qaDeadlineEl.value.trim();
+      if (v && !v.startsWith('!')) { v = '!' + v; }
+      applyControlToText('deadline', v);
+    }
+    qaDeadlineEl.addEventListener('change', commitDeadline);
+    qaDeadlineEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commitDeadline(); quickAddInput.focus(); }
+      if (e.key === 'Escape') {
+        qaDeadlineEl.value = '';
+        commitDeadline();
+        quickAddInput.focus();
+      }
+    });
+  }());
+
   quickAddInput.addEventListener('input', function () {
     acUpdate();
-    renderQuickAddTags(quickAddInput.value);
+    renderQuickAddHighlight(quickAddInput.value);
   });
   quickAddInput.addEventListener('keydown', function (e) {
     if (acDrop.style.display === 'none') {
@@ -822,7 +1086,7 @@ details summary::-webkit-details-marker{display:none}
     form.action     = '/todos/new';
     form.reset();
     descEl.value    = '';
-    recurDaysEl.value = '0';
+    recurDaysEl.value = '';
     endEdit();
   });
 
