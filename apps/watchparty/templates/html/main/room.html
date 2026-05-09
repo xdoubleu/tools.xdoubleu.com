@@ -166,6 +166,8 @@ function createPC(trackType) {
             stopScreenUI();
             {{else}}
             isSharingScreen = false;
+            pcScreen = null;
+            pendingCandidates.screen = [];
             if (remoteCamStream) mainVideoEl.srcObject = remoteCamStream;
             remoteCamEl.style.display = "none";
             {{end}}
@@ -275,7 +277,7 @@ function initWS() {
             // A failed/closed screen PC can't accept a new offer — replace it
             if (pc && msg.trackType === "screen" &&
                 (pc.signalingState === "closed" || pc.connectionState === "failed" ||
-                 pc.connectionState === "closed")) {
+                 pc.connectionState === "closed" || pc.connectionState === "disconnected")) {
                 pc.close();
                 pc = null;
                 pcScreen = null;
