@@ -11,13 +11,25 @@ import (
 )
 
 func TestURLToTitle_LastSegment(t *testing.T) {
-	assert.Equal(t, "https://jira.company.com/browse/CR-1234", urlToTitle("https://jira.company.com/browse/CR-1234"))
-	assert.Equal(t, "https://github.com/org/repo/pull/42", urlToTitle("https://github.com/org/repo/pull/42"))
+	assert.Equal(
+		t,
+		"https://jira.company.com/browse/CR-1234",
+		urlToTitle("https://jira.company.com/browse/CR-1234"),
+	)
+	assert.Equal(
+		t,
+		"https://github.com/org/repo/pull/42",
+		urlToTitle("https://github.com/org/repo/pull/42"),
+	)
 	assert.Equal(t, "https://example.com", urlToTitle("https://example.com"))
 }
 
 func TestURLToTitle_TrailingSlash(t *testing.T) {
-	assert.Equal(t, "https://jira.company.com/browse/CR-1234/", urlToTitle("https://jira.company.com/browse/CR-1234/"))
+	assert.Equal(
+		t,
+		"https://jira.company.com/browse/CR-1234/",
+		urlToTitle("https://jira.company.com/browse/CR-1234/"),
+	)
 }
 
 func TestURLToTitle_InvalidURL(t *testing.T) {
