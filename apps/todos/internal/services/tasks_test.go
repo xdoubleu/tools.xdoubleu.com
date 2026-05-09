@@ -165,8 +165,11 @@ func TestParseFancyURL_PlainTitle(t *testing.T) {
 }
 
 func TestParseFancyURL_MissingURL(t *testing.T) {
-	_, _, _, ok := parseFancyURL("[Title](not-a-url)")
-	assert.False(t, ok)
+	title, rawURL, rest, ok := parseFancyURL("[Title](not-a-url)")
+	require.True(t, ok)
+	assert.Equal(t, "Title", title)
+	assert.Equal(t, "https://not-a-url", rawURL)
+	assert.Equal(t, "", rest)
 }
 
 // ── shortcutQueryPattern ──────────────────────────────────────────────────────
