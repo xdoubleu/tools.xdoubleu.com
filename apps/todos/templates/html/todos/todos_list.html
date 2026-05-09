@@ -10,12 +10,6 @@
       <button type="submit" class="btn btn-outline-secondary">Search</button>
     </div>
   </form>
-  <div class="d-flex justify-content-end mb-2">
-    <button type="button" class="btn btn-dark btn-sm"
-      data-bs-toggle="modal" data-bs-target="#taskModal"
-      title="Open full task form">+</button>
-  </div>
-
   {{/* ── Main nav tabs (Open + sections + Done + Archive + Settings) ─────── */}}
   <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
@@ -84,6 +78,9 @@
     <button id="otInc15" class="btn btn-outline-secondary btn-sm py-0 px-1">+15m</button>
     <button id="otInc60" class="btn btn-outline-secondary btn-sm py-0 px-1">+1h</button>
     <button id="otReset" class="btn btn-link btn-sm py-0 px-1 text-muted">Reset</button>
+    <button type="button" class="btn btn-dark btn-sm ms-auto"
+      data-bs-toggle="modal" data-bs-target="#taskModal"
+      title="Open full task form">+</button>
   </div>
 
   {{/* ── Policies banner (all in one dismissable alert) ─────────────────── */}}
@@ -148,13 +145,19 @@
       hx-on::after-request="hideQuickAdd()">
       <input type="hidden" name="section_id"
         value="{{if .CurrentSection}}{{.CurrentSection.ID}}{{end}}">
-      <div class="input-group quick-add-input-wrap">
-        <div id="quickAddHighlight" class="quick-add-highlight" aria-hidden="true"></div>
+      <button type="submit" style="display:none" aria-hidden="true"></button>
+      <div class="input-group">
         <input type="text" name="input" id="quickAddInput"
-          class="form-control quick-add-input-highlighted"
+          class="form-control"
           placeholder="New task…"
           autocomplete="off">
       </div>
+      <div id="qaUrlNote" class="mt-1 small text-muted" style="display:none"></div>
+      <input type="text" name="description" id="quickAddDesc"
+        class="form-control form-control-sm mt-1"
+        placeholder="Brief description… (optional)"
+        autocomplete="off">
+
       <div id="quickAddControls" class="d-flex gap-2 flex-wrap mt-2 align-items-center">
         <select id="qaPriority" class="form-select form-select-sm qa-ctrl"
           style="max-width:8rem" title="Priority — or type p1/p2/p3">
@@ -337,29 +340,6 @@ details summary::-webkit-details-marker{display:none}
 #acDropdown .list-group-item{cursor:pointer;padding:.35rem .75rem;font-size:.875rem}
 #acDropdown .list-group-item.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
 #overtimeWidget button{font-size:.75rem;line-height:1.4}
-.quick-add-input-wrap{position:relative}
-.quick-add-highlight{
-  position:absolute;left:0;right:0;top:0;bottom:0;
-  display:flex;align-items:center;
-  padding:.375rem .75rem;
-  pointer-events:none;white-space:pre;overflow:hidden;
-  font-size:1rem;line-height:1.5;
-}
-.quick-add-highlight-text{color:transparent}
-.quick-add-highlight .qa-token{
-  font-weight:600;border-radius:.25rem;padding:0 .1rem
-}
-.quick-add-highlight .qa-label{background:rgba(108,117,125,.18);color:#495057}
-.quick-add-highlight .qa-section{background:rgba(13,110,253,.14);color:#0a58ca}
-.quick-add-highlight .qa-priority{background:rgba(220,53,69,.14);color:#b02a37}
-.quick-add-highlight .qa-due{background:rgba(255,193,7,.22);color:#7a4f01}
-.quick-add-highlight .qa-deadline{background:rgba(220,53,69,.22);color:#842029}
-.quick-add-highlight .qa-recurring{background:rgba(25,135,84,.2);color:#0f5132}
-.quick-add-input-highlighted{
-  position:relative;z-index:2;background:transparent;
-  color:var(--bs-body-color);caret-color:var(--bs-body-color);
-}
-.quick-add-input-highlighted::placeholder{color:var(--bs-secondary-color)}
 .qa-helper-label{font-weight:600}
 .qa-ctrl{font-size:.8rem}
 </style>
@@ -373,6 +353,9 @@ details summary::-webkit-details-marker{display:none}
   var PRESET_SECTIONS = [
     {{range .Sections}}{id:"{{.ID}}",name:"{{.Name}}"},{{end}}
   ];
+  var URL_PATTERNS = [
+    {{range .Patterns}}{prefix:"{{.URLPrefix}}",platform:"{{.PlatformName}}",shortcut:"{{.Shortcut}}"},{{end}}
+  ];
   var ACTIVE_WORKSPACE_ID =
     "{{if and .UserSettings .UserSettings.ActiveWorkspaceID}}{{.UserSettings.ActiveWorkspaceID}}{{end}}";
 
@@ -380,7 +363,7 @@ details summary::-webkit-details-marker{display:none}
   var quickAddBar  = document.getElementById('quickAddBar');
   var quickAddHint = document.getElementById('quickAddHint');
   var quickAddInput = document.getElementById('quickAddInput');
-  var quickAddHighlight = document.getElementById('quickAddHighlight');
+  var qaDescEl      = document.getElementById('quickAddDesc');
   var qaPriorityEl  = document.getElementById('qaPriority');
   var qaLabelEl     = document.getElementById('qaLabel');
   var qaDueEl       = document.getElementById('qaDue');
@@ -390,7 +373,7 @@ details summary::-webkit-details-marker{display:none}
   function showQuickAdd() {
     quickAddBar.style.display  = '';
     quickAddHint.style.display = 'none';
-    renderQuickAddHighlight(quickAddInput.value);
+    syncControlsFromDetections(parseShortcutRanges(quickAddInput.value).detections);
     quickAddInput.focus();
   }
 
@@ -399,12 +382,14 @@ details summary::-webkit-details-marker{display:none}
     quickAddBar.style.display  = 'none';
     quickAddHint.style.display = '';
     quickAddInput.value = '';
-    renderQuickAddHighlight('');
+    qaDescEl.value     = '';
     qaPriorityEl.value = '';
     qaLabelEl.value    = '';
     qaDueEl.value      = '';
     qaDeadlineEl.value = '';
     qaSectionEl.value  = '';
+    qaUrlNote.style.display = 'none';
+    qaUrlNote.textContent   = '';
   };
 
   /* ── Subtask toggle (client-side state flip after HTMX post) ────────────── */
@@ -632,6 +617,20 @@ details summary::-webkit-details-marker{display:none}
       });
     }
 
+    // Build ranges for markdown link titles [title](url) so shortcuts inside
+    // a fetched page title are not misdetected.
+    var mdLinkRe = /\[([^\]]*)\]\([^)]*\)/g;
+    var mdTitleRanges = [];
+    while ((match = mdLinkRe.exec(val)) !== null) {
+      mdTitleRanges.push({ start: match.index + 1, end: match.index + 1 + match[1].length });
+    }
+    function isInMdTitle(pos) {
+      for (var k = 0; k < mdTitleRanges.length; k++) {
+        if (pos >= mdTitleRanges[k].start && pos < mdTitleRanges[k].end) { return true; }
+      }
+      return false;
+    }
+
     var weekdays = {
       monday: true, tuesday: true, wednesday: true, thursday: true,
       friday: true, saturday: true, sunday: true
@@ -643,6 +642,7 @@ details summary::-webkit-details-marker{display:none}
     for (var i = 0; i < words.length; i++) {
       var w = words[i].lower;
       if (!w) { continue; }
+      if (isInMdTitle(words[i].start)) { continue; }
       if (w[0] === '@' && w.length > 1) {
         var label = words[i].raw.slice(1);
         var canonicalLabel = PRESET_LABELS.find(function (l) {
@@ -716,45 +716,6 @@ details summary::-webkit-details-marker{display:none}
     return { ranges: ranges, detections: detections };
   }
 
-  function escapeHtml(s) {
-    return s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-
-  function renderQuickAddHighlight(val) {
-    var parsed = parseShortcutRanges(val);
-    var ranges = parsed.ranges;
-    ranges.sort(function (a, b) { return a.start - b.start; });
-
-    var html = '';
-    var pos = 0;
-    for (var i = 0; i < ranges.length; i++) {
-      var r = ranges[i];
-      if (r.start < pos) { continue; }
-      if (r.start > pos) {
-        html += '<span class="quick-add-highlight-text">'
-          + escapeHtml(val.slice(pos, r.start))
-          + '</span>';
-      }
-      html += '<span class="qa-token qa-' + r.kind + '">'
-        + escapeHtml(r.display || val.slice(r.start, r.end))
-        + '</span>';
-      pos = r.end;
-    }
-    if (pos < val.length) {
-      html += '<span class="quick-add-highlight-text">'
-        + escapeHtml(val.slice(pos))
-        + '</span>';
-    }
-    if (!html) {
-      html = '<span class="quick-add-highlight-text"></span>';
-    }
-    quickAddHighlight.innerHTML = html;
-    syncControlsFromDetections(parsed.detections);
-  }
-
   function syncControlsFromDetections(items) {
     qaPriorityEl.value = '';
     qaLabelEl.value    = '';
@@ -787,7 +748,7 @@ details summary::-webkit-details-marker{display:none}
     var val = removeKindFromText(quickAddInput.value, kind);
     if (shortcut) { val = (val + ' ' + shortcut).trim(); }
     quickAddInput.value = val;
-    renderQuickAddHighlight(val);
+    syncControlsFromDetections(parseShortcutRanges(val).detections);
   }
 
   qaPriorityEl.addEventListener('change', function () {
@@ -847,9 +808,85 @@ details summary::-webkit-details-marker{display:none}
     });
   }());
 
+  var qaUrlNote = document.getElementById('qaUrlNote');
+
+  function matchPattern(rawURL) {
+    for (var j = 0; j < URL_PATTERNS.length; j++) {
+      if (rawURL.startsWith(URL_PATTERNS[j].prefix)) { return URL_PATTERNS[j]; }
+    }
+    return null;
+  }
+
+  function extractIDFromURL(rawURL, pattern) {
+    if (!pattern) { return ''; }
+    var rest = rawURL.slice(pattern.prefix.length);
+    return rest.split(/[/?#]/)[0] || '';
+  }
+
+  function extractURLFromInput(val) {
+    var mdMatch = /\]\((https?:\/\/[^)]+)\)/.exec(val);
+    if (mdMatch) { return mdMatch[1]; }
+    var words = val.trim().split(/\s+/);
+    for (var i = 0; i < words.length; i++) {
+      if (words[i].startsWith('http://') || words[i].startsWith('https://')) {
+        return words[i];
+      }
+    }
+    return null;
+  }
+
+  function updateUrlIndicator(val) {
+    var url = extractURLFromInput(val);
+    if (!url) { qaUrlNote.style.display = 'none'; return; }
+    var pattern = matchPattern(url);
+    if (!pattern) { qaUrlNote.style.display = 'none'; return; }
+    var id  = extractIDFromURL(url, pattern);
+    var ref = pattern.shortcut ? (pattern.shortcut + id) : (id ? '#' + id : '');
+    if (!ref) { qaUrlNote.style.display = 'none'; return; }
+    qaUrlNote.textContent = pattern.platform + ' · ' + ref;
+    qaUrlNote.style.display = '';
+  }
+
+  // Intercept paste to handle rich hyperlinks (e.g. Edge "copy link" which
+  // carries text/html with an <a> containing the window title and the URL).
+  quickAddInput.addEventListener('paste', function (e) {
+    var html = e.clipboardData && e.clipboardData.getData('text/html');
+    if (html) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      var anchor = tmp.querySelector('a[href]');
+      if (anchor) {
+        var url   = anchor.href;
+        var title = anchor.textContent.trim();
+        if (url && title && title !== url) {
+          e.preventDefault();
+          var pattern = matchPattern(url);
+          var id      = extractIDFromURL(url, pattern);
+          var ref     = pattern && pattern.shortcut
+            ? pattern.shortcut + id : (id ? '#' + id : '');
+          if (ref && title.indexOf(id) === -1) { title += ' ' + ref; }
+          var replacement = '[' + title + '](' + url + ')';
+          var start = quickAddInput.selectionStart;
+          var end   = quickAddInput.selectionEnd;
+          quickAddInput.value =
+            (quickAddInput.value.slice(0, start) + replacement +
+             quickAddInput.value.slice(end)).trim();
+          syncControlsFromDetections(
+            parseShortcutRanges(quickAddInput.value).detections
+          );
+          updateUrlIndicator(quickAddInput.value);
+          return;
+        }
+      }
+    }
+    // Plain URL paste — let it land, then run indicator on next tick.
+    setTimeout(function () { updateUrlIndicator(quickAddInput.value); }, 0);
+  });
+
   quickAddInput.addEventListener('input', function () {
     acUpdate();
-    renderQuickAddHighlight(quickAddInput.value);
+    syncControlsFromDetections(parseShortcutRanges(quickAddInput.value).detections);
+    updateUrlIndicator(quickAddInput.value);
   });
   quickAddInput.addEventListener('keydown', function (e) {
     if (acDrop.style.display === 'none') {

@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -291,6 +290,7 @@ func (s *TaskService) QuickAdd(
 	ctx context.Context,
 	userID string,
 	input string,
+	description string,
 	workspaceID *uuid.UUID,
 ) (*models.Task, error) {
 	sectionList, err := s.sections.ListByUser(ctx, userID, workspaceID)
@@ -344,6 +344,7 @@ func (s *TaskService) QuickAdd(
 	t := models.Task{
 		OwnerUserID: userID,
 		Title:       title,
+		Description: strings.TrimSpace(description),
 		Label:       parsedDTO.Label,
 		Priority:    parsedDTO.Priority,
 		RecurDays:   recurDays,
@@ -887,16 +888,6 @@ func (s *TaskService) attachLinks(
 }
 
 func urlToTitle(rawURL string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return rawURL
-	}
-	parts := strings.Split(strings.TrimRight(u.Path, "/"), "/")
-	for i := len(parts) - 1; i >= 0; i-- {
-		if parts[i] != "" {
-			return parts[i]
-		}
-	}
 	return rawURL
 }
 

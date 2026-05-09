@@ -14,7 +14,7 @@
   data-section-id="{{if $task.SectionID}}{{$task.SectionID}}{{end}}"
   data-recur-days="{{$task.RecurDays}}">
   <textarea hidden class="task-desc-store">{{$task.Description}}</textarea>
-  <div class="d-flex align-items-start gap-2">
+  <div class="d-flex align-items-center gap-2">
 
     {{/* ── Drag handle ─────────────────────────────────────────── */}}
     <span class="drag-handle text-muted" style="cursor:grab;user-select:none;line-height:1"
@@ -26,7 +26,7 @@
       hx-post="/todos/{{$task.ID}}/complete"
       hx-target="closest .task-row"
       hx-swap="delete"
-      class="m-0 flex-shrink-0 d-flex align-items-center mt-1">
+      class="m-0 flex-shrink-0 d-flex align-items-center">
       <button type="submit"
         class="task-check task-check-p{{$task.Priority}}"
         title="Mark done"></button>
@@ -44,6 +44,9 @@
           onclick="event.stopPropagation()">{{$task.Title}}&nbsp;↗</a>
         {{else}}
         <span class="fw-semibold">{{$task.Title}}</span>
+        {{end}}
+        {{if $task.Description}}
+        <div class="small text-muted">{{descFirstLine $task.Description}}</div>
         {{end}}
       </div>
 

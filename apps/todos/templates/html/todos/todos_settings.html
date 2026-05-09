@@ -49,7 +49,9 @@
             <div class="flex-grow-1">
               <div class="small">{{.Text}}</div>
               <div class="text-muted" style="font-size:.75rem">
-                Reappears every {{.ReappearAfterHours}}h
+                Reappears every
+                <span class="policy-reappear"
+                  data-hours="{{.ReappearAfterHours}}"></span>
               </div>
             </div>
             <form method="POST"
@@ -63,24 +65,67 @@
         <li class="list-group-item px-0 text-muted small">No policies yet.</li>
         {{end}}
       </ul>
-      <form method="POST" action="/todos/settings/policies">
+      <form method="POST" action="/todos/settings/policies" id="addPolicyForm">
+        <input type="hidden" name="reappear_after_hours" id="policyHoursHidden" value="24">
         <div class="row g-2 align-items-end">
           <div class="col-sm-7">
             <label class="form-label small">Policy text</label>
             <input type="text" name="text" class="form-control form-control-sm"
               placeholder="e.g. Break tasks down before starting" required>
           </div>
-          <div class="col-sm-3">
-            <label class="form-label small">Reappear after (hours)</label>
-            <input type="number" name="reappear_after_hours"
+          <div class="col-sm-2">
+            <label class="form-label small">Reappear every</label>
+            <input type="number" id="policyReappearValue"
               class="form-control form-control-sm"
-              value="24" min="0">
+              value="1" min="0">
+          </div>
+          <div class="col-sm-1">
+            <label class="form-label small">&nbsp;</label>
+            <select id="policyReappearUnit" class="form-select form-select-sm">
+              <option value="1">hours</option>
+              <option value="24" selected>days</option>
+              <option value="168">weeks</option>
+              <option value="720">months</option>
+            </select>
           </div>
           <div class="col-sm-2">
             <button type="submit" class="btn btn-dark btn-sm w-100">Add</button>
           </div>
         </div>
       </form>
+      <script>
+      (function () {
+        document.querySelectorAll('.policy-reappear').forEach(function (el) {
+          var h = parseInt(el.dataset.hours, 10);
+          if (h === 0) { el.textContent = 'once (permanent)'; return; }
+          if (h % 720 === 0) {
+            var n = h / 720;
+            el.textContent = n + ' ' + (n === 1 ? 'month' : 'months');
+          } else if (h % 168 === 0) {
+            var n = h / 168;
+            el.textContent = n + ' ' + (n === 1 ? 'week' : 'weeks');
+          } else if (h % 24 === 0) {
+            var n = h / 24;
+            el.textContent = n + ' ' + (n === 1 ? 'day' : 'days');
+          } else {
+            el.textContent = h + ' ' + (h === 1 ? 'hour' : 'hours');
+          }
+        });
+        var form  = document.getElementById('addPolicyForm');
+        var valEl = document.getElementById('policyReappearValue');
+        var unitEl = document.getElementById('policyReappearUnit');
+        var hidden = document.getElementById('policyHoursHidden');
+        function syncHidden() {
+          var v = parseInt(valEl.value, 10) || 0;
+          var u = parseInt(unitEl.value, 10);
+          hidden.value = String(v * u);
+        }
+        valEl.addEventListener('input', syncHidden);
+        unitEl.addEventListener('change', syncHidden);
+        syncHidden();
+        form.addEventListener('submit', function () { syncHidden(); });
+      }());
+      </script>
     </div>
   </div>
 
