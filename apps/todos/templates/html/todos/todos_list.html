@@ -146,11 +146,13 @@
       <input type="hidden" name="section_id"
         value="{{if .CurrentSection}}{{.CurrentSection.ID}}{{end}}">
       <button type="submit" style="display:none" aria-hidden="true"></button>
-      <div class="input-group">
-        <input type="text" name="input" id="quickAddInput"
-          class="form-control"
-          placeholder="New task…"
-          autocomplete="off">
+      <div class="input-group position-relative">
+        <div id="quickAddInput" contenteditable="true"
+          class="form-control qa-ce-input"
+          data-placeholder="New task…"
+          spellcheck="true"
+          autocomplete="off"></div>
+        <input type="hidden" name="input" id="quickAddInputValue">
       </div>
       <div id="qaUrlNote" class="mt-1 small text-muted" style="display:none"></div>
       <input type="text" name="description" id="quickAddDesc"
@@ -342,6 +344,29 @@ details summary::-webkit-details-marker{display:none}
 #overtimeWidget button{font-size:.75rem;line-height:1.4}
 .qa-helper-label{font-weight:600}
 .qa-ctrl{font-size:.8rem}
+/* ── contenteditable quick-add ─────────────────────────────────────────── */
+.qa-ce-input{
+  white-space:nowrap;overflow:hidden;cursor:text;
+  min-height:38px;line-height:1.5;padding:.375rem .75rem;
+  outline:none;
+}
+.qa-ce-input:empty::before{
+  content:attr(data-placeholder);
+  color:var(--bs-secondary-color);
+  pointer-events:none;
+}
+.qa-md-link{
+  display:inline-flex;align-items:center;
+  background:var(--bs-primary-bg-subtle);
+  border:1px solid var(--bs-primary-border-subtle);
+  border-radius:.25rem;padding:0 .3em;
+  font-size:.9em;white-space:nowrap;
+  user-select:none;
+}
+.qa-md-link a{
+  color:var(--bs-primary);text-decoration:none;font-weight:600;
+}
+.qa-md-link a:hover{text-decoration:underline}
 </style>
 
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
@@ -362,8 +387,130 @@ details summary::-webkit-details-marker{display:none}
   /* ── Quick-add show/hide ─────────────────────────────────────────────────── */
   var quickAddBar  = document.getElementById('quickAddBar');
   var quickAddHint = document.getElementById('quickAddHint');
-  var quickAddInput = document.getElementById('quickAddInput');
-  var qaDescEl      = document.getElementById('quickAddDesc');
+  var qaDescEl     = document.getElementById('quickAddDesc');
+
+  /* ── Contenteditable quick-add proxy ───────────────────────────────────── */
+  var quickAddInput = (function () {
+    var div    = document.getElementById('quickAddInput');
+    var hidden = document.getElementById('quickAddInputValue');
+
+    function renderContent(md) {
+      var re = /\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g;
+      div.innerHTML = '';
+      var last = 0, m;
+      while ((m = re.exec(md)) !== null) {
+        if (m.index > last) {
+          div.appendChild(document.createTextNode(md.slice(last, m.index)));
+        }
+        var span = document.createElement('span');
+        span.className = 'qa-md-link';
+        span.contentEditable = 'false';
+        span.dataset.md = m[0];
+        var a = document.createElement('a');
+        a.href = m[2]; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.textContent = m[1] + ' ↗';
+        a.addEventListener('click', function (e) { e.stopPropagation(); });
+        span.appendChild(a);
+        div.appendChild(span);
+        last = m.index + m[0].length;
+      }
+      if (last < md.length) {
+        div.appendChild(document.createTextNode(md.slice(last)));
+      }
+      // Remove stray trailing <br> browsers may inject
+      if (div.lastChild && div.lastChild.tagName === 'BR') {
+        div.removeChild(div.lastChild);
+      }
+    }
+
+    function extractMarkdown() {
+      var result = '';
+      div.childNodes.forEach(function (node) {
+        if (node.nodeType === 3) {
+          result += node.textContent;
+        } else if (node.classList && node.classList.contains('qa-md-link')) {
+          result += node.dataset.md || '';
+        } else if (node.tagName !== 'BR') {
+          result += node.textContent;
+        }
+      });
+      return result;
+    }
+
+    function sync() {
+      var md = extractMarkdown();
+      hidden.value = md;
+      return md;
+    }
+
+    function getCaretOffset() {
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) { return 0; }
+      var range = sel.getRangeAt(0);
+      var offset = 0;
+      for (var i = 0; i < div.childNodes.length; i++) {
+        var node = div.childNodes[i];
+        if (range.startContainer === div && range.startOffset === i) { break; }
+        if (range.startContainer === node) {
+          if (node.nodeType === 3) { offset += range.startOffset; }
+          break;
+        }
+        if (node.nodeType === 3) {
+          offset += node.textContent.length;
+        } else if (node.classList && node.classList.contains('qa-md-link')) {
+          offset += (node.dataset.md || '').length;
+        }
+      }
+      return offset;
+    }
+
+    function setCaretOffset(target) {
+      var remaining = target;
+      var range = document.createRange();
+      var placed = false;
+      for (var i = 0; i < div.childNodes.length; i++) {
+        var node = div.childNodes[i];
+        if (node.nodeType === 3) {
+          if (remaining <= node.textContent.length) {
+            range.setStart(node, remaining);
+            range.collapse(true);
+            placed = true;
+            break;
+          }
+          remaining -= node.textContent.length;
+        } else if (node.classList && node.classList.contains('qa-md-link')) {
+          var mdLen = (node.dataset.md || '').length;
+          if (remaining <= mdLen) {
+            range.setStartAfter(node);
+            range.collapse(true);
+            placed = true;
+            break;
+          }
+          remaining -= mdLen;
+        }
+      }
+      if (!placed) { range.selectNodeContents(div); range.collapse(false); }
+      var sel = window.getSelection();
+      if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+    }
+
+    div.addEventListener('input', function () {
+      if (div.innerHTML === '<br>') { div.innerHTML = ''; }
+    });
+
+    return {
+      get value() { return hidden.value; },
+      set value(v) { hidden.value = v; renderContent(v); },
+      get selectionStart() { return getCaretOffset(); },
+      get selectionEnd()   { return getCaretOffset(); },
+      setSelectionRange: function (s) { setCaretOffset(s); },
+      focus: function () { div.focus(); },
+      addEventListener: function (t, h) { div.addEventListener(t, h); },
+      _div: div,
+      _sync: sync,
+      _render: renderContent
+    };
+  }());
   var qaPriorityEl  = document.getElementById('qaPriority');
   var qaLabelEl     = document.getElementById('qaLabel');
   var qaDueEl       = document.getElementById('qaDue');
@@ -565,7 +712,6 @@ details summary::-webkit-details-marker{display:none}
       cur.slice(0, acStart) + replacement + ' ' + after.trimStart();
     var newPos = acStart + replacement.length + 1;
     quickAddInput.setSelectionRange(newPos, newPos);
-    renderQuickAddHighlight(quickAddInput.value);
     acClose();
   }
 
@@ -879,18 +1025,31 @@ details summary::-webkit-details-marker{display:none}
         }
       }
     }
-    // Plain URL paste — let it land, then run indicator on next tick.
-    setTimeout(function () { updateUrlIndicator(quickAddInput.value); }, 0);
+    // Plain URL paste — sync after browser inserts the text, then run indicator.
+    setTimeout(function () {
+      quickAddInput._sync();
+      updateUrlIndicator(quickAddInput.value);
+    }, 0);
   });
 
   quickAddInput.addEventListener('input', function () {
+    quickAddInput._sync();
     acUpdate();
     syncControlsFromDetections(parseShortcutRanges(quickAddInput.value).detections);
     updateUrlIndicator(quickAddInput.value);
   });
   quickAddInput.addEventListener('keydown', function (e) {
+    // Always prevent Enter from inserting <br> in the contenteditable
+    if (e.key === 'Enter') { e.preventDefault(); }
+
     if (acDrop.style.display === 'none') {
       if (e.key === 'Escape') { hideQuickAdd(); }
+      if (e.key === 'Enter') {
+        quickAddInput._sync();
+        var btn = quickAddInput._div.closest('form')
+          .querySelector('button[type="submit"]');
+        if (btn) { btn.click(); }
+      }
       return;
     }
     if (e.key === 'ArrowDown') {
