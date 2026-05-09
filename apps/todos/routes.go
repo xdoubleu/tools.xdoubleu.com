@@ -17,7 +17,6 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 		auth(prefix, a.handle(a.listArchiveHandler)))
 	mux.HandleFunc("GET /"+prefix+"/search",
 		auth(prefix, a.handle(a.searchHandler)))
-
 	mux.HandleFunc("POST /"+prefix+"/reorder",
 		auth(prefix, a.handle(a.reorderHandler)))
 

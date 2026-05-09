@@ -2,174 +2,457 @@
 {{ template "navbar" }}
 <div class="container py-4">
 
-  <div class="d-flex align-items-center gap-3 mb-3">
+{{if .IsEdit}}
+
+<form method="POST" action="{{.Action}}">
+  {{/* ── Title + status bar ─────────────────────────────────────────────── */}}
+  <div class="d-flex align-items-start gap-3 mb-3">
     <a href="/todos/"
-      class="btn btn-outline-secondary btn-sm">&larr; Back</a>
-    <h3 class="mb-0">{{if .IsEdit}}Edit Task{{else}}New Task{{end}}</h3>
+      class="btn btn-outline-secondary btn-sm flex-shrink-0 mt-1">&larr; Back</a>
+    <input type="text" name="title"
+      class="flex-grow-1 view-title-input"
+      value="{{.Task.Title}}" placeholder="Task title" required>
+    <span class="badge flex-shrink-0 mt-2
+      {{if eq .Task.Status "done"}}bg-success
+      {{else if eq .Task.Status "archived"}}bg-secondary
+      {{else}}bg-primary{{end}}">
+      {{.Task.Status}}
+    </span>
+    <button type="submit" class="btn btn-dark btn-sm flex-shrink-0 mt-1">
+      Save
+    </button>
   </div>
 
-  <form method="POST" action="{{.Action}}">
+  {{/* ── Meta fields as inline pill inputs ──────────────────────────────── */}}
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <select name="priority" class="view-select" title="Priority">
+      <option value="0" {{if eq .Task.Priority 0}}selected{{end}}>Priority</option>
+      <option value="1" {{if eq .Task.Priority 1}}selected{{end}}>P1</option>
+      <option value="2" {{if eq .Task.Priority 2}}selected{{end}}>P2</option>
+      <option value="3" {{if eq .Task.Priority 3}}selected{{end}}>P3</option>
+    </select>
+    <input type="text" name="label" class="view-pill-input"
+      list="form-label-list"
+      value="{{.Task.Label}}"
+      placeholder="Label…" title="Label">
+    <datalist id="form-label-list">
+      {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+    </datalist>
+    <input type="text" name="due_date" class="view-pill-input"
+      value="{{if .RecurInput}}{{.RecurInput}}{{else if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}"
+      placeholder="Due date…"
+      title="today, next thursday, every first sunday">
+    <input type="text" name="deadline" class="view-pill-input"
+      value="{{if .Task.Deadline}}{{.Task.Deadline.Format "2006-01-02"}}{{end}}"
+      placeholder="Deadline…"
+      title="today, tomorrow, next friday">
+    <select name="section_id" class="view-select" title="Section">
+      <option value="">— Section —</option>
+      {{range .Sections}}
+      <option value="{{.ID}}"
+        {{if and $.Task.SectionID (eq $.Task.SectionID.String .ID.String)}}
+        selected
+        {{end}}>{{.Name}}</option>
+      {{end}}
+    </select>
+  </div>
 
-    <div class="mb-3">
-      <input type="text" name="title" class="form-control form-control-lg fw-semibold"
-        value="{{.Task.Title}}" placeholder="Task title" required autofocus>
+  {{/* ── Description: view→edit with side-by-side preview ──────────────── */}}
+  <div class="mb-4">
+    <div id="descViewWrap" class="desc-view-wrap" onclick="activateDesc()">
+      <div id="descView" class="markdown-body desc-view-content"></div>
     </div>
+    <div id="descEditWrap" style="display:none">
+      <div class="desc-split-pane border rounded overflow-hidden">
+        <textarea name="description" id="formDesc"
+          class="form-control font-monospace rounded-0 border-0 border-end desc-textarea"
+          placeholder="Write notes in markdown…">{{.Task.Description}}</textarea>
+        <div id="formDescPreview"
+          class="flex-grow-1 p-3 markdown-body desc-preview"
+          style="background:var(--bs-tertiary-bg)">
+        </div>
+      </div>
+      <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-muted"
+        onclick="deactivateDesc()">&#9650; collapse</button>
+    </div>
+  </div>
 
-    <div class="row g-3 mb-3">
-      <div class="col-sm-2">
-        <label class="form-label small fw-semibold">Priority</label>
-        <select name="priority" class="form-select">
-          <option value="0" {{if eq .Task.Priority 0}}selected{{end}}>— none —</option>
-          <option value="1" {{if eq .Task.Priority 1}}selected{{end}}>🔴 P1 – high</option>
-          <option value="2" {{if eq .Task.Priority 2}}selected{{end}}>🟠 P2 – medium</option>
-          <option value="3" {{if eq .Task.Priority 3}}selected{{end}}>🔵 P3 – low</option>
-        </select>
+  {{/* ── Work links ───────────────────────────────────────────────────────── */}}
+  <hr>
+  <h6 class="fw-semibold mb-2">Work links</h6>
+  <div id="links">
+    {{range .Task.Links}}
+    <div class="row g-2 mb-2 link-row">
+      <div class="col-7">
+        <input type="url" name="link_url" class="form-control form-control-sm"
+          placeholder="https://…" value="{{.URL}}">
       </div>
-      <div class="col-sm-2">
-        <label class="form-label small fw-semibold">Label</label>
-        <input type="text" name="label" class="form-control"
-          list="form-label-list"
-          value="{{.Task.Label}}"
-          placeholder="— none —">
-        <datalist id="form-label-list">
-          {{range .Presets.Labels}}<option value="{{.}}">{{end}}
-        </datalist>
+      <div class="col-4">
+        <input type="text" name="link_label" class="form-control form-control-sm"
+          placeholder="Label (e.g. PR #42)" value="{{.Label}}">
       </div>
-      <div class="col-sm-2">
-        <label class="form-label small fw-semibold">Due date</label>
-        <input type="text" name="due_date" class="form-control"
-          value="{{if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}"
-          placeholder="today, next thursday, every first sunday"
-          title="When you plan to work on it — supports recurring (e.g. every thursday, every first sunday)">
-        {{if and .IsEdit .Task.RecurRule}}
-        <div class="mt-1 small text-info">&#8635; {{.RecurInput}}</div>
+      <div class="col-1">
+        <button type="button" class="btn btn-outline-danger btn-sm w-100"
+          onclick="this.closest('.link-row').remove()">×</button>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  <button type="button" class="btn btn-outline-secondary btn-sm mb-3"
+    id="addLink">+ Add link</button>
+
+  {{/* ── Bottom actions ───────────────────────────────────────────────────── */}}
+  <hr>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <button type="submit" class="btn btn-dark btn-sm">Save</button>
+    <a href="/todos/" class="btn btn-outline-secondary btn-sm">Cancel</a>
+    {{if eq .Task.Status "open"}}
+    <form method="POST" action="/todos/{{.Task.ID}}/complete" class="m-0">
+      <button type="submit" class="btn btn-success btn-sm">
+        &#10003; Mark done
+      </button>
+    </form>
+    {{else if eq .Task.Status "done"}}
+    <form method="POST" action="/todos/{{.Task.ID}}/reopen" class="m-0">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        &#8629; Reopen
+      </button>
+    </form>
+    {{end}}
+    <form method="POST" action="/todos/{{.Task.ID}}/delete"
+      onsubmit="return confirm('Delete this task?')"
+      class="m-0 ms-auto">
+      <button type="submit" class="btn btn-outline-danger btn-sm">
+        Delete
+      </button>
+    </form>
+  </div>
+</form>
+
+{{else}}
+
+{{/* ══ NEW TASK FORM ════════════════════════════════════════════════════════ */}}
+<div class="d-flex align-items-center gap-3 mb-3">
+  <a href="/todos/"
+    class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+  <h3 class="mb-0">New Task</h3>
+</div>
+
+<form method="POST" action="{{.Action}}">
+  <div class="mb-3">
+    <input type="text" name="title"
+      class="form-control form-control-lg fw-semibold"
+      value="{{.Task.Title}}" placeholder="Task title" required autofocus>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-sm-2">
+      <label class="form-label small fw-semibold">Priority</label>
+      <select name="priority" class="form-select">
+        <option value="0" {{if eq .Task.Priority 0}}selected{{end}}>— none —</option>
+        <option value="1" {{if eq .Task.Priority 1}}selected{{end}}>P1</option>
+        <option value="2" {{if eq .Task.Priority 2}}selected{{end}}>P2</option>
+        <option value="3" {{if eq .Task.Priority 3}}selected{{end}}>P3</option>
+      </select>
+    </div>
+    <div class="col-sm-2">
+      <label class="form-label small fw-semibold">Label</label>
+      <input type="text" name="label" class="form-control"
+        list="form-label-list-new"
+        value="{{.Task.Label}}"
+        placeholder="— none —">
+      <datalist id="form-label-list-new">
+        {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+      </datalist>
+    </div>
+    <div class="col-sm-2">
+      <label class="form-label small fw-semibold">Due date</label>
+      <input type="text" name="due_date" class="form-control"
+        value="{{if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}"
+        placeholder="today, next thursday, every first sunday"
+        title="When you plan to work on it">
+    </div>
+    <div class="col-sm-2">
+      <label class="form-label small fw-semibold">Deadline</label>
+      <input type="text" name="deadline" class="form-control"
+        value="{{if .Task.Deadline}}{{.Task.Deadline.Format "2006-01-02"}}{{end}}"
+        placeholder="today, tomorrow, next friday"
+        title="Hard deadline — one-off date">
+    </div>
+    <div class="col-sm-2">
+      <label class="form-label small fw-semibold">Section</label>
+      <select name="section_id" class="form-select">
+        <option value="">— none —</option>
+        {{range .Sections}}
+        <option value="{{.ID}}"
+          {{if and $.Task.SectionID (eq $.Task.SectionID.String .ID.String)}}
+          selected
+          {{end}}>{{.Name}}</option>
         {{end}}
-      </div>
-      <div class="col-sm-2">
-        <label class="form-label small fw-semibold">Deadline</label>
-        <input type="text" name="deadline" class="form-control"
-          value="{{if .Task.Deadline}}{{.Task.Deadline.Format "2006-01-02"}}{{end}}"
-          placeholder="today, tomorrow, next friday"
-          title="Hard deadline — one-off date, no recurring">
-      </div>
-      <div class="col-sm-2">
-        <label class="form-label small fw-semibold">Section</label>
-        <select name="section_id" class="form-select">
-          <option value="">— none —</option>
-          {{range .Sections}}
-          <option value="{{.ID}}"
-            {{if and $.Task.SectionID (eq $.Task.SectionID.String .ID.String)}}
-            selected
-            {{end}}>{{.Name}}</option>
-          {{end}}
-        </select>
-      </div>
-      <div class="col-sm-1">
-        <label class="form-label small fw-semibold">Recur</label>
-        <input type="text" name="recur" class="form-control text-center"
-          placeholder="optional override"
-          title="e.g. every thursday, every first sunday, or every 7 days"
-          value="{{.RecurInput}}">
-      </div>
+      </select>
     </div>
+    <div class="col-sm-1">
+      <label class="form-label small fw-semibold">Recur</label>
+      <input type="text" name="recur" class="form-control text-center"
+        placeholder="optional override"
+        title="e.g. every thursday, every first sunday, or every 7 days"
+        value="{{.RecurInput}}">
+    </div>
+  </div>
 
-    <div class="mb-3">
-      <label class="form-label small fw-semibold">Description
-        <span class="fw-normal text-muted">(markdown)</span>
-      </label>
+  <div class="mb-3">
+    <label class="form-label small fw-semibold">Description
+      <span class="fw-normal text-muted">(markdown)</span>
+    </label>
+    <div class="desc-split-pane border rounded overflow-hidden">
       <textarea name="description" id="formDesc"
-        class="form-control font-monospace"
-        rows="8"
+        class="form-control font-monospace rounded-0 border-0 border-end
+          desc-textarea"
         placeholder="Write notes in markdown…">{{.Task.Description}}</textarea>
       <div id="formDescPreview"
-        class="border border-top-0 rounded-bottom p-3 markdown-body"
-        style="display:none; min-height:2rem; background:var(--bs-tertiary-bg)">
+        class="flex-grow-1 p-3 markdown-body desc-preview"
+        style="background:var(--bs-tertiary-bg)">
+        <span class="text-muted small">Preview will appear here…</span>
       </div>
     </div>
+  </div>
 
-    <hr>
-    <h6 class="fw-semibold mb-2">Work links</h6>
-    <div id="links">
-      {{range .Task.Links}}
-      <div class="row g-2 mb-2 link-row">
-        <div class="col-7">
-          <input type="url" name="link_url" class="form-control form-control-sm"
-            placeholder="https://…" value="{{.URL}}">
-        </div>
-        <div class="col-4">
-          <input type="text" name="link_label" class="form-control form-control-sm"
-            placeholder="Label (e.g. PR #42)" value="{{.Label}}">
-        </div>
-        <div class="col-1">
-          <button type="button" class="btn btn-outline-danger btn-sm w-100"
-            onclick="this.closest('.link-row').remove()">×</button>
-        </div>
+  <hr>
+  <h6 class="fw-semibold mb-2">Work links</h6>
+  <div id="links">
+    {{range .Task.Links}}
+    <div class="row g-2 mb-2 link-row">
+      <div class="col-7">
+        <input type="url" name="link_url" class="form-control form-control-sm"
+          placeholder="https://…" value="{{.URL}}">
       </div>
-      {{end}}
+      <div class="col-4">
+        <input type="text" name="link_label" class="form-control form-control-sm"
+          placeholder="Label (e.g. PR #42)" value="{{.Label}}">
+      </div>
+      <div class="col-1">
+        <button type="button" class="btn btn-outline-danger btn-sm w-100"
+          onclick="this.closest('.link-row').remove()">×</button>
+      </div>
     </div>
-    <button type="button" class="btn btn-outline-secondary btn-sm mb-3"
-      id="addLink">+ Add link</button>
+    {{end}}
+  </div>
+  <button type="button" class="btn btn-outline-secondary btn-sm mb-3"
+    id="addLink">+ Add link</button>
 
-    <hr>
-    <div class="d-flex gap-2">
-      <button type="submit" class="btn btn-dark">Save</button>
-      <a href="/todos/"
-        class="btn btn-outline-secondary">Cancel</a>
-    </div>
+  <hr>
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-dark">Save</button>
+    <a href="/todos/" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
 
-  </form>
+{{end}}
 
 </div>
 
 <style>
-.markdown-body h1,.markdown-body h2,.markdown-body h3{margin-top:1rem;margin-bottom:.5rem}
+/* ── View-mode title input ──────────────────────────────────────────────── */
+.view-title-input {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.2rem 0.25rem;
+  box-shadow: none;
+  color: var(--bs-body-color);
+  border-radius: var(--bs-border-radius);
+  transition: border-color 0.15s, background 0.15s, padding 0.1s;
+}
+.view-title-input:hover {
+  border-color: var(--bs-border-color);
+  background: var(--bs-body-bg);
+  padding: 0.2rem 0.75rem;
+}
+.view-title-input:focus {
+  border-color: var(--bs-primary-border-subtle);
+  background: var(--bs-body-bg);
+  padding: 0.2rem 0.75rem;
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb),.15);
+}
+
+/* ── Pill inputs for meta fields ────────────────────────────────────────── */
+.view-pill-input,
+.view-select {
+  border: 1px solid transparent;
+  border-radius: var(--bs-border-radius-pill);
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+  padding: 0.2em 0.75em;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  transition: border-color 0.15s, background 0.15s;
+  height: auto;
+}
+.view-pill-input {
+  max-width: 140px;
+  min-width: 80px;
+}
+.view-select {
+  padding-right: 1.8em;
+  cursor: pointer;
+}
+.view-pill-input::placeholder {
+  color: var(--bs-secondary-color);
+  opacity: 0.8;
+}
+.view-pill-input:hover,
+.view-select:hover {
+  border-color: var(--bs-border-color);
+  background: var(--bs-body-bg);
+}
+.view-pill-input:focus,
+.view-select:focus {
+  border-color: var(--bs-primary-border-subtle);
+  background: var(--bs-body-bg);
+  outline: none;
+  box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15);
+}
+
+/* ── Description view/edit ──────────────────────────────────────────────── */
+.desc-view-wrap {
+  cursor: text;
+  border-radius: var(--bs-border-radius);
+  border: 1px solid transparent;
+  padding: 0.75rem;
+  min-height: 3rem;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.desc-view-wrap:hover {
+  border-color: var(--bs-border-color);
+  background: var(--bs-secondary-bg);
+}
+.desc-view-content:empty::before {
+  content: "Click to add a description…";
+  color: var(--bs-secondary-color);
+  font-style: italic;
+}
+
+/* ── Split-pane markdown editor ─────────────────────────────────────────── */
+.desc-split-pane {
+  display: flex;
+  min-height: 220px;
+}
+.desc-textarea {
+  flex: 1 1 50%;
+  min-width: 0;
+  resize: vertical;
+  min-height: 220px;
+}
+.desc-preview {
+  flex: 1 1 50%;
+  min-width: 0;
+  overflow-y: auto;
+  min-height: 220px;
+}
+
+/* ── Shared markdown styles ─────────────────────────────────────────────── */
+.markdown-body h1,.markdown-body h2,.markdown-body h3{
+  margin-top:1rem;margin-bottom:.5rem}
 .markdown-body ul,.markdown-body ol{padding-left:1.5rem}
-.markdown-body code{background:var(--bs-secondary-bg);padding:.1em .3em;border-radius:3px}
+.markdown-body code{
+  background:var(--bs-secondary-bg);padding:.1em .3em;border-radius:3px}
 .markdown-body pre code{background:none;padding:0}
-.markdown-body pre{background:var(--bs-secondary-bg);padding:.75rem 1rem;border-radius:.375rem;overflow-x:auto}
-.markdown-body blockquote{border-left:4px solid var(--bs-secondary);padding-left:1rem;color:var(--bs-secondary-color)}
+.markdown-body pre{
+  background:var(--bs-secondary-bg);
+  padding:.75rem 1rem;border-radius:.375rem;overflow-x:auto}
+.markdown-body blockquote{
+  border-left:4px solid var(--bs-secondary);
+  padding-left:1rem;color:var(--bs-secondary-color)}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script>
 (function () {
-  var descEl      = document.getElementById('formDesc');
-  var descPreview = document.getElementById('formDescPreview');
+  var isEdit = {{if .IsEdit}}true{{else}}false{{end}};
 
-  function updatePreview() {
-    var src = descEl.value.trim();
-    if (src) {
-      descPreview.innerHTML    = marked.parse(src);
-      descPreview.style.display = '';
+  /* ── Shared preview renderer ─────────────────────────────────────────── */
+  function renderMarkdown(src) {
+    return src.trim() ? marked.parse(src) : '';
+  }
+
+  /* ── Edit mode: split-pane live preview ──────────────────────────────── */
+  var descTextarea = document.getElementById('formDesc');
+  var descPreview  = document.getElementById('formDescPreview');
+
+  function syncPreview() {
+    if (!descTextarea || !descPreview) { return; }
+    var html = renderMarkdown(descTextarea.value);
+    if (html) {
+      descPreview.innerHTML = html;
     } else {
-      descPreview.style.display = 'none';
+      descPreview.innerHTML =
+        '<span class="text-muted small">Preview will appear here…</span>';
     }
   }
 
-  descEl.addEventListener('input', function () {
-    this.style.height = 'auto';
-    this.style.height = Math.max(120, this.scrollHeight) + 'px';
-    updatePreview();
-  });
+  if (descTextarea) {
+    descTextarea.addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.max(220, this.scrollHeight) + 'px';
+      syncPreview();
+    });
+    descTextarea.style.height =
+      Math.max(220, descTextarea.scrollHeight) + 'px';
+    syncPreview();
+  }
 
-  // Size and preview on load.
-  descEl.style.height = Math.max(120, descEl.scrollHeight) + 'px';
-  updatePreview();
+  /* ── Edit mode only: description view/edit toggle ─────────────────────── */
+  if (isEdit) {
+    var descViewWrap  = document.getElementById('descViewWrap');
+    var descView      = document.getElementById('descView');
+    var descEditWrap  = document.getElementById('descEditWrap');
 
-  document.getElementById('addLink').addEventListener('click', function () {
-    var row = document.createElement('div');
-    row.className = 'row g-2 mb-2 link-row';
-    row.innerHTML =
-      '<div class="col-7"><input type="url" name="link_url"'
-      + ' class="form-control form-control-sm" placeholder="https://…"></div>'
-      + '<div class="col-4"><input type="text" name="link_label"'
-      + ' class="form-control form-control-sm"'
-      + ' placeholder="Label (e.g. PR #42)"></div>'
-      + '<div class="col-1"><button type="button"'
-      + ' class="btn btn-outline-danger btn-sm w-100"'
-      + ' onclick="this.closest(\'.link-row\').remove()">×</button></div>';
-    document.getElementById('links').appendChild(row);
-  });
+    function renderDescView() {
+      if (!descTextarea || !descView) { return; }
+      var html = renderMarkdown(descTextarea.value);
+      descView.innerHTML = html;
+    }
+
+    renderDescView();
+
+    window.activateDesc = function () {
+      if (!descViewWrap || !descEditWrap) { return; }
+      descViewWrap.style.display  = 'none';
+      descEditWrap.style.display  = '';
+      if (descTextarea) { descTextarea.focus(); }
+    };
+
+    window.deactivateDesc = function () {
+      if (!descViewWrap || !descEditWrap) { return; }
+      renderDescView();
+      descEditWrap.style.display  = 'none';
+      descViewWrap.style.display  = '';
+    };
+  }
+
+  /* ── Add link row ────────────────────────────────────────────────────── */
+  var addLinkBtn = document.getElementById('addLink');
+  if (addLinkBtn) {
+    addLinkBtn.addEventListener('click', function () {
+      var row = document.createElement('div');
+      row.className = 'row g-2 mb-2 link-row';
+      row.innerHTML =
+        '<div class="col-7"><input type="url" name="link_url"'
+        + ' class="form-control form-control-sm"'
+        + ' placeholder="https://…"></div>'
+        + '<div class="col-4"><input type="text" name="link_label"'
+        + ' class="form-control form-control-sm"'
+        + ' placeholder="Label (e.g. PR #42)"></div>'
+        + '<div class="col-1"><button type="button"'
+        + ' class="btn btn-outline-danger btn-sm w-100"'
+        + ' onclick="this.closest(\'.link-row\').remove()">×</button></div>';
+      document.getElementById('links').appendChild(row);
+    });
+  }
 }());
 </script>
 

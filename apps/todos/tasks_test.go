@@ -102,7 +102,7 @@ func TestQuickAdd_PlainTitle(t *testing.T) {
 	tReq := test.CreateRequestTester(getRoutes(), http.MethodPost, "/todos/")
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetFollowRedirect(false)
-	tReq.SetData(dtos.QuickAddDto{Input: "Buy milk", SectionID: ""})
+	tReq.SetData(dtos.QuickAddDto{Input: "Buy milk", Description: "", SectionID: ""})
 	rs := tReq.Do(t)
 	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
 

@@ -220,11 +220,18 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	patterns, err := a.services.Settings.GetURLPatterns(
+		r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
+	)
+	if err != nil {
+		return err
+	}
 	tpltools.RenderWithPanic(a.Tpl, w, "todos_list.html", map[string]any{
 		"Tasks":          taskList,
 		"Sections":       sections,
 		"Presets":        presets,
 		"Policies":       policies,
+		"Patterns":       patterns,
 		"ActiveTab":      activeTab,
 		"CurrentSection": currentSection,
 		"UserSettings":   wsCtx.Settings,
@@ -303,7 +310,8 @@ func (a *Todos) quickAddHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	if _, err = a.services.Tasks.QuickAdd(
-		r.Context(), user.ID, dto.Input, wsCtx.Settings.ActiveWorkspaceID,
+		r.Context(), user.ID, dto.Input, dto.Description,
+		wsCtx.Settings.ActiveWorkspaceID,
 	); err != nil {
 		return err
 	}

@@ -157,6 +157,12 @@ func LoadShared(cfg config.Config) *template.Template {
 			)
 			return d.Before(today)
 		},
+		"descFirstLine": func(s string) string {
+			if idx := strings.IndexByte(s, '\n'); idx >= 0 {
+				return strings.TrimSpace(s[:idx])
+			}
+			return strings.TrimSpace(s)
+		},
 		"dict": func(keysAndValues ...any) (map[string]any, error) {
 			const pairSize = 2
 			if len(keysAndValues)%pairSize != 0 {
