@@ -175,7 +175,8 @@ func (r *TasksRepository) GetByID(
 	err := r.db.QueryRow(ctx, `
 		SELECT id, owner_user_id, title, description, label,
 		       status, priority, sort_order, completed_at, archived_at, due_date,
-		       deadline, created_at, updated_at, section_id, workspace_id, recur_days, recur_rule
+		       deadline, created_at, updated_at, section_id, workspace_id,
+		       recur_days, recur_rule
 		FROM todos.tasks
 		WHERE id = $1 AND owner_user_id = $2`,
 		id, userID,
