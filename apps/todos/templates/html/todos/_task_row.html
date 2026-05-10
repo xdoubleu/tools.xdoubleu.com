@@ -1,19 +1,23 @@
 {{define "_task_row"}}
 {{$task := .Task}}
 {{$section := .CurrentSection}}
+{{$lc := .LabelColors}}
+{{$sections := .Sections}}
 {{$tid := $task.ID}}
 {{$back := ""}}
 {{if $section}}{{$back = printf "/todos/?section=%s" ($section.ID.String)}}{{else}}{{$back = "/todos/"}}{{end}}
 <div class="list-group-item px-3 py-2 task-row"
   data-task-id="{{$task.ID}}"
   data-title="{{$task.Title}}"
-  data-label="{{$task.Label}}"
+  data-labels="{{joinStrings $task.Labels ","}}"
   data-priority="{{$task.Priority}}"
   data-due="{{if $task.DueDate}}{{$task.DueDate.Format "2006-01-02"}}{{end}}"
   data-deadline="{{if $task.Deadline}}{{$task.Deadline.Format "2006-01-02"}}{{end}}"
   data-section-id="{{if $task.SectionID}}{{$task.SectionID}}{{end}}"
-  data-recur-days="{{$task.RecurDays}}">
+  data-recur-days="{{$task.RecurDays}}"
+  data-recur="{{if $task.RecurRule}}{{recurInput $task.RecurRule}}{{else if gt $task.RecurDays 0}}every {{$task.RecurDays}} days{{end}}">
   <textarea hidden class="task-desc-store">{{$task.Description}}</textarea>
+  <div class="task-main-content">
   <div class="d-flex align-items-center gap-2">
 
     {{/* ── Drag handle ─────────────────────────────────────────────────── */}}
@@ -32,9 +36,9 @@
         title="Mark done"></button>
     </form>
 
-    {{/* ── Main content (click body → task detail) ─────────────────────── */}}
+    {{/* ── Main content (click body → inline quick-edit) ────────────────── */}}
     <div class="flex-grow-1 min-w-0 task-body"
-      onclick="if(!event.target.closest('a,button,form,details,input,summary,textarea'))window.location='/todos/{{$task.ID}}/edit'">
+      onclick="if(!event.target.closest('a,button,form,details,input,summary,textarea'))taskQeOpen('{{$task.ID}}')">
 
       <div class="mb-1">
         {{if hasMdLink $task.Title}}
@@ -53,8 +57,13 @@
       </div>
 
       <div class="d-flex flex-wrap gap-1 align-items-center">
-        {{if $task.Label}}
-        <span class="badge bg-secondary">{{$task.Label}}</span>
+        {{range $task.Labels}}
+        {{$color := index $lc .}}
+        {{if $color}}
+        <span class="badge" style="background-color:{{$color}}">{{.}}</span>
+        {{else}}
+        <span class="badge bg-secondary">{{.}}</span>
+        {{end}}
         {{end}}
         {{if $task.DueDate}}
         <span class="badge {{if isOverdue $task.DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}">
@@ -81,6 +90,27 @@
 
     {{/* ── Hover-only action buttons ────────────────────────────────────── */}}
     <div class="d-flex gap-1 flex-shrink-0 align-items-center task-actions">
+      {{if $sections}}
+      <select name="section_id"
+        class="form-select form-select-sm"
+        style="width:auto;max-width:9rem"
+        hx-post="/todos/{{$task.ID}}/section?current={{if $section}}{{$section.ID}}{{end}}"
+        hx-target="#taskListContainer"
+        hx-swap="innerHTML"
+        title="Move to section">
+        <option value="">No section</option>
+        {{range $sections}}
+        <option value="{{.ID}}"
+          {{if and $task.SectionID (eq (print $task.SectionID) (print .ID))}}selected{{end}}>
+          {{.Name}}
+        </option>
+        {{end}}
+      </select>
+      {{end}}
+      <a href="/todos/{{$task.ID}}/edit"
+        class="btn btn-outline-secondary btn-sm"
+        title="Open full editor"
+        onclick="event.stopPropagation()">&#9998;</a>
       <button type="button" class="btn btn-outline-secondary btn-sm"
         onclick="subQaToggle('{{$task.ID}}')"
         title="Add subtask (s)">+</button>
@@ -98,6 +128,61 @@
       </form>
     </div>
 
+  </div>
+  </div>{{/* end .task-main-content */}}
+
+  {{/* ── Inline quick-edit (mirrors quick-add bar) ──────────────────────── */}}
+  <div class="task-qe px-1 pt-1 pb-2" id="task-qe-{{$tid}}"
+    data-task-id="{{$tid}}"
+    style="display:none">
+    <form method="POST"
+      action="/todos/{{$tid}}/quick-update?back={{$back}}{{if $section}}&amp;section={{$section.ID}}{{end}}"
+      hx-post="/todos/{{$tid}}/quick-update?back={{$back}}{{if $section}}&amp;section={{$section.ID}}{{end}}"
+      hx-target="closest .task-row"
+      hx-swap="outerHTML">
+      <button type="submit" style="display:none" aria-hidden="true"></button>
+      <div class="input-group position-relative">
+        <div class="form-control qa-ce-input task-qe-input"
+          contenteditable="true"
+          data-placeholder="Edit task…"
+          data-task-id="{{$tid}}"
+          spellcheck="true"
+          autocomplete="off"></div>
+        <input type="hidden" name="input" class="task-qe-hidden">
+      </div>
+      <input type="text" name="description" class="task-qe-desc form-control form-control-sm mt-1"
+        placeholder="Description… (optional)" autocomplete="off">
+      <div class="d-flex gap-2 flex-wrap mt-2 align-items-center">
+        <select class="form-select form-select-sm qa-ctrl task-qe-priority"
+          style="max-width:8rem" title="Priority — or type p1/p2/p3">
+          <option value="">p1/p2/p3</option>
+          <option value="p1">🔴 P1 – high</option>
+          <option value="p2">🟠 P2 – med</option>
+          <option value="p3">🔵 P3 – low</option>
+        </select>
+        <input type="text" class="form-control form-control-sm qa-ctrl task-qe-label"
+          list="qa-label-list" style="max-width:9rem"
+          placeholder="@label" autocomplete="off">
+        <input type="text" class="form-control form-control-sm qa-ctrl task-qe-due"
+          placeholder="next monday" style="max-width:10rem" autocomplete="off"
+          title="Due date — supports recurring, e.g. every thursday">
+        <input type="text" class="form-control form-control-sm qa-ctrl task-qe-deadline"
+          placeholder="!deadline" style="max-width:9rem" autocomplete="off"
+          title="Deadline — or type !today / !next friday">
+        <input type="text" class="form-control form-control-sm qa-ctrl task-qe-section"
+          list="qa-section-list" style="max-width:9rem"
+          placeholder="#section" autocomplete="off">
+      </div>
+      <div class="d-flex gap-2 mt-2 align-items-center">
+        <button type="submit" class="btn btn-dark btn-sm task-qe-submit">Save</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+          onclick="taskQeHide('{{$tid}}')">Cancel</button>
+        <a href="/todos/{{$tid}}/edit"
+          class="btn btn-link btn-sm text-muted ms-auto p-0">
+          Open full editor &#8594;
+        </a>
+      </div>
+    </form>
   </div>
 
   <form id="quick-edit-{{$task.ID}}"

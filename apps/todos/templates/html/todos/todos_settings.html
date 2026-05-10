@@ -234,12 +234,25 @@
     <div class="card-body">
       <ul class="list-group list-group-flush mb-2">
         {{range .Presets.Labels}}
-        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-          <span class="badge bg-secondary">{{.}}</span>
-          <form method="POST"
-            action="/todos/settings/labels/label/{{.}}/delete">
-            <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
-          </form>
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-2 px-0">
+          {{$color := .Color}}
+          <span class="badge{{if not $color}} bg-secondary{{end}}"
+            {{if $color}}style="background-color:{{$color}}"{{end}}>{{.Value}}</span>
+          <div class="d-flex align-items-center gap-2 ms-auto">
+            <form method="POST"
+              action="/todos/settings/labels/label/{{.Value}}/color"
+              class="m-0 d-flex align-items-center gap-1">
+              <input type="color" name="color"
+                class="form-control form-control-sm p-0 border-0"
+                style="width:2rem;height:1.6rem;cursor:pointer"
+                value="{{if $color}}{{$color}}{{else}}#6c757d{{end}}"
+                onchange="this.form.submit()">
+            </form>
+            <form method="POST"
+              action="/todos/settings/labels/label/{{.Value}}/delete">
+              <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
+            </form>
+          </div>
         </li>
         {{else}}
         <li class="list-group-item px-0 text-muted small">No labels yet.</li>

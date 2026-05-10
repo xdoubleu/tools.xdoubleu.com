@@ -126,6 +126,24 @@ func (s *SettingsService) SetActiveWorkspace(
 	return s.settings.SetActiveWorkspace(ctx, userID, workspaceID)
 }
 
+func (s *SettingsService) UpdateLabelColor(
+	ctx context.Context,
+	userID string,
+	category string,
+	value string,
+	workspaceID *uuid.UUID,
+	color string,
+) error {
+	return s.settings.UpdateLabelPresetColor(
+		ctx,
+		userID,
+		category,
+		value,
+		workspaceID,
+		color,
+	)
+}
+
 func (s *SettingsService) UpdateHideShortcutHints(
 	ctx context.Context,
 	userID string,

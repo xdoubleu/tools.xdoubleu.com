@@ -20,10 +20,10 @@ func (r *SettingsRepository) GetLabelPresets(
 	workspaceID *uuid.UUID,
 ) (*models.LabelPresets, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT category, value
+		SELECT category, value, color
 		FROM todos.label_presets
 		WHERE user_id = $1 AND workspace_id IS NOT DISTINCT FROM $2
-		ORDER BY category, value`,
+		ORDER BY category, sort_order, value`,
 		userID, workspaceID,
 	)
 	if err != nil {
@@ -32,18 +32,38 @@ func (r *SettingsRepository) GetLabelPresets(
 	defer rows.Close()
 
 	presets := &models.LabelPresets{
-		Labels: []string{},
+		Labels: []models.LabelPreset{},
 	}
 	for rows.Next() {
-		var category, value string
-		if err = rows.Scan(&category, &value); err != nil {
+		var category, value, color string
+		if err = rows.Scan(&category, &value, &color); err != nil {
 			return nil, err
 		}
 		if category == models.LabelCategory {
-			presets.Labels = append(presets.Labels, value)
+			presets.Labels = append(
+				presets.Labels, models.LabelPreset{Value: value, Color: color},
+			)
 		}
 	}
 	return presets, rows.Err()
+}
+
+func (r *SettingsRepository) UpdateLabelPresetColor(
+	ctx context.Context,
+	userID string,
+	category string,
+	value string,
+	workspaceID *uuid.UUID,
+	color string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE todos.label_presets
+		SET color = $1
+		WHERE user_id = $2 AND category = $3 AND value = $4
+		    AND workspace_id IS NOT DISTINCT FROM $5`,
+		color, userID, category, value, workspaceID,
+	)
+	return err
 }
 
 func (r *SettingsRepository) AddLabelPreset(

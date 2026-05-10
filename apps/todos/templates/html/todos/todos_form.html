@@ -33,10 +33,10 @@
     </select>
     <input type="text" name="label" class="view-pill-input"
       list="form-label-list"
-      value="{{.Task.Label}}"
-      placeholder="Label…" title="Label">
+      value="{{joinStrings .Task.Labels ","}}"
+      placeholder="Label…" title="Comma-separated labels">
     <datalist id="form-label-list">
-      {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+      {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
     </datalist>
     <input type="text" name="due_date" class="view-pill-input"
       value="{{if .RecurInput}}{{.RecurInput}}{{else if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}"
@@ -132,10 +132,10 @@
           {{if .Description}}
           <div class="small text-muted">{{.Description}}</div>
           {{end}}
-          {{if or .Label .DueDate .Deadline}}
+          {{if or .Labels .DueDate .Deadline}}
           <div class="d-flex flex-wrap gap-1 mt-1">
-            {{if .Label}}
-            <span class="badge bg-secondary" style="font-size:.65rem">{{.Label}}</span>
+            {{range .Labels}}
+            <span class="badge bg-secondary" style="font-size:.65rem">{{.}}</span>
             {{end}}
             {{if .DueDate}}
             <span class="badge {{if isOverdue .DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}"
@@ -177,7 +177,7 @@
             class="form-control form-control-sm mb-2"
             placeholder="Description (optional)">
           <div class="d-flex gap-2 mb-2">
-            <input type="text" name="label" value="{{.Label}}"
+            <input type="text" name="label" value="{{joinStrings .Labels ","}}"
               class="form-control form-control-sm" placeholder="Label…">
             <input type="text" name="due_date"
               value="{{if .DueDate}}{{.DueDate.Format "2006-01-02"}}{{end}}"
@@ -270,10 +270,11 @@
       <label class="form-label small fw-semibold">Label</label>
       <input type="text" name="label" class="form-control"
         list="form-label-list-new"
-        value="{{.Task.Label}}"
-        placeholder="— none —">
+        value="{{joinStrings .Task.Labels ","}}"
+        placeholder="— none —"
+        title="Comma-separated labels">
       <datalist id="form-label-list-new">
-        {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+        {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
       </datalist>
     </div>
     <div class="col-sm-2">

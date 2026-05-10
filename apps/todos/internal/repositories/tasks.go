@@ -22,7 +22,7 @@ func (r *TasksRepository) ListOpen(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.label, t.status, t.priority, t.sort_order,
+		       t.labels, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days, t.recur_rule,
@@ -44,6 +44,40 @@ func (r *TasksRepository) ListOpen(
 	return scanTasks(rows)
 }
 
+func (r *TasksRepository) CountOpenPerSection(
+	ctx context.Context,
+	userID string,
+	workspaceID *uuid.UUID,
+) (map[string]int, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT section_id, COUNT(*) AS cnt
+		FROM todos.tasks
+		WHERE owner_user_id = $1 AND status = 'open'
+		  AND (workspace_id = $2 OR ($2::uuid IS NULL AND workspace_id IS NULL))
+		GROUP BY section_id`,
+		userID, workspaceID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := map[string]int{}
+	for rows.Next() {
+		var sectionID *uuid.UUID
+		var cnt int
+		if scanErr := rows.Scan(&sectionID, &cnt); scanErr != nil {
+			return nil, scanErr
+		}
+		key := "open"
+		if sectionID != nil {
+			key = sectionID.String()
+		}
+		counts[key] = cnt
+	}
+	return counts, rows.Err()
+}
+
 func (r *TasksRepository) ListByStatus(
 	ctx context.Context,
 	userID string,
@@ -52,7 +86,7 @@ func (r *TasksRepository) ListByStatus(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.label, t.status, t.priority, t.sort_order,
+		       t.labels, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days, t.recur_rule,
@@ -81,7 +115,7 @@ func (r *TasksRepository) ListArchived(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.label, t.status, t.priority, t.sort_order,
+		       t.labels, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days, t.recur_rule,
@@ -112,7 +146,7 @@ func (r *TasksRepository) SearchAll(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.label, t.status, t.priority, t.sort_order,
+		       t.labels, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days, t.recur_rule,
@@ -143,7 +177,7 @@ func (r *TasksRepository) SearchByLinkURL(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.label, t.status, t.priority, t.sort_order,
+		       t.labels, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days, t.recur_rule,
@@ -173,7 +207,7 @@ func (r *TasksRepository) GetByID(
 ) (*models.Task, error) {
 	var t models.Task
 	err := r.db.QueryRow(ctx, `
-		SELECT id, owner_user_id, title, description, label,
+		SELECT id, owner_user_id, title, description, labels,
 		       status, priority, sort_order, completed_at, archived_at, due_date,
 		       deadline, created_at, updated_at, section_id, workspace_id,
 		       recur_days, recur_rule
@@ -182,7 +216,7 @@ func (r *TasksRepository) GetByID(
 		id, userID,
 	).Scan(
 		&t.ID, &t.OwnerUserID, &t.Title, &t.Description,
-		&t.Label, &t.Status,
+		&t.Labels, &t.Status,
 		&t.Priority, &t.SortOrder,
 		&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 		&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID, &t.RecurDays,
@@ -261,13 +295,13 @@ func (r *TasksRepository) Create(
 
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO todos.tasks
-		    (owner_user_id, title, description, label,
+		    (owner_user_id, title, description, labels,
 		     due_date, deadline, section_id, workspace_id, priority, sort_order,
 		     recur_days, recur_rule)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, created_at, updated_at`,
 		t.OwnerUserID, t.Title, t.Description,
-		t.Label, t.DueDate, t.Deadline,
+		t.Labels, t.DueDate, t.Deadline,
 		t.SectionID, t.WorkspaceID,
 		t.Priority, t.SortOrder, t.RecurDays, t.RecurRule,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
@@ -284,14 +318,29 @@ func (r *TasksRepository) Update(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE todos.tasks
-		SET title = $1, description = $2, label = $3,
+		SET title = $1, description = $2, labels = $3,
 		    due_date = $4, deadline = $5, section_id = $6,
 		    priority = $7, recur_days = $8, recur_rule = $9,
 		    updated_at = now()
 		WHERE id = $10 AND owner_user_id = $11`,
-		t.Title, t.Description, t.Label,
+		t.Title, t.Description, t.Labels,
 		t.DueDate, t.Deadline, t.SectionID,
 		t.Priority, t.RecurDays, t.RecurRule, t.ID, t.OwnerUserID,
+	)
+	return err
+}
+
+func (r *TasksRepository) MoveSection(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+	sectionID *uuid.UUID,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE todos.tasks
+		SET section_id = $1, updated_at = now()
+		WHERE id = $2 AND owner_user_id = $3`,
+		sectionID, id, userID,
 	)
 	return err
 }
@@ -383,9 +432,13 @@ func (r *TasksRepository) AddSubtask(
 ) (*models.Subtask, error) {
 	var s models.Subtask
 	s.TaskID = taskID
+	labels := []string{}
+	if label != "" {
+		labels = []string{label}
+	}
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO todos.subtasks
-		    (task_id, title, description, priority, label,
+		    (task_id, title, description, priority, labels,
 		     due_date, deadline, sort_order)
 		SELECT $1, $2, $3, $4, $5, $6, $7,
 		    COALESCE((SELECT MAX(sort_order)+1 FROM todos.subtasks
@@ -395,11 +448,11 @@ func (r *TasksRepository) AddSubtask(
 		    WHERE id = $1 AND owner_user_id = $8
 		)
 		RETURNING id, title, description, done, sort_order,
-		          priority, label, due_date, deadline, created_at`,
-		taskID, title, description, priority, label, dueDate, deadline, userID,
+		          priority, labels, due_date, deadline, created_at`,
+		taskID, title, description, priority, labels, dueDate, deadline, userID,
 	).Scan(
 		&s.ID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
-		&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
+		&s.Priority, &s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -419,23 +472,27 @@ func (r *TasksRepository) UpdateSubtask(
 	dueDate *time.Time,
 	deadline *time.Time,
 ) (*models.Subtask, error) {
+	labels := []string{}
+	if label != "" {
+		labels = []string{label}
+	}
 	var s models.Subtask
 	err := r.db.QueryRow(ctx, `
 		UPDATE todos.subtasks
 		SET title = $1, description = $2, priority = $3,
-		    label = $4, due_date = $5, deadline = $6
+		    labels = $4, due_date = $5, deadline = $6
 		WHERE id = $7 AND task_id = $8
 		  AND EXISTS (
 		      SELECT 1 FROM todos.tasks
 		      WHERE id = $8 AND owner_user_id = $9
 		  )
 		RETURNING id, task_id, title, description, done, sort_order,
-		          priority, label, due_date, deadline, created_at`,
-		title, description, priority, label, dueDate, deadline,
+		          priority, labels, due_date, deadline, created_at`,
+		title, description, priority, labels, dueDate, deadline,
 		id, taskID, userID,
 	).Scan(
 		&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
-		&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
+		&s.Priority, &s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -512,7 +569,7 @@ func (r *TasksRepository) ListSubtasksForTasks(
 	}
 	rows, err := r.db.Query(ctx, `
 		SELECT id, task_id, title, description, done, sort_order,
-		       priority, label, due_date, deadline, created_at
+		       priority, labels, due_date, deadline, created_at
 		FROM todos.subtasks
 		WHERE task_id = ANY($1::uuid[])
 		ORDER BY task_id, sort_order, created_at`,
@@ -528,7 +585,7 @@ func (r *TasksRepository) ListSubtasksForTasks(
 		var s models.Subtask
 		if err = rows.Scan(
 			&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
-			&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
+			&s.Priority, &s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -576,7 +633,7 @@ func (r *TasksRepository) ListDoneForArchiving(
 ) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.label, t.status, t.priority, t.sort_order,
+		       t.labels, t.status, t.priority, t.sort_order,
 		       t.completed_at, t.archived_at, t.due_date, t.deadline,
 		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
 		       t.recur_days, t.recur_rule,
@@ -648,7 +705,7 @@ func (r *TasksRepository) getSubtasks(
 ) ([]models.Subtask, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, task_id, title, description, done, sort_order,
-		       priority, label, due_date, deadline, created_at
+		       priority, labels, due_date, deadline, created_at
 		FROM todos.subtasks
 		WHERE task_id = $1
 		ORDER BY sort_order, created_at`,
@@ -664,7 +721,7 @@ func (r *TasksRepository) getSubtasks(
 		var s models.Subtask
 		if err = rows.Scan(
 			&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
-			&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
+			&s.Priority, &s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -679,7 +736,7 @@ func scanTasks(rows pgx.Rows) ([]models.Task, error) {
 		var t models.Task
 		if err := rows.Scan(
 			&t.ID, &t.OwnerUserID, &t.Title, &t.Description,
-			&t.Label, &t.Status,
+			&t.Labels, &t.Status,
 			&t.Priority, &t.SortOrder,
 			&t.CompletedAt, &t.ArchivedAt, &t.DueDate, &t.Deadline,
 			&t.CreatedAt, &t.UpdatedAt, &t.SectionID, &t.WorkspaceID,

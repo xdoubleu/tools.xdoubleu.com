@@ -106,6 +106,31 @@ func (a *Todos) removeLabelHandler(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
+func (a *Todos) updateLabelColorHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentUser(r)
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
+	category := r.PathValue("category")
+	value := r.PathValue("value")
+	var dto dtos.UpdateLabelColorDto
+	if err = httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+	if err = a.services.Settings.UpdateLabelColor(
+		r.Context(), user.ID, category, value,
+		wsCtx.Settings.ActiveWorkspaceID, dto.Color,
+	); err != nil {
+		return err
+	}
+	http.Redirect(w, r, "/todos/settings", http.StatusSeeOther)
+	return nil
+}
+
 func (a *Todos) addURLPatternHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
 	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)

@@ -33,6 +33,8 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 		auth(prefix, a.handle(a.addLabelHandler)))
 	mux.HandleFunc("POST /"+prefix+"/settings/labels/{category}/{value}/delete",
 		auth(prefix, a.handle(a.removeLabelHandler)))
+	mux.HandleFunc("POST /"+prefix+"/settings/labels/{category}/{value}/color",
+		auth(prefix, a.handle(a.updateLabelColorHandler)))
 	mux.HandleFunc("POST /"+prefix+"/settings/url-patterns",
 		auth(prefix, a.handle(a.addURLPatternHandler)))
 	mux.HandleFunc("POST /"+prefix+"/settings/url-patterns/{id}/delete",
@@ -73,6 +75,10 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 		auth(prefix, a.handle(a.editTaskFormHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/edit",
 		auth(prefix, a.handle(a.updateTaskHandler)))
+	mux.HandleFunc("POST /"+prefix+"/{id}/quick-update",
+		auth(prefix, a.handle(a.quickUpdateHandler)))
+	mux.HandleFunc("POST /"+prefix+"/{id}/section",
+		auth(prefix, a.handle(a.moveSectionHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/complete",
 		auth(prefix, a.handle(a.completeTaskHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/reopen",

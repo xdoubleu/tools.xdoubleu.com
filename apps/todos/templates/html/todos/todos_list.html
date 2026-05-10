@@ -18,7 +18,7 @@
         hx-get="/todos/?{{.WorkspaceQuery}}"
         hx-target="#taskListContainer"
         hx-swap="innerHTML"
-        hx-push-url="true">Open</a>
+        hx-push-url="true">Open{{if index .TabCounts "open"}}&nbsp;<span class="badge bg-secondary">{{index .TabCounts "open"}}</span>{{end}}</a>
     </li>
     {{range .Sections}}
     <li class="nav-item">
@@ -27,7 +27,7 @@
         hx-get="/todos/?{{$.WorkspaceQuery}}&section={{.ID}}"
         hx-target="#taskListContainer"
         hx-swap="innerHTML"
-        hx-push-url="true">{{.Name}}</a>
+        hx-push-url="true">{{.Name}}{{if index $.TabCounts .ID.String}}&nbsp;<span class="badge bg-secondary">{{index $.TabCounts .ID.String}}</span>{{end}}</a>
     </li>
     {{end}}
     <li class="nav-item">
@@ -172,7 +172,7 @@
           list="qa-label-list" style="max-width:9rem"
           placeholder="@label" autocomplete="off">
         <datalist id="qa-label-list">
-          {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+          {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
         </datalist>
         <input id="qaDue" type="text" class="form-control form-control-sm qa-ctrl"
           placeholder="next monday" style="max-width:10rem" autocomplete="off"
@@ -238,7 +238,7 @@
                 class="form-control form-control-sm"
                 list="modal-label-list" placeholder="— label —">
               <datalist id="modal-label-list">
-                {{range .Presets.Labels}}<option value="{{.}}">{{end}}
+                {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
               </datalist>
             </div>
             <div class="col-sm-2">
@@ -380,7 +380,7 @@ details summary::-webkit-details-marker{display:none}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
 <script>
 (function () {
-  var PRESET_LABELS = [{{range .Presets.Labels}}"{{.}}",{{end}}];
+  var PRESET_LABELS = [{{range .Presets.Labels}}"{{.Value}}",{{end}}];
   var PRESET_SECTIONS = [
     {{range .Sections}}{id:"{{.ID}}",name:"{{.Name}}"},{{end}}
   ];
@@ -859,6 +859,9 @@ details summary::-webkit-details-marker{display:none}
         } else if (w === 'today' || w === 'tomorrow' || weekdays[w]) {
           ranges.push({start: words[i].start, end: words[i].end, kind: 'due'});
           detections.push({kind: 'due', value: w});
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(w)) {
+          ranges.push({start: words[i].start, end: words[i].end, kind: 'due'});
+          detections.push({kind: 'due', value: w});
         }
       }
     }
@@ -1105,6 +1108,12 @@ details summary::-webkit-details-marker{display:none}
     setTimeout(acClose, 150);
   });
 
+  quickAddBar.addEventListener('focusout', function (e) {
+    if (!quickAddBar.contains(e.relatedTarget)) {
+      hideQuickAdd();
+    }
+  });
+
   /* ── Task keyboard navigation ────────────────────────────────────────────── */
   var kbIndex    = -1;
   var hoveredRow = null;
@@ -1168,6 +1177,12 @@ details summary::-webkit-details-marker{display:none}
       }
       if (e.key === 'Escape') {
         e.preventDefault();
+        window.subQaHide(taskId);
+      }
+    });
+
+    form.addEventListener('focusout', function (e) {
+      if (!form.contains(e.relatedTarget)) {
         window.subQaHide(taskId);
       }
     });
@@ -1279,6 +1294,7 @@ details summary::-webkit-details-marker{display:none}
           var nextHref = nextTab.getAttribute('hx-get');
           tabLinks.forEach(function (l) { l.classList.remove('active'); });
           nextTab.classList.add('active');
+          syncQuickAddSection();
           htmx.ajax('GET', nextHref, {
             target: '#taskListContainer',
             swap: 'innerHTML'
@@ -1373,14 +1389,258 @@ details summary::-webkit-details-marker{display:none}
   initSubtaskSortables();
   initAllSubtaskQAs();
 
+  /* ── Active-section helpers ──────────────────────────────────────────────── */
+  function getActiveSectionId() {
+    var activeLink = document.querySelector('.nav-tabs .nav-link.active[hx-get]');
+    if (!activeLink) { return ''; }
+    var href = activeLink.getAttribute('hx-get') || '';
+    var m = /[?&]section=([^&]*)/.exec(href);
+    return m ? m[1] : '';
+  }
+
+  function syncQuickAddSection() {
+    var hiddenInput = document.querySelector('#quickAddBar input[name="section_id"]');
+    if (hiddenInput) { hiddenInput.value = getActiveSectionId(); }
+  }
+
   /* ── Re-init after HTMX swaps ────────────────────────────────────────────── */
   document.body.addEventListener('htmx:afterSettle', function () {
     initSortable();
     initSubtaskSortables();
     initAllSubtaskQAs();
     bindTaskRowEvents();
+    syncQuickAddSection();
     kbIndex = -1;
   });
+
+  /* ── Task inline quick-edit ──────────────────────────────────────────────── */
+  function initTaskQe(qeDiv) {
+    if (qeDiv._qeBound) { return; }
+    qeDiv._qeBound = true;
+    var taskId  = qeDiv.dataset.taskId;
+    var ceDiv   = qeDiv.querySelector('.task-qe-input');
+    var hidden  = qeDiv.querySelector('.task-qe-hidden');
+
+    var priorityEl = qeDiv.querySelector('.task-qe-priority');
+    var labelEl    = qeDiv.querySelector('.task-qe-label');
+    var dueEl      = qeDiv.querySelector('.task-qe-due');
+    var deadlineEl = qeDiv.querySelector('.task-qe-deadline');
+    var sectionEl  = qeDiv.querySelector('.task-qe-section');
+
+    function ceSync() {
+      var result = '';
+      ceDiv.childNodes.forEach(function (node) {
+        if (node.nodeType === 3) { result += node.textContent; }
+        else if (node.classList && node.classList.contains('qa-md-link')) {
+          result += node.dataset.md || '';
+        } else if (node.tagName !== 'BR') { result += node.textContent; }
+      });
+      hidden.value = result;
+      return result;
+    }
+
+    function qeSyncControls(items) {
+      priorityEl.value = '';
+      labelEl.value    = '';
+      dueEl.value      = '';
+      deadlineEl.value = '';
+      sectionEl.value  = '';
+      items.forEach(function (d) {
+        if (d.kind === 'priority')  { priorityEl.value = d.value.toLowerCase(); }
+        if (d.kind === 'label')     { labelEl.value    = d.value; }
+        if (d.kind === 'due' || d.kind === 'recurring') { dueEl.value = d.value; }
+        if (d.kind === 'deadline')  { deadlineEl.value = d.value; }
+        if (d.kind === 'section')   { sectionEl.value  = d.value; }
+      });
+    }
+
+    function qeRemoveKind(val, kind) {
+      return removeKindFromText(val, kind);
+    }
+
+    function qeApply(kind, shortcut) {
+      var val = qeRemoveKind(hidden.value, kind);
+      if (shortcut) { val = (val + ' ' + shortcut).trim(); }
+      hidden.value = val;
+      ceDiv.textContent = val;
+      qeSyncControls(parseShortcutRanges(val).detections);
+    }
+
+    ceDiv.addEventListener('input', function () {
+      if (ceDiv.innerHTML === '<br>') { ceDiv.innerHTML = ''; }
+      qeSyncControls(parseShortcutRanges(ceSync()).detections);
+    });
+
+    ceDiv.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (ceSync().trim()) {
+          var btn = qeDiv.querySelector('.task-qe-submit');
+          if (btn) { btn.click(); }
+        }
+      }
+      if (e.key === 'Escape') { e.preventDefault(); window.taskQeHide(taskId); }
+    });
+
+    priorityEl.addEventListener('change', function () {
+      qeApply('priority', priorityEl.value);
+      ceDiv.focus();
+    });
+
+    (function () {
+      function commitLabel() {
+        var v = labelEl.value.trim();
+        qeApply('label', v ? ('@' + v) : '');
+      }
+      labelEl.addEventListener('change', commitLabel);
+      labelEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter')  { e.preventDefault(); commitLabel(); ceDiv.focus(); }
+        if (e.key === 'Escape') { labelEl.value = ''; commitLabel(); ceDiv.focus(); }
+      });
+    }());
+
+    (function () {
+      function commitDue() { qeApply('due', dueEl.value.trim()); }
+      dueEl.addEventListener('change', commitDue);
+      dueEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter')  { e.preventDefault(); commitDue(); ceDiv.focus(); }
+        if (e.key === 'Escape') { dueEl.value = ''; commitDue(); ceDiv.focus(); }
+      });
+    }());
+
+    (function () {
+      function commitDeadline() {
+        var v = deadlineEl.value.trim();
+        if (v && !v.startsWith('!')) { v = '!' + v; }
+        qeApply('deadline', v);
+      }
+      deadlineEl.addEventListener('change', commitDeadline);
+      deadlineEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault(); commitDeadline(); ceDiv.focus();
+        }
+        if (e.key === 'Escape') {
+          deadlineEl.value = ''; commitDeadline(); ceDiv.focus();
+        }
+      });
+    }());
+
+    (function () {
+      function commitSection() {
+        var v = sectionEl.value.trim();
+        qeApply('section', v ? ('#' + v) : '');
+      }
+      sectionEl.addEventListener('change', commitSection);
+      sectionEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault(); commitSection(); ceDiv.focus();
+        }
+        if (e.key === 'Escape') {
+          sectionEl.value = ''; commitSection(); ceDiv.focus();
+        }
+      });
+    }());
+
+    qeDiv.addEventListener('focusout', function (e) {
+      setTimeout(function () {
+        if (qeDiv.style.display !== 'none' &&
+            !qeDiv.contains(document.activeElement)) {
+          window.taskQeHide(taskId);
+        }
+      }, 150);
+    });
+  }
+
+  window.taskQeOpen = function (taskId) {
+    // Close any other open quick-edit first
+    document.querySelectorAll('.task-qe[style=""],.task-qe:not([style*="none"])')
+      .forEach(function (el) {
+        var otherId = el.dataset.taskId;
+        if (otherId && otherId !== taskId) { window.taskQeHide(otherId); }
+      });
+
+    var row = document.querySelector('.task-row[data-task-id="' + taskId + '"]');
+    if (!row) { return; }
+    var qeDiv = document.getElementById('task-qe-' + taskId);
+    if (!qeDiv) { return; }
+
+    initTaskQe(qeDiv);
+
+    // Build initial input text from data attributes
+    var title    = row.dataset.title    || '';
+    var priority = row.dataset.priority || '0';
+    var labels   = row.dataset.labels   || '';
+    var sectionId = row.dataset.sectionId || '';
+    var due      = row.dataset.due      || '';
+    var deadline = row.dataset.deadline || '';
+    var recur    = row.dataset.recur    || '';
+
+    var parts = [title];
+    if (priority && priority !== '0') { parts.push('p' + priority); }
+    labels.split(',').forEach(function (l) {
+      if (l.trim()) { parts.push('@' + l.trim()); }
+    });
+    if (recur) {
+      parts.push(recur);  // e.g. "every thursday" replaces ISO due date
+    } else if (due) {
+      parts.push(due);    // ISO date e.g. 2026-05-10
+    }
+    if (deadline) { parts.push('!' + deadline); }
+    var sect = PRESET_SECTIONS.find(function (s) { return s.id === sectionId; });
+    if (sect) { parts.push('#' + sect.name); }
+
+    var inputText = parts.filter(Boolean).join(' ');
+
+    var ceDiv  = qeDiv.querySelector('.task-qe-input');
+    var hidden = qeDiv.querySelector('.task-qe-hidden');
+    hidden.value = inputText;
+    ceDiv.textContent = inputText;
+
+    // Pre-fill description from the hidden store on the row
+    var descStore = row.querySelector('.task-desc-store');
+    var descEl    = qeDiv.querySelector('.task-qe-desc');
+    if (descEl && descStore) { descEl.value = descStore.value; }
+
+    // Sync controls from the reconstructed input text
+    var detections = parseShortcutRanges(inputText).detections;
+    qeDiv.querySelector('.task-qe-priority').value = '';
+    qeDiv.querySelector('.task-qe-label').value    = '';
+    qeDiv.querySelector('.task-qe-due').value      = '';
+    qeDiv.querySelector('.task-qe-deadline').value = '';
+    qeDiv.querySelector('.task-qe-section').value  = '';
+    detections.forEach(function (d) {
+      if (d.kind === 'priority') {
+        qeDiv.querySelector('.task-qe-priority').value = d.value.toLowerCase();
+      }
+      if (d.kind === 'label') {
+        qeDiv.querySelector('.task-qe-label').value = d.value;
+      }
+      if (d.kind === 'due' || d.kind === 'recurring') {
+        qeDiv.querySelector('.task-qe-due').value = d.value;
+      }
+      if (d.kind === 'deadline') {
+        qeDiv.querySelector('.task-qe-deadline').value = d.value;
+      }
+      if (d.kind === 'section') {
+        qeDiv.querySelector('.task-qe-section').value = d.value;
+      }
+    });
+
+    // Show quick-edit, hide main content
+    var mainContent = row.querySelector('.task-main-content');
+    if (mainContent) { mainContent.style.display = 'none'; }
+    qeDiv.style.display = '';
+    setTimeout(function () { ceDiv.focus(); }, 0);
+  };
+
+  window.taskQeHide = function (taskId) {
+    var row = document.querySelector('.task-row[data-task-id="' + taskId + '"]');
+    if (!row) { return; }
+    var qeDiv = document.getElementById('task-qe-' + taskId);
+    if (qeDiv) { qeDiv.style.display = 'none'; }
+    var mainContent = row.querySelector('.task-main-content');
+    if (mainContent) { mainContent.style.display = ''; }
+  };
 
   /* ── Sync nav-tab active class after HTMX pushes a new URL ──────────────── */
   function syncActiveTab() {
@@ -1453,6 +1713,8 @@ details summary::-webkit-details-marker{display:none}
     descEl.value    = '';
     recurDaysEl.value = '';
     endEdit();
+    var activeSectionId = getActiveSectionId();
+    if (activeSectionId && sectionEl) { sectionEl.value = activeSectionId; }
   });
 
   modal.addEventListener('shown.bs.modal', function () {

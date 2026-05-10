@@ -143,6 +143,18 @@ func (a *Todos) applyWorkspaceParam(
 	return "", false
 }
 
+func (a *Todos) loadLabelColors(
+	ctx context.Context,
+	userID string,
+	wsID *uuid.UUID,
+) map[string]string {
+	presets, err := a.services.Settings.GetLabelPresets(ctx, userID, wsID)
+	if err != nil {
+		return map[string]string{}
+	}
+	return presets.ColorMap()
+}
+
 func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
 
@@ -204,25 +216,43 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 		tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
 			"Tasks":          taskList,
 			"CurrentSection": currentSection,
+			"Sections":       sections,
+			"LabelColors": a.loadLabelColors(
+				r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
+			),
 		})
 		return nil
 	}
 
-	presets, err := a.services.Settings.GetLabelPresets(
-		r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
+	return a.renderTaskList(
+		w, r, user.ID, wsCtx, sections, taskList, currentSection, activeTab,
 	)
+}
+
+func (a *Todos) renderTaskList(
+	w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+	wsCtx *workspaceCtx,
+	sections []models.Section,
+	taskList []models.Task,
+	currentSection *models.Section,
+	activeTab string,
+) error {
+	wsID := wsCtx.Settings.ActiveWorkspaceID
+	presets, err := a.services.Settings.GetLabelPresets(r.Context(), userID, wsID)
 	if err != nil {
 		return err
 	}
-	policies, err := a.services.Policies.List(
-		r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
-	)
+	policies, err := a.services.Policies.List(r.Context(), userID, wsID)
 	if err != nil {
 		return err
 	}
-	patterns, err := a.services.Settings.GetURLPatterns(
-		r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
-	)
+	patterns, err := a.services.Settings.GetURLPatterns(r.Context(), userID, wsID)
+	if err != nil {
+		return err
+	}
+	tabCounts, err := a.services.Tasks.CountOpenPerSection(r.Context(), userID, wsID)
 	if err != nil {
 		return err
 	}
@@ -230,13 +260,15 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 		"Tasks":          taskList,
 		"Sections":       sections,
 		"Presets":        presets,
+		"LabelColors":    presets.ColorMap(),
 		"Policies":       policies,
 		"Patterns":       patterns,
 		"ActiveTab":      activeTab,
 		"CurrentSection": currentSection,
 		"UserSettings":   wsCtx.Settings,
 		"Workspaces":     wsCtx.Workspaces,
-		"WorkspaceQuery": workspaceQuery(wsCtx.Settings.ActiveWorkspaceID),
+		"WorkspaceQuery": workspaceQuery(wsID),
+		"TabCounts":      tabCounts,
 	})
 	return nil
 }
@@ -287,9 +319,19 @@ func (a *Todos) quickAddHTMX(
 	if err != nil {
 		return err
 	}
+	sections, err := a.services.Sections.List(
+		r.Context(), userID, wsCtx.Settings.ActiveWorkspaceID,
+	)
+	if err != nil {
+		return err
+	}
 	tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
 		"Tasks":          taskList,
 		"CurrentSection": currentSection,
+		"Sections":       sections,
+		"LabelColors": a.loadLabelColors(
+			r.Context(), userID, wsCtx.Settings.ActiveWorkspaceID,
+		),
 	})
 	return nil
 }
@@ -311,7 +353,7 @@ func (a *Todos) quickAddHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	if _, err = a.services.Tasks.QuickAdd(
 		r.Context(), user.ID, dto.Input, dto.Description,
-		wsCtx.Settings.ActiveWorkspaceID,
+		wsCtx.Settings.ActiveWorkspaceID, dto.SectionID,
 	); err != nil {
 		return err
 	}
@@ -401,6 +443,9 @@ func (a *Todos) searchHandler(w http.ResponseWriter, r *http.Request) error {
 		"ActiveTab":    "search",
 		"UserSettings": wsCtx.Settings,
 		"Workspaces":   wsCtx.Workspaces,
+		"LabelColors": a.loadLabelColors(
+			r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
+		),
 	})
 	return nil
 }
@@ -436,6 +481,9 @@ func (a *Todos) listDoneHandler(w http.ResponseWriter, r *http.Request) error {
 		"ActiveTab":         "done",
 		"UserSettings":      wsCtx.Settings,
 		"Workspaces":        wsCtx.Workspaces,
+		"LabelColors": a.loadLabelColors(
+			r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
+		),
 	})
 	return nil
 }
@@ -468,6 +516,9 @@ func (a *Todos) listArchiveHandler(w http.ResponseWriter, r *http.Request) error
 		"ActiveTab":    "archive",
 		"UserSettings": wsCtx.Settings,
 		"Workspaces":   wsCtx.Workspaces,
+		"LabelColors": a.loadLabelColors(
+			r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
+		),
 	})
 	return nil
 }
@@ -569,23 +620,23 @@ func (a *Todos) editTaskFormHandler(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
-func safeLocalRedirectTarget(rawBack string, fallback string) string {
+func safeLocalRedirectTarget(rawBack string) string {
 	if rawBack == "" {
-		return fallback
+		return todosRoot
 	}
 
 	normalized := strings.ReplaceAll(rawBack, "\\", "/")
 	target, err := url.Parse(normalized)
 	if err != nil {
-		return fallback
+		return todosRoot
 	}
 
 	if target.Hostname() != "" || target.Scheme != "" {
-		return fallback
+		return todosRoot
 	}
 
 	if !strings.HasPrefix(target.Path, "/") {
-		return fallback
+		return todosRoot
 	}
 
 	return target.String()
@@ -618,7 +669,7 @@ func (a *Todos) updateTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	); err != nil {
 		return err
 	}
-	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), todosRoot)
+	back := safeLocalRedirectTarget(r.URL.Query().Get("back"))
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -641,7 +692,7 @@ func (a *Todos) completeTaskHandler(w http.ResponseWriter, r *http.Request) erro
 		w.WriteHeader(http.StatusOK)
 		return nil
 	}
-	back := safeLocalRedirectTarget(r.URL.Query().Get("back"), todosRoot)
+	back := safeLocalRedirectTarget(r.URL.Query().Get("back"))
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -683,6 +734,158 @@ func (a *Todos) deleteTaskHandler(w http.ResponseWriter, r *http.Request) error 
 		return nil
 	}
 	back := safeBackRedirect(r.URL.Query().Get("back"))
+	http.Redirect(w, r, back, http.StatusSeeOther)
+	return nil
+}
+
+// ── Quick-update task (inline edit from list view) ────────────────────────────
+
+func (a *Todos) quickUpdateHTMX(
+	w http.ResponseWriter,
+	r *http.Request,
+	task *models.Task,
+	userID string,
+	wsID *uuid.UUID,
+) error {
+	sections, err := a.services.Sections.List(r.Context(), userID, wsID)
+	if err != nil {
+		return err
+	}
+	var currentSection *models.Section
+	if sid, parseErr := uuid.Parse(r.URL.Query().Get("section")); parseErr == nil {
+		for i := range sections {
+			if sections[i].ID == sid {
+				currentSection = &sections[i]
+				break
+			}
+		}
+	}
+	tpltools.RenderWithPanic(a.Tpl, w, "_task_row", map[string]any{
+		"Task":           task,
+		"CurrentSection": currentSection,
+		"LabelColors":    a.loadLabelColors(r.Context(), userID, wsID),
+		"Sections":       sections,
+	})
+	return nil
+}
+
+func (a *Todos) quickUpdateHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentUser(r)
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Task not found",
+		}
+	}
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
+	var dto dtos.QuickAddDto
+	if err = httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+	task, err := a.services.Tasks.QuickUpdate(
+		r.Context(), id, user.ID,
+		wsCtx.Settings.ActiveWorkspaceID,
+		dto.Input, dto.Description,
+	)
+	if err != nil {
+		return err
+	}
+	if isHXRequest(r) {
+		return a.quickUpdateHTMX(
+			w, r, task, user.ID, wsCtx.Settings.ActiveWorkspaceID,
+		)
+	}
+	back := safeLocalRedirectTarget(r.URL.Query().Get("back"))
+	http.Redirect(w, r, back, http.StatusSeeOther)
+	return nil
+}
+
+// ── Move task to section ──────────────────────────────────────────────────────
+
+func parseSectionID(raw string) *uuid.UUID {
+	if raw == "" {
+		return nil
+	}
+	if sid, err := uuid.Parse(raw); err == nil {
+		return &sid
+	}
+	return nil
+}
+
+func (a *Todos) moveSectionHTMX(
+	w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+	wsID *uuid.UUID,
+) error {
+	sections, err := a.services.Sections.List(r.Context(), userID, wsID)
+	if err != nil {
+		return err
+	}
+	currentSectionID := parseSectionID(r.URL.Query().Get("current"))
+	var currentSection *models.Section
+	if currentSectionID != nil {
+		for i := range sections {
+			if sections[i].ID == *currentSectionID {
+				currentSection = &sections[i]
+				break
+			}
+		}
+	}
+	taskList, err := a.services.Tasks.ListOpen(
+		r.Context(), userID, currentSectionID, wsID,
+	)
+	if err != nil {
+		return err
+	}
+	tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
+		"Tasks":          taskList,
+		"CurrentSection": currentSection,
+		"Sections":       sections,
+		"LabelColors":    a.loadLabelColors(r.Context(), userID, wsID),
+	})
+	return nil
+}
+
+func (a *Todos) moveSectionHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentUser(r)
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Task not found",
+		}
+	}
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
+	var dto dtos.MoveSectionDto
+	if err = httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+	newSectionID := parseSectionID(dto.SectionID)
+	if err = a.services.Tasks.MoveSection(
+		r.Context(), id, user.ID, newSectionID,
+	); err != nil {
+		return err
+	}
+	if isHXRequest(r) {
+		return a.moveSectionHTMX(
+			w, r, user.ID, wsCtx.Settings.ActiveWorkspaceID,
+		)
+	}
+	back := safeLocalRedirectTarget(r.URL.Query().Get("back"))
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
