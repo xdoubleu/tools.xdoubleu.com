@@ -125,3 +125,11 @@ func (s *SettingsService) SetActiveWorkspace(
 ) error {
 	return s.settings.SetActiveWorkspace(ctx, userID, workspaceID)
 }
+
+func (s *SettingsService) UpdateHideShortcutHints(
+	ctx context.Context,
+	userID string,
+	hide bool,
+) error {
+	return s.settings.UpdateHideShortcutHints(ctx, userID, hide)
+}

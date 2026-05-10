@@ -16,11 +16,11 @@
   <textarea hidden class="task-desc-store">{{$task.Description}}</textarea>
   <div class="d-flex align-items-center gap-2">
 
-    {{/* ── Drag handle ─────────────────────────────────────────── */}}
+    {{/* ── Drag handle ─────────────────────────────────────────────────── */}}
     <span class="drag-handle text-muted" style="cursor:grab;user-select:none;line-height:1"
       title="Drag to reorder">⠿</span>
 
-    {{/* ── Complete checkbox ────────────────────────────────────── */}}
+    {{/* ── Complete checkbox ────────────────────────────────────────────── */}}
     <form method="POST"
       action="/todos/{{$task.ID}}/complete?back={{$back}}"
       hx-post="/todos/{{$task.ID}}/complete"
@@ -32,7 +32,7 @@
         title="Mark done"></button>
     </form>
 
-    {{/* ── Main content (click body → task detail) ─────────────── */}}
+    {{/* ── Main content (click body → task detail) ─────────────────────── */}}
     <div class="flex-grow-1 min-w-0 task-body"
       onclick="if(!event.target.closest('a,button,form,details,input,summary,textarea'))window.location='/todos/{{$task.ID}}/edit'">
 
@@ -72,47 +72,18 @@
         <span class="badge bg-info text-dark">&#8635;&nbsp;{{$task.RecurDays}}d</span>
         {{end}}
         {{if gt $task.SubtaskTotal 0}}
-        <span class="badge bg-light text-dark border">
+        <span class="badge bg-light text-dark border subtask-counter">
           {{$task.SubtaskDone}}/{{$task.SubtaskTotal}}
         </span>
         {{end}}
       </div>
-
-      {{/* Inline subtasks */}}
-      <div class="mt-2 ms-1 subtask-list" id="subtasks-{{$task.ID}}">
-        {{range $task.Subtasks}}
-        {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid "CurrentSection" $section)}}
-        {{end}}
-      </div>
-
-      {{/* Add-subtask form (hidden; shown by JS) */}}
-      <form id="subtask-add-{{$task.ID}}"
-        method="POST"
-        action="/todos/{{$task.ID}}/subtasks?back={{$back}}"
-        hx-post="/todos/{{$task.ID}}/subtasks"
-        hx-target="#subtasks-{{$task.ID}}"
-        hx-swap="beforeend"
-        hx-on::after-request="this.reset();this.style.display='none'"
-        class="mt-1"
-        style="display:none">
-        <div class="input-group input-group-sm" style="max-width:320px">
-          <input type="text" name="title"
-            class="form-control form-control-sm subtask-input"
-            placeholder="Subtask title…">
-          <button type="submit" class="btn btn-outline-secondary btn-sm">Add</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm"
-            onclick="document.getElementById('subtask-add-{{$task.ID}}').style.display='none'">
-            ✕
-          </button>
-        </div>
-      </form>
     </div>
 
-    {{/* ── Hover-only action buttons ────────────────────────────── */}}
+    {{/* ── Hover-only action buttons ────────────────────────────────────── */}}
     <div class="d-flex gap-1 flex-shrink-0 align-items-center task-actions">
-<button type="button" class="btn btn-outline-secondary btn-sm"
-        onclick="(function(id){var f=document.getElementById('subtask-add-'+id);f.style.display='';f.querySelector('.subtask-input').focus()})('{{$task.ID}}')"
-        title="Add subtask">+</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm"
+        onclick="subQaToggle('{{$task.ID}}')"
+        title="Add subtask (s)">+</button>
       <form method="POST"
         action="/todos/{{$task.ID}}/delete?back={{$back}}"
         hx-post="/todos/{{$task.ID}}/delete"
@@ -125,5 +96,41 @@
     </div>
 
   </div>
+
+  {{/* ── Subtask section (indented, below main row) ───────────────────── */}}
+  <div class="ms-4{{if $task.Subtasks}} mt-2{{end}} subtask-section"
+    id="subtask-section-{{$task.ID}}">
+    <div class="list-group list-group-flush subtask-list" id="subtasks-{{$task.ID}}">
+      {{range $task.Subtasks}}
+      {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid)}}
+      {{end}}
+    </div>
+
+    {{/* Add-subtask quick-add (hidden; shown by JS) */}}
+    <form id="subtask-add-{{$task.ID}}"
+      method="POST"
+      action="/todos/{{$task.ID}}/subtasks?back={{$back}}"
+      hx-post="/todos/{{$task.ID}}/subtasks"
+      hx-target="#subtasks-{{$task.ID}}"
+      hx-swap="beforeend"
+      hx-on::after-request="subQaAfterAdd('{{$task.ID}}')"
+      class="mt-1 subtask-qa-form"
+      style="display:none">
+      <button type="submit" style="display:none" aria-hidden="true"></button>
+      <input type="hidden" name="input" class="subtask-qa-hidden">
+      <div class="input-group mb-1">
+        <div class="form-control subtask-qa-input qa-ce-input"
+          contenteditable="true"
+          data-placeholder="Subtask… (p1 @label today !deadline)"
+          data-task-id="{{$task.ID}}"
+          spellcheck="true"></div>
+      </div>
+      <input type="text" name="description"
+        class="form-control form-control-sm mt-1"
+        placeholder="Description (optional)"
+        autocomplete="off">
+    </form>
+  </div>
+
 </div>
 {{end}}

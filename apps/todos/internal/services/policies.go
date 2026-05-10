@@ -49,6 +49,28 @@ func (s *PoliciesService) Create(
 	})
 }
 
+func (s *PoliciesService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+	text string,
+	reappearAfterHours int,
+) (*models.Policy, error) {
+	if text == "" {
+		return nil, &HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Policy text cannot be empty",
+		}
+	}
+	if reappearAfterHours < 0 {
+		return nil, &HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Reappear hours must be non-negative",
+		}
+	}
+	return s.policies.Update(ctx, id, userID, text, reappearAfterHours)
+}
+
 func (s *PoliciesService) Delete(
 	ctx context.Context,
 	id uuid.UUID,

@@ -1,26 +1,66 @@
 {{define "_subtask_item"}}
 {{$sub := .Subtask}}
 {{$tid := .TaskID}}
-{{$section := .CurrentSection}}
-<div class="d-flex align-items-center gap-1 mb-1 subtask-item">
-  <form method="POST"
-    action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle?back={{if $section}}/todos/?section={{$section.ID}}{{else}}/todos/{{end}}"
-    hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle"
-    hx-swap="none"
-    hx-on::after-request="todoToggleSubtask(this)"
-    class="m-0">
-    <button type="submit" class="btn p-0 border-0 lh-1"
-      data-done="{{if $sub.Done}}1{{else}}0{{end}}"
-      style="font-size:1rem">
-      {{if $sub.Done}}
-      <span class="text-success">&#10003;</span>
-      {{else}}
-      <span class="text-muted">&#9675;</span>
+<div class="list-group-item px-2 py-1 subtask-row subtask-p{{$sub.Priority}}"
+  data-subtask-id="{{$sub.ID}}">
+  <div class="d-flex align-items-center gap-2">
+
+    {{/* ── Drag handle ─────────────────────────────────────────────────── */}}
+    <span class="drag-handle-sub text-muted"
+      style="cursor:grab;user-select:none;line-height:1"
+      title="Drag to reorder">⠿</span>
+
+    {{/* ── Toggle done ─────────────────────────────────────────────────── */}}
+    <form method="POST"
+      action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle?back=/todos/"
+      hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle"
+      hx-swap="none"
+      hx-on::after-request="todoToggleSubtask(this)"
+      class="m-0 flex-shrink-0 d-flex align-items-center">
+      <button type="submit"
+        class="task-check task-check-p{{$sub.Priority}}{{if $sub.Done}} subtask-check-done{{end}}"
+        data-done="{{if $sub.Done}}1{{else}}0{{end}}"
+        title="Toggle done"></button>
+    </form>
+
+    {{/* ── Content ─────────────────────────────────────────────────────── */}}
+    <div class="flex-grow-1 min-w-0">
+      <div class="subtask-title small{{if $sub.Done}} text-muted text-decoration-line-through{{end}}">
+        {{$sub.Title}}
+      </div>
+      {{if $sub.Description}}
+      <div class="text-muted" style="font-size:.78rem">{{$sub.Description}}</div>
       {{end}}
-    </button>
-  </form>
-  <span class="small {{if $sub.Done}}text-muted text-decoration-line-through{{end}}">
-    {{$sub.Title}}
-  </span>
+      {{if or $sub.Label $sub.DueDate $sub.Deadline}}
+      <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+        {{if $sub.Label}}
+        <span class="badge bg-secondary" style="font-size:.65rem">{{$sub.Label}}</span>
+        {{end}}
+        {{if $sub.DueDate}}
+        <span class="badge {{if isOverdue $sub.DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}"
+          style="font-size:.65rem">{{humanDate $sub.DueDate}}</span>
+        {{end}}
+        {{if $sub.Deadline}}
+        <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle"
+          style="font-size:.65rem">⚑&nbsp;{{humanDate $sub.Deadline}}</span>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+
+    {{/* ── Hover-only delete ───────────────────────────────────────────── */}}
+    <div class="subtask-actions d-flex gap-1 flex-shrink-0 align-items-center">
+      <form method="POST"
+        action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/delete?back=/todos/"
+        hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}/delete"
+        hx-target="closest .subtask-row"
+        hx-swap="delete"
+        class="m-0">
+        <button type="submit" class="btn btn-outline-danger btn-sm"
+          title="Delete">&#10005;</button>
+      </form>
+    </div>
+
+  </div>
 </div>
 {{end}}

@@ -698,6 +698,10 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 			Message: "Task not found",
 		}
 	}
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
 	var dto dtos.AddSubtaskDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
 		return &services.HTTPError{
@@ -705,20 +709,59 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 			Message: "Invalid form data",
 		}
 	}
-	subtask, err := a.services.Tasks.AddSubtask(r.Context(), taskID, user.ID, dto.Title)
+	subtask, err := a.services.Tasks.AddSubtask(
+		r.Context(), taskID, user.ID,
+		wsCtx.Settings.ActiveWorkspaceID,
+		dto.Input, dto.Description,
+	)
 	if err != nil {
 		return err
 	}
 	if isHXRequest(r) {
 		tpltools.RenderWithPanic(a.Tpl, w, "_subtask_item", map[string]any{
-			"Subtask":        subtask,
-			"TaskID":         taskID,
-			"CurrentSection": (*models.Section)(nil),
+			"Subtask": subtask,
+			"TaskID":  taskID,
 		})
 		return nil
 	}
 	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
 	http.Redirect(w, r, back, http.StatusSeeOther)
+	return nil
+}
+
+func (a *Todos) reorderSubtasksHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+	user := currentUser(r)
+	taskID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Task not found",
+		}
+	}
+	var dto dtos.ReorderDto
+	if err = json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid JSON",
+		}
+	}
+	ids := make([]uuid.UUID, 0, len(dto.IDs))
+	for _, s := range dto.IDs {
+		id, parseErr := uuid.Parse(s)
+		if parseErr != nil {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	if err = a.services.Tasks.ReorderSubtasks(
+		r.Context(), taskID, user.ID, ids,
+	); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
 

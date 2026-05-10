@@ -375,21 +375,32 @@ func (r *TasksRepository) AddSubtask(
 	taskID uuid.UUID,
 	userID string,
 	title string,
+	description string,
+	priority int,
+	label string,
+	dueDate *time.Time,
+	deadline *time.Time,
 ) (*models.Subtask, error) {
 	var s models.Subtask
 	s.TaskID = taskID
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO todos.subtasks (task_id, title, sort_order)
-		SELECT $1, $2,
+		INSERT INTO todos.subtasks
+		    (task_id, title, description, priority, label,
+		     due_date, deadline, sort_order)
+		SELECT $1, $2, $3, $4, $5, $6, $7,
 		    COALESCE((SELECT MAX(sort_order)+1 FROM todos.subtasks
 		              WHERE task_id = $1), 0)
 		WHERE EXISTS (
 		    SELECT 1 FROM todos.tasks
-		    WHERE id = $1 AND owner_user_id = $3
+		    WHERE id = $1 AND owner_user_id = $8
 		)
-		RETURNING id, title, done, sort_order, created_at`,
-		taskID, title, userID,
-	).Scan(&s.ID, &s.Title, &s.Done, &s.SortOrder, &s.CreatedAt)
+		RETURNING id, title, description, done, sort_order,
+		          priority, label, due_date, deadline, created_at`,
+		taskID, title, description, priority, label, dueDate, deadline, userID,
+	).Scan(
+		&s.ID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
+		&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -432,6 +443,29 @@ func (r *TasksRepository) DeleteSubtask(
 	return err
 }
 
+func (r *TasksRepository) ReorderSubtasks(
+	ctx context.Context,
+	taskID uuid.UUID,
+	userID string,
+	ids []uuid.UUID,
+) error {
+	for i, id := range ids {
+		_, err := r.db.Exec(ctx, `
+			UPDATE todos.subtasks SET sort_order = $1
+			WHERE id = $2 AND task_id = $3
+			  AND EXISTS (
+			      SELECT 1 FROM todos.tasks
+			      WHERE id = $3 AND owner_user_id = $4
+			  )`,
+			i, id, taskID, userID,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *TasksRepository) ListSubtasksForTasks(
 	ctx context.Context,
 	taskIDs []uuid.UUID,
@@ -441,7 +475,8 @@ func (r *TasksRepository) ListSubtasksForTasks(
 		strIDs[i] = id.String()
 	}
 	rows, err := r.db.Query(ctx, `
-		SELECT id, task_id, title, done, sort_order, created_at
+		SELECT id, task_id, title, description, done, sort_order,
+		       priority, label, due_date, deadline, created_at
 		FROM todos.subtasks
 		WHERE task_id = ANY($1::uuid[])
 		ORDER BY task_id, sort_order, created_at`,
@@ -456,7 +491,8 @@ func (r *TasksRepository) ListSubtasksForTasks(
 	for rows.Next() {
 		var s models.Subtask
 		if err = rows.Scan(
-			&s.ID, &s.TaskID, &s.Title, &s.Done, &s.SortOrder, &s.CreatedAt,
+			&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
+			&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -575,7 +611,8 @@ func (r *TasksRepository) getSubtasks(
 	taskID uuid.UUID,
 ) ([]models.Subtask, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, task_id, title, done, sort_order, created_at
+		SELECT id, task_id, title, description, done, sort_order,
+		       priority, label, due_date, deadline, created_at
 		FROM todos.subtasks
 		WHERE task_id = $1
 		ORDER BY sort_order, created_at`,
@@ -590,7 +627,8 @@ func (r *TasksRepository) getSubtasks(
 	for rows.Next() {
 		var s models.Subtask
 		if err = rows.Scan(
-			&s.ID, &s.TaskID, &s.Title, &s.Done, &s.SortOrder, &s.CreatedAt,
+			&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
+			&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

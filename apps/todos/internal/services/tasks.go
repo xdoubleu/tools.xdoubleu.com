@@ -44,7 +44,11 @@ func (s *TaskService) ListOpen(
 	if err != nil {
 		return nil, err
 	}
-	return s.attachLinks(ctx, tasks)
+	tasks, err = s.attachLinks(ctx, tasks)
+	if err != nil {
+		return nil, err
+	}
+	return s.enrichWithShortcuts(ctx, userID, workspaceID, tasks), nil
 }
 
 func (s *TaskService) List(
@@ -61,7 +65,11 @@ func (s *TaskService) List(
 	if err != nil {
 		return nil, err
 	}
-	return s.attachLinks(ctx, tasks)
+	tasks, err = s.attachLinks(ctx, tasks)
+	if err != nil {
+		return nil, err
+	}
+	return s.enrichWithShortcuts(ctx, userID, workspaceID, tasks), nil
 }
 
 func (s *TaskService) Search(
@@ -93,7 +101,17 @@ func (s *TaskService) Get(
 	id uuid.UUID,
 	userID string,
 ) (*models.Task, error) {
-	return s.tasks.GetByID(ctx, id, userID)
+	task, err := s.tasks.GetByID(ctx, id, userID)
+	if err != nil {
+		return nil, err
+	}
+	if len(task.Links) > 0 {
+		tasks := s.enrichWithShortcuts(
+			ctx, userID, task.WorkspaceID, []models.Task{*task},
+		)
+		*task = tasks[0]
+	}
+	return task, nil
 }
 
 func (s *TaskService) Create(
@@ -254,15 +272,40 @@ func (s *TaskService) AddSubtask(
 	ctx context.Context,
 	taskID uuid.UUID,
 	userID string,
-	title string,
+	workspaceID *uuid.UUID,
+	input string,
+	description string,
 ) (*models.Subtask, error) {
-	if title == "" {
+	if strings.TrimSpace(input) == "" {
 		return nil, &HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Subtask title cannot be empty",
 		}
 	}
-	return s.tasks.AddSubtask(ctx, taskID, userID, title)
+	title, dto := parseQuickInput(input, nil, time.Now())
+	if strings.TrimSpace(title) == "" {
+		title = strings.TrimSpace(input)
+	}
+	label := dto.Label
+	if label != "" {
+		label = s.normalizeAndAddLabel(ctx, userID, workspaceID, label)
+	}
+	return s.tasks.AddSubtask(
+		ctx, taskID, userID,
+		title, strings.TrimSpace(description),
+		dto.Priority, label,
+		parseDatePtr(dto.DueDate),
+		parseDatePtr(dto.Deadline),
+	)
+}
+
+func (s *TaskService) ReorderSubtasks(
+	ctx context.Context,
+	taskID uuid.UUID,
+	userID string,
+	ids []uuid.UUID,
+) error {
+	return s.tasks.ReorderSubtasks(ctx, taskID, userID, ids)
 }
 
 func (s *TaskService) ToggleSubtask(
@@ -848,6 +891,40 @@ func recurRuleToInput(rule string) string {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
+// resolveShortcutBadge returns the shortcut ID string for a URL when it matches
+// a configured pattern with a non-empty shortcut (e.g. "DCP1234"), else "".
+func resolveShortcutBadge(rawURL string, patterns []models.URLPattern) string {
+	for _, p := range patterns {
+		if p.Shortcut == "" || !strings.HasPrefix(rawURL, p.URLPrefix) {
+			continue
+		}
+		return p.Shortcut + rawURL[len(p.URLPrefix):]
+	}
+	return ""
+}
+
+// enrichWithShortcuts fills ShortcutBadge on every link in tasks whose URL
+// matches a configured URL pattern that has a non-empty Shortcut field.
+func (s *TaskService) enrichWithShortcuts(
+	ctx context.Context,
+	userID string,
+	workspaceID *uuid.UUID,
+	tasks []models.Task,
+) []models.Task {
+	patterns, err := s.settings.GetURLPatterns(ctx, userID, workspaceID)
+	if err != nil || len(patterns) == 0 {
+		return tasks
+	}
+	for i := range tasks {
+		for j := range tasks[i].Links {
+			tasks[i].Links[j].ShortcutBadge = resolveShortcutBadge(
+				tasks[i].Links[j].URL, patterns,
+			)
+		}
+	}
+	return tasks
+}
 
 func (s *TaskService) attachSubtasks(
 	ctx context.Context,

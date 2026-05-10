@@ -193,10 +193,12 @@
       style="display:none;z-index:1000;position:fixed;max-height:180px;overflow-y:auto">
     </ul>
   </div>
+  {{if not (and .UserSettings .UserSettings.HideShortcutHints)}}
   <p id="quickAddHint" class="text-muted small mb-3">
     <kbd>/</kbd> new task &nbsp;&middot;&nbsp; <kbd>↑↓</kbd> navigate
     &nbsp;&middot;&nbsp; <kbd>s</kbd> add subtask
   </p>
+  {{end}}
 
   {{/* ── Task list (HTMX tab-switching target) ──────────────────────────── */}}
   <div id="taskListContainer">
@@ -325,6 +327,20 @@
 .task-row:hover .drag-handle{visibility:visible;opacity:1}
 .task-row.kb-focus{outline:2px solid #0d6efd;outline-offset:-2px}
 .sortable-ghost{opacity:.4;background:#f8f9fa}
+/* ── subtask cards ─────────────────────────────────────────────────────── */
+.subtask-row{cursor:default;border-left:3px solid transparent}
+.subtask-p0{border-left-color:#6c757d}
+.subtask-p1{border-left-color:#dc3545}
+.subtask-p2{border-left-color:#fd7e14}
+.subtask-p3{border-left-color:#0d6efd}
+.drag-handle-sub{visibility:hidden;opacity:0;transition:opacity .15s}
+.subtask-row:hover .drag-handle-sub{visibility:visible;opacity:1}
+.subtask-actions{visibility:hidden;opacity:0;transition:opacity .15s}
+.subtask-row:hover .subtask-actions{visibility:visible;opacity:1}
+.subtask-check-done{background:#6c757d;border-color:#6c757d}
+.task-check-p1.subtask-check-done{background:#dc3545;border-color:#dc3545}
+.task-check-p2.subtask-check-done{background:#fd7e14;border-color:#fd7e14}
+.task-check-p3.subtask-check-done{background:#0d6efd;border-color:#0d6efd}
 .markdown-body h1,.markdown-body h2,.markdown-body h3{
   margin-top:1rem;margin-bottom:.5rem}
 .markdown-body ul,.markdown-body ol{padding-left:1.5rem}
@@ -532,22 +548,18 @@ details summary::-webkit-details-marker{display:none}
 
   /* ── Subtask toggle (client-side state flip after HTMX post) ────────────── */
   window.todoToggleSubtask = function (form) {
-    var btn  = form.querySelector('button[data-done]');
-    var span = btn.querySelector('span');
+    var btn     = form.querySelector('button[data-done]');
     var wasDone = btn.dataset.done === '1';
-    if (wasDone) {
-      btn.dataset.done = '0';
-      span.className   = 'text-muted';
-      span.innerHTML   = '&#9675;';
-    } else {
-      btn.dataset.done = '1';
-      span.className   = 'text-success';
-      span.innerHTML   = '&#10003;';
-    }
-    var label = form.closest('.subtask-item').querySelector('span:last-child');
-    if (label) {
-      label.classList.toggle('text-muted', !wasDone);
-      label.classList.toggle('text-decoration-line-through', !wasDone);
+    var isDone  = !wasDone;
+    btn.dataset.done = isDone ? '1' : '0';
+    btn.classList.toggle('subtask-check-done', isDone);
+    var row = form.closest('.subtask-row');
+    if (row) {
+      var titleEl = row.querySelector('.subtask-title');
+      if (titleEl) {
+        titleEl.classList.toggle('text-decoration-line-through', isDone);
+        titleEl.classList.toggle('text-muted', isDone);
+      }
     }
   };
 
@@ -1008,6 +1020,13 @@ details summary::-webkit-details-marker{display:none}
           quickAddInput.value =
             (quickAddInput.value.slice(0, start) + replacement +
              quickAddInput.value.slice(end)).trim();
+          var richNewPos = start + replacement.length;
+          setTimeout(function () {
+            quickAddInput.focus();
+            quickAddInput.setSelectionRange(
+              Math.min(richNewPos, quickAddInput.value.length)
+            );
+          }, 0);
           syncControlsFromDetections(
             parseShortcutRanges(quickAddInput.value).detections
           );
@@ -1022,7 +1041,10 @@ details summary::-webkit-details-marker{display:none}
       if (/\[.+\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
         var caretPos = quickAddInput.selectionStart;
         quickAddInput._render(md);
-        quickAddInput.setSelectionRange(caretPos);
+        setTimeout(function () {
+          quickAddInput.focus();
+          quickAddInput.setSelectionRange(caretPos);
+        }, 0);
       }
       updateUrlIndicator(quickAddInput.value);
     }, 0);
@@ -1033,7 +1055,10 @@ details summary::-webkit-details-marker{display:none}
     if (/\[.+\]\((?:https?:\/\/)?[^\s)]+\)/.test(md)) {
       var caretPos = quickAddInput.selectionStart;
       quickAddInput._render(md);
-      quickAddInput.setSelectionRange(caretPos);
+      setTimeout(function () {
+        quickAddInput.focus();
+        quickAddInput.setSelectionRange(caretPos);
+      }, 0);
     }
     acUpdate();
     syncControlsFromDetections(parseShortcutRanges(md).detections);
@@ -1111,14 +1136,100 @@ details summary::-webkit-details-marker{display:none}
   }
   bindTaskRowEvents();
 
-  function openSubtaskInput(row) {
-    var id   = row.dataset.taskId;
-    var form = document.getElementById('subtask-add-' + id);
-    if (!form) { return; }
-    form.style.display = '';
-    var input = form.querySelector('.subtask-input');
-    if (input) { input.focus(); }
+  /* ── Subtask quick-add ───────────────────────────────────────────────────── */
+  function initSubtaskQA(form) {
+    var div = form.querySelector('.subtask-qa-input');
+    if (!div || div._subQABound) { return; }
+    div._subQABound = true;
+    var hidden = form.querySelector('.subtask-qa-hidden');
+    var taskId = div.dataset.taskId;
+
+    function sync() {
+      var result = '';
+      div.childNodes.forEach(function (node) {
+        if (node.nodeType === 3) { result += node.textContent; }
+        else if (node.tagName !== 'BR') { result += node.textContent; }
+      });
+      if (hidden) { hidden.value = result; }
+      return result;
+    }
+
+    div.addEventListener('input', function () {
+      if (div.innerHTML === '<br>') { div.innerHTML = ''; }
+      sync();
+    });
+    div.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (sync().trim()) {
+          var btn = form.querySelector('button[type="submit"]');
+          if (btn) { btn.click(); }
+        }
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        window.subQaHide(taskId);
+      }
+    });
   }
+
+  function initAllSubtaskQAs() {
+    document.querySelectorAll('.subtask-qa-form').forEach(initSubtaskQA);
+  }
+
+  window.subQaToggle = function (taskId) {
+    var form = document.getElementById('subtask-add-' + taskId);
+    if (!form) { return; }
+    if (form.style.display === 'none' || !form.style.display) {
+      var section = document.getElementById('subtask-section-' + taskId);
+      if (section) { section.classList.add('mt-2'); }
+      form.style.display = '';
+      initSubtaskQA(form);
+      var ce = form.querySelector('.subtask-qa-input');
+      if (ce) { setTimeout(function () { ce.focus(); }, 0); }
+    } else {
+      window.subQaHide(taskId);
+    }
+  };
+
+  window.subQaHide = function (taskId) {
+    var form = document.getElementById('subtask-add-' + taskId);
+    if (!form) { return; }
+    form.style.display = 'none';
+    var ce = form.querySelector('.subtask-qa-input');
+    if (ce) { ce.innerHTML = ''; }
+    var desc = form.querySelector('[name="description"]');
+    if (desc) { desc.value = ''; }
+  };
+
+  window.subQaAfterAdd = function (taskId) {
+    var form = document.getElementById('subtask-add-' + taskId);
+    if (!form) { return; }
+    var ce = form.querySelector('.subtask-qa-input');
+    if (ce) { ce.innerHTML = ''; ce.focus(); }
+    var desc = form.querySelector('[name="description"]');
+    if (desc) { desc.value = ''; }
+    /* update subtask counter badge on the parent task card */
+    var taskRow = document.querySelector(
+      '.task-row[data-task-id="' + taskId + '"]'
+    );
+    if (taskRow) {
+      var list  = document.getElementById('subtasks-' + taskId);
+      var total = list ? list.querySelectorAll('.subtask-row').length : 0;
+      var done  = list
+        ? list.querySelectorAll('.subtask-check-done').length : 0;
+      var badge = taskRow.querySelector('.subtask-counter');
+      if (!badge && total > 0) {
+        var badgesDiv = taskRow.querySelector('.d-flex.flex-wrap.gap-1');
+        if (badgesDiv) {
+          badge = document.createElement('span');
+          badge.className = 'badge bg-light text-dark border subtask-counter';
+          badgesDiv.appendChild(badge);
+        }
+      }
+      if (badge) { badge.textContent = done + '/' + total; }
+    }
+  };
 
   /* ── Global keyboard handler ─────────────────────────────────────────────── */
   document.addEventListener('keydown', function (e) {
@@ -1176,7 +1287,8 @@ details summary::-webkit-details-marker{display:none}
       var target = kbIndex >= 0 ? rows2[kbIndex] : hoveredRow;
       if (target) {
         e.preventDefault();
-        openSubtaskInput(target);
+        var tId = target.dataset.taskId;
+        if (tId) { window.subQaToggle(tId); }
       }
     }
   });
@@ -1205,11 +1317,39 @@ details summary::-webkit-details-marker{display:none}
       Sortable.create(el, sortableOpts);
     }
   }
+
+  function initSubtaskSortables() {
+    document.querySelectorAll('.subtask-list[id^="subtasks-"]').forEach(
+      function (el) {
+        if (Sortable.get(el)) { return; }
+        var taskId = el.id.slice('subtasks-'.length);
+        Sortable.create(el, {
+          handle: '.drag-handle-sub',
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          onEnd: function () {
+            var ids = Array.from(el.querySelectorAll('[data-subtask-id]'))
+              .map(function (e) { return e.dataset.subtaskId; });
+            fetch('/todos/' + taskId + '/subtasks/reorder', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids: ids })
+            });
+          }
+        });
+      }
+    );
+  }
+
   initSortable();
+  initSubtaskSortables();
+  initAllSubtaskQAs();
 
   /* ── Re-init after HTMX swaps ────────────────────────────────────────────── */
   document.body.addEventListener('htmx:afterSettle', function () {
     initSortable();
+    initSubtaskSortables();
+    initAllSubtaskQAs();
     bindTaskRowEvents();
     kbIndex = -1;
   });

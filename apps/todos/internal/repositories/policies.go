@@ -54,6 +54,31 @@ func (r *PoliciesRepository) Create(
 	return &p, nil
 }
 
+func (r *PoliciesRepository) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+	text string,
+	reappearAfterHours int,
+) (*models.Policy, error) {
+	var p models.Policy
+	err := r.db.QueryRow(ctx, `
+		UPDATE todos.policies
+		SET text = $3, reappear_after_hours = $4
+		WHERE id = $1 AND owner_user_id = $2
+		RETURNING id, owner_user_id, text, reappear_after_hours, sort_order,
+		          created_at`,
+		id, userID, text, reappearAfterHours,
+	).Scan(
+		&p.ID, &p.OwnerUserID, &p.Text,
+		&p.ReappearAfterHours, &p.SortOrder, &p.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 func (r *PoliciesRepository) Delete(
 	ctx context.Context,
 	id uuid.UUID,
