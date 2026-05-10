@@ -1231,6 +1231,24 @@ details summary::-webkit-details-marker{display:none}
     }
   };
 
+  window.qeOpen = function (taskId) {
+    var row = document.querySelector('.task-row[data-task-id="' + taskId + '"]');
+    if (!row) { return; }
+    var form = document.getElementById('quick-edit-' + taskId);
+    if (!form) { return; }
+    var descStore = row.querySelector('.task-desc-store');
+    var descInput = form.querySelector('.qe-desc-src');
+    if (descStore && descInput) { descInput.value = descStore.value; }
+    form.style.display = '';
+    var titleInput = form.querySelector('input[name="title"]');
+    if (titleInput) { setTimeout(function () { titleInput.focus(); titleInput.select(); }, 0); }
+  };
+
+  window.qeClose = function (taskId) {
+    var form = document.getElementById('quick-edit-' + taskId);
+    if (form) { form.style.display = 'none'; }
+  };
+
   /* ── Global keyboard handler ─────────────────────────────────────────────── */
   document.addEventListener('keydown', function (e) {
     var tag    = e.target.tagName;
@@ -1289,6 +1307,16 @@ details summary::-webkit-details-marker{display:none}
         e.preventDefault();
         var tId = target.dataset.taskId;
         if (tId) { window.subQaToggle(tId); }
+      }
+    }
+
+    if (!inInput && e.key === 'e') {
+      var rows3 = getTaskRows();
+      var target3 = kbIndex >= 0 ? rows3[kbIndex] : hoveredRow;
+      if (target3) {
+        e.preventDefault();
+        var tId3 = target3.dataset.taskId;
+        if (tId3) { window.qeOpen(tId3); }
       }
     }
   });
