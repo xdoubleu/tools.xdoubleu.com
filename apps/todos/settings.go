@@ -205,6 +205,31 @@ func (a *Todos) addPolicyHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (a *Todos) updatePolicyHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentUser(r)
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid policy ID",
+		}
+	}
+	var dto dtos.UpdatePolicyDto
+	if err = httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+	if _, err = a.services.Policies.Update(
+		r.Context(), id, user.ID, dto.Text, dto.ReappearAfterHours,
+	); err != nil {
+		return err
+	}
+	http.Redirect(w, r, "/todos/settings", http.StatusSeeOther)
+	return nil
+}
+
 func (a *Todos) removePolicyHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
 	id, err := uuid.Parse(r.PathValue("id"))
@@ -247,6 +272,27 @@ func (a *Todos) deleteWorkspaceHandler(w http.ResponseWriter, r *http.Request) e
 		}
 	}
 	if err = a.services.Workspaces.Delete(r.Context(), id, user.ID); err != nil {
+		return err
+	}
+	http.Redirect(w, r, "/todos/settings", http.StatusSeeOther)
+	return nil
+}
+
+func (a *Todos) updateHideShortcutHintsHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+	user := currentUser(r)
+	var dto dtos.UpdateHideShortcutHintsDto
+	if err := httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+	if err := a.services.Settings.UpdateHideShortcutHints(
+		r.Context(), user.ID, dto.HideShortcutHints,
+	); err != nil {
 		return err
 	}
 	http.Redirect(w, r, "/todos/settings", http.StatusSeeOther)

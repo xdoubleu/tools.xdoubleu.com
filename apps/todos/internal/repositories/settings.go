@@ -194,17 +194,19 @@ func (r *SettingsRepository) GetUserSettings(
 		UserID:            userID,
 		ActiveWorkspaceID: nil,
 		ActiveWorkspace:   nil,
+		HideShortcutHints: false,
 	}
 	var wsID *uuid.UUID
 	var wsName *string
 	var wsCreatedAt *string
 	err = r.db.QueryRow(ctx, `
-		SELECT us.active_workspace_id, w.name, w.created_at::text
+		SELECT us.active_workspace_id, w.name, w.created_at::text,
+		       us.hide_shortcut_hints
 		FROM todos.user_settings us
 		LEFT JOIN todos.workspaces w ON w.id = us.active_workspace_id
 		WHERE us.user_id = $1`,
 		userID,
-	).Scan(&wsID, &wsName, &wsCreatedAt)
+	).Scan(&wsID, &wsName, &wsCreatedAt, &s.HideShortcutHints)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -218,6 +220,21 @@ func (r *SettingsRepository) GetUserSettings(
 		}
 	}
 	return s, nil
+}
+
+func (r *SettingsRepository) UpdateHideShortcutHints(
+	ctx context.Context,
+	userID string,
+	hide bool,
+) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO todos.user_settings (user_id, hide_shortcut_hints)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id)
+		DO UPDATE SET hide_shortcut_hints = EXCLUDED.hide_shortcut_hints`,
+		userID, hide,
+	)
+	return err
 }
 
 func (r *SettingsRepository) SetActiveWorkspace(

@@ -43,12 +43,16 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 		auth(prefix, a.handle(a.removeSectionHandler)))
 	mux.HandleFunc("POST /"+prefix+"/settings/policies",
 		auth(prefix, a.handle(a.addPolicyHandler)))
+	mux.HandleFunc("POST /"+prefix+"/settings/policies/{id}/edit",
+		auth(prefix, a.handle(a.updatePolicyHandler)))
 	mux.HandleFunc("POST /"+prefix+"/settings/policies/{id}/delete",
 		auth(prefix, a.handle(a.removePolicyHandler)))
 	mux.HandleFunc("POST /"+prefix+"/settings/workspaces",
 		auth(prefix, a.handle(a.addWorkspaceHandler)))
 	mux.HandleFunc("POST /"+prefix+"/settings/workspaces/{id}/delete",
 		auth(prefix, a.handle(a.deleteWorkspaceHandler)))
+	mux.HandleFunc("POST /"+prefix+"/settings/hide-shortcut-hints",
+		auth(prefix, a.handle(a.updateHideShortcutHintsHandler)))
 
 	mux.HandleFunc("POST /"+prefix+"/mode",
 		auth(prefix, a.handle(a.setModeHandler)))
@@ -78,6 +82,8 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks",
 		auth(prefix, a.handle(a.addSubtaskHandler)))
+	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/reorder",
+		auth(prefix, a.handle(a.reorderSubtasksHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/{sid}/toggle",
 		auth(prefix, a.handle(a.toggleSubtaskHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/{sid}/delete",

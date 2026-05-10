@@ -169,7 +169,11 @@ func TestParseFancyURL_NestedBrackets(t *testing.T) {
 		"(https://example.com/task/123)"
 	title, rawURL, rest, ok := parseFancyURL(input)
 	require.True(t, ok)
-	assert.Equal(t, "[TAG1] [Category] Some task title [REF#123] | Project ABC123", title)
+	assert.Equal(
+		t,
+		"[TAG1] [Category] Some task title [REF#123] | Project ABC123",
+		title,
+	)
 	assert.Equal(t, "https://example.com/task/123", rawURL)
 	assert.Equal(t, "", rest)
 }
@@ -204,4 +208,28 @@ func TestShortcutQueryPattern_NoMatch_LowerCase(t *testing.T) {
 
 func TestShortcutQueryPattern_NoMatch_PlainText(t *testing.T) {
 	assert.Nil(t, shortcutQueryPattern.FindStringSubmatch("fix bug"))
+}
+
+// ── subtask input parsing (parseQuickInput reuse) ─────────────────────────────
+
+func TestSubtaskInput_ParsesPriority(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Fix tests p1", nil, now)
+	assert.Equal(t, "Fix tests", title)
+	assert.Equal(t, 1, dto.Priority)
+}
+
+func TestSubtaskInput_ParsesLabelAndDue(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Write docs @docs tomorrow", nil, now)
+	assert.Equal(t, "Write docs", title)
+	assert.Equal(t, "docs", dto.Label)
+	assert.Equal(t, "2026-05-09", dto.DueDate)
+}
+
+func TestSubtaskInput_ParsesDeadline(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Ship feature !today", nil, now)
+	assert.Equal(t, "Ship feature", title)
+	assert.Equal(t, "2026-05-08", dto.Deadline)
 }

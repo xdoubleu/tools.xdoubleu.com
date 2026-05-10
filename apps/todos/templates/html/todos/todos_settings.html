@@ -33,6 +33,25 @@
     {{end}}
   </div>
 
+  {{/* ── Appearance ──────────────────────────────────────────────────────────── */}}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Appearance</div>
+    <div class="card-body">
+      <form method="POST" action="/todos/settings/hide-shortcut-hints">
+        <input type="hidden" name="hide_shortcut_hints" value="false">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox"
+            id="hideShortcutHints" name="hide_shortcut_hints" value="true"
+            {{if and .UserSettings .UserSettings.HideShortcutHints}}checked{{end}}
+            onchange="this.form.submit()">
+          <label class="form-check-label small" for="hideShortcutHints">
+            Hide keyboard shortcut hints
+          </label>
+        </div>
+      </form>
+    </div>
+  </div>
+
   {{/* ── Personal policies ──────────────────────────────────────────────────── */}}
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold">Personal policies</div>
@@ -54,10 +73,40 @@
                   data-hours="{{.ReappearAfterHours}}"></span>
               </div>
             </div>
+            <div class="d-flex gap-1 flex-shrink-0">
+              <button type="button"
+                class="btn btn-outline-secondary btn-sm py-0"
+                data-bs-toggle="collapse"
+                data-bs-target="#edit-policy-{{.ID}}">✎</button>
+              <form method="POST"
+                action="/todos/settings/policies/{{.ID}}/delete">
+                <button type="submit"
+                  class="btn btn-outline-danger btn-sm py-0">×</button>
+              </form>
+            </div>
+          </div>
+          <div class="collapse mt-2" id="edit-policy-{{.ID}}">
             <form method="POST"
-              action="/todos/settings/policies/{{.ID}}/delete"
-              class="flex-shrink-0">
-              <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
+              action="/todos/settings/policies/{{.ID}}/edit">
+              <div class="row g-2 align-items-end">
+                <div class="col-sm-7">
+                  <input type="text" name="text"
+                    class="form-control form-control-sm"
+                    value="{{.Text}}" required>
+                </div>
+                <div class="col-sm-3">
+                  <div class="input-group input-group-sm">
+                    <input type="number" name="reappear_after_hours"
+                      class="form-control"
+                      value="{{.ReappearAfterHours}}" min="0">
+                    <span class="input-group-text">h</span>
+                  </div>
+                </div>
+                <div class="col-sm-2">
+                  <button type="submit"
+                    class="btn btn-dark btn-sm w-100">Save</button>
+                </div>
+              </div>
             </form>
           </div>
         </li>

@@ -41,7 +41,8 @@ type UpdateArchiveDto struct {
 }
 
 type AddSubtaskDto struct {
-	Title string `schema:"title"`
+	Input       string `schema:"input"`
+	Description string `schema:"description"`
 }
 
 type AddSectionDto struct {
@@ -53,6 +54,11 @@ type AddPolicyDto struct {
 	ReappearAfterHours int    `schema:"reappear_after_hours"`
 }
 
+type UpdatePolicyDto struct {
+	Text               string `schema:"text"`
+	ReappearAfterHours int    `schema:"reappear_after_hours"`
+}
+
 type AddWorkspaceDto struct {
 	Name string `schema:"name"`
 }
@@ -60,4 +66,8 @@ type AddWorkspaceDto struct {
 type SetModeDto struct {
 	WorkspaceID string `schema:"workspace_id"`
 	Back        string `schema:"back"`
+}
+
+type UpdateHideShortcutHintsDto struct {
+	HideShortcutHints bool `schema:"hide_shortcut_hints"`
 }

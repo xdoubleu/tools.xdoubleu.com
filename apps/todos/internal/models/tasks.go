@@ -45,20 +45,26 @@ type Task struct {
 }
 
 type Subtask struct {
-	ID        uuid.UUID
-	TaskID    uuid.UUID
-	Title     string
-	Done      bool
-	SortOrder int
-	CreatedAt time.Time
+	ID          uuid.UUID
+	TaskID      uuid.UUID
+	Title       string
+	Description string
+	Done        bool
+	SortOrder   int
+	Priority    int
+	Label       string
+	DueDate     *time.Time
+	Deadline    *time.Time
+	CreatedAt   time.Time
 }
 
 type TaskLink struct {
-	ID        uuid.UUID
-	TaskID    uuid.UUID
-	URL       string
-	Label     string
-	SortOrder int
+	ID            uuid.UUID
+	TaskID        uuid.UUID
+	URL           string
+	Label         string
+	SortOrder     int
+	ShortcutBadge string
 }
 
 type Section struct {
@@ -111,4 +117,5 @@ type UserSettings struct {
 	UserID            string
 	ActiveWorkspaceID *uuid.UUID
 	ActiveWorkspace   *Workspace
+	HideShortcutHints bool
 }
