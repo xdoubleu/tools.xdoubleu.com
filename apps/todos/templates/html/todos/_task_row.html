@@ -38,7 +38,7 @@
 
     {{/* ── Main content (click body → inline quick-edit) ────────────────── */}}
     <div class="flex-grow-1 min-w-0 task-body"
-      onclick="if(!event.target.closest('a,button,form,details,input,summary,textarea'))taskQeOpen('{{$task.ID}}')">
+      onclick="if(!event.target.closest('a,button,form,details,input,summary,textarea'))window.location.href='/todos/{{$task.ID}}/edit'">
 
       <div class="mb-1">
         {{if hasMdLink $task.Title}}
@@ -90,27 +90,6 @@
 
     {{/* ── Hover-only action buttons ────────────────────────────────────── */}}
     <div class="d-flex gap-1 flex-shrink-0 align-items-center task-actions">
-      {{if $sections}}
-      <select name="section_id"
-        class="form-select form-select-sm"
-        style="width:auto;max-width:9rem"
-        hx-post="/todos/{{$task.ID}}/section?current={{if $section}}{{$section.ID}}{{end}}"
-        hx-target="#taskListContainer"
-        hx-swap="innerHTML"
-        title="Move to section">
-        <option value="">No section</option>
-        {{range $sections}}
-        <option value="{{.ID}}"
-          {{if and $task.SectionID (eq (print $task.SectionID) (print .ID))}}selected{{end}}>
-          {{.Name}}
-        </option>
-        {{end}}
-      </select>
-      {{end}}
-      <a href="/todos/{{$task.ID}}/edit"
-        class="btn btn-outline-secondary btn-sm"
-        title="Open full editor"
-        onclick="event.stopPropagation()">&#9998;</a>
       <button type="button" class="btn btn-outline-secondary btn-sm"
         onclick="subQaToggle('{{$task.ID}}')"
         title="Add subtask (s)">+</button>
@@ -211,7 +190,7 @@
       </select>
       <input type="text" name="label"
         class="form-control form-control-sm"
-        value="{{$task.Label}}" placeholder="Label…"
+        value="{{joinStrings $task.Labels ","}}" placeholder="Label…"
         style="width:90px;flex-shrink:0">
       <input type="text" name="due_date"
         class="form-control form-control-sm"
