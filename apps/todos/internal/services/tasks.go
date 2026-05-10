@@ -917,10 +917,9 @@ func (s *TaskService) enrichWithShortcuts(
 		return tasks
 	}
 	for i := range tasks {
-		for j := range tasks[i].Links {
-			tasks[i].Links[j].ShortcutBadge = resolveShortcutBadge(
-				tasks[i].Links[j].URL, patterns,
-			)
+		links := tasks[i].Links
+		for j, link := range links {
+			links[j].ShortcutBadge = resolveShortcutBadge(link.URL, patterns)
 		}
 	}
 	return tasks
