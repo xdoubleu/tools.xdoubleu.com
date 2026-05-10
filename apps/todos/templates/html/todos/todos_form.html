@@ -4,7 +4,7 @@
 
 {{if .IsEdit}}
 
-<form method="POST" action="{{.Action}}">
+<form id="task-edit-form" method="POST" action="{{.Action}}">
   {{/* ── Title + status bar ─────────────────────────────────────────────── */}}
   <div class="d-flex align-items-start gap-3 mb-3">
     <a href="/todos/"
@@ -100,17 +100,18 @@
   </div>
   <button type="button" class="btn btn-outline-secondary btn-sm mb-3"
     id="addLink">+ Add link</button>
+</form>
 
-  {{/* ── Subtasks ───────────────────────────────────────────────────────── */}}
-  <hr>
-  <div class="d-flex align-items-center gap-2 mb-2">
-    <h6 class="fw-semibold mb-0">Subtasks</h6>
-    {{if gt .Task.SubtaskTotal 0}}
-    <span class="text-muted small">
-      {{.Task.SubtaskDone}}/{{.Task.SubtaskTotal}} done
-    </span>
-    {{end}}
-  </div>
+{{/* ── Subtasks ───────────────────────────────────────────────────────── */}}
+<hr>
+<div class="d-flex align-items-center gap-2 mb-2">
+  <h6 class="fw-semibold mb-0">Subtasks</h6>
+  {{if gt .Task.SubtaskTotal 0}}
+  <span class="text-muted small">
+    {{.Task.SubtaskDone}}/{{.Task.SubtaskTotal}} done
+  </span>
+  {{end}}
+</div>
   <div class="list-group mb-2">
     {{range .Task.Subtasks}}
     {{$sid := .ID}}
@@ -212,33 +213,32 @@
       placeholder="Description (optional)" autocomplete="off">
   </form>
 
-  {{/* ── Bottom actions ───────────────────────────────────────────────────── */}}
-  <hr>
-  <div class="d-flex flex-wrap gap-2 align-items-center">
-    <button type="submit" class="btn btn-dark btn-sm">Save</button>
-    <a href="/todos/" class="btn btn-outline-secondary btn-sm">Cancel</a>
-    {{if eq .Task.Status "open"}}
-    <form method="POST" action="/todos/{{.Task.ID}}/complete" class="m-0">
-      <button type="submit" class="btn btn-success btn-sm">
-        &#10003; Mark done
-      </button>
-    </form>
-    {{else if eq .Task.Status "done"}}
-    <form method="POST" action="/todos/{{.Task.ID}}/reopen" class="m-0">
-      <button type="submit" class="btn btn-outline-secondary btn-sm">
-        &#8629; Reopen
-      </button>
-    </form>
-    {{end}}
-    <form method="POST" action="/todos/{{.Task.ID}}/delete"
-      onsubmit="return confirm('Delete this task?')"
-      class="m-0 ms-auto">
-      <button type="submit" class="btn btn-outline-danger btn-sm">
-        Delete
-      </button>
-    </form>
-  </div>
-</form>
+{{/* ── Bottom actions ───────────────────────────────────────────────────── */}}
+<hr>
+<div class="d-flex flex-wrap gap-2 align-items-center">
+  <button type="submit" form="task-edit-form" class="btn btn-dark btn-sm">Save</button>
+  <a href="/todos/" class="btn btn-outline-secondary btn-sm">Cancel</a>
+  {{if eq .Task.Status "open"}}
+  <form method="POST" action="/todos/{{.Task.ID}}/complete" class="m-0">
+    <button type="submit" class="btn btn-success btn-sm">
+      &#10003; Mark done
+    </button>
+  </form>
+  {{else if eq .Task.Status "done"}}
+  <form method="POST" action="/todos/{{.Task.ID}}/reopen" class="m-0">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">
+      &#8629; Reopen
+    </button>
+  </form>
+  {{end}}
+  <form method="POST" action="/todos/{{.Task.ID}}/delete"
+    onsubmit="return confirm('Delete this task?')"
+    class="m-0 ms-auto">
+    <button type="submit" class="btn btn-outline-danger btn-sm">
+      Delete
+    </button>
+  </form>
+</div>
 
 {{else}}
 

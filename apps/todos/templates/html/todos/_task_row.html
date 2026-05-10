@@ -84,6 +84,9 @@
       <button type="button" class="btn btn-outline-secondary btn-sm"
         onclick="subQaToggle('{{$task.ID}}')"
         title="Add subtask (s)">+</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm"
+        onclick="qeOpen('{{$task.ID}}')"
+        title="Quick edit (e)">&#9998;</button>
       <form method="POST"
         action="/todos/{{$task.ID}}/delete?back={{$back}}"
         hx-post="/todos/{{$task.ID}}/delete"
@@ -96,6 +99,52 @@
     </div>
 
   </div>
+
+  <form id="quick-edit-{{$task.ID}}"
+    method="POST"
+    action="/todos/{{$task.ID}}/edit?back={{$back}}"
+    class="mt-2 quick-edit-form"
+    style="display:none">
+    <input type="hidden" name="description" class="qe-desc-src">
+    <input type="hidden" name="section_id"
+      value="{{if $task.SectionID}}{{$task.SectionID}}{{end}}">
+    {{range $task.Links}}
+    <input type="hidden" name="link_url" value="{{.URL}}">
+    <input type="hidden" name="link_label" value="{{.Label}}">
+    {{end}}
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <input type="text" name="title"
+        class="form-control form-control-sm"
+        value="{{$task.Title}}" required placeholder="Title"
+        style="min-width:150px;flex:1 1 150px">
+      <select name="priority" class="form-select form-select-sm"
+        style="width:auto;flex-shrink:0">
+        <option value="0" {{if eq $task.Priority 0}}selected{{end}}>— P</option>
+        <option value="1" {{if eq $task.Priority 1}}selected{{end}}>P1</option>
+        <option value="2" {{if eq $task.Priority 2}}selected{{end}}>P2</option>
+        <option value="3" {{if eq $task.Priority 3}}selected{{end}}>P3</option>
+      </select>
+      <input type="text" name="label"
+        class="form-control form-control-sm"
+        value="{{$task.Label}}" placeholder="Label…"
+        style="width:90px;flex-shrink:0">
+      <input type="text" name="due_date"
+        class="form-control form-control-sm"
+        value="{{if $task.RecurRule}}{{recurInput $task.RecurRule}}{{else if gt $task.RecurDays 0}}every {{$task.RecurDays}} days{{else if $task.DueDate}}{{$task.DueDate.Format "2006-01-02"}}{{end}}"
+        placeholder="Due…"
+        style="width:90px;flex-shrink:0">
+      <input type="text" name="deadline"
+        class="form-control form-control-sm"
+        value="{{if $task.Deadline}}{{$task.Deadline.Format "2006-01-02"}}{{end}}"
+        placeholder="Deadline…"
+        style="width:90px;flex-shrink:0">
+      <div class="d-flex gap-1 flex-shrink-0">
+        <button type="submit" class="btn btn-dark btn-sm">Save</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+          onclick="qeClose('{{$task.ID}}')">Cancel</button>
+      </div>
+    </div>
+  </form>
 
   {{/* ── Subtask section (indented, below main row) ───────────────────── */}}
   <div class="ms-4{{if $task.Subtasks}} mt-2{{end}} subtask-section"
