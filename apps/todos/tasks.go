@@ -18,25 +18,25 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-func safeBackRedirect(back string, fallback string) string {
+func safeBackRedirect(back string) string {
 	if back == "" {
-		return fallback
+		return todosRoot
 	}
 
 	normalized := strings.ReplaceAll(back, "\\", "/")
 	target, err := url.Parse(normalized)
 	if err != nil {
-		return fallback
+		return todosRoot
 	}
 
 	// Allow only local redirects (no host/scheme).
 	if target.Hostname() != "" || target.IsAbs() {
-		return fallback
+		return todosRoot
 	}
 
 	// Require an absolute local path for predictable behavior.
 	if !strings.HasPrefix(target.Path, "/") {
-		return fallback
+		return todosRoot
 	}
 
 	return target.String()
@@ -682,7 +682,7 @@ func (a *Todos) deleteTaskHandler(w http.ResponseWriter, r *http.Request) error 
 		w.WriteHeader(http.StatusOK)
 		return nil
 	}
-	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
+	back := safeBackRedirect(r.URL.Query().Get("back"))
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -724,7 +724,46 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 		})
 		return nil
 	}
-	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
+	back := safeBackRedirect(r.URL.Query().Get("back"))
+	http.Redirect(w, r, back, http.StatusSeeOther)
+	return nil
+}
+
+func (a *Todos) updateSubtaskHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentUser(r)
+	taskID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Task not found",
+		}
+	}
+	sid, err := uuid.Parse(r.PathValue("sid"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Subtask not found",
+		}
+	}
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
+	var dto dtos.UpdateSubtaskDto
+	if err = httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+	_, err = a.services.Tasks.UpdateSubtask(
+		r.Context(), sid, taskID, user.ID,
+		wsCtx.Settings.ActiveWorkspaceID, dto,
+	)
+	if err != nil {
+		return err
+	}
+	back := safeBackRedirect(r.URL.Query().Get("back"))
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }
@@ -792,7 +831,7 @@ func (a *Todos) handleSubtaskAction(
 		w.WriteHeader(http.StatusOK)
 		return nil
 	}
-	back := safeBackRedirect(r.URL.Query().Get("back"), todosRoot)
+	back := safeBackRedirect(r.URL.Query().Get("back"))
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }

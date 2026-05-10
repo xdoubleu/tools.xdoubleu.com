@@ -82,6 +82,8 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks",
 		auth(prefix, a.handle(a.addSubtaskHandler)))
+	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/{sid}/edit",
+		auth(prefix, a.handle(a.updateSubtaskHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/reorder",
 		auth(prefix, a.handle(a.reorderSubtasksHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/{sid}/toggle",

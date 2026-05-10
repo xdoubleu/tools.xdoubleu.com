@@ -45,6 +45,15 @@ type AddSubtaskDto struct {
 	Description string `schema:"description"`
 }
 
+type UpdateSubtaskDto struct {
+	Title       string `schema:"title"`
+	Description string `schema:"description"`
+	Priority    int    `schema:"priority"`
+	Label       string `schema:"label"`
+	DueDate     string `schema:"due_date"`
+	Deadline    string `schema:"deadline"`
+}
+
 type AddSectionDto struct {
 	Name string `schema:"name"`
 }
