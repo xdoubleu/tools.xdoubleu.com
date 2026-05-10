@@ -101,6 +101,117 @@
   <button type="button" class="btn btn-outline-secondary btn-sm mb-3"
     id="addLink">+ Add link</button>
 
+  {{/* ── Subtasks ───────────────────────────────────────────────────────── */}}
+  <hr>
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <h6 class="fw-semibold mb-0">Subtasks</h6>
+    {{if gt .Task.SubtaskTotal 0}}
+    <span class="text-muted small">
+      {{.Task.SubtaskDone}}/{{.Task.SubtaskTotal}} done
+    </span>
+    {{end}}
+  </div>
+  <div class="list-group mb-2">
+    {{range .Task.Subtasks}}
+    {{$sid := .ID}}
+    <div class="list-group-item px-2 py-2" id="subtask-edit-row-{{$sid}}">
+      <div class="subtask-view d-flex align-items-start gap-2">
+        <form method="POST"
+          action="/todos/{{$.Task.ID}}/subtasks/{{$sid}}/toggle?back=/todos/{{$.Task.ID}}/edit"
+          class="m-0 pt-1 flex-shrink-0">
+          <button type="submit" class="btn btn-sm p-0 border-0 lh-1"
+            style="font-size:1.1rem;color:{{if .Done}}var(--bs-success){{else}}var(--bs-secondary){{end}}">
+            {{if .Done}}&#9745;{{else}}&#9744;{{end}}
+          </button>
+        </form>
+        <div class="flex-grow-1 min-w-0">
+          <div class="small fw-semibold{{if .Done}} text-muted text-decoration-line-through{{end}}">
+            {{.Title}}
+          </div>
+          {{if .Description}}
+          <div class="small text-muted">{{.Description}}</div>
+          {{end}}
+          {{if or .Label .DueDate .Deadline}}
+          <div class="d-flex flex-wrap gap-1 mt-1">
+            {{if .Label}}
+            <span class="badge bg-secondary" style="font-size:.65rem">{{.Label}}</span>
+            {{end}}
+            {{if .DueDate}}
+            <span class="badge {{if isOverdue .DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}"
+              style="font-size:.65rem">{{humanDate .DueDate}}</span>
+            {{end}}
+            {{if .Deadline}}
+            <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle"
+              style="font-size:.65rem">⚑&nbsp;{{humanDate .Deadline}}</span>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+        <div class="d-flex gap-1 flex-shrink-0">
+          <button type="button" class="btn btn-outline-secondary btn-sm"
+            title="Edit" onclick="toggleSubEdit('{{$sid}}')">&#9998;</button>
+          <form method="POST"
+            action="/todos/{{$.Task.ID}}/subtasks/{{$sid}}/delete?back=/todos/{{$.Task.ID}}/edit"
+            onsubmit="return confirm('Delete subtask?')" class="m-0">
+            <button type="submit" class="btn btn-outline-danger btn-sm">&#10005;</button>
+          </form>
+        </div>
+      </div>
+      <div class="subtask-edit mt-2" style="display:none">
+        <form method="POST"
+          action="/todos/{{$.Task.ID}}/subtasks/{{$sid}}/edit?back=/todos/{{$.Task.ID}}/edit">
+          <div class="d-flex gap-2 mb-2">
+            <input type="text" name="title" value="{{.Title}}"
+              class="form-control form-control-sm flex-grow-1"
+              placeholder="Title" required>
+            <select name="priority" class="form-select form-select-sm"
+              style="max-width:80px">
+              <option value="0" {{if eq .Priority 0}}selected{{end}}>—</option>
+              <option value="1" {{if eq .Priority 1}}selected{{end}}>P1</option>
+              <option value="2" {{if eq .Priority 2}}selected{{end}}>P2</option>
+              <option value="3" {{if eq .Priority 3}}selected{{end}}>P3</option>
+            </select>
+          </div>
+          <input type="text" name="description" value="{{.Description}}"
+            class="form-control form-control-sm mb-2"
+            placeholder="Description (optional)">
+          <div class="d-flex gap-2 mb-2">
+            <input type="text" name="label" value="{{.Label}}"
+              class="form-control form-control-sm" placeholder="Label…">
+            <input type="text" name="due_date"
+              value="{{if .DueDate}}{{.DueDate.Format "2006-01-02"}}{{end}}"
+              class="form-control form-control-sm" placeholder="Due date…">
+            <input type="text" name="deadline"
+              value="{{if .Deadline}}{{.Deadline.Format "2006-01-02"}}{{end}}"
+              class="form-control form-control-sm" placeholder="Deadline…">
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-dark btn-sm">Save</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+              onclick="toggleSubEdit('{{$sid}}')">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  <form method="POST"
+    action="/todos/{{.Task.ID}}/subtasks?back=/todos/{{.Task.ID}}/edit"
+    class="mb-3">
+    <div class="d-flex gap-2 mb-1">
+      <input type="text" name="input"
+        class="form-control form-control-sm"
+        placeholder="Add subtask… (p1 @label today !deadline)"
+        autocomplete="off">
+      <button type="submit" class="btn btn-outline-secondary btn-sm flex-shrink-0">
+        Add
+      </button>
+    </div>
+    <input type="text" name="description"
+      class="form-control form-control-sm"
+      placeholder="Description (optional)" autocomplete="off">
+  </form>
+
   {{/* ── Bottom actions ───────────────────────────────────────────────────── */}}
   <hr>
   <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -433,6 +544,21 @@
       descViewWrap.style.display  = '';
     };
   }
+
+  /* ── Subtask inline edit toggle ─────────────────────────────────────── */
+  window.toggleSubEdit = function (sid) {
+    var row  = document.getElementById('subtask-edit-row-' + sid);
+    if (!row) { return; }
+    var view = row.querySelector('.subtask-view');
+    var edit = row.querySelector('.subtask-edit');
+    var editing = edit.style.display !== 'none';
+    view.style.display = editing ? '' : 'none';
+    edit.style.display = editing ? 'none' : '';
+    if (!editing) {
+      var input = edit.querySelector('input[name="title"]');
+      if (input) { input.focus(); }
+    }
+  };
 
   /* ── Add link row ────────────────────────────────────────────────────── */
   var addLinkBtn = document.getElementById('addLink');

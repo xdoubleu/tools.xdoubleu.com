@@ -407,6 +407,42 @@ func (r *TasksRepository) AddSubtask(
 	return &s, nil
 }
 
+func (r *TasksRepository) UpdateSubtask(
+	ctx context.Context,
+	id uuid.UUID,
+	taskID uuid.UUID,
+	userID string,
+	title string,
+	description string,
+	priority int,
+	label string,
+	dueDate *time.Time,
+	deadline *time.Time,
+) (*models.Subtask, error) {
+	var s models.Subtask
+	err := r.db.QueryRow(ctx, `
+		UPDATE todos.subtasks
+		SET title = $1, description = $2, priority = $3,
+		    label = $4, due_date = $5, deadline = $6
+		WHERE id = $7 AND task_id = $8
+		  AND EXISTS (
+		      SELECT 1 FROM todos.tasks
+		      WHERE id = $8 AND owner_user_id = $9
+		  )
+		RETURNING id, task_id, title, description, done, sort_order,
+		          priority, label, due_date, deadline, created_at`,
+		title, description, priority, label, dueDate, deadline,
+		id, taskID, userID,
+	).Scan(
+		&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
+		&s.Priority, &s.Label, &s.DueDate, &s.Deadline, &s.CreatedAt,
+	)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return &s, nil
+}
+
 func (r *TasksRepository) ToggleSubtask(
 	ctx context.Context,
 	id uuid.UUID,

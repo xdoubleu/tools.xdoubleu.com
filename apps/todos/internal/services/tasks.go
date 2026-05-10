@@ -299,6 +299,34 @@ func (s *TaskService) AddSubtask(
 	)
 }
 
+func (s *TaskService) UpdateSubtask(
+	ctx context.Context,
+	id uuid.UUID,
+	taskID uuid.UUID,
+	userID string,
+	workspaceID *uuid.UUID,
+	dto dtos.UpdateSubtaskDto,
+) (*models.Subtask, error) {
+	if strings.TrimSpace(dto.Title) == "" {
+		return nil, &HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Subtask title cannot be empty",
+		}
+	}
+	label := dto.Label
+	if label != "" {
+		label = s.normalizeAndAddLabel(ctx, userID, workspaceID, label)
+	}
+	return s.tasks.UpdateSubtask(
+		ctx, id, taskID, userID,
+		strings.TrimSpace(dto.Title),
+		strings.TrimSpace(dto.Description),
+		dto.Priority, label,
+		parseDatePtr(dto.DueDate),
+		parseDatePtr(dto.Deadline),
+	)
+}
+
 func (s *TaskService) ReorderSubtasks(
 	ctx context.Context,
 	taskID uuid.UUID,
