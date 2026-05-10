@@ -3,7 +3,7 @@
 {{else}}
 <div class="list-group mb-3" id="taskSortable">
   {{range .Tasks}}
-  {{template "_task_row" (dict "Task" . "CurrentSection" $.CurrentSection)}}
+  {{template "_task_row" (dict "Task" . "CurrentSection" $.CurrentSection "LabelColors" $.LabelColors "Sections" $.Sections)}}
   {{end}}
 </div>
 {{end}}

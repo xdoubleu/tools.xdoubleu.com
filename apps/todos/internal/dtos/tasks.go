@@ -20,6 +20,10 @@ type SaveTaskDto struct {
 	LinkLabels  []string `schema:"link_label"`
 }
 
+type MoveSectionDto struct {
+	SectionID string `schema:"section_id"`
+}
+
 type ReorderDto struct {
 	IDs []string `json:"ids"`
 }
@@ -27,6 +31,10 @@ type ReorderDto struct {
 type AddLabelPresetDto struct {
 	Category string `schema:"category"`
 	Value    string `schema:"value"`
+}
+
+type UpdateLabelColorDto struct {
+	Color string `schema:"color"`
 }
 
 type AddURLPatternDto struct {

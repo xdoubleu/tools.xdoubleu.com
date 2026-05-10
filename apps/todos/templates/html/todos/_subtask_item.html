@@ -31,10 +31,10 @@
       {{if $sub.Description}}
       <div class="text-muted" style="font-size:.78rem">{{$sub.Description}}</div>
       {{end}}
-      {{if or $sub.Label $sub.DueDate $sub.Deadline}}
+      {{if or $sub.Labels $sub.DueDate $sub.Deadline}}
       <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
-        {{if $sub.Label}}
-        <span class="badge bg-secondary" style="font-size:.65rem">{{$sub.Label}}</span>
+        {{range $sub.Labels}}
+        <span class="badge bg-secondary" style="font-size:.65rem">{{.}}</span>
         {{end}}
         {{if $sub.DueDate}}
         <span class="badge {{if isOverdue $sub.DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}"

@@ -191,6 +191,7 @@ func LoadShared(cfg config.Config) *template.Template {
 			}
 			return strings.TrimSpace(s)
 		},
+		"joinStrings":      strings.Join,
 		"hasMdLink":        func(s string) bool { return mdLinkRE.MatchString(s) },
 		"renderTitleLinks": renderTitleLinks,
 		"dict": func(keysAndValues ...any) (map[string]any, error) {

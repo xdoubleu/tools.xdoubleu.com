@@ -116,6 +116,80 @@ func TestQuickAdd_PlainTitle(t *testing.T) {
 	assert.Equal(t, "Buy milk", title)
 }
 
+func TestQuickAdd_UsesHiddenSectionID(t *testing.T) {
+	var sectionID string
+	err := testDB.QueryRow(t.Context(), `
+		INSERT INTO todos.sections (owner_user_id, name)
+		VALUES ($1, 'Quick Section') RETURNING id::text`, userID,
+	).Scan(&sectionID)
+	require.NoError(t, err)
+
+	tReq := test.CreateRequestTester(getRoutes(), http.MethodPost, "/todos/")
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetFollowRedirect(false)
+	tReq.SetData(dtos.QuickAddDto{
+		Input:       "Task in section",
+		Description: "",
+		SectionID:   sectionID,
+	})
+	rs := tReq.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	var gotSectionID *string
+	err = testDB.QueryRow(t.Context(), `
+		SELECT section_id::text FROM todos.tasks
+		WHERE owner_user_id = $1 AND title = 'Task in section'
+		LIMIT 1`, userID,
+	).Scan(&gotSectionID)
+	require.NoError(t, err)
+	require.NotNil(t, gotSectionID)
+	assert.Equal(t, sectionID, *gotSectionID)
+}
+
+func TestMoveTaskSection(t *testing.T) {
+	id := createTask(t, "Task to move")
+
+	var sectionID string
+	err := testDB.QueryRow(t.Context(), `
+		INSERT INTO todos.sections (owner_user_id, name)
+		VALUES ($1, 'Move Target') RETURNING id::text`, userID,
+	).Scan(&sectionID)
+	require.NoError(t, err)
+
+	move := test.CreateRequestTester(
+		getRoutes(), http.MethodPost, "/todos/"+id+"/section",
+	)
+	move.SetContentType(test.FormContentType)
+	move.SetFollowRedirect(false)
+	move.SetData(dtos.MoveSectionDto{SectionID: sectionID})
+	rs := move.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	var gotSectionID *string
+	err = testDB.QueryRow(t.Context(),
+		`SELECT section_id::text FROM todos.tasks WHERE id = $1`, id,
+	).Scan(&gotSectionID)
+	require.NoError(t, err)
+	require.NotNil(t, gotSectionID)
+	assert.Equal(t, sectionID, *gotSectionID)
+
+	// Move back to no section.
+	clearMove := test.CreateRequestTester(
+		getRoutes(), http.MethodPost, "/todos/"+id+"/section",
+	)
+	clearMove.SetContentType(test.FormContentType)
+	clearMove.SetFollowRedirect(false)
+	clearMove.SetData(dtos.MoveSectionDto{SectionID: ""})
+	rs = clearMove.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	err = testDB.QueryRow(t.Context(),
+		`SELECT section_id::text FROM todos.tasks WHERE id = $1`, id,
+	).Scan(&gotSectionID)
+	require.NoError(t, err)
+	assert.Nil(t, gotSectionID)
+}
+
 func TestEditTask(t *testing.T) {
 	id := createTask(t, "Task to edit")
 
@@ -141,6 +215,53 @@ func TestEditTask(t *testing.T) {
 	).Scan(&title)
 	require.NoError(t, err)
 	assert.Equal(t, "Updated title", title)
+}
+
+func TestQuickUpdate_ChangesTitle(t *testing.T) {
+	id := createTask(t, "Original title")
+
+	tReq := test.CreateRequestTester(
+		getRoutes(), http.MethodPost, "/todos/"+id+"/quick-update",
+	)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetFollowRedirect(false)
+	tReq.SetData(
+		dtos.QuickAddDto{Input: "Updated title p2", Description: "", SectionID: ""},
+	)
+	rs := tReq.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	var title string
+	var priority int
+	err := testDB.QueryRow(t.Context(),
+		`SELECT title, priority FROM todos.tasks WHERE id = $1`, id,
+	).Scan(&title, &priority)
+	require.NoError(t, err)
+	assert.Equal(t, "Updated title", title)
+	assert.Equal(t, 2, priority)
+}
+
+func TestQuickUpdate_ISODueDate(t *testing.T) {
+	id := createTask(t, "Task with date")
+
+	tReq := test.CreateRequestTester(
+		getRoutes(), http.MethodPost, "/todos/"+id+"/quick-update",
+	)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetFollowRedirect(false)
+	tReq.SetData(dtos.QuickAddDto{
+		Input: "Task with date 2026-06-01", Description: "", SectionID: "",
+	})
+	rs := tReq.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	var due *string
+	err := testDB.QueryRow(t.Context(),
+		`SELECT due_date::text FROM todos.tasks WHERE id = $1`, id,
+	).Scan(&due)
+	require.NoError(t, err)
+	require.NotNil(t, due)
+	assert.Equal(t, "2026-06-01", *due)
 }
 
 func TestSettings(t *testing.T) {

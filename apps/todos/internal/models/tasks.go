@@ -24,7 +24,7 @@ type Task struct {
 	OwnerUserID  string
 	Title        string
 	Description  string
-	Label        string
+	Labels       []string
 	Status       string
 	Priority     int
 	SortOrder    int
@@ -52,7 +52,7 @@ type Subtask struct {
 	Done        bool
 	SortOrder   int
 	Priority    int
-	Label       string
+	Labels      []string
 	DueDate     *time.Time
 	Deadline    *time.Time
 	CreatedAt   time.Time
@@ -76,8 +76,29 @@ type Section struct {
 	WorkspaceID *uuid.UUID
 }
 
+type LabelPreset struct {
+	Value string
+	Color string
+}
+
 type LabelPresets struct {
-	Labels []string
+	Labels []LabelPreset
+}
+
+func (lp *LabelPresets) ColorMap() map[string]string {
+	m := make(map[string]string, len(lp.Labels))
+	for _, l := range lp.Labels {
+		m[l.Value] = l.Color
+	}
+	return m
+}
+
+func (lp *LabelPresets) Values() []string {
+	vs := make([]string, len(lp.Labels))
+	for i, l := range lp.Labels {
+		vs[i] = l.Value
+	}
+	return vs
 }
 
 type URLPattern struct {

@@ -79,7 +79,15 @@
       <div class="min-w-0 flex-grow-1">
         <div class="fw-semibold text-truncate">{{.Title}}</div>
         <div class="d-flex flex-wrap gap-1 mt-1">
-          {{if .Label}}<span class="badge bg-secondary">{{.Label}}</span>{{end}}
+          {{$lc := $.LabelColors}}
+          {{range .Labels}}
+          {{$color := index $lc .}}
+          {{if $color}}
+          <span class="badge" style="background-color:{{$color}}">{{.}}</span>
+          {{else}}
+          <span class="badge bg-secondary">{{.}}</span>
+          {{end}}
+          {{end}}
           {{if .DueDate}}<span class="badge bg-warning text-dark">{{.DueDate.Format "2 Jan"}}</span>{{end}}
         </div>
       </div>
@@ -102,7 +110,15 @@
           {{.Title}}
         </div>
         <div class="d-flex flex-wrap gap-1 mt-1">
-          {{if .TypeLabel}}<span class="badge bg-secondary">{{.TypeLabel}}</span>{{end}}
+          {{$lc := $.LabelColors}}
+          {{range .Labels}}
+          {{$color := index $lc .}}
+          {{if $color}}
+          <span class="badge" style="background-color:{{$color}}">{{.}}</span>
+          {{else}}
+          <span class="badge bg-secondary">{{.}}</span>
+          {{end}}
+          {{end}}
           {{if .CompletedAt}}<span class="badge bg-light text-muted border">
             done {{.CompletedAt.Format "2 Jan"}}</span>{{end}}
         </div>
@@ -124,7 +140,15 @@
       <div class="min-w-0 flex-grow-1">
         <div class="fw-semibold text-truncate text-muted">{{.Title}}</div>
         <div class="d-flex flex-wrap gap-1 mt-1">
-          {{if .TypeLabel}}<span class="badge bg-secondary">{{.TypeLabel}}</span>{{end}}
+          {{$lc := $.LabelColors}}
+          {{range .Labels}}
+          {{$color := index $lc .}}
+          {{if $color}}
+          <span class="badge" style="background-color:{{$color}}">{{.}}</span>
+          {{else}}
+          <span class="badge bg-secondary">{{.}}</span>
+          {{end}}
+          {{end}}
           {{if .ArchivedAt}}<span class="badge bg-light text-muted border">
             archived {{.ArchivedAt.Format "2 Jan 2006"}}</span>{{end}}
         </div>

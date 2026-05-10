@@ -51,6 +51,14 @@ func (s *TaskService) ListOpen(
 	return s.enrichWithShortcuts(ctx, userID, workspaceID, tasks), nil
 }
 
+func (s *TaskService) CountOpenPerSection(
+	ctx context.Context,
+	userID string,
+	workspaceID *uuid.UUID,
+) (map[string]int, error) {
+	return s.tasks.CountOpenPerSection(ctx, userID, workspaceID)
+}
+
 func (s *TaskService) List(
 	ctx context.Context,
 	userID string,
@@ -125,16 +133,19 @@ func (s *TaskService) Create(
 		return nil, err
 	}
 
-	if dto.Label != "" {
-		dto.Label = s.normalizeAndAddLabel(ctx, userID, workspaceID, dto.Label)
-	}
+	labels := s.normalizeAndAddLabels(
+		ctx,
+		userID,
+		workspaceID,
+		parseLabelsInput(dto.Label),
+	)
 
 	//nolint:exhaustruct // ID, Status, timestamps set by DB
 	t := models.Task{
 		OwnerUserID: userID,
 		Title:       dto.Title,
 		Description: dto.Description,
-		Label:       dto.Label,
+		Labels:      labels,
 		Priority:    dto.Priority,
 		RecurDays:   recurDays,
 		RecurRule:   recurRule,
@@ -166,9 +177,12 @@ func (s *TaskService) Update(
 		return err
 	}
 
-	if dto.Label != "" {
-		dto.Label = s.normalizeAndAddLabel(ctx, userID, workspaceID, dto.Label)
-	}
+	labels := s.normalizeAndAddLabels(
+		ctx,
+		userID,
+		workspaceID,
+		parseLabelsInput(dto.Label),
+	)
 
 	existing, err := s.tasks.GetByID(ctx, id, userID)
 	if err != nil {
@@ -176,7 +190,7 @@ func (s *TaskService) Update(
 	}
 	existing.Title = dto.Title
 	existing.Description = dto.Description
-	existing.Label = dto.Label
+	existing.Labels = labels
 	existing.Priority = dto.Priority
 	existing.RecurDays = recurDays
 	existing.RecurRule = recurRule
@@ -195,6 +209,15 @@ func (s *TaskService) Delete(
 	userID string,
 ) error {
 	return s.tasks.Delete(ctx, id, userID)
+}
+
+func (s *TaskService) MoveSection(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+	sectionID *uuid.UUID,
+) error {
+	return s.tasks.MoveSection(ctx, id, userID, sectionID)
 }
 
 func (s *TaskService) Complete(
@@ -224,7 +247,7 @@ func (s *TaskService) Complete(
 		OwnerUserID: task.OwnerUserID,
 		Title:       task.Title,
 		Description: task.Description,
-		Label:       task.Label,
+		Labels:      task.Labels,
 		Priority:    task.Priority,
 		RecurDays:   recurDays,
 		RecurRule:   task.RecurRule,
@@ -286,9 +309,14 @@ func (s *TaskService) AddSubtask(
 	if strings.TrimSpace(title) == "" {
 		title = strings.TrimSpace(input)
 	}
-	label := dto.Label
-	if label != "" {
-		label = s.normalizeAndAddLabel(ctx, userID, workspaceID, label)
+	label := ""
+	if dto.Label != "" {
+		normalized := s.normalizeAndAddLabels(
+			ctx, userID, workspaceID, parseLabelsInput(dto.Label),
+		)
+		if len(normalized) > 0 {
+			label = normalized[0]
+		}
 	}
 	return s.tasks.AddSubtask(
 		ctx, taskID, userID,
@@ -313,9 +341,14 @@ func (s *TaskService) UpdateSubtask(
 			Message: "Subtask title cannot be empty",
 		}
 	}
-	label := dto.Label
-	if label != "" {
-		label = s.normalizeAndAddLabel(ctx, userID, workspaceID, label)
+	label := ""
+	if dto.Label != "" {
+		normalized := s.normalizeAndAddLabels(
+			ctx, userID, workspaceID, parseLabelsInput(dto.Label),
+		)
+		if len(normalized) > 0 {
+			label = normalized[0]
+		}
 	}
 	return s.tasks.UpdateSubtask(
 		ctx, id, taskID, userID,
@@ -363,6 +396,7 @@ func (s *TaskService) QuickAdd(
 	input string,
 	description string,
 	workspaceID *uuid.UUID,
+	fallbackSectionID string,
 ) (*models.Task, error) {
 	sectionList, err := s.sections.ListByUser(ctx, userID, workspaceID)
 	if err != nil {
@@ -389,9 +423,10 @@ func (s *TaskService) QuickAdd(
 	}
 
 	if parsedDTO.Label != "" {
-		parsedDTO.Label = s.normalizeAndAddLabel(
-			ctx, userID, workspaceID, parsedDTO.Label,
+		normalized := s.normalizeAndAddLabels(
+			ctx, userID, workspaceID, parseLabelsInput(parsedDTO.Label),
 		)
+		parsedDTO.Label = strings.Join(normalized, ",")
 	}
 
 	recurDays := parsedDTO.RecurDays
@@ -411,17 +446,22 @@ func (s *TaskService) QuickAdd(
 		links = []models.TaskLink{{URL: linkURL, Label: linkLabel}}
 	}
 
+	sectionID := parseSectionID(parsedDTO.SectionID)
+	if sectionID == nil {
+		sectionID = parseSectionID(fallbackSectionID)
+	}
+
 	//nolint:exhaustruct // ID/Status/timestamps set by DB
 	t := models.Task{
 		OwnerUserID: userID,
 		Title:       title,
 		Description: strings.TrimSpace(description),
-		Label:       parsedDTO.Label,
+		Labels:      parseLabelsInput(parsedDTO.Label),
 		Priority:    parsedDTO.Priority,
 		RecurDays:   recurDays,
 		RecurRule:   recurRule,
 		DueDate:     parseDatePtr(parsedDTO.DueDate),
-		SectionID:   parseSectionID(parsedDTO.SectionID),
+		SectionID:   sectionID,
 		WorkspaceID: workspaceID,
 	}
 	created, err := s.tasks.Create(ctx, t)
@@ -436,6 +476,64 @@ func (s *TaskService) QuickAdd(
 		created.Links = links
 	}
 	return created, nil
+}
+
+// QuickUpdate updates an existing task from a quick-add style input string.
+// Title, priority, labels, due date, deadline, section and recur are parsed
+// from input. Description is taken from the desc argument. Links are preserved.
+func (s *TaskService) QuickUpdate(
+	ctx context.Context,
+	taskID uuid.UUID,
+	userID string,
+	workspaceID *uuid.UUID,
+	input string,
+	desc string,
+) (*models.Task, error) {
+	existing, err := s.tasks.GetByID(ctx, taskID, userID)
+	if err != nil {
+		return nil, err
+	}
+	sections, err := s.sections.ListByUser(ctx, userID, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	title, parsedDTO := parseQuickInput(input, sections, time.Now())
+	if strings.TrimSpace(title) == "" {
+		title = existing.Title
+	}
+	labels := []string{}
+	if parsedDTO.Label != "" {
+		labels = s.normalizeAndAddLabels(
+			ctx, userID, workspaceID, parseLabelsInput(parsedDTO.Label),
+		)
+	}
+	recurDays := parsedDTO.RecurDays
+	recurRule := ""
+	if parsedDTO.Recur != "" {
+		if rd, rr, parseErr := parseRecurOnly(parsedDTO.Recur, time.Now()); parseErr == nil {
+			recurDays = rd
+			recurRule = rr
+		}
+	} else if recurDays > 0 {
+		recurRule = "days:" + strconv.Itoa(recurDays)
+	}
+	existing.Title = title
+	existing.Description = strings.TrimSpace(desc)
+	existing.Labels = labels
+	existing.Priority = parsedDTO.Priority
+	existing.DueDate = parseDatePtr(parsedDTO.DueDate)
+	existing.Deadline = parseDatePtr(parsedDTO.Deadline)
+	existing.RecurDays = recurDays
+	existing.RecurRule = recurRule
+	if parsedDTO.SectionID != "" {
+		existing.SectionID = parseSectionID(parsedDTO.SectionID)
+	} else {
+		existing.SectionID = nil
+	}
+	if err = s.tasks.Update(ctx, *existing); err != nil {
+		return nil, err
+	}
+	return s.tasks.GetByID(ctx, taskID, userID)
 }
 
 func (s *TaskService) ensureSections(
@@ -466,23 +564,54 @@ func (s *TaskService) ensureSections(
 	return sections
 }
 
-func (s *TaskService) normalizeAndAddLabel(
+func parseLabelsInput(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if v := strings.TrimSpace(p); v != "" {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func (s *TaskService) normalizeAndAddLabels(
 	ctx context.Context,
 	userID string,
 	workspaceID *uuid.UUID,
-	label string,
-) string {
+	labels []string,
+) []string {
+	if len(labels) == 0 {
+		return []string{}
+	}
 	presets, err := s.settings.GetLabelPresets(ctx, userID, workspaceID)
-	if err != nil {
-		return label
-	}
-	for _, l := range presets.Labels {
-		if strings.EqualFold(l, label) {
-			return l
+	result := make([]string, 0, len(labels))
+	for _, label := range labels {
+		if label == "" {
+			continue
 		}
+		if err == nil {
+			for _, p := range presets.Labels {
+				if strings.EqualFold(p.Value, label) {
+					label = p.Value
+					goto next
+				}
+			}
+		}
+		_ = s.settings.AddLabelPreset(
+			ctx,
+			userID,
+			models.LabelCategory,
+			label,
+			workspaceID,
+		)
+	next:
+		result = append(result, label)
 	}
-	_ = s.settings.AddLabelPreset(ctx, userID, models.LabelCategory, label, workspaceID)
-	return label
+	return result
 }
 
 // FormatRecurRule converts a stored recur rule to its human-readable form,
@@ -621,6 +750,7 @@ func parseQuickInput(
 	var dto dtos.SaveTaskDto
 	tokens := strings.Fields(input)
 	var titleTokens []string
+	var labelTokens []string
 
 	for i := 0; i < len(tokens); i++ {
 		tok := tokens[i]
@@ -632,7 +762,7 @@ func parseQuickInput(
 		case tok == "p3":
 			dto.Priority = models.PriorityP3
 		case strings.HasPrefix(tok, "@") && len(tok) > 1:
-			dto.Label = tok[1:]
+			labelTokens = append(labelTokens, tok[1:])
 		case strings.HasPrefix(tok, "~") && len(tok) > 1:
 			titleTokens = append(titleTokens, tok)
 		case strings.HasPrefix(tok, "#") && len(tok) > 1:
@@ -649,11 +779,14 @@ func parseQuickInput(
 			} else {
 				titleTokens = append(titleTokens, tok)
 			}
+		case isoDatePattern.MatchString(tok) && dto.DueDate == "":
+			dto.DueDate = tok
 		default:
 			titleTokens = append(titleTokens, tok)
 		}
 	}
 
+	dto.Label = strings.Join(labelTokens, ",")
 	title := strings.Join(titleTokens, " ")
 	title, due, recurRule, recurDays := parseDateFromTitle(title, now)
 	if due != nil {
@@ -1018,6 +1151,8 @@ type recurringParseResult struct {
 var everyPattern = regexp.MustCompile(
 	`(?i)^\s*every\s+((first|second|third|fourth|fifth|last)\s+)?([a-z]+|\d+\s+days?)\s*$`,
 )
+
+var isoDatePattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
 func parseScheduleDTO(
 	dto dtos.SaveTaskDto,
