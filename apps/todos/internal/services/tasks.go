@@ -309,19 +309,16 @@ func (s *TaskService) AddSubtask(
 	if strings.TrimSpace(title) == "" {
 		title = strings.TrimSpace(input)
 	}
-	label := ""
+	labels := []string{}
 	if dto.Label != "" {
-		normalized := s.normalizeAndAddLabels(
+		labels = s.normalizeAndAddLabels(
 			ctx, userID, workspaceID, parseLabelsInput(dto.Label),
 		)
-		if len(normalized) > 0 {
-			label = normalized[0]
-		}
 	}
 	return s.tasks.AddSubtask(
 		ctx, taskID, userID,
 		title, strings.TrimSpace(description),
-		dto.Priority, label,
+		dto.Priority, labels,
 		parseDatePtr(dto.DueDate),
 		parseDatePtr(dto.Deadline),
 	)
@@ -341,20 +338,17 @@ func (s *TaskService) UpdateSubtask(
 			Message: "Subtask title cannot be empty",
 		}
 	}
-	label := ""
+	labels := []string{}
 	if dto.Label != "" {
-		normalized := s.normalizeAndAddLabels(
+		labels = s.normalizeAndAddLabels(
 			ctx, userID, workspaceID, parseLabelsInput(dto.Label),
 		)
-		if len(normalized) > 0 {
-			label = normalized[0]
-		}
 	}
 	return s.tasks.UpdateSubtask(
 		ctx, id, taskID, userID,
 		strings.TrimSpace(dto.Title),
 		strings.TrimSpace(dto.Description),
-		dto.Priority, label,
+		dto.Priority, labels,
 		parseDatePtr(dto.DueDate),
 		parseDatePtr(dto.Deadline),
 	)

@@ -18,6 +18,7 @@
       {{else}}bg-primary{{end}}">
       {{.Task.Status}}
     </span>
+    <span id="saveStatus" class="text-muted small flex-shrink-0 mt-2"></span>
     <button type="submit" class="btn btn-dark btn-sm flex-shrink-0 mt-1">
       Save
     </button>
@@ -32,12 +33,8 @@
       <option value="3" {{if eq .Task.Priority 3}}selected{{end}}>P3</option>
     </select>
     <input type="text" name="label" class="view-pill-input"
-      list="form-label-list"
       value="{{joinStrings .Task.Labels ","}}"
-      placeholder="Label…" title="Comma-separated labels">
-    <datalist id="form-label-list">
-      {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
-    </datalist>
+      placeholder="Labels…" title="Comma-separated labels">
     <input type="text" name="due_date" class="view-pill-input"
       value="{{if .RecurInput}}{{.RecurInput}}{{else if .Task.DueDate}}{{.Task.DueDate.Format "2006-01-02"}}{{end}}"
       placeholder="Due date…"
@@ -178,7 +175,7 @@
             placeholder="Description (optional)">
           <div class="d-flex gap-2 mb-2">
             <input type="text" name="label" value="{{joinStrings .Labels ","}}"
-              class="form-control form-control-sm" placeholder="Label…">
+              class="form-control form-control-sm" placeholder="Label(s), comma-sep…">
             <input type="text" name="due_date"
               value="{{if .DueDate}}{{.DueDate.Format "2006-01-02"}}{{end}}"
               class="form-control form-control-sm" placeholder="Due date…">
@@ -269,13 +266,9 @@
     <div class="col-sm-2">
       <label class="form-label small fw-semibold">Label</label>
       <input type="text" name="label" class="form-control"
-        list="form-label-list-new"
         value="{{joinStrings .Task.Labels ","}}"
         placeholder="— none —"
         title="Comma-separated labels">
-      <datalist id="form-label-list-new">
-        {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
-      </datalist>
     </div>
     <div class="col-sm-2">
       <label class="form-label small fw-semibold">Due date</label>
@@ -364,6 +357,8 @@
 </div>
 
 <style>
+#saveStatus { font-size: 0.8rem; transition: opacity 0.3s; }
+
 /* ── View-mode title input ──────────────────────────────────────────────── */
 .view-title-input {
   font-size: 1.6rem;
@@ -479,12 +474,313 @@
 .markdown-body blockquote{
   border-left:4px solid var(--bs-secondary);
   padding-left:1rem;color:var(--bs-secondary-color)}
+/* ── Label picker ─────────────────────────────────────────────────────────── */
+.lp-wrap { position: relative; display: inline-flex; max-width: 100%; }
+.lp-trigger {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 3px;
+  padding: 3px 8px; min-height: 32px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg); cursor: text;
+  min-width: 80px; font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.lp-trigger:focus-within {
+  border-color: var(--bs-primary-border-subtle);
+  box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15);
+}
+.lp-search {
+  border: none; outline: none; background: transparent;
+  min-width: 60px; flex: 1; font-size: 0.8rem; line-height: 1.5;
+  color: var(--bs-body-color); padding: 0;
+}
+.lp-search::placeholder { color: var(--bs-secondary-color); opacity: 0.8; }
+.lp-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: var(--bs-secondary-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-sm);
+  padding: 1px 5px; font-size: 0.75rem; white-space: nowrap;
+}
+.lp-badge-x {
+  background: none; border: none; padding: 0;
+  cursor: pointer; line-height: 1; font-size: 0.85rem;
+  color: var(--bs-secondary-color); opacity: 0.7;
+}
+.lp-badge-x:hover { opacity: 1; color: var(--bs-danger); }
+.lp-drop {
+  position: fixed; z-index: 9999;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  max-height: 220px; overflow-y: auto;
+}
+.lp-item {
+  padding: 5px 12px; cursor: pointer; font-size: 0.875rem;
+  display: flex; align-items: center; gap: 8px;
+  user-select: none;
+}
+.lp-item:hover { background: var(--bs-secondary-bg); }
+.lp-item-selected { font-weight: 600; }
+.lp-chk { font-size: 1rem; flex-shrink: 0; }
+.lp-add { color: var(--bs-primary); font-style: italic; }
+/* Pill variant for IsEdit full-screen form */
+.lp-pill .lp-trigger {
+  border-radius: var(--bs-border-radius-pill);
+  background: var(--bs-secondary-bg);
+  border-color: transparent;
+  padding: 0.2em 0.75em;
+  font-size: 0.82rem;
+  min-height: auto;
+}
+.lp-pill .lp-trigger:hover { border-color: var(--bs-border-color); background: var(--bs-body-bg); }
+.lp-pill .lp-trigger:focus-within { border-color: var(--bs-primary-border-subtle); background: var(--bs-body-bg); box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15); }
+@media (max-width: 576px) {
+  .lp-drop { max-width: calc(100vw - 16px); }
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script>
 (function () {
   var isEdit = {{if .IsEdit}}true{{else}}false{{end}};
+  var PRESET_LABELS = [{{range .Presets.Labels}}"{{.Value}}",{{end}}];
+
+  /* ── Label autocomplete dropdown ──────────────────────────────────────── */
+  var labelAcDrop = null; // Lazy singleton dropdown element
+  var labelAcOwner = null; // Which input currently owns the dropdown
+
+  function initLabelAc(inputEl, presets) {
+    inputEl.addEventListener('input', function () {
+      // Extract text after the last comma (current segment)
+      var val = inputEl.value;
+      var lastCommaIdx = val.lastIndexOf(',');
+      var segment = lastCommaIdx >= 0
+        ? val.slice(lastCommaIdx + 1).trim()
+        : val.trim();
+
+      if (!segment) {
+        if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+        return;
+      }
+
+      // Filter presets for values starting with segment (case-insensitive)
+      var matches = presets.filter(function (p) {
+        return p.toLowerCase().startsWith(segment.toLowerCase());
+      });
+
+      // Create dropdown if not exists
+      if (!labelAcDrop) {
+        labelAcDrop = document.createElement('ul');
+        labelAcDrop.className = 'list-group shadow-sm';
+        labelAcDrop.style.cssText = 'position:fixed;z-index:9999;display:none;max-height:200px;overflow-y:auto';
+        document.body.appendChild(labelAcDrop);
+      }
+
+      labelAcOwner = inputEl;
+
+      // Populate dropdown
+      labelAcDrop.innerHTML = '';
+      matches.forEach(function (val) {
+        var li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.style.cssText = 'cursor:pointer;padding:.35rem .75rem;font-size:.875rem';
+        li.textContent = val;
+        li.addEventListener('mousedown', function (e) {
+          e.preventDefault(); // keep focus in input
+          // Replace everything after last comma with selected value
+          var currentVal = inputEl.value;
+          var lastIdx = currentVal.lastIndexOf(',');
+          if (lastIdx >= 0) {
+            inputEl.value = currentVal.slice(0, lastIdx + 1) + ' ' + val;
+          } else {
+            inputEl.value = val;
+          }
+          if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+        });
+        labelAcDrop.appendChild(li);
+      });
+
+      if (matches.length) {
+        var rect = inputEl.getBoundingClientRect();
+        labelAcDrop.style.top = (rect.bottom + 2) + 'px';
+        labelAcDrop.style.left = rect.left + 'px';
+        labelAcDrop.style.width = Math.max(rect.width, 160) + 'px';
+        labelAcDrop.style.display = '';
+      } else {
+        if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+      }
+    });
+
+    inputEl.addEventListener('blur', function () {
+      setTimeout(function () {
+        if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+      }, 150);
+    });
+
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && labelAcDrop) {
+        labelAcDrop.style.display = 'none';
+      }
+    });
+  }
+
+  /* ── Multi-select label picker ───────────────────────────────────────── */
+  function initLabelPicker(inputEl, presets) {
+    if (inputEl._labelPickerBound) { return; }
+    inputEl._labelPickerBound = true;
+
+    var selected = inputEl.value
+      ? inputEl.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean)
+      : [];
+
+    inputEl.style.display = 'none';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'lp-wrap';
+    if (inputEl.classList.contains('view-pill-input')) { wrap.classList.add('lp-pill'); }
+
+    var trigger = document.createElement('div');
+    trigger.className = 'lp-trigger';
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'lp-search';
+    searchInput.autocomplete = 'off';
+    searchInput.placeholder = selected.length ? '' : (inputEl.placeholder || 'Labels…');
+    trigger.appendChild(searchInput);
+
+    var drop = document.createElement('div');
+    drop.className = 'lp-drop';
+    drop.style.display = 'none';
+    document.body.appendChild(drop);
+
+    inputEl.parentNode.insertBefore(wrap, inputEl);
+    wrap.appendChild(trigger);
+
+    function syncInput() {
+      inputEl.value = selected.join(', ');
+      inputEl.dispatchEvent(new Event('input', {bubbles: true}));
+      inputEl.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+
+    function isSelected(label) {
+      return selected.some(function(s) { return s.toLowerCase() === label.toLowerCase(); });
+    }
+
+    function renderTrigger() {
+      Array.from(trigger.querySelectorAll('.lp-badge')).forEach(function(b) { trigger.removeChild(b); });
+      selected.forEach(function(label) {
+        var badge = document.createElement('span');
+        badge.className = 'lp-badge';
+        var txt = document.createTextNode(label + ' ');
+        badge.appendChild(txt);
+        var x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'lp-badge-x';
+        x.textContent = '×';
+        x.addEventListener('mousedown', function(e) { e.preventDefault(); removeLabel(label); });
+        badge.appendChild(x);
+        trigger.insertBefore(badge, searchInput);
+      });
+      searchInput.placeholder = selected.length ? '' : (inputEl.placeholder || 'Labels…');
+    }
+
+    function addLabel(label) {
+      label = label.trim();
+      if (!label || isSelected(label)) { return; }
+      var canonical = presets.find(function(p) { return p.toLowerCase() === label.toLowerCase(); });
+      selected.push(canonical || label);
+      renderTrigger();
+      syncInput();
+      searchInput.value = '';
+      renderDrop();
+    }
+
+    function removeLabel(label) {
+      selected = selected.filter(function(s) { return s.toLowerCase() !== label.toLowerCase(); });
+      renderTrigger();
+      syncInput();
+      renderDrop();
+    }
+
+    function renderDrop() {
+      var filter = searchInput.value.trim().toLowerCase();
+      var filtered = filter
+        ? presets.filter(function(p) { return p.toLowerCase().indexOf(filter) !== -1; })
+        : presets;
+
+      drop.innerHTML = '';
+      filtered.forEach(function(label) {
+        var sel = isSelected(label);
+        var item = document.createElement('div');
+        item.className = 'lp-item' + (sel ? ' lp-item-selected' : '');
+        var chk = document.createElement('span');
+        chk.className = 'lp-chk';
+        chk.textContent = sel ? '☑' : '☐';
+        item.appendChild(chk);
+        var lbl = document.createElement('span');
+        lbl.textContent = label;
+        item.appendChild(lbl);
+        item.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          if (isSelected(label)) { removeLabel(label); } else { addLabel(label); }
+          searchInput.focus();
+        });
+        drop.appendChild(item);
+      });
+
+      var typedVal = searchInput.value.trim();
+      if (typedVal && !isSelected(typedVal) && !presets.some(function(p) {
+        return p.toLowerCase() === typedVal.toLowerCase();
+      })) {
+        var addItem = document.createElement('div');
+        addItem.className = 'lp-item lp-add';
+        addItem.textContent = '+ Add "' + typedVal + '"';
+        addItem.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          addLabel(typedVal);
+          searchInput.focus();
+        });
+        drop.appendChild(addItem);
+      }
+
+      var rect = trigger.getBoundingClientRect();
+      drop.style.top = (rect.bottom + 2) + 'px';
+      drop.style.left = rect.left + 'px';
+      drop.style.minWidth = Math.max(rect.width, 180) + 'px';
+    }
+
+    function openDrop() { renderDrop(); drop.style.display = ''; }
+    function closeDrop() { drop.style.display = 'none'; }
+
+    searchInput.addEventListener('focus', openDrop);
+    searchInput.addEventListener('input', renderDrop);
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); var v = searchInput.value.trim(); if (v) { addLabel(v); } }
+      else if (e.key === 'Escape') { closeDrop(); }
+      else if (e.key === 'Backspace' && !searchInput.value && selected.length) {
+        removeLabel(selected[selected.length - 1]);
+      }
+    });
+    searchInput.addEventListener('blur', function() { setTimeout(closeDrop, 150); });
+
+    trigger.addEventListener('mousedown', function(e) {
+      if (e.target !== searchInput) { e.preventDefault(); searchInput.focus(); }
+    });
+
+    function outsideClick(e) {
+      var path = e.composedPath ? e.composedPath() : (e.path || []);
+      var inside = path.length
+        ? (path.indexOf(drop) !== -1 || path.indexOf(wrap) !== -1)
+        : (wrap.contains(e.target) || drop.contains(e.target));
+      if (!inside) { closeDrop(); }
+    }
+    document.addEventListener('mousedown', outsideClick);
+
+    renderTrigger();
+  }
 
   /* ── Shared preview renderer ─────────────────────────────────────────── */
   function renderMarkdown(src) {
@@ -544,6 +840,93 @@
       descEditWrap.style.display  = 'none';
       descViewWrap.style.display  = '';
     };
+
+    var mainLabelInput = document.querySelector('input[name="label"].view-pill-input');
+    if (mainLabelInput) {
+      mainLabelInput.removeAttribute('list');
+      initLabelPicker(mainLabelInput, PRESET_LABELS);
+    }
+
+    /* ── Auto-save functionality ────────────────────────────────────────── */
+    var autoSaveTimeout = null;
+
+    function autoSave() {
+      var editForm = document.getElementById('task-edit-form');
+      if (!editForm) { return; }
+      var saveStatus = document.getElementById('saveStatus');
+      if (saveStatus) { saveStatus.textContent = 'Saving…'; }
+
+      var params = new URLSearchParams(new FormData(editForm));
+      fetch(editForm.action, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Auto-Save': '1'
+        },
+        body: params.toString()
+      }).then(function () {
+        if (saveStatus) {
+          saveStatus.textContent = 'Saved';
+          setTimeout(function () {
+            if (saveStatus) { saveStatus.textContent = ''; }
+          }, 2000);
+        }
+      }).catch(function () {
+        if (saveStatus) { saveStatus.textContent = 'Save failed'; }
+      });
+    }
+
+    function autoSaveDebounced() {
+      clearTimeout(autoSaveTimeout);
+      autoSaveTimeout = setTimeout(function () {
+        autoSave();
+      }, 1500);
+    }
+
+    /* Attach input event listeners to form fields */
+    var titleInput = document.querySelector('#task-edit-form input[name="title"]');
+    if (titleInput) {
+      titleInput.addEventListener('input', autoSaveDebounced);
+    }
+
+    var labelInput = document.querySelector('#task-edit-form input[name="label"]');
+    if (labelInput) {
+      labelInput.addEventListener('input', autoSaveDebounced);
+    }
+
+    var dueDateInput = document.querySelector('#task-edit-form input[name="due_date"]');
+    if (dueDateInput) {
+      dueDateInput.addEventListener('input', autoSaveDebounced);
+    }
+
+    var deadlineInput = document.querySelector('#task-edit-form input[name="deadline"]');
+    if (deadlineInput) {
+      deadlineInput.addEventListener('input', autoSaveDebounced);
+    }
+
+    var descInput = document.getElementById('formDesc');
+    if (descInput) {
+      descInput.addEventListener('input', autoSaveDebounced);
+    }
+
+    var prioritySelect = document.querySelector('#task-edit-form select[name="priority"]');
+    if (prioritySelect) {
+      prioritySelect.addEventListener('change', autoSaveDebounced);
+    }
+
+    var sectionSelect = document.querySelector('#task-edit-form select[name="section_id"]');
+    if (sectionSelect) {
+      sectionSelect.addEventListener('change', autoSaveDebounced);
+    }
+
+    /* Override Save button clicks to use fetch */
+    var submitButtons = document.querySelectorAll('#task-edit-form [type="submit"], [form="task-edit-form"]');
+    submitButtons.forEach(function (btn) {
+      btn.addEventListener('click', function (event) {
+        event.preventDefault();
+        autoSave();
+      });
+    });
   }
 
   /* ── Subtask inline edit toggle ─────────────────────────────────────── */
@@ -558,6 +941,11 @@
     if (!editing) {
       var input = edit.querySelector('input[name="title"]');
       if (input) { input.focus(); }
+      var labelInput = edit.querySelector('input[name="label"]');
+      if (labelInput && !labelInput._labelAcBound) {
+        labelInput._labelAcBound = true;
+        initLabelPicker(labelInput, PRESET_LABELS);
+      }
     }
   };
 
@@ -578,6 +966,13 @@
         + ' class="btn btn-outline-danger btn-sm w-100"'
         + ' onclick="this.closest(\'.link-row\').remove()">×</button></div>';
       document.getElementById('links').appendChild(row);
+    });
+  }
+
+  /* ── New task form label picker (non-edit mode) ─────────────────────── */
+  if (!isEdit) {
+    document.querySelectorAll('input[name="label"]').forEach(function(el) {
+      initLabelPicker(el, PRESET_LABELS);
     });
   }
 }());

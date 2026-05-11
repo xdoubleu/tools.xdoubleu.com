@@ -239,15 +239,23 @@
           <span class="badge{{if not $color}} bg-secondary{{end}}"
             {{if $color}}style="background-color:{{$color}}"{{end}}>{{.Value}}</span>
           <div class="d-flex align-items-center gap-2 ms-auto">
-            <form method="POST"
-              action="/todos/settings/labels/label/{{.Value}}/color"
-              class="m-0 d-flex align-items-center gap-1">
-              <input type="color" name="color"
-                class="form-control form-control-sm p-0 border-0"
-                style="width:2rem;height:1.6rem;cursor:pointer"
-                value="{{if $color}}{{$color}}{{else}}#6c757d{{end}}"
-                onchange="this.form.submit()">
-            </form>
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+              <button type="button" onclick="setLabelColor('{{.Value}}','#dc3545',this)" style="background-color:#dc3545;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#dc3545"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#fd7e14',this)" style="background-color:#fd7e14;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#fd7e14"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#ffc107',this)" style="background-color:#ffc107;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#ffc107"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#198754',this)" style="background-color:#198754;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#198754"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#20c997',this)" style="background-color:#20c997;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#20c997"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#0d6efd',this)" style="background-color:#0d6efd;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#0d6efd"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#6610f2',this)" style="background-color:#6610f2;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#6610f2"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#6f42c1',this)" style="background-color:#6f42c1;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#6f42c1"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#d63384',this)" style="background-color:#d63384;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#d63384"></button>
+              <button type="button" onclick="setLabelColor('{{.Value}}','#6c757d',this)" style="background-color:#6c757d;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex-shrink:0;" title="#6c757d"></button>
+            </div>
+            <input type="color"
+              class="form-control form-control-sm p-0 border-0"
+              style="width:2rem;height:1.6rem;cursor:pointer"
+              value="{{if $color}}{{$color}}{{else}}#6c757d{{end}}"
+              onchange="setLabelColor('{{.Value}}',this.value,this)">
             <form method="POST"
               action="/todos/settings/labels/label/{{.Value}}/delete">
               <button type="submit" class="btn btn-outline-danger btn-sm py-0">×</button>
@@ -266,6 +274,22 @@
       </form>
     </div>
   </div>
+  <script>
+  function setLabelColor(labelValue, color, el) {
+    fetch('/todos/settings/labels/label/' + encodeURIComponent(labelValue) + '/color', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Async': '1'
+      },
+      body: 'color=' + encodeURIComponent(color)
+    });
+    var badge = el.closest('.list-group-item').querySelector('.badge');
+    if (!badge) return;
+    badge.style.backgroundColor = color;
+    badge.classList.remove('bg-secondary');
+  }
+  </script>
 
   {{/* ── URL patterns ────────────────────────────────────────────────────── */}}
   <div class="card shadow-sm mb-4">

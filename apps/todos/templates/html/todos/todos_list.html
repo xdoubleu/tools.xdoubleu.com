@@ -169,11 +169,8 @@
           <option value="p3">🔵 P3 – low</option>
         </select>
         <input type="text" id="qaLabel" class="form-control form-control-sm qa-ctrl"
-          list="qa-label-list" style="max-width:9rem"
+          style="max-width:9rem"
           placeholder="@label" autocomplete="off">
-        <datalist id="qa-label-list">
-          {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
-        </datalist>
         <input id="qaDue" type="text" class="form-control form-control-sm qa-ctrl"
           placeholder="next monday" style="max-width:10rem" autocomplete="off"
           title="Due date — supports recurring, e.g. every thursday, every first sunday">
@@ -236,10 +233,7 @@
             <div class="col-sm-2">
               <input type="text" name="label" id="modalLabel"
                 class="form-control form-control-sm"
-                list="modal-label-list" placeholder="— label —">
-              <datalist id="modal-label-list">
-                {{range .Presets.Labels}}<option value="{{.Value}}">{{end}}
-              </datalist>
+                placeholder="— label —">
             </div>
             <div class="col-sm-2">
               <input type="text" name="due_date" id="modalDue"
@@ -374,6 +368,71 @@ details summary::-webkit-details-marker{display:none}
 }
 .qa-md-link{display:inline;}
 .qa-md-link a{color:inherit;text-decoration:underline;}
+/* ── Label picker ─────────────────────────────────────────────────────────── */
+.lp-wrap { position: relative; display: inline-flex; max-width: 100%; }
+.lp-trigger {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 3px;
+  padding: 3px 8px; min-height: 32px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg); cursor: text;
+  min-width: 80px; font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.lp-trigger:focus-within {
+  border-color: var(--bs-primary-border-subtle);
+  box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15);
+}
+.lp-search {
+  border: none; outline: none; background: transparent;
+  min-width: 60px; flex: 1; font-size: 0.8rem; line-height: 1.5;
+  color: var(--bs-body-color); padding: 0;
+}
+.lp-search::placeholder { color: var(--bs-secondary-color); opacity: 0.8; }
+.lp-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: var(--bs-secondary-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-sm);
+  padding: 1px 5px; font-size: 0.75rem; white-space: nowrap;
+}
+.lp-badge-x {
+  background: none; border: none; padding: 0;
+  cursor: pointer; line-height: 1; font-size: 0.85rem;
+  color: var(--bs-secondary-color); opacity: 0.7;
+}
+.lp-badge-x:hover { opacity: 1; color: var(--bs-danger); }
+.lp-drop {
+  position: fixed; z-index: 9999;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  max-height: 220px; overflow-y: auto;
+}
+.lp-item {
+  padding: 5px 12px; cursor: pointer; font-size: 0.875rem;
+  display: flex; align-items: center; gap: 8px;
+  user-select: none;
+}
+.lp-item:hover { background: var(--bs-secondary-bg); }
+.lp-item-selected { font-weight: 600; }
+.lp-chk { font-size: 1rem; flex-shrink: 0; }
+.lp-add { color: var(--bs-primary); font-style: italic; }
+/* Pill variant for IsEdit full-screen form */
+.lp-pill .lp-trigger {
+  border-radius: var(--bs-border-radius-pill);
+  background: var(--bs-secondary-bg);
+  border-color: transparent;
+  padding: 0.2em 0.75em;
+  font-size: 0.82rem;
+  min-height: auto;
+}
+.lp-pill .lp-trigger:hover { border-color: var(--bs-border-color); background: var(--bs-body-bg); }
+.lp-pill .lp-trigger:focus-within { border-color: var(--bs-primary-border-subtle); background: var(--bs-body-bg); box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15); }
+@media (max-width: 576px) {
+  .lp-drop { max-width: calc(100vw - 16px); }
+}
 </style>
 
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
@@ -390,6 +449,241 @@ details summary::-webkit-details-marker{display:none}
   ];
   var ACTIVE_WORKSPACE_ID =
     "{{if and .UserSettings .UserSettings.ActiveWorkspaceID}}{{.UserSettings.ActiveWorkspaceID}}{{end}}";
+
+  /* ── Label autocomplete dropdown ──────────────────────────────────────── */
+  var labelAcDrop = null; // Lazy singleton dropdown element
+  var labelAcOwner = null; // Which input currently owns the dropdown
+
+  function initLabelAc(inputEl, presets) {
+    inputEl.addEventListener('input', function () {
+      // Extract text after the last comma (current segment)
+      var val = inputEl.value;
+      var lastCommaIdx = val.lastIndexOf(',');
+      var segment = lastCommaIdx >= 0
+        ? val.slice(lastCommaIdx + 1).trim()
+        : val.trim();
+
+      if (!segment) {
+        if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+        return;
+      }
+
+      // Filter presets for values starting with segment (case-insensitive)
+      var matches = presets.filter(function (p) {
+        return p.toLowerCase().startsWith(segment.toLowerCase());
+      });
+
+      // Create dropdown if not exists
+      if (!labelAcDrop) {
+        labelAcDrop = document.createElement('ul');
+        labelAcDrop.className = 'list-group shadow-sm';
+        labelAcDrop.style.cssText = 'position:fixed;z-index:9999;display:none;max-height:200px;overflow-y:auto';
+        document.body.appendChild(labelAcDrop);
+      }
+
+      labelAcOwner = inputEl;
+
+      // Populate dropdown
+      labelAcDrop.innerHTML = '';
+      matches.forEach(function (val) {
+        var li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.style.cssText = 'cursor:pointer;padding:.35rem .75rem;font-size:.875rem';
+        li.textContent = val;
+        li.addEventListener('mousedown', function (e) {
+          e.preventDefault(); // keep focus in input
+          // Replace everything after last comma with selected value
+          var currentVal = inputEl.value;
+          var lastIdx = currentVal.lastIndexOf(',');
+          if (lastIdx >= 0) {
+            inputEl.value = currentVal.slice(0, lastIdx + 1) + ' ' + val;
+          } else {
+            inputEl.value = val;
+          }
+          if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+        });
+        labelAcDrop.appendChild(li);
+      });
+
+      if (matches.length) {
+        var rect = inputEl.getBoundingClientRect();
+        labelAcDrop.style.top = (rect.bottom + 2) + 'px';
+        labelAcDrop.style.left = rect.left + 'px';
+        labelAcDrop.style.width = Math.max(rect.width, 160) + 'px';
+        labelAcDrop.style.display = '';
+      } else {
+        if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+      }
+    });
+
+    inputEl.addEventListener('blur', function () {
+      setTimeout(function () {
+        if (labelAcDrop) { labelAcDrop.style.display = 'none'; }
+      }, 150);
+    });
+
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && labelAcDrop) {
+        labelAcDrop.style.display = 'none';
+      }
+    });
+  }
+
+  /* ── Multi-select label picker ───────────────────────────────────────── */
+  function initLabelPicker(inputEl, presets) {
+    if (inputEl._labelPickerBound) { return; }
+    inputEl._labelPickerBound = true;
+
+    var selected = inputEl.value
+      ? inputEl.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean)
+      : [];
+
+    inputEl.style.display = 'none';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'lp-wrap';
+    if (inputEl.classList.contains('view-pill-input')) { wrap.classList.add('lp-pill'); }
+
+    var trigger = document.createElement('div');
+    trigger.className = 'lp-trigger';
+
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'lp-search';
+    searchInput.autocomplete = 'off';
+    searchInput.placeholder = selected.length ? '' : (inputEl.placeholder || 'Labels…');
+    trigger.appendChild(searchInput);
+
+    var drop = document.createElement('div');
+    drop.className = 'lp-drop';
+    drop.style.display = 'none';
+    document.body.appendChild(drop);
+
+    inputEl.parentNode.insertBefore(wrap, inputEl);
+    wrap.appendChild(trigger);
+
+    function syncInput() {
+      inputEl.value = selected.join(', ');
+      inputEl.dispatchEvent(new Event('input', {bubbles: true}));
+      inputEl.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+
+    function isSelected(label) {
+      return selected.some(function(s) { return s.toLowerCase() === label.toLowerCase(); });
+    }
+
+    function renderTrigger() {
+      Array.from(trigger.querySelectorAll('.lp-badge')).forEach(function(b) { trigger.removeChild(b); });
+      selected.forEach(function(label) {
+        var badge = document.createElement('span');
+        badge.className = 'lp-badge';
+        var txt = document.createTextNode(label + ' ');
+        badge.appendChild(txt);
+        var x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'lp-badge-x';
+        x.textContent = '×';
+        x.addEventListener('mousedown', function(e) { e.preventDefault(); removeLabel(label); });
+        badge.appendChild(x);
+        trigger.insertBefore(badge, searchInput);
+      });
+      searchInput.placeholder = selected.length ? '' : (inputEl.placeholder || 'Labels…');
+    }
+
+    function addLabel(label) {
+      label = label.trim();
+      if (!label || isSelected(label)) { return; }
+      var canonical = presets.find(function(p) { return p.toLowerCase() === label.toLowerCase(); });
+      selected.push(canonical || label);
+      renderTrigger();
+      syncInput();
+      searchInput.value = '';
+      renderDrop();
+    }
+
+    function removeLabel(label) {
+      selected = selected.filter(function(s) { return s.toLowerCase() !== label.toLowerCase(); });
+      renderTrigger();
+      syncInput();
+      renderDrop();
+    }
+
+    function renderDrop() {
+      var filter = searchInput.value.trim().toLowerCase();
+      var filtered = filter
+        ? presets.filter(function(p) { return p.toLowerCase().indexOf(filter) !== -1; })
+        : presets;
+
+      drop.innerHTML = '';
+      filtered.forEach(function(label) {
+        var sel = isSelected(label);
+        var item = document.createElement('div');
+        item.className = 'lp-item' + (sel ? ' lp-item-selected' : '');
+        var chk = document.createElement('span');
+        chk.className = 'lp-chk';
+        chk.textContent = sel ? '☑' : '☐';
+        item.appendChild(chk);
+        var lbl = document.createElement('span');
+        lbl.textContent = label;
+        item.appendChild(lbl);
+        item.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          if (isSelected(label)) { removeLabel(label); } else { addLabel(label); }
+          searchInput.focus();
+        });
+        drop.appendChild(item);
+      });
+
+      var typedVal = searchInput.value.trim();
+      if (typedVal && !isSelected(typedVal) && !presets.some(function(p) {
+        return p.toLowerCase() === typedVal.toLowerCase();
+      })) {
+        var addItem = document.createElement('div');
+        addItem.className = 'lp-item lp-add';
+        addItem.textContent = '+ Add "' + typedVal + '"';
+        addItem.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          addLabel(typedVal);
+          searchInput.focus();
+        });
+        drop.appendChild(addItem);
+      }
+
+      var rect = trigger.getBoundingClientRect();
+      drop.style.top = (rect.bottom + 2) + 'px';
+      drop.style.left = rect.left + 'px';
+      drop.style.minWidth = Math.max(rect.width, 180) + 'px';
+    }
+
+    function openDrop() { renderDrop(); drop.style.display = ''; }
+    function closeDrop() { drop.style.display = 'none'; }
+
+    searchInput.addEventListener('focus', openDrop);
+    searchInput.addEventListener('input', renderDrop);
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); var v = searchInput.value.trim(); if (v) { addLabel(v); } }
+      else if (e.key === 'Escape') { closeDrop(); }
+      else if (e.key === 'Backspace' && !searchInput.value && selected.length) {
+        removeLabel(selected[selected.length - 1]);
+      }
+    });
+    searchInput.addEventListener('blur', function() { setTimeout(closeDrop, 150); });
+
+    trigger.addEventListener('mousedown', function(e) {
+      if (e.target !== searchInput) { e.preventDefault(); searchInput.focus(); }
+    });
+
+    function outsideClick(e) {
+      var path = e.composedPath ? e.composedPath() : (e.path || []);
+      var inside = path.length
+        ? (path.indexOf(drop) !== -1 || path.indexOf(wrap) !== -1)
+        : (wrap.contains(e.target) || drop.contains(e.target));
+      if (!inside) { closeDrop(); }
+    }
+    document.addEventListener('mousedown', outsideClick);
+
+    renderTrigger();
+  }
 
   /* ── Quick-add show/hide ─────────────────────────────────────────────────── */
   var quickAddBar  = document.getElementById('quickAddBar');
@@ -875,14 +1169,16 @@ details summary::-webkit-details-marker{display:none}
     qaDueEl.value      = '';
     qaDeadlineEl.value = '';
     qaSectionEl.value  = '';
+    var labelValues = [];
     items.forEach(function (d) {
       if (d.kind === 'priority')  { qaPriorityEl.value = d.value.toLowerCase(); }
-      if (d.kind === 'label')     { qaLabelEl.value    = d.value; }
+      if (d.kind === 'label')     { labelValues.push(d.value); }
       if (d.kind === 'due')       { qaDueEl.value      = d.value; }
       if (d.kind === 'recurring') { qaDueEl.value      = d.value; }
       if (d.kind === 'deadline')  { qaDeadlineEl.value = d.value; }
       if (d.kind === 'section')   { qaSectionEl.value  = d.value; }
     });
+    qaLabelEl.value = labelValues.join(', ');
   }
 
   function removeKindFromText(val, kind) {
@@ -911,7 +1207,11 @@ details summary::-webkit-details-marker{display:none}
   (function () {
     function commitLabel() {
       var v = qaLabelEl.value.trim();
-      applyControlToText('label', v ? ('@' + v) : '');
+      var parts = v ? v.split(',') : [];
+      var shortcuts = parts.map(function (l) {
+        return l.trim() ? ('@' + l.trim()) : '';
+      }).filter(Boolean).join(' ');
+      applyControlToText('label', shortcuts);
     }
     qaLabelEl.addEventListener('change', commitLabel);
     qaLabelEl.addEventListener('keydown', function (e) {
@@ -919,6 +1219,7 @@ details summary::-webkit-details-marker{display:none}
       if (e.key === 'Escape') { qaLabelEl.value = ''; commitLabel(); quickAddInput.focus(); }
     });
   }());
+  initLabelPicker(qaLabelEl, PRESET_LABELS);
   (function () {
     function commitSection() {
       var v = qaSectionEl.value.trim();
@@ -1258,6 +1559,8 @@ details summary::-webkit-details-marker{display:none}
     form.style.display = '';
     var titleInput = form.querySelector('input[name="title"]');
     if (titleInput) { setTimeout(function () { titleInput.focus(); titleInput.select(); }, 0); }
+    var oldLabelInput = form.querySelector('input[name="label"]');
+    if (oldLabelInput) { initLabelPicker(oldLabelInput, PRESET_LABELS); }
   };
 
   window.qeClose = function (taskId) {
@@ -1333,7 +1636,7 @@ details summary::-webkit-details-marker{display:none}
       if (target3) {
         e.preventDefault();
         var tId3 = target3.dataset.taskId;
-        if (tId3) { window.qeOpen(tId3); }
+        if (tId3) { window.taskQeOpen(tId3); }
       }
     }
   });
@@ -1446,13 +1749,15 @@ details summary::-webkit-details-marker{display:none}
       dueEl.value      = '';
       deadlineEl.value = '';
       sectionEl.value  = '';
+      var labelValues = [];
       items.forEach(function (d) {
         if (d.kind === 'priority')  { priorityEl.value = d.value.toLowerCase(); }
-        if (d.kind === 'label')     { labelEl.value    = d.value; }
+        if (d.kind === 'label')     { labelValues.push(d.value); }
         if (d.kind === 'due' || d.kind === 'recurring') { dueEl.value = d.value; }
         if (d.kind === 'deadline')  { deadlineEl.value = d.value; }
         if (d.kind === 'section')   { sectionEl.value  = d.value; }
       });
+      labelEl.value = labelValues.join(', ');
     }
 
     function qeRemoveKind(val, kind) {
@@ -1491,7 +1796,11 @@ details summary::-webkit-details-marker{display:none}
     (function () {
       function commitLabel() {
         var v = labelEl.value.trim();
-        qeApply('label', v ? ('@' + v) : '');
+        var parts = v ? v.split(',') : [];
+        var shortcuts = parts.map(function (l) {
+          return l.trim() ? ('@' + l.trim()) : '';
+        }).filter(Boolean).join(' ');
+        qeApply('label', shortcuts);
       }
       labelEl.addEventListener('change', commitLabel);
       labelEl.addEventListener('keydown', function (e) {
@@ -1499,6 +1808,7 @@ details summary::-webkit-details-marker{display:none}
         if (e.key === 'Escape') { labelEl.value = ''; commitLabel(); ceDiv.focus(); }
       });
     }());
+    initLabelPicker(labelEl, PRESET_LABELS);
 
     (function () {
       function commitDue() { qeApply('due', dueEl.value.trim()); }
@@ -1609,12 +1919,13 @@ details summary::-webkit-details-marker{display:none}
     qeDiv.querySelector('.task-qe-due').value      = '';
     qeDiv.querySelector('.task-qe-deadline').value = '';
     qeDiv.querySelector('.task-qe-section').value  = '';
+    var qeLabelValues = [];
     detections.forEach(function (d) {
       if (d.kind === 'priority') {
         qeDiv.querySelector('.task-qe-priority').value = d.value.toLowerCase();
       }
       if (d.kind === 'label') {
-        qeDiv.querySelector('.task-qe-label').value = d.value;
+        qeLabelValues.push(d.value);
       }
       if (d.kind === 'due' || d.kind === 'recurring') {
         qeDiv.querySelector('.task-qe-due').value = d.value;
@@ -1626,6 +1937,7 @@ details summary::-webkit-details-marker{display:none}
         qeDiv.querySelector('.task-qe-section').value = d.value;
       }
     });
+    qeDiv.querySelector('.task-qe-label').value = qeLabelValues.join(', ');
 
     // Show quick-edit, hide main content
     var mainContent = row.querySelector('.task-main-content');
@@ -1722,6 +2034,9 @@ details summary::-webkit-details-marker{display:none}
     titleEl.focus();
     titleEl.select();
   });
+
+  var modalLabelEl = document.getElementById('modalLabel');
+  if (modalLabelEl) { initLabelPicker(modalLabelEl, PRESET_LABELS); }
 }());
 </script>
 

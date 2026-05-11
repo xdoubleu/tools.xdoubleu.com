@@ -127,6 +127,10 @@ func (a *Todos) updateLabelColorHandler(w http.ResponseWriter, r *http.Request) 
 	); err != nil {
 		return err
 	}
+	if r.Header.Get("X-Async") == "1" {
+		w.WriteHeader(http.StatusNoContent)
+		return nil
+	}
 	http.Redirect(w, r, "/todos/settings", http.StatusSeeOther)
 	return nil
 }

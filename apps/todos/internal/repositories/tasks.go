@@ -426,16 +426,12 @@ func (r *TasksRepository) AddSubtask(
 	title string,
 	description string,
 	priority int,
-	label string,
+	labels []string,
 	dueDate *time.Time,
 	deadline *time.Time,
 ) (*models.Subtask, error) {
 	var s models.Subtask
 	s.TaskID = taskID
-	labels := []string{}
-	if label != "" {
-		labels = []string{label}
-	}
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO todos.subtasks
 		    (task_id, title, description, priority, labels,
@@ -468,14 +464,10 @@ func (r *TasksRepository) UpdateSubtask(
 	title string,
 	description string,
 	priority int,
-	label string,
+	labels []string,
 	dueDate *time.Time,
 	deadline *time.Time,
 ) (*models.Subtask, error) {
-	labels := []string{}
-	if label != "" {
-		labels = []string{label}
-	}
 	var s models.Subtask
 	err := r.db.QueryRow(ctx, `
 		UPDATE todos.subtasks
