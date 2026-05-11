@@ -1964,6 +1964,23 @@ details summary::-webkit-details-marker{display:none}
   }
   document.body.addEventListener('htmx:pushedIntoHistory', syncActiveTab);
 
+  /* ── Optimistic active-tab highlight on click + loading dim ─────────────── */
+  var taskListContainer = document.getElementById('taskListContainer');
+  document.querySelectorAll('.nav-tabs .nav-link[hx-get]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(function (l) {
+        l.classList.remove('active');
+      });
+      tab.classList.add('active');
+      if (taskListContainer) { taskListContainer.style.opacity = '0.4'; }
+    });
+  });
+  document.body.addEventListener('htmx:afterSettle', function (e) {
+    if (e.detail && e.detail.target && e.detail.target.id === 'taskListContainer') {
+      if (taskListContainer) { taskListContainer.style.opacity = ''; }
+    }
+  });
+
   /* ── Inline description editor ───────────────────────────────────────────── */
   var descView        = document.getElementById('modalDescView');
   var descEl          = document.getElementById('modalDesc');
