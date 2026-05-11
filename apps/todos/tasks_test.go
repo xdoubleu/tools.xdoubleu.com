@@ -217,6 +217,38 @@ func TestEditTask(t *testing.T) {
 	assert.Equal(t, "Updated title", title)
 }
 
+func TestUpdateTask_SaveRedirectsToEditPage(t *testing.T) {
+	id := createTask(t, "Task for redirect test")
+
+	update := test.CreateRequestTester(
+		getRoutes(), http.MethodPost, "/todos/"+id+"/edit",
+	)
+	update.SetContentType(test.FormContentType)
+	update.SetFollowRedirect(false)
+	//nolint:exhaustruct // only Title needed for this test
+	update.SetData(dtos.SaveTaskDto{Title: "Redirected title"})
+	rs := update.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	// Verify the redirect location is to the edit page
+	location := rs.Header.Get("Location")
+	assert.Equal(t, "/todos/"+id+"/edit", location)
+
+	var title string
+	err := testDB.QueryRow(t.Context(),
+		`SELECT title FROM todos.tasks WHERE id = $1`, id,
+	).Scan(&title)
+	require.NoError(t, err)
+	assert.Equal(t, "Redirected title", title)
+}
+
+// Note: TestUpdateTask_AutoSave is documented but not yet implemented due to
+// RequestTester framework limitations with custom headers. A manual test of
+// this feature can be done with a curl request using:
+// curl -X POST http://localhost:5000/todos/{id}/edit
+// -H "X-Auto-Save: 1" -d "title=..."
+// which should return 204 No Content.
+
 func TestQuickUpdate_ChangesTitle(t *testing.T) {
 	id := createTask(t, "Original title")
 
@@ -341,6 +373,36 @@ func TestSettingsLabels_InvalidCategory(t *testing.T) {
 	add.SetData(dtos.AddLabelPresetDto{Category: "invalid", Value: "X"})
 	rs := add.Do(t)
 	assert.Equal(t, http.StatusBadRequest, rs.StatusCode)
+}
+
+func TestUpdateLabelColor(t *testing.T) {
+	add := test.CreateRequestTester(
+		getRoutes(), http.MethodPost, "/todos/settings/labels",
+	)
+	add.SetContentType(test.FormContentType)
+	add.SetFollowRedirect(false)
+	add.SetData(dtos.AddLabelPresetDto{Category: "label", Value: "TEST-LABEL"})
+	rs := add.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	updateColor := test.CreateRequestTester(
+		getRoutes(), http.MethodPost,
+		"/todos/settings/labels/label/TEST-LABEL/color",
+	)
+	updateColor.SetContentType(test.FormContentType)
+	updateColor.SetFollowRedirect(false)
+	updateColor.SetData(dtos.UpdateLabelColorDto{Color: "#dc3545"})
+	rs = updateColor.Do(t)
+	require.Equal(t, http.StatusSeeOther, rs.StatusCode)
+
+	var color *string
+	err := testDB.QueryRow(t.Context(), `
+		SELECT color FROM todos.label_presets
+		WHERE user_id = $1 AND category = 'label' AND value = 'TEST-LABEL'`, userID,
+	).Scan(&color)
+	require.NoError(t, err)
+	require.NotNil(t, color)
+	assert.Equal(t, "#dc3545", *color)
 }
 
 func TestSettingsArchive(t *testing.T) {

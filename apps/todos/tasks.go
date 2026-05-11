@@ -669,7 +669,17 @@ func (a *Todos) updateTaskHandler(w http.ResponseWriter, r *http.Request) error 
 	); err != nil {
 		return err
 	}
-	back := safeLocalRedirectTarget(r.URL.Query().Get("back"))
+	if r.Header.Get("X-Auto-Save") == "1" {
+		w.WriteHeader(http.StatusNoContent)
+		return nil
+	}
+	rawBack := r.URL.Query().Get("back")
+	var back string
+	if rawBack == "" {
+		back = "/todos/" + id.String() + "/edit"
+	} else {
+		back = safeLocalRedirectTarget(rawBack)
+	}
 	http.Redirect(w, r, back, http.StatusSeeOther)
 	return nil
 }

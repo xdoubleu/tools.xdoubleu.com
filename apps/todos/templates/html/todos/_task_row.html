@@ -94,7 +94,7 @@
         onclick="subQaToggle('{{$task.ID}}')"
         title="Add subtask (s)">+</button>
       <button type="button" class="btn btn-outline-secondary btn-sm"
-        onclick="qeOpen('{{$task.ID}}')"
+        onclick="taskQeOpen('{{$task.ID}}')"
         title="Quick edit (e)">&#9998;</button>
       <form method="POST"
         action="/todos/{{$task.ID}}/delete?back={{$back}}"
@@ -140,7 +140,7 @@
           <option value="p3">🔵 P3 – low</option>
         </select>
         <input type="text" class="form-control form-control-sm qa-ctrl task-qe-label"
-          list="qa-label-list" style="max-width:9rem"
+          style="max-width:9rem"
           placeholder="@label" autocomplete="off">
         <input type="text" class="form-control form-control-sm qa-ctrl task-qe-due"
           placeholder="next monday" style="max-width:10rem" autocomplete="off"
