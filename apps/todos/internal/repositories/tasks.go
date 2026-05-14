@@ -429,27 +429,32 @@ func (r *TasksRepository) AddSubtask(
 	labels []string,
 	dueDate *time.Time,
 	deadline *time.Time,
+	parentSubtaskID *uuid.UUID,
 ) (*models.Subtask, error) {
 	var s models.Subtask
 	s.TaskID = taskID
+	s.ParentSubtaskID = parentSubtaskID
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO todos.subtasks
 		    (task_id, title, description, priority, labels,
-		     due_date, deadline, sort_order)
-		SELECT $1, $2, $3, $4, $5, $6, $7,
+		     due_date, deadline, parent_subtask_id, sort_order)
+		SELECT $1, $2, $3, $4, $5, $6, $7, $8,
 		    COALESCE((SELECT MAX(sort_order)+1 FROM todos.subtasks
-		              WHERE task_id = $1), 0)
+		              WHERE task_id = $1 AND parent_subtask_id IS NOT DISTINCT FROM $8), 0)
 		WHERE EXISTS (
 		    SELECT 1 FROM todos.tasks
-		    WHERE id = $1 AND owner_user_id = $8
+		    WHERE id = $1 AND owner_user_id = $9
 		)
-		RETURNING id, title, description, done, sort_order,
-		          priority, labels, due_date, deadline, created_at`,
-		taskID, title, description, priority, labels, dueDate, deadline, userID,
-	).Scan(
-		&s.ID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
-		&s.Priority, &s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt,
-	)
+		RETURNING id, title, description, done, sort_order, priority, labels,
+		          due_date, deadline, created_at, updated_at, parent_subtask_id`,
+		taskID, title, description, priority, labels, dueDate, deadline,
+		parentSubtaskID, userID,
+	).
+		Scan(
+			&s.ID, &s.Title, &s.Description, &s.Done, &s.SortOrder, &s.Priority,
+			&s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt, &s.UpdatedAt,
+			&s.ParentSubtaskID,
+		)
 	if err != nil {
 		return nil, err
 	}
@@ -528,21 +533,51 @@ func (r *TasksRepository) DeleteSubtask(
 	return err
 }
 
+// GetSubtaskDepth returns the depth of a subtask in its hierarchy.
+// Returns 0 for top-level subtasks, 1 for children of top-level, etc.
+func (r *TasksRepository) GetSubtaskDepth(
+	ctx context.Context,
+	taskID uuid.UUID,
+	subtaskID uuid.UUID,
+) (int, error) {
+	var depth int
+	err := r.db.QueryRow(ctx, `
+		WITH RECURSIVE depth_calc AS (
+		  SELECT id, parent_subtask_id, 0 AS depth
+		  FROM todos.subtasks
+		  WHERE id = $1 AND task_id = $2
+		  UNION ALL
+		  SELECT s.id, s.parent_subtask_id, d.depth + 1
+		  FROM todos.subtasks s
+		  JOIN depth_calc d ON d.parent_subtask_id = s.id
+		  WHERE s.task_id = $2
+		)
+		SELECT COALESCE(MAX(depth), 0) FROM depth_calc`,
+		subtaskID, taskID,
+	).Scan(&depth)
+	if err != nil {
+		return 0, err
+	}
+	return depth, nil
+}
+
 func (r *TasksRepository) ReorderSubtasks(
 	ctx context.Context,
 	taskID uuid.UUID,
 	userID string,
 	ids []uuid.UUID,
+	parentSubtaskID *uuid.UUID,
 ) error {
 	for i, id := range ids {
 		_, err := r.db.Exec(ctx, `
 			UPDATE todos.subtasks SET sort_order = $1
 			WHERE id = $2 AND task_id = $3
+			  AND parent_subtask_id IS NOT DISTINCT FROM $5
 			  AND EXISTS (
 			      SELECT 1 FROM todos.tasks
 			      WHERE id = $3 AND owner_user_id = $4
 			  )`,
-			i, id, taskID, userID,
+			i, id, taskID, userID, parentSubtaskID,
 		)
 		if err != nil {
 			return err
@@ -560,10 +595,23 @@ func (r *TasksRepository) ListSubtasksForTasks(
 		strIDs[i] = id.String()
 	}
 	rows, err := r.db.Query(ctx, `
-		SELECT id, task_id, title, description, done, sort_order,
-		       priority, labels, due_date, deadline, created_at
-		FROM todos.subtasks
-		WHERE task_id = ANY($1::uuid[])
+		WITH RECURSIVE sub_tree AS (
+		  SELECT id, task_id, parent_subtask_id, title, description, done,
+		         sort_order, priority, labels, due_date, deadline, created_at,
+		         updated_at
+		  FROM todos.subtasks
+		  WHERE task_id = ANY($1::uuid[]) AND parent_subtask_id IS NULL
+		  UNION ALL
+		  SELECT s.id, s.task_id, s.parent_subtask_id, s.title, s.description,
+		         s.done, s.sort_order, s.priority, s.labels, s.due_date,
+		         s.deadline, s.created_at, s.updated_at
+		  FROM todos.subtasks s
+		  JOIN sub_tree st ON s.parent_subtask_id = st.id
+		)
+		SELECT id, task_id, parent_subtask_id, title, description, done,
+		       sort_order, priority, labels, due_date, deadline, created_at,
+		       updated_at
+		FROM sub_tree
 		ORDER BY task_id, sort_order, created_at`,
 		strIDs,
 	)
@@ -576,8 +624,9 @@ func (r *TasksRepository) ListSubtasksForTasks(
 	for rows.Next() {
 		var s models.Subtask
 		if err = rows.Scan(
-			&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
-			&s.Priority, &s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt,
+			&s.ID, &s.TaskID, &s.ParentSubtaskID, &s.Title, &s.Description,
+			&s.Done, &s.SortOrder, &s.Priority, &s.Labels, &s.DueDate,
+			&s.Deadline, &s.CreatedAt, &s.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -696,10 +745,23 @@ func (r *TasksRepository) getSubtasks(
 	taskID uuid.UUID,
 ) ([]models.Subtask, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, task_id, title, description, done, sort_order,
-		       priority, labels, due_date, deadline, created_at
-		FROM todos.subtasks
-		WHERE task_id = $1
+		WITH RECURSIVE sub_tree AS (
+		  SELECT id, task_id, parent_subtask_id, title, description, done,
+		         sort_order, priority, labels, due_date, deadline, created_at,
+		         updated_at
+		  FROM todos.subtasks
+		  WHERE task_id = $1 AND parent_subtask_id IS NULL
+		  UNION ALL
+		  SELECT s.id, s.task_id, s.parent_subtask_id, s.title, s.description,
+		         s.done, s.sort_order, s.priority, s.labels, s.due_date,
+		         s.deadline, s.created_at, s.updated_at
+		  FROM todos.subtasks s
+		  JOIN sub_tree st ON s.parent_subtask_id = st.id
+		)
+		SELECT id, task_id, parent_subtask_id, title, description, done,
+		       sort_order, priority, labels, due_date, deadline, created_at,
+		       updated_at
+		FROM sub_tree
 		ORDER BY sort_order, created_at`,
 		taskID,
 	)
@@ -712,8 +774,9 @@ func (r *TasksRepository) getSubtasks(
 	for rows.Next() {
 		var s models.Subtask
 		if err = rows.Scan(
-			&s.ID, &s.TaskID, &s.Title, &s.Description, &s.Done, &s.SortOrder,
-			&s.Priority, &s.Labels, &s.DueDate, &s.Deadline, &s.CreatedAt,
+			&s.ID, &s.TaskID, &s.ParentSubtaskID, &s.Title, &s.Description,
+			&s.Done, &s.SortOrder, &s.Priority, &s.Labels, &s.DueDate,
+			&s.Deadline, &s.CreatedAt, &s.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

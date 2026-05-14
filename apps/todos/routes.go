@@ -60,17 +60,8 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 		auth(prefix, a.handle(a.setModeHandler)))
 
 	// Parameterised paths last.
-	mux.HandleFunc(
-		"GET /"+prefix+"/{id}",
-		auth(prefix, func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(
-				w,
-				r,
-				"/"+prefix+"/"+r.PathValue("id")+"/edit",
-				http.StatusSeeOther,
-			)
-		}),
-	)
+	mux.HandleFunc("GET /"+prefix+"/{id}",
+		auth(prefix, a.handle(a.viewTaskHandler)))
 	mux.HandleFunc("GET /"+prefix+"/{id}/edit",
 		auth(prefix, a.handle(a.editTaskFormHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/edit",
@@ -88,6 +79,8 @@ func (a *Todos) Routes(prefix string, mux *http.ServeMux) {
 
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks",
 		auth(prefix, a.handle(a.addSubtaskHandler)))
+	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/{sid}/subtasks",
+		auth(prefix, a.handle(a.addNestedSubtaskHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/{sid}/edit",
 		auth(prefix, a.handle(a.updateSubtaskHandler)))
 	mux.HandleFunc("POST /"+prefix+"/{id}/subtasks/reorder",

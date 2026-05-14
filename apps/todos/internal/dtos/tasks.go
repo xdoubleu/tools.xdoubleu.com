@@ -28,6 +28,11 @@ type ReorderDto struct {
 	IDs []string `json:"ids"`
 }
 
+type ReorderSubtasksDto struct {
+	IDs             []string `json:"ids"`
+	ParentSubtaskID string   `json:"parent_subtask_id"`
+}
+
 type AddLabelPresetDto struct {
 	Category string `schema:"category"`
 	Value    string `schema:"value"`
@@ -49,8 +54,10 @@ type UpdateArchiveDto struct {
 }
 
 type AddSubtaskDto struct {
-	Input       string `schema:"input"`
-	Description string `schema:"description"`
+	Input           string `schema:"input"`
+	Description     string `schema:"description"`
+	Source          string `schema:"source"`
+	ParentSubtaskID string `schema:"parent_subtask_id"`
 }
 
 type UpdateSubtaskDto struct {

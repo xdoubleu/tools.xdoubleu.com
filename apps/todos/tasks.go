@@ -42,7 +42,11 @@ func safeBackRedirect(back string) string {
 	return target.String()
 }
 
-const todosRoot = "/todos/"
+const (
+	todosRoot         = "/todos/"
+	subtaskSourceView = "view"
+	subtaskSourceList = "list"
+)
 
 func isHXRequest(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
@@ -544,12 +548,13 @@ func (a *Todos) newTaskFormHandler(w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	tpltools.RenderWithPanic(a.Tpl, w, "todos_form.html", map[string]any{
-		"Task":       models.Task{}, //nolint:exhaustruct // empty task for new-task form
-		"Action":     "/todos/new",
-		"IsEdit":     false,
-		"Presets":    presets,
-		"Sections":   sections,
-		"RecurInput": "",
+		"Task":        models.Task{}, //nolint:exhaustruct // empty task for new-task form
+		"Action":      "/todos/new",
+		"IsEdit":      false,
+		"Presets":     presets,
+		"Sections":    sections,
+		"RecurInput":  "",
+		"LabelColors": presets.ColorMap(),
 	})
 	return nil
 }
@@ -579,6 +584,32 @@ func (a *Todos) createTaskHandler(w http.ResponseWriter, r *http.Request) error 
 }
 
 // ── Edit task form ────────────────────────────────────────────────────────────
+
+func (a *Todos) viewTaskHandler(w http.ResponseWriter, r *http.Request) error {
+	user := currentUser(r)
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Task not found",
+		}
+	}
+	task, err := a.services.Tasks.Get(r.Context(), id, user.ID)
+	if err != nil {
+		return err
+	}
+
+	tpltools.RenderWithPanic(a.Tpl, w, "todos_view.html", map[string]any{
+		"Task":     task,
+		"DescHTML": task.Description,
+		"LabelColors": a.loadLabelColors(
+			r.Context(),
+			user.ID,
+			task.WorkspaceID,
+		),
+	})
+	return nil
+}
 
 func (a *Todos) editTaskFormHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
@@ -610,12 +641,13 @@ func (a *Todos) editTaskFormHandler(w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 	tpltools.RenderWithPanic(a.Tpl, w, "todos_form.html", map[string]any{
-		"Task":       task,
-		"Action":     "/todos/" + id.String() + "/edit",
-		"IsEdit":     true,
-		"Presets":    presets,
-		"Sections":   sections,
-		"RecurInput": a.services.Tasks.FormatRecurRule(task.RecurRule, task.RecurDays),
+		"Task":        task,
+		"Action":      "/todos/" + id.String() + "/edit",
+		"IsEdit":      true,
+		"Presets":     presets,
+		"Sections":    sections,
+		"RecurInput":  a.services.Tasks.FormatRecurRule(task.RecurRule, task.RecurDays),
+		"LabelColors": presets.ColorMap(),
 	})
 	return nil
 }
@@ -922,18 +954,109 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 			Message: "Invalid form data",
 		}
 	}
+	var parentSubtaskID *uuid.UUID
+	if dto.ParentSubtaskID != "" {
+		sid, parseErr := uuid.Parse(dto.ParentSubtaskID)
+		if parseErr != nil {
+			return &services.HTTPError{
+				Status:  http.StatusBadRequest,
+				Message: "Invalid parent_subtask_id",
+			}
+		}
+		parentSubtaskID = &sid
+	}
 	subtask, err := a.services.Tasks.AddSubtask(
 		r.Context(), taskID, user.ID,
 		wsCtx.Settings.ActiveWorkspaceID,
 		dto.Input, dto.Description,
+		parentSubtaskID,
 	)
 	if err != nil {
 		return err
 	}
 	if isHXRequest(r) {
-		tpltools.RenderWithPanic(a.Tpl, w, "_subtask_item", map[string]any{
-			"Subtask": subtask,
-			"TaskID":  taskID,
+		tplName := "_subtask_item"
+		if dto.Source == subtaskSourceView {
+			tplName = "_subtask_view_item"
+		}
+		tpltools.RenderWithPanic(a.Tpl, w, tplName, map[string]any{
+			"Subtask":  subtask,
+			"TaskID":   taskID,
+			"Depth":    0,
+			"ParentID": parentSubtaskID,
+			"LabelColors": a.loadLabelColors(
+				r.Context(),
+				user.ID,
+				wsCtx.Settings.ActiveWorkspaceID,
+			),
+		})
+		return nil
+	}
+	back := safeBackRedirect(r.URL.Query().Get("back"))
+	http.Redirect(w, r, back, http.StatusSeeOther)
+	return nil
+}
+
+func (a *Todos) addNestedSubtaskHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+	user := currentUser(r)
+	taskID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Task not found",
+		}
+	}
+	parentSubtaskID, err := uuid.Parse(r.PathValue("sid"))
+	if err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Parent subtask not found",
+		}
+	}
+	wsCtx, err := a.loadWorkspaceCtx(r.Context(), user.ID)
+	if err != nil {
+		return err
+	}
+	var dto dtos.AddSubtaskDto
+	if err = httptools.ReadForm(r, &dto); err != nil {
+		return &services.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid form data",
+		}
+	}
+	subtask, err := a.services.Tasks.AddSubtask(
+		r.Context(), taskID, user.ID,
+		wsCtx.Settings.ActiveWorkspaceID,
+		dto.Input, dto.Description,
+		&parentSubtaskID,
+	)
+	if err != nil {
+		return err
+	}
+	if isHXRequest(r) {
+		parentDepth, depthErr := a.repos.Tasks.GetSubtaskDepth(
+			r.Context(), taskID, parentSubtaskID,
+		)
+		if depthErr != nil {
+			return depthErr
+		}
+		tplName := "_subtask_item"
+		if dto.Source == subtaskSourceView {
+			tplName = "_subtask_view_item"
+		}
+		tpltools.RenderWithPanic(a.Tpl, w, tplName, map[string]any{
+			"Subtask":  subtask,
+			"TaskID":   taskID,
+			"Depth":    parentDepth + 1,
+			"ParentID": &parentSubtaskID,
+			"LabelColors": a.loadLabelColors(
+				r.Context(),
+				user.ID,
+				wsCtx.Settings.ActiveWorkspaceID,
+			),
 		})
 		return nil
 	}
@@ -993,7 +1116,7 @@ func (a *Todos) reorderSubtasksHandler(
 			Message: "Task not found",
 		}
 	}
-	var dto dtos.ReorderDto
+	var dto dtos.ReorderSubtasksDto
 	if err = json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		return &services.HTTPError{
 			Status:  http.StatusBadRequest,
@@ -1008,8 +1131,19 @@ func (a *Todos) reorderSubtasksHandler(
 		}
 		ids = append(ids, id)
 	}
+	var parentSubtaskID *uuid.UUID
+	if dto.ParentSubtaskID != "" {
+		sid, parseErr := uuid.Parse(dto.ParentSubtaskID)
+		if parseErr != nil {
+			return &services.HTTPError{
+				Status:  http.StatusBadRequest,
+				Message: "Invalid parent_subtask_id",
+			}
+		}
+		parentSubtaskID = &sid
+	}
 	if err = a.services.Tasks.ReorderSubtasks(
-		r.Context(), taskID, user.ID, ids,
+		r.Context(), taskID, user.ID, ids, parentSubtaskID,
 	); err != nil {
 		return err
 	}
@@ -1017,10 +1151,37 @@ func (a *Todos) reorderSubtasksHandler(
 	return nil
 }
 
+func (a *Todos) renderSubtaskListAfterAction(
+	w http.ResponseWriter,
+	r *http.Request,
+	taskID uuid.UUID,
+	userID string,
+) error {
+	task, err := a.services.Tasks.Get(r.Context(), taskID, userID)
+	if err != nil {
+		return err
+	}
+	source := r.FormValue("source") //nolint:gosec // form already parsed
+	tplName := "_subtask_list"
+	if source == subtaskSourceView {
+		tplName = "_subtask_view_list"
+	}
+	tpltools.RenderWithPanic(a.Tpl, w, tplName, map[string]any{
+		"Task": task,
+		"LabelColors": a.loadLabelColors(
+			r.Context(),
+			userID,
+			task.WorkspaceID,
+		),
+	})
+	return nil
+}
+
 func (a *Todos) handleSubtaskAction(
 	w http.ResponseWriter,
 	r *http.Request,
 	action func(context.Context, uuid.UUID, uuid.UUID, string) error,
+	renderAfter bool,
 ) error {
 	user := currentUser(r)
 	taskID, err := uuid.Parse(r.PathValue("id"))
@@ -1040,19 +1201,22 @@ func (a *Todos) handleSubtaskAction(
 	if err = action(r.Context(), sid, taskID, user.ID); err != nil {
 		return err
 	}
-	if isHXRequest(r) {
+	if !isHXRequest(r) {
+		back := safeBackRedirect(r.URL.Query().Get("back"))
+		http.Redirect(w, r, back, http.StatusSeeOther)
+		return nil
+	}
+	if !renderAfter {
 		w.WriteHeader(http.StatusOK)
 		return nil
 	}
-	back := safeBackRedirect(r.URL.Query().Get("back"))
-	http.Redirect(w, r, back, http.StatusSeeOther)
-	return nil
+	return a.renderSubtaskListAfterAction(w, r, taskID, user.ID)
 }
 
 func (a *Todos) toggleSubtaskHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.handleSubtaskAction(w, r, a.services.Tasks.ToggleSubtask)
+	return a.handleSubtaskAction(w, r, a.services.Tasks.ToggleSubtask, true)
 }
 
 func (a *Todos) deleteSubtaskHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.handleSubtaskAction(w, r, a.services.Tasks.DeleteSubtask)
+	return a.handleSubtaskAction(w, r, a.services.Tasks.DeleteSubtask, true)
 }

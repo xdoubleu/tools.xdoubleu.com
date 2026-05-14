@@ -45,17 +45,20 @@ type Task struct {
 }
 
 type Subtask struct {
-	ID          uuid.UUID
-	TaskID      uuid.UUID
-	Title       string
-	Description string
-	Done        bool
-	SortOrder   int
-	Priority    int
-	Labels      []string
-	DueDate     *time.Time
-	Deadline    *time.Time
-	CreatedAt   time.Time
+	ID              uuid.UUID
+	TaskID          uuid.UUID
+	Title           string
+	Description     string
+	Done            bool
+	SortOrder       int
+	Priority        int
+	Labels          []string
+	DueDate         *time.Time
+	Deadline        *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	ParentSubtaskID *uuid.UUID
+	Children        []Subtask
 }
 
 type TaskLink struct {
