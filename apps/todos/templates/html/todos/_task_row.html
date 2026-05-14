@@ -211,11 +211,20 @@
   </form>
 
   {{/* ── Subtask section (indented, below main row) ───────────────────── */}}
-  <div class="ms-4{{if $task.Subtasks}} mt-2{{end}} subtask-section"
+  <div class="ms-4{{if $task.Subtasks}} mt-2{{end}} subtask-section hide-done"
     id="subtask-section-{{$task.ID}}">
+    {{if gt $task.SubtaskDone 0}}
+    <div class="mb-1 text-end">
+      <button type="button"
+        id="subtask-done-toggle-{{$task.ID}}"
+        class="btn btn-link btn-sm p-0 text-muted"
+        style="font-size:.72rem"
+        onclick="toggleDoneSubtasks('{{$task.ID}}')">show done ({{$task.SubtaskDone}})</button>
+    </div>
+    {{end}}
     <div class="list-group list-group-flush subtask-list" id="subtasks-{{$task.ID}}">
       {{range $task.Subtasks}}
-      {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid)}}
+      {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid "Depth" 0 "LabelColors" $lc)}}
       {{end}}
     </div>
 

@@ -1,4 +1,4 @@
-{{define "_subtask_item"}}
+{{define "_subtask_view_item"}}
 {{$sub := .Subtask}}
 {{$tid := .TaskID}}
 {{$depth := .Depth}}
@@ -17,19 +17,13 @@
     <span style="width: 1rem;"></span>
     {{end}}
 
-    {{/* ── Drag handle ─────────────────────────────────────────────────── */}}
-    <span class="drag-handle-sub text-muted"
-      style="cursor:grab;user-select:none;line-height:1"
-      title="Drag to reorder">⠿</span>
-
     {{/* ── Toggle done ─────────────────────────────────────────────────── */}}
-    <form method="POST"
-      action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle?back=/todos/"
+    <form method="POST" action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle?back=/todos/{{$tid}}"
       hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}/toggle"
       hx-target="#subtasks-{{$tid}}"
       hx-swap="innerHTML"
-      hx-on:htmx:after-settle="if(window.setActiveSubtaskRow) window.setActiveSubtaskRow(null)"
       class="m-0 flex-shrink-0 d-flex align-items-center">
+      <input type="hidden" name="source" value="view">
       <button type="submit"
         class="task-check task-check-p{{$sub.Priority}}{{if $sub.Done}} subtask-check-done{{end}}"
         data-done="{{if $sub.Done}}1{{else}}0{{end}}"
@@ -38,25 +32,9 @@
 
     {{/* ── Content ─────────────────────────────────────────────────────── */}}
     <div class="flex-grow-1 min-w-0">
-      <div class="subtask-title-view small{{if $sub.Done}} text-muted text-decoration-line-through{{end}}" onclick="showSubtaskEdit('{{$sub.ID}}')">
-        {{$sub.Title}}
-      </div>
-      <div class="subtask-title-edit small" style="display:none">
-        <form method="POST"
-          action="/todos/{{$tid}}/subtasks/{{$sub.ID}}"
-          hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}"
-          hx-target="#subtasks-{{$tid}}"
-          hx-swap="innerHTML"
-          hx-on:htmx:after-settle="if(window.setActiveSubtaskRow) window.setActiveSubtaskRow(null)"
-          class="d-flex gap-1">
-          <input type="text" name="title" value="{{$sub.Title}}"
-            class="form-control form-control-sm flex-grow-1" required>
-          <button type="submit" class="btn btn-sm btn-dark" style="white-space: nowrap;">Save</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" style="white-space: nowrap;" onclick="hideSubtaskEdit('{{$sub.ID}}')">Cancel</button>
-        </form>
-      </div>
+      <div class="small{{if $sub.Done}} text-muted text-decoration-line-through{{end}}">{{$sub.Title}}</div>
       {{if $sub.Description}}
-      <div class="text-muted small" style="font-size:.78rem">{{$sub.Description}}</div>
+      <div class="small text-muted mt-1">{{$sub.Description}}</div>
       {{end}}
       {{if or $sub.Labels $sub.DueDate $sub.Deadline (gt $sub.Priority 0)}}
       <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
@@ -89,15 +67,14 @@
         onclick="showAddChild('{{$sub.ID}}')" title="Add child subtask">+</button>
       {{end}}
       <form method="POST"
-        action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/delete?back=/todos/"
+        action="/todos/{{$tid}}/subtasks/{{$sub.ID}}/delete?back=/todos/{{$tid}}"
         hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}/delete"
         hx-target="#subtasks-{{$tid}}"
         hx-swap="innerHTML"
-        hx-on:htmx:after-settle="if(window.setActiveSubtaskRow) window.setActiveSubtaskRow(null)"
         onsubmit="return confirm('Delete subtask?')"
         class="m-0">
-        <button type="submit" class="btn btn-outline-danger btn-sm"
-          title="Delete">&#10005;</button>
+        <input type="hidden" name="source" value="view">
+        <button type="submit" class="btn btn-link btn-sm text-danger p-0 lh-1">&#10005;</button>
       </form>
     </div>
 
@@ -111,9 +88,8 @@
       hx-post="/todos/{{$tid}}/subtasks/{{$sub.ID}}/subtasks"
       hx-target="#subtask-children-{{$sub.ID}}"
       hx-swap="beforeend"
-      hx-on:htmx:after-settle="if(window.setActiveSubtaskRow) window.setActiveSubtaskRow(null)"
       class="d-flex gap-1">
-      <input type="hidden" name="source" value="list">
+      <input type="hidden" name="source" value="view">
       <input type="text" name="input"
         class="form-control form-control-sm flex-grow-1"
         placeholder="Add child subtask…" required>
@@ -128,11 +104,11 @@
     {{if $sub.Children}}
     {{range $sub.Children}}
     {{if eq $depth 0}}
-      {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid "Depth" 1 "LabelColors" $lc)}}
+      {{template "_subtask_view_item" (dict "Subtask" . "TaskID" $tid "Depth" 1 "LabelColors" $lc)}}
     {{else if eq $depth 1}}
-      {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid "Depth" 2 "LabelColors" $lc)}}
+      {{template "_subtask_view_item" (dict "Subtask" . "TaskID" $tid "Depth" 2 "LabelColors" $lc)}}
     {{else}}
-      {{template "_subtask_item" (dict "Subtask" . "TaskID" $tid "Depth" 3 "LabelColors" $lc)}}
+      {{template "_subtask_view_item" (dict "Subtask" . "TaskID" $tid "Depth" 3 "LabelColors" $lc)}}
     {{end}}
     {{end}}
     {{end}}

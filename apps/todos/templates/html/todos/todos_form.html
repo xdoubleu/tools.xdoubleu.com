@@ -109,106 +109,31 @@
   </span>
   {{end}}
 </div>
-  <div class="list-group mb-2">
-    {{range .Task.Subtasks}}
-    {{$sid := .ID}}
-    <div class="list-group-item px-2 py-2" id="subtask-edit-row-{{$sid}}">
-      <div class="subtask-view d-flex align-items-start gap-2">
-        <form method="POST"
-          action="/todos/{{$.Task.ID}}/subtasks/{{$sid}}/toggle?back=/todos/{{$.Task.ID}}/edit"
-          class="m-0 pt-1 flex-shrink-0">
-          <button type="submit" class="btn btn-sm p-0 border-0 lh-1"
-            style="font-size:1.1rem;color:{{if .Done}}var(--bs-success){{else}}var(--bs-secondary){{end}}">
-            {{if .Done}}&#9745;{{else}}&#9744;{{end}}
-          </button>
-        </form>
-        <div class="flex-grow-1 min-w-0">
-          <div class="small fw-semibold{{if .Done}} text-muted text-decoration-line-through{{end}}">
-            {{.Title}}
-          </div>
-          {{if .Description}}
-          <div class="small text-muted">{{.Description}}</div>
-          {{end}}
-          {{if or .Labels .DueDate .Deadline}}
-          <div class="d-flex flex-wrap gap-1 mt-1">
-            {{range .Labels}}
-            <span class="badge bg-secondary" style="font-size:.65rem">{{.}}</span>
-            {{end}}
-            {{if .DueDate}}
-            <span class="badge {{if isOverdue .DueDate}}bg-danger{{else}}bg-warning text-dark{{end}}"
-              style="font-size:.65rem">{{humanDate .DueDate}}</span>
-            {{end}}
-            {{if .Deadline}}
-            <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle"
-              style="font-size:.65rem">⚑&nbsp;{{humanDate .Deadline}}</span>
-            {{end}}
-          </div>
-          {{end}}
-        </div>
-        <div class="d-flex gap-1 flex-shrink-0">
-          <button type="button" class="btn btn-outline-secondary btn-sm"
-            title="Edit" onclick="toggleSubEdit('{{$sid}}')">&#9998;</button>
-          <form method="POST"
-            action="/todos/{{$.Task.ID}}/subtasks/{{$sid}}/delete?back=/todos/{{$.Task.ID}}/edit"
-            onsubmit="return confirm('Delete subtask?')" class="m-0">
-            <button type="submit" class="btn btn-outline-danger btn-sm">&#10005;</button>
-          </form>
-        </div>
-      </div>
-      <div class="subtask-edit mt-2" style="display:none">
-        <form method="POST"
-          action="/todos/{{$.Task.ID}}/subtasks/{{$sid}}/edit?back=/todos/{{$.Task.ID}}/edit">
-          <div class="d-flex gap-2 mb-2">
-            <input type="text" name="title" value="{{.Title}}"
-              class="form-control form-control-sm flex-grow-1"
-              placeholder="Title" required>
-            <select name="priority" class="form-select form-select-sm"
-              style="max-width:80px">
-              <option value="0" {{if eq .Priority 0}}selected{{end}}>—</option>
-              <option value="1" {{if eq .Priority 1}}selected{{end}}>P1</option>
-              <option value="2" {{if eq .Priority 2}}selected{{end}}>P2</option>
-              <option value="3" {{if eq .Priority 3}}selected{{end}}>P3</option>
-            </select>
-          </div>
-          <input type="text" name="description" value="{{.Description}}"
-            class="form-control form-control-sm mb-2"
-            placeholder="Description (optional)">
-          <div class="d-flex gap-2 mb-2">
-            <input type="text" name="label" value="{{joinStrings .Labels ","}}"
-              class="form-control form-control-sm" placeholder="Label(s), comma-sep…">
-            <input type="text" name="due_date"
-              value="{{if .DueDate}}{{.DueDate.Format "2006-01-02"}}{{end}}"
-              class="form-control form-control-sm" placeholder="Due date…">
-            <input type="text" name="deadline"
-              value="{{if .Deadline}}{{.Deadline.Format "2006-01-02"}}{{end}}"
-              class="form-control form-control-sm" placeholder="Deadline…">
-          </div>
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-dark btn-sm">Save</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-              onclick="toggleSubEdit('{{$sid}}')">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    {{end}}
-  </div>
-  <form method="POST"
-    action="/todos/{{.Task.ID}}/subtasks?back=/todos/{{.Task.ID}}/edit"
-    class="mb-3">
-    <div class="d-flex gap-2 mb-1">
-      <input type="text" name="input"
-        class="form-control form-control-sm"
-        placeholder="Add subtask… (p1 @label today !deadline)"
-        autocomplete="off">
-      <button type="submit" class="btn btn-outline-secondary btn-sm flex-shrink-0">
-        Add
-      </button>
-    </div>
-    <input type="text" name="description"
+<div class="list-group mb-2 subtask-list-root" id="subtasks-{{.Task.ID}}" data-task-id="{{.Task.ID}}">
+  {{range .Task.Subtasks}}
+  {{template "_subtask_item" (dict "Subtask" . "TaskID" $.Task.ID "Depth" 0 "LabelColors" $.LabelColors)}}
+  {{end}}
+</div>
+<form method="POST"
+  action="/todos/{{.Task.ID}}/subtasks?back=/todos/{{.Task.ID}}/edit"
+  hx-post="/todos/{{.Task.ID}}/subtasks"
+  hx-target="#subtasks-{{.Task.ID}}"
+  hx-swap="beforeend"
+  class="mb-3">
+  <input type="hidden" name="source" value="form">
+  <div class="d-flex gap-2 mb-1">
+    <input type="text" name="input"
       class="form-control form-control-sm"
-      placeholder="Description (optional)" autocomplete="off">
-  </form>
+      placeholder="Add subtask… (p1 @label today !deadline)"
+      autocomplete="off">
+    <button type="submit" class="btn btn-outline-secondary btn-sm flex-shrink-0">
+      Add
+    </button>
+  </div>
+  <input type="text" name="description"
+    class="form-control form-control-sm"
+    placeholder="Description (optional)" autocomplete="off">
+</form>
 
 {{/* ── Bottom actions ───────────────────────────────────────────────────── */}}
 <hr>
@@ -536,7 +461,45 @@
 }
 .lp-pill .lp-trigger:hover { border-color: var(--bs-border-color); background: var(--bs-body-bg); }
 .lp-pill .lp-trigger:focus-within { border-color: var(--bs-primary-border-subtle); background: var(--bs-body-bg); box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15); }
+
+/* ── Subtask styling ────────────────────────────────────────────────────────── */
+.subtask-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+.subtask-row:hover {
+  background-color: var(--bs-secondary-bg);
+}
+.subtask-children { margin-top: 2px; }
+.subtask-collapsed > .subtask-children { display: none; }
+.subtask-expand-btn {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+  transition: transform 0.15s;
+}
+.subtask-row.subtask-collapsed .subtask-expand-btn {
+  transform: rotate(-90deg);
+}
+.priority-p1 { background-color: var(--bs-danger) !important; }
+.priority-p2 { background-color: var(--bs-warning) !important; color: #000 !important; }
+.priority-p3 { background-color: var(--bs-info) !important; color: #000 !important; }
+.subtask-title-view { cursor: pointer; }
+.subtask-title-view:hover { text-decoration: underline; }
+
 @media (max-width: 576px) {
+  .drag-handle-sub { padding: 8px 6px; font-size: 1rem; }
+  .subtask-add-child-form { display: block; width: 100%; }
+  .subtask-row { font-size: 0.875rem; }
+  .subtask-row[style*="padding-left"] { padding-left: calc(var(--subtask-depth, 0) * 1rem) !important; }
   .lp-drop { max-width: calc(100vw - 16px); }
 }
 </style>
@@ -930,23 +893,36 @@
   }
 
   /* ── Subtask inline edit toggle ─────────────────────────────────────── */
-  window.toggleSubEdit = function (sid) {
-    var row  = document.getElementById('subtask-edit-row-' + sid);
-    if (!row) { return; }
-    var view = row.querySelector('.subtask-view');
-    var edit = row.querySelector('.subtask-edit');
-    var editing = edit.style.display !== 'none';
-    view.style.display = editing ? '' : 'none';
-    edit.style.display = editing ? 'none' : '';
-    if (!editing) {
-      var input = edit.querySelector('input[name="title"]');
-      if (input) { input.focus(); }
-      var labelInput = edit.querySelector('input[name="label"]');
-      if (labelInput && !labelInput._labelAcBound) {
-        labelInput._labelAcBound = true;
-        initLabelPicker(labelInput, PRESET_LABELS);
-      }
+  window.showSubtaskEdit = function (subtaskId) {
+    var view = document.querySelector(`.subtask-title-view[onclick*="${subtaskId}"]`);
+    var edit = document.querySelector(`.subtask-title-edit`);
+    if (view) view.style.display = 'none';
+    var editForm = document.querySelector(`.subtask-row[data-subtask-id="${subtaskId}"] .subtask-title-edit`);
+    if (editForm) {
+      editForm.style.display = 'block';
+      editForm.querySelector('input[name="title"]')?.focus();
     }
+  };
+  window.hideSubtaskEdit = function (subtaskId) {
+    var editForm = document.querySelector(`.subtask-row[data-subtask-id="${subtaskId}"] .subtask-title-edit`);
+    var viewDiv = document.querySelector(`.subtask-row[data-subtask-id="${subtaskId}"] .subtask-title-view`);
+    if (editForm) editForm.style.display = 'none';
+    if (viewDiv) viewDiv.style.display = '';
+  };
+  window.toggleSubtaskCollapse = function (subtaskId) {
+    const row = document.querySelector(`.subtask-row[data-subtask-id="${subtaskId}"]`);
+    if (!row) return;
+    row.classList.toggle('subtask-collapsed');
+    const isCollapsed = row.classList.contains('subtask-collapsed');
+    try { localStorage.setItem('subtask_collapsed_' + subtaskId, isCollapsed ? '1' : '0'); } catch(e) {}
+  };
+  window.showAddChild = function (subtaskId) {
+    const form = document.querySelector(`.subtask-add-child-form[data-parent-id="${subtaskId}"]`);
+    if (form) { form.style.display = 'block'; form.querySelector('input[name="input"]')?.focus(); }
+  };
+  window.hideAddChild = function (subtaskId) {
+    const form = document.querySelector(`.subtask-add-child-form[data-parent-id="${subtaskId}"]`);
+    if (form) form.style.display = 'none';
   };
 
   /* ── Add link row ────────────────────────────────────────────────────── */
@@ -975,6 +951,43 @@
       initLabelPicker(el, PRESET_LABELS);
     });
   }
+
+  /* ── Subtask initialization ────────────────────────────────────────────── */
+  function initSubtaskSortables() {
+    document.querySelectorAll('.subtask-list-root, .subtask-children').forEach(function(container) {
+      if (container._sortable) return;
+      if (typeof Sortable === 'undefined') return;
+      container._sortable = new Sortable(container, {
+        handle: '.drag-handle-sub',
+        animation: 150,
+        delay: 150,
+        delayOnTouchOnly: true,
+        onEnd: function() {
+          const taskId = container.closest('[data-task-id]')?.dataset.taskId;
+          if (!taskId) return;
+          const ids = Array.from(container.querySelectorAll(':scope > .subtask-row')).map(el => el.dataset.subtaskId);
+          const parentId = container.dataset.parentId || '';
+          fetch(`/todos/${taskId}/subtasks/reorder`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: ids, parent_subtask_id: parentId})
+          });
+        }
+      });
+    });
+  }
+
+  // Restore collapsed state from localStorage
+  document.querySelectorAll('.subtask-row[data-subtask-id]').forEach(function(row) {
+    const id = row.dataset.subtaskId;
+    try { if (localStorage.getItem('subtask_collapsed_' + id) === '1') row.classList.add('subtask-collapsed'); } catch(e) {}
+  });
+
+  // Initialize sortables when DOM is ready
+  initSubtaskSortables();
+
+  // Re-initialize sortables after HTMX updates
+  document.addEventListener('htmx:afterSettle', initSubtaskSortables);
 }());
 </script>
 

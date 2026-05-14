@@ -1,0 +1,10 @@
+{{define "_subtask_view_list"}}
+{{$task := .Task}}
+{{$tid := $task.ID}}
+{{$lc := .LabelColors}}
+{{if $task.Subtasks}}
+{{range $task.Subtasks}}
+{{template "_subtask_view_item" (dict "Subtask" . "TaskID" $tid "Depth" 0 "LabelColors" $lc)}}
+{{end}}
+{{end}}
+{{end}}
