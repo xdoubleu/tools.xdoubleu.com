@@ -1,3 +1,5 @@
+UNAME_S := $(shell uname -s)
+
 tools: tools/lint tools/templ
 
 tools/templ:
