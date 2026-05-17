@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/templates"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -35,11 +35,15 @@ func newTestApp() (*watchparty.WatchParty, http.Handler) {
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		cfg,
-		templates.LoadShared(cfg),
 	)
 
 	mux := http.NewServeMux()
 	app.Routes(app.GetName(), mux)
 
 	return app, mux
+}
+
+func TestGetDisplayName(t *testing.T) {
+	app, _ := newTestApp()
+	assert.Equal(t, "WatchParty", app.GetDisplayName())
 }

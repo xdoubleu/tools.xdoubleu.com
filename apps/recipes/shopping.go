@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 )
 
@@ -48,9 +47,9 @@ func (a *Recipes) shoppingListHandler(w http.ResponseWriter, r *http.Request) er
 		return nil
 	}
 
-	tpltools.RenderWithPanic(a.Tpl, w, "plans_shopping.html", map[string]any{
-		"Plan":  plan,
-		"Items": items,
-	})
+	_ = PlansShoppingPage(PlansShoppingData{
+		Plan:  *plan,
+		Items: items,
+	}).Render(r.Context(), w)
 	return nil
 }

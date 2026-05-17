@@ -12,7 +12,6 @@ import (
 
 	"github.com/justinas/alice"
 	"github.com/xdoubleu/essentia/v4/pkg/middleware"
-	"github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
@@ -85,14 +84,22 @@ func (app *Application) Routes() http.Handler {
 		}
 	}
 
-	handlers, err := middleware.DefaultWithSentry(
-		app.logger,
-		allowedOrigins,
-		app.config.Env,
+	var (
+		handlers []alice.Constructor
+		err      error
 	)
 
-	if err != nil {
-		panic(err)
+	if app.config.Throttle {
+		handlers, err = middleware.DefaultWithSentry(
+			app.logger,
+			allowedOrigins,
+			app.config.Env,
+		)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		handlers = middleware.Minimal(app.logger)
 	}
 
 	standard := alice.New(
@@ -184,5 +191,5 @@ func (app *Application) Home(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tpl.RenderWithPanic(app.tpl, w, "home.html", data)
+	_ = HomePage(data).Render(r.Context(), w)
 }

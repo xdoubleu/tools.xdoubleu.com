@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strconv"
 
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 )
 
@@ -86,7 +85,7 @@ func (app *Backlog) steamPageHandler(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "steam.html", steamPageData{
+	_ = SteamPage(steamPageData{
 		NotStarted:   notStarted,
 		InProgress:   inProgress,
 		Completed:    completed,
@@ -97,7 +96,7 @@ func (app *Backlog) steamPageHandler(w http.ResponseWriter, r *http.Request) err
 		Values:       values,
 		DateStart:    dateStart.Format(models.ProgressDateFormat),
 		DateEnd:      dateEnd.Format(models.ProgressDateFormat),
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -147,10 +146,10 @@ func (app *Backlog) steamGameHandler(w http.ResponseWriter, r *http.Request) err
 		return *pi > *pj
 	})
 
-	tpltools.RenderWithPanic(app.Tpl, w, "steam_game.html", steamGamePageData{
+	_ = SteamGamePage(steamGamePageData{
 		Game:         *game,
 		Achievements: achievements,
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -176,9 +175,9 @@ func (app *Backlog) steamDistributionHandler(
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "distribution.html", distributionPageData{
+	_ = DistributionPage(distributionPageData{
 		Label: labels[bucket],
 		Games: bucketGames[bucket],
-	})
+	}).Render(r.Context(), w)
 	return nil
 }

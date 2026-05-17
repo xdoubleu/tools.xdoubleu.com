@@ -22,12 +22,11 @@ func (a *Recipes) handle(h handler) http.HandlerFunc {
 					"method", r.Method,
 					"path", r.URL.Path,
 				)
-				templates.RenderError(a.Tpl, w, svcErr.Status, svcErr.Message)
+				templates.RenderError(w, svcErr.Status, svcErr.Message)
 			case errors.Is(err, database.ErrResourceNotFound):
-				templates.RenderError(a.Tpl, w, http.StatusNotFound, "Not found")
+				templates.RenderError(w, http.StatusNotFound, "Not found")
 			case errors.Is(err, database.ErrResourceConflict):
 				templates.RenderError(
-					a.Tpl,
 					w,
 					http.StatusConflict,
 					"Resource already exists",
@@ -39,7 +38,7 @@ func (a *Recipes) handle(h handler) http.HandlerFunc {
 					"path", r.URL.Path,
 				)
 				templates.RenderError(
-					a.Tpl, w, http.StatusInternalServerError,
+					w, http.StatusInternalServerError,
 					"An unexpected error occurred.",
 				)
 			}

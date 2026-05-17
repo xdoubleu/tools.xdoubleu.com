@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/recipes/internal/dtos"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
@@ -21,12 +20,6 @@ func currentUser(r *http.Request) *sharedmodels.User {
 		r.Context(),
 		constants.UserContextKey,
 	)
-}
-
-type scaledIngredient struct {
-	Name   string
-	Amount string
-	Unit   string
 }
 
 type stepEntry struct {
@@ -42,22 +35,20 @@ func (a *Recipes) listRecipesHandler(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "recipes_list.html", map[string]any{
-		"Recipes": recipeList,
-	})
+	_ = RecipesListPage(RecipesListData{Recipes: recipeList}).Render(r.Context(), w)
 	return nil
 }
 
 // ── New recipe form ───────────────────────────────────────────────────────────
 
-func (a *Recipes) newRecipeFormHandler(w http.ResponseWriter, _ *http.Request) error {
-	tpltools.RenderWithPanic(a.Tpl, w, "recipes_form.html", map[string]any{
-		//nolint:exhaustruct,mnd // other fields optional and no magic number
-		"Recipe": models.Recipe{BaseServings: 2},
-		"Steps":  []stepEntry{},
-		"Action": "/recipes/new",
-		"IsEdit": false,
-	})
+func (a *Recipes) newRecipeFormHandler(w http.ResponseWriter, r *http.Request) error {
+	//nolint:exhaustruct,mnd // other fields optional and no magic number
+	_ = RecipesFormPage(RecipesFormData{
+		Recipe: models.Recipe{BaseServings: 2},
+		Steps:  []stepEntry{},
+		Action: "/recipes/new",
+		IsEdit: false,
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -110,12 +101,12 @@ func (a *Recipes) viewOrEditRecipeHandler(
 	steps := splitSteps(recipe.Instructions)
 
 	if r.URL.Query().Get("edit") == "1" && recipe.UserID == user.ID {
-		tpltools.RenderWithPanic(a.Tpl, w, "recipes_form.html", map[string]any{
-			"Recipe": recipe,
-			"Steps":  steps,
-			"Action": "/recipes/" + id.String(),
-			"IsEdit": true,
-		})
+		_ = RecipesFormPage(RecipesFormData{
+			Recipe: *recipe,
+			Steps:  steps,
+			Action: "/recipes/" + id.String(),
+			IsEdit: true,
+		}).Render(r.Context(), w)
 		return nil
 	}
 
@@ -125,10 +116,10 @@ func (a *Recipes) viewOrEditRecipeHandler(
 		servings = s
 	}
 
-	scaled := make([]scaledIngredient, len(recipe.Ingredients))
+	scaled := make([]ScaledIngredient, len(recipe.Ingredients))
 	for i, ing := range recipe.Ingredients {
 		ratio := float64(servings) / float64(recipe.BaseServings)
-		scaled[i] = scaledIngredient{
+		scaled[i] = ScaledIngredient{
 			Name:   ing.Name,
 			Amount: toFraction(ing.Amount * ratio),
 			Unit:   ing.Unit,
@@ -140,14 +131,14 @@ func (a *Recipes) viewOrEditRecipeHandler(
 		return err
 	}
 
-	tpltools.RenderWithPanic(a.Tpl, w, "recipes_view.html", map[string]any{
-		"Recipe":   recipe,
-		"Steps":    steps,
-		"Servings": servings,
-		"Scaled":   scaled,
-		"IsOwner":  recipe.UserID == user.ID,
-		"Contacts": contacts,
-	})
+	_ = RecipesViewPage(RecipesViewData{
+		Recipe:   *recipe,
+		Steps:    steps,
+		Servings: servings,
+		Scaled:   scaled,
+		IsOwner:  recipe.UserID == user.ID,
+		Contacts: contacts,
+	}).Render(r.Context(), w)
 	return nil
 }
 

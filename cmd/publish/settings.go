@@ -6,7 +6,6 @@ import (
 
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/constants"
@@ -25,12 +24,7 @@ func (app *Application) saveIntegrations(
 ) {
 	user := currentUser(r)
 	if user == nil {
-		templates.RenderError(
-			app.tpl,
-			w,
-			http.StatusUnauthorized,
-			"Sign in to access this page",
-		)
+		templates.RenderError(w, http.StatusUnauthorized, "Sign in to access this page")
 		return
 	}
 
@@ -55,7 +49,6 @@ func (app *Application) saveIntegrations(
 		r.Context(), user.ID, integrations,
 	); err != nil {
 		templates.RenderError(
-			app.tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to save settings",
@@ -69,19 +62,13 @@ func (app *Application) saveIntegrations(
 func (app *Application) settingsHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
-		templates.RenderError(
-			app.tpl,
-			w,
-			http.StatusUnauthorized,
-			"Sign in to access this page",
-		)
+		templates.RenderError(w, http.StatusUnauthorized, "Sign in to access this page")
 		return
 	}
 
 	integrations, err := app.backlog.GetIntegrations(r.Context(), user.ID)
 	if err != nil {
 		templates.RenderError(
-			app.tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to load settings",
@@ -96,11 +83,11 @@ func (app *Application) settingsHandler(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "settings.html", map[string]any{
-		"Integrations":  integrations,
-		"Saved":         r.URL.Query().Get("saved") == "1",
-		"ImportedCount": importedCount,
-	})
+	_ = MainSettingsPage(MainSettingsPageData{
+		Integrations:  integrations,
+		Saved:         r.URL.Query().Get("saved") == "1",
+		ImportedCount: importedCount,
+	}).Render(r.Context(), w)
 }
 
 func (app *Application) saveSettingsHandler(w http.ResponseWriter, r *http.Request) {

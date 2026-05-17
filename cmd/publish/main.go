@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -26,11 +25,7 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/templates"
 )
-
-//go:embed templates/html/**/*html
-var htmlTemplates embed.FS
 
 //go:embed migrations/*.sql
 var globalMigrations embed.FS
@@ -43,7 +38,6 @@ type Application struct {
 	contacts      contacts.Service
 	apps          *Apps
 	backlog       *backlog.Backlog
-	tpl           *template.Template
 	requestBuffer *logging.UserLogBuffer
 	appUsersRepo  *repositories.AppUsersRepository
 }
@@ -109,30 +103,6 @@ func NewApplication(
 	db *pgxpool.Pool,
 	supabaseClient gotrue.Client,
 ) *Application {
-	sharedTpl := templates.LoadShared(config)
-	tpl := template.Must(sharedTpl.Clone())
-	tpl = tpl.Funcs(template.FuncMap{
-		"hasAccess": func(access []string, appName string) bool {
-			for _, a := range access {
-				if a == appName {
-					return true
-				}
-			}
-			return false
-		},
-		"dict": func(kv ...any) map[string]any {
-			const kvPairSize = 2
-			m := make(map[string]any, len(kv)/kvPairSize)
-			for i := 0; i+1 < len(kv); i += kvPairSize {
-				if key, ok := kv[i].(string); ok {
-					m[key] = kv[i+1]
-				}
-			}
-			return m
-		},
-	})
-	tpl = template.Must(tpl.ParseFS(htmlTemplates, "templates/html/**/*.html"))
-
 	ctx := context.Background()
 
 	//nolint:exhaustruct //other fields are optional
@@ -155,10 +125,15 @@ func NewApplication(
 
 	appUsersRepo := repositories.NewAppUsersRepository(db)
 	contactsRepo := repositories.NewContactsRepository(db)
-	svc := services.New(config, supabaseClient, tpl, appUsersRepo)
+	svc := services.New(config, supabaseClient, appUsersRepo)
+	svc.Auth.SignInRenderer = func(
+		w http.ResponseWriter, r *http.Request, redirectURL string,
+	) {
+		_ = SignInPage(redirectURL).Render(r.Context(), w)
+	}
 	contactsSvc := contacts.New(contactsRepo, svc.Auth)
 
-	bl := backlog.New(ctx, svc.Auth, logger, config, db, sharedTpl)
+	bl := backlog.New(ctx, svc.Auth, logger, config, db)
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
@@ -168,13 +143,12 @@ func NewApplication(
 		services:      svc,
 		contacts:      contactsSvc,
 		backlog:       bl,
-		tpl:           tpl,
 		requestBuffer: logBuffer,
 		appUsersRepo:  appUsersRepo,
 	}
 
 	app.apps = NewApps(
-		app.ctx, app.services.Auth, logger, config, db, sharedTpl, bl, contactsSvc,
+		app.ctx, app.services.Auth, logger, config, db, bl, contactsSvc,
 	)
 
 	err = app.ApplyMigrations(db)

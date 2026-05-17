@@ -8,7 +8,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	config "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
@@ -31,15 +30,6 @@ func (app *WatchParty) templateRoutes(prefix string, mux *http.ServeMux) {
 		fmt.Sprintf("GET /%s/api/rooms/leave", prefix),
 		app.Services.Auth.Access(app.leaveRoomHandler),
 	)
-}
-
-type rootData struct {
-	RoomCode    string
-	IsPresenter bool
-}
-
-type lobbyData struct {
-	Error string
 }
 
 func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,23 +55,21 @@ func (app *WatchParty) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	exists, roomCode, role := app.Services.Room.GetRoomForUser(user.ID)
 	if !exists {
-		// Show lobby where user can create or join a room
-		//nolint:exhaustruct // No need to initialize lobbyData with zero values
-		tpltools.RenderWithPanic(app.Tpl, w, "lobby.html", lobbyData{})
+		_ = LobbyPage(LobbyViewData{Error: ""}).Render(r.Context(), w)
 		return
 	}
 
 	switch role {
 	case dtos.Presenter:
-		tpltools.RenderWithPanic(app.Tpl, w, "room.html", rootData{
+		_ = RoomPage(RoomViewData{
 			RoomCode:    roomCode,
 			IsPresenter: true,
-		})
+		}).Render(r.Context(), w)
 	case dtos.Viewer:
-		tpltools.RenderWithPanic(app.Tpl, w, "room.html", rootData{
+		_ = RoomPage(RoomViewData{
 			RoomCode:    roomCode,
 			IsPresenter: false,
-		})
+		}).Render(r.Context(), w)
 	}
 }
 
@@ -121,17 +109,17 @@ func (app *WatchParty) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !app.Services.Room.RoomExists(dto.RoomCode) {
-		tpltools.RenderWithPanic(app.Tpl, w, "lobby.html", lobbyData{
+		_ = LobbyPage(LobbyViewData{
 			Error: fmt.Sprintf("Room %q does not exist.", dto.RoomCode),
-		})
+		}).Render(r.Context(), w)
 		return
 	}
 
 	ok := app.Services.Room.JoinViewer(r.Context(), dto.RoomCode, user.ID)
 	if !ok {
-		tpltools.RenderWithPanic(app.Tpl, w, "lobby.html", lobbyData{
+		_ = LobbyPage(LobbyViewData{
 			Error: "Could not join room.",
-		})
+		}).Render(r.Context(), w)
 		return
 	}
 

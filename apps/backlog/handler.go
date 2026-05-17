@@ -33,7 +33,7 @@ func (app *Backlog) handle(h handler) http.HandlerFunc {
 					"method", r.Method,
 					"path", r.URL.Path,
 				)
-				templates.RenderError(app.Tpl, w, httpErr.Status, httpErr.Message)
+				templates.RenderError(w, httpErr.Status, httpErr.Message)
 			} else {
 				app.Logger.ErrorContext(r.Context(), "unexpected handler error",
 					"error", err,
@@ -41,7 +41,7 @@ func (app *Backlog) handle(h handler) http.HandlerFunc {
 					"path", r.URL.Path,
 				)
 				templates.RenderError(
-					app.Tpl, w, http.StatusInternalServerError,
+					w, http.StatusInternalServerError,
 					"An unexpected error occurred.",
 				)
 			}

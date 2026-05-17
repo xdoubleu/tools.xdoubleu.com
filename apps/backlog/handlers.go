@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -55,7 +54,7 @@ func (app *Backlog) rootHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "root.html", data)
+	_ = RootPage(data).Render(r.Context(), w)
 	return nil
 }
 
@@ -67,7 +66,7 @@ func (app *Backlog) userBacklogHandler(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "root.html", data)
+	_ = RootPage(data).Render(r.Context(), w)
 	return nil
 }
 

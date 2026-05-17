@@ -1,5 +1,5 @@
 bin
-coverage.out
+cov*.out
 coverage.out.tmp
 coverage.html
 cpu.prof

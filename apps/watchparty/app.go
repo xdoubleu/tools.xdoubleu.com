@@ -3,8 +3,6 @@ package watchparty
 
 import (
 	"context"
-	"embed"
-	"html/template"
 	"log/slog"
 	_ "time/tzdata"
 
@@ -15,9 +13,6 @@ import (
 	"tools.xdoubleu.com/internal/config"
 )
 
-//go:embed templates/html/**/*html
-var htmlTemplates embed.FS
-
 type WatchParty struct {
 	app.Base
 	Services *services.Services
@@ -27,7 +22,6 @@ func New(
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
-	sharedTpl *template.Template,
 ) *WatchParty {
 	//nolint:exhaustruct //Services initialised below
 	wp := &WatchParty{
@@ -36,8 +30,6 @@ func New(
 			authService,
 			logger,
 			cfg,
-			htmlTemplates,
-			sharedTpl,
 		),
 	}
 	wp.Services = services.New(wp.Ctx, logger, authService)

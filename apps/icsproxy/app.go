@@ -3,7 +3,6 @@ package icsproxy
 import (
 	"context"
 	"embed"
-	"html/template"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,9 +17,6 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-//go:embed templates/html/**/*html
-var htmlTemplates embed.FS
-
 type ICSProxy struct {
 	app.Base
 	services *services.Services
@@ -31,7 +27,6 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	sharedTpl *template.Template,
 ) *ICSProxy {
 	//nolint:exhaustruct //services initialised below
 	proxy := &ICSProxy{
@@ -40,8 +35,6 @@ func New(
 			authService,
 			logger,
 			cfg,
-			htmlTemplates,
-			sharedTpl,
 		),
 	}
 	proxy.services = services.New(

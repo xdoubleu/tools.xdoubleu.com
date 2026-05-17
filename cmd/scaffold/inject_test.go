@@ -14,7 +14,6 @@ const sampleAppsGo = `package main
 
 import (
 	"context"
-	"html/template"
 	"log/slog"
 	"net/http"
 
@@ -33,14 +32,13 @@ func NewApps(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	sharedTpl *template.Template,
 	bl *backlog.Backlog,
 ) *Apps {
 	var apps Apps = []App{}
 
 	apps.addApp(bl)
-	apps.addApp(watchparty.New(authService, logger, cfg, sharedTpl))
-	apps.addApp(icsproxy.New(authService, logger, cfg, db, sharedTpl))
+	apps.addApp(watchparty.New(authService, logger, cfg))
+	apps.addApp(icsproxy.New(authService, logger, cfg, db))
 	// scaffold:app
 
 	return &apps
@@ -75,7 +73,7 @@ func TestInjectApp_ImportsInserted(t *testing.T) {
 	assert.Contains(
 		t,
 		string(content),
-		`apps.addApp(myapp.New(authService, logger, cfg, sharedTpl))`,
+		`apps.addApp(myapp.New(authService, logger, cfg))`,
 	)
 }
 
@@ -97,7 +95,7 @@ func TestInjectApp_WithDB(t *testing.T) {
 	assert.Contains(
 		t,
 		string(content),
-		`apps.addApp(myapp.New(authService, logger, cfg, db, sharedTpl))`,
+		`apps.addApp(myapp.New(authService, logger, cfg, db))`,
 	)
 }
 

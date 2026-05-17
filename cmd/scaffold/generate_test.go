@@ -27,10 +27,6 @@ func TestGenerateApp_NoDBNoJobs(t *testing.T) {
 	assert.FileExists(t, filepath.Join(outDir, "app.go"))
 	assert.FileExists(t, filepath.Join(outDir, "routes.go"))
 	assert.FileExists(t, filepath.Join(outDir, "internal", "services", "main.go"))
-	assert.FileExists(
-		t,
-		filepath.Join(outDir, "templates", "html", "testapp", "index.html"),
-	)
 
 	assert.NoDirExists(t, filepath.Join(outDir, "internal", "repositories"))
 	assert.NoDirExists(t, filepath.Join(outDir, "migrations"))

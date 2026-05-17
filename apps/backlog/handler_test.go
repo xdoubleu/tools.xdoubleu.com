@@ -24,7 +24,7 @@ func TestHTTPError_As(t *testing.T) {
 }
 
 func TestHandle_HTTPError(t *testing.T) {
-	app := &Backlog{} //nolint:exhaustruct //only tpl needed
+	app := &Backlog{} //nolint:exhaustruct //only Base fields used in error path
 	h := func(_ http.ResponseWriter, _ *http.Request) error {
 		return httpError(http.StatusForbidden, "forbidden")
 	}
@@ -33,15 +33,13 @@ func TestHandle_HTTPError(t *testing.T) {
 
 	wrapped := app.handle(h)
 
-	// We expect a panic from tpltools.RenderWithPanic on nil template —
-	// capture it so the test doesn't crash.
 	assert.Panics(t, func() {
 		wrapped(rr, req)
 	})
 }
 
 func TestHandle_GenericError(t *testing.T) {
-	app := &Backlog{} //nolint:exhaustruct //nil tpl panics on render
+	app := &Backlog{} //nolint:exhaustruct //only Base fields used in error path
 	h := func(_ http.ResponseWriter, _ *http.Request) error {
 		return errors.New("something broke")
 	}
@@ -56,7 +54,7 @@ func TestHandle_GenericError(t *testing.T) {
 }
 
 func TestHandle_NoError(t *testing.T) {
-	app := &Backlog{} //nolint:exhaustruct //tpl not used when handler succeeds
+	app := &Backlog{} //nolint:exhaustruct //only Base fields used in error path
 	h := func(w http.ResponseWriter, _ *http.Request) error {
 		w.WriteHeader(http.StatusOK)
 		return nil

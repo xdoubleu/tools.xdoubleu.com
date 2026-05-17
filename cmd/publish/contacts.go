@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/internal/templates"
 )
 
@@ -27,19 +26,18 @@ func (app *Application) renderContactsPage(
 	contactList, _ := app.contacts.List(r.Context(), userID)
 	pending, _ := app.contacts.ListPending(r.Context(), userID)
 	incoming, _ := app.contacts.ListIncoming(r.Context(), userID)
-	tpltools.RenderWithPanic(app.tpl, w, "contacts.html", map[string]any{
-		"Contacts": contactList,
-		"Pending":  pending,
-		"Incoming": incoming,
-		"Error":    errMsg,
-	})
+	_ = ContactsPage(ContactsPageData{
+		Contacts: contactList,
+		Pending:  pending,
+		Incoming: incoming,
+		Error:    errMsg,
+	}).Render(r.Context(), w)
 }
 
 func (app *Application) listContactsHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
-		templates.RenderError(app.tpl, w, http.StatusUnauthorized,
-			"Sign in to access this page")
+		templates.RenderError(w, http.StatusUnauthorized, "Sign in to access this page")
 		return
 	}
 	app.renderContactsPage(w, r, user.ID, "")
@@ -48,8 +46,7 @@ func (app *Application) listContactsHandler(w http.ResponseWriter, r *http.Reque
 func (app *Application) createContactHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
-		templates.RenderError(app.tpl, w, http.StatusUnauthorized,
-			"Sign in to access this page")
+		templates.RenderError(w, http.StatusUnauthorized, "Sign in to access this page")
 		return
 	}
 
@@ -73,25 +70,24 @@ func (app *Application) createContactHandler(w http.ResponseWriter, r *http.Requ
 func (app *Application) acceptContactHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
-		templates.RenderError(app.tpl, w, http.StatusUnauthorized,
-			"Sign in to access this page")
+		templates.RenderError(w, http.StatusUnauthorized, "Sign in to access this page")
 		return
 	}
 
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		templates.RenderError(app.tpl, w, http.StatusNotFound, "Contact not found")
+		templates.RenderError(w, http.StatusNotFound, "Contact not found")
 		return
 	}
 
 	var dto acceptContactDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		templates.RenderError(app.tpl, w, http.StatusBadRequest, "Invalid form data")
+		templates.RenderError(w, http.StatusBadRequest, "Invalid form data")
 		return
 	}
 
 	if err = app.contacts.Accept(r.Context(), id, user.ID, dto.DisplayName); err != nil {
-		templates.RenderError(app.tpl, w, http.StatusInternalServerError,
+		templates.RenderError(w, http.StatusInternalServerError,
 			"Failed to accept contact request")
 		return
 	}
@@ -102,19 +98,18 @@ func (app *Application) acceptContactHandler(w http.ResponseWriter, r *http.Requ
 func (app *Application) declineContactHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
-		templates.RenderError(app.tpl, w, http.StatusUnauthorized,
-			"Sign in to access this page")
+		templates.RenderError(w, http.StatusUnauthorized, "Sign in to access this page")
 		return
 	}
 
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		templates.RenderError(app.tpl, w, http.StatusNotFound, "Contact not found")
+		templates.RenderError(w, http.StatusNotFound, "Contact not found")
 		return
 	}
 
 	if err = app.contacts.Decline(r.Context(), id, user.ID); err != nil {
-		templates.RenderError(app.tpl, w, http.StatusInternalServerError,
+		templates.RenderError(w, http.StatusInternalServerError,
 			"Failed to decline contact request")
 		return
 	}
@@ -125,19 +120,18 @@ func (app *Application) declineContactHandler(w http.ResponseWriter, r *http.Req
 func (app *Application) deleteContactHandler(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if user == nil {
-		templates.RenderError(app.tpl, w, http.StatusUnauthorized,
-			"Sign in to access this page")
+		templates.RenderError(w, http.StatusUnauthorized, "Sign in to access this page")
 		return
 	}
 
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		templates.RenderError(app.tpl, w, http.StatusNotFound, "Contact not found")
+		templates.RenderError(w, http.StatusNotFound, "Contact not found")
 		return
 	}
 
 	if err = app.contacts.Delete(r.Context(), id, user.ID); err != nil {
-		templates.RenderError(app.tpl, w, http.StatusInternalServerError,
+		templates.RenderError(w, http.StatusInternalServerError,
 			"Failed to delete contact")
 		return
 	}

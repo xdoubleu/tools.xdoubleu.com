@@ -326,6 +326,50 @@ func TestToggleTag_EmptyTag(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rs.StatusCode)
 }
 
+// TestToggleTag_HTMX exercises the HTMX branch of toggleTagHandler, which
+// calls buildLibraryData and renders BooksLibraryPage inline.
+func TestToggleTag_HTMX(t *testing.T) {
+	ub := addTestBook(t, "HXToggleBook")
+
+	body := strings.NewReader("tag=htmx-tag")
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/"+testApp.GetName()+"/books/"+ub.BookID.String()+"/tags",
+		body,
+	)
+	req.Header.Set("Content-Type", string(test.FormContentType))
+	req.Header.Set("HX-Request", "true")
+	req.AddCookie(&accessToken)
+
+	getRoutes().ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+// TestToggleTag_RemovesExistingTag calls toggleTagHandler with a tag the book
+// already has, exercising the found=true / removal path in ToggleTag.
+func TestToggleTag_RemovesExistingTag(t *testing.T) {
+	ub := addTestBookWithStatus(
+		t,
+		"RemoveTagBook",
+		models.StatusToRead,
+		[]string{"existing-tag"},
+	)
+
+	tReq := test.CreateRequestTester(
+		getRoutes(),
+		http.MethodPost,
+		"/"+testApp.GetName()+"/books/"+ub.BookID.String()+"/tags",
+	)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(dtos.ToggleTagDto{Tag: "existing-tag"})
+	tReq.AddCookie(&accessToken)
+	tReq.SetFollowRedirect(false)
+
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
+}
+
 // goodreadsCSVForImport is a minimal Goodreads CSV for import testing.
 //
 //nolint:lll // CSV rows are inherently long

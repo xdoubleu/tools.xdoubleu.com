@@ -22,9 +22,9 @@ func (a *Todos) handle(h handler) http.HandlerFunc {
 					"method", r.Method,
 					"path", r.URL.Path,
 				)
-				templates.RenderError(a.Tpl, w, svcErr.Status, svcErr.Message)
+				templates.RenderError(w, svcErr.Status, svcErr.Message)
 			case errors.Is(err, database.ErrResourceNotFound):
-				templates.RenderError(a.Tpl, w, http.StatusNotFound, "Not found")
+				templates.RenderError(w, http.StatusNotFound, "Not found")
 			default:
 				a.Logger.ErrorContext(r.Context(), "unexpected handler error",
 					"error", err,
@@ -32,7 +32,7 @@ func (a *Todos) handle(h handler) http.HandlerFunc {
 					"path", r.URL.Path,
 				)
 				templates.RenderError(
-					a.Tpl, w, http.StatusInternalServerError,
+					w, http.StatusInternalServerError,
 					"An unexpected error occurred.",
 				)
 			}

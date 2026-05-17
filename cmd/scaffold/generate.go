@@ -35,11 +35,6 @@ func generateApp(outDir string, data scaffoldData) error {
 			true,
 		},
 		{
-			"templates/index.html.tmpl",
-			filepath.Join("templates", "html", data.Name, "index.html"),
-			true,
-		},
-		{
 			"templates/repos_main.go.tmpl",
 			filepath.Join("internal", "repositories", "main.go"),
 			data.WithDB,

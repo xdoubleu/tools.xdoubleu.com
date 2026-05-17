@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"html/template"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,7 +21,6 @@ type Base struct {
 	Ctx       context.Context
 	CtxCancel context.CancelFunc
 	Config    config.Config
-	Tpl       *template.Template
 	Auth      auth.Service
 }
 
@@ -34,12 +32,7 @@ func NewBase(
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
-	appTemplates embed.FS,
-	sharedTpl *template.Template,
 ) Base {
-	tpl := template.Must(sharedTpl.Clone())
-	tpl = template.Must(tpl.ParseFS(appTemplates, "templates/html/**/*.html"))
-
 	ctx, cancel := context.WithCancel(parentCtx)
 
 	return Base{
@@ -47,7 +40,6 @@ func NewBase(
 		Ctx:       ctx,
 		CtxCancel: cancel,
 		Config:    cfg,
-		Tpl:       tpl,
 		Auth:      authService,
 	}
 }

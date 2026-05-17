@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/config"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/templates"
@@ -69,7 +68,6 @@ func (app *Application) signInHandler(w http.ResponseWriter, r *http.Request) {
 
 	secure := app.config.Env == config.ProdEnv
 
-	// Store the aal1 token in a short-lived cookie for the MFA step.
 	app.setMFATokenCookie(
 		w,
 		*accessToken,
@@ -160,8 +158,6 @@ func (app *Application) clearMFACookies(w http.ResponseWriter) {
 	}
 }
 
-// completeMFA issues real session cookies after successful MFA verification and
-// clears the temporary MFA cookies.
 func (app *Application) completeMFA(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -176,7 +172,6 @@ func (app *Application) completeMFA(
 	)
 	if err != nil {
 		templates.RenderError(
-			app.tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to create session",
@@ -191,7 +186,6 @@ func (app *Application) completeMFA(
 		)
 		if refErr != nil {
 			templates.RenderError(
-				app.tpl,
 				w,
 				http.StatusInternalServerError,
 				"Failed to create session",
@@ -205,7 +199,6 @@ func (app *Application) completeMFA(
 	http.Redirect(w, r, redirect, http.StatusSeeOther)
 }
 
-// mfaEnrollGetHandler shows the TOTP QR code for first-time enrollment.
 func (app *Application) mfaEnrollGetHandler(w http.ResponseWriter, r *http.Request) {
 	mfaToken, err := r.Cookie("mfaToken")
 	if err != nil {
@@ -221,15 +214,13 @@ func (app *Application) mfaEnrollGetHandler(w http.ResponseWriter, r *http.Reque
 
 	//nolint:gosec //SVG originates from Supabase, not user input
 	qrCode := template.HTML(enroll.TOTP.QRCode)
-	tpltools.RenderWithPanic(app.tpl, w, "mfa-enroll.html", map[string]any{
-		"HideNav":  true,
-		"QRCode":   qrCode,
-		"Secret":   enroll.TOTP.Secret,
-		"FactorID": enroll.ID.String(),
-	})
+	_ = MFAEnrollPage(MFAEnrollPageData{
+		QRCode:   qrCode,
+		Secret:   enroll.TOTP.Secret,
+		FactorID: enroll.ID.String(),
+	}).Render(r.Context(), w)
 }
 
-// mfaEnrollPostHandler verifies the first TOTP code and completes enrollment.
 func (app *Application) mfaEnrollPostHandler(w http.ResponseWriter, r *http.Request) {
 	mfaToken, err := r.Cookie("mfaToken")
 	if err != nil {
@@ -279,19 +270,15 @@ func (app *Application) mfaEnrollPostHandler(w http.ResponseWriter, r *http.Requ
 	app.completeMFA(w, r, *accessToken, *refreshToken, rememberMe, redirect)
 }
 
-// mfaChallengeGetHandler shows the TOTP code entry form.
 func (app *Application) mfaChallengeGetHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := r.Cookie("mfaToken"); err != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "mfa-challenge.html", map[string]any{
-		"HideNav": true,
-	})
+	_ = MFAChallengePage(MFAChallengePageData{}).Render(r.Context(), w)
 }
 
-// mfaChallengePostHandler verifies the TOTP code and issues session cookies.
 func (app *Application) mfaChallengePostHandler(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -350,11 +337,9 @@ func (app *Application) mfaChallengePostHandler(
 
 func (app *Application) forgotPasswordGetHandler(
 	w http.ResponseWriter,
-	_ *http.Request,
+	r *http.Request,
 ) {
-	tpltools.RenderWithPanic(app.tpl, w, "forgot-password.html", map[string]any{
-		"HideNav": true,
-	})
+	_ = ForgotPasswordPage(ForgotPasswordPageData{}).Render(r.Context(), w)
 }
 
 func (app *Application) forgotPasswordPostHandler(
@@ -374,7 +359,6 @@ func (app *Application) forgotPasswordPostHandler(
 		return
 	}
 
-	// Always redirect with sent=1 to avoid leaking whether the email exists.
 	_ = app.services.Auth.ForgotPassword(dto.Email)
 	http.Redirect(w, r, "/auth/forgot-password?sent=1", http.StatusSeeOther)
 }

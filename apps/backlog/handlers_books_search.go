@@ -3,7 +3,6 @@ package backlog
 import (
 	"net/http"
 
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 )
@@ -32,12 +31,9 @@ func (app *Backlog) booksSearchLibraryHandler(
 
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		tpltools.RenderWithPanic(
-			app.Tpl,
-			w,
-			"books_search_results.html",
+		_ = BooksSearchResultsPage(
 			searchResultsData{}, //nolint:exhaustruct //empty results
-		)
+		).Render(r.Context(), w)
 		return nil
 	}
 
@@ -46,21 +42,18 @@ func (app *Backlog) booksSearchLibraryHandler(
 		return err
 	}
 	if len(libraryResults) > 0 {
-		tpltools.RenderWithPanic(
-			app.Tpl,
-			w,
-			"books_search_results.html",
+		_ = BooksSearchResultsPage(
 			searchResultsData{ //nolint:exhaustruct //other fields are zero value
 				LibraryResults: libraryResults,
 			},
-		)
+		).Render(r.Context(), w)
 		return nil
 	}
 
 	// No library results — render a loading spinner that triggers the external search.
-	tpltools.RenderWithPanic(app.Tpl, w, "books_search_loading.html", searchLoadingData{
+	_ = BooksSearchLoadingPage(searchLoadingData{
 		Query: query,
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -77,12 +70,9 @@ func (app *Backlog) booksSearchExternalHandler(
 
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		tpltools.RenderWithPanic(
-			app.Tpl,
-			w,
-			"books_search_results.html",
+		_ = BooksSearchResultsPage(
 			searchResultsData{}, //nolint:exhaustruct //empty results
-		)
+		).Render(r.Context(), w)
 		return nil
 	}
 
@@ -96,14 +86,11 @@ func (app *Backlog) booksSearchExternalHandler(
 		app.Logger.WarnContext(r.Context(), "hardcover search failed", "error", err)
 	}
 
-	tpltools.RenderWithPanic(
-		app.Tpl,
-		w,
-		"books_search_results.html",
+	_ = BooksSearchResultsPage(
 		searchResultsData{ //nolint:exhaustruct //LibraryResults is zero value
 			HardcoverResults: hardcoverResults,
 			FromHardcover:    len(hardcoverResults) > 0,
 		},
-	)
+	).Render(r.Context(), w)
 	return nil
 }

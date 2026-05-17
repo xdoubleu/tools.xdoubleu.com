@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/templates"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -72,7 +72,6 @@ func TestMain(m *testing.M) {
 		logging.NewNopLogger(),
 		testCfg,
 		postgresDB,
-		templates.LoadShared(testCfg),
 	)
 
 	if err = testApp.ApplyMigrations(context.Background(), postgresDB); err != nil {
@@ -86,4 +85,8 @@ func getRoutes() http.Handler {
 	mux := http.NewServeMux()
 	testApp.Routes(testApp.GetName(), mux)
 	return mux
+}
+
+func TestGetDisplayName(t *testing.T) {
+	assert.Equal(t, "ICS Proxy", testApp.GetDisplayName())
 }

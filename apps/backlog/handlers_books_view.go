@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"slices"
 
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 )
 
@@ -75,8 +74,8 @@ func groupByStatus(userBooks []models.UserBook) []bookShelf {
 	return shelves
 }
 
-func (app *Backlog) booksPageHandler(w http.ResponseWriter, _ *http.Request) error {
-	tpltools.RenderWithPanic(app.Tpl, w, "books.html", nil)
+func (app *Backlog) booksPageHandler(w http.ResponseWriter, r *http.Request) error {
+	_ = BooksPage().Render(r.Context(), w)
 	return nil
 }
 
@@ -131,7 +130,7 @@ func (app *Backlog) booksLibraryHandler(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", data)
+	_ = BooksLibraryPage(data).Render(r.Context(), w)
 	return nil
 }
 
@@ -149,11 +148,11 @@ func (app *Backlog) booksProgressHandler(w http.ResponseWriter, r *http.Request)
 		return err
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "books_progress.html", booksProgressData{
+	_ = BooksProgressPage(booksProgressData{
 		Labels:    labels,
 		Values:    values,
 		DateStart: dateStart.Format(models.ProgressDateFormat),
 		DateEnd:   dateEnd.Format(models.ProgressDateFormat),
-	})
+	}).Render(r.Context(), w)
 	return nil
 }

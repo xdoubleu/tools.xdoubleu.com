@@ -13,7 +13,6 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/templates"
 )
 
 func TestRootUnboarded(t *testing.T) {
@@ -32,7 +31,6 @@ func TestRootUnboarded(t *testing.T) {
 				return mocks.NewMockHardcoverClient()
 			},
 		},
-		templates.LoadShared(testCfg),
 	)
 
 	mux := http.NewServeMux()
@@ -115,4 +113,26 @@ func TestRefreshGoodreads(t *testing.T) {
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusNoContent, rs.StatusCode)
+}
+
+func TestSteamGameHandler_InvalidID(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		getRoutes(),
+		http.MethodGet,
+		"/"+testApp.GetName()+"/steam/games/not-a-number",
+	)
+	tReq.AddCookie(&accessToken)
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusNotFound, rs.StatusCode)
+}
+
+func TestSteamGameHandler_UnknownGame(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		getRoutes(),
+		http.MethodGet,
+		"/"+testApp.GetName()+"/steam/games/99999",
+	)
+	tReq.AddCookie(&accessToken)
+	rs := tReq.Do(t)
+	assert.GreaterOrEqual(t, rs.StatusCode, http.StatusBadRequest)
 }

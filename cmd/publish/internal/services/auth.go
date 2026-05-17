@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -15,7 +14,6 @@ import (
 	"github.com/supabase-community/gotrue-go/types"
 	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/errortools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"github.com/xhit/go-str2duration/v2"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
@@ -24,13 +22,20 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
+// SignInRenderFunc is called by TemplateAccess when the user is not authenticated.
+// It receives the redirect URL so the sign-in page can redirect back after login.
+type SignInRenderFunc func(w http.ResponseWriter, r *http.Request, redirectURL string)
+
 type AuthService struct {
 	client           gotrue.Client
-	tpl              *template.Template
 	useSecureCookies bool
 	accessExpiry     string
 	refreshExpiry    string
 	appUsersRepo     *repositories.AppUsersRepository
+	// SignInRenderer is set by cmd/publish after construction to avoid a
+	// circular import between this package and package main (which owns the
+	// templ-generated SignInPage component).
+	SignInRenderer SignInRenderFunc
 }
 
 func (service *AuthService) GetAllUsers() ([]models.User, error) {
@@ -185,10 +190,9 @@ func (service *AuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFu
 		}
 
 		if user == nil {
-			tpltools.RenderWithPanic(service.tpl, w, "sign-in.html", map[string]any{
-				"HideNav":  true,
-				"Redirect": r.URL.RequestURI(),
-			})
+			if service.SignInRenderer != nil {
+				service.SignInRenderer(w, r, r.URL.RequestURI())
+			}
 			return
 		}
 

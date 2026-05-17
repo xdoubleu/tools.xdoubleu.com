@@ -1,0 +1,188 @@
+package main
+
+import (
+	"html/template"
+
+	"tools.xdoubleu.com/internal/templates"
+)
+
+// ForgotPasswordPageData holds data for the forgot password page.
+type ForgotPasswordPageData struct{}
+
+// MFAEnrollPageData holds data for the MFA enroll page.
+type MFAEnrollPageData struct {
+	QRCode   template.HTML
+	Secret   string
+	FactorID string
+}
+
+// MFAChallengePageData holds data for the MFA challenge page.
+type MFAChallengePageData struct{}
+
+templ SignInPage(redirectURL string) {
+	@templates.BareLayout() {
+		<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+			<div class="card shadow-sm" style="width: 100%; max-width: 420px;">
+				<div class="card-body p-4">
+					<h1 class="h3 fw-bold text-center mb-4">tools.xdoubleu.com</h1>
+					<form method="POST" action="/auth/signin">
+						<div class="mb-3">
+							<label for="email" class="form-label">Email address</label>
+							<input type="email" class="form-control" id="email" name="email" required autocomplete="username"/>
+						</div>
+						<div class="mb-3">
+							<label for="password" class="form-label">Password</label>
+							<input type="password" class="form-control" id="password" name="password" required autocomplete="current-password"/>
+						</div>
+						<div class="form-check mb-3">
+							<input type="checkbox" class="form-check-input" name="rememberMe" id="rememberMe" checked/>
+							<label class="form-check-label" for="rememberMe">Remember me</label>
+						</div>
+						<div class="alert alert-danger d-none" role="alert" id="error-alert"></div>
+						<input type="hidden" name="redirect" value={ redirectURL }/>
+						<button type="submit" class="btn btn-dark w-100">Sign in</button>
+					</form>
+					<div class="text-center mt-3">
+						<a href="/auth/forgot-password" class="text-muted small">Forgot password?</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+    var error = new URLSearchParams(window.location.search).get("error");
+    if (error != null) {
+        var alert = document.getElementById("error-alert");
+        alert.innerHTML = error;
+        alert.classList.remove("d-none");
+    }
+		</script>
+	}
+}
+
+templ ForgotPasswordPage(_ ForgotPasswordPageData) {
+	@templates.BareLayout() {
+		<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+			<div class="card shadow-sm" style="width: 100%; max-width: 420px;">
+				<div class="card-body p-4">
+					<h1 class="h3 fw-bold text-center mb-4">tools.xdoubleu.com</h1>
+					<form method="POST" action="/auth/forgot-password">
+						<div class="mb-3">
+							<label for="email" class="form-label">Email address</label>
+							<input type="email" class="form-control" id="email" name="email" required autocomplete="username"/>
+						</div>
+						<div class="alert alert-success d-none" role="alert" id="sent-alert">
+							If an account with that email exists, a password reset link has been sent.
+						</div>
+						<div class="alert alert-danger d-none" role="alert" id="error-alert"></div>
+						<button type="submit" class="btn btn-dark w-100">Send reset link</button>
+					</form>
+					<div class="text-center mt-3">
+						<a href="/" class="text-muted small">Back to sign in</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+    var params = new URLSearchParams(window.location.search);
+    var error = params.get("error");
+    if (error != null) {
+        var errAlert = document.getElementById("error-alert");
+        errAlert.innerHTML = error;
+        errAlert.classList.remove("d-none");
+    }
+    if (params.get("sent") === "1") {
+        document.getElementById("sent-alert").classList.remove("d-none");
+    }
+		</script>
+	}
+}
+
+templ MFAEnrollPage(data MFAEnrollPageData) {
+	@templates.BareLayout() {
+		<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+			<div class="card shadow-sm" style="width: 100%; max-width: 480px;">
+				<div class="card-body p-4">
+					<h1 class="h3 fw-bold text-center mb-2">Set up two-factor authentication</h1>
+					<p class="text-muted text-center mb-4">Scan the QR code with your authenticator app, then enter the six-digit code to confirm.</p>
+					<div class="text-center mb-4">
+						@templ.Raw(string(data.QRCode))
+					</div>
+					<details class="mb-4">
+						<summary class="text-muted small" style="cursor:pointer;">Can&#39;t scan? Enter the key manually</summary>
+						<code class="d-block mt-2 p-2 bg-light rounded text-break small">{ data.Secret }</code>
+					</details>
+					<form method="POST" action="/auth/mfa/enroll">
+						<input type="hidden" name="factor_id" value={ data.FactorID }/>
+						<div class="mb-3">
+							<label for="code" class="form-label">Verification code</label>
+							<input
+								type="text"
+								class="form-control form-control-lg text-center"
+								id="code"
+								name="code"
+								inputmode="numeric"
+								pattern="\d{6}"
+								maxlength="6"
+								placeholder="000000"
+								autocomplete="one-time-code"
+								required
+								autofocus
+							/>
+						</div>
+						<div class="alert alert-danger d-none" role="alert" id="error-alert"></div>
+						<button type="submit" class="btn btn-dark w-100">Confirm and continue</button>
+					</form>
+				</div>
+			</div>
+		</div>
+		<script>
+    var error = new URLSearchParams(window.location.search).get("error")
+    if (error != null) {
+        var alert = document.getElementById("error-alert")
+        alert.innerHTML = error
+        alert.classList.remove("d-none")
+    }
+		</script>
+	}
+}
+
+templ MFAChallengePage(_ MFAChallengePageData) {
+	@templates.BareLayout() {
+		<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+			<div class="card shadow-sm" style="width: 100%; max-width: 420px;">
+				<div class="card-body p-4">
+					<h1 class="h3 fw-bold text-center mb-2">Two-factor authentication</h1>
+					<p class="text-muted text-center mb-4">Enter the six-digit code from your authenticator app.</p>
+					<form method="POST" action="/auth/mfa/challenge">
+						<div class="mb-3">
+							<label for="code" class="form-label">Verification code</label>
+							<input
+								type="text"
+								class="form-control form-control-lg text-center"
+								id="code"
+								name="code"
+								inputmode="numeric"
+								pattern="\d{6}"
+								maxlength="6"
+								placeholder="000000"
+								autocomplete="one-time-code"
+								required
+								autofocus
+							/>
+						</div>
+						<div class="alert alert-danger d-none" role="alert" id="error-alert"></div>
+						<button type="submit" class="btn btn-dark w-100">Verify</button>
+					</form>
+				</div>
+			</div>
+		</div>
+		<script>
+    var error = new URLSearchParams(window.location.search).get("error");
+    if (error != null) {
+        var alert = document.getElementById("error-alert");
+        alert.innerHTML = error;
+        alert.classList.remove("d-none");
+    }
+		</script>
+	}
+}

@@ -214,3 +214,29 @@ func TestBuildIssueBodyEscapesPipes(t *testing.T) {
 	assert.Contains(t, body, "production")
 	assert.Contains(t, body, "user-123")
 }
+
+func TestBuildIssueBody_NoEntries(t *testing.T) {
+	body := buildIssueBody(
+		"description", "/page", "agent", "v0.0.1", "dev", "uid",
+		nil, "", "",
+	)
+	assert.Contains(t, body, "_No log entries captured._")
+}
+
+func TestBuildIssueBody_WithConsoleLogs(t *testing.T) {
+	body := buildIssueBody(
+		"description", "/page", "agent", "v0.0.1", "dev", "uid",
+		nil, "console.log('hi')", "",
+	)
+	assert.Contains(t, body, "console.log('hi')")
+	assert.Contains(t, body, "```")
+}
+
+func TestBuildIssueBody_WithWSLog(t *testing.T) {
+	body := buildIssueBody(
+		"description", "/page", "agent", "v0.0.1", "dev", "uid",
+		nil, "", "ws message here",
+	)
+	assert.Contains(t, body, "ws message here")
+	assert.Contains(t, body, "WebSocket log")
+}
