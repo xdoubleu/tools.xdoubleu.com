@@ -1,0 +1,251 @@
+package todos
+
+import (
+	"fmt"
+
+	"tools.xdoubleu.com/apps/todos/internal/models"
+	"tools.xdoubleu.com/internal/templates"
+)
+
+// ─── Done Page ────────────────────────────────────────────────────────────────
+
+type DonePageData struct {
+	Tasks             []models.Task
+	Sections          []models.Section
+	LabelColors       map[string]string
+	UserSettings      *models.UserSettings
+	Workspaces        []models.Workspace
+	ArchiveAfterHours int
+}
+
+templ DonePage(d DonePageData) {
+	@templates.Layout() {
+		@donePageBody(d)
+	}
+}
+
+templ donePageBody(d DonePageData) {
+	<div class="container py-4">
+		@todosSearchBar("")
+		@simpleNavTabs("done", d.Sections, d.UserSettings, d.Workspaces, "/todos/done")
+		if d.ArchiveAfterHours > 0 {
+			<div class="alert alert-secondary py-2 small mb-3">
+				Tasks auto-archive { fmt.Sprintf("%d", d.ArchiveAfterHours) } hour(s) after completion.
+			</div>
+		}
+		if len(d.Tasks) == 0 {
+			<p class="text-muted">No completed tasks yet.</p>
+		} else {
+			<div class="list-group">
+				for _, task := range d.Tasks {
+					<div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+						<a href={ templ.SafeURL("/todos/" + task.ID.String()) } class="text-decoration-none text-body flex-grow-1 min-w-0">
+							<div class="d-flex align-items-center gap-1 mb-1">
+								@priorityBadge(task.Priority)
+								<span class="fw-semibold text-truncate text-decoration-line-through text-muted">{ task.Title }</span>
+							</div>
+							<div class="d-flex flex-wrap gap-1">
+								@labelBadges(task.Labels, d.LabelColors)
+								if task.CompletedAt != nil {
+									<span class="badge bg-light text-muted border">done { task.CompletedAt.Format("2 Jan 15:04") }</span>
+								}
+							</div>
+						</a>
+						<form method="POST" action={ templ.SafeURL("/todos/" + task.ID.String() + "/reopen") } class="flex-shrink-0">
+							<button type="submit" class="btn btn-outline-secondary btn-sm" title="Reopen">↩</button>
+						</form>
+					</div>
+				}
+			</div>
+		}
+	</div>
+	@priorityBadgeStyle()
+	<script>
+		document.addEventListener('keydown', function (e) {
+			var tag = e.target.tagName;
+			if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) { return; }
+			if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+				var tabLinks = Array.from(document.querySelectorAll('.nav-tabs .nav-link')).filter(function (l) {
+					return l.getAttribute('href') !== '/todos/settings';
+				});
+				var activeIdx = tabLinks.findIndex(function (l) { return l.classList.contains('active'); });
+				if (activeIdx !== -1) {
+					var nextIdx = e.key === 'ArrowRight' ? activeIdx + 1 : activeIdx - 1;
+					if (nextIdx >= 0 && nextIdx < tabLinks.length) {
+						e.preventDefault();
+						window.location.href = tabLinks[nextIdx].getAttribute('href');
+					}
+				}
+			}
+		});
+	</script>
+}
+
+// ─── Archive Page ─────────────────────────────────────────────────────────────
+
+type ArchivePageData struct {
+	Tasks        []models.Task
+	Sections     []models.Section
+	LabelColors  map[string]string
+	UserSettings *models.UserSettings
+	Workspaces   []models.Workspace
+	Query        string
+}
+
+templ ArchivePage(d ArchivePageData) {
+	@templates.Layout() {
+		@archivePageBody(d)
+	}
+}
+
+templ archivePageBody(d ArchivePageData) {
+	<div class="container py-4">
+		@todosSearchBar(d.Query)
+		@simpleNavTabs("archive", d.Sections, d.UserSettings, d.Workspaces, "/todos/archive")
+		if len(d.Tasks) == 0 {
+			if d.Query != "" {
+				<p class="text-muted">No tasks match "{ d.Query }".</p>
+			} else {
+				<p class="text-muted">Archive is empty.</p>
+			}
+		} else {
+			<div class="list-group">
+				for _, task := range d.Tasks {
+					<a
+						href={ templ.SafeURL("/todos/" + task.ID.String()) }
+						class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2"
+					>
+						<div class="min-w-0 flex-grow-1">
+							<div class="d-flex align-items-center gap-1 mb-1">
+								@priorityBadge(task.Priority)
+								<span class="fw-semibold text-truncate text-muted">{ task.Title }</span>
+							</div>
+							<div class="d-flex flex-wrap gap-1">
+								@labelBadges(task.Labels, d.LabelColors)
+								if task.ArchivedAt != nil {
+									<span class="badge bg-light text-muted border">archived { task.ArchivedAt.Format("2 Jan 2006") }</span>
+								}
+							</div>
+						</div>
+					</a>
+				}
+			</div>
+		}
+	</div>
+	@priorityBadgeStyle()
+	<script>
+		document.addEventListener('keydown', function (e) {
+			var tag = e.target.tagName;
+			if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) { return; }
+			if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+				var tabLinks = Array.from(document.querySelectorAll('.nav-tabs .nav-link')).filter(function (l) {
+					return l.getAttribute('href') !== '/todos/settings';
+				});
+				var activeIdx = tabLinks.findIndex(function (l) { return l.classList.contains('active'); });
+				if (activeIdx !== -1) {
+					var nextIdx = e.key === 'ArrowRight' ? activeIdx + 1 : activeIdx - 1;
+					if (nextIdx >= 0 && nextIdx < tabLinks.length) {
+						e.preventDefault();
+						window.location.href = tabLinks[nextIdx].getAttribute('href');
+					}
+				}
+			}
+		});
+	</script>
+}
+
+// ─── Search Page ──────────────────────────────────────────────────────────────
+
+type SearchPageData struct {
+	Query        string
+	Results      SearchResults
+	LabelColors  map[string]string
+	Sections     []models.Section
+	UserSettings *models.UserSettings
+	Workspaces   []models.Workspace
+}
+
+templ SearchPage(d SearchPageData) {
+	@templates.Layout() {
+		@searchPageBody(d)
+	}
+}
+
+templ searchPageBody(d SearchPageData) {
+	<div class="container py-4">
+		<form method="GET" action="/todos/search" class="mb-3">
+			<div class="input-group input-group-sm">
+				<input type="text" name="q" class="form-control" placeholder="Search all tasks…" value={ d.Query } autofocus autocomplete="off"/>
+				<button type="submit" class="btn btn-outline-secondary">Search</button>
+				if d.Query != "" {
+					<a href="/todos/search" class="btn btn-outline-secondary">Clear</a>
+				}
+			</div>
+		</form>
+		@simpleNavTabs("", d.Sections, d.UserSettings, d.Workspaces, "/todos/search")
+		if d.Query == "" {
+			<p class="text-muted">Type a query above to search across all tasks.</p>
+		} else if len(d.Results.Open) == 0 && len(d.Results.Done) == 0 && len(d.Results.Archived) == 0 {
+			<p class="text-muted">No tasks match "{ d.Query }".</p>
+		} else {
+			if len(d.Results.Open) > 0 {
+				<h6 class="text-muted fw-semibold mb-2">Open</h6>
+				<div class="list-group mb-4">
+					for _, task := range d.Results.Open {
+						<a href={ templ.SafeURL("/todos/" + task.ID.String()) } class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+							@priorityBadge(task.Priority)
+							<div class="min-w-0 flex-grow-1">
+								<div class="fw-semibold text-truncate">{ task.Title }</div>
+								<div class="d-flex flex-wrap gap-1 mt-1">
+									@labelBadges(task.Labels, d.LabelColors)
+									if task.DueDate != nil {
+										<span class="badge bg-warning text-dark">{ task.DueDate.Format("2 Jan") }</span>
+									}
+								</div>
+							</div>
+						</a>
+					}
+				</div>
+			}
+			if len(d.Results.Done) > 0 {
+				<h6 class="text-muted fw-semibold mb-2">Done</h6>
+				<div class="list-group mb-4">
+					for _, task := range d.Results.Done {
+						<a href={ templ.SafeURL("/todos/" + task.ID.String()) } class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+							@priorityBadge(task.Priority)
+							<div class="min-w-0 flex-grow-1">
+								<div class="fw-semibold text-truncate text-decoration-line-through text-muted">{ task.Title }</div>
+								<div class="d-flex flex-wrap gap-1 mt-1">
+									@labelBadges(task.Labels, d.LabelColors)
+									if task.CompletedAt != nil {
+										<span class="badge bg-light text-muted border">done { task.CompletedAt.Format("2 Jan") }</span>
+									}
+								</div>
+							</div>
+						</a>
+					}
+				</div>
+			}
+			if len(d.Results.Archived) > 0 {
+				<h6 class="text-muted fw-semibold mb-2">Archived</h6>
+				<div class="list-group mb-4">
+					for _, task := range d.Results.Archived {
+						<a href={ templ.SafeURL("/todos/" + task.ID.String()) } class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+							@priorityBadge(task.Priority)
+							<div class="min-w-0 flex-grow-1">
+								<div class="fw-semibold text-truncate text-muted">{ task.Title }</div>
+								<div class="d-flex flex-wrap gap-1 mt-1">
+									@labelBadges(task.Labels, d.LabelColors)
+									if task.ArchivedAt != nil {
+										<span class="badge bg-light text-muted border">archived { task.ArchivedAt.Format("2 Jan 2006") }</span>
+									}
+								</div>
+							</div>
+						</a>
+					}
+				</div>
+			}
+		}
+	</div>
+	@priorityBadgeStyle()
+}

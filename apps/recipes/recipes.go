@@ -10,7 +10,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	"tools.xdoubleu.com/apps/recipes/internal/dtos"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
-	"tools.xdoubleu.com/apps/recipes/internal/services"
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
@@ -59,7 +59,7 @@ func (a *Recipes) createRecipeHandler(w http.ResponseWriter, r *http.Request) er
 
 	var dto dtos.CreateRecipeDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -86,7 +86,7 @@ func (a *Recipes) viewOrEditRecipeHandler(
 ) error {
 	id, err := parseUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Recipe not found",
 		}
@@ -167,7 +167,7 @@ func (a *Recipes) updateOrDeleteRecipeHandler(
 ) error {
 	id, err := parseUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Recipe not found",
 		}
@@ -177,7 +177,7 @@ func (a *Recipes) updateOrDeleteRecipeHandler(
 	const maxBodyBytes = 1 << 20 // 1 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	if err = r.ParseForm(); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -193,7 +193,7 @@ func (a *Recipes) updateOrDeleteRecipeHandler(
 
 	var dto dtos.CreateRecipeDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -216,7 +216,7 @@ func (a *Recipes) updateOrDeleteRecipeHandler(
 func (a *Recipes) shareRecipeHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := parseUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Recipe not found",
 		}
@@ -225,7 +225,7 @@ func (a *Recipes) shareRecipeHandler(w http.ResponseWriter, r *http.Request) err
 
 	var dto dtos.ShareRecipeDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -246,7 +246,7 @@ func (a *Recipes) shareRecipeHandler(w http.ResponseWriter, r *http.Request) err
 func (a *Recipes) unshareRecipeHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := parseUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Recipe not found",
 		}
@@ -255,7 +255,7 @@ func (a *Recipes) unshareRecipeHandler(w http.ResponseWriter, r *http.Request) e
 
 	targetUserID := r.PathValue("userID")
 	if targetUserID == "" {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Missing user",
 		}

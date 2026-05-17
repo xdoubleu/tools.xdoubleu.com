@@ -43,7 +43,9 @@ Each app lives in `apps/<name>/` and follows a consistent layout:
 apps/<name>/
 ├── app.go              # App struct embedding app.Base, implements App interface
 ├── routes.go           # HTTP route registration
-├── handler.go          # HTTP handlers
+├── handler.go          # HTTP handlers (shared middleware/error helpers)
+│                       # Large apps split handler code across focused files,
+│                       # e.g. tasks_crud.go, tasks_list.go, tasks_subtasks.go
 ├── views.templ         # HTML templates (templ source files)
 ├── internal/
 │   ├── dtos/           # Request/response serialization
@@ -60,6 +62,7 @@ apps/<name>/
 ### Shared Internal Packages (`internal/`)
 
 - **`app.Base`** — Embedded struct providing logger, config, templates, and auth service to every app
+- **`app.HTTPError`** — Shared HTTP error type (`Status int`, `Message string`); import as `iapp "tools.xdoubleu.com/internal/app"` in handler files to avoid collision with the app struct
 - **`auth/`** — Supabase GoTrue authentication (`gotrue-go`)
 - **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v4`
 - **`constants/`** — Shared constants
@@ -69,6 +72,7 @@ apps/<name>/
 - **`repositories/`** — Shared DB repositories
 - **`templates/`** — Shared HTML templates (templ)
 - **`mocks/`** — Shared mock implementations
+- **`testhelper/`** — Test utilities: `ConnectTestDB(dsn)` wraps `postgres.Connect` for integration tests; `BuildMux(Routable)` constructs a test `http.Handler` from any app that implements `Routes`/`GetName`
 
 ### Key Libraries
 

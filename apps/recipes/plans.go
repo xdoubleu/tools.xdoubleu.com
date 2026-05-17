@@ -12,7 +12,7 @@ import (
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"tools.xdoubleu.com/apps/recipes/internal/dtos"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
-	"tools.xdoubleu.com/apps/recipes/internal/services"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 const (
@@ -53,7 +53,7 @@ func (a *Recipes) createPlanHandler(w http.ResponseWriter, r *http.Request) erro
 
 	var dto dtos.CreatePlanDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -76,7 +76,7 @@ func (a *Recipes) createPlanHandler(w http.ResponseWriter, r *http.Request) erro
 func (a *Recipes) viewPlanHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -146,7 +146,7 @@ func (a *Recipes) viewPlanHandler(w http.ResponseWriter, r *http.Request) error 
 func (a *Recipes) editPlanFormHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -173,7 +173,7 @@ func (a *Recipes) editPlanFormHandler(w http.ResponseWriter, r *http.Request) er
 func (a *Recipes) updatePlanHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -182,7 +182,7 @@ func (a *Recipes) updatePlanHandler(w http.ResponseWriter, r *http.Request) erro
 
 	var dto dtos.UpdatePlanDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -214,7 +214,7 @@ func (a *Recipes) updatePlanHandler(w http.ResponseWriter, r *http.Request) erro
 func (a *Recipes) deletePlanHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -234,7 +234,7 @@ func (a *Recipes) deletePlanHandler(w http.ResponseWriter, r *http.Request) erro
 func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 	planID, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -243,7 +243,7 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 
 	var dto dtos.AddMealDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -251,7 +251,7 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 
 	mealDate, err := time.Parse("2006-01-02", dto.MealDate)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid date",
 		}
@@ -261,7 +261,7 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 	if dto.RecipeID != "" {
 		parsed, parseErr := uuid.Parse(dto.RecipeID)
 		if parseErr != nil {
-			return &services.HTTPError{
+			return &iapp.HTTPError{
 				Status:  http.StatusBadRequest,
 				Message: "Invalid recipe",
 			}
@@ -271,7 +271,7 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 
 	customName := strings.TrimSpace(dto.CustomName)
 	if recipeID == nil && customName == "" {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "A recipe or meal name is required",
 		}
@@ -310,7 +310,7 @@ func (a *Recipes) addMealHandler(w http.ResponseWriter, r *http.Request) error {
 func (a *Recipes) deleteMealHandler(w http.ResponseWriter, r *http.Request) error {
 	planID, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -319,7 +319,7 @@ func (a *Recipes) deleteMealHandler(w http.ResponseWriter, r *http.Request) erro
 
 	mealID, err := uuid.Parse(r.PathValue("mealId"))
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Meal not found",
 		}
@@ -344,7 +344,7 @@ func (a *Recipes) deleteMealHandler(w http.ResponseWriter, r *http.Request) erro
 func (a *Recipes) sharePlanHandler(w http.ResponseWriter, r *http.Request) error {
 	planID, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -353,7 +353,7 @@ func (a *Recipes) sharePlanHandler(w http.ResponseWriter, r *http.Request) error
 
 	var dto dtos.SharePlanDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -374,7 +374,7 @@ func (a *Recipes) sharePlanHandler(w http.ResponseWriter, r *http.Request) error
 func (a *Recipes) unsharePlanHandler(w http.ResponseWriter, r *http.Request) error {
 	planID, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}
@@ -383,7 +383,7 @@ func (a *Recipes) unsharePlanHandler(w http.ResponseWriter, r *http.Request) err
 
 	targetUserID := r.PathValue("userID")
 	if targetUserID == "" {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Missing user",
 		}

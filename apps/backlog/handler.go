@@ -4,19 +4,12 @@ import (
 	"errors"
 	"net/http"
 
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/templates"
 )
 
-// HTTPError carries an HTTP status alongside a user-facing message.
-type HTTPError struct {
-	Status  int
-	Message string
-}
-
-func (e *HTTPError) Error() string { return e.Message }
-
 func httpError(status int, message string) error {
-	return &HTTPError{Status: status, Message: message}
+	return &iapp.HTTPError{Status: status, Message: message}
 }
 
 // handler is a net/http handler that returns an error instead of panicking.
@@ -26,7 +19,7 @@ type handler func(http.ResponseWriter, *http.Request) error
 func (app *Backlog) handle(h handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
-			var httpErr *HTTPError
+			var httpErr *iapp.HTTPError
 			if errors.As(err, &httpErr) {
 				app.Logger.WarnContext(r.Context(), httpErr.Message,
 					"status", httpErr.Status,

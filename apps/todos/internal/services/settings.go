@@ -9,6 +9,7 @@ import (
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/models"
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
+	"tools.xdoubleu.com/internal/app"
 )
 
 type SettingsService struct {
@@ -30,13 +31,13 @@ func (s *SettingsService) AddLabelPreset(
 	workspaceID *uuid.UUID,
 ) error {
 	if dto.Value == "" {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Label value cannot be empty",
 		}
 	}
 	if dto.Category != models.LabelCategory {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid label category",
 		}
@@ -69,7 +70,7 @@ func (s *SettingsService) AddURLPattern(
 	workspaceID *uuid.UUID,
 ) error {
 	if dto.URLPrefix == "" || dto.PlatformName == "" {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "URL prefix and platform name are required",
 		}
