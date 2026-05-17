@@ -170,13 +170,13 @@ func TestRefreshTokens(t *testing.T) {
 }
 
 // mfaToken cookie value — the mock auth service accepts any non-empty string.
-var mfaTokenCookie = http.Cookie{
+var mfaTokenCookie = http.Cookie{ //nolint:gochecknoglobals // needed for tests
 	Name:  "mfaToken",
 	Value: "access",
 }
 
 // mfaFactorIDCookie holds the factor UUID the mock always returns.
-var mfaFactorIDCookie = http.Cookie{ //nolint:gochecknoglobals
+var mfaFactorIDCookie = http.Cookie{ //nolint:gochecknoglobals // needed for tests
 	Name:  "mfaFactorID",
 	Value: mocks.MockedFactorID.String(),
 }

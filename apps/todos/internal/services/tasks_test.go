@@ -468,17 +468,17 @@ func TestFormatRecurRule_WithRule(t *testing.T) {
 }
 
 func TestFormatRecurRule_EmptyRuleWithFallback(t *testing.T) {
-	s := &TaskService{} //nolint:exhaustruct
+	s := &TaskService{} //nolint:exhaustruct // test only uses relevant fields
 	assert.Equal(t, "every 14 days", s.FormatRecurRule("", 14))
 }
 
 func TestFormatRecurRule_EmptyRuleNoFallback(t *testing.T) {
-	s := &TaskService{} //nolint:exhaustruct
+	s := &TaskService{} //nolint:exhaustruct // test only uses relevant fields
 	assert.Equal(t, "", s.FormatRecurRule("", 0))
 }
 
 func TestFormatRecurRule_InvalidRuleWithFallback(t *testing.T) {
-	s := &TaskService{} //nolint:exhaustruct
+	s := &TaskService{} //nolint:exhaustruct // test only uses relevant fields
 	assert.Equal(t, "every 3 days", s.FormatRecurRule("unknown:foo", 3))
 }
 
@@ -486,8 +486,8 @@ func TestFormatRecurRule_InvalidRuleWithFallback(t *testing.T) {
 
 func TestFindSection_Found(t *testing.T) {
 	sections := []models.Section{
-		{Name: "Backlog"}, //nolint:exhaustruct
-		{Name: "Done"},    //nolint:exhaustruct
+		{Name: "Backlog"}, //nolint:exhaustruct // test only uses relevant fields
+		{Name: "Done"},    //nolint:exhaustruct // test only uses relevant fields
 	}
 	s := findSection(sections, "backlog")
 	require.NotNil(t, s)
@@ -496,7 +496,7 @@ func TestFindSection_Found(t *testing.T) {
 
 func TestFindSection_NotFound(t *testing.T) {
 	sections := []models.Section{
-		{Name: "Backlog"}, //nolint:exhaustruct
+		{Name: "Backlog"}, //nolint:exhaustruct // test only uses relevant fields
 	}
 	assert.Nil(t, findSection(sections, "Archive"))
 }

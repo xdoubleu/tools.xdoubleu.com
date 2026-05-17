@@ -10,7 +10,7 @@ import (
 
 // ── SetConfig ────────────────────────────────────────────────────────────────
 
-func TestSetConfig_DoesNotPanic(t *testing.T) {
+func TestSetConfig_DoesNotPanic(_ *testing.T) {
 	// SetConfig sets package-level globals; just verify it doesn't panic.
 	templates.SetConfig("v1.2.3")
 }

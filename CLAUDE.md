@@ -119,9 +119,13 @@ Always run `make lint/fix` as the final step before committing. Manually fix any
 - Use mock injection for unit tests; place mocks in `internal/mocks/` or app-level `internal/<name>/mocks/`
 - Integration tests hit a real database — start `docker-compose up -d` before running tests locally
 - Target ≥80% coverage on changed code; check with `make test/cov/report`
+- Coverage ceiling is ~74.5% — templ-generated boilerplate (`*_templ.go` files are committed) contains uncoverable `!IsBuffer` defer blocks in nested components
+- **Coverage numbers**: `go tool cover -func` reports ~74–75% locally (includes `*_templ.go` boilerplate). Codecov reports ~80% because it auto-excludes `// Code generated` files. Both are accurate — the gap is the structurally uncoverable 2-stmt `!IsBuffer` defer blocks that the templ compiler emits for every nested component. Template *behaviour* (if/else branches, loops) is fully covered by HTTP handler tests. Use `make test/cov` to open the HTML report and inspect template branch coverage.
 - When fixing bugs, write a failing test first before implementing the fix
 
 ### Template files
 
 **Always read `.templ` source files, never `*_templ.go`**: When understanding template logic, read the `.templ` source (e.g. `apps/todos/views.templ`). The generated `*_templ.go` files are 2–10× larger and contain identical logic wrapped in runtime scaffolding — reading them wastes tokens and makes the logic harder to follow.
+
+Note: `*_templ.go` files ARE committed to the repo (for Codecov coverage tracking), but they should never be read for understanding logic — always use the `.templ` source instead.
 

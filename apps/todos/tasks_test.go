@@ -2599,7 +2599,7 @@ func TestListTasks_WithShortcutBadge(t *testing.T) {
 	)
 	newTask.SetContentType(test.FormContentType)
 	newTask.SetFollowRedirect(false)
-	newTask.SetData(dtos.SaveTaskDto{
+	newTask.SetData(dtos.SaveTaskDto{ //nolint:exhaustruct // partial
 		Title:    "Badge task",
 		LinkURLs: []string{"https://badge.example.com/123"},
 	})
@@ -2996,7 +2996,7 @@ func TestUpdateTask_WithBack(t *testing.T) {
 	tReq.SetContentType(test.FormContentType)
 	tReq.SetFollowRedirect(false)
 	tReq.SetQuery(url.Values{"back": {"/todos/"}})
-	tReq.SetData(dtos.SaveTaskDto{Title: "Back-param task"})
+	tReq.SetData(dtos.SaveTaskDto{Title: "Back-param task"}) //nolint:exhaustruct // ok
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusSeeOther, rs.StatusCode)
 	assert.Equal(t, "/todos/", rs.Header.Get("Location"))
@@ -3102,7 +3102,7 @@ func TestListTasks_WithColoredLabel(t *testing.T) {
 	tCreate := test.CreateRequestTester(getRoutes(), http.MethodPost, "/todos/new")
 	tCreate.SetContentType(test.FormContentType)
 	tCreate.SetFollowRedirect(false)
-	tCreate.SetData(dtos.SaveTaskDto{ //nolint:exhaustruct
+	tCreate.SetData(dtos.SaveTaskDto{ //nolint:exhaustruct // partial
 		Title: "Task with colored label for coverage",
 		Label: labelVal,
 	})
@@ -3158,7 +3158,7 @@ func TestListTasks_Priority1(t *testing.T) {
 	)
 	tCreate.SetContentType(test.FormContentType)
 	tCreate.SetFollowRedirect(false)
-	tCreate.SetData(dtos.SaveTaskDto{ //nolint:exhaustruct
+	tCreate.SetData(dtos.SaveTaskDto{ //nolint:exhaustruct // partial
 		Title:    "Priority 1 task",
 		Priority: 1,
 	})

@@ -9,13 +9,13 @@ import (
 )
 
 func TestHideSeries_Empty(t *testing.T) {
-	dto := &dtos.CreateFilterDto{} //nolint:exhaustruct
+	dto := &dtos.CreateFilterDto{} //nolint:exhaustruct // test only uses relevant fields
 	result := dto.HideSeries(url.Values{})
 	assert.Empty(t, result)
 }
 
 func TestHideSeries_WithMatchingKeys(t *testing.T) {
-	dto := &dtos.CreateFilterDto{} //nolint:exhaustruct
+	dto := &dtos.CreateFilterDto{} //nolint:exhaustruct // test only uses relevant fields
 	form := url.Values{
 		"hide_rec_Daily Standup": {"1"},
 		"hide_rec_Weekly Review": {"1"},
@@ -28,7 +28,7 @@ func TestHideSeries_WithMatchingKeys(t *testing.T) {
 }
 
 func TestHideSeries_NoMatchingKeys(t *testing.T) {
-	dto := &dtos.CreateFilterDto{} //nolint:exhaustruct
+	dto := &dtos.CreateFilterDto{} //nolint:exhaustruct // test only uses relevant fields
 	form := url.Values{
 		"source_url": {"https://example.com"},
 		"token":      {"abc"},

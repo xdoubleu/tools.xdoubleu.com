@@ -9,5 +9,3 @@ api.test
 
 .DS_Store
 __debug_*
-
-*_templ.go
