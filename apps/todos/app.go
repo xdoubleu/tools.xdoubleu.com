@@ -3,7 +3,6 @@ package todos
 import (
 	"context"
 	"embed"
-	"html/template"
 	"log/slog"
 	"time"
 
@@ -21,9 +20,6 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-//go:embed templates/html/**/*.html
-var htmlTemplates embed.FS
-
 type Todos struct {
 	app.Base
 	services *services.Services
@@ -36,7 +32,6 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	sharedTpl *template.Template,
 ) *Todos {
 	//nolint:exhaustruct //services, repos, jobQueue initialised below
 	a := &Todos{
@@ -45,8 +40,6 @@ func New(
 			authService,
 			logger,
 			cfg,
-			htmlTemplates,
-			sharedTpl,
 		),
 	}
 

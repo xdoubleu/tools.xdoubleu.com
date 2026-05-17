@@ -2,12 +2,16 @@
 package services
 
 import (
+	"context"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
+	"tools.xdoubleu.com/apps/todos/internal/models"
 )
 
 func TestURLToTitle_LastSegment(t *testing.T) {
@@ -232,4 +236,412 @@ func TestSubtaskInput_ParsesDeadline(t *testing.T) {
 	title, dto := parseQuickInput("Ship feature !today", nil, now)
 	assert.Equal(t, "Ship feature", title)
 	assert.Equal(t, "2026-05-08", dto.Deadline)
+}
+
+// ── nextRecurringDue ──────────────────────────────────────────────────────────
+
+func TestNextRecurringDue_NilRule_ZeroFallback(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	result, _ := nextRecurringDue(now, "", 0)
+	assert.Nil(t, result)
+}
+
+func TestNextRecurringDue_NilRule_PositiveFallback(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	result, days := nextRecurringDue(now, "", 7)
+	require.NotNil(t, result)
+	assert.Equal(t, 7, days)
+	expected := now.AddDate(0, 0, 7)
+	assert.Equal(t, expected.Year(), result.Year())
+	assert.Equal(t, expected.Month(), result.Month())
+	assert.Equal(t, expected.Day(), result.Day())
+}
+
+func TestNextRecurringDue_DaysRule(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	result, days := nextRecurringDue(now, "days:14", 0)
+	require.NotNil(t, result)
+	assert.Equal(t, 14, days)
+	expected := now.AddDate(0, 0, 14)
+	assert.Equal(t, expected.Day(), result.Day())
+}
+
+// ── parsePositiveInt ──────────────────────────────────────────────────────────
+
+func TestParsePositiveInt_Valid(t *testing.T) {
+	n, ok := parsePositiveInt("5")
+	assert.True(t, ok)
+	assert.Equal(t, 5, n)
+}
+
+func TestParsePositiveInt_Zero(t *testing.T) {
+	_, ok := parsePositiveInt("0")
+	assert.False(t, ok)
+}
+
+func TestParsePositiveInt_Negative(t *testing.T) {
+	_, ok := parsePositiveInt("-1")
+	assert.False(t, ok)
+}
+
+func TestParsePositiveInt_NonNumeric(t *testing.T) {
+	_, ok := parsePositiveInt("abc")
+	assert.False(t, ok)
+}
+
+// ── resolveShortcutBadge ──────────────────────────────────────────────────────
+
+func TestResolveShortcutBadge_NoPatterns(t *testing.T) {
+	badge := resolveShortcutBadge("https://jira.example.com/DCP-123", nil)
+	assert.Equal(t, "", badge)
+}
+
+func TestResolveShortcutBadge_Match(t *testing.T) {
+	patterns := []models.URLPattern{
+		{ //nolint:exhaustruct // only fields used by resolveShortcutBadge
+			URLPrefix: "https://jira.example.com/browse/",
+			Shortcut:  "DCP",
+		},
+	}
+	// shortcut + suffix after prefix: "DCP" + "123" = "DCP123"
+	badge := resolveShortcutBadge(
+		"https://jira.example.com/browse/123", patterns,
+	)
+	assert.Equal(t, "DCP123", badge)
+}
+
+func TestResolveShortcutBadge_NoMatch(t *testing.T) {
+	patterns := []models.URLPattern{
+		{ //nolint:exhaustruct // only fields used by resolveShortcutBadge
+			URLPrefix: "https://jira.example.com/browse/",
+			Shortcut:  "DCP",
+		},
+	}
+	badge := resolveShortcutBadge("https://github.com/org/repo/pull/1", patterns)
+	assert.Equal(t, "", badge)
+}
+
+// ── parseRecurOnly ────────────────────────────────────────────────────────────
+
+func TestParseRecurOnly_Empty(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	days, rule, err := parseRecurOnly("", now)
+	require.NoError(t, err)
+	assert.Equal(t, 0, days)
+	assert.Equal(t, "", rule)
+}
+
+func TestParseRecurOnly_Days(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	days, rule, err := parseRecurOnly("7", now)
+	require.NoError(t, err)
+	assert.Equal(t, 7, days)
+	assert.Equal(t, "days:7", rule)
+}
+
+func TestParseRecurOnly_HumanRecurring(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	days, rule, err := parseRecurOnly("every thursday", now)
+	require.NoError(t, err)
+	assert.Equal(t, 7, days)
+	assert.Equal(t, "weekday:4", rule)
+}
+
+func TestParseRecurOnly_NonRecurringHuman(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	_, _, err := parseRecurOnly("tomorrow", now)
+	require.Error(t, err)
+}
+
+func TestParseRecurOnly_InvalidInput(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	_, _, err := parseRecurOnly("notadate", now)
+	require.Error(t, err)
+}
+
+// ── ordinalToName ─────────────────────────────────────────────────────────────
+
+func TestOrdinalToName_AllCases(t *testing.T) {
+	assert.Equal(t, "first", ordinalToName(1))
+	assert.Equal(t, "second", ordinalToName(ordinalSecond))
+	assert.Equal(t, "third", ordinalToName(ordinalThird))
+	assert.Equal(t, "fourth", ordinalToName(ordinalFourth))
+	assert.Equal(t, "fifth", ordinalToName(ordinalFifth))
+	assert.Equal(t, "last", ordinalToName(-1))
+	assert.Equal(t, "", ordinalToName(99))
+}
+
+// ── nthWeekdayOfMonth ─────────────────────────────────────────────────────────
+
+func TestNthWeekdayOfMonth_FirstMonday(t *testing.T) {
+	// May 2026: first Monday is May 4
+	d, ok := nthWeekdayOfMonth(2026, time.May, time.Monday, 1, time.UTC)
+	assert.True(t, ok)
+	assert.Equal(t, 4, d.Day())
+}
+
+func TestNthWeekdayOfMonth_LastFriday(t *testing.T) {
+	// May 2026: last Friday is May 29
+	d, ok := nthWeekdayOfMonth(2026, time.May, time.Friday, -1, time.UTC)
+	assert.True(t, ok)
+	assert.Equal(t, 29, d.Day())
+}
+
+func TestNthWeekdayOfMonth_InvalidOrdinal(t *testing.T) {
+	_, ok := nthWeekdayOfMonth(2026, time.May, time.Monday, 0, time.UTC)
+	assert.False(t, ok)
+}
+
+func TestNthWeekdayOfMonth_OrdinalTooHigh(t *testing.T) {
+	_, ok := nthWeekdayOfMonth(2026, time.February, time.Monday, 5, time.UTC)
+	assert.False(t, ok)
+}
+
+// ── nextRecurringDue (weekday/monthweekday rules) ─────────────────────────────
+
+func TestNextRecurringDue_WeekdayRule(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)   // Friday
+	result, days := nextRecurringDue(now, "weekday:4", 0) // Thursday
+	require.NotNil(t, result)
+	assert.Equal(t, daysInWeek, days)
+	assert.Equal(t, time.Thursday, result.Weekday())
+}
+
+func TestNextRecurringDue_MonthWeekdayRule(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	// "monthweekday:1:0" = first Sunday
+	result, days := nextRecurringDue(now, "monthweekday:1:0", 0)
+	require.NotNil(t, result)
+	assert.Equal(t, 0, days)
+	assert.Equal(t, time.Sunday, result.Weekday())
+}
+
+func TestNextRecurringDue_InvalidWeekdayParts(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	result, _ := nextRecurringDue(now, "weekday", 3)
+	assert.Nil(t, result)
+}
+
+func TestNextRecurringDue_InvalidDaysParts(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	result, _ := nextRecurringDue(now, "days", 3)
+	assert.Nil(t, result)
+}
+
+func TestNextRecurringDue_UnknownRule(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	result, _ := nextRecurringDue(now, "unknown:1", 3)
+	assert.Nil(t, result)
+}
+
+// ── recurRuleToInput ──────────────────────────────────────────────────────────
+
+func TestRecurRuleToInput_Days(t *testing.T) {
+	assert.Equal(t, "every 7 days", recurRuleToInput("days:7"))
+}
+
+func TestRecurRuleToInput_Weekday(t *testing.T) {
+	assert.Equal(t, "every thursday", recurRuleToInput("weekday:4"))
+}
+
+func TestRecurRuleToInput_MonthWeekday(t *testing.T) {
+	assert.Equal(t, "every first sunday", recurRuleToInput("monthweekday:1:0"))
+}
+
+func TestRecurRuleToInput_MonthWeekdayLast(t *testing.T) {
+	assert.Equal(t, "every last friday", recurRuleToInput("monthweekday:-1:5"))
+}
+
+func TestRecurRuleToInput_Unknown(t *testing.T) {
+	assert.Equal(t, "", recurRuleToInput("unknown:1"))
+}
+
+func TestRecurRuleToInput_InvalidParts(t *testing.T) {
+	assert.Equal(t, "", recurRuleToInput("weekday"))
+}
+
+// ── FormatRecurRule ───────────────────────────────────────────────────────────
+
+func TestFormatRecurRule_WithRule(t *testing.T) {
+	s := &TaskService{} //nolint:exhaustruct // only testing FormatRecurRule
+	assert.Equal(t, "every 7 days", s.FormatRecurRule("days:7", 0))
+}
+
+func TestFormatRecurRule_EmptyRuleWithFallback(t *testing.T) {
+	s := &TaskService{} //nolint:exhaustruct
+	assert.Equal(t, "every 14 days", s.FormatRecurRule("", 14))
+}
+
+func TestFormatRecurRule_EmptyRuleNoFallback(t *testing.T) {
+	s := &TaskService{} //nolint:exhaustruct
+	assert.Equal(t, "", s.FormatRecurRule("", 0))
+}
+
+func TestFormatRecurRule_InvalidRuleWithFallback(t *testing.T) {
+	s := &TaskService{} //nolint:exhaustruct
+	assert.Equal(t, "every 3 days", s.FormatRecurRule("unknown:foo", 3))
+}
+
+// ── findSection ───────────────────────────────────────────────────────────────
+
+func TestFindSection_Found(t *testing.T) {
+	sections := []models.Section{
+		{Name: "Backlog"}, //nolint:exhaustruct
+		{Name: "Done"},    //nolint:exhaustruct
+	}
+	s := findSection(sections, "backlog")
+	require.NotNil(t, s)
+	assert.Equal(t, "Backlog", s.Name)
+}
+
+func TestFindSection_NotFound(t *testing.T) {
+	sections := []models.Section{
+		{Name: "Backlog"}, //nolint:exhaustruct
+	}
+	assert.Nil(t, findSection(sections, "Archive"))
+}
+
+func TestFindSection_Empty(t *testing.T) {
+	assert.Nil(t, findSection(nil, "anything"))
+}
+
+// ── parseDateFromTitle ────────────────────────────────────────────────────────
+
+func TestParseDateFromTitle_Tomorrow(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, due, rule, days := parseDateFromTitle("Buy milk tomorrow", now)
+	assert.Equal(t, "Buy milk", title)
+	require.NotNil(t, due)
+	assert.Equal(t, 9, due.Day())
+	assert.Equal(t, "", rule)
+	assert.Equal(t, 0, days)
+}
+
+func TestParseDateFromTitle_Today(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, due, rule, days := parseDateFromTitle("Stand-up today", now)
+	assert.Equal(t, "Stand-up", title)
+	require.NotNil(t, due)
+	assert.Equal(t, 8, due.Day())
+	assert.Equal(t, "", rule)
+	assert.Equal(t, 0, days)
+}
+
+func TestParseDateFromTitle_NextWeekday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC) // Friday
+	title, due, rule, days := parseDateFromTitle("Meeting next monday", now)
+	assert.Equal(t, "Meeting", title)
+	require.NotNil(t, due)
+	assert.Equal(t, time.Monday, due.Weekday())
+	assert.Equal(t, "", rule)
+	assert.Equal(t, 0, days)
+}
+
+func TestParseDateFromTitle_NoDate(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, due, rule, days := parseDateFromTitle("Write tests", now)
+	assert.Equal(t, "Write tests", title)
+	assert.Nil(t, due)
+	assert.Equal(t, "", rule)
+	assert.Equal(t, 0, days)
+}
+
+func TestParseEveryDate_UnknownBody(t *testing.T) {
+	// "every bazinga" matches the everyPattern regex but "bazinga" is not a
+	// weekday name and not "N days" — so parseEveryDate hits the final ErrSyntax.
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	d, recurring, err := parseHumanDate("every bazinga", now, true)
+	require.Error(t, err)
+	assert.Nil(t, d)
+	assert.Empty(t, recurring.recurRule)
+}
+
+func TestParseEveryDate_DisallowedWhenNotRecurring(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	// allowRecurring=false must return an error even for a valid "every X" phrase.
+	_, _, err := parseHumanDate("every thursday", now, false)
+	require.Error(t, err)
+}
+
+func TestParseDateFromTitle_EveryThursday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, due, rule, days := parseDateFromTitle("Workout every thursday", now)
+	assert.Equal(t, "Workout", title)
+	require.NotNil(t, due)
+	assert.Equal(t, "weekday:4", rule)
+	assert.Equal(t, 7, days)
+}
+
+// ── parseDeadlineTok ──────────────────────────────────────────────────────────
+
+func TestParseDeadlineTok_ValidHuman(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	toks := []string{"!today"}
+	d, skip, ok := parseDeadlineTok("!today", toks, 0, now)
+	assert.True(t, ok)
+	assert.Equal(t, "2026-05-08", d)
+	assert.Equal(t, 0, skip)
+}
+
+func TestParseDeadlineTok_ValidISODate(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	toks := []string{"!2026-12-31"}
+	d, skip, ok := parseDeadlineTok("!2026-12-31", toks, 0, now)
+	assert.True(t, ok)
+	assert.Equal(t, "2026-12-31", d)
+	assert.Equal(t, 0, skip)
+}
+
+func TestParseDeadlineTok_NextWeekday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	toks := []string{"!next", "monday"}
+	d, skip, ok := parseDeadlineTok("!next", toks, 0, now)
+	assert.True(t, ok)
+	assert.Equal(t, 1, skip)
+	assert.NotEmpty(t, d)
+}
+
+func TestParseDeadlineTok_GarbageToken(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	toks := []string{"!xyz-garbage-date"}
+	d, skip, ok := parseDeadlineTok("!xyz-garbage-date", toks, 0, now)
+	assert.False(t, ok)
+	assert.Equal(t, "", d)
+	assert.Equal(t, 0, skip)
+}
+
+// ── nextMonthlyWeekday ────────────────────────────────────────────────────────
+
+func TestNextMonthlyWeekday_CurrentMonthFuture(t *testing.T) {
+	// May 8 2026 is a Friday. First Sunday in May = May 3, already past.
+	// So nextMonthlyWeekday should return the first Sunday of June = June 7.
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	result, ok := nextMonthlyWeekday(now, time.Sunday, 1)
+	assert.True(t, ok)
+	assert.Equal(t, time.Sunday, result.Weekday())
+}
+
+func TestNextMonthlyWeekday_InvalidOrdinal(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	_, ok := nextMonthlyWeekday(now, time.Monday, 0)
+	assert.False(t, ok)
+}
+
+// ── UpdateSubtask validation (service-level) ──────────────────────────────────
+
+func TestUpdateSubtask_EmptyTitle(t *testing.T) {
+	s := &TaskService{} //nolint:exhaustruct // only testing validation
+	_, err := s.UpdateSubtask(
+		context.Background(),
+		uuid.New(),
+		uuid.New(),
+		"user-1",
+		nil,
+		dtos.UpdateSubtaskDto{Title: "   ", Label: "", Priority: 0,
+			DueDate: "", Deadline: "", Description: ""},
+	)
+	require.Error(t, err)
+	var httpErr *HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	assert.Equal(t, http.StatusBadRequest, httpErr.Status)
 }

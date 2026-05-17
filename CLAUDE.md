@@ -16,6 +16,7 @@ make test                   # Run all tests
 make test/v                 # Verbose output
 make test/race              # With race detector
 make test/cov/report        # Coverage report (HTML, excludes mocks)
+make test/cov/per-pkg       # Per-package coverage with merged report
 
 # Linting
 make lint                   # Run all linters (Go + SQL)
@@ -43,6 +44,7 @@ apps/<name>/
 ├── app.go              # App struct embedding app.Base, implements App interface
 ├── routes.go           # HTTP route registration
 ├── handler.go          # HTTP handlers
+├── views.templ         # HTML templates (templ source files)
 ├── internal/
 │   ├── dtos/           # Request/response serialization
 │   ├── models/         # Domain models
@@ -52,8 +54,7 @@ apps/<name>/
 │   ├── helper/         # App-specific utilities
 │   └── mocks/          # Mock implementations for testing
 ├── pkg/                # Reusable packages (external client integrations)
-├── migrations/         # Goose SQL migrations (per-app schema)
-└── templates/html/     # Embedded HTML templates
+└── migrations/         # Goose SQL migrations (per-app schema)
 ```
 
 ### Shared Internal Packages (`internal/`)
@@ -61,9 +62,12 @@ apps/<name>/
 - **`app.Base`** — Embedded struct providing logger, config, templates, and auth service to every app
 - **`auth/`** — Supabase GoTrue authentication (`gotrue-go`)
 - **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v4`
+- **`constants/`** — Shared constants
+- **`contacts/`** — Contact management service (used by recipes for sharing)
 - **`crypto/`** — Encryption utilities
+- **`models/`** — Shared domain models
 - **`repositories/`** — Shared DB repositories
-- **`templates/`** — Shared HTML templates
+- **`templates/`** — Shared HTML templates (templ)
 - **`mocks/`** — Shared mock implementations
 
 ### Key Libraries
@@ -83,6 +87,8 @@ apps/<name>/
 - **backlog** — Goals/backlog tracker with external sync (Steam, Hardcover/Goodreads). Has background jobs (2 workers) and WebSocket live updates. Uses `backlog` DB schema.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no background jobs.
 - **icsproxy** — ICS calendar feed filtering and proxying. Uses `icsproxy` DB schema.
+- **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and contact-based sharing. Uses `recipes` DB schema.
+- **todos** — Task management with sections, workspaces, subtasks, policies, archive, search, and background archive jobs. Uses `todos` DB schema.
 
 ### Database Conventions
 
@@ -106,9 +112,16 @@ Strict linting is enforced via `golangci-lint` (40+ linters). Key constraints:
 
 Always run `make lint/fix` as the final step before committing. Manually fix anything the auto-fixer cannot resolve.
 
+`make lint` and `make lint/fix` automatically run `templ generate` before linting — no need to run `make templ/generate` separately first.
+
 ## Testing Notes
 
 - Use mock injection for unit tests; place mocks in `internal/mocks/` or app-level `internal/<name>/mocks/`
 - Integration tests hit a real database — start `docker-compose up -d` before running tests locally
 - Target ≥80% coverage on changed code; check with `make test/cov/report`
 - When fixing bugs, write a failing test first before implementing the fix
+
+### Template files
+
+**Always read `.templ` source files, never `*_templ.go`**: When understanding template logic, read the `.templ` source (e.g. `apps/todos/views.templ`). The generated `*_templ.go` files are 2–10× larger and contain identical logic wrapped in runtime scaffolding — reading them wastes tokens and makes the logic harder to follow.
+

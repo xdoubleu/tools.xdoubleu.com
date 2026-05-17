@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/dtos"
 	"tools.xdoubleu.com/internal/templates"
 )
@@ -13,7 +12,6 @@ func (app *Application) adminHandler(w http.ResponseWriter, r *http.Request) {
 	users, err := app.appUsersRepo.GetAllWithAccess(r.Context())
 	if err != nil {
 		templates.RenderError(
-			app.tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to load users",
@@ -26,10 +24,10 @@ func (app *Application) adminHandler(w http.ResponseWriter, r *http.Request) {
 		appNames = append(appNames, a.GetName())
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "admin.html", map[string]any{
-		"Users":    users,
-		"AppNames": appNames,
-	})
+	_ = AdminPage(AdminPageData{
+		Users:    users,
+		AppNames: appNames,
+	}).Render(r.Context(), w)
 }
 
 func (app *Application) adminSetRoleHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +46,6 @@ func (app *Application) adminSetRoleHandler(w http.ResponseWriter, r *http.Reque
 
 	if err := app.appUsersRepo.SetRole(r.Context(), userID, dto.Role); err != nil {
 		templates.RenderError(
-			app.tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to update role",
@@ -78,7 +75,6 @@ func (app *Application) adminSetAppAccessHandler(
 		appName,
 		dto.Grant); err != nil {
 		templates.RenderError(
-			app.tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to update app access",
@@ -104,7 +100,6 @@ func (app *Application) renderAdminRowOrRedirect(
 	user, err := app.appUsersRepo.GetByID(r.Context(), userID)
 	if err != nil {
 		templates.RenderError(
-			app.tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to load user",
@@ -117,8 +112,8 @@ func (app *Application) renderAdminRowOrRedirect(
 		appNames = append(appNames, a.GetName())
 	}
 
-	tpltools.RenderWithPanic(app.tpl, w, "admin_user_row", map[string]any{
-		"User":     *user,
-		"AppNames": appNames,
-	})
+	_ = AdminUserRow(AdminUserRowData{
+		User:     *user,
+		AppNames: appNames,
+	}).Render(r.Context(), w)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -60,4 +61,40 @@ func TestSaveSettingsRoundTrip(t *testing.T) {
 	getReq.AddCookie(&accessToken)
 	rs2 := getReq.Do(t)
 	assert.Equal(t, http.StatusOK, rs2.StatusCode)
+}
+
+func TestGetSettings_WithImportedCount(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(), http.MethodGet, "/settings",
+	)
+	tReq.AddCookie(&accessToken)
+	tReq.SetQuery(url.Values{"imported": {"5"}})
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
+}
+
+func TestGetSettings_WithInvalidImportedCount(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(), http.MethodGet, "/settings",
+	)
+	tReq.AddCookie(&accessToken)
+	tReq.SetQuery(url.Values{"imported": {"abc"}})
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusOK, rs.StatusCode)
+}
+
+func TestSaveSettings_InvalidSteamID(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		testApp.Routes(), http.MethodPost, "/settings",
+	)
+	tReq.AddCookie(&accessToken)
+	tReq.SetFollowRedirect(false)
+	tReq.SetContentType(test.FormContentType)
+	tReq.SetData(dtos.IntegrationsDto{
+		SteamAPIKey:     "",
+		SteamUserID:     "not-a-number",
+		HardcoverAPIKey: "",
+	})
+	rs := tReq.Do(t)
+	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
 }

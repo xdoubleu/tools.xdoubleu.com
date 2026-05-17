@@ -3,7 +3,6 @@ package backlog
 import (
 	"context"
 	"embed"
-	"html/template"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,9 +21,6 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-//go:embed templates/html/**/*html
-var htmlTemplates embed.FS
-
 type Backlog struct {
 	app.Base
 	db           postgres.DB
@@ -40,7 +36,6 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	sharedTpl *template.Template,
 ) *Backlog {
 	clients := Clients{
 		SteamFactory: func(apiKey string) steam.Client {
@@ -51,7 +46,7 @@ func New(
 		},
 	}
 
-	return NewInner(ctx, authService, logger, cfg, db, clients, sharedTpl)
+	return NewInner(ctx, authService, logger, cfg, db, clients)
 }
 
 func NewInner(
@@ -61,11 +56,10 @@ func NewInner(
 	cfg config.Config,
 	db postgres.DB,
 	clients Clients,
-	sharedTpl *template.Template,
 ) *Backlog {
 	//nolint:exhaustruct //jobQueue, Repositories, Services initialised below
 	bl := &Backlog{
-		Base:    app.NewBase(ctx, authService, logger, cfg, htmlTemplates, sharedTpl),
+		Base:    app.NewBase(ctx, authService, logger, cfg),
 		clients: clients,
 	}
 

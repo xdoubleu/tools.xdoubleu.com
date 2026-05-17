@@ -2,12 +2,10 @@ package main
 
 import (
 	"net/http"
-
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 )
 
-func (app *Application) onboardingHandler(w http.ResponseWriter, _ *http.Request) {
-	tpltools.RenderWithPanic(app.tpl, w, "onboarding.html", nil)
+func (app *Application) onboardingHandler(w http.ResponseWriter, r *http.Request) {
+	_ = OnboardingPage().Render(r.Context(), w)
 }
 
 func (app *Application) saveOnboardingHandler(w http.ResponseWriter, r *http.Request) {

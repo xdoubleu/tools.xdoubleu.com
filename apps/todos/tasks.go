@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/models"
 	"tools.xdoubleu.com/apps/todos/internal/services"
@@ -46,6 +45,7 @@ const (
 	todosRoot         = "/todos/"
 	subtaskSourceView = "view"
 	subtaskSourceList = "list"
+	tabOpen           = "open"
 )
 
 func isHXRequest(r *http.Request) bool {
@@ -174,7 +174,7 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 
 	var sectionID *uuid.UUID
 	var currentSection *models.Section
-	activeTab := "open"
+	activeTab := tabOpen
 
 	sections, err := a.services.Sections.List(
 		r.Context(),
@@ -217,14 +217,14 @@ func (a *Todos) listTasksHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if isHXRequest(r) {
-		tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
-			"Tasks":          taskList,
-			"CurrentSection": currentSection,
-			"Sections":       sections,
-			"LabelColors": a.loadLabelColors(
+		_ = TaskListPartial(taskListData{
+			Tasks:          taskList,
+			CurrentSection: currentSection,
+			Sections:       sections,
+			LabelColors: a.loadLabelColors(
 				r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
 			),
-		})
+		}).Render(r.Context(), w)
 		return nil
 	}
 
@@ -260,20 +260,20 @@ func (a *Todos) renderTaskList(
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_list.html", map[string]any{
-		"Tasks":          taskList,
-		"Sections":       sections,
-		"Presets":        presets,
-		"LabelColors":    presets.ColorMap(),
-		"Policies":       policies,
-		"Patterns":       patterns,
-		"ActiveTab":      activeTab,
-		"CurrentSection": currentSection,
-		"UserSettings":   wsCtx.Settings,
-		"Workspaces":     wsCtx.Workspaces,
-		"WorkspaceQuery": workspaceQuery(wsID),
-		"TabCounts":      tabCounts,
-	})
+	_ = ListPage(ListPageData{
+		Tasks:          taskList,
+		Sections:       sections,
+		Presets:        *presets,
+		LabelColors:    presets.ColorMap(),
+		Policies:       policies,
+		Patterns:       patterns,
+		ActiveTab:      activeTab,
+		CurrentSection: currentSection,
+		UserSettings:   wsCtx.Settings,
+		Workspaces:     wsCtx.Workspaces,
+		WorkspaceQuery: workspaceQuery(wsID),
+		TabCounts:      tabCounts,
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -329,14 +329,14 @@ func (a *Todos) quickAddHTMX(
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
-		"Tasks":          taskList,
-		"CurrentSection": currentSection,
-		"Sections":       sections,
-		"LabelColors": a.loadLabelColors(
+	_ = TaskListPartial(taskListData{
+		Tasks:          taskList,
+		CurrentSection: currentSection,
+		Sections:       sections,
+		LabelColors: a.loadLabelColors(
 			r.Context(), userID, wsCtx.Settings.ActiveWorkspaceID,
 		),
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -440,17 +440,16 @@ func (a *Todos) searchHandler(w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_search.html", map[string]any{
-		"Query":        query,
-		"Results":      results,
-		"Sections":     sections,
-		"ActiveTab":    "search",
-		"UserSettings": wsCtx.Settings,
-		"Workspaces":   wsCtx.Workspaces,
-		"LabelColors": a.loadLabelColors(
+	_ = SearchPage(SearchPageData{
+		Query:        query,
+		Results:      results,
+		Sections:     sections,
+		UserSettings: wsCtx.Settings,
+		Workspaces:   wsCtx.Workspaces,
+		LabelColors: a.loadLabelColors(
 			r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
 		),
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -478,17 +477,16 @@ func (a *Todos) listDoneHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_list_done.html", map[string]any{
-		"Tasks":             taskList,
-		"ArchiveAfterHours": archiveSettings.ArchiveAfterHours,
-		"Sections":          sections,
-		"ActiveTab":         "done",
-		"UserSettings":      wsCtx.Settings,
-		"Workspaces":        wsCtx.Workspaces,
-		"LabelColors": a.loadLabelColors(
+	_ = DonePage(DonePageData{
+		Tasks:             taskList,
+		ArchiveAfterHours: archiveSettings.ArchiveAfterHours,
+		Sections:          sections,
+		UserSettings:      wsCtx.Settings,
+		Workspaces:        wsCtx.Workspaces,
+		LabelColors: a.loadLabelColors(
 			r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
 		),
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -513,17 +511,16 @@ func (a *Todos) listArchiveHandler(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_list_archive.html", map[string]any{
-		"Tasks":        taskList,
-		"Query":        query,
-		"Sections":     sections,
-		"ActiveTab":    "archive",
-		"UserSettings": wsCtx.Settings,
-		"Workspaces":   wsCtx.Workspaces,
-		"LabelColors": a.loadLabelColors(
+	_ = ArchivePage(ArchivePageData{
+		Tasks:        taskList,
+		Query:        query,
+		Sections:     sections,
+		UserSettings: wsCtx.Settings,
+		Workspaces:   wsCtx.Workspaces,
+		LabelColors: a.loadLabelColors(
 			r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID,
 		),
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -547,15 +544,14 @@ func (a *Todos) newTaskFormHandler(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_form.html", map[string]any{
-		"Task":        models.Task{}, //nolint:exhaustruct // empty task for new-task form
-		"Action":      "/todos/new",
-		"IsEdit":      false,
-		"Presets":     presets,
-		"Sections":    sections,
-		"RecurInput":  "",
-		"LabelColors": presets.ColorMap(),
-	})
+	_ = FormPage(FormPageData{
+		Task:       models.Task{}, //nolint:exhaustruct // empty task for new-task form
+		Action:     "/todos/new",
+		IsEdit:     false,
+		Presets:    *presets,
+		Sections:   sections,
+		RecurInput: "",
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -599,15 +595,15 @@ func (a *Todos) viewTaskHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_view.html", map[string]any{
-		"Task":     task,
-		"DescHTML": task.Description,
-		"LabelColors": a.loadLabelColors(
+	_ = ViewPage(ViewPageData{
+		Task:     *task,
+		DescHTML: task.Description,
+		LabelColors: a.loadLabelColors(
 			r.Context(),
 			user.ID,
 			task.WorkspaceID,
 		),
-	})
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -640,15 +636,14 @@ func (a *Todos) editTaskFormHandler(w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_form.html", map[string]any{
-		"Task":        task,
-		"Action":      "/todos/" + id.String() + "/edit",
-		"IsEdit":      true,
-		"Presets":     presets,
-		"Sections":    sections,
-		"RecurInput":  a.services.Tasks.FormatRecurRule(task.RecurRule, task.RecurDays),
-		"LabelColors": presets.ColorMap(),
-	})
+	_ = FormPage(FormPageData{
+		Task:       *task,
+		Action:     "/todos/" + id.String() + "/edit",
+		IsEdit:     true,
+		Presets:    *presets,
+		Sections:   sections,
+		RecurInput: a.services.Tasks.FormatRecurRule(task.RecurRule, task.RecurDays),
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -802,12 +797,12 @@ func (a *Todos) quickUpdateHTMX(
 			}
 		}
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "_task_row", map[string]any{
-		"Task":           task,
-		"CurrentSection": currentSection,
-		"LabelColors":    a.loadLabelColors(r.Context(), userID, wsID),
-		"Sections":       sections,
-	})
+	_ = TaskRowPartial(
+		*task,
+		currentSection,
+		a.loadLabelColors(r.Context(), userID, wsID),
+		sections,
+	).Render(r.Context(), w)
 	return nil
 }
 
@@ -887,12 +882,12 @@ func (a *Todos) moveSectionHTMX(
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "_task_list.html", map[string]any{
-		"Tasks":          taskList,
-		"CurrentSection": currentSection,
-		"Sections":       sections,
-		"LabelColors":    a.loadLabelColors(r.Context(), userID, wsID),
-	})
+	_ = TaskListPartial(taskListData{
+		Tasks:          taskList,
+		CurrentSection: currentSection,
+		Sections:       sections,
+		LabelColors:    a.loadLabelColors(r.Context(), userID, wsID),
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -975,21 +970,16 @@ func (a *Todos) addSubtaskHandler(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 	if isHXRequest(r) {
-		tplName := "_subtask_item"
+		lc := a.loadLabelColors(
+			r.Context(),
+			user.ID,
+			wsCtx.Settings.ActiveWorkspaceID,
+		)
 		if dto.Source == subtaskSourceView {
-			tplName = "_subtask_view_item"
+			_ = SubtaskViewItemPartial(*subtask, taskID, 0, lc).Render(r.Context(), w)
+		} else {
+			_ = SubtaskItemPartial(*subtask, taskID, 0, lc).Render(r.Context(), w)
 		}
-		tpltools.RenderWithPanic(a.Tpl, w, tplName, map[string]any{
-			"Subtask":  subtask,
-			"TaskID":   taskID,
-			"Depth":    0,
-			"ParentID": parentSubtaskID,
-			"LabelColors": a.loadLabelColors(
-				r.Context(),
-				user.ID,
-				wsCtx.Settings.ActiveWorkspaceID,
-			),
-		})
 		return nil
 	}
 	back := safeBackRedirect(r.URL.Query().Get("back"))
@@ -1043,21 +1033,17 @@ func (a *Todos) addNestedSubtaskHandler(
 		if depthErr != nil {
 			return depthErr
 		}
-		tplName := "_subtask_item"
+		lc := a.loadLabelColors(r.Context(), user.ID, wsCtx.Settings.ActiveWorkspaceID)
 		if dto.Source == subtaskSourceView {
-			tplName = "_subtask_view_item"
+			_ = SubtaskViewItemPartial(
+				*subtask,
+				taskID,
+				parentDepth+1,
+				lc,
+			).Render(r.Context(), w)
+		} else {
+			_ = SubtaskItemPartial(*subtask, taskID, parentDepth+1, lc).Render(r.Context(), w)
 		}
-		tpltools.RenderWithPanic(a.Tpl, w, tplName, map[string]any{
-			"Subtask":  subtask,
-			"TaskID":   taskID,
-			"Depth":    parentDepth + 1,
-			"ParentID": &parentSubtaskID,
-			"LabelColors": a.loadLabelColors(
-				r.Context(),
-				user.ID,
-				wsCtx.Settings.ActiveWorkspaceID,
-			),
-		})
 		return nil
 	}
 	back := safeBackRedirect(r.URL.Query().Get("back"))
@@ -1162,18 +1148,12 @@ func (a *Todos) renderSubtaskListAfterAction(
 		return err
 	}
 	source := r.FormValue("source") //nolint:gosec // form already parsed
-	tplName := "_subtask_list"
+	lc := a.loadLabelColors(r.Context(), userID, task.WorkspaceID)
 	if source == subtaskSourceView {
-		tplName = "_subtask_view_list"
+		_ = SubtaskViewListPartial(task.Subtasks, task.ID, lc).Render(r.Context(), w)
+	} else {
+		_ = SubtaskListPartial(task.Subtasks, task.ID, lc).Render(r.Context(), w)
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, tplName, map[string]any{
-		"Task": task,
-		"LabelColors": a.loadLabelColors(
-			r.Context(),
-			userID,
-			task.WorkspaceID,
-		),
-	})
 	return nil
 }
 

@@ -1,0 +1,35 @@
+package templates
+
+import (
+	"fmt"
+	"net/http"
+)
+
+// ErrorPage renders a full error page with status code, title, and message.
+templ ErrorPage(status int, title string, message string) {
+	@BareLayout() {
+		@errorPageBody(status, title, message)
+	}
+}
+
+templ errorPageBody(status int, title string, message string) {
+	<main class="container mt-5">
+		<div class="row justify-content-center">
+			<div class="col-md-6 text-center">
+				<h1 class="display-1 fw-bold">{ fmt.Sprintf("%d", status) }</h1>
+				<p class="fs-3">{ title }</p>
+				<p class="text-body-secondary">{ message }</p>
+				<a
+					href="/"
+					onclick="if(history.length > 1){event.preventDefault();history.back();}"
+					class="btn btn-dark mt-3"
+				>&larr; Back</a>
+			</div>
+		</div>
+	</main>
+}
+
+// ErrorPageNoNav is an alias kept for compatibility.
+templ ErrorPageNoNav(status int, message string) {
+	@ErrorPage(status, http.StatusText(status), message)
+}

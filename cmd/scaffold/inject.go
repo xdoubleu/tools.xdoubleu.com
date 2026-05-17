@@ -22,10 +22,10 @@ func injectApp(appsGoPath string, data scaffoldData) error {
 
 	dbArg := ""
 	if data.WithDB {
-		dbArg = "db, "
+		dbArg = ", db"
 	}
 	appLine := fmt.Sprintf(
-		"\tapps.addApp(%s.New(authService, logger, cfg, %ssharedTpl))",
+		"\tapps.addApp(%s.New(authService, logger, cfg%s))",
 		data.Name,
 		dbArg,
 	)

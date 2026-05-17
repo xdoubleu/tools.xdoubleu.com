@@ -1,72 +1,77 @@
 # tools.xdoubleu.com
 
-Each tool has its own folder under `apps/`, however all are combined in `cmd/publish`.
-`cmd/publish` also takes care of authentication.
+A Go monorepo serving multiple web tools from a single binary. Built with Go 1.25, PostgreSQL, and Supabase authentication.
 
-The folder structure of apps follows the usual one for Go projects:
+## Tools
 
-- `images` — images used for app
-- `migrations` — DB migrations used for app
-- `templates` — HTML templates used for app
-- `internal` — logic internal to that app
-- `pkg` — logic that could become its own project
-- root level files — HTTP endpoints of app
+- **backlog** — Goals/backlog tracker with external sync (Steam, Hardcover/Goodreads), background jobs, and WebSocket live updates.
+- **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
+- **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
+- **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and contact-based sharing.
+- **todos** — Task management with sections, workspaces, subtasks, policies, archive, and search.
 
-All apps share common bootstrapping via `internal/app.Base`, which provides logging,
-config, template rendering, and auth middleware wiring.
-
-## Development
+## Quick Start
 
 ```bash
 # Start the database
 docker-compose up -d
 
-# Run all tests
+# Run development server
+make run
+
+# Run tests
 make test
+
+# Build the binary
+make build
 
 # Stop the database
 docker-compose down
-
-# Lint and auto-fix
-make lint/fix
 ```
 
-## Adding a new app
+## Development Commands
 
-Use the scaffold command to generate a new app with all the boilerplate:
+| Command | Purpose |
+| --- | --- |
+| `make test` | Run all tests |
+| `make test/cov/report` | Generate coverage report (HTML) |
+| `make test/cov/per-pkg` | Per-package coverage with merged summary |
+| `make lint` | Run all linters (Go + SQL) |
+| `make lint/fix` | Auto-fix linting issues |
+| `make scaffold NAME=myapp [DB=true] [JOBS=true]` | Generate new app |
+
+## Architecture
+
+All tools are registered in `cmd/publish/apps.go` and share a single HTTP mux routed by URL prefix. Each tool lives in `apps/<name>/` with a consistent structure:
+
+- **HTTP**: `net/http` + `justinas/alice` middleware
+- **Database**: `jackc/pgx/v5` + `pressly/goose/v3` migrations
+- **Authentication**: Supabase GoTrue
+- **Templates**: `templ` (source `.templ` files compiled to Go)
+- **Job queue**: `xdoubleu/essentia/v4` for background work
+
+Each tool uses its own PostgreSQL schema. Shared code lives in `internal/` (auth, config, encryption, templates, repositories).
+
+## Adding a New Tool
 
 ```bash
-# Minimal app (no DB, no background jobs)
-make scaffold NAME=myapp
+# Minimal tool (no DB, no background jobs)
+make scaffold NAME=mytool
 
-# App with DB support (repositories + goose migrations)
-make scaffold NAME=myapp DB=true
+# Tool with database
+make scaffold NAME=mytool DB=true
 
-# App with DB and background job queue
-make scaffold NAME=myapp DB=true JOBS=true
+# Tool with database and background jobs
+make scaffold NAME=mytool DB=true JOBS=true
 ```
 
-This generates `apps/myapp/` with the full directory structure and automatically
-registers the new app in `cmd/publish/apps.go`. After scaffolding:
+After scaffolding:
 
-1. Implement handlers and register routes in `apps/myapp/routes.go`
-2. Add domain logic to `apps/myapp/internal/`
-3. If using DB, edit `apps/myapp/migrations/00001_init.sql` with your schema
-4. Run `go build ./...` to verify
+1. Implement handlers and register routes in `apps/mytool/routes.go`
+2. Add domain logic to `apps/mytool/internal/`
+3. If using DB, edit `apps/mytool/migrations/00001_init.sql`
+4. Run `make build` to verify
 
-## Existing apps
+## Contributing
 
-### backlog
-
-Tracks goals by pulling progress from external sources (Steam, Hardcover/Goodreads).
-Supports background sync jobs and WebSocket-based live updates.
-
-### watchparty
-
-Real-time screen sharing and video conferencing using WebRTC.
-Users create or join a room; the creator becomes the presenter and can share their screen.
-Camera overlays are draggable. When no screen is being shared, the remote camera fills the main area.
-
-### icsproxy
-
-Calendar (ICS) filter and proxy. Takes an existing ICS feed URL, lets you hide specific events or mark holidays, and generates a new filtered calendar URL.
+Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` before committing.

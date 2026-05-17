@@ -52,3 +52,35 @@ func TestDecryptEmptyString(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "", got)
 }
+
+func TestEncrypt_InvalidKeyLength(t *testing.T) {
+	_, err := crypto.Encrypt([]byte("tooshort"), "data")
+	require.Error(t, err)
+}
+
+func TestDecrypt_InvalidBase64(t *testing.T) {
+	_, err := crypto.Decrypt(testKey, "enc:!!!not-base64!!!")
+	require.Error(t, err)
+}
+
+func TestDecrypt_DataTooShort(t *testing.T) {
+	// AES-GCM nonce is 12 bytes; encode fewer bytes so len(data) < nonceSize.
+	short := "enc:AAAA" // base64("AAAA") decodes to 3 bytes — less than 12
+	_, err := crypto.Decrypt(testKey, short)
+	require.Error(t, err)
+}
+
+func TestDecrypt_TamperedCiphertext(t *testing.T) {
+	encrypted, err := crypto.Encrypt(testKey, "original")
+	require.NoError(t, err)
+
+	// Flip the last character to corrupt the ciphertext.
+	b := []byte(encrypted)
+	if b[len(b)-1] == 'A' {
+		b[len(b)-1] = 'B'
+	} else {
+		b[len(b)-1] = 'A'
+	}
+	_, err = crypto.Decrypt(testKey, string(b))
+	require.Error(t, err)
+}

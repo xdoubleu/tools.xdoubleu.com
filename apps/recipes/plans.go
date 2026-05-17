@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/recipes/internal/dtos"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
@@ -21,13 +20,6 @@ const (
 	hoursPerDay = 24
 )
 
-type planDay struct {
-	Date      time.Time
-	Breakfast *models.PlanMeal
-	Noon      *models.PlanMeal
-	Evening   *models.PlanMeal
-}
-
 // ── List plans ────────────────────────────────────────────────────────────────
 
 func (a *Recipes) listPlansHandler(w http.ResponseWriter, r *http.Request) error {
@@ -36,23 +28,21 @@ func (a *Recipes) listPlansHandler(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "plans_list.html", map[string]any{
-		"Plans": planList,
-	})
+	_ = PlansListPage(PlansListData{Plans: planList}).Render(r.Context(), w)
 	return nil
 }
 
 // ── New plan form ─────────────────────────────────────────────────────────────
 
-func (a *Recipes) newPlanFormHandler(w http.ResponseWriter, _ *http.Request) error {
-	tpltools.RenderWithPanic(a.Tpl, w, "plans_form.html", map[string]any{
-		//nolint:exhaustruct // other fields optional
-		"Plan":          models.Plan{},
-		"Action":        "/recipes/plans/new",
-		"HideBreakfast": false,
-		"HideNoon":      false,
-		"HideEvening":   false,
-	})
+func (a *Recipes) newPlanFormHandler(w http.ResponseWriter, r *http.Request) error {
+	//nolint:exhaustruct // other fields optional
+	_ = PlansFormPage(PlansFormData{
+		Plan:          models.Plan{},
+		Action:        "/recipes/plans/new",
+		HideBreakfast: false,
+		HideNoon:      false,
+		HideEvening:   false,
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -135,19 +125,19 @@ func (a *Recipes) viewPlanHandler(w http.ResponseWriter, r *http.Request) error 
 
 	icalURL := fmt.Sprintf("/recipes/ical/%s.ics", plan.ICalToken)
 
-	tpltools.RenderWithPanic(a.Tpl, w, "plans_view.html", map[string]any{
-		"Plan":        plan,
-		"Days":        days,
-		"Recipes":     recipeList,
-		"Contacts":    contactList,
-		"ICalURL":     icalURL,
-		"IsOwner":     plan.OwnerUserID == user.ID,
-		"Offset":      offset,
-		"PrevOffset":  offset - 1,
-		"NextOffset":  offset + 1,
-		"WindowStart": windowStart,
-		"WindowEnd":   windowEnd,
-	})
+	_ = PlansViewPage(PlansViewData{
+		Plan:        *plan,
+		Days:        days,
+		Recipes:     recipeList,
+		Contacts:    contactList,
+		ICalURL:     icalURL,
+		IsOwner:     plan.OwnerUserID == user.ID,
+		Offset:      offset,
+		PrevOffset:  offset - 1,
+		NextOffset:  offset + 1,
+		WindowStart: windowStart,
+		WindowEnd:   windowEnd,
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -168,13 +158,13 @@ func (a *Recipes) editPlanFormHandler(w http.ResponseWriter, r *http.Request) er
 		return err
 	}
 
-	tpltools.RenderWithPanic(a.Tpl, w, "plans_form.html", map[string]any{
-		"Plan":          plan,
-		"Action":        "/recipes/plans/" + id.String() + "/edit",
-		"HideBreakfast": slices.Contains(plan.ICalHideSlots, "breakfast"),
-		"HideNoon":      slices.Contains(plan.ICalHideSlots, "noon"),
-		"HideEvening":   slices.Contains(plan.ICalHideSlots, "evening"),
-	})
+	_ = PlansFormPage(PlansFormData{
+		Plan:          *plan,
+		Action:        "/recipes/plans/" + id.String() + "/edit",
+		HideBreakfast: slices.Contains(plan.ICalHideSlots, "breakfast"),
+		HideNoon:      slices.Contains(plan.ICalHideSlots, "noon"),
+		HideEvening:   slices.Contains(plan.ICalHideSlots, "evening"),
+	}).Render(r.Context(), w)
 	return nil
 }
 
@@ -446,7 +436,7 @@ func parsePlanUUID(r *http.Request) (uuid.UUID, error) {
 	return uuid.Parse(r.PathValue("id"))
 }
 
-func buildCalendarDays(start, end time.Time, meals []models.PlanMeal) []planDay {
+func buildCalendarDays(start, end time.Time, meals []models.PlanMeal) []PlanDay {
 	mealsByDateSlot := make(map[string]*models.PlanMeal)
 	for i := range meals {
 		m := &meals[i]
@@ -454,11 +444,11 @@ func buildCalendarDays(start, end time.Time, meals []models.PlanMeal) []planDay 
 		mealsByDateSlot[key] = m
 	}
 
-	var days []planDay
+	var days []PlanDay
 	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
 		dateStr := d.Format("2006-01-02")
 		//nolint:exhaustruct //other fields optional
-		day := planDay{Date: d}
+		day := PlanDay{Date: d}
 		if m, ok := mealsByDateSlot[dateStr+":breakfast"]; ok {
 			day.Breakfast = m
 		}

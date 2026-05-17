@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
@@ -16,7 +17,6 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/templates"
 )
 
 var testApp *backlog.Backlog //nolint:gochecknoglobals //needed for tests
@@ -73,7 +73,6 @@ func TestMain(m *testing.M) {
 		testCfg,
 		postgresDB,
 		clients,
-		templates.LoadShared(testCfg),
 	)
 
 	err = testApp.ApplyMigrations(context.Background(), postgresDB)
@@ -98,4 +97,8 @@ func getRoutes() http.Handler {
 	mux := http.NewServeMux()
 	testApp.Routes(testApp.GetName(), mux)
 	return mux
+}
+
+func TestGetDisplayName(t *testing.T) {
+	assert.Equal(t, "Backlog", testApp.GetDisplayName())
 }

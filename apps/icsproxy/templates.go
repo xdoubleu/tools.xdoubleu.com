@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/icsproxy/internal/dtos"
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/internal/constants"
@@ -34,11 +33,12 @@ func (app *ICSProxy) indexHandler(w http.ResponseWriter, r *http.Request) {
 		panic(errors.New("not signed in"))
 	}
 
-	summaries, _ := app.services.Calendar.ListConfigSummaries(r.Context(), user.ID)
+	configs, _ := app.services.Calendar.ListConfigs(r.Context(), user.ID)
 
-	tpltools.RenderWithPanic(app.Tpl, w, "index.html", map[string]any{
-		"Configs": summaries,
-	})
+	_ = IndexPage(IndexPageData{
+		Configs:      configs,
+		GeneratedURL: "",
+	}).Render(r.Context(), w)
 }
 
 // =======================
@@ -60,7 +60,6 @@ func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := app.services.Calendar.FetchICS(r.Context(), dto.SourceURL)
 	if err != nil {
 		templates.RenderError(
-			app.Tpl,
 			w,
 			http.StatusBadGateway,
 			"Failed to fetch calendar",
@@ -71,7 +70,6 @@ func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := app.services.Calendar.ExtractEvents(r.Context(), data)
 	if err != nil {
 		templates.RenderError(
-			app.Tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to parse calendar",
@@ -79,14 +77,15 @@ func (app *ICSProxy) previewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "preview.html", map[string]any{
-		"SourceURL":          dto.SourceURL,
-		"Events":             events,
-		"CheckedHideUIDs":    map[string]bool{},
-		"CheckedHolidayUIDs": map[string]bool{},
-		"CheckedRecs":        map[string]bool{},
-		"Editing":            false,
-	})
+	_ = PreviewPage(PreviewPageData{
+		SourceURL:          dto.SourceURL,
+		Events:             events,
+		CheckedHideUIDs:    map[string]bool{},
+		CheckedHolidayUIDs: map[string]bool{},
+		CheckedRecs:        map[string]bool{},
+		Editing:            false,
+		EditingToken:       "",
+	}).Render(r.Context(), w)
 }
 
 // =======================
@@ -105,13 +104,12 @@ func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
 
 	cfg, ok := app.services.Calendar.LoadConfig(r.Context(), token)
 	if !ok {
-		templates.RenderError(app.Tpl, w, http.StatusNotFound, "Filter not found")
+		templates.RenderError(w, http.StatusNotFound, "Filter not found")
 		return
 	}
 
 	if cfg.UserID != user.ID {
 		templates.RenderError(
-			app.Tpl,
 			w,
 			http.StatusForbidden,
 			"You do not have access to this filter",
@@ -122,7 +120,6 @@ func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := app.services.Calendar.FetchICS(r.Context(), cfg.SourceURL)
 	if err != nil {
 		templates.RenderError(
-			app.Tpl,
 			w,
 			http.StatusBadGateway,
 			"Failed to fetch calendar",
@@ -133,7 +130,6 @@ func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := app.services.Calendar.ExtractEvents(r.Context(), data)
 	if err != nil {
 		templates.RenderError(
-			app.Tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to parse calendar",
@@ -151,15 +147,15 @@ func (app *ICSProxy) editHandler(w http.ResponseWriter, r *http.Request) {
 		holidayUIDs[uid] = true
 	}
 
-	tpltools.RenderWithPanic(app.Tpl, w, "preview.html", map[string]any{
-		"SourceURL":          cfg.SourceURL,
-		"Events":             events,
-		"CheckedHideUIDs":    hideUIDs,
-		"CheckedHolidayUIDs": holidayUIDs,
-		"CheckedRecs":        cfg.HideSeries,
-		"Editing":            true,
-		"EditingToken":       token,
-	})
+	_ = PreviewPage(PreviewPageData{
+		SourceURL:          cfg.SourceURL,
+		Events:             events,
+		CheckedHideUIDs:    hideUIDs,
+		CheckedHolidayUIDs: holidayUIDs,
+		CheckedRecs:        cfg.HideSeries,
+		Editing:            true,
+		EditingToken:       token,
+	}).Render(r.Context(), w)
 }
 
 // =======================
@@ -204,7 +200,6 @@ func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
 			err,
 		)
 		templates.RenderError(
-			app.Tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to save config",
@@ -214,12 +209,12 @@ func (app *ICSProxy) createHandler(w http.ResponseWriter, r *http.Request) {
 
 	downloadURL := fmt.Sprintf("/icsproxy/%s.ics", dto.Token)
 
-	summaries, _ := app.services.Calendar.ListConfigSummaries(r.Context(), user.ID)
+	configs, _ := app.services.Calendar.ListConfigs(r.Context(), user.ID)
 
-	tpltools.RenderWithPanic(app.Tpl, w, "index.html", map[string]any{
-		"GeneratedURL": downloadURL,
-		"Configs":      summaries,
-	})
+	_ = IndexPage(IndexPageData{
+		GeneratedURL: downloadURL,
+		Configs:      configs,
+	}).Render(r.Context(), w)
 }
 
 // =======================
@@ -238,7 +233,6 @@ func (app *ICSProxy) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	if err := app.services.Calendar.DeleteConfig(r.Context(), token, user.ID); err != nil {
 		app.Logger.ErrorContext(r.Context(), "Failed to delete filter", "error", err)
 		templates.RenderError(
-			app.Tpl,
 			w,
 			http.StatusInternalServerError,
 			"Failed to delete filter",
@@ -246,9 +240,10 @@ func (app *ICSProxy) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summaries, _ := app.services.Calendar.ListConfigSummaries(r.Context(), user.ID)
+	configs, _ := app.services.Calendar.ListConfigs(r.Context(), user.ID)
 
-	tpltools.RenderWithPanic(app.Tpl, w, "index.html", map[string]any{
-		"Configs": summaries,
-	})
+	_ = IndexPage(IndexPageData{
+		Configs:      configs,
+		GeneratedURL: "",
+	}).Render(r.Context(), w)
 }

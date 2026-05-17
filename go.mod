@@ -5,6 +5,7 @@ go 1.25.0
 require github.com/justinas/alice v1.2.0
 
 require (
+	github.com/a-h/templ v0.3.1020
 	github.com/arran4/golang-ical v0.3.2
 	github.com/coder/websocket v1.8.14
 	github.com/getsentry/sentry-go v0.42.0
@@ -22,7 +23,7 @@ require (
 	github.com/goddtriffin/helmet v1.0.2 // indirect
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )
 

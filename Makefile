@@ -1,4 +1,7 @@
-tools: tools/lint
+tools: tools/lint tools/templ
+
+tools/templ:
+	go install github.com/a-h/templ/cmd/templ@v0.3.1020
 
 tools/lint: tools/lint/go tools/lint/sql
 
@@ -19,11 +22,11 @@ endif
 lint/sql: tools/lint/sql
 	sqlfluff lint --dialect postgres .
 
-lint: tools/lint
+lint: tools/lint templ/generate
 	golangci-lint run
 	make lint/sql
 
-lint/fix: tools/lint
+lint/fix: tools/lint templ/generate
 	golines . -m 88 -w
 	golangci-lint run --fix
 	gci write --skip-generated -s standard -s default .
@@ -36,28 +39,32 @@ scaffold:
 		$(if $(filter true,$(DB)),--with-db) \
 		$(if $(filter true,$(JOBS)),--with-jobs)
 
-build:
+templ/generate:
+	make tools/templ
+	templ generate
+
+build: templ/generate
 	go build -o=./bin/publish ./cmd/publish
 
-run:
+run: templ/generate
 	go run ./cmd/publish
 
 debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient ./cmd/publish
 
-test:
+test: templ/generate
 	go test ./...
 
-test/v:
+test/v: templ/generate
 	go test ./... -v
-	
-test/race:
+
+test/race: templ/generate
 	go test ./... -race -v
 
-test/pprof:
+test/pprof: templ/generate
 	go test ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/publish
 
-test/cov/report:
+test/cov/report: templ/generate
 	go test ./... -coverpkg=./cmd/publish,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
 	cat coverage.out.tmp | grep -v "_mock.go" > coverage.out
 
@@ -67,3 +74,16 @@ test/cov: test/cov/report
 
 test/cov/open:
 	open ./coverage.html
+
+test/cov/per-pkg: templ/generate
+	go test ./apps/todos \
+		-coverpkg=./apps/todos,./apps/todos/internal/... \
+		-covermode=set -coverprofile=cov_todos_pkg.out
+	go test ./apps/backlog \
+		-coverpkg=./apps/backlog,./apps/backlog/internal/... \
+		-covermode=set -coverprofile=cov_backlog_pkg.out
+	go test ./cmd/publish \
+		-coverpkg=./cmd/publish,./internal/... \
+		-covermode=set -coverprofile=cov_publish_pkg.out
+	python3 tools/merge_coverage.py \
+		cov_todos_pkg.out cov_backlog_pkg.out cov_publish_pkg.out

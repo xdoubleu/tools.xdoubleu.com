@@ -31,11 +31,7 @@ jobs:
         with:
           go-version-file: './go.mod'
           cache-dependency-path: './go.sum'
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.11.3 # renovate: datasource=github-releases depName=golangci/golangci-lint
-          working-directory: '.'
+      - run: make lint
 
   test:
     runs-on: ubuntu-latest

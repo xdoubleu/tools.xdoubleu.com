@@ -12,7 +12,6 @@ import (
 
 	"github.com/justinas/alice"
 	"github.com/xdoubleu/essentia/v4/pkg/middleware"
-	"github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/cmd/publish/internal/logging"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
@@ -184,5 +183,5 @@ func (app *Application) Home(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tpl.RenderWithPanic(app.tpl, w, "home.html", data)
+	_ = HomePage(data).Render(r.Context(), w)
 }

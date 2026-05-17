@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/backlog/internal/dtos"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
@@ -189,7 +188,7 @@ func (app *Backlog) updateBookStatusHandler(
 		if libErr != nil {
 			return libErr
 		}
-		tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", data)
+		_ = BooksLibraryPage(data).Render(r.Context(), w)
 		return nil
 	}
 
@@ -225,7 +224,7 @@ func (app *Backlog) toggleTagHandler(w http.ResponseWriter, r *http.Request) err
 		if libErr != nil {
 			return libErr
 		}
-		tpltools.RenderWithPanic(app.Tpl, w, "books_library.html", data)
+		_ = BooksLibraryPage(data).Render(r.Context(), w)
 		return nil
 	}
 

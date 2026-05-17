@@ -1,4 +1,4 @@
-//nolint:testpackage // tests unexported helpers
+//nolint:testpackage,cyclop // tests unexported helpers; avg complexity pre-existing
 package todos
 
 import (

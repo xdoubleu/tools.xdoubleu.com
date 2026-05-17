@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	tpltools "github.com/xdoubleu/essentia/v4/pkg/tpl"
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/services"
 )
@@ -37,15 +36,15 @@ func (a *Todos) settingsHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	tpltools.RenderWithPanic(a.Tpl, w, "todos_settings.html", map[string]any{
-		"Presets":      presets,
-		"Patterns":     patterns,
-		"Archive":      archive,
-		"Sections":     sections,
-		"Policies":     policies,
-		"Workspaces":   wsCtx.Workspaces,
-		"UserSettings": wsCtx.Settings,
-	})
+	_ = SettingsPage(SettingsPageData{
+		Presets:      *presets,
+		Patterns:     patterns,
+		Archive:      *archive,
+		Sections:     sections,
+		Policies:     policies,
+		Workspaces:   wsCtx.Workspaces,
+		UserSettings: wsCtx.Settings,
+	}).Render(r.Context(), w)
 	return nil
 }
 
