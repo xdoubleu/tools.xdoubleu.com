@@ -137,7 +137,11 @@ templ RoomPage(data RoomViewData) {
 templ roomScript(data RoomViewData) {
 	if data.IsPresenter {
 		<script>
-const ROOM = "{data.RoomCode}";
+const ROOM =
+		</script>
+		{ templ.JSONString(data.RoomCode) }
+		<script>
+;
 const IS_PRESENTER = true;
 let ws, pcCam, pcScreen;
 let localCam, localScreen;
@@ -437,7 +441,11 @@ function applyVol(v) {
 		</script>
 	} else {
 		<script>
-const ROOM = "{data.RoomCode}";
+const ROOM =
+		</script>
+		{ templ.JSONString(data.RoomCode) }
+		<script>
+;
 const IS_PRESENTER = false;
 let ws, pcCam, pcScreen;
 let localCam;
