@@ -1,0 +1,245 @@
+package todos
+
+import (
+	"tools.xdoubleu.com/apps/todos/internal/models"
+	"tools.xdoubleu.com/internal/templates"
+)
+
+// ─── Main List Page ───────────────────────────────────────────────────────────
+
+type ListPageData struct {
+	Tasks          []models.Task
+	Sections       []models.Section
+	Presets        models.LabelPresets
+	LabelColors    map[string]string
+	Policies       []models.Policy
+	Patterns       []models.URLPattern
+	ActiveTab      string
+	CurrentSection *models.Section
+	UserSettings   *models.UserSettings
+	Workspaces     []models.Workspace
+	WorkspaceQuery string
+	TabCounts      map[string]int
+}
+
+templ ListPage(d ListPageData) {
+	@templates.Layout() {
+		@listPageBody(d)
+	}
+}
+
+templ listPageBody(d ListPageData) {
+	<div class="container py-4">
+		@todosSearchBar("")
+		@todosNavTabs(d.ActiveTab, d.Sections, d.TabCounts, d.WorkspaceQuery, d.UserSettings, d.Workspaces, "/todos/")
+		<div id="overtimeWidget" class="d-flex align-items-center gap-1 mb-3 small">
+			<span class="text-muted">Overtime:</span>
+			<button id="otDec60" class="btn btn-outline-secondary btn-sm py-0 px-1">−1h</button>
+			<button id="otDec15" class="btn btn-outline-secondary btn-sm py-0 px-1">−15m</button>
+			<span id="otDisplay" class="fw-semibold font-monospace px-2 py-0 border rounded" style="cursor:pointer;min-width:5rem;text-align:center;line-height:1.6" title="Click to set manually">0h 00m</span>
+			<input id="otInput" type="number" class="form-control form-control-sm font-monospace text-center" style="display:none;width:5.5rem" placeholder="min"/>
+			<button id="otInc15" class="btn btn-outline-secondary btn-sm py-0 px-1">+15m</button>
+			<button id="otInc60" class="btn btn-outline-secondary btn-sm py-0 px-1">+1h</button>
+			<button id="otReset" class="btn btn-link btn-sm py-0 px-1 text-muted">Reset</button>
+			<button type="button" class="btn btn-dark btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#taskModal" title="Open full task form">+</button>
+		</div>
+		if len(d.Policies) > 0 {
+			<div id="policiesBanner" class="alert alert-info d-flex justify-content-between align-items-start py-2 mb-3" role="alert">
+				<div class="flex-grow-1 small">
+					if len(d.Policies) > 1 {
+						<ul class="mb-0 ps-3">
+							for _, p := range d.Policies {
+								<li>{ p.Text }</li>
+							}
+						</ul>
+					} else {
+						{ d.Policies[0].Text }
+					}
+				</div>
+				<button type="button" id="policiesDismiss" class="btn-close btn-sm ms-3 flex-shrink-0" aria-label="Dismiss"></button>
+			</div>
+			@templ.Raw(buildPoliciesBannerScript(d.Policies))
+		}
+		<div id="quickAddBar" class="mb-1 position-relative" style="display:none">
+			<form
+				hx-post={ "/todos/?" + d.WorkspaceQuery }
+				hx-target="#taskListContainer"
+				hx-swap="innerHTML"
+				hx-on::after-request="hideQuickAdd()"
+			>
+				<input type="hidden" name="section_id" value={ func() string { if d.CurrentSection != nil { return d.CurrentSection.ID.String() }; return "" }() }/>
+				<button type="submit" style="display:none" aria-hidden="true"></button>
+				<div class="input-group position-relative">
+					<div id="quickAddInput" contenteditable="true" class="form-control qa-ce-input" data-placeholder="New task…" spellcheck="true" autocomplete="off"></div>
+					<input type="hidden" name="input" id="quickAddInputValue"/>
+				</div>
+				<div id="qaUrlNote" class="mt-1 small text-muted" style="display:none"></div>
+				<input type="text" name="description" id="quickAddDesc" class="form-control form-control-sm mt-1" placeholder="Brief description… (optional)" autocomplete="off"/>
+				<div id="quickAddControls" class="d-flex gap-2 flex-wrap mt-2 align-items-center">
+					<select id="qaPriority" class="form-select form-select-sm qa-ctrl" style="max-width:8rem" title="Priority — or type p1/p2/p3">
+						<option value="">p1/p2/p3</option>
+						<option value="p1">🔴 P1 – high</option>
+						<option value="p2">🟠 P2 – med</option>
+						<option value="p3">🔵 P3 – low</option>
+					</select>
+					<input type="text" id="qaLabel" class="form-control form-control-sm qa-ctrl" style="max-width:9rem" placeholder="@label" autocomplete="off"/>
+					<input id="qaDue" type="text" class="form-control form-control-sm qa-ctrl" placeholder="next monday" style="max-width:10rem" autocomplete="off" title="Due date — supports recurring, e.g. every thursday, every first sunday"/>
+					<input id="qaDeadline" type="text" class="form-control form-control-sm qa-ctrl" placeholder="!deadline" style="max-width:9rem" autocomplete="off" title="Deadline — or type !today / !next friday"/>
+					<input type="text" id="qaSection" class="form-control form-control-sm qa-ctrl" list="qa-section-list" style="max-width:9rem" placeholder="#section" autocomplete="off"/>
+					<datalist id="qa-section-list">
+						for _, sec := range d.Sections {
+							<option value={ sec.Name }></option>
+						}
+					</datalist>
+				</div>
+			</form>
+			<ul id="acDropdown" class="list-group shadow-sm" style="display:none;z-index:1000;position:fixed;max-height:180px;overflow-y:auto"></ul>
+		</div>
+		if d.UserSettings == nil || !d.UserSettings.HideShortcutHints {
+			<p id="quickAddHint" class="text-muted small mb-3">
+				<kbd>/</kbd> new task &nbsp;&middot;&nbsp; <kbd>↑↓</kbd> navigate tasks &nbsp;&middot;&nbsp; <kbd>Shift+↑↓</kbd> navigate subtasks
+				&nbsp;&middot;&nbsp; <kbd>s</kbd> add subtask/child &nbsp;&middot;&nbsp; <kbd>e</kbd> edit
+			</p>
+		}
+		<div id="taskListContainer">
+			@TaskListPartial(taskListData{Tasks: d.Tasks, CurrentSection: d.CurrentSection, LabelColors: d.LabelColors, Sections: d.Sections})
+		</div>
+	</div>
+	<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel">
+		<div class="modal-dialog modal-xl">
+			<div class="modal-content">
+				<div class="modal-header py-2 border-0">
+					<h6 class="modal-title mb-0 fw-semibold" id="taskModalLabel">New Task</h6>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body pt-0">
+					<form id="taskForm" method="POST" action="/todos/new">
+						<div class="mb-2">
+							<input type="text" name="title" id="modalTitle" class="form-control form-control-lg border-0 border-bottom rounded-0 px-0 fw-semibold" placeholder="Task title" required/>
+						</div>
+						<div class="row g-2 mb-3">
+							<div class="col-sm-2">
+								<select name="priority" id="modalPriority" class="form-select form-select-sm">
+									<option value="0">— priority —</option>
+									<option value="1">🔴 P1 – high</option>
+									<option value="2">🟠 P2 – medium</option>
+									<option value="3">🔵 P3 – low</option>
+								</select>
+							</div>
+							<div class="col-sm-2">
+								<input type="text" name="label" id="modalLabel" class="form-control form-control-sm" placeholder="— label —"/>
+							</div>
+							<div class="col-sm-2">
+								<input type="text" name="due_date" id="modalDue" class="form-control form-control-sm" placeholder="today / next thursday / every first sunday" title="Due date (supports natural language and recurring)"/>
+							</div>
+							<div class="col-sm-2">
+								<input type="text" name="deadline" id="modalDeadline" class="form-control form-control-sm" placeholder="today / tomorrow / next friday" title="Deadline (one-off, no recurring)"/>
+							</div>
+							<div class="col-sm-1">
+								<select name="section_id" id="modalSection" class="form-select form-select-sm">
+									<option value="">— section —</option>
+									for _, sec := range d.Sections {
+										<option value={ sec.ID.String() }>{ sec.Name }</option>
+									}
+								</select>
+							</div>
+							<div class="col-sm-1">
+								<input type="text" name="recur" id="modalRecurDays" class="form-control form-control-sm text-center" placeholder="optional override" title="Optional recurrence override"/>
+							</div>
+						</div>
+						<div class="mb-1">
+							<label class="form-label small text-muted mb-1">Description <span class="fw-normal">(markdown — click to edit)</span></label>
+							<div id="modalDescView" class="border rounded p-3 markdown-body" style="cursor:text; min-height:3em">
+								<span class="text-muted fst-italic small">Click to add a description…</span>
+							</div>
+							<textarea name="description" id="modalDesc" class="form-control font-monospace mt-0" style="display:none; border-radius:.375rem .375rem 0 0" placeholder="Write notes in markdown…"></textarea>
+							<div id="modalDescLivePreview" class="border border-top-0 rounded-bottom p-3 markdown-body" style="display:none; min-height:2rem; background:var(--bs-tertiary-bg)"></div>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer py-2">
+					<button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" form="taskForm" class="btn btn-dark btn-sm">Save</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	@listPageStyles()
+	@listPageScripts(d)
+}
+
+templ listPageStyles() {
+	<style>
+		button.task-check{appearance:none;-webkit-appearance:none;width:1rem;height:1rem;border-radius:50%;border:2px solid;background:none;padding:0;cursor:pointer;flex-shrink:0;transition:background .12s,border-color .12s;}
+		.task-check:hover{opacity:.7}
+		.task-check-p0{border-color:#6c757d}.task-check-p0:hover{background:#6c757d}
+		.task-check-p1{border-color:#dc3545}.task-check-p1:hover{background:#dc3545}
+		.task-check-p2{border-color:#fd7e14}.task-check-p2:hover{background:#fd7e14}
+		.task-check-p3{border-color:#0d6efd}.task-check-p3:hover{background:#0d6efd}
+		.task-actions{visibility:hidden;opacity:0;transition:opacity .15s}
+		.task-row:hover .task-actions{visibility:visible;opacity:1}
+		.task-body{cursor:pointer}.task-title-link{cursor:pointer}
+		.drag-handle{visibility:hidden;opacity:0;transition:opacity .15s}
+		.task-row:hover .drag-handle{visibility:visible;opacity:1}
+		.task-row.kb-focus{outline:2px solid #0d6efd;outline-offset:-2px}
+		.sortable-ghost{opacity:.4;background:#f8f9fa}
+		.subtask-row{cursor:default;border-left:3px solid transparent}
+		.subtask-p0{border-left-color:#6c757d}.subtask-p1{border-left-color:#dc3545}
+		.subtask-p2{border-left-color:#fd7e14}.subtask-p3{border-left-color:#0d6efd}
+		.drag-handle-sub{visibility:hidden;opacity:0;transition:opacity .15s}
+		.subtask-row:hover .drag-handle-sub{visibility:visible;opacity:1}
+		.subtask-actions{visibility:hidden;opacity:0;transition:opacity .15s}
+		.subtask-row:hover .subtask-actions{visibility:visible;opacity:1}
+		.subtask-check-done{background:#6c757d;border-color:#6c757d}
+		.subtask-section.hide-done .subtask-row-done{display:none}
+		.task-check-p1.subtask-check-done{background:#dc3545;border-color:#dc3545}
+		.task-check-p2.subtask-check-done{background:#fd7e14;border-color:#fd7e14}
+		.task-check-p3.subtask-check-done{background:#0d6efd;border-color:#0d6efd}
+		.subtask-children{margin-top:2px}
+		.subtask-collapsed>.subtask-children{display:none}
+		.subtask-expand-btn{background:none;border:none;padding:0 4px;cursor:pointer;font-size:0.7rem;color:var(--bs-secondary-color);transition:transform 0.15s}
+		.subtask-row.subtask-collapsed .subtask-expand-btn{transform:rotate(-90deg)}
+		.subtask-row-active{outline:2px solid #0d6efd;outline-offset:-2px}
+		.priority-p1{background-color:#dc3545 !important}
+		.priority-p2{background-color:#fd7e14 !important;color:#000 !important}
+		.priority-p3{background-color:#0d6efd !important;color:#000 !important}
+		.markdown-body h1,.markdown-body h2,.markdown-body h3{margin-top:1rem;margin-bottom:.5rem}
+		.markdown-body ul,.markdown-body ol{padding-left:1.5rem}
+		.markdown-body code{background:var(--bs-secondary-bg);padding:.1em .3em;border-radius:3px}
+		.markdown-body pre code{background:none;padding:0}
+		.markdown-body pre{background:var(--bs-secondary-bg);padding:.75rem 1rem;border-radius:.375rem;overflow-x:auto}
+		.markdown-body blockquote{border-left:4px solid var(--bs-secondary);padding-left:1rem;color:var(--bs-secondary-color)}
+		details summary::-webkit-details-marker{display:none}
+		.task-row{cursor:default}
+		#acDropdown .list-group-item{cursor:pointer;padding:.35rem .75rem;font-size:.875rem}
+		#acDropdown .list-group-item.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
+		#overtimeWidget button{font-size:.75rem;line-height:1.4}
+		.qa-helper-label{font-weight:600}.qa-ctrl{font-size:.8rem}
+		.qa-ce-input{white-space:nowrap;overflow:hidden;cursor:text;min-height:38px;line-height:1.5;padding:.375rem .75rem;outline:none;}
+		.qa-ce-input:empty::before{content:attr(data-placeholder);color:var(--bs-secondary-color);pointer-events:none;}
+		.qa-md-link{display:inline;}.qa-md-link a{color:inherit;text-decoration:underline;}
+		.lp-wrap{position:relative;display:inline-flex;max-width:100%;}
+		.lp-trigger{display:flex;flex-wrap:wrap;align-items:center;gap:3px;padding:3px 8px;min-height:32px;border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius);background:var(--bs-body-bg);cursor:text;min-width:80px;font-size:0.875rem;transition:border-color 0.15s,box-shadow 0.15s;}
+		.lp-trigger:focus-within{border-color:var(--bs-primary-border-subtle);box-shadow:0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15);}
+		.lp-search{border:none;outline:none;background:transparent;min-width:60px;flex:1;font-size:0.8rem;line-height:1.5;color:var(--bs-body-color);padding:0;}
+		.lp-search::placeholder{color:var(--bs-secondary-color);opacity:0.8;}
+		.lp-badge{display:inline-flex;align-items:center;gap:2px;background:var(--bs-secondary-bg);border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius-sm);padding:1px 5px;font-size:0.75rem;white-space:nowrap;}
+		.lp-badge-x{background:none;border:none;padding:0;cursor:pointer;line-height:1;font-size:0.85rem;color:var(--bs-secondary-color);opacity:0.7;}
+		.lp-badge-x:hover{opacity:1;color:var(--bs-danger);}
+		.lp-drop{position:fixed;z-index:9999;background:var(--bs-body-bg);border:1px solid var(--bs-border-color);border-radius:var(--bs-border-radius);box-shadow:0 4px 12px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;}
+		.lp-item{padding:5px 12px;cursor:pointer;font-size:0.875rem;display:flex;align-items:center;gap:8px;user-select:none;}
+		.lp-item:hover{background:var(--bs-secondary-bg);}.lp-item-selected{font-weight:600;}
+		.lp-chk{font-size:1rem;flex-shrink:0;}.lp-add{color:var(--bs-primary);font-style:italic;}
+		.lp-pill .lp-trigger{border-radius:var(--bs-border-radius-pill);background:var(--bs-secondary-bg);border-color:transparent;padding:0.2em 0.75em;font-size:0.82rem;min-height:auto;}
+		.lp-pill .lp-trigger:hover{border-color:var(--bs-border-color);background:var(--bs-body-bg);}
+		.lp-pill .lp-trigger:focus-within{border-color:var(--bs-primary-border-subtle);background:var(--bs-body-bg);box-shadow:0 0 0 0.15rem rgba(var(--bs-primary-rgb),.15);}
+		@media (max-width:576px){.lp-drop{max-width:calc(100vw - 16px);}}
+	</style>
+}
+
+// listPageScripts emits all the JS for the list page with Go values baked in.
+templ listPageScripts(d ListPageData) {
+	<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+	<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+	@templ.Raw("<script>(function(){" + buildListPageInitScript(d) + listPageStaticJS + "}());</script>")
+}

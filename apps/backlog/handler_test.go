@@ -8,16 +8,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func TestHTTPError_Error(t *testing.T) {
-	err := &HTTPError{Status: http.StatusNotFound, Message: "not found"}
+	err := &iapp.HTTPError{Status: http.StatusNotFound, Message: "not found"}
 	assert.Equal(t, "not found", err.Error())
 }
 
 func TestHTTPError_As(t *testing.T) {
 	err := httpError(http.StatusBadRequest, "bad request")
-	var httpErr *HTTPError
+	var httpErr *iapp.HTTPError
 	assert.True(t, errors.As(err, &httpErr))
 	assert.Equal(t, http.StatusBadRequest, httpErr.Status)
 	assert.Equal(t, "bad request", httpErr.Message)

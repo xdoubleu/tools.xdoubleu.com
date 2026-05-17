@@ -1,0 +1,303 @@
+package watchparty
+
+templ presenterScript(data RoomViewData) {
+	<script>
+const ROOM = { templ.JSONString(data.RoomCode) };
+const IS_PRESENTER = true;
+let ws, pcCam, pcScreen;
+let localCam, localScreen;
+let isSharingScreen = false;
+let remoteCamStream = null;
+
+// ICE candidates queued while remote description is not yet set
+const pendingCandidates = { cam: [], screen: [] };
+
+// WS message log for bug reports (last 30 entries, no payloads — SDPs are large)
+window.__wsLog = [];
+
+const selfCamEl   = document.getElementById("selfCam");
+const remoteCamEl = document.getElementById("remoteCam");
+const mainVideoEl = document.getElementById("screenVideo");
+
+// ── Drag-and-drop for PiP overlays ──────────────────────────────────────────
+
+function makeDraggable(el) {
+    let startX, startY, origLeft, origTop;
+
+    el.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        el.setPointerCapture(e.pointerId);
+        el.style.cursor = "grabbing";
+
+        const container = el.parentElement.getBoundingClientRect();
+        const rect      = el.getBoundingClientRect();
+
+        el.style.right  = "auto";
+        el.style.bottom = "auto";
+        el.style.left   = (rect.left - container.left) + "px";
+        el.style.top    = (rect.top  - container.top)  + "px";
+
+        startX   = e.clientX;
+        startY   = e.clientY;
+        origLeft = parseFloat(el.style.left);
+        origTop  = parseFloat(el.style.top);
+    });
+
+    el.addEventListener("pointermove", e => {
+        if (!el.hasPointerCapture(e.pointerId)) return;
+        el.style.left = (origLeft + e.clientX - startX) + "px";
+        el.style.top  = (origTop  + e.clientY - startY) + "px";
+    });
+
+    el.addEventListener("pointerup", e => {
+        el.releasePointerCapture(e.pointerId);
+        el.style.cursor = "grab";
+    });
+}
+
+makeDraggable(selfCamEl);
+makeDraggable(remoteCamEl);
+
+// ── WebRTC helpers ───────────────────────────────────────────────────────────
+
+function wsUrl() {
+    return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/watchparty/api/signaling`;
+}
+
+function logWS(dir, type, trackType) {
+    window.__wsLog.push({ t: new Date().toISOString(), dir, type, trackType });
+    if (window.__wsLog.length > 30) window.__wsLog.shift();
+}
+
+function send(type, payload, trackType) {
+    const msg = { type, payload, trackType };
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        logWS("send", type, trackType);
+        ws.send(JSON.stringify(msg));
+    } else {
+        setTimeout(() => send(type, payload, trackType), 200);
+    }
+}
+
+function createPC(trackType) {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+
+    pc.onicecandidate = e => { if (e.candidate) send("candidate", e.candidate, trackType); };
+
+    pc.ontrack = e => {
+        if (trackType === "cam") {
+            remoteCamStream = e.streams[0];
+            if (isSharingScreen) {
+                remoteCamEl.srcObject = remoteCamStream;
+                remoteCamEl.style.display = "block";
+            } else {
+                mainVideoEl.srcObject = remoteCamStream;
+                remoteCamEl.style.display = "none";
+            }
+        }
+        if (trackType === "screen") {
+            isSharingScreen = true;
+            mainVideoEl.srcObject = e.streams[0];
+            remoteCamEl.srcObject = remoteCamStream;
+            remoteCamEl.style.display = "block";
+            document.getElementById("stop-screen-btn").style.display = "inline-block";
+        }
+    };
+
+    pc.onconnectionstatechange = () => {
+        if (trackType === "screen" &&
+            (pc.connectionState === "disconnected" || pc.connectionState === "failed")) {
+            stopScreenUI();
+        }
+    };
+
+    return pc;
+}
+
+// ── Camera ───────────────────────────────────────────────────────────────────
+
+async function startCamera() {
+    localCam = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    selfCamEl.srcObject = localCam;
+    pcCam = createPC("cam");
+    localCam.getTracks().forEach(t => pcCam.addTrack(t, localCam));
+    const offer = await pcCam.createOffer();
+    await pcCam.setLocalDescription(offer);
+    send("offer", offer, "cam");
+}
+
+// ── Screen share ─────────────────────────────────────────────────────────────
+
+async function startScreen() {
+    localScreen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    isSharingScreen = true;
+    pcScreen = createPC("screen");
+    localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
+    const offer = await pcScreen.createOffer();
+    await pcScreen.setLocalDescription(offer);
+    send("offer", offer, "screen");
+
+    document.getElementById("stop-screen-btn").style.display = "inline-block";
+    document.getElementById("start-screen-btn").style.display = "none";
+
+    localScreen.getVideoTracks()[0].onended = stopScreen;
+}
+
+function stopScreenUI() {
+    isSharingScreen = false;
+    document.getElementById("stop-screen-btn").style.display = "none";
+    document.getElementById("start-screen-btn").style.display = "inline-block";
+    if (remoteCamStream) mainVideoEl.srcObject = remoteCamStream;
+    remoteCamEl.style.display = "none";
+}
+
+function stopScreen() {
+    if (localScreen) {
+        localScreen.getTracks().forEach(t => t.stop());
+        localScreen = null;
+    }
+    if (pcScreen) {
+        pcScreen.close();
+        pcScreen = null;
+    }
+    stopScreenUI();
+}
+
+// ── WebSocket & renegotiation ────────────────────────────────────────────────
+
+async function renegotiateAll() {
+    if (pcCam) { pcCam.close(); pcCam = null; pendingCandidates.cam = []; }
+    if (localCam) {
+        pcCam = createPC("cam");
+        localCam.getTracks().forEach(t => pcCam.addTrack(t, localCam));
+        const offer = await pcCam.createOffer();
+        await pcCam.setLocalDescription(offer);
+        send("offer", offer, "cam");
+    }
+
+    if (pcScreen) { pcScreen.close(); pcScreen = null; pendingCandidates.screen = []; }
+    if (isSharingScreen && localScreen) {
+        pcScreen = createPC("screen");
+        localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
+        const offer = await pcScreen.createOffer();
+        await pcScreen.setLocalDescription(offer);
+        send("offer", offer, "screen");
+    }
+}
+
+function initWS() {
+    ws = new WebSocket(wsUrl());
+
+    ws.onopen = () => {
+        ws.send(JSON.stringify({ roomCode: ROOM, role: IS_PRESENTER ? "presenter" : "viewer" }));
+        renegotiateAll();
+    };
+
+    ws.onclose = () => setTimeout(initWS, 1500);
+    ws.onerror = () => ws.close();
+
+    ws.onmessage = async evt => {
+        const msg = JSON.parse(evt.data);
+        logWS("recv", msg.type, msg.trackType);
+
+        if (msg.type === "offer") {
+            let pc = msg.trackType === "cam" ? pcCam : pcScreen;
+            // A failed/closed screen PC can't accept a new offer — replace it
+            if (pc && msg.trackType === "screen" &&
+                (pc.signalingState === "closed" || pc.connectionState === "failed" ||
+                 pc.connectionState === "closed" || pc.connectionState === "disconnected")) {
+                pc.close();
+                pc = null;
+                pcScreen = null;
+                pendingCandidates.screen = [];
+            }
+            if (!pc) {
+                pc = createPC(msg.trackType);
+                if (msg.trackType === "screen") pcScreen = pc;
+                if (msg.trackType === "cam")    pcCam    = pc;
+                pendingCandidates[msg.trackType] = [];
+            }
+            await pc.setRemoteDescription(msg.payload);
+            const drained = pendingCandidates[msg.trackType].splice(0);
+            for (const c of drained) await pc.addIceCandidate(c);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            send("answer", answer, msg.trackType);
+        }
+
+        if (msg.type === "answer") {
+            const pc = msg.trackType === "cam" ? pcCam : pcScreen;
+            if (pc && pc.signalingState === "have-local-offer") {
+                await pc.setRemoteDescription(msg.payload);
+                const drained = pendingCandidates[msg.trackType].splice(0);
+                for (const c of drained) await pc.addIceCandidate(c);
+            } else if (msg.trackType === "screen" && IS_PRESENTER &&
+                       isSharingScreen && localScreen) {
+                // Stale answer from viewer reconnect: re-initiate screen with fresh offer
+                if (pcScreen) { pcScreen.close(); pcScreen = null; }
+                pendingCandidates.screen = [];
+                pcScreen = createPC("screen");
+                localScreen.getTracks().forEach(t => pcScreen.addTrack(t, localScreen));
+                const offer = await pcScreen.createOffer();
+                await pcScreen.setLocalDescription(offer);
+                send("offer", offer, "screen");
+            }
+        }
+
+        if (msg.type === "candidate") {
+            const pc = msg.trackType === "cam" ? pcCam : pcScreen;
+            if (pc && pc.remoteDescription) {
+                await pc.addIceCandidate(msg.payload);
+            } else if (pc) {
+                pendingCandidates[msg.trackType].push(msg.payload);
+            }
+        }
+    };
+}
+
+initWS();
+startCamera();
+document.getElementById("start-screen-btn").onclick = startScreen;
+document.getElementById("stop-screen-btn").onclick  = stopScreen;
+
+// ── Mic / camera controls ────────────────────────────────────────────────────
+
+let micEnabled = true;
+let camEnabled = true;
+let selfCamVisible = true;
+
+document.getElementById("mic-btn").onclick = () => {
+    micEnabled = !micEnabled;
+    if (localCam) localCam.getAudioTracks().forEach(t => { t.enabled = micEnabled; });
+    const btn = document.getElementById("mic-btn");
+    btn.textContent = micEnabled ? "Mute Mic" : "Unmute Mic";
+    btn.className   = micEnabled ? "btn btn-sm btn-outline-light" : "btn btn-sm btn-outline-warning";
+};
+
+document.getElementById("cam-btn").onclick = () => {
+    camEnabled = !camEnabled;
+    if (localCam) localCam.getVideoTracks().forEach(t => { t.enabled = camEnabled; });
+    // also hide/show self preview to match
+    selfCamEl.style.display = (camEnabled && selfCamVisible) ? "block" : "none";
+    const btn = document.getElementById("cam-btn");
+    btn.textContent = camEnabled ? "Disable Cam" : "Enable Cam";
+    btn.className   = camEnabled ? "btn btn-sm btn-outline-light" : "btn btn-sm btn-outline-warning";
+};
+
+document.getElementById("hide-self-btn").onclick = () => {
+    selfCamVisible = !selfCamVisible;
+    selfCamEl.style.display = (selfCamVisible && camEnabled) ? "block" : "none";
+    const btn = document.getElementById("hide-self-btn");
+    btn.textContent = selfCamVisible ? "Hide Self" : "Show Self";
+    btn.className   = selfCamVisible ? "btn btn-sm btn-outline-light" : "btn btn-sm btn-outline-secondary";
+};
+
+// ── Audio mixing (presenter only — no stream vol control) ────────────────────
+
+let manualVol = 1.0;
+
+function applyVol(v) {
+    if (isSharingScreen) mainVideoEl.volume = v;
+}
+	</script>
+}

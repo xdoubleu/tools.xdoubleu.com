@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"tools.xdoubleu.com/apps/todos/internal/services"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func TestHTTPError_Error(t *testing.T) {
-	e := &services.HTTPError{Status: 400, Message: "bad request"}
+	e := &iapp.HTTPError{Status: 400, Message: "bad request"}
 	assert.Equal(t, "bad request", e.Error())
 }

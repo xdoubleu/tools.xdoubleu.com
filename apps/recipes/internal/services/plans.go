@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/repositories"
+	"tools.xdoubleu.com/internal/app"
 )
 
 type PlanService struct {
@@ -87,7 +88,7 @@ func (s *PlanService) Update(
 		return err
 	}
 	if existing.OwnerUserID != userID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "Only the owner can edit plan details",
 		}
@@ -106,7 +107,7 @@ func (s *PlanService) Delete(
 		return err
 	}
 	if existing.OwnerUserID != userID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "Only the owner can delete this plan",
 		}
@@ -125,7 +126,7 @@ func (s *PlanService) AddMeal(
 		return err
 	}
 	if !plan.CanEdit {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "You do not have edit access to this plan",
 		}
@@ -146,7 +147,7 @@ func (s *PlanService) DeleteMeal(
 		return err
 	}
 	if !plan.CanEdit {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "You do not have edit access to this plan",
 		}
@@ -165,7 +166,7 @@ func (s *PlanService) Unshare(
 		return err
 	}
 	if existing.OwnerUserID != ownerID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "Only the owner can modify sharing",
 		}
@@ -185,7 +186,7 @@ func (s *PlanService) Share(
 		return err
 	}
 	if existing.OwnerUserID != ownerID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "Only the owner can share this plan",
 		}

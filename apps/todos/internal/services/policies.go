@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"tools.xdoubleu.com/apps/todos/internal/models"
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
+	"tools.xdoubleu.com/internal/app"
 )
 
 type PoliciesService struct {
@@ -29,13 +30,13 @@ func (s *PoliciesService) Create(
 	workspaceID *uuid.UUID,
 ) (*models.Policy, error) {
 	if text == "" {
-		return nil, &HTTPError{
+		return nil, &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Policy text cannot be empty",
 		}
 	}
 	if reappearAfterHours < 0 {
-		return nil, &HTTPError{
+		return nil, &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Reappear hours must be non-negative",
 		}
@@ -57,13 +58,13 @@ func (s *PoliciesService) Update(
 	reappearAfterHours int,
 ) (*models.Policy, error) {
 	if text == "" {
-		return nil, &HTTPError{
+		return nil, &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Policy text cannot be empty",
 		}
 	}
 	if reappearAfterHours < 0 {
-		return nil, &HTTPError{
+		return nil, &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Reappear hours must be non-negative",
 		}
