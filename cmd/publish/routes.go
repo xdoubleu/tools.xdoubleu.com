@@ -84,14 +84,22 @@ func (app *Application) Routes() http.Handler {
 		}
 	}
 
-	handlers, err := middleware.DefaultWithSentry(
-		app.logger,
-		allowedOrigins,
-		app.config.Env,
+	var (
+		handlers []alice.Constructor
+		err      error
 	)
 
-	if err != nil {
-		panic(err)
+	if app.config.Throttle {
+		handlers, err = middleware.DefaultWithSentry(
+			app.logger,
+			allowedOrigins,
+			app.config.Env,
+		)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		handlers = middleware.Minimal(app.logger)
 	}
 
 	standard := alice.New(

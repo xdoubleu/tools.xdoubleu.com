@@ -3541,7 +3541,7 @@ func TestSearch_OpenTaskWithDueDate(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), "SearchDueDate_unique_ZZW")
 }
 
-// TestViewTask_LinkWithNoLabel covers the "else" branch of "if link.Label != ''"
+// TestViewTask_LinkWithNoLabel covers the "else" branch of "if link.Label != ”"
 // in viewPageBody by viewing a task whose link has an empty label (shows URL text).
 func TestViewTask_LinkWithNoLabel(t *testing.T) {
 	taskID := createTask(t, "Task with unlabeled link")
@@ -3551,11 +3551,13 @@ func TestViewTask_LinkWithNoLabel(t *testing.T) {
 	)
 	tEdit.SetContentType(test.FormContentType)
 	tEdit.SetFollowRedirect(false)
-	tEdit.SetData(dtos.SaveTaskDto{ //nolint:exhaustruct // only Title and LinkURLs needed
-		Title:      "Task with unlabeled link",
-		LinkURLs:   []string{"https://example.com/no-label"},
-		LinkLabels: []string{""},
-	})
+	tEdit.SetData(
+		dtos.SaveTaskDto{ //nolint:exhaustruct // only Title and LinkURLs needed
+			Title:      "Task with unlabeled link",
+			LinkURLs:   []string{"https://example.com/no-label"},
+			LinkLabels: []string{""},
+		},
+	)
 	require.Equal(t, http.StatusSeeOther, tEdit.Do(t).StatusCode)
 
 	rr := httptest.NewRecorder()
