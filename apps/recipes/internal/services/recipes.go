@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/repositories"
+	"tools.xdoubleu.com/internal/app"
 )
 
 type RecipeService struct {
@@ -44,7 +45,7 @@ func (s *RecipeService) Get(
 	}
 
 	if recipe.UserID != userID && !isSharedWithUser {
-		return nil, &HTTPError{
+		return nil, &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "You do not have access to this recipe",
 		}
@@ -87,7 +88,7 @@ func (s *RecipeService) Update(
 		return err
 	}
 	if existing.UserID != userID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "You do not own this recipe",
 		}
@@ -110,7 +111,7 @@ func (s *RecipeService) Delete(
 		return err
 	}
 	if existing.UserID != userID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "You do not own this recipe",
 		}
@@ -128,7 +129,7 @@ func (s *RecipeService) Share(
 		return err
 	}
 	if existing.UserID != ownerID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "You do not own this recipe",
 		}
@@ -146,7 +147,7 @@ func (s *RecipeService) Unshare(
 		return err
 	}
 	if existing.UserID != ownerID {
-		return &HTTPError{
+		return &app.HTTPError{
 			Status:  http.StatusForbidden,
 			Message: "You do not own this recipe",
 		}

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/xdoubleu/essentia/v4/pkg/database"
-	"tools.xdoubleu.com/apps/todos/internal/services"
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/templates"
 )
 
@@ -14,7 +14,7 @@ type handler func(http.ResponseWriter, *http.Request) error
 func (a *Todos) handle(h handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
-			var svcErr *services.HTTPError
+			var svcErr *iapp.HTTPError
 			switch {
 			case errors.As(err, &svcErr):
 				a.Logger.WarnContext(r.Context(), svcErr.Message,

@@ -8,6 +8,7 @@ import (
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/models"
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
+	"tools.xdoubleu.com/internal/app"
 )
 
 type SectionsService struct {
@@ -29,7 +30,7 @@ func (s *SectionsService) Create(
 	workspaceID *uuid.UUID,
 ) (*models.Section, error) {
 	if dto.Name == "" {
-		return nil, &HTTPError{
+		return nil, &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Section name cannot be empty",
 		}

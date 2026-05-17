@@ -1,0 +1,176 @@
+package backlog
+
+import (
+	"fmt"
+	"strconv"
+
+	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/internal/templates"
+)
+
+// BooksSearchLoadingPage renders the search loading spinner partial (no layout wrapper).
+templ BooksSearchLoadingPage(data BooksSearchLoadingData) {
+	<div hx-get={ "/backlog/books/search/external?q=" + data.Query } hx-trigger="load" hx-swap="outerHTML">
+		<div class="d-flex align-items-center gap-2 py-3 text-muted">
+			<div class="spinner-border spinner-border-sm" role="status">
+				<span class="visually-hidden">Loading&#x2026;</span>
+			</div>
+			<span>Searching Hardcover&#x2026;</span>
+		</div>
+	</div>
+}
+
+// BooksSearchResultsPage renders the search results partial (no layout wrapper).
+templ BooksSearchResultsPage(data BooksSearchResultsData) {
+	if len(data.LibraryResults) > 0 {
+		<div class="list-group">
+			for _, ub := range data.LibraryResults {
+				<div class="list-group-item">
+					<div class="d-flex gap-3 align-items-start">
+						if ub.Book != nil && ub.Book.CoverURL != nil {
+							<img src={ *ub.Book.CoverURL } alt={ ub.Book.Title } loading="lazy" style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px"/>
+						}
+						<div class="flex-grow-1">
+							if ub.Book != nil {
+								<div class="fw-semibold">{ ub.Book.Title }</div>
+							}
+							if ub.Book != nil && len(ub.Book.Authors) > 0 {
+								<div class="text-muted small">{ ub.Book.Authors[0] }</div>
+							}
+							<div class="mt-1">
+								<span class="badge bg-secondary">{ ub.Status }</span>
+								if ub.HasTag("favourite") {
+									<span class="text-warning ms-1" title="Favourite">&#x2605;</span>
+								}
+								if ub.HasTag("own-physical") {
+									<span class="ms-1" title="Own physical">&#x1F4DA;</span>
+								}
+								if ub.HasTag("own-digital") {
+									<span class="ms-1" title="Own digital">&#x1F4BB;</span>
+								}
+							</div>
+							if len(ub.DisplayTags()) > 0 {
+								<div class="mt-1">
+									for _, tag := range ub.DisplayTags() {
+										<span class="badge bg-secondary me-1 fw-normal" style="font-size:0.75em">{ tag }</span>
+									}
+								</div>
+							}
+						</div>
+						<div class="flex-shrink-0 align-self-center">
+							<button
+								class="btn btn-sm btn-outline-secondary"
+								data-bs-toggle="modal"
+								data-bs-target="#actionsModal"
+								data-book-id={ ub.BookID.String() }
+								if ub.Book != nil {
+									data-book-title={ ub.Book.Title }
+								}
+								if ub.HasTag("own-physical") {
+									data-own-physical="1"
+								}
+								if ub.HasTag("own-digital") {
+									data-own-digital="1"
+								}
+								if ub.HasTag("favourite") {
+									data-favourite="1"
+								}
+							>&#x22EF;</button>
+						</div>
+					</div>
+				</div>
+			}
+		</div>
+	} else if len(data.HardcoverResults) > 0 {
+		<p class="text-muted small mb-2">No results in your library — showing results from Hardcover.</p>
+		<div class="list-group">
+			for _, book := range data.HardcoverResults {
+				<div class="list-group-item">
+					<div class="d-flex gap-3 align-items-start">
+						if book.CoverURL != nil {
+							<img src={ *book.CoverURL } alt={ book.Title } loading="lazy" style="width:40px;height:60px;object-fit:cover;flex-shrink:0;border-radius:2px"/>
+						}
+						<div class="flex-grow-1">
+							<div class="fw-semibold">{ book.Title }</div>
+							if len(book.Authors) > 0 {
+								<div class="text-muted small">{ book.Authors[0] }</div>
+							}
+							if book.ISBN13 != nil {
+								<div class="text-muted small">ISBN: { *book.ISBN13 }</div>
+							}
+						</div>
+						<div class="flex-shrink-0" style="min-width:160px">
+							@hardcoverAddForm(book)
+						</div>
+					</div>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ hardcoverAddForm(book hardcover.ExternalBook) {
+	<form method="POST" action="/backlog/books" class="p-2 border rounded bg-light" style="font-size:0.85em">
+		<input type="hidden" name="provider" value={ book.Provider }/>
+		<input type="hidden" name="provider_id" value={ book.ProviderID }/>
+		<input type="hidden" name="title" value={ book.Title }/>
+		if len(book.Authors) > 0 {
+			<input type="hidden" name="author" value={ book.Authors[0] }/>
+		}
+		if book.ISBN13 != nil {
+			<input type="hidden" name="isbn13" value={ *book.ISBN13 }/>
+		}
+		if book.CoverURL != nil {
+			<input type="hidden" name="cover_url" value={ *book.CoverURL }/>
+		}
+		if book.Description != nil {
+			<input type="hidden" name="description" value={ *book.Description }/>
+		}
+		<div class="mb-2">
+			<select name="status" class="form-select form-select-sm">
+				<option value="to-read">Want to Read</option>
+				<option value="currently-reading">Currently Reading</option>
+				<option value="read">Read</option>
+			</select>
+		</div>
+		<div class="form-check mb-1">
+			<input type="checkbox" name="own_physical" class="form-check-input" id={ "op-" + book.ProviderID }/>
+			<label class="form-check-label" for={ "op-" + book.ProviderID }>Own physical &#x1F4DA;</label>
+		</div>
+		<div class="form-check mb-2">
+			<input type="checkbox" name="own_digital" class="form-check-input" id={ "od-" + book.ProviderID }/>
+			<label class="form-check-label" for={ "od-" + book.ProviderID }>Own digital &#x1F4BB;</label>
+		</div>
+		<button class="btn btn-sm btn-outline-primary w-100">Add to library</button>
+	</form>
+}
+
+templ DistributionPage(data DistributionData) {
+	@templates.Layout() {
+		<div class="container py-4">
+			<div class="d-flex align-items-center gap-3 mb-4">
+				<a href="/backlog/steam" class="btn btn-outline-secondary btn-sm">&larr; Back</a>
+				<h2 class="mb-0">{ data.Label } &#8212; { fmt.Sprintf("%d", len(data.Games)) } game(s)</h2>
+			</div>
+			if len(data.Games) > 0 {
+				<div class="row g-3">
+					for _, g := range data.Games {
+						<div class="col-6 col-md-4 col-lg-3">
+							<a href={ templ.SafeURL("/backlog/steam/games/" + strconv.Itoa(g.ID)) } class="text-decoration-none text-body">
+								<div class="card h-100" style="cursor:pointer">
+									<img src={ "https://cdn.akamai.steamstatic.com/steam/apps/" + strconv.Itoa(g.ID) + "/header.jpg" } class="card-img-top" alt={ g.Name } style="aspect-ratio:460/215;object-fit:cover" onerror="this.style.display='none'"/>
+									<div class="card-body p-2">
+										<p class="card-text small mb-1 fw-semibold">{ g.Name }</p>
+										<span class="badge bg-primary">{ g.CompletionRate }%</span>
+									</div>
+								</div>
+							</a>
+						</div>
+					}
+				</div>
+			} else {
+				<p class="text-muted">No games in this range.</p>
+			}
+		</div>
+	}
+}

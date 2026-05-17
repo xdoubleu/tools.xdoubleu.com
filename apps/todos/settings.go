@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
-	"tools.xdoubleu.com/apps/todos/internal/services"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (a *Todos) settingsHandler(w http.ResponseWriter, r *http.Request) error {
@@ -52,7 +52,7 @@ func (a *Todos) updateArchiveHandler(w http.ResponseWriter, r *http.Request) err
 	user := currentUser(r)
 	var dto dtos.UpdateArchiveDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -74,7 +74,7 @@ func (a *Todos) addLabelHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	var dto dtos.AddLabelPresetDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -115,7 +115,7 @@ func (a *Todos) updateLabelColorHandler(w http.ResponseWriter, r *http.Request) 
 	value := r.PathValue("value")
 	var dto dtos.UpdateLabelColorDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -142,7 +142,7 @@ func (a *Todos) addURLPatternHandler(w http.ResponseWriter, r *http.Request) err
 	}
 	var dto dtos.AddURLPatternDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -160,7 +160,7 @@ func (a *Todos) removeURLPatternHandler(w http.ResponseWriter, r *http.Request) 
 	user := currentUser(r)
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid pattern ID",
 		}
@@ -180,7 +180,7 @@ func (a *Todos) addSectionHandler(w http.ResponseWriter, r *http.Request) error 
 	}
 	var dto dtos.AddSectionDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -198,7 +198,7 @@ func (a *Todos) removeSectionHandler(w http.ResponseWriter, r *http.Request) err
 	user := currentUser(r)
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid section ID",
 		}
@@ -218,7 +218,7 @@ func (a *Todos) addPolicyHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	var dto dtos.AddPolicyDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -237,14 +237,14 @@ func (a *Todos) updatePolicyHandler(w http.ResponseWriter, r *http.Request) erro
 	user := currentUser(r)
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid policy ID",
 		}
 	}
 	var dto dtos.UpdatePolicyDto
 	if err = httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -262,7 +262,7 @@ func (a *Todos) removePolicyHandler(w http.ResponseWriter, r *http.Request) erro
 	user := currentUser(r)
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid policy ID",
 		}
@@ -278,7 +278,7 @@ func (a *Todos) addWorkspaceHandler(w http.ResponseWriter, r *http.Request) erro
 	user := currentUser(r)
 	var dto dtos.AddWorkspaceDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -294,7 +294,7 @@ func (a *Todos) deleteWorkspaceHandler(w http.ResponseWriter, r *http.Request) e
 	user := currentUser(r)
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid workspace ID",
 		}
@@ -313,7 +313,7 @@ func (a *Todos) updateHideShortcutHintsHandler(
 	user := currentUser(r)
 	var dto dtos.UpdateHideShortcutHintsDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -331,7 +331,7 @@ func (a *Todos) setModeHandler(w http.ResponseWriter, r *http.Request) error {
 	user := currentUser(r)
 	var dto dtos.SetModeDto
 	if err := httptools.ReadForm(r, &dto); err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid form data",
 		}
@@ -340,7 +340,7 @@ func (a *Todos) setModeHandler(w http.ResponseWriter, r *http.Request) error {
 	if dto.WorkspaceID != "" {
 		id, err := uuid.Parse(dto.WorkspaceID)
 		if err != nil {
-			return &services.HTTPError{
+			return &iapp.HTTPError{
 				Status:  http.StatusBadRequest,
 				Message: "Invalid workspace ID",
 			}

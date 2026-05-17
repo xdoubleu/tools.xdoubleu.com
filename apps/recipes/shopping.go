@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	"tools.xdoubleu.com/apps/recipes/internal/services"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (a *Recipes) shoppingListHandler(w http.ResponseWriter, r *http.Request) error {
 	id, err := parsePlanUUID(r)
 	if err != nil {
-		return &services.HTTPError{
+		return &iapp.HTTPError{
 			Status:  http.StatusNotFound,
 			Message: "Plan not found",
 		}

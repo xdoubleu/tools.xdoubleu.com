@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"tools.xdoubleu.com/apps/todos/internal/models"
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
+	"tools.xdoubleu.com/internal/app"
 )
 
 type WorkspacesService struct {
@@ -26,7 +27,7 @@ func (s *WorkspacesService) Create(
 	name string,
 ) (*models.Workspace, error) {
 	if name == "" {
-		return nil, &HTTPError{
+		return nil, &app.HTTPError{
 			Status:  http.StatusBadRequest,
 			Message: "Workspace name cannot be empty",
 		}
