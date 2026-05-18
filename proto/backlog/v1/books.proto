@@ -1,0 +1,125 @@
+syntax = "proto3";
+package backlog.v1;
+option go_package = "tools.xdoubleu.com/gen/backlog/v1;backlogv1";
+
+message Book {
+  string id = 1;
+  string title = 2;
+  repeated string authors = 3;
+  string isbn13 = 4;
+  string cover_url = 5;
+  string description = 6;
+}
+
+message UserBook {
+  string id = 1;
+  string user_id = 2;
+  string book_id = 3;
+  Book book = 4;
+  string status = 5;
+  repeated string tags = 6;
+  int32 rating = 7;
+  string notes = 8;
+  repeated string finished_at = 9;
+  string added_at = 10;
+  string updated_at = 11;
+}
+
+message BookShelf {
+  string name = 1;
+  repeated UserBook books = 2;
+}
+
+message LibraryResponse {
+  repeated UserBook reading = 1;
+  repeated UserBook wishlist = 2;
+  repeated UserBook finished = 3;
+  repeated BookShelf shelves = 4;
+}
+
+message BacklogSummary {
+  int32 steam_count = 1;
+  int32 books_count = 2;
+}
+
+message BooksProgressResponse {
+  repeated string labels = 1;
+  repeated string values = 2;
+  string date_start = 3;
+  string date_end = 4;
+}
+
+message ExternalBookResult {
+  string provider = 1;
+  string provider_id = 2;
+  string title = 3;
+  repeated string authors = 4;
+  string isbn13 = 5;
+  string cover_url = 6;
+  string description = 7;
+}
+
+message GetSummaryRequest {}
+message GetSummaryResponse { BacklogSummary summary = 1; }
+message GetUserSummaryRequest { string user_id = 1; }
+message GetUserSummaryResponse { BacklogSummary summary = 1; }
+
+message GetLibraryRequest {}
+message GetLibraryResponse { LibraryResponse library = 1; }
+
+message GetBooksProgressRequest {
+  string date_start = 1;
+  string date_end = 2;
+}
+message GetBooksProgressResponse { BooksProgressResponse progress = 1; }
+
+message SearchLibraryRequest { string query = 1; }
+message SearchLibraryResponse { repeated UserBook books = 1; }
+
+message SearchExternalRequest { string query = 1; }
+message SearchExternalResponse { repeated ExternalBookResult results = 1; }
+
+message AddBookRequest {
+  string provider = 1;
+  string provider_id = 2;
+  string title = 3;
+  string author = 4;
+  string status = 5;
+  string isbn13 = 6;
+  string cover_url = 7;
+  string description = 8;
+  bool own_physical = 9;
+  bool own_digital = 10;
+}
+message AddBookResponse {}
+
+message UpdateBookStatusRequest {
+  string book_id = 1;
+  string status = 2;
+  bool favourite = 3;
+  string rating = 4;
+  string notes = 5;
+}
+message UpdateBookStatusResponse {}
+
+message ToggleTagRequest {
+  string book_id = 1;
+  string tag = 2;
+}
+message ToggleTagResponse {}
+
+message ImportBooksRequest { bytes csv_data = 1; }
+message ImportBooksResponse { int32 imported_count = 1; }
+
+service BooksService {
+  rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
+  rpc GetUserSummary(GetUserSummaryRequest) returns (GetUserSummaryResponse);
+  rpc GetLibrary(GetLibraryRequest) returns (GetLibraryResponse);
+  rpc GetBooksProgress(GetBooksProgressRequest) returns (GetBooksProgressResponse);
+  rpc SearchLibrary(SearchLibraryRequest) returns (SearchLibraryResponse);
+  rpc SearchExternal(SearchExternalRequest) returns (SearchExternalResponse);
+  rpc AddBook(AddBookRequest) returns (AddBookResponse);
+  rpc UpdateBookStatus(UpdateBookStatusRequest) returns (UpdateBookStatusResponse);
+  rpc ToggleTag(ToggleTagRequest) returns (ToggleTagResponse);
+  rpc ImportBooks(ImportBooksRequest) returns (ImportBooksResponse);
+}

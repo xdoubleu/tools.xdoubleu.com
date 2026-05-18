@@ -1,0 +1,88 @@
+name: tools-xdoubleu-com
+region: ams
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+domains:
+  - domain: tools.xdoubleu.com
+    type: PRIMARY
+
+ingress:
+  rules:
+    # Route /api/* to the api service, stripping the /api prefix before forwarding.
+    # The api binary receives requests at their original paths (e.g. /auth.v1.AuthService/...).
+    # Set NEXT_PUBLIC_API_URL=https://tools.xdoubleu.com/api in GitHub Variables.
+    - component:
+        name: api
+        preserve_path_prefix: false
+      match:
+        path:
+          prefix: /api
+    # All other traffic goes to the web service.
+    - component:
+        name: web
+      match:
+        path:
+          prefix: /
+
+services:
+  - name: api
+    image:
+      registry_type: GHCR
+      registry: ghcr.io
+      repository: xwarszawski/tools.xdoubleu.com/api
+      tag: latest
+    http_port: 8000
+    envs:
+      - key: ENV
+        scope: RUN_TIME
+        value: production
+      - key: RELEASE
+        scope: RUN_TIME
+        value: ${_self.COMMIT_HASH}
+      - key: WEB_URL
+        scope: RUN_TIME
+        value: https://tools.xdoubleu.com
+      - key: DB_DSN
+        scope: RUN_TIME
+        type: SECRET
+      - key: ENCRYPTION_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SUPABASE_PROJ_REF
+        scope: RUN_TIME
+        type: SECRET
+      - key: SUPABASE_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: GITHUB_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: GITHUB_REPO
+        scope: RUN_TIME
+        value: xdoubleu/tools.xdoubleu.com
+      - key: STEAM_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: STEAM_USER_ID
+        scope: RUN_TIME
+      - key: TODOIST_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: TODOIST_PROJECT_ID
+        scope: RUN_TIME
+      - key: GOODREADS_URL
+        scope: RUN_TIME
+      - key: SENTRY_DSN
+        scope: RUN_TIME
+        type: SECRET
+
+  - name: web
+    image:
+      registry_type: GHCR
+      registry: ghcr.io
+      repository: xwarszawski/tools.xdoubleu.com/web
+      tag: latest
+    http_port: 3000

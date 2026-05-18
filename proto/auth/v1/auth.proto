@@ -1,0 +1,55 @@
+syntax = "proto3";
+package auth.v1;
+option go_package = "tools.xdoubleu.com/gen/auth/v1;authv1";
+
+service AuthService {
+  rpc SignIn(SignInRequest) returns (SignInResponse);
+  rpc MFAEnroll(MFAEnrollRequest) returns (MFAEnrollResponse);
+  rpc MFAEnrollVerify(MFAEnrollVerifyRequest) returns (MFAEnrollVerifyResponse);
+  rpc MFAChallenge(MFAChallengeRequest) returns (MFAChallengeResponse);
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
+  rpc SignOut(SignOutRequest) returns (SignOutResponse);
+}
+
+message SignInRequest {
+  string email = 1;
+  string password = 2;
+  bool remember_me = 3;
+  string redirect = 4;
+}
+
+message SignInResponse {
+  bool needs_mfa = 1;
+  bool enroll_mfa = 2;
+}
+
+message MFAEnrollRequest {}
+
+message MFAEnrollResponse {
+  string qr_svg = 1;
+  string secret = 2;
+  string factor_id = 3;
+}
+
+message MFAEnrollVerifyRequest {
+  string factor_id = 1;
+  string code = 2;
+}
+
+message MFAEnrollVerifyResponse {}
+
+message MFAChallengeRequest {
+  string code = 1;
+}
+
+message MFAChallengeResponse {}
+
+message ForgotPasswordRequest {
+  string email = 1;
+}
+
+message ForgotPasswordResponse {}
+
+message SignOutRequest {}
+
+message SignOutResponse {}

@@ -1,0 +1,30 @@
+name: Web Test Workflow
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test:
+    name: Web Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: 'yarn'
+          node-version-file: './web/package.json'
+          cache-dependency-path: './web/yarn.lock'
+      - run: yarn install
+        working-directory: './web'
+      - run: yarn test:cov
+        working-directory: './web'
+      - name: Upload coverage reports to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: web

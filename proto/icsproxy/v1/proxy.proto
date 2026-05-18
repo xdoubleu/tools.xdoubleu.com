@@ -1,0 +1,55 @@
+syntax = "proto3";
+package icsproxy.v1;
+option go_package = "tools.xdoubleu.com/gen/icsproxy/v1;icsproxyv1";
+
+message FilterConfig {
+  string token = 1;
+  string user_id = 2;
+  string source_url = 3;
+  repeated string hide_event_uids = 4;
+  repeated string holiday_uids = 5;
+  repeated string hide_series = 6;
+}
+
+message EventInfo {
+  string uid = 1;
+  string summary = 2;
+  string start_raw = 3;
+  string end_raw = 4;
+  string start_nice = 5;
+  string end_nice = 6;
+  string rrule = 7;
+  string series_key = 8;
+  bool has_recurrence_id = 9;
+}
+
+message ListConfigsRequest {}
+message ListConfigsResponse { repeated FilterConfig configs = 1; }
+message PreviewEventsRequest { string source_url = 1; }
+message PreviewEventsResponse { repeated EventInfo events = 1; }
+
+message GetConfigRequest { string token = 1; }
+message GetConfigResponse {
+  FilterConfig config = 1;
+  repeated EventInfo events = 2;
+}
+
+message SaveConfigRequest {
+  string token = 1;
+  string source_url = 2;
+  repeated string hide_event_uids = 3;
+  repeated string holiday_uids = 4;
+  repeated string hide_series = 5;
+}
+message SaveConfigResponse { string token = 1; }
+
+message DeleteConfigRequest { string token = 1; }
+message DeleteConfigResponse {}
+
+service ICSProxyService {
+  rpc ListConfigs(ListConfigsRequest) returns (ListConfigsResponse);
+  rpc PreviewEvents(PreviewEventsRequest) returns (PreviewEventsResponse);
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+  rpc SaveConfig(SaveConfigRequest) returns (SaveConfigResponse);
+  rpc DeleteConfig(DeleteConfigRequest) returns (DeleteConfigResponse);
+}

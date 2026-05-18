@@ -1,0 +1,25 @@
+syntax = "proto3";
+package watchparty.v1;
+option go_package = "tools.xdoubleu.com/gen/watchparty/v1;watchpartyv1";
+
+message RoomInfo {
+  string room_code = 1;
+  bool in_room = 2;
+  string role = 3;
+}
+
+message GetRoomRequest {}
+message GetRoomResponse { RoomInfo room = 1; }
+message CreateRoomRequest {}
+message CreateRoomResponse { RoomInfo room = 1; }
+message JoinRoomRequest { string room_code = 1; }
+message JoinRoomResponse { RoomInfo room = 1; }
+message LeaveRoomRequest {}
+message LeaveRoomResponse {}
+
+service RoomService {
+  rpc GetRoom(GetRoomRequest) returns (GetRoomResponse);
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse);
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse);
+  rpc LeaveRoom(LeaveRoomRequest) returns (LeaveRoomResponse);
+}

@@ -1,0 +1,84 @@
+syntax = "proto3";
+package recipes.v1;
+option go_package = "tools.xdoubleu.com/gen/recipes/v1;recipesv1";
+
+message Ingredient {
+  string id = 1;
+  string recipe_id = 2;
+  string name = 3;
+  double amount = 4;
+  string unit = 5;
+  int32 sort_order = 6;
+}
+
+message ScaledIngredient {
+  string name = 1;
+  string amount = 2;
+  string unit = 3;
+}
+
+message Recipe {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string instructions = 4;
+  int32 base_servings = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  repeated Ingredient ingredients = 8;
+  repeated string shared_with = 9;
+}
+
+message ListRecipesRequest {}
+message ListRecipesResponse { repeated Recipe recipes = 1; }
+
+message GetRecipeRequest {
+  string id = 1;
+  int32 servings = 2;
+}
+message GetRecipeResponse {
+  Recipe recipe = 1;
+  int32 servings = 2;
+  bool is_owner = 3;
+  repeated ScaledIngredient scaled_ingredients = 4;
+}
+
+message CreateRecipeRequest {
+  string name = 1;
+  repeated string steps = 2;
+  int32 base_servings = 3;
+  repeated string ingredient_names = 4;
+  repeated double ingredient_amounts = 5;
+  repeated string ingredient_units = 6;
+}
+message CreateRecipeResponse { Recipe recipe = 1; }
+
+message UpdateRecipeRequest {
+  string id = 1;
+  string name = 2;
+  repeated string steps = 3;
+  int32 base_servings = 4;
+  repeated string ingredient_names = 5;
+  repeated double ingredient_amounts = 6;
+  repeated string ingredient_units = 7;
+}
+message UpdateRecipeResponse {}
+
+message DeleteRecipeRequest { string id = 1; }
+message DeleteRecipeResponse {}
+
+message ShareRecipeRequest { string id = 1; string contact_user_id = 2; }
+message ShareRecipeResponse {}
+
+message UnshareRecipeRequest { string id = 1; string target_user_id = 2; }
+message UnshareRecipeResponse {}
+
+service RecipesService {
+  rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
+  rpc GetRecipe(GetRecipeRequest) returns (GetRecipeResponse);
+  rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
+  rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
+  rpc DeleteRecipe(DeleteRecipeRequest) returns (DeleteRecipeResponse);
+  rpc ShareRecipe(ShareRecipeRequest) returns (ShareRecipeResponse);
+  rpc UnshareRecipe(UnshareRecipeRequest) returns (UnshareRecipeResponse);
+}

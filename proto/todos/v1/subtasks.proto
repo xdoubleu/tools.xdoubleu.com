@@ -1,0 +1,40 @@
+syntax = "proto3";
+package todos.v1;
+option go_package = "tools.xdoubleu.com/gen/todos/v1;todosv1";
+
+import "todos/v1/tasks.proto";
+
+message AddSubtaskRequest {
+  string task_id = 1;
+  string input = 2;
+  string description = 3;
+  string parent_subtask_id = 4;
+}
+message AddSubtaskResponse { Subtask subtask = 1; }
+
+message ToggleSubtaskRequest { string subtask_id = 1; string task_id = 2; }
+message ToggleSubtaskResponse { Subtask subtask = 1; }
+message DeleteSubtaskRequest { string subtask_id = 1; string task_id = 2; }
+message DeleteSubtaskResponse {}
+message ReorderSubtasksRequest { string task_id = 1; repeated string ids = 2; string parent_subtask_id = 3; }
+message ReorderSubtasksResponse {}
+
+message UpdateSubtaskRequest {
+  string task_id = 1;
+  string subtask_id = 2;
+  string title = 3;
+  string description = 4;
+  int32 priority = 5;
+  string label = 6;
+  string due_date = 7;
+  string deadline = 8;
+}
+message UpdateSubtaskResponse { Subtask subtask = 1; }
+
+service SubtaskService {
+  rpc AddSubtask(AddSubtaskRequest) returns (AddSubtaskResponse);
+  rpc ToggleSubtask(ToggleSubtaskRequest) returns (ToggleSubtaskResponse);
+  rpc DeleteSubtask(DeleteSubtaskRequest) returns (DeleteSubtaskResponse);
+  rpc ReorderSubtasks(ReorderSubtasksRequest) returns (ReorderSubtasksResponse);
+  rpc UpdateSubtask(UpdateSubtaskRequest) returns (UpdateSubtaskResponse);
+}

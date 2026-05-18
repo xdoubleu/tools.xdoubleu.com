@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+coverage/
+.env*.local
+
+.yarn/cache/
+.yarn/unplugged/
+.yarn/install-state.gz
+.yarn/build-state.yml
+
+tsconfig.tsbuildinfo

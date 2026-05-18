@@ -1,0 +1,54 @@
+syntax = "proto3";
+package contacts.v1;
+option go_package = "tools.xdoubleu.com/gen/contacts/v1;contactsv1";
+
+service ContactsService {
+  rpc ListContacts(ListContactsRequest) returns (ListContactsResponse);
+  rpc CreateContact(CreateContactRequest) returns (CreateContactResponse);
+  rpc AcceptContact(AcceptContactRequest) returns (AcceptContactResponse);
+  rpc DeclineContact(DeclineContactRequest) returns (DeclineContactResponse);
+  rpc DeleteContact(DeleteContactRequest) returns (DeleteContactResponse);
+}
+
+message Contact {
+  string id = 1;
+  string owner_user_id = 2;
+  string contact_user_id = 3;
+  string display_name = 4;
+  string status = 5;
+  string created_at = 6;
+}
+
+message ListContactsRequest {}
+
+message ListContactsResponse {
+  repeated Contact contacts = 1;
+  repeated Contact pending = 2;
+  repeated Contact incoming = 3;
+}
+
+message CreateContactRequest {
+  string email = 1;
+  string display_name = 2;
+}
+
+message CreateContactResponse {}
+
+message AcceptContactRequest {
+  string id = 1;
+  string display_name = 2;
+}
+
+message AcceptContactResponse {}
+
+message DeclineContactRequest {
+  string id = 1;
+}
+
+message DeclineContactResponse {}
+
+message DeleteContactRequest {
+  string id = 1;
+}
+
+message DeleteContactResponse {}

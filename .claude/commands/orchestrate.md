@@ -26,7 +26,7 @@ Instruct it to:
    Go, SQL, migrations, services, repositories, handlers, jobs, config, and their tests.
 
    ### FRONTEND
-   HTMX, HTML templates (templ), CSS, JS, browser-facing assets, and their tests.
+   Next.js, React, TypeScript, Tailwind, shadcn/ui components, Jest tests, browser-facing assets, and their tests.
 
 6. **Sequence each section** in this order:
    - **Coverage increase first**: tests for currently-uncovered code in files that will be touched (so regressions are caught the moment functional changes land).
@@ -52,7 +52,7 @@ Once you have the full plan, spawn **TWO general-purpose sub-agents with `model:
 **FRONTEND agent must additionally:**
 
 - Make all UI changes mobile-friendly and fully responsive. Verify layouts across small, medium, and large viewports. Use relative units and responsive breakpoints. Avoid fixed widths.
-- Minimize user friction: prefer HTMX partial updates over full page reloads, reduce click count, use optimistic UI where appropriate, avoid unnecessary loading states.
+- Minimize user friction: prefer SWR/React state updates over full page reloads, reduce click count, use optimistic UI where appropriate, avoid unnecessary loading states. Use Next.js App Router patterns (Server Components for initial data, Client Components only where interactivity is needed).
 
 If one section is empty, skip that agent. Wait for **both** to complete before proceeding.
 
