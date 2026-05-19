@@ -63,18 +63,6 @@ services:
       - key: GITHUB_REPO
         scope: RUN_TIME
         value: xdoubleu/tools.xdoubleu.com
-      - key: STEAM_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: STEAM_USER_ID
-        scope: RUN_TIME
-      - key: TODOIST_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: TODOIST_PROJECT_ID
-        scope: RUN_TIME
-      - key: GOODREADS_URL
-        scope: RUN_TIME
       - key: SENTRY_DSN
         scope: RUN_TIME
         type: SECRET
