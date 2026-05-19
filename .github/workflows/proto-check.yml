@@ -24,7 +24,7 @@ jobs:
         run: make proto/generate
         working-directory: './api'
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           cache: 'yarn'
           node-version-file: './web/package.json'
