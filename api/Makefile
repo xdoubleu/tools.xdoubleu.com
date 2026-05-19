@@ -15,7 +15,7 @@ ifeq ($(UNAME_S),Darwin)
 	brew install sqlfluff
 endif
 ifeq ($(UNAME_S),Linux)
-	pip install sqlfluff
+	pip install sqlfluff==3.3.0
 endif
 
 lint/sql: tools/lint/sql
@@ -30,13 +30,18 @@ lint/proto: tools/proto
 lint: tools/lint
 	golangci-lint run
 	make lint/sql
-	make lint/proto
 
 lint/fix: tools/lint
 	golines . -m 88 -w
 	golangci-lint run --fix
 	gci write --skip-generated -s standard -s default -s "prefix(tools.xdoubleu.com)" .
 	sqlfluff fix --dialect postgres .
+
+lint/go/ci:
+	golangci-lint run
+
+lint/sql/ci:
+	sqlfluff lint --dialect postgres .
 
 proto/generate:
 	buf generate

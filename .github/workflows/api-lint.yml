@@ -8,8 +8,8 @@ on:
   workflow_call:
 
 jobs:
-  lint:
-    name: API Lint
+  lint-go:
+    name: API Go Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -17,5 +17,26 @@ jobs:
         with:
           go-version-file: './api/go.mod'
           cache-dependency-path: './api/go.sum'
-      - run: make lint
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.11.3
+          working-directory: ./api
+
+  lint-sql:
+    name: API SQL Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: sqlfluff-3.3.0
+      - name: Install sqlfluff
+        run: pip install sqlfluff==3.3.0
+      - name: Run sqlfluff
+        run: sqlfluff lint --dialect postgres .
         working-directory: './api'
