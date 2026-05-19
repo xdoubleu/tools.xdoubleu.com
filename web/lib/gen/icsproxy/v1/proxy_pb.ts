@@ -3,15 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage
-} from '@bufbuild/protobuf'
-import { Message, proto3 } from '@bufbuild/protobuf'
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
  * @generated from message icsproxy.v1.FilterConfig
@@ -20,72 +13,63 @@ export class FilterConfig extends Message<FilterConfig> {
   /**
    * @generated from field: string token = 1;
    */
-  token = ''
+  token = "";
 
   /**
    * @generated from field: string user_id = 2;
    */
-  userId = ''
+  userId = "";
 
   /**
    * @generated from field: string source_url = 3;
    */
-  sourceUrl = ''
+  sourceUrl = "";
 
   /**
    * @generated from field: repeated string hide_event_uids = 4;
    */
-  hideEventUids: string[] = []
+  hideEventUids: string[] = [];
 
   /**
    * @generated from field: repeated string holiday_uids = 5;
    */
-  holidayUids: string[] = []
+  holidayUids: string[] = [];
 
   /**
    * @generated from field: repeated string hide_series = 6;
    */
-  hideSeries: string[] = []
+  hideSeries: string[] = [];
 
   constructor(data?: PartialMessage<FilterConfig>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.FilterConfig'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.FilterConfig";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'source_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 4,
-      name: 'hide_event_uids',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-      repeated: true
-    },
-    { no: 5, name: 'holiday_uids', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 6, name: 'hide_series', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true }
-  ])
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "source_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "hide_event_uids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 5, name: "holiday_uids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 6, name: "hide_series", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FilterConfig {
-    return new FilterConfig().fromBinary(bytes, options)
+    return new FilterConfig().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FilterConfig {
-    return new FilterConfig().fromJson(jsonValue, options)
+    return new FilterConfig().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FilterConfig {
-    return new FilterConfig().fromJsonString(jsonString, options)
+    return new FilterConfig().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: FilterConfig | PlainMessage<FilterConfig> | undefined,
-    b: FilterConfig | PlainMessage<FilterConfig> | undefined
-  ): boolean {
-    return proto3.util.equals(FilterConfig, a, b)
+  static equals(a: FilterConfig | PlainMessage<FilterConfig> | undefined, b: FilterConfig | PlainMessage<FilterConfig> | undefined): boolean {
+    return proto3.util.equals(FilterConfig, a, b);
   }
 }
 
@@ -96,84 +80,81 @@ export class EventInfo extends Message<EventInfo> {
   /**
    * @generated from field: string uid = 1;
    */
-  uid = ''
+  uid = "";
 
   /**
    * @generated from field: string summary = 2;
    */
-  summary = ''
+  summary = "";
 
   /**
    * @generated from field: string start_raw = 3;
    */
-  startRaw = ''
+  startRaw = "";
 
   /**
    * @generated from field: string end_raw = 4;
    */
-  endRaw = ''
+  endRaw = "";
 
   /**
    * @generated from field: string start_nice = 5;
    */
-  startNice = ''
+  startNice = "";
 
   /**
    * @generated from field: string end_nice = 6;
    */
-  endNice = ''
+  endNice = "";
 
   /**
    * @generated from field: string rrule = 7;
    */
-  rrule = ''
+  rrule = "";
 
   /**
    * @generated from field: string series_key = 8;
    */
-  seriesKey = ''
+  seriesKey = "";
 
   /**
    * @generated from field: bool has_recurrence_id = 9;
    */
-  hasRecurrenceId = false
+  hasRecurrenceId = false;
 
   constructor(data?: PartialMessage<EventInfo>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.EventInfo'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.EventInfo";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'uid', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'summary', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'start_raw', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'end_raw', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'start_nice', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'end_nice', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: 'rrule', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 8, name: 'series_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: 'has_recurrence_id', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
-  ])
+    { no: 1, name: "uid", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "summary", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "start_raw", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "end_raw", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "start_nice", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "end_nice", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "rrule", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "series_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "has_recurrence_id", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EventInfo {
-    return new EventInfo().fromBinary(bytes, options)
+    return new EventInfo().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EventInfo {
-    return new EventInfo().fromJson(jsonValue, options)
+    return new EventInfo().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EventInfo {
-    return new EventInfo().fromJsonString(jsonString, options)
+    return new EventInfo().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: EventInfo | PlainMessage<EventInfo> | undefined,
-    b: EventInfo | PlainMessage<EventInfo> | undefined
-  ): boolean {
-    return proto3.util.equals(EventInfo, a, b)
+  static equals(a: EventInfo | PlainMessage<EventInfo> | undefined, b: EventInfo | PlainMessage<EventInfo> | undefined): boolean {
+    return proto3.util.equals(EventInfo, a, b);
   }
 }
 
@@ -182,34 +163,29 @@ export class EventInfo extends Message<EventInfo> {
  */
 export class ListConfigsRequest extends Message<ListConfigsRequest> {
   constructor(data?: PartialMessage<ListConfigsRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.ListConfigsRequest'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.ListConfigsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListConfigsRequest {
-    return new ListConfigsRequest().fromBinary(bytes, options)
+    return new ListConfigsRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListConfigsRequest {
-    return new ListConfigsRequest().fromJson(jsonValue, options)
+    return new ListConfigsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ListConfigsRequest {
-    return new ListConfigsRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListConfigsRequest {
+    return new ListConfigsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListConfigsRequest | PlainMessage<ListConfigsRequest> | undefined,
-    b: ListConfigsRequest | PlainMessage<ListConfigsRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(ListConfigsRequest, a, b)
+  static equals(a: ListConfigsRequest | PlainMessage<ListConfigsRequest> | undefined, b: ListConfigsRequest | PlainMessage<ListConfigsRequest> | undefined): boolean {
+    return proto3.util.equals(ListConfigsRequest, a, b);
   }
 }
 
@@ -220,39 +196,33 @@ export class ListConfigsResponse extends Message<ListConfigsResponse> {
   /**
    * @generated from field: repeated icsproxy.v1.FilterConfig configs = 1;
    */
-  configs: FilterConfig[] = []
+  configs: FilterConfig[] = [];
 
   constructor(data?: PartialMessage<ListConfigsResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.ListConfigsResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.ListConfigsResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'configs', kind: 'message', T: FilterConfig, repeated: true }
-  ])
+    { no: 1, name: "configs", kind: "message", T: FilterConfig, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListConfigsResponse {
-    return new ListConfigsResponse().fromBinary(bytes, options)
+    return new ListConfigsResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListConfigsResponse {
-    return new ListConfigsResponse().fromJson(jsonValue, options)
+    return new ListConfigsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ListConfigsResponse {
-    return new ListConfigsResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListConfigsResponse {
+    return new ListConfigsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListConfigsResponse | PlainMessage<ListConfigsResponse> | undefined,
-    b: ListConfigsResponse | PlainMessage<ListConfigsResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(ListConfigsResponse, a, b)
+  static equals(a: ListConfigsResponse | PlainMessage<ListConfigsResponse> | undefined, b: ListConfigsResponse | PlainMessage<ListConfigsResponse> | undefined): boolean {
+    return proto3.util.equals(ListConfigsResponse, a, b);
   }
 }
 
@@ -263,39 +233,33 @@ export class PreviewEventsRequest extends Message<PreviewEventsRequest> {
   /**
    * @generated from field: string source_url = 1;
    */
-  sourceUrl = ''
+  sourceUrl = "";
 
   constructor(data?: PartialMessage<PreviewEventsRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.PreviewEventsRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.PreviewEventsRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'source_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "source_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PreviewEventsRequest {
-    return new PreviewEventsRequest().fromBinary(bytes, options)
+    return new PreviewEventsRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PreviewEventsRequest {
-    return new PreviewEventsRequest().fromJson(jsonValue, options)
+    return new PreviewEventsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): PreviewEventsRequest {
-    return new PreviewEventsRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PreviewEventsRequest {
+    return new PreviewEventsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: PreviewEventsRequest | PlainMessage<PreviewEventsRequest> | undefined,
-    b: PreviewEventsRequest | PlainMessage<PreviewEventsRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(PreviewEventsRequest, a, b)
+  static equals(a: PreviewEventsRequest | PlainMessage<PreviewEventsRequest> | undefined, b: PreviewEventsRequest | PlainMessage<PreviewEventsRequest> | undefined): boolean {
+    return proto3.util.equals(PreviewEventsRequest, a, b);
   }
 }
 
@@ -306,42 +270,33 @@ export class PreviewEventsResponse extends Message<PreviewEventsResponse> {
   /**
    * @generated from field: repeated icsproxy.v1.EventInfo events = 1;
    */
-  events: EventInfo[] = []
+  events: EventInfo[] = [];
 
   constructor(data?: PartialMessage<PreviewEventsResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.PreviewEventsResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.PreviewEventsResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'events', kind: 'message', T: EventInfo, repeated: true }
-  ])
+    { no: 1, name: "events", kind: "message", T: EventInfo, repeated: true },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): PreviewEventsResponse {
-    return new PreviewEventsResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PreviewEventsResponse {
+    return new PreviewEventsResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PreviewEventsResponse {
-    return new PreviewEventsResponse().fromJson(jsonValue, options)
+    return new PreviewEventsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): PreviewEventsResponse {
-    return new PreviewEventsResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PreviewEventsResponse {
+    return new PreviewEventsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: PreviewEventsResponse | PlainMessage<PreviewEventsResponse> | undefined,
-    b: PreviewEventsResponse | PlainMessage<PreviewEventsResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(PreviewEventsResponse, a, b)
+  static equals(a: PreviewEventsResponse | PlainMessage<PreviewEventsResponse> | undefined, b: PreviewEventsResponse | PlainMessage<PreviewEventsResponse> | undefined): boolean {
+    return proto3.util.equals(PreviewEventsResponse, a, b);
   }
 }
 
@@ -352,36 +307,33 @@ export class GetConfigRequest extends Message<GetConfigRequest> {
   /**
    * @generated from field: string token = 1;
    */
-  token = ''
+  token = "";
 
   constructor(data?: PartialMessage<GetConfigRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.GetConfigRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.GetConfigRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetConfigRequest {
-    return new GetConfigRequest().fromBinary(bytes, options)
+    return new GetConfigRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetConfigRequest {
-    return new GetConfigRequest().fromJson(jsonValue, options)
+    return new GetConfigRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetConfigRequest {
-    return new GetConfigRequest().fromJsonString(jsonString, options)
+    return new GetConfigRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetConfigRequest | PlainMessage<GetConfigRequest> | undefined,
-    b: GetConfigRequest | PlainMessage<GetConfigRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(GetConfigRequest, a, b)
+  static equals(a: GetConfigRequest | PlainMessage<GetConfigRequest> | undefined, b: GetConfigRequest | PlainMessage<GetConfigRequest> | undefined): boolean {
+    return proto3.util.equals(GetConfigRequest, a, b);
   }
 }
 
@@ -392,42 +344,39 @@ export class GetConfigResponse extends Message<GetConfigResponse> {
   /**
    * @generated from field: icsproxy.v1.FilterConfig config = 1;
    */
-  config?: FilterConfig
+  config?: FilterConfig;
 
   /**
    * @generated from field: repeated icsproxy.v1.EventInfo events = 2;
    */
-  events: EventInfo[] = []
+  events: EventInfo[] = [];
 
   constructor(data?: PartialMessage<GetConfigResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.GetConfigResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.GetConfigResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'config', kind: 'message', T: FilterConfig },
-    { no: 2, name: 'events', kind: 'message', T: EventInfo, repeated: true }
-  ])
+    { no: 1, name: "config", kind: "message", T: FilterConfig },
+    { no: 2, name: "events", kind: "message", T: EventInfo, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetConfigResponse {
-    return new GetConfigResponse().fromBinary(bytes, options)
+    return new GetConfigResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetConfigResponse {
-    return new GetConfigResponse().fromJson(jsonValue, options)
+    return new GetConfigResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetConfigResponse {
-    return new GetConfigResponse().fromJsonString(jsonString, options)
+    return new GetConfigResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetConfigResponse | PlainMessage<GetConfigResponse> | undefined,
-    b: GetConfigResponse | PlainMessage<GetConfigResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(GetConfigResponse, a, b)
+  static equals(a: GetConfigResponse | PlainMessage<GetConfigResponse> | undefined, b: GetConfigResponse | PlainMessage<GetConfigResponse> | undefined): boolean {
+    return proto3.util.equals(GetConfigResponse, a, b);
   }
 }
 
@@ -438,66 +387,57 @@ export class SaveConfigRequest extends Message<SaveConfigRequest> {
   /**
    * @generated from field: string token = 1;
    */
-  token = ''
+  token = "";
 
   /**
    * @generated from field: string source_url = 2;
    */
-  sourceUrl = ''
+  sourceUrl = "";
 
   /**
    * @generated from field: repeated string hide_event_uids = 3;
    */
-  hideEventUids: string[] = []
+  hideEventUids: string[] = [];
 
   /**
    * @generated from field: repeated string holiday_uids = 4;
    */
-  holidayUids: string[] = []
+  holidayUids: string[] = [];
 
   /**
    * @generated from field: repeated string hide_series = 5;
    */
-  hideSeries: string[] = []
+  hideSeries: string[] = [];
 
   constructor(data?: PartialMessage<SaveConfigRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.SaveConfigRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.SaveConfigRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'source_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    {
-      no: 3,
-      name: 'hide_event_uids',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-      repeated: true
-    },
-    { no: 4, name: 'holiday_uids', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 5, name: 'hide_series', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true }
-  ])
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "source_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "hide_event_uids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "holiday_uids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 5, name: "hide_series", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaveConfigRequest {
-    return new SaveConfigRequest().fromBinary(bytes, options)
+    return new SaveConfigRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SaveConfigRequest {
-    return new SaveConfigRequest().fromJson(jsonValue, options)
+    return new SaveConfigRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SaveConfigRequest {
-    return new SaveConfigRequest().fromJsonString(jsonString, options)
+    return new SaveConfigRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SaveConfigRequest | PlainMessage<SaveConfigRequest> | undefined,
-    b: SaveConfigRequest | PlainMessage<SaveConfigRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(SaveConfigRequest, a, b)
+  static equals(a: SaveConfigRequest | PlainMessage<SaveConfigRequest> | undefined, b: SaveConfigRequest | PlainMessage<SaveConfigRequest> | undefined): boolean {
+    return proto3.util.equals(SaveConfigRequest, a, b);
   }
 }
 
@@ -508,39 +448,33 @@ export class SaveConfigResponse extends Message<SaveConfigResponse> {
   /**
    * @generated from field: string token = 1;
    */
-  token = ''
+  token = "";
 
   constructor(data?: PartialMessage<SaveConfigResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.SaveConfigResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.SaveConfigResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaveConfigResponse {
-    return new SaveConfigResponse().fromBinary(bytes, options)
+    return new SaveConfigResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SaveConfigResponse {
-    return new SaveConfigResponse().fromJson(jsonValue, options)
+    return new SaveConfigResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SaveConfigResponse {
-    return new SaveConfigResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SaveConfigResponse {
+    return new SaveConfigResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SaveConfigResponse | PlainMessage<SaveConfigResponse> | undefined,
-    b: SaveConfigResponse | PlainMessage<SaveConfigResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(SaveConfigResponse, a, b)
+  static equals(a: SaveConfigResponse | PlainMessage<SaveConfigResponse> | undefined, b: SaveConfigResponse | PlainMessage<SaveConfigResponse> | undefined): boolean {
+    return proto3.util.equals(SaveConfigResponse, a, b);
   }
 }
 
@@ -551,39 +485,33 @@ export class DeleteConfigRequest extends Message<DeleteConfigRequest> {
   /**
    * @generated from field: string token = 1;
    */
-  token = ''
+  token = "";
 
   constructor(data?: PartialMessage<DeleteConfigRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.DeleteConfigRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.DeleteConfigRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteConfigRequest {
-    return new DeleteConfigRequest().fromBinary(bytes, options)
+    return new DeleteConfigRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteConfigRequest {
-    return new DeleteConfigRequest().fromJson(jsonValue, options)
+    return new DeleteConfigRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): DeleteConfigRequest {
-    return new DeleteConfigRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteConfigRequest {
+    return new DeleteConfigRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteConfigRequest | PlainMessage<DeleteConfigRequest> | undefined,
-    b: DeleteConfigRequest | PlainMessage<DeleteConfigRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(DeleteConfigRequest, a, b)
+  static equals(a: DeleteConfigRequest | PlainMessage<DeleteConfigRequest> | undefined, b: DeleteConfigRequest | PlainMessage<DeleteConfigRequest> | undefined): boolean {
+    return proto3.util.equals(DeleteConfigRequest, a, b);
   }
 }
 
@@ -592,33 +520,29 @@ export class DeleteConfigRequest extends Message<DeleteConfigRequest> {
  */
 export class DeleteConfigResponse extends Message<DeleteConfigResponse> {
   constructor(data?: PartialMessage<DeleteConfigResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'icsproxy.v1.DeleteConfigResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "icsproxy.v1.DeleteConfigResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteConfigResponse {
-    return new DeleteConfigResponse().fromBinary(bytes, options)
+    return new DeleteConfigResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteConfigResponse {
-    return new DeleteConfigResponse().fromJson(jsonValue, options)
+    return new DeleteConfigResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): DeleteConfigResponse {
-    return new DeleteConfigResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteConfigResponse {
+    return new DeleteConfigResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteConfigResponse | PlainMessage<DeleteConfigResponse> | undefined,
-    b: DeleteConfigResponse | PlainMessage<DeleteConfigResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(DeleteConfigResponse, a, b)
+  static equals(a: DeleteConfigResponse | PlainMessage<DeleteConfigResponse> | undefined, b: DeleteConfigResponse | PlainMessage<DeleteConfigResponse> | undefined): boolean {
+    return proto3.util.equals(DeleteConfigResponse, a, b);
   }
 }
+

@@ -3,70 +3,60 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  AddSubtaskRequest,
-  AddSubtaskResponse,
-  DeleteSubtaskRequest,
-  DeleteSubtaskResponse,
-  ReorderSubtasksRequest,
-  ReorderSubtasksResponse,
-  ToggleSubtaskRequest,
-  ToggleSubtaskResponse,
-  UpdateSubtaskRequest,
-  UpdateSubtaskResponse
-} from './subtasks_pb'
-import { MethodKind } from '@bufbuild/protobuf'
+import { AddSubtaskRequest, AddSubtaskResponse, DeleteSubtaskRequest, DeleteSubtaskResponse, ReorderSubtasksRequest, ReorderSubtasksResponse, ToggleSubtaskRequest, ToggleSubtaskResponse, UpdateSubtaskRequest, UpdateSubtaskResponse } from "./subtasks_pb";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service todos.v1.SubtaskService
  */
 export const SubtaskService = {
-  typeName: 'todos.v1.SubtaskService',
+  typeName: "todos.v1.SubtaskService",
   methods: {
     /**
      * @generated from rpc todos.v1.SubtaskService.AddSubtask
      */
     addSubtask: {
-      name: 'AddSubtask',
+      name: "AddSubtask",
       I: AddSubtaskRequest,
       O: AddSubtaskResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc todos.v1.SubtaskService.ToggleSubtask
      */
     toggleSubtask: {
-      name: 'ToggleSubtask',
+      name: "ToggleSubtask",
       I: ToggleSubtaskRequest,
       O: ToggleSubtaskResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc todos.v1.SubtaskService.DeleteSubtask
      */
     deleteSubtask: {
-      name: 'DeleteSubtask',
+      name: "DeleteSubtask",
       I: DeleteSubtaskRequest,
       O: DeleteSubtaskResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc todos.v1.SubtaskService.ReorderSubtasks
      */
     reorderSubtasks: {
-      name: 'ReorderSubtasks',
+      name: "ReorderSubtasks",
       I: ReorderSubtasksRequest,
       O: ReorderSubtasksResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc todos.v1.SubtaskService.UpdateSubtask
      */
     updateSubtask: {
-      name: 'UpdateSubtask',
+      name: "UpdateSubtask",
       I: UpdateSubtaskRequest,
       O: UpdateSubtaskResponse,
-      kind: MethodKind.Unary
-    }
+      kind: MethodKind.Unary,
+    },
   }
-} as const
+} as const;
+
