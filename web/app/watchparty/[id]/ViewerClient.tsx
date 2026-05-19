@@ -95,7 +95,7 @@ export default function ViewerClient({ id }: { id: string }) {
         <h1 className="text-2xl font-bold">Watch Party</h1>
         <div className="flex items-center gap-2 ml-auto">
           <span className={`w-2.5 h-2.5 rounded-full ${STATUS_COLOR[status]}`} />
-          <span className="text-sm text-gray-600">{STATUS_LABEL[status]}</span>
+          <span className="text-sm text-muted">{STATUS_LABEL[status]}</span>
         </div>
       </div>
 

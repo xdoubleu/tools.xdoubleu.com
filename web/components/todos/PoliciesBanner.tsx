@@ -32,14 +32,14 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
     <aside
       role="banner"
       aria-label="Policies"
-      className="rounded-lg border border-amber-300 bg-amber-50 p-4"
+      className="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h2 className="mb-2 text-sm font-semibold text-amber-800">Active Policies</h2>
+          <h2 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-300">Active Policies</h2>
           <ul className="space-y-1">
             {policies.map((policy) => (
-              <li key={policy.id} className="text-sm text-amber-900">
+              <li key={policy.id} className="text-sm text-amber-900 dark:text-amber-200">
                 {policy.text}
               </li>
             ))}
@@ -49,7 +49,7 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss policies banner"
-          className="rounded p-1 text-amber-600 hover:bg-amber-100 hover:text-amber-800"
+          className="rounded p-1 text-amber-600 hover:bg-amber-100 hover:text-amber-800 dark:text-amber-400 dark:hover:bg-amber-900 dark:hover:text-amber-200"
         >
           ✕
         </button>

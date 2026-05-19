@@ -45,7 +45,7 @@ export default function TaskClient({ id }: { id: string }) {
             className="mt-0.5"
           />
           <span
-            className={`text-sm ${(subtaskDone[st.id] ?? st.done) ? 'line-through text-gray-400' : 'text-gray-800'}`}
+            className={`text-sm ${(subtaskDone[st.id] ?? st.done) ? 'line-through text-muted' : 'text-subtle'}`}
           >
             {st.title}
           </span>
@@ -56,7 +56,7 @@ export default function TaskClient({ id }: { id: string }) {
   }
 
   if (isLoading) {
-    return <p className="py-16 text-center text-sm text-gray-400">Loading…</p>
+    return <p className="py-16 text-center text-sm text-muted">Loading…</p>
   }
 
   if (error || !task) {
@@ -70,20 +70,20 @@ export default function TaskClient({ id }: { id: string }) {
   return (
     <article className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">{task.title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-fg">{task.title}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
           {task.priority > 0 && (
-            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-semibold text-gray-600">
+            <span className="rounded bg-surface px-1.5 py-0.5 text-xs font-semibold text-muted">
               P{task.priority}
             </span>
           )}
           {task.labels.map((label) => (
-            <span key={label} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
+            <span key={label} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300">
               {label}
             </span>
           ))}
           {dueLabel && (
-            <span className={overdue ? 'font-semibold text-red-600' : ''}>Due: {dueLabel}</span>
+            <span className={overdue ? 'font-semibold text-red-600 dark:text-red-400' : ''}>Due: {dueLabel}</span>
           )}
           {deadlineLabel && <span>Deadline: {deadlineLabel}</span>}
         </div>
@@ -91,14 +91,14 @@ export default function TaskClient({ id }: { id: string }) {
 
       {task.description && (
         <section aria-label="Description">
-          <h2 className="mb-1 text-sm font-semibold text-gray-700">Description</h2>
-          <p className="text-sm text-gray-600">{task.description}</p>
+          <h2 className="mb-1 text-sm font-semibold text-subtle">Description</h2>
+          <p className="text-sm text-muted">{task.description}</p>
         </section>
       )}
 
       {task.subtasks.length > 0 && (
         <section aria-label="Subtasks">
-          <h2 className="mb-2 text-sm font-semibold text-gray-700">
+          <h2 className="mb-2 text-sm font-semibold text-subtle">
             Subtasks ({task.subtaskDone}/{task.subtaskTotal})
           </h2>
           <ul className="space-y-0.5">{renderSubtasks(task.subtasks)}</ul>
@@ -107,7 +107,7 @@ export default function TaskClient({ id }: { id: string }) {
 
       {task.links.length > 0 && (
         <section aria-label="Links">
-          <h2 className="mb-2 text-sm font-semibold text-gray-700">Links</h2>
+          <h2 className="mb-2 text-sm font-semibold text-subtle">Links</h2>
           <ul className="space-y-1">
             {task.links.map((link) => (
               <li key={link.id}>
@@ -125,7 +125,7 @@ export default function TaskClient({ id }: { id: string }) {
         </section>
       )}
 
-      <div className="flex gap-2 border-t border-gray-200 pt-4">
+      <div className="flex gap-2 border-t border-border pt-4">
         {task.status === 'open' ? (
           <button
             type="button"

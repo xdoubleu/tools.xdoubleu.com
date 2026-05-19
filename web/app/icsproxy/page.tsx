@@ -9,8 +9,8 @@ function FeedCard({ config }: { config: FilterConfig }) {
   const feedUrl = `${BASE_URL}/icsproxy/${config.token}/feed.ics`
 
   return (
-    <div className="border rounded p-4">
-      <p className="text-sm font-mono text-gray-700 break-all">{config.sourceUrl}</p>
+    <div className="border border-border rounded p-4">
+      <p className="text-sm font-mono text-subtle break-all">{config.sourceUrl}</p>
       <div className="flex items-center gap-3 mt-3">
         <a
           href={feedUrl}
@@ -20,8 +20,8 @@ function FeedCard({ config }: { config: FilterConfig }) {
         >
           ICS Feed
         </a>
-        <span className="text-gray-300">|</span>
-        <span className="text-xs text-gray-500">
+        <span className="text-border">|</span>
+        <span className="text-xs text-muted">
           {config.hideEventUids.length} hidden event
           {config.hideEventUids.length !== 1 ? 's' : ''}
         </span>
@@ -39,7 +39,7 @@ export default function ICSProxyPage() {
 
       {isLoading && <p>Loading feeds...</p>}
       {error && <p className="text-red-600">Failed to load feeds.</p>}
-      {data && data.configs.length === 0 && <p className="text-gray-500">No filter configs yet.</p>}
+      {data && data.configs.length === 0 && <p className="text-muted">No filter configs yet.</p>}
       {data && data.configs.length > 0 && (
         <div className="grid gap-4">
           {data.configs.map((config) => (

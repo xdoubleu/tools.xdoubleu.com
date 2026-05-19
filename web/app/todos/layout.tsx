@@ -8,13 +8,13 @@ export const metadata: Metadata = {
 
 export default function TodosLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white px-6 py-3">
+    <div className="min-h-screen bg-surface">
+      <header className="border-b border-border bg-card px-6 py-3">
         <nav className="flex items-center gap-4">
-          <Link href="/todos" className="text-sm font-semibold text-gray-900 hover:text-blue-600">
+          <Link href="/todos" className="text-sm font-semibold text-fg hover:text-blue-600">
             Todos
           </Link>
-          <Link href="/todos/settings" className="text-sm text-gray-500 hover:text-blue-600">
+          <Link href="/todos/settings" className="text-sm text-muted hover:text-blue-600">
             Settings
           </Link>
         </nav>

@@ -10,7 +10,7 @@ function BookCard({ userBook }: { userBook: UserBook }) {
   const book = userBook.book
   if (!book) return null
   return (
-    <div className="border rounded p-4 flex gap-4">
+    <div className="border border-border rounded p-4 flex gap-4">
       {book.coverUrl && (
         <Image
           src={book.coverUrl}
@@ -22,8 +22,8 @@ function BookCard({ userBook }: { userBook: UserBook }) {
       )}
       <div>
         <h3 className="font-semibold">{book.title}</h3>
-        <p className="text-sm text-gray-600">{book.authors.join(', ')}</p>
-        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 capitalize">
+        <p className="text-sm text-muted">{book.authors.join(', ')}</p>
+        <span className="text-xs px-2 py-0.5 rounded bg-surface text-subtle capitalize">
           {userBook.status}
         </span>
       </div>
@@ -33,10 +33,10 @@ function BookCard({ userBook }: { userBook: UserBook }) {
 
 function GameCard({ game }: { game: Game }) {
   return (
-    <div className="border rounded p-4">
+    <div className="border border-border rounded p-4">
       <h3 className="font-semibold">{game.name}</h3>
-      <p className="text-sm text-gray-600">Playtime: {Math.round(game.playtime / 60)} hrs</p>
-      <p className="text-sm text-gray-600">Completion: {game.completionRate}</p>
+      <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
+      <p className="text-sm text-muted">Completion: {game.completionRate}</p>
     </div>
   )
 }
@@ -57,13 +57,13 @@ export default function BacklogPage() {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab('books')}
-          className={`px-4 py-2 rounded ${tab === 'books' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded ${tab === 'books' ? 'bg-blue-600 text-white' : 'bg-surface text-subtle'}`}
         >
           Books
         </button>
         <button
           onClick={() => setTab('steam')}
-          className={`px-4 py-2 rounded ${tab === 'steam' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded ${tab === 'steam' ? 'bg-blue-600 text-white' : 'bg-surface text-subtle'}`}
         >
           Steam
         </button>
@@ -126,7 +126,7 @@ export default function BacklogPage() {
           {steamError && <p className="text-red-600">Failed to load Steam data.</p>}
           {steam && (
             <>
-              <p className="mb-4 text-gray-600">
+              <p className="mb-4 text-muted">
                 Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
               </p>
               {steam.inProgress.length > 0 && (

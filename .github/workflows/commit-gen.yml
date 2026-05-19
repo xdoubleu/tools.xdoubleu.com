@@ -1,0 +1,27 @@
+name: Commit Generated Proto Stubs Workflow
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  commit-gen:
+    name: Commit Generated Proto Stubs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: proto-gen-${{ github.run_id }}
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Commit regenerated proto stubs if changed
+        run: |
+          git add api/gen/ web/lib/gen/
+          git diff --cached --quiet || (git commit -m "chore: regenerate proto stubs" && git push)

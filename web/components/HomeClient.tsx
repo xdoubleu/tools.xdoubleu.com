@@ -134,7 +134,7 @@ export default function HomeClient() {
   }
 
   if (authState === 'loading') {
-    return <p className="text-gray-600">Loading...</p>
+    return <p className="text-muted">Loading...</p>
   }
 
   if (authState === 'authenticated') {
@@ -145,12 +145,12 @@ export default function HomeClient() {
             key={app.href}
             href={app.href}
             className={
-              'rounded-xl border border-gray-200 bg-white p-6 shadow-sm ' +
+              'rounded-xl border border-border bg-card p-6 shadow-sm ' +
               'transition-shadow hover:shadow-md'
             }
           >
-            <h2 className="text-lg font-semibold text-gray-900">{app.label}</h2>
-            <p className="mt-1 text-sm text-gray-600">{app.description}</p>
+            <h2 className="text-lg font-semibold text-fg">{app.label}</h2>
+            <p className="mt-1 text-sm text-muted">{app.description}</p>
           </Link>
         ))}
       </div>
@@ -159,8 +159,8 @@ export default function HomeClient() {
 
   if (authState === 'mfa-enroll') {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">Set up two-factor authentication</h2>
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Set up two-factor authentication</h2>
         <div className="mt-6 space-y-4">
           <div
             dangerouslySetInnerHTML={{ __html: qrSvg }}
@@ -168,13 +168,13 @@ export default function HomeClient() {
             className="flex justify-center"
           />
           <div>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-subtle">
               Or enter this code manually:{' '}
-              <code className="font-mono text-gray-900">{mfaSecret}</code>
+              <code className="font-mono text-fg">{mfaSecret}</code>
             </p>
           </div>
           <div>
-            <label htmlFor="mfaCode" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="mfaCode" className="block text-sm font-medium text-subtle">
               Authenticator code
             </label>
             <input
@@ -185,8 +185,8 @@ export default function HomeClient() {
               value={mfaCode}
               onChange={(e) => setMfaCode(e.target.value)}
               className={
-                'mt-1 block w-full rounded border border-gray-300 px-3 py-2 ' +
-                'text-gray-900 placeholder-gray-400 focus:border-blue-500 ' +
+                'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
+                'text-input-text placeholder-muted focus:border-blue-500 ' +
                 'focus:outline-none focus:ring-1 focus:ring-blue-500'
               }
             />
@@ -214,12 +214,12 @@ export default function HomeClient() {
 
   if (authState === 'mfa-challenge') {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">Two-factor authentication</h2>
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Two-factor authentication</h2>
         <div className="mt-6 space-y-4">
-          <p className="text-sm text-gray-700">Enter the code from your authenticator app.</p>
+          <p className="text-sm text-subtle">Enter the code from your authenticator app.</p>
           <div>
-            <label htmlFor="mfaChallengeCode" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="mfaChallengeCode" className="block text-sm font-medium text-subtle">
               Authenticator code
             </label>
             <input
@@ -230,8 +230,8 @@ export default function HomeClient() {
               value={mfaCode}
               onChange={(e) => setMfaCode(e.target.value)}
               className={
-                'mt-1 block w-full rounded border border-gray-300 px-3 py-2 ' +
-                'text-gray-900 placeholder-gray-400 focus:border-blue-500 ' +
+                'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
+                'text-input-text placeholder-muted focus:border-blue-500 ' +
                 'focus:outline-none focus:ring-1 focus:ring-blue-500'
               }
             />
@@ -258,11 +258,11 @@ export default function HomeClient() {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">Sign In</h2>
+    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-fg">Sign In</h2>
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="email" className="block text-sm font-medium text-subtle">
             Email
           </label>
           <input
@@ -272,15 +272,15 @@ export default function HomeClient() {
             onChange={(e) => setEmail(e.target.value)}
             required
             className={
-              'mt-1 block w-full rounded border border-gray-300 px-3 py-2 ' +
-              'text-gray-900 placeholder-gray-400 focus:border-blue-500 ' +
+              'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
+              'text-input-text placeholder-muted focus:border-blue-500 ' +
               'focus:outline-none focus:ring-1 focus:ring-blue-500'
             }
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="password" className="block text-sm font-medium text-subtle">
             Password
           </label>
           <input
@@ -290,8 +290,8 @@ export default function HomeClient() {
             onChange={(e) => setPassword(e.target.value)}
             required
             className={
-              'mt-1 block w-full rounded border border-gray-300 px-3 py-2 ' +
-              'text-gray-900 placeholder-gray-400 focus:border-blue-500 ' +
+              'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
+              'text-input-text placeholder-muted focus:border-blue-500 ' +
               'focus:outline-none focus:ring-1 focus:ring-blue-500'
             }
           />
@@ -303,9 +303,9 @@ export default function HomeClient() {
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className={'h-4 w-4 rounded border-gray-300 text-blue-600 ' + 'focus:ring-blue-500'}
+            className={'h-4 w-4 rounded border-input-border text-blue-600 ' + 'focus:ring-blue-500'}
           />
-          <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700">
+          <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
             Remember me
           </label>
         </div>

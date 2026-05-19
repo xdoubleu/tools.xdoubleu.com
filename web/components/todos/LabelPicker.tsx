@@ -41,17 +41,17 @@ export function LabelPicker({
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm"
+        className="w-full rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
         aria-label="Label search"
       />
       {open && filtered.length > 0 && (
         <ul
           role="listbox"
-          className="absolute z-10 mt-1 w-full rounded border border-gray-200 bg-white shadow-sm"
+          className="absolute z-10 mt-1 w-full rounded border border-border bg-card shadow-sm"
         >
           {filtered.map((label) => (
             <li key={label} role="option" aria-selected={value.includes(label)}>
-              <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50">
+              <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-surface">
                 <input
                   type="checkbox"
                   checked={value.includes(label)}
@@ -69,14 +69,14 @@ export function LabelPicker({
           {value.map((label) => (
             <span
               key={label}
-              className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-800"
+              className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200"
             >
               {label}
               <button
                 type="button"
                 onClick={() => toggleLabel(label)}
                 aria-label={`Remove ${label}`}
-                className="hover:text-blue-600"
+                className="hover:text-blue-600 dark:hover:text-blue-400"
               >
                 ×
               </button>

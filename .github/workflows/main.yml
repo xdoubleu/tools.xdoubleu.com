@@ -115,15 +115,29 @@ jobs:
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
 
+  commit-gen:
+    needs: [changes, proto-gen, api-lint, api-test, web-lint, web-test]
+    if: |
+      always() &&
+      needs.proto-gen.result == 'success' &&
+      (needs.api-lint.result == 'success' || needs.api-lint.result == 'skipped') &&
+      (needs.api-test.result == 'success' || needs.api-test.result == 'skipped') &&
+      (needs.web-lint.result == 'success' || needs.web-lint.result == 'skipped') &&
+      (needs.web-test.result == 'success' || needs.web-test.result == 'skipped')
+    name: Commit Generated Proto Stubs Workflow
+    uses: ./.github/workflows/commit-gen.yml
+    secrets: inherit
+
   docker:
-    needs: [changes, proto-gen, build-api, build-web, api-lint, web-lint, api-test, web-test]
+    needs: [changes, proto-gen, build-api, build-web, api-lint, web-lint, api-test, web-test, commit-gen]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       (needs.proto-gen.result == 'success' || needs.proto-gen.result == 'skipped') &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped')
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
+      (needs.commit-gen.result == 'success' || needs.commit-gen.result == 'skipped')
     name: Docker Build & Push Workflow
     uses: ./.github/workflows/docker.yml
     with:

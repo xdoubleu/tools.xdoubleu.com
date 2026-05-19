@@ -58,10 +58,10 @@ export default function WatchpartyPage() {
 
       <div className="relative mb-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300" />
+          <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="bg-white px-2 text-gray-500">or join a room</span>
+          <span className="bg-bg px-2 text-muted">or join a room</span>
         </div>
       </div>
 
@@ -71,12 +71,12 @@ export default function WatchpartyPage() {
           value={roomCode}
           onChange={(e) => setRoomCode(e.target.value)}
           placeholder="Room code"
-          className="flex-1 border rounded px-3 py-2 text-sm"
+          className="flex-1 border border-input-border bg-input text-input-text rounded px-3 py-2 text-sm"
         />
         <button
           type="submit"
           disabled={loading || !roomCode.trim()}
-          className="px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-900 disabled:opacity-50"
+          className="px-4 py-2 bg-subtle text-bg rounded text-sm hover:bg-fg disabled:opacity-50"
         >
           Join
         </button>

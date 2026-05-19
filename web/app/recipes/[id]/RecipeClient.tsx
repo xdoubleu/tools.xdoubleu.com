@@ -6,7 +6,7 @@ import type { Ingredient } from '@/lib/gen/recipes/v1/recipes_pb'
 
 function IngredientRow({ ingredient }: { ingredient: Ingredient }) {
   return (
-    <li className="flex gap-2 py-1 border-b last:border-0">
+    <li className="flex gap-2 py-1 border-b last:border-0 border-border">
       <span className="font-medium">
         {ingredient.amount} {ingredient.unit}
       </span>
@@ -29,7 +29,7 @@ export default function RecipeClient({ id }: { id: string }) {
       {data?.recipe && (
         <>
           <h1 className="text-3xl font-bold mb-2">{data.recipe.name}</h1>
-          <p className="text-gray-500 text-sm mb-6">Serves {data.recipe.baseServings}</p>
+          <p className="text-muted text-sm mb-6">Serves {data.recipe.baseServings}</p>
 
           {data.recipe.ingredients.length > 0 && (
             <section className="mb-6">
@@ -48,7 +48,7 @@ export default function RecipeClient({ id }: { id: string }) {
           {data.recipe.instructions && (
             <section>
               <h2 className="text-xl font-semibold mb-3">Instructions</h2>
-              <div className="prose max-w-none whitespace-pre-wrap text-gray-700">
+              <div className="prose max-w-none whitespace-pre-wrap text-subtle">
                 {data.recipe.instructions}
               </div>
             </section>

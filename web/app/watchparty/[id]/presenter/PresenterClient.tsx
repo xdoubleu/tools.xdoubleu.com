@@ -98,24 +98,16 @@ export default function PresenterClient({ id }: { id: string }) {
       const ws = wsRef.current
       if (!pc || !ws) return
 
-      stream.getTracks().forEach((track) => {
+      for (const track of stream.getTracks()) {
         pc.addTrack(track, stream)
-      })
+      }
 
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
-
-      ws.send(JSON.stringify({ type: 'offer', payload: offer, trackType: 'screen' }))
-
+      ws.send(JSON.stringify({ type: 'offer', payload: offer, trackType: '' }))
       setSharing(true)
-
-      stream.getVideoTracks()[0]?.addEventListener('ended', () => {
-        setSharing(false)
-        streamRef.current = null
-        if (videoRef.current) videoRef.current.srcObject = null
-      })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to capture screen')
+      setError(e instanceof Error ? e.message : 'Failed to start sharing')
     }
   }
 
@@ -132,16 +124,14 @@ export default function PresenterClient({ id }: { id: string }) {
         <Link href="/watchparty" className="text-blue-600 hover:underline text-sm">
           &larr; Back
         </Link>
-        <h1 className="text-2xl font-bold">Presenting</h1>
+        <h1 className="text-2xl font-bold">Watch Party (Presenter)</h1>
         <div className="flex items-center gap-2 ml-auto">
           <span className={`w-2.5 h-2.5 rounded-full ${STATUS_COLOR[status]}`} />
-          <span className="text-sm text-gray-600">{STATUS_LABEL[status]}</span>
+          <span className="text-sm text-muted">{STATUS_LABEL[status]}</span>
         </div>
       </div>
 
-      <div className="text-sm text-gray-500 mb-4">
-        Room: <span className="font-mono font-medium">{id}</span>
-      </div>
+      {error && <p className="mb-4 text-red-600 text-sm">{error}</p>}
 
       <div className="bg-black rounded-lg overflow-hidden aspect-video mb-4">
         <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
@@ -164,7 +154,9 @@ export default function PresenterClient({ id }: { id: string }) {
         </button>
       )}
 
-      {error && <p className="mt-3 text-red-600 text-sm">{error}</p>}
+      <div className="text-sm text-muted mt-4">
+        Room: <span className="font-mono font-medium">{id}</span>
+      </div>
     </main>
   )
 }

@@ -6,12 +6,12 @@ import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
 
 function PlanCard({ plan }: { plan: Plan }) {
   return (
-    <div className="border rounded p-4">
+    <div className="border border-border rounded p-4">
       <h2 className="font-semibold text-lg">{plan.name}</h2>
-      <p className="text-sm text-gray-600 mt-1">
+      <p className="text-sm text-muted mt-1">
         {plan.meals.length} meal{plan.meals.length !== 1 ? 's' : ''}
       </p>
-      <p className="text-xs text-gray-400 mt-1">
+      <p className="text-xs text-muted mt-1">
         Created {new Date(plan.createdAt).toLocaleDateString()}
       </p>
     </div>
@@ -32,7 +32,7 @@ export default function PlansPage() {
 
       {isLoading && <p>Loading plans...</p>}
       {error && <p className="text-red-600">Failed to load meal plans.</p>}
-      {data && data.plans.length === 0 && <p className="text-gray-500">No meal plans yet.</p>}
+      {data && data.plans.length === 0 && <p className="text-muted">No meal plans yet.</p>}
       {data && data.plans.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.plans.map((plan) => (
