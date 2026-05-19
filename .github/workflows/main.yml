@@ -2,7 +2,7 @@ name: Main Workflow
 
 permissions:
   actions: write
-  contents: write
+  contents: read
   packages: write
 
 on:
@@ -32,37 +32,37 @@ jobs:
             proto:
               - 'proto/**'
 
-  proto-gen:
+  proto-check:
     needs: changes
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.web == 'true'
-    name: Proto Regeneration Workflow
-    uses: ./.github/workflows/proto-gen.yml
+    name: Proto Staleness Check Workflow
+    uses: ./.github/workflows/proto-check.yml
     secrets: inherit
 
   build-api:
-    needs: [changes, proto-gen]
+    needs: [changes, proto-check]
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true') &&
-      (needs.proto-gen.result == 'success' || needs.proto-gen.result == 'skipped')
+      (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped')
     name: Build API Workflow
     uses: ./.github/workflows/build-api.yml
     secrets: inherit
 
   build-web:
-    needs: [changes, proto-gen]
+    needs: [changes, proto-check]
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true') &&
-      (needs.proto-gen.result == 'success' || needs.proto-gen.result == 'skipped')
+      (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
@@ -115,29 +115,15 @@ jobs:
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
 
-  commit-gen:
-    needs: [changes, proto-gen, api-lint, api-test, web-lint, web-test]
-    if: |
-      always() &&
-      needs.proto-gen.result == 'success' &&
-      (needs.api-lint.result == 'success' || needs.api-lint.result == 'skipped') &&
-      (needs.api-test.result == 'success' || needs.api-test.result == 'skipped') &&
-      (needs.web-lint.result == 'success' || needs.web-lint.result == 'skipped') &&
-      (needs.web-test.result == 'success' || needs.web-test.result == 'skipped')
-    name: Commit Generated Proto Stubs Workflow
-    uses: ./.github/workflows/commit-gen.yml
-    secrets: inherit
-
   docker:
-    needs: [changes, proto-gen, build-api, build-web, api-lint, web-lint, api-test, web-test, commit-gen]
+    needs: [changes, proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      (needs.proto-gen.result == 'success' || needs.proto-gen.result == 'skipped') &&
+      (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped') &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
-      (needs.commit-gen.result == 'success' || needs.commit-gen.result == 'skipped')
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped')
     name: Docker Build & Push Workflow
     uses: ./.github/workflows/docker.yml
     with:
