@@ -1,0 +1,88 @@
+'use client'
+
+import { useState } from 'react'
+import { createServiceClient } from '@/lib/client'
+import { RoomService } from '@/lib/gen/watchparty/v1/rooms_connect'
+
+export default function WatchpartyPage() {
+  const [roomCode, setRoomCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const client = createServiceClient(RoomService)
+
+  async function handleCreate() {
+    setError(null)
+    setLoading(true)
+    try {
+      const room = await client.createRoom({})
+      if (room.room?.roomCode) {
+        window.location.href = `/watchparty/${room.room.roomCode}/presenter`
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create room')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleJoin(e: React.FormEvent) {
+    e.preventDefault()
+    if (!roomCode.trim()) return
+    setError(null)
+    setLoading(true)
+    try {
+      const room = await client.joinRoom({ roomCode: roomCode.trim() })
+      if (room.room?.roomCode) {
+        window.location.href = `/watchparty/${room.room.roomCode}`
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to join room')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <main className="max-w-md mx-auto p-6 mt-16">
+      <h1 className="text-3xl font-bold mb-8 text-center">Watch Party</h1>
+
+      <div className="mb-8">
+        <button
+          onClick={handleCreate}
+          disabled={loading}
+          className="w-full py-3 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Creating...' : 'Create Room'}
+        </button>
+      </div>
+
+      <div className="relative mb-8">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-bg px-2 text-muted">or join a room</span>
+        </div>
+      </div>
+
+      <form onSubmit={handleJoin} className="flex gap-2">
+        <input
+          type="text"
+          value={roomCode}
+          onChange={(e) => setRoomCode(e.target.value)}
+          placeholder="Room code"
+          className="flex-1 border border-input-border bg-input text-input-text rounded px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={loading || !roomCode.trim()}
+          className="px-4 py-2 bg-subtle text-bg rounded text-sm hover:bg-fg disabled:opacity-50"
+        >
+          Join
+        </button>
+      </form>
+
+      {error && <p className="mt-4 text-red-600 text-sm text-center">{error}</p>}
+    </main>
+  )
+}

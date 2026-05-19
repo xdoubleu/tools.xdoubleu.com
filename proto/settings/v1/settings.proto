@@ -1,0 +1,26 @@
+syntax = "proto3";
+package settings.v1;
+option go_package = "tools.xdoubleu.com/gen/settings/v1;settingsv1";
+
+service SettingsService {
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc SaveSettings(SaveSettingsRequest) returns (SaveSettingsResponse);
+}
+
+message Integrations {
+  string steam_api_key = 1;
+  string steam_user_id = 2;
+  string hardcover_api_key = 3;
+}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  Integrations integrations = 1;
+}
+
+message SaveSettingsRequest {
+  Integrations integrations = 1;
+}
+
+message SaveSettingsResponse {}

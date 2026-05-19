@@ -1,0 +1,40 @@
+name: Proto Staleness Check Workflow
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  proto-check:
+    name: Proto Staleness Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: bufbuild/buf-setup-action@v1
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: './api/go.mod'
+          cache-dependency-path: './api/go.sum'
+      - name: Regenerate Go proto stubs
+        run: make proto/generate
+        working-directory: './api'
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          cache: 'yarn'
+          node-version-file: './web/package.json'
+          cache-dependency-path: './web/yarn.lock'
+      - run: yarn install --immutable
+        working-directory: './web'
+      - name: Generate TypeScript ConnectRPC clients
+        run: yarn generate
+        working-directory: './web'
+      - name: Fail if proto stubs are stale
+        run: |
+          git diff --exit-code api/gen/ web/lib/gen/ || \
+            (echo "Proto stubs are out of date. Run 'make proto/generate' in api/ and 'yarn generate' in web/ then commit the results." && exit 1)

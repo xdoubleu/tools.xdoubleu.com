@@ -1,0 +1,22 @@
+name: Build API Workflow
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-api:
+    name: Build API
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: './api/go.mod'
+          cache-dependency-path: './api/go.sum'
+      - run: make build
+        working-directory: './api'

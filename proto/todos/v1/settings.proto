@@ -1,0 +1,116 @@
+syntax = "proto3";
+package todos.v1;
+option go_package = "tools.xdoubleu.com/gen/todos/v1;todosv1";
+
+message Section {
+  string id = 1;
+  string owner_user_id = 2;
+  string name = 3;
+  int32 sort_order = 4;
+  string created_at = 5;
+  string workspace_id = 6;
+}
+
+message LabelPreset {
+  string value = 1;
+  string color = 2;
+}
+
+message URLPattern {
+  string id = 1;
+  string user_id = 2;
+  string url_prefix = 3;
+  string platform_name = 4;
+  string label = 5;
+  string shortcut = 6;
+  int32 sort_order = 7;
+}
+
+message ArchiveSettings {
+  string user_id = 1;
+  int32 archive_after_hours = 2;
+}
+
+message Policy {
+  string id = 1;
+  string owner_user_id = 2;
+  string text = 3;
+  int32 reappear_after_hours = 4;
+  int32 sort_order = 5;
+  string created_at = 6;
+  string workspace_id = 7;
+}
+
+message Workspace {
+  string id = 1;
+  string owner_user_id = 2;
+  string name = 3;
+  string created_at = 4;
+}
+
+message UserSettings {
+  string user_id = 1;
+  string active_workspace_id = 2;
+  bool hide_shortcut_hints = 3;
+}
+
+message GetSettingsRequest {}
+message GetSettingsResponse {
+  repeated LabelPreset label_presets = 1;
+  repeated URLPattern url_patterns = 2;
+  ArchiveSettings archive = 3;
+  repeated Section sections = 4;
+  repeated Policy policies = 5;
+  repeated Workspace workspaces = 6;
+  UserSettings user_settings = 7;
+}
+
+message UpdateArchiveSettingsRequest { int32 archive_after_hours = 1; }
+message UpdateArchiveSettingsResponse {}
+message AddLabelPresetRequest { string category = 1; string value = 2; string workspace_id = 3; }
+message AddLabelPresetResponse {}
+message RemoveLabelPresetRequest { string category = 1; string value = 2; string workspace_id = 3; }
+message RemoveLabelPresetResponse {}
+message UpdateLabelColorRequest { string category = 1; string value = 2; string color = 3; string workspace_id = 4; }
+message UpdateLabelColorResponse {}
+message AddURLPatternRequest { string url_prefix = 1; string platform_name = 2; string label = 3; string shortcut = 4; string workspace_id = 5; }
+message AddURLPatternResponse {}
+message RemoveURLPatternRequest { string id = 1; }
+message RemoveURLPatternResponse {}
+message AddSectionRequest { string name = 1; string workspace_id = 2; }
+message AddSectionResponse {}
+message RemoveSectionRequest { string id = 1; }
+message RemoveSectionResponse {}
+message AddPolicyRequest { string text = 1; int32 reappear_after_hours = 2; string workspace_id = 3; }
+message AddPolicyResponse {}
+message UpdatePolicyRequest { string id = 1; string text = 2; int32 reappear_after_hours = 3; }
+message UpdatePolicyResponse {}
+message RemovePolicyRequest { string id = 1; }
+message RemovePolicyResponse {}
+message AddWorkspaceRequest { string name = 1; }
+message AddWorkspaceResponse {}
+message DeleteWorkspaceRequest { string id = 1; }
+message DeleteWorkspaceResponse {}
+message UpdateHideShortcutHintsRequest { bool hide = 1; }
+message UpdateHideShortcutHintsResponse {}
+message SetActiveWorkspaceRequest { string workspace_id = 1; }
+message SetActiveWorkspaceResponse {}
+
+service SettingsService {
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc UpdateArchiveSettings(UpdateArchiveSettingsRequest) returns (UpdateArchiveSettingsResponse);
+  rpc AddLabelPreset(AddLabelPresetRequest) returns (AddLabelPresetResponse);
+  rpc RemoveLabelPreset(RemoveLabelPresetRequest) returns (RemoveLabelPresetResponse);
+  rpc UpdateLabelColor(UpdateLabelColorRequest) returns (UpdateLabelColorResponse);
+  rpc AddURLPattern(AddURLPatternRequest) returns (AddURLPatternResponse);
+  rpc RemoveURLPattern(RemoveURLPatternRequest) returns (RemoveURLPatternResponse);
+  rpc AddSection(AddSectionRequest) returns (AddSectionResponse);
+  rpc RemoveSection(RemoveSectionRequest) returns (RemoveSectionResponse);
+  rpc AddPolicy(AddPolicyRequest) returns (AddPolicyResponse);
+  rpc UpdatePolicy(UpdatePolicyRequest) returns (UpdatePolicyResponse);
+  rpc RemovePolicy(RemovePolicyRequest) returns (RemovePolicyResponse);
+  rpc AddWorkspace(AddWorkspaceRequest) returns (AddWorkspaceResponse);
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse);
+  rpc UpdateHideShortcutHints(UpdateHideShortcutHintsRequest) returns (UpdateHideShortcutHintsResponse);
+  rpc SetActiveWorkspace(SetActiveWorkspaceRequest) returns (SetActiveWorkspaceResponse);
+}

@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: 255 255 255;
+  --color-surface: 249 250 251;
+  --color-card: 255 255 255;
+  --color-fg: 17 24 39;
+  --color-muted: 107 114 128;
+  --color-subtle: 55 65 81;
+  --color-border: 229 231 235;
+  --color-input: 255 255 255;
+  --color-input-border: 209 213 219;
+  --color-input-text: 17 24 39;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: 17 24 39;
+    --color-surface: 31 41 55;
+    --color-card: 31 41 55;
+    --color-fg: 243 244 246;
+    --color-muted: 156 163 175;
+    --color-subtle: 209 213 219;
+    --color-border: 55 65 81;
+    --color-input: 55 65 81;
+    --color-input-border: 75 85 99;
+    --color-input-text: 243 244 246;
+  }
+}

@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 docker-compose up -d        # Start local PostgreSQL 18
 
 # Build
-make build                  # Build ./bin/publish (main server binary)
+make build                  # Build ./bin/api (main server binary; run from api/)
 
 # Testing
 make test                   # Run all tests
@@ -22,9 +22,11 @@ make test/cov/per-pkg       # Per-package coverage with merged report
 make lint                   # Run all linters (Go + SQL)
 make lint/fix               # Auto-fix issues
 
-# Scaffolding
-make scaffold NAME=myapp [DB=true] [JOBS=true]   # Generate a new app
+# Code generation (TypeScript, run from web/)
+yarn generate              # Regenerate web/lib/gen/ from proto definitions
 ```
+
+> All `make` commands must be run from the `api/` directory. All `yarn` commands must be run from the `web/` directory.
 
 To run a single test:
 ```bash
@@ -33,7 +35,7 @@ go test ./apps/backlog/... -run TestFunctionName
 
 ## Architecture
 
-This is a Go monorepo (Go 1.25) that serves multiple web apps from a single binary. All apps are registered in `cmd/publish/apps.go` and share a single HTTP mux routed by URL prefix.
+This is a Go monorepo (Go 1.25) that serves multiple web apps from a single binary. All apps are registered in `api/cmd/api/apps.go` and share a single HTTP mux routed by URL prefix. The apps expose ConnectRPC endpoints (for the Next.js 16 `web/` frontend).
 
 ### App Structure
 
@@ -43,10 +45,10 @@ Each app lives in `apps/<name>/` and follows a consistent layout:
 apps/<name>/
 ├── app.go              # App struct embedding app.Base, implements App interface
 ├── routes.go           # HTTP route registration
-├── handler.go          # HTTP handlers (shared middleware/error helpers)
+├── handlers.go         # HTTP handlers (shared middleware/error helpers)
 │                       # Large apps split handler code across focused files,
 │                       # e.g. tasks_crud.go, tasks_list.go, tasks_subtasks.go
-├── views.templ         # HTML templates (templ source files)
+├── connect*.go         # ConnectRPC service implementations
 ├── internal/
 │   ├── dtos/           # Request/response serialization
 │   ├── models/         # Domain models
@@ -70,20 +72,22 @@ apps/<name>/
 - **`crypto/`** — Encryption utilities
 - **`models/`** — Shared domain models
 - **`repositories/`** — Shared DB repositories
-- **`templates/`** — Shared HTML templates (templ)
+- **`templates/`** — Shared utility functions (date formatting, fraction parsing, etc.)
 - **`mocks/`** — Shared mock implementations
 - **`testhelper/`** — Test utilities: `ConnectTestDB(dsn)` wraps `postgres.Connect` for integration tests; `BuildMux(Routable)` constructs a test `http.Handler` from any app that implements `Routes`/`GetName`
 
 ### Key Libraries
 
 | Concern | Library |
-|---|---|
+| --- | --- |
 | HTTP | `net/http` + `justinas/alice` (middleware chaining) |
+| RPC | `connectrpc.com/connect` — HTTP/1.1 RPC framework |
 | Database | `jackc/pgx/v5` + `pressly/goose/v3` (migrations) |
 | Auth | `supabase-community/gotrue-go` |
 | WebSocket | `coder/websocket` |
 | Error tracking | `getsentry/sentry-go` |
 | Job queue | `xdoubleu/essentia/v4` threading.JobQueue |
+| Code generation | `buf` / `protoc-gen-go` / `protoc-gen-connect-go` |
 | Testing | `stretchr/testify` |
 
 ### Apps
@@ -101,11 +105,6 @@ apps/<name>/
 - `updated_at` columns are managed via PostgreSQL triggers
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking
 
-### Adding a New App
-
-1. Run `make scaffold NAME=myapp [DB=true] [JOBS=true]`
-2. Register the app in `cmd/publish/apps.go`
-
 ## Linting
 
 Strict linting is enforced via `golangci-lint` (40+ linters). Key constraints:
@@ -116,20 +115,51 @@ Strict linting is enforced via `golangci-lint` (40+ linters). Key constraints:
 
 Always run `make lint/fix` as the final step before committing. Manually fix anything the auto-fixer cannot resolve.
 
-`make lint` and `make lint/fix` automatically run `templ generate` before linting — no need to run `make templ/generate` separately first.
+Generated files: `api/gen/` Go proto stubs ARE committed. `web/lib/gen/` TypeScript clients ARE committed — only run `yarn generate` after editing `.proto` files (CI regenerates and commits them automatically via `build.yml`).
 
 ## Testing Notes
 
 - Use mock injection for unit tests; place mocks in `internal/mocks/` or app-level `internal/<name>/mocks/`
-- Integration tests hit a real database — start `docker-compose up -d` before running tests locally
+- Integration tests hit a real database — start `docker-compose up -d` from `api/` before running tests locally
 - Target ≥80% coverage on changed code; check with `make test/cov/report`
-- Coverage ceiling is ~74.5% — templ-generated boilerplate (`*_templ.go` files are committed) contains uncoverable `!IsBuffer` defer blocks in nested components
-- **Coverage numbers**: `go tool cover -func` reports ~74–75% locally (includes `*_templ.go` boilerplate). Codecov reports ~80% because it auto-excludes `// Code generated` files. Both are accurate — the gap is the structurally uncoverable 2-stmt `!IsBuffer` defer blocks that the templ compiler emits for every nested component. Template *behaviour* (if/else branches, loops) is fully covered by HTTP handler tests. Use `make test/cov` to open the HTML report and inspect template branch coverage.
+- Generated files (`api/gen/`, `_mock.go`) are excluded from coverage. `web/lib/gen/` TypeScript files are also excluded.
 - When fixing bugs, write a failing test first before implementing the fix
 
-### Template files
+## Web Frontend (web/)
 
-**Always read `.templ` source files, never `*_templ.go`**: When understanding template logic, read the `.templ` source (e.g. `apps/todos/views.templ`). The generated `*_templ.go` files are 2–10× larger and contain identical logic wrapped in runtime scaffolding — reading them wastes tokens and makes the logic harder to follow.
+The `web/` directory contains a Next.js 16 App Router application served as a static export (`output: 'export'`).
 
-Note: `*_templ.go` files ARE committed to the repo (for Codecov coverage tracking), but they should never be read for understanding logic — always use the `.templ` source instead.
+### Stack
+
+| Concern | Library |
+| --- | --- |
+| Framework | Next.js 16, React 19, TypeScript strict |
+| Styling | Tailwind CSS + shadcn/ui |
+| API client | ConnectRPC (`@connectrpc/connect-web`) |
+| Data fetching | SWR |
+| Error tracking | Sentry (`@sentry/nextjs`) |
+| Testing | Jest + React Testing Library |
+| Linting | ESLint (eslint-config-next), Prettier, tsc --noEmit, knip |
+
+### Key Paths
+
+- `web/app/` — App Router pages and layouts
+- `web/components/` — Reusable React components (shadcn/ui primitives in `components/ui/`)
+- `web/lib/` — Utilities and ConnectRPC client setup
+- `web/lib/gen/` — Generated TypeScript ConnectRPC clients from buf (committed; only regenerate after editing `.proto` files)
+- `web/hooks/` — SWR data-fetching hooks
+
+### Testing
+
+Run `cd web && yarn test:cov` for coverage. Target ≥80% on `components/`, `lib/`, `hooks/` (excludes `lib/gen/`).
+
+## CI
+
+`.github/workflows/main.yml` fans out to five reusable workflows:
+
+- `build.yml` — Go proto regeneration + commit (`api/gen/`) + Go build + TS client regeneration + commit (`web/lib/gen/`) + web build
+- `api-lint.yml` — `golangci-lint` + SQL lint
+- `api-test.yml` — PostgreSQL 18 service + `make test/cov/report` + Codecov upload (`flags: api`)
+- `web-lint.yml` — ESLint + Prettier + `tsc --noEmit` + knip
+- `web-test.yml` — `yarn test:cov` + Codecov upload (`flags: web`)
 

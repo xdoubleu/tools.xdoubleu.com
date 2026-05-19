@@ -1,6 +1,6 @@
 # tools.xdoubleu.com
 
-A Go monorepo serving multiple web tools from a single binary. Built with Go 1.25, PostgreSQL, and Supabase authentication.
+A monorepo serving multiple web tools. The API is built with Go 1.25, PostgreSQL, and Supabase authentication. The frontend is built with Next.js 16, React 19, and TypeScript.
 
 ## Tools
 
@@ -14,22 +14,31 @@ A Go monorepo serving multiple web tools from a single binary. Built with Go 1.2
 
 ```bash
 # Start the database
-docker-compose up -d
+cd api && docker-compose up -d
 
-# Run development server
-make run
+# Run development server (API)
+cd api && make run
 
-# Run tests
-make test
+# Run development server (Web)
+cd web && yarn dev
 
-# Build the binary
-make build
+# Run tests (API)
+cd api && make test
+
+# Run tests (Web)
+cd web && yarn test
+
+# Build the API binary
+cd api && make build
+
+# Build the web frontend
+cd web && yarn build
 
 # Stop the database
-docker-compose down
+cd api && docker-compose down
 ```
 
-## Development Commands
+## API Commands (`api/`)
 
 | Command | Purpose |
 | --- | --- |
@@ -40,38 +49,52 @@ docker-compose down
 | `make lint/fix` | Auto-fix linting issues |
 | `make scaffold NAME=myapp [DB=true] [JOBS=true]` | Generate new app |
 
+## Web Commands (`web/`)
+
+| Command | Purpose |
+| --- | --- |
+| `yarn dev` | Start development server |
+| `yarn build` | Build static export |
+| `yarn test` | Run tests |
+| `yarn test:cov` | Run tests with coverage |
+| `yarn lint` | Run ESLint + Prettier |
+| `yarn generate` | Regenerate TypeScript ConnectRPC clients from proto definitions (output: `web/lib/gen/`, committed) |
+| `yarn lint:fix` | Auto-fix ESLint issues and reformat with Prettier |
+
 ## Architecture
 
-All tools are registered in `cmd/publish/apps.go` and share a single HTTP mux routed by URL prefix. Each tool lives in `apps/<name>/` with a consistent structure:
+All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux routed by URL prefix. Each tool lives in `api/apps/<name>/` with a consistent structure:
 
 - **HTTP**: `net/http` + `justinas/alice` middleware
+- **RPC**: `connectrpc.com/connect` — proto definitions in `proto/<app>/v1/`; Go stubs committed to `api/gen/`; TypeScript clients generated to `web/lib/gen/` (rebuilt in CI)
 - **Database**: `jackc/pgx/v5` + `pressly/goose/v3` migrations
 - **Authentication**: Supabase GoTrue
-- **Templates**: `templ` (source `.templ` files compiled to Go)
 - **Job queue**: `xdoubleu/essentia/v4` for background work
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind + shadcn/ui
 
-Each tool uses its own PostgreSQL schema. Shared code lives in `internal/` (auth, config, encryption, templates, repositories).
+Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).
 
 ## Adding a New Tool
 
 ```bash
 # Minimal tool (no DB, no background jobs)
-make scaffold NAME=mytool
+cd api && make scaffold NAME=mytool
 
 # Tool with database
-make scaffold NAME=mytool DB=true
+cd api && make scaffold NAME=mytool DB=true
 
 # Tool with database and background jobs
-make scaffold NAME=mytool DB=true JOBS=true
+cd api && make scaffold NAME=mytool DB=true JOBS=true
 ```
 
 After scaffolding:
 
-1. Implement handlers and register routes in `apps/mytool/routes.go`
-2. Add domain logic to `apps/mytool/internal/`
-3. If using DB, edit `apps/mytool/migrations/00001_init.sql`
-4. Run `make build` to verify
+1. Register the new app in `api/cmd/api/apps.go` (the scaffold command does not auto-register it)
+2. Implement handlers and register routes in `api/apps/mytool/routes.go`
+3. Add domain logic to `api/apps/mytool/internal/`
+4. If using DB, edit `api/apps/mytool/migrations/00001_init.sql`
+5. Run `cd api && make build` to verify
 
 ## Contributing
 
-Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` before committing.
+Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` (from `api/`) before committing.

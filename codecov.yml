@@ -1,2 +1,10 @@
 comment:
   require_changes: true
+
+flags:
+  api:
+    paths:
+      - api/
+  web:
+    paths:
+      - web/
