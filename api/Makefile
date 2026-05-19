@@ -22,8 +22,6 @@ lint/sql: tools/lint/sql
 	sqlfluff lint --dialect postgres .
 
 tools/proto:
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
-	go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.19.2
 	go install github.com/bufbuild/buf/cmd/buf@v1.69.0
 
 lint/proto: tools/proto
@@ -40,7 +38,7 @@ lint/fix: tools/lint
 	gci write --skip-generated -s standard -s default -s "prefix(tools.xdoubleu.com)" .
 	sqlfluff fix --dialect postgres .
 
-proto/generate: tools/proto
+proto/generate:
 	buf generate
 
 build:

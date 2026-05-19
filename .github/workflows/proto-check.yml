@@ -16,12 +16,8 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref_name }}
       - uses: bufbuild/buf-setup-action@v1
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: './api/go.mod'
-          cache-dependency-path: './api/go.sum'
-      - name: Regenerate Go proto stubs
-        run: make proto/generate
+      - name: Generate Go proto stubs
+        run: buf generate
         working-directory: './api'
       - name: Generate TypeScript ConnectRPC clients
         run: buf generate

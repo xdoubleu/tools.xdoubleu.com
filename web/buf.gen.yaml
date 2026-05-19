@@ -7,7 +7,7 @@ plugins:
     opt:
       - target=ts
       - import_extension=none
-  - remote: buf.build/connectrpc/es:v1.7.0
+  - remote: buf.build/connectrpc/es:v1.6.1
     out: ./lib/gen
     opt:
       - target=ts
