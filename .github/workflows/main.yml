@@ -153,3 +153,20 @@ jobs:
       build_api: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.workflows == 'true' }}
       build_web: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
+
+  deploy:
+    needs: [docker]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.docker.result == 'success'
+    name: Deploy to Digital Ocean
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Digital Ocean deployment
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.DO_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://api.digitalocean.com/v2/apps/${{ secrets.DO_APP_ID }}/deployments"
