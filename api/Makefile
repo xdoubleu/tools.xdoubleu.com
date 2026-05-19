@@ -27,9 +27,10 @@ tools/proto:
 	go install github.com/bufbuild/buf/cmd/buf@v1.32.0
 
 lint/proto: tools/proto
+	buf --version
 	cd ../proto && buf lint
 
-lint: tools/lint lint/proto
+lint: tools/lint
 	golangci-lint run
 	make lint/sql
 	make lint/proto
