@@ -27,7 +27,6 @@ tools/proto:
 	go install github.com/bufbuild/buf/cmd/buf@v1.69.0
 
 lint/proto: tools/proto
-	buf --version
 	cd ../proto && buf lint
 
 lint: tools/lint

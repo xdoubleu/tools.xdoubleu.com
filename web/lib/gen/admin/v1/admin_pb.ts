@@ -3,15 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage
-} from '@bufbuild/protobuf'
-import { Message, proto3 } from '@bufbuild/protobuf'
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
  * @generated from message admin.v1.AppUser
@@ -20,54 +13,51 @@ export class AppUser extends Message<AppUser> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string email = 2;
    */
-  email = ''
+  email = "";
 
   /**
    * @generated from field: string role = 3;
    */
-  role = ''
+  role = "";
 
   /**
    * @generated from field: repeated string app_access = 4;
    */
-  appAccess: string[] = []
+  appAccess: string[] = [];
 
   constructor(data?: PartialMessage<AppUser>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'admin.v1.AppUser'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "admin.v1.AppUser";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'email', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'role', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'app_access', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "role", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "app_access", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AppUser {
-    return new AppUser().fromBinary(bytes, options)
+    return new AppUser().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AppUser {
-    return new AppUser().fromJson(jsonValue, options)
+    return new AppUser().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AppUser {
-    return new AppUser().fromJsonString(jsonString, options)
+    return new AppUser().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: AppUser | PlainMessage<AppUser> | undefined,
-    b: AppUser | PlainMessage<AppUser> | undefined
-  ): boolean {
-    return proto3.util.equals(AppUser, a, b)
+  static equals(a: AppUser | PlainMessage<AppUser> | undefined, b: AppUser | PlainMessage<AppUser> | undefined): boolean {
+    return proto3.util.equals(AppUser, a, b);
   }
 }
 
@@ -76,31 +66,29 @@ export class AppUser extends Message<AppUser> {
  */
 export class ListUsersRequest extends Message<ListUsersRequest> {
   constructor(data?: PartialMessage<ListUsersRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'admin.v1.ListUsersRequest'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "admin.v1.ListUsersRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUsersRequest {
-    return new ListUsersRequest().fromBinary(bytes, options)
+    return new ListUsersRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListUsersRequest {
-    return new ListUsersRequest().fromJson(jsonValue, options)
+    return new ListUsersRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListUsersRequest {
-    return new ListUsersRequest().fromJsonString(jsonString, options)
+    return new ListUsersRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListUsersRequest | PlainMessage<ListUsersRequest> | undefined,
-    b: ListUsersRequest | PlainMessage<ListUsersRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(ListUsersRequest, a, b)
+  static equals(a: ListUsersRequest | PlainMessage<ListUsersRequest> | undefined, b: ListUsersRequest | PlainMessage<ListUsersRequest> | undefined): boolean {
+    return proto3.util.equals(ListUsersRequest, a, b);
   }
 }
 
@@ -111,36 +99,33 @@ export class ListUsersResponse extends Message<ListUsersResponse> {
   /**
    * @generated from field: repeated admin.v1.AppUser users = 1;
    */
-  users: AppUser[] = []
+  users: AppUser[] = [];
 
   constructor(data?: PartialMessage<ListUsersResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'admin.v1.ListUsersResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "admin.v1.ListUsersResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'users', kind: 'message', T: AppUser, repeated: true }
-  ])
+    { no: 1, name: "users", kind: "message", T: AppUser, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUsersResponse {
-    return new ListUsersResponse().fromBinary(bytes, options)
+    return new ListUsersResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListUsersResponse {
-    return new ListUsersResponse().fromJson(jsonValue, options)
+    return new ListUsersResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListUsersResponse {
-    return new ListUsersResponse().fromJsonString(jsonString, options)
+    return new ListUsersResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListUsersResponse | PlainMessage<ListUsersResponse> | undefined,
-    b: ListUsersResponse | PlainMessage<ListUsersResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(ListUsersResponse, a, b)
+  static equals(a: ListUsersResponse | PlainMessage<ListUsersResponse> | undefined, b: ListUsersResponse | PlainMessage<ListUsersResponse> | undefined): boolean {
+    return proto3.util.equals(ListUsersResponse, a, b);
   }
 }
 
@@ -151,42 +136,39 @@ export class SetRoleRequest extends Message<SetRoleRequest> {
   /**
    * @generated from field: string user_id = 1;
    */
-  userId = ''
+  userId = "";
 
   /**
    * @generated from field: string role = 2;
    */
-  role = ''
+  role = "";
 
   constructor(data?: PartialMessage<SetRoleRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'admin.v1.SetRoleRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "admin.v1.SetRoleRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'role', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "role", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetRoleRequest {
-    return new SetRoleRequest().fromBinary(bytes, options)
+    return new SetRoleRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetRoleRequest {
-    return new SetRoleRequest().fromJson(jsonValue, options)
+    return new SetRoleRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetRoleRequest {
-    return new SetRoleRequest().fromJsonString(jsonString, options)
+    return new SetRoleRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SetRoleRequest | PlainMessage<SetRoleRequest> | undefined,
-    b: SetRoleRequest | PlainMessage<SetRoleRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(SetRoleRequest, a, b)
+  static equals(a: SetRoleRequest | PlainMessage<SetRoleRequest> | undefined, b: SetRoleRequest | PlainMessage<SetRoleRequest> | undefined): boolean {
+    return proto3.util.equals(SetRoleRequest, a, b);
   }
 }
 
@@ -197,36 +179,33 @@ export class SetRoleResponse extends Message<SetRoleResponse> {
   /**
    * @generated from field: admin.v1.AppUser user = 1;
    */
-  user?: AppUser
+  user?: AppUser;
 
   constructor(data?: PartialMessage<SetRoleResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'admin.v1.SetRoleResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "admin.v1.SetRoleResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'user', kind: 'message', T: AppUser }
-  ])
+    { no: 1, name: "user", kind: "message", T: AppUser },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetRoleResponse {
-    return new SetRoleResponse().fromBinary(bytes, options)
+    return new SetRoleResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetRoleResponse {
-    return new SetRoleResponse().fromJson(jsonValue, options)
+    return new SetRoleResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetRoleResponse {
-    return new SetRoleResponse().fromJsonString(jsonString, options)
+    return new SetRoleResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SetRoleResponse | PlainMessage<SetRoleResponse> | undefined,
-    b: SetRoleResponse | PlainMessage<SetRoleResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(SetRoleResponse, a, b)
+  static equals(a: SetRoleResponse | PlainMessage<SetRoleResponse> | undefined, b: SetRoleResponse | PlainMessage<SetRoleResponse> | undefined): boolean {
+    return proto3.util.equals(SetRoleResponse, a, b);
   }
 }
 
@@ -237,51 +216,45 @@ export class SetAppAccessRequest extends Message<SetAppAccessRequest> {
   /**
    * @generated from field: string user_id = 1;
    */
-  userId = ''
+  userId = "";
 
   /**
    * @generated from field: string app_name = 2;
    */
-  appName = ''
+  appName = "";
 
   /**
    * @generated from field: bool grant = 3;
    */
-  grant = false
+  grant = false;
 
   constructor(data?: PartialMessage<SetAppAccessRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'admin.v1.SetAppAccessRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "admin.v1.SetAppAccessRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'app_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'grant', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
-  ])
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "app_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "grant", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetAppAccessRequest {
-    return new SetAppAccessRequest().fromBinary(bytes, options)
+    return new SetAppAccessRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetAppAccessRequest {
-    return new SetAppAccessRequest().fromJson(jsonValue, options)
+    return new SetAppAccessRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SetAppAccessRequest {
-    return new SetAppAccessRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetAppAccessRequest {
+    return new SetAppAccessRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SetAppAccessRequest | PlainMessage<SetAppAccessRequest> | undefined,
-    b: SetAppAccessRequest | PlainMessage<SetAppAccessRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(SetAppAccessRequest, a, b)
+  static equals(a: SetAppAccessRequest | PlainMessage<SetAppAccessRequest> | undefined, b: SetAppAccessRequest | PlainMessage<SetAppAccessRequest> | undefined): boolean {
+    return proto3.util.equals(SetAppAccessRequest, a, b);
   }
 }
 
@@ -292,38 +265,33 @@ export class SetAppAccessResponse extends Message<SetAppAccessResponse> {
   /**
    * @generated from field: admin.v1.AppUser user = 1;
    */
-  user?: AppUser
+  user?: AppUser;
 
   constructor(data?: PartialMessage<SetAppAccessResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'admin.v1.SetAppAccessResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "admin.v1.SetAppAccessResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'user', kind: 'message', T: AppUser }
-  ])
+    { no: 1, name: "user", kind: "message", T: AppUser },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetAppAccessResponse {
-    return new SetAppAccessResponse().fromBinary(bytes, options)
+    return new SetAppAccessResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetAppAccessResponse {
-    return new SetAppAccessResponse().fromJson(jsonValue, options)
+    return new SetAppAccessResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SetAppAccessResponse {
-    return new SetAppAccessResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetAppAccessResponse {
+    return new SetAppAccessResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SetAppAccessResponse | PlainMessage<SetAppAccessResponse> | undefined,
-    b: SetAppAccessResponse | PlainMessage<SetAppAccessResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(SetAppAccessResponse, a, b)
+  static equals(a: SetAppAccessResponse | PlainMessage<SetAppAccessResponse> | undefined, b: SetAppAccessResponse | PlainMessage<SetAppAccessResponse> | undefined): boolean {
+    return proto3.util.equals(SetAppAccessResponse, a, b);
   }
 }
+

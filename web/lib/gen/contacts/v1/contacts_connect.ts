@@ -3,70 +3,60 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  AcceptContactRequest,
-  AcceptContactResponse,
-  CreateContactRequest,
-  CreateContactResponse,
-  DeclineContactRequest,
-  DeclineContactResponse,
-  DeleteContactRequest,
-  DeleteContactResponse,
-  ListContactsRequest,
-  ListContactsResponse
-} from './contacts_pb'
-import { MethodKind } from '@bufbuild/protobuf'
+import { AcceptContactRequest, AcceptContactResponse, CreateContactRequest, CreateContactResponse, DeclineContactRequest, DeclineContactResponse, DeleteContactRequest, DeleteContactResponse, ListContactsRequest, ListContactsResponse } from "./contacts_pb";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service contacts.v1.ContactsService
  */
 export const ContactsService = {
-  typeName: 'contacts.v1.ContactsService',
+  typeName: "contacts.v1.ContactsService",
   methods: {
     /**
      * @generated from rpc contacts.v1.ContactsService.ListContacts
      */
     listContacts: {
-      name: 'ListContacts',
+      name: "ListContacts",
       I: ListContactsRequest,
       O: ListContactsResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc contacts.v1.ContactsService.CreateContact
      */
     createContact: {
-      name: 'CreateContact',
+      name: "CreateContact",
       I: CreateContactRequest,
       O: CreateContactResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc contacts.v1.ContactsService.AcceptContact
      */
     acceptContact: {
-      name: 'AcceptContact',
+      name: "AcceptContact",
       I: AcceptContactRequest,
       O: AcceptContactResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc contacts.v1.ContactsService.DeclineContact
      */
     declineContact: {
-      name: 'DeclineContact',
+      name: "DeclineContact",
       I: DeclineContactRequest,
       O: DeclineContactResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc contacts.v1.ContactsService.DeleteContact
      */
     deleteContact: {
-      name: 'DeleteContact',
+      name: "DeleteContact",
       I: DeleteContactRequest,
       O: DeleteContactResponse,
-      kind: MethodKind.Unary
-    }
+      kind: MethodKind.Unary,
+    },
   }
-} as const
+} as const;
+

@@ -3,15 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage
-} from '@bufbuild/protobuf'
-import { Message, proto3 } from '@bufbuild/protobuf'
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
  * @generated from message backlog.v1.Book
@@ -20,66 +13,63 @@ export class Book extends Message<Book> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string title = 2;
    */
-  title = ''
+  title = "";
 
   /**
    * @generated from field: repeated string authors = 3;
    */
-  authors: string[] = []
+  authors: string[] = [];
 
   /**
    * @generated from field: string isbn13 = 4;
    */
-  isbn13 = ''
+  isbn13 = "";
 
   /**
    * @generated from field: string cover_url = 5;
    */
-  coverUrl = ''
+  coverUrl = "";
 
   /**
    * @generated from field: string description = 6;
    */
-  description = ''
+  description = "";
 
   constructor(data?: PartialMessage<Book>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.Book'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.Book";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'title', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'authors', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 4, name: 'isbn13', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'cover_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'description', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "title", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "authors", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "isbn13", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "cover_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Book {
-    return new Book().fromBinary(bytes, options)
+    return new Book().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Book {
-    return new Book().fromJson(jsonValue, options)
+    return new Book().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Book {
-    return new Book().fromJsonString(jsonString, options)
+    return new Book().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: Book | PlainMessage<Book> | undefined,
-    b: Book | PlainMessage<Book> | undefined
-  ): boolean {
-    return proto3.util.equals(Book, a, b)
+  static equals(a: Book | PlainMessage<Book> | undefined, b: Book | PlainMessage<Book> | undefined): boolean {
+    return proto3.util.equals(Book, a, b);
   }
 }
 
@@ -90,96 +80,93 @@ export class UserBook extends Message<UserBook> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string user_id = 2;
    */
-  userId = ''
+  userId = "";
 
   /**
    * @generated from field: string book_id = 3;
    */
-  bookId = ''
+  bookId = "";
 
   /**
    * @generated from field: backlog.v1.Book book = 4;
    */
-  book?: Book
+  book?: Book;
 
   /**
    * @generated from field: string status = 5;
    */
-  status = ''
+  status = "";
 
   /**
    * @generated from field: repeated string tags = 6;
    */
-  tags: string[] = []
+  tags: string[] = [];
 
   /**
    * @generated from field: int32 rating = 7;
    */
-  rating = 0
+  rating = 0;
 
   /**
    * @generated from field: string notes = 8;
    */
-  notes = ''
+  notes = "";
 
   /**
    * @generated from field: repeated string finished_at = 9;
    */
-  finishedAt: string[] = []
+  finishedAt: string[] = [];
 
   /**
    * @generated from field: string added_at = 10;
    */
-  addedAt = ''
+  addedAt = "";
 
   /**
    * @generated from field: string updated_at = 11;
    */
-  updatedAt = ''
+  updatedAt = "";
 
   constructor(data?: PartialMessage<UserBook>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.UserBook'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.UserBook";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'book_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'book', kind: 'message', T: Book },
-    { no: 5, name: 'status', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'tags', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 7, name: 'rating', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    { no: 8, name: 'notes', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: 'finished_at', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 10, name: 'added_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 11, name: 'updated_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "book_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "book", kind: "message", T: Book },
+    { no: 5, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "tags", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 7, name: "rating", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 8, name: "notes", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "finished_at", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 10, name: "added_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 11, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserBook {
-    return new UserBook().fromBinary(bytes, options)
+    return new UserBook().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserBook {
-    return new UserBook().fromJson(jsonValue, options)
+    return new UserBook().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserBook {
-    return new UserBook().fromJsonString(jsonString, options)
+    return new UserBook().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UserBook | PlainMessage<UserBook> | undefined,
-    b: UserBook | PlainMessage<UserBook> | undefined
-  ): boolean {
-    return proto3.util.equals(UserBook, a, b)
+  static equals(a: UserBook | PlainMessage<UserBook> | undefined, b: UserBook | PlainMessage<UserBook> | undefined): boolean {
+    return proto3.util.equals(UserBook, a, b);
   }
 }
 
@@ -190,42 +177,39 @@ export class BookShelf extends Message<BookShelf> {
   /**
    * @generated from field: string name = 1;
    */
-  name = ''
+  name = "";
 
   /**
    * @generated from field: repeated backlog.v1.UserBook books = 2;
    */
-  books: UserBook[] = []
+  books: UserBook[] = [];
 
   constructor(data?: PartialMessage<BookShelf>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.BookShelf'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.BookShelf";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'books', kind: 'message', T: UserBook, repeated: true }
-  ])
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "books", kind: "message", T: UserBook, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BookShelf {
-    return new BookShelf().fromBinary(bytes, options)
+    return new BookShelf().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): BookShelf {
-    return new BookShelf().fromJson(jsonValue, options)
+    return new BookShelf().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): BookShelf {
-    return new BookShelf().fromJsonString(jsonString, options)
+    return new BookShelf().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: BookShelf | PlainMessage<BookShelf> | undefined,
-    b: BookShelf | PlainMessage<BookShelf> | undefined
-  ): boolean {
-    return proto3.util.equals(BookShelf, a, b)
+  static equals(a: BookShelf | PlainMessage<BookShelf> | undefined, b: BookShelf | PlainMessage<BookShelf> | undefined): boolean {
+    return proto3.util.equals(BookShelf, a, b);
   }
 }
 
@@ -236,54 +220,51 @@ export class LibraryResponse extends Message<LibraryResponse> {
   /**
    * @generated from field: repeated backlog.v1.UserBook reading = 1;
    */
-  reading: UserBook[] = []
+  reading: UserBook[] = [];
 
   /**
    * @generated from field: repeated backlog.v1.UserBook wishlist = 2;
    */
-  wishlist: UserBook[] = []
+  wishlist: UserBook[] = [];
 
   /**
    * @generated from field: repeated backlog.v1.UserBook finished = 3;
    */
-  finished: UserBook[] = []
+  finished: UserBook[] = [];
 
   /**
    * @generated from field: repeated backlog.v1.BookShelf shelves = 4;
    */
-  shelves: BookShelf[] = []
+  shelves: BookShelf[] = [];
 
   constructor(data?: PartialMessage<LibraryResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.LibraryResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.LibraryResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'reading', kind: 'message', T: UserBook, repeated: true },
-    { no: 2, name: 'wishlist', kind: 'message', T: UserBook, repeated: true },
-    { no: 3, name: 'finished', kind: 'message', T: UserBook, repeated: true },
-    { no: 4, name: 'shelves', kind: 'message', T: BookShelf, repeated: true }
-  ])
+    { no: 1, name: "reading", kind: "message", T: UserBook, repeated: true },
+    { no: 2, name: "wishlist", kind: "message", T: UserBook, repeated: true },
+    { no: 3, name: "finished", kind: "message", T: UserBook, repeated: true },
+    { no: 4, name: "shelves", kind: "message", T: BookShelf, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LibraryResponse {
-    return new LibraryResponse().fromBinary(bytes, options)
+    return new LibraryResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LibraryResponse {
-    return new LibraryResponse().fromJson(jsonValue, options)
+    return new LibraryResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LibraryResponse {
-    return new LibraryResponse().fromJsonString(jsonString, options)
+    return new LibraryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: LibraryResponse | PlainMessage<LibraryResponse> | undefined,
-    b: LibraryResponse | PlainMessage<LibraryResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(LibraryResponse, a, b)
+  static equals(a: LibraryResponse | PlainMessage<LibraryResponse> | undefined, b: LibraryResponse | PlainMessage<LibraryResponse> | undefined): boolean {
+    return proto3.util.equals(LibraryResponse, a, b);
   }
 }
 
@@ -294,42 +275,39 @@ export class BacklogSummary extends Message<BacklogSummary> {
   /**
    * @generated from field: int32 steam_count = 1;
    */
-  steamCount = 0
+  steamCount = 0;
 
   /**
    * @generated from field: int32 books_count = 2;
    */
-  booksCount = 0
+  booksCount = 0;
 
   constructor(data?: PartialMessage<BacklogSummary>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.BacklogSummary'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.BacklogSummary";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'steam_count', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    { no: 2, name: 'books_count', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
-  ])
+    { no: 1, name: "steam_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "books_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BacklogSummary {
-    return new BacklogSummary().fromBinary(bytes, options)
+    return new BacklogSummary().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): BacklogSummary {
-    return new BacklogSummary().fromJson(jsonValue, options)
+    return new BacklogSummary().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): BacklogSummary {
-    return new BacklogSummary().fromJsonString(jsonString, options)
+    return new BacklogSummary().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: BacklogSummary | PlainMessage<BacklogSummary> | undefined,
-    b: BacklogSummary | PlainMessage<BacklogSummary> | undefined
-  ): boolean {
-    return proto3.util.equals(BacklogSummary, a, b)
+  static equals(a: BacklogSummary | PlainMessage<BacklogSummary> | undefined, b: BacklogSummary | PlainMessage<BacklogSummary> | undefined): boolean {
+    return proto3.util.equals(BacklogSummary, a, b);
   }
 }
 
@@ -340,60 +318,51 @@ export class BooksProgressResponse extends Message<BooksProgressResponse> {
   /**
    * @generated from field: repeated string labels = 1;
    */
-  labels: string[] = []
+  labels: string[] = [];
 
   /**
    * @generated from field: repeated string values = 2;
    */
-  values: string[] = []
+  values: string[] = [];
 
   /**
    * @generated from field: string date_start = 3;
    */
-  dateStart = ''
+  dateStart = "";
 
   /**
    * @generated from field: string date_end = 4;
    */
-  dateEnd = ''
+  dateEnd = "";
 
   constructor(data?: PartialMessage<BooksProgressResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.BooksProgressResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.BooksProgressResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'labels', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 2, name: 'values', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: 'date_start', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'date_end', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "labels", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 2, name: "values", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 3, name: "date_start", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "date_end", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): BooksProgressResponse {
-    return new BooksProgressResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BooksProgressResponse {
+    return new BooksProgressResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): BooksProgressResponse {
-    return new BooksProgressResponse().fromJson(jsonValue, options)
+    return new BooksProgressResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): BooksProgressResponse {
-    return new BooksProgressResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): BooksProgressResponse {
+    return new BooksProgressResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: BooksProgressResponse | PlainMessage<BooksProgressResponse> | undefined,
-    b: BooksProgressResponse | PlainMessage<BooksProgressResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(BooksProgressResponse, a, b)
+  static equals(a: BooksProgressResponse | PlainMessage<BooksProgressResponse> | undefined, b: BooksProgressResponse | PlainMessage<BooksProgressResponse> | undefined): boolean {
+    return proto3.util.equals(BooksProgressResponse, a, b);
   }
 }
 
@@ -404,75 +373,69 @@ export class ExternalBookResult extends Message<ExternalBookResult> {
   /**
    * @generated from field: string provider = 1;
    */
-  provider = ''
+  provider = "";
 
   /**
    * @generated from field: string provider_id = 2;
    */
-  providerId = ''
+  providerId = "";
 
   /**
    * @generated from field: string title = 3;
    */
-  title = ''
+  title = "";
 
   /**
    * @generated from field: repeated string authors = 4;
    */
-  authors: string[] = []
+  authors: string[] = [];
 
   /**
    * @generated from field: string isbn13 = 5;
    */
-  isbn13 = ''
+  isbn13 = "";
 
   /**
    * @generated from field: string cover_url = 6;
    */
-  coverUrl = ''
+  coverUrl = "";
 
   /**
    * @generated from field: string description = 7;
    */
-  description = ''
+  description = "";
 
   constructor(data?: PartialMessage<ExternalBookResult>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.ExternalBookResult'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.ExternalBookResult";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'provider', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'provider_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'title', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'authors', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 5, name: 'isbn13', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'cover_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: 'description', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "provider_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "title", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "authors", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 5, name: "isbn13", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "cover_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExternalBookResult {
-    return new ExternalBookResult().fromBinary(bytes, options)
+    return new ExternalBookResult().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ExternalBookResult {
-    return new ExternalBookResult().fromJson(jsonValue, options)
+    return new ExternalBookResult().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ExternalBookResult {
-    return new ExternalBookResult().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ExternalBookResult {
+    return new ExternalBookResult().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ExternalBookResult | PlainMessage<ExternalBookResult> | undefined,
-    b: ExternalBookResult | PlainMessage<ExternalBookResult> | undefined
-  ): boolean {
-    return proto3.util.equals(ExternalBookResult, a, b)
+  static equals(a: ExternalBookResult | PlainMessage<ExternalBookResult> | undefined, b: ExternalBookResult | PlainMessage<ExternalBookResult> | undefined): boolean {
+    return proto3.util.equals(ExternalBookResult, a, b);
   }
 }
 
@@ -481,31 +444,29 @@ export class ExternalBookResult extends Message<ExternalBookResult> {
  */
 export class GetSummaryRequest extends Message<GetSummaryRequest> {
   constructor(data?: PartialMessage<GetSummaryRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetSummaryRequest'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetSummaryRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSummaryRequest {
-    return new GetSummaryRequest().fromBinary(bytes, options)
+    return new GetSummaryRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSummaryRequest {
-    return new GetSummaryRequest().fromJson(jsonValue, options)
+    return new GetSummaryRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSummaryRequest {
-    return new GetSummaryRequest().fromJsonString(jsonString, options)
+    return new GetSummaryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetSummaryRequest | PlainMessage<GetSummaryRequest> | undefined,
-    b: GetSummaryRequest | PlainMessage<GetSummaryRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(GetSummaryRequest, a, b)
+  static equals(a: GetSummaryRequest | PlainMessage<GetSummaryRequest> | undefined, b: GetSummaryRequest | PlainMessage<GetSummaryRequest> | undefined): boolean {
+    return proto3.util.equals(GetSummaryRequest, a, b);
   }
 }
 
@@ -516,39 +477,33 @@ export class GetSummaryResponse extends Message<GetSummaryResponse> {
   /**
    * @generated from field: backlog.v1.BacklogSummary summary = 1;
    */
-  summary?: BacklogSummary
+  summary?: BacklogSummary;
 
   constructor(data?: PartialMessage<GetSummaryResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetSummaryResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetSummaryResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'summary', kind: 'message', T: BacklogSummary }
-  ])
+    { no: 1, name: "summary", kind: "message", T: BacklogSummary },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSummaryResponse {
-    return new GetSummaryResponse().fromBinary(bytes, options)
+    return new GetSummaryResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSummaryResponse {
-    return new GetSummaryResponse().fromJson(jsonValue, options)
+    return new GetSummaryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetSummaryResponse {
-    return new GetSummaryResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSummaryResponse {
+    return new GetSummaryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetSummaryResponse | PlainMessage<GetSummaryResponse> | undefined,
-    b: GetSummaryResponse | PlainMessage<GetSummaryResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(GetSummaryResponse, a, b)
+  static equals(a: GetSummaryResponse | PlainMessage<GetSummaryResponse> | undefined, b: GetSummaryResponse | PlainMessage<GetSummaryResponse> | undefined): boolean {
+    return proto3.util.equals(GetSummaryResponse, a, b);
   }
 }
 
@@ -559,42 +514,33 @@ export class GetUserSummaryRequest extends Message<GetUserSummaryRequest> {
   /**
    * @generated from field: string user_id = 1;
    */
-  userId = ''
+  userId = "";
 
   constructor(data?: PartialMessage<GetUserSummaryRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetUserSummaryRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetUserSummaryRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): GetUserSummaryRequest {
-    return new GetUserSummaryRequest().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetUserSummaryRequest {
+    return new GetUserSummaryRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetUserSummaryRequest {
-    return new GetUserSummaryRequest().fromJson(jsonValue, options)
+    return new GetUserSummaryRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetUserSummaryRequest {
-    return new GetUserSummaryRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetUserSummaryRequest {
+    return new GetUserSummaryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetUserSummaryRequest | PlainMessage<GetUserSummaryRequest> | undefined,
-    b: GetUserSummaryRequest | PlainMessage<GetUserSummaryRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(GetUserSummaryRequest, a, b)
+  static equals(a: GetUserSummaryRequest | PlainMessage<GetUserSummaryRequest> | undefined, b: GetUserSummaryRequest | PlainMessage<GetUserSummaryRequest> | undefined): boolean {
+    return proto3.util.equals(GetUserSummaryRequest, a, b);
   }
 }
 
@@ -605,45 +551,33 @@ export class GetUserSummaryResponse extends Message<GetUserSummaryResponse> {
   /**
    * @generated from field: backlog.v1.BacklogSummary summary = 1;
    */
-  summary?: BacklogSummary
+  summary?: BacklogSummary;
 
   constructor(data?: PartialMessage<GetUserSummaryResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetUserSummaryResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetUserSummaryResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'summary', kind: 'message', T: BacklogSummary }
-  ])
+    { no: 1, name: "summary", kind: "message", T: BacklogSummary },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): GetUserSummaryResponse {
-    return new GetUserSummaryResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetUserSummaryResponse {
+    return new GetUserSummaryResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>
-  ): GetUserSummaryResponse {
-    return new GetUserSummaryResponse().fromJson(jsonValue, options)
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetUserSummaryResponse {
+    return new GetUserSummaryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetUserSummaryResponse {
-    return new GetUserSummaryResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetUserSummaryResponse {
+    return new GetUserSummaryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetUserSummaryResponse | PlainMessage<GetUserSummaryResponse> | undefined,
-    b: GetUserSummaryResponse | PlainMessage<GetUserSummaryResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(GetUserSummaryResponse, a, b)
+  static equals(a: GetUserSummaryResponse | PlainMessage<GetUserSummaryResponse> | undefined, b: GetUserSummaryResponse | PlainMessage<GetUserSummaryResponse> | undefined): boolean {
+    return proto3.util.equals(GetUserSummaryResponse, a, b);
   }
 }
 
@@ -652,31 +586,29 @@ export class GetUserSummaryResponse extends Message<GetUserSummaryResponse> {
  */
 export class GetLibraryRequest extends Message<GetLibraryRequest> {
   constructor(data?: PartialMessage<GetLibraryRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetLibraryRequest'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetLibraryRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetLibraryRequest {
-    return new GetLibraryRequest().fromBinary(bytes, options)
+    return new GetLibraryRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetLibraryRequest {
-    return new GetLibraryRequest().fromJson(jsonValue, options)
+    return new GetLibraryRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetLibraryRequest {
-    return new GetLibraryRequest().fromJsonString(jsonString, options)
+    return new GetLibraryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetLibraryRequest | PlainMessage<GetLibraryRequest> | undefined,
-    b: GetLibraryRequest | PlainMessage<GetLibraryRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(GetLibraryRequest, a, b)
+  static equals(a: GetLibraryRequest | PlainMessage<GetLibraryRequest> | undefined, b: GetLibraryRequest | PlainMessage<GetLibraryRequest> | undefined): boolean {
+    return proto3.util.equals(GetLibraryRequest, a, b);
   }
 }
 
@@ -687,39 +619,33 @@ export class GetLibraryResponse extends Message<GetLibraryResponse> {
   /**
    * @generated from field: backlog.v1.LibraryResponse library = 1;
    */
-  library?: LibraryResponse
+  library?: LibraryResponse;
 
   constructor(data?: PartialMessage<GetLibraryResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetLibraryResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetLibraryResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'library', kind: 'message', T: LibraryResponse }
-  ])
+    { no: 1, name: "library", kind: "message", T: LibraryResponse },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetLibraryResponse {
-    return new GetLibraryResponse().fromBinary(bytes, options)
+    return new GetLibraryResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetLibraryResponse {
-    return new GetLibraryResponse().fromJson(jsonValue, options)
+    return new GetLibraryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetLibraryResponse {
-    return new GetLibraryResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetLibraryResponse {
+    return new GetLibraryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetLibraryResponse | PlainMessage<GetLibraryResponse> | undefined,
-    b: GetLibraryResponse | PlainMessage<GetLibraryResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(GetLibraryResponse, a, b)
+  static equals(a: GetLibraryResponse | PlainMessage<GetLibraryResponse> | undefined, b: GetLibraryResponse | PlainMessage<GetLibraryResponse> | undefined): boolean {
+    return proto3.util.equals(GetLibraryResponse, a, b);
   }
 }
 
@@ -730,51 +656,39 @@ export class GetBooksProgressRequest extends Message<GetBooksProgressRequest> {
   /**
    * @generated from field: string date_start = 1;
    */
-  dateStart = ''
+  dateStart = "";
 
   /**
    * @generated from field: string date_end = 2;
    */
-  dateEnd = ''
+  dateEnd = "";
 
   constructor(data?: PartialMessage<GetBooksProgressRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetBooksProgressRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetBooksProgressRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'date_start', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'date_end', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "date_start", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "date_end", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): GetBooksProgressRequest {
-    return new GetBooksProgressRequest().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBooksProgressRequest {
+    return new GetBooksProgressRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>
-  ): GetBooksProgressRequest {
-    return new GetBooksProgressRequest().fromJson(jsonValue, options)
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBooksProgressRequest {
+    return new GetBooksProgressRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetBooksProgressRequest {
-    return new GetBooksProgressRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBooksProgressRequest {
+    return new GetBooksProgressRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetBooksProgressRequest | PlainMessage<GetBooksProgressRequest> | undefined,
-    b: GetBooksProgressRequest | PlainMessage<GetBooksProgressRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(GetBooksProgressRequest, a, b)
+  static equals(a: GetBooksProgressRequest | PlainMessage<GetBooksProgressRequest> | undefined, b: GetBooksProgressRequest | PlainMessage<GetBooksProgressRequest> | undefined): boolean {
+    return proto3.util.equals(GetBooksProgressRequest, a, b);
   }
 }
 
@@ -785,45 +699,33 @@ export class GetBooksProgressResponse extends Message<GetBooksProgressResponse> 
   /**
    * @generated from field: backlog.v1.BooksProgressResponse progress = 1;
    */
-  progress?: BooksProgressResponse
+  progress?: BooksProgressResponse;
 
   constructor(data?: PartialMessage<GetBooksProgressResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.GetBooksProgressResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.GetBooksProgressResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'progress', kind: 'message', T: BooksProgressResponse }
-  ])
+    { no: 1, name: "progress", kind: "message", T: BooksProgressResponse },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): GetBooksProgressResponse {
-    return new GetBooksProgressResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBooksProgressResponse {
+    return new GetBooksProgressResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>
-  ): GetBooksProgressResponse {
-    return new GetBooksProgressResponse().fromJson(jsonValue, options)
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBooksProgressResponse {
+    return new GetBooksProgressResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetBooksProgressResponse {
-    return new GetBooksProgressResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBooksProgressResponse {
+    return new GetBooksProgressResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetBooksProgressResponse | PlainMessage<GetBooksProgressResponse> | undefined,
-    b: GetBooksProgressResponse | PlainMessage<GetBooksProgressResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(GetBooksProgressResponse, a, b)
+  static equals(a: GetBooksProgressResponse | PlainMessage<GetBooksProgressResponse> | undefined, b: GetBooksProgressResponse | PlainMessage<GetBooksProgressResponse> | undefined): boolean {
+    return proto3.util.equals(GetBooksProgressResponse, a, b);
   }
 }
 
@@ -834,39 +736,33 @@ export class SearchLibraryRequest extends Message<SearchLibraryRequest> {
   /**
    * @generated from field: string query = 1;
    */
-  query = ''
+  query = "";
 
   constructor(data?: PartialMessage<SearchLibraryRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.SearchLibraryRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.SearchLibraryRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'query', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SearchLibraryRequest {
-    return new SearchLibraryRequest().fromBinary(bytes, options)
+    return new SearchLibraryRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SearchLibraryRequest {
-    return new SearchLibraryRequest().fromJson(jsonValue, options)
+    return new SearchLibraryRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SearchLibraryRequest {
-    return new SearchLibraryRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SearchLibraryRequest {
+    return new SearchLibraryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SearchLibraryRequest | PlainMessage<SearchLibraryRequest> | undefined,
-    b: SearchLibraryRequest | PlainMessage<SearchLibraryRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(SearchLibraryRequest, a, b)
+  static equals(a: SearchLibraryRequest | PlainMessage<SearchLibraryRequest> | undefined, b: SearchLibraryRequest | PlainMessage<SearchLibraryRequest> | undefined): boolean {
+    return proto3.util.equals(SearchLibraryRequest, a, b);
   }
 }
 
@@ -877,42 +773,33 @@ export class SearchLibraryResponse extends Message<SearchLibraryResponse> {
   /**
    * @generated from field: repeated backlog.v1.UserBook books = 1;
    */
-  books: UserBook[] = []
+  books: UserBook[] = [];
 
   constructor(data?: PartialMessage<SearchLibraryResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.SearchLibraryResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.SearchLibraryResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'books', kind: 'message', T: UserBook, repeated: true }
-  ])
+    { no: 1, name: "books", kind: "message", T: UserBook, repeated: true },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): SearchLibraryResponse {
-    return new SearchLibraryResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SearchLibraryResponse {
+    return new SearchLibraryResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SearchLibraryResponse {
-    return new SearchLibraryResponse().fromJson(jsonValue, options)
+    return new SearchLibraryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SearchLibraryResponse {
-    return new SearchLibraryResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SearchLibraryResponse {
+    return new SearchLibraryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SearchLibraryResponse | PlainMessage<SearchLibraryResponse> | undefined,
-    b: SearchLibraryResponse | PlainMessage<SearchLibraryResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(SearchLibraryResponse, a, b)
+  static equals(a: SearchLibraryResponse | PlainMessage<SearchLibraryResponse> | undefined, b: SearchLibraryResponse | PlainMessage<SearchLibraryResponse> | undefined): boolean {
+    return proto3.util.equals(SearchLibraryResponse, a, b);
   }
 }
 
@@ -923,42 +810,33 @@ export class SearchExternalRequest extends Message<SearchExternalRequest> {
   /**
    * @generated from field: string query = 1;
    */
-  query = ''
+  query = "";
 
   constructor(data?: PartialMessage<SearchExternalRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.SearchExternalRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.SearchExternalRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'query', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): SearchExternalRequest {
-    return new SearchExternalRequest().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SearchExternalRequest {
+    return new SearchExternalRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SearchExternalRequest {
-    return new SearchExternalRequest().fromJson(jsonValue, options)
+    return new SearchExternalRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SearchExternalRequest {
-    return new SearchExternalRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SearchExternalRequest {
+    return new SearchExternalRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SearchExternalRequest | PlainMessage<SearchExternalRequest> | undefined,
-    b: SearchExternalRequest | PlainMessage<SearchExternalRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(SearchExternalRequest, a, b)
+  static equals(a: SearchExternalRequest | PlainMessage<SearchExternalRequest> | undefined, b: SearchExternalRequest | PlainMessage<SearchExternalRequest> | undefined): boolean {
+    return proto3.util.equals(SearchExternalRequest, a, b);
   }
 }
 
@@ -969,45 +847,33 @@ export class SearchExternalResponse extends Message<SearchExternalResponse> {
   /**
    * @generated from field: repeated backlog.v1.ExternalBookResult results = 1;
    */
-  results: ExternalBookResult[] = []
+  results: ExternalBookResult[] = [];
 
   constructor(data?: PartialMessage<SearchExternalResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.SearchExternalResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.SearchExternalResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'results', kind: 'message', T: ExternalBookResult, repeated: true }
-  ])
+    { no: 1, name: "results", kind: "message", T: ExternalBookResult, repeated: true },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): SearchExternalResponse {
-    return new SearchExternalResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SearchExternalResponse {
+    return new SearchExternalResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>
-  ): SearchExternalResponse {
-    return new SearchExternalResponse().fromJson(jsonValue, options)
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SearchExternalResponse {
+    return new SearchExternalResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SearchExternalResponse {
-    return new SearchExternalResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SearchExternalResponse {
+    return new SearchExternalResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SearchExternalResponse | PlainMessage<SearchExternalResponse> | undefined,
-    b: SearchExternalResponse | PlainMessage<SearchExternalResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(SearchExternalResponse, a, b)
+  static equals(a: SearchExternalResponse | PlainMessage<SearchExternalResponse> | undefined, b: SearchExternalResponse | PlainMessage<SearchExternalResponse> | undefined): boolean {
+    return proto3.util.equals(SearchExternalResponse, a, b);
   }
 }
 
@@ -1018,90 +884,87 @@ export class AddBookRequest extends Message<AddBookRequest> {
   /**
    * @generated from field: string provider = 1;
    */
-  provider = ''
+  provider = "";
 
   /**
    * @generated from field: string provider_id = 2;
    */
-  providerId = ''
+  providerId = "";
 
   /**
    * @generated from field: string title = 3;
    */
-  title = ''
+  title = "";
 
   /**
    * @generated from field: string author = 4;
    */
-  author = ''
+  author = "";
 
   /**
    * @generated from field: string status = 5;
    */
-  status = ''
+  status = "";
 
   /**
    * @generated from field: string isbn13 = 6;
    */
-  isbn13 = ''
+  isbn13 = "";
 
   /**
    * @generated from field: string cover_url = 7;
    */
-  coverUrl = ''
+  coverUrl = "";
 
   /**
    * @generated from field: string description = 8;
    */
-  description = ''
+  description = "";
 
   /**
    * @generated from field: bool own_physical = 9;
    */
-  ownPhysical = false
+  ownPhysical = false;
 
   /**
    * @generated from field: bool own_digital = 10;
    */
-  ownDigital = false
+  ownDigital = false;
 
   constructor(data?: PartialMessage<AddBookRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.AddBookRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.AddBookRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'provider', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'provider_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'title', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'author', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'status', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'isbn13', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: 'cover_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 8, name: 'description', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: 'own_physical', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 10, name: 'own_digital', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
-  ])
+    { no: 1, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "provider_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "title", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "author", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "isbn13", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "cover_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "own_physical", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 10, name: "own_digital", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddBookRequest {
-    return new AddBookRequest().fromBinary(bytes, options)
+    return new AddBookRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddBookRequest {
-    return new AddBookRequest().fromJson(jsonValue, options)
+    return new AddBookRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddBookRequest {
-    return new AddBookRequest().fromJsonString(jsonString, options)
+    return new AddBookRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: AddBookRequest | PlainMessage<AddBookRequest> | undefined,
-    b: AddBookRequest | PlainMessage<AddBookRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(AddBookRequest, a, b)
+  static equals(a: AddBookRequest | PlainMessage<AddBookRequest> | undefined, b: AddBookRequest | PlainMessage<AddBookRequest> | undefined): boolean {
+    return proto3.util.equals(AddBookRequest, a, b);
   }
 }
 
@@ -1110,31 +973,29 @@ export class AddBookRequest extends Message<AddBookRequest> {
  */
 export class AddBookResponse extends Message<AddBookResponse> {
   constructor(data?: PartialMessage<AddBookResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.AddBookResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.AddBookResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddBookResponse {
-    return new AddBookResponse().fromBinary(bytes, options)
+    return new AddBookResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddBookResponse {
-    return new AddBookResponse().fromJson(jsonValue, options)
+    return new AddBookResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddBookResponse {
-    return new AddBookResponse().fromJsonString(jsonString, options)
+    return new AddBookResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: AddBookResponse | PlainMessage<AddBookResponse> | undefined,
-    b: AddBookResponse | PlainMessage<AddBookResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(AddBookResponse, a, b)
+  static equals(a: AddBookResponse | PlainMessage<AddBookResponse> | undefined, b: AddBookResponse | PlainMessage<AddBookResponse> | undefined): boolean {
+    return proto3.util.equals(AddBookResponse, a, b);
   }
 }
 
@@ -1145,69 +1006,57 @@ export class UpdateBookStatusRequest extends Message<UpdateBookStatusRequest> {
   /**
    * @generated from field: string book_id = 1;
    */
-  bookId = ''
+  bookId = "";
 
   /**
    * @generated from field: string status = 2;
    */
-  status = ''
+  status = "";
 
   /**
    * @generated from field: bool favourite = 3;
    */
-  favourite = false
+  favourite = false;
 
   /**
    * @generated from field: string rating = 4;
    */
-  rating = ''
+  rating = "";
 
   /**
    * @generated from field: string notes = 5;
    */
-  notes = ''
+  notes = "";
 
   constructor(data?: PartialMessage<UpdateBookStatusRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.UpdateBookStatusRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.UpdateBookStatusRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'book_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'status', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'favourite', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: 'rating', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'notes', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "book_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "favourite", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "rating", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "notes", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): UpdateBookStatusRequest {
-    return new UpdateBookStatusRequest().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateBookStatusRequest {
+    return new UpdateBookStatusRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>
-  ): UpdateBookStatusRequest {
-    return new UpdateBookStatusRequest().fromJson(jsonValue, options)
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateBookStatusRequest {
+    return new UpdateBookStatusRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): UpdateBookStatusRequest {
-    return new UpdateBookStatusRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateBookStatusRequest {
+    return new UpdateBookStatusRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateBookStatusRequest | PlainMessage<UpdateBookStatusRequest> | undefined,
-    b: UpdateBookStatusRequest | PlainMessage<UpdateBookStatusRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(UpdateBookStatusRequest, a, b)
+  static equals(a: UpdateBookStatusRequest | PlainMessage<UpdateBookStatusRequest> | undefined, b: UpdateBookStatusRequest | PlainMessage<UpdateBookStatusRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateBookStatusRequest, a, b);
   }
 }
 
@@ -1216,40 +1065,29 @@ export class UpdateBookStatusRequest extends Message<UpdateBookStatusRequest> {
  */
 export class UpdateBookStatusResponse extends Message<UpdateBookStatusResponse> {
   constructor(data?: PartialMessage<UpdateBookStatusResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.UpdateBookStatusResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.UpdateBookStatusResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): UpdateBookStatusResponse {
-    return new UpdateBookStatusResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateBookStatusResponse {
+    return new UpdateBookStatusResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(
-    jsonValue: JsonValue,
-    options?: Partial<JsonReadOptions>
-  ): UpdateBookStatusResponse {
-    return new UpdateBookStatusResponse().fromJson(jsonValue, options)
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateBookStatusResponse {
+    return new UpdateBookStatusResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): UpdateBookStatusResponse {
-    return new UpdateBookStatusResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateBookStatusResponse {
+    return new UpdateBookStatusResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateBookStatusResponse | PlainMessage<UpdateBookStatusResponse> | undefined,
-    b: UpdateBookStatusResponse | PlainMessage<UpdateBookStatusResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(UpdateBookStatusResponse, a, b)
+  static equals(a: UpdateBookStatusResponse | PlainMessage<UpdateBookStatusResponse> | undefined, b: UpdateBookStatusResponse | PlainMessage<UpdateBookStatusResponse> | undefined): boolean {
+    return proto3.util.equals(UpdateBookStatusResponse, a, b);
   }
 }
 
@@ -1260,42 +1098,39 @@ export class ToggleTagRequest extends Message<ToggleTagRequest> {
   /**
    * @generated from field: string book_id = 1;
    */
-  bookId = ''
+  bookId = "";
 
   /**
    * @generated from field: string tag = 2;
    */
-  tag = ''
+  tag = "";
 
   constructor(data?: PartialMessage<ToggleTagRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.ToggleTagRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.ToggleTagRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'book_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'tag', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "book_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "tag", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ToggleTagRequest {
-    return new ToggleTagRequest().fromBinary(bytes, options)
+    return new ToggleTagRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ToggleTagRequest {
-    return new ToggleTagRequest().fromJson(jsonValue, options)
+    return new ToggleTagRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ToggleTagRequest {
-    return new ToggleTagRequest().fromJsonString(jsonString, options)
+    return new ToggleTagRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ToggleTagRequest | PlainMessage<ToggleTagRequest> | undefined,
-    b: ToggleTagRequest | PlainMessage<ToggleTagRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(ToggleTagRequest, a, b)
+  static equals(a: ToggleTagRequest | PlainMessage<ToggleTagRequest> | undefined, b: ToggleTagRequest | PlainMessage<ToggleTagRequest> | undefined): boolean {
+    return proto3.util.equals(ToggleTagRequest, a, b);
   }
 }
 
@@ -1304,31 +1139,29 @@ export class ToggleTagRequest extends Message<ToggleTagRequest> {
  */
 export class ToggleTagResponse extends Message<ToggleTagResponse> {
   constructor(data?: PartialMessage<ToggleTagResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.ToggleTagResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.ToggleTagResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ToggleTagResponse {
-    return new ToggleTagResponse().fromBinary(bytes, options)
+    return new ToggleTagResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ToggleTagResponse {
-    return new ToggleTagResponse().fromJson(jsonValue, options)
+    return new ToggleTagResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ToggleTagResponse {
-    return new ToggleTagResponse().fromJsonString(jsonString, options)
+    return new ToggleTagResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ToggleTagResponse | PlainMessage<ToggleTagResponse> | undefined,
-    b: ToggleTagResponse | PlainMessage<ToggleTagResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(ToggleTagResponse, a, b)
+  static equals(a: ToggleTagResponse | PlainMessage<ToggleTagResponse> | undefined, b: ToggleTagResponse | PlainMessage<ToggleTagResponse> | undefined): boolean {
+    return proto3.util.equals(ToggleTagResponse, a, b);
   }
 }
 
@@ -1339,39 +1172,33 @@ export class ImportBooksRequest extends Message<ImportBooksRequest> {
   /**
    * @generated from field: bytes csv_data = 1;
    */
-  csvData = new Uint8Array(0)
+  csvData = new Uint8Array(0);
 
   constructor(data?: PartialMessage<ImportBooksRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.ImportBooksRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.ImportBooksRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'csv_data', kind: 'scalar', T: 12 /* ScalarType.BYTES */ }
-  ])
+    { no: 1, name: "csv_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportBooksRequest {
-    return new ImportBooksRequest().fromBinary(bytes, options)
+    return new ImportBooksRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ImportBooksRequest {
-    return new ImportBooksRequest().fromJson(jsonValue, options)
+    return new ImportBooksRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ImportBooksRequest {
-    return new ImportBooksRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ImportBooksRequest {
+    return new ImportBooksRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ImportBooksRequest | PlainMessage<ImportBooksRequest> | undefined,
-    b: ImportBooksRequest | PlainMessage<ImportBooksRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(ImportBooksRequest, a, b)
+  static equals(a: ImportBooksRequest | PlainMessage<ImportBooksRequest> | undefined, b: ImportBooksRequest | PlainMessage<ImportBooksRequest> | undefined): boolean {
+    return proto3.util.equals(ImportBooksRequest, a, b);
   }
 }
 
@@ -1382,38 +1209,33 @@ export class ImportBooksResponse extends Message<ImportBooksResponse> {
   /**
    * @generated from field: int32 imported_count = 1;
    */
-  importedCount = 0
+  importedCount = 0;
 
   constructor(data?: PartialMessage<ImportBooksResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'backlog.v1.ImportBooksResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "backlog.v1.ImportBooksResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'imported_count', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
-  ])
+    { no: 1, name: "imported_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportBooksResponse {
-    return new ImportBooksResponse().fromBinary(bytes, options)
+    return new ImportBooksResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ImportBooksResponse {
-    return new ImportBooksResponse().fromJson(jsonValue, options)
+    return new ImportBooksResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ImportBooksResponse {
-    return new ImportBooksResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ImportBooksResponse {
+    return new ImportBooksResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ImportBooksResponse | PlainMessage<ImportBooksResponse> | undefined,
-    b: ImportBooksResponse | PlainMessage<ImportBooksResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(ImportBooksResponse, a, b)
+  static equals(a: ImportBooksResponse | PlainMessage<ImportBooksResponse> | undefined, b: ImportBooksResponse | PlainMessage<ImportBooksResponse> | undefined): boolean {
+    return proto3.util.equals(ImportBooksResponse, a, b);
   }
 }
+
