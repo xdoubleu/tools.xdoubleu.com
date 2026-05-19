@@ -16,6 +16,10 @@ permissions:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   changes:
     runs-on: ubuntu-latest
