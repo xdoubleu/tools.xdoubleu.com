@@ -39,9 +39,7 @@ export default function ICSProxyPage() {
 
       {isLoading && <p>Loading feeds...</p>}
       {error && <p className="text-red-600">Failed to load feeds.</p>}
-      {data && data.configs.length === 0 && (
-        <p className="text-gray-500">No filter configs yet.</p>
-      )}
+      {data && data.configs.length === 0 && <p className="text-gray-500">No filter configs yet.</p>}
       {data && data.configs.length > 0 && (
         <div className="grid gap-4">
           {data.configs.map((config) => (

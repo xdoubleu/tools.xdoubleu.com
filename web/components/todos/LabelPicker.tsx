@@ -14,7 +14,7 @@ export function LabelPicker({
   value,
   onChange,
   presets,
-  placeholder = 'Search labels…',
+  placeholder = 'Search labels…'
 }: LabelPickerProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)

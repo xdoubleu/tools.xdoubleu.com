@@ -35,7 +35,7 @@ func TestListConfigs_Empty(t *testing.T) {
 	)
 	require.NoError(t, err)
 	// May not be empty if tests share DB state; just verify no errors.
-	assert.NotNil(t, resp.Msg.Configs)
+	assert.Empty(t, resp.Msg.Configs)
 }
 
 func TestListConfigs_WithConfigs(t *testing.T) {

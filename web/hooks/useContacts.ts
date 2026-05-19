@@ -5,21 +5,17 @@ import type { ListContactsResponse } from '@/lib/gen/contacts/v1/contacts_pb'
 
 export function useContacts() {
   const client = createServiceClient(ContactsService)
-  return useSWR<ListContactsResponse, Error>('/contacts', () =>
-    client.listContacts({})
-  )
+  return useSWR<ListContactsResponse, Error>('/contacts', () => client.listContacts({}))
 }
 
 export function useCreateContact() {
   const client = createServiceClient(ContactsService)
-  return (email: string, displayName: string) =>
-    client.createContact({ email, displayName })
+  return (email: string, displayName: string) => client.createContact({ email, displayName })
 }
 
 export function useAcceptContact() {
   const client = createServiceClient(ContactsService)
-  return (id: string, displayName: string) =>
-    client.acceptContact({ id, displayName })
+  return (id: string, displayName: string) => client.acceptContact({ id, displayName })
 }
 
 export function useDeclineContact() {

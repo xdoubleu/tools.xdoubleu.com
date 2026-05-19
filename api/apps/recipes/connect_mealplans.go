@@ -138,24 +138,29 @@ func (h *mealplansConnectHandler) GetPlan(
 	}
 
 	offset := int(req.Msg.Offset)
-	if offset == 0 {
-		offset = 1
-	}
-
 	prevOffset := offset - 1
-	if prevOffset < 1 {
+	if prevOffset < 0 {
 		prevOffset = 0
 	}
 
-	windowStart := time.Now().UTC()
+	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+	windowStart := today.AddDate(0, 0, daysPerWeek*offset)
 	windowEnd := windowStart.AddDate(0, 0, daysPerWeek-1)
+
+	meals, err := h.app.services.Plans.GetMeals(ctx, id, user.ID, windowStart, windowEnd)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	plan.Meals = meals
+
+	icalURL := fmt.Sprintf("/%s/ical/%s.ics", h.app.GetName(), plan.ICalToken)
 
 	recipeList := make([]*recipesv1.Recipe, 0)
 
 	return connect.NewResponse(&recipesv1.GetPlanResponse{
 		Plan:        protoPlan(plan),
 		Recipes:     recipeList,
-		IcalUrl:     "",
+		IcalUrl:     icalURL,
 		IsOwner:     plan.OwnerUserID == user.ID,
 		Offset:      int32(offset),
 		PrevOffset:  int32(prevOffset),
@@ -293,6 +298,13 @@ func (h *mealplansConnectHandler) AddMeal(
 			)
 		}
 		recipeID = &id
+	}
+
+	if recipeID == nil && req.Msg.CustomName == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("recipe ID or custom name is required"),
+		)
 	}
 
 	servings := 2

@@ -2,9 +2,7 @@ import { render } from '@testing-library/react'
 
 jest.mock('@/app/watchparty/[id]/presenter/PresenterClient', () => ({
   __esModule: true,
-  default: ({ id }: { id: string }) => (
-    <div data-testid="presenter-client">{id}</div>
-  ),
+  default: ({ id }: { id: string }) => <div data-testid="presenter-client">{id}</div>
 }))
 
 import PresenterPage from '@/app/watchparty/[id]/presenter/page'

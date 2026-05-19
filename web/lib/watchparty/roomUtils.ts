@@ -20,11 +20,7 @@ export function buildViewerUrl(baseUrl: string, roomId: string): string {
  * The single /watchparty/api/signaling endpoint handles both roles
  * (role is sent in the first WS message).
  */
-export function buildWsUrl(
-  apiUrl: string,
-  roomId: string,
-  isPresenter: boolean
-): string {
+export function buildWsUrl(apiUrl: string, roomId: string, isPresenter: boolean): string {
   const wsBase = (apiUrl ?? '')
     .replace(/^https:\/\//, 'wss://')
     .replace(/^http:\/\//, 'ws://')

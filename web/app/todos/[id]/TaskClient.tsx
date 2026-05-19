@@ -12,9 +12,8 @@ export default function TaskClient({ id }: { id: string }) {
   const router = useRouter()
   const client = createServiceClient(TaskService)
 
-  const { data, isLoading, error } = useSWR(
-    id ? `/todos/tasks/${id}` : null,
-    () => client.getTask({ id })
+  const { data, isLoading, error } = useSWR(id ? `/todos/tasks/${id}` : null, () =>
+    client.getTask({ id })
   )
 
   const [subtaskDone, setSubtaskDone] = useState<Record<string, boolean>>({})
@@ -51,9 +50,7 @@ export default function TaskClient({ id }: { id: string }) {
             {st.title}
           </span>
         </label>
-        {st.children.length > 0 && (
-          <ul>{renderSubtasks(st.children, depth + 1)}</ul>
-        )}
+        {st.children.length > 0 && <ul>{renderSubtasks(st.children, depth + 1)}</ul>}
       </li>
     ))
   }
@@ -63,11 +60,7 @@ export default function TaskClient({ id }: { id: string }) {
   }
 
   if (error || !task) {
-    return (
-      <p className="py-16 text-center text-sm text-red-500">
-        Task not found.
-      </p>
-    )
+    return <p className="py-16 text-center text-sm text-red-500">Task not found.</p>
   }
 
   const dueLabel = task.dueDate ? formatRelativeDate(task.dueDate) : null
@@ -85,17 +78,12 @@ export default function TaskClient({ id }: { id: string }) {
             </span>
           )}
           {task.labels.map((label) => (
-            <span
-              key={label}
-              className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700"
-            >
+            <span key={label} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
               {label}
             </span>
           ))}
           {dueLabel && (
-            <span className={overdue ? 'font-semibold text-red-600' : ''}>
-              Due: {dueLabel}
-            </span>
+            <span className={overdue ? 'font-semibold text-red-600' : ''}>Due: {dueLabel}</span>
           )}
           {deadlineLabel && <span>Deadline: {deadlineLabel}</span>}
         </div>
@@ -103,9 +91,7 @@ export default function TaskClient({ id }: { id: string }) {
 
       {task.description && (
         <section aria-label="Description">
-          <h2 className="mb-1 text-sm font-semibold text-gray-700">
-            Description
-          </h2>
+          <h2 className="mb-1 text-sm font-semibold text-gray-700">Description</h2>
           <p className="text-sm text-gray-600">{task.description}</p>
         </section>
       )}

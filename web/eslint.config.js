@@ -19,4 +19,17 @@ export default [
       ...nextPlugin.configs['core-web-vitals'].rules,
     },
   },
+  {
+    files: ['*.config.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        module: 'writable',
+        require: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 ]

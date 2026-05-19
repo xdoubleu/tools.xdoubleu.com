@@ -9,13 +9,13 @@ type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   connecting: 'Connecting...',
   connected: 'Connected',
-  disconnected: 'Disconnected',
+  disconnected: 'Disconnected'
 }
 
 const STATUS_COLOR: Record<ConnectionStatus, string> = {
   connecting: 'bg-yellow-400',
   connected: 'bg-green-500',
-  disconnected: 'bg-red-500',
+  disconnected: 'bg-red-500'
 }
 
 export default function PresenterClient({ id }: { id: string }) {
@@ -35,7 +35,7 @@ export default function PresenterClient({ id }: { id: string }) {
     wsRef.current = ws
 
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     })
     pcRef.current = pc
 
@@ -45,7 +45,7 @@ export default function PresenterClient({ id }: { id: string }) {
           JSON.stringify({
             type: 'candidate',
             payload: event.candidate,
-            trackType: '',
+            trackType: ''
           })
         )
       }
@@ -67,9 +67,7 @@ export default function PresenterClient({ id }: { id: string }) {
           new RTCSessionDescription(msg.payload as RTCSessionDescriptionInit)
         )
       } else if (msg.type === 'candidate') {
-        await pc.addIceCandidate(
-          new RTCIceCandidate(msg.payload as RTCIceCandidateInit)
-        )
+        await pc.addIceCandidate(new RTCIceCandidate(msg.payload as RTCIceCandidateInit))
       }
     }
 
@@ -88,7 +86,7 @@ export default function PresenterClient({ id }: { id: string }) {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
-        audio: true,
+        audio: true
       })
       streamRef.current = stream
 
@@ -107,9 +105,7 @@ export default function PresenterClient({ id }: { id: string }) {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      ws.send(
-        JSON.stringify({ type: 'offer', payload: offer, trackType: 'screen' })
-      )
+      ws.send(JSON.stringify({ type: 'offer', payload: offer, trackType: 'screen' }))
 
       setSharing(true)
 
@@ -138,9 +134,7 @@ export default function PresenterClient({ id }: { id: string }) {
         </Link>
         <h1 className="text-2xl font-bold">Presenting</h1>
         <div className="flex items-center gap-2 ml-auto">
-          <span
-            className={`w-2.5 h-2.5 rounded-full ${STATUS_COLOR[status]}`}
-          />
+          <span className={`w-2.5 h-2.5 rounded-full ${STATUS_COLOR[status]}`} />
           <span className="text-sm text-gray-600">{STATUS_LABEL[status]}</span>
         </div>
       </div>
@@ -150,13 +144,7 @@ export default function PresenterClient({ id }: { id: string }) {
       </div>
 
       <div className="bg-black rounded-lg overflow-hidden aspect-video mb-4">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-contain"
-        />
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
       </div>
 
       {!sharing ? (
@@ -176,9 +164,7 @@ export default function PresenterClient({ id }: { id: string }) {
         </button>
       )}
 
-      {error && (
-        <p className="mt-3 text-red-600 text-sm">{error}</p>
-      )}
+      {error && <p className="mt-3 text-red-600 text-sm">{error}</p>}
     </main>
   )
 }

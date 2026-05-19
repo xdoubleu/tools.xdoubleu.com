@@ -2,16 +2,16 @@ import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
-  createServiceClient: jest.fn(() => ({})),
+  createServiceClient: jest.fn(() => ({}))
 }))
 jest.mock('@/lib/gen/backlog/v1/books_connect', () => ({
-  BooksService: {},
+  BooksService: {}
 }))
 jest.mock('@/lib/gen/backlog/v1/games_connect', () => ({
-  GamesService: {},
+  GamesService: {}
 }))
 jest.mock('@/lib/gen/icsproxy/v1/proxy_connect', () => ({
-  ICSProxyService: {},
+  ICSProxyService: {}
 }))
 
 import useSWR from 'swr'

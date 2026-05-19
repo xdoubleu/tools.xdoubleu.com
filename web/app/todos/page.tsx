@@ -11,26 +11,17 @@ type Tab = 'active' | 'done' | 'archive' | 'search'
 
 export default function TodosPage() {
   const [activeTab, setActiveTab] = useState<Tab>('active')
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<
-    string | undefined
-  >(undefined)
-  const [selectedSectionId, setSelectedSectionId] = useState<
-    string | undefined
-  >(undefined)
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>(undefined)
+  const [selectedSectionId, setSelectedSectionId] = useState<string | undefined>(undefined)
   const [quickAddInput, setQuickAddInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const status =
-    activeTab === 'done'
-      ? 'done'
-      : activeTab === 'archive'
-        ? 'archived'
-        : 'open'
+  const status = activeTab === 'done' ? 'done' : activeTab === 'archive' ? 'archived' : 'open'
 
   const { data, error, isLoading, mutate } = useTodos({
     workspaceId: selectedWorkspaceId,
     sectionId: selectedSectionId,
-    status: activeTab === 'active' ? undefined : status,
+    status: activeTab === 'active' ? undefined : status
   })
 
   const { data: settings } = useTodoSettings()
@@ -42,9 +33,7 @@ export default function TodosPage() {
 
   const filteredTasks =
     activeTab === 'search' && searchQuery.trim()
-      ? tasks.filter((t) =>
-          t.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
-        )
+      ? tasks.filter((t) => t.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
       : tasks
 
   async function handleQuickAdd(e: React.FormEvent) {
@@ -57,10 +46,7 @@ export default function TodosPage() {
     if (selectedSectionId) form.append('SectionID', selectedSectionId)
 
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? ''}/todos/`,
-        { method: 'POST', body: form }
-      )
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/todos/`, { method: 'POST', body: form })
       setQuickAddInput('')
       await mutate()
     } catch {
@@ -72,7 +58,7 @@ export default function TodosPage() {
     { id: 'active', label: 'Active' },
     { id: 'done', label: 'Done' },
     { id: 'archive', label: 'Archive' },
-    { id: 'search', label: 'Search' },
+    { id: 'search', label: 'Search' }
   ]
 
   return (
@@ -184,14 +170,8 @@ export default function TodosPage() {
         )}
 
         {/* Task list */}
-        {isLoading && (
-          <p className="py-8 text-center text-sm text-gray-400">Loading…</p>
-        )}
-        {error && (
-          <p className="py-8 text-center text-sm text-red-500">
-            Failed to load tasks.
-          </p>
-        )}
+        {isLoading && <p className="py-8 text-center text-sm text-gray-400">Loading…</p>}
+        {error && <p className="py-8 text-center text-sm text-red-500">Failed to load tasks.</p>}
         {!isLoading && !error && filteredTasks.length === 0 && (
           <p className="py-8 text-center text-sm text-gray-400">No tasks.</p>
         )}
@@ -207,11 +187,7 @@ export default function TodosPage() {
 
         {/* Quick add bar */}
         {activeTab === 'active' && (
-          <form
-            onSubmit={handleQuickAdd}
-            className="mt-6 flex gap-2"
-            aria-label="Quick add task"
-          >
+          <form onSubmit={handleQuickAdd} className="mt-6 flex gap-2" aria-label="Quick add task">
             <input
               type="text"
               value={quickAddInput}

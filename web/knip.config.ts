@@ -6,10 +6,10 @@ const config: KnipConfig = {
     'app/**/*.{ts,tsx}',
     'components/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
-    'hooks/**/*.{ts,tsx}',
+    'hooks/**/*.{ts,tsx}'
   ],
   ignore: ['lib/gen/**'],
-  ignoreDependencies: ['@sentry/nextjs'],
+  ignoreDependencies: ['@sentry/nextjs']
 }
 
 export default config

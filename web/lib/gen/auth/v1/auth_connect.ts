@@ -3,69 +3,81 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ForgotPasswordRequest, ForgotPasswordResponse, MFAChallengeRequest, MFAChallengeResponse, MFAEnrollRequest, MFAEnrollResponse, MFAEnrollVerifyRequest, MFAEnrollVerifyResponse, SignInRequest, SignInResponse, SignOutRequest, SignOutResponse } from "./auth_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+import {
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  MFAChallengeRequest,
+  MFAChallengeResponse,
+  MFAEnrollRequest,
+  MFAEnrollResponse,
+  MFAEnrollVerifyRequest,
+  MFAEnrollVerifyResponse,
+  SignInRequest,
+  SignInResponse,
+  SignOutRequest,
+  SignOutResponse
+} from './auth_pb'
+import { MethodKind } from '@bufbuild/protobuf'
 
 /**
  * @generated from service auth.v1.AuthService
  */
 export const AuthService = {
-  typeName: "auth.v1.AuthService",
+  typeName: 'auth.v1.AuthService',
   methods: {
     /**
      * @generated from rpc auth.v1.AuthService.SignIn
      */
     signIn: {
-      name: "SignIn",
+      name: 'SignIn',
       I: SignInRequest,
       O: SignInResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc auth.v1.AuthService.MFAEnroll
      */
     mFAEnroll: {
-      name: "MFAEnroll",
+      name: 'MFAEnroll',
       I: MFAEnrollRequest,
       O: MFAEnrollResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc auth.v1.AuthService.MFAEnrollVerify
      */
     mFAEnrollVerify: {
-      name: "MFAEnrollVerify",
+      name: 'MFAEnrollVerify',
       I: MFAEnrollVerifyRequest,
       O: MFAEnrollVerifyResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc auth.v1.AuthService.MFAChallenge
      */
     mFAChallenge: {
-      name: "MFAChallenge",
+      name: 'MFAChallenge',
       I: MFAChallengeRequest,
       O: MFAChallengeResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc auth.v1.AuthService.ForgotPassword
      */
     forgotPassword: {
-      name: "ForgotPassword",
+      name: 'ForgotPassword',
       I: ForgotPasswordRequest,
       O: ForgotPasswordResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc auth.v1.AuthService.SignOut
      */
     signOut: {
-      name: "SignOut",
+      name: 'SignOut',
       I: SignOutRequest,
       O: SignOutResponse,
-      kind: MethodKind.Unary,
-    },
+      kind: MethodKind.Unary
+    }
   }
-} as const;
-
+} as const

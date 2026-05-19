@@ -82,9 +82,7 @@ export default function WatchpartyPage() {
         </button>
       </form>
 
-      {error && (
-        <p className="mt-4 text-red-600 text-sm text-center">{error}</p>
-      )}
+      {error && <p className="mt-4 text-red-600 text-sm text-center">{error}</p>}
     </main>
   )
 }

@@ -7,11 +7,11 @@ jest.mock('@/lib/client', () => ({
     forgotPassword: jest.fn(),
     mFAEnroll: jest.fn(),
     mFAEnrollVerify: jest.fn(),
-    mFAChallenge: jest.fn(),
-  })),
+    mFAChallenge: jest.fn()
+  }))
 }))
 jest.mock('@/lib/gen/auth/v1/auth_connect', () => ({
-  AuthService: {},
+  AuthService: {}
 }))
 
 import { createServiceClient } from '@/lib/client'
@@ -21,7 +21,7 @@ import {
   useForgotPassword,
   useMFAEnroll,
   useMFAEnrollVerify,
-  useMFAChallenge,
+  useMFAChallenge
 } from '@/hooks/useAuth'
 
 const mockCreateServiceClient = createServiceClient as jest.Mock
@@ -37,7 +37,7 @@ describe('useSignIn', () => {
       email: 'a@b.com',
       password: 'pass',
       rememberMe: true,
-      redirect: '/home',
+      redirect: '/home'
     })
   })
 })
@@ -57,7 +57,7 @@ describe('useForgotPassword', () => {
   it('returns a function that calls client.forgotPassword', () => {
     const mockForgotPassword = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
-      forgotPassword: mockForgotPassword,
+      forgotPassword: mockForgotPassword
     })
 
     const { result } = renderHook(() => useForgotPassword())
@@ -81,14 +81,14 @@ describe('useMFAEnrollVerify', () => {
   it('returns a function that calls client.mFAEnrollVerify', () => {
     const mockMFAEnrollVerify = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
-      mFAEnrollVerify: mockMFAEnrollVerify,
+      mFAEnrollVerify: mockMFAEnrollVerify
     })
 
     const { result } = renderHook(() => useMFAEnrollVerify())
     result.current('factor-123', '123456')
     expect(mockMFAEnrollVerify).toHaveBeenCalledWith({
       factorId: 'factor-123',
-      code: '123456',
+      code: '123456'
     })
   })
 })
@@ -97,7 +97,7 @@ describe('useMFAChallenge', () => {
   it('returns a function that calls client.mFAChallenge', () => {
     const mockMFAChallenge = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
-      mFAChallenge: mockMFAChallenge,
+      mFAChallenge: mockMFAChallenge
     })
 
     const { result } = renderHook(() => useMFAChallenge())

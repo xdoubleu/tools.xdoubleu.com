@@ -32,67 +32,84 @@ jobs:
             proto:
               - 'proto/**'
 
-  build:
+  build-api:
     needs: changes
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true'
-    name: Build API & Web Workflow
-    uses: ./.github/workflows/build.yml
-    with:
-      build_api: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.proto == 'true' }}
-      build_web: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' }}
+    name: Build API Workflow
+    uses: ./.github/workflows/build-api.yml
+    secrets: inherit
+
+  build-web:
+    needs: [changes, build-api]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.proto == 'true') &&
+      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped')
+    name: Build Web Workflow
+    uses: ./.github/workflows/build-web.yml
     secrets: inherit
 
   api-lint:
-    needs: [changes, build]
+    needs: [changes, build-api]
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.proto == 'true'
+      needs.changes.outputs.proto == 'true') &&
+      needs.build-api.result == 'success'
     name: API Lint Workflow
     uses: ./.github/workflows/api-lint.yml
     secrets: inherit
 
   web-lint:
-    needs: [changes, build]
+    needs: [changes, build-web]
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
-      needs.changes.outputs.proto == 'true'
+      needs.changes.outputs.proto == 'true') &&
+      needs.build-web.result == 'success'
     name: Web Lint Workflow
     uses: ./.github/workflows/web-lint.yml
     secrets: inherit
 
   api-test:
-    needs: [changes, build]
+    needs: [changes, build-api]
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.proto == 'true'
+      needs.changes.outputs.proto == 'true') &&
+      needs.build-api.result == 'success'
     name: API Test Workflow
     uses: ./.github/workflows/api-test.yml
     secrets: inherit
 
   web-test:
-    needs: [changes, build]
+    needs: [changes, build-web]
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
-      needs.changes.outputs.proto == 'true'
+      needs.changes.outputs.proto == 'true') &&
+      needs.build-web.result == 'success'
     name: Web Test Workflow
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
 
   docker:
-    needs: [changes, build, api-lint, web-lint, api-test, web-test]
+    needs: [changes, build-api, build-web, api-lint, web-lint, api-test, web-test]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      needs.build.result == 'success'
+      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped')
     name: Docker Build & Push Workflow
     uses: ./.github/workflows/docker.yml
     with:

@@ -4,9 +4,7 @@ import { LabelPicker } from '@/components/todos/LabelPicker'
 const PRESETS = ['bug', 'feature', 'enhancement', 'documentation']
 
 function setup(value: string[] = [], onChange = jest.fn()) {
-  return render(
-    <LabelPicker value={value} onChange={onChange} presets={PRESETS} />
-  )
+  return render(<LabelPicker value={value} onChange={onChange} presets={PRESETS} />)
 }
 
 describe('LabelPicker', () => {
@@ -78,7 +76,9 @@ describe('LabelPicker', () => {
     fireEvent.focus(input)
     expect(screen.getByRole('listbox')).toBeInTheDocument()
     fireEvent.blur(input)
-    act(() => { jest.advanceTimersByTime(200) })
+    act(() => {
+      jest.advanceTimersByTime(200)
+    })
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
     jest.useRealTimers()
   })

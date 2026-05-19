@@ -2,16 +2,16 @@ import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
-  createServiceClient: jest.fn(() => ({})),
+  createServiceClient: jest.fn(() => ({}))
 }))
 jest.mock('@/lib/gen/todos/v1/tasks_connect', () => ({
-  TaskService: {},
+  TaskService: {}
 }))
 jest.mock('@/lib/gen/todos/v1/subtasks_connect', () => ({
-  SubtaskService: {},
+  SubtaskService: {}
 }))
 jest.mock('@/lib/gen/todos/v1/settings_connect', () => ({
-  SettingsService: {},
+  SettingsService: {}
 }))
 
 import useSWR from 'swr'
@@ -39,7 +39,11 @@ describe('useTodos', () => {
   })
 
   it('returns the SWR result', () => {
-    mockUseSWR.mockReturnValueOnce({ data: { tasks: [{ id: '1' }] }, isLoading: false, error: undefined })
+    mockUseSWR.mockReturnValueOnce({
+      data: { tasks: [{ id: '1' }] },
+      isLoading: false,
+      error: undefined
+    })
     const { result } = renderHook(() => useTodos())
     expect(result.current.data).toEqual({ tasks: [{ id: '1' }] })
   })

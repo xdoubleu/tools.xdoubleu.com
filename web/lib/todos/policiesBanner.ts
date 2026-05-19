@@ -15,10 +15,7 @@ export function getPolicyStorageKey(policyIds: string[]): string {
  * A dismissal is "still active" when:
  *   Date.now() - storedTimestamp < reappearAfterHours * 3600 * 1000
  */
-export function isPolicyBannerDismissed(
-  policyIds: string[],
-  reappearAfterHours: number
-): boolean {
+export function isPolicyBannerDismissed(policyIds: string[], reappearAfterHours: number): boolean {
   if (policyIds.length === 0) return false
   try {
     const key = getPolicyStorageKey(policyIds)

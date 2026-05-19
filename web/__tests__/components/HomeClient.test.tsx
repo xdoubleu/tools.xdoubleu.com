@@ -3,23 +3,18 @@ import { ConnectError } from '@connectrpc/connect'
 import HomeClient from '@/components/HomeClient'
 
 jest.mock('@/hooks/useSettings', () => ({
-  useSettings: jest.fn(),
+  useSettings: jest.fn()
 }))
 
 jest.mock('@/hooks/useAuth', () => ({
   useSignIn: jest.fn(),
   useMFAEnroll: jest.fn(),
   useMFAEnrollVerify: jest.fn(),
-  useMFAChallenge: jest.fn(),
+  useMFAChallenge: jest.fn()
 }))
 
 import { useSettings } from '@/hooks/useSettings'
-import {
-  useSignIn,
-  useMFAEnroll,
-  useMFAEnrollVerify,
-  useMFAChallenge,
-} from '@/hooks/useAuth'
+import { useSignIn, useMFAEnroll, useMFAEnrollVerify, useMFAChallenge } from '@/hooks/useAuth'
 
 const mockUseSettings = useSettings as jest.Mock
 const mockUseSignIn = useSignIn as jest.Mock
@@ -36,7 +31,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: true,
-      error: undefined,
+      error: undefined
     })
 
     render(<HomeClient />)
@@ -45,59 +40,38 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
-  it(
-    'renders all 5 app links when authenticated',
-    async () => {
-      mockUseSettings.mockReturnValue({
-        data: { integrations: {} },
-        isLoading: false,
-        error: undefined,
-      })
+  it('renders all 5 app links when authenticated', async () => {
+    mockUseSettings.mockReturnValue({
+      data: { integrations: {} },
+      isLoading: false,
+      error: undefined
+    })
 
-      render(<HomeClient />)
+    render(<HomeClient />)
 
-      await waitFor(() => {
-        expect(screen.getByText('Backlog')).toBeInTheDocument()
-        expect(screen.getByText('Watch Party')).toBeInTheDocument()
-        expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
-        expect(screen.getByText('Recipes')).toBeInTheDocument()
-        expect(screen.getByText('Todos')).toBeInTheDocument()
-      })
+    await waitFor(() => {
+      expect(screen.getByText('Backlog')).toBeInTheDocument()
+      expect(screen.getByText('Watch Party')).toBeInTheDocument()
+      expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
+      expect(screen.getByText('Recipes')).toBeInTheDocument()
+      expect(screen.getByText('Todos')).toBeInTheDocument()
+    })
 
-      expect(screen.getByRole('link', { name: /Backlog/ })).toHaveAttribute(
-        'href',
-        '/backlog'
-      )
-      expect(
-        screen.getByRole('link', { name: /Watch Party/ })
-      ).toHaveAttribute('href', '/watchparty')
-      expect(screen.getByRole('link', { name: /ICS Proxy/ })).toHaveAttribute(
-        'href',
-        '/icsproxy'
-      )
-      expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute(
-        'href',
-        '/recipes'
-      )
-      expect(screen.getByRole('link', { name: /Todos/ })).toHaveAttribute(
-        'href',
-        '/todos'
-      )
+    expect(screen.getByRole('link', { name: /Backlog/ })).toHaveAttribute('href', '/backlog')
+    expect(screen.getByRole('link', { name: /Watch Party/ })).toHaveAttribute('href', '/watchparty')
+    expect(screen.getByRole('link', { name: /ICS Proxy/ })).toHaveAttribute('href', '/icsproxy')
+    expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes')
+    expect(screen.getByRole('link', { name: /Todos/ })).toHaveAttribute('href', '/todos')
 
-      expect(
-        screen.queryByRole('textbox', { name: /Email/ })
-      ).not.toBeInTheDocument()
-      expect(
-        screen.queryByRole('textbox', { name: /Password/ })
-      ).not.toBeInTheDocument()
-    }
-  )
+    expect(screen.queryByRole('textbox', { name: /Email/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /Password/ })).not.toBeInTheDocument()
+  })
 
   it('renders sign-in form when unauthenticated', async () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
     render(<HomeClient />)
@@ -115,7 +89,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
     const mockSignIn = jest.fn().mockResolvedValue({})
@@ -132,12 +106,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123',
-        false,
-        ''
-      )
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123', false, '')
     })
   })
 
@@ -145,7 +114,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
     const connectError = new ConnectError('Invalid credentials')
@@ -163,9 +132,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByRole('alert', { hidden: false })
-      ).toHaveTextContent('Invalid credentials')
+      expect(screen.getByRole('alert', { hidden: false })).toHaveTextContent('Invalid credentials')
     })
   })
 
@@ -173,12 +140,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockRejectedValue(new Error('Network error'))
+    const mockSignIn = jest.fn().mockRejectedValue(new Error('Network error'))
     mockUseSignIn.mockReturnValue(mockSignIn)
 
     render(<HomeClient />)
@@ -200,7 +165,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
     const mockSignIn = jest.fn().mockResolvedValue({})
@@ -223,12 +188,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123',
-        true,
-        ''
-      )
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123', true, '')
     })
   })
 
@@ -236,7 +196,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
     let resolveSignIn: () => void
@@ -270,7 +230,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: { integrations: {} },
       isLoading: false,
-      error: undefined,
+      error: undefined
     })
 
     render(<HomeClient />)
@@ -288,16 +248,14 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: true })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: true })
     const mockMFAEnroll = jest.fn().mockResolvedValue({
       factorId: 'factor-123',
       qrSvg: '<svg>test</svg>',
-      secret: 'JBSWY3DPEBLW64TMMQ',
+      secret: 'JBSWY3DPEBLW64TMMQ'
     })
     const mockMFAEnrollVerify = jest.fn()
 
@@ -316,16 +274,10 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Set up two-factor authentication')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Set up two-factor authentication')).toBeInTheDocument()
       expect(screen.getByText(/JBSWY3DPEBLW64TMMQ/)).toBeInTheDocument()
-      expect(
-        screen.getByLabelText('Authenticator code')
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /Verify/ })
-      ).toBeInTheDocument()
+      expect(screen.getByLabelText('Authenticator code')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Verify/ })).toBeInTheDocument()
     })
   })
 
@@ -333,12 +285,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
     const mockMFAChallenge = jest.fn()
 
     mockUseSignIn.mockReturnValue(mockSignIn)
@@ -357,9 +307,7 @@ describe('HomeClient', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Two-factor authentication')).toBeInTheDocument()
-      expect(
-        screen.queryByText('Set up two-factor authentication')
-      ).not.toBeInTheDocument()
+      expect(screen.queryByText('Set up two-factor authentication')).not.toBeInTheDocument()
     })
   })
 
@@ -367,12 +315,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
     const mockMFAChallenge = jest.fn()
 
     mockUseSignIn.mockReturnValue(mockSignIn)
@@ -390,11 +336,7 @@ describe('HomeClient', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Two-factor authentication')).toBeInTheDocument()
-      expect(
-        screen.getByText(
-          /Enter the code from your authenticator app/
-        )
-      ).toBeInTheDocument()
+      expect(screen.getByText(/Enter the code from your authenticator app/)).toBeInTheDocument()
     })
   })
 
@@ -402,16 +344,14 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: true })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: true })
     const mockMFAEnroll = jest.fn().mockResolvedValue({
       factorId: 'factor-123',
       qrSvg: '<svg>test</svg>',
-      secret: 'JBSWY3DPEBLW64TMMQ',
+      secret: 'JBSWY3DPEBLW64TMMQ'
     })
     const mockMFAEnrollVerify = jest.fn().mockResolvedValue({})
 
@@ -430,9 +370,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Set up two-factor authentication')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Set up two-factor authentication')).toBeInTheDocument()
     })
 
     const mfaInput = screen.getByLabelText('Authenticator code')
@@ -450,16 +388,14 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: true })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: true })
     const mockMFAEnroll = jest.fn().mockResolvedValue({
       factorId: 'factor-123',
       qrSvg: '<svg>test</svg>',
-      secret: 'JBSWY3DPEBLW64TMMQ',
+      secret: 'JBSWY3DPEBLW64TMMQ'
     })
     const connectError = new ConnectError('Invalid code')
     const mockMFAEnrollVerify = jest.fn().mockRejectedValue(connectError)
@@ -479,9 +415,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Set up two-factor authentication')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Set up two-factor authentication')).toBeInTheDocument()
     })
 
     const mfaInput = screen.getByLabelText('Authenticator code')
@@ -499,20 +433,16 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: true })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: true })
     const mockMFAEnroll = jest.fn().mockResolvedValue({
       factorId: 'factor-123',
       qrSvg: '<svg>test</svg>',
-      secret: 'JBSWY3DPEBLW64TMMQ',
+      secret: 'JBSWY3DPEBLW64TMMQ'
     })
-    const mockMFAEnrollVerify = jest
-      .fn()
-      .mockRejectedValue(new Error('Network error'))
+    const mockMFAEnrollVerify = jest.fn().mockRejectedValue(new Error('Network error'))
 
     mockUseSignIn.mockReturnValue(mockSignIn)
     mockUseMFAEnroll.mockReturnValue(mockMFAEnroll)
@@ -529,9 +459,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Set up two-factor authentication')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Set up two-factor authentication')).toBeInTheDocument()
     })
 
     const mfaInput = screen.getByLabelText('Authenticator code')
@@ -549,12 +477,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
     const mockMFAChallenge = jest.fn().mockResolvedValue({})
 
     mockUseSignIn.mockReturnValue(mockSignIn)
@@ -589,12 +515,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
     const connectError = new ConnectError('Invalid code')
     const mockMFAChallenge = jest.fn().mockRejectedValue(connectError)
 
@@ -630,12 +554,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
     const mockMFAChallenge = jest.fn().mockRejectedValue(new Error('Network error'))
 
     mockUseSignIn.mockReturnValue(mockSignIn)
@@ -670,12 +592,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: true })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: true })
 
     let resolveEnrollVerify: () => void
     const neverResolvingPromise = new Promise<void>((resolve) => {
@@ -685,7 +605,7 @@ describe('HomeClient', () => {
     const mockMFAEnroll = jest.fn().mockResolvedValue({
       factorId: 'factor-123',
       qrSvg: '<svg>test</svg>',
-      secret: 'JBSWY3DPEBLW64TMMQ',
+      secret: 'JBSWY3DPEBLW64TMMQ'
     })
     const mockMFAEnrollVerify = jest.fn().mockReturnValue(neverResolvingPromise)
 
@@ -704,9 +624,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Set up two-factor authentication')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Set up two-factor authentication')).toBeInTheDocument()
     })
 
     const mfaInput = screen.getByLabelText('Authenticator code')
@@ -729,12 +647,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: true })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: true })
     const enrollError = new ConnectError('Failed to initialize enrollment')
     const mockMFAEnroll = jest.fn().mockRejectedValue(enrollError)
 
@@ -752,12 +668,8 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to initialize enrollment'
-      )
-      expect(
-        screen.getByText('Sign In')
-      ).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toHaveTextContent('Failed to initialize enrollment')
+      expect(screen.getByText('Sign In')).toBeInTheDocument()
     })
   })
 
@@ -765,12 +677,10 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
     const mockMFAChallenge = jest.fn().mockResolvedValue({})
 
     mockUseSignIn.mockReturnValue(mockSignIn)
@@ -794,32 +704,28 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
     rerender(<HomeClient />)
 
     // Assert that the MFA form is still visible, not the sign-in form
     expect(screen.getByText('Two-factor authentication')).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: /Sign in/ })
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Sign in/ })).not.toBeInTheDocument()
   })
 
   it('useSettings error after mfa-enroll does not revert to sign-in form', async () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: true })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: true })
     const mockMFAEnroll = jest.fn().mockResolvedValue({
       factorId: 'f1',
       qrSvg: '<svg/>',
-      secret: 'secret',
+      secret: 'secret'
     })
 
     mockUseSignIn.mockReturnValue(mockSignIn)
@@ -836,39 +742,31 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Set up two-factor authentication')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Set up two-factor authentication')).toBeInTheDocument()
     })
 
     // Update mockUseSettings to return error again
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
     rerender(<HomeClient />)
 
     // Assert that the MFA enrollment form is still visible, not the sign-in form
-    expect(
-      screen.getByText('Set up two-factor authentication')
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: /Sign in/ })
-    ).not.toBeInTheDocument()
+    expect(screen.getByText('Set up two-factor authentication')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Sign in/ })).not.toBeInTheDocument()
   })
 
   it('useSettings data after mfa-challenge transitions to authenticated', async () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('401'),
+      error: new Error('401')
     })
 
-    const mockSignIn = jest
-      .fn()
-      .mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
     const mockMFAChallenge = jest.fn().mockResolvedValue({})
 
     mockUseSignIn.mockReturnValue(mockSignIn)
@@ -893,15 +791,13 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: mockSettings,
       isLoading: false,
-      error: undefined,
+      error: undefined
     })
 
     rerender(<HomeClient />)
 
     // Assert that the app grid is visible, not the MFA form
     expect(screen.getByText('Backlog')).toBeInTheDocument()
-    expect(
-      screen.queryByText('Two-factor authentication')
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText('Two-factor authentication')).not.toBeInTheDocument()
   })
 })

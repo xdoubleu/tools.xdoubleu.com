@@ -291,7 +291,6 @@ func TestCreatePlan_Success(t *testing.T) {
 	assert.Equal(t, userID, resp.Msg.Plan.OwnerUserId)
 }
 
-/* test fails
 func TestGetPlan_Success(t *testing.T) {
 	handler := getRoutes()
 	client := setupMealPlansClient(handler)
@@ -320,7 +319,6 @@ func TestGetPlan_Success(t *testing.T) {
 	assert.NotEmpty(t, getResp.Msg.IcalUrl)
 	assert.Equal(t, int32(0), getResp.Msg.Offset)
 }
-*/
 
 func TestUpdatePlan_Success(t *testing.T) {
 	handler := getRoutes()
@@ -394,7 +392,6 @@ func TestDeletePlan_Success(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connErr.Code())
 }
 
-/* test fails
 func TestAddMeal_WithRecipe(t *testing.T) {
 	handler := getRoutes()
 	mealplansClient := setupMealPlansClient(handler)
@@ -450,9 +447,7 @@ func TestAddMeal_WithRecipe(t *testing.T) {
 	assert.Equal(t, "noon", getPlanResp.Msg.Plan.Meals[0].MealSlot)
 	assert.NotEmpty(t, getPlanResp.Msg.Plan.Meals[0].RecipeId)
 }
-*/
 
-/* test fails
 func TestAddMeal_WithCustomName(t *testing.T) {
 	handler := getRoutes()
 	client := setupMealPlansClient(handler)
@@ -495,9 +490,7 @@ func TestAddMeal_WithCustomName(t *testing.T) {
 	assert.Equal(t, "Scrambled eggs", getPlanResp.Msg.Plan.Meals[0].CustomName)
 	assert.Equal(t, "", getPlanResp.Msg.Plan.Meals[0].RecipeId)
 }
-*/
 
-/* test fails
 func TestAddMeal_RequiresRecipeOrName(t *testing.T) {
 	handler := getRoutes()
 	client := setupMealPlansClient(handler)
@@ -531,9 +524,7 @@ func TestAddMeal_RequiresRecipeOrName(t *testing.T) {
 	}()
 	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
 }
-*/
 
-/* test fails
 func TestDeleteMeal_Success(t *testing.T) {
 	handler := getRoutes()
 	client := setupMealPlansClient(handler)
@@ -592,7 +583,6 @@ func TestDeleteMeal_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, len(getPlanResp2.Msg.Plan.Meals))
 }
-*/
 
 func TestGetShoppingList_Success(t *testing.T) {
 	handler := getRoutes()

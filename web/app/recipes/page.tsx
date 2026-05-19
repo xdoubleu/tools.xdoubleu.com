@@ -15,9 +15,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
         {recipe.ingredients.length} ingredient
         {recipe.ingredients.length !== 1 ? 's' : ''}
       </p>
-      <p className="text-sm text-gray-500 mt-1">
-        Serves {recipe.baseServings}
-      </p>
+      <p className="text-sm text-gray-500 mt-1">Serves {recipe.baseServings}</p>
     </Link>
   )
 }
@@ -36,9 +34,7 @@ export default function RecipesPage() {
 
       {isLoading && <p>Loading recipes...</p>}
       {error && <p className="text-red-600">Failed to load recipes.</p>}
-      {data && data.recipes.length === 0 && (
-        <p className="text-gray-500">No recipes yet.</p>
-      )}
+      {data && data.recipes.length === 0 && <p className="text-gray-500">No recipes yet.</p>}
       {data && data.recipes.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.recipes.map((recipe) => (

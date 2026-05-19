@@ -2,7 +2,7 @@ import {
   getPolicyStorageKey,
   isPolicyBannerDismissed,
   dismissPolicyBanner,
-  clearPolicyBannerState,
+  clearPolicyBannerState
 } from '@/lib/todos/policiesBanner'
 
 // Use a simple in-memory localStorage mock that works in jsdom.

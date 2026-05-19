@@ -3,8 +3,15 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
 
 /**
  * @generated from message contacts.v1.Contact
@@ -13,63 +20,66 @@ export class Contact extends Message<Contact> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string owner_user_id = 2;
    */
-  ownerUserId = "";
+  ownerUserId = ''
 
   /**
    * @generated from field: string contact_user_id = 3;
    */
-  contactUserId = "";
+  contactUserId = ''
 
   /**
    * @generated from field: string display_name = 4;
    */
-  displayName = "";
+  displayName = ''
 
   /**
    * @generated from field: string status = 5;
    */
-  status = "";
+  status = ''
 
   /**
    * @generated from field: string created_at = 6;
    */
-  createdAt = "";
+  createdAt = ''
 
   constructor(data?: PartialMessage<Contact>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.Contact";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.Contact'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "owner_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "contact_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "display_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'owner_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'contact_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'display_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'status', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'created_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Contact {
-    return new Contact().fromBinary(bytes, options);
+    return new Contact().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Contact {
-    return new Contact().fromJson(jsonValue, options);
+    return new Contact().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Contact {
-    return new Contact().fromJsonString(jsonString, options);
+    return new Contact().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Contact | PlainMessage<Contact> | undefined, b: Contact | PlainMessage<Contact> | undefined): boolean {
-    return proto3.util.equals(Contact, a, b);
+  static equals(
+    a: Contact | PlainMessage<Contact> | undefined,
+    b: Contact | PlainMessage<Contact> | undefined
+  ): boolean {
+    return proto3.util.equals(Contact, a, b)
   }
 }
 
@@ -78,29 +88,34 @@ export class Contact extends Message<Contact> {
  */
 export class ListContactsRequest extends Message<ListContactsRequest> {
   constructor(data?: PartialMessage<ListContactsRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.ListContactsRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.ListContactsRequest'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListContactsRequest {
-    return new ListContactsRequest().fromBinary(bytes, options);
+    return new ListContactsRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListContactsRequest {
-    return new ListContactsRequest().fromJson(jsonValue, options);
+    return new ListContactsRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListContactsRequest {
-    return new ListContactsRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): ListContactsRequest {
+    return new ListContactsRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: ListContactsRequest | PlainMessage<ListContactsRequest> | undefined, b: ListContactsRequest | PlainMessage<ListContactsRequest> | undefined): boolean {
-    return proto3.util.equals(ListContactsRequest, a, b);
+  static equals(
+    a: ListContactsRequest | PlainMessage<ListContactsRequest> | undefined,
+    b: ListContactsRequest | PlainMessage<ListContactsRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(ListContactsRequest, a, b)
   }
 }
 
@@ -111,45 +126,51 @@ export class ListContactsResponse extends Message<ListContactsResponse> {
   /**
    * @generated from field: repeated contacts.v1.Contact contacts = 1;
    */
-  contacts: Contact[] = [];
+  contacts: Contact[] = []
 
   /**
    * @generated from field: repeated contacts.v1.Contact pending = 2;
    */
-  pending: Contact[] = [];
+  pending: Contact[] = []
 
   /**
    * @generated from field: repeated contacts.v1.Contact incoming = 3;
    */
-  incoming: Contact[] = [];
+  incoming: Contact[] = []
 
   constructor(data?: PartialMessage<ListContactsResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.ListContactsResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.ListContactsResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "contacts", kind: "message", T: Contact, repeated: true },
-    { no: 2, name: "pending", kind: "message", T: Contact, repeated: true },
-    { no: 3, name: "incoming", kind: "message", T: Contact, repeated: true },
-  ]);
+    { no: 1, name: 'contacts', kind: 'message', T: Contact, repeated: true },
+    { no: 2, name: 'pending', kind: 'message', T: Contact, repeated: true },
+    { no: 3, name: 'incoming', kind: 'message', T: Contact, repeated: true }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListContactsResponse {
-    return new ListContactsResponse().fromBinary(bytes, options);
+    return new ListContactsResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListContactsResponse {
-    return new ListContactsResponse().fromJson(jsonValue, options);
+    return new ListContactsResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListContactsResponse {
-    return new ListContactsResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): ListContactsResponse {
+    return new ListContactsResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: ListContactsResponse | PlainMessage<ListContactsResponse> | undefined, b: ListContactsResponse | PlainMessage<ListContactsResponse> | undefined): boolean {
-    return proto3.util.equals(ListContactsResponse, a, b);
+  static equals(
+    a: ListContactsResponse | PlainMessage<ListContactsResponse> | undefined,
+    b: ListContactsResponse | PlainMessage<ListContactsResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(ListContactsResponse, a, b)
   }
 }
 
@@ -160,39 +181,45 @@ export class CreateContactRequest extends Message<CreateContactRequest> {
   /**
    * @generated from field: string email = 1;
    */
-  email = "";
+  email = ''
 
   /**
    * @generated from field: string display_name = 2;
    */
-  displayName = "";
+  displayName = ''
 
   constructor(data?: PartialMessage<CreateContactRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.CreateContactRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.CreateContactRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "display_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'email', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'display_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateContactRequest {
-    return new CreateContactRequest().fromBinary(bytes, options);
+    return new CreateContactRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateContactRequest {
-    return new CreateContactRequest().fromJson(jsonValue, options);
+    return new CreateContactRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateContactRequest {
-    return new CreateContactRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): CreateContactRequest {
+    return new CreateContactRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: CreateContactRequest | PlainMessage<CreateContactRequest> | undefined, b: CreateContactRequest | PlainMessage<CreateContactRequest> | undefined): boolean {
-    return proto3.util.equals(CreateContactRequest, a, b);
+  static equals(
+    a: CreateContactRequest | PlainMessage<CreateContactRequest> | undefined,
+    b: CreateContactRequest | PlainMessage<CreateContactRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(CreateContactRequest, a, b)
   }
 }
 
@@ -201,29 +228,37 @@ export class CreateContactRequest extends Message<CreateContactRequest> {
  */
 export class CreateContactResponse extends Message<CreateContactResponse> {
   constructor(data?: PartialMessage<CreateContactResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.CreateContactResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.CreateContactResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateContactResponse {
-    return new CreateContactResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): CreateContactResponse {
+    return new CreateContactResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateContactResponse {
-    return new CreateContactResponse().fromJson(jsonValue, options);
+    return new CreateContactResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateContactResponse {
-    return new CreateContactResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): CreateContactResponse {
+    return new CreateContactResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: CreateContactResponse | PlainMessage<CreateContactResponse> | undefined, b: CreateContactResponse | PlainMessage<CreateContactResponse> | undefined): boolean {
-    return proto3.util.equals(CreateContactResponse, a, b);
+  static equals(
+    a: CreateContactResponse | PlainMessage<CreateContactResponse> | undefined,
+    b: CreateContactResponse | PlainMessage<CreateContactResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(CreateContactResponse, a, b)
   }
 }
 
@@ -234,39 +269,45 @@ export class AcceptContactRequest extends Message<AcceptContactRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string display_name = 2;
    */
-  displayName = "";
+  displayName = ''
 
   constructor(data?: PartialMessage<AcceptContactRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.AcceptContactRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.AcceptContactRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "display_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'display_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AcceptContactRequest {
-    return new AcceptContactRequest().fromBinary(bytes, options);
+    return new AcceptContactRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AcceptContactRequest {
-    return new AcceptContactRequest().fromJson(jsonValue, options);
+    return new AcceptContactRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AcceptContactRequest {
-    return new AcceptContactRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AcceptContactRequest {
+    return new AcceptContactRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AcceptContactRequest | PlainMessage<AcceptContactRequest> | undefined, b: AcceptContactRequest | PlainMessage<AcceptContactRequest> | undefined): boolean {
-    return proto3.util.equals(AcceptContactRequest, a, b);
+  static equals(
+    a: AcceptContactRequest | PlainMessage<AcceptContactRequest> | undefined,
+    b: AcceptContactRequest | PlainMessage<AcceptContactRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(AcceptContactRequest, a, b)
   }
 }
 
@@ -275,29 +316,37 @@ export class AcceptContactRequest extends Message<AcceptContactRequest> {
  */
 export class AcceptContactResponse extends Message<AcceptContactResponse> {
   constructor(data?: PartialMessage<AcceptContactResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.AcceptContactResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.AcceptContactResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AcceptContactResponse {
-    return new AcceptContactResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): AcceptContactResponse {
+    return new AcceptContactResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AcceptContactResponse {
-    return new AcceptContactResponse().fromJson(jsonValue, options);
+    return new AcceptContactResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AcceptContactResponse {
-    return new AcceptContactResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AcceptContactResponse {
+    return new AcceptContactResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AcceptContactResponse | PlainMessage<AcceptContactResponse> | undefined, b: AcceptContactResponse | PlainMessage<AcceptContactResponse> | undefined): boolean {
-    return proto3.util.equals(AcceptContactResponse, a, b);
+  static equals(
+    a: AcceptContactResponse | PlainMessage<AcceptContactResponse> | undefined,
+    b: AcceptContactResponse | PlainMessage<AcceptContactResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(AcceptContactResponse, a, b)
   }
 }
 
@@ -308,33 +357,42 @@ export class DeclineContactRequest extends Message<DeclineContactRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   constructor(data?: PartialMessage<DeclineContactRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.DeclineContactRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.DeclineContactRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeclineContactRequest {
-    return new DeclineContactRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): DeclineContactRequest {
+    return new DeclineContactRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeclineContactRequest {
-    return new DeclineContactRequest().fromJson(jsonValue, options);
+    return new DeclineContactRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeclineContactRequest {
-    return new DeclineContactRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeclineContactRequest {
+    return new DeclineContactRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeclineContactRequest | PlainMessage<DeclineContactRequest> | undefined, b: DeclineContactRequest | PlainMessage<DeclineContactRequest> | undefined): boolean {
-    return proto3.util.equals(DeclineContactRequest, a, b);
+  static equals(
+    a: DeclineContactRequest | PlainMessage<DeclineContactRequest> | undefined,
+    b: DeclineContactRequest | PlainMessage<DeclineContactRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(DeclineContactRequest, a, b)
   }
 }
 
@@ -343,29 +401,40 @@ export class DeclineContactRequest extends Message<DeclineContactRequest> {
  */
 export class DeclineContactResponse extends Message<DeclineContactResponse> {
   constructor(data?: PartialMessage<DeclineContactResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.DeclineContactResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.DeclineContactResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeclineContactResponse {
-    return new DeclineContactResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): DeclineContactResponse {
+    return new DeclineContactResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeclineContactResponse {
-    return new DeclineContactResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): DeclineContactResponse {
+    return new DeclineContactResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeclineContactResponse {
-    return new DeclineContactResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeclineContactResponse {
+    return new DeclineContactResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeclineContactResponse | PlainMessage<DeclineContactResponse> | undefined, b: DeclineContactResponse | PlainMessage<DeclineContactResponse> | undefined): boolean {
-    return proto3.util.equals(DeclineContactResponse, a, b);
+  static equals(
+    a: DeclineContactResponse | PlainMessage<DeclineContactResponse> | undefined,
+    b: DeclineContactResponse | PlainMessage<DeclineContactResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(DeclineContactResponse, a, b)
   }
 }
 
@@ -376,33 +445,39 @@ export class DeleteContactRequest extends Message<DeleteContactRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   constructor(data?: PartialMessage<DeleteContactRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.DeleteContactRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.DeleteContactRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteContactRequest {
-    return new DeleteContactRequest().fromBinary(bytes, options);
+    return new DeleteContactRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteContactRequest {
-    return new DeleteContactRequest().fromJson(jsonValue, options);
+    return new DeleteContactRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteContactRequest {
-    return new DeleteContactRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeleteContactRequest {
+    return new DeleteContactRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeleteContactRequest | PlainMessage<DeleteContactRequest> | undefined, b: DeleteContactRequest | PlainMessage<DeleteContactRequest> | undefined): boolean {
-    return proto3.util.equals(DeleteContactRequest, a, b);
+  static equals(
+    a: DeleteContactRequest | PlainMessage<DeleteContactRequest> | undefined,
+    b: DeleteContactRequest | PlainMessage<DeleteContactRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(DeleteContactRequest, a, b)
   }
 }
 
@@ -411,29 +486,36 @@ export class DeleteContactRequest extends Message<DeleteContactRequest> {
  */
 export class DeleteContactResponse extends Message<DeleteContactResponse> {
   constructor(data?: PartialMessage<DeleteContactResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "contacts.v1.DeleteContactResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'contacts.v1.DeleteContactResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteContactResponse {
-    return new DeleteContactResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): DeleteContactResponse {
+    return new DeleteContactResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteContactResponse {
-    return new DeleteContactResponse().fromJson(jsonValue, options);
+    return new DeleteContactResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteContactResponse {
-    return new DeleteContactResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeleteContactResponse {
+    return new DeleteContactResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeleteContactResponse | PlainMessage<DeleteContactResponse> | undefined, b: DeleteContactResponse | PlainMessage<DeleteContactResponse> | undefined): boolean {
-    return proto3.util.equals(DeleteContactResponse, a, b);
+  static equals(
+    a: DeleteContactResponse | PlainMessage<DeleteContactResponse> | undefined,
+    b: DeleteContactResponse | PlainMessage<DeleteContactResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(DeleteContactResponse, a, b)
   }
 }
-

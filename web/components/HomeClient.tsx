@@ -3,20 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSettings } from '@/hooks/useSettings'
-import {
-  useSignIn,
-  useMFAEnroll,
-  useMFAEnrollVerify,
-  useMFAChallenge,
-} from '@/hooks/useAuth'
+import { useSignIn, useMFAEnroll, useMFAEnrollVerify, useMFAChallenge } from '@/hooks/useAuth'
 import { ConnectError } from '@connectrpc/connect'
 
-type AuthState =
-  | 'loading'
-  | 'authenticated'
-  | 'unauthenticated'
-  | 'mfa-enroll'
-  | 'mfa-challenge'
+type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-enroll' | 'mfa-challenge'
 
 interface AppLink {
   label: string
@@ -29,7 +19,7 @@ const APPS: AppLink[] = [
   { label: 'Watch Party', href: '/watchparty', description: 'WebRTC screen sharing' },
   { label: 'ICS Proxy', href: '/icsproxy', description: 'Calendar feed filtering' },
   { label: 'Recipes', href: '/recipes', description: 'Recipe management' },
-  { label: 'Todos', href: '/todos', description: 'Task management' },
+  { label: 'Todos', href: '/todos', description: 'Task management' }
 ]
 
 export default function HomeClient() {
@@ -159,9 +149,7 @@ export default function HomeClient() {
               'transition-shadow hover:shadow-md'
             }
           >
-            <h2 className="text-lg font-semibold text-gray-900">
-              {app.label}
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">{app.label}</h2>
             <p className="mt-1 text-sm text-gray-600">{app.description}</p>
           </Link>
         ))}
@@ -172,9 +160,7 @@ export default function HomeClient() {
   if (authState === 'mfa-enroll') {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Set up two-factor authentication
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900">Set up two-factor authentication</h2>
         <div className="mt-6 space-y-4">
           <div
             dangerouslySetInnerHTML={{ __html: qrSvg }}
@@ -188,10 +174,7 @@ export default function HomeClient() {
             </p>
           </div>
           <div>
-            <label
-              htmlFor="mfaCode"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="mfaCode" className="block text-sm font-medium text-gray-700">
               Authenticator code
             </label>
             <input
@@ -232,18 +215,11 @@ export default function HomeClient() {
   if (authState === 'mfa-challenge') {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Two-factor authentication
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900">Two-factor authentication</h2>
         <div className="mt-6 space-y-4">
-          <p className="text-sm text-gray-700">
-            Enter the code from your authenticator app.
-          </p>
+          <p className="text-sm text-gray-700">Enter the code from your authenticator app.</p>
           <div>
-            <label
-              htmlFor="mfaChallengeCode"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="mfaChallengeCode" className="block text-sm font-medium text-gray-700">
               Authenticator code
             </label>
             <input
@@ -286,10 +262,7 @@ export default function HomeClient() {
       <h2 className="text-lg font-semibold text-gray-900">Sign In</h2>
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email
           </label>
           <input
@@ -307,10 +280,7 @@ export default function HomeClient() {
         </div>
 
         <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
             Password
           </label>
           <input
@@ -333,15 +303,9 @@ export default function HomeClient() {
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className={
-              'h-4 w-4 rounded border-gray-300 text-blue-600 ' +
-              'focus:ring-blue-500'
-            }
+            className={'h-4 w-4 rounded border-gray-300 text-blue-600 ' + 'focus:ring-blue-500'}
           />
-          <label
-            htmlFor="rememberMe"
-            className="ml-2 text-sm text-gray-700"
-          >
+          <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700">
             Remember me
           </label>
         </div>

@@ -2,17 +2,23 @@ import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
-  createServiceClient: jest.fn(() => ({})),
+  createServiceClient: jest.fn(() => ({}))
 }))
 jest.mock('@/lib/gen/recipes/v1/recipes_connect', () => ({
-  RecipesService: {},
+  RecipesService: {}
 }))
 jest.mock('@/lib/gen/recipes/v1/mealplans_connect', () => ({
-  MealPlansService: {},
+  MealPlansService: {}
 }))
 
 import useSWR from 'swr'
-import { useRecipes, useRecipe, useMealPlans, useMealPlan, useShoppingList } from '@/hooks/useRecipes'
+import {
+  useRecipes,
+  useRecipe,
+  useMealPlans,
+  useMealPlan,
+  useShoppingList
+} from '@/hooks/useRecipes'
 
 const mockUseSWR = useSWR as jest.Mock
 
@@ -62,10 +68,7 @@ describe('useMealPlan', () => {
 describe('useShoppingList', () => {
   it('uses shopping list path when planId is given', () => {
     renderHook(() => useShoppingList('plan-2'))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      '/recipes/plans/plan-2/shopping',
-      expect.any(Function)
-    )
+    expect(mockUseSWR).toHaveBeenCalledWith('/recipes/plans/plan-2/shopping', expect.any(Function))
   })
 
   it('passes null as key when planId is empty', () => {

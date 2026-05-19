@@ -1,8 +1,4 @@
-import {
-  filterLabels,
-  matchesLabel,
-  normalizeLabels,
-} from '@/lib/todos/labelFilter'
+import { filterLabels, matchesLabel, normalizeLabels } from '@/lib/todos/labelFilter'
 
 const PRESETS = ['bug', 'feature', 'enhancement', 'documentation', 'Frontend', 'backend']
 

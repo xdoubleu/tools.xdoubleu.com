@@ -1,9 +1,4 @@
-import {
-  formatDueDate,
-  isOverdue,
-  isDueToday,
-  formatRelativeDate,
-} from '@/lib/todos/dateUtils'
+import { formatDueDate, isOverdue, isDueToday, formatRelativeDate } from '@/lib/todos/dateUtils'
 
 // Helper to build a YYYY-MM-DD string offset from today by `days` days.
 function offsetDate(days: number): string {
@@ -57,7 +52,7 @@ describe('isDueToday', () => {
     expect(isDueToday(null)).toBe(false)
   })
 
-  it('returns true for today\'s date', () => {
+  it("returns true for today's date", () => {
     expect(isDueToday(offsetDate(0))).toBe(true)
   })
 

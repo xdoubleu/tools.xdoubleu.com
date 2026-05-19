@@ -33,7 +33,7 @@ func TestListContacts_Empty(t *testing.T) {
 	setCookieOnRequest(req, accessToken)
 	resp, err := client.ListContacts(context.Background(), req)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg.Contacts)
+	assert.Empty(t, resp.Msg.Contacts)
 }
 
 func TestCreateContact_Success(t *testing.T) {

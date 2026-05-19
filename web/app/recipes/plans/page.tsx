@@ -32,9 +32,7 @@ export default function PlansPage() {
 
       {isLoading && <p>Loading plans...</p>}
       {error && <p className="text-red-600">Failed to load meal plans.</p>}
-      {data && data.plans.length === 0 && (
-        <p className="text-gray-500">No meal plans yet.</p>
-      )}
+      {data && data.plans.length === 0 && <p className="text-gray-500">No meal plans yet.</p>}
       {data && data.plans.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.plans.map((plan) => (

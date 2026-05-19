@@ -3,123 +3,147 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CompleteTaskRequest, CompleteTaskResponse, CreateTaskRequest, CreateTaskResponse, DeleteTaskRequest, DeleteTaskResponse, GetTaskRequest, GetTaskResponse, ListTasksRequest, ListTasksResponse, MoveTaskSectionRequest, MoveTaskSectionResponse, QuickAddTaskRequest, QuickAddTaskResponse, QuickUpdateTaskRequest, QuickUpdateTaskResponse, ReopenTaskRequest, ReopenTaskResponse, ReorderTasksRequest, ReorderTasksResponse, SearchTasksRequest, SearchTasksResponse, UpdateTaskRequest, UpdateTaskResponse } from "./tasks_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+import {
+  CompleteTaskRequest,
+  CompleteTaskResponse,
+  CreateTaskRequest,
+  CreateTaskResponse,
+  DeleteTaskRequest,
+  DeleteTaskResponse,
+  GetTaskRequest,
+  GetTaskResponse,
+  ListTasksRequest,
+  ListTasksResponse,
+  MoveTaskSectionRequest,
+  MoveTaskSectionResponse,
+  QuickAddTaskRequest,
+  QuickAddTaskResponse,
+  QuickUpdateTaskRequest,
+  QuickUpdateTaskResponse,
+  ReopenTaskRequest,
+  ReopenTaskResponse,
+  ReorderTasksRequest,
+  ReorderTasksResponse,
+  SearchTasksRequest,
+  SearchTasksResponse,
+  UpdateTaskRequest,
+  UpdateTaskResponse
+} from './tasks_pb'
+import { MethodKind } from '@bufbuild/protobuf'
 
 /**
  * @generated from service todos.v1.TaskService
  */
 export const TaskService = {
-  typeName: "todos.v1.TaskService",
+  typeName: 'todos.v1.TaskService',
   methods: {
     /**
      * @generated from rpc todos.v1.TaskService.ListTasks
      */
     listTasks: {
-      name: "ListTasks",
+      name: 'ListTasks',
       I: ListTasksRequest,
       O: ListTasksResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.GetTask
      */
     getTask: {
-      name: "GetTask",
+      name: 'GetTask',
       I: GetTaskRequest,
       O: GetTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.CreateTask
      */
     createTask: {
-      name: "CreateTask",
+      name: 'CreateTask',
       I: CreateTaskRequest,
       O: CreateTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.UpdateTask
      */
     updateTask: {
-      name: "UpdateTask",
+      name: 'UpdateTask',
       I: UpdateTaskRequest,
       O: UpdateTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.CompleteTask
      */
     completeTask: {
-      name: "CompleteTask",
+      name: 'CompleteTask',
       I: CompleteTaskRequest,
       O: CompleteTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.ReopenTask
      */
     reopenTask: {
-      name: "ReopenTask",
+      name: 'ReopenTask',
       I: ReopenTaskRequest,
       O: ReopenTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.DeleteTask
      */
     deleteTask: {
-      name: "DeleteTask",
+      name: 'DeleteTask',
       I: DeleteTaskRequest,
       O: DeleteTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.ReorderTasks
      */
     reorderTasks: {
-      name: "ReorderTasks",
+      name: 'ReorderTasks',
       I: ReorderTasksRequest,
       O: ReorderTasksResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.SearchTasks
      */
     searchTasks: {
-      name: "SearchTasks",
+      name: 'SearchTasks',
       I: SearchTasksRequest,
       O: SearchTasksResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.QuickAddTask
      */
     quickAddTask: {
-      name: "QuickAddTask",
+      name: 'QuickAddTask',
       I: QuickAddTaskRequest,
       O: QuickAddTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.QuickUpdateTask
      */
     quickUpdateTask: {
-      name: "QuickUpdateTask",
+      name: 'QuickUpdateTask',
       I: QuickUpdateTaskRequest,
       O: QuickUpdateTaskResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.TaskService.MoveTaskSection
      */
     moveTaskSection: {
-      name: "MoveTaskSection",
+      name: 'MoveTaskSection',
       I: MoveTaskSectionRequest,
       O: MoveTaskSectionResponse,
-      kind: MethodKind.Unary,
-    },
+      kind: MethodKind.Unary
+    }
   }
-} as const;
-
+} as const

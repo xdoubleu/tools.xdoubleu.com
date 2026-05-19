@@ -2,9 +2,7 @@ import { render } from '@testing-library/react'
 
 jest.mock('@/app/watchparty/[id]/ViewerClient', () => ({
   __esModule: true,
-  default: ({ id }: { id: string }) => (
-    <div data-testid="viewer-client">{id}</div>
-  ),
+  default: ({ id }: { id: string }) => <div data-testid="viewer-client">{id}</div>
 }))
 
 import ViewerPage from '@/app/watchparty/[id]/page'

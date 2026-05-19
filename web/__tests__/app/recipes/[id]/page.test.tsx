@@ -2,9 +2,7 @@ import { render } from '@testing-library/react'
 
 jest.mock('@/app/recipes/[id]/RecipeClient', () => ({
   __esModule: true,
-  default: ({ id }: { id: string }) => (
-    <div data-testid="recipe-client">{id}</div>
-  ),
+  default: ({ id }: { id: string }) => <div data-testid="recipe-client">{id}</div>
 }))
 
 import RecipePage from '@/app/recipes/[id]/page'

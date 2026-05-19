@@ -3,7 +3,7 @@ import { TaskCard } from '@/components/todos/TaskCard'
 import type { Task } from '@/lib/gen/todos/v1/tasks_pb'
 
 function makeTask(overrides: Partial<Task> = {}): Task {
-  return ({
+  return {
     id: 'task-1',
     ownerUserId: 'user-1',
     title: 'Test Task',
@@ -26,8 +26,8 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     subtasks: [],
     subtaskDone: 0,
     subtaskTotal: 0,
-    ...overrides,
-  }) as Task
+    ...overrides
+  } as Task
 }
 
 describe('TaskCard', () => {

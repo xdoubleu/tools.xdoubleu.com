@@ -5,14 +5,14 @@ const PRIORITY_LABELS: Record<number, string> = {
   1: 'P1',
   2: 'P2',
   3: 'P3',
-  4: 'P4',
+  4: 'P4'
 }
 
 const PRIORITY_CLASSES: Record<number, string> = {
   1: 'bg-red-100 text-red-700',
   2: 'bg-orange-100 text-orange-700',
   3: 'bg-yellow-100 text-yellow-700',
-  4: 'bg-gray-100 text-gray-600',
+  4: 'bg-gray-100 text-gray-600'
 }
 
 interface TaskCardProps {
@@ -50,17 +50,12 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         {/* Labels and due date row */}
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {task.labels.map((label) => (
-            <span
-              key={label}
-              className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700"
-            >
+            <span key={label} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
               {label}
             </span>
           ))}
           {dueLabel && (
-            <span
-              className={`text-xs ${overdue ? 'font-semibold text-red-600' : 'text-gray-500'}`}
-            >
+            <span className={`text-xs ${overdue ? 'font-semibold text-red-600' : 'text-gray-500'}`}>
               {dueLabel}
             </span>
           )}

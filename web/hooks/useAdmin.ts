@@ -5,9 +5,7 @@ import type { ListUsersResponse } from '@/lib/gen/admin/v1/admin_pb'
 
 export function useUsers() {
   const client = createServiceClient(AdminService)
-  return useSWR<ListUsersResponse, Error>('/admin/users', () =>
-    client.listUsers({})
-  )
+  return useSWR<ListUsersResponse, Error>('/admin/users', () => client.listUsers({}))
 }
 
 export function useSetRole() {

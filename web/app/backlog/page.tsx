@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useBacklogLibrary, useBacklogSteam } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import type { Game } from '@/lib/gen/backlog/v1/games_pb'
+import Image from 'next/image'
 
 function BookCard({ userBook }: { userBook: UserBook }) {
   const book = userBook.book
@@ -11,10 +12,12 @@ function BookCard({ userBook }: { userBook: UserBook }) {
   return (
     <div className="border rounded p-4 flex gap-4">
       {book.coverUrl && (
-        <img
+        <Image
           src={book.coverUrl}
           alt={book.title}
-          className="w-16 h-24 object-cover rounded"
+          width={16}
+          height={24}
+          className="object-cover rounded"
         />
       )}
       <div>
@@ -32,12 +35,8 @@ function GameCard({ game }: { game: Game }) {
   return (
     <div className="border rounded p-4">
       <h3 className="font-semibold">{game.name}</h3>
-      <p className="text-sm text-gray-600">
-        Playtime: {Math.round(game.playtime / 60)} hrs
-      </p>
-      <p className="text-sm text-gray-600">
-        Completion: {game.completionRate}
-      </p>
+      <p className="text-sm text-gray-600">Playtime: {Math.round(game.playtime / 60)} hrs</p>
+      <p className="text-sm text-gray-600">Completion: {game.completionRate}</p>
     </div>
   )
 }
@@ -128,8 +127,7 @@ export default function BacklogPage() {
           {steam && (
             <>
               <p className="mb-4 text-gray-600">
-                Total backlog: {steam.totalBacklog} games &mdash; Current rate:{' '}
-                {steam.currentRate}
+                Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
               </p>
               {steam.inProgress.length > 0 && (
                 <div className="mb-6">

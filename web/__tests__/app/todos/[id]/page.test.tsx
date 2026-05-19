@@ -2,7 +2,7 @@ import { render } from '@testing-library/react'
 
 jest.mock('@/app/todos/[id]/TaskClient', () => ({
   __esModule: true,
-  default: ({ id }: { id: string }) => <div data-testid="task-client">{id}</div>,
+  default: ({ id }: { id: string }) => <div data-testid="task-client">{id}</div>
 }))
 
 import TaskPage from '@/app/todos/[id]/page'

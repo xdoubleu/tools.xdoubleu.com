@@ -64,6 +64,13 @@ func TestMain(m *testing.M) {
 		postgresDB,
 	)
 
+	if _, err := postgresDB.Exec(
+		context.Background(),
+		"DROP SCHEMA IF EXISTS icsproxy CASCADE",
+	); err != nil {
+		panic(err)
+	}
+
 	if err := testApp.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)
 	}

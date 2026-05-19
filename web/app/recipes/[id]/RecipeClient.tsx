@@ -29,9 +29,7 @@ export default function RecipeClient({ id }: { id: string }) {
       {data?.recipe && (
         <>
           <h1 className="text-3xl font-bold mb-2">{data.recipe.name}</h1>
-          <p className="text-gray-500 text-sm mb-6">
-            Serves {data.recipe.baseServings}
-          </p>
+          <p className="text-gray-500 text-sm mb-6">Serves {data.recipe.baseServings}</p>
 
           {data.recipe.ingredients.length > 0 && (
             <section className="mb-6">

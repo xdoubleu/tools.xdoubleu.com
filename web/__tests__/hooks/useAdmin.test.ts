@@ -5,11 +5,11 @@ jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({
     listUsers: jest.fn(),
     setRole: jest.fn(),
-    setAppAccess: jest.fn(),
-  })),
+    setAppAccess: jest.fn()
+  }))
 }))
 jest.mock('@/lib/gen/admin/v1/admin_connect', () => ({
-  AdminService: {},
+  AdminService: {}
 }))
 
 import useSWR from 'swr'
@@ -23,7 +23,7 @@ beforeEach(() => {
   mockUseSWR.mockReturnValue({
     data: undefined,
     isLoading: false,
-    error: undefined,
+    error: undefined
   })
   mockUseSWR.mockClear()
 })
@@ -31,10 +31,7 @@ beforeEach(() => {
 describe('useUsers', () => {
   it('uses /admin/users as key', () => {
     renderHook(() => useUsers())
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      '/admin/users',
-      expect.any(Function)
-    )
+    expect(mockUseSWR).toHaveBeenCalledWith('/admin/users', expect.any(Function))
   })
 
   it('returns SWR result', () => {
@@ -42,7 +39,7 @@ describe('useUsers', () => {
     mockUseSWR.mockReturnValueOnce({
       data: mockData,
       isLoading: false,
-      error: undefined,
+      error: undefined
     })
     const { result } = renderHook(() => useUsers())
     expect(result.current.data).toEqual(mockData)
@@ -70,7 +67,7 @@ describe('useSetAppAccess', () => {
     expect(mockSetAppAccess).toHaveBeenCalledWith({
       userId: 'user-1',
       appName: 'backlog',
-      grant: true,
+      grant: true
     })
   })
 })

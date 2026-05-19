@@ -4,7 +4,7 @@ import type { Policy } from '@/lib/gen/todos/v1/settings_pb'
 import { clearPolicyBannerState } from '@/lib/todos/policiesBanner'
 
 function makePolicy(overrides: Partial<Policy> = {}): Policy {
-  return ({
+  return {
     id: 'policy-1',
     ownerUserId: 'user-1',
     text: 'Work for 25 min, rest for 5.',
@@ -12,8 +12,8 @@ function makePolicy(overrides: Partial<Policy> = {}): Policy {
     sortOrder: 0,
     createdAt: '2024-01-01T00:00:00Z',
     workspaceId: '',
-    ...overrides,
-  }) as Policy
+    ...overrides
+  } as Policy
 }
 
 beforeEach(() => {
@@ -35,7 +35,7 @@ describe('PoliciesBanner', () => {
   it('renders all policy texts', () => {
     const policies = [
       makePolicy({ id: 'p1', text: 'Policy A' }),
-      makePolicy({ id: 'p2', text: 'Policy B' }),
+      makePolicy({ id: 'p2', text: 'Policy B' })
     ]
     render(<PoliciesBanner policies={policies} />)
     expect(screen.getByText('Policy A')).toBeInTheDocument()
@@ -65,8 +65,6 @@ describe('PoliciesBanner', () => {
 
   it('renders dismiss button with accessible label', () => {
     render(<PoliciesBanner policies={[makePolicy()]} />)
-    expect(
-      screen.getByRole('button', { name: /dismiss policies banner/i })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /dismiss policies banner/i })).toBeInTheDocument()
   })
 })

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"testing"
@@ -62,6 +63,14 @@ func TestMain(m *testing.M) {
 		postgresDB,
 		mocks.NewMockedGoTrueClient(),
 	)
+
+	if _, err = postgresDB.Exec(
+		context.Background(),
+		"DELETE FROM global.contacts WHERE owner_user_id = $1 OR contact_user_id = $1",
+		testUserID,
+	); err != nil {
+		panic(err)
+	}
 
 	os.Exit(m.Run())
 }

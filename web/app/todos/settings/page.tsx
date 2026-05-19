@@ -6,27 +6,14 @@ export default function TodoSettingsPage() {
   const { data, isLoading, error } = useTodoSettings()
 
   if (isLoading) {
-    return (
-      <p className="py-16 text-center text-sm text-gray-400">Loading…</p>
-    )
+    return <p className="py-16 text-center text-sm text-gray-400">Loading…</p>
   }
 
   if (error || !data) {
-    return (
-      <p className="py-16 text-center text-sm text-red-500">
-        Failed to load settings.
-      </p>
-    )
+    return <p className="py-16 text-center text-sm text-red-500">Failed to load settings.</p>
   }
 
-  const {
-    sections,
-    labelPresets,
-    urlPatterns,
-    archive,
-    policies,
-    workspaces,
-  } = data
+  const { sections, labelPresets, urlPatterns, archive, policies, workspaces } = data
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
@@ -99,7 +86,7 @@ export default function TodoSettingsPage() {
                   style={{
                     backgroundColor: `${preset.color}22`,
                     color: preset.color,
-                    border: `1px solid ${preset.color}44`,
+                    border: `1px solid ${preset.color}44`
                   }}
                 >
                   {preset.value}
@@ -123,13 +110,8 @@ export default function TodoSettingsPage() {
         ) : (
           <ul className="space-y-2">
             {urlPatterns.map((pattern) => (
-              <li
-                key={pattern.id}
-                className="rounded border border-gray-200 bg-white p-3"
-              >
-                <p className="text-sm font-medium text-gray-800">
-                  {pattern.platformName}
-                </p>
+              <li key={pattern.id} className="rounded border border-gray-200 bg-white p-3">
+                <p className="text-sm font-medium text-gray-800">{pattern.platformName}</p>
                 <p className="text-xs text-gray-500">{pattern.urlPrefix}</p>
                 {pattern.label && (
                   <span className="mt-1 inline-block rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
@@ -151,8 +133,7 @@ export default function TodoSettingsPage() {
           Archive Settings
         </h2>
         <p className="text-sm text-gray-700">
-          Tasks are archived after{' '}
-          <strong>{archive?.archiveAfterHours ?? 0}</strong> hour
+          Tasks are archived after <strong>{archive?.archiveAfterHours ?? 0}</strong> hour
           {(archive?.archiveAfterHours ?? 0) === 1 ? '' : 's'} once completed.
         </p>
       </section>

@@ -2,7 +2,7 @@ import {
   buildPresenterUrl,
   buildViewerUrl,
   buildWsUrl,
-  parseRoomId,
+  parseRoomId
 } from '../../../lib/watchparty/roomUtils'
 
 describe('buildPresenterUrl', () => {

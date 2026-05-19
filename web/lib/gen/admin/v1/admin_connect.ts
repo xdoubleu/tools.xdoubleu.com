@@ -3,42 +3,48 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListUsersRequest, ListUsersResponse, SetAppAccessRequest, SetAppAccessResponse, SetRoleRequest, SetRoleResponse } from "./admin_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+import {
+  ListUsersRequest,
+  ListUsersResponse,
+  SetAppAccessRequest,
+  SetAppAccessResponse,
+  SetRoleRequest,
+  SetRoleResponse
+} from './admin_pb'
+import { MethodKind } from '@bufbuild/protobuf'
 
 /**
  * @generated from service admin.v1.AdminService
  */
 export const AdminService = {
-  typeName: "admin.v1.AdminService",
+  typeName: 'admin.v1.AdminService',
   methods: {
     /**
      * @generated from rpc admin.v1.AdminService.ListUsers
      */
     listUsers: {
-      name: "ListUsers",
+      name: 'ListUsers',
       I: ListUsersRequest,
       O: ListUsersResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc admin.v1.AdminService.SetRole
      */
     setRole: {
-      name: "SetRole",
+      name: 'SetRole',
       I: SetRoleRequest,
       O: SetRoleResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc admin.v1.AdminService.SetAppAccess
      */
     setAppAccess: {
-      name: "SetAppAccess",
+      name: 'SetAppAccess',
       I: SetAppAccessRequest,
       O: SetAppAccessResponse,
-      kind: MethodKind.Unary,
-    },
+      kind: MethodKind.Unary
+    }
   }
-} as const;
-
+} as const

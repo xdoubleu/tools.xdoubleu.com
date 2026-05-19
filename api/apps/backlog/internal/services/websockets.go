@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	wstools "github.com/xdoubleu/essentia/v4/pkg/communication/wstools"
@@ -16,6 +17,7 @@ type WebSocketService struct {
 	allowedOrigins []string
 	handler        *wstools.WebSocketHandler[dtos.SubscribeMessageDto]
 	jobQueue       *threading.JobQueue
+	mu             sync.RWMutex
 	topics         map[string]*wstools.Topic
 }
 
@@ -55,7 +57,9 @@ func (service *WebSocketService) UpdateState(
 	isRunning bool,
 	lastRunTime *time.Time,
 ) {
+	service.mu.RLock()
 	topic, ok := service.topics[id]
+	service.mu.RUnlock()
 	if !ok {
 		return
 	}
@@ -71,6 +75,8 @@ func (service *WebSocketService) ForceRun(id string) {
 }
 
 func (service *WebSocketService) RegisterTopics(topics []string) {
+	service.mu.Lock()
+	defer service.mu.Unlock()
 	for _, topic := range topics {
 		registeredTopic, err := service.handler.AddTopic(
 			topic,
