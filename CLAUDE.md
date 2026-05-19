@@ -35,7 +35,7 @@ go test ./apps/backlog/... -run TestFunctionName
 
 ## Architecture
 
-This is a Go monorepo (Go 1.25) that serves multiple web apps from a single binary. All apps are registered in `api/cmd/api/apps.go` and share a single HTTP mux routed by URL prefix. The apps expose ConnectRPC endpoints (for the Next.js 16 `web/` frontend).
+This is a Go monorepo (Go 1.26) that serves multiple web apps from a single binary. All apps are registered in `api/cmd/api/apps.go` and share a single HTTP mux routed by URL prefix. The apps expose ConnectRPC endpoints (for the Next.js 16 `web/` frontend).
 
 ### App Structure
 

@@ -74,3 +74,10 @@ services:
       repository: xdoubleu/tools.xdoubleu.com/web
       tag: latest
     http_port: 3000
+    envs:
+      - key: API_URL
+        scope: RUN_TIME
+        value: https://tools.xdoubleu.com/api
+      - key: SENTRY_DSN
+        scope: RUN_TIME
+        type: SECRET

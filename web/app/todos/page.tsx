@@ -6,6 +6,7 @@ import { useTodos } from '@/hooks/useTodos'
 import { useTodoSettings } from '@/hooks/useTodoSettings'
 import { TaskCard } from '@/components/todos/TaskCard'
 import { PoliciesBanner } from '@/components/todos/PoliciesBanner'
+import { getApiUrl } from '@/lib/env'
 
 type Tab = 'active' | 'done' | 'archive' | 'search'
 
@@ -46,7 +47,7 @@ export default function TodosPage() {
     if (selectedSectionId) form.append('SectionID', selectedSectionId)
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/todos/`, { method: 'POST', body: form })
+      await fetch(`${getApiUrl()}/todos/`, { method: 'POST', body: form })
       setQuickAddInput('')
       await mutate()
     } catch {
