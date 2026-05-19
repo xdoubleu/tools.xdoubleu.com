@@ -3,7 +3,7 @@ name: Main Workflow
 permissions:
   actions: write
   contents: write
-  packages: read
+  packages: write
 
 on:
   workflow_dispatch:
