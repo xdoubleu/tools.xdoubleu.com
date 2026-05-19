@@ -3,105 +3,125 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddMealRequest, AddMealResponse, CreatePlanRequest, CreatePlanResponse, DeleteMealRequest, DeleteMealResponse, DeletePlanRequest, DeletePlanResponse, GetPlanRequest, GetPlanResponse, GetShoppingListRequest, GetShoppingListResponse, ListPlansRequest, ListPlansResponse, SharePlanRequest, SharePlanResponse, UnsharePlanRequest, UnsharePlanResponse, UpdatePlanRequest, UpdatePlanResponse } from "./mealplans_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+import {
+  AddMealRequest,
+  AddMealResponse,
+  CreatePlanRequest,
+  CreatePlanResponse,
+  DeleteMealRequest,
+  DeleteMealResponse,
+  DeletePlanRequest,
+  DeletePlanResponse,
+  GetPlanRequest,
+  GetPlanResponse,
+  GetShoppingListRequest,
+  GetShoppingListResponse,
+  ListPlansRequest,
+  ListPlansResponse,
+  SharePlanRequest,
+  SharePlanResponse,
+  UnsharePlanRequest,
+  UnsharePlanResponse,
+  UpdatePlanRequest,
+  UpdatePlanResponse
+} from './mealplans_pb'
+import { MethodKind } from '@bufbuild/protobuf'
 
 /**
  * @generated from service recipes.v1.MealPlansService
  */
 export const MealPlansService = {
-  typeName: "recipes.v1.MealPlansService",
+  typeName: 'recipes.v1.MealPlansService',
   methods: {
     /**
      * @generated from rpc recipes.v1.MealPlansService.ListPlans
      */
     listPlans: {
-      name: "ListPlans",
+      name: 'ListPlans',
       I: ListPlansRequest,
       O: ListPlansResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.GetPlan
      */
     getPlan: {
-      name: "GetPlan",
+      name: 'GetPlan',
       I: GetPlanRequest,
       O: GetPlanResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.CreatePlan
      */
     createPlan: {
-      name: "CreatePlan",
+      name: 'CreatePlan',
       I: CreatePlanRequest,
       O: CreatePlanResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.UpdatePlan
      */
     updatePlan: {
-      name: "UpdatePlan",
+      name: 'UpdatePlan',
       I: UpdatePlanRequest,
       O: UpdatePlanResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.DeletePlan
      */
     deletePlan: {
-      name: "DeletePlan",
+      name: 'DeletePlan',
       I: DeletePlanRequest,
       O: DeletePlanResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.AddMeal
      */
     addMeal: {
-      name: "AddMeal",
+      name: 'AddMeal',
       I: AddMealRequest,
       O: AddMealResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.DeleteMeal
      */
     deleteMeal: {
-      name: "DeleteMeal",
+      name: 'DeleteMeal',
       I: DeleteMealRequest,
       O: DeleteMealResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.SharePlan
      */
     sharePlan: {
-      name: "SharePlan",
+      name: 'SharePlan',
       I: SharePlanRequest,
       O: SharePlanResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.UnsharePlan
      */
     unsharePlan: {
-      name: "UnsharePlan",
+      name: 'UnsharePlan',
       I: UnsharePlanRequest,
       O: UnsharePlanResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc recipes.v1.MealPlansService.GetShoppingList
      */
     getShoppingList: {
-      name: "GetShoppingList",
+      name: 'GetShoppingList',
       I: GetShoppingListRequest,
       O: GetShoppingListResponse,
-      kind: MethodKind.Unary,
-    },
+      kind: MethodKind.Unary
+    }
   }
-} as const;
-
+} as const

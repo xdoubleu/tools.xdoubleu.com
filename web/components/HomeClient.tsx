@@ -169,8 +169,7 @@ export default function HomeClient() {
           />
           <div>
             <p className="text-sm text-subtle">
-              Or enter this code manually:{' '}
-              <code className="font-mono text-fg">{mfaSecret}</code>
+              Or enter this code manually: <code className="font-mono text-fg">{mfaSecret}</code>
             </p>
           </div>
           <div>

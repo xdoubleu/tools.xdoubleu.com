@@ -36,9 +36,30 @@ describe('SteamDistributionChart', () => {
       data: {
         label: 'test',
         games: [
-          { id: 1, name: 'Game 1', isDelisted: false, completionRate: '25%', contribution: '', playtime: 0 },
-          { id: 2, name: 'Game 2', isDelisted: false, completionRate: '50%', contribution: '', playtime: 0 },
-          { id: 3, name: 'Game 3', isDelisted: false, completionRate: '75%', contribution: '', playtime: 0 }
+          {
+            id: 1,
+            name: 'Game 1',
+            isDelisted: false,
+            completionRate: '25%',
+            contribution: '',
+            playtime: 0
+          },
+          {
+            id: 2,
+            name: 'Game 2',
+            isDelisted: false,
+            completionRate: '50%',
+            contribution: '',
+            playtime: 0
+          },
+          {
+            id: 3,
+            name: 'Game 3',
+            isDelisted: false,
+            completionRate: '75%',
+            contribution: '',
+            playtime: 0
+          }
         ]
       }
     } as unknown as GetSteamDistributionResponse

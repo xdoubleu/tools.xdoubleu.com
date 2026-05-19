@@ -1,11 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  formatForClipboard,
-  formatForAppleNotes,
-  formatAsTxt
-} from '@/lib/recipes/shoppingExport'
+import { formatForClipboard, formatForAppleNotes, formatAsTxt } from '@/lib/recipes/shoppingExport'
 import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 
 interface ShoppingListProps {

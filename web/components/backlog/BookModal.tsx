@@ -27,18 +27,20 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
     setIsSubmitting(true)
     setError(null)
     try {
-      await addBook(new AddBookRequest({
-        provider: book.provider,
-        providerId: book.providerId,
-        title: book.title,
-        author: book.authors.join(', '),
-        status,
-        isbn13: book.isbn13,
-        coverUrl: book.coverUrl,
-        description: book.description,
-        ownPhysical: false,
-        ownDigital: false
-      }))
+      await addBook(
+        new AddBookRequest({
+          provider: book.provider,
+          providerId: book.providerId,
+          title: book.title,
+          author: book.authors.join(', '),
+          status,
+          isbn13: book.isbn13,
+          coverUrl: book.coverUrl,
+          description: book.description,
+          ownPhysical: false,
+          ownDigital: false
+        })
+      )
       onAdded()
       onClose()
     } catch (err) {

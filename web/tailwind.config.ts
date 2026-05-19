@@ -15,7 +15,7 @@ const config: Config = {
         border: 'rgb(var(--color-border) / <alpha-value>)',
         input: 'rgb(var(--color-input) / <alpha-value>)',
         'input-border': 'rgb(var(--color-input-border) / <alpha-value>)',
-        'input-text': 'rgb(var(--color-input-text) / <alpha-value>)',
+        'input-text': 'rgb(var(--color-input-text) / <alpha-value>)'
       }
     }
   },

@@ -36,21 +36,15 @@ export default function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-card rounded-lg shadow-lg max-w-md w-full p-6 space-y-4">
         <div className="flex gap-2 mb-6">
-          <div
-            className={`h-2 flex-1 rounded ${step >= 1 ? 'bg-blue-600' : 'bg-border'}`}
-          />
-          <div
-            className={`h-2 flex-1 rounded ${step >= 2 ? 'bg-blue-600' : 'bg-border'}`}
-          />
+          <div className={`h-2 flex-1 rounded ${step >= 1 ? 'bg-blue-600' : 'bg-border'}`} />
+          <div className={`h-2 flex-1 rounded ${step >= 2 ? 'bg-blue-600' : 'bg-border'}`} />
         </div>
 
         {step === 1 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Setup Steam Integration</h2>
             <div>
-              <label className="block text-sm font-medium text-subtle mb-1">
-                Steam API Key
-              </label>
+              <label className="block text-sm font-medium text-subtle mb-1">Steam API Key</label>
               <input
                 type="password"
                 value={steamApiKey}
@@ -72,9 +66,7 @@ export default function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-subtle mb-1">
-                Steam User ID
-              </label>
+              <label className="block text-sm font-medium text-subtle mb-1">Steam User ID</label>
               <input
                 type="text"
                 value={steamUserId}

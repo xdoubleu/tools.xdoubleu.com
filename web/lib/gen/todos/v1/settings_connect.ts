@@ -3,159 +3,191 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddLabelPresetRequest, AddLabelPresetResponse, AddPolicyRequest, AddPolicyResponse, AddSectionRequest, AddSectionResponse, AddURLPatternRequest, AddURLPatternResponse, AddWorkspaceRequest, AddWorkspaceResponse, DeleteWorkspaceRequest, DeleteWorkspaceResponse, GetSettingsRequest, GetSettingsResponse, RemoveLabelPresetRequest, RemoveLabelPresetResponse, RemovePolicyRequest, RemovePolicyResponse, RemoveSectionRequest, RemoveSectionResponse, RemoveURLPatternRequest, RemoveURLPatternResponse, SetActiveWorkspaceRequest, SetActiveWorkspaceResponse, UpdateArchiveSettingsRequest, UpdateArchiveSettingsResponse, UpdateHideShortcutHintsRequest, UpdateHideShortcutHintsResponse, UpdateLabelColorRequest, UpdateLabelColorResponse, UpdatePolicyRequest, UpdatePolicyResponse } from "./settings_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+import {
+  AddLabelPresetRequest,
+  AddLabelPresetResponse,
+  AddPolicyRequest,
+  AddPolicyResponse,
+  AddSectionRequest,
+  AddSectionResponse,
+  AddURLPatternRequest,
+  AddURLPatternResponse,
+  AddWorkspaceRequest,
+  AddWorkspaceResponse,
+  DeleteWorkspaceRequest,
+  DeleteWorkspaceResponse,
+  GetSettingsRequest,
+  GetSettingsResponse,
+  RemoveLabelPresetRequest,
+  RemoveLabelPresetResponse,
+  RemovePolicyRequest,
+  RemovePolicyResponse,
+  RemoveSectionRequest,
+  RemoveSectionResponse,
+  RemoveURLPatternRequest,
+  RemoveURLPatternResponse,
+  SetActiveWorkspaceRequest,
+  SetActiveWorkspaceResponse,
+  UpdateArchiveSettingsRequest,
+  UpdateArchiveSettingsResponse,
+  UpdateHideShortcutHintsRequest,
+  UpdateHideShortcutHintsResponse,
+  UpdateLabelColorRequest,
+  UpdateLabelColorResponse,
+  UpdatePolicyRequest,
+  UpdatePolicyResponse
+} from './settings_pb'
+import { MethodKind } from '@bufbuild/protobuf'
 
 /**
  * @generated from service todos.v1.SettingsService
  */
 export const SettingsService = {
-  typeName: "todos.v1.SettingsService",
+  typeName: 'todos.v1.SettingsService',
   methods: {
     /**
      * @generated from rpc todos.v1.SettingsService.GetSettings
      */
     getSettings: {
-      name: "GetSettings",
+      name: 'GetSettings',
       I: GetSettingsRequest,
       O: GetSettingsResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.UpdateArchiveSettings
      */
     updateArchiveSettings: {
-      name: "UpdateArchiveSettings",
+      name: 'UpdateArchiveSettings',
       I: UpdateArchiveSettingsRequest,
       O: UpdateArchiveSettingsResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.AddLabelPreset
      */
     addLabelPreset: {
-      name: "AddLabelPreset",
+      name: 'AddLabelPreset',
       I: AddLabelPresetRequest,
       O: AddLabelPresetResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.RemoveLabelPreset
      */
     removeLabelPreset: {
-      name: "RemoveLabelPreset",
+      name: 'RemoveLabelPreset',
       I: RemoveLabelPresetRequest,
       O: RemoveLabelPresetResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.UpdateLabelColor
      */
     updateLabelColor: {
-      name: "UpdateLabelColor",
+      name: 'UpdateLabelColor',
       I: UpdateLabelColorRequest,
       O: UpdateLabelColorResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.AddURLPattern
      */
     addURLPattern: {
-      name: "AddURLPattern",
+      name: 'AddURLPattern',
       I: AddURLPatternRequest,
       O: AddURLPatternResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.RemoveURLPattern
      */
     removeURLPattern: {
-      name: "RemoveURLPattern",
+      name: 'RemoveURLPattern',
       I: RemoveURLPatternRequest,
       O: RemoveURLPatternResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.AddSection
      */
     addSection: {
-      name: "AddSection",
+      name: 'AddSection',
       I: AddSectionRequest,
       O: AddSectionResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.RemoveSection
      */
     removeSection: {
-      name: "RemoveSection",
+      name: 'RemoveSection',
       I: RemoveSectionRequest,
       O: RemoveSectionResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.AddPolicy
      */
     addPolicy: {
-      name: "AddPolicy",
+      name: 'AddPolicy',
       I: AddPolicyRequest,
       O: AddPolicyResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.UpdatePolicy
      */
     updatePolicy: {
-      name: "UpdatePolicy",
+      name: 'UpdatePolicy',
       I: UpdatePolicyRequest,
       O: UpdatePolicyResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.RemovePolicy
      */
     removePolicy: {
-      name: "RemovePolicy",
+      name: 'RemovePolicy',
       I: RemovePolicyRequest,
       O: RemovePolicyResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.AddWorkspace
      */
     addWorkspace: {
-      name: "AddWorkspace",
+      name: 'AddWorkspace',
       I: AddWorkspaceRequest,
       O: AddWorkspaceResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.DeleteWorkspace
      */
     deleteWorkspace: {
-      name: "DeleteWorkspace",
+      name: 'DeleteWorkspace',
       I: DeleteWorkspaceRequest,
       O: DeleteWorkspaceResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.UpdateHideShortcutHints
      */
     updateHideShortcutHints: {
-      name: "UpdateHideShortcutHints",
+      name: 'UpdateHideShortcutHints',
       I: UpdateHideShortcutHintsRequest,
       O: UpdateHideShortcutHintsResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc todos.v1.SettingsService.SetActiveWorkspace
      */
     setActiveWorkspace: {
-      name: "SetActiveWorkspace",
+      name: 'SetActiveWorkspace',
       I: SetActiveWorkspaceRequest,
       O: SetActiveWorkspaceResponse,
-      kind: MethodKind.Unary,
-    },
+      kind: MethodKind.Unary
+    }
   }
-} as const;
-
+} as const

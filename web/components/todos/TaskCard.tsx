@@ -50,7 +50,10 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         {/* Labels and due date row */}
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {task.labels.map((label) => (
-            <span key={label} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+            <span
+              key={label}
+              className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+            >
               {label}
             </span>
           ))}

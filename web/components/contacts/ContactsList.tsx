@@ -32,7 +32,10 @@ export default function ContactsList({ contacts, onUpdated }: ContactsListProps)
     <div className="space-y-3">
       <h3 className="font-semibold">Contacts</h3>
       {confirmed.map((contact) => (
-        <div key={contact.id} className="border border-border rounded p-4 flex items-center justify-between">
+        <div
+          key={contact.id}
+          className="border border-border rounded p-4 flex items-center justify-between"
+        >
           <div>
             <p className="font-medium text-sm">{contact.displayName || contact.contactUserId}</p>
             <p className="text-xs text-muted">{contact.contactUserId}</p>

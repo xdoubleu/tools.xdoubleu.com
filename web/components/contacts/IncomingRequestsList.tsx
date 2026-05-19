@@ -50,9 +50,7 @@ export default function IncomingRequestsList({ contacts, onUpdated }: IncomingRe
             type="text"
             placeholder="Display name"
             value={displayNames[contact.id] || contact.displayName || ''}
-            onChange={(e) =>
-              setDisplayNames({ ...displayNames, [contact.id]: e.target.value })
-            }
+            onChange={(e) => setDisplayNames({ ...displayNames, [contact.id]: e.target.value })}
             className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text text-sm"
           />
           <div className="flex gap-2">

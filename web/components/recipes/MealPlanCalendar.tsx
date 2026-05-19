@@ -39,12 +39,14 @@ export default function MealPlanCalendar({
   const handleAddMeal = async () => {
     if (selectedSlot && selectedDate && selectedRecipeId) {
       try {
-        await addMeal(new AddMealRequest({
-          planId: plan.id,
-          mealDate: selectedDate,
-          mealSlot: selectedSlot,
-          recipeId: selectedRecipeId
-        }))
+        await addMeal(
+          new AddMealRequest({
+            planId: plan.id,
+            mealDate: selectedDate,
+            mealSlot: selectedSlot,
+            recipeId: selectedRecipeId
+          })
+        )
         setSelectedSlot(null)
         setSelectedDate(null)
         setSelectedRecipeId('')
@@ -108,7 +110,10 @@ export default function MealPlanCalendar({
                         {mealsInSlot.map((meal) => {
                           const recipe = recipes.find((r) => r.id === meal.recipeId)
                           return (
-                            <div key={meal.id} className="bg-blue-50 p-1 rounded flex items-center justify-between gap-1">
+                            <div
+                              key={meal.id}
+                              className="bg-blue-50 p-1 rounded flex items-center justify-between gap-1"
+                            >
                               <span className="truncate">{recipe?.name}</span>
                               <button
                                 onClick={() => handleDeleteMeal(meal.id)}
@@ -184,7 +189,9 @@ export default function MealPlanCalendar({
 
       <div className="p-4 border border-border rounded bg-surface">
         <p className="text-sm text-muted mb-2">iCal Export:</p>
-        <code className="text-xs break-all bg-card p-2 rounded border border-border">{icalUrl}</code>
+        <code className="text-xs break-all bg-card p-2 rounded border border-border">
+          {icalUrl}
+        </code>
         <button
           onClick={() => {
             navigator.clipboard.writeText(icalUrl)

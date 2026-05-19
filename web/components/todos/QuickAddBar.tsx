@@ -29,10 +29,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === '/') {
           const target = e.target
-          if (
-            !(target instanceof HTMLInputElement) &&
-            !(target instanceof HTMLTextAreaElement)
-          ) {
+          if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLTextAreaElement)) {
             e.preventDefault()
             inputRef.current?.focus()
           }
@@ -101,10 +98,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
                 }}
                 className="w-full text-left px-4 py-2 hover:bg-surface flex items-center gap-2"
               >
-                <div
-                  className="w-3 h-3 rounded"
-                  style={{ backgroundColor: label.color }}
-                />
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: label.color }} />
                 {label.value}
               </button>
             ))}

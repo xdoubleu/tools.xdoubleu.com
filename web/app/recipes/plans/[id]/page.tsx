@@ -9,7 +9,12 @@ import {
   useUnsharePlan
 } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
-import { AddMealRequest, DeleteMealRequest, SharePlanRequest, UnsharePlanRequest } from '@/lib/gen/recipes/v1/mealplans_pb'
+import {
+  AddMealRequest,
+  DeleteMealRequest,
+  SharePlanRequest,
+  UnsharePlanRequest
+} from '@/lib/gen/recipes/v1/mealplans_pb'
 
 export default function MealPlanPage({ params }: { params: { id: string } }) {
   const { data, error, isLoading, mutate } = useMealPlan(params.id)
@@ -21,21 +26,18 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
   const plan = data?.plan
   const recipes = data?.recipes ?? []
 
-  const handleAddMeal = async (
-    date: string,
-    slot: string,
-    recipeId: string,
-    servings: number
-  ) => {
+  const handleAddMeal = async (date: string, slot: string, recipeId: string, servings: number) => {
     if (!plan) return
-    await addMeal(new AddMealRequest({
-      planId: plan.id,
-      mealDate: date,
-      mealSlot: slot,
-      recipeId,
-      customName: '',
-      servings
-    }))
+    await addMeal(
+      new AddMealRequest({
+        planId: plan.id,
+        mealDate: date,
+        mealSlot: slot,
+        recipeId,
+        customName: '',
+        servings
+      })
+    )
     await mutate()
   }
 

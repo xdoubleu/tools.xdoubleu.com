@@ -3,42 +3,48 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetSteamDistributionRequest, GetSteamDistributionResponse, GetSteamGameRequest, GetSteamGameResponse, GetSteamRequest, GetSteamResponse } from "./games_pb";
-import { MethodKind } from "@bufbuild/protobuf";
+import {
+  GetSteamDistributionRequest,
+  GetSteamDistributionResponse,
+  GetSteamGameRequest,
+  GetSteamGameResponse,
+  GetSteamRequest,
+  GetSteamResponse
+} from './games_pb'
+import { MethodKind } from '@bufbuild/protobuf'
 
 /**
  * @generated from service backlog.v1.GamesService
  */
 export const GamesService = {
-  typeName: "backlog.v1.GamesService",
+  typeName: 'backlog.v1.GamesService',
   methods: {
     /**
      * @generated from rpc backlog.v1.GamesService.GetSteam
      */
     getSteam: {
-      name: "GetSteam",
+      name: 'GetSteam',
       I: GetSteamRequest,
       O: GetSteamResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc backlog.v1.GamesService.GetSteamGame
      */
     getSteamGame: {
-      name: "GetSteamGame",
+      name: 'GetSteamGame',
       I: GetSteamGameRequest,
       O: GetSteamGameResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.Unary
     },
     /**
      * @generated from rpc backlog.v1.GamesService.GetSteamDistribution
      */
     getSteamDistribution: {
-      name: "GetSteamDistribution",
+      name: 'GetSteamDistribution',
       I: GetSteamDistributionRequest,
       O: GetSteamDistributionResponse,
-      kind: MethodKind.Unary,
-    },
+      kind: MethodKind.Unary
+    }
   }
-} as const;
-
+} as const

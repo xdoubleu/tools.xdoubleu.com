@@ -29,9 +29,7 @@ function AchievementCard({ achievement }: AchievementCardProps) {
               Achieved
             </span>
           ) : (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">
-              Locked
-            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">Locked</span>
           )}
         </div>
         {achievement.description && (

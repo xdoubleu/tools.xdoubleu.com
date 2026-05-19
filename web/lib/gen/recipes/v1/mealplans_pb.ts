@@ -3,9 +3,16 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
-import { Recipe } from "./recipes_pb";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
+import { Recipe } from './recipes_pb'
 
 /**
  * @generated from message recipes.v1.PlanMeal
@@ -14,75 +21,78 @@ export class PlanMeal extends Message<PlanMeal> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string plan_id = 2;
    */
-  planId = "";
+  planId = ''
 
   /**
    * @generated from field: string meal_date = 3;
    */
-  mealDate = "";
+  mealDate = ''
 
   /**
    * @generated from field: string meal_slot = 4;
    */
-  mealSlot = "";
+  mealSlot = ''
 
   /**
    * @generated from field: string recipe_id = 5;
    */
-  recipeId = "";
+  recipeId = ''
 
   /**
    * @generated from field: string custom_name = 6;
    */
-  customName = "";
+  customName = ''
 
   /**
    * @generated from field: int32 servings = 7;
    */
-  servings = 0;
+  servings = 0
 
   /**
    * @generated from field: recipes.v1.Recipe recipe = 8;
    */
-  recipe?: Recipe;
+  recipe?: Recipe
 
   constructor(data?: PartialMessage<PlanMeal>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.PlanMeal";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.PlanMeal'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "meal_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "meal_slot", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "recipe_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "custom_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "servings", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 8, name: "recipe", kind: "message", T: Recipe },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'plan_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'meal_date', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'meal_slot', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'recipe_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'custom_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: 'servings', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 8, name: 'recipe', kind: 'message', T: Recipe }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PlanMeal {
-    return new PlanMeal().fromBinary(bytes, options);
+    return new PlanMeal().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PlanMeal {
-    return new PlanMeal().fromJson(jsonValue, options);
+    return new PlanMeal().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PlanMeal {
-    return new PlanMeal().fromJsonString(jsonString, options);
+    return new PlanMeal().fromJsonString(jsonString, options)
   }
 
-  static equals(a: PlanMeal | PlainMessage<PlanMeal> | undefined, b: PlanMeal | PlainMessage<PlanMeal> | undefined): boolean {
-    return proto3.util.equals(PlanMeal, a, b);
+  static equals(
+    a: PlanMeal | PlainMessage<PlanMeal> | undefined,
+    b: PlanMeal | PlainMessage<PlanMeal> | undefined
+  ): boolean {
+    return proto3.util.equals(PlanMeal, a, b)
   }
 }
 
@@ -93,87 +103,96 @@ export class Plan extends Message<Plan> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string owner_user_id = 2;
    */
-  ownerUserId = "";
+  ownerUserId = ''
 
   /**
    * @generated from field: string name = 3;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: string ical_token = 4;
    */
-  icalToken = "";
+  icalToken = ''
 
   /**
    * @generated from field: string created_at = 5;
    */
-  createdAt = "";
+  createdAt = ''
 
   /**
    * @generated from field: string updated_at = 6;
    */
-  updatedAt = "";
+  updatedAt = ''
 
   /**
    * @generated from field: bool can_edit = 7;
    */
-  canEdit = false;
+  canEdit = false
 
   /**
    * @generated from field: repeated recipes.v1.PlanMeal meals = 8;
    */
-  meals: PlanMeal[] = [];
+  meals: PlanMeal[] = []
 
   /**
    * @generated from field: repeated string ical_hide_slots = 9;
    */
-  icalHideSlots: string[] = [];
+  icalHideSlots: string[] = []
 
   /**
    * @generated from field: bool ical_hide_past = 10;
    */
-  icalHidePast = false;
+  icalHidePast = false
 
   constructor(data?: PartialMessage<Plan>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.Plan";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.Plan'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "owner_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "ical_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "can_edit", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 8, name: "meals", kind: "message", T: PlanMeal, repeated: true },
-    { no: 9, name: "ical_hide_slots", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 10, name: "ical_hide_past", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'owner_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'ical_token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'created_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'updated_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: 'can_edit', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 8, name: 'meals', kind: 'message', T: PlanMeal, repeated: true },
+    {
+      no: 9,
+      name: 'ical_hide_slots',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true
+    },
+    { no: 10, name: 'ical_hide_past', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Plan {
-    return new Plan().fromBinary(bytes, options);
+    return new Plan().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Plan {
-    return new Plan().fromJson(jsonValue, options);
+    return new Plan().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Plan {
-    return new Plan().fromJsonString(jsonString, options);
+    return new Plan().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Plan | PlainMessage<Plan> | undefined, b: Plan | PlainMessage<Plan> | undefined): boolean {
-    return proto3.util.equals(Plan, a, b);
+  static equals(
+    a: Plan | PlainMessage<Plan> | undefined,
+    b: Plan | PlainMessage<Plan> | undefined
+  ): boolean {
+    return proto3.util.equals(Plan, a, b)
   }
 }
 
@@ -184,45 +203,48 @@ export class ShoppingItem extends Message<ShoppingItem> {
   /**
    * @generated from field: string name = 1;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: double amount = 2;
    */
-  amount = 0;
+  amount = 0
 
   /**
    * @generated from field: string unit = 3;
    */
-  unit = "";
+  unit = ''
 
   constructor(data?: PartialMessage<ShoppingItem>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.ShoppingItem";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.ShoppingItem'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "amount", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
-    { no: 3, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'amount', kind: 'scalar', T: 1 /* ScalarType.DOUBLE */ },
+    { no: 3, name: 'unit', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ShoppingItem {
-    return new ShoppingItem().fromBinary(bytes, options);
+    return new ShoppingItem().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ShoppingItem {
-    return new ShoppingItem().fromJson(jsonValue, options);
+    return new ShoppingItem().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ShoppingItem {
-    return new ShoppingItem().fromJsonString(jsonString, options);
+    return new ShoppingItem().fromJsonString(jsonString, options)
   }
 
-  static equals(a: ShoppingItem | PlainMessage<ShoppingItem> | undefined, b: ShoppingItem | PlainMessage<ShoppingItem> | undefined): boolean {
-    return proto3.util.equals(ShoppingItem, a, b);
+  static equals(
+    a: ShoppingItem | PlainMessage<ShoppingItem> | undefined,
+    b: ShoppingItem | PlainMessage<ShoppingItem> | undefined
+  ): boolean {
+    return proto3.util.equals(ShoppingItem, a, b)
   }
 }
 
@@ -231,29 +253,31 @@ export class ShoppingItem extends Message<ShoppingItem> {
  */
 export class ListPlansRequest extends Message<ListPlansRequest> {
   constructor(data?: PartialMessage<ListPlansRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.ListPlansRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.ListPlansRequest'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListPlansRequest {
-    return new ListPlansRequest().fromBinary(bytes, options);
+    return new ListPlansRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListPlansRequest {
-    return new ListPlansRequest().fromJson(jsonValue, options);
+    return new ListPlansRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListPlansRequest {
-    return new ListPlansRequest().fromJsonString(jsonString, options);
+    return new ListPlansRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: ListPlansRequest | PlainMessage<ListPlansRequest> | undefined, b: ListPlansRequest | PlainMessage<ListPlansRequest> | undefined): boolean {
-    return proto3.util.equals(ListPlansRequest, a, b);
+  static equals(
+    a: ListPlansRequest | PlainMessage<ListPlansRequest> | undefined,
+    b: ListPlansRequest | PlainMessage<ListPlansRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(ListPlansRequest, a, b)
   }
 }
 
@@ -264,33 +288,36 @@ export class ListPlansResponse extends Message<ListPlansResponse> {
   /**
    * @generated from field: repeated recipes.v1.Plan plans = 1;
    */
-  plans: Plan[] = [];
+  plans: Plan[] = []
 
   constructor(data?: PartialMessage<ListPlansResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.ListPlansResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.ListPlansResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plans", kind: "message", T: Plan, repeated: true },
-  ]);
+    { no: 1, name: 'plans', kind: 'message', T: Plan, repeated: true }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListPlansResponse {
-    return new ListPlansResponse().fromBinary(bytes, options);
+    return new ListPlansResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListPlansResponse {
-    return new ListPlansResponse().fromJson(jsonValue, options);
+    return new ListPlansResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListPlansResponse {
-    return new ListPlansResponse().fromJsonString(jsonString, options);
+    return new ListPlansResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: ListPlansResponse | PlainMessage<ListPlansResponse> | undefined, b: ListPlansResponse | PlainMessage<ListPlansResponse> | undefined): boolean {
-    return proto3.util.equals(ListPlansResponse, a, b);
+  static equals(
+    a: ListPlansResponse | PlainMessage<ListPlansResponse> | undefined,
+    b: ListPlansResponse | PlainMessage<ListPlansResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(ListPlansResponse, a, b)
   }
 }
 
@@ -301,39 +328,42 @@ export class GetPlanRequest extends Message<GetPlanRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: int32 offset = 2;
    */
-  offset = 0;
+  offset = 0
 
   constructor(data?: PartialMessage<GetPlanRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.GetPlanRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.GetPlanRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'offset', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPlanRequest {
-    return new GetPlanRequest().fromBinary(bytes, options);
+    return new GetPlanRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPlanRequest {
-    return new GetPlanRequest().fromJson(jsonValue, options);
+    return new GetPlanRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPlanRequest {
-    return new GetPlanRequest().fromJsonString(jsonString, options);
+    return new GetPlanRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetPlanRequest | PlainMessage<GetPlanRequest> | undefined, b: GetPlanRequest | PlainMessage<GetPlanRequest> | undefined): boolean {
-    return proto3.util.equals(GetPlanRequest, a, b);
+  static equals(
+    a: GetPlanRequest | PlainMessage<GetPlanRequest> | undefined,
+    b: GetPlanRequest | PlainMessage<GetPlanRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(GetPlanRequest, a, b)
   }
 }
 
@@ -344,81 +374,84 @@ export class GetPlanResponse extends Message<GetPlanResponse> {
   /**
    * @generated from field: recipes.v1.Plan plan = 1;
    */
-  plan?: Plan;
+  plan?: Plan
 
   /**
    * @generated from field: repeated recipes.v1.Recipe recipes = 2;
    */
-  recipes: Recipe[] = [];
+  recipes: Recipe[] = []
 
   /**
    * @generated from field: string ical_url = 3;
    */
-  icalUrl = "";
+  icalUrl = ''
 
   /**
    * @generated from field: bool is_owner = 4;
    */
-  isOwner = false;
+  isOwner = false
 
   /**
    * @generated from field: int32 offset = 5;
    */
-  offset = 0;
+  offset = 0
 
   /**
    * @generated from field: int32 prev_offset = 6;
    */
-  prevOffset = 0;
+  prevOffset = 0
 
   /**
    * @generated from field: int32 next_offset = 7;
    */
-  nextOffset = 0;
+  nextOffset = 0
 
   /**
    * @generated from field: string window_start = 8;
    */
-  windowStart = "";
+  windowStart = ''
 
   /**
    * @generated from field: string window_end = 9;
    */
-  windowEnd = "";
+  windowEnd = ''
 
   constructor(data?: PartialMessage<GetPlanResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.GetPlanResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.GetPlanResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plan", kind: "message", T: Plan },
-    { no: 2, name: "recipes", kind: "message", T: Recipe, repeated: true },
-    { no: 3, name: "ical_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "is_owner", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 5, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 6, name: "prev_offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 7, name: "next_offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 8, name: "window_start", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: "window_end", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'plan', kind: 'message', T: Plan },
+    { no: 2, name: 'recipes', kind: 'message', T: Recipe, repeated: true },
+    { no: 3, name: 'ical_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'is_owner', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 5, name: 'offset', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 6, name: 'prev_offset', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 7, name: 'next_offset', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 8, name: 'window_start', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: 'window_end', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPlanResponse {
-    return new GetPlanResponse().fromBinary(bytes, options);
+    return new GetPlanResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPlanResponse {
-    return new GetPlanResponse().fromJson(jsonValue, options);
+    return new GetPlanResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPlanResponse {
-    return new GetPlanResponse().fromJsonString(jsonString, options);
+    return new GetPlanResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetPlanResponse | PlainMessage<GetPlanResponse> | undefined, b: GetPlanResponse | PlainMessage<GetPlanResponse> | undefined): boolean {
-    return proto3.util.equals(GetPlanResponse, a, b);
+  static equals(
+    a: GetPlanResponse | PlainMessage<GetPlanResponse> | undefined,
+    b: GetPlanResponse | PlainMessage<GetPlanResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(GetPlanResponse, a, b)
   }
 }
 
@@ -429,33 +462,36 @@ export class CreatePlanRequest extends Message<CreatePlanRequest> {
   /**
    * @generated from field: string name = 1;
    */
-  name = "";
+  name = ''
 
   constructor(data?: PartialMessage<CreatePlanRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.CreatePlanRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.CreatePlanRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreatePlanRequest {
-    return new CreatePlanRequest().fromBinary(bytes, options);
+    return new CreatePlanRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreatePlanRequest {
-    return new CreatePlanRequest().fromJson(jsonValue, options);
+    return new CreatePlanRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreatePlanRequest {
-    return new CreatePlanRequest().fromJsonString(jsonString, options);
+    return new CreatePlanRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: CreatePlanRequest | PlainMessage<CreatePlanRequest> | undefined, b: CreatePlanRequest | PlainMessage<CreatePlanRequest> | undefined): boolean {
-    return proto3.util.equals(CreatePlanRequest, a, b);
+  static equals(
+    a: CreatePlanRequest | PlainMessage<CreatePlanRequest> | undefined,
+    b: CreatePlanRequest | PlainMessage<CreatePlanRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(CreatePlanRequest, a, b)
   }
 }
 
@@ -466,33 +502,39 @@ export class CreatePlanResponse extends Message<CreatePlanResponse> {
   /**
    * @generated from field: recipes.v1.Plan plan = 1;
    */
-  plan?: Plan;
+  plan?: Plan
 
   constructor(data?: PartialMessage<CreatePlanResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.CreatePlanResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.CreatePlanResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plan", kind: "message", T: Plan },
-  ]);
+    { no: 1, name: 'plan', kind: 'message', T: Plan }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreatePlanResponse {
-    return new CreatePlanResponse().fromBinary(bytes, options);
+    return new CreatePlanResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreatePlanResponse {
-    return new CreatePlanResponse().fromJson(jsonValue, options);
+    return new CreatePlanResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreatePlanResponse {
-    return new CreatePlanResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): CreatePlanResponse {
+    return new CreatePlanResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: CreatePlanResponse | PlainMessage<CreatePlanResponse> | undefined, b: CreatePlanResponse | PlainMessage<CreatePlanResponse> | undefined): boolean {
-    return proto3.util.equals(CreatePlanResponse, a, b);
+  static equals(
+    a: CreatePlanResponse | PlainMessage<CreatePlanResponse> | undefined,
+    b: CreatePlanResponse | PlainMessage<CreatePlanResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(CreatePlanResponse, a, b)
   }
 }
 
@@ -503,51 +545,60 @@ export class UpdatePlanRequest extends Message<UpdatePlanRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string name = 2;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: repeated string ical_hide_slots = 3;
    */
-  icalHideSlots: string[] = [];
+  icalHideSlots: string[] = []
 
   /**
    * @generated from field: bool ical_hide_past = 4;
    */
-  icalHidePast = false;
+  icalHidePast = false
 
   constructor(data?: PartialMessage<UpdatePlanRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.UpdatePlanRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.UpdatePlanRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "ical_hide_slots", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 4, name: "ical_hide_past", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    {
+      no: 3,
+      name: 'ical_hide_slots',
+      kind: 'scalar',
+      T: 9 /* ScalarType.STRING */,
+      repeated: true
+    },
+    { no: 4, name: 'ical_hide_past', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePlanRequest {
-    return new UpdatePlanRequest().fromBinary(bytes, options);
+    return new UpdatePlanRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdatePlanRequest {
-    return new UpdatePlanRequest().fromJson(jsonValue, options);
+    return new UpdatePlanRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdatePlanRequest {
-    return new UpdatePlanRequest().fromJsonString(jsonString, options);
+    return new UpdatePlanRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdatePlanRequest | PlainMessage<UpdatePlanRequest> | undefined, b: UpdatePlanRequest | PlainMessage<UpdatePlanRequest> | undefined): boolean {
-    return proto3.util.equals(UpdatePlanRequest, a, b);
+  static equals(
+    a: UpdatePlanRequest | PlainMessage<UpdatePlanRequest> | undefined,
+    b: UpdatePlanRequest | PlainMessage<UpdatePlanRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdatePlanRequest, a, b)
   }
 }
 
@@ -556,29 +607,34 @@ export class UpdatePlanRequest extends Message<UpdatePlanRequest> {
  */
 export class UpdatePlanResponse extends Message<UpdatePlanResponse> {
   constructor(data?: PartialMessage<UpdatePlanResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.UpdatePlanResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.UpdatePlanResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePlanResponse {
-    return new UpdatePlanResponse().fromBinary(bytes, options);
+    return new UpdatePlanResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdatePlanResponse {
-    return new UpdatePlanResponse().fromJson(jsonValue, options);
+    return new UpdatePlanResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdatePlanResponse {
-    return new UpdatePlanResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdatePlanResponse {
+    return new UpdatePlanResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdatePlanResponse | PlainMessage<UpdatePlanResponse> | undefined, b: UpdatePlanResponse | PlainMessage<UpdatePlanResponse> | undefined): boolean {
-    return proto3.util.equals(UpdatePlanResponse, a, b);
+  static equals(
+    a: UpdatePlanResponse | PlainMessage<UpdatePlanResponse> | undefined,
+    b: UpdatePlanResponse | PlainMessage<UpdatePlanResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdatePlanResponse, a, b)
   }
 }
 
@@ -589,33 +645,36 @@ export class DeletePlanRequest extends Message<DeletePlanRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   constructor(data?: PartialMessage<DeletePlanRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.DeletePlanRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.DeletePlanRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeletePlanRequest {
-    return new DeletePlanRequest().fromBinary(bytes, options);
+    return new DeletePlanRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeletePlanRequest {
-    return new DeletePlanRequest().fromJson(jsonValue, options);
+    return new DeletePlanRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeletePlanRequest {
-    return new DeletePlanRequest().fromJsonString(jsonString, options);
+    return new DeletePlanRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeletePlanRequest | PlainMessage<DeletePlanRequest> | undefined, b: DeletePlanRequest | PlainMessage<DeletePlanRequest> | undefined): boolean {
-    return proto3.util.equals(DeletePlanRequest, a, b);
+  static equals(
+    a: DeletePlanRequest | PlainMessage<DeletePlanRequest> | undefined,
+    b: DeletePlanRequest | PlainMessage<DeletePlanRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(DeletePlanRequest, a, b)
   }
 }
 
@@ -624,29 +683,34 @@ export class DeletePlanRequest extends Message<DeletePlanRequest> {
  */
 export class DeletePlanResponse extends Message<DeletePlanResponse> {
   constructor(data?: PartialMessage<DeletePlanResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.DeletePlanResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.DeletePlanResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeletePlanResponse {
-    return new DeletePlanResponse().fromBinary(bytes, options);
+    return new DeletePlanResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeletePlanResponse {
-    return new DeletePlanResponse().fromJson(jsonValue, options);
+    return new DeletePlanResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeletePlanResponse {
-    return new DeletePlanResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeletePlanResponse {
+    return new DeletePlanResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeletePlanResponse | PlainMessage<DeletePlanResponse> | undefined, b: DeletePlanResponse | PlainMessage<DeletePlanResponse> | undefined): boolean {
-    return proto3.util.equals(DeletePlanResponse, a, b);
+  static equals(
+    a: DeletePlanResponse | PlainMessage<DeletePlanResponse> | undefined,
+    b: DeletePlanResponse | PlainMessage<DeletePlanResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(DeletePlanResponse, a, b)
   }
 }
 
@@ -657,63 +721,66 @@ export class AddMealRequest extends Message<AddMealRequest> {
   /**
    * @generated from field: string plan_id = 1;
    */
-  planId = "";
+  planId = ''
 
   /**
    * @generated from field: string meal_date = 2;
    */
-  mealDate = "";
+  mealDate = ''
 
   /**
    * @generated from field: string meal_slot = 3;
    */
-  mealSlot = "";
+  mealSlot = ''
 
   /**
    * @generated from field: string recipe_id = 4;
    */
-  recipeId = "";
+  recipeId = ''
 
   /**
    * @generated from field: string custom_name = 5;
    */
-  customName = "";
+  customName = ''
 
   /**
    * @generated from field: int32 servings = 6;
    */
-  servings = 0;
+  servings = 0
 
   constructor(data?: PartialMessage<AddMealRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.AddMealRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.AddMealRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "meal_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "meal_slot", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "recipe_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "custom_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "servings", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'plan_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'meal_date', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'meal_slot', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'recipe_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'custom_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'servings', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddMealRequest {
-    return new AddMealRequest().fromBinary(bytes, options);
+    return new AddMealRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddMealRequest {
-    return new AddMealRequest().fromJson(jsonValue, options);
+    return new AddMealRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddMealRequest {
-    return new AddMealRequest().fromJsonString(jsonString, options);
+    return new AddMealRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddMealRequest | PlainMessage<AddMealRequest> | undefined, b: AddMealRequest | PlainMessage<AddMealRequest> | undefined): boolean {
-    return proto3.util.equals(AddMealRequest, a, b);
+  static equals(
+    a: AddMealRequest | PlainMessage<AddMealRequest> | undefined,
+    b: AddMealRequest | PlainMessage<AddMealRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(AddMealRequest, a, b)
   }
 }
 
@@ -722,29 +789,31 @@ export class AddMealRequest extends Message<AddMealRequest> {
  */
 export class AddMealResponse extends Message<AddMealResponse> {
   constructor(data?: PartialMessage<AddMealResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.AddMealResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.AddMealResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddMealResponse {
-    return new AddMealResponse().fromBinary(bytes, options);
+    return new AddMealResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddMealResponse {
-    return new AddMealResponse().fromJson(jsonValue, options);
+    return new AddMealResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddMealResponse {
-    return new AddMealResponse().fromJsonString(jsonString, options);
+    return new AddMealResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddMealResponse | PlainMessage<AddMealResponse> | undefined, b: AddMealResponse | PlainMessage<AddMealResponse> | undefined): boolean {
-    return proto3.util.equals(AddMealResponse, a, b);
+  static equals(
+    a: AddMealResponse | PlainMessage<AddMealResponse> | undefined,
+    b: AddMealResponse | PlainMessage<AddMealResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(AddMealResponse, a, b)
   }
 }
 
@@ -755,39 +824,42 @@ export class DeleteMealRequest extends Message<DeleteMealRequest> {
   /**
    * @generated from field: string plan_id = 1;
    */
-  planId = "";
+  planId = ''
 
   /**
    * @generated from field: string meal_id = 2;
    */
-  mealId = "";
+  mealId = ''
 
   constructor(data?: PartialMessage<DeleteMealRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.DeleteMealRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.DeleteMealRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "meal_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'plan_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'meal_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteMealRequest {
-    return new DeleteMealRequest().fromBinary(bytes, options);
+    return new DeleteMealRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteMealRequest {
-    return new DeleteMealRequest().fromJson(jsonValue, options);
+    return new DeleteMealRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteMealRequest {
-    return new DeleteMealRequest().fromJsonString(jsonString, options);
+    return new DeleteMealRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeleteMealRequest | PlainMessage<DeleteMealRequest> | undefined, b: DeleteMealRequest | PlainMessage<DeleteMealRequest> | undefined): boolean {
-    return proto3.util.equals(DeleteMealRequest, a, b);
+  static equals(
+    a: DeleteMealRequest | PlainMessage<DeleteMealRequest> | undefined,
+    b: DeleteMealRequest | PlainMessage<DeleteMealRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(DeleteMealRequest, a, b)
   }
 }
 
@@ -796,29 +868,34 @@ export class DeleteMealRequest extends Message<DeleteMealRequest> {
  */
 export class DeleteMealResponse extends Message<DeleteMealResponse> {
   constructor(data?: PartialMessage<DeleteMealResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.DeleteMealResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.DeleteMealResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteMealResponse {
-    return new DeleteMealResponse().fromBinary(bytes, options);
+    return new DeleteMealResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteMealResponse {
-    return new DeleteMealResponse().fromJson(jsonValue, options);
+    return new DeleteMealResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteMealResponse {
-    return new DeleteMealResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeleteMealResponse {
+    return new DeleteMealResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeleteMealResponse | PlainMessage<DeleteMealResponse> | undefined, b: DeleteMealResponse | PlainMessage<DeleteMealResponse> | undefined): boolean {
-    return proto3.util.equals(DeleteMealResponse, a, b);
+  static equals(
+    a: DeleteMealResponse | PlainMessage<DeleteMealResponse> | undefined,
+    b: DeleteMealResponse | PlainMessage<DeleteMealResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(DeleteMealResponse, a, b)
   }
 }
 
@@ -829,45 +906,48 @@ export class SharePlanRequest extends Message<SharePlanRequest> {
   /**
    * @generated from field: string plan_id = 1;
    */
-  planId = "";
+  planId = ''
 
   /**
    * @generated from field: string contact_user_id = 2;
    */
-  contactUserId = "";
+  contactUserId = ''
 
   /**
    * @generated from field: bool can_edit = 3;
    */
-  canEdit = false;
+  canEdit = false
 
   constructor(data?: PartialMessage<SharePlanRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.SharePlanRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.SharePlanRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "contact_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "can_edit", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
+    { no: 1, name: 'plan_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'contact_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'can_edit', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SharePlanRequest {
-    return new SharePlanRequest().fromBinary(bytes, options);
+    return new SharePlanRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SharePlanRequest {
-    return new SharePlanRequest().fromJson(jsonValue, options);
+    return new SharePlanRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SharePlanRequest {
-    return new SharePlanRequest().fromJsonString(jsonString, options);
+    return new SharePlanRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: SharePlanRequest | PlainMessage<SharePlanRequest> | undefined, b: SharePlanRequest | PlainMessage<SharePlanRequest> | undefined): boolean {
-    return proto3.util.equals(SharePlanRequest, a, b);
+  static equals(
+    a: SharePlanRequest | PlainMessage<SharePlanRequest> | undefined,
+    b: SharePlanRequest | PlainMessage<SharePlanRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(SharePlanRequest, a, b)
   }
 }
 
@@ -876,29 +956,31 @@ export class SharePlanRequest extends Message<SharePlanRequest> {
  */
 export class SharePlanResponse extends Message<SharePlanResponse> {
   constructor(data?: PartialMessage<SharePlanResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.SharePlanResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.SharePlanResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SharePlanResponse {
-    return new SharePlanResponse().fromBinary(bytes, options);
+    return new SharePlanResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SharePlanResponse {
-    return new SharePlanResponse().fromJson(jsonValue, options);
+    return new SharePlanResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SharePlanResponse {
-    return new SharePlanResponse().fromJsonString(jsonString, options);
+    return new SharePlanResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: SharePlanResponse | PlainMessage<SharePlanResponse> | undefined, b: SharePlanResponse | PlainMessage<SharePlanResponse> | undefined): boolean {
-    return proto3.util.equals(SharePlanResponse, a, b);
+  static equals(
+    a: SharePlanResponse | PlainMessage<SharePlanResponse> | undefined,
+    b: SharePlanResponse | PlainMessage<SharePlanResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(SharePlanResponse, a, b)
   }
 }
 
@@ -909,39 +991,45 @@ export class UnsharePlanRequest extends Message<UnsharePlanRequest> {
   /**
    * @generated from field: string plan_id = 1;
    */
-  planId = "";
+  planId = ''
 
   /**
    * @generated from field: string target_user_id = 2;
    */
-  targetUserId = "";
+  targetUserId = ''
 
   constructor(data?: PartialMessage<UnsharePlanRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.UnsharePlanRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.UnsharePlanRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "target_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'plan_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'target_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnsharePlanRequest {
-    return new UnsharePlanRequest().fromBinary(bytes, options);
+    return new UnsharePlanRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnsharePlanRequest {
-    return new UnsharePlanRequest().fromJson(jsonValue, options);
+    return new UnsharePlanRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnsharePlanRequest {
-    return new UnsharePlanRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UnsharePlanRequest {
+    return new UnsharePlanRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UnsharePlanRequest | PlainMessage<UnsharePlanRequest> | undefined, b: UnsharePlanRequest | PlainMessage<UnsharePlanRequest> | undefined): boolean {
-    return proto3.util.equals(UnsharePlanRequest, a, b);
+  static equals(
+    a: UnsharePlanRequest | PlainMessage<UnsharePlanRequest> | undefined,
+    b: UnsharePlanRequest | PlainMessage<UnsharePlanRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(UnsharePlanRequest, a, b)
   }
 }
 
@@ -950,29 +1038,34 @@ export class UnsharePlanRequest extends Message<UnsharePlanRequest> {
  */
 export class UnsharePlanResponse extends Message<UnsharePlanResponse> {
   constructor(data?: PartialMessage<UnsharePlanResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.UnsharePlanResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.UnsharePlanResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnsharePlanResponse {
-    return new UnsharePlanResponse().fromBinary(bytes, options);
+    return new UnsharePlanResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnsharePlanResponse {
-    return new UnsharePlanResponse().fromJson(jsonValue, options);
+    return new UnsharePlanResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnsharePlanResponse {
-    return new UnsharePlanResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UnsharePlanResponse {
+    return new UnsharePlanResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UnsharePlanResponse | PlainMessage<UnsharePlanResponse> | undefined, b: UnsharePlanResponse | PlainMessage<UnsharePlanResponse> | undefined): boolean {
-    return proto3.util.equals(UnsharePlanResponse, a, b);
+  static equals(
+    a: UnsharePlanResponse | PlainMessage<UnsharePlanResponse> | undefined,
+    b: UnsharePlanResponse | PlainMessage<UnsharePlanResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(UnsharePlanResponse, a, b)
   }
 }
 
@@ -983,33 +1076,45 @@ export class GetShoppingListRequest extends Message<GetShoppingListRequest> {
   /**
    * @generated from field: string plan_id = 1;
    */
-  planId = "";
+  planId = ''
 
   constructor(data?: PartialMessage<GetShoppingListRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.GetShoppingListRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.GetShoppingListRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'plan_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetShoppingListRequest {
-    return new GetShoppingListRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): GetShoppingListRequest {
+    return new GetShoppingListRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetShoppingListRequest {
-    return new GetShoppingListRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): GetShoppingListRequest {
+    return new GetShoppingListRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetShoppingListRequest {
-    return new GetShoppingListRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetShoppingListRequest {
+    return new GetShoppingListRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetShoppingListRequest | PlainMessage<GetShoppingListRequest> | undefined, b: GetShoppingListRequest | PlainMessage<GetShoppingListRequest> | undefined): boolean {
-    return proto3.util.equals(GetShoppingListRequest, a, b);
+  static equals(
+    a: GetShoppingListRequest | PlainMessage<GetShoppingListRequest> | undefined,
+    b: GetShoppingListRequest | PlainMessage<GetShoppingListRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(GetShoppingListRequest, a, b)
   }
 }
 
@@ -1020,39 +1125,50 @@ export class GetShoppingListResponse extends Message<GetShoppingListResponse> {
   /**
    * @generated from field: repeated recipes.v1.ShoppingItem items = 1;
    */
-  items: ShoppingItem[] = [];
+  items: ShoppingItem[] = []
 
   /**
    * @generated from field: recipes.v1.Plan plan = 2;
    */
-  plan?: Plan;
+  plan?: Plan
 
   constructor(data?: PartialMessage<GetShoppingListResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "recipes.v1.GetShoppingListResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'recipes.v1.GetShoppingListResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "items", kind: "message", T: ShoppingItem, repeated: true },
-    { no: 2, name: "plan", kind: "message", T: Plan },
-  ]);
+    { no: 1, name: 'items', kind: 'message', T: ShoppingItem, repeated: true },
+    { no: 2, name: 'plan', kind: 'message', T: Plan }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetShoppingListResponse {
-    return new GetShoppingListResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): GetShoppingListResponse {
+    return new GetShoppingListResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetShoppingListResponse {
-    return new GetShoppingListResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): GetShoppingListResponse {
+    return new GetShoppingListResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetShoppingListResponse {
-    return new GetShoppingListResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetShoppingListResponse {
+    return new GetShoppingListResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetShoppingListResponse | PlainMessage<GetShoppingListResponse> | undefined, b: GetShoppingListResponse | PlainMessage<GetShoppingListResponse> | undefined): boolean {
-    return proto3.util.equals(GetShoppingListResponse, a, b);
+  static equals(
+    a: GetShoppingListResponse | PlainMessage<GetShoppingListResponse> | undefined,
+    b: GetShoppingListResponse | PlainMessage<GetShoppingListResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(GetShoppingListResponse, a, b)
   }
 }
-

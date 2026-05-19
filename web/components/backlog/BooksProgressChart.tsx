@@ -1,6 +1,14 @@
 'use client'
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts'
 import type { GetBooksProgressResponse } from '@/lib/gen/backlog/v1/books_pb'
 
 interface BooksProgressChartProps {

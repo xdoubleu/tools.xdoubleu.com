@@ -51,25 +51,29 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
     try {
       if (recipe?.id) {
-        await updateRecipe(new UpdateRecipeRequest({
-          id: recipe.id,
-          name,
-          baseServings: parseInt(servings, 10),
-          steps: steps.split('\n').filter((s) => s.trim()),
-          ingredientNames: ingredients.map((ing) => ing.name),
-          ingredientAmounts: ingredients.map((ing) => parseFloat(ing.amount) || 0),
-          ingredientUnits: ingredients.map((ing) => ing.unit)
-        }))
+        await updateRecipe(
+          new UpdateRecipeRequest({
+            id: recipe.id,
+            name,
+            baseServings: parseInt(servings, 10),
+            steps: steps.split('\n').filter((s) => s.trim()),
+            ingredientNames: ingredients.map((ing) => ing.name),
+            ingredientAmounts: ingredients.map((ing) => parseFloat(ing.amount) || 0),
+            ingredientUnits: ingredients.map((ing) => ing.unit)
+          })
+        )
         onSave(recipe.id)
       } else {
-        const result = await createRecipe(new CreateRecipeRequest({
-          name,
-          baseServings: parseInt(servings, 10),
-          steps: steps.split('\n').filter((s) => s.trim()),
-          ingredientNames: ingredients.map((ing) => ing.name),
-          ingredientAmounts: ingredients.map((ing) => parseFloat(ing.amount) || 0),
-          ingredientUnits: ingredients.map((ing) => ing.unit)
-        }))
+        const result = await createRecipe(
+          new CreateRecipeRequest({
+            name,
+            baseServings: parseInt(servings, 10),
+            steps: steps.split('\n').filter((s) => s.trim()),
+            ingredientNames: ingredients.map((ing) => ing.name),
+            ingredientAmounts: ingredients.map((ing) => parseFloat(ing.amount) || 0),
+            ingredientUnits: ingredients.map((ing) => ing.unit)
+          })
+        )
         onSave(result.recipe?.id || '')
       }
     } catch (err) {

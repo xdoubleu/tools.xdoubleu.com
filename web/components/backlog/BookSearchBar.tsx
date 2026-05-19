@@ -123,15 +123,8 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
 
       <div className="flex items-center gap-2">
         <label className="text-sm text-muted cursor-pointer">
-          <span className="px-3 py-1.5 bg-surface rounded hover:bg-border text-sm">
-            Import CSV
-          </span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleImport}
-            className="hidden"
-          />
+          <span className="px-3 py-1.5 bg-surface rounded hover:bg-border text-sm">Import CSV</span>
+          <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
         </label>
         {importStatus && <span className="text-sm text-muted">{importStatus}</span>}
       </div>

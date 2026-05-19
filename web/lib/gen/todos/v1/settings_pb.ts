@@ -3,8 +3,15 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
 
 /**
  * @generated from message todos.v1.Section
@@ -13,63 +20,66 @@ export class Section extends Message<Section> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string owner_user_id = 2;
    */
-  ownerUserId = "";
+  ownerUserId = ''
 
   /**
    * @generated from field: string name = 3;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: int32 sort_order = 4;
    */
-  sortOrder = 0;
+  sortOrder = 0
 
   /**
    * @generated from field: string created_at = 5;
    */
-  createdAt = "";
+  createdAt = ''
 
   /**
    * @generated from field: string workspace_id = 6;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<Section>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.Section";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.Section'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "owner_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "sort_order", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 5, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'owner_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'sort_order', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: 'created_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Section {
-    return new Section().fromBinary(bytes, options);
+    return new Section().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Section {
-    return new Section().fromJson(jsonValue, options);
+    return new Section().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Section {
-    return new Section().fromJsonString(jsonString, options);
+    return new Section().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Section | PlainMessage<Section> | undefined, b: Section | PlainMessage<Section> | undefined): boolean {
-    return proto3.util.equals(Section, a, b);
+  static equals(
+    a: Section | PlainMessage<Section> | undefined,
+    b: Section | PlainMessage<Section> | undefined
+  ): boolean {
+    return proto3.util.equals(Section, a, b)
   }
 }
 
@@ -80,39 +90,42 @@ export class LabelPreset extends Message<LabelPreset> {
   /**
    * @generated from field: string value = 1;
    */
-  value = "";
+  value = ''
 
   /**
    * @generated from field: string color = 2;
    */
-  color = "";
+  color = ''
 
   constructor(data?: PartialMessage<LabelPreset>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.LabelPreset";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.LabelPreset'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "color", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'value', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'color', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LabelPreset {
-    return new LabelPreset().fromBinary(bytes, options);
+    return new LabelPreset().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LabelPreset {
-    return new LabelPreset().fromJson(jsonValue, options);
+    return new LabelPreset().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LabelPreset {
-    return new LabelPreset().fromJsonString(jsonString, options);
+    return new LabelPreset().fromJsonString(jsonString, options)
   }
 
-  static equals(a: LabelPreset | PlainMessage<LabelPreset> | undefined, b: LabelPreset | PlainMessage<LabelPreset> | undefined): boolean {
-    return proto3.util.equals(LabelPreset, a, b);
+  static equals(
+    a: LabelPreset | PlainMessage<LabelPreset> | undefined,
+    b: LabelPreset | PlainMessage<LabelPreset> | undefined
+  ): boolean {
+    return proto3.util.equals(LabelPreset, a, b)
   }
 }
 
@@ -123,69 +136,72 @@ export class URLPattern extends Message<URLPattern> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string user_id = 2;
    */
-  userId = "";
+  userId = ''
 
   /**
    * @generated from field: string url_prefix = 3;
    */
-  urlPrefix = "";
+  urlPrefix = ''
 
   /**
    * @generated from field: string platform_name = 4;
    */
-  platformName = "";
+  platformName = ''
 
   /**
    * @generated from field: string label = 5;
    */
-  label = "";
+  label = ''
 
   /**
    * @generated from field: string shortcut = 6;
    */
-  shortcut = "";
+  shortcut = ''
 
   /**
    * @generated from field: int32 sort_order = 7;
    */
-  sortOrder = 0;
+  sortOrder = 0
 
   constructor(data?: PartialMessage<URLPattern>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.URLPattern";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.URLPattern'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "url_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "platform_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "label", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "shortcut", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "sort_order", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'url_prefix', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'platform_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'label', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'shortcut', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: 'sort_order', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): URLPattern {
-    return new URLPattern().fromBinary(bytes, options);
+    return new URLPattern().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): URLPattern {
-    return new URLPattern().fromJson(jsonValue, options);
+    return new URLPattern().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): URLPattern {
-    return new URLPattern().fromJsonString(jsonString, options);
+    return new URLPattern().fromJsonString(jsonString, options)
   }
 
-  static equals(a: URLPattern | PlainMessage<URLPattern> | undefined, b: URLPattern | PlainMessage<URLPattern> | undefined): boolean {
-    return proto3.util.equals(URLPattern, a, b);
+  static equals(
+    a: URLPattern | PlainMessage<URLPattern> | undefined,
+    b: URLPattern | PlainMessage<URLPattern> | undefined
+  ): boolean {
+    return proto3.util.equals(URLPattern, a, b)
   }
 }
 
@@ -196,39 +212,42 @@ export class ArchiveSettings extends Message<ArchiveSettings> {
   /**
    * @generated from field: string user_id = 1;
    */
-  userId = "";
+  userId = ''
 
   /**
    * @generated from field: int32 archive_after_hours = 2;
    */
-  archiveAfterHours = 0;
+  archiveAfterHours = 0
 
   constructor(data?: PartialMessage<ArchiveSettings>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.ArchiveSettings";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.ArchiveSettings'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "archive_after_hours", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'archive_after_hours', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ArchiveSettings {
-    return new ArchiveSettings().fromBinary(bytes, options);
+    return new ArchiveSettings().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ArchiveSettings {
-    return new ArchiveSettings().fromJson(jsonValue, options);
+    return new ArchiveSettings().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ArchiveSettings {
-    return new ArchiveSettings().fromJsonString(jsonString, options);
+    return new ArchiveSettings().fromJsonString(jsonString, options)
   }
 
-  static equals(a: ArchiveSettings | PlainMessage<ArchiveSettings> | undefined, b: ArchiveSettings | PlainMessage<ArchiveSettings> | undefined): boolean {
-    return proto3.util.equals(ArchiveSettings, a, b);
+  static equals(
+    a: ArchiveSettings | PlainMessage<ArchiveSettings> | undefined,
+    b: ArchiveSettings | PlainMessage<ArchiveSettings> | undefined
+  ): boolean {
+    return proto3.util.equals(ArchiveSettings, a, b)
   }
 }
 
@@ -239,69 +258,72 @@ export class Policy extends Message<Policy> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string owner_user_id = 2;
    */
-  ownerUserId = "";
+  ownerUserId = ''
 
   /**
    * @generated from field: string text = 3;
    */
-  text = "";
+  text = ''
 
   /**
    * @generated from field: int32 reappear_after_hours = 4;
    */
-  reappearAfterHours = 0;
+  reappearAfterHours = 0
 
   /**
    * @generated from field: int32 sort_order = 5;
    */
-  sortOrder = 0;
+  sortOrder = 0
 
   /**
    * @generated from field: string created_at = 6;
    */
-  createdAt = "";
+  createdAt = ''
 
   /**
    * @generated from field: string workspace_id = 7;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<Policy>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.Policy";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.Policy'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "owner_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "text", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "reappear_after_hours", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 5, name: "sort_order", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 6, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'owner_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'text', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'reappear_after_hours', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: 'sort_order', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 6, name: 'created_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Policy {
-    return new Policy().fromBinary(bytes, options);
+    return new Policy().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Policy {
-    return new Policy().fromJson(jsonValue, options);
+    return new Policy().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Policy {
-    return new Policy().fromJsonString(jsonString, options);
+    return new Policy().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Policy | PlainMessage<Policy> | undefined, b: Policy | PlainMessage<Policy> | undefined): boolean {
-    return proto3.util.equals(Policy, a, b);
+  static equals(
+    a: Policy | PlainMessage<Policy> | undefined,
+    b: Policy | PlainMessage<Policy> | undefined
+  ): boolean {
+    return proto3.util.equals(Policy, a, b)
   }
 }
 
@@ -312,51 +334,54 @@ export class Workspace extends Message<Workspace> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string owner_user_id = 2;
    */
-  ownerUserId = "";
+  ownerUserId = ''
 
   /**
    * @generated from field: string name = 3;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: string created_at = 4;
    */
-  createdAt = "";
+  createdAt = ''
 
   constructor(data?: PartialMessage<Workspace>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.Workspace";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.Workspace'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "owner_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'owner_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'created_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Workspace {
-    return new Workspace().fromBinary(bytes, options);
+    return new Workspace().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Workspace {
-    return new Workspace().fromJson(jsonValue, options);
+    return new Workspace().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Workspace {
-    return new Workspace().fromJsonString(jsonString, options);
+    return new Workspace().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Workspace | PlainMessage<Workspace> | undefined, b: Workspace | PlainMessage<Workspace> | undefined): boolean {
-    return proto3.util.equals(Workspace, a, b);
+  static equals(
+    a: Workspace | PlainMessage<Workspace> | undefined,
+    b: Workspace | PlainMessage<Workspace> | undefined
+  ): boolean {
+    return proto3.util.equals(Workspace, a, b)
   }
 }
 
@@ -367,45 +392,48 @@ export class UserSettings extends Message<UserSettings> {
   /**
    * @generated from field: string user_id = 1;
    */
-  userId = "";
+  userId = ''
 
   /**
    * @generated from field: string active_workspace_id = 2;
    */
-  activeWorkspaceId = "";
+  activeWorkspaceId = ''
 
   /**
    * @generated from field: bool hide_shortcut_hints = 3;
    */
-  hideShortcutHints = false;
+  hideShortcutHints = false
 
   constructor(data?: PartialMessage<UserSettings>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UserSettings";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UserSettings'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "active_workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "hide_shortcut_hints", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
+    { no: 1, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'active_workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'hide_shortcut_hints', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserSettings {
-    return new UserSettings().fromBinary(bytes, options);
+    return new UserSettings().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserSettings {
-    return new UserSettings().fromJson(jsonValue, options);
+    return new UserSettings().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserSettings {
-    return new UserSettings().fromJsonString(jsonString, options);
+    return new UserSettings().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UserSettings | PlainMessage<UserSettings> | undefined, b: UserSettings | PlainMessage<UserSettings> | undefined): boolean {
-    return proto3.util.equals(UserSettings, a, b);
+  static equals(
+    a: UserSettings | PlainMessage<UserSettings> | undefined,
+    b: UserSettings | PlainMessage<UserSettings> | undefined
+  ): boolean {
+    return proto3.util.equals(UserSettings, a, b)
   }
 }
 
@@ -414,29 +442,34 @@ export class UserSettings extends Message<UserSettings> {
  */
 export class GetSettingsRequest extends Message<GetSettingsRequest> {
   constructor(data?: PartialMessage<GetSettingsRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.GetSettingsRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.GetSettingsRequest'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSettingsRequest {
-    return new GetSettingsRequest().fromBinary(bytes, options);
+    return new GetSettingsRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSettingsRequest {
-    return new GetSettingsRequest().fromJson(jsonValue, options);
+    return new GetSettingsRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSettingsRequest {
-    return new GetSettingsRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetSettingsRequest {
+    return new GetSettingsRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined, b: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined): boolean {
-    return proto3.util.equals(GetSettingsRequest, a, b);
+  static equals(
+    a: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined,
+    b: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSettingsRequest, a, b)
   }
 }
 
@@ -447,69 +480,75 @@ export class GetSettingsResponse extends Message<GetSettingsResponse> {
   /**
    * @generated from field: repeated todos.v1.LabelPreset label_presets = 1;
    */
-  labelPresets: LabelPreset[] = [];
+  labelPresets: LabelPreset[] = []
 
   /**
    * @generated from field: repeated todos.v1.URLPattern url_patterns = 2;
    */
-  urlPatterns: URLPattern[] = [];
+  urlPatterns: URLPattern[] = []
 
   /**
    * @generated from field: todos.v1.ArchiveSettings archive = 3;
    */
-  archive?: ArchiveSettings;
+  archive?: ArchiveSettings
 
   /**
    * @generated from field: repeated todos.v1.Section sections = 4;
    */
-  sections: Section[] = [];
+  sections: Section[] = []
 
   /**
    * @generated from field: repeated todos.v1.Policy policies = 5;
    */
-  policies: Policy[] = [];
+  policies: Policy[] = []
 
   /**
    * @generated from field: repeated todos.v1.Workspace workspaces = 6;
    */
-  workspaces: Workspace[] = [];
+  workspaces: Workspace[] = []
 
   /**
    * @generated from field: todos.v1.UserSettings user_settings = 7;
    */
-  userSettings?: UserSettings;
+  userSettings?: UserSettings
 
   constructor(data?: PartialMessage<GetSettingsResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.GetSettingsResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.GetSettingsResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "label_presets", kind: "message", T: LabelPreset, repeated: true },
-    { no: 2, name: "url_patterns", kind: "message", T: URLPattern, repeated: true },
-    { no: 3, name: "archive", kind: "message", T: ArchiveSettings },
-    { no: 4, name: "sections", kind: "message", T: Section, repeated: true },
-    { no: 5, name: "policies", kind: "message", T: Policy, repeated: true },
-    { no: 6, name: "workspaces", kind: "message", T: Workspace, repeated: true },
-    { no: 7, name: "user_settings", kind: "message", T: UserSettings },
-  ]);
+    { no: 1, name: 'label_presets', kind: 'message', T: LabelPreset, repeated: true },
+    { no: 2, name: 'url_patterns', kind: 'message', T: URLPattern, repeated: true },
+    { no: 3, name: 'archive', kind: 'message', T: ArchiveSettings },
+    { no: 4, name: 'sections', kind: 'message', T: Section, repeated: true },
+    { no: 5, name: 'policies', kind: 'message', T: Policy, repeated: true },
+    { no: 6, name: 'workspaces', kind: 'message', T: Workspace, repeated: true },
+    { no: 7, name: 'user_settings', kind: 'message', T: UserSettings }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSettingsResponse {
-    return new GetSettingsResponse().fromBinary(bytes, options);
+    return new GetSettingsResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSettingsResponse {
-    return new GetSettingsResponse().fromJson(jsonValue, options);
+    return new GetSettingsResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSettingsResponse {
-    return new GetSettingsResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetSettingsResponse {
+    return new GetSettingsResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined, b: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined): boolean {
-    return proto3.util.equals(GetSettingsResponse, a, b);
+  static equals(
+    a: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined,
+    b: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSettingsResponse, a, b)
   }
 }
 
@@ -520,33 +559,45 @@ export class UpdateArchiveSettingsRequest extends Message<UpdateArchiveSettingsR
   /**
    * @generated from field: int32 archive_after_hours = 1;
    */
-  archiveAfterHours = 0;
+  archiveAfterHours = 0
 
   constructor(data?: PartialMessage<UpdateArchiveSettingsRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdateArchiveSettingsRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdateArchiveSettingsRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "archive_after_hours", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'archive_after_hours', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateArchiveSettingsRequest {
-    return new UpdateArchiveSettingsRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): UpdateArchiveSettingsRequest {
+    return new UpdateArchiveSettingsRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateArchiveSettingsRequest {
-    return new UpdateArchiveSettingsRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): UpdateArchiveSettingsRequest {
+    return new UpdateArchiveSettingsRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateArchiveSettingsRequest {
-    return new UpdateArchiveSettingsRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdateArchiveSettingsRequest {
+    return new UpdateArchiveSettingsRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdateArchiveSettingsRequest | PlainMessage<UpdateArchiveSettingsRequest> | undefined, b: UpdateArchiveSettingsRequest | PlainMessage<UpdateArchiveSettingsRequest> | undefined): boolean {
-    return proto3.util.equals(UpdateArchiveSettingsRequest, a, b);
+  static equals(
+    a: UpdateArchiveSettingsRequest | PlainMessage<UpdateArchiveSettingsRequest> | undefined,
+    b: UpdateArchiveSettingsRequest | PlainMessage<UpdateArchiveSettingsRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdateArchiveSettingsRequest, a, b)
   }
 }
 
@@ -555,29 +606,40 @@ export class UpdateArchiveSettingsRequest extends Message<UpdateArchiveSettingsR
  */
 export class UpdateArchiveSettingsResponse extends Message<UpdateArchiveSettingsResponse> {
   constructor(data?: PartialMessage<UpdateArchiveSettingsResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdateArchiveSettingsResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdateArchiveSettingsResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateArchiveSettingsResponse {
-    return new UpdateArchiveSettingsResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): UpdateArchiveSettingsResponse {
+    return new UpdateArchiveSettingsResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateArchiveSettingsResponse {
-    return new UpdateArchiveSettingsResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): UpdateArchiveSettingsResponse {
+    return new UpdateArchiveSettingsResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateArchiveSettingsResponse {
-    return new UpdateArchiveSettingsResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdateArchiveSettingsResponse {
+    return new UpdateArchiveSettingsResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdateArchiveSettingsResponse | PlainMessage<UpdateArchiveSettingsResponse> | undefined, b: UpdateArchiveSettingsResponse | PlainMessage<UpdateArchiveSettingsResponse> | undefined): boolean {
-    return proto3.util.equals(UpdateArchiveSettingsResponse, a, b);
+  static equals(
+    a: UpdateArchiveSettingsResponse | PlainMessage<UpdateArchiveSettingsResponse> | undefined,
+    b: UpdateArchiveSettingsResponse | PlainMessage<UpdateArchiveSettingsResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdateArchiveSettingsResponse, a, b)
   }
 }
 
@@ -588,45 +650,54 @@ export class AddLabelPresetRequest extends Message<AddLabelPresetRequest> {
   /**
    * @generated from field: string category = 1;
    */
-  category = "";
+  category = ''
 
   /**
    * @generated from field: string value = 2;
    */
-  value = "";
+  value = ''
 
   /**
    * @generated from field: string workspace_id = 3;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<AddLabelPresetRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddLabelPresetRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddLabelPresetRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "category", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'category', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'value', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddLabelPresetRequest {
-    return new AddLabelPresetRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): AddLabelPresetRequest {
+    return new AddLabelPresetRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddLabelPresetRequest {
-    return new AddLabelPresetRequest().fromJson(jsonValue, options);
+    return new AddLabelPresetRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddLabelPresetRequest {
-    return new AddLabelPresetRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AddLabelPresetRequest {
+    return new AddLabelPresetRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddLabelPresetRequest | PlainMessage<AddLabelPresetRequest> | undefined, b: AddLabelPresetRequest | PlainMessage<AddLabelPresetRequest> | undefined): boolean {
-    return proto3.util.equals(AddLabelPresetRequest, a, b);
+  static equals(
+    a: AddLabelPresetRequest | PlainMessage<AddLabelPresetRequest> | undefined,
+    b: AddLabelPresetRequest | PlainMessage<AddLabelPresetRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(AddLabelPresetRequest, a, b)
   }
 }
 
@@ -635,29 +706,40 @@ export class AddLabelPresetRequest extends Message<AddLabelPresetRequest> {
  */
 export class AddLabelPresetResponse extends Message<AddLabelPresetResponse> {
   constructor(data?: PartialMessage<AddLabelPresetResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddLabelPresetResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddLabelPresetResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddLabelPresetResponse {
-    return new AddLabelPresetResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): AddLabelPresetResponse {
+    return new AddLabelPresetResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddLabelPresetResponse {
-    return new AddLabelPresetResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): AddLabelPresetResponse {
+    return new AddLabelPresetResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddLabelPresetResponse {
-    return new AddLabelPresetResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AddLabelPresetResponse {
+    return new AddLabelPresetResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddLabelPresetResponse | PlainMessage<AddLabelPresetResponse> | undefined, b: AddLabelPresetResponse | PlainMessage<AddLabelPresetResponse> | undefined): boolean {
-    return proto3.util.equals(AddLabelPresetResponse, a, b);
+  static equals(
+    a: AddLabelPresetResponse | PlainMessage<AddLabelPresetResponse> | undefined,
+    b: AddLabelPresetResponse | PlainMessage<AddLabelPresetResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(AddLabelPresetResponse, a, b)
   }
 }
 
@@ -668,45 +750,57 @@ export class RemoveLabelPresetRequest extends Message<RemoveLabelPresetRequest> 
   /**
    * @generated from field: string category = 1;
    */
-  category = "";
+  category = ''
 
   /**
    * @generated from field: string value = 2;
    */
-  value = "";
+  value = ''
 
   /**
    * @generated from field: string workspace_id = 3;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<RemoveLabelPresetRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemoveLabelPresetRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemoveLabelPresetRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "category", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'category', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'value', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveLabelPresetRequest {
-    return new RemoveLabelPresetRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): RemoveLabelPresetRequest {
+    return new RemoveLabelPresetRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveLabelPresetRequest {
-    return new RemoveLabelPresetRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): RemoveLabelPresetRequest {
+    return new RemoveLabelPresetRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveLabelPresetRequest {
-    return new RemoveLabelPresetRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemoveLabelPresetRequest {
+    return new RemoveLabelPresetRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemoveLabelPresetRequest | PlainMessage<RemoveLabelPresetRequest> | undefined, b: RemoveLabelPresetRequest | PlainMessage<RemoveLabelPresetRequest> | undefined): boolean {
-    return proto3.util.equals(RemoveLabelPresetRequest, a, b);
+  static equals(
+    a: RemoveLabelPresetRequest | PlainMessage<RemoveLabelPresetRequest> | undefined,
+    b: RemoveLabelPresetRequest | PlainMessage<RemoveLabelPresetRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(RemoveLabelPresetRequest, a, b)
   }
 }
 
@@ -715,29 +809,40 @@ export class RemoveLabelPresetRequest extends Message<RemoveLabelPresetRequest> 
  */
 export class RemoveLabelPresetResponse extends Message<RemoveLabelPresetResponse> {
   constructor(data?: PartialMessage<RemoveLabelPresetResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemoveLabelPresetResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemoveLabelPresetResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveLabelPresetResponse {
-    return new RemoveLabelPresetResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): RemoveLabelPresetResponse {
+    return new RemoveLabelPresetResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveLabelPresetResponse {
-    return new RemoveLabelPresetResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): RemoveLabelPresetResponse {
+    return new RemoveLabelPresetResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveLabelPresetResponse {
-    return new RemoveLabelPresetResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemoveLabelPresetResponse {
+    return new RemoveLabelPresetResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemoveLabelPresetResponse | PlainMessage<RemoveLabelPresetResponse> | undefined, b: RemoveLabelPresetResponse | PlainMessage<RemoveLabelPresetResponse> | undefined): boolean {
-    return proto3.util.equals(RemoveLabelPresetResponse, a, b);
+  static equals(
+    a: RemoveLabelPresetResponse | PlainMessage<RemoveLabelPresetResponse> | undefined,
+    b: RemoveLabelPresetResponse | PlainMessage<RemoveLabelPresetResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(RemoveLabelPresetResponse, a, b)
   }
 }
 
@@ -748,51 +853,63 @@ export class UpdateLabelColorRequest extends Message<UpdateLabelColorRequest> {
   /**
    * @generated from field: string category = 1;
    */
-  category = "";
+  category = ''
 
   /**
    * @generated from field: string value = 2;
    */
-  value = "";
+  value = ''
 
   /**
    * @generated from field: string color = 3;
    */
-  color = "";
+  color = ''
 
   /**
    * @generated from field: string workspace_id = 4;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<UpdateLabelColorRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdateLabelColorRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdateLabelColorRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "category", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "color", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'category', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'value', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'color', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateLabelColorRequest {
-    return new UpdateLabelColorRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): UpdateLabelColorRequest {
+    return new UpdateLabelColorRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateLabelColorRequest {
-    return new UpdateLabelColorRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): UpdateLabelColorRequest {
+    return new UpdateLabelColorRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateLabelColorRequest {
-    return new UpdateLabelColorRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdateLabelColorRequest {
+    return new UpdateLabelColorRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdateLabelColorRequest | PlainMessage<UpdateLabelColorRequest> | undefined, b: UpdateLabelColorRequest | PlainMessage<UpdateLabelColorRequest> | undefined): boolean {
-    return proto3.util.equals(UpdateLabelColorRequest, a, b);
+  static equals(
+    a: UpdateLabelColorRequest | PlainMessage<UpdateLabelColorRequest> | undefined,
+    b: UpdateLabelColorRequest | PlainMessage<UpdateLabelColorRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdateLabelColorRequest, a, b)
   }
 }
 
@@ -801,29 +918,40 @@ export class UpdateLabelColorRequest extends Message<UpdateLabelColorRequest> {
  */
 export class UpdateLabelColorResponse extends Message<UpdateLabelColorResponse> {
   constructor(data?: PartialMessage<UpdateLabelColorResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdateLabelColorResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdateLabelColorResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateLabelColorResponse {
-    return new UpdateLabelColorResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): UpdateLabelColorResponse {
+    return new UpdateLabelColorResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateLabelColorResponse {
-    return new UpdateLabelColorResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): UpdateLabelColorResponse {
+    return new UpdateLabelColorResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateLabelColorResponse {
-    return new UpdateLabelColorResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdateLabelColorResponse {
+    return new UpdateLabelColorResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdateLabelColorResponse | PlainMessage<UpdateLabelColorResponse> | undefined, b: UpdateLabelColorResponse | PlainMessage<UpdateLabelColorResponse> | undefined): boolean {
-    return proto3.util.equals(UpdateLabelColorResponse, a, b);
+  static equals(
+    a: UpdateLabelColorResponse | PlainMessage<UpdateLabelColorResponse> | undefined,
+    b: UpdateLabelColorResponse | PlainMessage<UpdateLabelColorResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdateLabelColorResponse, a, b)
   }
 }
 
@@ -834,57 +962,63 @@ export class AddURLPatternRequest extends Message<AddURLPatternRequest> {
   /**
    * @generated from field: string url_prefix = 1;
    */
-  urlPrefix = "";
+  urlPrefix = ''
 
   /**
    * @generated from field: string platform_name = 2;
    */
-  platformName = "";
+  platformName = ''
 
   /**
    * @generated from field: string label = 3;
    */
-  label = "";
+  label = ''
 
   /**
    * @generated from field: string shortcut = 4;
    */
-  shortcut = "";
+  shortcut = ''
 
   /**
    * @generated from field: string workspace_id = 5;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<AddURLPatternRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddURLPatternRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddURLPatternRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "url_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "platform_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "label", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "shortcut", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'url_prefix', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'platform_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'label', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'shortcut', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddURLPatternRequest {
-    return new AddURLPatternRequest().fromBinary(bytes, options);
+    return new AddURLPatternRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddURLPatternRequest {
-    return new AddURLPatternRequest().fromJson(jsonValue, options);
+    return new AddURLPatternRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddURLPatternRequest {
-    return new AddURLPatternRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AddURLPatternRequest {
+    return new AddURLPatternRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddURLPatternRequest | PlainMessage<AddURLPatternRequest> | undefined, b: AddURLPatternRequest | PlainMessage<AddURLPatternRequest> | undefined): boolean {
-    return proto3.util.equals(AddURLPatternRequest, a, b);
+  static equals(
+    a: AddURLPatternRequest | PlainMessage<AddURLPatternRequest> | undefined,
+    b: AddURLPatternRequest | PlainMessage<AddURLPatternRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(AddURLPatternRequest, a, b)
   }
 }
 
@@ -893,29 +1027,37 @@ export class AddURLPatternRequest extends Message<AddURLPatternRequest> {
  */
 export class AddURLPatternResponse extends Message<AddURLPatternResponse> {
   constructor(data?: PartialMessage<AddURLPatternResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddURLPatternResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddURLPatternResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddURLPatternResponse {
-    return new AddURLPatternResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): AddURLPatternResponse {
+    return new AddURLPatternResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddURLPatternResponse {
-    return new AddURLPatternResponse().fromJson(jsonValue, options);
+    return new AddURLPatternResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddURLPatternResponse {
-    return new AddURLPatternResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AddURLPatternResponse {
+    return new AddURLPatternResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddURLPatternResponse | PlainMessage<AddURLPatternResponse> | undefined, b: AddURLPatternResponse | PlainMessage<AddURLPatternResponse> | undefined): boolean {
-    return proto3.util.equals(AddURLPatternResponse, a, b);
+  static equals(
+    a: AddURLPatternResponse | PlainMessage<AddURLPatternResponse> | undefined,
+    b: AddURLPatternResponse | PlainMessage<AddURLPatternResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(AddURLPatternResponse, a, b)
   }
 }
 
@@ -926,33 +1068,45 @@ export class RemoveURLPatternRequest extends Message<RemoveURLPatternRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   constructor(data?: PartialMessage<RemoveURLPatternRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemoveURLPatternRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemoveURLPatternRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveURLPatternRequest {
-    return new RemoveURLPatternRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): RemoveURLPatternRequest {
+    return new RemoveURLPatternRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveURLPatternRequest {
-    return new RemoveURLPatternRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): RemoveURLPatternRequest {
+    return new RemoveURLPatternRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveURLPatternRequest {
-    return new RemoveURLPatternRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemoveURLPatternRequest {
+    return new RemoveURLPatternRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemoveURLPatternRequest | PlainMessage<RemoveURLPatternRequest> | undefined, b: RemoveURLPatternRequest | PlainMessage<RemoveURLPatternRequest> | undefined): boolean {
-    return proto3.util.equals(RemoveURLPatternRequest, a, b);
+  static equals(
+    a: RemoveURLPatternRequest | PlainMessage<RemoveURLPatternRequest> | undefined,
+    b: RemoveURLPatternRequest | PlainMessage<RemoveURLPatternRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(RemoveURLPatternRequest, a, b)
   }
 }
 
@@ -961,29 +1115,40 @@ export class RemoveURLPatternRequest extends Message<RemoveURLPatternRequest> {
  */
 export class RemoveURLPatternResponse extends Message<RemoveURLPatternResponse> {
   constructor(data?: PartialMessage<RemoveURLPatternResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemoveURLPatternResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemoveURLPatternResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveURLPatternResponse {
-    return new RemoveURLPatternResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): RemoveURLPatternResponse {
+    return new RemoveURLPatternResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveURLPatternResponse {
-    return new RemoveURLPatternResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): RemoveURLPatternResponse {
+    return new RemoveURLPatternResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveURLPatternResponse {
-    return new RemoveURLPatternResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemoveURLPatternResponse {
+    return new RemoveURLPatternResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemoveURLPatternResponse | PlainMessage<RemoveURLPatternResponse> | undefined, b: RemoveURLPatternResponse | PlainMessage<RemoveURLPatternResponse> | undefined): boolean {
-    return proto3.util.equals(RemoveURLPatternResponse, a, b);
+  static equals(
+    a: RemoveURLPatternResponse | PlainMessage<RemoveURLPatternResponse> | undefined,
+    b: RemoveURLPatternResponse | PlainMessage<RemoveURLPatternResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(RemoveURLPatternResponse, a, b)
   }
 }
 
@@ -994,39 +1159,42 @@ export class AddSectionRequest extends Message<AddSectionRequest> {
   /**
    * @generated from field: string name = 1;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: string workspace_id = 2;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<AddSectionRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddSectionRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddSectionRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddSectionRequest {
-    return new AddSectionRequest().fromBinary(bytes, options);
+    return new AddSectionRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddSectionRequest {
-    return new AddSectionRequest().fromJson(jsonValue, options);
+    return new AddSectionRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddSectionRequest {
-    return new AddSectionRequest().fromJsonString(jsonString, options);
+    return new AddSectionRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddSectionRequest | PlainMessage<AddSectionRequest> | undefined, b: AddSectionRequest | PlainMessage<AddSectionRequest> | undefined): boolean {
-    return proto3.util.equals(AddSectionRequest, a, b);
+  static equals(
+    a: AddSectionRequest | PlainMessage<AddSectionRequest> | undefined,
+    b: AddSectionRequest | PlainMessage<AddSectionRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(AddSectionRequest, a, b)
   }
 }
 
@@ -1035,29 +1203,34 @@ export class AddSectionRequest extends Message<AddSectionRequest> {
  */
 export class AddSectionResponse extends Message<AddSectionResponse> {
   constructor(data?: PartialMessage<AddSectionResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddSectionResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddSectionResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddSectionResponse {
-    return new AddSectionResponse().fromBinary(bytes, options);
+    return new AddSectionResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddSectionResponse {
-    return new AddSectionResponse().fromJson(jsonValue, options);
+    return new AddSectionResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddSectionResponse {
-    return new AddSectionResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AddSectionResponse {
+    return new AddSectionResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddSectionResponse | PlainMessage<AddSectionResponse> | undefined, b: AddSectionResponse | PlainMessage<AddSectionResponse> | undefined): boolean {
-    return proto3.util.equals(AddSectionResponse, a, b);
+  static equals(
+    a: AddSectionResponse | PlainMessage<AddSectionResponse> | undefined,
+    b: AddSectionResponse | PlainMessage<AddSectionResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(AddSectionResponse, a, b)
   }
 }
 
@@ -1068,33 +1241,39 @@ export class RemoveSectionRequest extends Message<RemoveSectionRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   constructor(data?: PartialMessage<RemoveSectionRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemoveSectionRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemoveSectionRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveSectionRequest {
-    return new RemoveSectionRequest().fromBinary(bytes, options);
+    return new RemoveSectionRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveSectionRequest {
-    return new RemoveSectionRequest().fromJson(jsonValue, options);
+    return new RemoveSectionRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveSectionRequest {
-    return new RemoveSectionRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemoveSectionRequest {
+    return new RemoveSectionRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemoveSectionRequest | PlainMessage<RemoveSectionRequest> | undefined, b: RemoveSectionRequest | PlainMessage<RemoveSectionRequest> | undefined): boolean {
-    return proto3.util.equals(RemoveSectionRequest, a, b);
+  static equals(
+    a: RemoveSectionRequest | PlainMessage<RemoveSectionRequest> | undefined,
+    b: RemoveSectionRequest | PlainMessage<RemoveSectionRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(RemoveSectionRequest, a, b)
   }
 }
 
@@ -1103,29 +1282,37 @@ export class RemoveSectionRequest extends Message<RemoveSectionRequest> {
  */
 export class RemoveSectionResponse extends Message<RemoveSectionResponse> {
   constructor(data?: PartialMessage<RemoveSectionResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemoveSectionResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemoveSectionResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveSectionResponse {
-    return new RemoveSectionResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): RemoveSectionResponse {
+    return new RemoveSectionResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveSectionResponse {
-    return new RemoveSectionResponse().fromJson(jsonValue, options);
+    return new RemoveSectionResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveSectionResponse {
-    return new RemoveSectionResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemoveSectionResponse {
+    return new RemoveSectionResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemoveSectionResponse | PlainMessage<RemoveSectionResponse> | undefined, b: RemoveSectionResponse | PlainMessage<RemoveSectionResponse> | undefined): boolean {
-    return proto3.util.equals(RemoveSectionResponse, a, b);
+  static equals(
+    a: RemoveSectionResponse | PlainMessage<RemoveSectionResponse> | undefined,
+    b: RemoveSectionResponse | PlainMessage<RemoveSectionResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(RemoveSectionResponse, a, b)
   }
 }
 
@@ -1136,45 +1323,48 @@ export class AddPolicyRequest extends Message<AddPolicyRequest> {
   /**
    * @generated from field: string text = 1;
    */
-  text = "";
+  text = ''
 
   /**
    * @generated from field: int32 reappear_after_hours = 2;
    */
-  reappearAfterHours = 0;
+  reappearAfterHours = 0
 
   /**
    * @generated from field: string workspace_id = 3;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<AddPolicyRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddPolicyRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddPolicyRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "text", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "reappear_after_hours", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 3, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'text', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'reappear_after_hours', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddPolicyRequest {
-    return new AddPolicyRequest().fromBinary(bytes, options);
+    return new AddPolicyRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddPolicyRequest {
-    return new AddPolicyRequest().fromJson(jsonValue, options);
+    return new AddPolicyRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddPolicyRequest {
-    return new AddPolicyRequest().fromJsonString(jsonString, options);
+    return new AddPolicyRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddPolicyRequest | PlainMessage<AddPolicyRequest> | undefined, b: AddPolicyRequest | PlainMessage<AddPolicyRequest> | undefined): boolean {
-    return proto3.util.equals(AddPolicyRequest, a, b);
+  static equals(
+    a: AddPolicyRequest | PlainMessage<AddPolicyRequest> | undefined,
+    b: AddPolicyRequest | PlainMessage<AddPolicyRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(AddPolicyRequest, a, b)
   }
 }
 
@@ -1183,29 +1373,31 @@ export class AddPolicyRequest extends Message<AddPolicyRequest> {
  */
 export class AddPolicyResponse extends Message<AddPolicyResponse> {
   constructor(data?: PartialMessage<AddPolicyResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddPolicyResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddPolicyResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddPolicyResponse {
-    return new AddPolicyResponse().fromBinary(bytes, options);
+    return new AddPolicyResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddPolicyResponse {
-    return new AddPolicyResponse().fromJson(jsonValue, options);
+    return new AddPolicyResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddPolicyResponse {
-    return new AddPolicyResponse().fromJsonString(jsonString, options);
+    return new AddPolicyResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddPolicyResponse | PlainMessage<AddPolicyResponse> | undefined, b: AddPolicyResponse | PlainMessage<AddPolicyResponse> | undefined): boolean {
-    return proto3.util.equals(AddPolicyResponse, a, b);
+  static equals(
+    a: AddPolicyResponse | PlainMessage<AddPolicyResponse> | undefined,
+    b: AddPolicyResponse | PlainMessage<AddPolicyResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(AddPolicyResponse, a, b)
   }
 }
 
@@ -1216,45 +1408,51 @@ export class UpdatePolicyRequest extends Message<UpdatePolicyRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   /**
    * @generated from field: string text = 2;
    */
-  text = "";
+  text = ''
 
   /**
    * @generated from field: int32 reappear_after_hours = 3;
    */
-  reappearAfterHours = 0;
+  reappearAfterHours = 0
 
   constructor(data?: PartialMessage<UpdatePolicyRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdatePolicyRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdatePolicyRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "text", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "reappear_after_hours", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'text', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'reappear_after_hours', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePolicyRequest {
-    return new UpdatePolicyRequest().fromBinary(bytes, options);
+    return new UpdatePolicyRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdatePolicyRequest {
-    return new UpdatePolicyRequest().fromJson(jsonValue, options);
+    return new UpdatePolicyRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdatePolicyRequest {
-    return new UpdatePolicyRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdatePolicyRequest {
+    return new UpdatePolicyRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdatePolicyRequest | PlainMessage<UpdatePolicyRequest> | undefined, b: UpdatePolicyRequest | PlainMessage<UpdatePolicyRequest> | undefined): boolean {
-    return proto3.util.equals(UpdatePolicyRequest, a, b);
+  static equals(
+    a: UpdatePolicyRequest | PlainMessage<UpdatePolicyRequest> | undefined,
+    b: UpdatePolicyRequest | PlainMessage<UpdatePolicyRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdatePolicyRequest, a, b)
   }
 }
 
@@ -1263,29 +1461,34 @@ export class UpdatePolicyRequest extends Message<UpdatePolicyRequest> {
  */
 export class UpdatePolicyResponse extends Message<UpdatePolicyResponse> {
   constructor(data?: PartialMessage<UpdatePolicyResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdatePolicyResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdatePolicyResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePolicyResponse {
-    return new UpdatePolicyResponse().fromBinary(bytes, options);
+    return new UpdatePolicyResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdatePolicyResponse {
-    return new UpdatePolicyResponse().fromJson(jsonValue, options);
+    return new UpdatePolicyResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdatePolicyResponse {
-    return new UpdatePolicyResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdatePolicyResponse {
+    return new UpdatePolicyResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdatePolicyResponse | PlainMessage<UpdatePolicyResponse> | undefined, b: UpdatePolicyResponse | PlainMessage<UpdatePolicyResponse> | undefined): boolean {
-    return proto3.util.equals(UpdatePolicyResponse, a, b);
+  static equals(
+    a: UpdatePolicyResponse | PlainMessage<UpdatePolicyResponse> | undefined,
+    b: UpdatePolicyResponse | PlainMessage<UpdatePolicyResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdatePolicyResponse, a, b)
   }
 }
 
@@ -1296,33 +1499,39 @@ export class RemovePolicyRequest extends Message<RemovePolicyRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   constructor(data?: PartialMessage<RemovePolicyRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemovePolicyRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemovePolicyRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemovePolicyRequest {
-    return new RemovePolicyRequest().fromBinary(bytes, options);
+    return new RemovePolicyRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemovePolicyRequest {
-    return new RemovePolicyRequest().fromJson(jsonValue, options);
+    return new RemovePolicyRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemovePolicyRequest {
-    return new RemovePolicyRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemovePolicyRequest {
+    return new RemovePolicyRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemovePolicyRequest | PlainMessage<RemovePolicyRequest> | undefined, b: RemovePolicyRequest | PlainMessage<RemovePolicyRequest> | undefined): boolean {
-    return proto3.util.equals(RemovePolicyRequest, a, b);
+  static equals(
+    a: RemovePolicyRequest | PlainMessage<RemovePolicyRequest> | undefined,
+    b: RemovePolicyRequest | PlainMessage<RemovePolicyRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(RemovePolicyRequest, a, b)
   }
 }
 
@@ -1331,29 +1540,34 @@ export class RemovePolicyRequest extends Message<RemovePolicyRequest> {
  */
 export class RemovePolicyResponse extends Message<RemovePolicyResponse> {
   constructor(data?: PartialMessage<RemovePolicyResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.RemovePolicyResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.RemovePolicyResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemovePolicyResponse {
-    return new RemovePolicyResponse().fromBinary(bytes, options);
+    return new RemovePolicyResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemovePolicyResponse {
-    return new RemovePolicyResponse().fromJson(jsonValue, options);
+    return new RemovePolicyResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemovePolicyResponse {
-    return new RemovePolicyResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): RemovePolicyResponse {
+    return new RemovePolicyResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: RemovePolicyResponse | PlainMessage<RemovePolicyResponse> | undefined, b: RemovePolicyResponse | PlainMessage<RemovePolicyResponse> | undefined): boolean {
-    return proto3.util.equals(RemovePolicyResponse, a, b);
+  static equals(
+    a: RemovePolicyResponse | PlainMessage<RemovePolicyResponse> | undefined,
+    b: RemovePolicyResponse | PlainMessage<RemovePolicyResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(RemovePolicyResponse, a, b)
   }
 }
 
@@ -1364,33 +1578,39 @@ export class AddWorkspaceRequest extends Message<AddWorkspaceRequest> {
   /**
    * @generated from field: string name = 1;
    */
-  name = "";
+  name = ''
 
   constructor(data?: PartialMessage<AddWorkspaceRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddWorkspaceRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddWorkspaceRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddWorkspaceRequest {
-    return new AddWorkspaceRequest().fromBinary(bytes, options);
+    return new AddWorkspaceRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddWorkspaceRequest {
-    return new AddWorkspaceRequest().fromJson(jsonValue, options);
+    return new AddWorkspaceRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddWorkspaceRequest {
-    return new AddWorkspaceRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AddWorkspaceRequest {
+    return new AddWorkspaceRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddWorkspaceRequest | PlainMessage<AddWorkspaceRequest> | undefined, b: AddWorkspaceRequest | PlainMessage<AddWorkspaceRequest> | undefined): boolean {
-    return proto3.util.equals(AddWorkspaceRequest, a, b);
+  static equals(
+    a: AddWorkspaceRequest | PlainMessage<AddWorkspaceRequest> | undefined,
+    b: AddWorkspaceRequest | PlainMessage<AddWorkspaceRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(AddWorkspaceRequest, a, b)
   }
 }
 
@@ -1399,29 +1619,34 @@ export class AddWorkspaceRequest extends Message<AddWorkspaceRequest> {
  */
 export class AddWorkspaceResponse extends Message<AddWorkspaceResponse> {
   constructor(data?: PartialMessage<AddWorkspaceResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.AddWorkspaceResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.AddWorkspaceResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddWorkspaceResponse {
-    return new AddWorkspaceResponse().fromBinary(bytes, options);
+    return new AddWorkspaceResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddWorkspaceResponse {
-    return new AddWorkspaceResponse().fromJson(jsonValue, options);
+    return new AddWorkspaceResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddWorkspaceResponse {
-    return new AddWorkspaceResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): AddWorkspaceResponse {
+    return new AddWorkspaceResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: AddWorkspaceResponse | PlainMessage<AddWorkspaceResponse> | undefined, b: AddWorkspaceResponse | PlainMessage<AddWorkspaceResponse> | undefined): boolean {
-    return proto3.util.equals(AddWorkspaceResponse, a, b);
+  static equals(
+    a: AddWorkspaceResponse | PlainMessage<AddWorkspaceResponse> | undefined,
+    b: AddWorkspaceResponse | PlainMessage<AddWorkspaceResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(AddWorkspaceResponse, a, b)
   }
 }
 
@@ -1432,33 +1657,45 @@ export class DeleteWorkspaceRequest extends Message<DeleteWorkspaceRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = "";
+  id = ''
 
   constructor(data?: PartialMessage<DeleteWorkspaceRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.DeleteWorkspaceRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.DeleteWorkspaceRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteWorkspaceRequest {
-    return new DeleteWorkspaceRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): DeleteWorkspaceRequest {
+    return new DeleteWorkspaceRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteWorkspaceRequest {
-    return new DeleteWorkspaceRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): DeleteWorkspaceRequest {
+    return new DeleteWorkspaceRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteWorkspaceRequest {
-    return new DeleteWorkspaceRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeleteWorkspaceRequest {
+    return new DeleteWorkspaceRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeleteWorkspaceRequest | PlainMessage<DeleteWorkspaceRequest> | undefined, b: DeleteWorkspaceRequest | PlainMessage<DeleteWorkspaceRequest> | undefined): boolean {
-    return proto3.util.equals(DeleteWorkspaceRequest, a, b);
+  static equals(
+    a: DeleteWorkspaceRequest | PlainMessage<DeleteWorkspaceRequest> | undefined,
+    b: DeleteWorkspaceRequest | PlainMessage<DeleteWorkspaceRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(DeleteWorkspaceRequest, a, b)
   }
 }
 
@@ -1467,29 +1704,40 @@ export class DeleteWorkspaceRequest extends Message<DeleteWorkspaceRequest> {
  */
 export class DeleteWorkspaceResponse extends Message<DeleteWorkspaceResponse> {
   constructor(data?: PartialMessage<DeleteWorkspaceResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.DeleteWorkspaceResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.DeleteWorkspaceResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteWorkspaceResponse {
-    return new DeleteWorkspaceResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): DeleteWorkspaceResponse {
+    return new DeleteWorkspaceResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteWorkspaceResponse {
-    return new DeleteWorkspaceResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): DeleteWorkspaceResponse {
+    return new DeleteWorkspaceResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteWorkspaceResponse {
-    return new DeleteWorkspaceResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): DeleteWorkspaceResponse {
+    return new DeleteWorkspaceResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: DeleteWorkspaceResponse | PlainMessage<DeleteWorkspaceResponse> | undefined, b: DeleteWorkspaceResponse | PlainMessage<DeleteWorkspaceResponse> | undefined): boolean {
-    return proto3.util.equals(DeleteWorkspaceResponse, a, b);
+  static equals(
+    a: DeleteWorkspaceResponse | PlainMessage<DeleteWorkspaceResponse> | undefined,
+    b: DeleteWorkspaceResponse | PlainMessage<DeleteWorkspaceResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(DeleteWorkspaceResponse, a, b)
   }
 }
 
@@ -1500,33 +1748,45 @@ export class UpdateHideShortcutHintsRequest extends Message<UpdateHideShortcutHi
   /**
    * @generated from field: bool hide = 1;
    */
-  hide = false;
+  hide = false
 
   constructor(data?: PartialMessage<UpdateHideShortcutHintsRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdateHideShortcutHintsRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdateHideShortcutHintsRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "hide", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
+    { no: 1, name: 'hide', kind: 'scalar', T: 8 /* ScalarType.BOOL */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateHideShortcutHintsRequest {
-    return new UpdateHideShortcutHintsRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): UpdateHideShortcutHintsRequest {
+    return new UpdateHideShortcutHintsRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateHideShortcutHintsRequest {
-    return new UpdateHideShortcutHintsRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): UpdateHideShortcutHintsRequest {
+    return new UpdateHideShortcutHintsRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateHideShortcutHintsRequest {
-    return new UpdateHideShortcutHintsRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdateHideShortcutHintsRequest {
+    return new UpdateHideShortcutHintsRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdateHideShortcutHintsRequest | PlainMessage<UpdateHideShortcutHintsRequest> | undefined, b: UpdateHideShortcutHintsRequest | PlainMessage<UpdateHideShortcutHintsRequest> | undefined): boolean {
-    return proto3.util.equals(UpdateHideShortcutHintsRequest, a, b);
+  static equals(
+    a: UpdateHideShortcutHintsRequest | PlainMessage<UpdateHideShortcutHintsRequest> | undefined,
+    b: UpdateHideShortcutHintsRequest | PlainMessage<UpdateHideShortcutHintsRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdateHideShortcutHintsRequest, a, b)
   }
 }
 
@@ -1535,29 +1795,40 @@ export class UpdateHideShortcutHintsRequest extends Message<UpdateHideShortcutHi
  */
 export class UpdateHideShortcutHintsResponse extends Message<UpdateHideShortcutHintsResponse> {
   constructor(data?: PartialMessage<UpdateHideShortcutHintsResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.UpdateHideShortcutHintsResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.UpdateHideShortcutHintsResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateHideShortcutHintsResponse {
-    return new UpdateHideShortcutHintsResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): UpdateHideShortcutHintsResponse {
+    return new UpdateHideShortcutHintsResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateHideShortcutHintsResponse {
-    return new UpdateHideShortcutHintsResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): UpdateHideShortcutHintsResponse {
+    return new UpdateHideShortcutHintsResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateHideShortcutHintsResponse {
-    return new UpdateHideShortcutHintsResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): UpdateHideShortcutHintsResponse {
+    return new UpdateHideShortcutHintsResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: UpdateHideShortcutHintsResponse | PlainMessage<UpdateHideShortcutHintsResponse> | undefined, b: UpdateHideShortcutHintsResponse | PlainMessage<UpdateHideShortcutHintsResponse> | undefined): boolean {
-    return proto3.util.equals(UpdateHideShortcutHintsResponse, a, b);
+  static equals(
+    a: UpdateHideShortcutHintsResponse | PlainMessage<UpdateHideShortcutHintsResponse> | undefined,
+    b: UpdateHideShortcutHintsResponse | PlainMessage<UpdateHideShortcutHintsResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(UpdateHideShortcutHintsResponse, a, b)
   }
 }
 
@@ -1568,33 +1839,45 @@ export class SetActiveWorkspaceRequest extends Message<SetActiveWorkspaceRequest
   /**
    * @generated from field: string workspace_id = 1;
    */
-  workspaceId = "";
+  workspaceId = ''
 
   constructor(data?: PartialMessage<SetActiveWorkspaceRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.SetActiveWorkspaceRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.SetActiveWorkspaceRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "workspace_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'workspace_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetActiveWorkspaceRequest {
-    return new SetActiveWorkspaceRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): SetActiveWorkspaceRequest {
+    return new SetActiveWorkspaceRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetActiveWorkspaceRequest {
-    return new SetActiveWorkspaceRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): SetActiveWorkspaceRequest {
+    return new SetActiveWorkspaceRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetActiveWorkspaceRequest {
-    return new SetActiveWorkspaceRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): SetActiveWorkspaceRequest {
+    return new SetActiveWorkspaceRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: SetActiveWorkspaceRequest | PlainMessage<SetActiveWorkspaceRequest> | undefined, b: SetActiveWorkspaceRequest | PlainMessage<SetActiveWorkspaceRequest> | undefined): boolean {
-    return proto3.util.equals(SetActiveWorkspaceRequest, a, b);
+  static equals(
+    a: SetActiveWorkspaceRequest | PlainMessage<SetActiveWorkspaceRequest> | undefined,
+    b: SetActiveWorkspaceRequest | PlainMessage<SetActiveWorkspaceRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(SetActiveWorkspaceRequest, a, b)
   }
 }
 
@@ -1603,29 +1886,39 @@ export class SetActiveWorkspaceRequest extends Message<SetActiveWorkspaceRequest
  */
 export class SetActiveWorkspaceResponse extends Message<SetActiveWorkspaceResponse> {
   constructor(data?: PartialMessage<SetActiveWorkspaceResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "todos.v1.SetActiveWorkspaceResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'todos.v1.SetActiveWorkspaceResponse'
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetActiveWorkspaceResponse {
-    return new SetActiveWorkspaceResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): SetActiveWorkspaceResponse {
+    return new SetActiveWorkspaceResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetActiveWorkspaceResponse {
-    return new SetActiveWorkspaceResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): SetActiveWorkspaceResponse {
+    return new SetActiveWorkspaceResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetActiveWorkspaceResponse {
-    return new SetActiveWorkspaceResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): SetActiveWorkspaceResponse {
+    return new SetActiveWorkspaceResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: SetActiveWorkspaceResponse | PlainMessage<SetActiveWorkspaceResponse> | undefined, b: SetActiveWorkspaceResponse | PlainMessage<SetActiveWorkspaceResponse> | undefined): boolean {
-    return proto3.util.equals(SetActiveWorkspaceResponse, a, b);
+  static equals(
+    a: SetActiveWorkspaceResponse | PlainMessage<SetActiveWorkspaceResponse> | undefined,
+    b: SetActiveWorkspaceResponse | PlainMessage<SetActiveWorkspaceResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(SetActiveWorkspaceResponse, a, b)
   }
 }
-

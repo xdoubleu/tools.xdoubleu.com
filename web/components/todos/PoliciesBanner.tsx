@@ -36,7 +36,9 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h2 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-300">Active Policies</h2>
+          <h2 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            Active Policies
+          </h2>
           <ul className="space-y-1">
             {policies.map((policy) => (
               <li key={policy.id} className="text-sm text-amber-900 dark:text-amber-200">

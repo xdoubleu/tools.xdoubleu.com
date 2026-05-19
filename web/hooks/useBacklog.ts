@@ -50,8 +50,7 @@ export function useBooksProgress(dateStart?: string, dateEnd?: string) {
 
 export function useSearchExternal() {
   const client = createServiceClient(BooksService)
-  return (query: string) =>
-    client.searchExternal({ query }).then((r: SearchExternalResponse) => r)
+  return (query: string) => client.searchExternal({ query }).then((r: SearchExternalResponse) => r)
 }
 
 export function useAddBook() {

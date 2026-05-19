@@ -3,8 +3,15 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import type {
+  BinaryReadOptions,
+  FieldList,
+  JsonReadOptions,
+  JsonValue,
+  PartialMessage,
+  PlainMessage
+} from '@bufbuild/protobuf'
+import { Message, proto3 } from '@bufbuild/protobuf'
 
 /**
  * @generated from message backlog.v1.Game
@@ -13,63 +20,66 @@ export class Game extends Message<Game> {
   /**
    * @generated from field: int32 id = 1;
    */
-  id = 0;
+  id = 0
 
   /**
    * @generated from field: string name = 2;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: bool is_delisted = 3;
    */
-  isDelisted = false;
+  isDelisted = false
 
   /**
    * @generated from field: string completion_rate = 4;
    */
-  completionRate = "";
+  completionRate = ''
 
   /**
    * @generated from field: string contribution = 5;
    */
-  contribution = "";
+  contribution = ''
 
   /**
    * @generated from field: int32 playtime = 6;
    */
-  playtime = 0;
+  playtime = 0
 
   constructor(data?: PartialMessage<Game>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.Game";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.Game'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "is_delisted", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: "completion_rate", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "contribution", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "playtime", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'id', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'is_delisted', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: 'completion_rate', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'contribution', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'playtime', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Game {
-    return new Game().fromBinary(bytes, options);
+    return new Game().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Game {
-    return new Game().fromJson(jsonValue, options);
+    return new Game().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Game {
-    return new Game().fromJsonString(jsonString, options);
+    return new Game().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Game | PlainMessage<Game> | undefined, b: Game | PlainMessage<Game> | undefined): boolean {
-    return proto3.util.equals(Game, a, b);
+  static equals(
+    a: Game | PlainMessage<Game> | undefined,
+    b: Game | PlainMessage<Game> | undefined
+  ): boolean {
+    return proto3.util.equals(Game, a, b)
   }
 }
 
@@ -80,63 +90,66 @@ export class Achievement extends Message<Achievement> {
   /**
    * @generated from field: string name = 1;
    */
-  name = "";
+  name = ''
 
   /**
    * @generated from field: string display_name = 2;
    */
-  displayName = "";
+  displayName = ''
 
   /**
    * @generated from field: string description = 3;
    */
-  description = "";
+  description = ''
 
   /**
    * @generated from field: string icon_url = 4;
    */
-  iconUrl = "";
+  iconUrl = ''
 
   /**
    * @generated from field: bool achieved = 5;
    */
-  achieved = false;
+  achieved = false
 
   /**
    * @generated from field: optional double global_percent = 6;
    */
-  globalPercent?: number;
+  globalPercent?: number
 
   constructor(data?: PartialMessage<Achievement>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.Achievement";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.Achievement'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "display_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "icon_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "achieved", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 6, name: "global_percent", kind: "scalar", T: 1 /* ScalarType.DOUBLE */, opt: true },
-  ]);
+    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'display_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: 'description', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: 'icon_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: 'achieved', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: 'global_percent', kind: 'scalar', T: 1 /* ScalarType.DOUBLE */, opt: true }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Achievement {
-    return new Achievement().fromBinary(bytes, options);
+    return new Achievement().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Achievement {
-    return new Achievement().fromJson(jsonValue, options);
+    return new Achievement().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Achievement {
-    return new Achievement().fromJsonString(jsonString, options);
+    return new Achievement().fromJsonString(jsonString, options)
   }
 
-  static equals(a: Achievement | PlainMessage<Achievement> | undefined, b: Achievement | PlainMessage<Achievement> | undefined): boolean {
-    return proto3.util.equals(Achievement, a, b);
+  static equals(
+    a: Achievement | PlainMessage<Achievement> | undefined,
+    b: Achievement | PlainMessage<Achievement> | undefined
+  ): boolean {
+    return proto3.util.equals(Achievement, a, b)
   }
 }
 
@@ -147,87 +160,90 @@ export class SteamResponse extends Message<SteamResponse> {
   /**
    * @generated from field: repeated backlog.v1.Game not_started = 1;
    */
-  notStarted: Game[] = [];
+  notStarted: Game[] = []
 
   /**
    * @generated from field: repeated backlog.v1.Game in_progress = 2;
    */
-  inProgress: Game[] = [];
+  inProgress: Game[] = []
 
   /**
    * @generated from field: repeated backlog.v1.Game completed = 3;
    */
-  completed: Game[] = [];
+  completed: Game[] = []
 
   /**
    * @generated from field: int32 total_backlog = 4;
    */
-  totalBacklog = 0;
+  totalBacklog = 0
 
   /**
    * @generated from field: string current_rate = 5;
    */
-  currentRate = "";
+  currentRate = ''
 
   /**
    * @generated from field: repeated int32 distribution = 6;
    */
-  distribution: number[] = [];
+  distribution: number[] = []
 
   /**
    * @generated from field: repeated string labels = 7;
    */
-  labels: string[] = [];
+  labels: string[] = []
 
   /**
    * @generated from field: repeated string values = 8;
    */
-  values: string[] = [];
+  values: string[] = []
 
   /**
    * @generated from field: string date_start = 9;
    */
-  dateStart = "";
+  dateStart = ''
 
   /**
    * @generated from field: string date_end = 10;
    */
-  dateEnd = "";
+  dateEnd = ''
 
   constructor(data?: PartialMessage<SteamResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.SteamResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.SteamResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "not_started", kind: "message", T: Game, repeated: true },
-    { no: 2, name: "in_progress", kind: "message", T: Game, repeated: true },
-    { no: 3, name: "completed", kind: "message", T: Game, repeated: true },
-    { no: 4, name: "total_backlog", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 5, name: "current_rate", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "distribution", kind: "scalar", T: 5 /* ScalarType.INT32 */, repeated: true },
-    { no: 7, name: "labels", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 8, name: "values", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 9, name: "date_start", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 10, name: "date_end", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'not_started', kind: 'message', T: Game, repeated: true },
+    { no: 2, name: 'in_progress', kind: 'message', T: Game, repeated: true },
+    { no: 3, name: 'completed', kind: 'message', T: Game, repeated: true },
+    { no: 4, name: 'total_backlog', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: 'current_rate', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: 'distribution', kind: 'scalar', T: 5 /* ScalarType.INT32 */, repeated: true },
+    { no: 7, name: 'labels', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 8, name: 'values', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 9, name: 'date_start', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: 'date_end', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SteamResponse {
-    return new SteamResponse().fromBinary(bytes, options);
+    return new SteamResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SteamResponse {
-    return new SteamResponse().fromJson(jsonValue, options);
+    return new SteamResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SteamResponse {
-    return new SteamResponse().fromJsonString(jsonString, options);
+    return new SteamResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: SteamResponse | PlainMessage<SteamResponse> | undefined, b: SteamResponse | PlainMessage<SteamResponse> | undefined): boolean {
-    return proto3.util.equals(SteamResponse, a, b);
+  static equals(
+    a: SteamResponse | PlainMessage<SteamResponse> | undefined,
+    b: SteamResponse | PlainMessage<SteamResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(SteamResponse, a, b)
   }
 }
 
@@ -238,39 +254,42 @@ export class SteamGameResponse extends Message<SteamGameResponse> {
   /**
    * @generated from field: backlog.v1.Game game = 1;
    */
-  game?: Game;
+  game?: Game
 
   /**
    * @generated from field: repeated backlog.v1.Achievement achievements = 2;
    */
-  achievements: Achievement[] = [];
+  achievements: Achievement[] = []
 
   constructor(data?: PartialMessage<SteamGameResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.SteamGameResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.SteamGameResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "game", kind: "message", T: Game },
-    { no: 2, name: "achievements", kind: "message", T: Achievement, repeated: true },
-  ]);
+    { no: 1, name: 'game', kind: 'message', T: Game },
+    { no: 2, name: 'achievements', kind: 'message', T: Achievement, repeated: true }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SteamGameResponse {
-    return new SteamGameResponse().fromBinary(bytes, options);
+    return new SteamGameResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SteamGameResponse {
-    return new SteamGameResponse().fromJson(jsonValue, options);
+    return new SteamGameResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SteamGameResponse {
-    return new SteamGameResponse().fromJsonString(jsonString, options);
+    return new SteamGameResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: SteamGameResponse | PlainMessage<SteamGameResponse> | undefined, b: SteamGameResponse | PlainMessage<SteamGameResponse> | undefined): boolean {
-    return proto3.util.equals(SteamGameResponse, a, b);
+  static equals(
+    a: SteamGameResponse | PlainMessage<SteamGameResponse> | undefined,
+    b: SteamGameResponse | PlainMessage<SteamGameResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(SteamGameResponse, a, b)
   }
 }
 
@@ -281,39 +300,51 @@ export class SteamDistributionResponse extends Message<SteamDistributionResponse
   /**
    * @generated from field: string label = 1;
    */
-  label = "";
+  label = ''
 
   /**
    * @generated from field: repeated backlog.v1.Game games = 2;
    */
-  games: Game[] = [];
+  games: Game[] = []
 
   constructor(data?: PartialMessage<SteamDistributionResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.SteamDistributionResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.SteamDistributionResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "label", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "games", kind: "message", T: Game, repeated: true },
-  ]);
+    { no: 1, name: 'label', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'games', kind: 'message', T: Game, repeated: true }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SteamDistributionResponse {
-    return new SteamDistributionResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): SteamDistributionResponse {
+    return new SteamDistributionResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SteamDistributionResponse {
-    return new SteamDistributionResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): SteamDistributionResponse {
+    return new SteamDistributionResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SteamDistributionResponse {
-    return new SteamDistributionResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): SteamDistributionResponse {
+    return new SteamDistributionResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: SteamDistributionResponse | PlainMessage<SteamDistributionResponse> | undefined, b: SteamDistributionResponse | PlainMessage<SteamDistributionResponse> | undefined): boolean {
-    return proto3.util.equals(SteamDistributionResponse, a, b);
+  static equals(
+    a: SteamDistributionResponse | PlainMessage<SteamDistributionResponse> | undefined,
+    b: SteamDistributionResponse | PlainMessage<SteamDistributionResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(SteamDistributionResponse, a, b)
   }
 }
 
@@ -324,39 +355,42 @@ export class GetSteamRequest extends Message<GetSteamRequest> {
   /**
    * @generated from field: string date_start = 1;
    */
-  dateStart = "";
+  dateStart = ''
 
   /**
    * @generated from field: string date_end = 2;
    */
-  dateEnd = "";
+  dateEnd = ''
 
   constructor(data?: PartialMessage<GetSteamRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.GetSteamRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.GetSteamRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "date_start", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "date_end", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
+    { no: 1, name: 'date_start', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: 'date_end', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSteamRequest {
-    return new GetSteamRequest().fromBinary(bytes, options);
+    return new GetSteamRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSteamRequest {
-    return new GetSteamRequest().fromJson(jsonValue, options);
+    return new GetSteamRequest().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSteamRequest {
-    return new GetSteamRequest().fromJsonString(jsonString, options);
+    return new GetSteamRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSteamRequest | PlainMessage<GetSteamRequest> | undefined, b: GetSteamRequest | PlainMessage<GetSteamRequest> | undefined): boolean {
-    return proto3.util.equals(GetSteamRequest, a, b);
+  static equals(
+    a: GetSteamRequest | PlainMessage<GetSteamRequest> | undefined,
+    b: GetSteamRequest | PlainMessage<GetSteamRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSteamRequest, a, b)
   }
 }
 
@@ -367,33 +401,36 @@ export class GetSteamResponse extends Message<GetSteamResponse> {
   /**
    * @generated from field: backlog.v1.SteamResponse steam = 1;
    */
-  steam?: SteamResponse;
+  steam?: SteamResponse
 
   constructor(data?: PartialMessage<GetSteamResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.GetSteamResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.GetSteamResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "steam", kind: "message", T: SteamResponse },
-  ]);
+    { no: 1, name: 'steam', kind: 'message', T: SteamResponse }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSteamResponse {
-    return new GetSteamResponse().fromBinary(bytes, options);
+    return new GetSteamResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSteamResponse {
-    return new GetSteamResponse().fromJson(jsonValue, options);
+    return new GetSteamResponse().fromJson(jsonValue, options)
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSteamResponse {
-    return new GetSteamResponse().fromJsonString(jsonString, options);
+    return new GetSteamResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSteamResponse | PlainMessage<GetSteamResponse> | undefined, b: GetSteamResponse | PlainMessage<GetSteamResponse> | undefined): boolean {
-    return proto3.util.equals(GetSteamResponse, a, b);
+  static equals(
+    a: GetSteamResponse | PlainMessage<GetSteamResponse> | undefined,
+    b: GetSteamResponse | PlainMessage<GetSteamResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSteamResponse, a, b)
   }
 }
 
@@ -404,33 +441,39 @@ export class GetSteamGameRequest extends Message<GetSteamGameRequest> {
   /**
    * @generated from field: int32 game_id = 1;
    */
-  gameId = 0;
+  gameId = 0
 
   constructor(data?: PartialMessage<GetSteamGameRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.GetSteamGameRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.GetSteamGameRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "game_id", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'game_id', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSteamGameRequest {
-    return new GetSteamGameRequest().fromBinary(bytes, options);
+    return new GetSteamGameRequest().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSteamGameRequest {
-    return new GetSteamGameRequest().fromJson(jsonValue, options);
+    return new GetSteamGameRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSteamGameRequest {
-    return new GetSteamGameRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetSteamGameRequest {
+    return new GetSteamGameRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSteamGameRequest | PlainMessage<GetSteamGameRequest> | undefined, b: GetSteamGameRequest | PlainMessage<GetSteamGameRequest> | undefined): boolean {
-    return proto3.util.equals(GetSteamGameRequest, a, b);
+  static equals(
+    a: GetSteamGameRequest | PlainMessage<GetSteamGameRequest> | undefined,
+    b: GetSteamGameRequest | PlainMessage<GetSteamGameRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSteamGameRequest, a, b)
   }
 }
 
@@ -441,33 +484,39 @@ export class GetSteamGameResponse extends Message<GetSteamGameResponse> {
   /**
    * @generated from field: backlog.v1.SteamGameResponse data = 1;
    */
-  data?: SteamGameResponse;
+  data?: SteamGameResponse
 
   constructor(data?: PartialMessage<GetSteamGameResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.GetSteamGameResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.GetSteamGameResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "data", kind: "message", T: SteamGameResponse },
-  ]);
+    { no: 1, name: 'data', kind: 'message', T: SteamGameResponse }
+  ])
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSteamGameResponse {
-    return new GetSteamGameResponse().fromBinary(bytes, options);
+    return new GetSteamGameResponse().fromBinary(bytes, options)
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSteamGameResponse {
-    return new GetSteamGameResponse().fromJson(jsonValue, options);
+    return new GetSteamGameResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSteamGameResponse {
-    return new GetSteamGameResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetSteamGameResponse {
+    return new GetSteamGameResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSteamGameResponse | PlainMessage<GetSteamGameResponse> | undefined, b: GetSteamGameResponse | PlainMessage<GetSteamGameResponse> | undefined): boolean {
-    return proto3.util.equals(GetSteamGameResponse, a, b);
+  static equals(
+    a: GetSteamGameResponse | PlainMessage<GetSteamGameResponse> | undefined,
+    b: GetSteamGameResponse | PlainMessage<GetSteamGameResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSteamGameResponse, a, b)
   }
 }
 
@@ -478,33 +527,45 @@ export class GetSteamDistributionRequest extends Message<GetSteamDistributionReq
   /**
    * @generated from field: int32 bucket = 1;
    */
-  bucket = 0;
+  bucket = 0
 
   constructor(data?: PartialMessage<GetSteamDistributionRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.GetSteamDistributionRequest";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.GetSteamDistributionRequest'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "bucket", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
+    { no: 1, name: 'bucket', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSteamDistributionRequest {
-    return new GetSteamDistributionRequest().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): GetSteamDistributionRequest {
+    return new GetSteamDistributionRequest().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSteamDistributionRequest {
-    return new GetSteamDistributionRequest().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): GetSteamDistributionRequest {
+    return new GetSteamDistributionRequest().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSteamDistributionRequest {
-    return new GetSteamDistributionRequest().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetSteamDistributionRequest {
+    return new GetSteamDistributionRequest().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSteamDistributionRequest | PlainMessage<GetSteamDistributionRequest> | undefined, b: GetSteamDistributionRequest | PlainMessage<GetSteamDistributionRequest> | undefined): boolean {
-    return proto3.util.equals(GetSteamDistributionRequest, a, b);
+  static equals(
+    a: GetSteamDistributionRequest | PlainMessage<GetSteamDistributionRequest> | undefined,
+    b: GetSteamDistributionRequest | PlainMessage<GetSteamDistributionRequest> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSteamDistributionRequest, a, b)
   }
 }
 
@@ -515,33 +576,44 @@ export class GetSteamDistributionResponse extends Message<GetSteamDistributionRe
   /**
    * @generated from field: backlog.v1.SteamDistributionResponse data = 1;
    */
-  data?: SteamDistributionResponse;
+  data?: SteamDistributionResponse
 
   constructor(data?: PartialMessage<GetSteamDistributionResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
+    super()
+    proto3.util.initPartial(data, this)
   }
 
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "backlog.v1.GetSteamDistributionResponse";
+  static readonly runtime: typeof proto3 = proto3
+  static readonly typeName = 'backlog.v1.GetSteamDistributionResponse'
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "data", kind: "message", T: SteamDistributionResponse },
-  ]);
+    { no: 1, name: 'data', kind: 'message', T: SteamDistributionResponse }
+  ])
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSteamDistributionResponse {
-    return new GetSteamDistributionResponse().fromBinary(bytes, options);
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>
+  ): GetSteamDistributionResponse {
+    return new GetSteamDistributionResponse().fromBinary(bytes, options)
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSteamDistributionResponse {
-    return new GetSteamDistributionResponse().fromJson(jsonValue, options);
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>
+  ): GetSteamDistributionResponse {
+    return new GetSteamDistributionResponse().fromJson(jsonValue, options)
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSteamDistributionResponse {
-    return new GetSteamDistributionResponse().fromJsonString(jsonString, options);
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>
+  ): GetSteamDistributionResponse {
+    return new GetSteamDistributionResponse().fromJsonString(jsonString, options)
   }
 
-  static equals(a: GetSteamDistributionResponse | PlainMessage<GetSteamDistributionResponse> | undefined, b: GetSteamDistributionResponse | PlainMessage<GetSteamDistributionResponse> | undefined): boolean {
-    return proto3.util.equals(GetSteamDistributionResponse, a, b);
+  static equals(
+    a: GetSteamDistributionResponse | PlainMessage<GetSteamDistributionResponse> | undefined,
+    b: GetSteamDistributionResponse | PlainMessage<GetSteamDistributionResponse> | undefined
+  ): boolean {
+    return proto3.util.equals(GetSteamDistributionResponse, a, b)
   }
 }
-
