@@ -3,59 +3,51 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  CreateRoomRequest,
-  CreateRoomResponse,
-  GetRoomRequest,
-  GetRoomResponse,
-  JoinRoomRequest,
-  JoinRoomResponse,
-  LeaveRoomRequest,
-  LeaveRoomResponse
-} from './rooms_pb'
-import { MethodKind } from '@bufbuild/protobuf'
+import { CreateRoomRequest, CreateRoomResponse, GetRoomRequest, GetRoomResponse, JoinRoomRequest, JoinRoomResponse, LeaveRoomRequest, LeaveRoomResponse } from "./rooms_pb";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service watchparty.v1.RoomService
  */
 export const RoomService = {
-  typeName: 'watchparty.v1.RoomService',
+  typeName: "watchparty.v1.RoomService",
   methods: {
     /**
      * @generated from rpc watchparty.v1.RoomService.GetRoom
      */
     getRoom: {
-      name: 'GetRoom',
+      name: "GetRoom",
       I: GetRoomRequest,
       O: GetRoomResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc watchparty.v1.RoomService.CreateRoom
      */
     createRoom: {
-      name: 'CreateRoom',
+      name: "CreateRoom",
       I: CreateRoomRequest,
       O: CreateRoomResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc watchparty.v1.RoomService.JoinRoom
      */
     joinRoom: {
-      name: 'JoinRoom',
+      name: "JoinRoom",
       I: JoinRoomRequest,
       O: JoinRoomResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc watchparty.v1.RoomService.LeaveRoom
      */
     leaveRoom: {
-      name: 'LeaveRoom',
+      name: "LeaveRoom",
       I: LeaveRoomRequest,
       O: LeaveRoomResponse,
-      kind: MethodKind.Unary
-    }
+      kind: MethodKind.Unary,
+    },
   }
-} as const
+} as const;
+

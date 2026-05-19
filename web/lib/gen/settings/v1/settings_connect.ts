@@ -3,37 +3,33 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  GetSettingsRequest,
-  GetSettingsResponse,
-  SaveSettingsRequest,
-  SaveSettingsResponse
-} from './settings_pb'
-import { MethodKind } from '@bufbuild/protobuf'
+import { GetSettingsRequest, GetSettingsResponse, SaveSettingsRequest, SaveSettingsResponse } from "./settings_pb";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service settings.v1.SettingsService
  */
 export const SettingsService = {
-  typeName: 'settings.v1.SettingsService',
+  typeName: "settings.v1.SettingsService",
   methods: {
     /**
      * @generated from rpc settings.v1.SettingsService.GetSettings
      */
     getSettings: {
-      name: 'GetSettings',
+      name: "GetSettings",
       I: GetSettingsRequest,
       O: GetSettingsResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc settings.v1.SettingsService.SaveSettings
      */
     saveSettings: {
-      name: 'SaveSettings',
+      name: "SaveSettings",
       I: SaveSettingsRequest,
       O: SaveSettingsResponse,
-      kind: MethodKind.Unary
-    }
+      kind: MethodKind.Unary,
+    },
   }
-} as const
+} as const;
+

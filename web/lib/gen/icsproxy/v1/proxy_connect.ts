@@ -3,70 +3,60 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  DeleteConfigRequest,
-  DeleteConfigResponse,
-  GetConfigRequest,
-  GetConfigResponse,
-  ListConfigsRequest,
-  ListConfigsResponse,
-  PreviewEventsRequest,
-  PreviewEventsResponse,
-  SaveConfigRequest,
-  SaveConfigResponse
-} from './proxy_pb'
-import { MethodKind } from '@bufbuild/protobuf'
+import { DeleteConfigRequest, DeleteConfigResponse, GetConfigRequest, GetConfigResponse, ListConfigsRequest, ListConfigsResponse, PreviewEventsRequest, PreviewEventsResponse, SaveConfigRequest, SaveConfigResponse } from "./proxy_pb";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service icsproxy.v1.ICSProxyService
  */
 export const ICSProxyService = {
-  typeName: 'icsproxy.v1.ICSProxyService',
+  typeName: "icsproxy.v1.ICSProxyService",
   methods: {
     /**
      * @generated from rpc icsproxy.v1.ICSProxyService.ListConfigs
      */
     listConfigs: {
-      name: 'ListConfigs',
+      name: "ListConfigs",
       I: ListConfigsRequest,
       O: ListConfigsResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc icsproxy.v1.ICSProxyService.PreviewEvents
      */
     previewEvents: {
-      name: 'PreviewEvents',
+      name: "PreviewEvents",
       I: PreviewEventsRequest,
       O: PreviewEventsResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc icsproxy.v1.ICSProxyService.GetConfig
      */
     getConfig: {
-      name: 'GetConfig',
+      name: "GetConfig",
       I: GetConfigRequest,
       O: GetConfigResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc icsproxy.v1.ICSProxyService.SaveConfig
      */
     saveConfig: {
-      name: 'SaveConfig',
+      name: "SaveConfig",
       I: SaveConfigRequest,
       O: SaveConfigResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc icsproxy.v1.ICSProxyService.DeleteConfig
      */
     deleteConfig: {
-      name: 'DeleteConfig',
+      name: "DeleteConfig",
       I: DeleteConfigRequest,
       O: DeleteConfigResponse,
-      kind: MethodKind.Unary
-    }
+      kind: MethodKind.Unary,
+    },
   }
-} as const
+} as const;
+

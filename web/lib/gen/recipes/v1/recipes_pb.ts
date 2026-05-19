@@ -3,15 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage
-} from '@bufbuild/protobuf'
-import { Message, proto3 } from '@bufbuild/protobuf'
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
  * @generated from message recipes.v1.Ingredient
@@ -20,66 +13,63 @@ export class Ingredient extends Message<Ingredient> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string recipe_id = 2;
    */
-  recipeId = ''
+  recipeId = "";
 
   /**
    * @generated from field: string name = 3;
    */
-  name = ''
+  name = "";
 
   /**
    * @generated from field: double amount = 4;
    */
-  amount = 0
+  amount = 0;
 
   /**
    * @generated from field: string unit = 5;
    */
-  unit = ''
+  unit = "";
 
   /**
    * @generated from field: int32 sort_order = 6;
    */
-  sortOrder = 0
+  sortOrder = 0;
 
   constructor(data?: PartialMessage<Ingredient>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.Ingredient'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.Ingredient";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'recipe_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'amount', kind: 'scalar', T: 1 /* ScalarType.DOUBLE */ },
-    { no: 5, name: 'unit', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'sort_order', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "recipe_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "amount", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 5, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "sort_order", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Ingredient {
-    return new Ingredient().fromBinary(bytes, options)
+    return new Ingredient().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Ingredient {
-    return new Ingredient().fromJson(jsonValue, options)
+    return new Ingredient().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Ingredient {
-    return new Ingredient().fromJsonString(jsonString, options)
+    return new Ingredient().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: Ingredient | PlainMessage<Ingredient> | undefined,
-    b: Ingredient | PlainMessage<Ingredient> | undefined
-  ): boolean {
-    return proto3.util.equals(Ingredient, a, b)
+  static equals(a: Ingredient | PlainMessage<Ingredient> | undefined, b: Ingredient | PlainMessage<Ingredient> | undefined): boolean {
+    return proto3.util.equals(Ingredient, a, b);
   }
 }
 
@@ -90,48 +80,45 @@ export class ScaledIngredient extends Message<ScaledIngredient> {
   /**
    * @generated from field: string name = 1;
    */
-  name = ''
+  name = "";
 
   /**
    * @generated from field: string amount = 2;
    */
-  amount = ''
+  amount = "";
 
   /**
    * @generated from field: string unit = 3;
    */
-  unit = ''
+  unit = "";
 
   constructor(data?: PartialMessage<ScaledIngredient>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.ScaledIngredient'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.ScaledIngredient";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'amount', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'unit', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "amount", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ScaledIngredient {
-    return new ScaledIngredient().fromBinary(bytes, options)
+    return new ScaledIngredient().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ScaledIngredient {
-    return new ScaledIngredient().fromJson(jsonValue, options)
+    return new ScaledIngredient().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ScaledIngredient {
-    return new ScaledIngredient().fromJsonString(jsonString, options)
+    return new ScaledIngredient().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ScaledIngredient | PlainMessage<ScaledIngredient> | undefined,
-    b: ScaledIngredient | PlainMessage<ScaledIngredient> | undefined
-  ): boolean {
-    return proto3.util.equals(ScaledIngredient, a, b)
+  static equals(a: ScaledIngredient | PlainMessage<ScaledIngredient> | undefined, b: ScaledIngredient | PlainMessage<ScaledIngredient> | undefined): boolean {
+    return proto3.util.equals(ScaledIngredient, a, b);
   }
 }
 
@@ -142,84 +129,81 @@ export class Recipe extends Message<Recipe> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string user_id = 2;
    */
-  userId = ''
+  userId = "";
 
   /**
    * @generated from field: string name = 3;
    */
-  name = ''
+  name = "";
 
   /**
    * @generated from field: string instructions = 4;
    */
-  instructions = ''
+  instructions = "";
 
   /**
    * @generated from field: int32 base_servings = 5;
    */
-  baseServings = 0
+  baseServings = 0;
 
   /**
    * @generated from field: string created_at = 6;
    */
-  createdAt = ''
+  createdAt = "";
 
   /**
    * @generated from field: string updated_at = 7;
    */
-  updatedAt = ''
+  updatedAt = "";
 
   /**
    * @generated from field: repeated recipes.v1.Ingredient ingredients = 8;
    */
-  ingredients: Ingredient[] = []
+  ingredients: Ingredient[] = [];
 
   /**
    * @generated from field: repeated string shared_with = 9;
    */
-  sharedWith: string[] = []
+  sharedWith: string[] = [];
 
   constructor(data?: PartialMessage<Recipe>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.Recipe'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.Recipe";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'instructions', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'base_servings', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    { no: 6, name: 'created_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: 'updated_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 8, name: 'ingredients', kind: 'message', T: Ingredient, repeated: true },
-    { no: 9, name: 'shared_with', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "instructions", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "base_servings", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 6, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "ingredients", kind: "message", T: Ingredient, repeated: true },
+    { no: 9, name: "shared_with", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Recipe {
-    return new Recipe().fromBinary(bytes, options)
+    return new Recipe().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Recipe {
-    return new Recipe().fromJson(jsonValue, options)
+    return new Recipe().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Recipe {
-    return new Recipe().fromJsonString(jsonString, options)
+    return new Recipe().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: Recipe | PlainMessage<Recipe> | undefined,
-    b: Recipe | PlainMessage<Recipe> | undefined
-  ): boolean {
-    return proto3.util.equals(Recipe, a, b)
+  static equals(a: Recipe | PlainMessage<Recipe> | undefined, b: Recipe | PlainMessage<Recipe> | undefined): boolean {
+    return proto3.util.equals(Recipe, a, b);
   }
 }
 
@@ -228,34 +212,29 @@ export class Recipe extends Message<Recipe> {
  */
 export class ListRecipesRequest extends Message<ListRecipesRequest> {
   constructor(data?: PartialMessage<ListRecipesRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.ListRecipesRequest'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.ListRecipesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListRecipesRequest {
-    return new ListRecipesRequest().fromBinary(bytes, options)
+    return new ListRecipesRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListRecipesRequest {
-    return new ListRecipesRequest().fromJson(jsonValue, options)
+    return new ListRecipesRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ListRecipesRequest {
-    return new ListRecipesRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListRecipesRequest {
+    return new ListRecipesRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListRecipesRequest | PlainMessage<ListRecipesRequest> | undefined,
-    b: ListRecipesRequest | PlainMessage<ListRecipesRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(ListRecipesRequest, a, b)
+  static equals(a: ListRecipesRequest | PlainMessage<ListRecipesRequest> | undefined, b: ListRecipesRequest | PlainMessage<ListRecipesRequest> | undefined): boolean {
+    return proto3.util.equals(ListRecipesRequest, a, b);
   }
 }
 
@@ -266,39 +245,33 @@ export class ListRecipesResponse extends Message<ListRecipesResponse> {
   /**
    * @generated from field: repeated recipes.v1.Recipe recipes = 1;
    */
-  recipes: Recipe[] = []
+  recipes: Recipe[] = [];
 
   constructor(data?: PartialMessage<ListRecipesResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.ListRecipesResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.ListRecipesResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'recipes', kind: 'message', T: Recipe, repeated: true }
-  ])
+    { no: 1, name: "recipes", kind: "message", T: Recipe, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListRecipesResponse {
-    return new ListRecipesResponse().fromBinary(bytes, options)
+    return new ListRecipesResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListRecipesResponse {
-    return new ListRecipesResponse().fromJson(jsonValue, options)
+    return new ListRecipesResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ListRecipesResponse {
-    return new ListRecipesResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListRecipesResponse {
+    return new ListRecipesResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ListRecipesResponse | PlainMessage<ListRecipesResponse> | undefined,
-    b: ListRecipesResponse | PlainMessage<ListRecipesResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(ListRecipesResponse, a, b)
+  static equals(a: ListRecipesResponse | PlainMessage<ListRecipesResponse> | undefined, b: ListRecipesResponse | PlainMessage<ListRecipesResponse> | undefined): boolean {
+    return proto3.util.equals(ListRecipesResponse, a, b);
   }
 }
 
@@ -309,42 +282,39 @@ export class GetRecipeRequest extends Message<GetRecipeRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: int32 servings = 2;
    */
-  servings = 0
+  servings = 0;
 
   constructor(data?: PartialMessage<GetRecipeRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.GetRecipeRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.GetRecipeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'servings', kind: 'scalar', T: 5 /* ScalarType.INT32 */ }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "servings", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetRecipeRequest {
-    return new GetRecipeRequest().fromBinary(bytes, options)
+    return new GetRecipeRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetRecipeRequest {
-    return new GetRecipeRequest().fromJson(jsonValue, options)
+    return new GetRecipeRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetRecipeRequest {
-    return new GetRecipeRequest().fromJsonString(jsonString, options)
+    return new GetRecipeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetRecipeRequest | PlainMessage<GetRecipeRequest> | undefined,
-    b: GetRecipeRequest | PlainMessage<GetRecipeRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(GetRecipeRequest, a, b)
+  static equals(a: GetRecipeRequest | PlainMessage<GetRecipeRequest> | undefined, b: GetRecipeRequest | PlainMessage<GetRecipeRequest> | undefined): boolean {
+    return proto3.util.equals(GetRecipeRequest, a, b);
   }
 }
 
@@ -355,54 +325,51 @@ export class GetRecipeResponse extends Message<GetRecipeResponse> {
   /**
    * @generated from field: recipes.v1.Recipe recipe = 1;
    */
-  recipe?: Recipe
+  recipe?: Recipe;
 
   /**
    * @generated from field: int32 servings = 2;
    */
-  servings = 0
+  servings = 0;
 
   /**
    * @generated from field: bool is_owner = 3;
    */
-  isOwner = false
+  isOwner = false;
 
   /**
    * @generated from field: repeated recipes.v1.ScaledIngredient scaled_ingredients = 4;
    */
-  scaledIngredients: ScaledIngredient[] = []
+  scaledIngredients: ScaledIngredient[] = [];
 
   constructor(data?: PartialMessage<GetRecipeResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.GetRecipeResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.GetRecipeResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'recipe', kind: 'message', T: Recipe },
-    { no: 2, name: 'servings', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    { no: 3, name: 'is_owner', kind: 'scalar', T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: 'scaled_ingredients', kind: 'message', T: ScaledIngredient, repeated: true }
-  ])
+    { no: 1, name: "recipe", kind: "message", T: Recipe },
+    { no: 2, name: "servings", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "is_owner", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "scaled_ingredients", kind: "message", T: ScaledIngredient, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetRecipeResponse {
-    return new GetRecipeResponse().fromBinary(bytes, options)
+    return new GetRecipeResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetRecipeResponse {
-    return new GetRecipeResponse().fromJson(jsonValue, options)
+    return new GetRecipeResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetRecipeResponse {
-    return new GetRecipeResponse().fromJsonString(jsonString, options)
+    return new GetRecipeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetRecipeResponse | PlainMessage<GetRecipeResponse> | undefined,
-    b: GetRecipeResponse | PlainMessage<GetRecipeResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(GetRecipeResponse, a, b)
+  static equals(a: GetRecipeResponse | PlainMessage<GetRecipeResponse> | undefined, b: GetRecipeResponse | PlainMessage<GetRecipeResponse> | undefined): boolean {
+    return proto3.util.equals(GetRecipeResponse, a, b);
   }
 }
 
@@ -413,87 +380,63 @@ export class CreateRecipeRequest extends Message<CreateRecipeRequest> {
   /**
    * @generated from field: string name = 1;
    */
-  name = ''
+  name = "";
 
   /**
    * @generated from field: repeated string steps = 2;
    */
-  steps: string[] = []
+  steps: string[] = [];
 
   /**
    * @generated from field: int32 base_servings = 3;
    */
-  baseServings = 0
+  baseServings = 0;
 
   /**
    * @generated from field: repeated string ingredient_names = 4;
    */
-  ingredientNames: string[] = []
+  ingredientNames: string[] = [];
 
   /**
    * @generated from field: repeated double ingredient_amounts = 5;
    */
-  ingredientAmounts: number[] = []
+  ingredientAmounts: number[] = [];
 
   /**
    * @generated from field: repeated string ingredient_units = 6;
    */
-  ingredientUnits: string[] = []
+  ingredientUnits: string[] = [];
 
   constructor(data?: PartialMessage<CreateRecipeRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.CreateRecipeRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.CreateRecipeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'steps', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 3, name: 'base_servings', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    {
-      no: 4,
-      name: 'ingredient_names',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-      repeated: true
-    },
-    {
-      no: 5,
-      name: 'ingredient_amounts',
-      kind: 'scalar',
-      T: 1 /* ScalarType.DOUBLE */,
-      repeated: true
-    },
-    {
-      no: 6,
-      name: 'ingredient_units',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-      repeated: true
-    }
-  ])
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "steps", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 3, name: "base_servings", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "ingredient_names", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 5, name: "ingredient_amounts", kind: "scalar", T: 1 /* ScalarType.DOUBLE */, repeated: true },
+    { no: 6, name: "ingredient_units", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateRecipeRequest {
-    return new CreateRecipeRequest().fromBinary(bytes, options)
+    return new CreateRecipeRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateRecipeRequest {
-    return new CreateRecipeRequest().fromJson(jsonValue, options)
+    return new CreateRecipeRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): CreateRecipeRequest {
-    return new CreateRecipeRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateRecipeRequest {
+    return new CreateRecipeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: CreateRecipeRequest | PlainMessage<CreateRecipeRequest> | undefined,
-    b: CreateRecipeRequest | PlainMessage<CreateRecipeRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(CreateRecipeRequest, a, b)
+  static equals(a: CreateRecipeRequest | PlainMessage<CreateRecipeRequest> | undefined, b: CreateRecipeRequest | PlainMessage<CreateRecipeRequest> | undefined): boolean {
+    return proto3.util.equals(CreateRecipeRequest, a, b);
   }
 }
 
@@ -504,39 +447,33 @@ export class CreateRecipeResponse extends Message<CreateRecipeResponse> {
   /**
    * @generated from field: recipes.v1.Recipe recipe = 1;
    */
-  recipe?: Recipe
+  recipe?: Recipe;
 
   constructor(data?: PartialMessage<CreateRecipeResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.CreateRecipeResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.CreateRecipeResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'recipe', kind: 'message', T: Recipe }
-  ])
+    { no: 1, name: "recipe", kind: "message", T: Recipe },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateRecipeResponse {
-    return new CreateRecipeResponse().fromBinary(bytes, options)
+    return new CreateRecipeResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateRecipeResponse {
-    return new CreateRecipeResponse().fromJson(jsonValue, options)
+    return new CreateRecipeResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): CreateRecipeResponse {
-    return new CreateRecipeResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateRecipeResponse {
+    return new CreateRecipeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: CreateRecipeResponse | PlainMessage<CreateRecipeResponse> | undefined,
-    b: CreateRecipeResponse | PlainMessage<CreateRecipeResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(CreateRecipeResponse, a, b)
+  static equals(a: CreateRecipeResponse | PlainMessage<CreateRecipeResponse> | undefined, b: CreateRecipeResponse | PlainMessage<CreateRecipeResponse> | undefined): boolean {
+    return proto3.util.equals(CreateRecipeResponse, a, b);
   }
 }
 
@@ -547,93 +484,69 @@ export class UpdateRecipeRequest extends Message<UpdateRecipeRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string name = 2;
    */
-  name = ''
+  name = "";
 
   /**
    * @generated from field: repeated string steps = 3;
    */
-  steps: string[] = []
+  steps: string[] = [];
 
   /**
    * @generated from field: int32 base_servings = 4;
    */
-  baseServings = 0
+  baseServings = 0;
 
   /**
    * @generated from field: repeated string ingredient_names = 5;
    */
-  ingredientNames: string[] = []
+  ingredientNames: string[] = [];
 
   /**
    * @generated from field: repeated double ingredient_amounts = 6;
    */
-  ingredientAmounts: number[] = []
+  ingredientAmounts: number[] = [];
 
   /**
    * @generated from field: repeated string ingredient_units = 7;
    */
-  ingredientUnits: string[] = []
+  ingredientUnits: string[] = [];
 
   constructor(data?: PartialMessage<UpdateRecipeRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.UpdateRecipeRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.UpdateRecipeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'steps', kind: 'scalar', T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 4, name: 'base_servings', kind: 'scalar', T: 5 /* ScalarType.INT32 */ },
-    {
-      no: 5,
-      name: 'ingredient_names',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-      repeated: true
-    },
-    {
-      no: 6,
-      name: 'ingredient_amounts',
-      kind: 'scalar',
-      T: 1 /* ScalarType.DOUBLE */,
-      repeated: true
-    },
-    {
-      no: 7,
-      name: 'ingredient_units',
-      kind: 'scalar',
-      T: 9 /* ScalarType.STRING */,
-      repeated: true
-    }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "steps", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "base_servings", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: "ingredient_names", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 6, name: "ingredient_amounts", kind: "scalar", T: 1 /* ScalarType.DOUBLE */, repeated: true },
+    { no: 7, name: "ingredient_units", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateRecipeRequest {
-    return new UpdateRecipeRequest().fromBinary(bytes, options)
+    return new UpdateRecipeRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateRecipeRequest {
-    return new UpdateRecipeRequest().fromJson(jsonValue, options)
+    return new UpdateRecipeRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): UpdateRecipeRequest {
-    return new UpdateRecipeRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateRecipeRequest {
+    return new UpdateRecipeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateRecipeRequest | PlainMessage<UpdateRecipeRequest> | undefined,
-    b: UpdateRecipeRequest | PlainMessage<UpdateRecipeRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(UpdateRecipeRequest, a, b)
+  static equals(a: UpdateRecipeRequest | PlainMessage<UpdateRecipeRequest> | undefined, b: UpdateRecipeRequest | PlainMessage<UpdateRecipeRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateRecipeRequest, a, b);
   }
 }
 
@@ -642,34 +555,29 @@ export class UpdateRecipeRequest extends Message<UpdateRecipeRequest> {
  */
 export class UpdateRecipeResponse extends Message<UpdateRecipeResponse> {
   constructor(data?: PartialMessage<UpdateRecipeResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.UpdateRecipeResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.UpdateRecipeResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateRecipeResponse {
-    return new UpdateRecipeResponse().fromBinary(bytes, options)
+    return new UpdateRecipeResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateRecipeResponse {
-    return new UpdateRecipeResponse().fromJson(jsonValue, options)
+    return new UpdateRecipeResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): UpdateRecipeResponse {
-    return new UpdateRecipeResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateRecipeResponse {
+    return new UpdateRecipeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UpdateRecipeResponse | PlainMessage<UpdateRecipeResponse> | undefined,
-    b: UpdateRecipeResponse | PlainMessage<UpdateRecipeResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(UpdateRecipeResponse, a, b)
+  static equals(a: UpdateRecipeResponse | PlainMessage<UpdateRecipeResponse> | undefined, b: UpdateRecipeResponse | PlainMessage<UpdateRecipeResponse> | undefined): boolean {
+    return proto3.util.equals(UpdateRecipeResponse, a, b);
   }
 }
 
@@ -680,39 +588,33 @@ export class DeleteRecipeRequest extends Message<DeleteRecipeRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   constructor(data?: PartialMessage<DeleteRecipeRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.DeleteRecipeRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.DeleteRecipeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteRecipeRequest {
-    return new DeleteRecipeRequest().fromBinary(bytes, options)
+    return new DeleteRecipeRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteRecipeRequest {
-    return new DeleteRecipeRequest().fromJson(jsonValue, options)
+    return new DeleteRecipeRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): DeleteRecipeRequest {
-    return new DeleteRecipeRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteRecipeRequest {
+    return new DeleteRecipeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteRecipeRequest | PlainMessage<DeleteRecipeRequest> | undefined,
-    b: DeleteRecipeRequest | PlainMessage<DeleteRecipeRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(DeleteRecipeRequest, a, b)
+  static equals(a: DeleteRecipeRequest | PlainMessage<DeleteRecipeRequest> | undefined, b: DeleteRecipeRequest | PlainMessage<DeleteRecipeRequest> | undefined): boolean {
+    return proto3.util.equals(DeleteRecipeRequest, a, b);
   }
 }
 
@@ -721,34 +623,29 @@ export class DeleteRecipeRequest extends Message<DeleteRecipeRequest> {
  */
 export class DeleteRecipeResponse extends Message<DeleteRecipeResponse> {
   constructor(data?: PartialMessage<DeleteRecipeResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.DeleteRecipeResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.DeleteRecipeResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteRecipeResponse {
-    return new DeleteRecipeResponse().fromBinary(bytes, options)
+    return new DeleteRecipeResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteRecipeResponse {
-    return new DeleteRecipeResponse().fromJson(jsonValue, options)
+    return new DeleteRecipeResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): DeleteRecipeResponse {
-    return new DeleteRecipeResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteRecipeResponse {
+    return new DeleteRecipeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: DeleteRecipeResponse | PlainMessage<DeleteRecipeResponse> | undefined,
-    b: DeleteRecipeResponse | PlainMessage<DeleteRecipeResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(DeleteRecipeResponse, a, b)
+  static equals(a: DeleteRecipeResponse | PlainMessage<DeleteRecipeResponse> | undefined, b: DeleteRecipeResponse | PlainMessage<DeleteRecipeResponse> | undefined): boolean {
+    return proto3.util.equals(DeleteRecipeResponse, a, b);
   }
 }
 
@@ -759,45 +656,39 @@ export class ShareRecipeRequest extends Message<ShareRecipeRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string contact_user_id = 2;
    */
-  contactUserId = ''
+  contactUserId = "";
 
   constructor(data?: PartialMessage<ShareRecipeRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.ShareRecipeRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.ShareRecipeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'contact_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "contact_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ShareRecipeRequest {
-    return new ShareRecipeRequest().fromBinary(bytes, options)
+    return new ShareRecipeRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ShareRecipeRequest {
-    return new ShareRecipeRequest().fromJson(jsonValue, options)
+    return new ShareRecipeRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ShareRecipeRequest {
-    return new ShareRecipeRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ShareRecipeRequest {
+    return new ShareRecipeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ShareRecipeRequest | PlainMessage<ShareRecipeRequest> | undefined,
-    b: ShareRecipeRequest | PlainMessage<ShareRecipeRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(ShareRecipeRequest, a, b)
+  static equals(a: ShareRecipeRequest | PlainMessage<ShareRecipeRequest> | undefined, b: ShareRecipeRequest | PlainMessage<ShareRecipeRequest> | undefined): boolean {
+    return proto3.util.equals(ShareRecipeRequest, a, b);
   }
 }
 
@@ -806,34 +697,29 @@ export class ShareRecipeRequest extends Message<ShareRecipeRequest> {
  */
 export class ShareRecipeResponse extends Message<ShareRecipeResponse> {
   constructor(data?: PartialMessage<ShareRecipeResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.ShareRecipeResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.ShareRecipeResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ShareRecipeResponse {
-    return new ShareRecipeResponse().fromBinary(bytes, options)
+    return new ShareRecipeResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ShareRecipeResponse {
-    return new ShareRecipeResponse().fromJson(jsonValue, options)
+    return new ShareRecipeResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): ShareRecipeResponse {
-    return new ShareRecipeResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ShareRecipeResponse {
+    return new ShareRecipeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: ShareRecipeResponse | PlainMessage<ShareRecipeResponse> | undefined,
-    b: ShareRecipeResponse | PlainMessage<ShareRecipeResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(ShareRecipeResponse, a, b)
+  static equals(a: ShareRecipeResponse | PlainMessage<ShareRecipeResponse> | undefined, b: ShareRecipeResponse | PlainMessage<ShareRecipeResponse> | undefined): boolean {
+    return proto3.util.equals(ShareRecipeResponse, a, b);
   }
 }
 
@@ -844,45 +730,39 @@ export class UnshareRecipeRequest extends Message<UnshareRecipeRequest> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string target_user_id = 2;
    */
-  targetUserId = ''
+  targetUserId = "";
 
   constructor(data?: PartialMessage<UnshareRecipeRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.UnshareRecipeRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.UnshareRecipeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'target_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "target_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnshareRecipeRequest {
-    return new UnshareRecipeRequest().fromBinary(bytes, options)
+    return new UnshareRecipeRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnshareRecipeRequest {
-    return new UnshareRecipeRequest().fromJson(jsonValue, options)
+    return new UnshareRecipeRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): UnshareRecipeRequest {
-    return new UnshareRecipeRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnshareRecipeRequest {
+    return new UnshareRecipeRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UnshareRecipeRequest | PlainMessage<UnshareRecipeRequest> | undefined,
-    b: UnshareRecipeRequest | PlainMessage<UnshareRecipeRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(UnshareRecipeRequest, a, b)
+  static equals(a: UnshareRecipeRequest | PlainMessage<UnshareRecipeRequest> | undefined, b: UnshareRecipeRequest | PlainMessage<UnshareRecipeRequest> | undefined): boolean {
+    return proto3.util.equals(UnshareRecipeRequest, a, b);
   }
 }
 
@@ -891,36 +771,29 @@ export class UnshareRecipeRequest extends Message<UnshareRecipeRequest> {
  */
 export class UnshareRecipeResponse extends Message<UnshareRecipeResponse> {
   constructor(data?: PartialMessage<UnshareRecipeResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'recipes.v1.UnshareRecipeResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.UnshareRecipeResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
-  static fromBinary(
-    bytes: Uint8Array,
-    options?: Partial<BinaryReadOptions>
-  ): UnshareRecipeResponse {
-    return new UnshareRecipeResponse().fromBinary(bytes, options)
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnshareRecipeResponse {
+    return new UnshareRecipeResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnshareRecipeResponse {
-    return new UnshareRecipeResponse().fromJson(jsonValue, options)
+    return new UnshareRecipeResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): UnshareRecipeResponse {
-    return new UnshareRecipeResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnshareRecipeResponse {
+    return new UnshareRecipeResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: UnshareRecipeResponse | PlainMessage<UnshareRecipeResponse> | undefined,
-    b: UnshareRecipeResponse | PlainMessage<UnshareRecipeResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(UnshareRecipeResponse, a, b)
+  static equals(a: UnshareRecipeResponse | PlainMessage<UnshareRecipeResponse> | undefined, b: UnshareRecipeResponse | PlainMessage<UnshareRecipeResponse> | undefined): boolean {
+    return proto3.util.equals(UnshareRecipeResponse, a, b);
   }
 }
+

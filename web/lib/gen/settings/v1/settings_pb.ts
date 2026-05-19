@@ -3,15 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage
-} from '@bufbuild/protobuf'
-import { Message, proto3 } from '@bufbuild/protobuf'
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
  * @generated from message settings.v1.Integrations
@@ -20,48 +13,45 @@ export class Integrations extends Message<Integrations> {
   /**
    * @generated from field: string steam_api_key = 1;
    */
-  steamApiKey = ''
+  steamApiKey = "";
 
   /**
    * @generated from field: string steam_user_id = 2;
    */
-  steamUserId = ''
+  steamUserId = "";
 
   /**
    * @generated from field: string hardcover_api_key = 3;
    */
-  hardcoverApiKey = ''
+  hardcoverApiKey = "";
 
   constructor(data?: PartialMessage<Integrations>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'settings.v1.Integrations'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings.v1.Integrations";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'steam_api_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'steam_user_id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'hardcover_api_key', kind: 'scalar', T: 9 /* ScalarType.STRING */ }
-  ])
+    { no: 1, name: "steam_api_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "steam_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "hardcover_api_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Integrations {
-    return new Integrations().fromBinary(bytes, options)
+    return new Integrations().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Integrations {
-    return new Integrations().fromJson(jsonValue, options)
+    return new Integrations().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Integrations {
-    return new Integrations().fromJsonString(jsonString, options)
+    return new Integrations().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: Integrations | PlainMessage<Integrations> | undefined,
-    b: Integrations | PlainMessage<Integrations> | undefined
-  ): boolean {
-    return proto3.util.equals(Integrations, a, b)
+  static equals(a: Integrations | PlainMessage<Integrations> | undefined, b: Integrations | PlainMessage<Integrations> | undefined): boolean {
+    return proto3.util.equals(Integrations, a, b);
   }
 }
 
@@ -70,34 +60,29 @@ export class Integrations extends Message<Integrations> {
  */
 export class GetSettingsRequest extends Message<GetSettingsRequest> {
   constructor(data?: PartialMessage<GetSettingsRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'settings.v1.GetSettingsRequest'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings.v1.GetSettingsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSettingsRequest {
-    return new GetSettingsRequest().fromBinary(bytes, options)
+    return new GetSettingsRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSettingsRequest {
-    return new GetSettingsRequest().fromJson(jsonValue, options)
+    return new GetSettingsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetSettingsRequest {
-    return new GetSettingsRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSettingsRequest {
+    return new GetSettingsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined,
-    b: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(GetSettingsRequest, a, b)
+  static equals(a: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined, b: GetSettingsRequest | PlainMessage<GetSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(GetSettingsRequest, a, b);
   }
 }
 
@@ -108,39 +93,33 @@ export class GetSettingsResponse extends Message<GetSettingsResponse> {
   /**
    * @generated from field: settings.v1.Integrations integrations = 1;
    */
-  integrations?: Integrations
+  integrations?: Integrations;
 
   constructor(data?: PartialMessage<GetSettingsResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'settings.v1.GetSettingsResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings.v1.GetSettingsResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'integrations', kind: 'message', T: Integrations }
-  ])
+    { no: 1, name: "integrations", kind: "message", T: Integrations },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSettingsResponse {
-    return new GetSettingsResponse().fromBinary(bytes, options)
+    return new GetSettingsResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSettingsResponse {
-    return new GetSettingsResponse().fromJson(jsonValue, options)
+    return new GetSettingsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): GetSettingsResponse {
-    return new GetSettingsResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSettingsResponse {
+    return new GetSettingsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined,
-    b: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(GetSettingsResponse, a, b)
+  static equals(a: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined, b: GetSettingsResponse | PlainMessage<GetSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(GetSettingsResponse, a, b);
   }
 }
 
@@ -151,39 +130,33 @@ export class SaveSettingsRequest extends Message<SaveSettingsRequest> {
   /**
    * @generated from field: settings.v1.Integrations integrations = 1;
    */
-  integrations?: Integrations
+  integrations?: Integrations;
 
   constructor(data?: PartialMessage<SaveSettingsRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'settings.v1.SaveSettingsRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings.v1.SaveSettingsRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'integrations', kind: 'message', T: Integrations }
-  ])
+    { no: 1, name: "integrations", kind: "message", T: Integrations },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaveSettingsRequest {
-    return new SaveSettingsRequest().fromBinary(bytes, options)
+    return new SaveSettingsRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SaveSettingsRequest {
-    return new SaveSettingsRequest().fromJson(jsonValue, options)
+    return new SaveSettingsRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SaveSettingsRequest {
-    return new SaveSettingsRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SaveSettingsRequest {
+    return new SaveSettingsRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SaveSettingsRequest | PlainMessage<SaveSettingsRequest> | undefined,
-    b: SaveSettingsRequest | PlainMessage<SaveSettingsRequest> | undefined
-  ): boolean {
-    return proto3.util.equals(SaveSettingsRequest, a, b)
+  static equals(a: SaveSettingsRequest | PlainMessage<SaveSettingsRequest> | undefined, b: SaveSettingsRequest | PlainMessage<SaveSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(SaveSettingsRequest, a, b);
   }
 }
 
@@ -192,33 +165,29 @@ export class SaveSettingsRequest extends Message<SaveSettingsRequest> {
  */
 export class SaveSettingsResponse extends Message<SaveSettingsResponse> {
   constructor(data?: PartialMessage<SaveSettingsResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'settings.v1.SaveSettingsResponse'
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [])
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings.v1.SaveSettingsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaveSettingsResponse {
-    return new SaveSettingsResponse().fromBinary(bytes, options)
+    return new SaveSettingsResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SaveSettingsResponse {
-    return new SaveSettingsResponse().fromJson(jsonValue, options)
+    return new SaveSettingsResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>
-  ): SaveSettingsResponse {
-    return new SaveSettingsResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SaveSettingsResponse {
+    return new SaveSettingsResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: SaveSettingsResponse | PlainMessage<SaveSettingsResponse> | undefined,
-    b: SaveSettingsResponse | PlainMessage<SaveSettingsResponse> | undefined
-  ): boolean {
-    return proto3.util.equals(SaveSettingsResponse, a, b)
+  static equals(a: SaveSettingsResponse | PlainMessage<SaveSettingsResponse> | undefined, b: SaveSettingsResponse | PlainMessage<SaveSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(SaveSettingsResponse, a, b);
   }
 }
+

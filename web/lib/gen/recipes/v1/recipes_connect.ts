@@ -3,92 +3,78 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  CreateRecipeRequest,
-  CreateRecipeResponse,
-  DeleteRecipeRequest,
-  DeleteRecipeResponse,
-  GetRecipeRequest,
-  GetRecipeResponse,
-  ListRecipesRequest,
-  ListRecipesResponse,
-  ShareRecipeRequest,
-  ShareRecipeResponse,
-  UnshareRecipeRequest,
-  UnshareRecipeResponse,
-  UpdateRecipeRequest,
-  UpdateRecipeResponse
-} from './recipes_pb'
-import { MethodKind } from '@bufbuild/protobuf'
+import { CreateRecipeRequest, CreateRecipeResponse, DeleteRecipeRequest, DeleteRecipeResponse, GetRecipeRequest, GetRecipeResponse, ListRecipesRequest, ListRecipesResponse, ShareRecipeRequest, ShareRecipeResponse, UnshareRecipeRequest, UnshareRecipeResponse, UpdateRecipeRequest, UpdateRecipeResponse } from "./recipes_pb";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service recipes.v1.RecipesService
  */
 export const RecipesService = {
-  typeName: 'recipes.v1.RecipesService',
+  typeName: "recipes.v1.RecipesService",
   methods: {
     /**
      * @generated from rpc recipes.v1.RecipesService.ListRecipes
      */
     listRecipes: {
-      name: 'ListRecipes',
+      name: "ListRecipes",
       I: ListRecipesRequest,
       O: ListRecipesResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc recipes.v1.RecipesService.GetRecipe
      */
     getRecipe: {
-      name: 'GetRecipe',
+      name: "GetRecipe",
       I: GetRecipeRequest,
       O: GetRecipeResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc recipes.v1.RecipesService.CreateRecipe
      */
     createRecipe: {
-      name: 'CreateRecipe',
+      name: "CreateRecipe",
       I: CreateRecipeRequest,
       O: CreateRecipeResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc recipes.v1.RecipesService.UpdateRecipe
      */
     updateRecipe: {
-      name: 'UpdateRecipe',
+      name: "UpdateRecipe",
       I: UpdateRecipeRequest,
       O: UpdateRecipeResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc recipes.v1.RecipesService.DeleteRecipe
      */
     deleteRecipe: {
-      name: 'DeleteRecipe',
+      name: "DeleteRecipe",
       I: DeleteRecipeRequest,
       O: DeleteRecipeResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc recipes.v1.RecipesService.ShareRecipe
      */
     shareRecipe: {
-      name: 'ShareRecipe',
+      name: "ShareRecipe",
       I: ShareRecipeRequest,
       O: ShareRecipeResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc recipes.v1.RecipesService.UnshareRecipe
      */
     unshareRecipe: {
-      name: 'UnshareRecipe',
+      name: "UnshareRecipe",
       I: UnshareRecipeRequest,
       O: UnshareRecipeResponse,
-      kind: MethodKind.Unary
-    }
+      kind: MethodKind.Unary,
+    },
   }
-} as const
+} as const;
+

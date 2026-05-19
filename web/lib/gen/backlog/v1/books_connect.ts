@@ -3,125 +3,105 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  AddBookRequest,
-  AddBookResponse,
-  GetBooksProgressRequest,
-  GetBooksProgressResponse,
-  GetLibraryRequest,
-  GetLibraryResponse,
-  GetSummaryRequest,
-  GetSummaryResponse,
-  GetUserSummaryRequest,
-  GetUserSummaryResponse,
-  ImportBooksRequest,
-  ImportBooksResponse,
-  SearchExternalRequest,
-  SearchExternalResponse,
-  SearchLibraryRequest,
-  SearchLibraryResponse,
-  ToggleTagRequest,
-  ToggleTagResponse,
-  UpdateBookStatusRequest,
-  UpdateBookStatusResponse
-} from './books_pb'
-import { MethodKind } from '@bufbuild/protobuf'
+import { AddBookRequest, AddBookResponse, GetBooksProgressRequest, GetBooksProgressResponse, GetLibraryRequest, GetLibraryResponse, GetSummaryRequest, GetSummaryResponse, GetUserSummaryRequest, GetUserSummaryResponse, ImportBooksRequest, ImportBooksResponse, SearchExternalRequest, SearchExternalResponse, SearchLibraryRequest, SearchLibraryResponse, ToggleTagRequest, ToggleTagResponse, UpdateBookStatusRequest, UpdateBookStatusResponse } from "./books_pb";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service backlog.v1.BooksService
  */
 export const BooksService = {
-  typeName: 'backlog.v1.BooksService',
+  typeName: "backlog.v1.BooksService",
   methods: {
     /**
      * @generated from rpc backlog.v1.BooksService.GetSummary
      */
     getSummary: {
-      name: 'GetSummary',
+      name: "GetSummary",
       I: GetSummaryRequest,
       O: GetSummaryResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.GetUserSummary
      */
     getUserSummary: {
-      name: 'GetUserSummary',
+      name: "GetUserSummary",
       I: GetUserSummaryRequest,
       O: GetUserSummaryResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.GetLibrary
      */
     getLibrary: {
-      name: 'GetLibrary',
+      name: "GetLibrary",
       I: GetLibraryRequest,
       O: GetLibraryResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.GetBooksProgress
      */
     getBooksProgress: {
-      name: 'GetBooksProgress',
+      name: "GetBooksProgress",
       I: GetBooksProgressRequest,
       O: GetBooksProgressResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.SearchLibrary
      */
     searchLibrary: {
-      name: 'SearchLibrary',
+      name: "SearchLibrary",
       I: SearchLibraryRequest,
       O: SearchLibraryResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.SearchExternal
      */
     searchExternal: {
-      name: 'SearchExternal',
+      name: "SearchExternal",
       I: SearchExternalRequest,
       O: SearchExternalResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.AddBook
      */
     addBook: {
-      name: 'AddBook',
+      name: "AddBook",
       I: AddBookRequest,
       O: AddBookResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.UpdateBookStatus
      */
     updateBookStatus: {
-      name: 'UpdateBookStatus',
+      name: "UpdateBookStatus",
       I: UpdateBookStatusRequest,
       O: UpdateBookStatusResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.ToggleTag
      */
     toggleTag: {
-      name: 'ToggleTag',
+      name: "ToggleTag",
       I: ToggleTagRequest,
       O: ToggleTagResponse,
-      kind: MethodKind.Unary
+      kind: MethodKind.Unary,
     },
     /**
      * @generated from rpc backlog.v1.BooksService.ImportBooks
      */
     importBooks: {
-      name: 'ImportBooks',
+      name: "ImportBooks",
       I: ImportBooksRequest,
       O: ImportBooksResponse,
-      kind: MethodKind.Unary
-    }
+      kind: MethodKind.Unary,
+    },
   }
-} as const
+} as const;
+
