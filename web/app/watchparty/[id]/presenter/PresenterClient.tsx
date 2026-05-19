@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { buildWsUrl } from '@/lib/watchparty/roomUtils'
+import { getApiUrl } from '@/lib/env'
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
@@ -28,7 +29,7 @@ export default function PresenterClient({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ''
+    const apiUrl = getApiUrl()
     const wsUrl = buildWsUrl(apiUrl, id, true)
 
     const ws = new WebSocket(wsUrl)

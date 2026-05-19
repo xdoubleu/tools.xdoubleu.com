@@ -6,6 +6,7 @@ import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { TaskService } from '@/lib/gen/todos/v1/tasks_connect'
 import { formatRelativeDate, isOverdue } from '@/lib/todos/dateUtils'
+import { getApiUrl } from '@/lib/env'
 import type { Subtask } from '@/lib/gen/todos/v1/tasks_pb'
 
 export default function TaskClient({ id }: { id: string }) {
@@ -21,7 +22,7 @@ export default function TaskClient({ id }: { id: string }) {
   const task = data?.task ?? null
 
   async function handleAction(action: 'complete' | 'reopen' | 'delete') {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ''
+    const base = getApiUrl()
     await fetch(`${base}/todos/${id}/${action}`, { method: 'POST' })
     if (action === 'delete') {
       router.push('/todos')

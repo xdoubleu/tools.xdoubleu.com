@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { buildWsUrl } from '@/lib/watchparty/roomUtils'
+import { getApiUrl } from '@/lib/env'
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
@@ -25,7 +26,7 @@ export default function ViewerClient({ id }: { id: string }) {
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ''
+    const apiUrl = getApiUrl()
     const wsUrl = buildWsUrl(apiUrl, id, false)
 
     const ws = new WebSocket(wsUrl)

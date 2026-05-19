@@ -1,9 +1,10 @@
 'use client'
 
 import { useICSFeeds } from '@/hooks/useICSProxy'
+import { getApiUrl } from '@/lib/env'
 import type { FilterConfig } from '@/lib/gen/icsproxy/v1/proxy_pb'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
+const BASE_URL = getApiUrl()
 
 function FeedCard({ config }: { config: FilterConfig }) {
   const feedUrl = `${BASE_URL}/icsproxy/${config.token}/feed.ics`

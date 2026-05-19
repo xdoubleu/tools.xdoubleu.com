@@ -17,9 +17,6 @@ COPY web/next.config.ts web/tsconfig.json web/postcss.config.js \
      web/sentry.edge.config.ts web/sentry.server.config.ts \
      web/next-env.d.ts ./
 
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
 RUN yarn build
 
 FROM node:22-alpine AS server

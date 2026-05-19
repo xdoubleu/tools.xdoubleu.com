@@ -1,6 +1,6 @@
 # tools.xdoubleu.com
 
-A monorepo serving multiple web tools. The API is built with Go 1.25, PostgreSQL, and Supabase authentication. The frontend is built with Next.js 16, React 19, and TypeScript.
+A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL, and Supabase authentication. The frontend is built with Next.js 16, React 19, and TypeScript.
 
 ## Tools
 

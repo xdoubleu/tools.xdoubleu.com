@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
 import { useAddMeal, useDeleteMeal } from '@/hooks/useRecipes'
+import { getApiUrl } from '@/lib/env'
 import { AddMealRequest, DeleteMealRequest } from '@/lib/gen/recipes/v1/mealplans_pb'
 import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
@@ -66,7 +67,7 @@ export default function MealPlanCalendar({
     }
   }
 
-  const icalUrl = `${process.env.NEXT_PUBLIC_API_URL}/recipes/api/plans/${plan.id}/ical`
+  const icalUrl = `${getApiUrl()}/recipes/api/plans/${plan.id}/ical`
 
   return (
     <div className="space-y-4">
