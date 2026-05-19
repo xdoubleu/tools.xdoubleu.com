@@ -32,7 +32,7 @@ services:
     image:
       registry_type: GHCR
       registry: ghcr.io
-      repository: xwarszawski/tools.xdoubleu.com/api
+      repository: xdoubleu/tools.xdoubleu.com/api
       tag: latest
     http_port: 8000
     envs:
@@ -71,6 +71,6 @@ services:
     image:
       registry_type: GHCR
       registry: ghcr.io
-      repository: xwarszawski/tools.xdoubleu.com/web
+      repository: xdoubleu/tools.xdoubleu.com/web
       tag: latest
     http_port: 3000
