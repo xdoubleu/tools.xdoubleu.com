@@ -41,4 +41,4 @@ jobs:
             (echo "Proto stubs are out of date. Run 'make proto/generate' in api/ and 'yarn generate' in web/ then commit the results." && exit 1)
       - name: Lint proto files
         run: buf lint
-        working-directory: './api'
+        working-directory: './proto'
