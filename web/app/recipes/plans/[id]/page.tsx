@@ -9,6 +9,7 @@ import {
   useUnsharePlan
 } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
+import { AddMealRequest, DeleteMealRequest, SharePlanRequest, UnsharePlanRequest } from '@/lib/gen/recipes/v1/mealplans_pb'
 
 export default function MealPlanPage({ params }: { params: { id: string } }) {
   const { data, error, isLoading, mutate } = useMealPlan(params.id)
@@ -27,20 +28,20 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
     servings: number
   ) => {
     if (!plan) return
-    await addMeal({
+    await addMeal(new AddMealRequest({
       planId: plan.id,
       mealDate: date,
       mealSlot: slot,
       recipeId,
       customName: '',
       servings
-    } as any)
+    }))
     await mutate()
   }
 
   const handleDeleteMeal = async (mealId: string) => {
     if (!plan) return
-    await deleteMeal({ planId: plan.id, mealId } as any)
+    await deleteMeal(new DeleteMealRequest({ planId: plan.id, mealId }))
     await mutate()
   }
 
@@ -48,7 +49,7 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
     if (!plan) return
     const contactUserId = window.prompt('Enter contact user ID to share with:')
     if (!contactUserId) return
-    await sharePlan({ planId: plan.id, contactUserId, canEdit: false } as any)
+    await sharePlan(new SharePlanRequest({ planId: plan.id, contactUserId, canEdit: false }))
     await mutate()
   }
 
@@ -56,7 +57,7 @@ export default function MealPlanPage({ params }: { params: { id: string } }) {
     if (!plan) return
     const targetUserId = window.prompt('Enter user ID to unshare with:')
     if (!targetUserId) return
-    await unsharePlan({ planId: plan.id, targetUserId } as any)
+    await unsharePlan(new UnsharePlanRequest({ planId: plan.id, targetUserId }))
     await mutate()
   }
 

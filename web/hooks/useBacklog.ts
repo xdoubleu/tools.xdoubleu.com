@@ -8,8 +8,7 @@ import type {
   SearchExternalResponse,
   AddBookRequest,
   UpdateBookStatusRequest,
-  ToggleTagRequest,
-  ImportBooksRequest
+  ToggleTagRequest
 } from '@/lib/gen/backlog/v1/books_pb'
 import type {
   GetSteamResponse,

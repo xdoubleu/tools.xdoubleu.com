@@ -26,7 +26,7 @@ describe('SteamDistributionChart', () => {
   it('renders empty state when data has no games', () => {
     const data: GetSteamDistributionResponse = {
       data: { label: '', games: [] }
-    } as any
+    } as unknown as GetSteamDistributionResponse
     render(<SteamDistributionChart data={data} />)
     expect(screen.getByText('No distribution data available.')).toBeInTheDocument()
   })
@@ -41,7 +41,7 @@ describe('SteamDistributionChart', () => {
           { id: 3, name: 'Game 3', isDelisted: false, completionRate: '75%', contribution: '', playtime: 0 }
         ]
       }
-    } as any
+    } as unknown as GetSteamDistributionResponse
     render(<SteamDistributionChart data={data} />)
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument()
   })

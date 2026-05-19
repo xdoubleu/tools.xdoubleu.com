@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useCreateRecipe, useUpdateRecipe } from '@/hooks/useRecipes'
+import { CreateRecipeRequest, UpdateRecipeRequest } from '@/lib/gen/recipes/v1/recipes_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 
 interface RecipeFormProps {
@@ -50,7 +51,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
     try {
       if (recipe?.id) {
-        await updateRecipe({
+        await updateRecipe(new UpdateRecipeRequest({
           id: recipe.id,
           name,
           baseServings: parseInt(servings, 10),
@@ -58,17 +59,17 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           ingredientNames: ingredients.map((ing) => ing.name),
           ingredientAmounts: ingredients.map((ing) => parseFloat(ing.amount) || 0),
           ingredientUnits: ingredients.map((ing) => ing.unit)
-        } as any)
+        }))
         onSave(recipe.id)
       } else {
-        const result = await createRecipe({
+        const result = await createRecipe(new CreateRecipeRequest({
           name,
           baseServings: parseInt(servings, 10),
           steps: steps.split('\n').filter((s) => s.trim()),
           ingredientNames: ingredients.map((ing) => ing.name),
           ingredientAmounts: ingredients.map((ing) => parseFloat(ing.amount) || 0),
           ingredientUnits: ingredients.map((ing) => ing.unit)
-        } as any)
+        }))
         onSave(result.recipe?.id || '')
       }
     } catch (err) {

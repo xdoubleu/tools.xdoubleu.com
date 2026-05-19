@@ -10,7 +10,7 @@ interface OnboardingWizardProps {
 type Step = 1 | 2
 
 export default function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
-  const { data: settings } = useSettings()
+  useSettings()
   const [step, setStep] = useState<Step>(1)
   const [steamApiKey, setSteamApiKey] = useState('')
   const [steamUserId, setSteamUserId] = useState('')
@@ -31,8 +31,6 @@ export default function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
     // For now, just call onFinish
     onFinish()
   }
-
-  const progress = ((step - 1) / 2) * 100
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
 import { useAddMeal, useDeleteMeal } from '@/hooks/useRecipes'
+import { AddMealRequest, DeleteMealRequest } from '@/lib/gen/recipes/v1/mealplans_pb'
 import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 
@@ -38,12 +39,12 @@ export default function MealPlanCalendar({
   const handleAddMeal = async () => {
     if (selectedSlot && selectedDate && selectedRecipeId) {
       try {
-        await addMeal({
+        await addMeal(new AddMealRequest({
           planId: plan.id,
           mealDate: selectedDate,
           mealSlot: selectedSlot,
           recipeId: selectedRecipeId
-        } as any)
+        }))
         setSelectedSlot(null)
         setSelectedDate(null)
         setSelectedRecipeId('')
@@ -56,7 +57,7 @@ export default function MealPlanCalendar({
 
   const handleDeleteMeal = async (mealId: string) => {
     try {
-      await deleteMeal({ planId: plan.id, mealId } as any)
+      await deleteMeal(new DeleteMealRequest({ planId: plan.id, mealId }))
       onDeleteMeal(mealId)
     } catch (err) {
       console.error('Failed to delete meal:', err)

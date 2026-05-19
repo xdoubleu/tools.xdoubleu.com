@@ -147,7 +147,13 @@ func (h *mealplansConnectHandler) GetPlan(
 	windowStart := today.AddDate(0, 0, daysPerWeek*offset)
 	windowEnd := windowStart.AddDate(0, 0, daysPerWeek-1)
 
-	meals, err := h.app.services.Plans.GetMeals(ctx, id, user.ID, windowStart, windowEnd)
+	meals, err := h.app.services.Plans.GetMeals(
+		ctx,
+		id,
+		user.ID,
+		windowStart,
+		windowEnd,
+	)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -162,9 +168,9 @@ func (h *mealplansConnectHandler) GetPlan(
 		Recipes:     recipeList,
 		IcalUrl:     icalURL,
 		IsOwner:     plan.OwnerUserID == user.ID,
-		Offset:      int32(offset),
+		Offset:      int32(offset), //nolint:gosec // pagination offset fits int32
 		PrevOffset:  int32(prevOffset),
-		NextOffset:  int32(offset + 1),
+		NextOffset:  int32(offset + 1), //nolint:gosec // pagination offset fits int32
 		WindowStart: windowStart.Format(time.RFC3339),
 		WindowEnd:   windowEnd.Format(time.RFC3339),
 	}), nil

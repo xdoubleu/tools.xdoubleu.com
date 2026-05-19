@@ -25,7 +25,7 @@ class MockWebSocket {
   }
 }
 
-global.WebSocket = MockWebSocket as any
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket
 
 describe('useProgressWebSocket', () => {
   it('initializes with CONNECTING state', () => {

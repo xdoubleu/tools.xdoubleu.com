@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useAddBook } from '@/hooks/useBacklog'
+import { AddBookRequest } from '@/lib/gen/backlog/v1/books_pb'
 import type { ExternalBookResult } from '@/lib/gen/backlog/v1/books_pb'
 
 const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
@@ -26,7 +27,7 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
     setIsSubmitting(true)
     setError(null)
     try {
-      await addBook({
+      await addBook(new AddBookRequest({
         provider: book.provider,
         providerId: book.providerId,
         title: book.title,
@@ -37,7 +38,7 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
         description: book.description,
         ownPhysical: false,
         ownDigital: false
-      } as any)
+      }))
       onAdded()
       onClose()
     } catch (err) {

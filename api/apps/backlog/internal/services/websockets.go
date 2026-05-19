@@ -31,6 +31,7 @@ func NewWebSocketService(
 		allowedOrigins: allowedOrigins,
 		handler:        nil,
 		jobQueue:       jobQueue,
+		mu:             sync.RWMutex{},
 		topics:         make(map[string]*wstools.Topic),
 	}
 

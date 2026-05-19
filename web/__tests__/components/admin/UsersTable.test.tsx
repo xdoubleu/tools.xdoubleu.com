@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import UsersTable from '@/components/admin/UsersTable'
 import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
 
@@ -15,13 +15,13 @@ describe('UsersTable', () => {
       email: 'admin@example.com',
       role: 'admin',
       appAccess: ['backlog', 'todos', 'recipes']
-    } as any,
+    } as unknown as AppUser,
     {
       id: '2',
       email: 'user@example.com',
       role: 'user',
       appAccess: ['todos']
-    } as any
+    } as unknown as AppUser
   ]
 
   it('renders users table', () => {

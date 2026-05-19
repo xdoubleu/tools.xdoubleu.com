@@ -61,41 +61,6 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
       e.preventDefault()
       if (!input.trim()) return
 
-      // Parse the input for shortcuts
-      const text = input.trim()
-      let priority = 0
-      let labels: string[] = []
-      let sectionId = ''
-      let deadline = ''
-
-      // Extract priority (p1, p2, p3)
-      const priorityMatch = text.match(/\bp([123])\b/)
-      if (priorityMatch) {
-        priority = parseInt(priorityMatch[1], 10)
-      }
-
-      // Extract labels (@label)
-      const labelMatches = text.matchAll(/@(\S+)/g)
-      for (const match of labelMatches) {
-        labels.push(match[1])
-      }
-
-      // Extract section (#Section)
-      const sectionMatch = text.match(/#(\S+)/)
-      if (sectionMatch) {
-        const sectionName = sectionMatch[1]
-        const section = sections.find((s) => s.name.toLowerCase() === sectionName.toLowerCase())
-        if (section) {
-          sectionId = section.id
-        }
-      }
-
-      // Extract deadline (!YYYY-MM-DD or natural language)
-      const deadlineMatch = text.match(/!(\d{4}-\d{2}-\d{2}|\S+)/)
-      if (deadlineMatch) {
-        deadline = deadlineMatch[1]
-      }
-
       // For now, just clear and call callback
       // In a real implementation, this would call the API
       setInput('')
