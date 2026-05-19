@@ -16,6 +16,7 @@ const customJestConfig = {
     'components/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
     'hooks/**/*.{ts,tsx}',
+    'app/global-error.tsx',
     '!lib/gen/**',
     '!**/*.d.ts',
   ],

@@ -19,9 +19,10 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
       proto: ${{ steps.filter.outputs.proto }}
+      workflows: ${{ steps.filter.outputs.workflows }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -31,14 +32,15 @@ jobs:
               - 'web/**'
             proto:
               - 'proto/**'
+            workflows:
+              - '.github/workflows/**'
 
   proto-check:
     needs: changes
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.web == 'true'
+      needs.changes.outputs.workflows == 'true'
     name: Proto Staleness Check Workflow
     uses: ./.github/workflows/proto-check.yml
     secrets: inherit
@@ -49,7 +51,8 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.proto == 'true') &&
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true') &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped')
     name: Build API Workflow
     uses: ./.github/workflows/build-api.yml
@@ -61,7 +64,8 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
-      needs.changes.outputs.proto == 'true') &&
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true') &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
@@ -73,7 +77,8 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.proto == 'true') &&
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true') &&
       needs.build-api.result == 'success'
     name: API Lint Workflow
     uses: ./.github/workflows/api-lint.yml
@@ -85,7 +90,8 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
-      needs.changes.outputs.proto == 'true') &&
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true') &&
       needs.build-web.result == 'success'
     name: Web Lint Workflow
     uses: ./.github/workflows/web-lint.yml
@@ -97,7 +103,8 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.proto == 'true') &&
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true') &&
       needs.build-api.result == 'success'
     name: API Test Workflow
     uses: ./.github/workflows/api-test.yml
@@ -109,11 +116,27 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
-      needs.changes.outputs.proto == 'true') &&
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true') &&
       needs.build-web.result == 'success'
     name: Web Test Workflow
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
+
+  ci-pass:
+    needs: [proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed or were skipped
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          for result in $results; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "Job failed with result: $result"
+              exit 1
+            fi
+          done
 
   docker:
     needs: [changes, proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
@@ -127,6 +150,6 @@ jobs:
     name: Docker Build & Push Workflow
     uses: ./.github/workflows/docker.yml
     with:
-      build_api: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.proto == 'true' }}
-      build_web: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' }}
+      build_api: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.workflows == 'true' }}
+      build_web: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
