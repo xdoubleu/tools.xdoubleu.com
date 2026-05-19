@@ -43,7 +43,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || inputs.build_api
         working-directory: './api'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: github.event_name == 'workflow_dispatch' || inputs.build_web
         with:
           cache: 'yarn'
