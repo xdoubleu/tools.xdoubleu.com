@@ -9,8 +9,7 @@ jobs:
     name: Build Web
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,17 +22,5 @@ jobs:
           cache-dependency-path: './web/yarn.lock'
       - run: yarn install --immutable
         working-directory: './web'
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-      - name: Generate TypeScript ConnectRPC clients
-        working-directory: './web'
-        run: yarn generate
-      - name: Commit regenerated TS clients if changed
-        run: |
-          git pull --rebase origin ${{ github.head_ref || github.ref_name }}
-          git add web/lib/gen/
-          git diff --cached --quiet || (git commit -m "chore: regenerate TS ConnectRPC clients" && git push)
       - run: yarn build
         working-directory: './web'

@@ -9,8 +9,7 @@ jobs:
     name: Build API
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,17 +18,5 @@ jobs:
         with:
           go-version-file: './api/go.mod'
           cache-dependency-path: './api/go.sum'
-      - uses: bufbuild/buf-setup-action@v1
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-      - name: Regenerate Go proto stubs
-        run: make proto/generate
-        working-directory: './api'
       - run: make build
         working-directory: './api'
-      - name: Commit regenerated Go proto stubs if changed
-        run: |
-          git add api/gen/
-          git diff --cached --quiet || (git commit -m "chore: regenerate Go proto stubs" && git push)

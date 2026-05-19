@@ -32,24 +32,37 @@ jobs:
             proto:
               - 'proto/**'
 
-  build-api:
+  proto-gen:
     needs: changes
     if: |
       github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.proto == 'true'
+      needs.changes.outputs.web == 'true'
+    name: Proto Regeneration Workflow
+    uses: ./.github/workflows/proto-gen.yml
+    secrets: inherit
+
+  build-api:
+    needs: [changes, proto-gen]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.proto == 'true') &&
+      (needs.proto-gen.result == 'success' || needs.proto-gen.result == 'skipped')
     name: Build API Workflow
     uses: ./.github/workflows/build-api.yml
     secrets: inherit
 
   build-web:
-    needs: [changes, build-api]
+    needs: [changes, proto-gen]
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true') &&
-      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped')
+      (needs.proto-gen.result == 'success' || needs.proto-gen.result == 'skipped')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
@@ -103,11 +116,12 @@ jobs:
     secrets: inherit
 
   docker:
-    needs: [changes, build-api, build-web, api-lint, web-lint, api-test, web-test]
+    needs: [changes, proto-gen, build-api, build-web, api-lint, web-lint, api-test, web-test]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
+      (needs.proto-gen.result == 'success' || needs.proto-gen.result == 'skipped') &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped')
     name: Docker Build & Push Workflow
