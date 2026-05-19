@@ -43,13 +43,14 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || inputs.build_api
         working-directory: './api'
 
+      - run: corepack enable
+        if: github.event_name == 'workflow_dispatch' || inputs.build_web
       - uses: actions/setup-node@v4
         if: github.event_name == 'workflow_dispatch' || inputs.build_web
         with:
           cache: 'yarn'
           node-version-file: './web/package.json'
           cache-dependency-path: './web/yarn.lock'
-      - run: corepack enable
       - run: yarn install --immutable
         if: github.event_name == 'workflow_dispatch' || inputs.build_web
         working-directory: './web'
