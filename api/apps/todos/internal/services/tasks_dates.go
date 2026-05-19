@@ -202,8 +202,11 @@ func parseRecurOnly(input string, now time.Time) (int, string, error) {
 }
 
 func parsePositiveInt(s string) (int, bool) {
-	n, atoiErr := strconv.Atoi(s)
-	return n, atoiErr == nil && n > 0
+	n64, parseErr := strconv.ParseInt(s, 10, 32)
+	if parseErr != nil || n64 <= 0 {
+		return 0, false
+	}
+	return int(n64), true
 }
 
 func parseDatePtr(s string) *time.Time {
