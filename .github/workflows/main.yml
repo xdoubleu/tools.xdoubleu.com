@@ -5,20 +5,11 @@ permissions:
   packages: read
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-permissions:
-  contents: read
-  packages: read
-
-    branches: [ main ]
-
   workflow_dispatch:
-
-permissions:
-  contents: read
-  packages: read
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   changes:
