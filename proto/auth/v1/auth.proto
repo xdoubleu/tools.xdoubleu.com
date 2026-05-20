@@ -59,4 +59,5 @@ message GetCurrentUserRequest {}
 
 message GetCurrentUserResponse {
   string role = 1;
+  repeated string app_access = 2;
 }

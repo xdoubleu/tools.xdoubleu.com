@@ -18,6 +18,6 @@ func (app *WatchParty) Routes(prefix string, mux *http.ServeMux) {
 	)
 	mux.Handle(
 		"POST "+path,
-		app.Services.Auth.AppAccess(prefix, handler.ServeHTTP),
+		app.Services.Auth.Access(handler.ServeHTTP),
 	)
 }

@@ -46,7 +46,9 @@ func pingLoop(
 
 func isExpectedCloseErr(err error) bool {
 	status := websocket.CloseStatus(err)
-	if status == websocket.StatusNormalClosure || status == websocket.StatusGoingAway {
+	if status == websocket.StatusNormalClosure ||
+		status == websocket.StatusGoingAway ||
+		status == websocket.StatusNoStatusRcvd {
 		return true
 	}
 	return errors.Is(err, context.Canceled) ||

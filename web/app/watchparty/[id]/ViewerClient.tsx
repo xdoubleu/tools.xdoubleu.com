@@ -72,13 +72,21 @@ export default function ViewerClient({ id }: { id: string }) {
   const remoteCamRef = useRef<HTMLVideoElement>(null)
 
   const wsRef = useRef<WebSocket | null>(null)
+  // pcCamRef: OUTGOING cam (viewer's cam sent to presenter)
   const pcCamRef = useRef<RTCPeerConnection | null>(null)
+  // pcInCamRef: INCOMING cam (presenter's cam received by viewer)
+  const pcInCamRef = useRef<RTCPeerConnection | null>(null)
   const pcScreenRef = useRef<RTCPeerConnection | null>(null)
   const localCamRef = useRef<MediaStream | null>(null)
   const remoteCamStreamRef = useRef<MediaStream | null>(null)
   const isSharingScreenRef = useRef(false)
-  const pendingCandidates = useRef<Record<TrackType, RTCIceCandidateInit[]>>({
-    cam: [],
+  const pendingCandidates = useRef<{
+    camOut: RTCIceCandidateInit[]
+    camIn: RTCIceCandidateInit[]
+    screen: RTCIceCandidateInit[]
+  }>({
+    camOut: [],
+    camIn: [],
     screen: []
   })
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -90,10 +98,19 @@ export default function ViewerClient({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (selfCamRef.current) return attachDraggable(selfCamRef.current)
+    if (!selfCamRef.current) return
+    const cleanDrag = attachDraggable(selfCamRef.current)
+    return () => {
+      cleanDrag()
+    }
   }, [])
+
   useEffect(() => {
-    if (remoteCamRef.current) return attachDraggable(remoteCamRef.current)
+    if (!remoteCamRef.current) return
+    const cleanDrag = attachDraggable(remoteCamRef.current)
+    return () => {
+      cleanDrag()
+    }
   }, [])
 
   useEffect(() => {
@@ -109,7 +126,10 @@ export default function ViewerClient({ id }: { id: string }) {
       }
     }
 
-    function createPC(trackType: TrackType): RTCPeerConnection {
+    function createPC(
+      trackType: TrackType,
+      direction: 'send' | 'recv' = 'recv'
+    ): RTCPeerConnection {
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       })
@@ -118,32 +138,60 @@ export default function ViewerClient({ id }: { id: string }) {
         if (e.candidate) send('candidate', e.candidate, trackType)
       }
 
-      pc.ontrack = (e) => {
-        const mainEl = mainVideoRef.current
-        const remoteEl = remoteCamRef.current
-        if (trackType === 'cam') {
-          remoteCamStreamRef.current = e.streams[0]
-          if (isSharingScreenRef.current) {
+      if (direction === 'recv') {
+        pc.ontrack = (e) => {
+          const mainEl = mainVideoRef.current
+          const remoteEl = remoteCamRef.current
+          if (trackType === 'cam') {
+            remoteCamStreamRef.current = e.streams[0]
+            if (isSharingScreenRef.current) {
+              if (remoteEl) {
+                remoteEl.srcObject = remoteCamStreamRef.current
+                remoteEl.style.display = 'block'
+              }
+            } else {
+              if (mainEl) mainEl.srcObject = remoteCamStreamRef.current
+              if (remoteEl) remoteEl.style.display = 'none'
+            }
+          }
+          if (trackType === 'screen') {
+            isSharingScreenRef.current = true
+            if (mainEl) mainEl.srcObject = e.streams[0]
             if (remoteEl) {
               remoteEl.srcObject = remoteCamStreamRef.current
-              remoteEl.style.display = 'block'
+              remoteEl.style.display = remoteCamStreamRef.current ? 'block' : 'none'
             }
-          } else {
-            if (mainEl) mainEl.srcObject = remoteCamStreamRef.current
-            if (remoteEl) remoteEl.style.display = 'none'
-          }
-        }
-        if (trackType === 'screen') {
-          isSharingScreenRef.current = true
-          if (mainEl) mainEl.srcObject = e.streams[0]
-          if (remoteEl) {
-            remoteEl.srcObject = remoteCamStreamRef.current
-            remoteEl.style.display = remoteCamStreamRef.current ? 'block' : 'none'
           }
         }
       }
 
       pc.onconnectionstatechange = () => {
+        if (trackType === 'cam' && direction === 'recv') {
+          // pcInCamRef connection failed
+          if (pc.connectionState === 'failed') {
+            pcInCamRef.current = null
+            pendingCandidates.current.camIn = []
+          }
+        }
+        if (trackType === 'cam' && direction === 'send') {
+          // pcCamRef connection failed — attempt to re-offer
+          if (pc.connectionState === 'failed') {
+            pcCamRef.current = null
+            pendingCandidates.current.camOut = []
+            // Trigger re-negotiation
+            void (async () => {
+              const localCam = localCamRef.current
+              if (localCam) {
+                const newPc = createPC('cam', 'send')
+                pcCamRef.current = newPc
+                localCam.getTracks().forEach((t) => newPc.addTrack(t, localCam))
+                const offer = await newPc.createOffer()
+                await newPc.setLocalDescription(offer)
+                send('offer', offer, 'cam')
+              }
+            })()
+          }
+        }
         if (
           trackType === 'screen' &&
           (pc.connectionState === 'disconnected' || pc.connectionState === 'failed')
@@ -166,11 +214,17 @@ export default function ViewerClient({ id }: { id: string }) {
       if (oldCam) {
         oldCam.close()
         pcCamRef.current = null
-        pendingCandidates.current.cam = []
+        pendingCandidates.current.camOut = []
+      }
+      const oldInCam = pcInCamRef.current
+      if (oldInCam) {
+        oldInCam.close()
+        pcInCamRef.current = null
+        pendingCandidates.current.camIn = []
       }
       const localCam = localCamRef.current
       if (localCam) {
-        const pc = createPC('cam')
+        const pc = createPC('cam', 'send')
         pcCamRef.current = pc
         localCam.getTracks().forEach((t) => pc.addTrack(t, localCam))
         const offer = await pc.createOffer()
@@ -207,47 +261,98 @@ export default function ViewerClient({ id }: { id: string }) {
         const tt = msg.trackType
 
         if (msg.type === 'offer') {
-          let pc = tt === 'cam' ? pcCamRef.current : pcScreenRef.current
-          if (
-            pc &&
-            tt === 'screen' &&
-            (pc.signalingState === 'closed' ||
-              pc.connectionState === 'failed' ||
-              pc.connectionState === 'closed' ||
-              pc.connectionState === 'disconnected')
-          ) {
-            pc.close()
-            pc = null
-            pcScreenRef.current = null
-            pendingCandidates.current.screen = []
+          if (tt === 'cam') {
+            // Incoming cam offer from presenter → use pcInCamRef
+            let pc = pcInCamRef.current
+            if (
+              pc &&
+              (pc.signalingState === 'closed' ||
+                pc.connectionState === 'failed' ||
+                pc.connectionState === 'closed' ||
+                pc.connectionState === 'disconnected')
+            ) {
+              pc.close()
+              pc = null
+              pcInCamRef.current = null
+              pendingCandidates.current.camIn = []
+            }
+            if (!pc) {
+              pc = createPC('cam', 'recv')
+              pcInCamRef.current = pc
+              pendingCandidates.current.camIn = []
+            }
+            await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+            for (const c of pendingCandidates.current.camIn.splice(0)) await pc.addIceCandidate(c)
+            const answer = await pc.createAnswer()
+            await pc.setLocalDescription(answer)
+            send('answer', answer, tt)
+          } else {
+            // Screen offer
+            let pc = pcScreenRef.current
+            if (
+              pc &&
+              (pc.signalingState === 'closed' ||
+                pc.connectionState === 'failed' ||
+                pc.connectionState === 'closed' ||
+                pc.connectionState === 'disconnected')
+            ) {
+              pc.close()
+              pc = null
+              pcScreenRef.current = null
+              pendingCandidates.current.screen = []
+            }
+            if (!pc) {
+              pc = createPC(tt, 'recv')
+              pcScreenRef.current = pc
+              pendingCandidates.current[tt] = []
+            }
+            await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+            for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
+            const answer = await pc.createAnswer()
+            await pc.setLocalDescription(answer)
+            send('answer', answer, tt)
           }
-          if (!pc) {
-            pc = createPC(tt)
-            if (tt === 'screen') pcScreenRef.current = pc
-            else pcCamRef.current = pc
-            pendingCandidates.current[tt] = []
-          }
-          await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
-          for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
-          const answer = await pc.createAnswer()
-          await pc.setLocalDescription(answer)
-          send('answer', answer, tt)
         }
 
         if (msg.type === 'answer') {
-          const pc = tt === 'cam' ? pcCamRef.current : pcScreenRef.current
-          if (pc && pc.signalingState === 'have-local-offer') {
-            await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
-            for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
+          // Answer to our outgoing cam offer
+          if (tt === 'cam') {
+            const pc = pcCamRef.current
+            if (pc && pc.signalingState === 'have-local-offer') {
+              await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+              for (const c of pendingCandidates.current.camOut.splice(0))
+                await pc.addIceCandidate(c)
+            }
+          } else {
+            const pc = pcScreenRef.current
+            if (pc && pc.signalingState === 'have-local-offer') {
+              await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+              for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
+            }
           }
         }
 
         if (msg.type === 'candidate') {
-          const pc = tt === 'cam' ? pcCamRef.current : pcScreenRef.current
-          if (pc && pc.remoteDescription) {
-            await pc.addIceCandidate(msg.payload as RTCIceCandidateInit)
-          } else if (pc) {
-            pendingCandidates.current[tt].push(msg.payload as RTCIceCandidateInit)
+          if (tt === 'cam') {
+            // Route to pcInCamRef if it has a remote description, else pcCamRef
+            const inCam = pcInCamRef.current
+            const outCam = pcCamRef.current
+            if (inCam && inCam.remoteDescription) {
+              await inCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
+            } else if (outCam && outCam.remoteDescription) {
+              await outCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
+            } else if (inCam) {
+              pendingCandidates.current.camIn.push(msg.payload as RTCIceCandidateInit)
+            } else {
+              pendingCandidates.current.camOut.push(msg.payload as RTCIceCandidateInit)
+            }
+          } else {
+            const pc = pcScreenRef.current
+            if (pc && pc.remoteDescription) {
+              await pc.addIceCandidate(msg.payload as RTCIceCandidateInit)
+            } else if (pc) {
+              pendingCandidates.current[tt].push(msg.payload as RTCIceCandidateInit)
+            }
           }
         }
       }
@@ -258,7 +363,7 @@ export default function ViewerClient({ id }: { id: string }) {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         localCamRef.current = stream
         if (selfCamRef.current) selfCamRef.current.srcObject = stream
-        const pc = createPC('cam')
+        const pc = createPC('cam', 'send')
         pcCamRef.current = pc
         stream.getTracks().forEach((t) => pc.addTrack(t, stream))
         const offer = await pc.createOffer()
@@ -276,6 +381,7 @@ export default function ViewerClient({ id }: { id: string }) {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       wsRef.current?.close()
       pcCamRef.current?.close()
+      pcInCamRef.current?.close()
       pcScreenRef.current?.close()
       localCamRef.current?.getTracks().forEach((t) => t.stop())
     }
@@ -309,7 +415,7 @@ export default function ViewerClient({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-border">
         <Link href="/watchparty" className="text-blue-600 hover:underline text-sm">
           &larr; Back
@@ -323,7 +429,7 @@ export default function ViewerClient({ id }: { id: string }) {
 
       {error && <p className="px-4 py-2 text-red-600 text-sm bg-red-50">{error}</p>}
 
-      <div className="relative flex-1 bg-black min-h-[60vh]">
+      <div className="relative flex-1 bg-black overflow-hidden">
         <video ref={mainVideoRef} autoPlay playsInline className="w-full h-full object-contain" />
 
         <video
@@ -331,16 +437,25 @@ export default function ViewerClient({ id }: { id: string }) {
           autoPlay
           playsInline
           muted
-          className="absolute bottom-4 right-4 w-40 h-28 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900"
-          style={{ display: 'block' }}
+          className="absolute bottom-4 right-4 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900"
+          style={{
+            width: 200,
+            height: 200,
+            display: 'block',
+            transform: 'scaleX(-1)'
+          }}
         />
 
         <video
           ref={remoteCamRef}
           autoPlay
           playsInline
-          className="absolute bottom-4 left-4 w-40 h-28 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900"
-          style={{ display: 'none' }}
+          className="absolute bottom-4 left-4 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900"
+          style={{
+            width: 200,
+            height: 200,
+            display: 'none'
+          }}
         />
       </div>
 

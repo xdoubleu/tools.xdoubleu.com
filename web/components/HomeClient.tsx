@@ -9,22 +9,27 @@ import {
   useMFAEnrollVerify,
   useMFAChallenge
 } from '@/hooks/useAuth'
+import AppGrid, { type AppLink } from '@/components/AppGrid'
 import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-enroll' | 'mfa-challenge'
 
-interface AppLink {
-  label: string
-  href: string
-  description: string
-}
-
 const APPS: AppLink[] = [
-  { label: 'Backlog', href: '/backlog', description: 'Goals and backlog tracker' },
-  { label: 'Watch Party', href: '/watchparty', description: 'WebRTC screen sharing' },
-  { label: 'ICS Proxy', href: '/icsproxy', description: 'Calendar feed filtering' },
-  { label: 'Recipes', href: '/recipes', description: 'Recipe management' },
-  { label: 'Todos', href: '/todos', description: 'Task management' }
+  { name: 'backlog', label: 'Backlog', href: '/backlog', description: 'Goals and backlog tracker' },
+  {
+    name: 'watchparty',
+    label: 'Watch Party',
+    href: '/watchparty',
+    description: 'WebRTC screen sharing'
+  },
+  {
+    name: 'icsproxy',
+    label: 'ICS Proxy',
+    href: '/icsproxy',
+    description: 'Calendar feed filtering'
+  },
+  { name: 'recipes', label: 'Recipes', href: '/recipes', description: 'Recipe management' },
+  { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' }
 ]
 
 export default function HomeClient() {
@@ -148,24 +153,11 @@ export default function HomeClient() {
     return <p className="text-muted">Loading...</p>
   }
 
-  if (authState === 'authenticated') {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {APPS.map((app) => (
-          <Link
-            key={app.href}
-            href={app.href}
-            className={
-              'rounded-xl border border-border bg-card p-6 shadow-sm ' +
-              'transition-shadow hover:shadow-md'
-            }
-          >
-            <h2 className="text-lg font-semibold text-fg">{app.label}</h2>
-            <p className="mt-1 text-sm text-muted">{app.description}</p>
-          </Link>
-        ))}
-      </div>
-    )
+  if (authState === 'authenticated' && data) {
+    const visibleApps =
+      data.role === 'admin' ? APPS : APPS.filter((app) => (data.appAccess ?? []).includes(app.name))
+
+    return <AppGrid apps={visibleApps} />
   }
 
   if (authState === 'mfa-enroll') {
@@ -290,14 +282,9 @@ export default function HomeClient() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
-            <label htmlFor="password" className="block text-sm font-medium text-subtle">
-              Password
-            </label>
-            <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
-              Forgot password?
-            </Link>
-          </div>
+          <label htmlFor="password" className="block text-sm font-medium text-subtle">
+            Password
+          </label>
           <input
             id="password"
             type="password"
@@ -310,6 +297,11 @@ export default function HomeClient() {
               'focus:outline-none focus:ring-1 focus:ring-blue-500'
             }
           />
+          <div className="mt-1 text-right">
+            <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
         </div>
 
         <div className="flex items-center">

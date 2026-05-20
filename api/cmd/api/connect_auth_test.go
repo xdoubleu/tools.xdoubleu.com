@@ -185,6 +185,42 @@ func TestGetCurrentUser_ReturnsAdminRole(t *testing.T) {
 	assert.Equal(t, "admin", resp.Msg.Role)
 }
 
+func TestGetCurrentUser_ReturnsEmptyAppAccess(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.Empty(t, resp.Msg.AppAccess)
+}
+
+func TestGetCurrentUser_ReturnsAppAccess_WithGrant(t *testing.T) {
+	ctx := context.Background()
+	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
+	grantAppAccess(t, testUserID, "backlog")
+	defer revokeAppAccess(t, testUserID, "backlog")
+
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.Contains(t, resp.Msg.AppAccess, "backlog")
+}
+
+func TestGetCurrentUser_Admin_HasRole(t *testing.T) {
+	promoteToAdmin(t)
+	defer demoteToUser(t)
+
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "admin", resp.Msg.Role)
+	assert.IsType(t, []string{}, resp.Msg.AppAccess)
+}
+
 //nolint:gochecknoglobals // shared test fixture
 var mfaTokenCookie = http.Cookie{
 	Name:  "mfaToken",

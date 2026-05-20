@@ -44,7 +44,7 @@ describe('HomeClient', () => {
 
   it('renders all 5 app links when authenticated', async () => {
     mockUseSettings.mockReturnValue({
-      data: { integrations: {} },
+      data: { role: 'admin', appAccess: [], integrations: {} },
       isLoading: false,
       error: undefined
     })
@@ -229,7 +229,7 @@ describe('HomeClient', () => {
 
   it('renders app descriptions', async () => {
     mockUseSettings.mockReturnValue({
-      data: { integrations: {} },
+      data: { role: 'admin', appAccess: [], integrations: {} },
       isLoading: false,
       error: undefined
     })
@@ -242,6 +242,61 @@ describe('HomeClient', () => {
       expect(screen.getByText('Calendar feed filtering')).toBeInTheDocument()
       expect(screen.getByText('Recipe management')).toBeInTheDocument()
       expect(screen.getByText('Task management')).toBeInTheDocument()
+    })
+  })
+
+  it('renders only granted apps for non-admin user', async () => {
+    mockUseSettings.mockReturnValue({
+      data: { role: 'user', appAccess: ['backlog', 'todos'], integrations: {} },
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<HomeClient />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Backlog')).toBeInTheDocument()
+      expect(screen.getByText('Todos')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
+    expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
+    expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
+  })
+
+  it('renders all apps for admin user', async () => {
+    mockUseSettings.mockReturnValue({
+      data: { role: 'admin', appAccess: [], integrations: {} },
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<HomeClient />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Backlog')).toBeInTheDocument()
+      expect(screen.getByText('Watch Party')).toBeInTheDocument()
+      expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
+      expect(screen.getByText('Recipes')).toBeInTheDocument()
+      expect(screen.getByText('Todos')).toBeInTheDocument()
+    })
+  })
+
+  it('renders no apps when appAccess is empty for non-admin', async () => {
+    mockUseSettings.mockReturnValue({
+      data: { role: 'user', appAccess: [], integrations: {} },
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<HomeClient />)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Backlog')).not.toBeInTheDocument()
+      expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
+      expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
+      expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
+      expect(screen.queryByText('Todos')).not.toBeInTheDocument()
     })
   })
 
@@ -823,7 +878,7 @@ describe('HomeClient', () => {
     })
 
     // Update mockUseSettings to return user data
-    const mockSettings = { integrations: {} }
+    const mockSettings = { role: 'admin', appAccess: [], integrations: {} }
     mockUseSettings.mockReturnValue({
       data: mockSettings,
       isLoading: false,

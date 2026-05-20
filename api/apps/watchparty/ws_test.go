@@ -244,3 +244,37 @@ func TestSignalingInvalidRoleRejected(t *testing.T) {
 	// that the handler does not panic.
 	_ = err
 }
+
+// TestSignalingViewerReconnectReceivesBufferedOffer verifies that when a
+// viewer reconnects after the presenter has sent an offer while the viewer
+// was disconnected, the viewer receives the buffered offer.
+func TestSignalingViewerReconnectReceivesBufferedOffer(t *testing.T) {
+	app, routes := newTestApp()
+	srv := httptest.NewServer(routes)
+	defer srv.Close()
+
+	ctx := context.Background()
+	roomCode := app.Services.Room.CreateRoom(ctx, userID)
+	app.Services.Room.JoinViewer(ctx, roomCode, userID)
+
+	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
+	defer presConn.CloseNow() //nolint:errcheck // cleanup in test
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Presenter sends an offer while viewer is not connected.
+	offer := makeTrackMsg(dtos.Offer, "cam")
+	require.NoError(t, wsjson.Write(ctx, presConn, offer))
+
+	// Now viewer connects and should receive the buffered offer.
+	viewConn := dialSignaling(t, srv, roomCode, dtos.Viewer)
+	defer viewConn.CloseNow() //nolint:errcheck // cleanup in test
+
+	var received dtos.TrackMessage
+	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	require.NoError(t, wsjson.Read(readCtx, viewConn, &received))
+
+	assert.Equal(t, dtos.Offer, received.Type)
+	assert.Equal(t, "cam", received.TrackType)
+}

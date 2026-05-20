@@ -45,6 +45,14 @@ func (r *Room) updateLastActive() { r.LastActive = time.Now() }
 
 // SetPresenterWS is called when the presenter's WebSocket connects or reconnects.
 func (r *Room) SetPresenterWS(ws *websocket.Conn) {
+	// Close old connection if it exists and is different from the new one.
+	if r.Presenter.WS != nil && r.Presenter.WS != ws {
+		_ = r.Presenter.WS.Close(
+			websocket.StatusGoingAway,
+			"reconnected",
+		)
+	}
+
 	r.Presenter.WS = ws
 	r.updateLastActive()
 
@@ -71,6 +79,14 @@ func (r *Room) SetViewer(viewerID string) {
 
 // SetViewerWS is called when the viewer's WebSocket connects or reconnects.
 func (r *Room) SetViewerWS(ws *websocket.Conn) {
+	// Close old connection if it exists and is different from the new one.
+	if r.Viewer.WS != nil && r.Viewer.WS != ws {
+		_ = r.Viewer.WS.Close(
+			websocket.StatusGoingAway,
+			"reconnected",
+		)
+	}
+
 	r.Viewer.WS = ws
 	r.updateLastActive()
 
@@ -121,4 +137,16 @@ func (r *Room) SendToPresenter(ctx context.Context, trackMsg dtos.TrackMessage) 
 		return nil
 	}
 	return wsjson.Write(ctx, r.Presenter.WS, trackMsg)
+}
+
+// GetLastOfferFromPresenter retrieves the last offer from the presenter for
+// a given track type.
+func (r *Room) GetLastOfferFromPresenter(trackType string) *dtos.TrackMessage {
+	return r.lastOfferFromPresenter[trackType]
+}
+
+// GetLastOfferFromViewer retrieves the last offer from the viewer for
+// a given track type.
+func (r *Room) GetLastOfferFromViewer(trackType string) *dtos.TrackMessage {
+	return r.lastOfferFromViewer[trackType]
 }
