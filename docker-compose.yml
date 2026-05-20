@@ -12,8 +12,9 @@ services:
       context: .
       dockerfile: web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
         RELEASE: ${RELEASE:-dev}
+    environment:
+      API_URL: ${API_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:

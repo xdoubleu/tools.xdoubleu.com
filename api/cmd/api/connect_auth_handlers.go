@@ -250,12 +250,15 @@ func (h *authConnectHandler) GetCurrentUser(
 	// Get the DB-enriched user with correct role
 	enrichedUser, dbErr := h.app.appUsersRepo.GetByID(ctx, user.ID)
 	role := user.Role
+	appAccess := []string{}
 	if dbErr == nil {
-		// User found in DB, use the DB role
+		// User found in DB, use the DB role and app access
 		role = enrichedUser.Role
+		appAccess = enrichedUser.AppAccess
 	}
 
 	return connect.NewResponse(&authv1.GetCurrentUserResponse{
-		Role: string(role),
+		Role:      string(role),
+		AppAccess: appAccess,
 	}), nil
 }

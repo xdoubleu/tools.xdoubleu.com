@@ -44,6 +44,20 @@ func demoteToUser(t *testing.T) {
 		testApp.appUsersRepo.SetRole(context.Background(), testUserID, models.RoleUser))
 }
 
+func grantAppAccess(t *testing.T, userID, appName string) {
+	t.Helper()
+	require.NoError(t, testApp.appUsersRepo.SetAppAccess(
+		context.Background(), userID, appName, true,
+	))
+}
+
+func revokeAppAccess(t *testing.T, userID, appName string) {
+	t.Helper()
+	require.NoError(t, testApp.appUsersRepo.SetAppAccess(
+		context.Background(), userID, appName, false,
+	))
+}
+
 func mustParseUUID(t *testing.T, s string) uuid.UUID {
 	t.Helper()
 	id, err := uuid.Parse(s)
