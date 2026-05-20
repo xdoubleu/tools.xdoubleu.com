@@ -29,9 +29,11 @@ export default function Navbar() {
           <Link href="/contacts" className="text-sm text-muted hover:text-blue-600">
             Contacts
           </Link>
-          <Link href="/admin" className="text-sm text-muted hover:text-blue-600">
-            Admin
-          </Link>
+          {data.role === 'admin' && (
+            <Link href="/admin" className="text-sm text-muted hover:text-blue-600">
+              Admin
+            </Link>
+          )}
           <button onClick={handleSignOut} className="text-sm text-muted hover:text-blue-600">
             Sign out
           </button>

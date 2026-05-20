@@ -491,6 +491,11 @@ export class GetCurrentUserRequest extends Message<GetCurrentUserRequest> {
  * @generated from message auth.v1.GetCurrentUserResponse
  */
 export class GetCurrentUserResponse extends Message<GetCurrentUserResponse> {
+  /**
+   * @generated from field: string role = 1;
+   */
+  role = "";
+
   constructor(data?: PartialMessage<GetCurrentUserResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -499,6 +504,7 @@ export class GetCurrentUserResponse extends Message<GetCurrentUserResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "auth.v1.GetCurrentUserResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "role", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetCurrentUserResponse {

@@ -147,8 +147,9 @@ func TestGetCurrentUser_Success(t *testing.T) {
 	client := authClient(t)
 	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
 	setCookieOnRequest(req, accessToken)
-	_, err := client.GetCurrentUser(context.Background(), req)
+	resp, err := client.GetCurrentUser(context.Background(), req)
 	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Role)
 }
 
 func TestGetCurrentUser_NoToken(t *testing.T) {
@@ -161,6 +162,27 @@ func TestGetCurrentUser_NoToken(t *testing.T) {
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
+}
+
+func TestGetCurrentUser_ReturnsUserRole(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "user", resp.Msg.Role)
+}
+
+func TestGetCurrentUser_ReturnsAdminRole(t *testing.T) {
+	promoteToAdmin(t)
+	defer demoteToUser(t)
+
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "admin", resp.Msg.Role)
 }
 
 //nolint:gochecknoglobals // shared test fixture

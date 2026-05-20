@@ -24,6 +24,9 @@ RUN yarn build
 
 FROM node:22-alpine AS server
 
+ARG RELEASE=dev
+ENV RELEASE=${RELEASE}
+
 WORKDIR /app
 
 COPY --from=builder /app/.next/standalone ./

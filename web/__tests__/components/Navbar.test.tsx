@@ -37,7 +37,11 @@ describe('Navbar', () => {
   })
 
   it('renders nav links when authenticated', () => {
-    mockUseCurrentUser.mockReturnValue({ data: {}, isLoading: false, error: undefined })
+    mockUseCurrentUser.mockReturnValue({
+      data: { role: 'user' },
+      isLoading: false,
+      error: undefined
+    })
     mockUseSignOut.mockReturnValue(jest.fn())
 
     render(<Navbar />)
@@ -45,12 +49,51 @@ describe('Navbar', () => {
     expect(screen.getByRole('link', { name: 'tools.xdoubleu.com' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveAttribute('href', '/contacts')
-    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
+    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
   })
 
+  it('shows Admin link for admin users', () => {
+    mockUseCurrentUser.mockReturnValue({
+      data: { role: 'admin' },
+      isLoading: false,
+      error: undefined
+    })
+    mockUseSignOut.mockReturnValue(jest.fn())
+
+    render(<Navbar />)
+
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
+  })
+
+  it('hides Admin link for non-admin users', () => {
+    mockUseCurrentUser.mockReturnValue({
+      data: { role: 'user' },
+      isLoading: false,
+      error: undefined
+    })
+    mockUseSignOut.mockReturnValue(jest.fn())
+
+    render(<Navbar />)
+
+    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
+  })
+
+  it('hides Admin link when role is empty string', () => {
+    mockUseCurrentUser.mockReturnValue({ data: { role: '' }, isLoading: false, error: undefined })
+    mockUseSignOut.mockReturnValue(jest.fn())
+
+    render(<Navbar />)
+
+    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
+  })
+
   it('calls signOut and redirects to / on sign out', async () => {
-    mockUseCurrentUser.mockReturnValue({ data: {}, isLoading: false, error: undefined })
+    mockUseCurrentUser.mockReturnValue({
+      data: { role: 'user' },
+      isLoading: false,
+      error: undefined
+    })
     const mockSignOut = jest.fn().mockResolvedValue({})
     mockUseSignOut.mockReturnValue(mockSignOut)
 

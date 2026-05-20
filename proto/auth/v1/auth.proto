@@ -57,4 +57,6 @@ message SignOutResponse {}
 
 message GetCurrentUserRequest {}
 
-message GetCurrentUserResponse {}
+message GetCurrentUserResponse {
+  string role = 1;
+}

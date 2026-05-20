@@ -12,7 +12,7 @@ Spawn a **Plan** sub-agent with `model: "sonnet"`. The plan agent must NOT write
 
 Instruct it to:
 
-1. **Analyze** which files and functions the task requires changing.
+1. **Analyze** which files and functions the task requires changing. If any `.proto` file will be modified, explicitly note that **both** the backend code-generation command and the frontend code-generation command must be run (in that order, one per agent) — do not leave either implicit. Include these as the **first** todos in the respective BACKEND and FRONTEND sections so generated stubs exist before any handler or client code is written.
 
 2. **Check existing coverage** on those files. Identify uncovered branches and functions that will be touched.
 
@@ -31,7 +31,8 @@ Instruct it to:
    Next.js, React, TypeScript, Tailwind, shadcn/ui components, Jest tests, browser-facing assets, and their tests.
 
 6. **Sequence each section** in this order:
-   - **Coverage increase first**: tests for currently-uncovered code in files that will be touched (so regressions are caught the moment functional changes land).
+   - **Code generation first** (if applicable): if the task modifies a `.proto` file, the very first BACKEND todo must be to run code generation so Go stubs exist before handler code is written; the very first FRONTEND todo must be to run TypeScript client generation so generated types exist before UI code is written.
+   - **Coverage increase**: tests for currently-uncovered code in files that will be touched (so regressions are caught the moment functional changes land).
    - **Deduplication / extraction**: extract any shared patterns before writing code that would duplicate them.
    - **Functional implementation**: the actual changes required by the task.
    - **Tests for new code**: targeting ≥80% coverage on all changed code.
@@ -48,8 +49,8 @@ Capture the full plan before proceeding.
 
 Once you have the full plan, spawn **TWO general-purpose sub-agents with `model: "haiku"` IN PARALLEL in a single message**:
 
-- **BACKEND agent**: receives the BACKEND section of the plan. Executes fully — implementation first, then tests immediately. Run `make test` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3.
-- **FRONTEND agent**: receives the FRONTEND section of the plan. Executes fully — implementation first, then tests immediately. Run `yarn test:cov` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3.
+- **BACKEND agent**: receives the BACKEND section of the plan. Executes fully — implementation first, then tests immediately. Run `make test` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3. Read `CLAUDE.md` first and use it as the authoritative source for file locations, conventions, and shared patterns — do not speculatively read files that CLAUDE.md already documents.
+- **FRONTEND agent**: receives the FRONTEND section of the plan. Executes fully — implementation first, then tests immediately. Run `yarn test:cov` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3. Read `CLAUDE.md` first and use it as the authoritative source for file locations, conventions, and shared patterns — do not speculatively read files that CLAUDE.md already documents.
 
 **FRONTEND agent must additionally:**
 

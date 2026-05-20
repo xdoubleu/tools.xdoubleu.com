@@ -61,6 +61,15 @@ apps/<name>/
 └── migrations/         # Goose SQL migrations (per-app schema)
 ```
 
+### ConnectRPC Auth Handler Conventions
+
+The `GetCurrentUser` handler (in `api/cmd/api/connect_auth_handlers.go`) uses a two-layer role resolution pattern:
+
+1. Call `h.app.services.Auth.GetUser(token)` to validate the session and get the GoTrue user (including its `Role` field).
+2. Call `h.app.appUsersRepo.GetByID(ctx, user.ID)` to retrieve the DB-enriched user record. If found, prefer the DB role over the GoTrue role. If not found, fall back to the GoTrue role.
+
+Any Connect handler that needs DB-enriched user attributes must follow this same fallback pattern rather than relying solely on the GoTrue response.
+
 ### Shared Internal Packages (`internal/`)
 
 - **`app.Base`** — Embedded struct providing logger, config, templates, and auth service to every app
@@ -115,7 +124,19 @@ Strict linting is enforced via `golangci-lint` (40+ linters). Key constraints:
 
 Always run `make lint/fix` as the final step before committing. Manually fix anything the auto-fixer cannot resolve.
 
-Generated files: `api/gen/` Go proto stubs ARE committed. `web/lib/gen/` TypeScript clients ARE committed — only run `yarn generate` after editing `.proto` files (CI regenerates and commits them automatically via `build.yml`).
+Generated files: `api/gen/` Go proto stubs ARE committed. `web/lib/gen/` TypeScript clients ARE committed — only run the generators after editing `.proto` files (CI regenerates and commits them automatically via `build.yml`).
+
+### Proto code generation (both must run when a `.proto` file changes)
+
+```bash
+# From api/  — regenerates Go stubs into api/gen/
+make proto/generate
+
+# From web/  — regenerates TypeScript clients into web/lib/gen/
+yarn generate
+```
+
+These two commands are always paired. A proto change without running both will leave one side stale.
 
 ## Testing Notes
 
