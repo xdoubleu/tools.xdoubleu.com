@@ -4,9 +4,7 @@ import { getSentryDsn, getRelease } from './lib/env'
 Sentry.init({
   dsn: getSentryDsn(),
   release: getRelease(),
-  debug: true,
-  tracesSampleRate: 1.0,
-  enableLogs: true
+  tracesSampleRate: 1.0
 })
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
