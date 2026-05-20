@@ -4,5 +4,6 @@ import { getSentryDsn } from './lib/env'
 Sentry.init({
   dsn: getSentryDsn(),
   debug: true,
-  tracesSampleRate: 1.0
+  tracesSampleRate: 1.0,
+  enableLogs: true
 })
