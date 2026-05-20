@@ -51,6 +51,7 @@ Once you have the full plan, spawn **TWO general-purpose sub-agents with `model:
 
 **FRONTEND agent must additionally:**
 
+- **Verify the build succeeds**: run `yarn build` (or `tsc --noEmit` at minimum) after implementation and tests complete. Do not declare success if the build fails.
 - Make all UI changes mobile-friendly and fully responsive. Verify layouts across small, medium, and large viewports. Use relative units and responsive breakpoints. Avoid fixed widths.
 - Minimize user friction: prefer SWR/React state updates over full page reloads, reduce click count, use optimistic UI where appropriate, avoid unnecessary loading states. Use Next.js App Router patterns (Server Components for initial data, Client Components only where interactivity is needed).
 

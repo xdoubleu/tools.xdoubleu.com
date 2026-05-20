@@ -50,8 +50,8 @@ export default function BugReportModal({ isOpen, onClose }: BugReportModalProps)
       )
 
       setSuccess(true)
-      if (response.issueUrl) {
-        setIssueUrl(response.issueUrl)
+      if (response.url) {
+        setIssueUrl(response.url)
       }
 
       // Close modal after 2 seconds
