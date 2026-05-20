@@ -9,6 +9,7 @@ service AuthService {
   rpc MFAChallenge(MFAChallengeRequest) returns (MFAChallengeResponse);
   rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
   rpc SignOut(SignOutRequest) returns (SignOutResponse);
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
 }
 
 message SignInRequest {
@@ -53,3 +54,7 @@ message ForgotPasswordResponse {}
 message SignOutRequest {}
 
 message SignOutResponse {}
+
+message GetCurrentUserRequest {}
+
+message GetCurrentUserResponse {}

@@ -48,6 +48,9 @@ const (
 	AuthServiceForgotPasswordProcedure = "/auth.v1.AuthService/ForgotPassword"
 	// AuthServiceSignOutProcedure is the fully-qualified name of the AuthService's SignOut RPC.
 	AuthServiceSignOutProcedure = "/auth.v1.AuthService/SignOut"
+	// AuthServiceGetCurrentUserProcedure is the fully-qualified name of the AuthService's
+	// GetCurrentUser RPC.
+	AuthServiceGetCurrentUserProcedure = "/auth.v1.AuthService/GetCurrentUser"
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -58,6 +61,7 @@ type AuthServiceClient interface {
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
+	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. By default, it uses
@@ -107,6 +111,12 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("SignOut")),
 			connect.WithClientOptions(opts...),
 		),
+		getCurrentUser: connect.NewClient[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse](
+			httpClient,
+			baseURL+AuthServiceGetCurrentUserProcedure,
+			connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -118,6 +128,7 @@ type authServiceClient struct {
 	mFAChallenge    *connect.Client[v1.MFAChallengeRequest, v1.MFAChallengeResponse]
 	forgotPassword  *connect.Client[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse]
 	signOut         *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
+	getCurrentUser  *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
 }
 
 // SignIn calls auth.v1.AuthService.SignIn.
@@ -150,6 +161,11 @@ func (c *authServiceClient) SignOut(ctx context.Context, req *connect.Request[v1
 	return c.signOut.CallUnary(ctx, req)
 }
 
+// GetCurrentUser calls auth.v1.AuthService.GetCurrentUser.
+func (c *authServiceClient) GetCurrentUser(ctx context.Context, req *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error) {
+	return c.getCurrentUser.CallUnary(ctx, req)
+}
+
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
 type AuthServiceHandler interface {
 	SignIn(context.Context, *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error)
@@ -158,6 +174,7 @@ type AuthServiceHandler interface {
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
+	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -203,6 +220,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("SignOut")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceGetCurrentUserHandler := connect.NewUnaryHandler(
+		AuthServiceGetCurrentUserProcedure,
+		svc.GetCurrentUser,
+		connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceSignInProcedure:
@@ -217,6 +240,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceForgotPasswordHandler.ServeHTTP(w, r)
 		case AuthServiceSignOutProcedure:
 			authServiceSignOutHandler.ServeHTTP(w, r)
+		case AuthServiceGetCurrentUserProcedure:
+			authServiceGetCurrentUserHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -248,4 +273,8 @@ func (UnimplementedAuthServiceHandler) ForgotPassword(context.Context, *connect.
 
 func (UnimplementedAuthServiceHandler) SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.SignOut is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.GetCurrentUser is not implemented"))
 }

@@ -2,21 +2,23 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ConnectError } from '@connectrpc/connect'
 import HomeClient from '@/components/HomeClient'
 
-jest.mock('@/hooks/useSettings', () => ({
-  useSettings: jest.fn()
-}))
-
 jest.mock('@/hooks/useAuth', () => ({
+  useCurrentUser: jest.fn(),
   useSignIn: jest.fn(),
   useMFAEnroll: jest.fn(),
   useMFAEnrollVerify: jest.fn(),
   useMFAChallenge: jest.fn()
 }))
 
-import { useSettings } from '@/hooks/useSettings'
-import { useSignIn, useMFAEnroll, useMFAEnrollVerify, useMFAChallenge } from '@/hooks/useAuth'
+import {
+  useCurrentUser,
+  useSignIn,
+  useMFAEnroll,
+  useMFAEnrollVerify,
+  useMFAChallenge
+} from '@/hooks/useAuth'
 
-const mockUseSettings = useSettings as jest.Mock
+const mockUseSettings = useCurrentUser as jest.Mock
 const mockUseSignIn = useSignIn as jest.Mock
 const mockUseMFAEnroll = useMFAEnroll as jest.Mock
 const mockUseMFAEnrollVerify = useMFAEnrollVerify as jest.Mock
@@ -80,9 +82,8 @@ describe('HomeClient', () => {
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Sign in/ })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /Forgot password/i })).toBeInTheDocument()
     })
-
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
   it('calls signIn with correct args on successful submission', async () => {
@@ -106,7 +107,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123', false, '')
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123', true, '')
     })
   })
 
@@ -174,10 +175,10 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     const rememberMeCheckbox = screen.getByLabelText('Remember me')
-    expect(rememberMeCheckbox).not.toBeChecked()
+    expect(rememberMeCheckbox).toBeChecked()
 
     fireEvent.click(rememberMeCheckbox)
-    expect(rememberMeCheckbox).toBeChecked()
+    expect(rememberMeCheckbox).not.toBeChecked()
 
     const emailInput = screen.getByLabelText('Email')
     const passwordInput = screen.getByLabelText('Password')
@@ -188,7 +189,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123', true, '')
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123', false, '')
     })
   })
 
@@ -511,6 +512,41 @@ describe('HomeClient', () => {
     })
   })
 
+  it('auto-submits MFA challenge when code reaches 6 digits', async () => {
+    mockUseSettings.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('401')
+    })
+
+    const mockSignIn = jest.fn().mockResolvedValue({ needsMfa: true, enrollMfa: false })
+    const mockMFAChallenge = jest.fn().mockResolvedValue({})
+
+    mockUseSignIn.mockReturnValue(mockSignIn)
+    mockUseMFAChallenge.mockReturnValue(mockMFAChallenge)
+
+    render(<HomeClient />)
+
+    const emailInput = screen.getByLabelText('Email')
+    const passwordInput = screen.getByLabelText('Password')
+    const submitButton = screen.getByRole('button', { name: /Sign in/ })
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } })
+    fireEvent.change(passwordInput, { target: { value: 'password123' } })
+    fireEvent.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText('Two-factor authentication')).toBeInTheDocument()
+    })
+
+    const mfaChallengeInput = screen.getByLabelText('Authenticator code')
+    fireEvent.change(mfaChallengeInput, { target: { value: '654321' } })
+
+    await waitFor(() => {
+      expect(mockMFAChallenge).toHaveBeenCalledWith('654321')
+    })
+  })
+
   it('shows ConnectError on failed MFA challenge', async () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
@@ -673,7 +709,7 @@ describe('HomeClient', () => {
     })
   })
 
-  it('useSettings error after mfa-challenge does not revert to sign-in form', async () => {
+  it('auth error after mfa-challenge does not revert to sign-in form', async () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -714,7 +750,7 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('button', { name: /Sign in/ })).not.toBeInTheDocument()
   })
 
-  it('useSettings error after mfa-enroll does not revert to sign-in form', async () => {
+  it('auth error after mfa-enroll does not revert to sign-in form', async () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -759,7 +795,7 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('button', { name: /Sign in/ })).not.toBeInTheDocument()
   })
 
-  it('useSettings data after mfa-challenge transitions to authenticated', async () => {
+  it('auth data after mfa-challenge transitions to authenticated', async () => {
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,

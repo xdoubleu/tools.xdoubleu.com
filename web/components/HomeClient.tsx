@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useSettings } from '@/hooks/useSettings'
-import { useSignIn, useMFAEnroll, useMFAEnrollVerify, useMFAChallenge } from '@/hooks/useAuth'
+import {
+  useCurrentUser,
+  useSignIn,
+  useMFAEnroll,
+  useMFAEnrollVerify,
+  useMFAChallenge
+} from '@/hooks/useAuth'
 import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-enroll' | 'mfa-challenge'
@@ -23,7 +28,7 @@ const APPS: AppLink[] = [
 ]
 
 export default function HomeClient() {
-  const { data, error, isLoading } = useSettings()
+  const { data, error, isLoading } = useCurrentUser()
   const signIn = useSignIn()
   const mFAEnroll = useMFAEnroll()
   const mFAEnrollVerify = useMFAEnrollVerify()
@@ -32,7 +37,7 @@ export default function HomeClient() {
   const [authState, setAuthState] = useState<AuthState>('loading')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [signInError, setSignInError] = useState<string | null>(null)
   const [factorId, setFactorId] = useState('')
@@ -53,6 +58,12 @@ export default function HomeClient() {
       }
     }
   }, [isLoading, data, error])
+
+  useEffect(() => {
+    if (authState === 'mfa-challenge' && mfaCode.length === 6 && !mfaSubmitting) {
+      handleMfaChallenge()
+    }
+  }, [mfaCode, authState, mfaSubmitting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -279,9 +290,14 @@ export default function HomeClient() {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-subtle">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-sm font-medium text-subtle">
+              Password
+            </label>
+            <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"

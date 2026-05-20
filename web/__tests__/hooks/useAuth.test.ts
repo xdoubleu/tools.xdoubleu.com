@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react'
 
+jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({
     signIn: jest.fn(),
@@ -7,13 +8,15 @@ jest.mock('@/lib/client', () => ({
     forgotPassword: jest.fn(),
     mFAEnroll: jest.fn(),
     mFAEnrollVerify: jest.fn(),
-    mFAChallenge: jest.fn()
+    mFAChallenge: jest.fn(),
+    getCurrentUser: jest.fn()
   }))
 }))
 jest.mock('@/lib/gen/auth/v1/auth_connect', () => ({
   AuthService: {}
 }))
 
+import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import {
   useSignIn,
@@ -21,8 +24,11 @@ import {
   useForgotPassword,
   useMFAEnroll,
   useMFAEnrollVerify,
-  useMFAChallenge
+  useMFAChallenge,
+  useCurrentUser
 } from '@/hooks/useAuth'
+
+const mockUseSWR = useSWR as jest.Mock
 
 const mockCreateServiceClient = createServiceClient as jest.Mock
 
@@ -103,5 +109,26 @@ describe('useMFAChallenge', () => {
     const { result } = renderHook(() => useMFAChallenge())
     result.current('654321')
     expect(mockMFAChallenge).toHaveBeenCalledWith({ code: '654321' })
+  })
+})
+
+describe('useCurrentUser', () => {
+  beforeEach(() => {
+    mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
+  })
+
+  it('uses /auth/current-user as key', () => {
+    renderHook(() => useCurrentUser())
+    expect(mockUseSWR).toHaveBeenCalledWith('/auth/current-user', expect.any(Function), {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false
+    })
+  })
+
+  it('returns SWR result', () => {
+    const mockData = {}
+    mockUseSWR.mockReturnValueOnce({ data: mockData, isLoading: false, error: undefined })
+    const { result } = renderHook(() => useCurrentUser())
+    expect(result.current.data).toEqual(mockData)
   })
 })

@@ -229,3 +229,22 @@ func (h *authConnectHandler) SignOut(
 	resp.Header().Add("Set-Cookie", deleteRefresh.String())
 	return resp, nil
 }
+
+func (h *authConnectHandler) GetCurrentUser(
+	_ context.Context,
+	req *connect.Request[authv1.GetCurrentUserRequest],
+) (*connect.Response[authv1.GetCurrentUserResponse], error) {
+	cookie, err := h.parseCookie(req.Header(), "accessToken")
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("not signed in"),
+		)
+	}
+
+	if _, err = h.app.services.Auth.GetUser(cookie.Value); err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	return connect.NewResponse(&authv1.GetCurrentUserResponse{}), nil
+}

@@ -13,13 +13,6 @@ type Integrations struct {
 	HardcoverAPIKey string
 }
 
-func (app *Backlog) HasCompletedOnboarding(
-	ctx context.Context,
-	userID string,
-) (bool, error) {
-	return app.Services.Integrations.HasCompletedOnboarding(ctx, userID)
-}
-
 func (app *Backlog) GetIntegrations(
 	ctx context.Context,
 	userID string,

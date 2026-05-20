@@ -143,6 +143,26 @@ func TestSignOut_NoToken(t *testing.T) {
 	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
 }
 
+func TestGetCurrentUser_Success(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+}
+
+func TestGetCurrentUser_NoToken(t *testing.T) {
+	client := authClient(t)
+	_, err := client.GetCurrentUser(
+		context.Background(),
+		connect.NewRequest(&authv1.GetCurrentUserRequest{}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
+}
+
 //nolint:gochecknoglobals // shared test fixture
 var mfaTokenCookie = http.Cookie{
 	Name:  "mfaToken",

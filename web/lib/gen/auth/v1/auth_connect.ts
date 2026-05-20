@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ForgotPasswordRequest, ForgotPasswordResponse, MFAChallengeRequest, MFAChallengeResponse, MFAEnrollRequest, MFAEnrollResponse, MFAEnrollVerifyRequest, MFAEnrollVerifyResponse, SignInRequest, SignInResponse, SignOutRequest, SignOutResponse } from "./auth_pb";
+import { ForgotPasswordRequest, ForgotPasswordResponse, GetCurrentUserRequest, GetCurrentUserResponse, MFAChallengeRequest, MFAChallengeResponse, MFAEnrollRequest, MFAEnrollResponse, MFAEnrollVerifyRequest, MFAEnrollVerifyResponse, SignInRequest, SignInResponse, SignOutRequest, SignOutResponse } from "./auth_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -64,6 +64,15 @@ export const AuthService = {
       name: "SignOut",
       I: SignOutRequest,
       O: SignOutResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc auth.v1.AuthService.GetCurrentUser
+     */
+    getCurrentUser: {
+      name: "GetCurrentUser",
+      I: GetCurrentUserRequest,
+      O: GetCurrentUserResponse,
       kind: MethodKind.Unary,
     },
   }

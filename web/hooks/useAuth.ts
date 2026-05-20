@@ -1,3 +1,4 @@
+import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_connect'
 
@@ -30,4 +31,12 @@ export function useMFAEnrollVerify() {
 export function useMFAChallenge() {
   const client = createServiceClient(AuthService)
   return (code: string) => client.mFAChallenge({ code })
+}
+
+export function useCurrentUser() {
+  const client = createServiceClient(AuthService)
+  return useSWR('/auth/current-user', () => client.getCurrentUser({}), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false
+  })
 }

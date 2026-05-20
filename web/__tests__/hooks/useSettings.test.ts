@@ -31,7 +31,10 @@ beforeEach(() => {
 describe('useSettings', () => {
   it('uses /settings as key', () => {
     renderHook(() => useSettings())
-    expect(mockUseSWR).toHaveBeenCalledWith('/settings', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/settings', expect.any(Function), {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false
+    })
   })
 
   it('returns SWR result', () => {
