@@ -17,13 +17,6 @@ func (s *IntegrationsService) Get(
 	return s.repo.Get(ctx, userID)
 }
 
-func (s *IntegrationsService) HasCompletedOnboarding(
-	ctx context.Context,
-	userID string,
-) (bool, error) {
-	return s.repo.Exists(ctx, userID)
-}
-
 func (s *IntegrationsService) Save(
 	ctx context.Context,
 	i repositories.UserIntegrations,

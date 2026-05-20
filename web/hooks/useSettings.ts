@@ -5,7 +5,10 @@ import type { GetSettingsResponse, Integrations } from '@/lib/gen/settings/v1/se
 
 export function useSettings() {
   const client = createServiceClient(SettingsService)
-  return useSWR<GetSettingsResponse, Error>('/settings', () => client.getSettings({}))
+  return useSWR<GetSettingsResponse, Error>('/settings', () => client.getSettings({}), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false
+  })
 }
 
 export function useSaveSettings() {

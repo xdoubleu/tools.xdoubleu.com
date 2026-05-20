@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Footer from '@/components/Footer'
+import Navbar from '@/components/Navbar'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex flex-col min-h-screen bg-bg text-fg">
+        <Navbar />
         {children}
         <Footer />
       </body>

@@ -24,8 +24,8 @@ func seedSteamData(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 
-	// Save dummy integrations so HasCompletedOnboarding == true and
-	// ImportOwnedGames can build a client from the factory.
+	// Save dummy integrations so ImportOwnedGames can build a client from
+	// the factory.
 	err := testApp.SaveIntegrations(
 		ctx,
 		userID,
