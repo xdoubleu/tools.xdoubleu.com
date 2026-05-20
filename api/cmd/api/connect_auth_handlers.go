@@ -231,7 +231,7 @@ func (h *authConnectHandler) SignOut(
 }
 
 func (h *authConnectHandler) GetCurrentUser(
-	_ context.Context,
+	ctx context.Context,
 	req *connect.Request[authv1.GetCurrentUserRequest],
 ) (*connect.Response[authv1.GetCurrentUserResponse], error) {
 	cookie, err := h.parseCookie(req.Header(), "accessToken")
@@ -242,9 +242,20 @@ func (h *authConnectHandler) GetCurrentUser(
 		)
 	}
 
-	if _, err = h.app.services.Auth.GetUser(cookie.Value); err != nil {
+	user, err := h.app.services.Auth.GetUser(cookie.Value)
+	if err != nil {
 		return nil, connect.NewError(connect.CodeUnauthenticated, err)
 	}
 
-	return connect.NewResponse(&authv1.GetCurrentUserResponse{}), nil
+	// Get the DB-enriched user with correct role
+	enrichedUser, dbErr := h.app.appUsersRepo.GetByID(ctx, user.ID)
+	role := user.Role
+	if dbErr == nil {
+		// User found in DB, use the DB role
+		role = enrichedUser.Role
+	}
+
+	return connect.NewResponse(&authv1.GetCurrentUserResponse{
+		Role: string(role),
+	}), nil
 }
