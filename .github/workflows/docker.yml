@@ -43,6 +43,8 @@ jobs:
           file: api/Dockerfile
           push: true
           tags: ${{ steps.meta-api.outputs.tags }}
+          build-args: |
+            RELEASE=${{ github.sha }}
 
       - uses: docker/metadata-action@v5
         id: meta-web
@@ -61,5 +63,6 @@ jobs:
           push: true
           tags: ${{ steps.meta-web.outputs.tags }}
           build-args: |
+            RELEASE=${{ github.sha }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}

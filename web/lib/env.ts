@@ -1,6 +1,6 @@
 declare global {
   interface Window {
-    __ENV__: { API_URL: string; SENTRY_DSN: string }
+    __ENV__: { API_URL: string; SENTRY_DSN: string; RELEASE: string }
   }
 }
 
@@ -12,4 +12,9 @@ export function getApiUrl(): string {
 export function getSentryDsn(): string {
   if (typeof window !== 'undefined') return window.__ENV__?.SENTRY_DSN ?? ''
   return process.env.SENTRY_DSN ?? ''
+}
+
+export function getRelease(): string {
+  if (typeof window !== 'undefined') return window.__ENV__?.RELEASE ?? 'dev'
+  return process.env.RELEASE ?? 'dev'
 }

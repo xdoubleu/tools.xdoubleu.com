@@ -4,20 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
-	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v4/pkg/errortools"
-
-	"tools.xdoubleu.com/cmd/api/internal/dtos"
 	"tools.xdoubleu.com/cmd/api/internal/logging"
-	"tools.xdoubleu.com/internal/constants"
-	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
 type githubIssueRequest struct {
@@ -27,75 +19,6 @@ type githubIssueRequest struct {
 
 type githubIssueResponse struct {
 	HTMLURL string `json:"html_url"`
-}
-
-func (app *Application) bugReportHandler(w http.ResponseWriter, r *http.Request) {
-	if app.config.GitHubToken == "" || app.config.GitHubRepo == "" {
-		httptools.ErrorResponse(w, r,
-			http.StatusServiceUnavailable,
-			errors.New("bug reporting is not configured"),
-		)
-		return
-	}
-
-	var dto dtos.BugReportDto
-	if err := httptools.ReadForm(r, &dto); err != nil {
-		httptools.HandleError(w, r, err)
-		return
-	}
-
-	if strings.TrimSpace(dto.Title) == "" || strings.TrimSpace(dto.Description) == "" {
-		httptools.FailedValidationResponse(w, r, map[string]string{
-			"title":       "must not be empty",
-			"description": "must not be empty",
-		})
-		return
-	}
-
-	user := contexttools.GetValue[sharedmodels.User](
-		r.Context(),
-		constants.UserContextKey,
-	)
-	if user == nil {
-		httptools.UnauthorizedResponse(
-			w, r,
-			errortools.NewUnauthorizedError(errors.New("not signed in")),
-		)
-		return
-	}
-
-	body := buildIssueBody(
-		dto.Description,
-		dto.Page,
-		r.Header.Get("User-Agent"),
-		app.config.Release,
-		app.config.Env,
-		user.ID,
-		app.requestBuffer.Get(user.ID),
-		dto.ConsoleLogs,
-		dto.WSLog,
-	)
-
-	issueURL, err := createGitHubIssue(
-		r.Context(),
-		app.config.GitHubToken,
-		app.config.GitHubRepo,
-		dto.Title,
-		body,
-	)
-	if err != nil {
-		httptools.HandleError(w, r, err)
-		return
-	}
-
-	if err = httptools.WriteJSON(
-		w,
-		http.StatusOK,
-		map[string]string{"url": issueURL},
-		nil,
-	); err != nil {
-		httptools.HandleError(w, r, err)
-	}
 }
 
 func buildIssueBody(

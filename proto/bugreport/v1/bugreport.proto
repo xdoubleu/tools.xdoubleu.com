@@ -1,0 +1,19 @@
+syntax = "proto3";
+package bugreport.v1;
+option go_package = "tools.xdoubleu.com/gen/bugreport/v1;bugreportv1";
+
+service BugReportService {
+  rpc CreateBugReport(CreateBugReportRequest) returns (CreateBugReportResponse);
+}
+
+message CreateBugReportRequest {
+  string title = 1;
+  string description = 2;
+  string page = 3;
+  string console_logs = 4;
+  string ws_log = 5;
+}
+
+message CreateBugReportResponse {
+  string url = 1;
+}

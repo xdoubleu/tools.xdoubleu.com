@@ -9,7 +9,7 @@ import (
 func (app *Backlog) backlogRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"GET /"+prefix+"/api/progress",
-		app.Services.WebSocket.Handler(),
+		app.Services.Auth.Access(app.Services.WebSocket.Handler()),
 	)
 	mux.HandleFunc(
 		"GET /"+prefix+"/api/progress/{id}/refresh",

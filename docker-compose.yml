@@ -13,6 +13,7 @@ services:
       dockerfile: web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        RELEASE: ${RELEASE:-dev}
     ports:
       - "3000:3000"
     depends_on:

@@ -39,9 +39,6 @@ services:
       - key: ENV
         scope: RUN_TIME
         value: production
-      - key: RELEASE
-        scope: RUN_TIME
-        value: ${_self.COMMIT_HASH}
       - key: WEB_URL
         scope: RUN_TIME
         value: https://tools.xdoubleu.com

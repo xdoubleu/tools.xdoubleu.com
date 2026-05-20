@@ -31,6 +31,9 @@ import (
 //go:embed migrations/*.sql
 var globalMigrations embed.FS
 
+//nolint:gochecknoglobals //Release is set at build time via -ldflags.
+var Release = "dev"
+
 type Application struct {
 	ctx           context.Context
 	logger        *slog.Logger
@@ -62,6 +65,8 @@ const (
 
 func main() {
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+	// Release is set at build time via -ldflags; always use that value
+	cfg.Release = Release
 
 	logger := slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))

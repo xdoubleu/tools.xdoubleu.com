@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/cmd/api/internal/logging"
 	"tools.xdoubleu.com/gen/admin/v1/adminv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
+	bugreportv1connect "tools.xdoubleu.com/gen/bugreport/v1/bugreportv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
 	"tools.xdoubleu.com/gen/settings/v1/settingsv1connect"
 	"tools.xdoubleu.com/internal/constants"
@@ -49,10 +50,15 @@ func (app *Application) Routes() http.Handler {
 		app.services.Auth.Access(contactsHandler.ServeHTTP),
 	)
 
-	mux.HandleFunc(
-		"POST /api/bug-report",
-		app.services.Auth.Access(app.bugReportHandler),
+	bugReportPath, bugReportHandler := bugreportv1connect.NewBugReportServiceHandler(
+		&bugReportConnectHandler{app: app},
 	)
+	mux.Handle(
+		"POST "+bugReportPath,
+		app.services.Auth.Access(bugReportHandler.ServeHTTP),
+	)
+
+	mux.HandleFunc("GET /api/version", app.versionHandler)
 
 	app.imageRoutes("images", mux)
 

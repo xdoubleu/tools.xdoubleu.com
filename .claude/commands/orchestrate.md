@@ -23,9 +23,11 @@ Instruct it to:
 5. **Produce a complete, ordered todo list** separated into two explicit sections:
 
    ### BACKEND
+
    Go, SQL, migrations, services, repositories, handlers, jobs, config, and their tests.
 
    ### FRONTEND
+
    Next.js, React, TypeScript, Tailwind, shadcn/ui components, Jest tests, browser-facing assets, and their tests.
 
 6. **Sequence each section** in this order:
@@ -46,13 +48,19 @@ Capture the full plan before proceeding.
 
 Once you have the full plan, spawn **TWO general-purpose sub-agents with `model: "haiku"` IN PARALLEL in a single message**:
 
-- **BACKEND agent**: receives the BACKEND section of the plan. Executes fully — implementation first, then tests. Trust the plan; do not self-review or re-plan.
-- **FRONTEND agent**: receives the FRONTEND section of the plan. Executes fully — implementation first, then tests. Trust the plan; do not self-review or re-plan.
+- **BACKEND agent**: receives the BACKEND section of the plan. Executes fully — implementation first, then tests immediately. Run `make test` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3.
+- **FRONTEND agent**: receives the FRONTEND section of the plan. Executes fully — implementation first, then tests immediately. Run `yarn test:cov` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3.
 
 **FRONTEND agent must additionally:**
 
+- **Verify the build succeeds**: run `yarn build` (or `tsc --noEmit` at minimum) after implementation and tests complete. Do not declare success if the build fails.
+- **Verify linting passes**: run `yarn lint` after implementation and tests. If linting fails, fix issues before declaring success. Do not declare success if linting fails.
 - Make all UI changes mobile-friendly and fully responsive. Verify layouts across small, medium, and large viewports. Use relative units and responsive breakpoints. Avoid fixed widths.
 - Minimize user friction: prefer SWR/React state updates over full page reloads, reduce click count, use optimistic UI where appropriate, avoid unnecessary loading states. Use Next.js App Router patterns (Server Components for initial data, Client Components only where interactivity is needed).
+
+**BACKEND agent must additionally:**
+
+- **Verify linting passes**: run `make lint` after implementation and tests. If linting fails, fix issues before declaring success. Do not declare success if linting fails.
 
 If one section is empty, skip that agent. Wait for **both** to complete before proceeding.
 
@@ -90,6 +98,7 @@ Review the workflow just completed for inefficiencies:
    - Split oversized files if the task just touched them and the split is mechanical.
    - Create new Make targets or scripts that replace recurring multi-step workflows.
    - Create new `.claude/commands/` slash commands for recurring agent workflows.
+   - **Linter rule adjustments**: if linter rules cause repeated friction without catching real bugs, edit linter configuration (e.g., ESLint rules, golangci-lint rules) to reduce false positives. This reduces token overhead from fixing style violations vs. substance issues. Keep documented rule exceptions (e.g., `// eslint-disable-next-line`) for legitimate edge cases only.
 
 2. **Update `CLAUDE.md`** for any structural change resulting from this task (new package, new convention, new Make target, changed architecture).
 
