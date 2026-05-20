@@ -26,11 +26,7 @@ export default function Footer() {
             </Link>
           </div>
 
-          {release && (
-            <div className="font-mono text-xs text-muted">
-              {release.substring(0, 7)}
-            </div>
-          )}
+          {release && <div className="font-mono text-xs text-muted">{release.substring(0, 7)}</div>}
 
           <button
             onClick={() => setIsBugReportOpen(true)}

@@ -66,7 +66,9 @@ describe('BugReportModal', () => {
   })
 
   it('prevents submission when title or description is empty', async () => {
-    const mockCreateBugReport = jest.fn().mockResolvedValue({ issueUrl: 'https://github.com/issue/000' })
+    const mockCreateBugReport = jest
+      .fn()
+      .mockResolvedValue({ issueUrl: 'https://github.com/issue/000' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -82,7 +84,9 @@ describe('BugReportModal', () => {
   })
 
   it('calls hook with form data on submit', async () => {
-    const mockCreateBugReport = jest.fn().mockResolvedValue({ issueUrl: 'https://github.com/issue/456' })
+    const mockCreateBugReport = jest
+      .fn()
+      .mockResolvedValue({ issueUrl: 'https://github.com/issue/456' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -114,7 +118,9 @@ describe('BugReportModal', () => {
   })
 
   it('shows success message after submission', async () => {
-    const mockCreateBugReport = jest.fn().mockResolvedValue({ issueUrl: 'https://github.com/issue/789' })
+    const mockCreateBugReport = jest
+      .fn()
+      .mockResolvedValue({ issueUrl: 'https://github.com/issue/789' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -133,7 +139,9 @@ describe('BugReportModal', () => {
   })
 
   it('displays GitHub issue link in success message', async () => {
-    const mockCreateBugReport = jest.fn().mockResolvedValue({ issueUrl: 'https://github.com/issue/999' })
+    const mockCreateBugReport = jest
+      .fn()
+      .mockResolvedValue({ issueUrl: 'https://github.com/issue/999' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -154,9 +162,7 @@ describe('BugReportModal', () => {
   })
 
   it('shows error message on submission failure', async () => {
-    const mockCreateBugReport = jest
-      .fn()
-      .mockRejectedValue(new Error('Network error'))
+    const mockCreateBugReport = jest.fn().mockRejectedValue(new Error('Network error'))
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -177,7 +183,9 @@ describe('BugReportModal', () => {
   it('closes modal and resets form after success', async () => {
     jest.useFakeTimers()
 
-    const mockCreateBugReport = jest.fn().mockResolvedValue({ issueUrl: 'https://github.com/issue/111' })
+    const mockCreateBugReport = jest
+      .fn()
+      .mockResolvedValue({ issueUrl: 'https://github.com/issue/111' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)

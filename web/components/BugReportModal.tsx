@@ -41,13 +41,7 @@ export default function BugReportModal({ isOpen, onClose }: BugReportModalProps)
     setIsSubmitting(true)
 
     try {
-      const response = await createBugReport(
-        title,
-        description,
-        page,
-        consoleLogs,
-        wsLog
-      )
+      const response = await createBugReport(title, description, page, consoleLogs, wsLog)
 
       setSuccess(true)
       if (response.url) {

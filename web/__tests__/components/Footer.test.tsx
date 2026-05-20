@@ -6,7 +6,13 @@ jest.mock('@/lib/env', () => ({
 }))
 
 jest.mock('@/components/BugReportModal', () => {
-  return function MockBugReportModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  return function MockBugReportModal({
+    isOpen,
+    onClose
+  }: {
+    isOpen: boolean
+    onClose: () => void
+  }) {
     if (!isOpen) return null
     return (
       <div data-testid="bug-report-modal">
@@ -144,7 +150,15 @@ describe('Footer', () => {
     expect(footer).toHaveClass('px-4', 'py-3', 'sm:px-6')
 
     const divWrapper = footer?.querySelector('div')
-    expect(divWrapper).toHaveClass('flex', 'flex-wrap', 'items-center', 'justify-center', 'gap-3', 'sm:gap-4', 'md:gap-6')
+    expect(divWrapper).toHaveClass(
+      'flex',
+      'flex-wrap',
+      'items-center',
+      'justify-center',
+      'gap-3',
+      'sm:gap-4',
+      'md:gap-6'
+    )
   })
 
   it('displays release with monospace font', async () => {
