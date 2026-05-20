@@ -23,9 +23,11 @@ Instruct it to:
 5. **Produce a complete, ordered todo list** separated into two explicit sections:
 
    ### BACKEND
+
    Go, SQL, migrations, services, repositories, handlers, jobs, config, and their tests.
 
    ### FRONTEND
+
    Next.js, React, TypeScript, Tailwind, shadcn/ui components, Jest tests, browser-facing assets, and their tests.
 
 6. **Sequence each section** in this order:
@@ -46,8 +48,8 @@ Capture the full plan before proceeding.
 
 Once you have the full plan, spawn **TWO general-purpose sub-agents with `model: "haiku"` IN PARALLEL in a single message**:
 
-- **BACKEND agent**: receives the BACKEND section of the plan. Executes fully — implementation first, then tests. Trust the plan; do not self-review or re-plan.
-- **FRONTEND agent**: receives the FRONTEND section of the plan. Executes fully — implementation first, then tests. Trust the plan; do not self-review or re-plan.
+- **BACKEND agent**: receives the BACKEND section of the plan. Executes fully — implementation first, then tests immediately. Run `make test` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3.
+- **FRONTEND agent**: receives the FRONTEND section of the plan. Executes fully — implementation first, then tests immediately. Run `yarn test:cov` to verify coverage ≥80% on changed code. Trust the plan; do not self-review or re-plan. Testing is part of Phase 2, not Phase 3.
 
 **FRONTEND agent must additionally:**
 
