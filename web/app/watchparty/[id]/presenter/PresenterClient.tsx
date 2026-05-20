@@ -6,13 +6,60 @@ import { buildWsUrl } from '@/lib/watchparty/roomUtils'
 import { getApiUrl } from '@/lib/env'
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+type TrackType = 'cam' | 'screen'
+
+interface WsMessage {
+  type: 'offer' | 'answer' | 'candidate'
+  payload: RTCSessionDescriptionInit | RTCIceCandidateInit
+  trackType: TrackType
+}
+
+function attachDraggable(el: HTMLElement) {
+  let startX = 0,
+    startY = 0,
+    origLeft = 0,
+    origTop = 0
+
+  const onDown = (e: PointerEvent) => {
+    e.preventDefault()
+    el.setPointerCapture(e.pointerId)
+    el.style.cursor = 'grabbing'
+    const container = el.parentElement!.getBoundingClientRect()
+    const rect = el.getBoundingClientRect()
+    el.style.right = 'auto'
+    el.style.bottom = 'auto'
+    el.style.left = `${rect.left - container.left}px`
+    el.style.top = `${rect.top - container.top}px`
+    startX = e.clientX
+    startY = e.clientY
+    origLeft = parseFloat(el.style.left)
+    origTop = parseFloat(el.style.top)
+  }
+  const onMove = (e: PointerEvent) => {
+    if (!el.hasPointerCapture(e.pointerId)) return
+    el.style.left = `${origLeft + e.clientX - startX}px`
+    el.style.top = `${origTop + e.clientY - startY}px`
+  }
+  const onUp = (e: PointerEvent) => {
+    el.releasePointerCapture(e.pointerId)
+    el.style.cursor = 'grab'
+  }
+
+  el.addEventListener('pointerdown', onDown)
+  el.addEventListener('pointermove', onMove)
+  el.addEventListener('pointerup', onUp)
+  return () => {
+    el.removeEventListener('pointerdown', onDown)
+    el.removeEventListener('pointermove', onMove)
+    el.removeEventListener('pointerup', onUp)
+  }
+}
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   connecting: 'Connecting...',
   connected: 'Connected',
   disconnected: 'Disconnected'
 }
-
 const STATUS_COLOR: Record<ConnectionStatus, string> = {
   connecting: 'bg-yellow-400',
   connected: 'bg-green-500',
@@ -20,144 +67,416 @@ const STATUS_COLOR: Record<ConnectionStatus, string> = {
 }
 
 export default function PresenterClient({ id }: { id: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const pcRef = useRef<RTCPeerConnection | null>(null)
+  const mainVideoRef = useRef<HTMLVideoElement>(null)
+  const selfCamRef = useRef<HTMLVideoElement>(null)
+  const remoteCamRef = useRef<HTMLVideoElement>(null)
+
   const wsRef = useRef<WebSocket | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const pcCamRef = useRef<RTCPeerConnection | null>(null)
+  const pcScreenRef = useRef<RTCPeerConnection | null>(null)
+  const localCamRef = useRef<MediaStream | null>(null)
+  const localScreenRef = useRef<MediaStream | null>(null)
+  const remoteCamStreamRef = useRef<MediaStream | null>(null)
+  const isSharingScreenRef = useRef(false)
+  const pendingCandidates = useRef<Record<TrackType, RTCIceCandidateInit[]>>({
+    cam: [],
+    screen: []
+  })
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [status, setStatus] = useState<ConnectionStatus>('connecting')
   const [sharing, setSharing] = useState(false)
+  const [micEnabled, setMicEnabled] = useState(true)
+  const [camEnabled, setCamEnabled] = useState(true)
+  const [selfCamVisible, setSelfCamVisible] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (selfCamRef.current) return attachDraggable(selfCamRef.current)
+  }, [])
+  useEffect(() => {
+    if (remoteCamRef.current) return attachDraggable(remoteCamRef.current)
+  }, [])
+
+  useEffect(() => {
     const apiUrl = getApiUrl()
-    const wsUrl = buildWsUrl(apiUrl, id, true)
 
-    const ws = new WebSocket(wsUrl)
-    wsRef.current = ws
-
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    })
-    pcRef.current = pc
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate && ws.readyState === WebSocket.OPEN) {
-        ws.send(
-          JSON.stringify({
-            type: 'candidate',
-            payload: event.candidate,
-            trackType: ''
-          })
-        )
+    function send(type: string, payload: unknown, trackType: TrackType) {
+      const msg = JSON.stringify({ type, payload, trackType })
+      const ws = wsRef.current
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(msg)
+      } else {
+        setTimeout(() => send(type, payload, trackType), 200)
       }
     }
 
-    ws.onopen = () => {
-      setStatus('connected')
-      ws.send(JSON.stringify({ roomCode: id, role: 'presenter' }))
+    function stopScreenUI() {
+      isSharingScreenRef.current = false
+      setSharing(false)
+      const mainEl = mainVideoRef.current
+      const remoteEl = remoteCamRef.current
+      if (remoteCamStreamRef.current && mainEl) mainEl.srcObject = remoteCamStreamRef.current
+      if (remoteEl) remoteEl.style.display = 'none'
     }
 
-    ws.onmessage = async (event: MessageEvent<string>) => {
-      const msg = JSON.parse(event.data) as {
-        type: 'offer' | 'answer' | 'candidate'
-        payload: RTCSessionDescriptionInit | RTCIceCandidateInit
-        trackType: string
+    function createPC(trackType: TrackType): RTCPeerConnection {
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      })
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) send('candidate', e.candidate, trackType)
       }
-      if (msg.type === 'answer') {
-        await pc.setRemoteDescription(
-          new RTCSessionDescription(msg.payload as RTCSessionDescriptionInit)
-        )
-      } else if (msg.type === 'candidate') {
-        await pc.addIceCandidate(new RTCIceCandidate(msg.payload as RTCIceCandidateInit))
+
+      pc.ontrack = (e) => {
+        const mainEl = mainVideoRef.current
+        const remoteEl = remoteCamRef.current
+        if (trackType === 'cam') {
+          remoteCamStreamRef.current = e.streams[0]
+          if (isSharingScreenRef.current) {
+            if (remoteEl) {
+              remoteEl.srcObject = remoteCamStreamRef.current
+              remoteEl.style.display = 'block'
+            }
+          } else {
+            if (mainEl) mainEl.srcObject = remoteCamStreamRef.current
+            if (remoteEl) remoteEl.style.display = 'none'
+          }
+        }
+        if (trackType === 'screen') {
+          isSharingScreenRef.current = true
+          setSharing(true)
+          if (mainEl) mainEl.srcObject = e.streams[0]
+          if (remoteEl) {
+            remoteEl.srcObject = remoteCamStreamRef.current
+            remoteEl.style.display = remoteCamStreamRef.current ? 'block' : 'none'
+          }
+        }
+      }
+
+      pc.onconnectionstatechange = () => {
+        if (
+          trackType === 'screen' &&
+          (pc.connectionState === 'disconnected' || pc.connectionState === 'failed')
+        ) {
+          stopScreenUI()
+        }
+      }
+
+      return pc
+    }
+
+    async function renegotiateAll() {
+      const oldCam = pcCamRef.current
+      if (oldCam) {
+        oldCam.close()
+        pcCamRef.current = null
+        pendingCandidates.current.cam = []
+      }
+      const localCam = localCamRef.current
+      if (localCam) {
+        const pc = createPC('cam')
+        pcCamRef.current = pc
+        localCam.getTracks().forEach((t) => pc.addTrack(t, localCam))
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        send('offer', offer, 'cam')
+      }
+
+      const oldScreen = pcScreenRef.current
+      if (oldScreen) {
+        oldScreen.close()
+        pcScreenRef.current = null
+        pendingCandidates.current.screen = []
+      }
+      const localScreen = localScreenRef.current
+      if (isSharingScreenRef.current && localScreen) {
+        const pc = createPC('screen')
+        pcScreenRef.current = pc
+        localScreen.getTracks().forEach((t) => pc.addTrack(t, localScreen))
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        send('offer', offer, 'screen')
       }
     }
 
-    ws.onclose = () => setStatus('disconnected')
-    ws.onerror = () => setStatus('disconnected')
+    function initWS() {
+      const wsUrl = buildWsUrl(apiUrl, id, true)
+      const ws = new WebSocket(wsUrl)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        setStatus('connected')
+        ws.send(JSON.stringify({ roomCode: id, role: 'presenter' }))
+        void renegotiateAll()
+      }
+      ws.onclose = () => {
+        setStatus('disconnected')
+        reconnectTimer.current = setTimeout(initWS, 1500)
+      }
+      ws.onerror = () => ws.close()
+
+      ws.onmessage = async (event: MessageEvent<string>) => {
+        const msg = JSON.parse(event.data) as WsMessage
+        const tt = msg.trackType
+
+        if (msg.type === 'offer') {
+          let pc = tt === 'cam' ? pcCamRef.current : pcScreenRef.current
+          if (
+            pc &&
+            tt === 'screen' &&
+            (pc.signalingState === 'closed' ||
+              pc.connectionState === 'failed' ||
+              pc.connectionState === 'closed' ||
+              pc.connectionState === 'disconnected')
+          ) {
+            pc.close()
+            pc = null
+            pcScreenRef.current = null
+            pendingCandidates.current.screen = []
+          }
+          if (!pc) {
+            pc = createPC(tt)
+            if (tt === 'screen') pcScreenRef.current = pc
+            else pcCamRef.current = pc
+            pendingCandidates.current[tt] = []
+          }
+          await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+          for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
+          const answer = await pc.createAnswer()
+          await pc.setLocalDescription(answer)
+          send('answer', answer, tt)
+        }
+
+        if (msg.type === 'answer') {
+          const pc = tt === 'cam' ? pcCamRef.current : pcScreenRef.current
+          if (pc && pc.signalingState === 'have-local-offer') {
+            await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+            for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
+          } else if (tt === 'screen' && isSharingScreenRef.current && localScreenRef.current) {
+            if (pcScreenRef.current) {
+              pcScreenRef.current.close()
+              pcScreenRef.current = null
+            }
+            pendingCandidates.current.screen = []
+            const newPc = createPC('screen')
+            pcScreenRef.current = newPc
+            localScreenRef.current
+              .getTracks()
+              .forEach((t) => newPc.addTrack(t, localScreenRef.current!))
+            const offer = await newPc.createOffer()
+            await newPc.setLocalDescription(offer)
+            send('offer', offer, 'screen')
+          }
+        }
+
+        if (msg.type === 'candidate') {
+          const pc = tt === 'cam' ? pcCamRef.current : pcScreenRef.current
+          if (pc && pc.remoteDescription) {
+            await pc.addIceCandidate(msg.payload as RTCIceCandidateInit)
+          } else if (pc) {
+            pendingCandidates.current[tt].push(msg.payload as RTCIceCandidateInit)
+          }
+        }
+      }
+    }
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        localCamRef.current = stream
+        if (selfCamRef.current) selfCamRef.current.srcObject = stream
+        const pc = createPC('cam')
+        pcCamRef.current = pc
+        stream.getTracks().forEach((t) => pc.addTrack(t, stream))
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        send('offer', offer, 'cam')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to start camera')
+      }
+    }
+
+    initWS()
+    void startCamera()
 
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop())
-      ws.close()
-      pc.close()
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+      wsRef.current?.close()
+      pcCamRef.current?.close()
+      pcScreenRef.current?.close()
+      localCamRef.current?.getTracks().forEach((t) => t.stop())
+      localScreenRef.current?.getTracks().forEach((t) => t.stop())
     }
   }, [id])
 
-  async function startSharing() {
+  async function startScreen() {
     setError(null)
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+      localScreenRef.current = stream
+      isSharingScreenRef.current = true
+      setSharing(true)
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       })
-      streamRef.current = stream
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
+      pcScreenRef.current = pc
+      pc.onicecandidate = (e) => {
+        if (!e.candidate) return
+        const ws = wsRef.current
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'candidate', payload: e.candidate, trackType: 'screen' }))
+        }
       }
 
-      const pc = pcRef.current
-      const ws = wsRef.current
-      if (!pc || !ws) return
-
-      for (const track of stream.getTracks()) {
-        pc.addTrack(track, stream)
-      }
-
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream))
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
-      ws.send(JSON.stringify({ type: 'offer', payload: offer, trackType: '' }))
-      setSharing(true)
+      wsRef.current?.send(JSON.stringify({ type: 'offer', payload: offer, trackType: 'screen' }))
+
+      stream.getVideoTracks()[0].onended = stopScreen
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to start sharing')
+      setError(e instanceof Error ? e.message : 'Failed to share screen')
     }
   }
 
-  function stopSharing() {
-    streamRef.current?.getTracks().forEach((t) => t.stop())
-    streamRef.current = null
-    if (videoRef.current) videoRef.current.srcObject = null
+  function stopScreen() {
+    localScreenRef.current?.getTracks().forEach((t) => t.stop())
+    localScreenRef.current = null
+    if (pcScreenRef.current) {
+      pcScreenRef.current.close()
+      pcScreenRef.current = null
+    }
+    isSharingScreenRef.current = false
     setSharing(false)
+    const mainEl = mainVideoRef.current
+    const remoteEl = remoteCamRef.current
+    if (remoteCamStreamRef.current && mainEl) mainEl.srcObject = remoteCamStreamRef.current
+    if (remoteEl) remoteEl.style.display = 'none'
+  }
+
+  function toggleMic() {
+    const next = !micEnabled
+    setMicEnabled(next)
+    localCamRef.current?.getAudioTracks().forEach((t) => {
+      t.enabled = next
+    })
+  }
+
+  function toggleCam() {
+    const next = !camEnabled
+    setCamEnabled(next)
+    localCamRef.current?.getVideoTracks().forEach((t) => {
+      t.enabled = next
+    })
+    if (selfCamRef.current) {
+      selfCamRef.current.style.display = next && selfCamVisible ? 'block' : 'none'
+    }
+  }
+
+  function toggleSelfCam() {
+    const next = !selfCamVisible
+    setSelfCamVisible(next)
+    if (selfCamRef.current) {
+      selfCamRef.current.style.display = next && camEnabled ? 'block' : 'none'
+    }
   }
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center gap-4 mb-4">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      <div className="flex items-center gap-4 px-4 py-3 border-b border-border">
         <Link href="/watchparty" className="text-blue-600 hover:underline text-sm">
           &larr; Back
         </Link>
-        <h1 className="text-2xl font-bold">Watch Party (Presenter)</h1>
+        <h1 className="text-xl font-bold">Watch Party (Presenter)</h1>
         <div className="flex items-center gap-2 ml-auto">
           <span className={`w-2.5 h-2.5 rounded-full ${STATUS_COLOR[status]}`} />
-          <span className="text-sm text-muted">{STATUS_LABEL[status]}</span>
+          <span className="text-sm text-muted-foreground">{STATUS_LABEL[status]}</span>
         </div>
       </div>
 
-      {error && <p className="mb-4 text-red-600 text-sm">{error}</p>}
+      {error && <p className="px-4 py-2 text-red-600 text-sm bg-red-50">{error}</p>}
 
-      <div className="bg-black rounded-lg overflow-hidden aspect-video mb-4">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
+      <div className="relative flex-1 bg-black min-h-[60vh]">
+        <video
+          ref={mainVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-contain"
+        />
+
+        <video
+          ref={selfCamRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute bottom-4 right-4 w-40 h-28 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900 hidden"
+          style={{ display: 'block' }}
+        />
+
+        <video
+          ref={remoteCamRef}
+          autoPlay
+          playsInline
+          className="absolute bottom-4 left-4 w-40 h-28 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900"
+          style={{ display: 'none' }}
+        />
       </div>
 
-      {!sharing ? (
-        <button
-          onClick={startSharing}
-          disabled={status !== 'connected'}
-          className="px-6 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 disabled:opacity-50"
-        >
-          Share Screen
-        </button>
-      ) : (
-        <button
-          onClick={stopSharing}
-          className="px-6 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-700"
-        >
-          Stop Sharing
-        </button>
-      )}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border bg-background">
+        {!sharing ? (
+          <button
+            onClick={() => void startScreen()}
+            disabled={status !== 'connected'}
+            className="px-4 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+          >
+            Share Screen
+          </button>
+        ) : (
+          <button
+            onClick={stopScreen}
+            className="px-4 py-1.5 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700"
+          >
+            Stop Sharing
+          </button>
+        )}
 
-      <div className="text-sm text-muted mt-4">
-        Room: <span className="font-mono font-medium">{id}</span>
+        <button
+          onClick={toggleMic}
+          className={`px-4 py-1.5 rounded text-sm font-medium border ${
+            micEnabled
+              ? 'border-border hover:bg-accent'
+              : 'bg-yellow-500 text-white border-yellow-500'
+          }`}
+        >
+          {micEnabled ? 'Mute Mic' : 'Unmute Mic'}
+        </button>
+
+        <button
+          onClick={toggleCam}
+          className={`px-4 py-1.5 rounded text-sm font-medium border ${
+            camEnabled
+              ? 'border-border hover:bg-accent'
+              : 'bg-yellow-500 text-white border-yellow-500'
+          }`}
+        >
+          {camEnabled ? 'Disable Cam' : 'Enable Cam'}
+        </button>
+
+        <button
+          onClick={toggleSelfCam}
+          className={`px-4 py-1.5 rounded text-sm font-medium border ${
+            selfCamVisible ? 'border-border hover:bg-accent' : 'border-border text-muted-foreground'
+          }`}
+        >
+          {selfCamVisible ? 'Hide Self' : 'Show Self'}
+        </button>
+
+        <span className="ml-auto text-xs text-muted-foreground font-mono">Room: {id}</span>
       </div>
-    </main>
+    </div>
   )
 }

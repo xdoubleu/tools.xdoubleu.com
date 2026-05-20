@@ -6,9 +6,7 @@ import type {
   GetLibraryResponse,
   GetBooksProgressResponse,
   SearchExternalResponse,
-  AddBookRequest,
-  UpdateBookStatusRequest,
-  ToggleTagRequest
+  AddBookRequest
 } from '@/lib/gen/backlog/v1/books_pb'
 import type {
   GetSteamResponse,
@@ -56,16 +54,6 @@ export function useSearchExternal() {
 export function useAddBook() {
   const client = createServiceClient(BooksService)
   return (req: AddBookRequest) => client.addBook(req)
-}
-
-export function useUpdateBookStatus() {
-  const client = createServiceClient(BooksService)
-  return (req: UpdateBookStatusRequest) => client.updateBookStatus(req)
-}
-
-export function useToggleTag() {
-  const client = createServiceClient(BooksService)
-  return (req: ToggleTagRequest) => client.toggleTag(req)
 }
 
 export function useImportBooks() {

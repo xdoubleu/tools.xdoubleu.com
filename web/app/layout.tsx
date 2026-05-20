@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex flex-col min-h-screen bg-bg text-fg">
         <Navbar />
-        {children}
+        <main className="flex-1">{children}</main>
         <Footer />
       </body>
     </html>
