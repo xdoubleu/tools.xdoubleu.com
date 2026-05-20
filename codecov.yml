@@ -5,6 +5,8 @@ flags:
   api:
     paths:
       - api/
+    carryforward: true
   web:
     paths:
       - web/
+    carryforward: true

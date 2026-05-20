@@ -9,11 +9,11 @@ jest.mock('@sentry/nextjs', () => ({
 describe('sentry.edge.config', () => {
   beforeEach(() => {
     jest.resetModules()
-    delete (process.env as Record<string, string | undefined>).NODE_ENV
   })
 
-  it('sets debug=false when NODE_ENV=production', () => {
-    ;(process.env as Record<string, string>).NODE_ENV = 'production'
+  it('initializes sentry with config', () => {
+    process.env.SENTRY_DSN = 'https://example@sentry.io/123'
+    process.env.NEXT_PUBLIC_RELEASE = 'v1.0.0'
 
     const Sentry = require('@sentry/nextjs')
     const mockInit = Sentry.init as jest.Mock
@@ -23,13 +23,15 @@ describe('sentry.edge.config', () => {
 
     expect(mockInit).toHaveBeenCalledWith(
       expect.objectContaining({
-        debug: false
+        dsn: 'https://example@sentry.io/123',
+        release: 'v1.0.0',
+        tracesSampleRate: 1.0
       })
     )
   })
 
-  it('sets debug=true when NODE_ENV=development', () => {
-    ;(process.env as Record<string, string>).NODE_ENV = 'development'
+  it('uses dev as default release', () => {
+    delete process.env.NEXT_PUBLIC_RELEASE
 
     const Sentry = require('@sentry/nextjs')
     const mockInit = Sentry.init as jest.Mock
@@ -39,7 +41,7 @@ describe('sentry.edge.config', () => {
 
     expect(mockInit).toHaveBeenCalledWith(
       expect.objectContaining({
-        debug: true
+        release: 'dev'
       })
     )
   })

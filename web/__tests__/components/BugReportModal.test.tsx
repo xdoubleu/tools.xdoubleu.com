@@ -4,7 +4,7 @@ import BugReportModal from '@/components/BugReportModal'
 
 jest.mock('@/hooks/useBugReport', () => ({
   useCreateBugReport: jest.fn(() =>
-    jest.fn().mockResolvedValue({ issueUrl: 'https://github.com/issue/123' })
+    jest.fn().mockResolvedValue({ url: 'https://github.com/issue/123' })
   )
 }))
 
@@ -19,7 +19,7 @@ describe('BugReportModal', () => {
     jest.clearAllMocks()
     mockOnClose.mockClear()
     mockUseCreateBugReport.mockReturnValue(
-      jest.fn().mockResolvedValue({ issueUrl: 'https://github.com/issue/123' })
+      jest.fn().mockResolvedValue({ url: 'https://github.com/issue/123' })
     )
   })
 
@@ -66,9 +66,7 @@ describe('BugReportModal', () => {
   })
 
   it('prevents submission when title or description is empty', async () => {
-    const mockCreateBugReport = jest
-      .fn()
-      .mockResolvedValue({ issueUrl: 'https://github.com/issue/000' })
+    const mockCreateBugReport = jest.fn().mockResolvedValue({ url: 'https://github.com/issue/000' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -84,9 +82,7 @@ describe('BugReportModal', () => {
   })
 
   it('calls hook with form data on submit', async () => {
-    const mockCreateBugReport = jest
-      .fn()
-      .mockResolvedValue({ issueUrl: 'https://github.com/issue/456' })
+    const mockCreateBugReport = jest.fn().mockResolvedValue({ url: 'https://github.com/issue/456' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -118,9 +114,7 @@ describe('BugReportModal', () => {
   })
 
   it('shows success message after submission', async () => {
-    const mockCreateBugReport = jest
-      .fn()
-      .mockResolvedValue({ issueUrl: 'https://github.com/issue/789' })
+    const mockCreateBugReport = jest.fn().mockResolvedValue({ url: 'https://github.com/issue/789' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -139,9 +133,7 @@ describe('BugReportModal', () => {
   })
 
   it('displays GitHub issue link in success message', async () => {
-    const mockCreateBugReport = jest
-      .fn()
-      .mockResolvedValue({ issueUrl: 'https://github.com/issue/999' })
+    const mockCreateBugReport = jest.fn().mockResolvedValue({ url: 'https://github.com/issue/999' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -183,9 +175,7 @@ describe('BugReportModal', () => {
   it('closes modal and resets form after success', async () => {
     jest.useFakeTimers()
 
-    const mockCreateBugReport = jest
-      .fn()
-      .mockResolvedValue({ issueUrl: 'https://github.com/issue/111' })
+    const mockCreateBugReport = jest.fn().mockResolvedValue({ url: 'https://github.com/issue/111' })
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
     render(<BugReportModal isOpen={true} onClose={mockOnClose} />)
@@ -235,7 +225,7 @@ describe('BugReportModal', () => {
 
   it('shows loading state while submitting', async () => {
     const mockCreateBugReport = jest.fn(
-      () => new Promise((resolve) => setTimeout(() => resolve({ issueUrl: 'url' }), 100))
+      () => new Promise((resolve) => setTimeout(() => resolve({ url: 'url' }), 100))
     )
     mockUseCreateBugReport.mockReturnValue(mockCreateBugReport)
 
