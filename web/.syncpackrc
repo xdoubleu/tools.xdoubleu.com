@@ -1,0 +1,11 @@
+{
+  "semverGroups": [
+    {
+      "label": "All versions must be pinned (no ^ or ~)",
+      "packages": ["**"],
+      "dependencies": ["**"],
+      "dependencyTypes": ["dev", "prod"],
+      "range": ""
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import type { KnipConfig } from 'knip'
 
 const config: KnipConfig = {
-  entry: ['app/**/*.{ts,tsx}', 'lib/client.ts'],
+  entry: ['app/**/*.{ts,tsx}', 'lib/client.ts', 'components/**/*.{ts,tsx}'],
   project: [
     'app/**/*.{ts,tsx}',
     'components/**/*.{ts,tsx}',
@@ -9,7 +9,14 @@ const config: KnipConfig = {
     'hooks/**/*.{ts,tsx}'
   ],
   ignore: ['lib/gen/**'],
-  ignoreDependencies: ['@sentry/nextjs']
+  ignoreDependencies: [
+    '@bufbuild/protoc-gen-es',
+    '@connectrpc/protoc-gen-connect-es',
+    'eslint-config-next',
+    'jsdom',
+    '@next/eslint-plugin-next'
+  ],
+  ignoreBinaries: ['buf']
 }
 
 export default config

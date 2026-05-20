@@ -6,18 +6,12 @@ import type {
   ListRecipesResponse,
   GetRecipeResponse,
   CreateRecipeRequest,
-  UpdateRecipeRequest,
-  DeleteRecipeRequest,
-  ShareRecipeRequest,
-  UnshareRecipeRequest
+  UpdateRecipeRequest
 } from '@/lib/gen/recipes/v1/recipes_pb'
 import type {
   ListPlansResponse,
   GetPlanResponse,
   GetShoppingListResponse,
-  CreatePlanRequest,
-  UpdatePlanRequest,
-  DeletePlanRequest,
   AddMealRequest,
   DeleteMealRequest,
   SharePlanRequest,
@@ -64,36 +58,6 @@ export function useCreateRecipe() {
 export function useUpdateRecipe() {
   const client = createServiceClient(RecipesService)
   return (req: UpdateRecipeRequest) => client.updateRecipe(req)
-}
-
-export function useDeleteRecipe() {
-  const client = createServiceClient(RecipesService)
-  return (req: DeleteRecipeRequest) => client.deleteRecipe(req)
-}
-
-export function useShareRecipe() {
-  const client = createServiceClient(RecipesService)
-  return (req: ShareRecipeRequest) => client.shareRecipe(req)
-}
-
-export function useUnshareRecipe() {
-  const client = createServiceClient(RecipesService)
-  return (req: UnshareRecipeRequest) => client.unshareRecipe(req)
-}
-
-export function useCreatePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: CreatePlanRequest) => client.createPlan(req)
-}
-
-export function useUpdatePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: UpdatePlanRequest) => client.updatePlan(req)
-}
-
-export function useDeletePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: DeletePlanRequest) => client.deletePlan(req)
 }
 
 export function useAddMeal() {
