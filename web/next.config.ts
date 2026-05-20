@@ -2,7 +2,10 @@ import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
 
 const nextConfig: NextConfig = {
-  output: 'standalone'
+  output: 'standalone',
+  env: {
+    NEXT_PUBLIC_RELEASE: process.env.RELEASE || 'dev'
+  }
 }
 
 export default withSentryConfig(nextConfig, {

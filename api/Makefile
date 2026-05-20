@@ -46,8 +46,10 @@ lint/sql/ci:
 proto/generate:
 	buf generate
 
+RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
+
 build:
-	go build -o=./bin/api ./cmd/api
+	go build -ldflags="-X main.Release=$(RELEASE)" -o=./bin/api ./cmd/api
 
 run:
 	go run ./cmd/api

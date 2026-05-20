@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import Footer from '@/components/Footer'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,11 +15,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN: process.env.SENTRY_DSN ?? '' })}`
+            __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN: process.env.SENTRY_DSN ?? '', RELEASE: process.env.RELEASE ?? 'dev' })}`
           }}
         />
       </head>
-      <body className="bg-bg text-fg">{children}</body>
+      <body className="flex flex-col min-h-screen bg-bg text-fg">
+        {children}
+        <Footer />
+      </body>
     </html>
   )
 }

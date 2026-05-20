@@ -32,6 +32,20 @@ func TestRefreshGoodreads(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, rs.StatusCode)
 }
 
+func TestWebSocketProgress_Unauthenticated(t *testing.T) {
+	tReq := test.CreateRequestTester(
+		getRoutes(),
+		http.MethodGet,
+		"/"+testApp.GetName()+"/api/progress",
+	)
+
+	rs := tReq.Do(t)
+	// WebSocket upgrade without auth returns 426 Upgrade Required
+	// because auth middleware checks credentials before WebSocket handler
+	// processes the upgrade
+	assert.Equal(t, http.StatusUpgradeRequired, rs.StatusCode)
+}
+
 /* tests broken
 func TestRefreshSteam_Unauthenticated(t *testing.T) {
 	tReq := test.CreateRequestTester(

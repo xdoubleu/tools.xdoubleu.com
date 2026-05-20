@@ -9,12 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/test"
 
-	"tools.xdoubleu.com/cmd/api/internal/dtos"
 	"tools.xdoubleu.com/cmd/api/internal/logging"
+	bugreportv1 "tools.xdoubleu.com/gen/bugreport/v1"
+	"tools.xdoubleu.com/gen/bugreport/v1/bugreportv1connect"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -25,56 +26,68 @@ func (f roundTripFunc) RoundTrip(
 	return f(r)
 }
 
-func TestBugReportNotConfigured(t *testing.T) {
-	tReq := test.CreateRequestTester(
-		testApp.Routes(),
-		http.MethodPost,
-		"/api/bug-report",
-	)
-	tReq.AddCookie(&accessToken)
-	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.BugReportDto{
-		Title: "Test bug", Description: "Something broke", Page: "",
-		ConsoleLogs: "", WSLog: "",
-	})
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusServiceUnavailable, rs.StatusCode)
+func bugReportClient(t *testing.T) bugreportv1connect.BugReportServiceClient {
+	t.Helper()
+	ts := connectServer(t)
+	return bugreportv1connect.NewBugReportServiceClient(ts.Client(), ts.URL)
 }
 
-func TestBugReportUnauthorized(t *testing.T) {
-	tReq := test.CreateRequestTester(
-		testApp.Routes(),
-		http.MethodPost,
-		"/api/bug-report",
-	)
-	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.BugReportDto{
-		Title: "Test bug", Description: "Something broke", Page: "",
-		ConsoleLogs: "", WSLog: "",
+func TestCreateBugReportNotConfigured(t *testing.T) {
+	client := bugReportClient(t)
+	req := connect.NewRequest(&bugreportv1.CreateBugReportRequest{
+		Title:       "Test bug",
+		Description: "Something broke",
+		Page:        "",
+		ConsoleLogs: "",
+		WsLog:       "",
 	})
+	setCookieOnRequest(req, accessToken)
 
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusUnauthorized, rs.StatusCode)
+	_, err := client.CreateBugReport(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeUnavailable, connectErr.Code())
 }
 
-func TestBugReportEmptyFields(t *testing.T) {
-	tReq := test.CreateRequestTester(
-		testAppWithGitHub.Routes(),
-		http.MethodPost,
-		"/api/bug-report",
+func TestCreateBugReportUnauthorized(t *testing.T) {
+	client := bugReportClient(t)
+	_, err := client.CreateBugReport(
+		context.Background(),
+		connect.NewRequest(&bugreportv1.CreateBugReportRequest{
+			Title:       "Test bug",
+			Description: "Something broke",
+			Page:        "",
+			ConsoleLogs: "",
+			WsLog:       "",
+		}),
 	)
-	tReq.AddCookie(&accessToken)
-	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(dtos.BugReportDto{
-		Title: "", Description: "", Page: "", ConsoleLogs: "", WSLog: "",
-	})
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusUnprocessableEntity, rs.StatusCode)
+	require.Error(t, err)
 }
 
-func TestBugReportSuccess(t *testing.T) {
+func TestCreateBugReportEmptyFields(t *testing.T) {
+	// Use testAppWithGitHub which has GitHub configured
+	ts := httptest.NewServer(testAppWithGitHub.Routes())
+	defer ts.Close()
+	client := bugreportv1connect.NewBugReportServiceClient(ts.Client(), ts.URL)
+
+	req := connect.NewRequest(&bugreportv1.CreateBugReportRequest{
+		Title:       "",
+		Description: "",
+		Page:        "",
+		ConsoleLogs: "",
+		WsLog:       "",
+	})
+	setCookieOnRequest(req, accessToken)
+
+	_, err := client.CreateBugReport(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestCreateBugReportSuccess(t *testing.T) {
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -98,25 +111,63 @@ func TestBugReportSuccess(t *testing.T) {
 	)
 	defer func() { http.DefaultTransport = origTransport }()
 
-	tReq := test.CreateRequestTester(
-		testAppWithGitHub.Routes(),
-		http.MethodPost,
-		"/api/bug-report",
+	ts := httptest.NewServer(testAppWithGitHub.Routes())
+	defer ts.Close()
+	client := bugreportv1connect.NewBugReportServiceClient(ts.Client(), ts.URL)
+
+	req := connect.NewRequest(&bugreportv1.CreateBugReportRequest{
+		Title:       "Real bug",
+		Description: "Something broke on page /settings",
+		Page:        "",
+		ConsoleLogs: "",
+		WsLog:       "",
+	})
+	setCookieOnRequest(req, accessToken)
+
+	resp, err := client.CreateBugReport(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "https://github.com/owner/repo/issues/42", resp.Msg.Url)
+}
+
+func TestCreateBugReportGitHubError(t *testing.T) {
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"message":"Validation Failed"}`))
+		}),
 	)
-	tReq.AddCookie(&accessToken)
-	tReq.SetContentType(test.FormContentType)
-	tReq.SetData(
-		dtos.BugReportDto{
-			Title:       "Real bug",
-			Description: "Something broke on page /settings",
-			Page:        "",
-			ConsoleLogs: "",
-			WSLog:       "",
+	defer srv.Close()
+
+	origTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripFunc(
+		func(req *http.Request) (*http.Response, error) {
+			req2 := req.Clone(req.Context())
+			parsed, _ := url.Parse(srv.URL)
+			req2.URL.Scheme = parsed.Scheme
+			req2.URL.Host = parsed.Host
+			return origTransport.RoundTrip(req2)
 		},
 	)
+	defer func() { http.DefaultTransport = origTransport }()
 
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusOK, rs.StatusCode)
+	ts := httptest.NewServer(testAppWithGitHub.Routes())
+	defer ts.Close()
+	client := bugreportv1connect.NewBugReportServiceClient(ts.Client(), ts.URL)
+
+	req := connect.NewRequest(&bugreportv1.CreateBugReportRequest{
+		Title:       "Real bug",
+		Description: "Something broke on page /settings",
+		Page:        "",
+		ConsoleLogs: "",
+		WsLog:       "",
+	})
+	setCookieOnRequest(req, accessToken)
+
+	_, err := client.CreateBugReport(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
 }
 
 func TestCreateGitHubIssue(t *testing.T) {
