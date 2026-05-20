@@ -31,7 +31,7 @@ import (
 //go:embed migrations/*.sql
 var globalMigrations embed.FS
 
-// Release is set at build time via -ldflags.
+//nolint:gochecknoglobals //Release is set at build time via -ldflags.
 var Release = "dev"
 
 type Application struct {
