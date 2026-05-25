@@ -53,6 +53,7 @@ func trackMsg() dtos.TrackMessage {
 		Type:      dtos.Offer,
 		Payload:   payload,
 		TrackType: "cam",
+		Direction: "",
 	}
 }
 

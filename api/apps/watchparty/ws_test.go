@@ -44,6 +44,7 @@ func makeTrackMsg(msgType dtos.Type, trackType string) dtos.TrackMessage {
 		Type:      msgType,
 		Payload:   payload,
 		TrackType: trackType,
+		Direction: "",
 	}
 }
 

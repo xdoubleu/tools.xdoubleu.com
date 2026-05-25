@@ -18,6 +18,7 @@ func makeOffer(trackType string) dtos.TrackMessage {
 		Type:      dtos.Offer,
 		Payload:   payload,
 		TrackType: trackType,
+		Direction: "",
 	}
 }
 
