@@ -12,6 +12,7 @@ interface WsMessage {
   type: 'offer' | 'answer' | 'candidate'
   payload: RTCSessionDescriptionInit | RTCIceCandidateInit
   trackType: TrackType
+  direction?: 'send' | 'recv'
 }
 
 function attachDraggable(el: HTMLElement) {
@@ -116,13 +117,13 @@ export default function ViewerClient({ id }: { id: string }) {
   useEffect(() => {
     const apiUrl = getApiUrl()
 
-    function send(type: string, payload: unknown, trackType: TrackType) {
-      const msg = JSON.stringify({ type, payload, trackType })
+    function send(type: string, payload: unknown, trackType: TrackType, direction?: string) {
+      const msg = JSON.stringify({ type, payload, trackType, direction })
       const ws = wsRef.current
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(msg)
       } else {
-        setTimeout(() => send(type, payload, trackType), 200)
+        setTimeout(() => send(type, payload, trackType, direction), 200)
       }
     }
 
@@ -135,7 +136,7 @@ export default function ViewerClient({ id }: { id: string }) {
       })
 
       pc.onicecandidate = (e) => {
-        if (e.candidate) send('candidate', e.candidate, trackType)
+        if (e.candidate) send('candidate', e.candidate, trackType, direction)
       }
 
       if (direction === 'recv') {
@@ -216,12 +217,6 @@ export default function ViewerClient({ id }: { id: string }) {
         pcCamRef.current = null
         pendingCandidates.current.camOut = []
       }
-      const oldInCam = pcInCamRef.current
-      if (oldInCam) {
-        oldInCam.close()
-        pcInCamRef.current = null
-        pendingCandidates.current.camIn = []
-      }
       const localCam = localCamRef.current
       if (localCam) {
         const pc = createPC('cam', 'send')
@@ -263,53 +258,38 @@ export default function ViewerClient({ id }: { id: string }) {
         if (msg.type === 'offer') {
           if (tt === 'cam') {
             // Incoming cam offer from presenter → use pcInCamRef
-            let pc = pcInCamRef.current
-            if (
-              pc &&
-              (pc.signalingState === 'closed' ||
-                pc.connectionState === 'failed' ||
-                pc.connectionState === 'closed' ||
-                pc.connectionState === 'disconnected')
-            ) {
-              pc.close()
-              pc = null
-              pcInCamRef.current = null
-              pendingCandidates.current.camIn = []
-            }
-            if (!pc) {
-              pc = createPC('cam', 'recv')
-              pcInCamRef.current = pc
-              pendingCandidates.current.camIn = []
-            }
+            // Always replace to prevent concurrent-offer races
+            if (pcInCamRef.current) pcInCamRef.current.close()
+            pendingCandidates.current.camIn = []
+            const pc = createPC('cam', 'recv')
+            pcInCamRef.current = pc
+
             await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+            if (pcInCamRef.current !== pc) return
             for (const c of pendingCandidates.current.camIn.splice(0)) await pc.addIceCandidate(c)
+            if (pcInCamRef.current !== pc) return
             const answer = await pc.createAnswer()
+            if (pcInCamRef.current !== pc) return
             await pc.setLocalDescription(answer)
+            if (pcInCamRef.current !== pc) return
             send('answer', answer, tt)
           } else {
             // Screen offer
-            let pc = pcScreenRef.current
-            if (
-              pc &&
-              (pc.signalingState === 'closed' ||
-                pc.connectionState === 'failed' ||
-                pc.connectionState === 'closed' ||
-                pc.connectionState === 'disconnected')
-            ) {
-              pc.close()
-              pc = null
-              pcScreenRef.current = null
-              pendingCandidates.current.screen = []
-            }
-            if (!pc) {
-              pc = createPC(tt, 'recv')
-              pcScreenRef.current = pc
-              pendingCandidates.current[tt] = []
-            }
-            await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
-            for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
-            const answer = await pc.createAnswer()
-            await pc.setLocalDescription(answer)
+            // Always replace to prevent concurrent-offer races
+            if (pcScreenRef.current) pcScreenRef.current.close()
+            pendingCandidates.current.screen = []
+            const pcScreen = createPC(tt, 'recv')
+            pcScreenRef.current = pcScreen
+
+            await pcScreen.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+            if (pcScreenRef.current !== pcScreen) return
+            for (const c of pendingCandidates.current[tt].splice(0))
+              await pcScreen.addIceCandidate(c)
+            if (pcScreenRef.current !== pcScreen) return
+            const answer = await pcScreen.createAnswer()
+            if (pcScreenRef.current !== pcScreen) return
+            await pcScreen.setLocalDescription(answer)
+            if (pcScreenRef.current !== pcScreen) return
             send('answer', answer, tt)
           }
         }
@@ -334,19 +314,25 @@ export default function ViewerClient({ id }: { id: string }) {
 
         if (msg.type === 'candidate') {
           if (tt === 'cam') {
-            // Route to pcInCamRef if it has a remote description, else pcCamRef
-            const inCam = pcInCamRef.current
-            const outCam = pcCamRef.current
-            if (inCam && inCam.remoteDescription) {
-              await inCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
-            } else if (outCam && outCam.remoteDescription) {
-              await outCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
-            } else if (inCam) {
-              pendingCandidates.current.camIn.push(msg.payload as RTCIceCandidateInit)
+            if (msg.direction === 'send') {
+              // From other side's send PC → add to our recv PC (pcInCamRef)
+              const inCam = pcInCamRef.current
+              if (inCam && inCam.remoteDescription) {
+                await inCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
+              } else {
+                pendingCandidates.current.camIn.push(msg.payload as RTCIceCandidateInit)
+              }
             } else {
-              pendingCandidates.current.camOut.push(msg.payload as RTCIceCandidateInit)
+              // From other side's recv PC → add to our send PC (pcCamRef)
+              const outCam = pcCamRef.current
+              if (outCam && outCam.remoteDescription) {
+                await outCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
+              } else {
+                pendingCandidates.current.camOut.push(msg.payload as RTCIceCandidateInit)
+              }
             }
           } else {
+            // Screen: unchanged
             const pc = pcScreenRef.current
             if (pc && pc.remoteDescription) {
               await pc.addIceCandidate(msg.payload as RTCIceCandidateInit)
@@ -363,12 +349,9 @@ export default function ViewerClient({ id }: { id: string }) {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         localCamRef.current = stream
         if (selfCamRef.current) selfCamRef.current.srcObject = stream
-        const pc = createPC('cam', 'send')
-        pcCamRef.current = pc
-        stream.getTracks().forEach((t) => pc.addTrack(t, stream))
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        send('offer', offer, 'cam')
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          void renegotiateAll()
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to start camera')
       }

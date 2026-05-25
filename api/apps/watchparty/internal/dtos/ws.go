@@ -33,7 +33,8 @@ const (
 )
 
 type TrackMessage struct {
-	Type      Type            `json:"type"`      // offer, answer, candidate
-	Payload   json.RawMessage `json:"payload"`   // SDP or ICE
-	TrackType string          `json:"trackType"` // screen, camera, microphone
+	Type      Type            `json:"type"`                // offer, answer, candidate
+	Payload   json.RawMessage `json:"payload"`             // SDP or ICE
+	TrackType string          `json:"trackType"`           // screen, camera, microphone
+	Direction string          `json:"direction,omitempty"` // send or recv
 }
