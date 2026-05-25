@@ -21,6 +21,7 @@ make test/cov/per-pkg       # Per-package coverage with merged report
 # Linting
 make lint                   # Run all linters (Go + SQL)
 make lint/fix               # Auto-fix issues
+make lint/pkg PKG=apps/recipes  # Lint a single package
 
 # Code generation (TypeScript, run from web/)
 yarn generate              # Regenerate web/lib/gen/ from proto definitions
@@ -28,9 +29,51 @@ yarn generate              # Regenerate web/lib/gen/ from proto definitions
 
 > All `make` commands must be run from the `api/` directory. All `yarn` commands must be run from the `web/` directory.
 
+## Agent Delegation
+
+**For any task that writes, modifies, or refactors code, always spawn the `orchestrate-analyze` subagent — never implement inline.**
+
+`orchestrate-analyze` will analyze the codebase, identify what needs to change, then delegate to `orchestrate-backend` and/or `orchestrate-frontend` for execution.
+
+Inline tool calls (Read, Edit, Write, Bash) are only permitted for read-only exploration and lookups, never for implementation.
+
+## Code Navigation (ast-grep)
+
+**Prefer `ast-grep` over `grep` for any code search.** It understands syntax trees so results are exact — no false positives from comments or strings.
+
+```bash
+# Find all call sites of a function (Go)
+ast-grep run --pattern '$$.FunctionName($$$)' --lang go
+
+# Find a function definition (Go)
+ast-grep run --pattern 'func FunctionName($$$) $$$' --lang go
+
+# Find all call sites (TypeScript)
+ast-grep run --pattern 'functionName($$$)' --lang typescript
+
+# Find interface/type usage (TypeScript)
+ast-grep run --pattern 'const $VAR: TypeName = $$$' --lang typescript
+
+# Scope to a subtree
+ast-grep run --pattern '...' --lang go api/apps/recipes/
+```
+
+Key patterns:
+
+- `$NAME` — matches any single node (identifier, expression)
+- `$$$` — matches zero or more nodes (argument lists, body)
+- `$$` — matches a single node that can be a complex expression
+
+Use ast-grep **instead of reading `web/lib/gen/` or `api/gen/`** to find field names and RPC signatures — search the `.proto` files with ast-grep or read them directly.
+
 To run a single test:
 ```bash
+# Go
 go test ./apps/backlog/... -run TestFunctionName
+
+# Web (Jest accepts a path/name pattern as a positional arg — no flag needed)
+cd web && yarn test:single MealPlanCalendar        # matches by filename
+cd web && yarn test:single -t "renders correctly"  # matches by test name
 ```
 
 ## Architecture
@@ -126,6 +169,8 @@ Always run `make lint/fix` as the final step before committing. Manually fix any
 
 Generated files: `api/gen/` Go proto stubs ARE committed. `web/lib/gen/` TypeScript clients ARE committed — only run the generators after editing `.proto` files (CI regenerates and commits them automatically via `build.yml`).
 
+**Do not read `web/lib/gen/` or `api/gen/` files to discover field names, message types, or RPC signatures.** Read the corresponding `.proto` file in `proto/` instead — it is much smaller and is the source of truth. Generated files are 5–10× larger and contain the same information.
+
 ### Proto code generation (both must run when a `.proto` file changes)
 
 ```bash
@@ -176,11 +221,5 @@ Run `cd web && yarn test:cov` for coverage. Target ≥80% on `components/`, `lib
 
 ## CI
 
-`.github/workflows/main.yml` fans out to five reusable workflows:
-
-- `build.yml` — Go proto regeneration + commit (`api/gen/`) + Go build + TS client regeneration + commit (`web/lib/gen/`) + web build
-- `api-lint.yml` — `golangci-lint` + SQL lint
-- `api-test.yml` — PostgreSQL 18 service + `make test/cov/report` + Codecov upload (`flags: api`)
-- `web-lint.yml` — ESLint + Prettier + `tsc --noEmit` + knip
-- `web-test.yml` — `yarn test:cov` + Codecov upload (`flags: web`)
+See `.github/workflows/` for the full pipeline. Five workflows fan out from `main.yml`: `build`, `api-lint`, `api-test`, `web-lint`, `web-test`.
 

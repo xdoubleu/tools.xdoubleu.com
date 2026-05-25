@@ -31,6 +31,9 @@ lint: tools/lint
 	golangci-lint run
 	make lint/sql
 
+lint/pkg: tools/lint
+	golangci-lint run ./$(PKG)/...
+
 lint/fix: tools/lint
 	golines . -m 88 -w
 	golangci-lint run --fix

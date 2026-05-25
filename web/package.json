@@ -9,6 +9,7 @@
     "lint:fix": "eslint . --fix && prettier --write './**/*.{ts,tsx}'",
     "test": "jest",
     "test:cov": "jest --coverage",
+    "test:single": "jest",
     "generate": "buf generate"
   },
   "dependencies": {
