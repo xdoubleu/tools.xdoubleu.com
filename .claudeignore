@@ -1,0 +1,16 @@
+# Generated files — read the .proto source instead
+api/gen/
+web/lib/gen/
+
+# Build outputs
+web/.next/
+web/out/
+web/coverage/
+api/bin/
+
+# Dependencies
+web/node_modules/
+web/.yarn/
+
+# IDE / OS
+.DS_Store
