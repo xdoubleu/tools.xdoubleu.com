@@ -154,3 +154,47 @@ func TestMFAChallenge_WithRememberMeAndRedirect(t *testing.T) {
 	_, err := client.MFAChallenge(context.Background(), req)
 	require.NoError(t, err)
 }
+
+func TestMFAEnrollSkip_NoMFAToken(t *testing.T) {
+	client := mfaClient(t)
+	_, err := client.MFAEnrollSkip(
+		context.Background(),
+		connect.NewRequest(&authv1.MFAEnrollSkipRequest{}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
+}
+
+func TestMFAEnrollSkip_NoRefreshToken(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.MFAEnrollSkipRequest{})
+	setCookieOnRequest(req, mfaTokenCookie)
+	_, err := client.MFAEnrollSkip(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
+}
+
+func TestMFAEnrollSkip_Success(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.MFAEnrollSkipRequest{})
+	setCookieOnRequest(req, mfaTokenCookie, mfaRefreshTokenCookie)
+	_, err := client.MFAEnrollSkip(context.Background(), req)
+	require.NoError(t, err)
+}
+
+func TestMFAEnrollSkip_WithRememberMe(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.MFAEnrollSkipRequest{})
+	setCookieOnRequest(
+		req,
+		mfaTokenCookie,
+		mfaRefreshTokenCookie,
+		http.Cookie{Name: "mfaRememberMe", Value: "1"},
+	)
+	_, err := client.MFAEnrollSkip(context.Background(), req)
+	require.NoError(t, err)
+}

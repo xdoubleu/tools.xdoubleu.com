@@ -2,17 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import {
-  useCurrentUser,
-  useSignIn,
-  useMFAEnroll,
-  useMFAEnrollVerify,
-  useMFAChallenge
-} from '@/hooks/useAuth'
+import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
 import AppGrid, { type AppLink } from '@/components/AppGrid'
 import { ConnectError } from '@connectrpc/connect'
 
-type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-enroll' | 'mfa-challenge'
+type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
 
 const APPS: AppLink[] = [
   { name: 'backlog', label: 'Backlog', href: '/backlog', description: 'Goals and backlog tracker' },
@@ -28,15 +22,13 @@ const APPS: AppLink[] = [
     href: '/icsproxy',
     description: 'Calendar feed filtering'
   },
-  { name: 'recipes', label: 'Recipes', href: '/recipes', description: 'Recipe management' },
+  { name: 'recipes', label: 'Recipes', href: '/recipes/plans', description: 'Recipe management' },
   { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' }
 ]
 
 export default function HomeClient() {
   const { data, error, isLoading } = useCurrentUser()
   const signIn = useSignIn()
-  const mFAEnroll = useMFAEnroll()
-  const mFAEnrollVerify = useMFAEnrollVerify()
   const mFAChallenge = useMFAChallenge()
 
   const [authState, setAuthState] = useState<AuthState>('loading')
@@ -45,9 +37,6 @@ export default function HomeClient() {
   const [rememberMe, setRememberMe] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [signInError, setSignInError] = useState<string | null>(null)
-  const [factorId, setFactorId] = useState('')
-  const [qrSvg, setQrSvg] = useState('')
-  const [mfaSecret, setMfaSecret] = useState('')
   const [mfaCode, setMfaCode] = useState('')
   const [mfaError, setMfaError] = useState<string | null>(null)
   const [mfaSubmitting, setMfaSubmitting] = useState(false)
@@ -57,9 +46,7 @@ export default function HomeClient() {
       if (data) {
         setAuthState('authenticated')
       } else if (error) {
-        setAuthState((prev) =>
-          prev === 'mfa-enroll' || prev === 'mfa-challenge' ? prev : 'unauthenticated'
-        )
+        setAuthState((prev) => (prev === 'mfa-challenge' ? prev : 'unauthenticated'))
       }
     }
   }, [isLoading, data, error])
@@ -77,21 +64,7 @@ export default function HomeClient() {
 
     try {
       const res = await signIn(email, password, rememberMe, '')
-      if (res.needsMfa && res.enrollMfa) {
-        try {
-          const enrollment = await mFAEnroll()
-          setFactorId(enrollment.factorId)
-          setQrSvg(enrollment.qrSvg)
-          setMfaSecret(enrollment.secret)
-          setAuthState('mfa-enroll')
-        } catch (enrollErr) {
-          if (enrollErr instanceof ConnectError) {
-            setSignInError(enrollErr.message)
-          } else {
-            setSignInError('Failed to initialize MFA enrollment.')
-          }
-        }
-      } else if (res.needsMfa) {
+      if (res.needsMfa) {
         setAuthState('mfa-challenge')
       } else {
         if (typeof window !== 'undefined') {
@@ -106,26 +79,6 @@ export default function HomeClient() {
       }
     } finally {
       setSubmitting(false)
-    }
-  }
-
-  const handleMfaEnrollVerify = async () => {
-    setMfaSubmitting(true)
-    setMfaError(null)
-
-    try {
-      await mFAEnrollVerify(factorId, mfaCode)
-      if (typeof window !== 'undefined') {
-        window.location.reload()
-      }
-    } catch (err) {
-      if (err instanceof ConnectError) {
-        setMfaError(err.message)
-      } else {
-        setMfaError('Verification failed.')
-      }
-    } finally {
-      setMfaSubmitting(false)
     }
   }
 
@@ -158,60 +111,6 @@ export default function HomeClient() {
       data.role === 'admin' ? APPS : APPS.filter((app) => (data.appAccess ?? []).includes(app.name))
 
     return <AppGrid apps={visibleApps} />
-  }
-
-  if (authState === 'mfa-enroll') {
-    return (
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-fg">Set up two-factor authentication</h2>
-        <div className="mt-6 space-y-4">
-          <div
-            dangerouslySetInnerHTML={{ __html: qrSvg }}
-            aria-label="QR code"
-            className="flex justify-center"
-          />
-          <div>
-            <p className="text-sm text-subtle">
-              Or enter this code manually: <code className="font-mono text-fg">{mfaSecret}</code>
-            </p>
-          </div>
-          <div>
-            <label htmlFor="mfaCode" className="block text-sm font-medium text-subtle">
-              Authenticator code
-            </label>
-            <input
-              id="mfaCode"
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value)}
-              className={
-                'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
-                'text-input-text placeholder-muted focus:border-blue-500 ' +
-                'focus:outline-none focus:ring-1 focus:ring-blue-500'
-              }
-            />
-          </div>
-          {mfaError && (
-            <p role="alert" className="text-sm text-red-600">
-              {mfaError}
-            </p>
-          )}
-          <button
-            onClick={handleMfaEnrollVerify}
-            disabled={mfaSubmitting}
-            className={
-              'w-full rounded bg-blue-600 px-4 py-2 font-medium text-white ' +
-              'transition-colors hover:bg-blue-700 disabled:bg-gray-400 ' +
-              'disabled:cursor-not-allowed'
-            }
-          >
-            {mfaSubmitting ? 'Verifying...' : 'Verify'}
-          </button>
-        </div>
-      </div>
-    )
   }
 
   if (authState === 'mfa-challenge') {

@@ -38,7 +38,7 @@ func (h *authConnectHandler) SignIn(
 		)
 	}
 
-	accessToken, _, err := h.app.services.Auth.SignInWithEmail(
+	accessToken, refreshToken, err := h.app.services.Auth.SignInWithEmail(
 		req.Msg.Email,
 		req.Msg.Password,
 	)
@@ -46,25 +46,30 @@ func (h *authConnectHandler) SignIn(
 		return nil, connect.NewError(connect.CodeUnauthenticated, err)
 	}
 
-	resp := connect.NewResponse(&authv1.SignInResponse{NeedsMfa: true})
-	h.setMFACookies(resp.Header(), *accessToken, req.Msg.RememberMe, req.Msg.Redirect)
-
 	factorID, hasMFA := h.app.services.Auth.HasVerifiedTOTP(*accessToken)
-	if hasMFA {
-		resp.Header().Add("Set-Cookie", (&http.Cookie{
-			Name:     "mfaFactorID",
-			Value:    factorID.String(),
-			MaxAge:   int(mfaCookieTTL.Seconds()),
-			SameSite: http.SameSiteStrictMode,
-			HttpOnly: true,
-			Secure:   h.secure(),
-			Path:     "/",
-		}).String())
-		resp.Msg.EnrollMfa = false
-	} else {
-		resp.Msg.EnrollMfa = true
+	if !hasMFA {
+		resp := connect.NewResponse(&authv1.SignInResponse{})
+		if err = h.completeMFA(
+			resp.Header(), *accessToken, *refreshToken, req.Msg.RememberMe,
+		); err != nil {
+			return nil, err
+		}
+		return resp, nil
 	}
 
+	resp := connect.NewResponse(&authv1.SignInResponse{NeedsMfa: true})
+	h.setMFACookies(
+		resp.Header(), *accessToken, *refreshToken, req.Msg.RememberMe, req.Msg.Redirect,
+	)
+	resp.Header().Add("Set-Cookie", (&http.Cookie{
+		Name:     "mfaFactorID",
+		Value:    factorID.String(),
+		MaxAge:   int(mfaCookieTTL.Seconds()),
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		Secure:   h.secure(),
+		Path:     "/",
+	}).String())
 	return resp, nil
 }
 
@@ -132,6 +137,39 @@ func (h *authConnectHandler) MFAEnrollVerify(
 	resp := connect.NewResponse(&authv1.MFAEnrollVerifyResponse{})
 	if err = h.completeMFA(
 		resp.Header(), *accessToken, *refreshToken, rememberMe,
+	); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (h *authConnectHandler) MFAEnrollSkip(
+	_ context.Context,
+	req *connect.Request[authv1.MFAEnrollSkipRequest],
+) (*connect.Response[authv1.MFAEnrollSkipResponse], error) {
+	mfaToken, err := h.parseCookie(req.Header(), "mfaToken")
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("mfa token required"),
+		)
+	}
+	mfaRefreshToken, err := h.parseCookie(req.Header(), "mfaRefreshToken")
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("mfa refresh token required"),
+		)
+	}
+
+	rememberMe := false
+	if c, cErr := h.parseCookie(req.Header(), "mfaRememberMe"); cErr == nil {
+		rememberMe = c.Value == "1"
+	}
+
+	resp := connect.NewResponse(&authv1.MFAEnrollSkipResponse{})
+	if err = h.completeMFA(
+		resp.Header(), mfaToken.Value, mfaRefreshToken.Value, rememberMe,
 	); err != nil {
 		return nil, err
 	}

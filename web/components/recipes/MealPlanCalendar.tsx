@@ -1,17 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
 import { useAddMeal, useDeleteMeal } from '@/hooks/useRecipes'
-import { getApiUrl } from '@/lib/env'
 import { AddMealRequest, DeleteMealRequest } from '@/lib/gen/recipes/v1/mealplans_pb'
 import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import RecipeCombobox from './RecipeCombobox'
 
 interface MealPlanCalendarProps {
   plan: Plan
   recipes: Recipe[]
-  onAddMeal: (date: string, slot: string, recipeId: string, servings: number) => void
+  onAddMeal: (
+    date: string,
+    slot: string,
+    recipeId: string,
+    customName: string,
+    servings: number
+  ) => void
   onDeleteMeal: (mealId: string) => void
 }
 
@@ -25,6 +31,7 @@ export default function MealPlanCalendar({
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedRecipeId, setSelectedRecipeId] = useState('')
+  const [selectedCustomName, setSelectedCustomName] = useState('')
   const [selectedServings, setSelectedServings] = useState(1)
 
   const addMeal = useAddMeal()
@@ -33,28 +40,38 @@ export default function MealPlanCalendar({
   const weekDates = getWeekDates(weekOffset)
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-  const getMealsForSlot = (date: string, slot: string) => {
-    return (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
+  const getMealsForSlot = (date: string, slot: string) =>
+    (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
+
+  const handleComboboxSelect = (recipeId: string, customName: string) => {
+    setSelectedRecipeId(recipeId)
+    setSelectedCustomName(customName)
   }
 
   const handleAddMeal = async () => {
-    if (selectedSlot && selectedDate && selectedRecipeId) {
-      try {
-        await addMeal(
-          new AddMealRequest({
-            planId: plan.id,
-            mealDate: selectedDate,
-            mealSlot: selectedSlot,
-            recipeId: selectedRecipeId
-          })
-        )
-        setSelectedSlot(null)
-        setSelectedDate(null)
-        setSelectedRecipeId('')
-        onAddMeal(selectedDate, selectedSlot, selectedRecipeId, selectedServings)
-      } catch (err) {
-        console.error('Failed to add meal:', err)
-      }
+    if (!selectedSlot || !selectedDate) return
+    if (!selectedRecipeId && !selectedCustomName.trim()) return
+    try {
+      await addMeal(
+        new AddMealRequest({
+          planId: plan.id,
+          mealDate: selectedDate,
+          mealSlot: selectedSlot,
+          recipeId: selectedRecipeId,
+          customName: selectedCustomName,
+          servings: selectedServings
+        })
+      )
+      const date = selectedDate
+      const slot = selectedSlot
+      setSelectedSlot(null)
+      setSelectedDate(null)
+      setSelectedRecipeId('')
+      setSelectedCustomName('')
+      setSelectedServings(1)
+      onAddMeal(date, slot, selectedRecipeId, selectedCustomName, selectedServings)
+    } catch (err) {
+      console.error('Failed to add meal:', err)
     }
   }
 
@@ -67,7 +84,12 @@ export default function MealPlanCalendar({
     }
   }
 
-  const icalUrl = `${getApiUrl()}/recipes/api/plans/${plan.id}/ical`
+  const cancelAdd = () => {
+    setSelectedSlot(null)
+    setSelectedDate(null)
+    setSelectedRecipeId('')
+    setSelectedCustomName('')
+  }
 
   return (
     <div className="space-y-4">
@@ -90,22 +112,37 @@ export default function MealPlanCalendar({
       </div>
 
       <div className="overflow-x-auto">
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        <div
+          className="grid gap-1 text-xs"
+          style={{ gridTemplateColumns: 'minmax(4.5rem, auto) repeat(7, 1fr)' }}
+        >
+          {/* Header row: empty corner + day names */}
+          <div />
           {dayNames.map((day) => (
-            <div key={day} className="font-semibold text-center text-sm">
+            <div key={day} className="font-semibold text-center py-1">
               {day}
             </div>
           ))}
 
+          {/* Date row: empty + date numbers */}
+          <div />
           {weekDates.map((date) => (
-            <div key={formatMealDate(date)} className="space-y-1">
-              <div className="text-xs text-muted text-center">{date.getDate()}</div>
-              {MEAL_SLOTS.map((slot) => {
-                const mealsInSlot = getMealsForSlot(formatMealDate(date), slot)
-                const formattedDate = formatMealDate(date)
+            <div key={formatMealDate(date)} className="text-center text-muted py-1">
+              {date.getDate()}
+            </div>
+          ))}
 
+          {/* Slot rows */}
+          {MEAL_SLOTS.map((slot) => (
+            <React.Fragment key={slot}>
+              <div className="text-xs font-medium text-muted flex items-center pr-1">
+                {slot.charAt(0).toUpperCase() + slot.slice(1)}
+              </div>
+              {weekDates.map((date) => {
+                const formattedDate = formatMealDate(date)
+                const mealsInSlot = getMealsForSlot(formattedDate, slot)
                 return (
-                  <div key={`${formattedDate}-${slot}`} className="border rounded p-1 text-xs">
+                  <div key={`${formattedDate}-${slot}`} className="border rounded p-1 min-h-[2rem]">
                     {mealsInSlot.length > 0 ? (
                       <div className="space-y-1">
                         {mealsInSlot.map((meal) => {
@@ -115,10 +152,15 @@ export default function MealPlanCalendar({
                               key={meal.id}
                               className="bg-blue-50 p-1 rounded flex items-center justify-between gap-1"
                             >
-                              <span className="truncate">{recipe?.name}</span>
+                              <span className="truncate">
+                                {meal.customName || recipe?.name || '?'}
+                              </span>
+                              {meal.servings > 1 && (
+                                <span className="text-muted shrink-0">×{meal.servings}</span>
+                              )}
                               <button
                                 onClick={() => handleDeleteMeal(meal.id)}
-                                className="text-red-600 hover:text-red-800 font-bold"
+                                className="text-red-600 hover:text-red-800 font-bold shrink-0"
                               >
                                 ×
                               </button>
@@ -132,7 +174,7 @@ export default function MealPlanCalendar({
                           setSelectedSlot(slot)
                           setSelectedDate(formattedDate)
                         }}
-                        className="w-full text-center bg-surface hover:bg-border p-1 rounded"
+                        className="w-full h-full text-center bg-surface hover:bg-border p-1 rounded"
                       >
                         +
                       </button>
@@ -140,31 +182,29 @@ export default function MealPlanCalendar({
                   </div>
                 )
               })}
-            </div>
+            </React.Fragment>
           ))}
         </div>
       </div>
 
       {selectedSlot && selectedDate && (
         <div className="border border-border rounded p-4 bg-card space-y-3">
-          <h3 className="font-semibold">Add meal to {selectedSlot}</h3>
-          <select
-            value={selectedRecipeId}
-            onChange={(e) => setSelectedRecipeId(e.target.value)}
-            className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text"
-          >
-            <option value="">Select recipe...</option>
-            {recipes.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+          <h3 className="font-semibold text-sm">
+            Add meal — {selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)},{' '}
+            {new Date(selectedDate + 'T00:00:00').toLocaleDateString()}
+          </h3>
+          <RecipeCombobox
+            recipes={recipes}
+            onSelect={handleComboboxSelect}
+            autoFocus
+            onEnter={handleAddMeal}
+          />
           <input
             type="number"
             min="1"
             value={selectedServings}
             onChange={(e) => setSelectedServings(parseInt(e.target.value, 10))}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddMeal()}
             placeholder="Servings"
             className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text"
           />
@@ -176,10 +216,7 @@ export default function MealPlanCalendar({
               Add
             </button>
             <button
-              onClick={() => {
-                setSelectedSlot(null)
-                setSelectedDate(null)
-              }}
+              onClick={cancelAdd}
               className="flex-1 px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
             >
               Cancel
@@ -187,21 +224,6 @@ export default function MealPlanCalendar({
           </div>
         </div>
       )}
-
-      <div className="p-4 border border-border rounded bg-surface">
-        <p className="text-sm text-muted mb-2">iCal Export:</p>
-        <code className="text-xs break-all bg-card p-2 rounded border border-border">
-          {icalUrl}
-        </code>
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(icalUrl)
-          }}
-          className="mt-2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-        >
-          Copy URL
-        </button>
-      </div>
     </div>
   )
 }

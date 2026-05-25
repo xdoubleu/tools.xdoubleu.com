@@ -30,8 +30,8 @@ func TestSignIn_Success(t *testing.T) {
 	})
 	resp, err := client.SignIn(context.Background(), req)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.NeedsMfa)
-	assert.True(t, resp.Msg.EnrollMfa)
+	assert.False(t, resp.Msg.NeedsMfa)
+	assert.False(t, resp.Msg.EnrollMfa)
 }
 
 func TestSignIn_WithMFA(t *testing.T) {
@@ -85,7 +85,7 @@ func TestSignIn_EmptyRedirect(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.NeedsMfa)
+	assert.False(t, resp.Msg.NeedsMfa)
 }
 
 func TestSignIn_InvalidRedirect(t *testing.T) {
@@ -225,4 +225,10 @@ func TestGetCurrentUser_Admin_HasRole(t *testing.T) {
 var mfaTokenCookie = http.Cookie{
 	Name:  "mfaToken",
 	Value: "access",
+}
+
+//nolint:gochecknoglobals // shared test fixture
+var mfaRefreshTokenCookie = http.Cookie{
+	Name:  "mfaRefreshToken",
+	Value: "refresh",
 }

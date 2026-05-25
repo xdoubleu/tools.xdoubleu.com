@@ -1,4 +1,4 @@
-export const MEAL_SLOTS = ['Breakfast', 'Noon', 'Evening'] as const
+export const MEAL_SLOTS = ['breakfast', 'noon', 'evening'] as const
 
 export function getWeekDates(offsetWeeks: number): Date[] {
   const today = new Date()

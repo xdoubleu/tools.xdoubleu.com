@@ -6,6 +6,7 @@ service AuthService {
   rpc SignIn(SignInRequest) returns (SignInResponse);
   rpc MFAEnroll(MFAEnrollRequest) returns (MFAEnrollResponse);
   rpc MFAEnrollVerify(MFAEnrollVerifyRequest) returns (MFAEnrollVerifyResponse);
+  rpc MFAEnrollSkip(MFAEnrollSkipRequest) returns (MFAEnrollSkipResponse);
   rpc MFAChallenge(MFAChallengeRequest) returns (MFAChallengeResponse);
   rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
   rpc SignOut(SignOutRequest) returns (SignOutResponse);
@@ -38,6 +39,10 @@ message MFAEnrollVerifyRequest {
 }
 
 message MFAEnrollVerifyResponse {}
+
+message MFAEnrollSkipRequest {}
+
+message MFAEnrollSkipResponse {}
 
 message MFAChallengeRequest {
   string code = 1;

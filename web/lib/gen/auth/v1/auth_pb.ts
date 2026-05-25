@@ -259,6 +259,68 @@ export class MFAEnrollVerifyResponse extends Message<MFAEnrollVerifyResponse> {
 }
 
 /**
+ * @generated from message auth.v1.MFAEnrollSkipRequest
+ */
+export class MFAEnrollSkipRequest extends Message<MFAEnrollSkipRequest> {
+  constructor(data?: PartialMessage<MFAEnrollSkipRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "auth.v1.MFAEnrollSkipRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MFAEnrollSkipRequest {
+    return new MFAEnrollSkipRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MFAEnrollSkipRequest {
+    return new MFAEnrollSkipRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MFAEnrollSkipRequest {
+    return new MFAEnrollSkipRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MFAEnrollSkipRequest | PlainMessage<MFAEnrollSkipRequest> | undefined, b: MFAEnrollSkipRequest | PlainMessage<MFAEnrollSkipRequest> | undefined): boolean {
+    return proto3.util.equals(MFAEnrollSkipRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message auth.v1.MFAEnrollSkipResponse
+ */
+export class MFAEnrollSkipResponse extends Message<MFAEnrollSkipResponse> {
+  constructor(data?: PartialMessage<MFAEnrollSkipResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "auth.v1.MFAEnrollSkipResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MFAEnrollSkipResponse {
+    return new MFAEnrollSkipResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MFAEnrollSkipResponse {
+    return new MFAEnrollSkipResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MFAEnrollSkipResponse {
+    return new MFAEnrollSkipResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MFAEnrollSkipResponse | PlainMessage<MFAEnrollSkipResponse> | undefined, b: MFAEnrollSkipResponse | PlainMessage<MFAEnrollSkipResponse> | undefined): boolean {
+    return proto3.util.equals(MFAEnrollSkipResponse, a, b);
+  }
+}
+
+/**
  * @generated from message auth.v1.MFAChallengeRequest
  */
 export class MFAChallengeRequest extends Message<MFAChallengeRequest> {
