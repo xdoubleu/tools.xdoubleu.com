@@ -344,7 +344,8 @@ export default function PresenterClient({ id }: { id: string }) {
 
             await pcScreen.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
             if (pcScreenRef.current !== pcScreen) return
-            for (const c of pendingCandidates.current[tt].splice(0)) await pcScreen.addIceCandidate(c)
+            for (const c of pendingCandidates.current[tt].splice(0))
+              await pcScreen.addIceCandidate(c)
             if (pcScreenRef.current !== pcScreen) return
             const answer = await pcScreen.createAnswer()
             if (pcScreenRef.current !== pcScreen) return
