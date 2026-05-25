@@ -187,3 +187,15 @@ func TestDescFirstLine_MultiLine(t *testing.T) {
 func TestDescFirstLine_Empty(t *testing.T) {
 	assert.Equal(t, "", templates.DescFirstLine(""))
 }
+
+func TestToFraction_OneThird(t *testing.T) {
+	assert.Equal(t, "⅓", templates.ToFraction(1.0/3))
+}
+
+func TestToFraction_TwoThirds(t *testing.T) {
+	assert.Equal(t, "⅔", templates.ToFraction(2.0/3))
+}
+
+func TestToFraction_OneAndOneThird(t *testing.T) {
+	assert.Equal(t, "1⅓", templates.ToFraction(1.0+1.0/3))
+}

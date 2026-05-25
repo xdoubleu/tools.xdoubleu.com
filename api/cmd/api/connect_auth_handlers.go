@@ -59,7 +59,11 @@ func (h *authConnectHandler) SignIn(
 
 	resp := connect.NewResponse(&authv1.SignInResponse{NeedsMfa: true})
 	h.setMFACookies(
-		resp.Header(), *accessToken, *refreshToken, req.Msg.RememberMe, req.Msg.Redirect,
+		resp.Header(),
+		*accessToken,
+		*refreshToken,
+		req.Msg.RememberMe,
+		req.Msg.Redirect,
 	)
 	resp.Header().Add("Set-Cookie", (&http.Cookie{
 		Name:     "mfaFactorID",

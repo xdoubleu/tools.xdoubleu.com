@@ -19,39 +19,58 @@ func RenderError(w http.ResponseWriter, status int, message string) {
 	http.Error(w, message, status)
 }
 
-const eighths = 8
-
-//nolint:gochecknoglobals //package-level lookup table, not mutable state
-var fractionSymbols = map[int]string{
-	0: "",
-	1: "⅛",
-	2: "¼",
-	3: "⅜",
-	4: "½",
-	5: "⅝",
-	6: "¾",
-	7: "⅞",
+type fracEntry struct {
+	val    float64
+	symbol string
 }
 
-// ToFraction converts a float64 to a Unicode cooking fraction string (nearest 1/8th).
+//nolint:gochecknoglobals //package-level lookup table, not mutable state
+var commonFractions = []fracEntry{
+	{0.0, ""},
+	{1.0 / 8, "⅛"},
+	{1.0 / 4, "¼"},
+	{1.0 / 3, "⅓"},
+	{3.0 / 8, "⅜"},
+	{1.0 / 2, "½"},
+	{5.0 / 8, "⅝"},
+	{2.0 / 3, "⅔"},
+	{3.0 / 4, "¾"},
+	{7.0 / 8, "⅞"},
+	{1.0, ""},
+}
+
+// ToFraction converts a float64 to a Unicode cooking fraction string.
 func ToFraction(f float64) string {
 	if f <= 0 {
 		return "0"
 	}
 	whole := int(math.Floor(f))
-	nearest := int(math.Round((f - float64(whole)) * eighths))
-	if nearest == eighths {
-		whole++
-		nearest = 0
+	frac := f - float64(whole)
+
+	bestDiff := math.MaxFloat64
+	bestIdx := 0
+	for i, cf := range commonFractions {
+		if diff := math.Abs(frac - cf.val); diff <= bestDiff {
+			bestDiff = diff
+			bestIdx = i
+		}
 	}
-	fracStr := fractionSymbols[nearest]
+	symbol := commonFractions[bestIdx].symbol
+	if bestIdx == len(commonFractions)-1 {
+		whole++
+		symbol = ""
+	}
+
 	if whole == 0 {
-		if fracStr == "" {
+		if symbol == "" {
 			return "0"
 		}
-		return fracStr
+		return symbol
 	}
-	return fmt.Sprintf("%d%s", whole, fracStr)
+	if symbol == "" {
+		return fmt.Sprintf("%d", whole)
+	}
+	return fmt.Sprintf("%d%s", whole, symbol)
 }
 
 var mdLinkRE = regexp.MustCompile(`\[([^\]]+)\]\(((?:https?://)?[^\s)]+)\)`)

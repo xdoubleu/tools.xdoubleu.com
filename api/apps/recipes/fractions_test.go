@@ -44,3 +44,15 @@ func TestToFraction_RoundsUp(t *testing.T) {
 	// 0.9375 rounds to 1 whole
 	assert.Equal(t, "1", recipes.ToFraction(0.9375))
 }
+
+func TestToFraction_OneThird(t *testing.T) {
+	assert.Equal(t, "⅓", recipes.ToFraction(1.0/3))
+}
+
+func TestToFraction_TwoThirds(t *testing.T) {
+	assert.Equal(t, "⅔", recipes.ToFraction(2.0/3))
+}
+
+func TestToFraction_OneAndOneThird(t *testing.T) {
+	assert.Equal(t, "1⅓", recipes.ToFraction(1.0+1.0/3))
+}
