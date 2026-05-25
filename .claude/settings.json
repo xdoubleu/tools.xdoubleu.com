@@ -6,8 +6,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd=$(jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -q 'grep' && ! echo \"$cmd\" | grep -q 'ast-grep'; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: CLAUDE.md rule - prefer ast-grep over grep for code searches.\"}}'; fi",
-            "statusMessage": "Checking for grep usage..."
+            "command": "cmd=$(jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -Eq '(^|[^a-zA-Z])(grep|rg)([^a-zA-Z]|$)' && ! echo \"$cmd\" | grep -q 'ast-grep'; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: CLAUDE.md rule - prefer ast-grep over grep/rg for code searches. Only use grep/rg for non-code files (logs, configs, docs).\"}}'; fi",
+            "statusMessage": "Checking for grep/rg usage..."
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: CLAUDE.md rule - prefer ast-grep for code searches. Only use the Grep tool for non-code files (logs, configs, docs).\"}}'",
+            "statusMessage": "Reminding to prefer ast-grep..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: CLAUDE.md requires spawning the orchestrate-analyze subagent for any code change (writes/modifies/refactors). If this edit is exploration, a plan file, docs, or settings, proceed. Otherwise stop and delegate to orchestrate-analyze.\"}}'",
+            "statusMessage": "Checking subagent delegation rule..."
           }
         ]
       }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
+	"tools.xdoubleu.com/internal/models"
 )
 
 func isRelativeURL(url string) bool {
@@ -276,31 +277,75 @@ func (h *authConnectHandler) GetCurrentUser(
 	ctx context.Context,
 	req *connect.Request[authv1.GetCurrentUserRequest],
 ) (*connect.Response[authv1.GetCurrentUserResponse], error) {
-	cookie, err := h.parseCookie(req.Header(), "accessToken")
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			errors.New("not signed in"),
-		)
+	resp := connect.NewResponse(&authv1.GetCurrentUserResponse{})
+
+	var user *models.User
+	if cookie, err := h.parseCookie(req.Header(), "accessToken"); err == nil {
+		user, _ = h.app.services.Auth.GetUser(cookie.Value)
 	}
 
-	user, err := h.app.services.Auth.GetUser(cookie.Value)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	if user == nil {
+		newAccess, err := h.tryRefreshToken(req.Header(), resp.Header())
+		if err != nil {
+			return nil, connect.NewError(
+				connect.CodeUnauthenticated,
+				errors.New("not signed in"),
+			)
+		}
+		user, err = h.app.services.Auth.GetUser(newAccess)
+		if err != nil || user == nil {
+			return nil, connect.NewError(
+				connect.CodeUnauthenticated,
+				errors.New("not signed in"),
+			)
+		}
 	}
 
-	// Get the DB-enriched user with correct role
 	enrichedUser, dbErr := h.app.appUsersRepo.GetByID(ctx, user.ID)
 	role := user.Role
 	appAccess := []string{}
 	if dbErr == nil {
-		// User found in DB, use the DB role and app access
 		role = enrichedUser.Role
 		appAccess = enrichedUser.AppAccess
 	}
 
-	return connect.NewResponse(&authv1.GetCurrentUserResponse{
-		Role:      string(role),
-		AppAccess: appAccess,
-	}), nil
+	resp.Msg.Role = string(role)
+	resp.Msg.AppAccess = appAccess
+	return resp, nil
+}
+
+func (h *authConnectHandler) tryRefreshToken(
+	reqHeader, respHeader http.Header,
+) (string, error) {
+	refreshCookie, err := h.parseCookie(reqHeader, "refreshToken")
+	if err != nil {
+		return "", errors.New("no refresh token")
+	}
+
+	newAccess, newRefresh, err := h.app.services.Auth.SignInWithRefreshToken(
+		refreshCookie.Value,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	secure := h.secure()
+	accessCookie, err := h.app.services.Auth.CreateCookie(
+		models.AccessScope, *newAccess, h.app.config.AccessExpiry, secure,
+	)
+	if err != nil {
+		return "", err
+	}
+	respHeader.Add("Set-Cookie", accessCookie.String())
+
+	var refreshTokenCookie *http.Cookie
+	refreshTokenCookie, err = h.app.services.Auth.CreateCookie(
+		models.RefreshScope, *newRefresh, h.app.config.RefreshExpiry, secure,
+	)
+	if err != nil {
+		return "", err
+	}
+	respHeader.Add("Set-Cookie", refreshTokenCookie.String())
+
+	return *newAccess, nil
 }

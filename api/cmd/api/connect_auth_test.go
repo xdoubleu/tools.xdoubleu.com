@@ -164,6 +164,27 @@ func TestGetCurrentUser_NoToken(t *testing.T) {
 	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
 }
 
+func TestGetCurrentUser_WithRefreshToken_Success(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, http.Cookie{Name: "refreshToken", Value: "refresh"})
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Role)
+}
+
+func TestGetCurrentUser_NoAccessToken_FallsBackToRefreshToken(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(
+		req,
+		http.Cookie{Name: "refreshToken", Value: "refresh"},
+	)
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Role)
+}
+
 func TestGetCurrentUser_ReturnsUserRole(t *testing.T) {
 	client := authClient(t)
 	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
