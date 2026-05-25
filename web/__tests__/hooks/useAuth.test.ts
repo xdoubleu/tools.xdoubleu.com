@@ -6,8 +6,6 @@ jest.mock('@/lib/client', () => ({
     signIn: jest.fn(),
     signOut: jest.fn(),
     forgotPassword: jest.fn(),
-    mFAEnroll: jest.fn(),
-    mFAEnrollVerify: jest.fn(),
     mFAChallenge: jest.fn(),
     getCurrentUser: jest.fn()
   }))
@@ -22,8 +20,6 @@ import {
   useSignIn,
   useSignOut,
   useForgotPassword,
-  useMFAEnroll,
-  useMFAEnrollVerify,
   useMFAChallenge,
   useCurrentUser
 } from '@/hooks/useAuth'
@@ -69,33 +65,6 @@ describe('useForgotPassword', () => {
     const { result } = renderHook(() => useForgotPassword())
     result.current('a@b.com')
     expect(mockForgotPassword).toHaveBeenCalledWith({ email: 'a@b.com' })
-  })
-})
-
-describe('useMFAEnroll', () => {
-  it('returns a function that calls client.mFAEnroll', () => {
-    const mockMFAEnroll = jest.fn().mockResolvedValue({})
-    mockCreateServiceClient.mockReturnValue({ mFAEnroll: mockMFAEnroll })
-
-    const { result } = renderHook(() => useMFAEnroll())
-    result.current()
-    expect(mockMFAEnroll).toHaveBeenCalledWith({})
-  })
-})
-
-describe('useMFAEnrollVerify', () => {
-  it('returns a function that calls client.mFAEnrollVerify', () => {
-    const mockMFAEnrollVerify = jest.fn().mockResolvedValue({})
-    mockCreateServiceClient.mockReturnValue({
-      mFAEnrollVerify: mockMFAEnrollVerify
-    })
-
-    const { result } = renderHook(() => useMFAEnrollVerify())
-    result.current('factor-123', '123456')
-    expect(mockMFAEnrollVerify).toHaveBeenCalledWith({
-      factorId: 'factor-123',
-      code: '123456'
-    })
   })
 })
 

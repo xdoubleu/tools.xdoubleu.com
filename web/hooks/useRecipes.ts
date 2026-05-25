@@ -6,7 +6,10 @@ import type {
   ListRecipesResponse,
   GetRecipeResponse,
   CreateRecipeRequest,
-  UpdateRecipeRequest
+  UpdateRecipeRequest,
+  DeleteRecipeRequest,
+  ShareRecipeRequest,
+  UnshareRecipeRequest
 } from '@/lib/gen/recipes/v1/recipes_pb'
 import type {
   ListPlansResponse,
@@ -15,7 +18,10 @@ import type {
   AddMealRequest,
   DeleteMealRequest,
   SharePlanRequest,
-  UnsharePlanRequest
+  UnsharePlanRequest,
+  CreatePlanRequest,
+  UpdatePlanRequest,
+  DeletePlanRequest
 } from '@/lib/gen/recipes/v1/mealplans_pb'
 
 export function useRecipes() {
@@ -23,10 +29,11 @@ export function useRecipes() {
   return useSWR<ListRecipesResponse, Error>('/recipes', () => client.listRecipes({}))
 }
 
-export function useRecipe(id: string) {
+export function useRecipe(id: string, servings?: number) {
   const client = createServiceClient(RecipesService)
-  return useSWR<GetRecipeResponse, Error>(id ? `/recipes/${id}` : null, () =>
-    client.getRecipe({ id })
+  const key = id ? (servings ? `/recipes/${id}?servings=${servings}` : `/recipes/${id}`) : null
+  return useSWR<GetRecipeResponse, Error>(key, () =>
+    client.getRecipe({ id, servings: servings ?? 0 })
   )
 }
 
@@ -35,10 +42,10 @@ export function useMealPlans() {
   return useSWR<ListPlansResponse, Error>('/recipes/plans', () => client.listPlans({}))
 }
 
-export function useMealPlan(id: string) {
+export function useMealPlan(id: string, offset: number = 0) {
   const client = createServiceClient(MealPlansService)
-  return useSWR<GetPlanResponse, Error>(id ? `/recipes/plans/${id}` : null, () =>
-    client.getPlan({ id, offset: 0 })
+  return useSWR<GetPlanResponse, Error>(id ? `/recipes/plans/${id}?offset=${offset}` : null, () =>
+    client.getPlan({ id, offset })
   )
 }
 
@@ -58,6 +65,36 @@ export function useCreateRecipe() {
 export function useUpdateRecipe() {
   const client = createServiceClient(RecipesService)
   return (req: UpdateRecipeRequest) => client.updateRecipe(req)
+}
+
+export function useDeleteRecipe() {
+  const client = createServiceClient(RecipesService)
+  return (req: DeleteRecipeRequest) => client.deleteRecipe(req)
+}
+
+export function useShareRecipe() {
+  const client = createServiceClient(RecipesService)
+  return (req: ShareRecipeRequest) => client.shareRecipe(req)
+}
+
+export function useUnshareRecipe() {
+  const client = createServiceClient(RecipesService)
+  return (req: UnshareRecipeRequest) => client.unshareRecipe(req)
+}
+
+export function useCreatePlan() {
+  const client = createServiceClient(MealPlansService)
+  return (req: CreatePlanRequest) => client.createPlan(req)
+}
+
+export function useUpdatePlan() {
+  const client = createServiceClient(MealPlansService)
+  return (req: UpdatePlanRequest) => client.updatePlan(req)
+}
+
+export function useDeletePlan() {
+  const client = createServiceClient(MealPlansService)
+  return (req: DeletePlanRequest) => client.deletePlan(req)
 }
 
 export function useAddMeal() {

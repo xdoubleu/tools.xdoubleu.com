@@ -35,6 +35,7 @@ func (h *authConnectHandler) secure() bool {
 func (h *authConnectHandler) setMFACookies(
 	header http.Header,
 	accessToken string,
+	refreshToken string,
 	rememberMe bool,
 	redirect string,
 ) {
@@ -48,6 +49,15 @@ func (h *authConnectHandler) setMFACookies(
 		{
 			Name:     "mfaToken",
 			Value:    accessToken,
+			MaxAge:   ttl,
+			SameSite: http.SameSiteStrictMode,
+			HttpOnly: true,
+			Secure:   secure,
+			Path:     "/",
+		},
+		{
+			Name:     "mfaRefreshToken",
+			Value:    refreshToken,
 			MaxAge:   ttl,
 			SameSite: http.SameSiteStrictMode,
 			HttpOnly: true,
@@ -81,6 +91,7 @@ func (h *authConnectHandler) clearMFACookies(header http.Header) {
 	secure := h.secure()
 	mfaCookieNames := []string{
 		"mfaToken",
+		"mfaRefreshToken",
 		"mfaFactorID",
 		"mfaRememberMe",
 		"mfaRedirect",

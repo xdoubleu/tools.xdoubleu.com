@@ -10,6 +10,7 @@ interface ShoppingListProps {
 
 export default function ShoppingList({ items }: ShoppingListProps) {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set())
+  const [copyFeedback, setCopyFeedback] = useState('')
 
   const toggleItem = (index: number) => {
     const newChecked = new Set(checkedItems)
@@ -22,19 +23,28 @@ export default function ShoppingList({ items }: ShoppingListProps) {
     setCheckedItems(newChecked)
   }
 
-  const handleExportClipboard = () => {
+  const showFeedback = (msg: string) => {
+    setCopyFeedback(msg)
+    setTimeout(() => setCopyFeedback(''), 2000)
+  }
+
+  const handleExportClipboard = async () => {
     const text = formatForClipboard(items)
-    navigator.clipboard.writeText(text)
-    alert('Copied to clipboard!')
+    await navigator.clipboard.writeText(text)
+    showFeedback('Copied!')
   }
 
-  const handleExportAppleNotes = () => {
+  const handleExportAppleNotes = async () => {
     const text = formatForAppleNotes(items)
-    navigator.clipboard.writeText(text)
-    alert('Copied to clipboard (Apple Notes format)!')
+    if (navigator.share) {
+      await navigator.share({ text })
+    } else {
+      await navigator.clipboard.writeText(text)
+      showFeedback('Copied (Apple Notes format)!')
+    }
   }
 
-  const handleExportTxt = () => {
+  const handleExportTxt = async () => {
     const text = formatAsTxt(items)
     const element = document.createElement('a')
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text))
@@ -51,7 +61,7 @@ export default function ShoppingList({ items }: ShoppingListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 items-center">
         <button
           onClick={handleExportClipboard}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
@@ -62,7 +72,7 @@ export default function ShoppingList({ items }: ShoppingListProps) {
           onClick={handleExportAppleNotes}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
         >
-          Copy (Apple Notes)
+          Share to Apple Notes
         </button>
         <button
           onClick={handleExportTxt}
@@ -70,6 +80,7 @@ export default function ShoppingList({ items }: ShoppingListProps) {
         >
           Download .txt
         </button>
+        {copyFeedback && <span className="text-sm text-green-600">{copyFeedback}</span>}
       </div>
 
       <div className="space-y-2">

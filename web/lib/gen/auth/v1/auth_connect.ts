@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ForgotPasswordRequest, ForgotPasswordResponse, GetCurrentUserRequest, GetCurrentUserResponse, MFAChallengeRequest, MFAChallengeResponse, MFAEnrollRequest, MFAEnrollResponse, MFAEnrollVerifyRequest, MFAEnrollVerifyResponse, SignInRequest, SignInResponse, SignOutRequest, SignOutResponse } from "./auth_pb";
+import { ForgotPasswordRequest, ForgotPasswordResponse, GetCurrentUserRequest, GetCurrentUserResponse, MFAChallengeRequest, MFAChallengeResponse, MFAEnrollRequest, MFAEnrollResponse, MFAEnrollSkipRequest, MFAEnrollSkipResponse, MFAEnrollVerifyRequest, MFAEnrollVerifyResponse, SignInRequest, SignInResponse, SignOutRequest, SignOutResponse } from "./auth_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -37,6 +37,15 @@ export const AuthService = {
       name: "MFAEnrollVerify",
       I: MFAEnrollVerifyRequest,
       O: MFAEnrollVerifyResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc auth.v1.AuthService.MFAEnrollSkip
+     */
+    mFAEnrollSkip: {
+      name: "MFAEnrollSkip",
+      I: MFAEnrollSkipRequest,
+      O: MFAEnrollSkipResponse,
       kind: MethodKind.Unary,
     },
     /**

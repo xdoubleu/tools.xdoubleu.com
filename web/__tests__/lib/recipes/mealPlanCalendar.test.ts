@@ -3,7 +3,7 @@ import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlan
 describe('mealPlanCalendar', () => {
   describe('MEAL_SLOTS', () => {
     it('should contain the three slots', () => {
-      expect(MEAL_SLOTS).toEqual(['Breakfast', 'Noon', 'Evening'])
+      expect(MEAL_SLOTS).toEqual(['breakfast', 'noon', 'evening'])
     })
   })
 

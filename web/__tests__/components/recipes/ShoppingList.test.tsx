@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ShoppingList from '@/components/recipes/ShoppingList'
 import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 
@@ -30,7 +30,56 @@ describe('ShoppingList', () => {
   it('renders export buttons', () => {
     render(<ShoppingList items={mockItems} />)
     expect(screen.getByRole('button', { name: /Copy to Clipboard/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Copy.*Apple Notes/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Share to Apple Notes/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Download .txt/ })).toBeInTheDocument()
+  })
+
+  describe('Share to Apple Notes', () => {
+    it('uses Web Share API when available', async () => {
+      const mockShare = jest.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, 'share', { value: mockShare, configurable: true })
+
+      render(<ShoppingList items={mockItems} />)
+      fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
+
+      await waitFor(() => {
+        expect(mockShare).toHaveBeenCalledWith(
+          expect.objectContaining({ text: expect.stringContaining('flour') })
+        )
+      })
+    })
+
+    it('falls back to clipboard when Web Share API is unavailable', async () => {
+      Object.defineProperty(navigator, 'share', { value: undefined, configurable: true })
+      const mockWriteText = jest.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: mockWriteText },
+        configurable: true
+      })
+
+      render(<ShoppingList items={mockItems} />)
+      fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
+
+      await waitFor(() => {
+        expect(mockWriteText).toHaveBeenCalled()
+        expect(screen.getByText('Copied (Apple Notes format)!')).toBeInTheDocument()
+      })
+    })
+  })
+
+  it('copies to clipboard and shows feedback', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: mockWriteText },
+      configurable: true
+    })
+
+    render(<ShoppingList items={mockItems} />)
+    fireEvent.click(screen.getByRole('button', { name: /Copy to Clipboard/ }))
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalled()
+      expect(screen.getByText('Copied!')).toBeInTheDocument()
+    })
   })
 })

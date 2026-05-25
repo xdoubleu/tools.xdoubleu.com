@@ -40,6 +40,9 @@ const (
 	// AuthServiceMFAEnrollVerifyProcedure is the fully-qualified name of the AuthService's
 	// MFAEnrollVerify RPC.
 	AuthServiceMFAEnrollVerifyProcedure = "/auth.v1.AuthService/MFAEnrollVerify"
+	// AuthServiceMFAEnrollSkipProcedure is the fully-qualified name of the AuthService's MFAEnrollSkip
+	// RPC.
+	AuthServiceMFAEnrollSkipProcedure = "/auth.v1.AuthService/MFAEnrollSkip"
 	// AuthServiceMFAChallengeProcedure is the fully-qualified name of the AuthService's MFAChallenge
 	// RPC.
 	AuthServiceMFAChallengeProcedure = "/auth.v1.AuthService/MFAChallenge"
@@ -58,6 +61,7 @@ type AuthServiceClient interface {
 	SignIn(context.Context, *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error)
 	MFAEnroll(context.Context, *connect.Request[v1.MFAEnrollRequest]) (*connect.Response[v1.MFAEnrollResponse], error)
 	MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error)
+	MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error)
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
@@ -93,6 +97,12 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("MFAEnrollVerify")),
 			connect.WithClientOptions(opts...),
 		),
+		mFAEnrollSkip: connect.NewClient[v1.MFAEnrollSkipRequest, v1.MFAEnrollSkipResponse](
+			httpClient,
+			baseURL+AuthServiceMFAEnrollSkipProcedure,
+			connect.WithSchema(authServiceMethods.ByName("MFAEnrollSkip")),
+			connect.WithClientOptions(opts...),
+		),
 		mFAChallenge: connect.NewClient[v1.MFAChallengeRequest, v1.MFAChallengeResponse](
 			httpClient,
 			baseURL+AuthServiceMFAChallengeProcedure,
@@ -125,6 +135,7 @@ type authServiceClient struct {
 	signIn          *connect.Client[v1.SignInRequest, v1.SignInResponse]
 	mFAEnroll       *connect.Client[v1.MFAEnrollRequest, v1.MFAEnrollResponse]
 	mFAEnrollVerify *connect.Client[v1.MFAEnrollVerifyRequest, v1.MFAEnrollVerifyResponse]
+	mFAEnrollSkip   *connect.Client[v1.MFAEnrollSkipRequest, v1.MFAEnrollSkipResponse]
 	mFAChallenge    *connect.Client[v1.MFAChallengeRequest, v1.MFAChallengeResponse]
 	forgotPassword  *connect.Client[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse]
 	signOut         *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
@@ -144,6 +155,11 @@ func (c *authServiceClient) MFAEnroll(ctx context.Context, req *connect.Request[
 // MFAEnrollVerify calls auth.v1.AuthService.MFAEnrollVerify.
 func (c *authServiceClient) MFAEnrollVerify(ctx context.Context, req *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error) {
 	return c.mFAEnrollVerify.CallUnary(ctx, req)
+}
+
+// MFAEnrollSkip calls auth.v1.AuthService.MFAEnrollSkip.
+func (c *authServiceClient) MFAEnrollSkip(ctx context.Context, req *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error) {
+	return c.mFAEnrollSkip.CallUnary(ctx, req)
 }
 
 // MFAChallenge calls auth.v1.AuthService.MFAChallenge.
@@ -171,6 +187,7 @@ type AuthServiceHandler interface {
 	SignIn(context.Context, *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error)
 	MFAEnroll(context.Context, *connect.Request[v1.MFAEnrollRequest]) (*connect.Response[v1.MFAEnrollResponse], error)
 	MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error)
+	MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error)
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
@@ -200,6 +217,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		AuthServiceMFAEnrollVerifyProcedure,
 		svc.MFAEnrollVerify,
 		connect.WithSchema(authServiceMethods.ByName("MFAEnrollVerify")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceMFAEnrollSkipHandler := connect.NewUnaryHandler(
+		AuthServiceMFAEnrollSkipProcedure,
+		svc.MFAEnrollSkip,
+		connect.WithSchema(authServiceMethods.ByName("MFAEnrollSkip")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceMFAChallengeHandler := connect.NewUnaryHandler(
@@ -234,6 +257,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceMFAEnrollHandler.ServeHTTP(w, r)
 		case AuthServiceMFAEnrollVerifyProcedure:
 			authServiceMFAEnrollVerifyHandler.ServeHTTP(w, r)
+		case AuthServiceMFAEnrollSkipProcedure:
+			authServiceMFAEnrollSkipHandler.ServeHTTP(w, r)
 		case AuthServiceMFAChallengeProcedure:
 			authServiceMFAChallengeHandler.ServeHTTP(w, r)
 		case AuthServiceForgotPasswordProcedure:
@@ -261,6 +286,10 @@ func (UnimplementedAuthServiceHandler) MFAEnroll(context.Context, *connect.Reque
 
 func (UnimplementedAuthServiceHandler) MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAEnrollVerify is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAEnrollSkip is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error) {
