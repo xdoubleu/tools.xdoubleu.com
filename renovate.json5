@@ -45,4 +45,7 @@
   schedule: [
     'monthly',
   ],
+  automerge: true,
+  automergeType: 'pr',
+  platformAutomerge: true,
 }
