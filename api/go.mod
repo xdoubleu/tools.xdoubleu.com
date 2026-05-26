@@ -6,7 +6,7 @@ require github.com/justinas/alice v1.2.0
 
 require (
 	connectrpc.com/connect v1.19.2
-	github.com/arran4/golang-ical v0.3.2
+	github.com/arran4/golang-ical v0.3.5
 	github.com/coder/websocket v1.8.14
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/google/uuid v1.6.0
