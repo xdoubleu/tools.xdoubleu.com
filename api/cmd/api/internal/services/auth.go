@@ -16,7 +16,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 	"github.com/xhit/go-str2duration/v2"
 
-	"tools.xdoubleu.com/cmd/api/internal/logging"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/repositories"
@@ -272,12 +271,6 @@ func (service *AuthService) contextSetUser(
 			Email: user.Email,
 		})
 	}
-
-	if carrier, ok := ctx.Value(logging.CarrierKey).(*logging.UserIDCarrier); ok {
-		carrier.ID = user.ID
-	}
-
-	ctx = context.WithValue(ctx, logging.UserIDContextKey, user.ID)
 
 	if service.appUsersRepo == nil {
 		return context.WithValue(ctx, constants.UserContextKey, user)

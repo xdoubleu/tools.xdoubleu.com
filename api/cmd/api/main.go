@@ -21,7 +21,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
 
 	"tools.xdoubleu.com/apps/backlog"
-	"tools.xdoubleu.com/cmd/api/internal/logging"
 	"tools.xdoubleu.com/cmd/api/internal/services"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
@@ -35,15 +34,14 @@ var globalMigrations embed.FS
 var Release = "dev"
 
 type Application struct {
-	ctx           context.Context
-	logger        *slog.Logger
-	config        config.Config
-	services      *services.Services
-	contacts      contacts.Service
-	apps          *Apps
-	backlog       *backlog.Backlog
-	requestBuffer *logging.UserLogBuffer
-	appUsersRepo  *repositories.AppUsersRepository
+	ctx          context.Context
+	logger       *slog.Logger
+	config       config.Config
+	services     *services.Services
+	contacts     contacts.Service
+	apps         *Apps
+	backlog      *backlog.Backlog
+	appUsersRepo *repositories.AppUsersRepository
 }
 
 //	@title			tools
@@ -60,7 +58,6 @@ const (
 	dbHealthCheck    = 5 * time.Minute
 	httpReadTimeout  = 5 * time.Second
 	httpWriteTimeout = 10 * time.Second
-	userLogBufSize   = 100
 )
 
 func main() {
@@ -127,8 +124,6 @@ func NewApplication(
 		ctx = sentry.SetHubOnContext(ctx, sentryHub)
 	}
 
-	logBuffer := logging.NewUserLogBuffer(userLogBufSize)
-
 	appUsersRepo := repositories.NewAppUsersRepository(db)
 	contactsRepo := repositories.NewContactsRepository(db)
 	svc := services.New(config, supabaseClient, appUsersRepo)
@@ -143,14 +138,13 @@ func NewApplication(
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
-		ctx:           ctx,
-		logger:        slog.New(logging.NewUserLogHandler(logger.Handler(), logBuffer)),
-		config:        config,
-		services:      svc,
-		contacts:      contactsSvc,
-		backlog:       bl,
-		requestBuffer: logBuffer,
-		appUsersRepo:  appUsersRepo,
+		ctx:          ctx,
+		logger:       logger,
+		config:       config,
+		services:     svc,
+		contacts:     contactsSvc,
+		backlog:      bl,
+		appUsersRepo: appUsersRepo,
 	}
 
 	app.apps = NewApps(

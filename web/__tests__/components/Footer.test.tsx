@@ -1,27 +1,10 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import Footer from '@/components/Footer'
 
 jest.mock('@/lib/env', () => ({
   getRelease: jest.fn(),
   getApiUrl: jest.fn(() => 'http://localhost:4000')
 }))
-
-jest.mock('@/components/BugReportModal', () => {
-  return function MockBugReportModal({
-    isOpen,
-    onClose
-  }: {
-    isOpen: boolean
-    onClose: () => void
-  }) {
-    if (!isOpen) return null
-    return (
-      <div data-testid="bug-report-modal">
-        <button onClick={onClose}>Close Modal</button>
-      </div>
-    )
-  }
-})
 
 import { getRelease } from '@/lib/env'
 
@@ -61,26 +44,6 @@ describe('Footer', () => {
     await waitFor(() => {
       const link = container.querySelector('a[href="https://xdoubleu.com"]')
       expect(link).toHaveClass('underline')
-    })
-  })
-
-  it('renders Report a bug button', async () => {
-    render(<Footer />)
-
-    await waitFor(() => {
-      const bugButton = screen.getByRole('button', { name: /Report a bug/ })
-      expect(bugButton).toBeInTheDocument()
-    })
-  })
-
-  it('opens bug report modal when button is clicked', async () => {
-    render(<Footer />)
-
-    const bugButton = screen.getByRole('button', { name: /Report a bug/ })
-    fireEvent.click(bugButton)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('bug-report-modal')).toBeInTheDocument()
     })
   })
 
@@ -140,7 +103,7 @@ describe('Footer', () => {
     render(<Footer />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Report a bug/)).toBeInTheDocument()
+      expect(screen.getByText(/xdoubleu/)).toBeInTheDocument()
     })
 
     expect(screen.queryByText(/^(web|api):/)).not.toBeInTheDocument()
@@ -177,7 +140,6 @@ describe('Footer', () => {
 
     const year = new Date().getFullYear()
     expect(screen.getByText(new RegExp(`© ${year}`))).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Report a bug/ })).toBeInTheDocument()
   })
 
   it('uses responsive Tailwind classes for layout', async () => {

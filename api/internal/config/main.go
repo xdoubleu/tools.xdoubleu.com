@@ -29,8 +29,6 @@ type Config struct {
 	Release         string
 	SupabaseProjRef string
 	SupabaseAPIKey  string
-	GitHubToken     string
-	GitHubRepo      string
 	EncryptionKey   []byte
 }
 
@@ -52,9 +50,6 @@ func New(logger *slog.Logger) Config {
 
 	cfg.SupabaseProjRef = parser.EnvStr("SUPABASE_PROJ_REF", "")
 	cfg.SupabaseAPIKey = parser.EnvStr("SUPABASE_API_KEY", "")
-
-	cfg.GitHubToken = parser.EnvStr("GITHUB_TOKEN", "")
-	cfg.GitHubRepo = parser.EnvStr("GITHUB_REPO", "")
 
 	encKeyStr := parser.EnvStr("ENCRYPTION_KEY", "")
 	if encKeyStr == "" {
