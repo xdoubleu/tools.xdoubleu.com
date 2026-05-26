@@ -1,0 +1,119 @@
+syntax = "proto3";
+package mealplans.v1;
+option go_package = "tools.xdoubleu.com/gen/mealplans/v1;mealplansv1";
+
+import "recipes/v1/recipes.proto";
+
+message PlanMeal {
+  string id = 1;
+  string plan_id = 2;
+  string meal_date = 3;
+  string meal_slot = 4;
+  string recipe_id = 5;
+  string custom_name = 6;
+  int32 servings = 7;
+  recipes.v1.Recipe recipe = 8;
+}
+
+message Plan {
+  string id = 1;
+  string owner_user_id = 2;
+  string name = 3;
+  string ical_token = 4;
+  string created_at = 5;
+  string updated_at = 6;
+  bool can_edit = 7;
+  repeated PlanMeal meals = 8;
+  repeated string ical_hide_slots = 9;
+  bool ical_hide_past = 10;
+}
+
+message PlanSharedUser {
+  string user_id = 1;
+  bool can_edit = 2;
+  string display_name = 3;
+}
+
+message ListPlansRequest {}
+message ListPlansResponse { repeated Plan plans = 1; }
+
+message GetPlanRequest {
+  string id = 1;
+  int32 offset = 2;
+}
+message GetPlanResponse {
+  Plan plan = 1;
+  repeated recipes.v1.Recipe recipes = 2;
+  string ical_url = 3;
+  bool is_owner = 4;
+  int32 offset = 5;
+  int32 prev_offset = 6;
+  int32 next_offset = 7;
+  string window_start = 8;
+  string window_end = 9;
+  repeated PlanSharedUser shared_with = 10;
+}
+
+message CreatePlanRequest { string name = 1; }
+message CreatePlanResponse { Plan plan = 1; }
+
+message UpdatePlanRequest {
+  string id = 1;
+  string name = 2;
+  repeated string ical_hide_slots = 3;
+  bool ical_hide_past = 4;
+}
+message UpdatePlanResponse {}
+
+message DeletePlanRequest { string id = 1; }
+message DeletePlanResponse {}
+
+message AddMealRequest {
+  string plan_id = 1;
+  string meal_date = 2;
+  string meal_slot = 3;
+  string recipe_id = 4;
+  string custom_name = 5;
+  int32 servings = 6;
+}
+message AddMealResponse {}
+
+message DeleteMealRequest {
+  string plan_id = 1;
+  string meal_id = 2;
+}
+message DeleteMealResponse {}
+
+message MoveMealRequest {
+  string plan_id = 1;
+  string meal_id = 2;
+  string new_date = 3;
+  string new_slot = 4;
+}
+message MoveMealResponse {}
+
+message SharePlanRequest {
+  string plan_id = 1;
+  string contact_user_id = 2;
+  bool can_edit = 3;
+}
+message SharePlanResponse {}
+
+message UnsharePlanRequest {
+  string plan_id = 1;
+  string target_user_id = 2;
+}
+message UnsharePlanResponse {}
+
+service MealPlansService {
+  rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
+  rpc GetPlan(GetPlanRequest) returns (GetPlanResponse);
+  rpc CreatePlan(CreatePlanRequest) returns (CreatePlanResponse);
+  rpc UpdatePlan(UpdatePlanRequest) returns (UpdatePlanResponse);
+  rpc DeletePlan(DeletePlanRequest) returns (DeletePlanResponse);
+  rpc AddMeal(AddMealRequest) returns (AddMealResponse);
+  rpc DeleteMeal(DeleteMealRequest) returns (DeleteMealResponse);
+  rpc MoveMeal(MoveMealRequest) returns (MoveMealResponse);
+  rpc SharePlan(SharePlanRequest) returns (SharePlanResponse);
+  rpc UnsharePlan(UnsharePlanRequest) returns (UnsharePlanResponse);
+}

@@ -10,12 +10,13 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/icsproxy"
+	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/recipes"
+	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/apps/todos"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/contacts"
 )
 
 type Apps []App
@@ -36,14 +37,15 @@ func NewApps(
 	cfg config.Config,
 	db postgres.DB,
 	bl *backlog.Backlog,
-	contactsSvc contacts.Service,
 ) *Apps {
 	var apps Apps = []App{}
 
 	apps.addApp(bl)
 	apps.addApp(watchparty.New(authService, logger, cfg))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db))
-	apps.addApp(recipes.New(authService, logger, cfg, db, contactsSvc))
+	apps.addApp(recipes.New(authService, logger, cfg, db))
+	apps.addApp(mealplans.New(authService, logger, cfg, db))
+	apps.addApp(shoppinglist.New(authService, logger, cfg, db))
 	apps.addApp(todos.New(authService, logger, cfg, db))
 
 	return &apps

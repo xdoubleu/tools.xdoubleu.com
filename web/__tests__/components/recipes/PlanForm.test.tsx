@@ -1,16 +1,16 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-jest.mock('@/hooks/useRecipes', () => ({
+jest.mock('@/hooks/useMealPlans', () => ({
   useCreatePlan: jest.fn(),
   useUpdatePlan: jest.fn()
 }))
-jest.mock('@/lib/gen/recipes/v1/mealplans_pb', () => ({
+jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
   CreatePlanRequest: jest.fn().mockImplementation((d) => d),
   UpdatePlanRequest: jest.fn().mockImplementation((d) => d)
 }))
 
-import { useCreatePlan, useUpdatePlan } from '@/hooks/useRecipes'
+import { useCreatePlan, useUpdatePlan } from '@/hooks/useMealPlans'
 import PlanForm from '@/components/recipes/PlanForm'
 
 const mockCreate = jest.fn()

@@ -1,12 +1,12 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-jest.mock('@/hooks/useRecipes', () => ({
+jest.mock('@/hooks/useMealPlans', () => ({
   useAddMeal: jest.fn(),
   useDeleteMeal: jest.fn(),
   useMoveMeal: jest.fn()
 }))
-jest.mock('@/lib/gen/recipes/v1/mealplans_pb', () => ({
+jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
   AddMealRequest: jest.fn().mockImplementation((d) => d),
   DeleteMealRequest: jest.fn().mockImplementation((d) => d),
   MoveMealRequest: jest.fn().mockImplementation((d) => d)
@@ -25,9 +25,9 @@ jest.mock('@/lib/recipes/mealPlanCalendar', () => {
   }
 })
 
-import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useRecipes'
+import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useMealPlans'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
-import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
+import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockAddMeal = jest.fn()

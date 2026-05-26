@@ -101,8 +101,3 @@ func ToFractionCeiling(f float64) string {
 	}
 	return fmt.Sprintf("%d%s", whole, symbol)
 }
-
-// toFractionCeiling is a package-level alias for internal use.
-func toFractionCeiling(f float64) string {
-	return ToFractionCeiling(f)
-}

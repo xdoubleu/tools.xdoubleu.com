@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
-import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useRecipes'
+import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useMealPlans'
 import {
   AddMealRequest,
   DeleteMealRequest,
   MoveMealRequest
-} from '@/lib/gen/recipes/v1/mealplans_pb'
-import type { Plan, PlanMeal } from '@/lib/gen/recipes/v1/mealplans_pb'
+} from '@/lib/gen/mealplans/v1/mealplans_pb'
+import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import RecipeCombobox from './RecipeCombobox'
 

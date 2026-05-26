@@ -3,15 +3,11 @@ package repositories
 import "github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 type Repositories struct {
-	Recipes  *RecipesRepository
-	Plans    *PlansRepository
-	Shopping *ShoppingRepository
+	Recipes *RecipesRepository
 }
 
 func New(db postgres.DB) *Repositories {
 	return &Repositories{
-		Recipes:  &RecipesRepository{db: db},
-		Plans:    &PlansRepository{db: db},
-		Shopping: &ShoppingRepository{db: db},
+		Recipes: &RecipesRepository{db: db},
 	}
 }

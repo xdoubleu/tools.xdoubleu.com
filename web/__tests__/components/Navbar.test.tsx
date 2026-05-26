@@ -36,7 +36,7 @@ describe('Navbar', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders nav links when authenticated', () => {
+  it('renders logo and sign out when authenticated', () => {
     mockUseCurrentUser.mockReturnValue({
       data: { role: 'user' },
       isLoading: false,
@@ -47,44 +47,9 @@ describe('Navbar', () => {
     render(<Navbar />)
 
     expect(screen.getByRole('link', { name: 'tools.xdoubleu.com' })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
-    expect(screen.getByRole('link', { name: 'Contacts' })).toHaveAttribute('href', '/contacts')
-    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
-  })
-
-  it('shows Admin link for admin users', () => {
-    mockUseCurrentUser.mockReturnValue({
-      data: { role: 'admin' },
-      isLoading: false,
-      error: undefined
-    })
-    mockUseSignOut.mockReturnValue(jest.fn())
-
-    render(<Navbar />)
-
-    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin')
-  })
-
-  it('hides Admin link for non-admin users', () => {
-    mockUseCurrentUser.mockReturnValue({
-      data: { role: 'user' },
-      isLoading: false,
-      error: undefined
-    })
-    mockUseSignOut.mockReturnValue(jest.fn())
-
-    render(<Navbar />)
-
-    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
-  })
-
-  it('hides Admin link when role is empty string', () => {
-    mockUseCurrentUser.mockReturnValue({ data: { role: '' }, isLoading: false, error: undefined })
-    mockUseSignOut.mockReturnValue(jest.fn())
-
-    render(<Navbar />)
-
+    expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Contacts' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
