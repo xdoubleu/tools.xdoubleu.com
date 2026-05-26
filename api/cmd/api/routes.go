@@ -1,21 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"net"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/justinas/alice"
 	"github.com/xdoubleu/essentia/v4/pkg/middleware"
 
-	"tools.xdoubleu.com/cmd/api/internal/logging"
 	"tools.xdoubleu.com/gen/admin/v1/adminv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
-	bugreportv1connect "tools.xdoubleu.com/gen/bugreport/v1/bugreportv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
 	"tools.xdoubleu.com/gen/settings/v1/settingsv1connect"
 	"tools.xdoubleu.com/internal/constants"
@@ -48,14 +42,6 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(
 		"POST "+contactsPath,
 		app.services.Auth.Access(contactsHandler.ServeHTTP),
-	)
-
-	bugReportPath, bugReportHandler := bugreportv1connect.NewBugReportServiceHandler(
-		&bugReportConnectHandler{app: app},
-	)
-	mux.Handle(
-		"POST "+bugReportPath,
-		app.services.Auth.Access(bugReportHandler.ServeHTTP),
 	)
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)
@@ -91,8 +77,7 @@ func (app *Application) Routes() http.Handler {
 		handlers = middleware.Minimal(app.logger)
 	}
 
-	standard := alice.New(
-		append(handlers, app.domainMiddleware, app.requestLogMiddleware)...)
+	standard := alice.New(append(handlers, app.domainMiddleware)...)
 	return standard.Then(mux)
 }
 
@@ -132,40 +117,3 @@ func (app *Application) domainMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// statusWriter captures the HTTP status code written by a handler.
-type statusWriter struct {
-	http.ResponseWriter
-	status int
-}
-
-func (sw *statusWriter) WriteHeader(code int) {
-	sw.status = code
-	sw.ResponseWriter.WriteHeader(code)
-}
-
-func (sw *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	hj, ok := sw.ResponseWriter.(http.Hijacker)
-	if !ok {
-		return nil, nil, fmt.Errorf(
-			"underlying ResponseWriter does not implement http.Hijacker",
-		)
-	}
-	return hj.Hijack()
-}
-
-func (app *Application) requestLogMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//nolint:exhaustruct // ID is intentionally empty until auth fills it
-		carrier := &logging.UserIDCarrier{}
-		ctx := context.WithValue(r.Context(), logging.CarrierKey, carrier)
-		sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
-		next.ServeHTTP(sw, r.WithContext(ctx))
-		if carrier.ID != "" {
-			app.requestBuffer.Record(carrier.ID, logging.LogEntry{
-				Time:    time.Now(),
-				Level:   "REQUEST",
-				Message: fmt.Sprintf("%s %s → %d", r.Method, r.URL.Path, sw.status),
-			})
-		}
-	})
-}

@@ -15,8 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/mocks"
 )
 
-var testApp *Application           //nolint:gochecknoglobals //needed for tests
-var testAppWithGitHub *Application //nolint:gochecknoglobals //needed for tests
+var testApp *Application //nolint:gochecknoglobals //needed for tests
 
 //nolint:gochecknoglobals //needed for tests
 var accessToken = http.Cookie{
@@ -47,19 +46,6 @@ func TestMain(m *testing.M) {
 	testApp = NewApplication(
 		logging.NewNopLogger(),
 		cfg,
-		postgresDB,
-		mocks.NewMockedGoTrueClient(),
-	)
-
-	cfgWithGitHub := config.New(logging.NewNopLogger())
-	cfgWithGitHub.Env = configtools.TestEnv
-	cfgWithGitHub.Throttle = false
-	cfgWithGitHub.GitHubToken = "test-token"
-	cfgWithGitHub.GitHubRepo = "owner/repo"
-
-	testAppWithGitHub = NewApplication(
-		logging.NewNopLogger(),
-		cfgWithGitHub,
 		postgresDB,
 		mocks.NewMockedGoTrueClient(),
 	)
