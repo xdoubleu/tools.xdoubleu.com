@@ -17,6 +17,7 @@ import type {
   GetShoppingListResponse,
   AddMealRequest,
   DeleteMealRequest,
+  MoveMealRequest,
   SharePlanRequest,
   UnsharePlanRequest,
   CreatePlanRequest,
@@ -105,6 +106,11 @@ export function useAddMeal() {
 export function useDeleteMeal() {
   const client = createServiceClient(MealPlansService)
   return (req: DeleteMealRequest) => client.deleteMeal(req)
+}
+
+export function useMoveMeal() {
+  const client = createServiceClient(MealPlansService)
+  return (req: MoveMealRequest) => client.moveMeal(req)
 }
 
 export function useSharePlan() {

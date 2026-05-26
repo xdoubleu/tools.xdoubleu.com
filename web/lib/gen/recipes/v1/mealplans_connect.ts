@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddMealRequest, AddMealResponse, CreatePlanRequest, CreatePlanResponse, DeleteMealRequest, DeleteMealResponse, DeletePlanRequest, DeletePlanResponse, GetPlanRequest, GetPlanResponse, GetShoppingListRequest, GetShoppingListResponse, ListPlansRequest, ListPlansResponse, SharePlanRequest, SharePlanResponse, UnsharePlanRequest, UnsharePlanResponse, UpdatePlanRequest, UpdatePlanResponse } from "./mealplans_pb";
+import { AddMealRequest, AddMealResponse, CreatePlanRequest, CreatePlanResponse, DeleteMealRequest, DeleteMealResponse, DeletePlanRequest, DeletePlanResponse, GetPlanRequest, GetPlanResponse, GetShoppingListRequest, GetShoppingListResponse, ListPlansRequest, ListPlansResponse, MoveMealRequest, MoveMealResponse, SharePlanRequest, SharePlanResponse, UnsharePlanRequest, UnsharePlanResponse, UpdatePlanRequest, UpdatePlanResponse } from "./mealplans_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -73,6 +73,15 @@ export const MealPlansService = {
       name: "DeleteMeal",
       I: DeleteMealRequest,
       O: DeleteMealResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc recipes.v1.MealPlansService.MoveMeal
+     */
+    moveMeal: {
+      name: "MoveMeal",
+      I: MoveMealRequest,
+      O: MoveMealResponse,
       kind: MethodKind.Unary,
     },
     /**

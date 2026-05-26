@@ -759,3 +759,163 @@ func TestUnsharePlan_RequiresTargetUserID(t *testing.T) {
 	}()
 	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
 }
+
+func TestMoveMeal_ToEmptySlot(t *testing.T) {
+	handler := getRoutes()
+	client := setupMealPlansClient(handler)
+
+	user := &sharedmodels.User{ID: userID} //nolint:exhaustruct // ID only
+	ctx := contextWithUser(context.Background(), user)
+
+	planResp, err := client.CreatePlan(
+		ctx,
+		connect.NewRequest(&recipesv1.CreatePlanRequest{
+			Name: "Move Test Plan",
+		}),
+	)
+	require.NoError(t, err)
+	planID := planResp.Msg.Plan.Id
+
+	today := time.Now().Format("2006-01-02")
+	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+
+	_, err = client.AddMeal(ctx, connect.NewRequest(&recipesv1.AddMealRequest{
+		PlanId:     planID,
+		MealDate:   today,
+		MealSlot:   "noon",
+		CustomName: "Pasta",
+		Servings:   2,
+	}))
+	require.NoError(t, err)
+
+	getResp, err := client.GetPlan(ctx, connect.NewRequest(&recipesv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	mealID := getResp.Msg.Plan.Meals[0].Id
+
+	_, err = client.MoveMeal(ctx, connect.NewRequest(&recipesv1.MoveMealRequest{
+		PlanId:  planID,
+		MealId:  mealID,
+		NewDate: tomorrow,
+		NewSlot: "noon",
+	}))
+	require.NoError(t, err)
+
+	getResp, err = client.GetPlan(ctx, connect.NewRequest(&recipesv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
+	assert.Equal(t, tomorrow, getResp.Msg.Plan.Meals[0].MealDate)
+	assert.Equal(t, "noon", getResp.Msg.Plan.Meals[0].MealSlot)
+	assert.Equal(t, "Pasta", getResp.Msg.Plan.Meals[0].CustomName)
+}
+
+func TestMoveMeal_SwapTwoMeals(t *testing.T) {
+	handler := getRoutes()
+	client := setupMealPlansClient(handler)
+
+	user := &sharedmodels.User{ID: userID} //nolint:exhaustruct // ID only
+	ctx := contextWithUser(context.Background(), user)
+
+	planResp, err := client.CreatePlan(
+		ctx,
+		connect.NewRequest(&recipesv1.CreatePlanRequest{
+			Name: "Swap Test Plan",
+		}),
+	)
+	require.NoError(t, err)
+	planID := planResp.Msg.Plan.Id
+
+	today := time.Now().Format("2006-01-02")
+	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+
+	_, err = client.AddMeal(ctx, connect.NewRequest(&recipesv1.AddMealRequest{
+		PlanId: planID, MealDate: today, MealSlot: "noon",
+		CustomName: "Pasta", Servings: 2,
+	}))
+	require.NoError(t, err)
+
+	_, err = client.AddMeal(ctx, connect.NewRequest(&recipesv1.AddMealRequest{
+		PlanId: planID, MealDate: tomorrow, MealSlot: "noon",
+		CustomName: "Salad", Servings: 1,
+	}))
+	require.NoError(t, err)
+
+	getResp, err := client.GetPlan(ctx, connect.NewRequest(&recipesv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, 2, len(getResp.Msg.Plan.Meals))
+
+	var pastaID string
+	for _, m := range getResp.Msg.Plan.Meals {
+		if m.CustomName == "Pasta" {
+			pastaID = m.Id
+		}
+	}
+	require.NotEmpty(t, pastaID)
+
+	_, err = client.MoveMeal(ctx, connect.NewRequest(&recipesv1.MoveMealRequest{
+		PlanId: planID, MealId: pastaID, NewDate: tomorrow, NewSlot: "noon",
+	}))
+	require.NoError(t, err)
+
+	getResp, err = client.GetPlan(ctx, connect.NewRequest(&recipesv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, 2, len(getResp.Msg.Plan.Meals))
+
+	byDate := map[string]string{}
+	for _, m := range getResp.Msg.Plan.Meals {
+		byDate[m.MealDate] = m.CustomName
+	}
+	assert.Equal(t, "Pasta", byDate[tomorrow])
+	assert.Equal(t, "Salad", byDate[today])
+}
+
+func TestMoveMeal_NoOp(t *testing.T) {
+	handler := getRoutes()
+	client := setupMealPlansClient(handler)
+
+	user := &sharedmodels.User{ID: userID} //nolint:exhaustruct // ID only
+	ctx := contextWithUser(context.Background(), user)
+
+	planResp, err := client.CreatePlan(
+		ctx,
+		connect.NewRequest(&recipesv1.CreatePlanRequest{
+			Name: "NoOp Test Plan",
+		}),
+	)
+	require.NoError(t, err)
+	planID := planResp.Msg.Plan.Id
+
+	today := time.Now().Format("2006-01-02")
+
+	_, err = client.AddMeal(ctx, connect.NewRequest(&recipesv1.AddMealRequest{
+		PlanId: planID, MealDate: today, MealSlot: "evening",
+		CustomName: "Soup", Servings: 2,
+	}))
+	require.NoError(t, err)
+
+	getResp, err := client.GetPlan(ctx, connect.NewRequest(&recipesv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	mealID := getResp.Msg.Plan.Meals[0].Id
+
+	_, err = client.MoveMeal(ctx, connect.NewRequest(&recipesv1.MoveMealRequest{
+		PlanId: planID, MealId: mealID, NewDate: today, NewSlot: "evening",
+	}))
+	require.NoError(t, err)
+
+	getResp, err = client.GetPlan(ctx, connect.NewRequest(&recipesv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
+	assert.Equal(t, today, getResp.Msg.Plan.Meals[0].MealDate)
+	assert.Equal(t, "evening", getResp.Msg.Plan.Meals[0].MealSlot)
+}

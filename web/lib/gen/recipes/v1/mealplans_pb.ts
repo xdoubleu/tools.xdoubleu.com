@@ -187,9 +187,9 @@ export class ShoppingItem extends Message<ShoppingItem> {
   name = "";
 
   /**
-   * @generated from field: double amount = 2;
+   * @generated from field: string amount = 2;
    */
-  amount = 0;
+  amount = "";
 
   /**
    * @generated from field: string unit = 3;
@@ -205,7 +205,7 @@ export class ShoppingItem extends Message<ShoppingItem> {
   static readonly typeName = "recipes.v1.ShoppingItem";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "amount", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 2, name: "amount", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
@@ -819,6 +819,92 @@ export class DeleteMealResponse extends Message<DeleteMealResponse> {
 
   static equals(a: DeleteMealResponse | PlainMessage<DeleteMealResponse> | undefined, b: DeleteMealResponse | PlainMessage<DeleteMealResponse> | undefined): boolean {
     return proto3.util.equals(DeleteMealResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message recipes.v1.MoveMealRequest
+ */
+export class MoveMealRequest extends Message<MoveMealRequest> {
+  /**
+   * @generated from field: string plan_id = 1;
+   */
+  planId = "";
+
+  /**
+   * @generated from field: string meal_id = 2;
+   */
+  mealId = "";
+
+  /**
+   * @generated from field: string new_date = 3;
+   */
+  newDate = "";
+
+  /**
+   * @generated from field: string new_slot = 4;
+   */
+  newSlot = "";
+
+  constructor(data?: PartialMessage<MoveMealRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.MoveMealRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "meal_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "new_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "new_slot", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MoveMealRequest {
+    return new MoveMealRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MoveMealRequest {
+    return new MoveMealRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MoveMealRequest {
+    return new MoveMealRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MoveMealRequest | PlainMessage<MoveMealRequest> | undefined, b: MoveMealRequest | PlainMessage<MoveMealRequest> | undefined): boolean {
+    return proto3.util.equals(MoveMealRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message recipes.v1.MoveMealResponse
+ */
+export class MoveMealResponse extends Message<MoveMealResponse> {
+  constructor(data?: PartialMessage<MoveMealResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "recipes.v1.MoveMealResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MoveMealResponse {
+    return new MoveMealResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MoveMealResponse {
+    return new MoveMealResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MoveMealResponse {
+    return new MoveMealResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MoveMealResponse | PlainMessage<MoveMealResponse> | undefined, b: MoveMealResponse | PlainMessage<MoveMealResponse> | undefined): boolean {
+    return proto3.util.equals(MoveMealResponse, a, b);
   }
 }
 

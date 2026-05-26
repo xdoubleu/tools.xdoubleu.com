@@ -75,7 +75,7 @@ func protoShoppingItem(item *models.ShoppingItem) *recipesv1.ShoppingItem {
 	}
 	return &recipesv1.ShoppingItem{
 		Name:   item.Name,
-		Amount: item.Amount,
+		Amount: toFractionCeiling(item.Amount),
 		Unit:   item.Unit,
 	}
 }
@@ -139,12 +139,14 @@ func (h *mealplansConnectHandler) GetPlan(
 
 	offset := int(req.Msg.Offset)
 	prevOffset := offset - 1
-	if prevOffset < 0 {
-		prevOffset = 0
-	}
 
 	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
-	windowStart := today.AddDate(0, 0, daysPerWeek*offset)
+	weekday := int(today.Weekday())
+	if weekday == 0 {
+		weekday = 7 // Sunday → 7 so Monday is day 1
+	}
+	monday := today.AddDate(0, 0, 1-weekday)
+	windowStart := monday.AddDate(0, 0, daysPerWeek*offset)
 	windowEnd := windowStart.AddDate(0, 0, daysPerWeek-1)
 
 	meals, err := h.app.services.Plans.GetMeals(
@@ -168,8 +170,8 @@ func (h *mealplansConnectHandler) GetPlan(
 		Recipes:     recipeList,
 		IcalUrl:     icalURL,
 		IsOwner:     plan.OwnerUserID == user.ID,
-		Offset:      int32(offset), //nolint:gosec // pagination offset fits int32
-		PrevOffset:  int32(prevOffset),
+		Offset:      int32(offset),     //nolint:gosec // pagination offset fits int32
+		PrevOffset:  int32(prevOffset), //nolint:gosec // pagination offset fits int32
 		NextOffset:  int32(offset + 1), //nolint:gosec // pagination offset fits int32
 		WindowStart: windowStart.Format(time.RFC3339),
 		WindowEnd:   windowEnd.Format(time.RFC3339),
@@ -482,4 +484,58 @@ func (h *mealplansConnectHandler) GetShoppingList(
 		Plan:  protoPlan(plan),
 		Items: protoShoppingItems(items),
 	}), nil
+}
+
+func (h *mealplansConnectHandler) MoveMeal(
+	ctx context.Context,
+	req *connect.Request[recipesv1.MoveMealRequest],
+) (*connect.Response[recipesv1.MoveMealResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	planID, err := uuid.Parse(req.Msg.PlanId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	mealID, err := uuid.Parse(req.Msg.MealId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid meal ID"),
+		)
+	}
+
+	newDate, err := time.Parse(time.DateOnly, req.Msg.NewDate)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid meal date"),
+		)
+	}
+
+	validSlots := map[string]bool{"breakfast": true, "noon": true, "evening": true}
+	if !validSlots[req.Msg.NewSlot] {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid meal slot"),
+		)
+	}
+
+	err = h.app.services.Plans.MoveMeal(
+		ctx, mealID, planID, user.ID, newDate, req.Msg.NewSlot,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	return connect.NewResponse(&recipesv1.MoveMealResponse{}), nil
 }

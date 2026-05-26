@@ -28,17 +28,25 @@ describe('shoppingExport', () => {
   })
 
   describe('formatForAppleNotes', () => {
-    it('should format items as checklist', () => {
-      const result = formatForAppleNotes(mockItems)
+    const fixedDate = new Date(2026, 4, 26)
+
+    it('should include a title with the date', () => {
+      const result = formatForAppleNotes(mockItems, fixedDate)
       const lines = result.split('\n')
-      expect(lines[0]).toBe('[ ] 2 cups flour')
-      expect(lines[1]).toBe('[ ] 1 tbsp sugar')
-      expect(lines[2]).toBe('[ ] 0.5 tsp salt')
+      expect(lines[0]).toBe('Shopping list 26/05/2026')
     })
 
-    it('should handle empty array', () => {
-      const result = formatForAppleNotes([])
-      expect(result).toBe('')
+    it('should format items one per line without prefix', () => {
+      const result = formatForAppleNotes(mockItems, fixedDate)
+      const lines = result.split('\n')
+      expect(lines[1]).toBe('2 cups flour')
+      expect(lines[2]).toBe('1 tbsp sugar')
+      expect(lines[3]).toBe('0.5 tsp salt')
+    })
+
+    it('should return just the title for an empty array', () => {
+      const result = formatForAppleNotes([], fixedDate)
+      expect(result).toBe('Shopping list 26/05/2026')
     })
   })
 
