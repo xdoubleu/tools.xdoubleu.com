@@ -478,12 +478,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@connectrpc/connect@npm:1.4.0":
-  version: 1.4.0
-  resolution: "@connectrpc/connect@npm:1.4.0"
+"@connectrpc/connect@npm:1.7.0":
+  version: 1.7.0
+  resolution: "@connectrpc/connect@npm:1.7.0"
   peerDependencies:
-    "@bufbuild/protobuf": ^1.4.2
-  checksum: 10c0/6006e4aef6908a786ffbda6f7c9c92fe0906e031e891c7ce28de9d1b8e3feb9115d924ec6fc38131a5b9936b537594b0a828711e3e0544f760c78e010eda1ea1
+    "@bufbuild/protobuf": ^1.10.0
+  checksum: 10c0/58b6835e966fa589307b7f14b8821d54e5fec92fcb9bb64a8af24076d3a6534b8a80dffdcb71455514772ee53b7ea49429c031602eb19d5ecba2dad4c3eb7a10
   languageName: node
   linkType: hard
 
@@ -9668,7 +9668,7 @@ __metadata:
   dependencies:
     "@bufbuild/protobuf": "npm:1.10.1"
     "@bufbuild/protoc-gen-es": "npm:1.10.1"
-    "@connectrpc/connect": "npm:1.4.0"
+    "@connectrpc/connect": "npm:1.7.0"
     "@connectrpc/connect-web": "npm:1.7.0"
     "@connectrpc/protoc-gen-connect-es": "npm:1.7.0"
     "@eslint/js": "npm:9.39.4"
