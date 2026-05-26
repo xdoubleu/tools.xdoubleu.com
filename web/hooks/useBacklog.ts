@@ -6,7 +6,8 @@ import type {
   GetLibraryResponse,
   GetBooksProgressResponse,
   SearchExternalResponse,
-  AddBookRequest
+  AddBookRequest,
+  UpdateBookStatusRequest
 } from '@/lib/gen/backlog/v1/books_pb'
 import type {
   GetSteamResponse,
@@ -31,10 +32,17 @@ export function useBacklogSteamGame(gameId: number) {
   )
 }
 
-export function useBacklogDistribution() {
+export function useBacklogDistribution(bucket: number) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamDistributionResponse, Error>('/backlog/steam/distribution', () =>
-    client.getSteamDistribution({})
+  return useSWR<GetSteamDistributionResponse, Error>(`/backlog/steam/distribution/${bucket}`, () =>
+    client.getSteamDistribution({ bucket })
+  )
+}
+
+export function useSteamProgress(dateStart?: string, dateEnd?: string) {
+  const client = createServiceClient(GamesService)
+  return useSWR<GetSteamResponse, Error>(['/backlog/steam/progress', dateStart, dateEnd], () =>
+    client.getSteam({ dateStart, dateEnd })
   )
 }
 
@@ -62,4 +70,14 @@ export function useImportBooks() {
     const encoder = new TextEncoder()
     return client.importBooks({ csvData: encoder.encode(csvData) })
   }
+}
+
+export function useUpdateBookStatus() {
+  const client = createServiceClient(BooksService)
+  return (req: UpdateBookStatusRequest) => client.updateBookStatus(req)
+}
+
+export function useToggleTag() {
+  const client = createServiceClient(BooksService)
+  return (bookId: string, tag: string) => client.toggleTag({ bookId, tag })
 }

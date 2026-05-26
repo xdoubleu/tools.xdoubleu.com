@@ -25,13 +25,13 @@ describe('GlobalError', () => {
     expect(screen.getByRole('button', { name: /Try again/ })).toBeInTheDocument()
   })
 
-  it('calls captureException on mount with the error', () => {
+  it('calls captureException on mount with the error', async () => {
     const testError = new Error('Specific test error')
     const mockReset = jest.fn()
 
     render(<GlobalError error={testError} reset={mockReset} />)
 
-    waitFor(() => {
+    await waitFor(() => {
       expect(mockCaptureException).toHaveBeenCalledTimes(1)
       expect(mockCaptureException).toHaveBeenCalledWith(testError)
     })
