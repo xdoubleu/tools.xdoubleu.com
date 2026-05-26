@@ -19,7 +19,7 @@ Next.js 16 App Router application served as a static export (`output: 'export'`)
 - `app/` — App Router pages and layouts
 - `components/` — Reusable React components (shadcn/ui primitives in `components/ui/`)
 - `lib/` — Utilities and ConnectRPC client setup
-- `lib/gen/` — Generated TypeScript ConnectRPC clients from buf (committed; only regenerate after editing `.proto` files)
+- `lib/gen/` — Generated TypeScript ConnectRPC clients from buf (committed; only regenerate after editing `.proto` files). **Do not read `lib/gen/`** to discover RPC types or method signatures — read the `.proto` source in `proto/` instead.
 - `hooks/` — SWR data-fetching hooks
 
 ## Common Commands
