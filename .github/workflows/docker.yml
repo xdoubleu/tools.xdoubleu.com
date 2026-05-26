@@ -36,7 +36,7 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         if: github.event_name == 'workflow_dispatch' || inputs.build_api
         with:
           context: .
@@ -55,7 +55,7 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         if: github.event_name == 'workflow_dispatch' || inputs.build_web
         with:
           context: .
