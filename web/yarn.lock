@@ -433,49 +433,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bufbuild/protobuf@npm:1.10.0":
-  version: 1.10.0
-  resolution: "@bufbuild/protobuf@npm:1.10.0"
-  checksum: 10c0/5487b9c2e63846d0e3bde4d025cc77ae44a22166a5d6c184df0da5581e1ab6d66dd115af0ccad814576dcd011bb1b93989fb0ac1eb4ae452979bb8b186693ba0
-  languageName: node
-  linkType: hard
-
-"@bufbuild/protobuf@npm:1.10.1, @bufbuild/protobuf@npm:^1.10.0":
+"@bufbuild/protobuf@npm:1.10.1, @bufbuild/protobuf@npm:^1.10.0, @bufbuild/protobuf@npm:^1.10.1":
   version: 1.10.1
   resolution: "@bufbuild/protobuf@npm:1.10.1"
   checksum: 10c0/a89572ae99aa193dd232fca0cdc9ece1dfe2f3d8b061be1f966a4f88fb63410aeb0fe7de927037e970aefcb52036eec58a7f89a40fe1286eed1448ea1bd2634e
   languageName: node
   linkType: hard
 
-"@bufbuild/protoc-gen-es@npm:1.10.0":
-  version: 1.10.0
-  resolution: "@bufbuild/protoc-gen-es@npm:1.10.0"
+"@bufbuild/protoc-gen-es@npm:1.10.1":
+  version: 1.10.1
+  resolution: "@bufbuild/protoc-gen-es@npm:1.10.1"
   dependencies:
-    "@bufbuild/protobuf": "npm:^1.10.0"
-    "@bufbuild/protoplugin": "npm:1.10.0"
+    "@bufbuild/protobuf": "npm:^1.10.1"
+    "@bufbuild/protoplugin": "npm:1.10.1"
   peerDependencies:
-    "@bufbuild/protobuf": 1.10.0
+    "@bufbuild/protobuf": 1.10.1
   peerDependenciesMeta:
     "@bufbuild/protobuf":
       optional: true
   bin:
     protoc-gen-es: bin/protoc-gen-es
-  checksum: 10c0/d5f53df70a6fc4d13b47ff56244318313de1a24a61aa5a7dd82efc4b5baa031c6bf1aface6a3f5b28a935ab5802de28fbe5c8bbc4d16d7d245fb4918cfe263df
+  checksum: 10c0/aa06192c9cc85ea8abe7397da31b35fb057c2e6646374d18f91b8be27ce802647e221bfbd49d6a404e0a918dfad11a8654952fc4eab3115e7fb56788912a7c4c
   languageName: node
   linkType: hard
 
-"@bufbuild/protoplugin@npm:1.10.0":
-  version: 1.10.0
-  resolution: "@bufbuild/protoplugin@npm:1.10.0"
-  dependencies:
-    "@bufbuild/protobuf": "npm:1.10.0"
-    "@typescript/vfs": "npm:^1.4.0"
-    typescript: "npm:4.5.2"
-  checksum: 10c0/8080e75d3c2b122f763ea4b1f039c40d7ea9a5e9054c3b3c55cabe4d2949eb18b6ebb45fcc23d2463a3ea22dfaeda8c91e82cac700a957ca75cf002f231f3d43
-  languageName: node
-  linkType: hard
-
-"@bufbuild/protoplugin@npm:^1.10.0":
+"@bufbuild/protoplugin@npm:1.10.1, @bufbuild/protoplugin@npm:^1.10.0":
   version: 1.10.1
   resolution: "@bufbuild/protoplugin@npm:1.10.1"
   dependencies:
@@ -9680,7 +9662,7 @@ __metadata:
   resolution: "web@workspace:."
   dependencies:
     "@bufbuild/protobuf": "npm:1.10.1"
-    "@bufbuild/protoc-gen-es": "npm:1.10.0"
+    "@bufbuild/protoc-gen-es": "npm:1.10.1"
     "@connectrpc/connect": "npm:1.4.0"
     "@connectrpc/connect-web": "npm:1.4.0"
     "@connectrpc/protoc-gen-connect-es": "npm:1.7.0"
