@@ -48,7 +48,7 @@ yarn generate           # regenerates web/lib/gen/ TypeScript clients
 
 Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed; CI regenerates them automatically via `build.yml`.
 
-**Do not read `api/gen/` or `web/lib/gen/` to discover field names, message types, or RPC signatures.** Read the corresponding `.proto` file in `proto/` instead — it is much smaller and is the source of truth. Use `ast-grep` on `.proto` files for navigation.
+**Do not read `api/gen/`, `api/internal/mocks/`, `api/apps/*/internal/mocks/`, or `web/lib/gen/`** to discover field names, message types, RPC signatures, or mock method signatures. Read the corresponding `.proto` file in `proto/` or the interface definition in the source package instead — it is much smaller and is the source of truth. Use `ast-grep` on `.proto` files for navigation.
 
 ## CI
 
