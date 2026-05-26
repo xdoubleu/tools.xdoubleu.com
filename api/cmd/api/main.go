@@ -34,12 +34,12 @@ var globalMigrations embed.FS
 var Release = "dev"
 
 type Application struct {
-	ctx           context.Context
-	logger        *slog.Logger
-	config        config.Config
-	services      *services.Services
-	contacts      contacts.Service
-	apps          *Apps
+	ctx          context.Context
+	logger       *slog.Logger
+	config       config.Config
+	services     *services.Services
+	contacts     contacts.Service
+	apps         *Apps
 	backlog      *backlog.Backlog
 	appUsersRepo *repositories.AppUsersRepository
 }
@@ -138,7 +138,7 @@ func NewApplication(
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
-		ctx:           ctx,
+		ctx:          ctx,
 		logger:       logger,
 		config:       config,
 		services:     svc,
