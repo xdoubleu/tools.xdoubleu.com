@@ -21,11 +21,6 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-const (
-	daysPerWeek = 7
-	hoursPerDay = 24
-)
-
 type recipesConnectHandler struct {
 	app *Recipes
 }
@@ -387,7 +382,6 @@ func (h *recipesConnectHandler) ShareRecipe(
 	return connect.NewResponse(&recipesv1.ShareRecipeResponse{}), nil
 }
 
-//nolint:dupl // structurally identical to UnsharePlan; different types
 func (h *recipesConnectHandler) UnshareRecipe(
 	ctx context.Context,
 	req *connect.Request[recipesv1.UnshareRecipeRequest],

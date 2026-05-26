@@ -8,10 +8,8 @@ import (
 )
 
 type Services struct {
-	Auth     auth.Service
-	Recipes  *RecipeService
-	Plans    *PlanService
-	Shopping *ShoppingService
+	Auth    auth.Service
+	Recipes *RecipeService
 }
 
 func New(
@@ -20,9 +18,7 @@ func New(
 	authService auth.Service,
 ) *Services {
 	return &Services{
-		Auth:     authService,
-		Recipes:  &RecipeService{repo: repos.Recipes},
-		Plans:    &PlanService{repo: repos.Plans},
-		Shopping: &ShoppingService{repo: repos.Shopping},
+		Auth:    authService,
+		Recipes: &RecipeService{repo: repos.Recipes},
 	}
 }

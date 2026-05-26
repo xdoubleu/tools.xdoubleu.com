@@ -148,7 +148,7 @@ func NewApplication(
 	}
 
 	app.apps = NewApps(
-		app.ctx, app.services.Auth, logger, config, db, bl, contactsSvc,
+		app.ctx, app.services.Auth, logger, config, db, bl,
 	)
 
 	err = app.ApplyMigrations(db)

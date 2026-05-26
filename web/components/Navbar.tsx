@@ -22,22 +22,9 @@ export default function Navbar() {
         <Link href="/" className="text-sm font-semibold text-fg hover:text-blue-600">
           tools.xdoubleu.com
         </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/settings" className="text-sm text-muted hover:text-blue-600">
-            Settings
-          </Link>
-          <Link href="/contacts" className="text-sm text-muted hover:text-blue-600">
-            Contacts
-          </Link>
-          {data.role === 'admin' && (
-            <Link href="/admin" className="text-sm text-muted hover:text-blue-600">
-              Admin
-            </Link>
-          )}
-          <button onClick={handleSignOut} className="text-sm text-muted hover:text-blue-600">
-            Sign out
-          </button>
-        </div>
+        <button onClick={handleSignOut} className="text-sm text-muted hover:text-blue-600">
+          Sign out
+        </button>
       </nav>
     </header>
   )

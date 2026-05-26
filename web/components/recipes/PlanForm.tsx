@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useCreatePlan, useUpdatePlan } from '@/hooks/useRecipes'
-import { CreatePlanRequest, UpdatePlanRequest } from '@/lib/gen/recipes/v1/mealplans_pb'
-import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
+import { useCreatePlan, useUpdatePlan } from '@/hooks/useMealPlans'
+import { CreatePlanRequest, UpdatePlanRequest } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
 interface PlanFormProps {
   plan?: Plan

@@ -22,9 +22,27 @@ const APPS: AppLink[] = [
     href: '/icsproxy',
     description: 'Calendar feed filtering'
   },
-  { name: 'recipes', label: 'Recipes', href: '/recipes/plans', description: 'Recipe management' },
-  { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' }
+  { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
+  {
+    name: 'mealplans',
+    label: 'Meal Plans',
+    href: '/mealplans',
+    description: 'Weekly meal planning'
+  },
+  {
+    name: 'shoppinglist',
+    label: 'Shopping List',
+    href: '/shoppinglist',
+    description: 'Generate shopping lists from meal plans'
+  },
+  { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' },
+  { name: 'settings', label: 'Settings', href: '/settings', description: 'User preferences' },
+  { name: 'contacts', label: 'Contacts', href: '/contacts', description: 'Manage contacts' },
+  { name: 'admin', label: 'Admin', href: '/admin', description: 'Administration' }
 ]
+
+const ALWAYS_VISIBLE = new Set(['settings', 'contacts'])
+const ADMIN_ONLY = new Set(['admin'])
 
 export default function HomeClient() {
   const { data, error, isLoading } = useCurrentUser()
@@ -107,8 +125,12 @@ export default function HomeClient() {
   }
 
   if (authState === 'authenticated' && data) {
-    const visibleApps =
-      data.role === 'admin' ? APPS : APPS.filter((app) => (data.appAccess ?? []).includes(app.name))
+    const appAccess = new Set(data.appAccess ?? [])
+    const visibleApps = APPS.filter((app) => {
+      if (ALWAYS_VISIBLE.has(app.name)) return true
+      if (ADMIN_ONLY.has(app.name)) return data.role === 'admin'
+      return data.role === 'admin' || appAccess.has(app.name)
+    })
 
     return <AppGrid apps={visibleApps} />
   }

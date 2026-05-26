@@ -32,7 +32,7 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
-  it('renders all 5 app links when authenticated', async () => {
+  it('renders all app links when authenticated as admin', async () => {
     mockUseSettings.mockReturnValue({
       data: { role: 'admin', appAccess: [], integrations: {} },
       isLoading: false,
@@ -46,14 +46,27 @@ describe('HomeClient', () => {
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
+      expect(screen.getByText('Meal Plans')).toBeInTheDocument()
+      expect(screen.getByText('Shopping List')).toBeInTheDocument()
       expect(screen.getByText('Todos')).toBeInTheDocument()
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      expect(screen.getByText('Contacts')).toBeInTheDocument()
+      expect(screen.getByText('Admin')).toBeInTheDocument()
     })
 
     expect(screen.getByRole('link', { name: /Backlog/ })).toHaveAttribute('href', '/backlog')
     expect(screen.getByRole('link', { name: /Watch Party/ })).toHaveAttribute('href', '/watchparty')
     expect(screen.getByRole('link', { name: /ICS Proxy/ })).toHaveAttribute('href', '/icsproxy')
-    expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/plans')
+    expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/list')
+    expect(screen.getByRole('link', { name: /Meal Plans/ })).toHaveAttribute('href', '/mealplans')
+    expect(screen.getByRole('link', { name: /Shopping List/ })).toHaveAttribute(
+      'href',
+      '/shoppinglist'
+    )
     expect(screen.getByRole('link', { name: /Todos/ })).toHaveAttribute('href', '/todos')
+    expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('link', { name: /Contacts/ })).toHaveAttribute('href', '/contacts')
+    expect(screen.getByRole('link', { name: /Admin/ })).toHaveAttribute('href', '/admin')
 
     expect(screen.queryByRole('textbox', { name: /Email/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /Password/ })).not.toBeInTheDocument()
@@ -232,10 +245,12 @@ describe('HomeClient', () => {
       expect(screen.getByText('Calendar feed filtering')).toBeInTheDocument()
       expect(screen.getByText('Recipe management')).toBeInTheDocument()
       expect(screen.getByText('Task management')).toBeInTheDocument()
+      expect(screen.getByText('User preferences')).toBeInTheDocument()
+      expect(screen.getByText('Manage contacts')).toBeInTheDocument()
     })
   })
 
-  it('renders only granted apps for non-admin user', async () => {
+  it('renders only granted apps plus always-visible apps for non-admin user', async () => {
     mockUseSettings.mockReturnValue({
       data: { role: 'user', appAccess: ['backlog', 'todos'], integrations: {} },
       isLoading: false,
@@ -247,14 +262,17 @@ describe('HomeClient', () => {
     await waitFor(() => {
       expect(screen.getByText('Backlog')).toBeInTheDocument()
       expect(screen.getByText('Todos')).toBeInTheDocument()
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      expect(screen.getByText('Contacts')).toBeInTheDocument()
     })
 
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
     expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 
-  it('renders all apps for admin user', async () => {
+  it('renders all apps for admin user including admin-only and always-visible', async () => {
     mockUseSettings.mockReturnValue({
       data: { role: 'admin', appAccess: [], integrations: {} },
       isLoading: false,
@@ -268,11 +286,16 @@ describe('HomeClient', () => {
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
+      expect(screen.getByText('Meal Plans')).toBeInTheDocument()
+      expect(screen.getByText('Shopping List')).toBeInTheDocument()
       expect(screen.getByText('Todos')).toBeInTheDocument()
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      expect(screen.getByText('Contacts')).toBeInTheDocument()
+      expect(screen.getByText('Admin')).toBeInTheDocument()
     })
   })
 
-  it('renders no apps when appAccess is empty for non-admin', async () => {
+  it('shows only always-visible apps when appAccess is empty for non-admin', async () => {
     mockUseSettings.mockReturnValue({
       data: { role: 'user', appAccess: [], integrations: {} },
       isLoading: false,
@@ -282,12 +305,16 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
-      expect(screen.queryByText('Backlog')).not.toBeInTheDocument()
-      expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
-      expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
-      expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
-      expect(screen.queryByText('Todos')).not.toBeInTheDocument()
+      expect(screen.getByText('Settings')).toBeInTheDocument()
+      expect(screen.getByText('Contacts')).toBeInTheDocument()
     })
+
+    expect(screen.queryByText('Backlog')).not.toBeInTheDocument()
+    expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
+    expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
+    expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Todos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 
   it('shows MFA challenge UI when needsMfa is true', async () => {

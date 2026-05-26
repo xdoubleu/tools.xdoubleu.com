@@ -1,15 +1,21 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-jest.mock('@/hooks/useRecipes', () => ({
+jest.mock('@/hooks/useMealPlans', () => ({
   useMealPlan: jest.fn(),
-  useRecipes: jest.fn(),
-  useShoppingList: jest.fn(),
   useAddMeal: jest.fn(),
   useDeleteMeal: jest.fn(),
   useSharePlan: jest.fn(),
   useUnsharePlan: jest.fn(),
   useDeletePlan: jest.fn()
+}))
+
+jest.mock('@/hooks/useRecipes', () => ({
+  useRecipes: jest.fn()
+}))
+
+jest.mock('@/hooks/useShoppingList', () => ({
+  useShoppingList: jest.fn()
 }))
 
 jest.mock('next/navigation', () => ({
@@ -34,7 +40,7 @@ jest.mock('@/components/recipes/ShoppingList', () => {
   }
 })
 
-jest.mock('@/lib/gen/recipes/v1/mealplans_pb', () => ({
+jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
   AddMealRequest: jest.fn().mockImplementation((d) => d),
   DeleteMealRequest: jest.fn().mockImplementation((d) => d),
   SharePlanRequest: jest.fn().mockImplementation((d) => d),
@@ -44,10 +50,12 @@ jest.mock('@/lib/gen/recipes/v1/mealplans_pb', () => ({
 
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
 
-import MealPlanClient from '@/app/recipes/plans/[id]/MealPlanClient'
-import { useMealPlan, useRecipes, useShoppingList } from '@/hooks/useRecipes'
+import MealPlanClient from '@/app/mealplans/[id]/MealPlanClient'
+import { useMealPlan } from '@/hooks/useMealPlans'
+import { useRecipes } from '@/hooks/useRecipes'
+import { useShoppingList } from '@/hooks/useShoppingList'
 import { useRouter } from 'next/navigation'
-import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
+import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockRouter = { push: jest.fn() }
@@ -113,13 +121,11 @@ describe('MealPlanClient', () => {
     render(<MealPlanClient id="plan-1" />)
     const toggleButton = screen.getByRole('button', { name: /Shopping List/i })
 
-    // First click to show
     fireEvent.click(toggleButton)
     await waitFor(() => {
       expect(screen.getByTestId('shopping-list')).toBeInTheDocument()
     })
 
-    // Second click to hide
     fireEvent.click(toggleButton)
     await waitFor(() => {
       expect(screen.queryByTestId('shopping-list')).not.toBeInTheDocument()
