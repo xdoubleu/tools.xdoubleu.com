@@ -58,9 +58,9 @@ describe('useBacklogSteamGame', () => {
 })
 
 describe('useBacklogDistribution', () => {
-  it('uses /backlog/steam/distribution as key', () => {
-    renderHook(() => useBacklogDistribution())
-    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/steam/distribution', expect.any(Function))
+  it('uses /backlog/steam/distribution/${bucket} as key', () => {
+    renderHook(() => useBacklogDistribution(10))
+    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/steam/distribution/10', expect.any(Function))
   })
 })
 

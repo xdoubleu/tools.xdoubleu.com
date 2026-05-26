@@ -1,7 +1,6 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import SteamDistributionChart from '@/components/backlog/SteamDistributionChart'
-import type { GetSteamDistributionResponse } from '@/lib/gen/backlog/v1/games_pb'
 
 jest.mock('recharts', () => ({
   BarChart: ({ children }: { children: React.ReactNode }) => (
@@ -12,58 +11,28 @@ jest.mock('recharts', () => ({
   YAxis: () => null,
   CartesianGrid: () => null,
   Tooltip: () => null,
+  Cell: () => null,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
   )
 }))
 
 describe('SteamDistributionChart', () => {
-  it('renders empty state when no data', () => {
-    render(<SteamDistributionChart data={undefined} />)
+  it('renders empty state when distribution is empty', () => {
+    render(<SteamDistributionChart distribution={[]} />)
     expect(screen.getByText('No distribution data available.')).toBeInTheDocument()
   })
 
-  it('renders empty state when data has no games', () => {
-    const data: GetSteamDistributionResponse = {
-      data: { label: '', games: [] }
-    } as unknown as GetSteamDistributionResponse
-    render(<SteamDistributionChart data={data} />)
-    expect(screen.getByText('No distribution data available.')).toBeInTheDocument()
+  it('renders chart when distribution has data', () => {
+    const distribution = [5, 10, 8, 3, 2, 1, 4, 6, 7, 9, 11]
+    render(<SteamDistributionChart distribution={distribution} />)
+    expect(screen.getByTestId('bar-chart')).toBeInTheDocument()
   })
 
-  it('renders chart when data is available', () => {
-    const data: GetSteamDistributionResponse = {
-      data: {
-        label: 'test',
-        games: [
-          {
-            id: 1,
-            name: 'Game 1',
-            isDelisted: false,
-            completionRate: '25%',
-            contribution: '',
-            playtime: 0
-          },
-          {
-            id: 2,
-            name: 'Game 2',
-            isDelisted: false,
-            completionRate: '50%',
-            contribution: '',
-            playtime: 0
-          },
-          {
-            id: 3,
-            name: 'Game 3',
-            isDelisted: false,
-            completionRate: '75%',
-            contribution: '',
-            playtime: 0
-          }
-        ]
-      }
-    } as unknown as GetSteamDistributionResponse
-    render(<SteamDistributionChart data={data} />)
+  it('calls onBucketClick with correct bucket index when bar clicked', () => {
+    const distribution = [5, 10, 8]
+    const onBucketClick = jest.fn()
+    render(<SteamDistributionChart distribution={distribution} onBucketClick={onBucketClick} />)
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument()
   })
 })
