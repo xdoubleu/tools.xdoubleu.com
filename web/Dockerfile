@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 ARG RELEASE=dev
 
@@ -22,7 +22,7 @@ COPY web/next.config.ts web/tsconfig.json web/postcss.config.js \
 ENV RELEASE=${RELEASE}
 RUN yarn build
 
-FROM node:22-alpine AS server
+FROM node:24-alpine AS server
 
 ARG RELEASE=dev
 ENV RELEASE=${RELEASE}
