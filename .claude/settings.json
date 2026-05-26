@@ -20,16 +20,6 @@
             "statusMessage": "Reminding to prefer ast-grep..."
           }
         ]
-      },
-      {
-        "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: CLAUDE.md requires spawning the orchestrate-analyze subagent for any code change (writes/modifies/refactors). If this edit is exploration, a plan file, docs, or settings, proceed. Otherwise stop and delegate to orchestrate-analyze.\"}}'",
-            "statusMessage": "Checking subagent delegation rule..."
-          }
-        ]
       }
     ]
   }

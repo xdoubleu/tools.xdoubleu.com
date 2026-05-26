@@ -170,31 +170,15 @@ export default function MealPlanClient({ id }: { id: string }) {
             </div>
           </div>
 
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setOffset(data?.prevOffset ?? offset - 1)}
-              className="px-3 py-1 border border-border rounded text-sm hover:bg-surface"
-            >
-              &larr; Prev week
-            </button>
-            {data?.windowStart && data?.windowEnd && (
-              <span className="px-3 py-1 text-sm text-muted">
-                {data.windowStart} – {data.windowEnd}
-              </span>
-            )}
-            <button
-              onClick={() => setOffset(data?.nextOffset ?? offset + 1)}
-              className="px-3 py-1 border border-border rounded text-sm hover:bg-surface"
-            >
-              Next week &rarr;
-            </button>
-          </div>
-
           <MealPlanCalendar
             plan={plan}
             recipes={recipes}
+            weekOffset={offset}
+            onPrevWeek={() => setOffset(data?.prevOffset ?? offset - 1)}
+            onNextWeek={() => setOffset(data?.nextOffset ?? offset + 1)}
             onAddMeal={handleAddMeal}
             onDeleteMeal={handleDeleteMeal}
+            onMoveMeal={() => mutate()}
           />
 
           {data?.icalUrl && (

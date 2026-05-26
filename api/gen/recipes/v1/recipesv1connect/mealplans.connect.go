@@ -54,6 +54,9 @@ const (
 	// MealPlansServiceDeleteMealProcedure is the fully-qualified name of the MealPlansService's
 	// DeleteMeal RPC.
 	MealPlansServiceDeleteMealProcedure = "/recipes.v1.MealPlansService/DeleteMeal"
+	// MealPlansServiceMoveMealProcedure is the fully-qualified name of the MealPlansService's MoveMeal
+	// RPC.
+	MealPlansServiceMoveMealProcedure = "/recipes.v1.MealPlansService/MoveMeal"
 	// MealPlansServiceSharePlanProcedure is the fully-qualified name of the MealPlansService's
 	// SharePlan RPC.
 	MealPlansServiceSharePlanProcedure = "/recipes.v1.MealPlansService/SharePlan"
@@ -74,6 +77,7 @@ type MealPlansServiceClient interface {
 	DeletePlan(context.Context, *connect.Request[v1.DeletePlanRequest]) (*connect.Response[v1.DeletePlanResponse], error)
 	AddMeal(context.Context, *connect.Request[v1.AddMealRequest]) (*connect.Response[v1.AddMealResponse], error)
 	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
+	MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error)
 	SharePlan(context.Context, *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error)
 	UnsharePlan(context.Context, *connect.Request[v1.UnsharePlanRequest]) (*connect.Response[v1.UnsharePlanResponse], error)
 	GetShoppingList(context.Context, *connect.Request[v1.GetShoppingListRequest]) (*connect.Response[v1.GetShoppingListResponse], error)
@@ -132,6 +136,12 @@ func NewMealPlansServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(mealPlansServiceMethods.ByName("DeleteMeal")),
 			connect.WithClientOptions(opts...),
 		),
+		moveMeal: connect.NewClient[v1.MoveMealRequest, v1.MoveMealResponse](
+			httpClient,
+			baseURL+MealPlansServiceMoveMealProcedure,
+			connect.WithSchema(mealPlansServiceMethods.ByName("MoveMeal")),
+			connect.WithClientOptions(opts...),
+		),
 		sharePlan: connect.NewClient[v1.SharePlanRequest, v1.SharePlanResponse](
 			httpClient,
 			baseURL+MealPlansServiceSharePlanProcedure,
@@ -162,6 +172,7 @@ type mealPlansServiceClient struct {
 	deletePlan      *connect.Client[v1.DeletePlanRequest, v1.DeletePlanResponse]
 	addMeal         *connect.Client[v1.AddMealRequest, v1.AddMealResponse]
 	deleteMeal      *connect.Client[v1.DeleteMealRequest, v1.DeleteMealResponse]
+	moveMeal        *connect.Client[v1.MoveMealRequest, v1.MoveMealResponse]
 	sharePlan       *connect.Client[v1.SharePlanRequest, v1.SharePlanResponse]
 	unsharePlan     *connect.Client[v1.UnsharePlanRequest, v1.UnsharePlanResponse]
 	getShoppingList *connect.Client[v1.GetShoppingListRequest, v1.GetShoppingListResponse]
@@ -202,6 +213,11 @@ func (c *mealPlansServiceClient) DeleteMeal(ctx context.Context, req *connect.Re
 	return c.deleteMeal.CallUnary(ctx, req)
 }
 
+// MoveMeal calls recipes.v1.MealPlansService.MoveMeal.
+func (c *mealPlansServiceClient) MoveMeal(ctx context.Context, req *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error) {
+	return c.moveMeal.CallUnary(ctx, req)
+}
+
 // SharePlan calls recipes.v1.MealPlansService.SharePlan.
 func (c *mealPlansServiceClient) SharePlan(ctx context.Context, req *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error) {
 	return c.sharePlan.CallUnary(ctx, req)
@@ -226,6 +242,7 @@ type MealPlansServiceHandler interface {
 	DeletePlan(context.Context, *connect.Request[v1.DeletePlanRequest]) (*connect.Response[v1.DeletePlanResponse], error)
 	AddMeal(context.Context, *connect.Request[v1.AddMealRequest]) (*connect.Response[v1.AddMealResponse], error)
 	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
+	MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error)
 	SharePlan(context.Context, *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error)
 	UnsharePlan(context.Context, *connect.Request[v1.UnsharePlanRequest]) (*connect.Response[v1.UnsharePlanResponse], error)
 	GetShoppingList(context.Context, *connect.Request[v1.GetShoppingListRequest]) (*connect.Response[v1.GetShoppingListResponse], error)
@@ -280,6 +297,12 @@ func NewMealPlansServiceHandler(svc MealPlansServiceHandler, opts ...connect.Han
 		connect.WithSchema(mealPlansServiceMethods.ByName("DeleteMeal")),
 		connect.WithHandlerOptions(opts...),
 	)
+	mealPlansServiceMoveMealHandler := connect.NewUnaryHandler(
+		MealPlansServiceMoveMealProcedure,
+		svc.MoveMeal,
+		connect.WithSchema(mealPlansServiceMethods.ByName("MoveMeal")),
+		connect.WithHandlerOptions(opts...),
+	)
 	mealPlansServiceSharePlanHandler := connect.NewUnaryHandler(
 		MealPlansServiceSharePlanProcedure,
 		svc.SharePlan,
@@ -314,6 +337,8 @@ func NewMealPlansServiceHandler(svc MealPlansServiceHandler, opts ...connect.Han
 			mealPlansServiceAddMealHandler.ServeHTTP(w, r)
 		case MealPlansServiceDeleteMealProcedure:
 			mealPlansServiceDeleteMealHandler.ServeHTTP(w, r)
+		case MealPlansServiceMoveMealProcedure:
+			mealPlansServiceMoveMealHandler.ServeHTTP(w, r)
 		case MealPlansServiceSharePlanProcedure:
 			mealPlansServiceSharePlanHandler.ServeHTTP(w, r)
 		case MealPlansServiceUnsharePlanProcedure:
@@ -355,6 +380,10 @@ func (UnimplementedMealPlansServiceHandler) AddMeal(context.Context, *connect.Re
 
 func (UnimplementedMealPlansServiceHandler) DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.MealPlansService.DeleteMeal is not implemented"))
+}
+
+func (UnimplementedMealPlansServiceHandler) MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.MealPlansService.MoveMeal is not implemented"))
 }
 
 func (UnimplementedMealPlansServiceHandler) SharePlan(context.Context, *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error) {

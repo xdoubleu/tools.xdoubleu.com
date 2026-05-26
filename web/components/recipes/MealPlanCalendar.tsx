@@ -1,16 +1,23 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
-import { useAddMeal, useDeleteMeal } from '@/hooks/useRecipes'
-import { AddMealRequest, DeleteMealRequest } from '@/lib/gen/recipes/v1/mealplans_pb'
-import type { Plan } from '@/lib/gen/recipes/v1/mealplans_pb'
+import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useRecipes'
+import {
+  AddMealRequest,
+  DeleteMealRequest,
+  MoveMealRequest
+} from '@/lib/gen/recipes/v1/mealplans_pb'
+import type { Plan, PlanMeal } from '@/lib/gen/recipes/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import RecipeCombobox from './RecipeCombobox'
 
 interface MealPlanCalendarProps {
   plan: Plan
   recipes: Recipe[]
+  weekOffset: number
+  onPrevWeek: () => void
+  onNextWeek: () => void
   onAddMeal: (
     date: string,
     slot: string,
@@ -19,29 +26,43 @@ interface MealPlanCalendarProps {
     servings: number
   ) => void
   onDeleteMeal: (mealId: string) => void
+  onMoveMeal?: () => void
 }
 
 export default function MealPlanCalendar({
   plan,
   recipes,
+  weekOffset,
+  onPrevWeek,
+  onNextWeek,
   onAddMeal,
-  onDeleteMeal
+  onDeleteMeal,
+  onMoveMeal
 }: MealPlanCalendarProps) {
-  const [weekOffset, setWeekOffset] = useState(0)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedRecipeId, setSelectedRecipeId] = useState('')
   const [selectedCustomName, setSelectedCustomName] = useState('')
   const [selectedServings, setSelectedServings] = useState(1)
+  const [movingMeal, setMovingMeal] = useState<PlanMeal | null>(null)
 
   const addMeal = useAddMeal()
   const deleteMeal = useDeleteMeal()
+  const moveMeal = useMoveMeal()
 
   const weekDates = getWeekDates(weekOffset)
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   const getMealsForSlot = (date: string, slot: string) =>
     (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && movingMeal) setMovingMeal(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [movingMeal])
 
   const handleComboboxSelect = (recipeId: string, customName: string) => {
     setSelectedRecipeId(recipeId)
@@ -84,6 +105,50 @@ export default function MealPlanCalendar({
     }
   }
 
+  const handleMealClick = (meal: PlanMeal) => {
+    if (!movingMeal) {
+      setMovingMeal(meal)
+      setSelectedSlot(null)
+      setSelectedDate(null)
+      return
+    }
+    if (movingMeal.id === meal.id) {
+      setMovingMeal(null)
+      return
+    }
+    // Move to this meal's cell (swap)
+    handlePlaceMove(meal.mealDate, meal.mealSlot)
+  }
+
+  const handleCellClick = (date: string, slot: string, hasMeals: boolean) => {
+    if (movingMeal) {
+      handlePlaceMove(date, slot)
+      return
+    }
+    if (!hasMeals) {
+      setSelectedSlot(slot)
+      setSelectedDate(date)
+    }
+  }
+
+  const handlePlaceMove = async (newDate: string, newSlot: string) => {
+    if (!movingMeal) return
+    try {
+      await moveMeal(
+        new MoveMealRequest({
+          planId: plan.id,
+          mealId: movingMeal.id,
+          newDate,
+          newSlot
+        })
+      )
+      setMovingMeal(null)
+      onMoveMeal?.()
+    } catch (err) {
+      console.error('Failed to move meal:', err)
+    }
+  }
+
   const cancelAdd = () => {
     setSelectedSlot(null)
     setSelectedDate(null)
@@ -91,27 +156,38 @@ export default function MealPlanCalendar({
     setSelectedCustomName('')
   }
 
+  const movingMealName =
+    movingMeal?.customName || recipes.find((r) => r.id === movingMeal?.recipeId)?.name || '?'
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => setWeekOffset(weekOffset - 1)}
-          className="px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
-        >
+        <button onClick={onPrevWeek} className="px-4 py-2 bg-subtle text-bg rounded hover:bg-fg">
           Previous Week
         </button>
         <span className="font-semibold">
           {weekDates[0].toLocaleDateString()} - {weekDates[6].toLocaleDateString()}
         </span>
-        <button
-          onClick={() => setWeekOffset(weekOffset + 1)}
-          className="px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
-        >
+        <button onClick={onNextWeek} className="px-4 py-2 bg-subtle text-bg rounded hover:bg-fg">
           Next Week
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      {movingMeal && (
+        <div className="flex items-center justify-between rounded border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          <span>
+            Moving <strong>{movingMealName}</strong> — click a cell to place it
+          </span>
+          <button
+            onClick={() => setMovingMeal(null)}
+            className="ml-4 text-blue-600 hover:text-blue-900"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      <div className={`overflow-x-auto${movingMeal ? ' cursor-crosshair' : ''}`}>
         <div
           className="grid gap-1 text-xs"
           style={{ gridTemplateColumns: 'minmax(4.5rem, auto) repeat(7, 1fr)' }}
@@ -142,15 +218,28 @@ export default function MealPlanCalendar({
                 const formattedDate = formatMealDate(date)
                 const mealsInSlot = getMealsForSlot(formattedDate, slot)
                 return (
-                  <div key={`${formattedDate}-${slot}`} className="border rounded p-1 min-h-[2rem]">
+                  <div
+                    key={`${formattedDate}-${slot}`}
+                    className={`border rounded p-1 min-h-[2rem]${movingMeal ? ' hover:border-blue-400 hover:bg-blue-50' : ''}`}
+                    onClick={() => handleCellClick(formattedDate, slot, mealsInSlot.length > 0)}
+                  >
                     {mealsInSlot.length > 0 ? (
                       <div className="space-y-1">
                         {mealsInSlot.map((meal) => {
                           const recipe = recipes.find((r) => r.id === meal.recipeId)
+                          const isMoving = movingMeal?.id === meal.id
                           return (
                             <div
                               key={meal.id}
-                              className="bg-blue-50 p-1 rounded flex items-center justify-between gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleMealClick(meal)
+                              }}
+                              className={`p-1 rounded flex items-center justify-between gap-1 cursor-pointer select-none${
+                                isMoving
+                                  ? ' bg-blue-200 ring-2 ring-blue-500'
+                                  : ' bg-blue-50 hover:bg-blue-100'
+                              }`}
                             >
                               <span className="truncate">
                                 {meal.customName || recipe?.name || '?'}
@@ -158,26 +247,34 @@ export default function MealPlanCalendar({
                               {meal.servings > 1 && (
                                 <span className="text-muted shrink-0">×{meal.servings}</span>
                               )}
-                              <button
-                                onClick={() => handleDeleteMeal(meal.id)}
-                                className="text-red-600 hover:text-red-800 font-bold shrink-0"
-                              >
-                                ×
-                              </button>
+                              {!movingMeal && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDeleteMeal(meal.id)
+                                  }}
+                                  className="text-red-600 hover:text-red-800 font-bold shrink-0"
+                                >
+                                  ×
+                                </button>
+                              )}
                             </div>
                           )
                         })}
                       </div>
                     ) : (
-                      <button
-                        onClick={() => {
-                          setSelectedSlot(slot)
-                          setSelectedDate(formattedDate)
-                        }}
-                        className="w-full h-full text-center bg-surface hover:bg-border p-1 rounded"
-                      >
-                        +
-                      </button>
+                      !movingMeal && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedSlot(slot)
+                            setSelectedDate(formattedDate)
+                          }}
+                          className="w-full h-full text-center bg-surface hover:bg-border p-1 rounded"
+                        >
+                          +
+                        </button>
+                      )
                     )}
                   </div>
                 )

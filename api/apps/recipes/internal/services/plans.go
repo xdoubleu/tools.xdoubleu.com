@@ -156,6 +156,27 @@ func (s *PlanService) DeleteMeal(
 	return s.repo.DeleteMeal(ctx, mealID, planID)
 }
 
+func (s *PlanService) MoveMeal(
+	ctx context.Context,
+	mealID uuid.UUID,
+	planID uuid.UUID,
+	userID string,
+	newDate time.Time,
+	newSlot string,
+) error {
+	plan, err := s.repo.GetByID(ctx, planID, userID)
+	if err != nil {
+		return err
+	}
+	if !plan.CanEdit {
+		return &app.HTTPError{
+			Status:  http.StatusForbidden,
+			Message: "You do not have edit access to this plan",
+		}
+	}
+	return s.repo.MoveMeal(ctx, mealID, planID, newDate, newSlot)
+}
+
 func (s *PlanService) Unshare(
 	ctx context.Context,
 	planID uuid.UUID,

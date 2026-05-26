@@ -9,7 +9,7 @@ import type { ShoppingItem } from '@/lib/gen/recipes/v1/mealplans_pb'
 
 function toExportItem(item: ShoppingItem): ShoppingItemExport {
   return {
-    amount: item.amount.toString(),
+    amount: item.amount,
     unit: item.unit,
     name: item.name
   }
