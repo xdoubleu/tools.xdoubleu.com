@@ -27,7 +27,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v6
         id: meta-api
         if: github.event_name == 'workflow_dispatch' || inputs.build_api
         with:
@@ -46,7 +46,7 @@ jobs:
           build-args: |
             RELEASE=${{ github.sha }}
 
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v6
         id: meta-web
         if: github.event_name == 'workflow_dispatch' || inputs.build_web
         with:
