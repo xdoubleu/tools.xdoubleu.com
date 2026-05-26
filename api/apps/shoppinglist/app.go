@@ -2,6 +2,7 @@ package shoppinglist
 
 import (
 	"context"
+	"embed"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,6 +14,9 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 )
+
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
 
 type ShoppingList struct {
 	app.Base
@@ -39,8 +43,8 @@ func New(
 	return a
 }
 
-func (a *ShoppingList) ApplyMigrations(_ context.Context, _ *pgxpool.Pool) error {
-	return nil // no own schema; queries mealplans and recipes schemas
+func (a *ShoppingList) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())
 }
 
 func (a *ShoppingList) Start() error {

@@ -20,6 +20,7 @@ func New(db postgres.DB) *ShoppingRepository {
 }
 
 type ShoppingItem struct {
+	ID     string
 	Name   string
 	Amount float64
 	Unit   string
@@ -61,17 +62,31 @@ func (r *ShoppingRepository) GetShoppingList(
 	start, end time.Time,
 ) ([]ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT
-		    LOWER(i.name) AS name,
-		    i.unit,
-		    SUM(i.amount * pm.servings::NUMERIC / r.base_servings::NUMERIC) AS total_amount
-		FROM mealplans.plan_meals pm
-		JOIN recipes.recipes r ON r.id = pm.recipe_id
-		JOIN recipes.ingredients i ON i.recipe_id = r.id
-		WHERE pm.plan_id = $1
-		  AND pm.meal_date BETWEEN $2 AND $3
-		GROUP BY LOWER(i.name), i.unit
-		ORDER BY LOWER(i.name)`,
+		SELECT id, name, unit, total_amount FROM (
+			SELECT
+			    '' AS id,
+			    LOWER(i.name) AS name,
+			    i.unit,
+			    SUM(i.amount * pm.servings::NUMERIC / r.base_servings::NUMERIC)
+			        AS total_amount
+			FROM mealplans.plan_meals pm
+			JOIN recipes.recipes r ON r.id = pm.recipe_id
+			JOIN recipes.ingredients i ON i.recipe_id = r.id
+			WHERE pm.plan_id = $1
+			  AND pm.meal_date BETWEEN $2 AND $3
+			GROUP BY LOWER(i.name), i.unit
+
+			UNION ALL
+
+			SELECT
+			    ci.id::text,
+			    ci.name,
+			    ci.unit,
+			    ci.amount::float8
+			FROM shoppinglist.custom_items ci
+			WHERE ci.plan_id = $1
+		) AS combined
+		ORDER BY name`,
 		planID, start, end,
 	)
 	if err != nil {
@@ -82,10 +97,50 @@ func (r *ShoppingRepository) GetShoppingList(
 	var result []ShoppingItem
 	for rows.Next() {
 		var item ShoppingItem
-		if err = rows.Scan(&item.Name, &item.Unit, &item.Amount); err != nil {
+		if err = rows.Scan(&item.ID, &item.Name, &item.Unit, &item.Amount); err != nil {
 			return nil, err
 		}
 		result = append(result, item)
 	}
 	return result, rows.Err()
+}
+
+func (r *ShoppingRepository) AddCustomItem(
+	ctx context.Context,
+	planID uuid.UUID,
+	name, unit string,
+	amount float64,
+) (ShoppingItem, error) {
+	var item ShoppingItem
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO shoppinglist.custom_items (plan_id, name, amount, unit)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id::text, name, unit, amount::float8`,
+		planID, name, amount, unit,
+	).Scan(&item.ID, &item.Name, &item.Unit, &item.Amount)
+	if err != nil {
+		return ShoppingItem{}, err
+	}
+	return item, nil
+}
+
+func (r *ShoppingRepository) DeleteCustomItem(
+	ctx context.Context,
+	planID, itemID uuid.UUID,
+) error {
+	result, err := r.db.Exec(ctx, `
+		DELETE FROM shoppinglist.custom_items
+		WHERE id = $1 AND plan_id = $2`,
+		itemID, planID,
+	)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return &iapp.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Item not found",
+		}
+	}
+	return nil
 }

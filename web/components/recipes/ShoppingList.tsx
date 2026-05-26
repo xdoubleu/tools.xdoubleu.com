@@ -6,9 +6,10 @@ import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 
 interface ShoppingListProps {
   items: ShoppingItem[]
+  onDelete?: (itemId: string) => Promise<void>
 }
 
-export default function ShoppingList({ items }: ShoppingListProps) {
+export default function ShoppingList({ items, onDelete }: ShoppingListProps) {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set())
   const [copyFeedback, setCopyFeedback] = useState('')
 
@@ -95,9 +96,18 @@ export default function ShoppingList({ items }: ShoppingListProps) {
                 onChange={() => toggleItem(idx)}
                 className="w-4 h-4 rounded"
               />
-              <span className={isChecked ? 'line-through text-muted' : ''}>
+              <span className={`flex-1 ${isChecked ? 'line-through text-muted' : ''}`}>
                 {item.amount} {item.unit} - {item.name}
               </span>
+              {item.id && onDelete && (
+                <button
+                  onClick={() => onDelete(item.id!)}
+                  aria-label={`Remove ${item.name}`}
+                  className="text-muted hover:text-red-600 text-sm px-1"
+                >
+                  ×
+                </button>
+              )}
             </div>
           )
         })}

@@ -5,7 +5,9 @@ import type { GetShoppingListResponse } from '@/lib/gen/shoppinglist/v1/shopping
 
 export function useShoppingList(planId: string) {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<GetShoppingListResponse, Error>(planId ? `/shoppinglist/${planId}` : null, () =>
-    client.getShoppingList({ planId })
+  const swr = useSWR<GetShoppingListResponse, Error>(
+    planId ? `/shoppinglist/${planId}` : null,
+    () => client.getShoppingList({ planId })
   )
+  return swr
 }
