@@ -1,7 +1,16 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { ICSProxyService } from '@/lib/gen/icsproxy/v1/proxy_connect'
-import type { ListConfigsResponse, PreviewEventsResponse } from '@/lib/gen/icsproxy/v1/proxy_pb'
+import {
+  DeleteConfigRequest,
+  SaveConfigRequest,
+  GetConfigRequest
+} from '@/lib/gen/icsproxy/v1/proxy_pb'
+import type {
+  ListConfigsResponse,
+  PreviewEventsResponse,
+  GetConfigResponse
+} from '@/lib/gen/icsproxy/v1/proxy_pb'
 
 export function useICSFeeds() {
   const client = createServiceClient(ICSProxyService)
@@ -14,4 +23,21 @@ export function useICSPreview(sourceUrl: string) {
     sourceUrl ? `/icsproxy/preview?url=${encodeURIComponent(sourceUrl)}` : null,
     () => client.previewEvents({ sourceUrl })
   )
+}
+
+export function useICSConfig(token: string) {
+  const client = createServiceClient(ICSProxyService)
+  return useSWR<GetConfigResponse, Error>(token ? `/icsproxy/${token}` : null, () =>
+    client.getConfig(new GetConfigRequest({ token }))
+  )
+}
+
+export function useSaveConfig() {
+  const client = createServiceClient(ICSProxyService)
+  return (req: SaveConfigRequest) => client.saveConfig(req)
+}
+
+export function useDeleteConfig() {
+  const client = createServiceClient(ICSProxyService)
+  return (token: string) => client.deleteConfig(new DeleteConfigRequest({ token }))
 }
