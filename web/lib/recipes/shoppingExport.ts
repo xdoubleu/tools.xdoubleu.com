@@ -2,6 +2,7 @@ export interface ShoppingItem {
   amount: string
   unit: string
   name: string
+  id?: string
 }
 
 export function formatForClipboard(items: ShoppingItem[]): string {

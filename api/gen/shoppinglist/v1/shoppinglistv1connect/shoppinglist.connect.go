@@ -36,11 +36,19 @@ const (
 	// ShoppingListServiceGetShoppingListProcedure is the fully-qualified name of the
 	// ShoppingListService's GetShoppingList RPC.
 	ShoppingListServiceGetShoppingListProcedure = "/shoppinglist.v1.ShoppingListService/GetShoppingList"
+	// ShoppingListServiceAddShoppingItemProcedure is the fully-qualified name of the
+	// ShoppingListService's AddShoppingItem RPC.
+	ShoppingListServiceAddShoppingItemProcedure = "/shoppinglist.v1.ShoppingListService/AddShoppingItem"
+	// ShoppingListServiceDeleteShoppingItemProcedure is the fully-qualified name of the
+	// ShoppingListService's DeleteShoppingItem RPC.
+	ShoppingListServiceDeleteShoppingItemProcedure = "/shoppinglist.v1.ShoppingListService/DeleteShoppingItem"
 )
 
 // ShoppingListServiceClient is a client for the shoppinglist.v1.ShoppingListService service.
 type ShoppingListServiceClient interface {
 	GetShoppingList(context.Context, *connect.Request[v1.GetShoppingListRequest]) (*connect.Response[v1.GetShoppingListResponse], error)
+	AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error)
+	DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error)
 }
 
 // NewShoppingListServiceClient constructs a client for the shoppinglist.v1.ShoppingListService
@@ -60,12 +68,26 @@ func NewShoppingListServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(shoppingListServiceMethods.ByName("GetShoppingList")),
 			connect.WithClientOptions(opts...),
 		),
+		addShoppingItem: connect.NewClient[v1.AddShoppingItemRequest, v1.AddShoppingItemResponse](
+			httpClient,
+			baseURL+ShoppingListServiceAddShoppingItemProcedure,
+			connect.WithSchema(shoppingListServiceMethods.ByName("AddShoppingItem")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteShoppingItem: connect.NewClient[v1.DeleteShoppingItemRequest, v1.DeleteShoppingItemResponse](
+			httpClient,
+			baseURL+ShoppingListServiceDeleteShoppingItemProcedure,
+			connect.WithSchema(shoppingListServiceMethods.ByName("DeleteShoppingItem")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // shoppingListServiceClient implements ShoppingListServiceClient.
 type shoppingListServiceClient struct {
-	getShoppingList *connect.Client[v1.GetShoppingListRequest, v1.GetShoppingListResponse]
+	getShoppingList    *connect.Client[v1.GetShoppingListRequest, v1.GetShoppingListResponse]
+	addShoppingItem    *connect.Client[v1.AddShoppingItemRequest, v1.AddShoppingItemResponse]
+	deleteShoppingItem *connect.Client[v1.DeleteShoppingItemRequest, v1.DeleteShoppingItemResponse]
 }
 
 // GetShoppingList calls shoppinglist.v1.ShoppingListService.GetShoppingList.
@@ -73,10 +95,22 @@ func (c *shoppingListServiceClient) GetShoppingList(ctx context.Context, req *co
 	return c.getShoppingList.CallUnary(ctx, req)
 }
 
+// AddShoppingItem calls shoppinglist.v1.ShoppingListService.AddShoppingItem.
+func (c *shoppingListServiceClient) AddShoppingItem(ctx context.Context, req *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error) {
+	return c.addShoppingItem.CallUnary(ctx, req)
+}
+
+// DeleteShoppingItem calls shoppinglist.v1.ShoppingListService.DeleteShoppingItem.
+func (c *shoppingListServiceClient) DeleteShoppingItem(ctx context.Context, req *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error) {
+	return c.deleteShoppingItem.CallUnary(ctx, req)
+}
+
 // ShoppingListServiceHandler is an implementation of the shoppinglist.v1.ShoppingListService
 // service.
 type ShoppingListServiceHandler interface {
 	GetShoppingList(context.Context, *connect.Request[v1.GetShoppingListRequest]) (*connect.Response[v1.GetShoppingListResponse], error)
+	AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error)
+	DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error)
 }
 
 // NewShoppingListServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -92,10 +126,26 @@ func NewShoppingListServiceHandler(svc ShoppingListServiceHandler, opts ...conne
 		connect.WithSchema(shoppingListServiceMethods.ByName("GetShoppingList")),
 		connect.WithHandlerOptions(opts...),
 	)
+	shoppingListServiceAddShoppingItemHandler := connect.NewUnaryHandler(
+		ShoppingListServiceAddShoppingItemProcedure,
+		svc.AddShoppingItem,
+		connect.WithSchema(shoppingListServiceMethods.ByName("AddShoppingItem")),
+		connect.WithHandlerOptions(opts...),
+	)
+	shoppingListServiceDeleteShoppingItemHandler := connect.NewUnaryHandler(
+		ShoppingListServiceDeleteShoppingItemProcedure,
+		svc.DeleteShoppingItem,
+		connect.WithSchema(shoppingListServiceMethods.ByName("DeleteShoppingItem")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/shoppinglist.v1.ShoppingListService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ShoppingListServiceGetShoppingListProcedure:
 			shoppingListServiceGetShoppingListHandler.ServeHTTP(w, r)
+		case ShoppingListServiceAddShoppingItemProcedure:
+			shoppingListServiceAddShoppingItemHandler.ServeHTTP(w, r)
+		case ShoppingListServiceDeleteShoppingItemProcedure:
+			shoppingListServiceDeleteShoppingItemHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -107,4 +157,12 @@ type UnimplementedShoppingListServiceHandler struct{}
 
 func (UnimplementedShoppingListServiceHandler) GetShoppingList(context.Context, *connect.Request[v1.GetShoppingListRequest]) (*connect.Response[v1.GetShoppingListResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.GetShoppingList is not implemented"))
+}
+
+func (UnimplementedShoppingListServiceHandler) AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.AddShoppingItem is not implemented"))
+}
+
+func (UnimplementedShoppingListServiceHandler) DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.DeleteShoppingItem is not implemented"))
 }

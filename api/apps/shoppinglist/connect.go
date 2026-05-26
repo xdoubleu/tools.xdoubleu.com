@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -89,6 +90,7 @@ func (h *shoppingConnectHandler) GetShoppingList(
 	pbItems := make([]*shoppinglistv1.ShoppingItem, len(items))
 	for i, item := range items {
 		pbItems[i] = &shoppinglistv1.ShoppingItem{
+			Id:     item.ID,
 			Name:   item.Name,
 			Amount: format.ToFractionCeiling(item.Amount),
 			Unit:   item.Unit,
@@ -98,4 +100,91 @@ func (h *shoppingConnectHandler) GetShoppingList(
 	return connect.NewResponse(&shoppinglistv1.GetShoppingListResponse{
 		Items: pbItems,
 	}), nil
+}
+
+func (h *shoppingConnectHandler) AddShoppingItem(
+	ctx context.Context,
+	req *connect.Request[shoppinglistv1.AddShoppingItemRequest],
+) (*connect.Response[shoppinglistv1.AddShoppingItemResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	planID, err := uuid.Parse(req.Msg.PlanId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	if req.Msg.Name == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("name is required"),
+		)
+	}
+
+	amount, err := strconv.ParseFloat(req.Msg.Amount, 64)
+	if err != nil || amount < 0 {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("amount must be a non-negative number"),
+		)
+	}
+
+	item, err := h.app.services.Shopping.AddItem(
+		ctx, planID, user.ID, req.Msg.Name, req.Msg.Unit, amount,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	return connect.NewResponse(&shoppinglistv1.AddShoppingItemResponse{
+		Item: &shoppinglistv1.ShoppingItem{
+			Id:     item.ID,
+			Name:   item.Name,
+			Amount: format.ToFractionCeiling(item.Amount),
+			Unit:   item.Unit,
+		},
+	}), nil
+}
+
+func (h *shoppingConnectHandler) DeleteShoppingItem(
+	ctx context.Context,
+	req *connect.Request[shoppinglistv1.DeleteShoppingItemRequest],
+) (*connect.Response[shoppinglistv1.DeleteShoppingItemResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	planID, err := uuid.Parse(req.Msg.PlanId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	itemID, err := uuid.Parse(req.Msg.ItemId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid item ID"),
+		)
+	}
+
+	if err = h.app.services.Shopping.DeleteItem(ctx, planID, itemID, user.ID); err != nil {
+		return nil, mapError(err)
+	}
+
+	return connect.NewResponse(&shoppinglistv1.DeleteShoppingItemResponse{}), nil
 }

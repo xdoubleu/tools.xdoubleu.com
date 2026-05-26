@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetShoppingListRequest, GetShoppingListResponse } from "./shoppinglist_pb";
+import { AddShoppingItemRequest, AddShoppingItemResponse, DeleteShoppingItemRequest, DeleteShoppingItemResponse, GetShoppingListRequest, GetShoppingListResponse } from "./shoppinglist_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -19,6 +19,24 @@ export const ShoppingListService = {
       name: "GetShoppingList",
       I: GetShoppingListRequest,
       O: GetShoppingListResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc shoppinglist.v1.ShoppingListService.AddShoppingItem
+     */
+    addShoppingItem: {
+      name: "AddShoppingItem",
+      I: AddShoppingItemRequest,
+      O: AddShoppingItemResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc shoppinglist.v1.ShoppingListService.DeleteShoppingItem
+     */
+    deleteShoppingItem: {
+      name: "DeleteShoppingItem",
+      I: DeleteShoppingItemRequest,
+      O: DeleteShoppingItemResponse,
       kind: MethodKind.Unary,
     },
   }

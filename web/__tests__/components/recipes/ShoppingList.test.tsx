@@ -9,6 +9,11 @@ describe('ShoppingList', () => {
     { amount: '1', unit: 'tbsp', name: 'sugar' }
   ]
 
+  const mixedItems: ShoppingItem[] = [
+    { amount: '2', unit: 'cups', name: 'flour' },
+    { id: 'custom-1', amount: '1', unit: 'L', name: 'milk' }
+  ]
+
   it('renders empty state when no items', () => {
     render(<ShoppingList items={[]} />)
     expect(screen.getByText('No shopping items.')).toBeInTheDocument()
@@ -25,6 +30,32 @@ describe('ShoppingList', () => {
     const checkboxes = screen.getAllByRole('checkbox')
     fireEvent.click(checkboxes[0])
     expect(checkboxes[0]).toBeChecked()
+  })
+
+  describe('delete button', () => {
+    it('does not render delete buttons when onDelete is not provided', () => {
+      render(<ShoppingList items={mixedItems} />)
+      expect(screen.queryByRole('button', { name: /Remove/ })).not.toBeInTheDocument()
+    })
+
+    it('does not render delete button for recipe-derived items (no id)', () => {
+      const onDelete = jest.fn()
+      render(<ShoppingList items={mixedItems} onDelete={onDelete} />)
+      expect(screen.queryByRole('button', { name: /Remove flour/ })).not.toBeInTheDocument()
+    })
+
+    it('renders delete button only for custom items', () => {
+      const onDelete = jest.fn()
+      render(<ShoppingList items={mixedItems} onDelete={onDelete} />)
+      expect(screen.getByRole('button', { name: /Remove milk/ })).toBeInTheDocument()
+    })
+
+    it('calls onDelete with the item id when delete button is clicked', async () => {
+      const onDelete = jest.fn().mockResolvedValue(undefined)
+      render(<ShoppingList items={mixedItems} onDelete={onDelete} />)
+      fireEvent.click(screen.getByRole('button', { name: /Remove milk/ }))
+      await waitFor(() => expect(onDelete).toHaveBeenCalledWith('custom-1'))
+    })
   })
 
   it('renders export buttons', () => {

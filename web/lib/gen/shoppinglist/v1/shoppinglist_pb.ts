@@ -25,6 +25,11 @@ export class ShoppingItem extends Message<ShoppingItem> {
    */
   unit = "";
 
+  /**
+   * @generated from field: string id = 4;
+   */
+  id = "";
+
   constructor(data?: PartialMessage<ShoppingItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -36,6 +41,7 @@ export class ShoppingItem extends Message<ShoppingItem> {
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "amount", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ShoppingItem {
@@ -126,6 +132,172 @@ export class GetShoppingListResponse extends Message<GetShoppingListResponse> {
 
   static equals(a: GetShoppingListResponse | PlainMessage<GetShoppingListResponse> | undefined, b: GetShoppingListResponse | PlainMessage<GetShoppingListResponse> | undefined): boolean {
     return proto3.util.equals(GetShoppingListResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message shoppinglist.v1.AddShoppingItemRequest
+ */
+export class AddShoppingItemRequest extends Message<AddShoppingItemRequest> {
+  /**
+   * @generated from field: string plan_id = 1;
+   */
+  planId = "";
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string amount = 3;
+   */
+  amount = "";
+
+  /**
+   * @generated from field: string unit = 4;
+   */
+  unit = "";
+
+  constructor(data?: PartialMessage<AddShoppingItemRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "shoppinglist.v1.AddShoppingItemRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "amount", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddShoppingItemRequest {
+    return new AddShoppingItemRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddShoppingItemRequest {
+    return new AddShoppingItemRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddShoppingItemRequest {
+    return new AddShoppingItemRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: AddShoppingItemRequest | PlainMessage<AddShoppingItemRequest> | undefined, b: AddShoppingItemRequest | PlainMessage<AddShoppingItemRequest> | undefined): boolean {
+    return proto3.util.equals(AddShoppingItemRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message shoppinglist.v1.AddShoppingItemResponse
+ */
+export class AddShoppingItemResponse extends Message<AddShoppingItemResponse> {
+  /**
+   * @generated from field: shoppinglist.v1.ShoppingItem item = 1;
+   */
+  item?: ShoppingItem;
+
+  constructor(data?: PartialMessage<AddShoppingItemResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "shoppinglist.v1.AddShoppingItemResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "item", kind: "message", T: ShoppingItem },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddShoppingItemResponse {
+    return new AddShoppingItemResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddShoppingItemResponse {
+    return new AddShoppingItemResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddShoppingItemResponse {
+    return new AddShoppingItemResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: AddShoppingItemResponse | PlainMessage<AddShoppingItemResponse> | undefined, b: AddShoppingItemResponse | PlainMessage<AddShoppingItemResponse> | undefined): boolean {
+    return proto3.util.equals(AddShoppingItemResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message shoppinglist.v1.DeleteShoppingItemRequest
+ */
+export class DeleteShoppingItemRequest extends Message<DeleteShoppingItemRequest> {
+  /**
+   * @generated from field: string plan_id = 1;
+   */
+  planId = "";
+
+  /**
+   * @generated from field: string item_id = 2;
+   */
+  itemId = "";
+
+  constructor(data?: PartialMessage<DeleteShoppingItemRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "shoppinglist.v1.DeleteShoppingItemRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "plan_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "item_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteShoppingItemRequest {
+    return new DeleteShoppingItemRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteShoppingItemRequest {
+    return new DeleteShoppingItemRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteShoppingItemRequest {
+    return new DeleteShoppingItemRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeleteShoppingItemRequest | PlainMessage<DeleteShoppingItemRequest> | undefined, b: DeleteShoppingItemRequest | PlainMessage<DeleteShoppingItemRequest> | undefined): boolean {
+    return proto3.util.equals(DeleteShoppingItemRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message shoppinglist.v1.DeleteShoppingItemResponse
+ */
+export class DeleteShoppingItemResponse extends Message<DeleteShoppingItemResponse> {
+  constructor(data?: PartialMessage<DeleteShoppingItemResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "shoppinglist.v1.DeleteShoppingItemResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteShoppingItemResponse {
+    return new DeleteShoppingItemResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteShoppingItemResponse {
+    return new DeleteShoppingItemResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteShoppingItemResponse {
+    return new DeleteShoppingItemResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeleteShoppingItemResponse | PlainMessage<DeleteShoppingItemResponse> | undefined, b: DeleteShoppingItemResponse | PlainMessage<DeleteShoppingItemResponse> | undefined): boolean {
+    return proto3.util.equals(DeleteShoppingItemResponse, a, b);
   }
 }
 

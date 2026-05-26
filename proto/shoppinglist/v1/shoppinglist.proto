@@ -3,14 +3,31 @@ package shoppinglist.v1;
 option go_package = "tools.xdoubleu.com/gen/shoppinglist/v1;shoppinglistv1";
 
 message ShoppingItem {
-  string name = 1;
+  string name   = 1;
   string amount = 2;
-  string unit = 3;
+  string unit   = 3;
+  string id     = 4;
 }
 
-message GetShoppingListRequest { string plan_id = 1; }
+message GetShoppingListRequest  { string plan_id = 1; }
 message GetShoppingListResponse { repeated ShoppingItem items = 1; }
 
+message AddShoppingItemRequest {
+  string plan_id = 1;
+  string name    = 2;
+  string amount  = 3;
+  string unit    = 4;
+}
+message AddShoppingItemResponse { ShoppingItem item = 1; }
+
+message DeleteShoppingItemRequest {
+  string plan_id = 1;
+  string item_id = 2;
+}
+message DeleteShoppingItemResponse {}
+
 service ShoppingListService {
-  rpc GetShoppingList(GetShoppingListRequest) returns (GetShoppingListResponse);
+  rpc GetShoppingList    (GetShoppingListRequest)    returns (GetShoppingListResponse);
+  rpc AddShoppingItem    (AddShoppingItemRequest)    returns (AddShoppingItemResponse);
+  rpc DeleteShoppingItem (DeleteShoppingItemRequest) returns (DeleteShoppingItemResponse);
 }
