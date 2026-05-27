@@ -1,5 +1,7 @@
 connectrpc.com/connect v1.19.2 h1:McQ83FGdzL+t60peksi0gXC7MQ/iLKgLduAnThbM0mo=
 connectrpc.com/connect v1.19.2/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
+connectrpc.com/connect v1.20.0 h1:6TNDAB+WeNd2uolWNlYczB5E0KNNaVMNUEx8JEUsPmQ=
+connectrpc.com/connect v1.20.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 github.com/arran4/golang-ical v0.3.2 h1:MGNjcXJFSuCXmYX/RpZhR2HDCYoFuK8vTPFLEdFC3JY=
 github.com/arran4/golang-ical v0.3.2/go.mod h1:xblDGxxIUMWwFZk9dlECUlc1iXNV65LJZOTHLVwu8bo=
 github.com/arran4/golang-ical v0.3.5 h1:bbz6ld4dC+MmCKiFfOd6SkmIGnhNMBACZ485ULh7p9A=

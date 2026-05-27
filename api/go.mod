@@ -5,7 +5,7 @@ go 1.26.0
 require github.com/justinas/alice v1.2.0
 
 require (
-	connectrpc.com/connect v1.19.2
+	connectrpc.com/connect v1.20.0
 	github.com/arran4/golang-ical v0.3.5
 	github.com/coder/websocket v1.8.14
 	github.com/getsentry/sentry-go v0.46.2
