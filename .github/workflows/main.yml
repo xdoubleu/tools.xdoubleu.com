@@ -21,7 +21,7 @@ jobs:
       proto: ${{ steps.filter.outputs.proto }}
       workflows: ${{ steps.filter.outputs.workflows }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
         id: filter
         with:
