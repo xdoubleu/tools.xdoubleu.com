@@ -5,56 +5,67 @@ import {
   type ShoppingItem
 } from '@/lib/recipes/shoppingExport'
 
-const mockItems: ShoppingItem[] = [
+const mealPlanItems: ShoppingItem[] = [
   { amount: '2', unit: 'cups', name: 'flour' },
-  { amount: '1', unit: 'tbsp', name: 'sugar' },
-  { amount: '0.5', unit: 'tsp', name: 'salt' }
+  { amount: '1', unit: 'tbsp', name: 'sugar' }
 ]
+
+const customItems: ShoppingItem[] = [{ id: 'c1', amount: '0.5', unit: 'tsp', name: 'salt' }]
 
 describe('shoppingExport', () => {
   describe('formatForClipboard', () => {
-    it('should format items as "amount unit - name"', () => {
-      const result = formatForClipboard(mockItems)
-      const lines = result.split('\n')
-      expect(lines[0]).toBe('2 cups - flour')
-      expect(lines[1]).toBe('1 tbsp - sugar')
-      expect(lines[2]).toBe('0.5 tsp - salt')
+    it('formats both sections with labels', () => {
+      const result = formatForClipboard(mealPlanItems, customItems)
+      expect(result).toBe(
+        'From meal plan:\n2 cups - flour\n1 tbsp - sugar\n\nCustom items:\n0.5 tsp - salt'
+      )
     })
 
-    it('should handle empty array', () => {
-      const result = formatForClipboard([])
-      expect(result).toBe('')
+    it('omits meal plan section when empty', () => {
+      const result = formatForClipboard([], customItems)
+      expect(result).toBe('Custom items:\n0.5 tsp - salt')
+    })
+
+    it('omits custom section when empty', () => {
+      const result = formatForClipboard(mealPlanItems, [])
+      expect(result).toBe('From meal plan:\n2 cups - flour\n1 tbsp - sugar')
+    })
+
+    it('returns empty string when both arrays are empty', () => {
+      expect(formatForClipboard([], [])).toBe('')
     })
   })
 
   describe('formatForAppleNotes', () => {
     const fixedDate = new Date(2026, 4, 26)
 
-    it('should include a title with the date', () => {
-      const result = formatForAppleNotes(mockItems, fixedDate)
-      const lines = result.split('\n')
-      expect(lines[0]).toBe('Shopping list 26/05/2026')
+    it('includes date title', () => {
+      const result = formatForAppleNotes(mealPlanItems, customItems, fixedDate)
+      expect(result.startsWith('Shopping list 26/05/2026')).toBe(true)
     })
 
-    it('should format items one per line without prefix', () => {
-      const result = formatForAppleNotes(mockItems, fixedDate)
-      const lines = result.split('\n')
-      expect(lines[1]).toBe('2 cups flour')
-      expect(lines[2]).toBe('1 tbsp sugar')
-      expect(lines[3]).toBe('0.5 tsp salt')
+    it('includes both labeled sections after title', () => {
+      const result = formatForAppleNotes(mealPlanItems, customItems, fixedDate)
+      expect(result).toContain('From meal plan:\n2 cups flour\n1 tbsp sugar')
+      expect(result).toContain('Custom items:\n0.5 tsp salt')
     })
 
-    it('should return just the title for an empty array', () => {
-      const result = formatForAppleNotes([], fixedDate)
+    it('returns just the title when both arrays are empty', () => {
+      const result = formatForAppleNotes([], [], fixedDate)
       expect(result).toBe('Shopping list 26/05/2026')
+    })
+
+    it('omits empty sections', () => {
+      const result = formatForAppleNotes(mealPlanItems, [], fixedDate)
+      expect(result).not.toContain('Custom items:')
+      expect(result).toContain('From meal plan:')
     })
   })
 
   describe('formatAsTxt', () => {
-    it('should format items same as clipboard format', () => {
-      const result = formatAsTxt(mockItems)
-      const clipboardResult = formatForClipboard(mockItems)
-      expect(result).toBe(clipboardResult)
+    it('produces same output as clipboard format', () => {
+      const result = formatAsTxt(mealPlanItems, customItems)
+      expect(result).toBe(formatForClipboard(mealPlanItems, customItems))
     })
   })
 })

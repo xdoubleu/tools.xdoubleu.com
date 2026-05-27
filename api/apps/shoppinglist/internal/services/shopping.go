@@ -16,7 +16,7 @@ type shoppingRepo interface {
 		ctx context.Context,
 		planID uuid.UUID,
 		start, end time.Time,
-	) ([]repositories.ShoppingItem, error)
+	) (repositories.ShoppingLists, error)
 	AddCustomItem(
 		ctx context.Context,
 		planID uuid.UUID,
@@ -53,9 +53,9 @@ func (s *ShoppingService) GetList(
 	planID uuid.UUID,
 	userID string,
 	start, end time.Time,
-) ([]repositories.ShoppingItem, error) {
+) (repositories.ShoppingLists, error) {
 	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
-		return nil, err
+		return repositories.ShoppingLists{}, err
 	}
 	return s.repo.GetShoppingList(ctx, planID, start, end)
 }

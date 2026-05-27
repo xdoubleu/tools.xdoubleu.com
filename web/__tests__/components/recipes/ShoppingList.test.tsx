@@ -4,29 +4,49 @@ import ShoppingList from '@/components/recipes/ShoppingList'
 import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 
 describe('ShoppingList', () => {
-  const mockItems: ShoppingItem[] = [
+  const mealPlanItems: ShoppingItem[] = [
     { amount: '2', unit: 'cups', name: 'flour' },
     { amount: '1', unit: 'tbsp', name: 'sugar' }
   ]
 
-  const mixedItems: ShoppingItem[] = [
-    { amount: '2', unit: 'cups', name: 'flour' },
-    { id: 'custom-1', amount: '1', unit: 'L', name: 'milk' }
-  ]
+  const customItems: ShoppingItem[] = [{ id: 'custom-1', amount: '1', unit: 'L', name: 'milk' }]
 
-  it('renders empty state when no items', () => {
-    render(<ShoppingList items={[]} />)
+  it('renders empty state when both lists are empty', () => {
+    render(<ShoppingList mealPlanItems={[]} customItems={[]} />)
     expect(screen.getByText('No shopping items.')).toBeInTheDocument()
   })
 
-  it('renders all items', () => {
-    render(<ShoppingList items={mockItems} />)
+  it('renders meal plan section with header', () => {
+    render(<ShoppingList mealPlanItems={mealPlanItems} customItems={[]} />)
+    expect(screen.getByText(/from meal plan/i)).toBeInTheDocument()
     expect(screen.getByText(/2 cups - flour/)).toBeInTheDocument()
     expect(screen.getByText(/1 tbsp - sugar/)).toBeInTheDocument()
   })
 
+  it('renders custom items section with header', () => {
+    render(<ShoppingList mealPlanItems={[]} customItems={customItems} />)
+    expect(screen.getByText(/custom items/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 L - milk/)).toBeInTheDocument()
+  })
+
+  it('renders both sections when both lists have items', () => {
+    render(<ShoppingList mealPlanItems={mealPlanItems} customItems={customItems} />)
+    expect(screen.getByText(/from meal plan/i)).toBeInTheDocument()
+    expect(screen.getByText(/custom items/i)).toBeInTheDocument()
+  })
+
+  it('omits meal plan section when empty', () => {
+    render(<ShoppingList mealPlanItems={[]} customItems={customItems} />)
+    expect(screen.queryByText(/from meal plan/i)).not.toBeInTheDocument()
+  })
+
+  it('omits custom items section when empty', () => {
+    render(<ShoppingList mealPlanItems={mealPlanItems} customItems={[]} />)
+    expect(screen.queryByText(/custom items/i)).not.toBeInTheDocument()
+  })
+
   it('toggles item checked state', () => {
-    render(<ShoppingList items={mockItems} />)
+    render(<ShoppingList mealPlanItems={mealPlanItems} customItems={[]} />)
     const checkboxes = screen.getAllByRole('checkbox')
     fireEvent.click(checkboxes[0])
     expect(checkboxes[0]).toBeChecked()
@@ -34,32 +54,36 @@ describe('ShoppingList', () => {
 
   describe('delete button', () => {
     it('does not render delete buttons when onDelete is not provided', () => {
-      render(<ShoppingList items={mixedItems} />)
+      render(<ShoppingList mealPlanItems={mealPlanItems} customItems={customItems} />)
       expect(screen.queryByRole('button', { name: /Remove/ })).not.toBeInTheDocument()
     })
 
-    it('does not render delete button for recipe-derived items (no id)', () => {
+    it('does not render delete button for meal plan items', () => {
       const onDelete = jest.fn()
-      render(<ShoppingList items={mixedItems} onDelete={onDelete} />)
+      render(
+        <ShoppingList mealPlanItems={mealPlanItems} customItems={customItems} onDelete={onDelete} />
+      )
       expect(screen.queryByRole('button', { name: /Remove flour/ })).not.toBeInTheDocument()
     })
 
     it('renders delete button only for custom items', () => {
       const onDelete = jest.fn()
-      render(<ShoppingList items={mixedItems} onDelete={onDelete} />)
+      render(
+        <ShoppingList mealPlanItems={mealPlanItems} customItems={customItems} onDelete={onDelete} />
+      )
       expect(screen.getByRole('button', { name: /Remove milk/ })).toBeInTheDocument()
     })
 
     it('calls onDelete with the item id when delete button is clicked', async () => {
       const onDelete = jest.fn().mockResolvedValue(undefined)
-      render(<ShoppingList items={mixedItems} onDelete={onDelete} />)
+      render(<ShoppingList mealPlanItems={[]} customItems={customItems} onDelete={onDelete} />)
       fireEvent.click(screen.getByRole('button', { name: /Remove milk/ }))
       await waitFor(() => expect(onDelete).toHaveBeenCalledWith('custom-1'))
     })
   })
 
   it('renders export buttons', () => {
-    render(<ShoppingList items={mockItems} />)
+    render(<ShoppingList mealPlanItems={mealPlanItems} customItems={customItems} />)
     expect(screen.getByRole('button', { name: /Copy to Clipboard/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Share to Apple Notes/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Download .txt/ })).toBeInTheDocument()
@@ -70,7 +94,7 @@ describe('ShoppingList', () => {
       const mockShare = jest.fn().mockResolvedValue(undefined)
       Object.defineProperty(navigator, 'share', { value: mockShare, configurable: true })
 
-      render(<ShoppingList items={mockItems} />)
+      render(<ShoppingList mealPlanItems={mealPlanItems} customItems={[]} />)
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
 
       await waitFor(() => {
@@ -88,7 +112,7 @@ describe('ShoppingList', () => {
         configurable: true
       })
 
-      render(<ShoppingList items={mockItems} />)
+      render(<ShoppingList mealPlanItems={mealPlanItems} customItems={[]} />)
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
 
       await waitFor(() => {
@@ -105,7 +129,7 @@ describe('ShoppingList', () => {
       configurable: true
     })
 
-    render(<ShoppingList items={mockItems} />)
+    render(<ShoppingList mealPlanItems={mealPlanItems} customItems={[]} />)
     fireEvent.click(screen.getByRole('button', { name: /Copy to Clipboard/ }))
 
     await waitFor(() => {

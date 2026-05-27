@@ -198,7 +198,10 @@ export default function MealPlanClient({ id }: { id: string }) {
               <h2 className="text-lg font-semibold mb-3">Shopping List</h2>
               {shoppingLoading && <p>Loading...</p>}
               {!shoppingLoading && (
-                <ShoppingList items={(shoppingData?.items ?? []).map(toExportItem)} />
+                <ShoppingList
+                  mealPlanItems={(shoppingData?.mealPlanItems ?? []).map(toExportItem)}
+                  customItems={(shoppingData?.customItems ?? []).map(toExportItem)}
+                />
               )}
             </div>
           )}

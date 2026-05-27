@@ -135,7 +135,8 @@ func (x *GetShoppingListRequest) GetPlanId() string {
 
 type GetShoppingListResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*ShoppingItem        `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	MealPlanItems []*ShoppingItem        `protobuf:"bytes,1,rep,name=meal_plan_items,json=mealPlanItems,proto3" json:"meal_plan_items,omitempty"`
+	CustomItems   []*ShoppingItem        `protobuf:"bytes,2,rep,name=custom_items,json=customItems,proto3" json:"custom_items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -170,9 +171,16 @@ func (*GetShoppingListResponse) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GetShoppingListResponse) GetItems() []*ShoppingItem {
+func (x *GetShoppingListResponse) GetMealPlanItems() []*ShoppingItem {
 	if x != nil {
-		return x.Items
+		return x.MealPlanItems
+	}
+	return nil
+}
+
+func (x *GetShoppingListResponse) GetCustomItems() []*ShoppingItem {
+	if x != nil {
+		return x.CustomItems
 	}
 	return nil
 }
@@ -388,9 +396,10 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x04unit\x18\x03 \x01(\tR\x04unit\x12\x0e\n" +
 	"\x02id\x18\x04 \x01(\tR\x02id\"1\n" +
 	"\x16GetShoppingListRequest\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\"N\n" +
-	"\x17GetShoppingListResponse\x123\n" +
-	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"q\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\"\xa2\x01\n" +
+	"\x17GetShoppingListResponse\x12E\n" +
+	"\x0fmeal_plan_items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\rmealPlanItems\x12@\n" +
+	"\fcustom_items\x18\x02 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\vcustomItems\"q\n" +
 	"\x16AddShoppingItemRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -430,19 +439,20 @@ var file_shoppinglist_v1_shoppinglist_proto_goTypes = []any{
 	(*DeleteShoppingItemResponse)(nil), // 6: shoppinglist.v1.DeleteShoppingItemResponse
 }
 var file_shoppinglist_v1_shoppinglist_proto_depIdxs = []int32{
-	0, // 0: shoppinglist.v1.GetShoppingListResponse.items:type_name -> shoppinglist.v1.ShoppingItem
-	0, // 1: shoppinglist.v1.AddShoppingItemResponse.item:type_name -> shoppinglist.v1.ShoppingItem
-	1, // 2: shoppinglist.v1.ShoppingListService.GetShoppingList:input_type -> shoppinglist.v1.GetShoppingListRequest
-	3, // 3: shoppinglist.v1.ShoppingListService.AddShoppingItem:input_type -> shoppinglist.v1.AddShoppingItemRequest
-	5, // 4: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
-	2, // 5: shoppinglist.v1.ShoppingListService.GetShoppingList:output_type -> shoppinglist.v1.GetShoppingListResponse
-	4, // 6: shoppinglist.v1.ShoppingListService.AddShoppingItem:output_type -> shoppinglist.v1.AddShoppingItemResponse
-	6, // 7: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: shoppinglist.v1.GetShoppingListResponse.meal_plan_items:type_name -> shoppinglist.v1.ShoppingItem
+	0, // 1: shoppinglist.v1.GetShoppingListResponse.custom_items:type_name -> shoppinglist.v1.ShoppingItem
+	0, // 2: shoppinglist.v1.AddShoppingItemResponse.item:type_name -> shoppinglist.v1.ShoppingItem
+	1, // 3: shoppinglist.v1.ShoppingListService.GetShoppingList:input_type -> shoppinglist.v1.GetShoppingListRequest
+	3, // 4: shoppinglist.v1.ShoppingListService.AddShoppingItem:input_type -> shoppinglist.v1.AddShoppingItemRequest
+	5, // 5: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
+	2, // 6: shoppinglist.v1.ShoppingListService.GetShoppingList:output_type -> shoppinglist.v1.GetShoppingListResponse
+	4, // 7: shoppinglist.v1.ShoppingListService.AddShoppingItem:output_type -> shoppinglist.v1.AddShoppingItemResponse
+	6, // 8: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_shoppinglist_v1_shoppinglist_proto_init() }

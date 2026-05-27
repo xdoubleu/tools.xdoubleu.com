@@ -19,7 +19,7 @@ type ShoppingRepoMock struct {
 		ctx context.Context,
 		planID uuid.UUID,
 		start, end time.Time,
-	) ([]repositories.ShoppingItem, error)
+	) (repositories.ShoppingLists, error)
 	AddCustomItemFn func(
 		ctx context.Context,
 		planID uuid.UUID,
@@ -41,7 +41,7 @@ func (m *ShoppingRepoMock) GetShoppingList(
 	ctx context.Context,
 	planID uuid.UUID,
 	start, end time.Time,
-) ([]repositories.ShoppingItem, error) {
+) (repositories.ShoppingLists, error) {
 	return m.GetShoppingListFn(ctx, planID, start, end)
 }
 

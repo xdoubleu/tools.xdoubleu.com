@@ -10,7 +10,10 @@ message ShoppingItem {
 }
 
 message GetShoppingListRequest  { string plan_id = 1; }
-message GetShoppingListResponse { repeated ShoppingItem items = 1; }
+message GetShoppingListResponse {
+  repeated ShoppingItem meal_plan_items = 1;
+  repeated ShoppingItem custom_items    = 2;
+}
 
 message AddShoppingItemRequest {
   string plan_id = 1;

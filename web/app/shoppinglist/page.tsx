@@ -28,7 +28,8 @@ export default function ShoppingPage() {
   const { data: plansData, isLoading: plansLoading } = useMealPlans()
   const { data: shoppingData, isLoading: shoppingLoading, mutate } = useShoppingList(selectedPlanId)
 
-  const items = (shoppingData?.items ?? []).map(toExportItem)
+  const mealPlanItems = (shoppingData?.mealPlanItems ?? []).map(toExportItem)
+  const customItems = (shoppingData?.customItems ?? []).map(toExportItem)
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -122,7 +123,13 @@ export default function ShoppingPage() {
       )}
 
       {selectedPlanId && shoppingLoading && <p>Loading shopping list...</p>}
-      {selectedPlanId && !shoppingLoading && <ShoppingList items={items} onDelete={handleDelete} />}
+      {selectedPlanId && !shoppingLoading && (
+        <ShoppingList
+          mealPlanItems={mealPlanItems}
+          customItems={customItems}
+          onDelete={handleDelete}
+        />
+      )}
       {!selectedPlanId && (
         <p className="text-muted">Select a meal plan to generate a shopping list.</p>
       )}

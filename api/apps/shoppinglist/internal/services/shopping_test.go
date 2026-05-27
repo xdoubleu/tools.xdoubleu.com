@@ -106,27 +106,32 @@ func TestDeleteItem_Success(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestGetList_MergesItems(t *testing.T) {
+func TestGetList_ReturnsSeparateLists(t *testing.T) {
 	planID := uuid.New()
 	start := time.Now().UTC()
 	end := start.AddDate(0, 0, 6)
-	want := []repositories.ShoppingItem{
-		{ID: "", Name: "flour", Unit: "g", Amount: 200},
-		{ID: "custom-1", Name: "milk", Unit: "L", Amount: 1},
+	want := repositories.ShoppingLists{
+		MealPlanItems: []repositories.ShoppingItem{
+			{ID: "", Name: "flour", Unit: "g", Amount: 200},
+		},
+		CustomItems: []repositories.ShoppingItem{
+			{ID: "custom-1", Name: "milk", Unit: "L", Amount: 1},
+		},
 	}
 	repo := accessGrantedMock()
 	repo.GetShoppingListFn = func(
 		_ context.Context,
 		_ uuid.UUID,
 		_, _ time.Time,
-	) ([]repositories.ShoppingItem, error) {
+	) (repositories.ShoppingLists, error) {
 		return want, nil
 	}
 	svc := services.NewShoppingService(repo)
 
 	got, err := svc.GetList(context.Background(), planID, "user1", start, end)
 	require.NoError(t, err)
-	assert.Equal(t, want, got)
+	assert.Equal(t, want.MealPlanItems, got.MealPlanItems)
+	assert.Equal(t, want.CustomItems, got.CustomItems)
 }
 
 func TestDeleteItem_RepoError(t *testing.T) {

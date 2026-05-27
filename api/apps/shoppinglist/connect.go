@@ -13,6 +13,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
+	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
@@ -82,23 +83,27 @@ func (h *shoppingConnectHandler) GetShoppingList(
 	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
 	end := today.AddDate(0, 0, daysPerWeek-1)
 
-	items, err := h.app.services.Shopping.GetList(ctx, planID, user.ID, today, end)
+	lists, err := h.app.services.Shopping.GetList(ctx, planID, user.ID, today, end)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	pbItems := make([]*shoppinglistv1.ShoppingItem, len(items))
-	for i, item := range items {
-		pbItems[i] = &shoppinglistv1.ShoppingItem{
-			Id:     item.ID,
-			Name:   item.Name,
-			Amount: format.ToFractionCeiling(item.Amount),
-			Unit:   item.Unit,
+	toProto := func(items []repositories.ShoppingItem) []*shoppinglistv1.ShoppingItem {
+		pb := make([]*shoppinglistv1.ShoppingItem, len(items))
+		for i, item := range items {
+			pb[i] = &shoppinglistv1.ShoppingItem{
+				Id:     item.ID,
+				Name:   item.Name,
+				Amount: format.ToFractionCeiling(item.Amount),
+				Unit:   item.Unit,
+			}
 		}
+		return pb
 	}
 
 	return connect.NewResponse(&shoppinglistv1.GetShoppingListResponse{
-		Items: pbItems,
+		MealPlanItems: toProto(lists.MealPlanItems),
+		CustomItems:   toProto(lists.CustomItems),
 	}), nil
 }
 
