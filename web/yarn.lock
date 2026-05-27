@@ -433,31 +433,49 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bufbuild/protobuf@npm:1.10.1, @bufbuild/protobuf@npm:^1.10.0, @bufbuild/protobuf@npm:^1.10.1":
+"@bufbuild/protobuf@npm:1.10.1, @bufbuild/protobuf@npm:^1.10.0":
   version: 1.10.1
   resolution: "@bufbuild/protobuf@npm:1.10.1"
   checksum: 10c0/a89572ae99aa193dd232fca0cdc9ece1dfe2f3d8b061be1f966a4f88fb63410aeb0fe7de927037e970aefcb52036eec58a7f89a40fe1286eed1448ea1bd2634e
   languageName: node
   linkType: hard
 
-"@bufbuild/protoc-gen-es@npm:1.10.1":
-  version: 1.10.1
-  resolution: "@bufbuild/protoc-gen-es@npm:1.10.1"
+"@bufbuild/protobuf@npm:2.12.0":
+  version: 2.12.0
+  resolution: "@bufbuild/protobuf@npm:2.12.0"
+  checksum: 10c0/28959e371fd2e7c8d67d52af9e3c8f8e6770e2e116dcc5508f469ca736afa6905e216bc76183835898a5f3deb8aa2e7db47d4a0e706fba76115e9a1996893191
+  languageName: node
+  linkType: hard
+
+"@bufbuild/protoc-gen-es@npm:2.12.0":
+  version: 2.12.0
+  resolution: "@bufbuild/protoc-gen-es@npm:2.12.0"
   dependencies:
-    "@bufbuild/protobuf": "npm:^1.10.1"
-    "@bufbuild/protoplugin": "npm:1.10.1"
+    "@bufbuild/protobuf": "npm:2.12.0"
+    "@bufbuild/protoplugin": "npm:2.12.0"
   peerDependencies:
-    "@bufbuild/protobuf": 1.10.1
+    "@bufbuild/protobuf": 2.12.0
   peerDependenciesMeta:
     "@bufbuild/protobuf":
       optional: true
   bin:
     protoc-gen-es: bin/protoc-gen-es
-  checksum: 10c0/aa06192c9cc85ea8abe7397da31b35fb057c2e6646374d18f91b8be27ce802647e221bfbd49d6a404e0a918dfad11a8654952fc4eab3115e7fb56788912a7c4c
+  checksum: 10c0/9a61c0d3ae3579b889ce40c48b0d1af57541f3f07ec3d65114f936328237ea2830cbaa88518fd42d12dd041860e547ebc1903c9d36967643ab9dc50609c92525
   languageName: node
   linkType: hard
 
-"@bufbuild/protoplugin@npm:1.10.1, @bufbuild/protoplugin@npm:^1.10.0":
+"@bufbuild/protoplugin@npm:2.12.0":
+  version: 2.12.0
+  resolution: "@bufbuild/protoplugin@npm:2.12.0"
+  dependencies:
+    "@bufbuild/protobuf": "npm:2.12.0"
+    "@typescript/vfs": "npm:^1.6.2"
+    typescript: "npm:5.4.5"
+  checksum: 10c0/4f2aa113a9ca90c66b8671d2cbb2f5fc7dc7b87ab70b9f8902ab76e4db57669f727c50c3940146e975b23b8a56556c2d68bd8b768223bab48ee75890e5ea82a1
+  languageName: node
+  linkType: hard
+
+"@bufbuild/protoplugin@npm:^1.10.0":
   version: 1.10.1
   resolution: "@bufbuild/protoplugin@npm:1.10.1"
   dependencies:
@@ -3270,7 +3288,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript/vfs@npm:^1.4.0":
+"@typescript/vfs@npm:^1.4.0, @typescript/vfs@npm:^1.6.2":
   version: 1.6.4
   resolution: "@typescript/vfs@npm:1.6.4"
   dependencies:
@@ -9254,6 +9272,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:5.4.5":
+  version: 5.4.5
+  resolution: "typescript@npm:5.4.5"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/2954022ada340fd3d6a9e2b8e534f65d57c92d5f3989a263754a78aba549f7e6529acc1921913560a4b816c46dce7df4a4d29f9f11a3dc0d4213bb76d043251e
+  languageName: node
+  linkType: hard
+
 "typescript@npm:5.9.3":
   version: 5.9.3
   resolution: "typescript@npm:5.9.3"
@@ -9271,6 +9299,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/826f19dba38b0c9d1e398b363d50b0c72a033c79af5fe0a22c3952c8de92e1ce3c203c5e79e1f85be67ff1e5975bc3b28ed4c7aad474eed71752fc79291644f9
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@npm%3A5.4.5#optional!builtin<compat/typescript>":
+  version: 5.4.5
+  resolution: "typescript@patch:typescript@npm%3A5.4.5#optional!builtin<compat/typescript>::version=5.4.5&hash=5adc0c"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/db2ad2a16ca829f50427eeb1da155e7a45e598eec7b086d8b4e8ba44e5a235f758e606d681c66992230d3fc3b8995865e5fd0b22a2c95486d0b3200f83072ec9
   languageName: node
   linkType: hard
 
@@ -9507,7 +9545,7 @@ __metadata:
   resolution: "web@workspace:."
   dependencies:
     "@bufbuild/protobuf": "npm:1.10.1"
-    "@bufbuild/protoc-gen-es": "npm:1.10.1"
+    "@bufbuild/protoc-gen-es": "npm:2.12.0"
     "@connectrpc/connect": "npm:1.7.0"
     "@connectrpc/connect-web": "npm:1.7.0"
     "@connectrpc/protoc-gen-connect-es": "npm:1.7.0"
