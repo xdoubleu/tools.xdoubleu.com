@@ -11,6 +11,8 @@ import (
 	"tools.xdoubleu.com/internal/app"
 )
 
+const errNotRecipeOwner = "You do not own this recipe"
+
 type RecipeService struct {
 	repo *repositories.RecipesRepository
 }
@@ -91,7 +93,7 @@ func (s *RecipeService) Update(
 	if existing.UserID != userID {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: "You do not own this recipe",
+			Message: errNotRecipeOwner,
 		}
 	}
 
@@ -114,7 +116,7 @@ func (s *RecipeService) Delete(
 	if existing.UserID != userID {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: "You do not own this recipe",
+			Message: errNotRecipeOwner,
 		}
 	}
 	return s.repo.Delete(ctx, id, userID)
@@ -132,7 +134,7 @@ func (s *RecipeService) Share(
 	if existing.UserID != ownerID {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: "You do not own this recipe",
+			Message: errNotRecipeOwner,
 		}
 	}
 	return s.repo.ShareRecipe(ctx, recipeID, targetUserID)
@@ -150,7 +152,7 @@ func (s *RecipeService) Unshare(
 	if existing.UserID != ownerID {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: "You do not own this recipe",
+			Message: errNotRecipeOwner,
 		}
 	}
 	return s.repo.UnshareRecipe(ctx, recipeID, targetUserID)

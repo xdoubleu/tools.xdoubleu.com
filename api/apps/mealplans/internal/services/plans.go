@@ -12,6 +12,8 @@ import (
 	"tools.xdoubleu.com/internal/app"
 )
 
+const errNoEditAccess = "You do not have edit access to this plan"
+
 type PlanService struct {
 	repo *repositories.PlansRepository
 }
@@ -129,7 +131,7 @@ func (s *PlanService) AddMeal(
 	if !plan.CanEdit {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: "You do not have edit access to this plan",
+			Message: errNoEditAccess,
 		}
 	}
 	meal.PlanID = planID
@@ -150,7 +152,7 @@ func (s *PlanService) DeleteMeal(
 	if !plan.CanEdit {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: "You do not have edit access to this plan",
+			Message: errNoEditAccess,
 		}
 	}
 	return s.repo.DeleteMeal(ctx, mealID, planID)
@@ -171,7 +173,7 @@ func (s *PlanService) MoveMeal(
 	if !plan.CanEdit {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: "You do not have edit access to this plan",
+			Message: errNoEditAccess,
 		}
 	}
 	return s.repo.MoveMeal(ctx, mealID, planID, newDate, newSlot)
