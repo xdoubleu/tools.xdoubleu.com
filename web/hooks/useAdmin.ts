@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { AdminService } from '@/lib/gen/admin/v1/admin_connect'
+import { AdminService } from '@/lib/gen/admin/v1/admin_pb'
 import type { ListUsersResponse } from '@/lib/gen/admin/v1/admin_pb'
 
 export function useUsers() {

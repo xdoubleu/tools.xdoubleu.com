@@ -1,15 +1,21 @@
 import useSWR from 'swr'
+import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
-import { RecipesService } from '@/lib/gen/recipes/v1/recipes_connect'
-import type {
-  ListRecipesResponse,
-  GetRecipeResponse,
-  CreateRecipeRequest,
-  UpdateRecipeRequest,
-  DeleteRecipeRequest,
-  ShareRecipeRequest,
-  UnshareRecipeRequest
+import {
+  RecipesService,
+  CreateRecipeRequestSchema,
+  UpdateRecipeRequestSchema,
+  DeleteRecipeRequestSchema,
+  ShareRecipeRequestSchema,
+  UnshareRecipeRequestSchema
 } from '@/lib/gen/recipes/v1/recipes_pb'
+import type { ListRecipesResponse, GetRecipeResponse } from '@/lib/gen/recipes/v1/recipes_pb'
+
+export type CreateRecipeInput = MessageInitShape<typeof CreateRecipeRequestSchema>
+export type UpdateRecipeInput = MessageInitShape<typeof UpdateRecipeRequestSchema>
+export type DeleteRecipeInput = MessageInitShape<typeof DeleteRecipeRequestSchema>
+export type ShareRecipeInput = MessageInitShape<typeof ShareRecipeRequestSchema>
+export type UnshareRecipeInput = MessageInitShape<typeof UnshareRecipeRequestSchema>
 
 export function useRecipes() {
   const client = createServiceClient(RecipesService)
@@ -26,25 +32,25 @@ export function useRecipe(id: string, servings?: number) {
 
 export function useCreateRecipe() {
   const client = createServiceClient(RecipesService)
-  return (req: CreateRecipeRequest) => client.createRecipe(req)
+  return (req: CreateRecipeInput) => client.createRecipe(req)
 }
 
 export function useUpdateRecipe() {
   const client = createServiceClient(RecipesService)
-  return (req: UpdateRecipeRequest) => client.updateRecipe(req)
+  return (req: UpdateRecipeInput) => client.updateRecipe(req)
 }
 
 export function useDeleteRecipe() {
   const client = createServiceClient(RecipesService)
-  return (req: DeleteRecipeRequest) => client.deleteRecipe(req)
+  return (req: DeleteRecipeInput) => client.deleteRecipe(req)
 }
 
 export function useShareRecipe() {
   const client = createServiceClient(RecipesService)
-  return (req: ShareRecipeRequest) => client.shareRecipe(req)
+  return (req: ShareRecipeInput) => client.shareRecipe(req)
 }
 
 export function useUnshareRecipe() {
   const client = createServiceClient(RecipesService)
-  return (req: UnshareRecipeRequest) => client.unshareRecipe(req)
+  return (req: UnshareRecipeInput) => client.unshareRecipe(req)
 }

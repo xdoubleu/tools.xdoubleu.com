@@ -6,11 +6,6 @@ jest.mock('@/hooks/useMealPlans', () => ({
   useDeleteMeal: jest.fn(),
   useMoveMeal: jest.fn()
 }))
-jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
-  AddMealRequest: jest.fn().mockImplementation((d) => d),
-  DeleteMealRequest: jest.fn().mockImplementation((d) => d),
-  MoveMealRequest: jest.fn().mockImplementation((d) => d)
-}))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
 jest.mock('@/lib/recipes/mealPlanCalendar', () => {
   const week = Array.from({ length: 7 }, (_, i) => {

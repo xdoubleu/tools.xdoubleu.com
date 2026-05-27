@@ -40,14 +40,6 @@ jest.mock('@/components/recipes/ShoppingList', () => {
   }
 })
 
-jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
-  AddMealRequest: jest.fn().mockImplementation((d) => d),
-  DeleteMealRequest: jest.fn().mockImplementation((d) => d),
-  SharePlanRequest: jest.fn().mockImplementation((d) => d),
-  UnsharePlanRequest: jest.fn().mockImplementation((d) => d),
-  DeletePlanRequest: jest.fn().mockImplementation((d) => d)
-}))
-
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
 
 import MealPlanClient from '@/app/mealplans/[id]/MealPlanClient'

@@ -1,6 +1,6 @@
 import { createConnectTransport } from '@connectrpc/connect-web'
-import { createPromiseClient } from '@connectrpc/connect'
-import type { ServiceType } from '@bufbuild/protobuf'
+import { createClient } from '@connectrpc/connect'
+import type { DescService } from '@bufbuild/protobuf'
 import { getApiUrl } from './env'
 
 export const transport = createConnectTransport({
@@ -12,6 +12,6 @@ export const transport = createConnectTransport({
     })
 })
 
-export function createServiceClient<T extends ServiceType>(service: T) {
-  return createPromiseClient(service, transport)
+export function createServiceClient<T extends DescService>(service: T) {
+  return createClient(service, transport)
 }

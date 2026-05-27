@@ -10,7 +10,7 @@ jest.mock('@/lib/client', () => ({
     deleteContact: jest.fn()
   }))
 }))
-jest.mock('@/lib/gen/contacts/v1/contacts_connect', () => ({
+jest.mock('@/lib/gen/contacts/v1/contacts_pb', () => ({
   ContactsService: {}
 }))
 

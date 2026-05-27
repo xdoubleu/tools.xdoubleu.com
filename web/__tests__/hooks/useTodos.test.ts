@@ -4,13 +4,13 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({}))
 }))
-jest.mock('@/lib/gen/todos/v1/tasks_connect', () => ({
+jest.mock('@/lib/gen/todos/v1/tasks_pb', () => ({
   TaskService: {}
 }))
-jest.mock('@/lib/gen/todos/v1/subtasks_connect', () => ({
+jest.mock('@/lib/gen/todos/v1/subtasks_pb', () => ({
   SubtaskService: {}
 }))
-jest.mock('@/lib/gen/todos/v1/settings_connect', () => ({
+jest.mock('@/lib/gen/todos/v1/settings_pb', () => ({
   SettingsService: {}
 }))
 

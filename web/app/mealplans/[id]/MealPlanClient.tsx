@@ -11,19 +11,19 @@ import {
   useUnsharePlan,
   useDeletePlan
 } from '@/hooks/useMealPlans'
+import type {
+  AddMealInput,
+  DeleteMealInput,
+  SharePlanInput,
+  UnsharePlanInput,
+  DeletePlanInput
+} from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
 import { useShoppingList } from '@/hooks/useShoppingList'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
 import ShoppingList from '@/components/recipes/ShoppingList'
 import type { ShoppingItem as ShoppingItemExport } from '@/lib/recipes/shoppingExport'
 import type { ShoppingItem } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
-import {
-  AddMealRequest,
-  DeleteMealRequest,
-  SharePlanRequest,
-  UnsharePlanRequest,
-  DeletePlanRequest
-} from '@/lib/gen/mealplans/v1/mealplans_pb'
 
 function toExportItem(item: ShoppingItem): ShoppingItemExport {
   return {
@@ -65,22 +65,22 @@ export default function MealPlanClient({ id }: { id: string }) {
     servings: number
   ) => {
     if (!plan) return
-    await addMeal(
-      new AddMealRequest({
-        planId: plan.id,
-        mealDate: date,
-        mealSlot: slot,
-        recipeId,
-        customName,
-        servings
-      })
-    )
+    const req: AddMealInput = {
+      planId: plan.id,
+      mealDate: date,
+      mealSlot: slot,
+      recipeId,
+      customName,
+      servings
+    }
+    await addMeal(req)
     await mutate()
   }
 
   const handleDeleteMeal = async (mealId: string) => {
     if (!plan) return
-    await deleteMeal(new DeleteMealRequest({ planId: plan.id, mealId }))
+    const req: DeleteMealInput = { planId: plan.id, mealId }
+    await deleteMeal(req)
     await mutate()
   }
 
@@ -89,9 +89,12 @@ export default function MealPlanClient({ id }: { id: string }) {
     if (!plan || !shareInput.trim()) return
     setShareError(null)
     try {
-      await sharePlan(
-        new SharePlanRequest({ planId: plan.id, contactUserId: shareInput.trim(), canEdit: false })
-      )
+      const req: SharePlanInput = {
+        planId: plan.id,
+        contactUserId: shareInput.trim(),
+        canEdit: false
+      }
+      await sharePlan(req)
       setShareInput('')
       await mutate()
     } catch (err) {
@@ -101,13 +104,15 @@ export default function MealPlanClient({ id }: { id: string }) {
 
   const handleUnshare = async (userId: string) => {
     if (!plan) return
-    await unsharePlan(new UnsharePlanRequest({ planId: plan.id, targetUserId: userId }))
+    const req: UnsharePlanInput = { planId: plan.id, targetUserId: userId }
+    await unsharePlan(req)
     await mutate()
   }
 
   const handleDelete = async () => {
     if (!plan) return
-    await deletePlan(new DeletePlanRequest({ id: plan.id }))
+    const req: DeletePlanInput = { id: plan.id }
+    await deletePlan(req)
     router.push('/mealplans')
   }
 

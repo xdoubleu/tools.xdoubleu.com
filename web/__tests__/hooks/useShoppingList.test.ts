@@ -4,7 +4,7 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({}))
 }))
-jest.mock('@/lib/gen/shoppinglist/v1/shoppinglist_connect', () => ({
+jest.mock('@/lib/gen/shoppinglist/v1/shoppinglist_pb', () => ({
   ShoppingListService: {}
 }))
 

@@ -8,7 +8,7 @@ jest.mock('@/lib/client', () => ({
     setAppAccess: jest.fn()
   }))
 }))
-jest.mock('@/lib/gen/admin/v1/admin_connect', () => ({
+jest.mock('@/lib/gen/admin/v1/admin_pb', () => ({
   AdminService: {}
 }))
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createServiceClient } from '@/lib/client'
-import { RoomService } from '@/lib/gen/watchparty/v1/rooms_connect'
+import { RoomService } from '@/lib/gen/watchparty/v1/rooms_pb'
 
 export default function WatchpartyPage() {
   const [roomCode, setRoomCode] = useState('')
