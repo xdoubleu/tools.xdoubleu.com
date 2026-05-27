@@ -9,7 +9,7 @@ const config: KnipConfig = {
     'hooks/**/*.{ts,tsx}'
   ],
   ignore: ['lib/gen/**'],
-  ignoreDependencies: ['@bufbuild/protoc-gen-es', 'eslint-config-next', '@next/eslint-plugin-next'],
+  ignoreDependencies: ['@bufbuild/protoc-gen-es', '@next/eslint-plugin-next'],
   ignoreBinaries: ['buf']
 }
 
