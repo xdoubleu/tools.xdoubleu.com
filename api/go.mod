@@ -11,7 +11,7 @@ require (
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2
-	github.com/pressly/goose/v3 v3.26.0
+	github.com/pressly/goose/v3 v3.27.1
 	github.com/stretchr/testify v1.11.1
 	github.com/supabase-community/gotrue-go v1.2.1
 	github.com/xdoubleu/essentia/v4 v4.0.2
@@ -24,7 +24,7 @@ require (
 	github.com/goddtriffin/helmet v1.0.2 // indirect
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )
 
@@ -41,6 +41,6 @@ require (
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
