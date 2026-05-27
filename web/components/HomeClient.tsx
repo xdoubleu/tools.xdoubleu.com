@@ -3,25 +3,14 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
-import AppGrid, { type AppLink } from '@/components/AppGrid'
+import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
 import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
 
-const APPS: AppLink[] = [
+const ALL_APPS: AppLink[] = [
   { name: 'backlog', label: 'Backlog', href: '/backlog', description: 'Goals and backlog tracker' },
-  {
-    name: 'watchparty',
-    label: 'Watch Party',
-    href: '/watchparty',
-    description: 'WebRTC screen sharing'
-  },
-  {
-    name: 'icsproxy',
-    label: 'ICS Proxy',
-    href: '/icsproxy',
-    description: 'Calendar feed filtering'
-  },
+  { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' },
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
   {
     name: 'mealplans',
@@ -35,10 +24,31 @@ const APPS: AppLink[] = [
     href: '/shoppinglist',
     description: 'Generate shopping lists from meal plans'
   },
-  { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' },
+  {
+    name: 'watchparty',
+    label: 'Watch Party',
+    href: '/watchparty',
+    description: 'WebRTC screen sharing'
+  },
+  {
+    name: 'icsproxy',
+    label: 'ICS Proxy',
+    href: '/icsproxy',
+    description: 'Calendar feed filtering'
+  },
   { name: 'settings', label: 'Settings', href: '/settings', description: 'User preferences' },
   { name: 'contacts', label: 'Contacts', href: '/contacts', description: 'Manage contacts' },
   { name: 'admin', label: 'Admin', href: '/admin', description: 'Administration' }
+]
+
+const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
+
+const SECTION_DEFS: { title: string; names: string[] }[] = [
+  { title: 'Productivity', names: ['backlog', 'todos'] },
+  { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
+  { title: 'Tools', names: ['watchparty', 'icsproxy'] },
+  { title: 'Account', names: ['settings', 'contacts'] },
+  { title: 'Admin', names: ['admin'] }
 ]
 
 const ALWAYS_VISIBLE = new Set(['settings', 'contacts'])
@@ -126,13 +136,17 @@ export default function HomeClient() {
 
   if (authState === 'authenticated' && data) {
     const appAccess = new Set(data.appAccess ?? [])
-    const visibleApps = APPS.filter((app) => {
-      if (ALWAYS_VISIBLE.has(app.name)) return true
-      if (ADMIN_ONLY.has(app.name)) return data.role === 'admin'
-      return data.role === 'admin' || appAccess.has(app.name)
-    })
+    const isVisible = (name: string) => {
+      if (ALWAYS_VISIBLE.has(name)) return true
+      if (ADMIN_ONLY.has(name)) return data.role === 'admin'
+      return data.role === 'admin' || appAccess.has(name)
+    }
+    const sections: AppSection[] = SECTION_DEFS.map(({ title, names }) => ({
+      title,
+      apps: names.map((n) => APP_MAP.get(n)!).filter((app) => isVisible(app.name))
+    }))
 
-    return <AppGrid apps={visibleApps} />
+    return <AppGrid sections={sections} />
   }
 
   if (authState === 'mfa-challenge') {
