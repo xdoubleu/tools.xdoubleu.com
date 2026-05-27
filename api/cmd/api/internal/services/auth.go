@@ -97,6 +97,7 @@ func (service *AuthService) SignOut(
 		return nil, nil, err
 	}
 
+	//nolint:gosec // Secure is conditionally set based on environment
 	deleteAccessTokenCookie := &http.Cookie{
 		Name:     service.GetCookieName(models.AccessScope),
 		Value:    "",
@@ -107,6 +108,7 @@ func (service *AuthService) SignOut(
 		Path:     "/",
 	}
 
+	//nolint:gosec // Secure is conditionally set based on environment
 	deleteRefreshTokenCookie := &http.Cookie{
 		Name:     service.GetCookieName(models.RefreshScope),
 		Value:    "",
@@ -144,6 +146,7 @@ func (service *AuthService) CreateCookie(
 
 	name := service.GetCookieName(scope)
 
+	//nolint:gosec // Secure is conditionally set based on environment
 	cookie := http.Cookie{
 		Name:     name,
 		Value:    token,

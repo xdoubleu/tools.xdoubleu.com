@@ -66,8 +66,9 @@ func (h *authConnectHandler) SignIn(
 		req.Msg.RememberMe,
 		req.Msg.Redirect,
 	)
+	//nolint:gosec // Secure is conditionally set based on environment
 	resp.Header().Add("Set-Cookie", (&http.Cookie{
-		Name:     "mfaFactorID",
+		Name:     mfaFactorIDCookieName,
 		Value:    factorID.String(),
 		MaxAge:   int(mfaCookieTTL.Seconds()),
 		SameSite: http.SameSiteStrictMode,
@@ -192,7 +193,7 @@ func (h *authConnectHandler) MFAChallenge(
 			errors.New("mfa token required"),
 		)
 	}
-	mfaFactorID, err := h.parseCookie(req.Header(), "mfaFactorID")
+	mfaFactorID, err := h.parseCookie(req.Header(), mfaFactorIDCookieName)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,

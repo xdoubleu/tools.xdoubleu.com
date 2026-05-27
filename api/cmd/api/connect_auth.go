@@ -13,6 +13,14 @@ import (
 
 const mfaCookieTTL = 5 * time.Minute
 
+const (
+	mfaTokenCookieName        = "mfaToken"
+	mfaRefreshTokenCookieName = "mfaRefreshToken"
+	mfaRememberMeCookieName   = "mfaRememberMe"
+	mfaRedirectCookieName     = "mfaRedirect"
+	mfaFactorIDCookieName     = "mfaFactorID"
+)
+
 type authConnectHandler struct {
 	app *Application
 }
@@ -46,8 +54,9 @@ func (h *authConnectHandler) setMFACookies(
 	}
 	ttl := int(mfaCookieTTL.Seconds())
 	for _, c := range []*http.Cookie{
+		//nolint:gosec // Secure is conditionally set based on environment
 		{
-			Name:     "mfaToken",
+			Name:     mfaTokenCookieName,
 			Value:    accessToken,
 			MaxAge:   ttl,
 			SameSite: http.SameSiteStrictMode,
@@ -55,8 +64,9 @@ func (h *authConnectHandler) setMFACookies(
 			Secure:   secure,
 			Path:     "/",
 		},
+		//nolint:gosec // Secure is conditionally set based on environment
 		{
-			Name:     "mfaRefreshToken",
+			Name:     mfaRefreshTokenCookieName,
 			Value:    refreshToken,
 			MaxAge:   ttl,
 			SameSite: http.SameSiteStrictMode,
@@ -64,8 +74,9 @@ func (h *authConnectHandler) setMFACookies(
 			Secure:   secure,
 			Path:     "/",
 		},
+		//nolint:gosec // Secure is conditionally set based on environment
 		{
-			Name:     "mfaRememberMe",
+			Name:     mfaRememberMeCookieName,
 			Value:    rememberVal,
 			MaxAge:   ttl,
 			SameSite: http.SameSiteStrictMode,
@@ -73,8 +84,9 @@ func (h *authConnectHandler) setMFACookies(
 			Secure:   secure,
 			Path:     "/",
 		},
+		//nolint:gosec // Secure is conditionally set based on environment
 		{
-			Name:     "mfaRedirect",
+			Name:     mfaRedirectCookieName,
 			Value:    redirect,
 			MaxAge:   ttl,
 			SameSite: http.SameSiteStrictMode,
@@ -90,19 +102,21 @@ func (h *authConnectHandler) setMFACookies(
 func (h *authConnectHandler) clearMFACookies(header http.Header) {
 	secure := h.secure()
 	mfaCookieNames := []string{
-		"mfaToken",
-		"mfaRefreshToken",
-		"mfaFactorID",
-		"mfaRememberMe",
-		"mfaRedirect",
+		mfaTokenCookieName,
+		mfaRefreshTokenCookieName,
+		mfaFactorIDCookieName,
+		mfaRememberMeCookieName,
+		mfaRedirectCookieName,
 	}
 	for _, name := range mfaCookieNames {
+		//nolint:gosec // Secure is conditionally set based on environment
 		c := &http.Cookie{
 			Name:     name,
 			Value:    "",
 			MaxAge:   -1,
-			Secure:   secure,
+			SameSite: http.SameSiteStrictMode,
 			HttpOnly: true,
+			Secure:   secure,
 			Path:     "/",
 		}
 		header.Add("Set-Cookie", c.String())

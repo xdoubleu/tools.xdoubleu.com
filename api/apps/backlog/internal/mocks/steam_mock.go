@@ -7,6 +7,8 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 )
 
+const mockGameName = "test"
+
 type MockSteamClient struct {
 }
 
@@ -24,7 +26,7 @@ func (client MockSteamClient) GetOwnedGames(
 			Games: []steam.Game{
 				{
 					AppID:                    1,
-					Name:                     "test",
+					Name:                     mockGameName,
 					ImgIconURL:               "",
 					ImgLogoURL:               "",
 					HasCommunityVisibleStats: true,
@@ -45,7 +47,7 @@ func (client MockSteamClient) GetPlayerAchievements(
 		PlayerStats: steam.PlayerStats{
 			Success:  true,
 			SteamID:  steamID,
-			GameName: "test",
+			GameName: mockGameName,
 			Achievements: []steam.Achievement{
 				{
 					APIName:  "TEST",
@@ -56,7 +58,7 @@ func (client MockSteamClient) GetPlayerAchievements(
 							Sub(time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)).
 							Seconds(),
 					),
-					Name:        "test",
+					Name:        mockGameName,
 					Description: "Hello, World!",
 				},
 			},

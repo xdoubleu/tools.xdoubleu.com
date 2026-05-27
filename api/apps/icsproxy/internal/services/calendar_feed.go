@@ -470,10 +470,12 @@ func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
 	return parseICSTime(raw)
 }
 
+const europeBrussels = "Europe/Brussels"
+
 func normalizeTZID(tz string) string {
 	switch tz {
 	case "Romance Standard Time":
-		return "Europe/Brussels"
+		return europeBrussels
 	case "Central Europe Standard Time":
 		return "Europe/Berlin"
 	case "W. Europe Standard Time":

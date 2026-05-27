@@ -9,6 +9,8 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
+const mockUserEmail = "user@example.com"
+
 func NewMockedAuthService(userID string) auth.Service {
 	return &MockedAuthService{
 		userID:  userID,
@@ -35,7 +37,7 @@ func (m *MockedAuthService) mockUser() models.User {
 	}
 	return models.User{
 		ID:        m.userID,
-		Email:     "user@example.com",
+		Email:     mockUserEmail,
 		Role:      role,
 		AppAccess: []string{"backlog", "watchparty", "icsproxy", "recipes"},
 	}

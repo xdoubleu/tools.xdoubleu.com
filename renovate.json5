@@ -16,7 +16,7 @@
     {
       customType: 'regex',
       managerFilePatterns: [
-        '/^Makefile$/',
+        '/Makefile$/',
       ],
       matchStrings: [
         'go install (?<depName>[^@]+)@(?<currentValue>[0-9a-zA-Z.]+)',
@@ -45,6 +45,13 @@
     },
   ],
   packageRules: [
+    {
+      groupName: 'golangci-lint',
+      matchDepNames: [
+        'github.com/golangci/golangci-lint/v2/cmd/golangci-lint',
+        'golangci/golangci-lint',
+      ],
+    },
     {
       groupName: 'proto',
       matchDepNames: [

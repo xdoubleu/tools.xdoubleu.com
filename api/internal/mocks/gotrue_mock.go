@@ -245,14 +245,14 @@ func (client MockedGoTrueClient) GetUser() (*types.UserResponse, error) {
 	case "access":
 		// aal1 token — no verified MFA factors yet
 		return &types.UserResponse{
-			User: types.User{ID: userID, Email: "user@example.com"},
+			User: types.User{ID: userID, Email: mockUserEmail},
 		}, nil
 	case "mfa-access":
 		// aal2 token — verified TOTP factor present
 		return &types.UserResponse{
 			User: types.User{
 				ID:    userID,
-				Email: "user@example.com",
+				Email: mockUserEmail,
 				Factors: []types.Factor{
 					{ID: MockedFactorID, FactorType: "totp", Status: "verified"},
 				},
