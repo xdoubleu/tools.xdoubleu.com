@@ -65,7 +65,14 @@ export default function MealPlanClient({ id }: { id: string }) {
     servings: number
   ) => {
     if (!plan) return
-    const req: AddMealInput = { planId: plan.id, mealDate: date, mealSlot: slot, recipeId, customName, servings }
+    const req: AddMealInput = {
+      planId: plan.id,
+      mealDate: date,
+      mealSlot: slot,
+      recipeId,
+      customName,
+      servings
+    }
     await addMeal(req)
     await mutate()
   }
@@ -82,7 +89,11 @@ export default function MealPlanClient({ id }: { id: string }) {
     if (!plan || !shareInput.trim()) return
     setShareError(null)
     try {
-      const req: SharePlanInput = { planId: plan.id, contactUserId: shareInput.trim(), canEdit: false }
+      const req: SharePlanInput = {
+        planId: plan.id,
+        contactUserId: shareInput.trim(),
+        canEdit: false
+      }
       await sharePlan(req)
       setShareInput('')
       await mutate()

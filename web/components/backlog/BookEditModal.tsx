@@ -34,7 +34,13 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
     try {
       const currentOwnPhysical = userBook.tags.includes('own-physical')
       const currentOwnDigital = userBook.tags.includes('own-digital')
-      const req: UpdateBookStatusInput = { bookId: userBook.id, status, rating: String(rating), notes, favourite }
+      const req: UpdateBookStatusInput = {
+        bookId: userBook.id,
+        status,
+        rating: String(rating),
+        notes,
+        favourite
+      }
       await Promise.all([
         updateBookStatus(req),
         ownPhysical !== currentOwnPhysical && toggleTag(userBook.id, 'own-physical'),
