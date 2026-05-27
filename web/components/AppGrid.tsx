@@ -7,13 +7,17 @@ export interface AppLink {
   description: string
 }
 
-interface AppGridProps {
+export interface AppSection {
+  title: string
   apps: AppLink[]
 }
 
-export default function AppGrid({ apps }: AppGridProps) {
-  if (apps.length === 0) return null
+interface AppGridProps {
+  apps?: AppLink[]
+  sections?: AppSection[]
+}
 
+function AppCards({ apps }: { apps: AppLink[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {apps.map((app) => (
@@ -28,4 +32,28 @@ export default function AppGrid({ apps }: AppGridProps) {
       ))}
     </div>
   )
+}
+
+export default function AppGrid({ apps, sections }: AppGridProps) {
+  if (sections) {
+    const visibleSections = sections.filter((s) => s.apps.length > 0)
+    if (visibleSections.length === 0) return null
+
+    return (
+      <div className="space-y-8">
+        {visibleSections.map((section) => (
+          <section key={section.title}>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+              {section.title}
+            </h2>
+            <AppCards apps={section.apps} />
+          </section>
+        ))}
+      </div>
+    )
+  }
+
+  if (!apps || apps.length === 0) return null
+
+  return <AppCards apps={apps} />
 }

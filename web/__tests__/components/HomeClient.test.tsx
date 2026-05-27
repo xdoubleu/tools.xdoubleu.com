@@ -42,6 +42,11 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Food' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Tools' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Backlog')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
@@ -51,7 +56,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Contacts')).toBeInTheDocument()
-      expect(screen.getByText('Admin')).toBeInTheDocument()
     })
 
     expect(screen.getByRole('link', { name: /Backlog/ })).toHaveAttribute('href', '/backlog')
@@ -260,6 +264,8 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByText('Backlog')).toBeInTheDocument()
       expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
@@ -269,7 +275,9 @@ describe('HomeClient', () => {
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
     expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
-    expect(screen.queryByText('Admin')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Tools' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Food' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
   it('renders all apps for admin user including admin-only and always-visible', async () => {
@@ -282,6 +290,11 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Food' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Tools' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Backlog')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
@@ -291,7 +304,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Contacts')).toBeInTheDocument()
-      expect(screen.getByText('Admin')).toBeInTheDocument()
     })
   })
 
