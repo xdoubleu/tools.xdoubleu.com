@@ -26,6 +26,11 @@ type ShoppingItem struct {
 	Unit   string
 }
 
+type ShoppingLists struct {
+	MealPlanItems []ShoppingItem
+	CustomItems   []ShoppingItem
+}
+
 // CheckPlanAccess returns an error if userID cannot access planID.
 func (r *ShoppingRepository) CheckPlanAccess(
 	ctx context.Context,
@@ -60,34 +65,68 @@ func (r *ShoppingRepository) GetShoppingList(
 	ctx context.Context,
 	planID uuid.UUID,
 	start, end time.Time,
+) (ShoppingLists, error) {
+	mealPlanItems, err := r.getMealPlanItems(ctx, planID, start, end)
+	if err != nil {
+		return ShoppingLists{}, err
+	}
+	customItems, err := r.getCustomItems(ctx, planID)
+	if err != nil {
+		return ShoppingLists{}, err
+	}
+	return ShoppingLists{
+		MealPlanItems: mealPlanItems,
+		CustomItems:   customItems,
+	}, nil
+}
+
+func (r *ShoppingRepository) getMealPlanItems(
+	ctx context.Context,
+	planID uuid.UUID,
+	start, end time.Time,
 ) ([]ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, unit, total_amount FROM (
-			SELECT
-			    '' AS id,
-			    LOWER(i.name) AS name,
-			    i.unit,
-			    SUM(i.amount * pm.servings::NUMERIC / r.base_servings::NUMERIC)
-			        AS total_amount
-			FROM mealplans.plan_meals pm
-			JOIN recipes.recipes r ON r.id = pm.recipe_id
-			JOIN recipes.ingredients i ON i.recipe_id = r.id
-			WHERE pm.plan_id = $1
-			  AND pm.meal_date BETWEEN $2 AND $3
-			GROUP BY LOWER(i.name), i.unit
-
-			UNION ALL
-
-			SELECT
-			    ci.id::text,
-			    ci.name,
-			    ci.unit,
-			    ci.amount::float8
-			FROM shoppinglist.custom_items ci
-			WHERE ci.plan_id = $1
-		) AS combined
-		ORDER BY name`,
+		SELECT
+		    '' AS id,
+		    LOWER(i.name) AS name,
+		    i.unit,
+		    SUM(i.amount * pm.servings::NUMERIC / r.base_servings::NUMERIC)
+		        AS total_amount
+		FROM mealplans.plan_meals pm
+		JOIN recipes.recipes r ON r.id = pm.recipe_id
+		JOIN recipes.ingredients i ON i.recipe_id = r.id
+		WHERE pm.plan_id = $1
+		  AND pm.meal_date BETWEEN $2 AND $3
+		GROUP BY LOWER(i.name), i.unit
+		ORDER BY LOWER(i.name)`,
 		planID, start, end,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []ShoppingItem
+	for rows.Next() {
+		var item ShoppingItem
+		if err = rows.Scan(&item.ID, &item.Name, &item.Unit, &item.Amount); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
+func (r *ShoppingRepository) getCustomItems(
+	ctx context.Context,
+	planID uuid.UUID,
+) ([]ShoppingItem, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT ci.id::text, ci.name, ci.unit, ci.amount::float8
+		FROM shoppinglist.custom_items ci
+		WHERE ci.plan_id = $1
+		ORDER BY ci.name`,
+		planID,
 	)
 	if err != nil {
 		return nil, err
