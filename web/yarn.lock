@@ -9260,7 +9260,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "web@workspace:."
   dependencies:
-    "@bufbuild/protobuf": "npm:1.10.1"
+    "@bufbuild/protobuf": "npm:2.12.0"
     "@bufbuild/protoc-gen-es": "npm:2.12.0"
     "@connectrpc/connect": "npm:1.7.0"
     "@connectrpc/connect-web": "npm:1.7.0"
