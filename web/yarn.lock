@@ -468,13 +468,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@connectrpc/connect-web@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@connectrpc/connect-web@npm:1.7.0"
+"@connectrpc/connect-web@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@connectrpc/connect-web@npm:2.1.1"
   peerDependencies:
-    "@bufbuild/protobuf": ^1.10.0
-    "@connectrpc/connect": 1.7.0
-  checksum: 10c0/3ad4279209a587df7cec1ea0b905058069a73ba23cd271750fac2b3a9e20ee3fd6451fcf27d9920f4f4bb28d8f99dfc6a59a6f8d27c431720cf9134669395b1b
+    "@bufbuild/protobuf": ^2.7.0
+    "@connectrpc/connect": 2.1.1
+  checksum: 10c0/cfbd2557f7f2b6acb9f72296fbecc16c09e4d02915c16cfdac3fa04a60a2d8241cde285ba050d10bd844ea75d13a70f50de7a4a8906301fdbcc26e4abad4d8e3
   languageName: node
   linkType: hard
 
@@ -9263,7 +9263,7 @@ __metadata:
     "@bufbuild/protobuf": "npm:1.10.1"
     "@bufbuild/protoc-gen-es": "npm:2.12.0"
     "@connectrpc/connect": "npm:1.7.0"
-    "@connectrpc/connect-web": "npm:1.7.0"
+    "@connectrpc/connect-web": "npm:2.1.1"
     "@connectrpc/protoc-gen-connect-es": "npm:1.7.0"
     "@eslint/js": "npm:9.39.4"
     "@sentry/nextjs": "npm:10.54.0"
