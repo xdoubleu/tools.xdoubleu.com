@@ -21,7 +21,7 @@
     "react-dom": "19.2.6",
     "recharts": "3.8.1",
     "swr": "2.4.1",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   },
   "devDependencies": {
     "@bufbuild/protobuf": "1.10.1",
