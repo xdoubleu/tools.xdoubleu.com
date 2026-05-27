@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useCreateRecipe, useUpdateRecipe } from '@/hooks/useRecipes'
-import { CreateRecipeRequest, UpdateRecipeRequest } from '@/lib/gen/recipes/v1/recipes_pb'
+import type { CreateRecipeInput, UpdateRecipeInput } from '@/hooks/useRecipes'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { parseFraction } from '@/lib/recipes/parseFraction'
 
@@ -52,29 +52,27 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
     try {
       if (recipe?.id) {
-        await updateRecipe(
-          new UpdateRecipeRequest({
-            id: recipe.id,
-            name,
-            baseServings: parseInt(servings, 10),
-            steps: steps.split('\n').filter((s) => s.trim()),
-            ingredientNames: ingredients.map((ing) => ing.name),
-            ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
-            ingredientUnits: ingredients.map((ing) => ing.unit)
-          })
-        )
+        const req: UpdateRecipeInput = {
+          id: recipe.id,
+          name,
+          baseServings: parseInt(servings, 10),
+          steps: steps.split('\n').filter((s) => s.trim()),
+          ingredientNames: ingredients.map((ing) => ing.name),
+          ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
+          ingredientUnits: ingredients.map((ing) => ing.unit)
+        }
+        await updateRecipe(req)
         onSave(recipe.id)
       } else {
-        const result = await createRecipe(
-          new CreateRecipeRequest({
-            name,
-            baseServings: parseInt(servings, 10),
-            steps: steps.split('\n').filter((s) => s.trim()),
-            ingredientNames: ingredients.map((ing) => ing.name),
-            ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
-            ingredientUnits: ingredients.map((ing) => ing.unit)
-          })
-        )
+        const req: CreateRecipeInput = {
+          name,
+          baseServings: parseInt(servings, 10),
+          steps: steps.split('\n').filter((s) => s.trim()),
+          ingredientNames: ingredients.map((ing) => ing.name),
+          ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
+          ingredientUnits: ingredients.map((ing) => ing.unit)
+        }
+        const result = await createRecipe(req)
         onSave(result.recipe?.id || '')
       }
     } catch (err) {

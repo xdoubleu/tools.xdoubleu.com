@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_connect'
+import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { GetShoppingListResponse } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 
 export function useShoppingList(planId: string) {

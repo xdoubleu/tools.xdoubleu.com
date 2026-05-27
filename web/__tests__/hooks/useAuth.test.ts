@@ -10,7 +10,7 @@ jest.mock('@/lib/client', () => ({
     getCurrentUser: jest.fn()
   }))
 }))
-jest.mock('@/lib/gen/auth/v1/auth_connect', () => ({
+jest.mock('@/lib/gen/auth/v1/auth_pb', () => ({
   AuthService: {}
 }))
 

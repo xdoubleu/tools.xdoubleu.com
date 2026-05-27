@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { ContactsService } from '@/lib/gen/contacts/v1/contacts_connect'
+import { ContactsService } from '@/lib/gen/contacts/v1/contacts_pb'
 import type { ListContactsResponse } from '@/lib/gen/contacts/v1/contacts_pb'
 
 export function useContacts() {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBacklog'
-import { UpdateBookStatusRequest } from '@/lib/gen/backlog/v1/books_pb'
+import type { UpdateBookStatusInput } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 
 const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
@@ -34,16 +34,9 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
     try {
       const currentOwnPhysical = userBook.tags.includes('own-physical')
       const currentOwnDigital = userBook.tags.includes('own-digital')
+      const req: UpdateBookStatusInput = { bookId: userBook.id, status, rating: String(rating), notes, favourite }
       await Promise.all([
-        updateBookStatus(
-          new UpdateBookStatusRequest({
-            bookId: userBook.id,
-            status,
-            rating: String(rating),
-            notes,
-            favourite
-          })
-        ),
+        updateBookStatus(req),
         ownPhysical !== currentOwnPhysical && toggleTag(userBook.id, 'own-physical'),
         ownDigital !== currentOwnDigital && toggleTag(userBook.id, 'own-digital')
       ])

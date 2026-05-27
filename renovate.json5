@@ -34,6 +34,46 @@
       depNameTemplate: 'golang',
       datasourceTemplate: 'docker',
     },
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/buf\\.gen\\.yaml$/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\n\\s+- remote: [^:]+:(?<currentValue>v[^\\s]+)',
+      ],
+    },
+  ],
+  packageRules: [
+    {
+      groupName: 'proto',
+      matchDepNames: [
+        '@bufbuild/protobuf',
+        '@bufbuild/protoc-gen-es',
+        'bufbuild/protobuf-es',
+      ],
+    },
+    {
+      groupName: 'proto',
+      matchDepNames: [
+        '@connectrpc/connect',
+        '@connectrpc/connect-web',
+      ],
+    },
+    {
+      groupName: 'proto',
+      matchDepNames: [
+        'google.golang.org/protobuf',
+        'protocolbuffers/protobuf-go',
+      ],
+    },
+    {
+      groupName: 'proto',
+      matchDepNames: [
+        'connectrpc.com/connect',
+        'connectrpc/connect-go',
+      ],
+    },
   ],
   timezone: 'Europe/Brussels',
   labels: [

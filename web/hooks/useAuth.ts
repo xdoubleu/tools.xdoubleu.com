@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { AuthService } from '@/lib/gen/auth/v1/auth_connect'
+import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
 
 export function useSignIn() {
   const client = createServiceClient(AuthService)

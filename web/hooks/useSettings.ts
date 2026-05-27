@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { SettingsService } from '@/lib/gen/settings/v1/settings_connect'
+import { SettingsService } from '@/lib/gen/settings/v1/settings_pb'
 import type { GetSettingsResponse, Integrations } from '@/lib/gen/settings/v1/settings_pb'
 
 export function useSettings() {

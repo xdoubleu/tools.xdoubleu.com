@@ -7,14 +7,14 @@ jest.mock('@/lib/client', () => ({
     saveSettings: jest.fn()
   }))
 }))
-jest.mock('@/lib/gen/settings/v1/settings_connect', () => ({
+jest.mock('@/lib/gen/settings/v1/settings_pb', () => ({
   SettingsService: {}
 }))
 
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { useSettings, useSaveSettings } from '@/hooks/useSettings'
-import { Integrations } from '@/lib/gen/settings/v1/settings_pb'
+import type { Integrations } from '@/lib/gen/settings/v1/settings_pb'
 
 const mockUseSWR = useSWR as jest.Mock
 const mockCreateServiceClient = createServiceClient as jest.Mock
@@ -58,11 +58,12 @@ describe('useSaveSettings', () => {
       saveSettings: mockSaveSettings
     })
 
-    const integrations = new Integrations({
+    const integrations: Integrations = {
       steamApiKey: 'key',
       steamUserId: 'id',
-      hardcoverApiKey: 'hkey'
-    })
+      hardcoverApiKey: 'hkey',
+      $typeName: 'settings.v1.Integrations'
+    }
 
     const { result } = renderHook(() => useSaveSettings())
     result.current(integrations)

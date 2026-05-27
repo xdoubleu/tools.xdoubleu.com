@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useICSPreview, useSaveConfig } from '@/hooks/useICSProxy'
-import { SaveConfigRequest } from '@/lib/gen/icsproxy/v1/proxy_pb'
+import type { SaveConfigInput } from '@/hooks/useICSProxy'
 import type { FilterConfig, EventInfo } from '@/lib/gen/icsproxy/v1/proxy_pb'
 
 interface FeedFormProps {
@@ -70,15 +70,14 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const result = await saveConfig(
-        new SaveConfigRequest({
-          token: token || '',
-          sourceUrl: fetchUrl || sourceUrl,
-          hideEventUids: Array.from(hideEventUids),
-          holidayUids: Array.from(holidayUids),
-          hideSeries: Array.from(hideSeries)
-        })
-      )
+      const req: SaveConfigInput = {
+        token: token || '',
+        sourceUrl: fetchUrl || sourceUrl,
+        hideEventUids: Array.from(hideEventUids),
+        holidayUids: Array.from(holidayUids),
+        hideSeries: Array.from(hideSeries)
+      }
+      const result = await saveConfig(req)
       router.push('/icsproxy')
       void result
     } catch (err) {

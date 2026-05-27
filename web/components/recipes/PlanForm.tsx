@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useCreatePlan, useUpdatePlan } from '@/hooks/useMealPlans'
-import { CreatePlanRequest, UpdatePlanRequest } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import type { CreatePlanInput, UpdatePlanInput } from '@/hooks/useMealPlans'
 import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
 interface PlanFormProps {
@@ -34,17 +34,17 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
 
     try {
       if (plan?.id) {
-        await updatePlan(
-          new UpdatePlanRequest({
-            id: plan.id,
-            name,
-            icalHideSlots: hiddenSlots,
-            icalHidePast: hidePast
-          })
-        )
+        const req: UpdatePlanInput = {
+          id: plan.id,
+          name,
+          icalHideSlots: hiddenSlots,
+          icalHidePast: hidePast
+        }
+        await updatePlan(req)
         onSave(plan.id)
       } else {
-        const result = await createPlan(new CreatePlanRequest({ name }))
+        const req: CreatePlanInput = { name }
+        const result = await createPlan(req)
         onSave(result.plan?.id ?? '')
       }
     } catch (err) {

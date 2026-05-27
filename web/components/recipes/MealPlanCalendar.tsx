@@ -3,11 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
 import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useMealPlans'
-import {
-  AddMealRequest,
-  DeleteMealRequest,
-  MoveMealRequest
-} from '@/lib/gen/mealplans/v1/mealplans_pb'
+import type { AddMealInput, DeleteMealInput, MoveMealInput } from '@/hooks/useMealPlans'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import RecipeCombobox from './RecipeCombobox'
@@ -73,16 +69,15 @@ export default function MealPlanCalendar({
     if (!selectedSlot || !selectedDate) return
     if (!selectedRecipeId && !selectedCustomName.trim()) return
     try {
-      await addMeal(
-        new AddMealRequest({
-          planId: plan.id,
-          mealDate: selectedDate,
-          mealSlot: selectedSlot,
-          recipeId: selectedRecipeId,
-          customName: selectedCustomName,
-          servings: selectedServings
-        })
-      )
+      const req: AddMealInput = {
+        planId: plan.id,
+        mealDate: selectedDate,
+        mealSlot: selectedSlot,
+        recipeId: selectedRecipeId,
+        customName: selectedCustomName,
+        servings: selectedServings
+      }
+      await addMeal(req)
       const date = selectedDate
       const slot = selectedSlot
       setSelectedSlot(null)
@@ -98,7 +93,8 @@ export default function MealPlanCalendar({
 
   const handleDeleteMeal = async (mealId: string) => {
     try {
-      await deleteMeal(new DeleteMealRequest({ planId: plan.id, mealId }))
+      const req: DeleteMealInput = { planId: plan.id, mealId }
+      await deleteMeal(req)
       onDeleteMeal(mealId)
     } catch (err) {
       console.error('Failed to delete meal:', err)
@@ -134,14 +130,8 @@ export default function MealPlanCalendar({
   const handlePlaceMove = async (newDate: string, newSlot: string) => {
     if (!movingMeal) return
     try {
-      await moveMeal(
-        new MoveMealRequest({
-          planId: plan.id,
-          mealId: movingMeal.id,
-          newDate,
-          newSlot
-        })
-      )
+      const req: MoveMealInput = { planId: plan.id, mealId: movingMeal.id, newDate, newSlot }
+      await moveMeal(req)
       setMovingMeal(null)
       onMoveMeal?.()
     } catch (err) {

@@ -4,13 +4,13 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({}))
 }))
-jest.mock('@/lib/gen/backlog/v1/books_connect', () => ({
+jest.mock('@/lib/gen/backlog/v1/books_pb', () => ({
   BooksService: {}
 }))
-jest.mock('@/lib/gen/backlog/v1/games_connect', () => ({
+jest.mock('@/lib/gen/backlog/v1/games_pb', () => ({
   GamesService: {}
 }))
-jest.mock('@/lib/gen/icsproxy/v1/proxy_connect', () => ({
+jest.mock('@/lib/gen/icsproxy/v1/proxy_pb', () => ({
   ICSProxyService: {}
 }))
 

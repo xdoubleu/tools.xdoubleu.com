@@ -4,7 +4,7 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({}))
 }))
-jest.mock('@/lib/gen/recipes/v1/recipes_connect', () => ({
+jest.mock('@/lib/gen/recipes/v1/recipes_pb', () => ({
   RecipesService: {}
 }))
 

@@ -1,14 +1,20 @@
 import useSWR from 'swr'
+import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
-import { BooksService } from '@/lib/gen/backlog/v1/books_connect'
-import { GamesService } from '@/lib/gen/backlog/v1/games_connect'
+import {
+  BooksService,
+  AddBookRequestSchema,
+  UpdateBookStatusRequestSchema
+} from '@/lib/gen/backlog/v1/books_pb'
+import { GamesService } from '@/lib/gen/backlog/v1/games_pb'
 import type {
   GetLibraryResponse,
   GetBooksProgressResponse,
-  SearchExternalResponse,
-  AddBookRequest,
-  UpdateBookStatusRequest
+  SearchExternalResponse
 } from '@/lib/gen/backlog/v1/books_pb'
+
+export type AddBookInput = MessageInitShape<typeof AddBookRequestSchema>
+export type UpdateBookStatusInput = MessageInitShape<typeof UpdateBookStatusRequestSchema>
 import type {
   GetSteamResponse,
   GetSteamGameResponse,
@@ -61,7 +67,7 @@ export function useSearchExternal() {
 
 export function useAddBook() {
   const client = createServiceClient(BooksService)
-  return (req: AddBookRequest) => client.addBook(req)
+  return (req: AddBookInput) => client.addBook(req)
 }
 
 export function useImportBooks() {
@@ -74,7 +80,7 @@ export function useImportBooks() {
 
 export function useUpdateBookStatus() {
   const client = createServiceClient(BooksService)
-  return (req: UpdateBookStatusRequest) => client.updateBookStatus(req)
+  return (req: UpdateBookStatusInput) => client.updateBookStatus(req)
 }
 
 export function useToggleTag() {

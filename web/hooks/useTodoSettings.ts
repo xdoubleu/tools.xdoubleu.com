@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { SettingsService } from '@/lib/gen/todos/v1/settings_connect'
+import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
 
 export function useTodoSettings() {

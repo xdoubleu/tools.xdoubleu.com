@@ -4,11 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRecipe, useDeleteRecipe, useShareRecipe, useUnshareRecipe } from '@/hooks/useRecipes'
-import {
-  DeleteRecipeRequest,
-  ShareRecipeRequest,
-  UnshareRecipeRequest
-} from '@/lib/gen/recipes/v1/recipes_pb'
+import type { DeleteRecipeInput, ShareRecipeInput, UnshareRecipeInput } from '@/hooks/useRecipes'
 
 export default function RecipeClient({ id }: { id: string }) {
   const [servings, setServings] = useState(0)
@@ -37,7 +33,8 @@ export default function RecipeClient({ id }: { id: string }) {
 
   const handleDelete = async () => {
     if (!recipe) return
-    await deleteRecipe(new DeleteRecipeRequest({ id: recipe.id }))
+    const req: DeleteRecipeInput = { id: recipe.id }
+    await deleteRecipe(req)
     router.push('/recipes/list')
   }
 
@@ -46,7 +43,8 @@ export default function RecipeClient({ id }: { id: string }) {
     if (!recipe || !shareInput.trim()) return
     setShareError(null)
     try {
-      await shareRecipe(new ShareRecipeRequest({ id: recipe.id, contactUserId: shareInput.trim() }))
+      const req: ShareRecipeInput = { id: recipe.id, contactUserId: shareInput.trim() }
+      await shareRecipe(req)
       setShareInput('')
       await mutate()
     } catch (err) {
@@ -56,7 +54,8 @@ export default function RecipeClient({ id }: { id: string }) {
 
   const handleUnshare = async (userId: string) => {
     if (!recipe) return
-    await unshareRecipe(new UnshareRecipeRequest({ id: recipe.id, targetUserId: userId }))
+    const req: UnshareRecipeInput = { id: recipe.id, targetUserId: userId }
+    await unshareRecipe(req)
     await mutate()
   }
 

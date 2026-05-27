@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { TaskService } from '@/lib/gen/todos/v1/tasks_connect'
+import { TaskService } from '@/lib/gen/todos/v1/tasks_pb'
 import type { ListTasksResponse } from '@/lib/gen/todos/v1/tasks_pb'
 
 export function useTodos(queryParams?: {
