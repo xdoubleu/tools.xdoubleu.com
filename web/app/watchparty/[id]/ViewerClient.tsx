@@ -41,7 +41,7 @@ export default function ViewerClient({ id }: { id: string }) {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-border">
-        <Link href="/watchparty" className="text-blue-600 hover:underline text-sm">
+        <Link href="/watchparty" className="text-sm text-accent hover:underline">
           &larr; Back
         </Link>
         <h1 className="text-xl font-bold">Watch Party</h1>
@@ -51,7 +51,7 @@ export default function ViewerClient({ id }: { id: string }) {
         </div>
       </div>
 
-      {error && <p className="px-4 py-2 text-red-600 text-sm bg-red-50">{error}</p>}
+      {error && <p className="px-4 py-2 text-sm text-danger bg-danger/10">{error}</p>}
 
       <div className="relative flex-1 bg-black overflow-hidden">
         <video ref={mainVideoRef} autoPlay playsInline className="w-full h-full object-contain" />
@@ -61,7 +61,7 @@ export default function ViewerClient({ id }: { id: string }) {
           autoPlay
           playsInline
           muted
-          className="absolute bottom-4 right-4 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900"
+          className="absolute bottom-4 right-4 cursor-grab rounded-lg border-2 border-white/20 bg-black object-cover"
           style={{ width: 200, height: 200, display: 'block', transform: 'scaleX(-1)' }}
         />
 
@@ -69,7 +69,7 @@ export default function ViewerClient({ id }: { id: string }) {
           ref={remoteCamRef}
           autoPlay
           playsInline
-          className="absolute bottom-4 left-4 rounded-lg object-cover border-2 border-white/40 cursor-grab bg-gray-900"
+          className="absolute bottom-4 left-4 cursor-grab rounded-lg border-2 border-white/20 bg-black object-cover"
           style={{ width: 200, height: 200, display: 'none' }}
         />
       </div>
@@ -78,9 +78,7 @@ export default function ViewerClient({ id }: { id: string }) {
         <button
           onClick={toggleMic}
           className={`px-4 py-1.5 rounded text-sm font-medium border ${
-            micEnabled
-              ? 'border-border hover:bg-accent'
-              : 'bg-yellow-500 text-white border-yellow-500'
+            micEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
           }`}
         >
           {micEnabled ? 'Mute Mic' : 'Unmute Mic'}
@@ -89,9 +87,7 @@ export default function ViewerClient({ id }: { id: string }) {
         <button
           onClick={toggleCam}
           className={`px-4 py-1.5 rounded text-sm font-medium border ${
-            camEnabled
-              ? 'border-border hover:bg-accent'
-              : 'bg-yellow-500 text-white border-yellow-500'
+            camEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
           }`}
         >
           {camEnabled ? 'Disable Cam' : 'Enable Cam'}

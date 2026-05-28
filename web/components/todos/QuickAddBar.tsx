@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useImperativeHandle, forwardRef, useEffect } from 'react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface QuickAddBarProps {
   sections: Array<{ id: string; name: string }>
@@ -20,9 +22,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
     const [dropdownType, setDropdownType] = useState<'label' | 'section' | null>(null)
 
     useImperativeHandle(ref, () => ({
-      focus: () => {
-        inputRef.current?.focus()
-      }
+      focus: () => inputRef.current?.focus()
     }))
 
     useEffect(() => {
@@ -35,14 +35,12 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
           }
         }
       }
-
       window.addEventListener('keydown', handleKeyDown)
       return () => window.removeEventListener('keydown', handleKeyDown)
     }, [])
 
     const handleInputChange = (value: string) => {
       setInput(value)
-
       if (value.includes('@')) {
         setDropdownType('label')
         setShowDropdown(true)
@@ -57,9 +55,6 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault()
       if (!input.trim()) return
-
-      // For now, just clear and call callback
-      // In a real implementation, this would call the API
       setInput('')
       setShowDropdown(false)
       onAdded()
@@ -77,17 +72,16 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
 
     return (
       <form onSubmit={handleSubmit} className="relative mb-4">
-        <input
+        <Input
           ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder="Add task... use @label #section p1-3 !date"
-          className="w-full px-4 py-2 rounded border border-input-border bg-input text-input-text focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         {showDropdown && dropdownType === 'label' && filteredLabels.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded shadow-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-elevated z-10">
             {filteredLabels.map((label) => (
               <button
                 key={label.value}
@@ -96,9 +90,9 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
                   setInput(input.replace(/@\S*$/, `@${label.value}`))
                   setShowDropdown(false)
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-surface flex items-center gap-2"
+                className="w-full text-left px-4 py-2 hover:bg-surface flex items-center gap-2 text-sm"
               >
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: label.color }} />
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: label.color }} />
                 {label.value}
               </button>
             ))}
@@ -106,7 +100,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
         )}
 
         {showDropdown && dropdownType === 'section' && filteredSections.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded shadow-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-elevated z-10">
             {filteredSections.map((section) => (
               <button
                 key={section.id}
@@ -115,7 +109,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
                   setInput(input.replace(/#\S*$/, `#${section.name}`))
                   setShowDropdown(false)
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-surface"
+                className="w-full text-left px-4 py-2 hover:bg-surface text-sm"
               >
                 {section.name}
               </button>
@@ -123,12 +117,9 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
           </div>
         )}
 
-        <button
-          type="submit"
-          className="mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
+        <Button type="submit" className="mt-2 w-full">
           Add Task
-        </button>
+        </Button>
       </form>
     )
   }

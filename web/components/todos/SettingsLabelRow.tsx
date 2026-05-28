@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface SettingsLabelRowProps {
   value: string
@@ -23,21 +24,18 @@ export default function SettingsLabelRow({
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded border border-border">
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-card">
       <input
         type="color"
         value={selectedColor}
         onChange={(e) => handleColorChange(e.target.value)}
-        className="w-8 h-8 rounded cursor-pointer"
+        className="h-9 w-9 cursor-pointer rounded-lg border-0 bg-transparent p-0"
         title="Select color"
       />
-      <span className="flex-1 font-medium">{value}</span>
-      <button
-        onClick={() => onRemove(value)}
-        className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-      >
+      <span className="flex-1 font-medium text-fg">{value}</span>
+      <Button variant="destructive" size="sm" onClick={() => onRemove(value)}>
         Remove
-      </button>
+      </Button>
     </div>
   )
 }

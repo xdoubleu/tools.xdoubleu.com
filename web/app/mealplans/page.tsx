@@ -8,7 +8,7 @@ function PlanCard({ plan }: { plan: Plan }) {
   return (
     <Link
       href={`/mealplans/${plan.id}`}
-      className="block border border-border rounded p-4 hover:bg-surface transition-colors"
+      className="block rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:shadow-elevated"
     >
       <h2 className="font-semibold text-lg">{plan.name}</h2>
       <p className="text-sm text-muted mt-1">
@@ -37,7 +37,7 @@ export default function PlansPage() {
           </Link>
           <Link
             href="/mealplans/new"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+            className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
           >
             New Plan
           </Link>
@@ -45,7 +45,7 @@ export default function PlansPage() {
       </div>
 
       {isLoading && <p>Loading plans...</p>}
-      {error && <p className="text-red-600">Failed to load meal plans.</p>}
+      {error && <p className="text-danger">Failed to load meal plans.</p>}
       {data && data.plans.length === 0 && (
         <p className="text-muted">No meal plans yet. Create your first one!</p>
       )}

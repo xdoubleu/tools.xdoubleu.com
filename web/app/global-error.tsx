@@ -16,14 +16,12 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   return (
     <html lang="en">
       <body className="bg-bg text-fg">
-        <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4">
           <h1 className="text-2xl font-bold">Something went wrong</h1>
-          <p className="text-sm text-gray-500">
-            {error?.message || 'An unexpected error occurred'}
-          </p>
+          <p className="text-sm text-muted">{error?.message || 'An unexpected error occurred'}</p>
           <button
             onClick={() => reset()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
           >
             Try again
           </button>

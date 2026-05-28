@@ -50,7 +50,7 @@ export default function WatchpartyPage() {
         <button
           onClick={handleCreate}
           disabled={loading}
-          className="w-full py-3 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 disabled:opacity-50"
+          className="h-12 w-full rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
         >
           {loading ? 'Creating...' : 'Create Room'}
         </button>
@@ -82,7 +82,7 @@ export default function WatchpartyPage() {
         </button>
       </form>
 
-      {error && <p className="mt-4 text-red-600 text-sm text-center">{error}</p>}
+      {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
     </main>
   )
 }

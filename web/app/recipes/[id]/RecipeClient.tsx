@@ -61,12 +61,12 @@ export default function RecipeClient({ id }: { id: string }) {
 
   return (
     <main className="max-w-2xl mx-auto p-6">
-      <Link href="/recipes/list" className="text-blue-600 hover:underline text-sm mb-4 block">
+      <Link href="/recipes/list" className="mb-4 block text-sm text-accent hover:underline">
         &larr; Back to recipes
       </Link>
 
       {isLoading && <p>Loading recipe...</p>}
-      {error && <p className="text-red-600">Failed to load recipe.</p>}
+      {error && <p className="text-danger">Failed to load recipe.</p>}
       {recipe && (
         <>
           <div className="flex items-start justify-between mb-2">
@@ -83,7 +83,7 @@ export default function RecipeClient({ id }: { id: string }) {
                   <div className="flex gap-2 items-center">
                     <button
                       onClick={handleDelete}
-                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                      className="rounded-xl bg-danger px-3 py-1.5 text-sm text-white hover:opacity-90"
                     >
                       Confirm delete
                     </button>
@@ -97,7 +97,7 @@ export default function RecipeClient({ id }: { id: string }) {
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(true)}
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                    className="rounded-xl bg-danger px-3 py-1 text-sm text-white hover:opacity-90"
                   >
                     Delete
                   </button>
@@ -118,7 +118,7 @@ export default function RecipeClient({ id }: { id: string }) {
             {servings > 0 && servings !== recipe.baseServings && (
               <button
                 onClick={() => setServings(0)}
-                className="text-xs text-blue-600 hover:underline"
+                className="text-xs text-accent hover:underline"
               >
                 Reset to {recipe.baseServings}
               </button>
@@ -166,12 +166,12 @@ export default function RecipeClient({ id }: { id: string }) {
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
                 >
                   Share
                 </button>
               </form>
-              {shareError && <p className="text-sm text-red-600 mb-2">{shareError}</p>}
+              {shareError && <p className="mb-2 text-sm text-danger">{shareError}</p>}
               {recipe.sharedWith.length > 0 ? (
                 <ul className="space-y-1">
                   {recipe.sharedWith.map((userId) => (
@@ -179,7 +179,7 @@ export default function RecipeClient({ id }: { id: string }) {
                       <span>{userId}</span>
                       <button
                         onClick={() => handleUnshare(userId)}
-                        className="text-red-600 hover:underline text-xs"
+                        className="text-xs text-danger hover:underline"
                       >
                         Unshare
                       </button>

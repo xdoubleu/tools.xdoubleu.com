@@ -33,7 +33,7 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
           href={feedUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-accent hover:underline"
         >
           ICS Feed
         </a>
@@ -45,7 +45,7 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
         <span className="text-border">|</span>
         <Link
           href={`/icsproxy/${config.token}/edit`}
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-accent hover:underline"
         >
           Edit
         </Link>
@@ -55,7 +55,7 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
+              className="rounded-xl bg-danger px-3 py-1.5 text-xs text-white hover:opacity-90 disabled:opacity-50"
             >
               {isDeleting ? 'Deleting...' : 'Confirm delete'}
             </button>
@@ -69,7 +69,7 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
         ) : (
           <button
             onClick={() => setDeleteConfirm(true)}
-            className="text-sm text-red-600 hover:underline"
+            className="text-sm text-danger hover:underline"
           >
             Delete
           </button>
@@ -88,14 +88,14 @@ export default function ICSProxyPage() {
         <h1 className="text-3xl font-bold">ICS Proxy</h1>
         <Link
           href="/icsproxy/new"
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+          className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
         >
           New Feed
         </Link>
       </div>
 
       {isLoading && <p>Loading feeds...</p>}
-      {error && <p className="text-red-600">Failed to load feeds.</p>}
+      {error && <p className="text-danger">Failed to load feeds.</p>}
       {data && data.configs.length === 0 && <p className="text-muted">No filter configs yet.</p>}
       {data && data.configs.length > 0 && (
         <div className="grid gap-4">

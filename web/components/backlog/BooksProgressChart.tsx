@@ -21,7 +21,7 @@ export default function BooksProgressChart({ data }: BooksProgressChartProps) {
   }
 
   const chartData = data.progress.labels.map((label: string, idx: number) => ({
-    label: label,
+    label,
     value: parseInt(data.progress?.values?.[idx] || '0', 10)
   }))
 
@@ -29,11 +29,24 @@ export default function BooksProgressChart({ data }: BooksProgressChartProps) {
     <div className="w-full h-64">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="label" width={80} />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="value" stroke="#3b82f6" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" />
+          <XAxis dataKey="label" width={80} tick={{ fill: 'rgb(var(--color-muted))' }} />
+          <YAxis tick={{ fill: 'rgb(var(--color-muted))' }} />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'rgb(var(--color-card))',
+              borderColor: 'rgb(var(--color-border))',
+              borderRadius: '0.75rem',
+              color: 'rgb(var(--color-fg))'
+            }}
+          />
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke="rgb(var(--color-accent))"
+            strokeWidth={2}
+            dot={false}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>

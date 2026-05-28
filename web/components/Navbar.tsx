@@ -17,12 +17,18 @@ export default function Navbar() {
   }
 
   return (
-    <header className="border-b border-border bg-card px-6 py-3">
-      <nav className="flex items-center justify-between">
-        <Link href="/" className="text-sm font-semibold text-fg hover:text-blue-600">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-glass backdrop-blur-xl backdrop-saturate-150 shadow-glass">
+      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+        <Link
+          href="/"
+          className="text-sm font-semibold text-fg transition-colors hover:text-accent"
+        >
           tools.xdoubleu.com
         </Link>
-        <button onClick={handleSignOut} className="text-sm text-muted hover:text-blue-600">
+        <button
+          onClick={handleSignOut}
+          className="min-h-11 rounded-lg px-3 text-sm text-muted transition-colors hover:text-accent"
+        >
           Sign out
         </button>
       </nav>

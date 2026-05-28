@@ -33,28 +33,28 @@ export default function UsersTable({ users, onUpdated }: UsersTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-2xl border border-border shadow-card">
       <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left p-3">Email</th>
-            <th className="text-left p-3">Role</th>
+        <thead className="bg-surface">
+          <tr className="border-b border-border">
+            <th className="p-3 text-left font-medium text-subtle">Email</th>
+            <th className="p-3 text-left font-medium text-subtle">Role</th>
             {APPS.map((app) => (
-              <th key={app} className="text-center p-3 text-xs">
+              <th key={app} className="p-3 text-center text-xs font-medium text-subtle">
                 {app}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="bg-card">
           {users.map((user) => (
-            <tr key={user.id} className="border-b hover:bg-surface">
-              <td className="p-3">{user.email}</td>
+            <tr key={user.id} className="border-b border-border hover:bg-surface transition-colors">
+              <td className="p-3 text-fg">{user.email}</td>
               <td className="p-3">
                 <select
                   value={user.role || 'user'}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  className="px-2 py-1 rounded border border-input-border bg-input text-input-text text-sm"
+                  className="rounded-lg border border-input-border bg-input px-2 py-1 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
@@ -66,7 +66,7 @@ export default function UsersTable({ users, onUpdated }: UsersTableProps) {
                     type="checkbox"
                     checked={(user.appAccess || []).includes(app)}
                     onChange={(e) => handleAppAccessChange(user.id, app, e.target.checked)}
-                    className="w-4 h-4"
+                    className="h-4 w-4 accent-[rgb(var(--color-accent))]"
                   />
                 </td>
               ))}

@@ -133,7 +133,7 @@ describe('Footer', () => {
     await waitFor(() => {
       const footer = container.querySelector('footer')
       expect(footer).toBeInTheDocument()
-      expect(footer).toHaveClass('border-t', 'border-border', 'bg-card')
+      expect(footer).toHaveClass('border-t', 'bg-glass', 'backdrop-blur-xl')
       expect(screen.getByText('web:abc123d')).toBeInTheDocument()
       expect(screen.getByText('api:deadbee')).toBeInTheDocument()
     })
@@ -150,13 +150,13 @@ describe('Footer', () => {
 
     const divWrapper = footer?.querySelector('div')
     expect(divWrapper).toHaveClass(
+      'mx-auto',
       'flex',
       'flex-wrap',
       'items-center',
       'justify-center',
       'gap-3',
-      'sm:gap-4',
-      'md:gap-6'
+      'sm:gap-4'
     )
   })
 

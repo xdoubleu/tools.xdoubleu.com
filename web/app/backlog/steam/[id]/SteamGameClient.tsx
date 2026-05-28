@@ -25,7 +25,7 @@ function AchievementCard({ achievement }: AchievementCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-semibold text-sm">{achievement.displayName}</h3>
           {achievement.achieved ? (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+            <span className="rounded-full border border-success/20 bg-success/10 px-2 py-0.5 text-xs text-success">
               Achieved
             </span>
           ) : (
@@ -53,12 +53,12 @@ export default function SteamGameClient({ id }: { id: string }) {
 
   return (
     <main className="max-w-4xl mx-auto p-6">
-      <Link href="/backlog" className="text-blue-600 hover:underline text-sm">
+      <Link href="/backlog" className="text-sm text-accent hover:underline">
         &larr; Backlog
       </Link>
 
-      {isLoading && <p className="mt-6">Loading game...</p>}
-      {error && <p className="mt-6 text-red-600">Failed to load game.</p>}
+      {isLoading && <p className="mt-6 text-muted">Loading game...</p>}
+      {error && <p className="mt-6 text-danger">Failed to load game.</p>}
 
       {game && (
         <>

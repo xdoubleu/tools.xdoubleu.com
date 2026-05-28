@@ -10,7 +10,7 @@ export default function NewPlanPage() {
   return (
     <main className="max-w-2xl mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/mealplans" className="text-blue-600 hover:underline text-sm">
+        <Link href="/mealplans" className="text-sm text-accent hover:underline">
           &larr; Meal Plans
         </Link>
         <h1 className="text-3xl font-bold">New Meal Plan</h1>

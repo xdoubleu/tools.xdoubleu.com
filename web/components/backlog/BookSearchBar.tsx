@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useSearchExternal, useImportBooks } from '@/hooks/useBacklog'
 import type { ExternalBookResult } from '@/lib/gen/backlog/v1/books_pb'
 import BookModal from '@/components/backlog/BookModal'
+import { Input } from '@/components/ui/input'
 
 interface BookSearchBarProps {
   onAdded: () => void
@@ -25,9 +26,7 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
       const value = e.target.value
       setQuery(value)
 
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current)
-      }
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
 
       if (!value.trim()) {
         setResults([])
@@ -72,29 +71,14 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
     [importBooks, onAdded]
   )
 
-  const handleSelectBook = (book: ExternalBookResult) => {
-    setSelectedBook(book)
-    setResults([])
-    setQuery('')
-  }
-
-  const handleModalClose = () => {
-    setSelectedBook(null)
-  }
-
-  const handleModalAdded = () => {
-    onAdded()
-  }
-
   return (
     <div className="space-y-3">
       <div className="relative">
-        <input
+        <Input
           type="text"
           value={query}
           onChange={handleQueryChange}
           placeholder="Search books..."
-          className="w-full px-4 py-2 border border-input-border bg-input text-input-text rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         {isSearching && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">
@@ -102,12 +86,16 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
           </span>
         )}
         {results.length > 0 && (
-          <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded shadow-lg max-h-64 overflow-y-auto">
+          <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-elevated max-h-64 overflow-y-auto">
             {results.map((book) => (
               <li key={`${book.provider}-${book.providerId}`}>
                 <button
                   type="button"
-                  onClick={() => handleSelectBook(book)}
+                  onClick={() => {
+                    setSelectedBook(book)
+                    setResults([])
+                    setQuery('')
+                  }}
                   className="w-full text-left px-4 py-2 hover:bg-surface text-sm"
                 >
                   <span className="font-medium">{book.title}</span>
@@ -122,15 +110,15 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="text-sm text-muted cursor-pointer">
-          <span className="px-3 py-1.5 bg-surface rounded hover:bg-border text-sm">Import CSV</span>
+        <label className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-border bg-surface px-3 text-xs text-fg transition-colors hover:bg-card">
+          Import CSV
           <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
         </label>
         {importStatus && <span className="text-sm text-muted">{importStatus}</span>}
       </div>
 
       {selectedBook && (
-        <BookModal book={selectedBook} onClose={handleModalClose} onAdded={handleModalAdded} />
+        <BookModal book={selectedBook} onClose={() => setSelectedBook(null)} onAdded={onAdded} />
       )}
     </div>
   )

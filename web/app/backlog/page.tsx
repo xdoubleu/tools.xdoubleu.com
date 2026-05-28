@@ -103,7 +103,7 @@ function TabBar<T extends string>({
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className={`px-3 py-1.5 rounded text-sm ${active === t.id ? 'bg-blue-600 text-white' : 'bg-surface text-subtle hover:bg-border'}`}
+          className={`rounded-xl px-3 py-2 text-sm transition-colors ${active === t.id ? 'bg-accent text-white' : 'bg-surface text-subtle hover:bg-border'}`}
         >
           {t.label}
         </button>
@@ -145,7 +145,7 @@ function BooksSection() {
       {booksTab === 'library' && (
         <>
           {libLoading && <p>Loading books...</p>}
-          {libError && <p className="text-red-600">Failed to load books.</p>}
+          {libError && <p className="text-danger">Failed to load books.</p>}
           {library && (
             <>
               {library.reading.length > 0 && (
@@ -281,7 +281,7 @@ function SteamSection() {
       {steamTab === 'backlog' && (
         <>
           {steamLoading && <p>Loading Steam library...</p>}
-          {steamError && <p className="text-red-600">Failed to load Steam data.</p>}
+          {steamError && <p className="text-danger">Failed to load Steam data.</p>}
           {steam && (
             <>
               <p className="mb-4 text-muted text-sm">
@@ -368,7 +368,13 @@ function SteamSection() {
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#3b82f6" dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="rgb(var(--color-accent))"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -404,13 +410,13 @@ export default function BacklogPage() {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab('books')}
-          className={`px-4 py-2 rounded ${tab === 'books' ? 'bg-blue-600 text-white' : 'bg-surface text-subtle'}`}
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${tab === 'books' ? 'bg-accent text-white' : 'bg-surface text-subtle hover:bg-border'}`}
         >
           Books
         </button>
         <button
           onClick={() => setTab('steam')}
-          className={`px-4 py-2 rounded ${tab === 'steam' ? 'bg-blue-600 text-white' : 'bg-surface text-subtle'}`}
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${tab === 'steam' ? 'bg-accent text-white' : 'bg-surface text-subtle hover:bg-border'}`}
         >
           Steam
         </button>

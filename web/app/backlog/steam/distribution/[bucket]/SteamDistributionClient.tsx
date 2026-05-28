@@ -26,12 +26,12 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
 
   return (
     <main className="max-w-4xl mx-auto p-6">
-      <Link href="/backlog" className="text-blue-600 hover:underline text-sm">
+      <Link href="/backlog" className="text-sm text-accent hover:underline">
         &larr; Backlog
       </Link>
 
-      {isLoading && <p className="mt-6">Loading...</p>}
-      {error && <p className="mt-6 text-red-600">Failed to load distribution.</p>}
+      {isLoading && <p className="mt-6 text-muted">Loading...</p>}
+      {error && <p className="mt-6 text-danger">Failed to load distribution.</p>}
 
       {!isLoading && (
         <>
