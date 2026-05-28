@@ -89,27 +89,28 @@ func (x *ShoppingItem) GetId() string {
 	return ""
 }
 
-type GetShoppingListRequest struct {
+type DayShoppingItems struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PlanId        string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	Date          string                 `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	Items         []*ShoppingItem        `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetShoppingListRequest) Reset() {
-	*x = GetShoppingListRequest{}
+func (x *DayShoppingItems) Reset() {
+	*x = DayShoppingItems{}
 	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetShoppingListRequest) String() string {
+func (x *DayShoppingItems) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetShoppingListRequest) ProtoMessage() {}
+func (*DayShoppingItems) ProtoMessage() {}
 
-func (x *GetShoppingListRequest) ProtoReflect() protoreflect.Message {
+func (x *DayShoppingItems) ProtoReflect() protoreflect.Message {
 	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -121,40 +122,45 @@ func (x *GetShoppingListRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetShoppingListRequest.ProtoReflect.Descriptor instead.
-func (*GetShoppingListRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DayShoppingItems.ProtoReflect.Descriptor instead.
+func (*DayShoppingItems) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetShoppingListRequest) GetPlanId() string {
+func (x *DayShoppingItems) GetDate() string {
 	if x != nil {
-		return x.PlanId
+		return x.Date
 	}
 	return ""
 }
 
-type GetShoppingListResponse struct {
+func (x *DayShoppingItems) GetItems() []*ShoppingItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type GetCustomListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	MealPlanItems []*ShoppingItem        `protobuf:"bytes,1,rep,name=meal_plan_items,json=mealPlanItems,proto3" json:"meal_plan_items,omitempty"`
-	CustomItems   []*ShoppingItem        `protobuf:"bytes,2,rep,name=custom_items,json=customItems,proto3" json:"custom_items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetShoppingListResponse) Reset() {
-	*x = GetShoppingListResponse{}
+func (x *GetCustomListRequest) Reset() {
+	*x = GetCustomListRequest{}
 	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetShoppingListResponse) String() string {
+func (x *GetCustomListRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetShoppingListResponse) ProtoMessage() {}
+func (*GetCustomListRequest) ProtoMessage() {}
 
-func (x *GetShoppingListResponse) ProtoReflect() protoreflect.Message {
+func (x *GetCustomListRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -166,38 +172,67 @@ func (x *GetShoppingListResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetShoppingListResponse.ProtoReflect.Descriptor instead.
-func (*GetShoppingListResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetCustomListRequest.ProtoReflect.Descriptor instead.
+func (*GetCustomListRequest) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GetShoppingListResponse) GetMealPlanItems() []*ShoppingItem {
-	if x != nil {
-		return x.MealPlanItems
-	}
-	return nil
+type GetCustomListResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*ShoppingItem        `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetShoppingListResponse) GetCustomItems() []*ShoppingItem {
+func (x *GetCustomListResponse) Reset() {
+	*x = GetCustomListResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCustomListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCustomListResponse) ProtoMessage() {}
+
+func (x *GetCustomListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[3]
 	if x != nil {
-		return x.CustomItems
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCustomListResponse.ProtoReflect.Descriptor instead.
+func (*GetCustomListResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetCustomListResponse) GetItems() []*ShoppingItem {
+	if x != nil {
+		return x.Items
 	}
 	return nil
 }
 
 type AddShoppingItemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PlanId        string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Amount        string                 `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
-	Unit          string                 `protobuf:"bytes,4,opt,name=unit,proto3" json:"unit,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Amount        string                 `protobuf:"bytes,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddShoppingItemRequest) Reset() {
 	*x = AddShoppingItemRequest{}
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[3]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -209,7 +244,7 @@ func (x *AddShoppingItemRequest) String() string {
 func (*AddShoppingItemRequest) ProtoMessage() {}
 
 func (x *AddShoppingItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[3]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,14 +257,7 @@ func (x *AddShoppingItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddShoppingItemRequest.ProtoReflect.Descriptor instead.
 func (*AddShoppingItemRequest) Descriptor() ([]byte, []int) {
-	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *AddShoppingItemRequest) GetPlanId() string {
-	if x != nil {
-		return x.PlanId
-	}
-	return ""
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AddShoppingItemRequest) GetName() string {
@@ -262,7 +290,7 @@ type AddShoppingItemResponse struct {
 
 func (x *AddShoppingItemResponse) Reset() {
 	*x = AddShoppingItemResponse{}
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[4]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -274,7 +302,7 @@ func (x *AddShoppingItemResponse) String() string {
 func (*AddShoppingItemResponse) ProtoMessage() {}
 
 func (x *AddShoppingItemResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[4]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -287,7 +315,7 @@ func (x *AddShoppingItemResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddShoppingItemResponse.ProtoReflect.Descriptor instead.
 func (*AddShoppingItemResponse) Descriptor() ([]byte, []int) {
-	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{4}
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AddShoppingItemResponse) GetItem() *ShoppingItem {
@@ -299,15 +327,14 @@ func (x *AddShoppingItemResponse) GetItem() *ShoppingItem {
 
 type DeleteShoppingItemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PlanId        string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	ItemId        string                 `protobuf:"bytes,2,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeleteShoppingItemRequest) Reset() {
 	*x = DeleteShoppingItemRequest{}
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[5]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -319,7 +346,7 @@ func (x *DeleteShoppingItemRequest) String() string {
 func (*DeleteShoppingItemRequest) ProtoMessage() {}
 
 func (x *DeleteShoppingItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[5]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -332,14 +359,7 @@ func (x *DeleteShoppingItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShoppingItemRequest.ProtoReflect.Descriptor instead.
 func (*DeleteShoppingItemRequest) Descriptor() ([]byte, []int) {
-	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *DeleteShoppingItemRequest) GetPlanId() string {
-	if x != nil {
-		return x.PlanId
-	}
-	return ""
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteShoppingItemRequest) GetItemId() string {
@@ -357,7 +377,7 @@ type DeleteShoppingItemResponse struct {
 
 func (x *DeleteShoppingItemResponse) Reset() {
 	*x = DeleteShoppingItemResponse{}
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[6]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +389,7 @@ func (x *DeleteShoppingItemResponse) String() string {
 func (*DeleteShoppingItemResponse) ProtoMessage() {}
 
 func (x *DeleteShoppingItemResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[6]
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +402,95 @@ func (x *DeleteShoppingItemResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShoppingItemResponse.ProtoReflect.Descriptor instead.
 func (*DeleteShoppingItemResponse) Descriptor() ([]byte, []int) {
-	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{6}
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{7}
+}
+
+type GetMealPlanExportItemsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PlanId        string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMealPlanExportItemsRequest) Reset() {
+	*x = GetMealPlanExportItemsRequest{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMealPlanExportItemsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMealPlanExportItemsRequest) ProtoMessage() {}
+
+func (x *GetMealPlanExportItemsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMealPlanExportItemsRequest.ProtoReflect.Descriptor instead.
+func (*GetMealPlanExportItemsRequest) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetMealPlanExportItemsRequest) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+type GetMealPlanExportItemsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DayItems      []*DayShoppingItems    `protobuf:"bytes,1,rep,name=day_items,json=dayItems,proto3" json:"day_items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMealPlanExportItemsResponse) Reset() {
+	*x = GetMealPlanExportItemsResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMealPlanExportItemsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMealPlanExportItemsResponse) ProtoMessage() {}
+
+func (x *GetMealPlanExportItemsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMealPlanExportItemsResponse.ProtoReflect.Descriptor instead.
+func (*GetMealPlanExportItemsResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetMealPlanExportItemsResponse) GetDayItems() []*DayShoppingItems {
+	if x != nil {
+		return x.DayItems
+	}
+	return nil
 }
 
 var File_shoppinglist_v1_shoppinglist_proto protoreflect.FileDescriptor
@@ -394,27 +502,31 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
 	"\x04unit\x18\x03 \x01(\tR\x04unit\x12\x0e\n" +
-	"\x02id\x18\x04 \x01(\tR\x02id\"1\n" +
-	"\x16GetShoppingListRequest\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\"\xa2\x01\n" +
-	"\x17GetShoppingListResponse\x12E\n" +
-	"\x0fmeal_plan_items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\rmealPlanItems\x12@\n" +
-	"\fcustom_items\x18\x02 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\vcustomItems\"q\n" +
-	"\x16AddShoppingItemRequest\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
-	"\x06amount\x18\x03 \x01(\tR\x06amount\x12\x12\n" +
-	"\x04unit\x18\x04 \x01(\tR\x04unit\"L\n" +
+	"\x02id\x18\x04 \x01(\tR\x02id\"[\n" +
+	"\x10DayShoppingItems\x12\x12\n" +
+	"\x04date\x18\x01 \x01(\tR\x04date\x123\n" +
+	"\x05items\x18\x02 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"\x16\n" +
+	"\x14GetCustomListRequest\"L\n" +
+	"\x15GetCustomListResponse\x123\n" +
+	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"X\n" +
+	"\x16AddShoppingItemRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
+	"\x04unit\x18\x03 \x01(\tR\x04unit\"L\n" +
 	"\x17AddShoppingItemResponse\x121\n" +
-	"\x04item\x18\x01 \x01(\v2\x1d.shoppinglist.v1.ShoppingItemR\x04item\"M\n" +
+	"\x04item\x18\x01 \x01(\v2\x1d.shoppinglist.v1.ShoppingItemR\x04item\"4\n" +
 	"\x19DeleteShoppingItemRequest\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
-	"\aitem_id\x18\x02 \x01(\tR\x06itemId\"\x1c\n" +
-	"\x1aDeleteShoppingItemResponse2\xd0\x02\n" +
-	"\x13ShoppingListService\x12d\n" +
-	"\x0fGetShoppingList\x12'.shoppinglist.v1.GetShoppingListRequest\x1a(.shoppinglist.v1.GetShoppingListResponse\x12d\n" +
+	"\aitem_id\x18\x01 \x01(\tR\x06itemId\"\x1c\n" +
+	"\x1aDeleteShoppingItemResponse\"8\n" +
+	"\x1dGetMealPlanExportItemsRequest\x12\x17\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\"`\n" +
+	"\x1eGetMealPlanExportItemsResponse\x12>\n" +
+	"\tday_items\x18\x01 \x03(\v2!.shoppinglist.v1.DayShoppingItemsR\bdayItems2\xc5\x03\n" +
+	"\x13ShoppingListService\x12^\n" +
+	"\rGetCustomList\x12%.shoppinglist.v1.GetCustomListRequest\x1a&.shoppinglist.v1.GetCustomListResponse\x12d\n" +
 	"\x0fAddShoppingItem\x12'.shoppinglist.v1.AddShoppingItemRequest\x1a(.shoppinglist.v1.AddShoppingItemResponse\x12m\n" +
-	"\x12DeleteShoppingItem\x12*.shoppinglist.v1.DeleteShoppingItemRequest\x1a+.shoppinglist.v1.DeleteShoppingItemResponseB7Z5tools.xdoubleu.com/gen/shoppinglist/v1;shoppinglistv1b\x06proto3"
+	"\x12DeleteShoppingItem\x12*.shoppinglist.v1.DeleteShoppingItemRequest\x1a+.shoppinglist.v1.DeleteShoppingItemResponse\x12y\n" +
+	"\x16GetMealPlanExportItems\x12..shoppinglist.v1.GetMealPlanExportItemsRequest\x1a/.shoppinglist.v1.GetMealPlanExportItemsResponseB7Z5tools.xdoubleu.com/gen/shoppinglist/v1;shoppinglistv1b\x06proto3"
 
 var (
 	file_shoppinglist_v1_shoppinglist_proto_rawDescOnce sync.Once
@@ -428,31 +540,37 @@ func file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP() []byte {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescData
 }
 
-var file_shoppinglist_v1_shoppinglist_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_shoppinglist_v1_shoppinglist_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_shoppinglist_v1_shoppinglist_proto_goTypes = []any{
-	(*ShoppingItem)(nil),               // 0: shoppinglist.v1.ShoppingItem
-	(*GetShoppingListRequest)(nil),     // 1: shoppinglist.v1.GetShoppingListRequest
-	(*GetShoppingListResponse)(nil),    // 2: shoppinglist.v1.GetShoppingListResponse
-	(*AddShoppingItemRequest)(nil),     // 3: shoppinglist.v1.AddShoppingItemRequest
-	(*AddShoppingItemResponse)(nil),    // 4: shoppinglist.v1.AddShoppingItemResponse
-	(*DeleteShoppingItemRequest)(nil),  // 5: shoppinglist.v1.DeleteShoppingItemRequest
-	(*DeleteShoppingItemResponse)(nil), // 6: shoppinglist.v1.DeleteShoppingItemResponse
+	(*ShoppingItem)(nil),                   // 0: shoppinglist.v1.ShoppingItem
+	(*DayShoppingItems)(nil),               // 1: shoppinglist.v1.DayShoppingItems
+	(*GetCustomListRequest)(nil),           // 2: shoppinglist.v1.GetCustomListRequest
+	(*GetCustomListResponse)(nil),          // 3: shoppinglist.v1.GetCustomListResponse
+	(*AddShoppingItemRequest)(nil),         // 4: shoppinglist.v1.AddShoppingItemRequest
+	(*AddShoppingItemResponse)(nil),        // 5: shoppinglist.v1.AddShoppingItemResponse
+	(*DeleteShoppingItemRequest)(nil),      // 6: shoppinglist.v1.DeleteShoppingItemRequest
+	(*DeleteShoppingItemResponse)(nil),     // 7: shoppinglist.v1.DeleteShoppingItemResponse
+	(*GetMealPlanExportItemsRequest)(nil),  // 8: shoppinglist.v1.GetMealPlanExportItemsRequest
+	(*GetMealPlanExportItemsResponse)(nil), // 9: shoppinglist.v1.GetMealPlanExportItemsResponse
 }
 var file_shoppinglist_v1_shoppinglist_proto_depIdxs = []int32{
-	0, // 0: shoppinglist.v1.GetShoppingListResponse.meal_plan_items:type_name -> shoppinglist.v1.ShoppingItem
-	0, // 1: shoppinglist.v1.GetShoppingListResponse.custom_items:type_name -> shoppinglist.v1.ShoppingItem
+	0, // 0: shoppinglist.v1.DayShoppingItems.items:type_name -> shoppinglist.v1.ShoppingItem
+	0, // 1: shoppinglist.v1.GetCustomListResponse.items:type_name -> shoppinglist.v1.ShoppingItem
 	0, // 2: shoppinglist.v1.AddShoppingItemResponse.item:type_name -> shoppinglist.v1.ShoppingItem
-	1, // 3: shoppinglist.v1.ShoppingListService.GetShoppingList:input_type -> shoppinglist.v1.GetShoppingListRequest
-	3, // 4: shoppinglist.v1.ShoppingListService.AddShoppingItem:input_type -> shoppinglist.v1.AddShoppingItemRequest
-	5, // 5: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
-	2, // 6: shoppinglist.v1.ShoppingListService.GetShoppingList:output_type -> shoppinglist.v1.GetShoppingListResponse
-	4, // 7: shoppinglist.v1.ShoppingListService.AddShoppingItem:output_type -> shoppinglist.v1.AddShoppingItemResponse
-	6, // 8: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 3: shoppinglist.v1.GetMealPlanExportItemsResponse.day_items:type_name -> shoppinglist.v1.DayShoppingItems
+	2, // 4: shoppinglist.v1.ShoppingListService.GetCustomList:input_type -> shoppinglist.v1.GetCustomListRequest
+	4, // 5: shoppinglist.v1.ShoppingListService.AddShoppingItem:input_type -> shoppinglist.v1.AddShoppingItemRequest
+	6, // 6: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
+	8, // 7: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:input_type -> shoppinglist.v1.GetMealPlanExportItemsRequest
+	3, // 8: shoppinglist.v1.ShoppingListService.GetCustomList:output_type -> shoppinglist.v1.GetCustomListResponse
+	5, // 9: shoppinglist.v1.ShoppingListService.AddShoppingItem:output_type -> shoppinglist.v1.AddShoppingItemResponse
+	7, // 10: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
+	9, // 11: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:output_type -> shoppinglist.v1.GetMealPlanExportItemsResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_shoppinglist_v1_shoppinglist_proto_init() }
@@ -466,7 +584,7 @@ func file_shoppinglist_v1_shoppinglist_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shoppinglist_v1_shoppinglist_proto_rawDesc), len(file_shoppinglist_v1_shoppinglist_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

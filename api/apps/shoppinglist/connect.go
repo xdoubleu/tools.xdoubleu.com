@@ -13,7 +13,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
-	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
@@ -60,10 +59,10 @@ func mapError(err error) error {
 	return connect.NewError(connect.CodeInternal, err)
 }
 
-func (h *shoppingConnectHandler) GetShoppingList(
+func (h *shoppingConnectHandler) GetCustomList(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.GetShoppingListRequest],
-) (*connect.Response[shoppinglistv1.GetShoppingListResponse], error) {
+	_ *connect.Request[shoppinglistv1.GetCustomListRequest],
+) (*connect.Response[shoppinglistv1.GetCustomListResponse], error) {
 	user := getUser(ctx)
 	if user == nil {
 		return nil, connect.NewError(
@@ -72,39 +71,22 @@ func (h *shoppingConnectHandler) GetShoppingList(
 		)
 	}
 
-	planID, err := uuid.Parse(req.Msg.PlanId)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
-		)
-	}
-
-	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
-	end := today.AddDate(0, 0, daysPerWeek-1)
-
-	lists, err := h.app.services.Shopping.GetList(ctx, planID, user.ID, today, end)
+	items, err := h.app.services.Shopping.GetCustomList(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	toProto := func(items []repositories.ShoppingItem) []*shoppinglistv1.ShoppingItem {
-		pb := make([]*shoppinglistv1.ShoppingItem, len(items))
-		for i, item := range items {
-			pb[i] = &shoppinglistv1.ShoppingItem{
-				Id:     item.ID,
-				Name:   item.Name,
-				Amount: format.ToFractionCeiling(item.Amount),
-				Unit:   item.Unit,
-			}
+	pb := make([]*shoppinglistv1.ShoppingItem, len(items))
+	for i, item := range items {
+		pb[i] = &shoppinglistv1.ShoppingItem{
+			Id:     item.ID,
+			Name:   item.Name,
+			Amount: format.ToFractionCeiling(item.Amount),
+			Unit:   item.Unit,
 		}
-		return pb
 	}
 
-	return connect.NewResponse(&shoppinglistv1.GetShoppingListResponse{
-		MealPlanItems: toProto(lists.MealPlanItems),
-		CustomItems:   toProto(lists.CustomItems),
-	}), nil
+	return connect.NewResponse(&shoppinglistv1.GetCustomListResponse{Items: pb}), nil
 }
 
 func (h *shoppingConnectHandler) AddShoppingItem(
@@ -116,14 +98,6 @@ func (h *shoppingConnectHandler) AddShoppingItem(
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
 			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	planID, err := uuid.Parse(req.Msg.PlanId)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
 		)
 	}
 
@@ -143,7 +117,7 @@ func (h *shoppingConnectHandler) AddShoppingItem(
 	}
 
 	item, err := h.app.services.Shopping.AddItem(
-		ctx, planID, user.ID, req.Msg.Name, req.Msg.Unit, amount,
+		ctx, user.ID, req.Msg.Name, req.Msg.Unit, amount,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -171,14 +145,6 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 		)
 	}
 
-	planID, err := uuid.Parse(req.Msg.PlanId)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
-		)
-	}
-
 	itemID, err := uuid.Parse(req.Msg.ItemId)
 	if err != nil {
 		return nil, connect.NewError(
@@ -187,9 +153,60 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 		)
 	}
 
-	if err = h.app.services.Shopping.DeleteItem(ctx, planID, itemID, user.ID); err != nil {
+	if err = h.app.services.Shopping.DeleteItem(ctx, user.ID, itemID); err != nil {
 		return nil, mapError(err)
 	}
 
 	return connect.NewResponse(&shoppinglistv1.DeleteShoppingItemResponse{}), nil
+}
+
+func (h *shoppingConnectHandler) GetMealPlanExportItems(
+	ctx context.Context,
+	req *connect.Request[shoppinglistv1.GetMealPlanExportItemsRequest],
+) (*connect.Response[shoppinglistv1.GetMealPlanExportItemsResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	planID, err := uuid.Parse(req.Msg.PlanId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+	end := today.AddDate(0, 0, daysPerWeek-1)
+
+	dayItems, err := h.app.services.Shopping.GetMealPlanExportItems(
+		ctx, planID, user.ID, today, end,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	pb := make([]*shoppinglistv1.DayShoppingItems, len(dayItems))
+	for i, day := range dayItems {
+		items := make([]*shoppinglistv1.ShoppingItem, len(day.Items))
+		for j, item := range day.Items {
+			items[j] = &shoppinglistv1.ShoppingItem{
+				Name:   item.Name,
+				Amount: format.ToFractionCeiling(item.Amount),
+				Unit:   item.Unit,
+			}
+		}
+		pb[i] = &shoppinglistv1.DayShoppingItems{
+			Date:  day.Date,
+			Items: items,
+		}
+	}
+
+	return connect.NewResponse(&shoppinglistv1.GetMealPlanExportItemsResponse{
+		DayItems: pb,
+	}), nil
 }

@@ -5,35 +5,44 @@ export interface ShoppingItem {
   id?: string
 }
 
+export interface DayItems {
+  date: string
+  items: ShoppingItem[]
+}
+
 function formatItem(item: ShoppingItem): string {
   return `${item.amount} ${item.unit} - ${item.name}`
 }
 
 function buildSections(
-  mealPlanItems: ShoppingItem[],
   customItems: ShoppingItem[],
+  dayItems: DayItems[] | undefined,
   formatLine: (item: ShoppingItem) => string
 ): string {
   const sections: string[] = []
-  if (mealPlanItems.length > 0) {
-    sections.push(['From meal plan:', ...mealPlanItems.map(formatLine)].join('\n'))
-  }
   if (customItems.length > 0) {
     sections.push(['Custom items:', ...customItems.map(formatLine)].join('\n'))
+  }
+  if (dayItems && dayItems.length > 0) {
+    const dayLines: string[] = ['From meal plan:']
+    for (const day of dayItems) {
+      dayLines.push(day.date + ':')
+      for (const item of day.items) {
+        dayLines.push('  ' + formatLine(item))
+      }
+    }
+    sections.push(dayLines.join('\n'))
   }
   return sections.join('\n\n')
 }
 
-export function formatForClipboard(
-  mealPlanItems: ShoppingItem[],
-  customItems: ShoppingItem[]
-): string {
-  return buildSections(mealPlanItems, customItems, formatItem)
+export function formatForClipboard(customItems: ShoppingItem[], dayItems?: DayItems[]): string {
+  return buildSections(customItems, dayItems, formatItem)
 }
 
 export function formatForAppleNotes(
-  mealPlanItems: ShoppingItem[],
   customItems: ShoppingItem[],
+  dayItems?: DayItems[],
   date: Date = new Date()
 ): string {
   const day = String(date.getDate()).padStart(2, '0')
@@ -41,13 +50,13 @@ export function formatForAppleNotes(
   const year = date.getFullYear()
   const title = `Shopping list ${day}/${month}/${year}`
   const body = buildSections(
-    mealPlanItems,
     customItems,
+    dayItems,
     (item) => `${item.amount} ${item.unit} ${item.name}`
   )
   return body ? `${title}\n\n${body}` : title
 }
 
-export function formatAsTxt(mealPlanItems: ShoppingItem[], customItems: ShoppingItem[]): string {
-  return buildSections(mealPlanItems, customItems, formatItem)
+export function formatAsTxt(customItems: ShoppingItem[], dayItems?: DayItems[]): string {
+  return buildSections(customItems, dayItems, formatItem)
 }

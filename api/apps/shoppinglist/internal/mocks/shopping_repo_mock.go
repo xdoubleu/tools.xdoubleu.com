@@ -15,18 +15,23 @@ type ShoppingRepoMock struct {
 		planID uuid.UUID,
 		userID string,
 	) error
-	GetShoppingListFn func(
+	GetCustomItemsFn func(
+		ctx context.Context,
+		userID string,
+	) ([]repositories.ShoppingItem, error)
+	AddCustomItemFn func(
+		ctx context.Context,
+		userID, name, unit string,
+		amount float64,
+	) (repositories.ShoppingItem, error)
+	DeleteCustomItemFn func(
+		ctx context.Context, userID string, itemID uuid.UUID,
+	) error
+	GetMealPlanExportItemsFn func(
 		ctx context.Context,
 		planID uuid.UUID,
 		start, end time.Time,
-	) (repositories.ShoppingLists, error)
-	AddCustomItemFn func(
-		ctx context.Context,
-		planID uuid.UUID,
-		name, unit string,
-		amount float64,
-	) (repositories.ShoppingItem, error)
-	DeleteCustomItemFn func(ctx context.Context, planID, itemID uuid.UUID) error
+	) ([]repositories.DayItems, error)
 }
 
 func (m *ShoppingRepoMock) CheckPlanAccess(
@@ -37,26 +42,33 @@ func (m *ShoppingRepoMock) CheckPlanAccess(
 	return m.CheckPlanAccessFn(ctx, planID, userID)
 }
 
-func (m *ShoppingRepoMock) GetShoppingList(
+func (m *ShoppingRepoMock) GetCustomItems(
 	ctx context.Context,
-	planID uuid.UUID,
-	start, end time.Time,
-) (repositories.ShoppingLists, error) {
-	return m.GetShoppingListFn(ctx, planID, start, end)
+	userID string,
+) ([]repositories.ShoppingItem, error) {
+	return m.GetCustomItemsFn(ctx, userID)
 }
 
 func (m *ShoppingRepoMock) AddCustomItem(
 	ctx context.Context,
-	planID uuid.UUID,
-	name, unit string,
+	userID, name, unit string,
 	amount float64,
 ) (repositories.ShoppingItem, error) {
-	return m.AddCustomItemFn(ctx, planID, name, unit, amount)
+	return m.AddCustomItemFn(ctx, userID, name, unit, amount)
 }
 
 func (m *ShoppingRepoMock) DeleteCustomItem(
 	ctx context.Context,
-	planID, itemID uuid.UUID,
+	userID string,
+	itemID uuid.UUID,
 ) error {
-	return m.DeleteCustomItemFn(ctx, planID, itemID)
+	return m.DeleteCustomItemFn(ctx, userID, itemID)
+}
+
+func (m *ShoppingRepoMock) GetMealPlanExportItems(
+	ctx context.Context,
+	planID uuid.UUID,
+	start, end time.Time,
+) ([]repositories.DayItems, error) {
+	return m.GetMealPlanExportItemsFn(ctx, planID, start, end)
 }
