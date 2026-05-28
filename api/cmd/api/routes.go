@@ -46,8 +46,6 @@ func (app *Application) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)
 
-	app.imageRoutes("images", mux)
-
 	app.apps.Routes(mux)
 
 	allowedOrigins := []string{app.config.WebURL}

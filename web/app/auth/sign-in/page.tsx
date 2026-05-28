@@ -4,10 +4,10 @@ import HomeClient from '@/components/HomeClient'
 
 export default function SignInPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface">
+    <div className="flex justify-center py-8">
       <div className="w-full max-w-sm">
         <HomeClient />
       </div>
-    </main>
+    </div>
   )
 }
