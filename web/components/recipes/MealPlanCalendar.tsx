@@ -41,6 +41,10 @@ export default function MealPlanCalendar({
   const [selectedCustomName, setSelectedCustomName] = useState('')
   const [selectedServings, setSelectedServings] = useState(1)
   const [movingMeal, setMovingMeal] = useState<PlanMeal | null>(null)
+  const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
+  const [editRecipeId, setEditRecipeId] = useState('')
+  const [editCustomName, setEditCustomName] = useState('')
+  const [editServings, setEditServings] = useState(1)
 
   const addMeal = useAddMeal()
   const deleteMeal = useDeleteMeal()
@@ -54,11 +58,14 @@ export default function MealPlanCalendar({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && movingMeal) setMovingMeal(null)
+      if (e.key === 'Escape') {
+        if (movingMeal) setMovingMeal(null)
+        if (editingMeal) cancelEdit()
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [movingMeal])
+  }, [movingMeal, editingMeal])
 
   const handleComboboxSelect = (recipeId: string, customName: string) => {
     setSelectedRecipeId(recipeId)
@@ -144,6 +151,45 @@ export default function MealPlanCalendar({
     setSelectedDate(null)
     setSelectedRecipeId('')
     setSelectedCustomName('')
+  }
+
+  const handleEditClick = (meal: PlanMeal) => {
+    setMovingMeal(null)
+    setSelectedSlot(null)
+    setSelectedDate(null)
+    setEditingMeal(meal)
+    setEditRecipeId(meal.recipeId)
+    setEditCustomName(meal.customName)
+    setEditServings(meal.servings)
+  }
+
+  const cancelEdit = () => {
+    setEditingMeal(null)
+    setEditRecipeId('')
+    setEditCustomName('')
+    setEditServings(1)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingMeal) return
+    if (!editRecipeId && !editCustomName.trim()) return
+    try {
+      const req: AddMealInput = {
+        planId: plan.id,
+        mealDate: editingMeal.mealDate,
+        mealSlot: editingMeal.mealSlot,
+        recipeId: editRecipeId,
+        customName: editCustomName,
+        servings: editServings
+      }
+      await addMeal(req)
+      const date = editingMeal.mealDate
+      const slot = editingMeal.mealSlot
+      cancelEdit()
+      onAddMeal(date, slot, editRecipeId, editCustomName, editServings)
+    } catch (err) {
+      console.error('Failed to edit meal:', err)
+    }
   }
 
   const movingMealName =
@@ -238,15 +284,27 @@ export default function MealPlanCalendar({
                                 <span className="text-muted shrink-0">×{meal.servings}</span>
                               )}
                               {!movingMeal && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleDeleteMeal(meal.id)
-                                  }}
-                                  className="text-red-600 hover:text-red-800 font-bold shrink-0"
-                                >
-                                  ×
-                                </button>
+                                <>
+                                  <button
+                                    aria-label="Edit meal"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleEditClick(meal)
+                                    }}
+                                    className="text-blue-500 hover:text-blue-700 shrink-0 text-xs"
+                                  >
+                                    ✏
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteMeal(meal.id)
+                                    }}
+                                    className="text-red-600 hover:text-red-800 font-bold shrink-0"
+                                  >
+                                    ×
+                                  </button>
+                                </>
                               )}
                             </div>
                           )
@@ -304,6 +362,49 @@ export default function MealPlanCalendar({
             </button>
             <button
               onClick={cancelAdd}
+              className="flex-1 px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingMeal && !selectedSlot && (
+        <div className="border border-border rounded p-4 bg-card space-y-3">
+          <h3 className="font-semibold text-sm">
+            Edit meal —{' '}
+            {editingMeal.mealSlot.charAt(0).toUpperCase() + editingMeal.mealSlot.slice(1)},{' '}
+            {new Date(editingMeal.mealDate + 'T00:00:00').toLocaleDateString()}
+          </h3>
+          <RecipeCombobox
+            recipes={recipes}
+            initialValue={editCustomName || recipes.find((r) => r.id === editRecipeId)?.name || ''}
+            onSelect={(recipeId, customName) => {
+              setEditRecipeId(recipeId)
+              setEditCustomName(customName)
+            }}
+            autoFocus
+            onEnter={handleSaveEdit}
+          />
+          <input
+            type="number"
+            min="1"
+            value={editServings}
+            onChange={(e) => setEditServings(parseInt(e.target.value, 10))}
+            onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
+            placeholder="Servings"
+            className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveEdit}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Save
+            </button>
+            <button
+              onClick={cancelEdit}
               className="flex-1 px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
             >
               Cancel

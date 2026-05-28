@@ -417,6 +417,161 @@ describe('MealPlanCalendar', () => {
     expect(mockOnNextWeek).toHaveBeenCalledTimes(1)
   })
 
+  it('shows edit button on meal card', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        {
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        }
+      ]
+    } as unknown as Plan
+
+    render(
+      <MealPlanCalendar
+        plan={planWithMeal}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={jest.fn()}
+        onDeleteMeal={jest.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: /Edit meal/i })).toBeInTheDocument()
+  })
+
+  it('clicking edit button opens edit panel pre-populated with meal values', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        {
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 3
+        }
+      ]
+    } as unknown as Plan
+
+    render(
+      <MealPlanCalendar
+        plan={planWithMeal}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={jest.fn()}
+        onDeleteMeal={jest.fn()}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Edit meal/i }))
+    expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
+    const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
+    expect((input as HTMLInputElement).value).toBe('Eggs')
+    const servingsInput = screen.getByPlaceholderText('Servings') as HTMLInputElement
+    expect(servingsInput.value).toBe('3')
+  })
+
+  it('save edit calls addMeal with same date/slot and new values', async () => {
+    const onAddMeal = jest.fn()
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        {
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        }
+      ]
+    } as unknown as Plan
+
+    render(
+      <MealPlanCalendar
+        plan={planWithMeal}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={onAddMeal}
+        onDeleteMeal={jest.fn()}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Edit meal/i }))
+    const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
+    fireEvent.change(input, { target: { value: 'Updated meal' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/i }))
+    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
+    const req = mockAddMeal.mock.calls[0][0]
+    expect(req.mealDate).toBe('2026-05-25')
+    expect(req.mealSlot).toBe('breakfast')
+    expect(req.customName).toBe('Updated meal')
+    expect(onAddMeal).toHaveBeenCalled()
+  })
+
+  it('cancel closes edit panel', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        {
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        }
+      ]
+    } as unknown as Plan
+
+    render(
+      <MealPlanCalendar
+        plan={planWithMeal}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={jest.fn()}
+        onDeleteMeal={jest.fn()}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Edit meal/i }))
+    expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }))
+    expect(screen.queryByRole('button', { name: /^Save$/i })).not.toBeInTheDocument()
+  })
+
+  it('edit button is hidden during move mode', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        {
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        }
+      ]
+    } as unknown as Plan
+
+    render(
+      <MealPlanCalendar
+        plan={planWithMeal}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={jest.fn()}
+        onDeleteMeal={jest.fn()}
+      />
+    )
+    // Enter move mode by clicking the meal name span
+    fireEvent.click(screen.getByText('Eggs'))
+    expect(screen.queryByRole('button', { name: /Edit meal/i })).not.toBeInTheDocument()
+  })
+
   it('cancels move when Cancel button in banner is clicked', () => {
     const planWithMeal = {
       ...basePlan,

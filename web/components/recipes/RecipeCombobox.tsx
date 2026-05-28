@@ -8,15 +8,17 @@ interface RecipeComboboxProps {
   onSelect: (recipeId: string, customName: string) => void
   autoFocus?: boolean
   onEnter?: () => void
+  initialValue?: string
 }
 
 export default function RecipeCombobox({
   recipes,
   onSelect,
   autoFocus,
-  onEnter
+  onEnter,
+  initialValue = ''
 }: RecipeComboboxProps) {
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState(initialValue)
   const [open, setOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
