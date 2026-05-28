@@ -17,6 +17,13 @@ export default [
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSSatisfiesExpression',
+          message: 'Use create(Schema, fields) from @bufbuild/protobuf instead of satisfies.',
+        },
+      ],
     },
   },
   {
@@ -30,6 +37,17 @@ export default [
     },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: true,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-type-assertion': 'error',
     },
   },
   {

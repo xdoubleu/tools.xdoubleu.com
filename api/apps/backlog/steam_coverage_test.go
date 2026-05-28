@@ -18,8 +18,6 @@ import (
 // seedSteamData imports steam games for userID using the mock client.
 // It saves integrations with dummy steam credentials so ImportOwnedGames
 // uses the mock factory (the actual keys are ignored by the mock).
-//
-//nolint:unused // May be useful for future tests.
 func seedSteamData(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()

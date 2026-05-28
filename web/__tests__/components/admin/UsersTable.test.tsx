@@ -1,27 +1,36 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { create } from '@bufbuild/protobuf'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import UsersTable from '@/components/admin/UsersTable'
-import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
+import { AppUserSchema } from '@/lib/gen/admin/v1/admin_pb'
+
+const mockSetRole = jest.fn()
+const mockSetAppAccess = jest.fn()
 
 jest.mock('@/hooks/useAdmin', () => ({
-  useSetRole: jest.fn(() => jest.fn()),
-  useSetAppAccess: jest.fn(() => jest.fn())
+  useSetRole: jest.fn(() => mockSetRole),
+  useSetAppAccess: jest.fn(() => mockSetAppAccess)
 }))
 
 describe('UsersTable', () => {
-  const mockUsers: AppUser[] = [
-    {
+  beforeEach(() => {
+    mockSetRole.mockReset()
+    mockSetAppAccess.mockReset()
+  })
+
+  const mockUsers = [
+    create(AppUserSchema, {
       id: '1',
       email: 'admin@example.com',
       role: 'admin',
       appAccess: ['backlog', 'todos', 'recipes']
-    } as unknown as AppUser,
-    {
+    }),
+    create(AppUserSchema, {
       id: '2',
       email: 'user@example.com',
       role: 'user',
       appAccess: ['todos']
-    } as unknown as AppUser
+    })
   ]
 
   it('renders users table', () => {
@@ -50,5 +59,33 @@ describe('UsersTable', () => {
     expect(screen.getByText('contacts')).toBeInTheDocument()
     expect(screen.getByText('watchparty')).toBeInTheDocument()
     expect(screen.getByText('icsproxy')).toBeInTheDocument()
+  })
+
+  it('calls setRole and onUpdated when role changes', async () => {
+    const onUpdated = jest.fn()
+    mockSetRole.mockResolvedValue(undefined)
+    render(<UsersTable users={mockUsers} onUpdated={onUpdated} />)
+
+    const selects = screen.getAllByRole('combobox')
+    fireEvent.change(selects[0], { target: { value: 'admin' } })
+
+    await waitFor(() => {
+      expect(mockSetRole).toHaveBeenCalled()
+      expect(onUpdated).toHaveBeenCalled()
+    })
+  })
+
+  it('calls setAppAccess and onUpdated when checkbox changes', async () => {
+    const onUpdated = jest.fn()
+    mockSetAppAccess.mockResolvedValue(undefined)
+    render(<UsersTable users={mockUsers} onUpdated={onUpdated} />)
+
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[0])
+
+    await waitFor(() => {
+      expect(mockSetAppAccess).toHaveBeenCalled()
+      expect(onUpdated).toHaveBeenCalled()
+    })
   })
 })

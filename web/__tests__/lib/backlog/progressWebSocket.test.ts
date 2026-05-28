@@ -25,7 +25,11 @@ class MockWebSocket {
   }
 }
 
-global.WebSocket = MockWebSocket as unknown as typeof WebSocket
+Object.defineProperty(global, 'WebSocket', {
+  value: MockWebSocket,
+  writable: true,
+  configurable: true
+})
 
 describe('useProgressWebSocket', () => {
   it('initializes with CONNECTING state', () => {

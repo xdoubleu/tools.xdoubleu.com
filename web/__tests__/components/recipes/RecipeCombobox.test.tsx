@@ -1,13 +1,14 @@
 import React from 'react'
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent } from '@testing-library/react'
 import RecipeCombobox from '@/components/recipes/RecipeCombobox'
-import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const recipes = [
-  { id: 'r1', name: 'Pasta Bolognese' },
-  { id: 'r2', name: 'Pasta Carbonara' },
-  { id: 'r3', name: 'Caesar Salad' }
-] as unknown as Recipe[]
+  create(RecipeSchema, { id: 'r1', name: 'Pasta Bolognese' }),
+  create(RecipeSchema, { id: 'r2', name: 'Pasta Carbonara' }),
+  create(RecipeSchema, { id: 'r3', name: 'Caesar Salad' })
+]
 
 describe('RecipeCombobox', () => {
   it('renders the text input', () => {
@@ -68,10 +69,11 @@ describe('RecipeCombobox', () => {
 
   it('sets input value to recipe name after selection', () => {
     render(<RecipeCombobox recipes={recipes} onSelect={jest.fn()} />)
-    const input = screen.getByRole('textbox') as HTMLInputElement
-    fireEvent.change(input, { target: { value: 'pasta' } })
+    const inputEl = screen.getByRole('textbox')
+    if (!(inputEl instanceof HTMLInputElement)) throw new Error('expected HTMLInputElement')
+    fireEvent.change(inputEl, { target: { value: 'pasta' } })
     fireEvent.mouseDown(screen.getByText('Pasta Carbonara'))
-    expect(input.value).toBe('Pasta Carbonara')
+    expect(inputEl.value).toBe('Pasta Carbonara')
   })
 
   it('matches case-insensitively', () => {

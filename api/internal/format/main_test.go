@@ -1,6 +1,8 @@
 package format_test
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -198,4 +200,52 @@ func TestToFraction_TwoThirds(t *testing.T) {
 
 func TestToFraction_OneAndOneThird(t *testing.T) {
 	assert.Equal(t, "1⅓", format.ToFraction(1.0+1.0/3))
+}
+
+// ── ToFractionCeiling ─────────────────────────────────────────────────────────
+
+func TestToFractionCeiling_Zero(t *testing.T) {
+	assert.Equal(t, "0", format.ToFractionCeiling(0))
+}
+
+func TestToFractionCeiling_Negative(t *testing.T) {
+	assert.Equal(t, "0", format.ToFractionCeiling(-1))
+}
+
+func TestToFractionCeiling_Exact(t *testing.T) {
+	assert.Equal(t, "½", format.ToFractionCeiling(0.5))
+}
+
+func TestToFractionCeiling_RoundsUp(t *testing.T) {
+	// 0.1 → rounds up to nearest common fraction ⅛ → ⅛
+	assert.Equal(t, "⅛", format.ToFractionCeiling(0.1))
+}
+
+func TestToFractionCeiling_Whole(t *testing.T) {
+	assert.Equal(t, "3", format.ToFractionCeiling(3.0))
+}
+
+func TestToFractionCeiling_WholePlusFraction(t *testing.T) {
+	// 1.1 → fractional part 0.1, ceiling to nearest common fraction ⅛ (0.125)
+	assert.Equal(t, "1⅛", format.ToFractionCeiling(1.1))
+}
+
+func TestToFractionCeiling_AlmostWhole(t *testing.T) {
+	// 0.95 → rounds up to 1
+	assert.Equal(t, "1", format.ToFractionCeiling(0.95))
+}
+
+// ── RenderError ───────────────────────────────────────────────────────────────
+
+func TestRenderError_WritesStatusAndBody(t *testing.T) {
+	rec := httptest.NewRecorder()
+	format.RenderError(rec, http.StatusBadRequest, "bad input")
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "bad input")
+}
+
+func TestRenderError_InternalServerError(t *testing.T) {
+	rec := httptest.NewRecorder()
+	format.RenderError(rec, http.StatusInternalServerError, "oops")
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }

@@ -56,7 +56,14 @@ export default function SteamDistributionChart({
             dataKey="count"
             onClick={
               onBucketClick
-                ? (entry) => onBucketClick((entry as unknown as { bucket: number }).bucket)
+                ? (entry: unknown) => {
+                    if (entry !== null && typeof entry === 'object' && 'bucket' in entry) {
+                      const bucket = (entry as Record<string, unknown>)['bucket']
+                      if (typeof bucket === 'number') {
+                        onBucketClick(bucket)
+                      }
+                    }
+                  }
                 : undefined
             }
           >

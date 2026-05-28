@@ -7,7 +7,7 @@ jest.mock('@sentry/nextjs', () => ({
 import * as Sentry from '@sentry/nextjs'
 import GlobalError from '@/app/global-error'
 
-const mockCaptureException = Sentry.captureException as jest.Mock
+const mockCaptureException = jest.mocked(Sentry.captureException)
 
 beforeEach(() => {
   jest.clearAllMocks()

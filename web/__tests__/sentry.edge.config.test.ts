@@ -2,22 +2,23 @@
  * @jest-environment node
  */
 
+export {}
+
+const mockInit = jest.fn()
+
 jest.mock('@sentry/nextjs', () => ({
-  init: jest.fn()
+  init: mockInit
 }))
 
 describe('sentry.edge.config', () => {
   beforeEach(() => {
     jest.resetModules()
+    mockInit.mockClear()
   })
 
   it('initializes sentry with config', () => {
     process.env.SENTRY_DSN = 'https://example@sentry.io/123'
     process.env.NEXT_PUBLIC_RELEASE = 'v1.0.0'
-
-    const Sentry = require('@sentry/nextjs')
-    const mockInit = Sentry.init as jest.Mock
-    mockInit.mockClear()
 
     require('../sentry.edge.config')
 
@@ -32,10 +33,6 @@ describe('sentry.edge.config', () => {
 
   it('uses dev as default release', () => {
     delete process.env.NEXT_PUBLIC_RELEASE
-
-    const Sentry = require('@sentry/nextjs')
-    const mockInit = Sentry.init as jest.Mock
-    mockInit.mockClear()
 
     require('../sentry.edge.config')
 

@@ -24,10 +24,11 @@ import {
   useDeleteContact
 } from '@/hooks/useContacts'
 
-const mockUseSWR = useSWR as jest.Mock
-const mockCreateServiceClient = createServiceClient as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 beforeEach(() => {
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({
     data: undefined,
     isLoading: false,
@@ -44,6 +45,7 @@ describe('useContacts', () => {
 
   it('returns SWR result', () => {
     const mockData = { contacts: [], pending: [], incoming: [] }
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseSWR.mockReturnValueOnce({
       data: mockData,
       isLoading: false,
@@ -58,6 +60,7 @@ describe('useCreateContact', () => {
   it('returns a function that calls client.createContact', () => {
     const mockCreateContact = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
       createContact: mockCreateContact
     })
 
@@ -74,6 +77,7 @@ describe('useAcceptContact', () => {
   it('returns a function that calls client.acceptContact', () => {
     const mockAcceptContact = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
       acceptContact: mockAcceptContact
     })
 
@@ -90,6 +94,7 @@ describe('useDeclineContact', () => {
   it('returns a function that calls client.declineContact', () => {
     const mockDeclineContact = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
       declineContact: mockDeclineContact
     })
 
@@ -103,6 +108,7 @@ describe('useDeleteContact', () => {
   it('returns a function that calls client.deleteContact', () => {
     const mockDeleteContact = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
       deleteContact: mockDeleteContact
     })
 

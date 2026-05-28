@@ -8,7 +8,7 @@ jest.mock('@/lib/env', () => ({
 
 import { getRelease } from '@/lib/env'
 
-const mockGetRelease = getRelease as jest.Mock
+const mockGetRelease = jest.mocked(getRelease)
 
 beforeEach(() => {
   jest.clearAllMocks()

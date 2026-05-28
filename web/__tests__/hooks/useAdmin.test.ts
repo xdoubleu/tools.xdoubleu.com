@@ -16,15 +16,14 @@ import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
 
-const mockUseSWR = useSWR as jest.Mock
-const mockCreateServiceClient = createServiceClient as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 beforeEach(() => {
-  mockUseSWR.mockReturnValue({
-    data: undefined,
-    isLoading: false,
-    error: undefined
-  })
+  mockUseSWR.mockReturnValue(
+    // @ts-expect-error -- mock returns a partial SWRResponse for test purposes
+    { data: undefined, isLoading: false, error: undefined }
+  )
   mockUseSWR.mockClear()
 })
 
@@ -36,11 +35,10 @@ describe('useUsers', () => {
 
   it('returns SWR result', () => {
     const mockData = { users: [{ id: '1', email: 'a@b.com', role: 'user' }] }
-    mockUseSWR.mockReturnValueOnce({
-      data: mockData,
-      isLoading: false,
-      error: undefined
-    })
+    mockUseSWR.mockReturnValueOnce(
+      // @ts-expect-error -- mock returns a partial SWRResponse for test purposes
+      { data: mockData, isLoading: false, error: undefined }
+    )
     const { result } = renderHook(() => useUsers())
     expect(result.current.data).toEqual(mockData)
   })
@@ -49,6 +47,7 @@ describe('useUsers', () => {
 describe('useSetRole', () => {
   it('returns a function that calls client.setRole', () => {
     const mockSetRole = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ setRole: mockSetRole })
 
     const { result } = renderHook(() => useSetRole())
@@ -60,6 +59,7 @@ describe('useSetRole', () => {
 describe('useSetAppAccess', () => {
   it('returns a function that calls client.setAppAccess', () => {
     const mockSetAppAccess = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ setAppAccess: mockSetAppAccess })
 
     const { result } = renderHook(() => useSetAppAccess())

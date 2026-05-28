@@ -505,3 +505,95 @@ func TestSetActiveWorkspace(t *testing.T) {
 	)
 	require.NoError(t, err)
 }
+
+// ── Label presets ─────────────────────────────────────────────────────────────
+
+func TestAddLabelPreset_RemoveLabelPreset(t *testing.T) {
+	client := newSettingsClient(t)
+
+	_, err := client.AddLabelPreset(
+		t.Context(),
+		connect.NewRequest(&todosv1.AddLabelPresetRequest{
+			Category: "label",
+			Value:    "integration-test-label",
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.RemoveLabelPreset(
+		t.Context(),
+		connect.NewRequest(&todosv1.RemoveLabelPresetRequest{
+			Category: "label",
+			Value:    "integration-test-label",
+		}),
+	)
+	require.NoError(t, err)
+}
+
+func TestUpdateLabelColor(t *testing.T) {
+	client := newSettingsClient(t)
+
+	_, err := client.AddLabelPreset(
+		t.Context(),
+		connect.NewRequest(&todosv1.AddLabelPresetRequest{
+			Category: "label",
+			Value:    "color-test-label",
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.UpdateLabelColor(
+		t.Context(),
+		connect.NewRequest(&todosv1.UpdateLabelColorRequest{
+			Category: "label",
+			Value:    "color-test-label",
+			Color:    "#ff0000",
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.RemoveLabelPreset(
+		t.Context(),
+		connect.NewRequest(&todosv1.RemoveLabelPresetRequest{
+			Category: "label",
+			Value:    "color-test-label",
+		}),
+	)
+	require.NoError(t, err)
+}
+
+// ── URL patterns ──────────────────────────────────────────────────────────────
+
+func TestAddURLPattern_RemoveURLPattern(t *testing.T) {
+	client := newSettingsClient(t)
+
+	_, err := client.AddURLPattern(
+		t.Context(),
+		connect.NewRequest(&todosv1.AddURLPatternRequest{
+			UrlPrefix:    "https://jira.example.com/browse/",
+			PlatformName: "Jira",
+			Shortcut:     "TEST",
+		}),
+	)
+	require.NoError(t, err)
+
+	settings, err := client.GetSettings(
+		t.Context(),
+		connect.NewRequest(&todosv1.GetSettingsRequest{}),
+	)
+	require.NoError(t, err)
+
+	var patternID string
+	for _, p := range settings.Msg.UrlPatterns {
+		if p.UrlPrefix == "https://jira.example.com/browse/" {
+			patternID = p.Id
+		}
+	}
+	require.NotEmpty(t, patternID)
+
+	_, err = client.RemoveURLPattern(
+		t.Context(),
+		connect.NewRequest(&todosv1.RemoveURLPatternRequest{Id: patternID}),
+	)
+	require.NoError(t, err)
+}

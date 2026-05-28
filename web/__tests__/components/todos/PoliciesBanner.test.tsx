@@ -1,19 +1,18 @@
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PoliciesBanner } from '@/components/todos/PoliciesBanner'
-import type { Policy } from '@/lib/gen/todos/v1/settings_pb'
+import { PolicySchema } from '@/lib/gen/todos/v1/settings_pb'
 import { clearPolicyBannerState } from '@/lib/todos/policiesBanner'
 
-function makePolicy(overrides: Partial<Policy> = {}): Policy {
-  return {
+function makePolicy(overrides: Parameters<typeof create<typeof PolicySchema>>[1] = {}) {
+  return create(PolicySchema, {
     id: 'policy-1',
     ownerUserId: 'user-1',
     text: 'Work for 25 min, rest for 5.',
     reappearAfterHours: 24,
-    sortOrder: 0,
     createdAt: '2024-01-01T00:00:00Z',
-    workspaceId: '',
     ...overrides
-  } as Policy
+  })
 }
 
 beforeEach(() => {

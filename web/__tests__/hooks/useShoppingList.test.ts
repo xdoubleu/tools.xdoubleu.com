@@ -11,9 +11,10 @@ jest.mock('@/lib/gen/shoppinglist/v1/shoppinglist_pb', () => ({
 import useSWR from 'swr'
 import { useCustomList, useMealPlanExportItems } from '@/hooks/useShoppingList'
 
-const mockUseSWR = useSWR as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
 
 beforeEach(() => {
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   mockUseSWR.mockClear()
 })

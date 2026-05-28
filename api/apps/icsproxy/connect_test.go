@@ -211,6 +211,42 @@ func TestSaveConfig_WithHideSeries(t *testing.T) {
 	assert.Len(t, resp.Msg.Config.HideSeries, 2)
 }
 
+// ── feedHandler ──────────────────────────────────────────────────────────────
+
+func TestFeedHandler_TokenNotFound(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/icsproxy/unknown-token.ics")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+func TestFeedHandler_Success(t *testing.T) {
+	client := newConnectClient(t)
+	ctx := context.Background()
+	token := uuid.NewString()
+
+	srv := calendarServer(t)
+	defer srv.Close()
+
+	_, err := client.SaveConfig(ctx, connect.NewRequest(&icsproxyv1.SaveConfigRequest{
+		Token:     token,
+		SourceUrl: srv.URL,
+	}))
+	require.NoError(t, err)
+
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/icsproxy/" + token + ".ics")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, resp.Header.Get("Content-Type"), "text/calendar")
+}
+
 // ── DeleteConfig ─────────────────────────────────────────────────────────────
 
 func TestDeleteConfig_Success(t *testing.T) {

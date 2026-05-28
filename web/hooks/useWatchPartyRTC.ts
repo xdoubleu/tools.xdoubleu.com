@@ -5,6 +5,35 @@ import { buildWsUrl } from '@/lib/watchparty/roomUtils'
 import { getApiUrl } from '@/lib/env'
 import type { ConnectionStatus, TrackType, WsMessage } from '@/lib/watchparty/types'
 
+function isWsMessage(value: unknown): value is WsMessage {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'type' in value &&
+    'payload' in value &&
+    'trackType' in value &&
+    (value.type === 'offer' || value.type === 'answer' || value.type === 'candidate')
+  )
+}
+
+function isRTCSDP(
+  payload: RTCSessionDescriptionInit | RTCIceCandidateInit
+): payload is RTCSessionDescriptionInit {
+  return (
+    'type' in payload &&
+    (payload.type === 'offer' ||
+      payload.type === 'answer' ||
+      payload.type === 'pranswer' ||
+      payload.type === 'rollback')
+  )
+}
+
+function isRTCCandidate(
+  payload: RTCSessionDescriptionInit | RTCIceCandidateInit
+): payload is RTCIceCandidateInit {
+  return !isRTCSDP(payload)
+}
+
 export interface ScreenControls {
   start: () => Promise<void>
   stop: () => void
@@ -264,17 +293,20 @@ export function useWatchPartyRTC({
       ws.onerror = () => ws.close()
 
       ws.onmessage = async (event: MessageEvent<string>) => {
-        const msg = JSON.parse(event.data) as WsMessage
+        const parsed: unknown = JSON.parse(event.data)
+        if (!isWsMessage(parsed)) return
+        const msg = parsed
         const tt = msg.trackType
 
         if (msg.type === 'offer') {
+          if (!isRTCSDP(msg.payload)) return
           if (tt === 'cam') {
             if (pcInCamRef.current) pcInCamRef.current.close()
             pendingCandidates.current.camIn = []
             const pc = createPC('cam', 'recv')
             pcInCamRef.current = pc
 
-            await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+            await pc.setRemoteDescription(msg.payload)
             if (pcInCamRef.current !== pc) return
             for (const c of pendingCandidates.current.camIn.splice(0)) await pc.addIceCandidate(c)
             if (pcInCamRef.current !== pc) return
@@ -289,7 +321,7 @@ export function useWatchPartyRTC({
             const pcScreen = createPC(tt, 'recv')
             pcScreenRef.current = pcScreen
 
-            await pcScreen.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+            await pcScreen.setRemoteDescription(msg.payload)
             if (pcScreenRef.current !== pcScreen) return
             for (const c of pendingCandidates.current[tt].splice(0))
               await pcScreen.addIceCandidate(c)
@@ -303,17 +335,18 @@ export function useWatchPartyRTC({
         }
 
         if (msg.type === 'answer') {
+          if (!isRTCSDP(msg.payload)) return
           if (tt === 'cam') {
             const pc = pcCamRef.current
             if (pc && pc.signalingState === 'have-local-offer') {
-              await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+              await pc.setRemoteDescription(msg.payload)
               for (const c of pendingCandidates.current.camOut.splice(0))
                 await pc.addIceCandidate(c)
             }
           } else {
             const pc = pcScreenRef.current
             if (pc && pc.signalingState === 'have-local-offer') {
-              await pc.setRemoteDescription(msg.payload as RTCSessionDescriptionInit)
+              await pc.setRemoteDescription(msg.payload)
               for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
             } else if (
               role === 'presenter' &&
@@ -338,28 +371,29 @@ export function useWatchPartyRTC({
         }
 
         if (msg.type === 'candidate') {
+          if (!isRTCCandidate(msg.payload)) return
           if (tt === 'cam') {
             if (msg.direction === 'send') {
               const inCam = pcInCamRef.current
               if (inCam && inCam.remoteDescription) {
-                await inCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
+                await inCam.addIceCandidate(msg.payload)
               } else {
-                pendingCandidates.current.camIn.push(msg.payload as RTCIceCandidateInit)
+                pendingCandidates.current.camIn.push(msg.payload)
               }
             } else {
               const outCam = pcCamRef.current
               if (outCam && outCam.remoteDescription) {
-                await outCam.addIceCandidate(msg.payload as RTCIceCandidateInit)
+                await outCam.addIceCandidate(msg.payload)
               } else {
-                pendingCandidates.current.camOut.push(msg.payload as RTCIceCandidateInit)
+                pendingCandidates.current.camOut.push(msg.payload)
               }
             }
           } else {
             const pc = pcScreenRef.current
             if (pc && pc.remoteDescription) {
-              await pc.addIceCandidate(msg.payload as RTCIceCandidateInit)
+              await pc.addIceCandidate(msg.payload)
             } else if (pc) {
-              pendingCandidates.current[tt].push(msg.payload as RTCIceCandidateInit)
+              pendingCandidates.current[tt].push(msg.payload)
             }
           }
         }

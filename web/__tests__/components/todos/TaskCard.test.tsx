@@ -1,33 +1,18 @@
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TaskCard } from '@/components/todos/TaskCard'
-import type { Task } from '@/lib/gen/todos/v1/tasks_pb'
+import { TaskSchema } from '@/lib/gen/todos/v1/tasks_pb'
 
-function makeTask(overrides: Partial<Task> = {}): Task {
-  return {
+function makeTask(overrides: Parameters<typeof create<typeof TaskSchema>>[1] = {}) {
+  return create(TaskSchema, {
     id: 'task-1',
     ownerUserId: 'user-1',
     title: 'Test Task',
-    description: '',
-    labels: [],
     status: 'open',
-    priority: 0,
-    sortOrder: 0,
-    completedAt: '',
-    archivedAt: '',
-    dueDate: '',
-    deadline: '',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
-    sectionId: '',
-    workspaceId: '',
-    recurDays: 0,
-    recurRule: '',
-    links: [],
-    subtasks: [],
-    subtaskDone: 0,
-    subtaskTotal: 0,
     ...overrides
-  } as Task
+  })
 }
 
 describe('TaskCard', () => {

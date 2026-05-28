@@ -24,13 +24,14 @@ import {
   useCurrentUser
 } from '@/hooks/useAuth'
 
-const mockUseSWR = useSWR as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
 
-const mockCreateServiceClient = createServiceClient as jest.Mock
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 describe('useSignIn', () => {
   it('returns a function that calls client.signIn', () => {
     const mockSignIn = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ signIn: mockSignIn })
 
     const { result } = renderHook(() => useSignIn())
@@ -47,6 +48,7 @@ describe('useSignIn', () => {
 describe('useSignOut', () => {
   it('returns a function that calls client.signOut', () => {
     const mockSignOut = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ signOut: mockSignOut })
 
     const { result } = renderHook(() => useSignOut())
@@ -59,6 +61,7 @@ describe('useForgotPassword', () => {
   it('returns a function that calls client.forgotPassword', () => {
     const mockForgotPassword = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
       forgotPassword: mockForgotPassword
     })
 
@@ -72,6 +75,7 @@ describe('useMFAChallenge', () => {
   it('returns a function that calls client.mFAChallenge', () => {
     const mockMFAChallenge = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
       mFAChallenge: mockMFAChallenge
     })
 
@@ -83,6 +87,7 @@ describe('useMFAChallenge', () => {
 
 describe('useCurrentUser', () => {
   beforeEach(() => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   })
 
@@ -96,6 +101,7 @@ describe('useCurrentUser', () => {
 
   it('returns SWR result', () => {
     const mockData = {}
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseSWR.mockReturnValueOnce({ data: mockData, isLoading: false, error: undefined })
     const { result } = renderHook(() => useCurrentUser())
     expect(result.current.data).toEqual(mockData)
