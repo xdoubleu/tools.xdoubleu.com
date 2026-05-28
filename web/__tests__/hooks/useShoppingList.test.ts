@@ -9,7 +9,7 @@ jest.mock('@/lib/gen/shoppinglist/v1/shoppinglist_pb', () => ({
 }))
 
 import useSWR from 'swr'
-import { useShoppingList } from '@/hooks/useShoppingList'
+import { useCustomList, useMealPlanExportItems } from '@/hooks/useShoppingList'
 
 const mockUseSWR = useSWR as jest.Mock
 
@@ -18,14 +18,21 @@ beforeEach(() => {
   mockUseSWR.mockClear()
 })
 
-describe('useShoppingList', () => {
-  it('uses /shoppinglist/:planId as key when planId is given', () => {
-    renderHook(() => useShoppingList('plan-2'))
-    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/plan-2', expect.any(Function))
+describe('useCustomList', () => {
+  it('uses /shoppinglist as the SWR key', () => {
+    renderHook(() => useCustomList())
+    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist', expect.any(Function))
+  })
+})
+
+describe('useMealPlanExportItems', () => {
+  it('uses /shoppinglist/export/:planId as key when planId is given', () => {
+    renderHook(() => useMealPlanExportItems('plan-2'))
+    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/export/plan-2', expect.any(Function))
   })
 
   it('passes null as key when planId is empty', () => {
-    renderHook(() => useShoppingList(''))
+    renderHook(() => useMealPlanExportItems(''))
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
   })
 })

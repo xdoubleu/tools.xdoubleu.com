@@ -19,28 +19,12 @@ import type {
   DeletePlanInput
 } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
-import { useShoppingList } from '@/hooks/useShoppingList'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
-import ShoppingList from '@/components/recipes/ShoppingList'
-import type { ShoppingItem as ShoppingItemExport } from '@/lib/recipes/shoppingExport'
-import type { ShoppingItem } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
-
-function toExportItem(item: ShoppingItem): ShoppingItemExport {
-  return {
-    amount: item.amount.toString(),
-    unit: item.unit,
-    name: item.name
-  }
-}
 
 export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
-  const [showShopping, setShowShopping] = useState(false)
   const { data, error, isLoading, mutate } = useMealPlan(id, offset)
   const { data: recipesData } = useRecipes()
-  const { data: shoppingData, isLoading: shoppingLoading } = useShoppingList(
-    showShopping && data?.plan ? data.plan.id : ''
-  )
   const addMeal = useAddMeal()
   const deleteMeal = useDeleteMeal()
   const sharePlan = useSharePlan()
@@ -132,12 +116,6 @@ export default function MealPlanClient({ id }: { id: string }) {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">{plan.name}</h1>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowShopping((v) => !v)}
-                className="px-4 py-2 bg-surface border border-border rounded hover:bg-border text-sm"
-              >
-                {showShopping ? 'Hide Shopping List' : 'Shopping List'}
-              </button>
               {isOwner && (
                 <>
                   <Link
@@ -190,19 +168,6 @@ export default function MealPlanClient({ id }: { id: string }) {
             <div className="mt-6 p-4 border border-border rounded">
               <p className="text-sm font-medium text-subtle mb-1">iCal Feed URL</p>
               <p className="text-xs text-muted break-all">{data.icalUrl}</p>
-            </div>
-          )}
-
-          {showShopping && (
-            <div className="mt-6 border border-border rounded p-4">
-              <h2 className="text-lg font-semibold mb-3">Shopping List</h2>
-              {shoppingLoading && <p>Loading...</p>}
-              {!shoppingLoading && (
-                <ShoppingList
-                  mealPlanItems={(shoppingData?.mealPlanItems ?? []).map(toExportItem)}
-                  customItems={(shoppingData?.customItems ?? []).map(toExportItem)}
-                />
-              )}
             </div>
           )}
 

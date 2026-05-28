@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 
 jest.mock('@/hooks/useMealPlans', () => ({
   useMealPlan: jest.fn(),
@@ -12,10 +12,6 @@ jest.mock('@/hooks/useMealPlans', () => ({
 
 jest.mock('@/hooks/useRecipes', () => ({
   useRecipes: jest.fn()
-}))
-
-jest.mock('@/hooks/useShoppingList', () => ({
-  useShoppingList: jest.fn()
 }))
 
 jest.mock('next/navigation', () => ({
@@ -34,18 +30,11 @@ jest.mock('@/components/recipes/MealPlanCalendar', () => {
   }
 })
 
-jest.mock('@/components/recipes/ShoppingList', () => {
-  return function MockShoppingList() {
-    return <div data-testid="shopping-list">shopping-list-mock</div>
-  }
-})
-
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
 
 import MealPlanClient from '@/app/mealplans/[id]/MealPlanClient'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
-import { useShoppingList } from '@/hooks/useShoppingList'
 import { useRouter } from 'next/navigation'
 import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
@@ -74,16 +63,7 @@ beforeEach(() => {
     mutate: jest.fn()
   })
   ;(useRecipes as jest.Mock).mockReturnValue({
-    data: {
-      recipes: mockRecipes
-    },
-    error: null,
-    isLoading: false
-  })
-  ;(useShoppingList as jest.Mock).mockReturnValue({
-    data: {
-      items: []
-    },
+    data: { recipes: mockRecipes },
     error: null,
     isLoading: false
   })
@@ -95,33 +75,14 @@ describe('MealPlanClient', () => {
     expect(screen.getByText('Test Plan')).toBeInTheDocument()
   })
 
-  it('shows Shopping List toggle button', () => {
+  it('does not render a shopping list toggle button', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByRole('button', { name: /Shopping List/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Shopping List/i })).not.toBeInTheDocument()
   })
 
-  it('clicking toggle reveals ShoppingList component', async () => {
+  it('renders meal plan calendar', () => {
     render(<MealPlanClient id="plan-1" />)
-    const toggleButton = screen.getByRole('button', { name: /Shopping List/i })
-    fireEvent.click(toggleButton)
-    await waitFor(() => {
-      expect(screen.getByTestId('shopping-list')).toBeInTheDocument()
-    })
-  })
-
-  it('clicking toggle again hides ShoppingList component', async () => {
-    render(<MealPlanClient id="plan-1" />)
-    const toggleButton = screen.getByRole('button', { name: /Shopping List/i })
-
-    fireEvent.click(toggleButton)
-    await waitFor(() => {
-      expect(screen.getByTestId('shopping-list')).toBeInTheDocument()
-    })
-
-    fireEvent.click(toggleButton)
-    await waitFor(() => {
-      expect(screen.queryByTestId('shopping-list')).not.toBeInTheDocument()
-    })
+    expect(screen.getByTestId('meal-plan-calendar')).toBeInTheDocument()
   })
 
   it('passes all recipes from useRecipes to MealPlanCalendar', async () => {
@@ -129,46 +90,6 @@ describe('MealPlanClient', () => {
     await waitFor(() => {
       expect(useRecipes).toHaveBeenCalled()
     })
-  })
-
-  it('toggle button text changes based on shopping list visibility', async () => {
-    render(<MealPlanClient id="plan-1" />)
-    const toggleButton = screen.getByRole('button', { name: /Shopping List/i })
-
-    expect(toggleButton).toHaveTextContent('Shopping List')
-
-    fireEvent.click(toggleButton)
-    await waitFor(() => {
-      expect(toggleButton).toHaveTextContent('Hide Shopping List')
-    })
-
-    fireEvent.click(toggleButton)
-    await waitFor(() => {
-      expect(toggleButton).toHaveTextContent('Shopping List')
-    })
-  })
-
-  it('calls useShoppingList with plan id when shopping list is shown', async () => {
-    render(<MealPlanClient id="plan-1" />)
-    const toggleButton = screen.getByRole('button', { name: /Shopping List/i })
-
-    fireEvent.click(toggleButton)
-    await waitFor(() => {
-      expect(useShoppingList).toHaveBeenCalledWith('plan-1')
-    })
-  })
-
-  it('does not call useShoppingList when shopping list is hidden', async () => {
-    ;(useShoppingList as jest.Mock).mockClear()
-    render(<MealPlanClient id="plan-1" />)
-    await waitFor(() => {
-      expect(useShoppingList).toHaveBeenCalledWith('')
-    })
-  })
-
-  it('renders meal plan calendar', () => {
-    render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByTestId('meal-plan-calendar')).toBeInTheDocument()
   })
 
   it('shows iCal URL when available', () => {
