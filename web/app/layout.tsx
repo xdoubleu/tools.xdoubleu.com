@@ -7,7 +7,12 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'tools.xdoubleu.com',
-  description: 'Personal tools suite'
+  description: 'Personal tools suite',
+  appleWebApp: {
+    capable: true,
+    title: 'tools.xdoubleu.com',
+    statusBarStyle: 'black-translucent',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="msapplication-TileColor" content="#7c3aed" />
+        <meta name="msapplication-TileImage" content="/apple-icon.png" />
+        <link rel="mask-icon" href="/icon.svg" color="#7c3aed" />
         <script
           dangerouslySetInnerHTML={{
             __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN: process.env.SENTRY_DSN ?? '', RELEASE: process.env.RELEASE ?? 'dev' })}`
