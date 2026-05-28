@@ -6,7 +6,8 @@ import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useMealPlans'
 import type { AddMealInput, DeleteMealInput, MoveMealInput } from '@/hooks/useMealPlans'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
-import RecipeCombobox from './RecipeCombobox'
+import MealPlanEntryForm from './MealPlanEntryForm'
+import MealPlanMealChip from './MealPlanMealChip'
 import { Button } from '@/components/ui/button'
 
 interface MealPlanCalendarProps {
@@ -38,14 +39,8 @@ export default function MealPlanCalendar({
 }: MealPlanCalendarProps) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedRecipeId, setSelectedRecipeId] = useState('')
-  const [selectedCustomName, setSelectedCustomName] = useState('')
-  const [selectedServings, setSelectedServings] = useState(1)
   const [movingMeal, setMovingMeal] = useState<PlanMeal | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
-  const [editRecipeId, setEditRecipeId] = useState('')
-  const [editCustomName, setEditCustomName] = useState('')
-  const [editServings, setEditServings] = useState(1)
 
   const addMeal = useAddMeal()
   const deleteMeal = useDeleteMeal()
@@ -61,39 +56,30 @@ export default function MealPlanCalendar({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (movingMeal) setMovingMeal(null)
-        if (editingMeal) cancelEdit()
+        if (editingMeal) setEditingMeal(null)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [movingMeal, editingMeal])
 
-  const handleComboboxSelect = (recipeId: string, customName: string) => {
-    setSelectedRecipeId(recipeId)
-    setSelectedCustomName(customName)
-  }
-
-  const handleAddMeal = async () => {
+  const handleSaveAdd = async (recipeId: string, customName: string, servings: number) => {
     if (!selectedSlot || !selectedDate) return
-    if (!selectedRecipeId && !selectedCustomName.trim()) return
     try {
       const req: AddMealInput = {
         planId: plan.id,
         mealDate: selectedDate,
         mealSlot: selectedSlot,
-        recipeId: selectedRecipeId,
-        customName: selectedCustomName,
-        servings: selectedServings
+        recipeId,
+        customName,
+        servings
       }
       await addMeal(req)
       const date = selectedDate
       const slot = selectedSlot
       setSelectedSlot(null)
       setSelectedDate(null)
-      setSelectedRecipeId('')
-      setSelectedCustomName('')
-      setSelectedServings(1)
-      onAddMeal(date, slot, selectedRecipeId, selectedCustomName, selectedServings)
+      onAddMeal(date, slot, recipeId, customName, servings)
     } catch (err) {
       console.error('Failed to add meal:', err)
     }
@@ -146,47 +132,29 @@ export default function MealPlanCalendar({
     }
   }
 
-  const cancelAdd = () => {
-    setSelectedSlot(null)
-    setSelectedDate(null)
-    setSelectedRecipeId('')
-    setSelectedCustomName('')
-  }
-
   const handleEditClick = (meal: PlanMeal) => {
     setMovingMeal(null)
     setSelectedSlot(null)
     setSelectedDate(null)
     setEditingMeal(meal)
-    setEditRecipeId(meal.recipeId)
-    setEditCustomName(meal.customName)
-    setEditServings(meal.servings)
   }
 
-  const cancelEdit = () => {
-    setEditingMeal(null)
-    setEditRecipeId('')
-    setEditCustomName('')
-    setEditServings(1)
-  }
-
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (recipeId: string, customName: string, servings: number) => {
     if (!editingMeal) return
-    if (!editRecipeId && !editCustomName.trim()) return
     try {
       const req: AddMealInput = {
         planId: plan.id,
         mealDate: editingMeal.mealDate,
         mealSlot: editingMeal.mealSlot,
-        recipeId: editRecipeId,
-        customName: editCustomName,
-        servings: editServings
+        recipeId,
+        customName,
+        servings
       }
       await addMeal(req)
       const date = editingMeal.mealDate
       const slot = editingMeal.mealSlot
-      cancelEdit()
-      onAddMeal(date, slot, editRecipeId, editCustomName, editServings)
+      setEditingMeal(null)
+      onAddMeal(date, slot, recipeId, customName, servings)
     } catch (err) {
       console.error('Failed to edit meal:', err)
     }
@@ -258,54 +226,18 @@ export default function MealPlanCalendar({
                   >
                     {mealsInSlot.length > 0 ? (
                       <div className="space-y-1">
-                        {mealsInSlot.map((meal) => {
-                          const recipe = recipes.find((r) => r.id === meal.recipeId)
-                          const isMoving = movingMeal?.id === meal.id
-                          return (
-                            <div
-                              key={meal.id}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleMealClick(meal)
-                              }}
-                              className={`flex cursor-pointer select-none items-center justify-between gap-1 rounded-lg p-1 ${
-                                isMoving
-                                  ? 'bg-accent/20 ring-2 ring-accent'
-                                  : 'bg-accent/10 hover:bg-accent/20'
-                              }`}
-                            >
-                              <span className="truncate text-fg">
-                                {meal.customName || recipe?.name || '?'}
-                              </span>
-                              {meal.servings > 1 && (
-                                <span className="shrink-0 text-muted">×{meal.servings}</span>
-                              )}
-                              {!movingMeal && (
-                                <>
-                                  <button
-                                    aria-label="Edit meal"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleEditClick(meal)
-                                    }}
-                                    className="shrink-0 text-xs text-accent hover:text-accent-hover"
-                                  >
-                                    ✏
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleDeleteMeal(meal.id)
-                                    }}
-                                    className="shrink-0 font-bold text-danger hover:opacity-80"
-                                  >
-                                    ×
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )
-                        })}
+                        {mealsInSlot.map((meal) => (
+                          <MealPlanMealChip
+                            key={meal.id}
+                            meal={meal}
+                            recipe={recipes.find((r) => r.id === meal.recipeId)}
+                            isMoving={movingMeal?.id === meal.id}
+                            inMoveMode={!!movingMeal}
+                            onMealClick={handleMealClick}
+                            onEditClick={handleEditClick}
+                            onDeleteMeal={handleDeleteMeal}
+                          />
+                        ))}
                       </div>
                     ) : (
                       !movingMeal && (
@@ -330,72 +262,28 @@ export default function MealPlanCalendar({
       </div>
 
       {selectedSlot && selectedDate && (
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-card space-y-3">
-          <h3 className="text-sm font-semibold text-fg">
-            Add meal — {selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)},{' '}
-            {new Date(selectedDate + 'T00:00:00').toLocaleDateString()}
-          </h3>
-          <RecipeCombobox
-            recipes={recipes}
-            onSelect={handleComboboxSelect}
-            autoFocus
-            onEnter={handleAddMeal}
-          />
-          <input
-            type="number"
-            min="1"
-            value={selectedServings}
-            onChange={(e) => setSelectedServings(parseInt(e.target.value, 10))}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddMeal()}
-            placeholder="Servings"
-            className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          />
-          <div className="flex gap-2">
-            <Button onClick={handleAddMeal} className="flex-1">
-              Add
-            </Button>
-            <Button variant="secondary" onClick={cancelAdd} className="flex-1">
-              Cancel
-            </Button>
-          </div>
-        </div>
+        <MealPlanEntryForm
+          title={`Add meal — ${selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)}, ${new Date(selectedDate + 'T00:00:00').toLocaleDateString()}`}
+          recipes={recipes}
+          saveLabel="Add"
+          onSave={handleSaveAdd}
+          onCancel={() => {
+            setSelectedSlot(null)
+            setSelectedDate(null)
+          }}
+        />
       )}
 
       {editingMeal && !selectedSlot && (
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-card space-y-3">
-          <h3 className="text-sm font-semibold text-fg">
-            Edit meal —{' '}
-            {editingMeal.mealSlot.charAt(0).toUpperCase() + editingMeal.mealSlot.slice(1)},{' '}
-            {new Date(editingMeal.mealDate + 'T00:00:00').toLocaleDateString()}
-          </h3>
-          <RecipeCombobox
-            recipes={recipes}
-            initialValue={editCustomName || recipes.find((r) => r.id === editRecipeId)?.name || ''}
-            onSelect={(recipeId, customName) => {
-              setEditRecipeId(recipeId)
-              setEditCustomName(customName)
-            }}
-            autoFocus
-            onEnter={handleSaveEdit}
-          />
-          <input
-            type="number"
-            min="1"
-            value={editServings}
-            onChange={(e) => setEditServings(parseInt(e.target.value, 10))}
-            onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
-            placeholder="Servings"
-            className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          />
-          <div className="flex gap-2">
-            <Button onClick={handleSaveEdit} className="flex-1">
-              Save
-            </Button>
-            <Button variant="secondary" onClick={cancelEdit} className="flex-1">
-              Cancel
-            </Button>
-          </div>
-        </div>
+        <MealPlanEntryForm
+          title={`Edit meal — ${editingMeal.mealSlot.charAt(0).toUpperCase() + editingMeal.mealSlot.slice(1)}, ${new Date(editingMeal.mealDate + 'T00:00:00').toLocaleDateString()}`}
+          recipes={recipes}
+          initialRecipeId={editingMeal.recipeId}
+          initialCustomName={editingMeal.customName}
+          initialServings={editingMeal.servings}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingMeal(null)}
+        />
       )}
     </div>
   )
