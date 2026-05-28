@@ -4,6 +4,15 @@ import { useState } from 'react'
 import { useAddBook } from '@/hooks/useBacklog'
 import type { AddBookInput } from '@/hooks/useBacklog'
 import type { ExternalBookResult } from '@/lib/gen/backlog/v1/books_pb'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
 
@@ -20,10 +29,9 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
   const [error, setError] = useState<string | null>(null)
   const addBook = useAddBook()
 
-  if (!book) return null
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!book) return
     setIsSubmitting(true)
     setError(null)
     try {
@@ -50,29 +58,24 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
-      <div
-        className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-xl font-bold mb-1">{book.title}</h2>
-        {book.authors.length > 0 && (
-          <p className="text-sm text-muted mb-4">{book.authors.join(', ')}</p>
+    <Dialog open={!!book} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{book?.title ?? ''}</DialogTitle>
+          <DialogClose>×</DialogClose>
+        </DialogHeader>
+        {book?.authors && book.authors.length > 0 && (
+          <p className="mb-4 text-sm text-muted">{book.authors.join(', ')}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="status-select" className="block text-sm font-medium text-subtle mb-1">
-              Status
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="status-select">Status</Label>
             <select
               id="status-select"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-input-border bg-input text-input-text rounded"
+              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {BOOK_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -82,40 +85,30 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
             </select>
           </div>
 
-          <div>
-            <label htmlFor="notes-area" className="block text-sm font-medium text-subtle mb-1">
-              Notes
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="notes-area">Notes</Label>
             <textarea
               id="notes-area"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Optional notes..."
-              className="w-full px-3 py-2 border border-input-border bg-input text-input-text rounded resize-none"
+              className="w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
           </div>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
+            <Button type="submit" disabled={isSubmitting} className="flex-1">
               {isSubmitting ? 'Adding...' : 'Add Book'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-surface text-fg rounded hover:bg-border"
-            >
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

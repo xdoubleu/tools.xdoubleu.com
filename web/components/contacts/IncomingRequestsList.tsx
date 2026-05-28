@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useAcceptContact, useDeclineContact } from '@/hooks/useContacts'
 import type { Contact } from '@/lib/gen/contacts/v1/contacts_pb'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface IncomingRequestsListProps {
   contacts: Contact[]
@@ -23,8 +25,7 @@ export default function IncomingRequestsList({ contacts, onUpdated }: IncomingRe
 
   const handleAccept = async (id: string) => {
     try {
-      const displayName = displayNames[id] || id
-      await acceptContact(id, displayName)
+      await acceptContact(id, displayNames[id] || id)
       onUpdated?.()
     } catch (err) {
       console.error('Failed to accept contact:', err)
@@ -42,30 +43,31 @@ export default function IncomingRequestsList({ contacts, onUpdated }: IncomingRe
 
   return (
     <div className="space-y-3">
-      <h3 className="font-semibold">Incoming Requests</h3>
+      <h3 className="font-semibold text-fg">Incoming Requests</h3>
       {incoming.map((contact) => (
-        <div key={contact.id} className="border border-border rounded p-4 space-y-2">
+        <div
+          key={contact.id}
+          className="rounded-2xl border border-border bg-card p-4 shadow-card space-y-2"
+        >
           <p className="text-sm text-muted">{contact.contactUserId}</p>
-          <input
+          <Input
             type="text"
             placeholder="Display name"
             value={displayNames[contact.id] || contact.displayName || ''}
             onChange={(e) => setDisplayNames({ ...displayNames, [contact.id]: e.target.value })}
-            className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text text-sm"
           />
           <div className="flex gap-2">
-            <button
-              onClick={() => handleAccept(contact.id)}
-              className="flex-1 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-            >
+            <Button onClick={() => handleAccept(contact.id)} className="flex-1" size="sm">
               Accept
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="destructive"
               onClick={() => handleDecline(contact.id)}
-              className="flex-1 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+              className="flex-1"
+              size="sm"
             >
               Decline
-            </button>
+            </Button>
           </div>
         </div>
       ))}

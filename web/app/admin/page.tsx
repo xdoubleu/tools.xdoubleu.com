@@ -64,7 +64,7 @@ export default function AdminPage() {
   }
 
   if (error) {
-    return <p className="py-16 text-center text-sm text-red-500">Failed to load users.</p>
+    return <p className="py-16 text-center text-sm text-danger">Failed to load users.</p>
   }
 
   return (

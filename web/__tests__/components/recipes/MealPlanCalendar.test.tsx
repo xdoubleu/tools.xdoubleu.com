@@ -359,9 +359,10 @@ describe('MealPlanCalendar', () => {
 
     // Select the meal
     fireEvent.click(screen.getByText('Eggs'))
-    // Click an empty cell (second day = 2026-05-26)
-    const cells = document.querySelectorAll('[class*="border rounded"]')
-    fireEvent.click(cells[1])
+    // In moving mode the "+" buttons are hidden; click the cell div directly.
+    // All cells have hover:border-accent class in moving mode; index 1 is the first empty slot.
+    const movingCells = document.querySelectorAll('[class*="hover:border-accent"]')
+    fireEvent.click(movingCells[1])
 
     await waitFor(() => expect(mockMoveMeal).toHaveBeenCalled())
     const req = mockMoveMeal.mock.calls[0][0]
@@ -415,7 +416,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /Previous Week/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Prev/i }))
     expect(mockOnPrevWeek).toHaveBeenCalledTimes(1)
   })
 
@@ -429,7 +430,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /Next Week/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }))
     expect(mockOnNextWeek).toHaveBeenCalledTimes(1)
   })
 

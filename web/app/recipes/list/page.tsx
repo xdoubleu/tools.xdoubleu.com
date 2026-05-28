@@ -36,7 +36,7 @@ export default function RecipesListPage() {
           </Link>
           <Link
             href="/recipes/new"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+            className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
           >
             New Recipe
           </Link>
@@ -44,7 +44,7 @@ export default function RecipesListPage() {
       </div>
 
       {isLoading && <p>Loading recipes...</p>}
-      {error && <p className="text-red-600">Failed to load recipes.</p>}
+      {error && <p className="text-danger">Failed to load recipes.</p>}
       {data && data.recipes.length === 0 && (
         <p className="text-muted">No recipes yet. Create your first one!</p>
       )}

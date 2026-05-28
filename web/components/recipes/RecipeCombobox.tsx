@@ -90,16 +90,16 @@ export default function RecipeCombobox({
         onFocus={() => setOpen(inputValue.length > 0)}
         onBlur={handleBlur}
         placeholder="Recipe name or custom meal..."
-        className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text"
+        className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       />
       {open && filtered.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded shadow-md max-h-48 overflow-y-auto">
+        <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-elevated max-h-48 overflow-y-auto">
           {filtered.map((r, i) => (
             <li
               key={r.id}
               onMouseDown={() => selectRecipe(r)}
-              className={`px-3 py-2 cursor-pointer text-sm ${
-                i === highlightedIndex ? 'bg-blue-600 text-white' : 'hover:bg-surface'
+              className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
+                i === highlightedIndex ? 'bg-accent text-white' : 'text-fg hover:bg-surface'
               }`}
             >
               {r.name}

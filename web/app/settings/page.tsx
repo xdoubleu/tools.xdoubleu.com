@@ -29,7 +29,7 @@ export default function SettingsPage() {
   }
 
   if (error) {
-    return <p className="py-16 text-center text-sm text-red-500">Failed to load settings.</p>
+    return <p className="py-16 text-center text-sm text-danger">Failed to load settings.</p>
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -65,12 +65,12 @@ export default function SettingsPage() {
       <h1 className="mb-6 text-xl font-semibold text-fg">Integrations</h1>
 
       {saved && (
-        <div className="mb-4 rounded border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-800 dark:border-green-700 dark:bg-green-950 dark:text-green-200">
+        <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
           Settings saved successfully.
         </div>
       )}
       {saveError && (
-        <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800 dark:border-red-700 dark:bg-red-950 dark:text-red-200">
+        <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
           {saveError}
         </div>
       )}

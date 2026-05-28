@@ -5,6 +5,9 @@ import { useCreateRecipe, useUpdateRecipe } from '@/hooks/useRecipes'
 import type { CreateRecipeInput, UpdateRecipeInput } from '@/hooks/useRecipes'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { parseFraction } from '@/lib/recipes/parseFraction'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface RecipeFormProps {
   recipe?: Recipe
@@ -33,14 +36,9 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const createRecipe = useCreateRecipe()
   const updateRecipe = useUpdateRecipe()
 
-  const addIngredient = () => {
-    setIngredients([...ingredients, { amount: '', unit: '', name: '' }])
-  }
-
-  const removeIngredient = (index: number) => {
+  const addIngredient = () => setIngredients([...ingredients, { amount: '', unit: '', name: '' }])
+  const removeIngredient = (index: number) =>
     setIngredients(ingredients.filter((_, i) => i !== index))
-  }
-
   const updateIngredient = (index: number, field: string, value: string) => {
     const updated = [...ingredients]
     updated[index] = { ...updated[index], [field]: value }
@@ -49,7 +47,6 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     try {
       if (recipe?.id) {
         const req: UpdateRecipeInput = {
@@ -82,30 +79,24 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-subtle mb-1">Recipe Name</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      <div className="space-y-1.5">
+        <Label>Recipe Name</Label>
+        <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-subtle mb-1">Servings</label>
-        <input
+      <div className="space-y-1.5">
+        <Label>Servings</Label>
+        <Input
           type="number"
           value={servings}
           onChange={(e) => setServings(e.target.value)}
           min="1"
-          className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="max-w-24"
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-subtle mb-1">Ingredients</label>
+      <div className="space-y-1.5">
+        <Label>Ingredients</Label>
         <div className="space-y-2">
           {ingredients.map((ing, idx) => (
             <div key={idx} className="flex gap-2">
@@ -114,67 +105,58 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 placeholder="e.g. 1/3"
                 value={ing.amount}
                 onChange={(e) => updateIngredient(idx, 'amount', e.target.value)}
-                className="w-16 px-2 py-1 rounded border border-input-border bg-input text-input-text"
+                className="h-11 w-16 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
               <input
                 type="text"
                 placeholder="Unit"
                 value={ing.unit}
                 onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
-                className="w-20 px-2 py-1 rounded border border-input-border bg-input text-input-text"
+                className="h-11 w-20 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
               <input
                 type="text"
                 placeholder="Name"
                 value={ing.name}
                 onChange={(e) => updateIngredient(idx, 'name', e.target.value)}
-                className="flex-1 px-2 py-1 rounded border border-input-border bg-input text-input-text"
+                className="h-11 flex-1 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
               {ingredients.length > 1 && (
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
+                  size="sm"
+                  aria-label="Remove"
                   onClick={() => removeIngredient(idx)}
-                  className="px-2 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
                 >
-                  Remove
-                </button>
+                  ×
+                </Button>
               )}
             </div>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={addIngredient}
-          className="mt-2 px-3 py-1 bg-subtle text-bg text-sm rounded hover:bg-fg"
-        >
+        <Button type="button" variant="secondary" size="sm" onClick={addIngredient}>
           Add Ingredient
-        </button>
+        </Button>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-subtle mb-1">Steps</label>
+      <div className="space-y-1.5">
+        <Label>Steps</Label>
         <textarea
           value={steps}
           onChange={(e) => setSteps(e.target.value)}
           rows={6}
-          className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
       </div>
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
+        <Button type="submit" className="flex-1">
           Save Recipe
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
-        >
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )

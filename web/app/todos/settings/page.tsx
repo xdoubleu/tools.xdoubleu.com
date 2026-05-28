@@ -10,7 +10,7 @@ export default function TodoSettingsPage() {
   }
 
   if (error || !data) {
-    return <p className="py-16 text-center text-sm text-red-500">Failed to load settings.</p>
+    return <p className="py-16 text-center text-sm text-danger">Failed to load settings.</p>
   }
 
   const { sections, labelPresets, urlPatterns, archive, policies, workspaces } = data
@@ -153,10 +153,10 @@ export default function TodoSettingsPage() {
             {policies.map((policy) => (
               <li
                 key={policy.id}
-                className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+                className="rounded border border-warn/30 bg-warn/10 p-3 text-sm text-fg"
               >
                 {policy.text}
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                <p className="mt-1 text-xs text-warn">
                   Re-appears after {policy.reappearAfterHours}h
                 </p>
               </li>

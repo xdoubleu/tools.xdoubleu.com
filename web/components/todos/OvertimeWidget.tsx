@@ -1,15 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
 
 export default function OvertimeWidget() {
   const [minutes, setMinutes] = useState(0)
 
   useEffect(() => {
     const stored = localStorage.getItem('overtime_minutes')
-    if (stored) {
-      setMinutes(parseInt(stored, 10))
-    }
+    if (stored) setMinutes(parseInt(stored, 10))
   }, [])
 
   const saveMinutes = (newMinutes: number) => {
@@ -23,40 +22,25 @@ export default function OvertimeWidget() {
   const display = `${sign}${hours}h ${mins}m`
 
   return (
-    <div className="rounded border border-border bg-card p-4 mb-4">
-      <div className="flex items-center justify-between">
-        <span className="font-semibold text-lg">{display}</span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => saveMinutes(minutes + 60)}
-            className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-          >
+    <div className="mb-4 rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="font-semibold text-lg text-fg">{display}</span>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => saveMinutes(minutes + 60)}>
             +1h
-          </button>
-          <button
-            onClick={() => saveMinutes(minutes + 15)}
-            className="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-          >
+          </Button>
+          <Button size="sm" onClick={() => saveMinutes(minutes + 15)}>
             +15m
-          </button>
-          <button
-            onClick={() => saveMinutes(minutes - 15)}
-            className="px-2 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
-          >
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => saveMinutes(minutes - 15)}>
             -15m
-          </button>
-          <button
-            onClick={() => saveMinutes(minutes - 60)}
-            className="px-2 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
-          >
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => saveMinutes(minutes - 60)}>
             -1h
-          </button>
-          <button
-            onClick={() => saveMinutes(0)}
-            className="px-2 py-1 bg-gray-400 text-white text-sm rounded hover:bg-gray-500"
-          >
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => saveMinutes(0)}>
             Reset
-          </button>
+          </Button>
         </div>
       </div>
     </div>

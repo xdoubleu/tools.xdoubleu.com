@@ -10,13 +10,18 @@ export default function ProgressWidget({ wsUrl }: ProgressWidgetProps) {
   const { status, lastMessage } = useProgressWebSocket(wsUrl)
 
   const isConnected = status === WebSocket.OPEN
-  const statusText = isConnected ? 'Connected' : 'Disconnected'
-  const statusColor = isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
 
   return (
-    <div className={`p-3 rounded ${statusColor} mb-4`}>
+    <div
+      className={[
+        'mb-4 rounded-xl border px-4 py-3',
+        isConnected
+          ? 'border-success/30 bg-success/10 text-success'
+          : 'border-danger/30 bg-danger/10 text-danger'
+      ].join(' ')}
+    >
       <div className="flex items-center justify-between">
-        <span className="font-medium">{statusText}</span>
+        <span className="font-medium text-sm">{isConnected ? 'Connected' : 'Disconnected'}</span>
         {lastMessage && <span className="text-sm">{lastMessage}</span>}
       </div>
     </div>

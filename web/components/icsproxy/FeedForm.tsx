@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useICSPreview, useSaveConfig } from '@/hooks/useICSProxy'
 import type { SaveConfigInput } from '@/hooks/useICSProxy'
 import type { FilterConfig, EventInfo } from '@/lib/gen/icsproxy/v1/proxy_pb'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface FeedFormProps {
   token?: string
@@ -34,35 +37,13 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
 
   const events: EventInfo[] = fetchUrl ? (preview?.events ?? []) : (initialEvents ?? [])
 
-  const toggleHideEvent = (uid: string) => {
-    setHideEventUids((prev) => {
+  const toggleSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) => {
+    setter((prev) => {
       const next = new Set(prev)
-      if (next.has(uid)) next.delete(uid)
-      else next.add(uid)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
-  }
-
-  const toggleHoliday = (uid: string) => {
-    setHolidayUids((prev) => {
-      const next = new Set(prev)
-      if (next.has(uid)) next.delete(uid)
-      else next.add(uid)
-      return next
-    })
-  }
-
-  const toggleHideSeries = (seriesKey: string) => {
-    setHideSeries((prev) => {
-      const next = new Set(prev)
-      if (next.has(seriesKey)) next.delete(seriesKey)
-      else next.add(seriesKey)
-      return next
-    })
-  }
-
-  const handleFetch = () => {
-    if (sourceUrl.trim()) setFetchUrl(sourceUrl.trim())
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,36 +70,38 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-subtle mb-1">Source Calendar URL</label>
+      <div className="space-y-1.5">
+        <Label>Source Calendar URL</Label>
         <div className="flex gap-2">
-          <input
+          <Input
             type="url"
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
             required
             placeholder="https://example.com/calendar.ics"
-            className="flex-1 px-3 py-2 rounded border border-input-border bg-input text-input-text focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1"
           />
-          <button
+          <Button
             type="button"
-            onClick={handleFetch}
-            className="px-4 py-2 bg-subtle text-bg rounded hover:bg-fg text-sm"
+            variant="secondary"
+            onClick={() => {
+              if (sourceUrl.trim()) setFetchUrl(sourceUrl.trim())
+            }}
           >
             Preview
-          </button>
+          </Button>
         </div>
       </div>
 
       {previewLoading && <p className="text-sm text-muted">Loading events...</p>}
       {previewError && (
-        <p className="text-sm text-red-600">Failed to load events: {previewError.message}</p>
+        <p className="text-sm text-danger">Failed to load events: {previewError.message}</p>
       )}
 
       {events.length > 0 && (
         <div>
           <p className="text-sm font-medium text-subtle mb-2">{events.length} events</p>
-          <div className="overflow-x-auto rounded border border-border">
+          <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-surface text-subtle">
                 <tr>
@@ -134,24 +117,26 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
               <tbody className="divide-y divide-border">
                 {events.map((event) => (
                   <tr key={event.uid} className="hover:bg-surface">
-                    <td className="px-3 py-2">{event.summary || event.uid}</td>
+                    <td className="px-3 py-2 text-fg">{event.summary || event.uid}</td>
                     <td className="px-3 py-2 text-muted">{event.startNice || event.startRaw}</td>
                     <td className="px-3 py-2 text-muted">{event.endNice || event.endRaw}</td>
-                    <td className="px-3 py-2 text-center">{event.rrule ? 'Yes' : '—'}</td>
+                    <td className="px-3 py-2 text-center text-muted">
+                      {event.rrule ? 'Yes' : '—'}
+                    </td>
                     <td className="px-3 py-2 text-center">
                       <input
                         type="checkbox"
                         checked={hideEventUids.has(event.uid)}
-                        onChange={() => toggleHideEvent(event.uid)}
-                        className="accent-blue-600"
+                        onChange={() => toggleSet(setHideEventUids, event.uid)}
+                        className="accent-[rgb(var(--color-accent))]"
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
                       <input
                         type="checkbox"
                         checked={holidayUids.has(event.uid)}
-                        onChange={() => toggleHoliday(event.uid)}
-                        className="accent-blue-600"
+                        onChange={() => toggleSet(setHolidayUids, event.uid)}
+                        className="accent-[rgb(var(--color-accent))]"
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -159,11 +144,11 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
                         <input
                           type="checkbox"
                           checked={hideSeries.has(event.seriesKey)}
-                          onChange={() => toggleHideSeries(event.seriesKey)}
-                          className="accent-blue-600"
+                          onChange={() => toggleSet(setHideSeries, event.seriesKey)}
+                          className="accent-[rgb(var(--color-accent))]"
                         />
                       ) : (
-                        '—'
+                        <span className="text-muted">—</span>
                       )}
                     </td>
                   </tr>
@@ -174,23 +159,20 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
         </div>
       )}
 
-      {submitError && <p className="text-sm text-red-600">{submitError}</p>}
+      {submitError && <p className="text-sm text-danger">{submitError}</p>}
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-        >
+        <Button type="submit" disabled={isSubmitting} className="flex-1">
           {isSubmitting ? 'Saving...' : 'Save Filter'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => router.push('/icsproxy')}
-          className="flex-1 px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
+          className="flex-1"
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )

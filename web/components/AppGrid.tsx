@@ -19,12 +19,12 @@ interface AppGridProps {
 
 function AppCards({ apps }: { apps: AppLink[] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {apps.map((app) => (
         <Link
           key={app.name}
           href={app.href}
-          className="block rounded-lg border border-border bg-card p-4 hover:bg-accent transition-colors"
+          className="block rounded-2xl border border-border bg-card p-4 shadow-card transition-all hover:shadow-elevated hover:ring-1 hover:ring-accent/30 active:scale-[0.98]"
         >
           <div className="font-semibold text-fg">{app.label}</div>
           <div className="mt-1 text-sm text-muted">{app.description}</div>
@@ -43,7 +43,7 @@ export default function AppGrid({ apps, sections }: AppGridProps) {
       <div className="space-y-8">
         {visibleSections.map((section) => (
           <section key={section.title}>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">
               {section.title}
             </h2>
             <AppCards apps={section.apps} />

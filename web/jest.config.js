@@ -1,7 +1,7 @@
 const nextJest = require('next/jest')
 
 const createJestConfig = nextJest({
-  dir: './',
+  dir: './'
 })
 
 const customJestConfig = {
@@ -9,7 +9,7 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^(.+)\\.js$': '$1',
+    '^(.+)\\.js$': '$1'
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
@@ -19,9 +19,9 @@ const customJestConfig = {
     'app/global-error.tsx',
     'instrumentation-client.ts',
     '!lib/gen/**',
-    '!**/*.d.ts',
+    '!**/*.d.ts'
   ],
-  coverageReporters: ['text', 'lcov'],
+  coverageReporters: ['text', 'lcov']
 }
 
 module.exports = createJestConfig(customJestConfig)

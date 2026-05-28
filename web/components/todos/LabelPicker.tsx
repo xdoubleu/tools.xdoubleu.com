@@ -41,22 +41,22 @@ export function LabelPicker({
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className="w-full rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+        className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-label="Label search"
       />
       {open && filtered.length > 0 && (
         <ul
           role="listbox"
-          className="absolute z-10 mt-1 w-full rounded border border-border bg-card shadow-sm"
+          className="absolute z-10 mt-1 w-full rounded-xl border border-border bg-card shadow-elevated"
         >
           {filtered.map((label) => (
             <li key={label} role="option" aria-selected={value.includes(label)}>
-              <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-surface">
+              <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-surface">
                 <input
                   type="checkbox"
                   checked={value.includes(label)}
                   onChange={() => toggleLabel(label)}
-                  className="accent-blue-600"
+                  className="accent-[rgb(var(--color-accent))]"
                 />
                 {label}
               </label>
@@ -69,14 +69,14 @@ export function LabelPicker({
           {value.map((label) => (
             <span
               key={label}
-              className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+              className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-xs text-accent"
             >
               {label}
               <button
                 type="button"
                 onClick={() => toggleLabel(label)}
                 aria-label={`Remove ${label}`}
-                className="hover:text-blue-600 dark:hover:text-blue-400"
+                className="hover:text-accent-hover"
               >
                 ×
               </button>

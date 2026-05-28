@@ -6,6 +6,15 @@ import { useMealPlanExportItems } from '@/hooks/useShoppingList'
 import { formatForClipboard, formatForAppleNotes, formatAsTxt } from '@/lib/recipes/shoppingExport'
 import type { ShoppingItem, DayItems } from '@/lib/recipes/shoppingExport'
 import type { DayShoppingItems } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 interface ExportModalProps {
   customItems: ShoppingItem[]
@@ -65,100 +74,77 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <div className="bg-surface w-full max-w-lg mx-4 rounded-lg shadow-xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Export Shopping List</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-muted hover:text-foreground text-xl leading-none"
-          >
-            ×
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Export Shopping List</DialogTitle>
+          <DialogClose aria-label="Close">×</DialogClose>
+        </DialogHeader>
 
-        <div>
-          <label
-            htmlFor="export-plan-select"
-            className="block text-sm font-medium text-subtle mb-1"
-          >
-            Add meal plan ingredients (optional)
-          </label>
-          {plansLoading ? (
-            <p className="text-sm text-muted">Loading plans...</p>
-          ) : (
-            <select
-              id="export-plan-select"
-              value={selectedPlanId}
-              onChange={(e) => setSelectedPlanId(e.target.value)}
-              className="w-full px-3 py-2 border border-input-border bg-input text-input-text rounded text-sm"
-            >
-              <option value="">-- None --</option>
-              {(plansData?.plans ?? []).map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {selectedPlanId && (
-          <div>
-            <h3 className="text-sm font-semibold text-subtle uppercase tracking-wide mb-2">
-              Meal plan — next 7 days
-            </h3>
-            {exportLoading && <p className="text-sm text-muted">Loading...</p>}
-            {!exportLoading && dayItems && dayItems.length === 0 && (
-              <p className="text-sm text-muted">No meals with recipes in the next 7 days.</p>
-            )}
-            {!exportLoading && dayItems && dayItems.length > 0 && (
-              <div className="space-y-3">
-                {dayItems.map((day) => (
-                  <div key={day.date}>
-                    <p className="text-sm font-medium">{day.date}</p>
-                    <ul className="mt-1 space-y-1 pl-3">
-                      {day.items.map((item, i) => (
-                        <li key={i} className="text-sm text-subtle">
-                          {item.amount} {item.unit} — {item.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+        <div className="space-y-5">
+          <div className="space-y-1.5">
+            <Label htmlFor="export-plan-select">Add meal plan ingredients (optional)</Label>
+            {plansLoading ? (
+              <p className="text-sm text-muted">Loading plans...</p>
+            ) : (
+              <select
+                id="export-plan-select"
+                value={selectedPlanId}
+                onChange={(e) => setSelectedPlanId(e.target.value)}
+                className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <option value="">-- None --</option>
+                {(plansData?.plans ?? []).map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
                 ))}
-              </div>
+              </select>
             )}
           </div>
-        )}
 
-        <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-border">
-          <button
-            onClick={handleExportClipboard}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-          >
-            Copy to Clipboard
-          </button>
-          <button
-            onClick={handleExportAppleNotes}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-          >
-            Share to Apple Notes
-          </button>
-          <button
-            onClick={handleExportTxt}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-          >
-            Download .txt
-          </button>
-          {copyFeedback && <span className="text-sm text-green-600">{copyFeedback}</span>}
+          {selectedPlanId && (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+                Meal plan — next 7 days
+              </h3>
+              {exportLoading && <p className="text-sm text-muted">Loading...</p>}
+              {!exportLoading && dayItems && dayItems.length === 0 && (
+                <p className="text-sm text-muted">No meals with recipes in the next 7 days.</p>
+              )}
+              {!exportLoading && dayItems && dayItems.length > 0 && (
+                <div className="space-y-3">
+                  {dayItems.map((day) => (
+                    <div key={day.date}>
+                      <p className="text-sm font-medium text-fg">{day.date}</p>
+                      <ul className="mt-1 space-y-1 pl-3">
+                        {day.items.map((item, i) => (
+                          <li key={i} className="text-sm text-subtle">
+                            {item.amount} {item.unit} — {item.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <Button size="sm" onClick={handleExportClipboard}>
+              Copy to Clipboard
+            </Button>
+            <Button size="sm" onClick={handleExportAppleNotes}>
+              Share to Apple Notes
+            </Button>
+            <Button size="sm" variant="secondary" onClick={handleExportTxt}>
+              Download .txt
+            </Button>
+            {copyFeedback && <span className="text-sm text-success">{copyFeedback}</span>}
+          </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

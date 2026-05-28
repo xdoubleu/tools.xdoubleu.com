@@ -80,12 +80,10 @@ describe('ExportModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onClose when backdrop is clicked', () => {
+  it('calls onClose when Escape is pressed', () => {
     const onClose = jest.fn()
-    const { container } = render(<ExportModal customItems={customItems} onClose={onClose} />)
-    const backdrop = container.firstChild
-    if (!(backdrop instanceof HTMLElement)) throw new Error('expected HTMLElement')
-    fireEvent.click(backdrop)
+    render(<ExportModal customItems={customItems} onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 

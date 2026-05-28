@@ -14,15 +14,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <script
           dangerouslySetInnerHTML={{
             __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN: process.env.SENTRY_DSN ?? '', RELEASE: process.env.RELEASE ?? 'dev' })}`
           }}
         />
       </head>
-      <body className="flex flex-col min-h-screen bg-bg text-fg">
+      <body className="flex min-h-screen flex-col bg-bg text-fg">
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 px-4 py-6 sm:px-6">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
         <Footer />
       </body>
     </html>

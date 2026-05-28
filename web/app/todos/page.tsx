@@ -80,7 +80,7 @@ export default function TodosPage() {
                     setSelectedWorkspaceId(undefined)
                     setSelectedSectionId(undefined)
                   }}
-                  className={`w-full rounded px-2 py-1 text-left text-sm ${selectedWorkspaceId === undefined ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-subtle hover:bg-surface'}`}
+                  className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedWorkspaceId === undefined ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
                 >
                   All workspaces
                 </button>
@@ -93,7 +93,7 @@ export default function TodosPage() {
                       setSelectedWorkspaceId(ws.id)
                       setSelectedSectionId(undefined)
                     }}
-                    className={`w-full rounded px-2 py-1 text-left text-sm ${selectedWorkspaceId === ws.id ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-subtle hover:bg-surface'}`}
+                    className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedWorkspaceId === ws.id ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
                   >
                     {ws.name}
                   </button>
@@ -114,7 +114,7 @@ export default function TodosPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedSectionId(undefined)}
-                  className={`w-full rounded px-2 py-1 text-left text-sm ${selectedSectionId === undefined ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-subtle hover:bg-surface'}`}
+                  className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedSectionId === undefined ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
                 >
                   All sections
                 </button>
@@ -124,7 +124,7 @@ export default function TodosPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedSectionId(sec.id)}
-                    className={`w-full rounded px-2 py-1 text-left text-sm ${selectedSectionId === sec.id ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-subtle hover:bg-surface'}`}
+                    className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedSectionId === sec.id ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
                   >
                     {sec.name}
                   </button>
@@ -149,7 +149,7 @@ export default function TodosPage() {
               role="tab"
               aria-selected={activeTab === tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 text-sm font-medium ${activeTab === tab.id ? 'border-b-2 border-blue-500 text-blue-600' : 'text-muted hover:text-subtle'}`}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab.id ? 'border-b-2 border-accent text-accent' : 'text-muted hover:text-subtle'}`}
             >
               {tab.label}
             </button>
@@ -172,7 +172,7 @@ export default function TodosPage() {
 
         {/* Task list */}
         {isLoading && <p className="py-8 text-center text-sm text-muted">Loading…</p>}
-        {error && <p className="py-8 text-center text-sm text-red-500">Failed to load tasks.</p>}
+        {error && <p className="py-8 text-center text-sm text-danger">Failed to load tasks.</p>}
         {!isLoading && !error && filteredTasks.length === 0 && (
           <p className="py-8 text-center text-sm text-muted">No tasks.</p>
         )}
@@ -194,11 +194,11 @@ export default function TodosPage() {
               value={quickAddInput}
               onChange={(e) => setQuickAddInput(e.target.value)}
               placeholder="Add a task…"
-              className="flex-1 rounded border border-input-border bg-input px-3 py-2 text-sm text-input-text"
+              className="h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
             <button
               type="submit"
-              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               disabled={!quickAddInput.trim()}
             >
               Add

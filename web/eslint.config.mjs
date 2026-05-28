@@ -5,14 +5,14 @@ import js from '@eslint/js'
 
 export default [
   {
-    ignores: ['.next', 'node_modules', 'dist', 'lib/gen/**'],
+    ignores: ['.next', 'node_modules', 'dist', 'lib/gen/**']
   },
   js.configs.recommended,
   ...typescriptEslint.configs.recommended,
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     plugins: {
-      '@next/next': nextPlugin,
+      '@next/next': nextPlugin
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,
@@ -21,10 +21,10 @@ export default [
         'error',
         {
           selector: 'TSSatisfiesExpression',
-          message: 'Use create(Schema, fields) from @bufbuild/protobuf instead of satisfies.',
-        },
-      ],
-    },
+          message: 'Use create(Schema, fields) from @bufbuild/protobuf instead of satisfies.'
+        }
+      ]
+    }
   },
   {
     files: ['*.config.js'],
@@ -32,28 +32,28 @@ export default [
       sourceType: 'commonjs',
       globals: {
         module: 'writable',
-        require: 'readonly',
-      },
+        require: 'readonly'
+      }
     },
     rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-    },
+      '@typescript-eslint/no-require-imports': 'off'
+    }
   },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
-        project: true,
-      },
+        project: true
+      }
     },
     rules: {
-      '@typescript-eslint/no-unsafe-type-assertion': 'error',
-    },
+      '@typescript-eslint/no-unsafe-type-assertion': 'error'
+    }
   },
   {
     files: ['__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
     rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-    },
-  },
+      '@typescript-eslint/no-require-imports': 'off'
+    }
+  }
 ]
