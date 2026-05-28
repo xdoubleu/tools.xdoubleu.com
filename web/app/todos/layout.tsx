@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TodosLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col flex-1 bg-surface">
+    <div className="flex flex-col flex-1">
       <header className="border-b border-border bg-card px-6 py-3">
         <nav className="flex items-center gap-4">
           <Link href="/todos" className="text-sm font-semibold text-fg hover:text-accent">
@@ -19,7 +19,7 @@ export default function TodosLayout({ children }: { children: React.ReactNode })
           </Link>
         </nav>
       </header>
-      <main className="flex-1 mx-auto max-w-5xl px-4 py-6 w-full">{children}</main>
+      <main className="flex-1 mx-auto max-w-7xl px-4 py-6 w-full">{children}</main>
     </div>
   )
 }

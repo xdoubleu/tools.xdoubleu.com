@@ -47,7 +47,7 @@ export default function ViewerClient({ id }: { id: string }) {
         <h1 className="text-xl font-bold">Watch Party</h1>
         <div className="flex items-center gap-2 ml-auto">
           <span className={`w-2.5 h-2.5 rounded-full ${STATUS_COLOR[status]}`} />
-          <span className="text-sm text-muted-foreground">{STATUS_LABEL[status]}</span>
+          <span className="text-sm text-muted">{STATUS_LABEL[status]}</span>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export default function ViewerClient({ id }: { id: string }) {
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border bg-background">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border bg-surface">
         <button
           onClick={toggleMic}
           className={`px-4 py-1.5 rounded text-sm font-medium border ${
@@ -96,13 +96,13 @@ export default function ViewerClient({ id }: { id: string }) {
         <button
           onClick={toggleSelfCam}
           className={`px-4 py-1.5 rounded text-sm font-medium border ${
-            selfCamVisible ? 'border-border hover:bg-accent' : 'border-border text-muted-foreground'
+            selfCamVisible ? 'border-border hover:bg-accent' : 'border-border text-muted'
           }`}
         >
           {selfCamVisible ? 'Hide Self' : 'Show Self'}
         </button>
 
-        <span className="ml-auto text-xs text-muted-foreground font-mono">Room: {id}</span>
+        <span className="ml-auto text-xs text-muted font-mono">Room: {id}</span>
       </div>
     </div>
   )
