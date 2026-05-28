@@ -5,10 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
+	"tools.xdoubleu.com/apps/todos/internal/models"
 )
 
 func TestURLToTitle_LastSegment(t *testing.T) {
@@ -209,4 +211,194 @@ func TestShortcutQueryPattern_NoMatch_LowerCase(t *testing.T) {
 
 func TestShortcutQueryPattern_NoMatch_PlainText(t *testing.T) {
 	assert.Nil(t, shortcutQueryPattern.FindStringSubmatch("fix bug"))
+}
+
+// ── parseLabelsInput ──────────────────────────────────────────────────────────
+
+func TestParseLabelsInput_Empty(t *testing.T) {
+	assert.Equal(t, []string{}, parseLabelsInput(""))
+}
+
+func TestParseLabelsInput_Single(t *testing.T) {
+	assert.Equal(t, []string{"bug"}, parseLabelsInput("bug"))
+}
+
+func TestParseLabelsInput_Multiple(t *testing.T) {
+	assert.Equal(t, []string{"bug", "feature"}, parseLabelsInput("bug,feature"))
+}
+
+func TestParseLabelsInput_TrimsSpaces(t *testing.T) {
+	assert.Equal(t, []string{"bug", "feature"}, parseLabelsInput(" bug , feature "))
+}
+
+func TestParseLabelsInput_SkipsBlank(t *testing.T) {
+	assert.Equal(t, []string{"bug"}, parseLabelsInput("bug,,"))
+}
+
+// ── parseSectionID ────────────────────────────────────────────────────────────
+
+func TestParseSectionID_Empty(t *testing.T) {
+	assert.Nil(t, parseSectionID(""))
+}
+
+func TestParseSectionID_Invalid(t *testing.T) {
+	assert.Nil(t, parseSectionID("not-a-uuid"))
+}
+
+func TestParseSectionID_Valid(t *testing.T) {
+	id := uuid.New()
+	result := parseSectionID(id.String())
+	require.NotNil(t, result)
+	assert.Equal(t, id, *result)
+}
+
+// ── dtoToLinks ────────────────────────────────────────────────────────────────
+
+func TestDtoToLinks_Empty(t *testing.T) {
+	//nolint:exhaustruct // only relevant fields set in test
+	dto := dtos.SaveTaskDto{}
+	assert.Empty(t, dtoToLinks(dto, uuid.New()))
+}
+
+func TestDtoToLinks_SkipsEmptyURL(t *testing.T) {
+	//nolint:exhaustruct // only relevant fields set in test
+	dto := dtos.SaveTaskDto{LinkURLs: []string{"", ""}}
+	assert.Empty(t, dtoToLinks(dto, uuid.New()))
+}
+
+func TestDtoToLinks_SingleLink(t *testing.T) {
+	taskID := uuid.New()
+	//nolint:exhaustruct // only relevant fields set in test
+	dto := dtos.SaveTaskDto{
+		LinkURLs:   []string{"https://example.com"},
+		LinkLabels: []string{"Example"},
+	}
+	links := dtoToLinks(dto, taskID)
+	require.Len(t, links, 1)
+	assert.Equal(t, "https://example.com", links[0].URL)
+	assert.Equal(t, "Example", links[0].Label)
+	assert.Equal(t, taskID, links[0].TaskID)
+	assert.Equal(t, 0, links[0].SortOrder)
+}
+
+func TestDtoToLinks_MultipleLinks(t *testing.T) {
+	taskID := uuid.New()
+	//nolint:exhaustruct // only relevant fields set in test
+	dto := dtos.SaveTaskDto{
+		LinkURLs:   []string{"https://a.com", "https://b.com"},
+		LinkLabels: []string{"A", "B"},
+	}
+	links := dtoToLinks(dto, taskID)
+	require.Len(t, links, 2)
+	assert.Equal(t, 0, links[0].SortOrder)
+	assert.Equal(t, 1, links[1].SortOrder)
+}
+
+func TestDtoToLinks_NoLabelForIndex(t *testing.T) {
+	taskID := uuid.New()
+	//nolint:exhaustruct // only relevant fields set in test
+	dto := dtos.SaveTaskDto{
+		LinkURLs:   []string{"https://a.com", "https://b.com"},
+		LinkLabels: []string{"A"},
+	}
+	links := dtoToLinks(dto, taskID)
+	require.Len(t, links, 2)
+	assert.Equal(t, "A", links[0].Label)
+	assert.Equal(t, "", links[1].Label)
+}
+
+// ── parseHumanDate edge cases ─────────────────────────────────────────────────
+
+func TestParseHumanDate_ISODate(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	d, recurring, err := parseHumanDate("2026-06-15", now, false)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, 2026, d.Year())
+	assert.Equal(t, time.June, d.Month())
+	assert.Equal(t, 15, d.Day())
+	assert.Equal(t, "", recurring.recurRule)
+}
+
+func TestParseHumanDate_Today(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	d, _, err := parseHumanDate("today", now, false)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, 8, d.Day())
+}
+
+func TestParseHumanDate_Tomorrow(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	d, _, err := parseHumanDate("tomorrow", now, false)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, 9, d.Day())
+}
+
+func TestParseHumanDate_WeekdayName(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC) // Friday
+	d, _, err := parseHumanDate("monday", now, false)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, time.Monday, d.Weekday())
+}
+
+func TestParseHumanDate_Invalid(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	_, _, err := parseHumanDate("not-a-date", now, false)
+	require.Error(t, err)
+}
+
+func TestParseHumanDate_Empty(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	d, _, err := parseHumanDate("", now, false)
+	require.NoError(t, err)
+	assert.Nil(t, d)
+}
+
+func TestParseHumanDate_EveryNDays(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	d, recurring, err := parseHumanDate("every 7 days", now, true)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, 7, recurring.recurDays)
+	assert.Equal(t, "days:7", recurring.recurRule)
+}
+
+func TestParseHumanDate_NextThursday(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC) // Friday
+	d, _, err := parseHumanDate("next thursday", now, false)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	assert.Equal(t, time.Thursday, d.Weekday())
+}
+
+// ── parseQuickInput additional cases ─────────────────────────────────────────
+
+func TestParseQuickInput_Priority(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Fix critical bug p1", nil, now)
+	assert.Equal(t, "Fix critical bug", title)
+	assert.Equal(t, models.PriorityP1, dto.Priority)
+}
+
+func TestParseQuickInput_Label(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Fix bug @backend", nil, now)
+	assert.Equal(t, "Fix bug", title)
+	assert.Equal(t, "backend", dto.Label)
+}
+
+func TestParseQuickInput_ISODueDate(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, dto := parseQuickInput("Do task 2026-06-01", nil, now)
+	assert.Equal(t, "Do task", title)
+	assert.Equal(t, "2026-06-01", dto.DueDate)
+}
+
+func TestParseQuickInput_TildePrefixKeptInTitle(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	title, _ := parseQuickInput("~tag something", nil, now)
+	assert.Contains(t, title, "~tag")
 }

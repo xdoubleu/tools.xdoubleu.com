@@ -448,7 +448,11 @@ func (h *mealplansConnectHandler) MoveMeal(
 		)
 	}
 
-	validSlots := map[string]bool{"breakfast": true, "noon": true, "evening": true}
+	validSlots := map[string]bool{
+		models.SlotBreakfast: true,
+		models.SlotNoon:      true,
+		models.SlotEvening:   true,
+	}
 	if !validSlots[req.Msg.NewSlot] {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,

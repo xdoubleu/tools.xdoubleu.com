@@ -42,7 +42,7 @@ func renderICalFeed(plan *models.Plan, meals []models.PlanMeal) string {
 
 		var slot, dtstart, dtend string
 		switch meal.MealSlot {
-		case "breakfast":
+		case models.SlotBreakfast:
 			slot = "Breakfast"
 			dtstart = dateStr + "T080000"
 			dtend = dateStr + "T090000"

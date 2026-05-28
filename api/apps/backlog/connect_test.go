@@ -175,6 +175,25 @@ func TestConnectGetSteamGame(t *testing.T) {
 	_, _ = client.GetSteamGame(ctx, req)
 }
 
+func TestConnectGetSteamGame_WithSeededData(t *testing.T) {
+	seedSteamData(t)
+
+	client := newGamesTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&backlogv1.GetSteamGameRequest{
+		GameId: 1,
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.GetSteamGame(ctx, req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.NotNil(t, resp.Msg.Data)
+	assert.NotNil(t, resp.Msg.Data.Game)
+}
+
 func TestConnectGetSteamDistribution_ValidBucket(t *testing.T) {
 	client := newGamesTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())

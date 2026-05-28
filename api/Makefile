@@ -86,12 +86,66 @@ test/cov/open:
 test/cov/per-pkg:
 	go test ./apps/todos \
 		-coverpkg=./apps/todos,./apps/todos/internal/... \
-		-covermode=set -coverprofile=cov_todos_pkg.out
+		-covermode=set -count=1 -coverprofile=cov_todos_pkg.out
+	go test ./apps/todos/internal/... \
+		-coverpkg=./apps/todos,./apps/todos/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_todos_internal.out
 	go test ./apps/backlog \
 		-coverpkg=./apps/backlog,./apps/backlog/internal/... \
-		-covermode=set -coverprofile=cov_backlog_pkg.out
+		-covermode=set -count=1 -coverprofile=cov_backlog_pkg.out
+	go test ./apps/backlog/internal/... \
+		-coverpkg=./apps/backlog,./apps/backlog/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_backlog_internal.out
+	go test ./apps/icsproxy \
+		-coverpkg=./apps/icsproxy,./apps/icsproxy/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_icsproxy_pkg.out
+	go test ./apps/icsproxy/internal/services \
+		-coverpkg=./apps/icsproxy/internal/services \
+		-covermode=set -count=1 -coverprofile=cov_icsproxy_svc.out
+	go test ./apps/icsproxy/internal/dtos \
+		-coverpkg=./apps/icsproxy/internal/dtos \
+		-covermode=set -count=1 -coverprofile=cov_icsproxy_dtos.out
+	go test ./apps/recipes \
+		-coverpkg=./apps/recipes,./apps/recipes/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_recipes_pkg.out
+	go test ./apps/mealplans \
+		-coverpkg=./apps/mealplans,./apps/mealplans/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_mealplans_pkg.out
+	go test ./apps/shoppinglist \
+		-coverpkg=./apps/shoppinglist,./apps/shoppinglist/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_shoppinglist_pkg.out
+	go test ./apps/shoppinglist/internal/services \
+		-coverpkg=./apps/shoppinglist/internal/services \
+		-covermode=set -count=1 -coverprofile=cov_shoppinglist_svc.out
+	go test ./apps/watchparty \
+		-coverpkg=./apps/watchparty,./apps/watchparty/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_watchparty_pkg.out
+	go test ./apps/watchparty/internal/... \
+		-coverpkg=./apps/watchparty,./apps/watchparty/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_watchparty_internal.out
 	go test ./cmd/api \
 		-coverpkg=./cmd/api,./internal/... \
-		-covermode=set -coverprofile=cov_api_pkg.out
+		-covermode=set -count=1 -coverprofile=cov_api_pkg.out
+	go test ./internal/app \
+		-coverpkg=./internal/app \
+		-covermode=set -count=1 -coverprofile=cov_internal_app.out
+	go test ./internal/contacts \
+		-coverpkg=./internal/contacts \
+		-covermode=set -count=1 -coverprofile=cov_internal_contacts.out
+	go test ./internal/crypto \
+		-coverpkg=./internal/crypto \
+		-covermode=set -count=1 -coverprofile=cov_internal_crypto.out
+	go test ./internal/format \
+		-coverpkg=./internal/format \
+		-covermode=set -count=1 -coverprofile=cov_internal_format.out
 	python3 tools/merge_coverage.py \
-		cov_todos_pkg.out cov_backlog_pkg.out cov_api_pkg.out
+		cov_todos_pkg.out cov_todos_internal.out \
+		cov_backlog_pkg.out cov_backlog_internal.out \
+		cov_icsproxy_pkg.out cov_icsproxy_svc.out cov_icsproxy_dtos.out \
+		cov_recipes_pkg.out \
+		cov_mealplans_pkg.out \
+		cov_shoppinglist_pkg.out cov_shoppinglist_svc.out \
+		cov_watchparty_pkg.out cov_watchparty_internal.out \
+		cov_api_pkg.out \
+		cov_internal_app.out cov_internal_contacts.out \
+		cov_internal_crypto.out cov_internal_format.out

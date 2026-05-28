@@ -39,6 +39,11 @@ def parse_coverage_file(filepath):
                 num_stmt = parts[1]
                 count = parts[2]
 
+                # Skip mock files and generated stubs (mirrors test/cov/report filter)
+                file_part = range_part.split(':')[0]
+                if file_part.endswith('_mock.go') or '/gen/' in file_part:
+                    continue
+
                 try:
                     key = (range_part, num_stmt)
                     blocks[key] = int(count)
@@ -101,7 +106,6 @@ def main():
 
     coverage_files = sys.argv[1:]
     all_blocks = {}
-    file_stats = defaultdict(lambda: {'total': 0, 'covered': 0})
     any_valid = False
 
     for filepath in coverage_files:
@@ -116,26 +120,26 @@ def main():
         any_valid = True
 
         for key, count in blocks.items():
-            range_part, num_stmt = key
-            package = extract_package_from_range(range_part)
-
-            try:
-                num_stmt_int = int(num_stmt)
-                file_stats[package]['total'] += num_stmt_int
-
-                if count > 0:
-                    file_stats[package]['covered'] += num_stmt_int
-
-                if key not in all_blocks:
-                    all_blocks[key] = count
-                else:
-                    all_blocks[key] = max(all_blocks[key], count)
-            except ValueError:
-                continue
+            if key not in all_blocks:
+                all_blocks[key] = count
+            else:
+                all_blocks[key] = max(all_blocks[key], count)
 
     if not any_valid:
         print('Error: no valid coverage files found', file=sys.stderr)
         sys.exit(1)
+
+    # Compute stats from merged blocks (each block counted exactly once)
+    file_stats = defaultdict(lambda: {'total': 0, 'covered': 0})
+    for (range_part, num_stmt), count in all_blocks.items():
+        package = extract_package_from_range(range_part)
+        try:
+            num_stmt_int = int(num_stmt)
+            file_stats[package]['total'] += num_stmt_int
+            if count > 0:
+                file_stats[package]['covered'] += num_stmt_int
+        except ValueError:
+            continue
 
     combined_total = 0
     combined_covered = 0

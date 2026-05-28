@@ -6,6 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	SlotBreakfast = "breakfast"
+	SlotNoon      = "noon"
+	SlotEvening   = "evening"
+)
+
 type PlanSharedUser struct {
 	UserID      string
 	CanEdit     bool

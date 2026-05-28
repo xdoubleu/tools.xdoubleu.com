@@ -293,3 +293,222 @@ func TestUnshareRecipe_RequiresTargetUserID(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
+
+func TestUnshareRecipe_Success(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	createResp, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name: "Unshare Success", Steps: []string{"step"}, BaseServings: 2,
+		}),
+	)
+	require.NoError(t, err)
+	recipeID := createResp.Msg.Recipe.Id
+
+	_, err = client.ShareRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.ShareRecipeRequest{
+			Id: recipeID, ContactUserId: "other-user-id",
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.UnshareRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.UnshareRecipeRequest{
+			Id: recipeID, TargetUserId: "other-user-id",
+		}),
+	)
+	require.NoError(t, err)
+}
+
+func TestListRecipes_WithItems(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name: "Listed Recipe", Steps: []string{"step"}, BaseServings: 2,
+		}),
+	)
+	require.NoError(t, err)
+
+	resp, err := client.ListRecipes(
+		ctx,
+		connect.NewRequest(&recipesv1.ListRecipesRequest{}),
+	)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Recipes)
+}
+
+func TestDeleteRecipe_NotFound(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.DeleteRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.DeleteRecipeRequest{
+			Id: uuid.New().String(),
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
+}
+
+func TestGetRecipe_AfterSharing(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	createResp, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name: "Shared Recipe", Steps: []string{"step"}, BaseServings: 2,
+		}),
+	)
+	require.NoError(t, err)
+	recipeID := createResp.Msg.Recipe.Id
+
+	_, err = client.ShareRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.ShareRecipeRequest{
+			Id: recipeID, ContactUserId: "other-user-id",
+		}),
+	)
+	require.NoError(t, err)
+
+	resp, err := client.GetRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+	)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Recipe.SharedWith)
+}
+
+func TestUpdateRecipe_NotFound(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.UpdateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+			Id: uuid.New().
+				String(),
+			Name: "ghost", Steps: []string{"s"}, BaseServings: 1,
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
+}
+
+func TestGetRecipe_InvalidID(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.GetRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: "not-a-uuid"}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
+func TestUpdateRecipe_InvalidID(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.UpdateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+			Id: "not-a-uuid", Name: "x", Steps: []string{"s"}, BaseServings: 1,
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
+func TestDeleteRecipe_InvalidID(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.DeleteRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.DeleteRecipeRequest{Id: "not-a-uuid"}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
+func TestShareRecipe_InvalidID(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.ShareRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.ShareRecipeRequest{
+			Id: "not-a-uuid", ContactUserId: "someone",
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
+func TestUnshareRecipe_InvalidID(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.UnshareRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.UnshareRecipeRequest{
+			Id: "not-a-uuid", TargetUserId: "someone",
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
