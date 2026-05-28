@@ -29,10 +29,11 @@ import {
 } from '@/hooks/useBacklog'
 import { createServiceClient } from '@/lib/client'
 
-const mockUseSWR = useSWR as jest.Mock
-const mockCreateServiceClient = createServiceClient as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 beforeEach(() => {
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   mockUseSWR.mockClear()
   mockCreateServiceClient.mockClear()
@@ -65,9 +66,10 @@ describe('useBacklogSteamGame', () => {
 
   it('fetcher calls client.getSteamGame', async () => {
     const mockClient = { getSteamGame: jest.fn().mockResolvedValue({}) }
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce(mockClient)
     renderHook(() => useBacklogSteamGame(42))
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockClient.getSteamGame).toHaveBeenCalledWith({ gameId: 42 })
   })
@@ -76,17 +78,15 @@ describe('useBacklogSteamGame', () => {
 describe('useBacklogDistribution', () => {
   it('uses /backlog/steam/distribution/${bucket} as key', () => {
     renderHook(() => useBacklogDistribution(10))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      '/backlog/steam/distribution/10',
-      expect.any(Function)
-    )
+    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/steam/distribution/10', expect.any(Function))
   })
 
   it('fetcher calls client.getSteamDistribution', async () => {
     const mockClient = { getSteamDistribution: jest.fn().mockResolvedValue({}) }
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce(mockClient)
     renderHook(() => useBacklogDistribution(10))
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockClient.getSteamDistribution).toHaveBeenCalledWith({ bucket: 10 })
   })
@@ -107,9 +107,10 @@ describe('useSteamProgress', () => {
 
   it('fetcher calls client.getSteam with dates', async () => {
     const mockClient = { getSteam: jest.fn().mockResolvedValue({}) }
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce(mockClient)
     renderHook(() => useSteamProgress('2024-01-01', '2024-12-31'))
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockClient.getSteam).toHaveBeenCalledWith({
       dateStart: '2024-01-01',
@@ -132,9 +133,10 @@ describe('useBooksProgress', () => {
 
   it('fetcher calls client.getBooksProgress', async () => {
     const mockClient = { getBooksProgress: jest.fn().mockResolvedValue({}) }
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce(mockClient)
     renderHook(() => useBooksProgress('2024-01-01', '2024-12-31'))
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockClient.getBooksProgress).toHaveBeenCalledWith({
       dateStart: '2024-01-01',
@@ -165,6 +167,7 @@ describe('useImportBooks', () => {
 
   it('encodes csv and calls client.importBooks', () => {
     const mockImportBooks = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ importBooks: mockImportBooks })
     const { result } = renderHook(() => useImportBooks())
     result.current('a,b\n1,2')

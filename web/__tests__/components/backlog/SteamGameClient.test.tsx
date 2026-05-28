@@ -28,45 +28,60 @@ jest.mock('next/image', () => {
 
 import SteamGameClient from '@/app/backlog/steam/[id]/SteamGameClient'
 import { useBacklogSteamGame } from '@/hooks/useBacklog'
-import type { Game, Achievement } from '@/lib/gen/backlog/v1/games_pb'
+import { create } from '@bufbuild/protobuf'
+import {
+  GameSchema,
+  AchievementSchema,
+  GetSteamGameResponseSchema,
+  SteamGameResponseSchema
+} from '@/lib/gen/backlog/v1/games_pb'
 
-const mockGame = {
-  id: 'game-1',
+const mockGame = create(GameSchema, {
+  id: 1,
   name: 'The Witcher 3',
   playtime: 3600,
   completionRate: '85%',
   isDelisted: false
-} as unknown as Game
+})
 
 const mockAchievements = [
-  {
+  create(AchievementSchema, {
     name: 'ach1',
     displayName: 'Achievement 1',
     description: 'First achievement',
     achieved: true,
     globalPercent: 50.5,
     iconUrl: 'http://example.com/ach1.png'
-  },
-  {
+  }),
+  create(AchievementSchema, {
     name: 'ach2',
     displayName: 'Achievement 2',
     description: 'Second achievement',
     achieved: false,
     globalPercent: 25.3,
     iconUrl: 'http://example.com/ach2.png'
-  }
-] as unknown as Achievement[]
+  })
+]
 
 beforeEach(() => {
   jest.clearAllMocks()
 })
 
+const mockSteamGameResponse = (
+  game: ReturnType<typeof create<typeof GameSchema>>,
+  achievements: ReturnType<typeof create<typeof AchievementSchema>>[]
+) =>
+  create(GetSteamGameResponseSchema, {
+    data: create(SteamGameResponseSchema, { game, achievements })
+  })
+
 describe('SteamGameClient', () => {
   it('shows loading state when isLoading is true', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: undefined,
       isLoading: true,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -74,8 +89,9 @@ describe('SteamGameClient', () => {
   })
 
   it('shows error state when error is present', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: undefined,
       isLoading: false,
       error: new Error('Failed to fetch')
     })
@@ -85,10 +101,11 @@ describe('SteamGameClient', () => {
   })
 
   it('renders game name when game is loaded', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: [] } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -96,10 +113,11 @@ describe('SteamGameClient', () => {
   })
 
   it('renders achievements section when achievements exist', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: mockAchievements } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -109,10 +127,11 @@ describe('SteamGameClient', () => {
   })
 
   it('shows no achievements message when list is empty', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: [] } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -120,10 +139,11 @@ describe('SteamGameClient', () => {
   })
 
   it('calls useBacklogSteamGame with numeric id converted from string', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: undefined,
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="456" />)
@@ -131,10 +151,11 @@ describe('SteamGameClient', () => {
   })
 
   it('renders backlog link', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: undefined,
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -143,10 +164,11 @@ describe('SteamGameClient', () => {
   })
 
   it('displays playtime in hours', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: [] } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -154,10 +176,11 @@ describe('SteamGameClient', () => {
   })
 
   it('displays completion rate', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: [] } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -165,10 +188,11 @@ describe('SteamGameClient', () => {
   })
 
   it('displays achieved count in achievements header', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: mockAchievements } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -176,10 +200,11 @@ describe('SteamGameClient', () => {
   })
 
   it('renders achievement cards with correct statuses', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: mockAchievements } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -188,11 +213,12 @@ describe('SteamGameClient', () => {
   })
 
   it('shows delisted badge when game is delisted', () => {
-    const delistedGame = { ...mockGame, isDelisted: true }
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: delistedGame, achievements: [] } },
+    const delistedGame = create(GameSchema, { ...mockGame, isDelisted: true })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(delistedGame, []),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)
@@ -200,10 +226,11 @@ describe('SteamGameClient', () => {
   })
 
   it('does not show delisted badge when game is not delisted', () => {
-    ;(useBacklogSteamGame as jest.Mock).mockReturnValue({
-      data: { data: { game: mockGame, achievements: [] } },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<SteamGameClient id="123" />)

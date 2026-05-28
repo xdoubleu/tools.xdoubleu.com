@@ -1,6 +1,8 @@
 import React from 'react'
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import FeedForm from '@/components/icsproxy/FeedForm'
+import { FilterConfigSchema, EventInfoSchema } from '@/lib/gen/icsproxy/v1/proxy_pb'
 
 const mockSaveConfig = jest.fn()
 const mockPush = jest.fn()
@@ -20,26 +22,20 @@ jest.mock('next/navigation', () => ({
 }))
 
 const sampleEvents = [
-  {
+  create(EventInfoSchema, {
     uid: 'e1',
     summary: 'Team Standup',
     startNice: 'Mon 9am',
     endNice: 'Mon 9:30am',
-    startRaw: '',
-    endRaw: '',
     rrule: 'FREQ=WEEKLY',
     seriesKey: 'standup'
-  },
-  {
+  }),
+  create(EventInfoSchema, {
     uid: 'e2',
     summary: 'Lunch',
     startNice: 'Mon 12pm',
-    endNice: 'Mon 1pm',
-    startRaw: '',
-    endRaw: '',
-    rrule: '',
-    seriesKey: ''
-  }
+    endNice: 'Mon 1pm'
+  })
 ]
 
 describe('FeedForm', () => {
@@ -58,14 +54,12 @@ describe('FeedForm', () => {
   })
 
   it('pre-fills source URL from initialConfig', () => {
-    const config = {
-      sourceUrl: 'https://cal.example.com/feed.ics',
-      hideEventUids: [],
-      holidayUids: [],
-      hideSeries: []
-    }
-    render(<FeedForm initialConfig={config as never} />)
-    const input = screen.getByPlaceholderText(/calendar.ics/) as HTMLInputElement
+    const config = create(FilterConfigSchema, {
+      sourceUrl: 'https://cal.example.com/feed.ics'
+    })
+    render(<FeedForm initialConfig={config} />)
+    const input = screen.getByPlaceholderText(/calendar.ics/)
+    if (!(input instanceof HTMLInputElement)) throw new Error('expected input')
     expect(input.value).toBe('https://cal.example.com/feed.ics')
   })
 
@@ -113,47 +107,42 @@ describe('FeedForm', () => {
   })
 
   it('renders events table when initialEvents provided', () => {
-    render(<FeedForm initialEvents={sampleEvents as never} />)
+    render(<FeedForm initialEvents={sampleEvents} />)
     expect(screen.getByText('Team Standup')).toBeInTheDocument()
     expect(screen.getByText('Lunch')).toBeInTheDocument()
     expect(screen.getByText('2 events')).toBeInTheDocument()
   })
 
   it('toggles hide-event checkbox', () => {
-    render(<FeedForm initialEvents={sampleEvents as never} />)
+    render(<FeedForm initialEvents={sampleEvents} />)
     const checkboxes = screen.getAllByRole('checkbox')
     // First Hide checkbox (for e1)
     fireEvent.click(checkboxes[0])
-    expect((checkboxes[0] as HTMLInputElement).checked).toBe(true)
+    expect(checkboxes[0]).toBeChecked()
     fireEvent.click(checkboxes[0])
-    expect((checkboxes[0] as HTMLInputElement).checked).toBe(false)
+    expect(checkboxes[0]).not.toBeChecked()
   })
 
   it('toggles holiday checkbox', () => {
-    render(<FeedForm initialEvents={sampleEvents as never} />)
+    render(<FeedForm initialEvents={sampleEvents} />)
     const checkboxes = screen.getAllByRole('checkbox')
     // Holiday checkbox is the second column per event (index 2 = holiday for e1)
     fireEvent.click(checkboxes[2])
-    expect((checkboxes[2] as HTMLInputElement).checked).toBe(true)
+    expect(checkboxes[2]).toBeChecked()
   })
 
   it('shows recurring Yes for events with rrule', () => {
-    render(<FeedForm initialEvents={sampleEvents as never} />)
+    render(<FeedForm initialEvents={sampleEvents} />)
     expect(screen.getByText('Yes')).toBeInTheDocument()
   })
 
   it('toggles hide-series checkbox for recurring events', () => {
-    render(<FeedForm initialEvents={sampleEvents as never} />)
-    // The series checkbox for e1 (has seriesKey='standup')
-    const seriesCheckboxes = screen
-      .getAllByRole('checkbox')
-      .filter((cb) => (cb as HTMLInputElement).className.includes('accent-blue-600'))
+    render(<FeedForm initialEvents={sampleEvents} />)
     // Find and click the series checkbox (column 4 for e1)
     const checkboxes = screen.getAllByRole('checkbox')
     // e1 has Hide(0), Holiday(2), Series(4)
     fireEvent.click(checkboxes[4])
-    expect((checkboxes[4] as HTMLInputElement).checked).toBe(true)
-    void seriesCheckboxes
+    expect(checkboxes[4]).toBeChecked()
   })
 
   it('handleFetch triggers preview by setting fetchUrl', () => {

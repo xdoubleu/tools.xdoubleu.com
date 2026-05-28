@@ -1,6 +1,8 @@
 import React from 'react'
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import RecipeForm from '@/components/recipes/RecipeForm'
+import { RecipeSchema, IngredientSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockCreateRecipe = jest.fn()
 const mockUpdateRecipe = jest.fn()
@@ -72,25 +74,26 @@ describe('RecipeForm (new recipe)', () => {
 })
 
 describe('RecipeForm (edit recipe)', () => {
-  const existingRecipe = {
+  const existingRecipe = create(RecipeSchema, {
     id: 'r-1',
     name: 'Spaghetti',
-    baseServings: 4,
     instructions: 'Boil water\nCook pasta',
-    ingredients: [{ name: 'pasta', amount: 200, unit: 'g' }]
-  }
+    baseServings: 4,
+    ingredients: [create(IngredientSchema, { name: 'pasta', amount: 200, unit: 'g' })]
+  })
 
   it('pre-fills fields from existing recipe', () => {
-    render(<RecipeForm recipe={existingRecipe as never} onSave={jest.fn()} onCancel={jest.fn()} />)
-    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement
-    expect(nameInput.value).toBe('Spaghetti')
+    render(<RecipeForm recipe={existingRecipe} onSave={jest.fn()} onCancel={jest.fn()} />)
+    const nameInputEl = screen.getAllByRole('textbox')[0]
+    if (!(nameInputEl instanceof HTMLInputElement)) throw new Error('expected HTMLInputElement')
+    expect(nameInputEl.value).toBe('Spaghetti')
     expect(screen.getByDisplayValue('pasta')).toBeInTheDocument()
   })
 
   it('calls updateRecipe and onSave on submit', async () => {
     const onSave = jest.fn()
     mockUpdateRecipe.mockResolvedValue({})
-    render(<RecipeForm recipe={existingRecipe as never} onSave={onSave} onCancel={jest.fn()} />)
+    render(<RecipeForm recipe={existingRecipe} onSave={onSave} onCancel={jest.fn()} />)
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
 
     await waitFor(() => {

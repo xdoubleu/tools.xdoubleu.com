@@ -25,10 +25,11 @@ import {
   useDeleteConfig
 } from '@/hooks/useICSProxy'
 
-const mockUseSWR = useSWR as jest.Mock
-const mockCreateServiceClient = createServiceClient as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 beforeEach(() => {
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   mockUseSWR.mockClear()
 })
@@ -41,16 +42,18 @@ describe('useICSFeeds', () => {
 
   it('fetcher calls client.listConfigs', async () => {
     const mockListConfigs = jest.fn().mockResolvedValue({ configs: [] })
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ listConfigs: mockListConfigs })
 
     renderHook(() => useICSFeeds())
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockListConfigs).toHaveBeenCalledWith({})
   })
 
   it('returns SWR result', () => {
     const mockData = { configs: [{ token: 't1' }] }
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseSWR.mockReturnValueOnce({ data: mockData, isLoading: false, error: undefined })
     const { result } = renderHook(() => useICSFeeds())
     expect(result.current.data).toEqual(mockData)
@@ -72,11 +75,12 @@ describe('useICSPreview', () => {
 
   it('fetcher calls client.previewEvents with sourceUrl', async () => {
     const mockPreviewEvents = jest.fn().mockResolvedValue({ events: [] })
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ previewEvents: mockPreviewEvents })
 
     const url = 'https://cal.example.com/feed.ics'
     renderHook(() => useICSPreview(url))
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockPreviewEvents).toHaveBeenCalledWith({ sourceUrl: url })
   })
@@ -95,10 +99,11 @@ describe('useICSConfig', () => {
 
   it('fetcher calls client.getConfig with token', async () => {
     const mockGetConfig = jest.fn().mockResolvedValue({ config: {} })
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ getConfig: mockGetConfig })
 
     renderHook(() => useICSConfig('tok-1'))
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockGetConfig).toHaveBeenCalledWith({ token: 'tok-1' })
   })
@@ -112,6 +117,7 @@ describe('useSaveConfig', () => {
 
   it('calls client.saveConfig with the provided request', () => {
     const mockSaveConfig = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ saveConfig: mockSaveConfig })
 
     const { result } = renderHook(() => useSaveConfig())
@@ -129,6 +135,7 @@ describe('useDeleteConfig', () => {
 
   it('calls client.deleteConfig with the provided token', () => {
     const mockDeleteConfig = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValue({ deleteConfig: mockDeleteConfig })
 
     const { result } = renderHook(() => useDeleteConfig())

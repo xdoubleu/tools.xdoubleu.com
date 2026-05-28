@@ -8,7 +8,7 @@ jest.mock('@/lib/backlog/progressWebSocket', () => ({
 
 import { useProgressWebSocket } from '@/lib/backlog/progressWebSocket'
 
-const mockUseProgressWebSocket = useProgressWebSocket as jest.Mock
+const mockUseProgressWebSocket = jest.mocked(useProgressWebSocket)
 
 describe('ProgressWidget', () => {
   it('shows Disconnected when status is not OPEN', () => {

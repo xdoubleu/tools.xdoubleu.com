@@ -33,6 +33,8 @@ class MockWebSocket {
 }
 
 let mockWs: MockWebSocket
+let mockWebSocketFn: jest.Mock
+let mockRTCPeerConnectionFn: jest.Mock
 
 // ── RTCPeerConnection mock ─────────────────────────────────────────────────────
 
@@ -60,7 +62,7 @@ class MockPC {
   async setRemoteDescription(d: RTCSessionDescriptionInit) {
     this.remoteDescription = d
   }
-  async addIceCandidate(_: RTCIceCandidateInit) {}
+  async addIceCandidate() {}
   close() {
     this.connectionState = 'closed'
   }
@@ -89,15 +91,23 @@ function makeMockStream() {
 beforeEach(() => {
   jest.useFakeTimers()
 
-  global.WebSocket = jest.fn().mockImplementation(() => {
+  mockWebSocketFn = jest.fn().mockImplementation(() => {
     mockWs = new MockWebSocket()
     return mockWs
-  }) as unknown as typeof WebSocket
-  ;(global.WebSocket as unknown as { OPEN: number }).OPEN = 1
+  })
+  Object.defineProperty(mockWebSocketFn, 'OPEN', { value: 1, configurable: true })
+  Object.defineProperty(global, 'WebSocket', {
+    value: mockWebSocketFn,
+    writable: true,
+    configurable: true
+  })
 
-  global.RTCPeerConnection = jest.fn(
-    () => new MockPC()
-  ) as unknown as typeof RTCPeerConnection
+  mockRTCPeerConnectionFn = jest.fn(() => new MockPC())
+  Object.defineProperty(global, 'RTCPeerConnection', {
+    value: mockRTCPeerConnectionFn,
+    writable: true,
+    configurable: true
+  })
 
   const mockStream = makeMockStream()
   Object.defineProperty(global.navigator, 'mediaDevices', {
@@ -186,11 +196,11 @@ describe('useWatchPartyRTC — status transitions', () => {
       mockWs.simulateOpen()
       mockWs.close()
     })
-    const callsBefore = (global.WebSocket as jest.Mock).mock.calls.length
+    const callsBefore = mockWebSocketFn.mock.calls.length
     act(() => {
       jest.advanceTimersByTime(2000)
     })
-    expect((global.WebSocket as jest.Mock).mock.calls.length).toBeGreaterThan(callsBefore)
+    expect(mockWebSocketFn.mock.calls.length).toBeGreaterThan(callsBefore)
   })
 })
 
@@ -224,9 +234,9 @@ describe('useWatchPartyRTC — toggle controls', () => {
 
 describe('useWatchPartyRTC — getUserMedia error', () => {
   it('sets error when getUserMedia rejects', async () => {
-    ;(navigator.mediaDevices.getUserMedia as jest.Mock).mockRejectedValueOnce(
-      new Error('Permission denied')
-    )
+    jest
+      .mocked(navigator.mediaDevices.getUserMedia)
+      .mockRejectedValueOnce(new Error('Permission denied'))
     const { result } = renderHook(() =>
       useWatchPartyRTC({ id: 'room1', role: 'viewer', ...makeRefs() })
     )

@@ -1,6 +1,8 @@
 import React from 'react'
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import BookModal from '@/components/backlog/BookModal'
+import { ExternalBookResultSchema } from '@/lib/gen/backlog/v1/books_pb'
 
 const mockAddBook = jest.fn()
 
@@ -8,18 +10,15 @@ jest.mock('@/hooks/useBacklog', () => ({
   useAddBook: () => mockAddBook
 }))
 
-const fakeBook = {
+const fakeBook = create(ExternalBookResultSchema, {
   provider: 'hardcover',
   providerId: 'hc-123',
   title: 'The Go Programming Language',
   authors: ['Alan Donovan', 'Brian Kernighan'],
-  status: '',
   isbn13: '9780134190440',
   coverUrl: 'https://covers.example.com/go.jpg',
-  description: 'A great book about Go.',
-  ownPhysical: false,
-  ownDigital: false
-}
+  description: 'A great book about Go.'
+})
 
 describe('BookModal', () => {
   beforeEach(() => {
@@ -32,20 +31,20 @@ describe('BookModal', () => {
   })
 
   it('renders book title and authors', () => {
-    render(<BookModal book={fakeBook as never} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     expect(screen.getByText('The Go Programming Language')).toBeInTheDocument()
     expect(screen.getByText('Alan Donovan, Brian Kernighan')).toBeInTheDocument()
   })
 
   it('renders status select with wishlist default', () => {
-    render(<BookModal book={fakeBook as never} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     const select = screen.getByLabelText('Status') as HTMLSelectElement
     expect(select.value).toBe('wishlist')
   })
 
   it('calls onClose when Cancel button clicked', () => {
     const onClose = jest.fn()
-    render(<BookModal book={fakeBook as never} onClose={onClose} onAdded={jest.fn()} />)
+    render(<BookModal book={fakeBook} onClose={onClose} onAdded={jest.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onClose).toHaveBeenCalled()
   })
@@ -54,7 +53,7 @@ describe('BookModal', () => {
     const onAdded = jest.fn()
     const onClose = jest.fn()
     mockAddBook.mockResolvedValue(undefined)
-    render(<BookModal book={fakeBook as never} onClose={onClose} onAdded={onAdded} />)
+    render(<BookModal book={fakeBook} onClose={onClose} onAdded={onAdded} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Book' }))
 
@@ -67,7 +66,7 @@ describe('BookModal', () => {
 
   it('shows error message when addBook throws', async () => {
     mockAddBook.mockRejectedValue(new Error('Network error'))
-    render(<BookModal book={fakeBook as never} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Book' }))
 
@@ -77,14 +76,14 @@ describe('BookModal', () => {
   })
 
   it('renders notes textarea', () => {
-    render(<BookModal book={fakeBook as never} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     expect(screen.getByLabelText('Notes')).toBeInTheDocument()
   })
 
   it('closes when clicking the backdrop', () => {
     const onClose = jest.fn()
     const { container } = render(
-      <BookModal book={fakeBook as never} onClose={onClose} onAdded={jest.fn()} />
+      <BookModal book={fakeBook} onClose={onClose} onAdded={jest.fn()} />
     )
     // The outer backdrop div is the first child
     fireEvent.click(container.querySelector('.fixed')!)

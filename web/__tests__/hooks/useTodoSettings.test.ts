@@ -10,10 +10,11 @@ import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { useTodoSettings } from '@/hooks/useTodoSettings'
 
-const mockUseSWR = useSWR as jest.Mock
-const mockCreateServiceClient = createServiceClient as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 beforeEach(() => {
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   mockUseSWR.mockClear()
   mockCreateServiceClient.mockClear()
@@ -27,15 +28,17 @@ describe('useTodoSettings', () => {
 
   it('fetcher calls client.getSettings', async () => {
     const mockGetSettings = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ getSettings: mockGetSettings })
     renderHook(() => useTodoSettings())
-    const fetcher = mockUseSWR.mock.calls[0][1]
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockGetSettings).toHaveBeenCalledWith({})
   })
 
   it('returns SWR result', () => {
     const mockData = { sections: [] }
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseSWR.mockReturnValueOnce({ data: mockData, isLoading: false, error: undefined })
     const { result } = renderHook(() => useTodoSettings())
     expect(result.current.data).toEqual(mockData)

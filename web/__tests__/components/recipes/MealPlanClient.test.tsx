@@ -36,35 +36,41 @@ import MealPlanClient from '@/app/mealplans/[id]/MealPlanClient'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
 import { useRouter } from 'next/navigation'
-import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
-import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { create } from '@bufbuild/protobuf'
+import { PlanSchema, GetPlanResponseSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import { RecipeSchema, ListRecipesResponseSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockRouter = { push: jest.fn() }
-const mockPlan = { id: 'plan-1', name: 'Test Plan', meals: [] } as unknown as Plan
+const mockPlan = create(PlanSchema, {
+  id: 'plan-1',
+  name: 'Test Plan',
+  canEdit: true
+})
 const mockRecipes = [
-  { id: 'r1', name: 'Pasta' },
-  { id: 'r2', name: 'Salad' }
-] as unknown as Recipe[]
+  create(RecipeSchema, { id: 'r1', name: 'Pasta' }),
+  create(RecipeSchema, { id: 'r2', name: 'Salad' })
+]
 
 beforeEach(() => {
   jest.clearAllMocks()
-  ;(useRouter as jest.Mock).mockReturnValue(mockRouter)
-  ;(useMealPlan as jest.Mock).mockReturnValue({
-    data: {
+  // @ts-expect-error -- mock router returns partial AppRouterInstance
+  jest.mocked(useRouter).mockReturnValue(mockRouter)
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+  jest.mocked(useMealPlan).mockReturnValue({
+    data: create(GetPlanResponseSchema, {
       plan: mockPlan,
-      recipes: [],
       isOwner: true,
       icalUrl: 'http://example.com/ical',
       windowStart: '2026-05-25',
       windowEnd: '2026-05-31'
-    },
-    error: null,
-    isLoading: false,
-    mutate: jest.fn()
+    }),
+    error: undefined,
+    isLoading: false
   })
-  ;(useRecipes as jest.Mock).mockReturnValue({
-    data: { recipes: mockRecipes },
-    error: null,
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+  jest.mocked(useRecipes).mockReturnValue({
+    data: create(ListRecipesResponseSchema, { recipes: mockRecipes }),
+    error: undefined,
     isLoading: false
   })
 })

@@ -38,11 +38,12 @@ export default function SettingsPage() {
     setSaved(false)
     setSaveError('')
     try {
-      const integrations = {
+      const integrations: Integrations = {
+        $typeName: 'settings.v1.Integrations',
         steamApiKey,
         steamUserId,
         hardcoverApiKey
-      } as Integrations
+      }
       await saveSettings(integrations)
       await mutate('/settings')
       setSaved(true)

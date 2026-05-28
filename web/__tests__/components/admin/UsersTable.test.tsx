@@ -1,7 +1,8 @@
 import React from 'react'
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import UsersTable from '@/components/admin/UsersTable'
-import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
+import { AppUserSchema } from '@/lib/gen/admin/v1/admin_pb'
 
 const mockSetRole = jest.fn()
 const mockSetAppAccess = jest.fn()
@@ -17,19 +18,19 @@ describe('UsersTable', () => {
     mockSetAppAccess.mockReset()
   })
 
-  const mockUsers: AppUser[] = [
-    {
+  const mockUsers = [
+    create(AppUserSchema, {
       id: '1',
       email: 'admin@example.com',
       role: 'admin',
       appAccess: ['backlog', 'todos', 'recipes']
-    } as unknown as AppUser,
-    {
+    }),
+    create(AppUserSchema, {
       id: '2',
       email: 'user@example.com',
       role: 'user',
       appAccess: ['todos']
-    } as unknown as AppUser
+    })
   ]
 
   it('renders users table', () => {

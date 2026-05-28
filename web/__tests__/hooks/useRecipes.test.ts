@@ -19,9 +19,10 @@ import {
   useUnshareRecipe
 } from '@/hooks/useRecipes'
 
-const mockUseSWR = useSWR as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
 
 beforeEach(() => {
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   mockUseSWR.mockClear()
 })

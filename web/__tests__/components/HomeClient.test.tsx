@@ -1,6 +1,8 @@
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ConnectError } from '@connectrpc/connect'
 import HomeClient from '@/components/HomeClient'
+import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 
 jest.mock('@/hooks/useAuth', () => ({
   useCurrentUser: jest.fn(),
@@ -10,9 +12,9 @@ jest.mock('@/hooks/useAuth', () => ({
 
 import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
 
-const mockUseSettings = useCurrentUser as jest.Mock
-const mockUseSignIn = useSignIn as jest.Mock
-const mockUseMFAChallenge = useMFAChallenge as jest.Mock
+const mockUseSettings = jest.mocked(useCurrentUser)
+const mockUseSignIn = jest.mocked(useSignIn)
+const mockUseMFAChallenge = jest.mocked(useMFAChallenge)
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -20,6 +22,7 @@ beforeEach(() => {
 
 describe('HomeClient', () => {
   it('renders loading indicator when isLoading is true', () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -33,8 +36,9 @@ describe('HomeClient', () => {
   })
 
   it('renders all app links when authenticated as admin', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
-      data: { role: 'admin', appAccess: [], integrations: {} },
+      data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
       isLoading: false,
       error: undefined
     })
@@ -77,6 +81,7 @@ describe('HomeClient', () => {
   })
 
   it('renders sign-in form when unauthenticated', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -94,6 +99,7 @@ describe('HomeClient', () => {
   })
 
   it('calls signIn with correct args on successful submission', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -119,6 +125,7 @@ describe('HomeClient', () => {
   })
 
   it('shows ConnectError message on sign-in failure', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -145,6 +152,7 @@ describe('HomeClient', () => {
   })
 
   it('shows "Sign-in failed." for generic errors', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -170,6 +178,7 @@ describe('HomeClient', () => {
   })
 
   it('toggles rememberMe checkbox correctly', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -201,6 +210,7 @@ describe('HomeClient', () => {
   })
 
   it('disables submit button while submitting', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -235,8 +245,9 @@ describe('HomeClient', () => {
   })
 
   it('renders app descriptions', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
-      data: { role: 'admin', appAccess: [], integrations: {} },
+      data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
       isLoading: false,
       error: undefined
     })
@@ -255,8 +266,9 @@ describe('HomeClient', () => {
   })
 
   it('renders only granted apps plus always-visible apps for non-admin user', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
-      data: { role: 'user', appAccess: ['backlog', 'todos'], integrations: {} },
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: ['backlog', 'todos'] }),
       isLoading: false,
       error: undefined
     })
@@ -281,8 +293,9 @@ describe('HomeClient', () => {
   })
 
   it('renders all apps for admin user including admin-only and always-visible', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
-      data: { role: 'admin', appAccess: [], integrations: {} },
+      data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
       isLoading: false,
       error: undefined
     })
@@ -308,8 +321,9 @@ describe('HomeClient', () => {
   })
 
   it('shows only always-visible apps when appAccess is empty for non-admin', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
-      data: { role: 'user', appAccess: [], integrations: {} },
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
       isLoading: false,
       error: undefined
     })
@@ -330,6 +344,7 @@ describe('HomeClient', () => {
   })
 
   it('shows MFA challenge UI when needsMfa is true', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -359,6 +374,7 @@ describe('HomeClient', () => {
   })
 
   it('calls mFAChallenge on successful MFA challenge', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -397,6 +413,7 @@ describe('HomeClient', () => {
   })
 
   it('auto-submits MFA challenge when code reaches 6 digits', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -432,6 +449,7 @@ describe('HomeClient', () => {
   })
 
   it('shows ConnectError on failed MFA challenge', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -471,6 +489,7 @@ describe('HomeClient', () => {
   })
 
   it('shows generic error message on MFA challenge failure', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -509,6 +528,7 @@ describe('HomeClient', () => {
   })
 
   it('auth error after mfa-challenge does not revert to sign-in form', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -535,6 +555,7 @@ describe('HomeClient', () => {
       expect(screen.getByText('Two-factor authentication')).toBeInTheDocument()
     })
 
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: undefined,
       isLoading: false,

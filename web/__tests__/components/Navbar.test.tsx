@@ -1,5 +1,7 @@
+import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import Navbar from '@/components/Navbar'
+import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 
 jest.mock('@/hooks/useAuth', () => ({
   useCurrentUser: jest.fn(),
@@ -8,8 +10,8 @@ jest.mock('@/hooks/useAuth', () => ({
 
 import { useCurrentUser, useSignOut } from '@/hooks/useAuth'
 
-const mockUseCurrentUser = useCurrentUser as jest.Mock
-const mockUseSignOut = useSignOut as jest.Mock
+const mockUseCurrentUser = jest.mocked(useCurrentUser)
+const mockUseSignOut = jest.mocked(useSignOut)
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -17,6 +19,7 @@ beforeEach(() => {
 
 describe('Navbar', () => {
   it('renders nothing while loading', () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseCurrentUser.mockReturnValue({ data: undefined, isLoading: true, error: undefined })
     mockUseSignOut.mockReturnValue(jest.fn())
 
@@ -25,6 +28,7 @@ describe('Navbar', () => {
   })
 
   it('renders nothing when unauthenticated', () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseCurrentUser.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -37,8 +41,9 @@ describe('Navbar', () => {
   })
 
   it('renders logo and sign out when authenticated', () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseCurrentUser.mockReturnValue({
-      data: { role: 'user' },
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
       isLoading: false,
       error: undefined
     })
@@ -54,8 +59,9 @@ describe('Navbar', () => {
   })
 
   it('calls signOut and redirects to / on sign out', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseCurrentUser.mockReturnValue({
-      data: { role: 'user' },
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
       isLoading: false,
       error: undefined
     })

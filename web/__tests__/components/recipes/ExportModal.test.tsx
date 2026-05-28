@@ -83,7 +83,8 @@ describe('ExportModal', () => {
   it('calls onClose when backdrop is clicked', () => {
     const onClose = jest.fn()
     const { container } = render(<ExportModal customItems={customItems} onClose={onClose} />)
-    const backdrop = container.firstChild as HTMLElement
+    const backdrop = container.firstChild
+    if (!(backdrop instanceof HTMLElement)) throw new Error('expected HTMLElement')
     fireEvent.click(backdrop)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -125,7 +126,11 @@ describe('ExportModal', () => {
     const mockRemoveChild = jest.spyOn(document.body, 'removeChild').mockImplementation(jest.fn())
     const realCreate = document.createElement.bind(document)
     jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      if (tag === 'a') return { setAttribute: jest.fn(), click: mockClick, style: {} } as unknown as HTMLElement
+      if (tag === 'a') {
+        const el = realCreate('a')
+        el.click = mockClick
+        return el
+      }
       return realCreate(tag)
     })
     fireEvent.click(screen.getByRole('button', { name: /Download .txt/ }))

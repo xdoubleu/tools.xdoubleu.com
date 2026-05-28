@@ -22,15 +22,31 @@ jest.mock('@/lib/recipes/mealPlanCalendar', () => {
 
 import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useMealPlans'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
-import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
-import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { create } from '@bufbuild/protobuf'
+import { PlanSchema, PlanMealSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockAddMeal = jest.fn()
 const mockDeleteMeal = jest.fn()
 const mockMoveMeal = jest.fn()
 
-const basePlan = { id: 'plan-1', name: 'Test Plan', meals: [] } as unknown as Plan
-const baseRecipes = [{ id: 'r1', name: 'Pasta' }] as unknown as Recipe[]
+const basePlan = create(PlanSchema, {
+  id: 'plan-1',
+  name: 'Test Plan',
+  canEdit: true
+})
+const baseRecipes = [create(RecipeSchema, { id: 'r1', name: 'Pasta' })]
+
+function makePlanMeal(overrides: {
+  id: string
+  mealDate: string
+  mealSlot: string
+  recipeId: string
+  customName: string
+  servings: number
+}) {
+  return create(PlanMealSchema, overrides)
+}
 
 const mockOnPrevWeek = jest.fn()
 const mockOnNextWeek = jest.fn()
@@ -42,9 +58,9 @@ const defaultNavProps = {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  ;(useAddMeal as jest.Mock).mockReturnValue(mockAddMeal)
-  ;(useDeleteMeal as jest.Mock).mockReturnValue(mockDeleteMeal)
-  ;(useMoveMeal as jest.Mock).mockReturnValue(mockMoveMeal)
+  jest.mocked(useAddMeal).mockReturnValue(mockAddMeal)
+  jest.mocked(useDeleteMeal).mockReturnValue(mockDeleteMeal)
+  jest.mocked(useMoveMeal).mockReturnValue(mockMoveMeal)
   mockAddMeal.mockResolvedValue({})
   mockDeleteMeal.mockResolvedValue({})
   mockMoveMeal.mockResolvedValue({})
@@ -192,16 +208,16 @@ describe('MealPlanCalendar', () => {
     const planWithCustomMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs and toast',
           servings: 2
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -219,16 +235,16 @@ describe('MealPlanCalendar', () => {
     const planWithServings = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: 'r1',
           customName: '',
           servings: 3
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -246,16 +262,16 @@ describe('MealPlanCalendar', () => {
     const planWithSingleServing = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: 'r1',
           customName: '',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -289,16 +305,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -318,16 +334,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     const onMoveMeal = jest.fn()
     render(
@@ -358,16 +374,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -421,16 +437,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -448,16 +464,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 3
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -471,8 +487,10 @@ describe('MealPlanCalendar', () => {
     fireEvent.click(screen.getByRole('button', { name: /Edit meal/i }))
     expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
-    expect((input as HTMLInputElement).value).toBe('Eggs')
-    const servingsInput = screen.getByPlaceholderText('Servings') as HTMLInputElement
+    if (!(input instanceof HTMLInputElement)) throw new Error('expected input')
+    expect(input.value).toBe('Eggs')
+    const servingsInput = screen.getByPlaceholderText('Servings')
+    if (!(servingsInput instanceof HTMLInputElement)) throw new Error('expected input')
     expect(servingsInput.value).toBe('3')
   })
 
@@ -481,16 +499,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -517,16 +535,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -547,16 +565,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar
@@ -576,16 +594,16 @@ describe('MealPlanCalendar', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
-        {
+        makePlanMeal({
           id: 'm1',
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: '',
           customName: 'Eggs',
           servings: 1
-        }
+        })
       ]
-    } as unknown as Plan
+    }
 
     render(
       <MealPlanCalendar

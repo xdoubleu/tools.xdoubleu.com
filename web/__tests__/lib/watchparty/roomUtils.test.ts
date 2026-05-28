@@ -16,7 +16,11 @@ if (typeof PointerEvent === 'undefined') {
       this.pointerId = params.pointerId ?? 0
     }
   }
-  ;(global as unknown as Record<string, unknown>).PointerEvent = PointerEventPolyfill
+  Object.defineProperty(global, 'PointerEvent', {
+    value: PointerEventPolyfill,
+    writable: true,
+    configurable: true
+  })
 }
 
 describe('buildPresenterUrl', () => {

@@ -24,25 +24,25 @@ jest.mock('@/components/recipes/RecipeForm', () => {
 import EditRecipeClient from '@/app/recipes/[id]/edit/EditRecipeClient'
 import { useRecipe } from '@/hooks/useRecipes'
 import { useRouter } from 'next/navigation'
-import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { create } from '@bufbuild/protobuf'
+import { RecipeSchema, GetRecipeResponseSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockRouter = { push: jest.fn() }
-const mockRecipe = {
-  id: 'recipe-1',
-  name: 'Pasta Carbonara'
-} as unknown as Recipe
+const mockRecipe = create(RecipeSchema, { id: 'recipe-1', name: 'Pasta Carbonara' })
 
 beforeEach(() => {
   jest.clearAllMocks()
-  ;(useRouter as jest.Mock).mockReturnValue(mockRouter)
+  // @ts-expect-error -- mock router returns partial AppRouterInstance
+  jest.mocked(useRouter).mockReturnValue(mockRouter)
 })
 
 describe('EditRecipeClient', () => {
   it('shows loading state when isLoading is true', () => {
-    ;(useRecipe as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useRecipe).mockReturnValue({
+      data: undefined,
       isLoading: true,
-      error: null
+      error: undefined
     })
 
     render(<EditRecipeClient id="recipe-1" />)
@@ -50,8 +50,9 @@ describe('EditRecipeClient', () => {
   })
 
   it('shows error state when error is present', () => {
-    ;(useRecipe as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useRecipe).mockReturnValue({
+      data: undefined,
       isLoading: false,
       error: new Error('Failed to fetch')
     })
@@ -61,10 +62,11 @@ describe('EditRecipeClient', () => {
   })
 
   it('renders RecipeForm when recipe is loaded', () => {
-    ;(useRecipe as jest.Mock).mockReturnValue({
-      data: { recipe: mockRecipe },
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe: mockRecipe, isOwner: true }),
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<EditRecipeClient id="recipe-1" />)
@@ -72,10 +74,11 @@ describe('EditRecipeClient', () => {
   })
 
   it('calls useRecipe with the provided id', () => {
-    ;(useRecipe as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useRecipe).mockReturnValue({
+      data: undefined,
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<EditRecipeClient id="recipe-123" />)
@@ -83,10 +86,11 @@ describe('EditRecipeClient', () => {
   })
 
   it('renders back link with correct href', () => {
-    ;(useRecipe as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useRecipe).mockReturnValue({
+      data: undefined,
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<EditRecipeClient id="recipe-1" />)
@@ -95,10 +99,11 @@ describe('EditRecipeClient', () => {
   })
 
   it('renders page title', () => {
-    ;(useRecipe as jest.Mock).mockReturnValue({
-      data: null,
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useRecipe).mockReturnValue({
+      data: undefined,
       isLoading: false,
-      error: null
+      error: undefined
     })
 
     render(<EditRecipeClient id="recipe-1" />)

@@ -8,18 +8,21 @@ jest.mock('@/lib/client', () => ({
   }))
 }))
 jest.mock('@/lib/gen/settings/v1/settings_pb', () => ({
+  ...jest.requireActual('@/lib/gen/settings/v1/settings_pb'),
   SettingsService: {}
 }))
 
 import useSWR from 'swr'
+import { create } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
 import { useSettings, useSaveSettings } from '@/hooks/useSettings'
-import type { Integrations } from '@/lib/gen/settings/v1/settings_pb'
+import { IntegrationsSchema } from '@/lib/gen/settings/v1/settings_pb'
 
-const mockUseSWR = useSWR as jest.Mock
-const mockCreateServiceClient = createServiceClient as jest.Mock
+const mockUseSWR = jest.mocked(useSWR)
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 beforeEach(() => {
+  // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({
     data: undefined,
     isLoading: false,
@@ -41,6 +44,7 @@ describe('useSettings', () => {
     const mockData = {
       integrations: { steamApiKey: 'key', steamUserId: 'id', hardcoverApiKey: '' }
     }
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseSWR.mockReturnValueOnce({
       data: mockData,
       isLoading: false,
@@ -55,15 +59,15 @@ describe('useSaveSettings', () => {
   it('returns a function that calls client.saveSettings', () => {
     const mockSaveSettings = jest.fn().mockResolvedValue({})
     mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
       saveSettings: mockSaveSettings
     })
 
-    const integrations: Integrations = {
+    const integrations = create(IntegrationsSchema, {
       steamApiKey: 'key',
       steamUserId: 'id',
-      hardcoverApiKey: 'hkey',
-      $typeName: 'settings.v1.Integrations'
-    }
+      hardcoverApiKey: 'hkey'
+    })
 
     const { result } = renderHook(() => useSaveSettings())
     result.current(integrations)
