@@ -3,7 +3,12 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Todos',
-  description: 'Task management'
+  description: 'Task management',
+  appleWebApp: {
+    capable: true,
+    title: 'Todos',
+    statusBarStyle: 'black-translucent'
+  }
 }
 
 export default function TodosLayout({ children }: { children: React.ReactNode }) {
