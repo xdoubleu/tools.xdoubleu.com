@@ -17,7 +17,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
   const saveConfig = useSaveConfig()
 
   const [sourceUrl, setSourceUrl] = useState(initialConfig?.sourceUrl || '')
-  const [fetchUrl, setFetchUrl] = useState(initialConfig?.sourceUrl || '')
+  const [fetchUrl, setFetchUrl] = useState('')
   const [hideEventUids, setHideEventUids] = useState<Set<string>>(
     new Set(initialConfig?.hideEventUids || [])
   )
