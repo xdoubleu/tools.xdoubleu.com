@@ -4,6 +4,15 @@ import { useState } from 'react'
 import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBacklog'
 import type { UpdateBookStatusInput } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
 
@@ -56,29 +65,24 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
-      <div
-        className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-xl font-bold mb-1">{book?.title ?? 'Edit Book'}</h2>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{book?.title ?? 'Edit Book'}</DialogTitle>
+          <DialogClose>×</DialogClose>
+        </DialogHeader>
         {book && book.authors.length > 0 && (
-          <p className="text-sm text-muted mb-4">{book.authors.join(', ')}</p>
+          <p className="mb-4 text-sm text-muted">{book.authors.join(', ')}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="edit-status" className="block text-sm font-medium text-subtle mb-1">
-              Status
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-status">Status</Label>
             <select
               id="edit-status"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-input-border bg-input text-input-text rounded"
+              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {BOOK_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -88,15 +92,13 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
             </select>
           </div>
 
-          <div>
-            <label htmlFor="edit-rating" className="block text-sm font-medium text-subtle mb-1">
-              Rating (0 = unrated)
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-rating">Rating (0 = unrated)</Label>
             <select
               id="edit-rating"
               value={rating}
               onChange={(e) => setRating(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-input-border bg-input text-input-text rounded"
+              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {[0, 1, 2, 3, 4, 5].map((r) => (
                 <option key={r} value={r}>
@@ -106,79 +108,61 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
             </select>
           </div>
 
-          <div>
-            <label htmlFor="edit-notes" className="block text-sm font-medium text-subtle mb-1">
-              Notes
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-notes">Notes</Label>
             <textarea
               id="edit-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Optional notes..."
-              className="w-full px-3 py-2 border border-input-border bg-input text-input-text rounded resize-none"
+              className="w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <input
-                id="edit-favourite"
-                type="checkbox"
-                checked={favourite}
-                onChange={(e) => setFavourite(e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="edit-favourite" className="text-sm text-subtle cursor-pointer">
-                Favourite
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="edit-own-physical"
-                type="checkbox"
-                checked={ownPhysical}
-                onChange={(e) => setOwnPhysical(e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="edit-own-physical" className="text-sm text-subtle cursor-pointer">
-                Own physical
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="edit-own-digital"
-                type="checkbox"
-                checked={ownDigital}
-                onChange={(e) => setOwnDigital(e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="edit-own-digital" className="text-sm text-subtle cursor-pointer">
-                Own digital
-              </label>
-            </div>
+            {[
+              { id: 'edit-favourite', state: favourite, setter: setFavourite, label: 'Favourite' },
+              {
+                id: 'edit-own-physical',
+                state: ownPhysical,
+                setter: setOwnPhysical,
+                label: 'Own physical'
+              },
+              {
+                id: 'edit-own-digital',
+                state: ownDigital,
+                setter: setOwnDigital,
+                label: 'Own digital'
+              }
+            ].map(({ id, state, setter, label }) => (
+              <div key={id} className="flex items-center gap-2">
+                <input
+                  id={id}
+                  type="checkbox"
+                  checked={state}
+                  onChange={(e) => setter(e.target.checked)}
+                  className="rounded accent-[rgb(var(--color-accent))]"
+                />
+                <label htmlFor={id} className="text-sm text-subtle cursor-pointer">
+                  {label}
+                </label>
+              </div>
+            ))}
           </div>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
+            <Button type="submit" disabled={isSubmitting} className="flex-1">
               {isSubmitting ? 'Saving...' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-surface text-fg rounded hover:bg-border"
-            >
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

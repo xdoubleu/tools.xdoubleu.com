@@ -4,15 +4,15 @@ Next.js 16 App Router application served as a static export (`output: 'export'`)
 
 ## Stack
 
-| Concern | Library |
-| --- | --- |
-| Framework | Next.js 16, React 19, TypeScript strict |
-| Styling | Tailwind CSS + shadcn/ui |
-| API client | ConnectRPC (`@connectrpc/connect-web`) |
-| Data fetching | SWR |
-| Error tracking | Sentry (`@sentry/nextjs`) |
-| Testing | Jest + React Testing Library |
-| Linting | ESLint (eslint-config-next), Prettier, tsc --noEmit, knip |
+| Concern        | Library                                                   |
+| -------------- | --------------------------------------------------------- |
+| Framework      | Next.js 16, React 19, TypeScript strict                   |
+| Styling        | Tailwind CSS + shadcn/ui                                  |
+| API client     | ConnectRPC (`@connectrpc/connect-web`)                    |
+| Data fetching  | SWR                                                       |
+| Error tracking | Sentry (`@sentry/nextjs`)                                 |
+| Testing        | Jest + React Testing Library                              |
+| Linting        | ESLint (eslint-config-next), Prettier, tsc --noEmit, knip |
 
 ## Key Paths
 

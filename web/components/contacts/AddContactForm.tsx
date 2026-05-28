@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useCreateContact } from '@/hooks/useContacts'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface AddContactFormProps {
   onSuccess?: () => void
@@ -26,11 +29,7 @@ export default function AddContactForm({ onSuccess }: AddContactFormProps) {
       setDisplayName('')
       onSuccess?.()
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError('Failed to create contact')
-      }
+      setError(err instanceof Error ? err.message : 'Failed to create contact')
     } finally {
       setSubmitting(false)
     }
@@ -38,42 +37,32 @@ export default function AddContactForm({ onSuccess }: AddContactFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-subtle mb-1">
-          Email
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="email">Email</Label>
+        <Input
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      <div>
-        <label htmlFor="displayName" className="block text-sm font-medium text-subtle mb-1">
-          Display Name (optional)
-        </label>
-        <input
+      <div className="space-y-1.5">
+        <Label htmlFor="displayName">Display Name (optional)</Label>
+        <Input
           id="displayName"
           type="text"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-muted"
-      >
+      <Button type="submit" disabled={submitting} className="w-full">
         {submitting ? 'Adding...' : 'Add Contact'}
-      </button>
+      </Button>
     </form>
   )
 }

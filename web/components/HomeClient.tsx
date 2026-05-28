@@ -166,26 +166,18 @@ export default function HomeClient() {
               maxLength={6}
               value={mfaCode}
               onChange={(e) => setMfaCode(e.target.value)}
-              className={
-                'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
-                'text-input-text placeholder-muted focus:border-blue-500 ' +
-                'focus:outline-none focus:ring-1 focus:ring-blue-500'
-              }
+              className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
           </div>
           {mfaError && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               {mfaError}
             </p>
           )}
           <button
             onClick={handleMfaChallenge}
             disabled={mfaSubmitting}
-            className={
-              'w-full rounded bg-blue-600 px-4 py-2 font-medium text-white ' +
-              'transition-colors hover:bg-blue-700 disabled:bg-gray-400 ' +
-              'disabled:cursor-not-allowed'
-            }
+            className="h-11 w-full rounded-xl bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {mfaSubmitting ? 'Verifying...' : 'Verify'}
           </button>
@@ -208,11 +200,7 @@ export default function HomeClient() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className={
-              'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
-              'text-input-text placeholder-muted focus:border-blue-500 ' +
-              'focus:outline-none focus:ring-1 focus:ring-blue-500'
-            }
+            className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
         </div>
 
@@ -226,14 +214,10 @@ export default function HomeClient() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className={
-              'mt-1 block w-full rounded border border-input-border bg-input px-3 py-2 ' +
-              'text-input-text placeholder-muted focus:border-blue-500 ' +
-              'focus:outline-none focus:ring-1 focus:ring-blue-500'
-            }
+            className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
           <div className="mt-1 text-right">
-            <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
+            <Link href="/auth/forgot-password" className="text-sm text-accent hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -245,7 +229,7 @@ export default function HomeClient() {
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className={'h-4 w-4 rounded border-input-border text-blue-600 ' + 'focus:ring-blue-500'}
+            className="h-4 w-4 rounded border-input-border accent-[rgb(var(--color-accent))]"
           />
           <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
             Remember me
@@ -253,7 +237,7 @@ export default function HomeClient() {
         </div>
 
         {signInError && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger">
             {signInError}
           </p>
         )}
@@ -261,11 +245,7 @@ export default function HomeClient() {
         <button
           type="submit"
           disabled={submitting}
-          className={
-            'w-full rounded bg-blue-600 px-4 py-2 font-medium text-white ' +
-            'transition-colors hover:bg-blue-700 disabled:bg-gray-400 ' +
-            'disabled:cursor-not-allowed'
-          }
+          className="h-11 w-full rounded-xl bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? 'Signing in...' : 'Sign in'}
         </button>

@@ -74,7 +74,7 @@ export default function ContactsPage() {
   }
 
   if (error) {
-    return <p className="py-16 text-center text-sm text-red-500">Failed to load contacts.</p>
+    return <p className="py-16 text-center text-sm text-danger">Failed to load contacts.</p>
   }
 
   return (
@@ -83,7 +83,7 @@ export default function ContactsPage() {
 
       <div className="mb-6 rounded border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold text-subtle">Add contact</h2>
-        {addError && <p className="mb-2 text-xs text-red-500">{addError}</p>}
+        {addError && <p className="mb-2 text-xs text-danger">{addError}</p>}
         <form onSubmit={handleAdd} className="flex gap-2">
           <input
             type="email"
@@ -110,18 +110,13 @@ export default function ContactsPage() {
           </h2>
           <ul className="space-y-3">
             {incoming.map((c) => (
-              <li
-                key={c.id}
-                className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950"
-              >
-                <p className="mb-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
+              <li key={c.id} className="rounded-2xl border border-warn/30 bg-warn/10 p-3">
+                <p className="mb-2 text-sm font-semibold text-fg">
                   {c.displayName} wants to connect
                 </p>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <label className="mb-1 block text-xs text-amber-700 dark:text-amber-400">
-                      Name for them
-                    </label>
+                    <label className="mb-1 block text-xs text-muted">Name for them</label>
                     <input
                       type="text"
                       required
@@ -129,7 +124,7 @@ export default function ContactsPage() {
                       onChange={(e) =>
                         setAcceptNames((prev) => ({ ...prev, [c.id]: e.target.value }))
                       }
-                      className="w-full rounded border border-amber-300 bg-white px-2 py-1.5 text-sm dark:border-amber-600 dark:bg-amber-900 dark:text-amber-100"
+                      className="h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     />
                   </div>
                   <button
@@ -165,7 +160,7 @@ export default function ContactsPage() {
                 <span className="text-sm font-medium text-fg">{c.displayName}</span>
                 <button
                   onClick={() => handleDelete(c.id)}
-                  className="text-xs text-red-500 hover:underline"
+                  className="text-xs text-danger hover:underline"
                 >
                   Remove
                 </button>

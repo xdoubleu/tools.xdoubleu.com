@@ -65,7 +65,7 @@ export default function ShoppingPage() {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           required
-          className="flex-1 min-w-32 px-3 py-2 border border-input-border bg-input text-input-text rounded text-sm"
+          className="h-11 min-w-32 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
         <input
           type="number"
@@ -74,19 +74,19 @@ export default function ShoppingPage() {
           onChange={(e) => setNewAmount(e.target.value)}
           min="0"
           step="any"
-          className="w-24 px-3 py-2 border border-input-border bg-input text-input-text rounded text-sm"
+          className="h-11 w-24 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
         <input
           type="text"
           placeholder="Unit"
           value={newUnit}
           onChange={(e) => setNewUnit(e.target.value)}
-          className="w-24 px-3 py-2 border border-input-border bg-input text-input-text rounded text-sm"
+          className="h-11 w-24 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
         <button
           type="submit"
           disabled={adding || !newName.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm disabled:opacity-50"
+          className="h-11 rounded-xl bg-accent px-4 text-sm text-white hover:bg-accent-hover disabled:opacity-50"
         >
           Add
         </button>

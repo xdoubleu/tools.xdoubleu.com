@@ -1,30 +1,76 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @config "../tailwind.config.ts";
 
 :root {
-  --color-bg: 255 255 255;
-  --color-surface: 249 250 251;
+  /* Base surfaces */
+  --color-bg: 242 242 247;
+  --color-surface: 255 255 255;
   --color-card: 255 255 255;
-  --color-fg: 17 24 39;
-  --color-muted: 107 114 128;
-  --color-subtle: 55 65 81;
-  --color-border: 229 231 235;
+
+  /* Text */
+  --color-fg: 0 0 0;
+  --color-muted: 99 99 102;
+  --color-subtle: 60 60 67;
+
+  /* Borders */
+  --color-border: 209 209 214;
+
+  /* Inputs */
   --color-input: 255 255 255;
-  --color-input-border: 209 213 219;
-  --color-input-text: 17 24 39;
+  --color-input-border: 174 174 178;
+  --color-input-text: 0 0 0;
+
+  /* Accent — Apple system blue */
+  --color-accent: 0 122 255;
+  --color-accent-hover: 0 102 214;
+
+  /* Semantic */
+  --color-success: 52 199 89;
+  --color-warn: 255 149 0;
+  --color-danger: 255 59 48;
+
+  /* Glass shell — translucent for sticky navbar/footer */
+  --color-glass: 255 255 255;
+  --glass-opacity: 0.72;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: 17 24 39;
-    --color-surface: 31 41 55;
-    --color-card: 31 41 55;
-    --color-fg: 243 244 246;
-    --color-muted: 156 163 175;
-    --color-subtle: 209 213 219;
-    --color-border: 55 65 81;
-    --color-input: 55 65 81;
-    --color-input-border: 75 85 99;
-    --color-input-text: 243 244 246;
+    /* Base surfaces */
+    --color-bg: 0 0 0;
+    --color-surface: 28 28 30;
+    --color-card: 28 28 30;
+
+    /* Text */
+    --color-fg: 255 255 255;
+    --color-muted: 152 152 157;
+    --color-subtle: 174 174 178;
+
+    /* Borders */
+    --color-border: 58 58 60;
+
+    /* Inputs */
+    --color-input: 44 44 46;
+    --color-input-border: 72 72 74;
+    --color-input-text: 255 255 255;
+
+    /* Accent — Apple system blue dark */
+    --color-accent: 10 132 255;
+    --color-accent-hover: 64 156 255;
+
+    /* Semantic */
+    --color-success: 48 209 88;
+    --color-warn: 255 159 10;
+    --color-danger: 255 69 58;
+
+    /* Glass shell — dark translucent */
+    --color-glass: 28 28 30;
+    --glass-opacity: 0.8;
   }
+}
+
+/* Smooth scroll & antialiasing */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

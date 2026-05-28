@@ -103,13 +103,13 @@ export default function MealPlanClient({ id }: { id: string }) {
   return (
     <main className="max-w-5xl mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/mealplans" className="text-blue-600 hover:underline text-sm">
+        <Link href="/mealplans" className="text-sm text-accent hover:underline">
           &larr; Meal Plans
         </Link>
       </div>
 
       {isLoading && <p>Loading meal plan...</p>}
-      {error && <p className="text-red-600">Failed to load meal plan.</p>}
+      {error && <p className="text-danger">Failed to load meal plan.</p>}
 
       {plan && (
         <>
@@ -126,16 +126,16 @@ export default function MealPlanClient({ id }: { id: string }) {
                   </Link>
                   {deleteConfirm ? (
                     <div className="flex gap-2 items-center">
-                      <span className="text-sm text-red-600">Delete this plan?</span>
+                      <span className="text-sm text-danger">Delete this plan?</span>
                       <button
                         onClick={handleDelete}
-                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                        className="rounded-xl bg-danger px-3 py-1 text-sm text-white hover:opacity-90"
                       >
                         Yes, delete
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(false)}
-                        className="px-3 py-1 bg-surface border border-border rounded text-sm"
+                        className="rounded-xl border border-border bg-surface px-3 py-1 text-sm"
                       >
                         Cancel
                       </button>
@@ -143,7 +143,7 @@ export default function MealPlanClient({ id }: { id: string }) {
                   ) : (
                     <button
                       onClick={() => setDeleteConfirm(true)}
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                      className="rounded-xl bg-danger px-4 py-2 text-sm text-white hover:opacity-90"
                     >
                       Delete
                     </button>
@@ -180,16 +180,16 @@ export default function MealPlanClient({ id }: { id: string }) {
                   value={shareInput}
                   onChange={(e) => setShareInput(e.target.value)}
                   placeholder="Contact user ID"
-                  className="flex-1 px-3 py-2 border border-input-border bg-input text-input-text rounded text-sm"
+                  className="h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
                 >
                   Share
                 </button>
               </form>
-              {shareError && <p className="text-sm text-red-600 mb-2">{shareError}</p>}
+              {shareError && <p className="mb-2 text-sm text-danger">{shareError}</p>}
               <div className="mt-3">
                 <label className="block text-sm font-medium text-subtle mb-1">
                   Unshare with user ID
@@ -200,7 +200,7 @@ export default function MealPlanClient({ id }: { id: string }) {
                     value={unshareInput}
                     onChange={(e) => setUnshareInput(e.target.value)}
                     placeholder="User ID to unshare"
-                    className="flex-1 px-3 py-2 border border-input-border bg-input text-input-text rounded text-sm"
+                    className="h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   />
                   <button
                     type="button"

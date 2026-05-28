@@ -80,13 +80,10 @@ describe('BookModal', () => {
     expect(screen.getByLabelText('Notes')).toBeInTheDocument()
   })
 
-  it('closes when clicking the backdrop', () => {
+  it('closes when Escape is pressed', () => {
     const onClose = jest.fn()
-    const { container } = render(
-      <BookModal book={fakeBook} onClose={onClose} onAdded={jest.fn()} />
-    )
-    // The outer backdrop div is the first child
-    fireEvent.click(container.querySelector('.fixed')!)
+    render(<BookModal book={fakeBook} onClose={onClose} onAdded={jest.fn()} />)
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
     expect(onClose).toHaveBeenCalled()
   })
 })

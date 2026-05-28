@@ -7,6 +7,7 @@ import type { AddMealInput, DeleteMealInput, MoveMealInput } from '@/hooks/useMe
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import RecipeCombobox from './RecipeCombobox'
+import { Button } from '@/components/ui/button'
 
 interface MealPlanCalendarProps {
   plan: Plan
@@ -119,7 +120,6 @@ export default function MealPlanCalendar({
       setMovingMeal(null)
       return
     }
-    // Move to this meal's cell (swap)
     handlePlaceMove(meal.mealDate, meal.mealSlot)
   }
 
@@ -197,26 +197,26 @@ export default function MealPlanCalendar({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <button onClick={onPrevWeek} className="px-4 py-2 bg-subtle text-bg rounded hover:bg-fg">
-          Previous Week
-        </button>
-        <span className="font-semibold">
-          {weekDates[0].toLocaleDateString()} - {weekDates[6].toLocaleDateString()}
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="secondary" size="sm" onClick={onPrevWeek}>
+          ← Prev
+        </Button>
+        <span className="text-sm font-semibold text-fg text-center">
+          {weekDates[0].toLocaleDateString()} – {weekDates[6].toLocaleDateString()}
         </span>
-        <button onClick={onNextWeek} className="px-4 py-2 bg-subtle text-bg rounded hover:bg-fg">
-          Next Week
-        </button>
+        <Button variant="secondary" size="sm" onClick={onNextWeek}>
+          Next →
+        </Button>
       </div>
 
       {movingMeal && (
-        <div className="flex items-center justify-between rounded border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+        <div className="flex items-center justify-between rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">
           <span>
             Moving <strong>{movingMealName}</strong> — click a cell to place it
           </span>
           <button
             onClick={() => setMovingMeal(null)}
-            className="ml-4 text-blue-600 hover:text-blue-900"
+            className="ml-4 font-medium underline hover:no-underline"
           >
             Cancel
           </button>
@@ -228,26 +228,23 @@ export default function MealPlanCalendar({
           className="grid gap-1 text-xs"
           style={{ gridTemplateColumns: 'minmax(4.5rem, auto) repeat(7, 1fr)' }}
         >
-          {/* Header row: empty corner + day names */}
           <div />
           {dayNames.map((day) => (
-            <div key={day} className="font-semibold text-center py-1">
+            <div key={day} className="py-1 text-center font-semibold text-fg">
               {day}
             </div>
           ))}
 
-          {/* Date row: empty + date numbers */}
           <div />
           {weekDates.map((date) => (
-            <div key={formatMealDate(date)} className="text-center text-muted py-1">
+            <div key={formatMealDate(date)} className="py-1 text-center text-muted">
               {date.getDate()}
             </div>
           ))}
 
-          {/* Slot rows */}
           {MEAL_SLOTS.map((slot) => (
             <React.Fragment key={slot}>
-              <div className="text-xs font-medium text-muted flex items-center pr-1">
+              <div className="flex items-center pr-1 text-xs font-medium text-muted">
                 {slot.charAt(0).toUpperCase() + slot.slice(1)}
               </div>
               {weekDates.map((date) => {
@@ -256,7 +253,7 @@ export default function MealPlanCalendar({
                 return (
                   <div
                     key={`${formattedDate}-${slot}`}
-                    className={`border rounded p-1 min-h-[2rem]${movingMeal ? ' hover:border-blue-400 hover:bg-blue-50' : ''}`}
+                    className={`min-h-8 rounded-lg border p-1 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
                     onClick={() => handleCellClick(formattedDate, slot, mealsInSlot.length > 0)}
                   >
                     {mealsInSlot.length > 0 ? (
@@ -271,17 +268,17 @@ export default function MealPlanCalendar({
                                 e.stopPropagation()
                                 handleMealClick(meal)
                               }}
-                              className={`p-1 rounded flex items-center justify-between gap-1 cursor-pointer select-none${
+                              className={`flex cursor-pointer select-none items-center justify-between gap-1 rounded-lg p-1 ${
                                 isMoving
-                                  ? ' bg-blue-200 ring-2 ring-blue-500'
-                                  : ' bg-blue-50 hover:bg-blue-100'
+                                  ? 'bg-accent/20 ring-2 ring-accent'
+                                  : 'bg-accent/10 hover:bg-accent/20'
                               }`}
                             >
-                              <span className="truncate">
+                              <span className="truncate text-fg">
                                 {meal.customName || recipe?.name || '?'}
                               </span>
                               {meal.servings > 1 && (
-                                <span className="text-muted shrink-0">×{meal.servings}</span>
+                                <span className="shrink-0 text-muted">×{meal.servings}</span>
                               )}
                               {!movingMeal && (
                                 <>
@@ -291,7 +288,7 @@ export default function MealPlanCalendar({
                                       e.stopPropagation()
                                       handleEditClick(meal)
                                     }}
-                                    className="text-blue-500 hover:text-blue-700 shrink-0 text-xs"
+                                    className="shrink-0 text-xs text-accent hover:text-accent-hover"
                                   >
                                     ✏
                                   </button>
@@ -300,7 +297,7 @@ export default function MealPlanCalendar({
                                       e.stopPropagation()
                                       handleDeleteMeal(meal.id)
                                     }}
-                                    className="text-red-600 hover:text-red-800 font-bold shrink-0"
+                                    className="shrink-0 font-bold text-danger hover:opacity-80"
                                   >
                                     ×
                                   </button>
@@ -318,7 +315,7 @@ export default function MealPlanCalendar({
                             setSelectedSlot(slot)
                             setSelectedDate(formattedDate)
                           }}
-                          className="w-full h-full text-center bg-surface hover:bg-border p-1 rounded"
+                          className="h-full w-full rounded-lg p-1 text-center text-muted hover:bg-surface"
                         >
                           +
                         </button>
@@ -333,8 +330,8 @@ export default function MealPlanCalendar({
       </div>
 
       {selectedSlot && selectedDate && (
-        <div className="border border-border rounded p-4 bg-card space-y-3">
-          <h3 className="font-semibold text-sm">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-card space-y-3">
+          <h3 className="text-sm font-semibold text-fg">
             Add meal — {selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)},{' '}
             {new Date(selectedDate + 'T00:00:00').toLocaleDateString()}
           </h3>
@@ -351,28 +348,22 @@ export default function MealPlanCalendar({
             onChange={(e) => setSelectedServings(parseInt(e.target.value, 10))}
             onKeyDown={(e) => e.key === 'Enter' && handleAddMeal()}
             placeholder="Servings"
-            className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text"
+            className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
           <div className="flex gap-2">
-            <button
-              onClick={handleAddMeal}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
+            <Button onClick={handleAddMeal} className="flex-1">
               Add
-            </button>
-            <button
-              onClick={cancelAdd}
-              className="flex-1 px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
-            >
+            </Button>
+            <Button variant="secondary" onClick={cancelAdd} className="flex-1">
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {editingMeal && !selectedSlot && (
-        <div className="border border-border rounded p-4 bg-card space-y-3">
-          <h3 className="font-semibold text-sm">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-card space-y-3">
+          <h3 className="text-sm font-semibold text-fg">
             Edit meal —{' '}
             {editingMeal.mealSlot.charAt(0).toUpperCase() + editingMeal.mealSlot.slice(1)},{' '}
             {new Date(editingMeal.mealDate + 'T00:00:00').toLocaleDateString()}
@@ -394,21 +385,15 @@ export default function MealPlanCalendar({
             onChange={(e) => setEditServings(parseInt(e.target.value, 10))}
             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
             placeholder="Servings"
-            className="w-full px-3 py-2 rounded border border-input-border bg-input text-input-text"
+            className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
           <div className="flex gap-2">
-            <button
-              onClick={handleSaveEdit}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
+            <Button onClick={handleSaveEdit} className="flex-1">
               Save
-            </button>
-            <button
-              onClick={cancelEdit}
-              className="flex-1 px-4 py-2 bg-subtle text-bg rounded hover:bg-fg"
-            >
+            </Button>
+            <Button variant="secondary" onClick={cancelEdit} className="flex-1">
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

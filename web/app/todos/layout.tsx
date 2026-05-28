@@ -11,10 +11,10 @@ export default function TodosLayout({ children }: { children: React.ReactNode })
     <div className="flex flex-col flex-1 bg-surface">
       <header className="border-b border-border bg-card px-6 py-3">
         <nav className="flex items-center gap-4">
-          <Link href="/todos" className="text-sm font-semibold text-fg hover:text-blue-600">
+          <Link href="/todos" className="text-sm font-semibold text-fg hover:text-accent">
             Todos
           </Link>
-          <Link href="/todos/settings" className="text-sm text-muted hover:text-blue-600">
+          <Link href="/todos/settings" className="text-sm text-muted hover:text-accent">
             Settings
           </Link>
         </nav>

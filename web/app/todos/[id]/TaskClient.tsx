@@ -61,7 +61,7 @@ export default function TaskClient({ id }: { id: string }) {
   }
 
   if (error || !task) {
-    return <p className="py-16 text-center text-sm text-red-500">Task not found.</p>
+    return <p className="py-16 text-center text-sm text-danger">Task not found.</p>
   }
 
   const dueLabel = task.dueDate ? formatRelativeDate(task.dueDate) : null
@@ -79,17 +79,12 @@ export default function TaskClient({ id }: { id: string }) {
             </span>
           )}
           {task.labels.map((label) => (
-            <span
-              key={label}
-              className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-            >
+            <span key={label} className="rounded bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
               {label}
             </span>
           ))}
           {dueLabel && (
-            <span className={overdue ? 'font-semibold text-red-600 dark:text-red-400' : ''}>
-              Due: {dueLabel}
-            </span>
+            <span className={overdue ? 'font-semibold text-danger' : ''}>Due: {dueLabel}</span>
           )}
           {deadlineLabel && <span>Deadline: {deadlineLabel}</span>}
         </div>
@@ -121,7 +116,7 @@ export default function TaskClient({ id }: { id: string }) {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-accent hover:underline"
                 >
                   {link.label || link.url}
                 </a>
@@ -136,7 +131,7 @@ export default function TaskClient({ id }: { id: string }) {
           <button
             type="button"
             onClick={() => handleAction('complete')}
-            className="rounded bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+            className="rounded-xl bg-success px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
           >
             Complete
           </button>
@@ -144,7 +139,7 @@ export default function TaskClient({ id }: { id: string }) {
           <button
             type="button"
             onClick={() => handleAction('reopen')}
-            className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-xl bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
           >
             Reopen
           </button>
@@ -152,7 +147,7 @@ export default function TaskClient({ id }: { id: string }) {
         <button
           type="button"
           onClick={() => handleAction('delete')}
-          className="rounded border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+          className="rounded-xl border border-danger/30 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/10"
         >
           Delete
         </button>
