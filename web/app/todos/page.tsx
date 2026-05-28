@@ -1,21 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTodos } from '@/hooks/useTodos'
 import { useTodoSettings } from '@/hooks/useTodoSettings'
 import { TaskCard } from '@/components/todos/TaskCard'
 import { PoliciesBanner } from '@/components/todos/PoliciesBanner'
-import { getApiUrl } from '@/lib/env'
+import QuickAddBar from '@/components/todos/QuickAddBar'
 
-type Tab = 'active' | 'done' | 'archive' | 'search'
+type Tab = 'active' | 'done' | 'archive'
 
 export default function TodosPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const selectedWorkspaceId = searchParams.get('w') ?? undefined
+
   const [activeTab, setActiveTab] = useState<Tab>('active')
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>(undefined)
   const [selectedSectionId, setSelectedSectionId] = useState<string | undefined>(undefined)
-  const [quickAddInput, setQuickAddInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [focusedTaskIndex, setFocusedTaskIndex] = useState<number>(-1)
+  const [focusedSectionIndex, setFocusedSectionIndex] = useState<number>(-1)
+
+  const taskRefs = useRef<Array<HTMLAnchorElement | null>>([])
+  const sectionRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   const status = activeTab === 'done' ? 'done' : activeTab === 'archive' ? 'archived' : 'open'
 
@@ -31,35 +40,96 @@ export default function TodosPage() {
   const sections = settings?.sections ?? []
   const workspaces = settings?.workspaces ?? []
   const policies = settings?.policies ?? []
+  const labelPresets = settings?.labelPresets ?? []
 
-  const filteredTasks =
-    activeTab === 'search' && searchQuery.trim()
-      ? tasks.filter((t) => t.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
-      : tasks
+  const filteredTasks = searchQuery.trim()
+    ? tasks.filter((t) => t.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : tasks
 
-  async function handleQuickAdd(e: React.FormEvent) {
-    e.preventDefault()
-    const input = quickAddInput.trim()
-    if (!input) return
-
-    const form = new FormData()
-    form.append('Input', input)
-    if (selectedSectionId) form.append('SectionID', selectedSectionId)
-
-    try {
-      await fetch(`${getApiUrl()}/todos/`, { method: 'POST', body: form })
-      setQuickAddInput('')
-      await mutate()
-    } catch {
-      // Silently ignore network errors in this UI
+  function selectWorkspace(id: string | undefined) {
+    setSelectedSectionId(undefined)
+    setFocusedTaskIndex(-1)
+    if (id) {
+      router.replace(`?w=${id}`)
+    } else {
+      router.replace('/todos')
     }
   }
+
+  // Arrow key navigation for tasks and sections
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      const target = e.target
+      const inInput = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+
+      if (inInput) return
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (focusedTaskIndex < filteredTasks.length - 1) {
+          const next = focusedTaskIndex + 1
+          setFocusedTaskIndex(next)
+          taskRefs.current[next]?.focus()
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (focusedTaskIndex > 0) {
+          const prev = focusedTaskIndex - 1
+          setFocusedTaskIndex(prev)
+          taskRefs.current[prev]?.focus()
+        }
+      }
+    },
+    [focusedTaskIndex, filteredTasks.length]
+  )
+
+  const handleSectionKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      const target = e.target
+      const inInput = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+
+      if (inInput) return
+
+      const allSections = [undefined, ...sections.map((s) => s.id)]
+
+      if (e.key === 'ArrowDown') {
+        const focused = sectionRefs.current.some((r) => r === document.activeElement)
+        if (!focused) return
+        e.preventDefault()
+        const next = Math.min(focusedSectionIndex + 1, allSections.length - 1)
+        setFocusedSectionIndex(next)
+        sectionRefs.current[next]?.focus()
+      } else if (e.key === 'ArrowUp') {
+        const focused = sectionRefs.current.some((r) => r === document.activeElement)
+        if (!focused) return
+        e.preventDefault()
+        const prev = Math.max(focusedSectionIndex - 1, 0)
+        setFocusedSectionIndex(prev)
+        sectionRefs.current[prev]?.focus()
+      }
+    },
+    [focusedSectionIndex, sections]
+  )
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleSectionKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keydown', handleSectionKeyDown)
+    }
+  }, [handleKeyDown, handleSectionKeyDown])
+
+  // Reset refs array sizes when task list changes
+  useEffect(() => {
+    taskRefs.current = taskRefs.current.slice(0, filteredTasks.length)
+    setFocusedTaskIndex(-1)
+  }, [filteredTasks.length])
 
   const TABS: { id: Tab; label: string }[] = [
     { id: 'active', label: 'Active' },
     { id: 'done', label: 'Done' },
-    { id: 'archive', label: 'Archive' },
-    { id: 'search', label: 'Search' }
+    { id: 'archive', label: 'Archive' }
   ]
 
   return (
@@ -76,10 +146,7 @@ export default function TodosPage() {
               <li>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedWorkspaceId(undefined)
-                    setSelectedSectionId(undefined)
-                  }}
+                  onClick={() => selectWorkspace(undefined)}
                   className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedWorkspaceId === undefined ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
                 >
                   All workspaces
@@ -89,10 +156,7 @@ export default function TodosPage() {
                 <li key={ws.id}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedWorkspaceId(ws.id)
-                      setSelectedSectionId(undefined)
-                    }}
+                    onClick={() => selectWorkspace(ws.id)}
                     className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedWorkspaceId === ws.id ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
                   >
                     {ws.name}
@@ -112,6 +176,9 @@ export default function TodosPage() {
             <ul>
               <li>
                 <button
+                  ref={(el) => {
+                    sectionRefs.current[0] = el
+                  }}
                   type="button"
                   onClick={() => setSelectedSectionId(undefined)}
                   className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedSectionId === undefined ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
@@ -119,9 +186,12 @@ export default function TodosPage() {
                   All sections
                 </button>
               </li>
-              {sections.map((sec) => (
+              {sections.map((sec, i) => (
                 <li key={sec.id}>
                   <button
+                    ref={(el) => {
+                      sectionRefs.current[i + 1] = el
+                    }}
                     type="button"
                     onClick={() => setSelectedSectionId(sec.id)}
                     className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedSectionId === sec.id ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
@@ -140,6 +210,18 @@ export default function TodosPage() {
         {/* Policies banner */}
         {policies.length > 0 && <PoliciesBanner policies={policies} />}
 
+        {/* Search — always visible */}
+        <div className="mb-4">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search tasks…"
+            className="w-full rounded border border-input-border bg-input px-3 py-2 text-sm text-input-text"
+            aria-label="Search tasks"
+          />
+        </div>
+
         {/* Tabs */}
         <div className="mb-4 flex gap-1 border-b border-border">
           {TABS.map((tab) => (
@@ -156,20 +238,6 @@ export default function TodosPage() {
           ))}
         </div>
 
-        {/* Search input */}
-        {activeTab === 'search' && (
-          <div className="mb-4">
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tasks…"
-              className="w-full rounded border border-input-border bg-input px-3 py-2 text-sm text-input-text"
-              aria-label="Search tasks"
-            />
-          </div>
-        )}
-
         {/* Task list */}
         {isLoading && <p className="py-8 text-center text-sm text-muted">Loading…</p>}
         {error && <p className="py-8 text-center text-sm text-danger">Failed to load tasks.</p>}
@@ -178,32 +246,31 @@ export default function TodosPage() {
         )}
         {!isLoading && !error && (
           <div role="list" className="space-y-2">
-            {filteredTasks.map((task) => (
-              <Link key={task.id} href={`/todos/${task.id}`}>
+            {filteredTasks.map((task, i) => (
+              <Link
+                key={task.id}
+                href={`/todos/${task.id}`}
+                ref={(el) => {
+                  taskRefs.current[i] = el
+                }}
+                onFocus={() => setFocusedTaskIndex(i)}
+              >
                 <TaskCard task={task} />
               </Link>
             ))}
           </div>
         )}
 
-        {/* Quick add bar */}
+        {/* Quick add bar (includes /, @, # shortcuts) */}
         {activeTab === 'active' && (
-          <form onSubmit={handleQuickAdd} className="mt-6 flex gap-2" aria-label="Quick add task">
-            <input
-              type="text"
-              value={quickAddInput}
-              onChange={(e) => setQuickAddInput(e.target.value)}
-              placeholder="Add a task…"
-              className="h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          <div className="mt-6">
+            <QuickAddBar
+              sections={sections}
+              labelPresets={labelPresets}
+              sectionId={selectedSectionId}
+              onAdded={() => mutate()}
             />
-            <button
-              type="submit"
-              className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-              disabled={!quickAddInput.trim()}
-            >
-              Add
-            </button>
-          </form>
+          </div>
         )}
       </div>
     </div>

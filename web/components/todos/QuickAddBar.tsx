@@ -3,10 +3,13 @@
 import { useState, useRef, useImperativeHandle, forwardRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { createServiceClient } from '@/lib/client'
+import { TaskService } from '@/lib/gen/todos/v1/tasks_pb'
 
 interface QuickAddBarProps {
   sections: Array<{ id: string; name: string }>
   labelPresets: Array<{ value: string; color: string }>
+  sectionId?: string
   onAdded: () => void
 }
 
@@ -15,7 +18,7 @@ interface QuickAddBarHandle {
 }
 
 const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
-  ({ sections, labelPresets, onAdded }, ref) => {
+  ({ sections, labelPresets, sectionId, onAdded }, ref) => {
     const inputRef = useRef<HTMLInputElement>(null)
     const [input, setInput] = useState('')
     const [showDropdown, setShowDropdown] = useState(false)
@@ -54,9 +57,12 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault()
-      if (!input.trim()) return
+      const trimmed = input.trim()
+      if (!trimmed) return
       setInput('')
       setShowDropdown(false)
+      const client = createServiceClient(TaskService)
+      await client.quickAddTask({ input: trimmed, sectionId: sectionId ?? '' })
       onAdded()
     }
 

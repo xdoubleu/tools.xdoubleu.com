@@ -15,7 +15,7 @@ export default function TodosLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex flex-col flex-1">
       <header className="border-b border-border bg-card px-6 py-3">
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center justify-between gap-4">
           <Link href="/todos" className="text-sm font-semibold text-fg hover:text-accent">
             Todos
           </Link>

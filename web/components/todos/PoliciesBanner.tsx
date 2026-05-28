@@ -36,7 +36,7 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h2 className="mb-2 text-sm font-semibold text-warn">Active Policies</h2>
+          <h2 className="mb-2 text-sm font-semibold text-fg">Active Policies</h2>
           <ul className="space-y-1">
             {policies.map((policy) => (
               <li key={policy.id} className="text-sm text-fg">
@@ -49,7 +49,7 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss policies banner"
-          className="rounded-lg p-1 text-warn hover:bg-warn/20 transition-colors"
+          className="rounded-lg p-1 text-fg hover:bg-warn/20 transition-colors"
         >
           ✕
         </button>

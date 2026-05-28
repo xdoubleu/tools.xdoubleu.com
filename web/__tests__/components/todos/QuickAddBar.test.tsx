@@ -2,6 +2,12 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import QuickAddBar from '@/components/todos/QuickAddBar'
 
+jest.mock('@/lib/client', () => ({
+  createServiceClient: () => ({
+    quickAddTask: jest.fn().mockResolvedValue({})
+  })
+}))
+
 const sections = [
   { id: 's1', name: 'Backlog' },
   { id: 's2', name: 'In Progress' }
