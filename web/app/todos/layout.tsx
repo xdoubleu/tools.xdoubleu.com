@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Todos',
-    statusBarStyle: 'black-translucent',
-  },
+    statusBarStyle: 'black-translucent'
+  }
 }
 
 export default function TodosLayout({ children }: { children: React.ReactNode }) {

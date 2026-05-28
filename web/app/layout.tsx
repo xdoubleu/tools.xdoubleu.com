@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'tools.xdoubleu.com',
-    statusBarStyle: 'black-translucent',
-  },
+    statusBarStyle: 'black-translucent'
+  }
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
