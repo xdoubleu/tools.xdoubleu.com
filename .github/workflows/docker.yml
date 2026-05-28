@@ -10,6 +10,11 @@ on:
       build_web:
         type: boolean
         default: false
+    outputs:
+      api_built:
+        value: ${{ jobs.docker.outputs.api_built }}
+      web_built:
+        value: ${{ jobs.docker.outputs.web_built }}
 
 jobs:
   docker:
@@ -18,6 +23,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      api_built: ${{ steps.build-api.conclusion == 'success' }}
+      web_built: ${{ steps.build-web.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -37,6 +45,7 @@ jobs:
             type=raw,value=latest
 
       - uses: docker/build-push-action@v7
+        id: build-api
         if: github.event_name == 'workflow_dispatch' || inputs.build_api
         with:
           context: .
@@ -56,6 +65,7 @@ jobs:
             type=raw,value=latest
 
       - uses: docker/build-push-action@v7
+        id: build-web
         if: github.event_name == 'workflow_dispatch' || inputs.build_web
         with:
           context: .
