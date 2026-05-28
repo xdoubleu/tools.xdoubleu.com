@@ -50,6 +50,16 @@ Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed; CI regenerates them 
 
 **Do not read `api/gen/`, `api/internal/mocks/`, `api/apps/*/internal/mocks/`, or `web/lib/gen/`** to discover field names, message types, RPC signatures, or mock method signatures. Read the corresponding `.proto` file in `proto/` or the interface definition in the source package instead — it is much smaller and is the source of truth. Use `ast-grep` on `.proto` files for navigation.
 
+## File Reading Efficiency
+
+When **exploring** (finding a symbol, understanding structure, checking a type): read with `limit=50`.
+When **implementing or editing**: read the full file only when you need to place edits accurately.
+
+Never read generated or mock files — the warning in "Proto Code Generation" applies to all sessions. Alternatives:
+
+- Field names / RPC signatures → read the `.proto` file in `proto/`
+- Mock method signatures → read the interface definition in the source package (not `internal/mocks/`)
+
 ## CI
 
 See `.github/workflows/` for the pipeline. Five workflows fan out from `main.yml`: `build`, `api-lint`, `api-test`, `web-lint`, `web-test`.

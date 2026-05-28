@@ -42,6 +42,14 @@ yarn generate                             # Regenerate lib/gen/ from proto defin
 - **Minimal friction**: prefer SWR / React state updates over full page reloads. Use optimistic UI where appropriate; avoid unnecessary loading states.
 - **shadcn/ui primitives**: reach for existing components in `components/ui/` before writing custom markup.
 
+## File Size & Splits
+
+TypeScript/TSX files over ~300 lines need a split before adding more code:
+
+- Components — split by UI concern (e.g. `MealPlanCalendar.tsx` → `MealPlanMealChip.tsx`, `MealPlanEntryForm.tsx`)
+- Hooks — split by data domain
+- Utility files — split by concern
+
 ## Testing
 
 Jest + React Testing Library. Run `yarn test:cov` for coverage. Target ≥80% on `components/`, `lib/`, `hooks/` (excludes `lib/gen/`).
