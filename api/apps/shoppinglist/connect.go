@@ -167,9 +167,9 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 	return connect.NewResponse(&shoppinglistv1.DeleteShoppingItemResponse{}), nil
 }
 
-func exportWindow(now time.Time) (today time.Time, pastSlots []string) {
-	today = now.Truncate(hoursPerDay * time.Hour)
-	pastSlots = []string{}
+func exportWindow(now time.Time) (time.Time, []string) {
+	today := now.Truncate(hoursPerDay * time.Hour)
+	pastSlots := []string{}
 	switch {
 	case now.Hour() >= eveningCutoff:
 		today = today.AddDate(0, 0, 1)

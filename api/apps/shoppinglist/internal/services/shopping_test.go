@@ -151,7 +151,12 @@ func TestGetMealPlanExportItems_AccessDenied(t *testing.T) {
 	svc := services.NewShoppingService(accessDeniedMock())
 	start := time.Now().UTC()
 	_, err := svc.GetMealPlanExportItems(
-		context.Background(), uuid.New(), "user1", start, start.AddDate(0, 0, 6), []string{},
+		context.Background(),
+		uuid.New(),
+		"user1",
+		start,
+		start.AddDate(0, 0, 6),
+		[]string{},
 	)
 	assert.ErrorIs(t, err, errNotFound)
 }
@@ -200,7 +205,12 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 	svc := services.NewShoppingService(m)
 	start := time.Now().UTC()
 	_, err := svc.GetMealPlanExportItems(
-		context.Background(), uuid.New(), "user1", start, start.AddDate(0, 0, 6), []string{},
+		context.Background(),
+		uuid.New(),
+		"user1",
+		start,
+		start.AddDate(0, 0, 6),
+		[]string{},
 	)
 	assert.ErrorIs(t, err, repoErr)
 }

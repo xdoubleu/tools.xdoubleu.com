@@ -90,7 +90,7 @@ func TestExportWindow_AtNoonCutoff(t *testing.T) {
 func TestExportWindow_AtEveningCutoff(t *testing.T) {
 	now := time.Date(2026, 1, 1, eveningCutoff, 0, 0, 0, time.UTC) // hour == 22
 	today, pastSlots := exportWindow(now)
-	expected := now.Truncate(hoursPerDay * time.Hour).AddDate(0, 0, 1)
+	expected := now.Truncate(hoursPerDay*time.Hour).AddDate(0, 0, 1)
 	assert.Equal(t, expected, today)
 	assert.Empty(t, pastSlots)
 }
