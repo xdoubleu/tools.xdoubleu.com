@@ -7,15 +7,16 @@ import (
 )
 
 type Recipe struct {
-	ID           uuid.UUID
-	UserID       string
-	Name         string
-	Instructions string
-	BaseServings int
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Ingredients  []Ingredient
-	SharedWith   []string
+	ID            uuid.UUID
+	UserID        string
+	Name          string
+	Instructions  string
+	BaseServings  int
+	BatchServings *int
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	Ingredients   []Ingredient
+	SharedWith    []string
 }
 
 type Ingredient struct {

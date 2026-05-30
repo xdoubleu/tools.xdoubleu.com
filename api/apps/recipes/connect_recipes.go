@@ -83,6 +83,11 @@ func protoRecipe(r *models.Recipe) *recipesv1.Recipe {
 	for i, ing := range r.Ingredients {
 		ingredients[i] = protoIngredient(&ing)
 	}
+	var batchServings *int32
+	if r.BatchServings != nil {
+		v := int32(*r.BatchServings) //nolint:gosec // int32 safe for domain values
+		batchServings = &v
+	}
 	return &recipesv1.Recipe{
 		Id:           r.ID.String(),
 		UserId:       r.UserID,
@@ -91,10 +96,11 @@ func protoRecipe(r *models.Recipe) *recipesv1.Recipe {
 		BaseServings: int32( //nolint:gosec // int32 safe for domain values
 			r.BaseServings,
 		),
-		CreatedAt:   r.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   r.UpdatedAt.Format(time.RFC3339),
-		Ingredients: ingredients,
-		SharedWith:  r.SharedWith,
+		BatchServings: batchServings,
+		CreatedAt:     r.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:     r.UpdatedAt.Format(time.RFC3339),
+		Ingredients:   ingredients,
+		SharedWith:    r.SharedWith,
 	}
 }
 
@@ -276,6 +282,10 @@ func (h *recipesConnectHandler) CreateRecipe(
 		req.Msg.IngredientUnits,
 	)
 	recipe.Ingredients = ingredients
+	if req.Msg.BatchServings != nil {
+		v := int(*req.Msg.BatchServings)
+		recipe.BatchServings = &v
+	}
 
 	created, err := h.app.services.Recipes.Create(ctx, user.ID, recipe)
 	if err != nil {
@@ -317,6 +327,10 @@ func (h *recipesConnectHandler) UpdateRecipe(
 	)
 	recipe.ID = id
 	recipe.Ingredients = ingredients
+	if req.Msg.BatchServings != nil {
+		v := int(*req.Msg.BatchServings)
+		recipe.BatchServings = &v
+	}
 
 	err = h.app.services.Recipes.Update(ctx, user.ID, recipe)
 	if err != nil {

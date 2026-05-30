@@ -24,6 +24,7 @@ interface IngredientRow {
 export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps) {
   const [name, setName] = useState(recipe?.name || '')
   const [servings, setServings] = useState(recipe?.baseServings?.toString() || '1')
+  const [batchServings, setBatchServings] = useState(recipe?.batchServings?.toString() || '')
   const [steps, setSteps] = useState(recipe?.instructions || '')
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     recipe?.ingredients?.map((ing) => ({
@@ -48,11 +49,13 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const parsedBatchServings = batchServings ? parseInt(batchServings, 10) : undefined
       if (recipe?.id) {
         const req: UpdateRecipeInput = {
           id: recipe.id,
           name,
           baseServings: parseInt(servings, 10),
+          batchServings: parsedBatchServings,
           steps: steps.split('\n').filter((s) => s.trim()),
           ingredientNames: ingredients.map((ing) => ing.name),
           ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
@@ -64,6 +67,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         const req: CreateRecipeInput = {
           name,
           baseServings: parseInt(servings, 10),
+          batchServings: parsedBatchServings,
           steps: steps.split('\n').filter((s) => s.trim()),
           ingredientNames: ingredients.map((ing) => ing.name),
           ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
@@ -91,6 +95,22 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           value={servings}
           onChange={(e) => setServings(e.target.value)}
           min="1"
+          className="max-w-24"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Batch prep servings</Label>
+        <p className="text-xs text-muted-foreground">
+          When set, the shopping list buys for this many servings instead of summing scheduled
+          occurrences. Leave empty to use the scheduled total.
+        </p>
+        <Input
+          type="number"
+          value={batchServings}
+          onChange={(e) => setBatchServings(e.target.value)}
+          min="1"
+          placeholder="e.g. 10"
           className="max-w-24"
         />
       </div>

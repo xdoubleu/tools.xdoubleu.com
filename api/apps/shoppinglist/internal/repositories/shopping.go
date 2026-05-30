@@ -130,17 +130,26 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	pastSlots []string,
 ) ([]ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
+		WITH recipe_effective_servings AS (
+		    SELECT
+		        r.id AS recipe_id,
+		        COALESCE(r.batch_servings, SUM(pm.servings))::NUMERIC
+		            AS effective_servings,
+		        r.base_servings::NUMERIC
+		    FROM mealplans.plan_meals pm
+		    JOIN recipes.recipes r ON r.id = pm.recipe_id
+		    WHERE pm.plan_id = $1
+		      AND pm.meal_date BETWEEN $2 AND $3
+		      AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
+		    GROUP BY r.id, r.batch_servings, r.base_servings
+		)
 		SELECT
 		    LOWER(i.name) AS name,
 		    i.unit,
-		    SUM(i.amount * pm.servings::NUMERIC / r.base_servings::NUMERIC)
+		    SUM(i.amount * res.effective_servings / res.base_servings)
 		        AS total_amount
-		FROM mealplans.plan_meals pm
-		JOIN recipes.recipes r ON r.id = pm.recipe_id
-		JOIN recipes.ingredients i ON i.recipe_id = r.id
-		WHERE pm.plan_id = $1
-		  AND pm.meal_date BETWEEN $2 AND $3
-		  AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
+		FROM recipe_effective_servings res
+		JOIN recipes.ingredients i ON i.recipe_id = res.recipe_id
 		GROUP BY LOWER(i.name), i.unit
 		ORDER BY LOWER(i.name)`,
 		planID, start, end, pastSlots,

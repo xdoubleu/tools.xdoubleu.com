@@ -54,13 +54,14 @@ func (r *RecipesRepository) GetByID(
 	var recipe models.Recipe
 	err := r.db.QueryRow(ctx, `
 		SELECT id, user_id, name,
-		instructions, base_servings, created_at, updated_at
+		instructions, base_servings, batch_servings, created_at, updated_at
 		FROM recipes.recipes
 		WHERE id = $1`,
 		id,
 	).Scan(
 		&recipe.ID, &recipe.UserID, &recipe.Name,
-		&recipe.Instructions, &recipe.BaseServings, &recipe.CreatedAt, &recipe.UpdatedAt,
+		&recipe.Instructions, &recipe.BaseServings, &recipe.BatchServings,
+		&recipe.CreatedAt, &recipe.UpdatedAt,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -75,13 +76,14 @@ func (r *RecipesRepository) Create(
 	err := r.db.QueryRow(
 		ctx,
 		`INSERT INTO recipes.recipes
-		(user_id, name, instructions, base_servings)
-		VALUES ($1, $2, $3, $4)
+		(user_id, name, instructions, base_servings, batch_servings)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at, updated_at`,
 		recipe.UserID,
 		recipe.Name,
 		recipe.Instructions,
 		recipe.BaseServings,
+		recipe.BatchServings,
 	).Scan(&recipe.ID, &recipe.CreatedAt, &recipe.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -97,13 +99,14 @@ func (r *RecipesRepository) Update(
 		ctx,
 		`UPDATE recipes.recipes
 		SET name = $3, instructions = $4,
-		base_servings = $5, updated_at = now()
+		base_servings = $5, batch_servings = $6, updated_at = now()
 		WHERE id = $1 AND user_id = $2`,
 		recipe.ID,
 		recipe.UserID,
 		recipe.Name,
 		recipe.Instructions,
 		recipe.BaseServings,
+		recipe.BatchServings,
 	)
 	return err
 }
