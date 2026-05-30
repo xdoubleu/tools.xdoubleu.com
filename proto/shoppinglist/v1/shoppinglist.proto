@@ -9,11 +9,6 @@ message ShoppingItem {
   string id     = 4;
 }
 
-message DayShoppingItems {
-  string date              = 1;
-  repeated ShoppingItem items = 2;
-}
-
 message GetCustomListRequest  {}
 message GetCustomListResponse { repeated ShoppingItem items = 1; }
 
@@ -28,7 +23,7 @@ message DeleteShoppingItemRequest  { string item_id = 1; }
 message DeleteShoppingItemResponse {}
 
 message GetMealPlanExportItemsRequest  { string plan_id = 1; }
-message GetMealPlanExportItemsResponse { repeated DayShoppingItems day_items = 1; }
+message GetMealPlanExportItemsResponse { repeated ShoppingItem items = 1; }
 
 service ShoppingListService {
   rpc GetCustomList          (GetCustomListRequest)          returns (GetCustomListResponse);

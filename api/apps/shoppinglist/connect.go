@@ -183,30 +183,23 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
 	end := today.AddDate(0, 0, daysPerWeek-1)
 
-	dayItems, err := h.app.services.Shopping.GetMealPlanExportItems(
+	items, err := h.app.services.Shopping.GetMealPlanExportItems(
 		ctx, planID, user.ID, today, end,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	pb := make([]*shoppinglistv1.DayShoppingItems, len(dayItems))
-	for i, day := range dayItems {
-		items := make([]*shoppinglistv1.ShoppingItem, len(day.Items))
-		for j, item := range day.Items {
-			items[j] = &shoppinglistv1.ShoppingItem{
-				Name:   item.Name,
-				Amount: format.ToFractionCeiling(item.Amount),
-				Unit:   item.Unit,
-			}
-		}
-		pb[i] = &shoppinglistv1.DayShoppingItems{
-			Date:  day.Date,
-			Items: items,
+	pb := make([]*shoppinglistv1.ShoppingItem, len(items))
+	for i, item := range items {
+		pb[i] = &shoppinglistv1.ShoppingItem{
+			Name:   item.Name,
+			Amount: format.ToFractionCeiling(item.Amount),
+			Unit:   item.Unit,
 		}
 	}
 
 	return connect.NewResponse(&shoppinglistv1.GetMealPlanExportItemsResponse{
-		DayItems: pb,
+		Items: pb,
 	}), nil
 }

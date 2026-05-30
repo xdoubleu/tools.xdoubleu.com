@@ -26,7 +26,7 @@ type shoppingRepo interface {
 		ctx context.Context,
 		planID uuid.UUID,
 		start, end time.Time,
-	) ([]repositories.DayItems, error)
+	) ([]repositories.ShoppingItem, error)
 }
 
 type Services struct {
@@ -79,7 +79,7 @@ func (s *ShoppingService) GetMealPlanExportItems(
 	planID uuid.UUID,
 	userID string,
 	start, end time.Time,
-) ([]repositories.DayItems, error) {
+) ([]repositories.ShoppingItem, error) {
 	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
 		return nil, err
 	}

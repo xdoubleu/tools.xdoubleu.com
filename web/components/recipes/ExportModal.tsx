@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useMealPlans } from '@/hooks/useMealPlans'
 import { useMealPlanExportItems } from '@/hooks/useShoppingList'
 import { formatForClipboard, formatForAppleNotes, formatAsTxt } from '@/lib/recipes/shoppingExport'
-import type { ShoppingItem, DayItems } from '@/lib/recipes/shoppingExport'
-import type { DayShoppingItems } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 import {
   Dialog,
   DialogContent,
@@ -21,17 +20,6 @@ interface ExportModalProps {
   onClose: () => void
 }
 
-function toDayItems(raw: DayShoppingItems[]): DayItems[] {
-  return raw.map((day) => ({
-    date: day.date,
-    items: day.items.map((item) => ({
-      name: item.name,
-      amount: item.amount,
-      unit: item.unit
-    }))
-  }))
-}
-
 export default function ExportModal({ customItems, onClose }: ExportModalProps) {
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [copyFeedback, setCopyFeedback] = useState('')
@@ -39,7 +27,14 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
   const { data: plansData, isLoading: plansLoading } = useMealPlans()
   const { data: exportData, isLoading: exportLoading } = useMealPlanExportItems(selectedPlanId)
 
-  const dayItems = selectedPlanId && exportData ? toDayItems(exportData.dayItems) : undefined
+  const mealItems: ShoppingItem[] | undefined =
+    selectedPlanId && exportData
+      ? exportData.items.map((item) => ({
+          name: item.name,
+          amount: item.amount,
+          unit: item.unit
+        }))
+      : undefined
 
   const showFeedback = (msg: string) => {
     setCopyFeedback(msg)
@@ -47,13 +42,13 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
   }
 
   const handleExportClipboard = async () => {
-    const text = formatForClipboard(customItems, dayItems)
+    const text = formatForClipboard(customItems, mealItems)
     await navigator.clipboard.writeText(text)
     showFeedback('Copied!')
   }
 
   const handleExportAppleNotes = async () => {
-    const text = formatForAppleNotes(customItems, dayItems)
+    const text = formatForAppleNotes(customItems, mealItems)
     if (navigator.share) {
       await navigator.share({ text })
     } else {
@@ -63,7 +58,7 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
   }
 
   const handleExportTxt = () => {
-    const text = formatAsTxt(customItems, dayItems)
+    const text = formatAsTxt(customItems, mealItems)
     const element = document.createElement('a')
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text))
     element.setAttribute('download', 'shopping-list.txt')
@@ -109,24 +104,17 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
                 Meal plan — next 7 days
               </h3>
               {exportLoading && <p className="text-sm text-muted">Loading...</p>}
-              {!exportLoading && dayItems && dayItems.length === 0 && (
+              {!exportLoading && mealItems && mealItems.length === 0 && (
                 <p className="text-sm text-muted">No meals with recipes in the next 7 days.</p>
               )}
-              {!exportLoading && dayItems && dayItems.length > 0 && (
-                <div className="space-y-3">
-                  {dayItems.map((day) => (
-                    <div key={day.date}>
-                      <p className="text-sm font-medium text-fg">{day.date}</p>
-                      <ul className="mt-1 space-y-1 pl-3">
-                        {day.items.map((item, i) => (
-                          <li key={i} className="text-sm text-subtle">
-                            {item.amount} {item.unit} — {item.name}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+              {!exportLoading && mealItems && mealItems.length > 0 && (
+                <ul className="space-y-1">
+                  {mealItems.map((item, i) => (
+                    <li key={i} className="text-sm text-subtle">
+                      {item.amount} {item.unit} — {item.name}
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </div>
           )}
