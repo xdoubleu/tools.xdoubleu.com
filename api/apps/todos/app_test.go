@@ -65,19 +65,12 @@ func TestGetDisplayName(t *testing.T) {
 
 func createTask(t *testing.T, input string) string {
 	t.Helper()
-	_, err := testDB.Exec(t.Context(), `
-		INSERT INTO todos.tasks (owner_user_id, title)
-		VALUES ($1, $2)`,
-		userID, input,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
 	var id string
-	if err = testDB.QueryRow(t.Context(), `
-		SELECT id::text FROM todos.tasks
-		WHERE owner_user_id = $1 ORDER BY created_at DESC LIMIT 1`,
-		userID,
+	if err := testDB.QueryRow(t.Context(), `
+		INSERT INTO todos.tasks (owner_user_id, title)
+		VALUES ($1, $2)
+		RETURNING id::text`,
+		userID, input,
 	).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
