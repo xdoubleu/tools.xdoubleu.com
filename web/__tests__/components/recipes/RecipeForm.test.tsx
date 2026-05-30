@@ -62,9 +62,7 @@ describe('RecipeForm (new recipe)', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
 
     await waitFor(() => {
-      expect(mockCreateRecipe).toHaveBeenCalledWith(
-        expect.objectContaining({ batchServings: 10 })
-      )
+      expect(mockCreateRecipe).toHaveBeenCalledWith(expect.objectContaining({ batchServings: 10 }))
     })
   })
 
@@ -128,9 +126,7 @@ describe('RecipeForm (edit recipe)', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
 
     await waitFor(() => {
-      expect(mockUpdateRecipe).toHaveBeenCalledWith(
-        expect.objectContaining({ batchServings: 12 })
-      )
+      expect(mockUpdateRecipe).toHaveBeenCalledWith(expect.objectContaining({ batchServings: 12 }))
     })
   })
 
