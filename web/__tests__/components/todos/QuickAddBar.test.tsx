@@ -2,6 +2,12 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import QuickAddBar from '@/components/todos/QuickAddBar'
 
+jest.mock('@/lib/client', () => ({
+  createServiceClient: () => ({
+    quickAddTask: jest.fn().mockResolvedValue({})
+  })
+}))
+
 const sections = [
   { id: 's1', name: 'Backlog' },
   { id: 's2', name: 'In Progress' }
@@ -14,21 +20,42 @@ const labelPresets = [
 
 describe('QuickAddBar', () => {
   it('renders input and submit button', () => {
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={jest.fn()} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={jest.fn()}
+        onClose={jest.fn()}
+      />
+    )
     expect(screen.getByPlaceholderText(/Add task/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add Task' })).toBeInTheDocument()
   })
 
   it('does not submit when input is empty', () => {
     const onAdded = jest.fn()
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={onAdded} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={onAdded}
+        onClose={jest.fn()}
+      />
+    )
     fireEvent.submit(screen.getByRole('button', { name: 'Add Task' }).closest('form')!)
     expect(onAdded).not.toHaveBeenCalled()
   })
 
   it('calls onAdded and clears input on submit', async () => {
     const onAdded = jest.fn()
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={onAdded} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={onAdded}
+        onClose={jest.fn()}
+      />
+    )
     const input = screen.getByPlaceholderText(/Add task/) as HTMLInputElement
 
     fireEvent.change(input, { target: { value: 'Fix the bug' } })
@@ -41,7 +68,14 @@ describe('QuickAddBar', () => {
   })
 
   it('shows label dropdown when @ is typed', () => {
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={jest.fn()} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={jest.fn()}
+        onClose={jest.fn()}
+      />
+    )
     const input = screen.getByPlaceholderText(/Add task/)
     fireEvent.change(input, { target: { value: '@' } })
     expect(screen.getByText('bug')).toBeInTheDocument()
@@ -49,7 +83,14 @@ describe('QuickAddBar', () => {
   })
 
   it('shows section dropdown when # is typed', () => {
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={jest.fn()} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={jest.fn()}
+        onClose={jest.fn()}
+      />
+    )
     const input = screen.getByPlaceholderText(/Add task/)
     fireEvent.change(input, { target: { value: '#' } })
     expect(screen.getByText('Backlog')).toBeInTheDocument()
@@ -57,7 +98,14 @@ describe('QuickAddBar', () => {
   })
 
   it('selecting a label fills input and hides dropdown', () => {
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={jest.fn()} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={jest.fn()}
+        onClose={jest.fn()}
+      />
+    )
     const input = screen.getByPlaceholderText(/Add task/) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'task @' } })
     fireEvent.click(screen.getByText('bug'))
@@ -66,7 +114,14 @@ describe('QuickAddBar', () => {
   })
 
   it('selecting a section fills input and hides dropdown', () => {
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={jest.fn()} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={jest.fn()}
+        onClose={jest.fn()}
+      />
+    )
     const input = screen.getByPlaceholderText(/Add task/) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'task #' } })
     fireEvent.click(screen.getByText('Backlog'))
@@ -75,7 +130,14 @@ describe('QuickAddBar', () => {
   })
 
   it('hides dropdown when plain text typed', () => {
-    render(<QuickAddBar sections={sections} labelPresets={labelPresets} onAdded={jest.fn()} />)
+    render(
+      <QuickAddBar
+        sections={sections}
+        labelPresets={labelPresets}
+        onAdded={jest.fn()}
+        onClose={jest.fn()}
+      />
+    )
     const input = screen.getByPlaceholderText(/Add task/)
     fireEvent.change(input, { target: { value: '@bug' } })
     fireEvent.change(input, { target: { value: 'hello' } })
