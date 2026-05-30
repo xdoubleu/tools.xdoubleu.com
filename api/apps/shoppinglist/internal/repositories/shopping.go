@@ -127,6 +127,7 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	ctx context.Context,
 	planID uuid.UUID,
 	start, end time.Time,
+	pastSlots []string,
 ) ([]ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
@@ -139,9 +140,10 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		JOIN recipes.ingredients i ON i.recipe_id = r.id
 		WHERE pm.plan_id = $1
 		  AND pm.meal_date BETWEEN $2 AND $3
+		  AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
 		GROUP BY LOWER(i.name), i.unit
 		ORDER BY LOWER(i.name)`,
-		planID, start, end,
+		planID, start, end, pastSlots,
 	)
 	if err != nil {
 		return nil, err

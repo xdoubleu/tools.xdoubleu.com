@@ -83,7 +83,8 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    expect(screen.getByText('Breakfast')).toBeInTheDocument() // capitalized for display
+    // Both mobile and desktop views render slot labels
+    expect(screen.getAllByText('Breakfast').length).toBeGreaterThan(0)
   })
 
   it('renders combobox input when add panel opens', () => {
@@ -228,7 +229,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    expect(screen.getByText('Eggs and toast')).toBeInTheDocument()
+    expect(screen.getAllByText('Eggs and toast')[0]).toBeInTheDocument()
   })
 
   it('shows servings multiplier badge when servings > 1', () => {
@@ -255,7 +256,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    expect(screen.getByText('×3')).toBeInTheDocument()
+    expect(screen.getAllByText('×3')[0]).toBeInTheDocument()
   })
 
   it('does not show servings badge when servings is 1', () => {
@@ -326,7 +327,7 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    fireEvent.click(screen.getByText('Eggs'))
+    fireEvent.click(screen.getAllByText('Eggs')[0])
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
   })
 
@@ -358,7 +359,7 @@ describe('MealPlanCalendar', () => {
     )
 
     // Select the meal
-    fireEvent.click(screen.getByText('Eggs'))
+    fireEvent.click(screen.getAllByText('Eggs')[0])
     // In moving mode the "+" buttons are hidden; click the cell div directly.
     // All cells have hover:border-accent class in moving mode; index 1 is the first empty slot.
     const movingCells = document.querySelectorAll('[class*="hover:border-accent"]')
@@ -397,7 +398,7 @@ describe('MealPlanCalendar', () => {
     )
 
     // First click selects the meal (only one "Eggs" present — the span in the card)
-    fireEvent.click(screen.getByText('Eggs'))
+    fireEvent.click(screen.getAllByText('Eggs')[0])
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
 
     // After selection the banner shows a <strong>Eggs</strong> too; click the span in the card
@@ -434,6 +435,20 @@ describe('MealPlanCalendar', () => {
     expect(mockOnNextWeek).toHaveBeenCalledTimes(1)
   })
 
+  it('shows week date range in dd/mm/yyyy format', () => {
+    render(
+      <MealPlanCalendar
+        plan={basePlan}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={jest.fn()}
+        onDeleteMeal={jest.fn()}
+      />
+    )
+    // Mock week: 2026-05-25 to 2026-05-31
+    expect(screen.getByText('25/05/2026 – 31/05/2026')).toBeInTheDocument()
+  })
+
   it('shows edit button on meal card', () => {
     const planWithMeal = {
       ...basePlan,
@@ -458,7 +473,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    expect(screen.getByRole('button', { name: /Edit meal/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Edit meal/i })[0]).toBeInTheDocument()
   })
 
   it('clicking edit button opens edit panel pre-populated with meal values', () => {
@@ -485,7 +500,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /Edit meal/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
     expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
     if (!(input instanceof HTMLInputElement)) throw new Error('expected input')
@@ -520,7 +535,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /Edit meal/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
     fireEvent.change(input, { target: { value: 'Updated meal' } })
     fireEvent.click(screen.getByRole('button', { name: /^Save$/i }))
@@ -556,7 +571,7 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: /Edit meal/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
     expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }))
     expect(screen.queryByRole('button', { name: /^Save$/i })).not.toBeInTheDocument()
@@ -587,8 +602,23 @@ describe('MealPlanCalendar', () => {
       />
     )
     // Enter move mode by clicking the meal name span
-    fireEvent.click(screen.getByText('Eggs'))
-    expect(screen.queryByRole('button', { name: /Edit meal/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByText('Eggs')[0])
+    expect(screen.queryAllByRole('button', { name: /Edit meal/i })).toHaveLength(0)
+  })
+
+  it('highlights today with accent label in mobile view', () => {
+    render(
+      <MealPlanCalendar
+        plan={basePlan}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={jest.fn()}
+        onDeleteMeal={jest.fn()}
+      />
+    )
+    // The mock week is 2026-05-25–2026-05-31; today (2026-05-30) is Friday.
+    // Mobile view appends "(today)" next to the day header for today.
+    expect(screen.getAllByText('(today)').length).toBeGreaterThan(0)
   })
 
   it('cancels move when Cancel button in banner is clicked', () => {
@@ -616,7 +646,7 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    fireEvent.click(screen.getByText('Eggs'))
+    fireEvent.click(screen.getAllByText('Eggs')[0])
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Cancel/i }))
     expect(screen.queryByText(/Moving/i)).not.toBeInTheDocument()

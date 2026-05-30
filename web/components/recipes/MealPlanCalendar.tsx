@@ -48,6 +48,7 @@ export default function MealPlanCalendar({
 
   const weekDates = getWeekDates(weekOffset)
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const today = formatMealDate(new Date())
 
   const getMealsForSlot = (date: string, slot: string) =>
     (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
@@ -163,6 +164,47 @@ export default function MealPlanCalendar({
   const movingMealName =
     movingMeal?.customName || recipes.find((r) => r.id === movingMeal?.recipeId)?.name || '?'
 
+  const renderCell = (formattedDate: string, slot: string) => {
+    const mealsInSlot = getMealsForSlot(formattedDate, slot)
+    return (
+      <div
+        key={`${formattedDate}-${slot}`}
+        className={`min-h-8 rounded-lg border p-1 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
+        onClick={() => handleCellClick(formattedDate, slot, mealsInSlot.length > 0)}
+      >
+        {mealsInSlot.length > 0 ? (
+          <div className="space-y-1">
+            {mealsInSlot.map((meal) => (
+              <MealPlanMealChip
+                key={meal.id}
+                meal={meal}
+                recipe={recipes.find((r) => r.id === meal.recipeId)}
+                isMoving={movingMeal?.id === meal.id}
+                inMoveMode={!!movingMeal}
+                onMealClick={handleMealClick}
+                onEditClick={handleEditClick}
+                onDeleteMeal={handleDeleteMeal}
+              />
+            ))}
+          </div>
+        ) : (
+          !movingMeal && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedSlot(slot)
+                setSelectedDate(formattedDate)
+              }}
+              className="h-full w-full rounded-lg p-1 text-center text-muted hover:bg-surface"
+            >
+              +
+            </button>
+          )
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -170,7 +212,7 @@ export default function MealPlanCalendar({
           ← Prev
         </Button>
         <span className="text-sm font-semibold text-fg text-center">
-          {weekDates[0].toLocaleDateString()} – {weekDates[6].toLocaleDateString()}
+          {weekDates[0].toLocaleDateString('en-GB')} – {weekDates[6].toLocaleDateString('en-GB')}
         </span>
         <Button variant="secondary" size="sm" onClick={onNextWeek}>
           Next →
@@ -191,71 +233,64 @@ export default function MealPlanCalendar({
         </div>
       )}
 
-      <div className={`overflow-x-auto${movingMeal ? ' cursor-crosshair' : ''}`}>
+      {/* Mobile: stacked by day */}
+      <div className={`sm:hidden space-y-3 text-xs${movingMeal ? ' cursor-crosshair' : ''}`}>
+        {weekDates.map((date, i) => {
+          const formattedDate = formatMealDate(date)
+          const isToday = formattedDate === today
+          return (
+            <div key={formattedDate} className="rounded-lg border border-border p-2">
+              <div className={`mb-2 font-semibold text-sm${isToday ? ' text-accent' : ' text-fg'}`}>
+                {dayNames[i]} {date.getDate()}
+                {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
+              </div>
+              <div className="space-y-1">
+                {MEAL_SLOTS.map((slot) => (
+                  <div key={slot} className="flex gap-2">
+                    <span className="w-16 shrink-0 pt-1 text-xs font-medium text-muted">
+                      {slot.charAt(0).toUpperCase() + slot.slice(1)}
+                    </span>
+                    <div className="flex-1">{renderCell(formattedDate, slot)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Desktop: 7-column grid */}
+      <div className={`hidden sm:block overflow-x-auto${movingMeal ? ' cursor-crosshair' : ''}`}>
         <div
           className="grid gap-1 text-xs"
           style={{ gridTemplateColumns: 'minmax(4.5rem, auto) repeat(7, 1fr)' }}
         >
           <div />
-          {dayNames.map((day) => (
-            <div key={day} className="py-1 text-center font-semibold text-fg">
-              {day}
-            </div>
-          ))}
+          {weekDates.map((date, i) => {
+            const isToday = formatMealDate(date) === today
+            return (
+              <div key={dayNames[i]} className={`py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}>
+                {dayNames[i]}
+              </div>
+            )
+          })}
 
           <div />
-          {weekDates.map((date) => (
-            <div key={formatMealDate(date)} className="py-1 text-center text-muted">
-              {date.getDate()}
-            </div>
-          ))}
+          {weekDates.map((date) => {
+            const isToday = formatMealDate(date) === today
+            return (
+              <div key={formatMealDate(date)} className={`py-1 text-center${isToday ? ' text-accent font-semibold' : ' text-muted'}`}>
+                {date.getDate()}
+              </div>
+            )
+          })}
 
           {MEAL_SLOTS.map((slot) => (
             <React.Fragment key={slot}>
               <div className="flex items-center pr-1 text-xs font-medium text-muted">
                 {slot.charAt(0).toUpperCase() + slot.slice(1)}
               </div>
-              {weekDates.map((date) => {
-                const formattedDate = formatMealDate(date)
-                const mealsInSlot = getMealsForSlot(formattedDate, slot)
-                return (
-                  <div
-                    key={`${formattedDate}-${slot}`}
-                    className={`min-h-8 rounded-lg border p-1 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
-                    onClick={() => handleCellClick(formattedDate, slot, mealsInSlot.length > 0)}
-                  >
-                    {mealsInSlot.length > 0 ? (
-                      <div className="space-y-1">
-                        {mealsInSlot.map((meal) => (
-                          <MealPlanMealChip
-                            key={meal.id}
-                            meal={meal}
-                            recipe={recipes.find((r) => r.id === meal.recipeId)}
-                            isMoving={movingMeal?.id === meal.id}
-                            inMoveMode={!!movingMeal}
-                            onMealClick={handleMealClick}
-                            onEditClick={handleEditClick}
-                            onDeleteMeal={handleDeleteMeal}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      !movingMeal && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedSlot(slot)
-                            setSelectedDate(formattedDate)
-                          }}
-                          className="h-full w-full rounded-lg p-1 text-center text-muted hover:bg-surface"
-                        >
-                          +
-                        </button>
-                      )
-                    )}
-                  </div>
-                )
-              })}
+              {weekDates.map((date) => renderCell(formatMealDate(date), slot))}
             </React.Fragment>
           ))}
         </div>

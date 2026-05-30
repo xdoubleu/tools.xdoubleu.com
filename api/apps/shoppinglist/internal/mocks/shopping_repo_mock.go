@@ -31,6 +31,7 @@ type ShoppingRepoMock struct {
 		ctx context.Context,
 		planID uuid.UUID,
 		start, end time.Time,
+		pastSlots []string,
 	) ([]repositories.ShoppingItem, error)
 }
 
@@ -69,6 +70,7 @@ func (m *ShoppingRepoMock) GetMealPlanExportItems(
 	ctx context.Context,
 	planID uuid.UUID,
 	start, end time.Time,
+	pastSlots []string,
 ) ([]repositories.ShoppingItem, error) {
-	return m.GetMealPlanExportItemsFn(ctx, planID, start, end)
+	return m.GetMealPlanExportItemsFn(ctx, planID, start, end, pastSlots)
 }

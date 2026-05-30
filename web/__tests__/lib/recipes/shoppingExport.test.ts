@@ -14,30 +14,59 @@ const mealItems: ShoppingItem[] = [
 ]
 
 describe('shoppingExport', () => {
+  describe('unit upgrades', () => {
+    it('converts 1000g to 1kg', () => {
+      const result = formatForClipboard([{ amount: '1000', unit: 'g', name: 'flour' }])
+      expect(result).toBe('1 kg - flour')
+    })
+
+    it('converts 1500g to 1.5kg', () => {
+      const result = formatForClipboard([{ amount: '1500', unit: 'g', name: 'flour' }])
+      expect(result).toBe('1.5 kg - flour')
+    })
+
+    it('does not convert 999g', () => {
+      const result = formatForClipboard([{ amount: '999', unit: 'g', name: 'flour' }])
+      expect(result).toBe('999 g - flour')
+    })
+
+    it('converts 1000ml to 1L', () => {
+      const result = formatForClipboard([{ amount: '1000', unit: 'ml', name: 'water' }])
+      expect(result).toBe('1 L - water')
+    })
+
+    it('converts 1000mg to 1g', () => {
+      const result = formatForClipboard([{ amount: '1000', unit: 'mg', name: 'spice' }])
+      expect(result).toBe('1 g - spice')
+    })
+
+    it('does not convert unknown units', () => {
+      const result = formatForClipboard([{ amount: '1000', unit: 'tsp', name: 'salt' }])
+      expect(result).toBe('1000 tsp - salt')
+    })
+  })
+
   describe('formatForClipboard', () => {
     it('formats custom items only when no meal items given', () => {
       const result = formatForClipboard(customItems)
-      expect(result).toBe('Custom items:\n0.5 tsp - salt')
+      expect(result).toBe('0.5 tsp - salt')
     })
 
-    it('formats custom items and aggregated meal plan section', () => {
+    it('merges custom and meal plan items into a single flat list', () => {
       const result = formatForClipboard(customItems, mealItems)
-      expect(result).toContain('Custom items:\n0.5 tsp - salt')
-      expect(result).toContain('From meal plan:')
-      expect(result).toContain('  2 cups - flour')
-      expect(result).toContain('  100 g - butter')
+      expect(result).toBe(
+        '0.5 tsp - salt\n2 cups - flour\n1 tbsp - sugar\n100 g - butter'
+      )
     })
 
-    it('omits meal plan section when meal items array is empty', () => {
+    it('omits meal plan items when meal items array is empty', () => {
       const result = formatForClipboard(customItems, [])
-      expect(result).toBe('Custom items:\n0.5 tsp - salt')
-      expect(result).not.toContain('From meal plan:')
+      expect(result).toBe('0.5 tsp - salt')
     })
 
-    it('omits custom section when custom items are empty', () => {
+    it('formats meal items only when custom items are empty', () => {
       const result = formatForClipboard([], mealItems)
-      expect(result).not.toContain('Custom items:')
-      expect(result).toContain('From meal plan:')
+      expect(result).toBe('2 cups - flour\n1 tbsp - sugar\n100 g - butter')
     })
 
     it('returns empty string when both are empty', () => {
@@ -53,11 +82,11 @@ describe('shoppingExport', () => {
       expect(result.startsWith('Shopping list 26/05/2026')).toBe(true)
     })
 
-    it('includes custom items and aggregated meal plan section after title', () => {
+    it('merges custom and meal plan items into a single flat list after title', () => {
       const result = formatForAppleNotes(customItems, mealItems, fixedDate)
-      expect(result).toContain('Custom items:\n0.5 tsp salt')
-      expect(result).toContain('From meal plan:')
-      expect(result).toContain('  2 cups flour')
+      expect(result).toBe(
+        'Shopping list 26/05/2026\n\n0.5 tsp salt\n2 cups flour\n1 tbsp sugar\n100 g butter'
+      )
     })
 
     it('returns just the title when both are empty', () => {
@@ -65,10 +94,11 @@ describe('shoppingExport', () => {
       expect(result).toBe('Shopping list 26/05/2026')
     })
 
-    it('omits empty sections', () => {
+    it('formats meal items only when custom items are empty', () => {
       const result = formatForAppleNotes([], mealItems, fixedDate)
-      expect(result).not.toContain('Custom items:')
-      expect(result).toContain('From meal plan:')
+      expect(result).toBe(
+        'Shopping list 26/05/2026\n\n2 cups flour\n1 tbsp sugar\n100 g butter'
+      )
     })
   })
 

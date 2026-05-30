@@ -26,6 +26,7 @@ type shoppingRepo interface {
 		ctx context.Context,
 		planID uuid.UUID,
 		start, end time.Time,
+		pastSlots []string,
 	) ([]repositories.ShoppingItem, error)
 }
 
@@ -79,9 +80,10 @@ func (s *ShoppingService) GetMealPlanExportItems(
 	planID uuid.UUID,
 	userID string,
 	start, end time.Time,
+	pastSlots []string,
 ) ([]repositories.ShoppingItem, error) {
 	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
 		return nil, err
 	}
-	return s.repo.GetMealPlanExportItems(ctx, planID, start, end)
+	return s.repo.GetMealPlanExportItems(ctx, planID, start, end, pastSlots)
 }
