@@ -27,6 +27,7 @@ message Recipe {
   string updated_at = 7;
   repeated Ingredient ingredients = 8;
   repeated string shared_with = 9;
+  optional int32 batch_servings = 10;
 }
 
 message ListRecipesRequest {}
@@ -50,6 +51,7 @@ message CreateRecipeRequest {
   repeated string ingredient_names = 4;
   repeated double ingredient_amounts = 5;
   repeated string ingredient_units = 6;
+  optional int32 batch_servings = 7;
 }
 message CreateRecipeResponse { Recipe recipe = 1; }
 
@@ -61,6 +63,7 @@ message UpdateRecipeRequest {
   repeated string ingredient_names = 5;
   repeated double ingredient_amounts = 6;
   repeated string ingredient_units = 7;
+  optional int32 batch_servings = 8;
 }
 message UpdateRecipeResponse {}
 

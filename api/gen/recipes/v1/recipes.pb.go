@@ -176,6 +176,7 @@ type Recipe struct {
 	UpdatedAt     string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Ingredients   []*Ingredient          `protobuf:"bytes,8,rep,name=ingredients,proto3" json:"ingredients,omitempty"`
 	SharedWith    []string               `protobuf:"bytes,9,rep,name=shared_with,json=sharedWith,proto3" json:"shared_with,omitempty"`
+	BatchServings *int32                 `protobuf:"varint,10,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -271,6 +272,13 @@ func (x *Recipe) GetSharedWith() []string {
 		return x.SharedWith
 	}
 	return nil
+}
+
+func (x *Recipe) GetBatchServings() int32 {
+	if x != nil && x.BatchServings != nil {
+		return *x.BatchServings
+	}
+	return 0
 }
 
 type ListRecipesRequest struct {
@@ -481,6 +489,7 @@ type CreateRecipeRequest struct {
 	IngredientNames   []string               `protobuf:"bytes,4,rep,name=ingredient_names,json=ingredientNames,proto3" json:"ingredient_names,omitempty"`
 	IngredientAmounts []float64              `protobuf:"fixed64,5,rep,packed,name=ingredient_amounts,json=ingredientAmounts,proto3" json:"ingredient_amounts,omitempty"`
 	IngredientUnits   []string               `protobuf:"bytes,6,rep,name=ingredient_units,json=ingredientUnits,proto3" json:"ingredient_units,omitempty"`
+	BatchServings     *int32                 `protobuf:"varint,7,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -557,6 +566,13 @@ func (x *CreateRecipeRequest) GetIngredientUnits() []string {
 	return nil
 }
 
+func (x *CreateRecipeRequest) GetBatchServings() int32 {
+	if x != nil && x.BatchServings != nil {
+		return *x.BatchServings
+	}
+	return 0
+}
+
 type CreateRecipeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Recipe        *Recipe                `protobuf:"bytes,1,opt,name=recipe,proto3" json:"recipe,omitempty"`
@@ -610,6 +626,7 @@ type UpdateRecipeRequest struct {
 	IngredientNames   []string               `protobuf:"bytes,5,rep,name=ingredient_names,json=ingredientNames,proto3" json:"ingredient_names,omitempty"`
 	IngredientAmounts []float64              `protobuf:"fixed64,6,rep,packed,name=ingredient_amounts,json=ingredientAmounts,proto3" json:"ingredient_amounts,omitempty"`
 	IngredientUnits   []string               `protobuf:"bytes,7,rep,name=ingredient_units,json=ingredientUnits,proto3" json:"ingredient_units,omitempty"`
+	BatchServings     *int32                 `protobuf:"varint,8,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -691,6 +708,13 @@ func (x *UpdateRecipeRequest) GetIngredientUnits() []string {
 		return x.IngredientUnits
 	}
 	return nil
+}
+
+func (x *UpdateRecipeRequest) GetBatchServings() int32 {
+	if x != nil && x.BatchServings != nil {
+		return *x.BatchServings
+	}
+	return 0
 }
 
 type UpdateRecipeResponse struct {
@@ -1003,7 +1027,7 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x10ScaledIngredient\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
-	"\x04unit\x18\x03 \x01(\tR\x04unit\"\xa7\x02\n" +
+	"\x04unit\x18\x03 \x01(\tR\x04unit\"\xe6\x02\n" +
 	"\x06Recipe\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -1016,7 +1040,10 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"updated_at\x18\a \x01(\tR\tupdatedAt\x128\n" +
 	"\vingredients\x18\b \x03(\v2\x16.recipes.v1.IngredientR\vingredients\x12\x1f\n" +
 	"\vshared_with\x18\t \x03(\tR\n" +
-	"sharedWith\"\x14\n" +
+	"sharedWith\x12*\n" +
+	"\x0ebatch_servings\x18\n" +
+	" \x01(\x05H\x00R\rbatchServings\x88\x01\x01B\x11\n" +
+	"\x0f_batch_servings\"\x14\n" +
 	"\x12ListRecipesRequest\"C\n" +
 	"\x13ListRecipesResponse\x12,\n" +
 	"\arecipes\x18\x01 \x03(\v2\x12.recipes.v1.RecipeR\arecipes\">\n" +
@@ -1027,16 +1054,18 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\x12\x1a\n" +
 	"\bservings\x18\x02 \x01(\x05R\bservings\x12\x19\n" +
 	"\bis_owner\x18\x03 \x01(\bR\aisOwner\x12K\n" +
-	"\x12scaled_ingredients\x18\x04 \x03(\v2\x1c.recipes.v1.ScaledIngredientR\x11scaledIngredients\"\xe9\x01\n" +
+	"\x12scaled_ingredients\x18\x04 \x03(\v2\x1c.recipes.v1.ScaledIngredientR\x11scaledIngredients\"\xa8\x02\n" +
 	"\x13CreateRecipeRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05steps\x18\x02 \x03(\tR\x05steps\x12#\n" +
 	"\rbase_servings\x18\x03 \x01(\x05R\fbaseServings\x12)\n" +
 	"\x10ingredient_names\x18\x04 \x03(\tR\x0fingredientNames\x12-\n" +
 	"\x12ingredient_amounts\x18\x05 \x03(\x01R\x11ingredientAmounts\x12)\n" +
-	"\x10ingredient_units\x18\x06 \x03(\tR\x0fingredientUnits\"B\n" +
+	"\x10ingredient_units\x18\x06 \x03(\tR\x0fingredientUnits\x12*\n" +
+	"\x0ebatch_servings\x18\a \x01(\x05H\x00R\rbatchServings\x88\x01\x01B\x11\n" +
+	"\x0f_batch_servings\"B\n" +
 	"\x14CreateRecipeResponse\x12*\n" +
-	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\"\xf9\x01\n" +
+	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\"\xb8\x02\n" +
 	"\x13UpdateRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -1044,7 +1073,9 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\rbase_servings\x18\x04 \x01(\x05R\fbaseServings\x12)\n" +
 	"\x10ingredient_names\x18\x05 \x03(\tR\x0fingredientNames\x12-\n" +
 	"\x12ingredient_amounts\x18\x06 \x03(\x01R\x11ingredientAmounts\x12)\n" +
-	"\x10ingredient_units\x18\a \x03(\tR\x0fingredientUnits\"\x16\n" +
+	"\x10ingredient_units\x18\a \x03(\tR\x0fingredientUnits\x12*\n" +
+	"\x0ebatch_servings\x18\b \x01(\x05H\x00R\rbatchServings\x88\x01\x01B\x11\n" +
+	"\x0f_batch_servings\"\x16\n" +
 	"\x14UpdateRecipeResponse\"%\n" +
 	"\x13DeleteRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x16\n" +
@@ -1130,6 +1161,9 @@ func file_recipes_v1_recipes_proto_init() {
 	if File_recipes_v1_recipes_proto != nil {
 		return
 	}
+	file_recipes_v1_recipes_proto_msgTypes[2].OneofWrappers = []any{}
+	file_recipes_v1_recipes_proto_msgTypes[7].OneofWrappers = []any{}
+	file_recipes_v1_recipes_proto_msgTypes[9].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

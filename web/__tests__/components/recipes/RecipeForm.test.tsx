@@ -54,6 +54,31 @@ describe('RecipeForm (new recipe)', () => {
     })
   })
 
+  it('sends batchServings when set', async () => {
+    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. 10'), { target: { value: '10' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateRecipe).toHaveBeenCalledWith(expect.objectContaining({ batchServings: 10 }))
+    })
+  })
+
+  it('omits batchServings when field is empty', async () => {
+    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateRecipe).toHaveBeenCalledWith(
+        expect.objectContaining({ batchServings: undefined })
+      )
+    })
+  })
+
   it('adds a new ingredient row when Add Ingredient clicked', () => {
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
     const initialRows = screen.getAllByPlaceholderText('Name')
@@ -79,15 +104,45 @@ describe('RecipeForm (edit recipe)', () => {
     name: 'Spaghetti',
     instructions: 'Boil water\nCook pasta',
     baseServings: 4,
+    batchServings: 8,
     ingredients: [create(IngredientSchema, { name: 'pasta', amount: 200, unit: 'g' })]
   })
 
-  it('pre-fills fields from existing recipe', () => {
+  it('pre-fills fields from existing recipe including batchServings', () => {
     render(<RecipeForm recipe={existingRecipe} onSave={jest.fn()} onCancel={jest.fn()} />)
     const nameInputEl = screen.getAllByRole('textbox')[0]
     if (!(nameInputEl instanceof HTMLInputElement)) throw new Error('expected HTMLInputElement')
     expect(nameInputEl.value).toBe('Spaghetti')
     expect(screen.getByDisplayValue('pasta')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('8')).toBeInTheDocument()
+  })
+
+  it('sends updated batchServings on submit', async () => {
+    const onSave = jest.fn()
+    mockUpdateRecipe.mockResolvedValue({})
+    render(<RecipeForm recipe={existingRecipe} onSave={onSave} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. 10'), { target: { value: '12' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockUpdateRecipe).toHaveBeenCalledWith(expect.objectContaining({ batchServings: 12 }))
+    })
+  })
+
+  it('clears batchServings when field is emptied', async () => {
+    const onSave = jest.fn()
+    mockUpdateRecipe.mockResolvedValue({})
+    render(<RecipeForm recipe={existingRecipe} onSave={onSave} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. 10'), { target: { value: '' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockUpdateRecipe).toHaveBeenCalledWith(
+        expect.objectContaining({ batchServings: undefined })
+      )
+    })
   })
 
   it('calls updateRecipe and onSave on submit', async () => {

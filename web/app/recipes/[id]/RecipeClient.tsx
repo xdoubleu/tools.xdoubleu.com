@@ -106,7 +106,7 @@ export default function RecipeClient({ id }: { id: string }) {
             )}
           </div>
 
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
             <span className="text-muted text-sm">Serves</span>
             <input
               type="number"
@@ -122,6 +122,11 @@ export default function RecipeClient({ id }: { id: string }) {
               >
                 Reset to {recipe.baseServings}
               </button>
+            )}
+            {recipe.batchServings != null && (
+              <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-xs text-muted">
+                Batch prep: {recipe.batchServings} servings
+              </span>
             )}
           </div>
 

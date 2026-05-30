@@ -329,6 +329,109 @@ func TestUnshareRecipe_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestCreateRecipe_WithBatchServings(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	batchServings := int32(10)
+	resp, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name:          "Batch Chili",
+			Steps:         []string{"Cook everything"},
+			BaseServings:  2,
+			BatchServings: &batchServings,
+		}),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, resp.Msg.Recipe.BatchServings)
+	assert.Equal(t, int32(10), *resp.Msg.Recipe.BatchServings)
+}
+
+func TestUpdateRecipe_WithBatchServings(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	createResp, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name:         "Batch Recipe",
+			Steps:        []string{"Step 1"},
+			BaseServings: 2,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Nil(t, createResp.Msg.Recipe.BatchServings)
+
+	recipeID := createResp.Msg.Recipe.Id
+	batchServings := int32(8)
+	_, err = client.UpdateRecipe(ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+		Id:            recipeID,
+		Name:          "Batch Recipe",
+		Steps:         []string{"Step 1"},
+		BaseServings:  2,
+		BatchServings: &batchServings,
+	}))
+	require.NoError(t, err)
+
+	getResp, err := client.GetRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, getResp.Msg.Recipe.BatchServings)
+	assert.Equal(t, int32(8), *getResp.Msg.Recipe.BatchServings)
+}
+
+func TestUpdateRecipe_ClearBatchServings(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	batchServings := int32(12)
+	createResp, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name:          "Was Batch",
+			Steps:         []string{"Step"},
+			BaseServings:  2,
+			BatchServings: &batchServings,
+		}),
+	)
+	require.NoError(t, err)
+	recipeID := createResp.Msg.Recipe.Id
+
+	_, err = client.UpdateRecipe(ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+		Id:           recipeID,
+		Name:         "Was Batch",
+		Steps:        []string{"Step"},
+		BaseServings: 2,
+		// BatchServings intentionally omitted to clear it
+	}))
+	require.NoError(t, err)
+
+	getResp, err := client.GetRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+	)
+	require.NoError(t, err)
+	assert.Nil(t, getResp.Msg.Recipe.BatchServings)
+}
+
 func TestListRecipes_WithItems(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(

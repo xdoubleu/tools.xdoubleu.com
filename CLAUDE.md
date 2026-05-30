@@ -60,6 +60,34 @@ Never read generated or mock files — the warning in "Proto Code Generation" ap
 - Field names / RPC signatures → read the `.proto` file in `proto/`
 - Mock method signatures → read the interface definition in the source package (not `internal/mocks/`)
 
+## Finishing a Task — Required Final Steps
+
+After every code change, always run **both** of the following before reporting the task as done:
+
+1. **Lint** (auto-fix, then check nothing remains):
+
+   ```bash
+   # api changes
+   cd api && make lint/fix
+
+   # web changes
+   cd web && yarn lint
+   ```
+
+2. **Coverage** — target ≥ 80% on the changed code. Run the coverage report and confirm the diff is covered:
+
+   ```bash
+   # api — requires docker-compose up -d first
+   cd api && make test/cov/report
+
+   # web
+   cd web && yarn test:cov
+   ```
+
+   If postgres is not running locally, note it explicitly and confirm the new tests compile cleanly (`go build ./...`). Do not silently skip this step.
+
+These two steps are **not optional**. Do not mark any task complete without running both.
+
 ## CI
 
 See `.github/workflows/` for the pipeline. Five workflows fan out from `main.yml`: `build`, `api-lint`, `api-test`, `web-lint`, `web-test`.
