@@ -19,12 +19,7 @@ jest.mock('@/hooks/useShoppingList', () => ({
   useMealPlanExportItems: (planId: string) => ({
     data: planId
       ? {
-          dayItems: [
-            {
-              date: '2026-05-28',
-              items: [{ name: 'garlic', amount: '2', unit: 'cloves' }]
-            }
-          ]
+          items: [{ name: 'garlic', amount: '2', unit: 'cloves' }]
         }
       : undefined,
     isLoading: false
@@ -60,17 +55,16 @@ describe('ExportModal', () => {
     expect(screen.getByRole('option', { name: 'Party Plan' })).toBeInTheDocument()
   })
 
-  it('shows per-day meal plan items when a plan is selected', () => {
+  it('shows aggregated meal plan items when a plan is selected', () => {
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
     const select = screen.getByRole('combobox')
     fireEvent.change(select, { target: { value: 'plan-1' } })
-    expect(screen.getByText('2026-05-28')).toBeInTheDocument()
     expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
   })
 
   it('does not show meal plan section when no plan is selected', () => {
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    expect(screen.queryByText('2026-05-28')).not.toBeInTheDocument()
+    expect(screen.queryByText(/cloves — garlic/)).not.toBeInTheDocument()
   })
 
   it('calls onClose when close button is clicked', () => {

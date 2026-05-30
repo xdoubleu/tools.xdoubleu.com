@@ -26,11 +26,6 @@ type ShoppingItem struct {
 	Unit   string
 }
 
-type DayItems struct {
-	Date  string
-	Items []ShoppingItem
-}
-
 // CheckPlanAccess returns an error if userID cannot access planID.
 func (r *ShoppingRepository) CheckPlanAccess(
 	ctx context.Context,
@@ -132,10 +127,9 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	ctx context.Context,
 	planID uuid.UUID,
 	start, end time.Time,
-) ([]DayItems, error) {
+) ([]ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
-		    pm.meal_date::text,
 		    LOWER(i.name) AS name,
 		    i.unit,
 		    SUM(i.amount * pm.servings::NUMERIC / r.base_servings::NUMERIC)
@@ -145,8 +139,8 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		JOIN recipes.ingredients i ON i.recipe_id = r.id
 		WHERE pm.plan_id = $1
 		  AND pm.meal_date BETWEEN $2 AND $3
-		GROUP BY pm.meal_date, LOWER(i.name), i.unit
-		ORDER BY pm.meal_date, LOWER(i.name)`,
+		GROUP BY LOWER(i.name), i.unit
+		ORDER BY LOWER(i.name)`,
 		planID, start, end,
 	)
 	if err != nil {
@@ -154,19 +148,13 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	}
 	defer rows.Close()
 
-	var result []DayItems
+	var result []ShoppingItem
 	for rows.Next() {
-		var (
-			date string
-			item ShoppingItem
-		)
-		if err = rows.Scan(&date, &item.Name, &item.Unit, &item.Amount); err != nil {
+		var item ShoppingItem
+		if err = rows.Scan(&item.Name, &item.Unit, &item.Amount); err != nil {
 			return nil, err
 		}
-		if len(result) == 0 || result[len(result)-1].Date != date {
-			result = append(result, DayItems{Date: date, Items: nil})
-		}
-		result[len(result)-1].Items = append(result[len(result)-1].Items, item)
+		result = append(result, item)
 	}
 	return result, rows.Err()
 }

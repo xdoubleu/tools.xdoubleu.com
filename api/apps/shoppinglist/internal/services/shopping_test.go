@@ -160,18 +160,13 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	planID := uuid.New()
 	start := time.Now().UTC()
 	end := start.AddDate(0, 0, 6)
-	want := []repositories.DayItems{
-		{
-			Date: "2026-05-28",
-			Items: []repositories.ShoppingItem{
-				{ID: "", Name: "flour", Unit: "g", Amount: 200},
-			},
-		},
+	want := []repositories.ShoppingItem{
+		{ID: "", Name: "flour", Unit: "g", Amount: 200},
 	}
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(
 		_ context.Context, pID uuid.UUID, s, e time.Time,
-	) ([]repositories.DayItems, error) {
+	) ([]repositories.ShoppingItem, error) {
 		assert.Equal(t, planID, pID)
 		assert.Equal(t, start, s)
 		assert.Equal(t, end, e)
@@ -195,7 +190,7 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(
 		_ context.Context, _ uuid.UUID, _, _ time.Time,
-	) ([]repositories.DayItems, error) {
+	) ([]repositories.ShoppingItem, error) {
 		return nil, repoErr
 	}
 
