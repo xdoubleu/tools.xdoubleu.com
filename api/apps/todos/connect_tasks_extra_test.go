@@ -115,18 +115,11 @@ func TestAddSubtask_Nested(t *testing.T) {
 // timePtrToRFC3339, and uuidPtrToStr in protoTask by inserting a task
 // directly with due_date, deadline, and workspace_id set.
 func TestGetTask_WithOptionalFields(t *testing.T) {
-	_, err := testDB.Exec(t.Context(), `
-		INSERT INTO todos.tasks (owner_user_id, title, due_date, deadline)
-		VALUES ($1, 'rich task', '2026-12-31', '2026-12-31 23:59:00+00')`,
-		userID,
-	)
-	require.NoError(t, err)
-
 	var id string
-	err = testDB.QueryRow(t.Context(), `
-		SELECT id::text FROM todos.tasks
-		WHERE owner_user_id = $1 AND title = 'rich task'
-		ORDER BY created_at DESC LIMIT 1`,
+	err := testDB.QueryRow(t.Context(), `
+		INSERT INTO todos.tasks (owner_user_id, title, due_date, deadline)
+		VALUES ($1, 'rich task', '2026-12-31', '2026-12-31 23:59:00+00')
+		RETURNING id::text`,
 		userID,
 	).Scan(&id)
 	require.NoError(t, err)
