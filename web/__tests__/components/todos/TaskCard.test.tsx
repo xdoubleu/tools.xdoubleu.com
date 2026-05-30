@@ -1,7 +1,15 @@
 import { create } from '@bufbuild/protobuf'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TaskCard } from '@/components/todos/TaskCard'
-import { TaskSchema } from '@/lib/gen/todos/v1/tasks_pb'
+import { TaskSchema, SubtaskSchema } from '@/lib/gen/todos/v1/tasks_pb'
+
+const mockToggleSubtask = jest.fn().mockResolvedValue({})
+
+jest.mock('@/lib/client', () => ({
+  createServiceClient: () => ({
+    toggleSubtask: mockToggleSubtask
+  })
+}))
 
 function makeTask(overrides: Parameters<typeof create<typeof TaskSchema>>[1] = {}) {
   return create(TaskSchema, {
@@ -15,7 +23,20 @@ function makeTask(overrides: Parameters<typeof create<typeof TaskSchema>>[1] = {
   })
 }
 
+function makeSubtask(overrides: Parameters<typeof create<typeof SubtaskSchema>>[1] = {}) {
+  return create(SubtaskSchema, {
+    id: 'sub-1',
+    taskId: 'task-1',
+    title: 'A subtask',
+    done: false,
+    parentSubtaskId: '',
+    ...overrides
+  })
+}
+
 describe('TaskCard', () => {
+  beforeEach(() => mockToggleSubtask.mockClear())
+
   it('renders the task title', () => {
     render(<TaskCard task={makeTask({ title: 'My Task' })} />)
     expect(screen.getByText('My Task')).toBeInTheDocument()
@@ -62,14 +83,32 @@ describe('TaskCard', () => {
     expect(title.className).toContain('line-through')
   })
 
-  it('renders subtask progress when subtasks exist', () => {
-    render(<TaskCard task={makeTask({ subtaskDone: 2, subtaskTotal: 5 })} />)
-    expect(screen.getByText('2/5 subtasks')).toBeInTheDocument()
+  it('renders top-level subtask titles', () => {
+    const subtasks = [
+      makeSubtask({ id: 'sub-1', title: 'First subtask', parentSubtaskId: '' }),
+      makeSubtask({ id: 'sub-2', title: 'Second subtask', parentSubtaskId: '' })
+    ]
+    render(<TaskCard task={makeTask({ subtasks })} />)
+    expect(screen.getByText('First subtask')).toBeInTheDocument()
+    expect(screen.getByText('Second subtask')).toBeInTheDocument()
   })
 
-  it('does not render subtask count when total is 0', () => {
-    render(<TaskCard task={makeTask({ subtaskDone: 0, subtaskTotal: 0 })} />)
-    expect(screen.queryByText(/subtasks/)).not.toBeInTheDocument()
+  it('does not render subtask list when no subtasks', () => {
+    render(<TaskCard task={makeTask({ subtasks: [] })} />)
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('calls toggleSubtask and onChanged when subtask checkbox clicked', async () => {
+    const onChanged = jest.fn()
+    const subtasks = [makeSubtask({ id: 'sub-1', title: 'Do thing', parentSubtaskId: '' })]
+    render(<TaskCard task={makeTask({ subtasks })} onChanged={onChanged} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark done' }))
+
+    await waitFor(() => {
+      expect(mockToggleSubtask).toHaveBeenCalledWith({ subtaskId: 'sub-1', taskId: 'task-1' })
+      expect(onChanged).toHaveBeenCalled()
+    })
   })
 
   it('calls onClick when the card is clicked', () => {
