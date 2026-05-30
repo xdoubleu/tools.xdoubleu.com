@@ -12,6 +12,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/mealplans"
+	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
@@ -43,49 +44,24 @@ func TestMain(m *testing.M) {
 		postgresDB,
 	)
 
+	recipesApp := recipes.New(
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(),
+		testCfg,
+		postgresDB,
+	)
+
 	var err error
 
-	// Ensure recipes schema exists (mealplans migration moves tables from it).
+	// Drop both schemas so migrations run fresh and in the correct order.
+	if _, err = postgresDB.Exec(context.Background(),
+		"DROP SCHEMA IF EXISTS mealplans CASCADE; DROP SCHEMA IF EXISTS recipes CASCADE",
+	); err != nil {
+		panic(err)
+	}
+
+	// Ensure global.contacts exists (used by plan sharing queries).
 	if _, err = postgresDB.Exec(context.Background(), `
-		CREATE SCHEMA IF NOT EXISTS recipes;
-		CREATE TABLE IF NOT EXISTS recipes.recipes (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			user_id TEXT NOT NULL,
-			name TEXT NOT NULL,
-			instructions TEXT NOT NULL DEFAULT '',
-			base_servings INT NOT NULL DEFAULT 2,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-		);
-		CREATE TABLE IF NOT EXISTS recipes.plans (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			owner_user_id TEXT NOT NULL,
-			name TEXT NOT NULL,
-			ical_token UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-			ical_hide_slots TEXT[] NOT NULL DEFAULT '{}',
-			ical_hide_past BOOLEAN NOT NULL DEFAULT false,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-		);
-		CREATE TABLE IF NOT EXISTS recipes.plan_access (
-			plan_id UUID NOT NULL REFERENCES recipes.plans (id) ON DELETE CASCADE,
-			user_id TEXT NOT NULL,
-			can_edit BOOL NOT NULL DEFAULT FALSE,
-			PRIMARY KEY (plan_id, user_id)
-		);
-		CREATE TABLE IF NOT EXISTS recipes.plan_meals (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			plan_id UUID NOT NULL REFERENCES recipes.plans (id) ON DELETE CASCADE,
-			meal_date DATE NOT NULL,
-			meal_slot TEXT NOT NULL CHECK (meal_slot IN ('breakfast', 'noon', 'evening')),
-			recipe_id UUID REFERENCES recipes.recipes (id),
-			custom_name TEXT NOT NULL DEFAULT '',
-			servings INT NOT NULL DEFAULT 2,
-			UNIQUE (plan_id, meal_date, meal_slot),
-			CONSTRAINT plan_meals_meal_check CHECK (
-				recipe_id IS NOT NULL OR custom_name != ''
-			)
-		);
 		CREATE SCHEMA IF NOT EXISTS global;
 		CREATE TABLE IF NOT EXISTS global.contacts (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -99,11 +75,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	// Drop mealplans schema so migration runs fresh.
-	if _, err = postgresDB.Exec(
-		context.Background(),
-		"DROP SCHEMA IF EXISTS mealplans CASCADE",
-	); err != nil {
+	if err = recipesApp.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)
 	}
 

@@ -22,8 +22,15 @@ import (
 )
 
 const (
-	daysPerWeek = 7
-	hoursPerDay = 24
+	daysPerWeek     = 7
+	hoursPerDay     = 24
+	breakfastCutoff = 12
+	noonCutoff      = 17
+	eveningCutoff   = 22
+
+	slotBreakfast = "breakfast"
+	slotNoon      = "noon"
+	slotEvening   = "evening"
 )
 
 type shoppingConnectHandler struct {
@@ -160,6 +167,20 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 	return connect.NewResponse(&shoppinglistv1.DeleteShoppingItemResponse{}), nil
 }
 
+func exportWindow(now time.Time) (time.Time, []string) {
+	today := now.Truncate(hoursPerDay * time.Hour)
+	pastSlots := []string{}
+	switch {
+	case now.Hour() >= eveningCutoff:
+		today = today.AddDate(0, 0, 1)
+	case now.Hour() >= noonCutoff:
+		pastSlots = []string{slotBreakfast, slotNoon}
+	case now.Hour() >= breakfastCutoff:
+		pastSlots = []string{slotBreakfast}
+	}
+	return today, pastSlots
+}
+
 func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.GetMealPlanExportItemsRequest],
@@ -180,11 +201,12 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 		)
 	}
 
-	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+	now := time.Now().UTC()
+	today, pastSlots := exportWindow(now)
 	end := today.AddDate(0, 0, daysPerWeek-1)
 
 	items, err := h.app.services.Shopping.GetMealPlanExportItems(
-		ctx, planID, user.ID, today, end,
+		ctx, planID, user.ID, today, end, pastSlots,
 	)
 	if err != nil {
 		return nil, mapError(err)

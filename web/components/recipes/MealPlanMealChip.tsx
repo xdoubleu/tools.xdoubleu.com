@@ -28,7 +28,7 @@ export default function MealPlanMealChip({
         e.stopPropagation()
         onMealClick(meal)
       }}
-      className={`flex cursor-pointer select-none items-center justify-between gap-1 rounded-lg p-1 ${
+      className={`flex min-w-0 cursor-pointer select-none items-center justify-between gap-1 rounded-lg p-1 ${
         isMoving ? 'bg-accent/20 ring-2 ring-accent' : 'bg-accent/10 hover:bg-accent/20'
       }`}
     >

@@ -151,7 +151,12 @@ func TestGetMealPlanExportItems_AccessDenied(t *testing.T) {
 	svc := services.NewShoppingService(accessDeniedMock())
 	start := time.Now().UTC()
 	_, err := svc.GetMealPlanExportItems(
-		context.Background(), uuid.New(), "user1", start, start.AddDate(0, 0, 6),
+		context.Background(),
+		uuid.New(),
+		"user1",
+		start,
+		start.AddDate(0, 0, 6),
+		[]string{},
 	)
 	assert.ErrorIs(t, err, errNotFound)
 }
@@ -160,16 +165,18 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	planID := uuid.New()
 	start := time.Now().UTC()
 	end := start.AddDate(0, 0, 6)
+	pastSlots := []string{"breakfast"}
 	want := []repositories.ShoppingItem{
 		{ID: "", Name: "flour", Unit: "g", Amount: 200},
 	}
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(
-		_ context.Context, pID uuid.UUID, s, e time.Time,
+		_ context.Context, pID uuid.UUID, s, e time.Time, ps []string,
 	) ([]repositories.ShoppingItem, error) {
 		assert.Equal(t, planID, pID)
 		assert.Equal(t, start, s)
 		assert.Equal(t, end, e)
+		assert.Equal(t, pastSlots, ps)
 		return want, nil
 	}
 
@@ -180,6 +187,7 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 		"user1",
 		start,
 		end,
+		pastSlots,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
@@ -189,7 +197,7 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(
-		_ context.Context, _ uuid.UUID, _, _ time.Time,
+		_ context.Context, _ uuid.UUID, _, _ time.Time, _ []string,
 	) ([]repositories.ShoppingItem, error) {
 		return nil, repoErr
 	}
@@ -197,7 +205,12 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 	svc := services.NewShoppingService(m)
 	start := time.Now().UTC()
 	_, err := svc.GetMealPlanExportItems(
-		context.Background(), uuid.New(), "user1", start, start.AddDate(0, 0, 6),
+		context.Background(),
+		uuid.New(),
+		"user1",
+		start,
+		start.AddDate(0, 0, 6),
+		[]string{},
 	)
 	assert.ErrorIs(t, err, repoErr)
 }

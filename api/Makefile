@@ -61,19 +61,19 @@ debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient ./cmd/api
 
 test:
-	go test ./...
+	go test -p 1 ./...
 
 test/v:
-	go test ./... -v
+	go test -p 1 ./... -v
 
 test/race:
-	go test ./... -race -v
+	go test -p 1 ./... -race -v
 
 test/pprof:
-	go test ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
+	go test -p 1 ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
 
 test/cov/report:
-	go test ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
+	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
 	cat coverage.out.tmp | grep -v "_mock.go" | grep -v "/gen/" > coverage.out
 
 test/cov: test/cov/report
