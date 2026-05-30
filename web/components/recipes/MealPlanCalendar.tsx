@@ -269,7 +269,10 @@ export default function MealPlanCalendar({
           {weekDates.map((date, i) => {
             const isToday = formatMealDate(date) === today
             return (
-              <div key={dayNames[i]} className={`py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}>
+              <div
+                key={dayNames[i]}
+                className={`py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}
+              >
                 {dayNames[i]}
               </div>
             )
@@ -279,7 +282,10 @@ export default function MealPlanCalendar({
           {weekDates.map((date) => {
             const isToday = formatMealDate(date) === today
             return (
-              <div key={formatMealDate(date)} className={`py-1 text-center${isToday ? ' text-accent font-semibold' : ' text-muted'}`}>
+              <div
+                key={formatMealDate(date)}
+                className={`py-1 text-center${isToday ? ' text-accent font-semibold' : ' text-muted'}`}
+              >
                 {date.getDate()}
               </div>
             )

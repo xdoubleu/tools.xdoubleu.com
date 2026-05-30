@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
@@ -61,4 +62,35 @@ func TestMapError_GenericError(t *testing.T) {
 	var connectErr *connect.Error
 	assert.True(t, errors.As(err, &connectErr))
 	assert.Equal(t, connect.CodeInternal, connectErr.Code())
+}
+
+// ── exportWindow ──────────────────────────────────────────────────────────────
+
+func TestExportWindow_BeforeBreakfast(t *testing.T) {
+	now := time.Date(2026, 1, 1, 8, 0, 0, 0, time.UTC) // hour < 12
+	today, pastSlots := exportWindow(now)
+	assert.Equal(t, now.Truncate(hoursPerDay*time.Hour), today)
+	assert.Empty(t, pastSlots)
+}
+
+func TestExportWindow_AtBreakfastCutoff(t *testing.T) {
+	now := time.Date(2026, 1, 1, breakfastCutoff, 0, 0, 0, time.UTC) // hour == 12
+	today, pastSlots := exportWindow(now)
+	assert.Equal(t, now.Truncate(hoursPerDay*time.Hour), today)
+	assert.Equal(t, []string{slotBreakfast}, pastSlots)
+}
+
+func TestExportWindow_AtNoonCutoff(t *testing.T) {
+	now := time.Date(2026, 1, 1, noonCutoff, 0, 0, 0, time.UTC) // hour == 17
+	today, pastSlots := exportWindow(now)
+	assert.Equal(t, now.Truncate(hoursPerDay*time.Hour), today)
+	assert.Equal(t, []string{slotBreakfast, slotNoon}, pastSlots)
+}
+
+func TestExportWindow_AtEveningCutoff(t *testing.T) {
+	now := time.Date(2026, 1, 1, eveningCutoff, 0, 0, 0, time.UTC) // hour == 22
+	today, pastSlots := exportWindow(now)
+	expected := now.Truncate(hoursPerDay * time.Hour).AddDate(0, 0, 1)
+	assert.Equal(t, expected, today)
+	assert.Empty(t, pastSlots)
 }

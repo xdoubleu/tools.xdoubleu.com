@@ -54,9 +54,7 @@ describe('shoppingExport', () => {
 
     it('merges custom and meal plan items into a single flat list', () => {
       const result = formatForClipboard(customItems, mealItems)
-      expect(result).toBe(
-        '0.5 tsp - salt\n2 cups - flour\n1 tbsp - sugar\n100 g - butter'
-      )
+      expect(result).toBe('0.5 tsp - salt\n2 cups - flour\n1 tbsp - sugar\n100 g - butter')
     })
 
     it('omits meal plan items when meal items array is empty', () => {
@@ -96,9 +94,7 @@ describe('shoppingExport', () => {
 
     it('formats meal items only when custom items are empty', () => {
       const result = formatForAppleNotes([], mealItems, fixedDate)
-      expect(result).toBe(
-        'Shopping list 26/05/2026\n\n2 cups flour\n1 tbsp sugar\n100 g butter'
-      )
+      expect(result).toBe('Shopping list 26/05/2026\n\n2 cups flour\n1 tbsp sugar\n100 g butter')
     })
   })
 

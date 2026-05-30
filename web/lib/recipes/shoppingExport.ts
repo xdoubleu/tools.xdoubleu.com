@@ -8,7 +8,7 @@ export interface ShoppingItem {
 const UNIT_UPGRADES: Record<string, { threshold: number; nextUnit: string; divisor: number }> = {
   g: { threshold: 1000, nextUnit: 'kg', divisor: 1000 },
   ml: { threshold: 1000, nextUnit: 'L', divisor: 1000 },
-  mg: { threshold: 1000, nextUnit: 'g', divisor: 1000 },
+  mg: { threshold: 1000, nextUnit: 'g', divisor: 1000 }
 }
 
 function upgradeUnit(item: ShoppingItem): ShoppingItem {

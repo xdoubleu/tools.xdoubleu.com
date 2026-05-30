@@ -167,6 +167,20 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 	return connect.NewResponse(&shoppinglistv1.DeleteShoppingItemResponse{}), nil
 }
 
+func exportWindow(now time.Time) (today time.Time, pastSlots []string) {
+	today = now.Truncate(hoursPerDay * time.Hour)
+	pastSlots = []string{}
+	switch {
+	case now.Hour() >= eveningCutoff:
+		today = today.AddDate(0, 0, 1)
+	case now.Hour() >= noonCutoff:
+		pastSlots = []string{slotBreakfast, slotNoon}
+	case now.Hour() >= breakfastCutoff:
+		pastSlots = []string{slotBreakfast}
+	}
+	return today, pastSlots
+}
+
 func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.GetMealPlanExportItemsRequest],
@@ -188,18 +202,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	}
 
 	now := time.Now().UTC()
-	today := now.Truncate(hoursPerDay * time.Hour)
-
-	pastSlots := []string{}
-	switch {
-	case now.Hour() >= eveningCutoff:
-		today = today.AddDate(0, 0, 1)
-	case now.Hour() >= noonCutoff:
-		pastSlots = []string{slotBreakfast, slotNoon}
-	case now.Hour() >= breakfastCutoff:
-		pastSlots = []string{slotBreakfast}
-	}
-
+	today, pastSlots := exportWindow(now)
 	end := today.AddDate(0, 0, daysPerWeek-1)
 
 	items, err := h.app.services.Shopping.GetMealPlanExportItems(
