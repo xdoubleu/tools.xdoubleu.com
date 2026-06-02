@@ -1,6 +1,6 @@
 package models
 
-import "github.com/supabase-community/gotrue-go/types"
+import "github.com/supabase-community/auth-go/types"
 
 type Scope int
 

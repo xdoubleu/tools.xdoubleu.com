@@ -181,7 +181,7 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={pwSaving}
-            className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
+            className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             {pwSaving ? 'Updating…' : 'Update password'}
           </button>
@@ -214,7 +214,7 @@ export default function SettingsPage() {
             <button
               onClick={handleMFADisable}
               disabled={mfaBusy}
-              className="rounded border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
+              className="rounded border border-danger/40 bg-danger/10 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
             >
               {mfaBusy ? 'Disabling…' : 'Disable MFA'}
             </button>
@@ -252,14 +252,14 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={mfaBusy || mfaCode.length < 6}
-                  className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
+                  className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
                 >
                   {mfaBusy ? 'Verifying…' : 'Verify & enable'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setMfaState('idle')}
-                  className="rounded px-4 py-2 text-sm text-muted hover:text-fg"
+                  className="rounded px-3 py-1.5 text-sm text-muted hover:text-subtle"
                 >
                   Cancel
                 </button>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
             <button
               onClick={handleMFAEnable}
               disabled={mfaBusy}
-              className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
+              className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
             >
               {mfaBusy ? 'Loading…' : 'Enable MFA'}
             </button>

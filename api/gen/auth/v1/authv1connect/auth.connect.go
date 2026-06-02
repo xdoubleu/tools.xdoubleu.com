@@ -51,6 +51,9 @@ const (
 	// AuthServiceForgotPasswordProcedure is the fully-qualified name of the AuthService's
 	// ForgotPassword RPC.
 	AuthServiceForgotPasswordProcedure = "/auth.v1.AuthService/ForgotPassword"
+	// AuthServiceExchangeTokenProcedure is the fully-qualified name of the AuthService's ExchangeToken
+	// RPC.
+	AuthServiceExchangeTokenProcedure = "/auth.v1.AuthService/ExchangeToken"
 	// AuthServiceUpdatePasswordProcedure is the fully-qualified name of the AuthService's
 	// UpdatePassword RPC.
 	AuthServiceUpdatePasswordProcedure = "/auth.v1.AuthService/UpdatePassword"
@@ -70,6 +73,7 @@ type AuthServiceClient interface {
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
 	MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
+	ExchangeToken(context.Context, *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error)
 	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
 	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
@@ -128,6 +132,12 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("ForgotPassword")),
 			connect.WithClientOptions(opts...),
 		),
+		exchangeToken: connect.NewClient[v1.ExchangeTokenRequest, v1.ExchangeTokenResponse](
+			httpClient,
+			baseURL+AuthServiceExchangeTokenProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ExchangeToken")),
+			connect.WithClientOptions(opts...),
+		),
 		updatePassword: connect.NewClient[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse](
 			httpClient,
 			baseURL+AuthServiceUpdatePasswordProcedure,
@@ -158,6 +168,7 @@ type authServiceClient struct {
 	mFAChallenge    *connect.Client[v1.MFAChallengeRequest, v1.MFAChallengeResponse]
 	mFAUnenroll     *connect.Client[v1.MFAUnenrollRequest, v1.MFAUnenrollResponse]
 	forgotPassword  *connect.Client[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse]
+	exchangeToken   *connect.Client[v1.ExchangeTokenRequest, v1.ExchangeTokenResponse]
 	updatePassword  *connect.Client[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse]
 	signOut         *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
 	getCurrentUser  *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
@@ -198,6 +209,11 @@ func (c *authServiceClient) ForgotPassword(ctx context.Context, req *connect.Req
 	return c.forgotPassword.CallUnary(ctx, req)
 }
 
+// ExchangeToken calls auth.v1.AuthService.ExchangeToken.
+func (c *authServiceClient) ExchangeToken(ctx context.Context, req *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error) {
+	return c.exchangeToken.CallUnary(ctx, req)
+}
+
 // UpdatePassword calls auth.v1.AuthService.UpdatePassword.
 func (c *authServiceClient) UpdatePassword(ctx context.Context, req *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error) {
 	return c.updatePassword.CallUnary(ctx, req)
@@ -222,6 +238,7 @@ type AuthServiceHandler interface {
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
 	MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
+	ExchangeToken(context.Context, *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error)
 	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
 	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
@@ -276,6 +293,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("ForgotPassword")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceExchangeTokenHandler := connect.NewUnaryHandler(
+		AuthServiceExchangeTokenProcedure,
+		svc.ExchangeToken,
+		connect.WithSchema(authServiceMethods.ByName("ExchangeToken")),
+		connect.WithHandlerOptions(opts...),
+	)
 	authServiceUpdatePasswordHandler := connect.NewUnaryHandler(
 		AuthServiceUpdatePasswordProcedure,
 		svc.UpdatePassword,
@@ -310,6 +333,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceMFAUnenrollHandler.ServeHTTP(w, r)
 		case AuthServiceForgotPasswordProcedure:
 			authServiceForgotPasswordHandler.ServeHTTP(w, r)
+		case AuthServiceExchangeTokenProcedure:
+			authServiceExchangeTokenHandler.ServeHTTP(w, r)
 		case AuthServiceUpdatePasswordProcedure:
 			authServiceUpdatePasswordHandler.ServeHTTP(w, r)
 		case AuthServiceSignOutProcedure:
@@ -351,6 +376,10 @@ func (UnimplementedAuthServiceHandler) MFAUnenroll(context.Context, *connect.Req
 
 func (UnimplementedAuthServiceHandler) ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ForgotPassword is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ExchangeToken(context.Context, *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ExchangeToken is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error) {

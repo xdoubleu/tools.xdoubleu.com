@@ -18,6 +18,12 @@ export function useForgotPassword() {
   return (email: string) => client.forgotPassword({ email })
 }
 
+export function useExchangeToken() {
+  const client = createServiceClient(AuthService)
+  return (accessToken: string, refreshToken: string) =>
+    client.exchangeToken({ accessToken, refreshToken })
+}
+
 export function useUpdatePassword() {
   const client = createServiceClient(AuthService)
   return (newPassword: string) => client.updatePassword({ newPassword })

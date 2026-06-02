@@ -10,8 +10,8 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
-	"github.com/supabase-community/gotrue-go"
-	"github.com/supabase-community/gotrue-go/types"
+	auth "github.com/supabase-community/auth-go"
+	"github.com/supabase-community/auth-go/types"
 	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 	"github.com/xhit/go-str2duration/v2"
@@ -26,7 +26,7 @@ import (
 type SignInRenderFunc func(w http.ResponseWriter, r *http.Request, redirectURL string)
 
 type AuthService struct {
-	client           gotrue.Client
+	client           auth.Client
 	useSecureCookies bool
 	accessExpiry     string
 	refreshExpiry    string
@@ -66,6 +66,9 @@ func (service *AuthService) GetUser(accessToken string) (*models.User, error) {
 	response, err := service.client.WithToken(accessToken).GetUser()
 	if err != nil {
 		return nil, err
+	}
+	if response == nil {
+		return nil, errors.New("user not found")
 	}
 
 	user := models.UserFromTypesUser(response.User)
@@ -329,9 +332,12 @@ func (service *AuthService) AppAccess(
 	})
 }
 
-func (service *AuthService) ForgotPassword(email string) error {
-	//nolint:exhaustruct //CaptchaToken is optional
-	return service.client.Recover(types.RecoverRequest{Email: email})
+func (service *AuthService) ForgotPassword(email, redirectTo string) error {
+	//nolint:exhaustruct //Security is optional
+	return service.client.Recover(types.RecoverRequest{
+		Email:      email,
+		RedirectTo: redirectTo,
+	})
 }
 
 func (service *AuthService) UpdatePassword(
