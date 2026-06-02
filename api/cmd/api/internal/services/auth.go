@@ -334,6 +334,26 @@ func (service *AuthService) ForgotPassword(email string) error {
 	return service.client.Recover(types.RecoverRequest{Email: email})
 }
 
+func (service *AuthService) UpdatePassword(
+	accessToken, newPassword string,
+) error {
+	//nolint:exhaustruct //only updating password field
+	_, err := service.client.WithToken(accessToken).UpdateUser(
+		types.UpdateUserRequest{Password: &newPassword},
+	)
+	return err
+}
+
+func (service *AuthService) UnenrollTOTP(
+	accessToken string,
+	factorID uuid.UUID,
+) error {
+	_, err := service.client.WithToken(accessToken).UnenrollFactor(
+		types.UnenrollFactorRequest{FactorID: factorID},
+	)
+	return err
+}
+
 // HasVerifiedTOTP returns the factor ID of the first verified TOTP factor, or
 // (zero, false) when the user has not enrolled MFA yet.
 func (service *AuthService) HasVerifiedTOTP(

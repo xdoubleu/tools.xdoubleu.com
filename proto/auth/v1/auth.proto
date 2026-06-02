@@ -8,7 +8,9 @@ service AuthService {
   rpc MFAEnrollVerify(MFAEnrollVerifyRequest) returns (MFAEnrollVerifyResponse);
   rpc MFAEnrollSkip(MFAEnrollSkipRequest) returns (MFAEnrollSkipResponse);
   rpc MFAChallenge(MFAChallengeRequest) returns (MFAChallengeResponse);
+  rpc MFAUnenroll(MFAUnenrollRequest) returns (MFAUnenrollResponse);
   rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
+  rpc UpdatePassword(UpdatePasswordRequest) returns (UpdatePasswordResponse);
   rpc SignOut(SignOutRequest) returns (SignOutResponse);
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
 }
@@ -44,6 +46,10 @@ message MFAEnrollSkipRequest {}
 
 message MFAEnrollSkipResponse {}
 
+message MFAUnenrollRequest {}
+
+message MFAUnenrollResponse {}
+
 message MFAChallengeRequest {
   string code = 1;
 }
@@ -56,6 +62,12 @@ message ForgotPasswordRequest {
 
 message ForgotPasswordResponse {}
 
+message UpdatePasswordRequest {
+  string new_password = 1;
+}
+
+message UpdatePasswordResponse {}
+
 message SignOutRequest {}
 
 message SignOutResponse {}
@@ -65,4 +77,5 @@ message GetCurrentUserRequest {}
 message GetCurrentUserResponse {
   string role = 1;
   repeated string app_access = 2;
+  bool has_mfa = 3;
 }

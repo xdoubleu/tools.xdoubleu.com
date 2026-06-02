@@ -198,3 +198,31 @@ func TestMFAEnrollSkip_WithRememberMe(t *testing.T) {
 	_, err := client.MFAEnrollSkip(context.Background(), req)
 	require.NoError(t, err)
 }
+
+func TestMFAEnrollVerify_SettingsFlow_WithAccessToken(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.MFAEnrollVerifyRequest{
+		FactorId: mocks.MockedFactorID.String(),
+		Code:     "123456",
+	})
+	// Settings flow: accessToken cookie present, no mfaToken.
+	setCookieOnRequest(req, accessToken)
+	_, err := client.MFAEnrollVerify(context.Background(), req)
+	require.NoError(t, err)
+}
+
+func TestMFAEnrollVerify_SettingsFlow_PreservesRememberMe(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.MFAEnrollVerifyRequest{
+		FactorId: mocks.MockedFactorID.String(),
+		Code:     "123456",
+	})
+	// Settings flow: accessToken + refreshToken present (user had remember-me).
+	setCookieOnRequest(
+		req,
+		accessToken,
+		http.Cookie{Name: "refreshToken", Value: "refresh"},
+	)
+	_, err := client.MFAEnrollVerify(context.Background(), req)
+	require.NoError(t, err)
+}

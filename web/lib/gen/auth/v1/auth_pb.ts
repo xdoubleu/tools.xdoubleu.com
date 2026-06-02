@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file auth/v1/auth.proto.
  */
 export const file_auth_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiGQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2UiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIiMKE01GQUNoYWxsZW5nZVJlcXVlc3QSDAoEY29kZRgBIAEoCSIWChRNRkFDaGFsbGVuZ2VSZXNwb25zZSImChVGb3Jnb3RQYXNzd29yZFJlcXVlc3QSDQoFZW1haWwYASABKAkiGAoWRm9yZ290UGFzc3dvcmRSZXNwb25zZSIQCg5TaWduT3V0UmVxdWVzdCIRCg9TaWduT3V0UmVzcG9uc2UiFwoVR2V0Q3VycmVudFVzZXJSZXF1ZXN0IjoKFkdldEN1cnJlbnRVc2VyUmVzcG9uc2USDAoEcm9sZRgBIAEoCRISCgphcHBfYWNjZXNzGAIgAygJMuMECgtBdXRoU2VydmljZRI5CgZTaWduSW4SFi5hdXRoLnYxLlNpZ25JblJlcXVlc3QaFy5hdXRoLnYxLlNpZ25JblJlc3BvbnNlEkIKCU1GQUVucm9sbBIZLmF1dGgudjEuTUZBRW5yb2xsUmVxdWVzdBoaLmF1dGgudjEuTUZBRW5yb2xsUmVzcG9uc2USVAoPTUZBRW5yb2xsVmVyaWZ5Eh8uYXV0aC52MS5NRkFFbnJvbGxWZXJpZnlSZXF1ZXN0GiAuYXV0aC52MS5NRkFFbnJvbGxWZXJpZnlSZXNwb25zZRJOCg1NRkFFbnJvbGxTa2lwEh0uYXV0aC52MS5NRkFFbnJvbGxTa2lwUmVxdWVzdBoeLmF1dGgudjEuTUZBRW5yb2xsU2tpcFJlc3BvbnNlEksKDE1GQUNoYWxsZW5nZRIcLmF1dGgudjEuTUZBQ2hhbGxlbmdlUmVxdWVzdBodLmF1dGgudjEuTUZBQ2hhbGxlbmdlUmVzcG9uc2USUQoORm9yZ290UGFzc3dvcmQSHi5hdXRoLnYxLkZvcmdvdFBhc3N3b3JkUmVxdWVzdBofLmF1dGgudjEuRm9yZ290UGFzc3dvcmRSZXNwb25zZRI8CgdTaWduT3V0EhcuYXV0aC52MS5TaWduT3V0UmVxdWVzdBoYLmF1dGgudjEuU2lnbk91dFJlc3BvbnNlElEKDkdldEN1cnJlbnRVc2VyEh4uYXV0aC52MS5HZXRDdXJyZW50VXNlclJlcXVlc3QaHy5hdXRoLnYxLkdldEN1cnJlbnRVc2VyUmVzcG9uc2VCJ1oldG9vbHMueGRvdWJsZXUuY29tL2dlbi9hdXRoL3YxO2F1dGh2MWIGcHJvdG8z");
+  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiGQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2UiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIhQKEk1GQVVuZW5yb2xsUmVxdWVzdCIVChNNRkFVbmVucm9sbFJlc3BvbnNlIiMKE01GQUNoYWxsZW5nZVJlcXVlc3QSDAoEY29kZRgBIAEoCSIWChRNRkFDaGFsbGVuZ2VSZXNwb25zZSImChVGb3Jnb3RQYXNzd29yZFJlcXVlc3QSDQoFZW1haWwYASABKAkiGAoWRm9yZ290UGFzc3dvcmRSZXNwb25zZSItChVVcGRhdGVQYXNzd29yZFJlcXVlc3QSFAoMbmV3X3Bhc3N3b3JkGAEgASgJIhgKFlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2UiEAoOU2lnbk91dFJlcXVlc3QiEQoPU2lnbk91dFJlc3BvbnNlIhcKFUdldEN1cnJlbnRVc2VyUmVxdWVzdCJLChZHZXRDdXJyZW50VXNlclJlc3BvbnNlEgwKBHJvbGUYASABKAkSEgoKYXBwX2FjY2VzcxgCIAMoCRIPCgdoYXNfbWZhGAMgASgIMoAGCgtBdXRoU2VydmljZRI5CgZTaWduSW4SFi5hdXRoLnYxLlNpZ25JblJlcXVlc3QaFy5hdXRoLnYxLlNpZ25JblJlc3BvbnNlEkIKCU1GQUVucm9sbBIZLmF1dGgudjEuTUZBRW5yb2xsUmVxdWVzdBoaLmF1dGgudjEuTUZBRW5yb2xsUmVzcG9uc2USVAoPTUZBRW5yb2xsVmVyaWZ5Eh8uYXV0aC52MS5NRkFFbnJvbGxWZXJpZnlSZXF1ZXN0GiAuYXV0aC52MS5NRkFFbnJvbGxWZXJpZnlSZXNwb25zZRJOCg1NRkFFbnJvbGxTa2lwEh0uYXV0aC52MS5NRkFFbnJvbGxTa2lwUmVxdWVzdBoeLmF1dGgudjEuTUZBRW5yb2xsU2tpcFJlc3BvbnNlEksKDE1GQUNoYWxsZW5nZRIcLmF1dGgudjEuTUZBQ2hhbGxlbmdlUmVxdWVzdBodLmF1dGgudjEuTUZBQ2hhbGxlbmdlUmVzcG9uc2USSAoLTUZBVW5lbnJvbGwSGy5hdXRoLnYxLk1GQVVuZW5yb2xsUmVxdWVzdBocLmF1dGgudjEuTUZBVW5lbnJvbGxSZXNwb25zZRJRCg5Gb3Jnb3RQYXNzd29yZBIeLmF1dGgudjEuRm9yZ290UGFzc3dvcmRSZXF1ZXN0Gh8uYXV0aC52MS5Gb3Jnb3RQYXNzd29yZFJlc3BvbnNlElEKDlVwZGF0ZVBhc3N3b3JkEh4uYXV0aC52MS5VcGRhdGVQYXNzd29yZFJlcXVlc3QaHy5hdXRoLnYxLlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2USPAoHU2lnbk91dBIXLmF1dGgudjEuU2lnbk91dFJlcXVlc3QaGC5hdXRoLnYxLlNpZ25PdXRSZXNwb25zZRJRCg5HZXRDdXJyZW50VXNlchIeLmF1dGgudjEuR2V0Q3VycmVudFVzZXJSZXF1ZXN0Gh8uYXV0aC52MS5HZXRDdXJyZW50VXNlclJlc3BvbnNlQidaJXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vYXV0aC92MTthdXRodjFiBnByb3RvMw");
 
 /**
  * @generated from message auth.v1.SignInRequest
@@ -168,6 +168,32 @@ export const MFAEnrollSkipResponseSchema: GenMessage<MFAEnrollSkipResponse> = /*
   messageDesc(file_auth_v1_auth, 7);
 
 /**
+ * @generated from message auth.v1.MFAUnenrollRequest
+ */
+export type MFAUnenrollRequest = Message<"auth.v1.MFAUnenrollRequest"> & {
+};
+
+/**
+ * Describes the message auth.v1.MFAUnenrollRequest.
+ * Use `create(MFAUnenrollRequestSchema)` to create a new message.
+ */
+export const MFAUnenrollRequestSchema: GenMessage<MFAUnenrollRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 8);
+
+/**
+ * @generated from message auth.v1.MFAUnenrollResponse
+ */
+export type MFAUnenrollResponse = Message<"auth.v1.MFAUnenrollResponse"> & {
+};
+
+/**
+ * Describes the message auth.v1.MFAUnenrollResponse.
+ * Use `create(MFAUnenrollResponseSchema)` to create a new message.
+ */
+export const MFAUnenrollResponseSchema: GenMessage<MFAUnenrollResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 9);
+
+/**
  * @generated from message auth.v1.MFAChallengeRequest
  */
 export type MFAChallengeRequest = Message<"auth.v1.MFAChallengeRequest"> & {
@@ -182,7 +208,7 @@ export type MFAChallengeRequest = Message<"auth.v1.MFAChallengeRequest"> & {
  * Use `create(MFAChallengeRequestSchema)` to create a new message.
  */
 export const MFAChallengeRequestSchema: GenMessage<MFAChallengeRequest> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 8);
+  messageDesc(file_auth_v1_auth, 10);
 
 /**
  * @generated from message auth.v1.MFAChallengeResponse
@@ -195,7 +221,7 @@ export type MFAChallengeResponse = Message<"auth.v1.MFAChallengeResponse"> & {
  * Use `create(MFAChallengeResponseSchema)` to create a new message.
  */
 export const MFAChallengeResponseSchema: GenMessage<MFAChallengeResponse> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 9);
+  messageDesc(file_auth_v1_auth, 11);
 
 /**
  * @generated from message auth.v1.ForgotPasswordRequest
@@ -212,7 +238,7 @@ export type ForgotPasswordRequest = Message<"auth.v1.ForgotPasswordRequest"> & {
  * Use `create(ForgotPasswordRequestSchema)` to create a new message.
  */
 export const ForgotPasswordRequestSchema: GenMessage<ForgotPasswordRequest> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 10);
+  messageDesc(file_auth_v1_auth, 12);
 
 /**
  * @generated from message auth.v1.ForgotPasswordResponse
@@ -225,7 +251,37 @@ export type ForgotPasswordResponse = Message<"auth.v1.ForgotPasswordResponse"> &
  * Use `create(ForgotPasswordResponseSchema)` to create a new message.
  */
 export const ForgotPasswordResponseSchema: GenMessage<ForgotPasswordResponse> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 11);
+  messageDesc(file_auth_v1_auth, 13);
+
+/**
+ * @generated from message auth.v1.UpdatePasswordRequest
+ */
+export type UpdatePasswordRequest = Message<"auth.v1.UpdatePasswordRequest"> & {
+  /**
+   * @generated from field: string new_password = 1;
+   */
+  newPassword: string;
+};
+
+/**
+ * Describes the message auth.v1.UpdatePasswordRequest.
+ * Use `create(UpdatePasswordRequestSchema)` to create a new message.
+ */
+export const UpdatePasswordRequestSchema: GenMessage<UpdatePasswordRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 14);
+
+/**
+ * @generated from message auth.v1.UpdatePasswordResponse
+ */
+export type UpdatePasswordResponse = Message<"auth.v1.UpdatePasswordResponse"> & {
+};
+
+/**
+ * Describes the message auth.v1.UpdatePasswordResponse.
+ * Use `create(UpdatePasswordResponseSchema)` to create a new message.
+ */
+export const UpdatePasswordResponseSchema: GenMessage<UpdatePasswordResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 15);
 
 /**
  * @generated from message auth.v1.SignOutRequest
@@ -238,7 +294,7 @@ export type SignOutRequest = Message<"auth.v1.SignOutRequest"> & {
  * Use `create(SignOutRequestSchema)` to create a new message.
  */
 export const SignOutRequestSchema: GenMessage<SignOutRequest> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 12);
+  messageDesc(file_auth_v1_auth, 16);
 
 /**
  * @generated from message auth.v1.SignOutResponse
@@ -251,7 +307,7 @@ export type SignOutResponse = Message<"auth.v1.SignOutResponse"> & {
  * Use `create(SignOutResponseSchema)` to create a new message.
  */
 export const SignOutResponseSchema: GenMessage<SignOutResponse> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 13);
+  messageDesc(file_auth_v1_auth, 17);
 
 /**
  * @generated from message auth.v1.GetCurrentUserRequest
@@ -264,7 +320,7 @@ export type GetCurrentUserRequest = Message<"auth.v1.GetCurrentUserRequest"> & {
  * Use `create(GetCurrentUserRequestSchema)` to create a new message.
  */
 export const GetCurrentUserRequestSchema: GenMessage<GetCurrentUserRequest> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 14);
+  messageDesc(file_auth_v1_auth, 18);
 
 /**
  * @generated from message auth.v1.GetCurrentUserResponse
@@ -279,6 +335,11 @@ export type GetCurrentUserResponse = Message<"auth.v1.GetCurrentUserResponse"> &
    * @generated from field: repeated string app_access = 2;
    */
   appAccess: string[];
+
+  /**
+   * @generated from field: bool has_mfa = 3;
+   */
+  hasMfa: boolean;
 };
 
 /**
@@ -286,7 +347,7 @@ export type GetCurrentUserResponse = Message<"auth.v1.GetCurrentUserResponse"> &
  * Use `create(GetCurrentUserResponseSchema)` to create a new message.
  */
 export const GetCurrentUserResponseSchema: GenMessage<GetCurrentUserResponse> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 15);
+  messageDesc(file_auth_v1_auth, 19);
 
 /**
  * @generated from service auth.v1.AuthService
@@ -333,12 +394,28 @@ export const AuthService: GenService<{
     output: typeof MFAChallengeResponseSchema;
   },
   /**
+   * @generated from rpc auth.v1.AuthService.MFAUnenroll
+   */
+  mFAUnenroll: {
+    methodKind: "unary";
+    input: typeof MFAUnenrollRequestSchema;
+    output: typeof MFAUnenrollResponseSchema;
+  },
+  /**
    * @generated from rpc auth.v1.AuthService.ForgotPassword
    */
   forgotPassword: {
     methodKind: "unary";
     input: typeof ForgotPasswordRequestSchema;
     output: typeof ForgotPasswordResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.UpdatePassword
+   */
+  updatePassword: {
+    methodKind: "unary";
+    input: typeof UpdatePasswordRequestSchema;
+    output: typeof UpdatePasswordResponseSchema;
   },
   /**
    * @generated from rpc auth.v1.AuthService.SignOut
