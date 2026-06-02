@@ -14,7 +14,7 @@ export function middleware() {
     `connect-src ${connectSrc.join(' ')}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
+    "form-action 'self'"
   ].join('; ')
 
   response.headers.set('Content-Security-Policy', csp)
@@ -22,5 +22,5 @@ export function middleware() {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
 }
