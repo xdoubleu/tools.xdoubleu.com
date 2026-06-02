@@ -607,18 +607,24 @@ describe('MealPlanCalendar', () => {
   })
 
   it('highlights today with accent label in mobile view', () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
-    // The mock week is 2026-05-25–2026-05-31; today (2026-05-30) is Friday.
-    // Mobile view appends "(today)" next to the day header for today.
-    expect(screen.getAllByText('(today)').length).toBeGreaterThan(0)
+    // Pin the clock so "today" falls within the mocked week (2026-05-25–2026-05-31).
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-05-30'))
+    try {
+      render(
+        <MealPlanCalendar
+          plan={basePlan}
+          recipes={baseRecipes}
+          {...defaultNavProps}
+          onAddMeal={jest.fn()}
+          onDeleteMeal={jest.fn()}
+        />
+      )
+      // Mobile view appends "(today)" next to the day header for today.
+      expect(screen.getAllByText('(today)').length).toBeGreaterThan(0)
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('cancels move when Cancel button in banner is clicked', () => {

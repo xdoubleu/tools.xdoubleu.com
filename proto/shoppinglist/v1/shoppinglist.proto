@@ -25,9 +25,98 @@ message DeleteShoppingItemResponse {}
 message GetMealPlanExportItemsRequest  { string plan_id = 1; }
 message GetMealPlanExportItemsResponse { repeated ShoppingItem items = 1; }
 
+// --- Categories ---
+
+message Category {
+  string id   = 1;
+  string name = 2;
+}
+
+message ListCategoriesRequest  {}
+message ListCategoriesResponse { repeated Category categories = 1; }
+
+message CreateCategoryRequest  { string name = 1; }
+message CreateCategoryResponse { Category category = 1; }
+
+message RenameCategoryRequest  { string id = 1; string name = 2; }
+message RenameCategoryResponse { Category category = 1; }
+
+message DeleteCategoryRequest  { string id = 1; }
+message DeleteCategoryResponse {}
+
+// --- Stores ---
+
+message Store {
+  string id   = 1;
+  string name = 2;
+}
+
+message ListStoresRequest  {}
+message ListStoresResponse { repeated Store stores = 1; }
+
+message CreateStoreRequest  { string name = 1; }
+message CreateStoreResponse { Store store = 1; }
+
+message RenameStoreRequest  { string id = 1; string name = 2; }
+message RenameStoreResponse { Store store = 1; }
+
+message DeleteStoreRequest  { string id = 1; }
+message DeleteStoreResponse {}
+
+// Ordered list of categories for a store. GetStoreCategories returns the
+// categories in walk-through order; SetStoreCategories fully replaces it,
+// using array index as sort_order.
+message GetStoreCategoriesRequest  { string store_id = 1; }
+message GetStoreCategoriesResponse { repeated Category categories = 1; }
+
+message SetStoreCategoriesRequest  {
+  string store_id              = 1;
+  repeated string category_ids = 2;
+}
+message SetStoreCategoriesResponse {}
+
+// --- Item catalog (name -> category) ---
+
+// A known item name and the category it currently maps to. category_id is
+// empty when the name has not been assigned a category yet.
+message ItemName {
+  string name        = 1;
+  string category_id = 2;
+}
+
+message ItemCategory {
+  string name        = 1;
+  string category_id = 2;
+}
+
+message ListItemNamesRequest  {}
+message ListItemNamesResponse { repeated ItemName names = 1; }
+
+message ListItemCategoriesRequest  {}
+message ListItemCategoriesResponse { repeated ItemCategory items = 1; }
+
+message SetItemCategoryRequest  { string name = 1; string category_id = 2; }
+message SetItemCategoryResponse {}
+
 service ShoppingListService {
   rpc GetCustomList          (GetCustomListRequest)          returns (GetCustomListResponse);
   rpc AddShoppingItem        (AddShoppingItemRequest)        returns (AddShoppingItemResponse);
   rpc DeleteShoppingItem     (DeleteShoppingItemRequest)     returns (DeleteShoppingItemResponse);
   rpc GetMealPlanExportItems (GetMealPlanExportItemsRequest) returns (GetMealPlanExportItemsResponse);
+
+  rpc ListCategories  (ListCategoriesRequest)  returns (ListCategoriesResponse);
+  rpc CreateCategory  (CreateCategoryRequest)  returns (CreateCategoryResponse);
+  rpc RenameCategory  (RenameCategoryRequest)  returns (RenameCategoryResponse);
+  rpc DeleteCategory  (DeleteCategoryRequest)  returns (DeleteCategoryResponse);
+
+  rpc ListStores         (ListStoresRequest)         returns (ListStoresResponse);
+  rpc CreateStore        (CreateStoreRequest)        returns (CreateStoreResponse);
+  rpc RenameStore        (RenameStoreRequest)        returns (RenameStoreResponse);
+  rpc DeleteStore        (DeleteStoreRequest)        returns (DeleteStoreResponse);
+  rpc GetStoreCategories (GetStoreCategoriesRequest) returns (GetStoreCategoriesResponse);
+  rpc SetStoreCategories (SetStoreCategoriesRequest) returns (SetStoreCategoriesResponse);
+
+  rpc ListItemNames      (ListItemNamesRequest)      returns (ListItemNamesResponse);
+  rpc ListItemCategories (ListItemCategoriesRequest) returns (ListItemCategoriesResponse);
+  rpc SetItemCategory    (SetItemCategoryRequest)    returns (SetItemCategoryResponse);
 }

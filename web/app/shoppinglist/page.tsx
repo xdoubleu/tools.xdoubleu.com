@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useCustomList } from '@/hooks/useShoppingList'
 import ShoppingList from '@/components/recipes/ShoppingList'
 import ExportModal from '@/components/recipes/ExportModal'
@@ -56,7 +57,12 @@ export default function ShoppingPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Shopping List</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Shopping List</h1>
+        <Link href="/shoppinglist/settings" className="text-sm text-accent hover:underline">
+          Settings
+        </Link>
+      </div>
 
       <form onSubmit={handleAdd} className="flex flex-wrap gap-2 mb-6">
         <input

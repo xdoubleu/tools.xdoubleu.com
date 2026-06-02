@@ -50,6 +50,9 @@ func mapError(err error) error {
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return connect.NewError(connect.CodeNotFound, err)
 	}
+	if errors.Is(err, database.ErrResourceConflict) {
+		return connect.NewError(connect.CodeAlreadyExists, err)
+	}
 	var httpErr *iapp.HTTPError
 	if errors.As(err, &httpErr) {
 		switch httpErr.Status {

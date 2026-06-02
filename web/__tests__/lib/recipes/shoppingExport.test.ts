@@ -2,6 +2,11 @@ import {
   formatForClipboard,
   formatForAppleNotes,
   formatAsTxt,
+  groupByStore,
+  formatGroupedForClipboard,
+  formatGroupedForAppleNotes,
+  formatGroupedAsTxt,
+  type Category,
   type ShoppingItem
 } from '@/lib/recipes/shoppingExport'
 
@@ -105,6 +110,78 @@ describe('shoppingExport', () => {
 
     it('produces same output without meal items', () => {
       expect(formatAsTxt(customItems)).toBe(formatForClipboard(customItems))
+    })
+  })
+
+  describe('groupByStore', () => {
+    const orderedCategories: Category[] = [
+      { id: 'cat-produce', name: 'Produce' },
+      { id: 'cat-baking', name: 'Baking' }
+    ]
+    // salt -> Baking, flour -> Baking, sugar -> Produce (contrived), butter unmapped
+    const nameToCategoryId: Record<string, string> = {
+      salt: 'cat-baking',
+      flour: 'cat-baking',
+      sugar: 'cat-produce'
+    }
+
+    it('orders groups by the store order and buckets unmapped items into Other', () => {
+      const groups = groupByStore(customItems, mealItems, orderedCategories, nameToCategoryId)
+      expect(groups.map((g) => g.category)).toEqual(['Produce', 'Baking', 'Other'])
+      expect(groups[0].items.map((i) => i.name)).toEqual(['sugar'])
+      expect(groups[1].items.map((i) => i.name)).toEqual(['salt', 'flour'])
+      expect(groups[2].items.map((i) => i.name)).toEqual(['butter'])
+    })
+
+    it('omits categories that have no items', () => {
+      const groups = groupByStore([], mealItems, orderedCategories, { flour: 'cat-baking' })
+      expect(groups.map((g) => g.category)).toEqual(['Baking', 'Other'])
+    })
+
+    it('matches category by normalized (trimmed, lowercased) name', () => {
+      const items: ShoppingItem[] = [{ amount: '1', unit: '', name: '  SALT  ' }]
+      const groups = groupByStore(items, undefined, orderedCategories, { salt: 'cat-baking' })
+      expect(groups).toEqual([
+        { category: 'Baking', items: [{ amount: '1', unit: '', name: '  SALT  ' }] }
+      ])
+    })
+
+    it('returns an empty array when there are no items', () => {
+      expect(groupByStore([], [], orderedCategories, nameToCategoryId)).toEqual([])
+    })
+
+    it('applies unit upgrades inside groups', () => {
+      const items: ShoppingItem[] = [{ amount: '1000', unit: 'g', name: 'flour' }]
+      const groups = groupByStore(items, undefined, orderedCategories, { flour: 'cat-baking' })
+      expect(groups[0].items[0]).toMatchObject({ amount: '1', unit: 'kg' })
+    })
+  })
+
+  describe('grouped formatters', () => {
+    const groups = [
+      { category: 'Produce', items: [{ amount: '2', unit: '', name: 'apples' }] },
+      { category: 'Other', items: [{ amount: '1', unit: 'tub', name: 'icecream' }] }
+    ]
+
+    it('formatGroupedForClipboard renders headers and items', () => {
+      expect(formatGroupedForClipboard(groups)).toBe(
+        'Produce:\n2  - apples\n\nOther:\n1 tub - icecream'
+      )
+    })
+
+    it('formatGroupedAsTxt matches clipboard output', () => {
+      expect(formatGroupedAsTxt(groups)).toBe(formatGroupedForClipboard(groups))
+    })
+
+    it('formatGroupedForAppleNotes includes the date title', () => {
+      const result = formatGroupedForAppleNotes(groups, new Date(2026, 4, 26))
+      expect(result).toBe(
+        'Shopping list 26/05/2026\n\nProduce:\n2  apples\n\nOther:\n1 tub icecream'
+      )
+    })
+
+    it('formatGroupedForAppleNotes returns just the title when there are no groups', () => {
+      expect(formatGroupedForAppleNotes([], new Date(2026, 4, 26))).toBe('Shopping list 26/05/2026')
     })
   })
 })

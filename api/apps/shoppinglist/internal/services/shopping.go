@@ -28,6 +28,51 @@ type shoppingRepo interface {
 		start, end time.Time,
 		pastSlots []string,
 	) ([]repositories.ShoppingItem, error)
+
+	ListCategories(ctx context.Context, userID string) ([]repositories.Category, error)
+	CreateCategory(
+		ctx context.Context,
+		userID, name string,
+	) (repositories.Category, error)
+	RenameCategory(
+		ctx context.Context,
+		userID string,
+		id uuid.UUID,
+		name string,
+	) (repositories.Category, error)
+	DeleteCategory(ctx context.Context, userID string, id uuid.UUID) error
+
+	ListStores(ctx context.Context, userID string) ([]repositories.Store, error)
+	CreateStore(ctx context.Context, userID, name string) (repositories.Store, error)
+	RenameStore(
+		ctx context.Context,
+		userID string,
+		id uuid.UUID,
+		name string,
+	) (repositories.Store, error)
+	DeleteStore(ctx context.Context, userID string, id uuid.UUID) error
+	GetStoreCategories(
+		ctx context.Context,
+		userID string,
+		storeID uuid.UUID,
+	) ([]repositories.Category, error)
+	SetStoreCategories(
+		ctx context.Context,
+		userID string,
+		storeID uuid.UUID,
+		categoryIDs []uuid.UUID,
+	) error
+
+	ListItemNames(ctx context.Context, userID string) ([]repositories.ItemName, error)
+	ListItemCategories(
+		ctx context.Context,
+		userID string,
+	) ([]repositories.ItemCategory, error)
+	SetItemCategory(
+		ctx context.Context,
+		userID, name string,
+		categoryID uuid.UUID,
+	) error
 }
 
 type Services struct {
