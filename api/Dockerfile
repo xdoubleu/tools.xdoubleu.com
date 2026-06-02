@@ -17,6 +17,8 @@ WORKDIR /app
 
 COPY --from=builder /app/bin/api ./bin/api
 
+USER nonroot:nonroot
+
 EXPOSE 8000
 
 ENTRYPOINT ["/app/bin/api"]

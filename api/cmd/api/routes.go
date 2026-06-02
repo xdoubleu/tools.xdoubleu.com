@@ -75,6 +75,7 @@ func (app *Application) Routes() http.Handler {
 		handlers = middleware.Minimal(app.logger)
 	}
 
+	handlers = append(handlers, securityHeadersMiddleware)
 	standard := alice.New(append(handlers, app.domainMiddleware)...)
 	return standard.Then(mux)
 }
