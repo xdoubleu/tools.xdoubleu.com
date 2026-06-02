@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/supabase-community/gotrue-go"
+	auth "github.com/supabase-community/auth-go"
 	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
@@ -81,7 +81,7 @@ func main() {
 	}
 	defer db.Close()
 
-	supabase := gotrue.New(
+	supabase := auth.New(
 		cfg.SupabaseProjRef,
 		cfg.SupabaseAPIKey,
 	)
@@ -104,7 +104,7 @@ func NewApplication(
 	logger *slog.Logger,
 	config config.Config,
 	db *pgxpool.Pool,
-	supabaseClient gotrue.Client,
+	supabaseClient auth.Client,
 ) *Application {
 	ctx := context.Background()
 

@@ -28,13 +28,13 @@ export default function Navbar() {
         <div className="flex items-center gap-1">
           <Link
             href="/settings"
-            className="min-h-9 rounded-lg px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent"
+            className="inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent"
           >
             Settings
           </Link>
           <button
             onClick={handleSignOut}
-            className="min-h-9 rounded-lg px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent"
+            className="inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent"
           >
             Sign out
           </button>

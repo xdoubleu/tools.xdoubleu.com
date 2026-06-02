@@ -2,12 +2,13 @@
 package mocks
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/supabase-community/gotrue-go"
-	"github.com/supabase-community/gotrue-go/types"
+	auth "github.com/supabase-community/auth-go"
+	"github.com/supabase-community/auth-go/types"
 )
 
 // MockedFactorID is the TOTP factor ID returned by the mock for tests.
@@ -19,20 +20,20 @@ type MockedGoTrueClient struct {
 	token string
 }
 
-func NewMockedGoTrueClient() gotrue.Client {
+func NewMockedGoTrueClient() auth.Client {
 	return MockedGoTrueClient{}
 }
 
-func (client MockedGoTrueClient) WithCustomGoTrueURL(url string) gotrue.Client {
+func (client MockedGoTrueClient) WithCustomAuthURL(url string) auth.Client {
 	return client
 }
 
-func (client MockedGoTrueClient) WithToken(token string) gotrue.Client {
+func (client MockedGoTrueClient) WithToken(token string) auth.Client {
 	client.token = token
 	return client
 }
 
-func (client MockedGoTrueClient) WithClient(httpClient http.Client) gotrue.Client {
+func (client MockedGoTrueClient) WithClient(httpClient http.Client) auth.Client {
 	return client
 }
 
@@ -82,8 +83,20 @@ func (client MockedGoTrueClient) AdminCreateUser(
 	return nil, nil
 }
 
-func (client MockedGoTrueClient) AdminListUsers() (*types.AdminListUsersResponse, error) {
+func (client MockedGoTrueClient) AdminListUsers(
+	req types.AdminListUsersRequest,
+) (*types.AdminListUsersResponse, error) {
 	return nil, nil
+}
+
+func (client MockedGoTrueClient) SignInWithIdToken(
+	provider, idToken, nonce, accessToken, captchaToken string,
+) (*types.TokenResponse, error) {
+	return nil, nil
+}
+
+func (client MockedGoTrueClient) Resend(req types.ResendRequest) error {
+	return nil
 }
 
 func (client MockedGoTrueClient) AdminGetUser(
@@ -259,7 +272,7 @@ func (client MockedGoTrueClient) GetUser() (*types.UserResponse, error) {
 			},
 		}, nil
 	}
-	return nil, nil
+	return nil, errors.New("invalid token")
 }
 
 func (client MockedGoTrueClient) UpdateUser(

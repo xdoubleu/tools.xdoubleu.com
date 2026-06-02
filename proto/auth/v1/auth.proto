@@ -10,6 +10,7 @@ service AuthService {
   rpc MFAChallenge(MFAChallengeRequest) returns (MFAChallengeResponse);
   rpc MFAUnenroll(MFAUnenrollRequest) returns (MFAUnenrollResponse);
   rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
+  rpc ExchangeToken(ExchangeTokenRequest) returns (ExchangeTokenResponse);
   rpc UpdatePassword(UpdatePasswordRequest) returns (UpdatePasswordResponse);
   rpc SignOut(SignOutRequest) returns (SignOutResponse);
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
@@ -61,6 +62,13 @@ message ForgotPasswordRequest {
 }
 
 message ForgotPasswordResponse {}
+
+message ExchangeTokenRequest {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message ExchangeTokenResponse {}
 
 message UpdatePasswordRequest {
   string new_password = 1;

@@ -88,8 +88,44 @@ func (h *authConnectHandler) ForgotPassword(
 			errors.New("email is required"),
 		)
 	}
-	_ = h.app.services.Auth.ForgotPassword(req.Msg.Email)
+	_ = h.app.services.Auth.ForgotPassword(
+		req.Msg.Email,
+		h.app.config.WebURL+"/auth/reset-password",
+	)
 	return connect.NewResponse(&authv1.ForgotPasswordResponse{}), nil
+}
+
+func (h *authConnectHandler) ExchangeToken(
+	_ context.Context,
+	req *connect.Request[authv1.ExchangeTokenRequest],
+) (*connect.Response[authv1.ExchangeTokenResponse], error) {
+	if req.Msg.AccessToken == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("access_token is required"),
+		)
+	}
+	if req.Msg.RefreshToken == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("refresh_token is required"),
+		)
+	}
+
+	if _, err := h.app.services.Auth.GetUser(req.Msg.AccessToken); err != nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("invalid or expired token"),
+		)
+	}
+
+	resp := connect.NewResponse(&authv1.ExchangeTokenResponse{})
+	if err := h.completeMFA(
+		resp.Header(), req.Msg.AccessToken, req.Msg.RefreshToken, true,
+	); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (h *authConnectHandler) UpdatePassword(

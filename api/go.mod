@@ -13,7 +13,6 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/stretchr/testify v1.11.1
-	github.com/supabase-community/gotrue-go v1.2.1
 	github.com/xdoubleu/essentia/v4 v4.0.2
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	golang.org/x/sync v0.20.0
@@ -40,6 +39,7 @@ require (
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/supabase-community/auth-go v1.5.0 // indirect
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/text v0.36.0 // indirect

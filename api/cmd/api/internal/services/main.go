@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/supabase-community/gotrue-go"
+	auth "github.com/supabase-community/auth-go"
 	"github.com/xdoubleu/essentia/v4/pkg/config"
 
 	cfg "tools.xdoubleu.com/internal/config"
@@ -14,7 +14,7 @@ type Services struct {
 
 func New(
 	cfg cfg.Config,
-	supabaseClient gotrue.Client,
+	supabaseClient auth.Client,
 	appUsersRepo *repositories.AppUsersRepository,
 ) *Services {
 	return &Services{

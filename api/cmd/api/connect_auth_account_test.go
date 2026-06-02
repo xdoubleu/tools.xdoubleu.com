@@ -12,6 +12,53 @@ import (
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 )
 
+func TestExchangeToken_Success(t *testing.T) {
+	client := authClient(t)
+	resp, err := client.ExchangeToken(context.Background(), connect.NewRequest(
+		&authv1.ExchangeTokenRequest{AccessToken: "access", RefreshToken: "refresh"},
+	))
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+	setCookieHeaders := resp.Header().Values("Set-Cookie")
+	assert.NotEmpty(t, setCookieHeaders)
+}
+
+func TestExchangeToken_InvalidToken(t *testing.T) {
+	client := authClient(t)
+	_, err := client.ExchangeToken(context.Background(), connect.NewRequest(
+		&authv1.ExchangeTokenRequest{
+			AccessToken:  "bad-token",
+			RefreshToken: "bad-refresh",
+		},
+	))
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
+}
+
+func TestExchangeToken_EmptyAccessToken(t *testing.T) {
+	client := authClient(t)
+	_, err := client.ExchangeToken(context.Background(), connect.NewRequest(
+		&authv1.ExchangeTokenRequest{AccessToken: "", RefreshToken: "refresh"},
+	))
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestExchangeToken_EmptyRefreshToken(t *testing.T) {
+	client := authClient(t)
+	_, err := client.ExchangeToken(context.Background(), connect.NewRequest(
+		&authv1.ExchangeTokenRequest{AccessToken: "access", RefreshToken: ""},
+	))
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
 func TestUpdatePassword_NoToken(t *testing.T) {
 	client := authClient(t)
 	_, err := client.UpdatePassword(context.Background(), connect.NewRequest(
