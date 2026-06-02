@@ -21,13 +21,22 @@ type User struct {
 	Email     string   `json:"email"`
 	Role      Role     `json:"role"`
 	AppAccess []string `json:"app_access"`
+	HasMFA    bool     `json:"has_mfa"`
 }
 
 func UserFromTypesUser(user types.User) User {
+	hasMFA := false
+	for _, f := range user.Factors {
+		if f.FactorType == "totp" && f.Status == "verified" {
+			hasMFA = true
+			break
+		}
+	}
 	return User{
 		ID:        user.ID.String(),
 		Email:     user.Email,
 		Role:      RoleUser,
 		AppAccess: []string{},
+		HasMFA:    hasMFA,
 	}
 }

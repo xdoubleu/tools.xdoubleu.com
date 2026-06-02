@@ -52,8 +52,8 @@ describe('Navbar', () => {
     render(<Navbar />)
 
     expect(screen.getByRole('link', { name: 'tools.xdoubleu.com' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Contacts' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
   })

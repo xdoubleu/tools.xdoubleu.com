@@ -46,9 +46,14 @@ const (
 	// AuthServiceMFAChallengeProcedure is the fully-qualified name of the AuthService's MFAChallenge
 	// RPC.
 	AuthServiceMFAChallengeProcedure = "/auth.v1.AuthService/MFAChallenge"
+	// AuthServiceMFAUnenrollProcedure is the fully-qualified name of the AuthService's MFAUnenroll RPC.
+	AuthServiceMFAUnenrollProcedure = "/auth.v1.AuthService/MFAUnenroll"
 	// AuthServiceForgotPasswordProcedure is the fully-qualified name of the AuthService's
 	// ForgotPassword RPC.
 	AuthServiceForgotPasswordProcedure = "/auth.v1.AuthService/ForgotPassword"
+	// AuthServiceUpdatePasswordProcedure is the fully-qualified name of the AuthService's
+	// UpdatePassword RPC.
+	AuthServiceUpdatePasswordProcedure = "/auth.v1.AuthService/UpdatePassword"
 	// AuthServiceSignOutProcedure is the fully-qualified name of the AuthService's SignOut RPC.
 	AuthServiceSignOutProcedure = "/auth.v1.AuthService/SignOut"
 	// AuthServiceGetCurrentUserProcedure is the fully-qualified name of the AuthService's
@@ -63,7 +68,9 @@ type AuthServiceClient interface {
 	MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error)
 	MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error)
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
+	MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
+	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
 	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
 }
@@ -109,10 +116,22 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("MFAChallenge")),
 			connect.WithClientOptions(opts...),
 		),
+		mFAUnenroll: connect.NewClient[v1.MFAUnenrollRequest, v1.MFAUnenrollResponse](
+			httpClient,
+			baseURL+AuthServiceMFAUnenrollProcedure,
+			connect.WithSchema(authServiceMethods.ByName("MFAUnenroll")),
+			connect.WithClientOptions(opts...),
+		),
 		forgotPassword: connect.NewClient[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse](
 			httpClient,
 			baseURL+AuthServiceForgotPasswordProcedure,
 			connect.WithSchema(authServiceMethods.ByName("ForgotPassword")),
+			connect.WithClientOptions(opts...),
+		),
+		updatePassword: connect.NewClient[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse](
+			httpClient,
+			baseURL+AuthServiceUpdatePasswordProcedure,
+			connect.WithSchema(authServiceMethods.ByName("UpdatePassword")),
 			connect.WithClientOptions(opts...),
 		),
 		signOut: connect.NewClient[v1.SignOutRequest, v1.SignOutResponse](
@@ -137,7 +156,9 @@ type authServiceClient struct {
 	mFAEnrollVerify *connect.Client[v1.MFAEnrollVerifyRequest, v1.MFAEnrollVerifyResponse]
 	mFAEnrollSkip   *connect.Client[v1.MFAEnrollSkipRequest, v1.MFAEnrollSkipResponse]
 	mFAChallenge    *connect.Client[v1.MFAChallengeRequest, v1.MFAChallengeResponse]
+	mFAUnenroll     *connect.Client[v1.MFAUnenrollRequest, v1.MFAUnenrollResponse]
 	forgotPassword  *connect.Client[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse]
+	updatePassword  *connect.Client[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse]
 	signOut         *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
 	getCurrentUser  *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
 }
@@ -167,9 +188,19 @@ func (c *authServiceClient) MFAChallenge(ctx context.Context, req *connect.Reque
 	return c.mFAChallenge.CallUnary(ctx, req)
 }
 
+// MFAUnenroll calls auth.v1.AuthService.MFAUnenroll.
+func (c *authServiceClient) MFAUnenroll(ctx context.Context, req *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error) {
+	return c.mFAUnenroll.CallUnary(ctx, req)
+}
+
 // ForgotPassword calls auth.v1.AuthService.ForgotPassword.
 func (c *authServiceClient) ForgotPassword(ctx context.Context, req *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error) {
 	return c.forgotPassword.CallUnary(ctx, req)
+}
+
+// UpdatePassword calls auth.v1.AuthService.UpdatePassword.
+func (c *authServiceClient) UpdatePassword(ctx context.Context, req *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error) {
+	return c.updatePassword.CallUnary(ctx, req)
 }
 
 // SignOut calls auth.v1.AuthService.SignOut.
@@ -189,7 +220,9 @@ type AuthServiceHandler interface {
 	MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error)
 	MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error)
 	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
+	MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error)
 	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
+	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
 	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
 }
@@ -231,10 +264,22 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("MFAChallenge")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceMFAUnenrollHandler := connect.NewUnaryHandler(
+		AuthServiceMFAUnenrollProcedure,
+		svc.MFAUnenroll,
+		connect.WithSchema(authServiceMethods.ByName("MFAUnenroll")),
+		connect.WithHandlerOptions(opts...),
+	)
 	authServiceForgotPasswordHandler := connect.NewUnaryHandler(
 		AuthServiceForgotPasswordProcedure,
 		svc.ForgotPassword,
 		connect.WithSchema(authServiceMethods.ByName("ForgotPassword")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceUpdatePasswordHandler := connect.NewUnaryHandler(
+		AuthServiceUpdatePasswordProcedure,
+		svc.UpdatePassword,
+		connect.WithSchema(authServiceMethods.ByName("UpdatePassword")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceSignOutHandler := connect.NewUnaryHandler(
@@ -261,8 +306,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceMFAEnrollSkipHandler.ServeHTTP(w, r)
 		case AuthServiceMFAChallengeProcedure:
 			authServiceMFAChallengeHandler.ServeHTTP(w, r)
+		case AuthServiceMFAUnenrollProcedure:
+			authServiceMFAUnenrollHandler.ServeHTTP(w, r)
 		case AuthServiceForgotPasswordProcedure:
 			authServiceForgotPasswordHandler.ServeHTTP(w, r)
+		case AuthServiceUpdatePasswordProcedure:
+			authServiceUpdatePasswordHandler.ServeHTTP(w, r)
 		case AuthServiceSignOutProcedure:
 			authServiceSignOutHandler.ServeHTTP(w, r)
 		case AuthServiceGetCurrentUserProcedure:
@@ -296,8 +345,16 @@ func (UnimplementedAuthServiceHandler) MFAChallenge(context.Context, *connect.Re
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAChallenge is not implemented"))
 }
 
+func (UnimplementedAuthServiceHandler) MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAUnenroll is not implemented"))
+}
+
 func (UnimplementedAuthServiceHandler) ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ForgotPassword is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.UpdatePassword is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error) {

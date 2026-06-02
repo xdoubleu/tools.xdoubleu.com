@@ -18,9 +18,29 @@ export function useForgotPassword() {
   return (email: string) => client.forgotPassword({ email })
 }
 
+export function useUpdatePassword() {
+  const client = createServiceClient(AuthService)
+  return (newPassword: string) => client.updatePassword({ newPassword })
+}
+
 export function useMFAChallenge() {
   const client = createServiceClient(AuthService)
   return (code: string) => client.mFAChallenge({ code })
+}
+
+export function useMFAEnroll() {
+  const client = createServiceClient(AuthService)
+  return () => client.mFAEnroll({})
+}
+
+export function useMFAEnrollVerify() {
+  const client = createServiceClient(AuthService)
+  return (factorId: string, code: string) => client.mFAEnrollVerify({ factorId, code })
+}
+
+export function useMFAUnenroll() {
+  const client = createServiceClient(AuthService)
+  return () => client.mFAUnenroll({})
 }
 
 export function useCurrentUser() {

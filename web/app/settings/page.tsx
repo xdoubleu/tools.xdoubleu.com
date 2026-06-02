@@ -1,142 +1,287 @@
 'use client'
 
 import { useState } from 'react'
-import { useSettings, useSaveSettings } from '@/hooks/useSettings'
 import { mutate } from 'swr'
-import type { Integrations } from '@/lib/gen/settings/v1/settings_pb'
+import { ConnectError } from '@connectrpc/connect'
+import {
+  useCurrentUser,
+  useUpdatePassword,
+  useMFAEnroll,
+  useMFAEnrollVerify,
+  useMFAUnenroll
+} from '@/hooks/useAuth'
+
+type MFAEnrollState = 'idle' | 'qr' | 'done'
 
 export default function SettingsPage() {
-  const { data, isLoading, error } = useSettings()
-  const saveSettings = useSaveSettings()
+  const { data, isLoading } = useCurrentUser()
 
-  const [steamApiKey, setSteamApiKey] = useState('')
-  const [steamUserId, setSteamUserId] = useState('')
-  const [hardcoverApiKey, setHardcoverApiKey] = useState('')
-  const [saved, setSaved] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState('')
-  const [initialized, setInitialized] = useState(false)
+  const updatePassword = useUpdatePassword()
+  const mfaEnroll = useMFAEnroll()
+  const mfaEnrollVerify = useMFAEnrollVerify()
+  const mfaUnenroll = useMFAUnenroll()
 
-  if (!isLoading && data?.integrations && !initialized) {
-    setSteamApiKey(data.integrations.steamApiKey)
-    setSteamUserId(data.integrations.steamUserId)
-    setHardcoverApiKey(data.integrations.hardcoverApiKey)
-    setInitialized(true)
-  }
+  // Password section
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwSaved, setPwSaved] = useState(false)
+  const [pwError, setPwError] = useState('')
 
-  if (isLoading) {
+  // MFA section
+  const [mfaState, setMfaState] = useState<MFAEnrollState>('idle')
+  const [mfaQr, setMfaQr] = useState('')
+  const [mfaSecret, setMfaSecret] = useState('')
+  const [mfaFactorId, setMfaFactorId] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaBusy, setMfaBusy] = useState(false)
+  const [mfaError, setMfaMfaError] = useState('')
+
+  if (isLoading || !data) {
     return <p className="py-16 text-center text-sm text-muted">Loading…</p>
   }
 
-  if (error) {
-    return <p className="py-16 text-center text-sm text-danger">Failed to load settings.</p>
+  const hasMFA = data.hasMfa
+
+  async function handlePasswordSave(e: React.FormEvent) {
+    e.preventDefault()
+    setPwSaved(false)
+    setPwError('')
+    if (newPassword !== confirmPassword) {
+      setPwError('Passwords do not match.')
+      return
+    }
+    if (newPassword.length < 8) {
+      setPwError('Password must be at least 8 characters.')
+      return
+    }
+    setPwSaving(true)
+    try {
+      await updatePassword(newPassword)
+      setPwSaved(true)
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      if (err instanceof ConnectError) {
+        setPwError(err.message)
+      } else {
+        setPwError('Failed to update password.')
+      }
+    } finally {
+      setPwSaving(false)
+    }
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setSaved(false)
-    setSaveError('')
+  async function handleMFAEnable() {
+    setMfaBusy(true)
+    setMfaMfaError('')
     try {
-      const integrations: Integrations = {
-        $typeName: 'settings.v1.Integrations',
-        steamApiKey,
-        steamUserId,
-        hardcoverApiKey
+      const res = await mfaEnroll()
+      setMfaQr(res.qrSvg)
+      setMfaSecret(res.secret)
+      setMfaFactorId(res.factorId)
+      setMfaState('qr')
+    } catch (err) {
+      if (err instanceof ConnectError) {
+        setMfaMfaError(err.message)
+      } else {
+        setMfaMfaError('Failed to start MFA enrollment.')
       }
-      await saveSettings(integrations)
-      await mutate('/settings')
-      setSaved(true)
-    } catch {
-      setSaveError('Failed to save settings.')
     } finally {
-      setSaving(false)
+      setMfaBusy(false)
+    }
+  }
+
+  async function handleMFAVerify(e: React.FormEvent) {
+    e.preventDefault()
+    setMfaBusy(true)
+    setMfaMfaError('')
+    try {
+      await mfaEnrollVerify(mfaFactorId, mfaCode)
+      await mutate('/auth/current-user')
+      setMfaState('done')
+    } catch (err) {
+      if (err instanceof ConnectError) {
+        setMfaMfaError(err.message)
+      } else {
+        setMfaMfaError('Invalid code. Please try again.')
+      }
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  async function handleMFADisable() {
+    setMfaBusy(true)
+    setMfaMfaError('')
+    try {
+      await mfaUnenroll()
+      await mutate('/auth/current-user')
+    } catch (err) {
+      if (err instanceof ConnectError) {
+        setMfaMfaError(err.message)
+      } else {
+        setMfaMfaError('Failed to disable MFA.')
+      }
+    } finally {
+      setMfaBusy(false)
     }
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-10">
-      <div className="mb-6 flex items-center gap-3">
-        <nav className="text-sm text-muted">
-          <span className="font-semibold uppercase tracking-wide text-xs text-muted">Backlog</span>
-        </nav>
-      </div>
+    <main className="mx-auto max-w-xl px-4 py-10 space-y-10">
+      <h1 className="text-xl font-semibold text-fg">Account Settings</h1>
 
-      <h1 className="mb-6 text-xl font-semibold text-fg">Integrations</h1>
+      {/* Password */}
+      <section>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
+          Change Password
+        </h2>
 
-      {saved && (
-        <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
-          Settings saved successfully.
-        </div>
-      )}
-      {saveError && (
-        <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
-          {saveError}
-        </div>
-      )}
-
-      <form onSubmit={handleSave} className="space-y-6">
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Steam</h2>
-          <div className="space-y-3">
-            <div>
-              <label htmlFor="steam_api_key" className="mb-1 block text-sm text-subtle">
-                API Key
-              </label>
-              <input
-                id="steam_api_key"
-                type="password"
-                autoComplete="off"
-                value={steamApiKey}
-                onChange={(e) => setSteamApiKey(e.target.value)}
-                className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
-              />
-            </div>
-            <div>
-              <label htmlFor="steam_user_id" className="mb-1 block text-sm text-subtle">
-                Steam User ID
-              </label>
-              <input
-                id="steam_user_id"
-                type="text"
-                value={steamUserId}
-                onChange={(e) => setSteamUserId(e.target.value)}
-                className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
-              />
-            </div>
+        {pwSaved && (
+          <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
+            Password updated successfully.
           </div>
-        </section>
+        )}
+        {pwError && (
+          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+            {pwError}
+          </div>
+        )}
 
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-            Hardcover
-          </h2>
+        <form onSubmit={handlePasswordSave} className="space-y-3">
           <div>
-            <label htmlFor="hardcover_api_key" className="mb-1 block text-sm text-subtle">
-              API Key
+            <label htmlFor="new_password" className="mb-1 block text-sm text-subtle">
+              New password
             </label>
             <input
-              id="hardcover_api_key"
+              id="new_password"
               type="password"
-              autoComplete="off"
-              value={hardcoverApiKey}
-              onChange={(e) => setHardcoverApiKey(e.target.value)}
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
               className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
             />
-            <p className="mt-1 text-xs text-muted">
-              Find your API key at hardcover.app → Settings → API.
-            </p>
           </div>
-        </section>
+          <div>
+            <label htmlFor="confirm_password" className="mb-1 block text-sm text-subtle">
+              Confirm new password
+            </label>
+            <input
+              id="confirm_password"
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={pwSaving}
+            className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
+          >
+            {pwSaving ? 'Updating…' : 'Update password'}
+          </button>
+        </form>
+      </section>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </form>
+      {/* MFA */}
+      <section>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
+          Two-Factor Authentication
+        </h2>
+
+        {mfaError && (
+          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+            {mfaError}
+          </div>
+        )}
+
+        {mfaState === 'done' && (
+          <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
+            Two-factor authentication enabled successfully.
+          </div>
+        )}
+
+        {hasMFA && mfaState === 'idle' ? (
+          <div className="space-y-3">
+            <p className="text-sm text-subtle">
+              Two-factor authentication is <span className="font-medium text-fg">enabled</span>.
+            </p>
+            <button
+              onClick={handleMFADisable}
+              disabled={mfaBusy}
+              className="rounded border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
+            >
+              {mfaBusy ? 'Disabling…' : 'Disable MFA'}
+            </button>
+          </div>
+        ) : mfaState === 'qr' ? (
+          <div className="space-y-4">
+            <p className="text-sm text-subtle">
+              Scan this QR code with your authenticator app, then enter the 6-digit code below.
+            </p>
+            <div
+              className="w-48 rounded border border-border bg-white p-2"
+              dangerouslySetInnerHTML={{ __html: mfaQr }}
+            />
+            <p className="text-xs text-muted">
+              Can&apos;t scan? Enter this key manually:{' '}
+              <span className="font-mono text-fg">{mfaSecret}</span>
+            </p>
+            <form onSubmit={handleMFAVerify} className="space-y-3">
+              <div>
+                <label htmlFor="mfa_code" className="mb-1 block text-sm text-subtle">
+                  Authenticator code
+                </label>
+                <input
+                  id="mfa_code"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                  required
+                  className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={mfaBusy || mfaCode.length < 6}
+                  className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
+                >
+                  {mfaBusy ? 'Verifying…' : 'Verify & enable'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMfaState('idle')}
+                  className="rounded px-4 py-2 text-sm text-muted hover:text-fg"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : !hasMFA && mfaState !== 'done' ? (
+          <div className="space-y-3">
+            <p className="text-sm text-subtle">
+              Two-factor authentication is <span className="font-medium text-fg">disabled</span>.
+              Enable it for additional security.
+            </p>
+            <button
+              onClick={handleMFAEnable}
+              disabled={mfaBusy}
+              className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
+            >
+              {mfaBusy ? 'Loading…' : 'Enable MFA'}
+            </button>
+          </div>
+        ) : null}
+      </section>
     </main>
   )
 }
