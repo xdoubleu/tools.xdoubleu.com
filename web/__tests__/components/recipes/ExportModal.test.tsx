@@ -23,6 +23,25 @@ jest.mock('@/hooks/useShoppingList', () => ({
         }
       : undefined,
     isLoading: false
+  }),
+  useStores: () => ({
+    data: { stores: [{ id: 'store-1', name: 'Colruyt' }] },
+    isLoading: false
+  }),
+  useStoreCategories: (storeId: string) => ({
+    data: storeId
+      ? {
+          categories: [
+            { id: 'cat-veg', name: 'Vegetables' },
+            { id: 'cat-dairy', name: 'Dairy' }
+          ]
+        }
+      : undefined,
+    isLoading: false
+  }),
+  useItemCategories: () => ({
+    data: { items: [{ name: 'milk', categoryId: 'cat-dairy' }] },
+    isLoading: false
   })
 }))
 
@@ -57,7 +76,7 @@ describe('ExportModal', () => {
 
   it('shows aggregated meal plan items when a plan is selected', () => {
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    const select = screen.getByRole('combobox')
+    const select = screen.getByLabelText('Add meal plan ingredients (optional)')
     fireEvent.change(select, { target: { value: 'plan-1' } })
     expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
   })
@@ -65,6 +84,33 @@ describe('ExportModal', () => {
   it('does not show meal plan section when no plan is selected', () => {
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
     expect(screen.queryByText(/cloves — garlic/)).not.toBeInTheDocument()
+  })
+
+  it('renders store selector with options', () => {
+    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    expect(screen.getByRole('option', { name: 'Colruyt' })).toBeInTheDocument()
+  })
+
+  it('groups items by store aisle order when a store is selected', () => {
+    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
+      target: { value: 'store-1' }
+    })
+    // milk is mapped to Dairy; the grouped preview heading appears.
+    expect(screen.getByText('Grouped by store aisle')).toBeInTheDocument()
+    expect(screen.getByText('Dairy')).toBeInTheDocument()
+    expect(screen.getByText(/1 L — milk/)).toBeInTheDocument()
+  })
+
+  it('copies grouped output to clipboard when a store is selected', async () => {
+    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
+      target: { value: 'store-1' }
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Copy to Clipboard/ }))
+    })
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Dairy:\n1 L - milk')
   })
 
   it('calls onClose when close button is clicked', () => {

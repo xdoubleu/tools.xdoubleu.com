@@ -29,6 +29,19 @@ func baseMock() *mocks.ShoppingRepoMock {
 		AddCustomItemFn:          nil,
 		DeleteCustomItemFn:       nil,
 		GetMealPlanExportItemsFn: nil,
+		ListCategoriesFn:         nil,
+		CreateCategoryFn:         nil,
+		RenameCategoryFn:         nil,
+		DeleteCategoryFn:         nil,
+		ListStoresFn:             nil,
+		CreateStoreFn:            nil,
+		RenameStoreFn:            nil,
+		DeleteStoreFn:            nil,
+		GetStoreCategoriesFn:     nil,
+		SetStoreCategoriesFn:     nil,
+		ListItemNamesFn:          nil,
+		ListItemCategoriesFn:     nil,
+		SetItemCategoryFn:        nil,
 	}
 }
 
