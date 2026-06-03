@@ -153,10 +153,8 @@ export default function MealPlanCalendar({
         servings
       }
       await addMeal(req)
-      const date = editingMeal.mealDate
-      const slot = editingMeal.mealSlot
       setEditingMeal(null)
-      onAddMeal(date, slot, recipeId, customName, servings)
+      onMoveMeal?.()
     } catch (err) {
       console.error('Failed to edit meal:', err)
     }

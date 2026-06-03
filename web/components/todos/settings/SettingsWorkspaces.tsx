@@ -46,7 +46,7 @@ export function SettingsWorkspaces({ data, mutate }: Props) {
           {data.workspaces.map((ws) => (
             <li
               key={ws.id}
-              className="flex items-center justify-between rounded border border-border bg-card px-3 py-2"
+              className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2"
             >
               <span className="text-sm text-subtle">{ws.name}</span>
               <button
@@ -68,7 +68,7 @@ export function SettingsWorkspaces({ data, mutate }: Props) {
             onChange={(e) => setName(e.target.value)}
             placeholder="Workspace name"
             autoFocus
-            className="flex-1 rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="flex-1 rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <Button type="submit" size="sm" disabled={!name.trim()}>
             Add

@@ -530,8 +530,9 @@ describe('MealPlanCalendar', () => {
     expect(input.value).toBe('Eggs')
   })
 
-  it('save edit calls addMeal with same date/slot and new values', async () => {
+  it('save edit calls addMeal with same date/slot and new values, then onMoveMeal (not onAddMeal)', async () => {
     const onAddMeal = jest.fn()
+    const onMoveMeal = jest.fn()
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -553,6 +554,7 @@ describe('MealPlanCalendar', () => {
         {...defaultNavProps}
         onAddMeal={onAddMeal}
         onDeleteMeal={jest.fn()}
+        onMoveMeal={onMoveMeal}
       />
     )
     fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
@@ -564,7 +566,8 @@ describe('MealPlanCalendar', () => {
     expect(req.mealDate).toBe('2026-05-25')
     expect(req.mealSlot).toBe('breakfast')
     expect(req.customName).toBe('Updated meal')
-    expect(onAddMeal).toHaveBeenCalled()
+    expect(onMoveMeal).toHaveBeenCalled()
+    expect(onAddMeal).not.toHaveBeenCalled()
   })
 
   it('cancel closes edit dialog', () => {

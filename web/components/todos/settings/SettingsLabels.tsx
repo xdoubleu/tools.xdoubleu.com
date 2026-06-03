@@ -89,7 +89,7 @@ export function SettingsLabels({ data, mutate }: Props) {
             onChange={(e) => setValue(e.target.value)}
             placeholder="Label name"
             autoFocus
-            className="flex-1 rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="flex-1 rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <Button type="submit" size="sm" disabled={!value.trim()}>
             Add
