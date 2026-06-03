@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -152,10 +151,6 @@ func (r *PlansRepository) AddMeal(
 		INSERT INTO mealplans.plan_meals
 		       (plan_id, meal_date, meal_slot, recipe_id, custom_name, servings)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (plan_id, meal_date, meal_slot)
-		DO UPDATE SET recipe_id   = EXCLUDED.recipe_id,
-		              custom_name = EXCLUDED.custom_name,
-		              servings    = EXCLUDED.servings
 		RETURNING id`,
 		meal.PlanID, meal.MealDate, meal.MealSlot,
 		meal.RecipeID, meal.CustomName, meal.Servings,
@@ -298,78 +293,6 @@ func (r *PlansRepository) SharePlan(
 	return err
 }
 
-type mealRowData struct {
-	id         uuid.UUID
-	recipeID   *uuid.UUID
-	customName string
-	servings   int
-}
-
-func lockAndReadMealRow(
-	ctx context.Context,
-	tx pgx.Tx,
-	id, planID uuid.UUID,
-) (*mealRowData, error) {
-	var d mealRowData
-	err := tx.QueryRow(ctx, `
-		SELECT id, recipe_id, custom_name, servings
-		FROM mealplans.plan_meals
-		WHERE id = $1 AND plan_id = $2
-		FOR UPDATE`,
-		id, planID,
-	).Scan(&d.id, &d.recipeID, &d.customName, &d.servings)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	return &d, nil
-}
-
-const mealInsertSQL = `
-	INSERT INTO mealplans.plan_meals
-	       (id, plan_id, meal_date, meal_slot, recipe_id, custom_name, servings)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)`
-
-// swapMeals deletes both rows and re-inserts them with swapped date/slot,
-// sidestepping the non-deferrable unique constraint on (plan_id, date, slot).
-func swapMeals(
-	ctx context.Context,
-	tx pgx.Tx,
-	planID uuid.UUID,
-	mealID uuid.UUID,
-	newDate time.Time,
-	newSlot string,
-	occupantID uuid.UUID,
-	srcDate time.Time,
-	srcSlot string,
-) error {
-	meal, err := lockAndReadMealRow(ctx, tx, mealID, planID)
-	if err != nil {
-		return err
-	}
-	occupant, err := lockAndReadMealRow(ctx, tx, occupantID, planID)
-	if err != nil {
-		return err
-	}
-
-	if _, err = tx.Exec(ctx,
-		`DELETE FROM mealplans.plan_meals WHERE id = $1 OR id = $2`,
-		mealID, occupantID,
-	); err != nil {
-		return err
-	}
-	if _, err = tx.Exec(ctx, mealInsertSQL,
-		meal.id, planID, newDate, newSlot,
-		meal.recipeID, meal.customName, meal.servings,
-	); err != nil {
-		return err
-	}
-	_, err = tx.Exec(ctx, mealInsertSQL,
-		occupant.id, planID, srcDate, srcSlot,
-		occupant.recipeID, occupant.customName, occupant.servings,
-	)
-	return err
-}
-
 func (r *PlansRepository) MoveMeal(
 	ctx context.Context,
 	mealID uuid.UUID,
@@ -377,57 +300,11 @@ func (r *PlansRepository) MoveMeal(
 	newDate time.Time,
 	newSlot string,
 ) error {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx) //nolint:errcheck // rollback on commit is a no-op
-
-	var srcDate time.Time
-	var srcSlot string
-	err = tx.QueryRow(ctx, `
-		SELECT meal_date, meal_slot
-		FROM mealplans.plan_meals
-		WHERE id = $1 AND plan_id = $2
-		FOR UPDATE`,
-		mealID, planID,
-	).Scan(&srcDate, &srcSlot)
-	if err != nil {
-		return postgres.PgxErrorToHTTPError(err)
-	}
-
-	if srcDate.Equal(newDate) && srcSlot == newSlot {
-		return tx.Commit(ctx)
-	}
-
-	var occupantID uuid.UUID
-	err = tx.QueryRow(ctx, `
-		SELECT id FROM mealplans.plan_meals
-		WHERE plan_id = $1 AND meal_date = $2 AND meal_slot = $3
-		FOR UPDATE`,
-		planID, newDate, newSlot,
-	).Scan(&occupantID)
-	hasOccupant := err == nil
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return err
-	}
-
-	if hasOccupant {
-		if err = swapMeals(
-			ctx, tx, planID, mealID, newDate, newSlot, occupantID, srcDate, srcSlot,
-		); err != nil {
-			return err
-		}
-	} else {
-		if _, err = tx.Exec(ctx, `
-			UPDATE mealplans.plan_meals
-			SET meal_date = $3, meal_slot = $4
-			WHERE id = $1 AND plan_id = $2`,
-			mealID, planID, newDate, newSlot,
-		); err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE mealplans.plan_meals
+		SET meal_date = $3, meal_slot = $4
+		WHERE id = $1 AND plan_id = $2`,
+		mealID, planID, newDate, newSlot,
+	)
+	return postgres.PgxErrorToHTTPError(err)
 }

@@ -13,19 +13,21 @@ describe('mealPlanCalendar', () => {
       expect(dates).toHaveLength(7)
     })
 
-    it('should return dates for the current week (offset 0)', () => {
-      const dates = getWeekDates(0)
-      const startDate = dates[0]
-
-      // Should be a Monday (day 1 in JS getDay)
-      expect(startDate.getDay()).toBe(1)
-
-      // Each subsequent date should be 1 day later (Math.round handles DST hour shifts)
-      for (let i = 1; i < 7; i++) {
-        const diff = Math.round(
-          (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
-        )
-        expect(diff).toBe(1)
+    it('should start from today at offset 0', () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-06-03'))
+      try {
+        const dates = getWeekDates(0)
+        expect(formatMealDate(dates[0])).toBe('2026-06-03')
+        // Each subsequent date should be 1 day later (Math.round handles DST hour shifts)
+        for (let i = 1; i < 7; i++) {
+          const diff = Math.round(
+            (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
+          )
+          expect(diff).toBe(1)
+        }
+      } finally {
+        jest.useRealTimers()
       }
     })
 

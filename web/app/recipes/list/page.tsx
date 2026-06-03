@@ -8,13 +8,9 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
     <Link
       href={`/recipes/${recipe.id}`}
-      className="block border border-border rounded p-4 hover:bg-surface transition-colors"
+      className="block rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:shadow-elevated"
     >
       <h2 className="font-semibold text-lg">{recipe.name}</h2>
-      <p className="text-sm text-muted mt-1">
-        {recipe.ingredients.length} ingredient
-        {recipe.ingredients.length !== 1 ? 's' : ''}
-      </p>
       <p className="text-sm text-muted mt-1">Serves {recipe.baseServings}</p>
     </Link>
   )

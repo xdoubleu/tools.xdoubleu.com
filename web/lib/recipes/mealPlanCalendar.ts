@@ -1,20 +1,12 @@
 export const MEAL_SLOTS = ['breakfast', 'noon', 'evening'] as const
 
 export function getWeekDates(offsetWeeks: number): Date[] {
-  const today = new Date()
-  const weekStart = new Date(today)
-
-  // Get Monday of the current/offset week
-  const day = weekStart.getDay()
-  const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1)
-  weekStart.setDate(diff)
-
-  // Apply week offset
-  weekStart.setDate(weekStart.getDate() + offsetWeeks * 7)
+  const start = new Date()
+  start.setDate(start.getDate() + offsetWeeks * 7)
 
   const dates: Date[] = []
   for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart)
+    const d = new Date(start)
     d.setDate(d.getDate() + i)
     dates.push(d)
   }

@@ -76,7 +76,7 @@ export default function WatchpartyPage() {
         <button
           type="submit"
           disabled={loading || !roomCode.trim()}
-          className="px-4 py-2 bg-subtle text-bg rounded text-sm hover:bg-fg disabled:opacity-50"
+          className="px-4 py-2 bg-subtle text-bg rounded-xl text-sm hover:bg-fg disabled:opacity-50"
         >
           Join
         </button>

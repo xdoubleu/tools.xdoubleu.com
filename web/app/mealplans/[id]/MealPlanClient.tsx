@@ -2,24 +2,23 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { getApiUrl } from '@/lib/env'
 import {
   useMealPlan,
   useAddMeal,
   useDeleteMeal,
   useSharePlan,
-  useUnsharePlan,
-  useDeletePlan
+  useUnsharePlan
 } from '@/hooks/useMealPlans'
 import type {
   AddMealInput,
   DeleteMealInput,
   SharePlanInput,
-  UnsharePlanInput,
-  DeletePlanInput
+  UnsharePlanInput
 } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
+import ShareModal from '@/components/recipes/ShareModal'
 
 export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
@@ -29,13 +28,18 @@ export default function MealPlanClient({ id }: { id: string }) {
   const deleteMeal = useDeleteMeal()
   const sharePlan = useSharePlan()
   const unsharePlan = useUnsharePlan()
-  const deletePlan = useDeletePlan()
-  const router = useRouter()
 
-  const [shareInput, setShareInput] = useState('')
-  const [unshareInput, setUnshareInput] = useState('')
-  const [shareError, setShareError] = useState<string | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [icalCopied, setIcalCopied] = useState(false)
+
+  const handleCopyIcal = () => {
+    if (!data?.icalUrl) return
+    const url = `${getApiUrl()}${data.icalUrl}`
+    navigator.clipboard.writeText(url).then(() => {
+      setIcalCopied(true)
+      setTimeout(() => setIcalCopied(false), 2000)
+    })
+  }
 
   const plan = data?.plan
   const recipes = recipesData?.recipes ?? []
@@ -68,22 +72,11 @@ export default function MealPlanClient({ id }: { id: string }) {
     await mutate()
   }
 
-  const handleShare = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!plan || !shareInput.trim()) return
-    setShareError(null)
-    try {
-      const req: SharePlanInput = {
-        planId: plan.id,
-        contactUserId: shareInput.trim(),
-        canEdit: false
-      }
-      await sharePlan(req)
-      setShareInput('')
-      await mutate()
-    } catch (err) {
-      setShareError(err instanceof Error ? err.message : 'Failed to share plan.')
-    }
+  const handleShare = async (userId: string) => {
+    if (!plan) return
+    const req: SharePlanInput = { planId: plan.id, contactUserId: userId, canEdit: false }
+    await sharePlan(req)
+    await mutate()
   }
 
   const handleUnshare = async (userId: string) => {
@@ -93,21 +86,8 @@ export default function MealPlanClient({ id }: { id: string }) {
     await mutate()
   }
 
-  const handleDelete = async () => {
-    if (!plan) return
-    const req: DeletePlanInput = { id: plan.id }
-    await deletePlan(req)
-    router.push('/mealplans')
-  }
-
   return (
     <main className="max-w-5xl mx-auto p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/mealplans" className="text-sm text-accent hover:underline">
-          &larr; Meal Plans
-        </Link>
-      </div>
-
       {isLoading && <p>Loading meal plan...</p>}
       {error && <p className="text-danger">Failed to load meal plan.</p>}
 
@@ -116,38 +96,28 @@ export default function MealPlanClient({ id }: { id: string }) {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">{plan.name}</h1>
             <div className="flex gap-2">
+              {data?.icalUrl && (
+                <button
+                  onClick={handleCopyIcal}
+                  className="px-4 py-2 bg-surface border border-border rounded-xl hover:bg-border text-sm"
+                >
+                  {icalCopied ? 'Copied!' : 'iCal Link'}
+                </button>
+              )}
               {isOwner && (
                 <>
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="px-4 py-2 bg-surface border border-border rounded-xl hover:bg-border text-sm"
+                  >
+                    Share
+                  </button>
                   <Link
                     href={`/mealplans/${plan.id}/edit`}
-                    className="px-4 py-2 bg-surface border border-border rounded hover:bg-border text-sm"
+                    className="px-4 py-2 bg-surface border border-border rounded-xl hover:bg-border text-sm"
                   >
-                    Edit
+                    Settings
                   </Link>
-                  {deleteConfirm ? (
-                    <div className="flex gap-2 items-center">
-                      <span className="text-sm text-danger">Delete this plan?</span>
-                      <button
-                        onClick={handleDelete}
-                        className="rounded-xl bg-danger px-3 py-1 text-sm text-white hover:opacity-90"
-                      >
-                        Yes, delete
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(false)}
-                        className="rounded-xl border border-border bg-surface px-3 py-1 text-sm"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(true)}
-                      className="rounded-xl bg-danger px-4 py-2 text-sm text-white hover:opacity-90"
-                    >
-                      Delete
-                    </button>
-                  )}
                 </>
               )}
             </div>
@@ -164,59 +134,13 @@ export default function MealPlanClient({ id }: { id: string }) {
             onMoveMeal={() => mutate()}
           />
 
-          {data?.icalUrl && (
-            <div className="mt-6 p-4 border border-border rounded">
-              <p className="text-sm font-medium text-subtle mb-1">iCal Feed URL</p>
-              <p className="text-xs text-muted break-all">{data.icalUrl}</p>
-            </div>
-          )}
-
-          {isOwner && (
-            <div className="mt-6 border border-border rounded p-4">
-              <h2 className="text-lg font-semibold mb-3">Sharing</h2>
-              <form onSubmit={handleShare} className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={shareInput}
-                  onChange={(e) => setShareInput(e.target.value)}
-                  placeholder="Contact user ID"
-                  className="h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                />
-                <button
-                  type="submit"
-                  className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
-                >
-                  Share
-                </button>
-              </form>
-              {shareError && <p className="mb-2 text-sm text-danger">{shareError}</p>}
-              <div className="mt-3">
-                <label className="block text-sm font-medium text-subtle mb-1">
-                  Unshare with user ID
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={unshareInput}
-                    onChange={(e) => setUnshareInput(e.target.value)}
-                    placeholder="User ID to unshare"
-                    className="h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (unshareInput) {
-                        handleUnshare(unshareInput)
-                        setUnshareInput('')
-                      }
-                    }}
-                    className="px-4 py-2 bg-surface border border-border rounded hover:bg-border text-sm"
-                  >
-                    Unshare
-                  </button>
-                </div>
-              </div>
-            </div>
+          {showShareModal && (
+            <ShareModal
+              sharedWith={(data?.sharedWith ?? []).map((u) => u.userId)}
+              onShare={handleShare}
+              onUnshare={handleUnshare}
+              onClose={() => setShowShareModal(false)}
+            />
           )}
         </>
       )}

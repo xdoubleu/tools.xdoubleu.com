@@ -77,14 +77,14 @@ After every code change, always run **both** of the following before reporting t
 2. **Coverage** — target ≥ 80% on the changed code. Run the coverage report and confirm the diff is covered:
 
    ```bash
-   # api — requires docker-compose up -d first
-   cd api && make test/cov/report
+   # api — start DB first, run coverage, then stop DB
+   cd api && docker-compose up -d && make test/cov/report && docker-compose down
 
    # web
    cd web && yarn test:cov
    ```
 
-   If postgres is not running locally, note it explicitly and confirm the new tests compile cleanly (`go build ./...`). Do not silently skip this step.
+   Always start the DB with `docker-compose up -d` (from `api/`) before running api tests and stop it with `docker-compose down` afterwards. Do not silently skip this step.
 
 These two steps are **not optional**. Do not mark any task complete without running both.
 

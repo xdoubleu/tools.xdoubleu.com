@@ -12,9 +12,7 @@ import useSWR from 'swr'
 import {
   useMealPlans,
   useMealPlan,
-  useCreatePlan,
   useUpdatePlan,
-  useDeletePlan,
   useAddMeal,
   useDeleteMeal,
   useMoveMeal,
@@ -55,18 +53,8 @@ describe('useMealPlan', () => {
 })
 
 describe('mutation hooks return functions', () => {
-  it('useCreatePlan returns a function', () => {
-    const { result } = renderHook(() => useCreatePlan())
-    expect(typeof result.current).toBe('function')
-  })
-
   it('useUpdatePlan returns a function', () => {
     const { result } = renderHook(() => useUpdatePlan())
-    expect(typeof result.current).toBe('function')
-  })
-
-  it('useDeletePlan returns a function', () => {
-    const { result } = renderHook(() => useDeletePlan())
     expect(typeof result.current).toBe('function')
   })
 

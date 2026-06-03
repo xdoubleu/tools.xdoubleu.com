@@ -36,7 +36,7 @@ function DialogContent({ children, className = '' }: DialogContentProps) {
         className={[
           'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
           'w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto',
-          'rounded-2xl border border-border bg-card shadow-elevated p-5',
+          'rounded-xl border border-border bg-card shadow-elevated p-5',
           'focus:outline-none',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',

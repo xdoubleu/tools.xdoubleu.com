@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
 import SettingsLabelRow from '@/components/todos/SettingsLabelRow'
+import { Button } from '@/components/ui/button'
 
 const LABEL_CATEGORY = 'label'
 
@@ -90,20 +91,12 @@ export function SettingsLabels({ data, mutate }: Props) {
             autoFocus
             className="flex-1 rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
-          <button
-            type="submit"
-            disabled={!value.trim()}
-            className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-          >
+          <Button type="submit" size="sm" disabled={!value.trim()}>
             Add
-          </button>
-          <button
-            type="button"
-            onClick={() => setAdding(false)}
-            className="rounded px-3 py-1.5 text-sm text-muted hover:text-subtle"
-          >
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>
             Cancel
-          </button>
+          </Button>
         </form>
       ) : (
         <button

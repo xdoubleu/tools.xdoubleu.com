@@ -1,15 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { useCreatePlan, useUpdatePlan } from '@/hooks/useMealPlans'
-import type { CreatePlanInput, UpdatePlanInput } from '@/hooks/useMealPlans'
+import { useUpdatePlan } from '@/hooks/useMealPlans'
+import type { UpdatePlanInput } from '@/hooks/useMealPlans'
 import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 interface PlanFormProps {
-  plan?: Plan
+  plan: Plan
   onSave: (id: string) => void
   onCancel: () => void
 }
@@ -17,12 +17,11 @@ interface PlanFormProps {
 const SLOT_NAMES = ['breakfast', 'noon', 'evening']
 
 export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
-  const [name, setName] = useState(plan?.name ?? '')
-  const [hiddenSlots, setHiddenSlots] = useState<string[]>(plan?.icalHideSlots ?? [])
-  const [hidePast, setHidePast] = useState(plan?.icalHidePast ?? false)
+  const [name, setName] = useState(plan.name)
+  const [hiddenSlots, setHiddenSlots] = useState<string[]>(plan.icalHideSlots)
+  const [hidePast, setHidePast] = useState(plan.icalHidePast)
   const [error, setError] = useState<string | null>(null)
 
-  const createPlan = useCreatePlan()
   const updatePlan = useUpdatePlan()
 
   const toggleSlot = (slot: string) => {
@@ -35,20 +34,14 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
     e.preventDefault()
     setError(null)
     try {
-      if (plan?.id) {
-        const req: UpdatePlanInput = {
-          id: plan.id,
-          name,
-          icalHideSlots: hiddenSlots,
-          icalHidePast: hidePast
-        }
-        await updatePlan(req)
-        onSave(plan.id)
-      } else {
-        const req: CreatePlanInput = { name }
-        const result = await createPlan(req)
-        onSave(result.plan?.id ?? '')
+      const req: UpdatePlanInput = {
+        id: plan.id,
+        name,
+        icalHideSlots: hiddenSlots,
+        icalHidePast: hidePast
       }
+      await updatePlan(req)
+      onSave(plan.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save plan.')
     }
@@ -102,7 +95,7 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
 
       <div className="flex gap-2">
         <Button type="submit" className="flex-1">
-          Save Plan
+          Save
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
           Cancel

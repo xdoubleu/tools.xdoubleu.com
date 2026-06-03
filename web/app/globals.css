@@ -74,3 +74,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+button:not([disabled]) {
+  cursor: pointer;
+}

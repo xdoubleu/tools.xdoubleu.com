@@ -16,7 +16,7 @@ export default function EditPlanClient({ id }: { id: string }) {
         <Link href={`/mealplans/${id}`} className="text-sm text-accent hover:underline">
           &larr; Back to Plan
         </Link>
-        <h1 className="text-3xl font-bold">Edit Meal Plan</h1>
+        <h1 className="text-3xl font-bold">Settings</h1>
       </div>
 
       {isLoading && <p>Loading plan...</p>}

@@ -6,8 +6,7 @@ jest.mock('@/hooks/useMealPlans', () => ({
   useAddMeal: jest.fn(),
   useDeleteMeal: jest.fn(),
   useSharePlan: jest.fn(),
-  useUnsharePlan: jest.fn(),
-  useDeletePlan: jest.fn()
+  useUnsharePlan: jest.fn()
 }))
 
 jest.mock('@/hooks/useRecipes', () => ({
@@ -98,8 +97,19 @@ describe('MealPlanClient', () => {
     })
   })
 
-  it('shows iCal URL when available', () => {
+  it('shows iCal Link button when icalUrl is available', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByText('http://example.com/ical')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'iCal Link' })).toBeInTheDocument()
+  })
+
+  it('shows Settings link instead of Edit for owner', () => {
+    render(<MealPlanClient id="plan-1" />)
+    expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('does not show a Delete button', () => {
+    render(<MealPlanClient id="plan-1" />)
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
   })
 })
