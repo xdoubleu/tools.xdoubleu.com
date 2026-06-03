@@ -81,4 +81,35 @@ describe('RecipeCombobox', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'CAESAR' } })
     expect(screen.getByText('Caesar Salad')).toBeInTheDocument()
   })
+
+  it('Tab completes with the first filtered result when no item is highlighted', () => {
+    const onSelect = jest.fn()
+    render(<RecipeCombobox recipes={recipes} onSelect={onSelect} />)
+    const input = screen.getByRole('textbox') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'pasta' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input.value).toBe('Pasta Bolognese')
+    expect(onSelect).toHaveBeenLastCalledWith('r1', '')
+  })
+
+  it('Tab completes with the highlighted item when one is active', () => {
+    const onSelect = jest.fn()
+    render(<RecipeCombobox recipes={recipes} onSelect={onSelect} />)
+    const input = screen.getByRole('textbox') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'pasta' } })
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input.value).toBe('Pasta Carbonara')
+    expect(onSelect).toHaveBeenLastCalledWith('r2', '')
+  })
+
+  it('Tab does not prevent default when dropdown is closed', () => {
+    render(<RecipeCombobox recipes={recipes} onSelect={jest.fn()} />)
+    const input = screen.getByRole('textbox')
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+    const preventDefaultSpy = jest.spyOn(event, 'preventDefault')
+    input.dispatchEvent(event)
+    expect(preventDefaultSpy).not.toHaveBeenCalled()
+  })
 })

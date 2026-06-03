@@ -54,9 +54,6 @@ message GetPlanResponse {
   repeated PlanSharedUser shared_with = 10;
 }
 
-message CreatePlanRequest { string name = 1; }
-message CreatePlanResponse { Plan plan = 1; }
-
 message UpdatePlanRequest {
   string id = 1;
   string name = 2;
@@ -64,9 +61,6 @@ message UpdatePlanRequest {
   bool ical_hide_past = 4;
 }
 message UpdatePlanResponse {}
-
-message DeletePlanRequest { string id = 1; }
-message DeletePlanResponse {}
 
 message AddMealRequest {
   string plan_id = 1;
@@ -108,9 +102,7 @@ message UnsharePlanResponse {}
 service MealPlansService {
   rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
   rpc GetPlan(GetPlanRequest) returns (GetPlanResponse);
-  rpc CreatePlan(CreatePlanRequest) returns (CreatePlanResponse);
   rpc UpdatePlan(UpdatePlanRequest) returns (UpdatePlanResponse);
-  rpc DeletePlan(DeletePlanRequest) returns (DeletePlanResponse);
   rpc AddMeal(AddMealRequest) returns (AddMealResponse);
   rpc DeleteMeal(DeleteMealRequest) returns (DeleteMealResponse);
   rpc MoveMeal(MoveMealRequest) returns (MoveMealResponse);

@@ -35,19 +35,21 @@ describe('useRecipes', () => {
 })
 
 describe('useRecipe', () => {
+  const opts = { keepPreviousData: true }
+
   it('uses /recipes/:id as key when id is given', () => {
     renderHook(() => useRecipe('r-1'))
-    expect(mockUseSWR).toHaveBeenCalledWith('/recipes/r-1', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/recipes/r-1', expect.any(Function), opts)
   })
 
   it('includes servings in key when provided', () => {
     renderHook(() => useRecipe('r-1', 4))
-    expect(mockUseSWR).toHaveBeenCalledWith('/recipes/r-1?servings=4', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/recipes/r-1?servings=4', expect.any(Function), opts)
   })
 
   it('passes null as key when id is empty', () => {
     renderHook(() => useRecipe(''))
-    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function), opts)
   })
 })
 

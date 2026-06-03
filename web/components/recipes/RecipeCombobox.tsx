@@ -54,6 +54,12 @@ export default function RecipeCombobox({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setHighlightedIndex((i) => Math.max(i - 1, -1))
+    } else if (e.key === 'Tab') {
+      const target = highlightedIndex >= 0 ? filtered[highlightedIndex] : filtered[0]
+      if (open && target) {
+        e.preventDefault()
+        selectRecipe(target)
+      }
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (highlightedIndex >= 0 && filtered[highlightedIndex]) {

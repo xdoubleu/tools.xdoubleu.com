@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   data: GetSettingsResponse
@@ -85,20 +86,12 @@ export function SettingsSections({ data, mutate }: Props) {
             </select>
           )}
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={!name.trim()}
-              className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-            >
+            <Button type="submit" size="sm" disabled={!name.trim()}>
               Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdding(false)}
-              className="rounded px-3 py-1.5 text-sm text-muted hover:text-subtle"
-            >
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : (

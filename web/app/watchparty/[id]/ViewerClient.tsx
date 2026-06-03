@@ -77,7 +77,7 @@ export default function ViewerClient({ id }: { id: string }) {
       <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border bg-surface">
         <button
           onClick={toggleMic}
-          className={`px-4 py-1.5 rounded text-sm font-medium border ${
+          className={`px-4 py-1.5 rounded-xl text-sm font-medium border ${
             micEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
           }`}
         >
@@ -86,7 +86,7 @@ export default function ViewerClient({ id }: { id: string }) {
 
         <button
           onClick={toggleCam}
-          className={`px-4 py-1.5 rounded text-sm font-medium border ${
+          className={`px-4 py-1.5 rounded-xl text-sm font-medium border ${
             camEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
           }`}
         >
@@ -95,7 +95,7 @@ export default function ViewerClient({ id }: { id: string }) {
 
         <button
           onClick={toggleSelfCam}
-          className={`px-4 py-1.5 rounded text-sm font-medium border ${
+          className={`px-4 py-1.5 rounded-xl text-sm font-medium border ${
             selfCamVisible ? 'border-border hover:bg-accent' : 'border-border text-muted'
           }`}
         >

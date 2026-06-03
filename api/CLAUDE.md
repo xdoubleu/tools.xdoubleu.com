@@ -5,13 +5,14 @@ Go 1.26 backend for tools.xdoubleu.com. Run all `make` commands from this direct
 ## Common Commands
 
 ```bash
-# Local DB
-docker-compose up -d        # Start local PostgreSQL 18 (from repo root)
+# Local DB — always start before running tests, stop after
+docker-compose up -d        # Start local PostgreSQL 18
+docker-compose down         # Stop after tests are done
 
 # Build
 make build                  # Build ./bin/api (main server binary)
 
-# Testing
+# Testing (requires DB running — docker-compose up -d first)
 make test                   # Run all tests
 make test/v                 # Verbose output
 make test/race              # With race detector

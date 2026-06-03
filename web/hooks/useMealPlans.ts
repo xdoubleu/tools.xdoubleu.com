@@ -3,9 +3,7 @@ import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
 import {
   MealPlansService,
-  CreatePlanRequestSchema,
   UpdatePlanRequestSchema,
-  DeletePlanRequestSchema,
   AddMealRequestSchema,
   DeleteMealRequestSchema,
   MoveMealRequestSchema,
@@ -14,9 +12,7 @@ import {
 } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { ListPlansResponse, GetPlanResponse } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
-export type CreatePlanInput = MessageInitShape<typeof CreatePlanRequestSchema>
 export type UpdatePlanInput = MessageInitShape<typeof UpdatePlanRequestSchema>
-export type DeletePlanInput = MessageInitShape<typeof DeletePlanRequestSchema>
 export type AddMealInput = MessageInitShape<typeof AddMealRequestSchema>
 export type DeleteMealInput = MessageInitShape<typeof DeleteMealRequestSchema>
 export type MoveMealInput = MessageInitShape<typeof MoveMealRequestSchema>
@@ -35,19 +31,9 @@ export function useMealPlan(id: string, offset: number = 0) {
   )
 }
 
-export function useCreatePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: CreatePlanInput) => client.createPlan(req)
-}
-
 export function useUpdatePlan() {
   const client = createServiceClient(MealPlansService)
   return (req: UpdatePlanInput) => client.updatePlan(req)
-}
-
-export function useDeletePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: DeletePlanInput) => client.deletePlan(req)
 }
 
 export function useAddMeal() {

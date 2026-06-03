@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file mealplans/v1/mealplans.proto.
  */
 export const file_mealplans_v1_mealplans: GenFile = /*@__PURE__*/
-  fileDesc("ChxtZWFscGxhbnMvdjEvbWVhbHBsYW5zLnByb3RvEgxtZWFscGxhbnMudjEiqwEKCFBsYW5NZWFsEgoKAmlkGAEgASgJEg8KB3BsYW5faWQYAiABKAkSEQoJbWVhbF9kYXRlGAMgASgJEhEKCW1lYWxfc2xvdBgEIAEoCRIRCglyZWNpcGVfaWQYBSABKAkSEwoLY3VzdG9tX25hbWUYBiABKAkSEAoIc2VydmluZ3MYByABKAUSIgoGcmVjaXBlGAggASgLMhIucmVjaXBlcy52MS5SZWNpcGUi3QEKBFBsYW4SCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhIKCmljYWxfdG9rZW4YBCABKAkSEgoKY3JlYXRlZF9hdBgFIAEoCRISCgp1cGRhdGVkX2F0GAYgASgJEhAKCGNhbl9lZGl0GAcgASgIEiUKBW1lYWxzGAggAygLMhYubWVhbHBsYW5zLnYxLlBsYW5NZWFsEhcKD2ljYWxfaGlkZV9zbG90cxgJIAMoCRIWCg5pY2FsX2hpZGVfcGFzdBgKIAEoCCJJCg5QbGFuU2hhcmVkVXNlchIPCgd1c2VyX2lkGAEgASgJEhAKCGNhbl9lZGl0GAIgASgIEhQKDGRpc3BsYXlfbmFtZRgDIAEoCSISChBMaXN0UGxhbnNSZXF1ZXN0IjYKEUxpc3RQbGFuc1Jlc3BvbnNlEiEKBXBsYW5zGAEgAygLMhIubWVhbHBsYW5zLnYxLlBsYW4iLAoOR2V0UGxhblJlcXVlc3QSCgoCaWQYASABKAkSDgoGb2Zmc2V0GAIgASgFIpMCCg9HZXRQbGFuUmVzcG9uc2USIAoEcGxhbhgBIAEoCzISLm1lYWxwbGFucy52MS5QbGFuEiMKB3JlY2lwZXMYAiADKAsyEi5yZWNpcGVzLnYxLlJlY2lwZRIQCghpY2FsX3VybBgDIAEoCRIQCghpc19vd25lchgEIAEoCBIOCgZvZmZzZXQYBSABKAUSEwoLcHJldl9vZmZzZXQYBiABKAUSEwoLbmV4dF9vZmZzZXQYByABKAUSFAoMd2luZG93X3N0YXJ0GAggASgJEhIKCndpbmRvd19lbmQYCSABKAkSMQoLc2hhcmVkX3dpdGgYCiADKAsyHC5tZWFscGxhbnMudjEuUGxhblNoYXJlZFVzZXIiIQoRQ3JlYXRlUGxhblJlcXVlc3QSDAoEbmFtZRgBIAEoCSI2ChJDcmVhdGVQbGFuUmVzcG9uc2USIAoEcGxhbhgBIAEoCzISLm1lYWxwbGFucy52MS5QbGFuIl4KEVVwZGF0ZVBsYW5SZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSFwoPaWNhbF9oaWRlX3Nsb3RzGAMgAygJEhYKDmljYWxfaGlkZV9wYXN0GAQgASgIIhQKElVwZGF0ZVBsYW5SZXNwb25zZSIfChFEZWxldGVQbGFuUmVxdWVzdBIKCgJpZBgBIAEoCSIUChJEZWxldGVQbGFuUmVzcG9uc2UigQEKDkFkZE1lYWxSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSEQoJbWVhbF9kYXRlGAIgASgJEhEKCW1lYWxfc2xvdBgDIAEoCRIRCglyZWNpcGVfaWQYBCABKAkSEwoLY3VzdG9tX25hbWUYBSABKAkSEAoIc2VydmluZ3MYBiABKAUiEQoPQWRkTWVhbFJlc3BvbnNlIjUKEURlbGV0ZU1lYWxSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSDwoHbWVhbF9pZBgCIAEoCSIUChJEZWxldGVNZWFsUmVzcG9uc2UiVwoPTW92ZU1lYWxSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSDwoHbWVhbF9pZBgCIAEoCRIQCghuZXdfZGF0ZRgDIAEoCRIQCghuZXdfc2xvdBgEIAEoCSISChBNb3ZlTWVhbFJlc3BvbnNlIk4KEFNoYXJlUGxhblJlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIXCg9jb250YWN0X3VzZXJfaWQYAiABKAkSEAoIY2FuX2VkaXQYAyABKAgiEwoRU2hhcmVQbGFuUmVzcG9uc2UiPQoSVW5zaGFyZVBsYW5SZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSFgoOdGFyZ2V0X3VzZXJfaWQYAiABKAkiFQoTVW5zaGFyZVBsYW5SZXNwb25zZTKhBgoQTWVhbFBsYW5zU2VydmljZRJMCglMaXN0UGxhbnMSHi5tZWFscGxhbnMudjEuTGlzdFBsYW5zUmVxdWVzdBofLm1lYWxwbGFucy52MS5MaXN0UGxhbnNSZXNwb25zZRJGCgdHZXRQbGFuEhwubWVhbHBsYW5zLnYxLkdldFBsYW5SZXF1ZXN0Gh0ubWVhbHBsYW5zLnYxLkdldFBsYW5SZXNwb25zZRJPCgpDcmVhdGVQbGFuEh8ubWVhbHBsYW5zLnYxLkNyZWF0ZVBsYW5SZXF1ZXN0GiAubWVhbHBsYW5zLnYxLkNyZWF0ZVBsYW5SZXNwb25zZRJPCgpVcGRhdGVQbGFuEh8ubWVhbHBsYW5zLnYxLlVwZGF0ZVBsYW5SZXF1ZXN0GiAubWVhbHBsYW5zLnYxLlVwZGF0ZVBsYW5SZXNwb25zZRJPCgpEZWxldGVQbGFuEh8ubWVhbHBsYW5zLnYxLkRlbGV0ZVBsYW5SZXF1ZXN0GiAubWVhbHBsYW5zLnYxLkRlbGV0ZVBsYW5SZXNwb25zZRJGCgdBZGRNZWFsEhwubWVhbHBsYW5zLnYxLkFkZE1lYWxSZXF1ZXN0Gh0ubWVhbHBsYW5zLnYxLkFkZE1lYWxSZXNwb25zZRJPCgpEZWxldGVNZWFsEh8ubWVhbHBsYW5zLnYxLkRlbGV0ZU1lYWxSZXF1ZXN0GiAubWVhbHBsYW5zLnYxLkRlbGV0ZU1lYWxSZXNwb25zZRJJCghNb3ZlTWVhbBIdLm1lYWxwbGFucy52MS5Nb3ZlTWVhbFJlcXVlc3QaHi5tZWFscGxhbnMudjEuTW92ZU1lYWxSZXNwb25zZRJMCglTaGFyZVBsYW4SHi5tZWFscGxhbnMudjEuU2hhcmVQbGFuUmVxdWVzdBofLm1lYWxwbGFucy52MS5TaGFyZVBsYW5SZXNwb25zZRJSCgtVbnNoYXJlUGxhbhIgLm1lYWxwbGFucy52MS5VbnNoYXJlUGxhblJlcXVlc3QaIS5tZWFscGxhbnMudjEuVW5zaGFyZVBsYW5SZXNwb25zZUIxWi90b29scy54ZG91YmxldS5jb20vZ2VuL21lYWxwbGFucy92MTttZWFscGxhbnN2MWIGcHJvdG8z", [file_recipes_v1_recipes]);
+  fileDesc("ChxtZWFscGxhbnMvdjEvbWVhbHBsYW5zLnByb3RvEgxtZWFscGxhbnMudjEiqwEKCFBsYW5NZWFsEgoKAmlkGAEgASgJEg8KB3BsYW5faWQYAiABKAkSEQoJbWVhbF9kYXRlGAMgASgJEhEKCW1lYWxfc2xvdBgEIAEoCRIRCglyZWNpcGVfaWQYBSABKAkSEwoLY3VzdG9tX25hbWUYBiABKAkSEAoIc2VydmluZ3MYByABKAUSIgoGcmVjaXBlGAggASgLMhIucmVjaXBlcy52MS5SZWNpcGUi3QEKBFBsYW4SCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhIKCmljYWxfdG9rZW4YBCABKAkSEgoKY3JlYXRlZF9hdBgFIAEoCRISCgp1cGRhdGVkX2F0GAYgASgJEhAKCGNhbl9lZGl0GAcgASgIEiUKBW1lYWxzGAggAygLMhYubWVhbHBsYW5zLnYxLlBsYW5NZWFsEhcKD2ljYWxfaGlkZV9zbG90cxgJIAMoCRIWCg5pY2FsX2hpZGVfcGFzdBgKIAEoCCJJCg5QbGFuU2hhcmVkVXNlchIPCgd1c2VyX2lkGAEgASgJEhAKCGNhbl9lZGl0GAIgASgIEhQKDGRpc3BsYXlfbmFtZRgDIAEoCSISChBMaXN0UGxhbnNSZXF1ZXN0IjYKEUxpc3RQbGFuc1Jlc3BvbnNlEiEKBXBsYW5zGAEgAygLMhIubWVhbHBsYW5zLnYxLlBsYW4iLAoOR2V0UGxhblJlcXVlc3QSCgoCaWQYASABKAkSDgoGb2Zmc2V0GAIgASgFIpMCCg9HZXRQbGFuUmVzcG9uc2USIAoEcGxhbhgBIAEoCzISLm1lYWxwbGFucy52MS5QbGFuEiMKB3JlY2lwZXMYAiADKAsyEi5yZWNpcGVzLnYxLlJlY2lwZRIQCghpY2FsX3VybBgDIAEoCRIQCghpc19vd25lchgEIAEoCBIOCgZvZmZzZXQYBSABKAUSEwoLcHJldl9vZmZzZXQYBiABKAUSEwoLbmV4dF9vZmZzZXQYByABKAUSFAoMd2luZG93X3N0YXJ0GAggASgJEhIKCndpbmRvd19lbmQYCSABKAkSMQoLc2hhcmVkX3dpdGgYCiADKAsyHC5tZWFscGxhbnMudjEuUGxhblNoYXJlZFVzZXIiXgoRVXBkYXRlUGxhblJlcXVlc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIXCg9pY2FsX2hpZGVfc2xvdHMYAyADKAkSFgoOaWNhbF9oaWRlX3Bhc3QYBCABKAgiFAoSVXBkYXRlUGxhblJlc3BvbnNlIoEBCg5BZGRNZWFsUmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEhEKCW1lYWxfZGF0ZRgCIAEoCRIRCgltZWFsX3Nsb3QYAyABKAkSEQoJcmVjaXBlX2lkGAQgASgJEhMKC2N1c3RvbV9uYW1lGAUgASgJEhAKCHNlcnZpbmdzGAYgASgFIhEKD0FkZE1lYWxSZXNwb25zZSI1ChFEZWxldGVNZWFsUmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEg8KB21lYWxfaWQYAiABKAkiFAoSRGVsZXRlTWVhbFJlc3BvbnNlIlcKD01vdmVNZWFsUmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEg8KB21lYWxfaWQYAiABKAkSEAoIbmV3X2RhdGUYAyABKAkSEAoIbmV3X3Nsb3QYBCABKAkiEgoQTW92ZU1lYWxSZXNwb25zZSJOChBTaGFyZVBsYW5SZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSFwoPY29udGFjdF91c2VyX2lkGAIgASgJEhAKCGNhbl9lZGl0GAMgASgIIhMKEVNoYXJlUGxhblJlc3BvbnNlIj0KElVuc2hhcmVQbGFuUmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEhYKDnRhcmdldF91c2VyX2lkGAIgASgJIhUKE1Vuc2hhcmVQbGFuUmVzcG9uc2Uy/wQKEE1lYWxQbGFuc1NlcnZpY2USTAoJTGlzdFBsYW5zEh4ubWVhbHBsYW5zLnYxLkxpc3RQbGFuc1JlcXVlc3QaHy5tZWFscGxhbnMudjEuTGlzdFBsYW5zUmVzcG9uc2USRgoHR2V0UGxhbhIcLm1lYWxwbGFucy52MS5HZXRQbGFuUmVxdWVzdBodLm1lYWxwbGFucy52MS5HZXRQbGFuUmVzcG9uc2USTwoKVXBkYXRlUGxhbhIfLm1lYWxwbGFucy52MS5VcGRhdGVQbGFuUmVxdWVzdBogLm1lYWxwbGFucy52MS5VcGRhdGVQbGFuUmVzcG9uc2USRgoHQWRkTWVhbBIcLm1lYWxwbGFucy52MS5BZGRNZWFsUmVxdWVzdBodLm1lYWxwbGFucy52MS5BZGRNZWFsUmVzcG9uc2USTwoKRGVsZXRlTWVhbBIfLm1lYWxwbGFucy52MS5EZWxldGVNZWFsUmVxdWVzdBogLm1lYWxwbGFucy52MS5EZWxldGVNZWFsUmVzcG9uc2USSQoITW92ZU1lYWwSHS5tZWFscGxhbnMudjEuTW92ZU1lYWxSZXF1ZXN0Gh4ubWVhbHBsYW5zLnYxLk1vdmVNZWFsUmVzcG9uc2USTAoJU2hhcmVQbGFuEh4ubWVhbHBsYW5zLnYxLlNoYXJlUGxhblJlcXVlc3QaHy5tZWFscGxhbnMudjEuU2hhcmVQbGFuUmVzcG9uc2USUgoLVW5zaGFyZVBsYW4SIC5tZWFscGxhbnMudjEuVW5zaGFyZVBsYW5SZXF1ZXN0GiEubWVhbHBsYW5zLnYxLlVuc2hhcmVQbGFuUmVzcG9uc2VCMVovdG9vbHMueGRvdWJsZXUuY29tL2dlbi9tZWFscGxhbnMvdjE7bWVhbHBsYW5zdjFiBnByb3RvMw", [file_recipes_v1_recipes]);
 
 /**
  * @generated from message mealplans.v1.PlanMeal
@@ -270,40 +270,6 @@ export const GetPlanResponseSchema: GenMessage<GetPlanResponse> = /*@__PURE__*/
   messageDesc(file_mealplans_v1_mealplans, 6);
 
 /**
- * @generated from message mealplans.v1.CreatePlanRequest
- */
-export type CreatePlanRequest = Message<"mealplans.v1.CreatePlanRequest"> & {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name: string;
-};
-
-/**
- * Describes the message mealplans.v1.CreatePlanRequest.
- * Use `create(CreatePlanRequestSchema)` to create a new message.
- */
-export const CreatePlanRequestSchema: GenMessage<CreatePlanRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 7);
-
-/**
- * @generated from message mealplans.v1.CreatePlanResponse
- */
-export type CreatePlanResponse = Message<"mealplans.v1.CreatePlanResponse"> & {
-  /**
-   * @generated from field: mealplans.v1.Plan plan = 1;
-   */
-  plan?: Plan | undefined;
-};
-
-/**
- * Describes the message mealplans.v1.CreatePlanResponse.
- * Use `create(CreatePlanResponseSchema)` to create a new message.
- */
-export const CreatePlanResponseSchema: GenMessage<CreatePlanResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 8);
-
-/**
  * @generated from message mealplans.v1.UpdatePlanRequest
  */
 export type UpdatePlanRequest = Message<"mealplans.v1.UpdatePlanRequest"> & {
@@ -333,7 +299,7 @@ export type UpdatePlanRequest = Message<"mealplans.v1.UpdatePlanRequest"> & {
  * Use `create(UpdatePlanRequestSchema)` to create a new message.
  */
 export const UpdatePlanRequestSchema: GenMessage<UpdatePlanRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 9);
+  messageDesc(file_mealplans_v1_mealplans, 7);
 
 /**
  * @generated from message mealplans.v1.UpdatePlanResponse
@@ -346,37 +312,7 @@ export type UpdatePlanResponse = Message<"mealplans.v1.UpdatePlanResponse"> & {
  * Use `create(UpdatePlanResponseSchema)` to create a new message.
  */
 export const UpdatePlanResponseSchema: GenMessage<UpdatePlanResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 10);
-
-/**
- * @generated from message mealplans.v1.DeletePlanRequest
- */
-export type DeletePlanRequest = Message<"mealplans.v1.DeletePlanRequest"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-};
-
-/**
- * Describes the message mealplans.v1.DeletePlanRequest.
- * Use `create(DeletePlanRequestSchema)` to create a new message.
- */
-export const DeletePlanRequestSchema: GenMessage<DeletePlanRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 11);
-
-/**
- * @generated from message mealplans.v1.DeletePlanResponse
- */
-export type DeletePlanResponse = Message<"mealplans.v1.DeletePlanResponse"> & {
-};
-
-/**
- * Describes the message mealplans.v1.DeletePlanResponse.
- * Use `create(DeletePlanResponseSchema)` to create a new message.
- */
-export const DeletePlanResponseSchema: GenMessage<DeletePlanResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 12);
+  messageDesc(file_mealplans_v1_mealplans, 8);
 
 /**
  * @generated from message mealplans.v1.AddMealRequest
@@ -418,7 +354,7 @@ export type AddMealRequest = Message<"mealplans.v1.AddMealRequest"> & {
  * Use `create(AddMealRequestSchema)` to create a new message.
  */
 export const AddMealRequestSchema: GenMessage<AddMealRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 13);
+  messageDesc(file_mealplans_v1_mealplans, 9);
 
 /**
  * @generated from message mealplans.v1.AddMealResponse
@@ -431,7 +367,7 @@ export type AddMealResponse = Message<"mealplans.v1.AddMealResponse"> & {
  * Use `create(AddMealResponseSchema)` to create a new message.
  */
 export const AddMealResponseSchema: GenMessage<AddMealResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 14);
+  messageDesc(file_mealplans_v1_mealplans, 10);
 
 /**
  * @generated from message mealplans.v1.DeleteMealRequest
@@ -453,7 +389,7 @@ export type DeleteMealRequest = Message<"mealplans.v1.DeleteMealRequest"> & {
  * Use `create(DeleteMealRequestSchema)` to create a new message.
  */
 export const DeleteMealRequestSchema: GenMessage<DeleteMealRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 15);
+  messageDesc(file_mealplans_v1_mealplans, 11);
 
 /**
  * @generated from message mealplans.v1.DeleteMealResponse
@@ -466,7 +402,7 @@ export type DeleteMealResponse = Message<"mealplans.v1.DeleteMealResponse"> & {
  * Use `create(DeleteMealResponseSchema)` to create a new message.
  */
 export const DeleteMealResponseSchema: GenMessage<DeleteMealResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 16);
+  messageDesc(file_mealplans_v1_mealplans, 12);
 
 /**
  * @generated from message mealplans.v1.MoveMealRequest
@@ -498,7 +434,7 @@ export type MoveMealRequest = Message<"mealplans.v1.MoveMealRequest"> & {
  * Use `create(MoveMealRequestSchema)` to create a new message.
  */
 export const MoveMealRequestSchema: GenMessage<MoveMealRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 17);
+  messageDesc(file_mealplans_v1_mealplans, 13);
 
 /**
  * @generated from message mealplans.v1.MoveMealResponse
@@ -511,7 +447,7 @@ export type MoveMealResponse = Message<"mealplans.v1.MoveMealResponse"> & {
  * Use `create(MoveMealResponseSchema)` to create a new message.
  */
 export const MoveMealResponseSchema: GenMessage<MoveMealResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 18);
+  messageDesc(file_mealplans_v1_mealplans, 14);
 
 /**
  * @generated from message mealplans.v1.SharePlanRequest
@@ -538,7 +474,7 @@ export type SharePlanRequest = Message<"mealplans.v1.SharePlanRequest"> & {
  * Use `create(SharePlanRequestSchema)` to create a new message.
  */
 export const SharePlanRequestSchema: GenMessage<SharePlanRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 19);
+  messageDesc(file_mealplans_v1_mealplans, 15);
 
 /**
  * @generated from message mealplans.v1.SharePlanResponse
@@ -551,7 +487,7 @@ export type SharePlanResponse = Message<"mealplans.v1.SharePlanResponse"> & {
  * Use `create(SharePlanResponseSchema)` to create a new message.
  */
 export const SharePlanResponseSchema: GenMessage<SharePlanResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 20);
+  messageDesc(file_mealplans_v1_mealplans, 16);
 
 /**
  * @generated from message mealplans.v1.UnsharePlanRequest
@@ -573,7 +509,7 @@ export type UnsharePlanRequest = Message<"mealplans.v1.UnsharePlanRequest"> & {
  * Use `create(UnsharePlanRequestSchema)` to create a new message.
  */
 export const UnsharePlanRequestSchema: GenMessage<UnsharePlanRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 21);
+  messageDesc(file_mealplans_v1_mealplans, 17);
 
 /**
  * @generated from message mealplans.v1.UnsharePlanResponse
@@ -586,7 +522,7 @@ export type UnsharePlanResponse = Message<"mealplans.v1.UnsharePlanResponse"> & 
  * Use `create(UnsharePlanResponseSchema)` to create a new message.
  */
 export const UnsharePlanResponseSchema: GenMessage<UnsharePlanResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 22);
+  messageDesc(file_mealplans_v1_mealplans, 18);
 
 /**
  * @generated from service mealplans.v1.MealPlansService
@@ -609,28 +545,12 @@ export const MealPlansService: GenService<{
     output: typeof GetPlanResponseSchema;
   },
   /**
-   * @generated from rpc mealplans.v1.MealPlansService.CreatePlan
-   */
-  createPlan: {
-    methodKind: "unary";
-    input: typeof CreatePlanRequestSchema;
-    output: typeof CreatePlanResponseSchema;
-  },
-  /**
    * @generated from rpc mealplans.v1.MealPlansService.UpdatePlan
    */
   updatePlan: {
     methodKind: "unary";
     input: typeof UpdatePlanRequestSchema;
     output: typeof UpdatePlanResponseSchema;
-  },
-  /**
-   * @generated from rpc mealplans.v1.MealPlansService.DeletePlan
-   */
-  deletePlan: {
-    methodKind: "unary";
-    input: typeof DeletePlanRequestSchema;
-    output: typeof DeletePlanResponseSchema;
   },
   /**
    * @generated from rpc mealplans.v1.MealPlansService.AddMeal

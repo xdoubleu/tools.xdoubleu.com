@@ -25,8 +25,12 @@ export function useRecipes() {
 export function useRecipe(id: string, servings?: number) {
   const client = createServiceClient(RecipesService)
   const key = id ? (servings ? `/recipes/${id}?servings=${servings}` : `/recipes/${id}`) : null
-  return useSWR<GetRecipeResponse, Error>(key, () =>
-    client.getRecipe({ id, servings: servings ?? 0 })
+  return useSWR<GetRecipeResponse, Error>(
+    key,
+    () => client.getRecipe({ id, servings: servings ?? 0 }),
+    {
+      keepPreviousData: true
+    }
   )
 }
 

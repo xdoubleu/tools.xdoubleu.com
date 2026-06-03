@@ -546,94 +546,6 @@ func (x *GetPlanResponse) GetSharedWith() []*PlanSharedUser {
 	return nil
 }
 
-type CreatePlanRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreatePlanRequest) Reset() {
-	*x = CreatePlanRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreatePlanRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreatePlanRequest) ProtoMessage() {}
-
-func (x *CreatePlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreatePlanRequest.ProtoReflect.Descriptor instead.
-func (*CreatePlanRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *CreatePlanRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-type CreatePlanResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Plan          *Plan                  `protobuf:"bytes,1,opt,name=plan,proto3" json:"plan,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreatePlanResponse) Reset() {
-	*x = CreatePlanResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreatePlanResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreatePlanResponse) ProtoMessage() {}
-
-func (x *CreatePlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreatePlanResponse.ProtoReflect.Descriptor instead.
-func (*CreatePlanResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *CreatePlanResponse) GetPlan() *Plan {
-	if x != nil {
-		return x.Plan
-	}
-	return nil
-}
-
 type UpdatePlanRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -646,7 +558,7 @@ type UpdatePlanRequest struct {
 
 func (x *UpdatePlanRequest) Reset() {
 	*x = UpdatePlanRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[9]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -658,7 +570,7 @@ func (x *UpdatePlanRequest) String() string {
 func (*UpdatePlanRequest) ProtoMessage() {}
 
 func (x *UpdatePlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[9]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -671,7 +583,7 @@ func (x *UpdatePlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePlanRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePlanRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{9}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdatePlanRequest) GetId() string {
@@ -710,7 +622,7 @@ type UpdatePlanResponse struct {
 
 func (x *UpdatePlanResponse) Reset() {
 	*x = UpdatePlanResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[10]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -722,7 +634,7 @@ func (x *UpdatePlanResponse) String() string {
 func (*UpdatePlanResponse) ProtoMessage() {}
 
 func (x *UpdatePlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[10]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -735,87 +647,7 @@ func (x *UpdatePlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePlanResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePlanResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{10}
-}
-
-type DeletePlanRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeletePlanRequest) Reset() {
-	*x = DeletePlanRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeletePlanRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeletePlanRequest) ProtoMessage() {}
-
-func (x *DeletePlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeletePlanRequest.ProtoReflect.Descriptor instead.
-func (*DeletePlanRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *DeletePlanRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type DeletePlanResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeletePlanResponse) Reset() {
-	*x = DeletePlanResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeletePlanResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeletePlanResponse) ProtoMessage() {}
-
-func (x *DeletePlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeletePlanResponse.ProtoReflect.Descriptor instead.
-func (*DeletePlanResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{12}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{8}
 }
 
 type AddMealRequest struct {
@@ -832,7 +664,7 @@ type AddMealRequest struct {
 
 func (x *AddMealRequest) Reset() {
 	*x = AddMealRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[13]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -844,7 +676,7 @@ func (x *AddMealRequest) String() string {
 func (*AddMealRequest) ProtoMessage() {}
 
 func (x *AddMealRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[13]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -857,7 +689,7 @@ func (x *AddMealRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddMealRequest.ProtoReflect.Descriptor instead.
 func (*AddMealRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{13}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AddMealRequest) GetPlanId() string {
@@ -910,7 +742,7 @@ type AddMealResponse struct {
 
 func (x *AddMealResponse) Reset() {
 	*x = AddMealResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[14]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -922,7 +754,7 @@ func (x *AddMealResponse) String() string {
 func (*AddMealResponse) ProtoMessage() {}
 
 func (x *AddMealResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[14]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -935,7 +767,7 @@ func (x *AddMealResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddMealResponse.ProtoReflect.Descriptor instead.
 func (*AddMealResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{14}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{10}
 }
 
 type DeleteMealRequest struct {
@@ -948,7 +780,7 @@ type DeleteMealRequest struct {
 
 func (x *DeleteMealRequest) Reset() {
 	*x = DeleteMealRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[15]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -960,7 +792,7 @@ func (x *DeleteMealRequest) String() string {
 func (*DeleteMealRequest) ProtoMessage() {}
 
 func (x *DeleteMealRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[15]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -973,7 +805,7 @@ func (x *DeleteMealRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMealRequest.ProtoReflect.Descriptor instead.
 func (*DeleteMealRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{15}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteMealRequest) GetPlanId() string {
@@ -998,7 +830,7 @@ type DeleteMealResponse struct {
 
 func (x *DeleteMealResponse) Reset() {
 	*x = DeleteMealResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[16]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1010,7 +842,7 @@ func (x *DeleteMealResponse) String() string {
 func (*DeleteMealResponse) ProtoMessage() {}
 
 func (x *DeleteMealResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[16]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1023,7 +855,7 @@ func (x *DeleteMealResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMealResponse.ProtoReflect.Descriptor instead.
 func (*DeleteMealResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{16}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{12}
 }
 
 type MoveMealRequest struct {
@@ -1038,7 +870,7 @@ type MoveMealRequest struct {
 
 func (x *MoveMealRequest) Reset() {
 	*x = MoveMealRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[17]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1050,7 +882,7 @@ func (x *MoveMealRequest) String() string {
 func (*MoveMealRequest) ProtoMessage() {}
 
 func (x *MoveMealRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[17]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1063,7 +895,7 @@ func (x *MoveMealRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MoveMealRequest.ProtoReflect.Descriptor instead.
 func (*MoveMealRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{17}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *MoveMealRequest) GetPlanId() string {
@@ -1102,7 +934,7 @@ type MoveMealResponse struct {
 
 func (x *MoveMealResponse) Reset() {
 	*x = MoveMealResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[18]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1114,7 +946,7 @@ func (x *MoveMealResponse) String() string {
 func (*MoveMealResponse) ProtoMessage() {}
 
 func (x *MoveMealResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[18]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +959,7 @@ func (x *MoveMealResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MoveMealResponse.ProtoReflect.Descriptor instead.
 func (*MoveMealResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{18}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{14}
 }
 
 type SharePlanRequest struct {
@@ -1141,7 +973,7 @@ type SharePlanRequest struct {
 
 func (x *SharePlanRequest) Reset() {
 	*x = SharePlanRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[19]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1153,7 +985,7 @@ func (x *SharePlanRequest) String() string {
 func (*SharePlanRequest) ProtoMessage() {}
 
 func (x *SharePlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[19]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1166,7 +998,7 @@ func (x *SharePlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SharePlanRequest.ProtoReflect.Descriptor instead.
 func (*SharePlanRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{19}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SharePlanRequest) GetPlanId() string {
@@ -1198,7 +1030,7 @@ type SharePlanResponse struct {
 
 func (x *SharePlanResponse) Reset() {
 	*x = SharePlanResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[20]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1210,7 +1042,7 @@ func (x *SharePlanResponse) String() string {
 func (*SharePlanResponse) ProtoMessage() {}
 
 func (x *SharePlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[20]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1223,7 +1055,7 @@ func (x *SharePlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SharePlanResponse.ProtoReflect.Descriptor instead.
 func (*SharePlanResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{20}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{16}
 }
 
 type UnsharePlanRequest struct {
@@ -1236,7 +1068,7 @@ type UnsharePlanRequest struct {
 
 func (x *UnsharePlanRequest) Reset() {
 	*x = UnsharePlanRequest{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[21]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1248,7 +1080,7 @@ func (x *UnsharePlanRequest) String() string {
 func (*UnsharePlanRequest) ProtoMessage() {}
 
 func (x *UnsharePlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[21]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1261,7 +1093,7 @@ func (x *UnsharePlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsharePlanRequest.ProtoReflect.Descriptor instead.
 func (*UnsharePlanRequest) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{21}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UnsharePlanRequest) GetPlanId() string {
@@ -1286,7 +1118,7 @@ type UnsharePlanResponse struct {
 
 func (x *UnsharePlanResponse) Reset() {
 	*x = UnsharePlanResponse{}
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[22]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1298,7 +1130,7 @@ func (x *UnsharePlanResponse) String() string {
 func (*UnsharePlanResponse) ProtoMessage() {}
 
 func (x *UnsharePlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mealplans_v1_mealplans_proto_msgTypes[22]
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1311,7 +1143,7 @@ func (x *UnsharePlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsharePlanResponse.ProtoReflect.Descriptor instead.
 func (*UnsharePlanResponse) Descriptor() ([]byte, []int) {
-	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{22}
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{18}
 }
 
 var File_mealplans_v1_mealplans_proto protoreflect.FileDescriptor
@@ -1369,20 +1201,13 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"window_end\x18\t \x01(\tR\twindowEnd\x12=\n" +
 	"\vshared_with\x18\n" +
 	" \x03(\v2\x1c.mealplans.v1.PlanSharedUserR\n" +
-	"sharedWith\"'\n" +
-	"\x11CreatePlanRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"<\n" +
-	"\x12CreatePlanResponse\x12&\n" +
-	"\x04plan\x18\x01 \x01(\v2\x12.mealplans.v1.PlanR\x04plan\"\x85\x01\n" +
+	"sharedWith\"\x85\x01\n" +
 	"\x11UpdatePlanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
 	"\x0fical_hide_slots\x18\x03 \x03(\tR\ricalHideSlots\x12$\n" +
 	"\x0eical_hide_past\x18\x04 \x01(\bR\ficalHidePast\"\x14\n" +
-	"\x12UpdatePlanResponse\"#\n" +
-	"\x11DeletePlanRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x14\n" +
-	"\x12DeletePlanResponse\"\xbd\x01\n" +
+	"\x12UpdatePlanResponse\"\xbd\x01\n" +
 	"\x0eAddMealRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
 	"\tmeal_date\x18\x02 \x01(\tR\bmealDate\x12\x1b\n" +
@@ -1410,16 +1235,12 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x12UnsharePlanRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12$\n" +
 	"\x0etarget_user_id\x18\x02 \x01(\tR\ftargetUserId\"\x15\n" +
-	"\x13UnsharePlanResponse2\xa1\x06\n" +
+	"\x13UnsharePlanResponse2\xff\x04\n" +
 	"\x10MealPlansService\x12L\n" +
 	"\tListPlans\x12\x1e.mealplans.v1.ListPlansRequest\x1a\x1f.mealplans.v1.ListPlansResponse\x12F\n" +
 	"\aGetPlan\x12\x1c.mealplans.v1.GetPlanRequest\x1a\x1d.mealplans.v1.GetPlanResponse\x12O\n" +
 	"\n" +
-	"CreatePlan\x12\x1f.mealplans.v1.CreatePlanRequest\x1a .mealplans.v1.CreatePlanResponse\x12O\n" +
-	"\n" +
-	"UpdatePlan\x12\x1f.mealplans.v1.UpdatePlanRequest\x1a .mealplans.v1.UpdatePlanResponse\x12O\n" +
-	"\n" +
-	"DeletePlan\x12\x1f.mealplans.v1.DeletePlanRequest\x1a .mealplans.v1.DeletePlanResponse\x12F\n" +
+	"UpdatePlan\x12\x1f.mealplans.v1.UpdatePlanRequest\x1a .mealplans.v1.UpdatePlanResponse\x12F\n" +
 	"\aAddMeal\x12\x1c.mealplans.v1.AddMealRequest\x1a\x1d.mealplans.v1.AddMealResponse\x12O\n" +
 	"\n" +
 	"DeleteMeal\x12\x1f.mealplans.v1.DeleteMealRequest\x1a .mealplans.v1.DeleteMealResponse\x12I\n" +
@@ -1439,7 +1260,7 @@ func file_mealplans_v1_mealplans_proto_rawDescGZIP() []byte {
 	return file_mealplans_v1_mealplans_proto_rawDescData
 }
 
-var file_mealplans_v1_mealplans_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_mealplans_v1_mealplans_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_mealplans_v1_mealplans_proto_goTypes = []any{
 	(*PlanMeal)(nil),            // 0: mealplans.v1.PlanMeal
 	(*Plan)(nil),                // 1: mealplans.v1.Plan
@@ -1448,57 +1269,48 @@ var file_mealplans_v1_mealplans_proto_goTypes = []any{
 	(*ListPlansResponse)(nil),   // 4: mealplans.v1.ListPlansResponse
 	(*GetPlanRequest)(nil),      // 5: mealplans.v1.GetPlanRequest
 	(*GetPlanResponse)(nil),     // 6: mealplans.v1.GetPlanResponse
-	(*CreatePlanRequest)(nil),   // 7: mealplans.v1.CreatePlanRequest
-	(*CreatePlanResponse)(nil),  // 8: mealplans.v1.CreatePlanResponse
-	(*UpdatePlanRequest)(nil),   // 9: mealplans.v1.UpdatePlanRequest
-	(*UpdatePlanResponse)(nil),  // 10: mealplans.v1.UpdatePlanResponse
-	(*DeletePlanRequest)(nil),   // 11: mealplans.v1.DeletePlanRequest
-	(*DeletePlanResponse)(nil),  // 12: mealplans.v1.DeletePlanResponse
-	(*AddMealRequest)(nil),      // 13: mealplans.v1.AddMealRequest
-	(*AddMealResponse)(nil),     // 14: mealplans.v1.AddMealResponse
-	(*DeleteMealRequest)(nil),   // 15: mealplans.v1.DeleteMealRequest
-	(*DeleteMealResponse)(nil),  // 16: mealplans.v1.DeleteMealResponse
-	(*MoveMealRequest)(nil),     // 17: mealplans.v1.MoveMealRequest
-	(*MoveMealResponse)(nil),    // 18: mealplans.v1.MoveMealResponse
-	(*SharePlanRequest)(nil),    // 19: mealplans.v1.SharePlanRequest
-	(*SharePlanResponse)(nil),   // 20: mealplans.v1.SharePlanResponse
-	(*UnsharePlanRequest)(nil),  // 21: mealplans.v1.UnsharePlanRequest
-	(*UnsharePlanResponse)(nil), // 22: mealplans.v1.UnsharePlanResponse
-	(*v1.Recipe)(nil),           // 23: recipes.v1.Recipe
+	(*UpdatePlanRequest)(nil),   // 7: mealplans.v1.UpdatePlanRequest
+	(*UpdatePlanResponse)(nil),  // 8: mealplans.v1.UpdatePlanResponse
+	(*AddMealRequest)(nil),      // 9: mealplans.v1.AddMealRequest
+	(*AddMealResponse)(nil),     // 10: mealplans.v1.AddMealResponse
+	(*DeleteMealRequest)(nil),   // 11: mealplans.v1.DeleteMealRequest
+	(*DeleteMealResponse)(nil),  // 12: mealplans.v1.DeleteMealResponse
+	(*MoveMealRequest)(nil),     // 13: mealplans.v1.MoveMealRequest
+	(*MoveMealResponse)(nil),    // 14: mealplans.v1.MoveMealResponse
+	(*SharePlanRequest)(nil),    // 15: mealplans.v1.SharePlanRequest
+	(*SharePlanResponse)(nil),   // 16: mealplans.v1.SharePlanResponse
+	(*UnsharePlanRequest)(nil),  // 17: mealplans.v1.UnsharePlanRequest
+	(*UnsharePlanResponse)(nil), // 18: mealplans.v1.UnsharePlanResponse
+	(*v1.Recipe)(nil),           // 19: recipes.v1.Recipe
 }
 var file_mealplans_v1_mealplans_proto_depIdxs = []int32{
-	23, // 0: mealplans.v1.PlanMeal.recipe:type_name -> recipes.v1.Recipe
+	19, // 0: mealplans.v1.PlanMeal.recipe:type_name -> recipes.v1.Recipe
 	0,  // 1: mealplans.v1.Plan.meals:type_name -> mealplans.v1.PlanMeal
 	1,  // 2: mealplans.v1.ListPlansResponse.plans:type_name -> mealplans.v1.Plan
 	1,  // 3: mealplans.v1.GetPlanResponse.plan:type_name -> mealplans.v1.Plan
-	23, // 4: mealplans.v1.GetPlanResponse.recipes:type_name -> recipes.v1.Recipe
+	19, // 4: mealplans.v1.GetPlanResponse.recipes:type_name -> recipes.v1.Recipe
 	2,  // 5: mealplans.v1.GetPlanResponse.shared_with:type_name -> mealplans.v1.PlanSharedUser
-	1,  // 6: mealplans.v1.CreatePlanResponse.plan:type_name -> mealplans.v1.Plan
-	3,  // 7: mealplans.v1.MealPlansService.ListPlans:input_type -> mealplans.v1.ListPlansRequest
-	5,  // 8: mealplans.v1.MealPlansService.GetPlan:input_type -> mealplans.v1.GetPlanRequest
-	7,  // 9: mealplans.v1.MealPlansService.CreatePlan:input_type -> mealplans.v1.CreatePlanRequest
-	9,  // 10: mealplans.v1.MealPlansService.UpdatePlan:input_type -> mealplans.v1.UpdatePlanRequest
-	11, // 11: mealplans.v1.MealPlansService.DeletePlan:input_type -> mealplans.v1.DeletePlanRequest
-	13, // 12: mealplans.v1.MealPlansService.AddMeal:input_type -> mealplans.v1.AddMealRequest
-	15, // 13: mealplans.v1.MealPlansService.DeleteMeal:input_type -> mealplans.v1.DeleteMealRequest
-	17, // 14: mealplans.v1.MealPlansService.MoveMeal:input_type -> mealplans.v1.MoveMealRequest
-	19, // 15: mealplans.v1.MealPlansService.SharePlan:input_type -> mealplans.v1.SharePlanRequest
-	21, // 16: mealplans.v1.MealPlansService.UnsharePlan:input_type -> mealplans.v1.UnsharePlanRequest
-	4,  // 17: mealplans.v1.MealPlansService.ListPlans:output_type -> mealplans.v1.ListPlansResponse
-	6,  // 18: mealplans.v1.MealPlansService.GetPlan:output_type -> mealplans.v1.GetPlanResponse
-	8,  // 19: mealplans.v1.MealPlansService.CreatePlan:output_type -> mealplans.v1.CreatePlanResponse
-	10, // 20: mealplans.v1.MealPlansService.UpdatePlan:output_type -> mealplans.v1.UpdatePlanResponse
-	12, // 21: mealplans.v1.MealPlansService.DeletePlan:output_type -> mealplans.v1.DeletePlanResponse
-	14, // 22: mealplans.v1.MealPlansService.AddMeal:output_type -> mealplans.v1.AddMealResponse
-	16, // 23: mealplans.v1.MealPlansService.DeleteMeal:output_type -> mealplans.v1.DeleteMealResponse
-	18, // 24: mealplans.v1.MealPlansService.MoveMeal:output_type -> mealplans.v1.MoveMealResponse
-	20, // 25: mealplans.v1.MealPlansService.SharePlan:output_type -> mealplans.v1.SharePlanResponse
-	22, // 26: mealplans.v1.MealPlansService.UnsharePlan:output_type -> mealplans.v1.UnsharePlanResponse
-	17, // [17:27] is the sub-list for method output_type
-	7,  // [7:17] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	3,  // 6: mealplans.v1.MealPlansService.ListPlans:input_type -> mealplans.v1.ListPlansRequest
+	5,  // 7: mealplans.v1.MealPlansService.GetPlan:input_type -> mealplans.v1.GetPlanRequest
+	7,  // 8: mealplans.v1.MealPlansService.UpdatePlan:input_type -> mealplans.v1.UpdatePlanRequest
+	9,  // 9: mealplans.v1.MealPlansService.AddMeal:input_type -> mealplans.v1.AddMealRequest
+	11, // 10: mealplans.v1.MealPlansService.DeleteMeal:input_type -> mealplans.v1.DeleteMealRequest
+	13, // 11: mealplans.v1.MealPlansService.MoveMeal:input_type -> mealplans.v1.MoveMealRequest
+	15, // 12: mealplans.v1.MealPlansService.SharePlan:input_type -> mealplans.v1.SharePlanRequest
+	17, // 13: mealplans.v1.MealPlansService.UnsharePlan:input_type -> mealplans.v1.UnsharePlanRequest
+	4,  // 14: mealplans.v1.MealPlansService.ListPlans:output_type -> mealplans.v1.ListPlansResponse
+	6,  // 15: mealplans.v1.MealPlansService.GetPlan:output_type -> mealplans.v1.GetPlanResponse
+	8,  // 16: mealplans.v1.MealPlansService.UpdatePlan:output_type -> mealplans.v1.UpdatePlanResponse
+	10, // 17: mealplans.v1.MealPlansService.AddMeal:output_type -> mealplans.v1.AddMealResponse
+	12, // 18: mealplans.v1.MealPlansService.DeleteMeal:output_type -> mealplans.v1.DeleteMealResponse
+	14, // 19: mealplans.v1.MealPlansService.MoveMeal:output_type -> mealplans.v1.MoveMealResponse
+	16, // 20: mealplans.v1.MealPlansService.SharePlan:output_type -> mealplans.v1.SharePlanResponse
+	18, // 21: mealplans.v1.MealPlansService.UnsharePlan:output_type -> mealplans.v1.UnsharePlanResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_mealplans_v1_mealplans_proto_init() }
@@ -1512,7 +1324,7 @@ func file_mealplans_v1_mealplans_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mealplans_v1_mealplans_proto_rawDesc), len(file_mealplans_v1_mealplans_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -153,6 +153,21 @@ func (h *mealplansConnectHandler) ListPlans(
 		return nil, mapError(err)
 	}
 
+	if len(list) == 0 {
+		created, createErr := h.app.services.Plans.Create(
+			ctx,
+			user.ID,
+			models.Plan{ //nolint:exhaustruct // other fields optional
+				OwnerUserID: user.ID,
+				Name:        "My Meal Plan",
+			},
+		)
+		if createErr != nil {
+			return nil, mapError(createErr)
+		}
+		list = []models.Plan{*created}
+	}
+
 	return connect.NewResponse(&mealplansv1.ListPlansResponse{
 		Plans: protoPlans(list),
 	}), nil
@@ -221,33 +236,6 @@ func (h *mealplansConnectHandler) GetPlan(
 	}), nil
 }
 
-func (h *mealplansConnectHandler) CreatePlan(
-	ctx context.Context,
-	req *connect.Request[mealplansv1.CreatePlanRequest],
-) (*connect.Response[mealplansv1.CreatePlanResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	plan := models.Plan{ //nolint:exhaustruct // other fields optional
-		OwnerUserID: user.ID,
-		Name:        req.Msg.Name,
-	}
-
-	created, err := h.app.services.Plans.Create(ctx, user.ID, plan)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&mealplansv1.CreatePlanResponse{
-		Plan: protoPlan(created),
-	}), nil
-}
-
 func (h *mealplansConnectHandler) UpdatePlan(
 	ctx context.Context,
 	req *connect.Request[mealplansv1.UpdatePlanRequest],
@@ -280,33 +268,6 @@ func (h *mealplansConnectHandler) UpdatePlan(
 	}
 
 	return connect.NewResponse(&mealplansv1.UpdatePlanResponse{}), nil
-}
-
-func (h *mealplansConnectHandler) DeletePlan(
-	ctx context.Context,
-	req *connect.Request[mealplansv1.DeletePlanRequest],
-) (*connect.Response[mealplansv1.DeletePlanResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	id, err := uuid.Parse(req.Msg.Id)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
-		)
-	}
-
-	if err = h.app.services.Plans.Delete(ctx, id, user.ID); err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&mealplansv1.DeletePlanResponse{}), nil
 }
 
 func (h *mealplansConnectHandler) AddMeal(
