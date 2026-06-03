@@ -81,7 +81,7 @@ export function SettingsLabels({ data, mutate }: Props) {
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="h-9 w-9 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+            className="h-9 w-9 cursor-pointer rounded-full border-0 bg-transparent p-0"
           />
           <input
             type="text"

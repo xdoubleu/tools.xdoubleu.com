@@ -101,7 +101,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
       {events.length > 0 && (
         <div>
           <p className="text-sm font-medium text-subtle mb-2">{events.length} events</p>
-          <div className="overflow-x-auto rounded-xl border border-border">
+          <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-surface text-subtle">
                 <tr>

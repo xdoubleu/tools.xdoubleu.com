@@ -58,7 +58,7 @@ export default function RecipeClient({ id }: { id: string }) {
         &larr; Back to recipes
       </Link>
 
-      {isLoading && <p>Loading recipe...</p>}
+      {isLoading && !recipe && <p>Loading recipe...</p>}
       {error && <p className="text-danger">Failed to load recipe.</p>}
       {recipe && (
         <>

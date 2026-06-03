@@ -99,7 +99,7 @@ export default function RecipeCombobox({
         className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       />
       {open && filtered.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-elevated max-h-48 overflow-y-auto">
+        <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto">
           {filtered.map((r, i) => (
             <li
               key={r.id}

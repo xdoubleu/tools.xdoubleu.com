@@ -54,7 +54,7 @@ export default function UsersTable({ users, onUpdated }: UsersTableProps) {
                 <select
                   value={user.role || 'user'}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  className="rounded-lg border border-input-border bg-input px-2 py-1 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="rounded-xl border border-input-border bg-input px-2 py-1 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>

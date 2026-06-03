@@ -40,7 +40,7 @@ export default function ItemCatalog() {
         {names.map((item) => (
           <li
             key={item.name}
-            className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2"
+            className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-2"
           >
             <span className="flex-1 text-sm text-fg">
               {item.name}
@@ -52,7 +52,7 @@ export default function ItemCatalog() {
               aria-label={`Category for ${item.name}`}
               value={item.categoryId}
               onChange={(e) => handleChange(item.name, e.target.value)}
-              className="h-9 rounded-lg border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="h-9 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <option value="">-- Unassigned --</option>
               {categories.map((category) => (

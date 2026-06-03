@@ -38,7 +38,7 @@ export default function ShoppingList({ items, onDelete, onExport }: ShoppingList
             return (
               <div
                 key={key}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
               >
                 <input
                   type="checkbox"
@@ -55,7 +55,7 @@ export default function ShoppingList({ items, onDelete, onExport }: ShoppingList
                   <button
                     onClick={() => onDelete(item.id!)}
                     aria-label={`Remove ${item.name}`}
-                    className="min-h-8 min-w-8 rounded-lg px-1 text-muted transition-colors hover:text-danger"
+                    className="min-h-8 min-w-8 rounded-full px-1 text-muted transition-colors hover:text-danger"
                   >
                     ×
                   </button>

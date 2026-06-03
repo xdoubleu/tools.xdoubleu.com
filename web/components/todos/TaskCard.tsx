@@ -41,13 +41,13 @@ export function TaskCard({ task, onClick, onChanged }: TaskCardProps) {
   return (
     <div
       role="listitem"
-      className="cursor-pointer rounded-xl border border-border bg-card p-3 shadow-card transition-shadow hover:shadow-elevated active:scale-[0.99]"
+      className="cursor-pointer rounded-2xl border border-border bg-card p-3 shadow-card transition-shadow hover:shadow-elevated active:scale-[0.99]"
       onClick={onClick}
     >
       <div className="flex items-start gap-3">
         {task.priority > 0 && (
           <span
-            className={`mt-0.5 shrink-0 rounded-lg border px-1.5 py-0.5 text-xs font-semibold ${PRIORITY_CLASSES[task.priority] ?? 'bg-surface text-muted border-border'}`}
+            className={`mt-0.5 shrink-0 rounded-xl border px-1.5 py-0.5 text-xs font-semibold ${PRIORITY_CLASSES[task.priority] ?? 'bg-surface text-muted border-border'}`}
           >
             {PRIORITY_LABELS[task.priority] ?? `P${task.priority}`}
           </span>

@@ -73,7 +73,7 @@ export default function StoreManager() {
         {stores.map((store) => (
           <li
             key={store.id}
-            className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2"
+            className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-2"
           >
             <span className="flex-1 text-sm text-fg">{store.name}</span>
             <Button
@@ -158,7 +158,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-3">
       <h3 className="text-sm font-semibold text-fg">Aisle order</h3>
       <p className="text-xs text-muted">
         Arrange categories in the order you walk this store. Items export in this order.
@@ -171,7 +171,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
           {order.map((category, index) => (
             <li
               key={category.id}
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface p-2"
+              className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2"
             >
               <span className="w-6 text-xs text-muted">{index + 1}.</span>
               <span className="flex-1 text-sm text-fg">{category.name}</span>
@@ -211,7 +211,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
           aria-label="Add category to store"
           value=""
           onChange={(e) => e.target.value && add(e.target.value)}
-          className="h-9 w-full rounded-lg border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="h-9 w-full rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <option value="">+ Add category…</option>
           {available.map((category) => (

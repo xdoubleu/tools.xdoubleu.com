@@ -151,7 +151,7 @@ export default function HomeClient() {
 
   if (authState === 'mfa-challenge') {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-fg">Two-factor authentication</h2>
         <div className="mt-6 space-y-4">
           <p className="text-sm text-subtle">Enter the code from your authenticator app.</p>
@@ -177,7 +177,7 @@ export default function HomeClient() {
           <button
             onClick={handleMfaChallenge}
             disabled={mfaSubmitting}
-            className="h-11 w-full rounded-xl bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-11 w-full rounded-full bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {mfaSubmitting ? 'Verifying...' : 'Verify'}
           </button>
@@ -187,7 +187,7 @@ export default function HomeClient() {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-fg">Sign In</h2>
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
@@ -245,7 +245,7 @@ export default function HomeClient() {
         <button
           type="submit"
           disabled={submitting}
-          className="h-11 w-full rounded-xl bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-11 w-full rounded-full bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? 'Signing in...' : 'Sign in'}
         </button>

@@ -47,7 +47,7 @@ export default function MealPlanCalendar({
   const moveMeal = useMoveMeal()
 
   const weekDates = getWeekDates(weekOffset)
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const today = formatMealDate(new Date())
 
   const getMealsForSlot = (date: string, slot: string) =>
@@ -115,8 +115,10 @@ export default function MealPlanCalendar({
       handlePlaceMove(date, slot)
       return
     }
-    setSelectedSlot(slot)
-    setSelectedDate(date)
+    if (getMealsForSlot(date, slot).length === 0) {
+      setSelectedSlot(slot)
+      setSelectedDate(date)
+    }
   }
 
   const handlePlaceMove = async (newDate: string, newSlot: string) => {
@@ -168,7 +170,7 @@ export default function MealPlanCalendar({
     return (
       <div
         key={`${formattedDate}-${slot}`}
-        className={`min-h-14 min-w-0 overflow-hidden rounded-lg border p-1.5 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
+        className={`min-h-14 min-w-0 overflow-hidden rounded-xl border p-1.5 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
         onClick={() => handleCellClick(formattedDate, slot)}
       >
         {mealsInSlot.length > 0 ? (
@@ -185,18 +187,6 @@ export default function MealPlanCalendar({
                 onDeleteMeal={handleDeleteMeal}
               />
             ))}
-            {!movingMeal && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelectedSlot(slot)
-                  setSelectedDate(formattedDate)
-                }}
-                className="w-full rounded-lg py-1 text-center text-xs text-muted hover:bg-surface"
-              >
-                +
-              </button>
-            )}
           </div>
         ) : (
           !movingMeal && (
@@ -206,7 +196,7 @@ export default function MealPlanCalendar({
                 setSelectedSlot(slot)
                 setSelectedDate(formattedDate)
               }}
-              className="flex h-full min-h-10 w-full items-center justify-center rounded-lg text-lg text-muted hover:bg-surface"
+              className="flex h-full min-h-10 w-full items-center justify-center rounded-xl text-lg text-muted hover:bg-surface"
             >
               +
             </button>
@@ -231,7 +221,7 @@ export default function MealPlanCalendar({
       </div>
 
       {movingMeal && (
-        <div className="flex items-center justify-between rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">
+        <div className="flex items-center justify-between rounded-2xl border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">
           <span>
             Moving <strong>{movingMealName}</strong> — click a cell to place it
           </span>
@@ -244,99 +234,117 @@ export default function MealPlanCalendar({
         </div>
       )}
 
-      {/* Mobile: stacked by day */}
-      <div className={`sm:hidden space-y-3 text-xs${movingMeal ? ' cursor-crosshair' : ''}`}>
-        {weekDates.map((date, i) => {
-          const formattedDate = formatMealDate(date)
-          const isToday = formattedDate === today
-          return (
-            <div key={formattedDate} className="rounded-lg border border-border p-2">
-              <div className={`mb-2 font-semibold text-sm${isToday ? ' text-accent' : ' text-fg'}`}>
-                {dayNames[i]} {date.getDate()}
-                {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
-              </div>
-              <div className="space-y-1">
-                {MEAL_SLOTS.map((slot) => (
-                  <div key={slot} className="flex gap-2">
-                    <span className="w-16 shrink-0 pt-1 text-xs font-medium text-muted">
-                      {slot.charAt(0).toUpperCase() + slot.slice(1)}
-                    </span>
-                    <div className="flex-1">{renderCell(formattedDate, slot)}</div>
+      <div className="flex flex-col gap-4 items-start">
+        <div className="w-full min-w-0">
+          {/* Mobile: stacked by day */}
+          <div className={`sm:hidden space-y-3 text-xs${movingMeal ? ' cursor-crosshair' : ''}`}>
+            {weekDates.map((date) => {
+              const formattedDate = formatMealDate(date)
+              const isToday = formattedDate === today
+              return (
+                <div key={formattedDate} className="rounded-xl border border-border p-2">
+                  <div
+                    className={`mb-2 font-semibold text-sm${isToday ? ' text-accent' : ' text-fg'}`}
+                  >
+                    {DAY_NAMES[date.getDay()]} {date.getDate()}
+                    {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-1">
+                    {MEAL_SLOTS.map((slot) => (
+                      <div key={slot} className="flex gap-2">
+                        <span className="w-16 shrink-0 pt-1 text-xs font-medium text-muted">
+                          {slot.charAt(0).toUpperCase() + slot.slice(1)}
+                        </span>
+                        <div className="flex-1">{renderCell(formattedDate, slot)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop: 7-column grid */}
+          <div
+            className={`hidden sm:block overflow-x-auto${movingMeal ? ' cursor-crosshair' : ''}`}
+          >
+            <div
+              className="grid gap-1.5 text-sm"
+              style={{ gridTemplateColumns: 'minmax(5rem, auto) repeat(7, 1fr)' }}
+            >
+              <div />
+              {weekDates.map((date) => {
+                const isToday = formatMealDate(date) === today
+                return (
+                  <div
+                    key={formatMealDate(date)}
+                    className={`py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}
+                  >
+                    {DAY_NAMES[date.getDay()]}
+                  </div>
+                )
+              })}
+
+              <div />
+              {weekDates.map((date) => {
+                const isToday = formatMealDate(date) === today
+                return (
+                  <div
+                    key={formatMealDate(date)}
+                    className={`py-1 text-center${isToday ? ' text-accent font-semibold' : ' text-muted'}`}
+                  >
+                    {date.getDate()}
+                  </div>
+                )
+              })}
+
+              {MEAL_SLOTS.map((slot) => (
+                <React.Fragment key={slot}>
+                  <div className="flex items-center pr-2 text-sm font-medium text-muted">
+                    {slot.charAt(0).toUpperCase() + slot.slice(1)}
+                  </div>
+                  {weekDates.map((date) => renderCell(formatMealDate(date), slot))}
+                </React.Fragment>
+              ))}
             </div>
-          )
-        })}
-      </div>
-
-      {/* Desktop: 7-column grid */}
-      <div className={`hidden sm:block overflow-x-auto${movingMeal ? ' cursor-crosshair' : ''}`}>
-        <div
-          className="grid gap-1.5 text-sm"
-          style={{ gridTemplateColumns: 'minmax(5rem, auto) repeat(7, 1fr)' }}
-        >
-          <div />
-          {weekDates.map((date, i) => {
-            const isToday = formatMealDate(date) === today
-            return (
-              <div
-                key={dayNames[i]}
-                className={`py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}
-              >
-                {dayNames[i]}
-              </div>
-            )
-          })}
-
-          <div />
-          {weekDates.map((date) => {
-            const isToday = formatMealDate(date) === today
-            return (
-              <div
-                key={formatMealDate(date)}
-                className={`py-1 text-center${isToday ? ' text-accent font-semibold' : ' text-muted'}`}
-              >
-                {date.getDate()}
-              </div>
-            )
-          })}
-
-          {MEAL_SLOTS.map((slot) => (
-            <React.Fragment key={slot}>
-              <div className="flex items-center pr-2 text-sm font-medium text-muted">
-                {slot.charAt(0).toUpperCase() + slot.slice(1)}
-              </div>
-              {weekDates.map((date) => renderCell(formatMealDate(date), slot))}
-            </React.Fragment>
-          ))}
+          </div>
         </div>
       </div>
 
-      {selectedSlot && selectedDate && (
-        <MealPlanEntryForm
-          title={`Add meal — ${selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)}, ${new Date(selectedDate + 'T00:00:00').toLocaleDateString()}`}
-          recipes={recipes}
-          saveLabel="Add"
-          onSave={handleSaveAdd}
-          onCancel={() => {
-            setSelectedSlot(null)
-            setSelectedDate(null)
-          }}
-        />
-      )}
-
-      {editingMeal && !selectedSlot && (
-        <MealPlanEntryForm
-          title={`Edit meal — ${editingMeal.mealSlot.charAt(0).toUpperCase() + editingMeal.mealSlot.slice(1)}, ${new Date(editingMeal.mealDate + 'T00:00:00').toLocaleDateString()}`}
-          recipes={recipes}
-          initialRecipeId={editingMeal.recipeId}
-          initialCustomName={editingMeal.customName}
-          initialServings={editingMeal.servings}
-          onSave={handleSaveEdit}
-          onCancel={() => setEditingMeal(null)}
-        />
-      )}
+      {(() => {
+        const isAdding = !!(selectedSlot && selectedDate)
+        const isEditing = !!editingMeal && !selectedSlot
+        const handleCancel = () => {
+          setSelectedSlot(null)
+          setSelectedDate(null)
+          setEditingMeal(null)
+        }
+        const formTitle = isAdding
+          ? `Add meal — ${selectedSlot!.charAt(0).toUpperCase() + selectedSlot!.slice(1)}, ${new Date(selectedDate! + 'T00:00:00').toLocaleDateString()}`
+          : isEditing
+            ? `Edit meal — ${editingMeal!.mealSlot.charAt(0).toUpperCase() + editingMeal!.mealSlot.slice(1)}, ${new Date(editingMeal!.mealDate + 'T00:00:00').toLocaleDateString()}`
+            : ''
+        return (
+          <MealPlanEntryForm
+            key={
+              isAdding
+                ? `add-${selectedDate}-${selectedSlot}`
+                : isEditing
+                  ? `edit-${editingMeal!.id}`
+                  : 'closed'
+            }
+            open={isAdding || isEditing}
+            title={formTitle}
+            recipes={recipes}
+            initialRecipeId={isEditing ? editingMeal!.recipeId : ''}
+            initialCustomName={isEditing ? editingMeal!.customName : ''}
+            initialServings={isEditing ? editingMeal!.servings : 1}
+            saveLabel={isAdding ? 'Add' : 'Save'}
+            onSave={isAdding ? handleSaveAdd : handleSaveEdit}
+            onCancel={handleCancel}
+          />
+        )
+      })()}
     </div>
   )
 }
