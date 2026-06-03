@@ -424,8 +424,8 @@ describe('MealPlanCalendar', () => {
     fireEvent.click(screen.getAllByText(/Eggs/)[0])
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
 
-    // After selection the banner shows <strong>Eggs</strong>; click the item in the chip (has 'truncate' class)
-    const mealItem = screen.getAllByText(/Eggs/).find((el) => el.classList.contains('truncate'))!
+    // After selection the banner shows <strong>Eggs</strong>; click the item in the chip (has 'wrap-break-word' class)
+    const mealItem = screen.getAllByText(/Eggs/).find((el) => el.classList.contains('wrap-break-word'))!
     fireEvent.click(mealItem)
     expect(screen.queryByText(/Moving/i)).not.toBeInTheDocument()
   })
