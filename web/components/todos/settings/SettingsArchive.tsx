@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   data: GetSettingsResponse
@@ -42,16 +43,12 @@ export function SettingsArchive({ data, mutate }: Props) {
             setHours(Number(e.target.value))
             setSaved(false)
           }}
-          className="w-20 rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+          className="w-20 rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
         />
         <label className="text-sm text-subtle">hour{hours === 1 ? '' : 's'}</label>
-        <button
-          type="submit"
-          disabled={hours === current}
-          className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-        >
+        <Button type="submit" size="sm" disabled={hours === current}>
           Save
-        </button>
+        </Button>
         {saved && <span className="text-xs text-muted">Saved</span>}
       </form>
     </section>

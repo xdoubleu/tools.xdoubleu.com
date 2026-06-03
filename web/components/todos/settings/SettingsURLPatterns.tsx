@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   data: GetSettingsResponse
@@ -55,18 +56,18 @@ export function SettingsURLPatterns({ data, mutate }: Props) {
       ) : (
         <ul className="mb-3 space-y-2">
           {data.urlPatterns.map((pattern) => (
-            <li key={pattern.id} className="rounded border border-border bg-card p-3">
+            <li key={pattern.id} className="rounded-xl border border-border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium text-subtle">{pattern.platformName}</p>
                   <p className="text-xs text-muted">{pattern.urlPrefix}</p>
                   {pattern.label && (
-                    <span className="mt-1 inline-block rounded bg-surface px-1.5 py-0.5 text-xs text-muted">
+                    <span className="mt-1 inline-block rounded-full bg-surface px-1.5 py-0.5 text-xs text-muted">
                       {pattern.label}
                     </span>
                   )}
                   {pattern.shortcut && (
-                    <span className="ml-1 mt-1 inline-block rounded bg-surface px-1.5 py-0.5 text-xs text-muted">
+                    <span className="ml-1 mt-1 inline-block rounded-full bg-surface px-1.5 py-0.5 text-xs text-muted">
                       {pattern.shortcut}
                     </span>
                   )}
@@ -91,44 +92,40 @@ export function SettingsURLPatterns({ data, mutate }: Props) {
             onChange={(e) => setField('platformName', e.target.value)}
             placeholder="Platform name (e.g. GitHub)"
             autoFocus
-            className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <input
             type="text"
             value={form.urlPrefix}
             onChange={(e) => setField('urlPrefix', e.target.value)}
             placeholder="URL prefix (e.g. https://github.com/)"
-            className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <input
             type="text"
             value={form.label}
             onChange={(e) => setField('label', e.target.value)}
             placeholder="Label (optional)"
-            className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <input
             type="text"
             value={form.shortcut}
             onChange={(e) => setField('shortcut', e.target.value)}
             placeholder="Shortcut key (optional)"
-            className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <div className="flex gap-2">
-            <button
+            <Button
               type="submit"
+              size="sm"
               disabled={!form.urlPrefix.trim() || !form.platformName.trim()}
-              className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
             >
               Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdding(false)}
-              className="rounded px-3 py-1.5 text-sm text-muted hover:text-subtle"
-            >
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : (

@@ -80,7 +80,7 @@ export default function MealPlanEntryForm({
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition-colors ${
+              className={`flex-1 rounded-xl py-1.5 text-sm font-medium transition-colors ${
                 tab === t ? 'bg-card text-fg shadow-sm' : 'text-muted hover:text-fg'
               }`}
             >

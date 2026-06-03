@@ -39,13 +39,13 @@ export default function MealPlanMealChip({
         {isCustom ? (
           <ul className="space-y-0.5">
             {customItems.map((item, i) => (
-              <li key={i} className="truncate text-xs text-fg">
+              <li key={i} className="wrap-break-word text-xs text-fg">
                 • {item}
               </li>
             ))}
           </ul>
         ) : (
-          <span className="truncate text-sm text-fg">{recipe?.name || '?'}</span>
+          <span className="wrap-break-word text-sm text-fg">{recipe?.name || '?'}</span>
         )}
       </div>
       {!isCustom && meal.servings > 1 && (

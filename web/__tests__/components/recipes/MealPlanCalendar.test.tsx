@@ -424,8 +424,10 @@ describe('MealPlanCalendar', () => {
     fireEvent.click(screen.getAllByText(/Eggs/)[0])
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
 
-    // After selection the banner shows <strong>Eggs</strong>; click the item in the chip (has 'truncate' class)
-    const mealItem = screen.getAllByText(/Eggs/).find((el) => el.classList.contains('truncate'))!
+    // After selection the banner shows <strong>Eggs</strong>; click the item in the chip (has 'wrap-break-word' class)
+    const mealItem = screen
+      .getAllByText(/Eggs/)
+      .find((el) => el.classList.contains('wrap-break-word'))!
     fireEvent.click(mealItem)
     expect(screen.queryByText(/Moving/i)).not.toBeInTheDocument()
   })
@@ -530,8 +532,9 @@ describe('MealPlanCalendar', () => {
     expect(input.value).toBe('Eggs')
   })
 
-  it('save edit calls addMeal with same date/slot and new values', async () => {
+  it('save edit calls addMeal with same date/slot and new values, then onMoveMeal (not onAddMeal)', async () => {
     const onAddMeal = jest.fn()
+    const onMoveMeal = jest.fn()
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -553,6 +556,7 @@ describe('MealPlanCalendar', () => {
         {...defaultNavProps}
         onAddMeal={onAddMeal}
         onDeleteMeal={jest.fn()}
+        onMoveMeal={onMoveMeal}
       />
     )
     fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
@@ -564,7 +568,8 @@ describe('MealPlanCalendar', () => {
     expect(req.mealDate).toBe('2026-05-25')
     expect(req.mealSlot).toBe('breakfast')
     expect(req.customName).toBe('Updated meal')
-    expect(onAddMeal).toHaveBeenCalled()
+    expect(onMoveMeal).toHaveBeenCalled()
+    expect(onAddMeal).not.toHaveBeenCalled()
   })
 
   it('cancel closes edit dialog', () => {
