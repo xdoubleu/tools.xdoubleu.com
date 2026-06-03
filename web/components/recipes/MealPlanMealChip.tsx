@@ -22,20 +22,35 @@ export default function MealPlanMealChip({
   onEditClick,
   onDeleteMeal
 }: MealPlanMealChipProps) {
+  const customItems = meal.customName ? meal.customName.split('\n').filter(Boolean) : []
+  const isCustom = customItems.length > 0
+
   return (
     <div
       onClick={(e) => {
         e.stopPropagation()
         onMealClick(meal)
       }}
-      className={`flex min-w-0 cursor-pointer select-none items-center justify-between gap-1 rounded-lg px-1.5 py-1 ${
+      className={`flex min-w-0 cursor-pointer select-none items-start justify-between gap-1 rounded-xl px-1.5 py-1 ${
         isMoving ? 'bg-accent/20 ring-2 ring-accent' : 'bg-accent/10 hover:bg-accent/20'
       }`}
     >
-      <span className="min-w-0 truncate text-sm text-fg">
-        {meal.customName || recipe?.name || '?'}
-      </span>
-      {meal.servings > 1 && <span className="shrink-0 text-xs text-muted">×{meal.servings}</span>}
+      <div className="min-w-0 flex-1">
+        {isCustom ? (
+          <ul className="space-y-0.5">
+            {customItems.map((item, i) => (
+              <li key={i} className="truncate text-xs text-fg">
+                • {item}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="truncate text-sm text-fg">{recipe?.name || '?'}</span>
+        )}
+      </div>
+      {!isCustom && meal.servings > 1 && (
+        <span className="shrink-0 text-xs text-muted">×{meal.servings}</span>
+      )}
       {!inMoveMode && (
         <div className="ml-0.5 flex shrink-0 items-center gap-0.5">
           <button
@@ -44,7 +59,7 @@ export default function MealPlanMealChip({
               e.stopPropagation()
               onEditClick(meal)
             }}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-sm text-accent hover:bg-accent/20 active:scale-95"
+            className="flex h-5 w-5 items-center justify-center rounded text-sm text-accent hover:bg-accent/20 active:scale-95"
           >
             ✏
           </button>
@@ -54,7 +69,7 @@ export default function MealPlanMealChip({
               e.stopPropagation()
               onDeleteMeal(meal.id)
             }}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-base font-bold text-danger hover:bg-danger/10 active:scale-95"
+            className="flex h-5 w-5 items-center justify-center rounded text-base font-bold text-danger hover:bg-danger/10 active:scale-95"
           >
             ×
           </button>

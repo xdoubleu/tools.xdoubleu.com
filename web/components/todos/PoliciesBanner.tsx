@@ -32,7 +32,7 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
     <aside
       role="banner"
       aria-label="Policies"
-      className="rounded-xl border border-warn/30 bg-warn/10 p-4"
+      className="rounded-2xl border border-warn/30 bg-warn/10 p-4"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
@@ -49,7 +49,7 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss policies banner"
-          className="rounded-lg p-1 text-fg hover:bg-warn/20 transition-colors"
+          className="rounded-full p-1 text-fg hover:bg-warn/20 transition-colors"
         >
           ✕
         </button>

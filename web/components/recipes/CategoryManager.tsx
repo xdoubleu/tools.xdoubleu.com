@@ -76,7 +76,7 @@ export default function CategoryManager() {
         {categories.map((category) => (
           <li
             key={category.id}
-            className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2"
+            className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-2"
           >
             {editingId === category.id ? (
               <>

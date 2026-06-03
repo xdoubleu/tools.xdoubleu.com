@@ -47,7 +47,7 @@ export function LabelPicker({
       {open && filtered.length > 0 && (
         <ul
           role="listbox"
-          className="absolute z-10 mt-1 w-full rounded-xl border border-border bg-card shadow-elevated"
+          className="absolute z-10 mt-1 w-full rounded-2xl border border-border bg-card shadow-elevated"
         >
           {filtered.map((label) => (
             <li key={label} role="option" aria-selected={value.includes(label)}>

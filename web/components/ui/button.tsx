@@ -17,10 +17,10 @@ const variantClasses: Record<Variant, string> = {
 }
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-8 px-3 text-xs rounded-md',
-  md: 'h-11 px-4 text-sm rounded-lg',
-  lg: 'h-12 px-6 text-base rounded-lg',
-  icon: 'h-11 w-11 rounded-lg'
+  sm: 'h-8 px-3 text-xs rounded-full',
+  md: 'h-11 px-4 text-sm rounded-full',
+  lg: 'h-12 px-6 text-base rounded-full',
+  icon: 'h-11 w-11 rounded-full'
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

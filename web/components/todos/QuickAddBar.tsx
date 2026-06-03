@@ -106,7 +106,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
         </div>
 
         {showDropdown && dropdownType === 'label' && filteredLabels.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-elevated z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-elevated z-10">
             {filteredLabels.map((label) => (
               <button
                 key={label.value}
@@ -127,7 +127,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
         )}
 
         {showDropdown && dropdownType === 'section' && filteredSections.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-elevated z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-elevated z-10">
             {filteredSections.map((section) => (
               <button
                 key={section.id}

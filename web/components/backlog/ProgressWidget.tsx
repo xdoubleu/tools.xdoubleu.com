@@ -14,7 +14,7 @@ export default function ProgressWidget({ wsUrl }: ProgressWidgetProps) {
   return (
     <div
       className={[
-        'mb-4 rounded-xl border px-4 py-3',
+        'mb-4 rounded-2xl border px-4 py-3',
         isConnected
           ? 'border-success/30 bg-success/10 text-success'
           : 'border-danger/30 bg-danger/10 text-danger'

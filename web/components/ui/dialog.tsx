@@ -36,7 +36,7 @@ function DialogContent({ children, className = '' }: DialogContentProps) {
         className={[
           'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
           'w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto',
-          'rounded-xl border border-border bg-card shadow-elevated p-5',
+          'rounded-2xl border border-border bg-card shadow-elevated p-5',
           'focus:outline-none',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
@@ -103,7 +103,7 @@ function DialogClose({
     <RadixDialog.Close
       aria-label={ariaLabel}
       className={[
-        'rounded-lg p-1 text-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'rounded-full p-1 text-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         className
       ]
         .filter(Boolean)

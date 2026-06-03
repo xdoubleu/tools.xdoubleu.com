@@ -86,7 +86,7 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
           </span>
         )}
         {results.length > 0 && (
-          <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-elevated max-h-64 overflow-y-auto">
+          <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-64 overflow-y-auto">
             {results.map((book) => (
               <li key={`${book.provider}-${book.providerId}`}>
                 <button
@@ -110,7 +110,7 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-border bg-surface px-3 text-xs text-fg transition-colors hover:bg-card">
+        <label className="inline-flex h-8 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-xs text-fg transition-colors hover:bg-card">
           Import CSV
           <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
         </label>
