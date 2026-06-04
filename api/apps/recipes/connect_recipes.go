@@ -123,6 +123,7 @@ func protoIngredient(ing *models.Ingredient) *recipesv1.Ingredient {
 		Amount:    ing.Amount,
 		Unit:      ing.Unit,
 		SortOrder: int32(ing.SortOrder), //nolint:gosec // int32 safe for domain values
+		GroupName: ing.GroupName,
 	}
 }
 
@@ -146,6 +147,7 @@ func dtoToRecipe(
 	ingredientNames []string,
 	ingredientAmounts []float64,
 	ingredientUnits []string,
+	ingredientGroupNames []string,
 ) (models.Recipe, []models.Ingredient) {
 	var nonEmpty []string
 	for _, s := range steps {
@@ -180,12 +182,20 @@ func dtoToRecipe(
 		if i < len(ingredientUnits) {
 			unit = strings.TrimSpace(ingredientUnits[i])
 		}
+		var groupName *string
+		if i < len(ingredientGroupNames) && ingredientGroupNames[i] != "" {
+			g := strings.TrimSpace(ingredientGroupNames[i])
+			if g != "" {
+				groupName = &g
+			}
+		}
 		//nolint:exhaustruct // other fields optional
 		ingredients = append(ingredients, models.Ingredient{
 			Name:      ingredientName,
 			Amount:    amount,
 			Unit:      unit,
 			SortOrder: i,
+			GroupName: groupName,
 		})
 	}
 	return recipe, ingredients
@@ -280,6 +290,7 @@ func (h *recipesConnectHandler) CreateRecipe(
 		req.Msg.IngredientNames,
 		req.Msg.IngredientAmounts,
 		req.Msg.IngredientUnits,
+		req.Msg.IngredientGroupNames,
 	)
 	recipe.Ingredients = ingredients
 	if req.Msg.BatchServings != nil {
@@ -324,6 +335,7 @@ func (h *recipesConnectHandler) UpdateRecipe(
 		req.Msg.IngredientNames,
 		req.Msg.IngredientAmounts,
 		req.Msg.IngredientUnits,
+		req.Msg.IngredientGroupNames,
 	)
 	recipe.ID = id
 	recipe.Ingredients = ingredients

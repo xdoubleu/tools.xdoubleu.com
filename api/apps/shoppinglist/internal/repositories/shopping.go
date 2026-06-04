@@ -128,6 +128,7 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	planID uuid.UUID,
 	start, end time.Time,
 	pastSlots []string,
+	excludedGroups []string,
 ) ([]ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
 		WITH recipe_effective_servings AS (
@@ -150,9 +151,10 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		        AS total_amount
 		FROM recipe_effective_servings res
 		JOIN recipes.ingredients i ON i.recipe_id = res.recipe_id
+		WHERE i.group_name IS NULL OR NOT (i.group_name = ANY($5::text[]))
 		GROUP BY LOWER(i.name), i.unit
 		ORDER BY LOWER(i.name)`,
-		planID, start, end, pastSlots,
+		planID, start, end, pastSlots, excludedGroups,
 	)
 	if err != nil {
 		return nil, err
@@ -166,6 +168,45 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 			return nil, err
 		}
 		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
+type PlanIngredientGroup struct {
+	RecipeName string
+	GroupName  string
+}
+
+func (r *ShoppingRepository) GetPlanIngredientGroups(
+	ctx context.Context,
+	planID uuid.UUID,
+	start, end time.Time,
+	pastSlots []string,
+) ([]PlanIngredientGroup, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT r.name AS recipe_name, i.group_name
+		FROM mealplans.plan_meals pm
+		JOIN recipes.recipes r ON r.id = pm.recipe_id
+		JOIN recipes.ingredients i ON i.recipe_id = r.id
+		WHERE pm.plan_id = $1
+		  AND pm.meal_date BETWEEN $2 AND $3
+		  AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
+		  AND i.group_name IS NOT NULL
+		ORDER BY r.name, i.group_name`,
+		planID, start, end, pastSlots,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []PlanIngredientGroup
+	for rows.Next() {
+		var g PlanIngredientGroup
+		if err = rows.Scan(&g.RecipeName, &g.GroupName); err != nil {
+			return nil, err
+		}
+		result = append(result, g)
 	}
 	return result, rows.Err()
 }

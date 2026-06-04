@@ -27,7 +27,14 @@ type shoppingRepo interface {
 		planID uuid.UUID,
 		start, end time.Time,
 		pastSlots []string,
+		excludedGroups []string,
 	) ([]repositories.ShoppingItem, error)
+	GetPlanIngredientGroups(
+		ctx context.Context,
+		planID uuid.UUID,
+		start, end time.Time,
+		pastSlots []string,
+	) ([]repositories.PlanIngredientGroup, error)
 
 	ListCategories(ctx context.Context, userID string) ([]repositories.Category, error)
 	CreateCategory(
@@ -126,9 +133,33 @@ func (s *ShoppingService) GetMealPlanExportItems(
 	userID string,
 	start, end time.Time,
 	pastSlots []string,
+	excludedGroups []string,
 ) ([]repositories.ShoppingItem, error) {
 	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
 		return nil, err
 	}
-	return s.repo.GetMealPlanExportItems(ctx, planID, start, end, pastSlots)
+	items, err := s.repo.GetMealPlanExportItems(
+		ctx, planID, start, end, pastSlots, excludedGroups,
+	)
+	if err != nil {
+		return nil, err
+	}
+	customItems, err := s.repo.GetCustomItems(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return append(items, customItems...), nil
+}
+
+func (s *ShoppingService) GetPlanIngredientGroups(
+	ctx context.Context,
+	planID uuid.UUID,
+	userID string,
+	start, end time.Time,
+	pastSlots []string,
+) ([]repositories.PlanIngredientGroup, error) {
+	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
+		return nil, err
+	}
+	return s.repo.GetPlanIngredientGroups(ctx, planID, start, end, pastSlots)
 }

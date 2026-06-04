@@ -22,8 +22,20 @@ message AddShoppingItemResponse { ShoppingItem item = 1; }
 message DeleteShoppingItemRequest  { string item_id = 1; }
 message DeleteShoppingItemResponse {}
 
-message GetMealPlanExportItemsRequest  { string plan_id = 1; }
+message GetMealPlanExportItemsRequest  {
+  string plan_id = 1;
+  repeated string excluded_groups = 2;
+}
 message GetMealPlanExportItemsResponse { repeated ShoppingItem items = 1; }
+
+message GetPlanIngredientGroupsRequest  { string plan_id = 1; }
+message PlanIngredientGroup {
+  string recipe_name = 1;
+  string group_name  = 2;
+}
+message GetPlanIngredientGroupsResponse {
+  repeated PlanIngredientGroup groups = 1;
+}
 
 // --- Categories ---
 
@@ -99,10 +111,11 @@ message SetItemCategoryRequest  { string name = 1; string category_id = 2; }
 message SetItemCategoryResponse {}
 
 service ShoppingListService {
-  rpc GetCustomList          (GetCustomListRequest)          returns (GetCustomListResponse);
-  rpc AddShoppingItem        (AddShoppingItemRequest)        returns (AddShoppingItemResponse);
-  rpc DeleteShoppingItem     (DeleteShoppingItemRequest)     returns (DeleteShoppingItemResponse);
-  rpc GetMealPlanExportItems (GetMealPlanExportItemsRequest) returns (GetMealPlanExportItemsResponse);
+  rpc GetCustomList             (GetCustomListRequest)             returns (GetCustomListResponse);
+  rpc AddShoppingItem           (AddShoppingItemRequest)           returns (AddShoppingItemResponse);
+  rpc DeleteShoppingItem        (DeleteShoppingItemRequest)        returns (DeleteShoppingItemResponse);
+  rpc GetMealPlanExportItems    (GetMealPlanExportItemsRequest)    returns (GetMealPlanExportItemsResponse);
+  rpc GetPlanIngredientGroups   (GetPlanIngredientGroupsRequest)   returns (GetPlanIngredientGroupsResponse);
 
   rpc ListCategories  (ListCategoriesRequest)  returns (ListCategoriesResponse);
   rpc CreateCategory  (CreateCategoryRequest)  returns (CreateCategoryResponse);

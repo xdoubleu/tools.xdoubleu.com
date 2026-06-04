@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -230,4 +231,188 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	require.NoError(t, err)
 	// No meals added, so day items should be empty.
 	assert.NotNil(t, resp.Msg)
+}
+
+func TestGetMealPlanExportItems_IncludesCustomItems(t *testing.T) {
+	planID := createTestPlan(t, "Plan With Custom")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	client := newShoppingClient(t)
+
+	// Add a custom shopping list item for the user.
+	addResp, err := client.AddShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+			Name:   "Olive Oil",
+			Amount: "1",
+			Unit:   "bottle",
+		}),
+	)
+	require.NoError(t, err)
+	customItemID := addResp.Msg.Item.Id
+	t.Cleanup(func() {
+		_, _ = client.DeleteShoppingItem(
+			t.Context(),
+			connect.NewRequest(&shoppinglistv1.DeleteShoppingItemRequest{
+				ItemId: customItemID,
+			}),
+		)
+	})
+
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+
+	names := make([]string, 0, len(resp.Msg.Items))
+	for _, item := range resp.Msg.Items {
+		names = append(names, item.Name)
+	}
+	assert.Contains(t, names, "Olive Oil")
+}
+
+// createTestRecipeWithGroups inserts a recipe with two grouped ingredients and
+// returns the recipe ID.
+func createTestRecipeWithGroups(t *testing.T) uuid.UUID {
+	t.Helper()
+	var recipeID uuid.UUID
+	err := testDB.QueryRow(context.Background(), `
+		INSERT INTO recipes.recipes (user_id, name, instructions, base_servings)
+		VALUES ($1, 'Spaghetti', '', 2) RETURNING id`,
+		userID,
+	).Scan(&recipeID)
+	require.NoError(t, err)
+
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO recipes.ingredients
+		(recipe_id, name, amount, unit, sort_order, group_name)
+		VALUES
+		($1, 'tomatoes',   200, 'g', 0, 'sauce'),
+		($1, 'garlic',     2,   '',  1, 'sauce'),
+		($1, 'spaghetti',  100, 'g', 2, 'pasta')`,
+		recipeID,
+	)
+	require.NoError(t, err)
+	return recipeID
+}
+
+// addPlanMeal links a recipe to a plan for the given date and slot.
+func addPlanMeal(
+	t *testing.T,
+	planID, recipeID uuid.UUID,
+	mealDate time.Time,
+	slot string,
+) {
+	t.Helper()
+	_, err := testDB.Exec(context.Background(), `
+		INSERT INTO mealplans.plan_meals (plan_id, meal_date, meal_slot, recipe_id, servings)
+		VALUES ($1, $2, $3, $4, 2)`,
+		planID, mealDate.Format("2006-01-02"), slot, recipeID,
+	)
+	require.NoError(t, err)
+}
+
+// ── GetPlanIngredientGroups ───────────────────────────────────────────────────
+
+func TestGetPlanIngredientGroups_InvalidPlanID(t *testing.T) {
+	client := newShoppingClient(t)
+	_, err := client.GetPlanIngredientGroups(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetPlanIngredientGroupsRequest{
+			PlanId: "not-a-uuid",
+		}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestGetPlanIngredientGroups_PlanNotFound(t *testing.T) {
+	client := newShoppingClient(t)
+	_, err := client.GetPlanIngredientGroups(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetPlanIngredientGroupsRequest{
+			PlanId: uuid.New().String(),
+		}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeNotFound, connectErr.Code())
+}
+
+func TestGetPlanIngredientGroups_ReturnsGroups(t *testing.T) {
+	planID := createTestPlan(t, "Groups Plan")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	recipeID := createTestRecipeWithGroups(t)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			"DELETE FROM recipes.recipes WHERE id = $1",
+			recipeID,
+		)
+	})
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	addPlanMeal(t, planID, recipeID, tomorrow, "noon")
+
+	client := newShoppingClient(t)
+	resp, err := client.GetPlanIngredientGroups(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetPlanIngredientGroupsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+
+	groupNames := make([]string, 0, len(resp.Msg.Groups))
+	for _, g := range resp.Msg.Groups {
+		groupNames = append(groupNames, g.GroupName)
+	}
+	assert.Contains(t, groupNames, "sauce")
+	assert.Contains(t, groupNames, "pasta")
+}
+
+// ── GetMealPlanExportItems with group exclusion ───────────────────────────────
+
+func TestGetMealPlanExportItems_ExcludesGroup(t *testing.T) {
+	planID := createTestPlan(t, "Exclude Group Plan")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	recipeID := createTestRecipeWithGroups(t)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			"DELETE FROM recipes.recipes WHERE id = $1",
+			recipeID,
+		)
+	})
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	addPlanMeal(t, planID, recipeID, tomorrow, "noon")
+
+	client := newShoppingClient(t)
+
+	// Exclude the sauce group — only pasta ingredients should appear.
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId:         planID.String(),
+			ExcludedGroups: []string{"sauce"},
+		}),
+	)
+	require.NoError(t, err)
+
+	names := make([]string, 0, len(resp.Msg.Items))
+	for _, item := range resp.Msg.Items {
+		names = append(names, item.Name)
+	}
+	assert.Contains(t, names, "spaghetti")
+	assert.NotContains(t, names, "tomatoes")
+	assert.NotContains(t, names, "garlic")
 }

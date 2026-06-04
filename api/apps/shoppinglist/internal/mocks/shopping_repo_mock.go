@@ -32,7 +32,14 @@ type ShoppingRepoMock struct {
 		planID uuid.UUID,
 		start, end time.Time,
 		pastSlots []string,
+		excludedGroups []string,
 	) ([]repositories.ShoppingItem, error)
+	GetPlanIngredientGroupsFn func(
+		ctx context.Context,
+		planID uuid.UUID,
+		start, end time.Time,
+		pastSlots []string,
+	) ([]repositories.PlanIngredientGroup, error)
 	ListCategoriesFn func(
 		ctx context.Context, userID string,
 	) ([]repositories.Category, error)
@@ -106,8 +113,25 @@ func (m *ShoppingRepoMock) GetMealPlanExportItems(
 	planID uuid.UUID,
 	start, end time.Time,
 	pastSlots []string,
+	excludedGroups []string,
 ) ([]repositories.ShoppingItem, error) {
-	return m.GetMealPlanExportItemsFn(ctx, planID, start, end, pastSlots)
+	return m.GetMealPlanExportItemsFn(
+		ctx,
+		planID,
+		start,
+		end,
+		pastSlots,
+		excludedGroups,
+	)
+}
+
+func (m *ShoppingRepoMock) GetPlanIngredientGroups(
+	ctx context.Context,
+	planID uuid.UUID,
+	start, end time.Time,
+	pastSlots []string,
+) ([]repositories.PlanIngredientGroup, error) {
+	return m.GetPlanIngredientGroupsFn(ctx, planID, start, end, pastSlots)
 }
 
 func (m *ShoppingRepoMock) ListCategories(

@@ -74,7 +74,7 @@ export interface CategoryGroup {
 
 // Items whose name maps to no category, or to one not present in the chosen
 // store's ordering, are collected under this trailing bucket.
-const OTHER_CATEGORY = 'Other'
+export const OTHER_CATEGORY = 'Other'
 
 function normalizeName(name: string): string {
   return name.trim().toLowerCase()

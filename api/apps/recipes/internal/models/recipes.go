@@ -26,4 +26,5 @@ type Ingredient struct {
 	Amount    float64
 	Unit      string
 	SortOrder int
+	GroupName *string
 }
