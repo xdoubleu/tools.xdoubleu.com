@@ -209,7 +209,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	end := today.AddDate(0, 0, daysPerWeek-1)
 
 	items, err := h.app.services.Shopping.GetMealPlanExportItems(
-		ctx, planID, user.ID, today, end, pastSlots,
+		ctx, planID, user.ID, today, end, pastSlots, req.Msg.ExcludedGroups,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -226,5 +226,49 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 
 	return connect.NewResponse(&shoppinglistv1.GetMealPlanExportItemsResponse{
 		Items: pb,
+	}), nil
+}
+
+func (h *shoppingConnectHandler) GetPlanIngredientGroups(
+	ctx context.Context,
+	req *connect.Request[shoppinglistv1.GetPlanIngredientGroupsRequest],
+) (*connect.Response[shoppinglistv1.GetPlanIngredientGroupsResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	planID, err := uuid.Parse(req.Msg.PlanId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	now := time.Now().UTC()
+	today, pastSlots := exportWindow(now)
+	end := today.AddDate(0, 0, daysPerWeek-1)
+
+	groups, err := h.app.services.Shopping.GetPlanIngredientGroups(
+		ctx, planID, user.ID, today, end, pastSlots,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	pb := make([]*shoppinglistv1.PlanIngredientGroup, len(groups))
+	for i, g := range groups {
+		pb[i] = &shoppinglistv1.PlanIngredientGroup{
+			RecipeName: g.RecipeName,
+			GroupName:  g.GroupName,
+		}
+	}
+
+	return connect.NewResponse(&shoppinglistv1.GetPlanIngredientGroupsResponse{
+		Groups: pb,
 	}), nil
 }

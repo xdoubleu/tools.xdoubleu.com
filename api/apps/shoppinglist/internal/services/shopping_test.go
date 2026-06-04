@@ -24,24 +24,25 @@ var errNotFound = &iapp.HTTPError{
 
 func baseMock() *mocks.ShoppingRepoMock {
 	return &mocks.ShoppingRepoMock{
-		CheckPlanAccessFn:        nil,
-		GetCustomItemsFn:         nil,
-		AddCustomItemFn:          nil,
-		DeleteCustomItemFn:       nil,
-		GetMealPlanExportItemsFn: nil,
-		ListCategoriesFn:         nil,
-		CreateCategoryFn:         nil,
-		RenameCategoryFn:         nil,
-		DeleteCategoryFn:         nil,
-		ListStoresFn:             nil,
-		CreateStoreFn:            nil,
-		RenameStoreFn:            nil,
-		DeleteStoreFn:            nil,
-		GetStoreCategoriesFn:     nil,
-		SetStoreCategoriesFn:     nil,
-		ListItemNamesFn:          nil,
-		ListItemCategoriesFn:     nil,
-		SetItemCategoryFn:        nil,
+		CheckPlanAccessFn:         nil,
+		GetCustomItemsFn:          nil,
+		AddCustomItemFn:           nil,
+		DeleteCustomItemFn:        nil,
+		GetMealPlanExportItemsFn:  nil,
+		GetPlanIngredientGroupsFn: nil,
+		ListCategoriesFn:          nil,
+		CreateCategoryFn:          nil,
+		RenameCategoryFn:          nil,
+		DeleteCategoryFn:          nil,
+		ListStoresFn:              nil,
+		CreateStoreFn:             nil,
+		RenameStoreFn:             nil,
+		DeleteStoreFn:             nil,
+		GetStoreCategoriesFn:      nil,
+		SetStoreCategoriesFn:      nil,
+		ListItemNamesFn:           nil,
+		ListItemCategoriesFn:      nil,
+		SetItemCategoryFn:         nil,
 	}
 }
 
@@ -170,6 +171,7 @@ func TestGetMealPlanExportItems_AccessDenied(t *testing.T) {
 		start,
 		start.AddDate(0, 0, 6),
 		[]string{},
+		[]string{},
 	)
 	assert.ErrorIs(t, err, errNotFound)
 }
@@ -179,18 +181,27 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	start := time.Now().UTC()
 	end := start.AddDate(0, 0, 6)
 	pastSlots := []string{"breakfast"}
-	want := []repositories.ShoppingItem{
+	planItems := []repositories.ShoppingItem{
 		{ID: "", Name: "flour", Unit: "g", Amount: 200},
+	}
+	customItems := []repositories.ShoppingItem{
+		{ID: "cid-1", Name: "olive oil", Unit: "ml", Amount: 100},
 	}
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(
-		_ context.Context, pID uuid.UUID, s, e time.Time, ps []string,
+		_ context.Context, pID uuid.UUID, s, e time.Time, ps, _ []string,
 	) ([]repositories.ShoppingItem, error) {
 		assert.Equal(t, planID, pID)
 		assert.Equal(t, start, s)
 		assert.Equal(t, end, e)
 		assert.Equal(t, pastSlots, ps)
-		return want, nil
+		return planItems, nil
+	}
+	m.GetCustomItemsFn = func(
+		_ context.Context, userID string,
+	) ([]repositories.ShoppingItem, error) {
+		assert.Equal(t, "user1", userID)
+		return customItems, nil
 	}
 
 	svc := services.NewShoppingService(m)
@@ -201,16 +212,22 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 		start,
 		end,
 		pastSlots,
+		[]string{},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, want, got)
+	assert.Equal(t, append(planItems, customItems...), got)
 }
 
-func TestGetMealPlanExportItems_RepoError(t *testing.T) {
+func TestGetMealPlanExportItems_CustomItemsError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(
-		_ context.Context, _ uuid.UUID, _, _ time.Time, _ []string,
+		_ context.Context, _ uuid.UUID, _, _ time.Time, _, _ []string,
+	) ([]repositories.ShoppingItem, error) {
+		return []repositories.ShoppingItem{}, nil
+	}
+	m.GetCustomItemsFn = func(
+		_ context.Context, _ string,
 	) ([]repositories.ShoppingItem, error) {
 		return nil, repoErr
 	}
@@ -223,6 +240,30 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 		"user1",
 		start,
 		start.AddDate(0, 0, 6),
+		[]string{},
+		[]string{},
+	)
+	assert.ErrorIs(t, err, repoErr)
+}
+
+func TestGetMealPlanExportItems_RepoError(t *testing.T) {
+	repoErr := errors.New("db error")
+	m := accessGrantedMock()
+	m.GetMealPlanExportItemsFn = func(
+		_ context.Context, _ uuid.UUID, _, _ time.Time, _, _ []string,
+	) ([]repositories.ShoppingItem, error) {
+		return nil, repoErr
+	}
+
+	svc := services.NewShoppingService(m)
+	start := time.Now().UTC()
+	_, err := svc.GetMealPlanExportItems(
+		context.Background(),
+		uuid.New(),
+		"user1",
+		start,
+		start.AddDate(0, 0, 6),
+		[]string{},
 		[]string{},
 	)
 	assert.ErrorIs(t, err, repoErr)

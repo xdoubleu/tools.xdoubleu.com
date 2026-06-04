@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useMealPlans } from '@/hooks/useMealPlans'
 import {
   useMealPlanExportItems,
+  usePlanIngredientGroups,
   useStores,
   useStoreCategories,
   useItemCategories
@@ -17,6 +18,7 @@ import {
   formatGroupedForAppleNotes,
   formatGroupedAsTxt
 } from '@/lib/recipes/shoppingExport'
+import { OTHER_CATEGORY } from '@/lib/recipes/shoppingExport'
 import type { ShoppingItem, CategoryGroup } from '@/lib/recipes/shoppingExport'
 import {
   Dialog,
@@ -36,10 +38,15 @@ interface ExportModalProps {
 export default function ExportModal({ customItems, onClose }: ExportModalProps) {
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [selectedStoreId, setSelectedStoreId] = useState('')
+  const [excludedGroups, setExcludedGroups] = useState<Set<string>>(new Set())
   const [copyFeedback, setCopyFeedback] = useState('')
 
   const { data: plansData, isLoading: plansLoading } = useMealPlans()
-  const { data: exportData, isLoading: exportLoading } = useMealPlanExportItems(selectedPlanId)
+  const { data: groupsData } = usePlanIngredientGroups(selectedPlanId)
+  const { data: exportData, isLoading: exportLoading } = useMealPlanExportItems(
+    selectedPlanId,
+    Array.from(excludedGroups)
+  )
   const { data: storesData } = useStores()
   const { data: storeCategoriesData } = useStoreCategories(selectedStoreId)
   const { data: itemCategoriesData } = useItemCategories()
@@ -65,6 +72,11 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
     if (!selectedStoreId || !storeCategoriesData) return undefined
     return groupByStore(customItems, mealItems, storeCategoriesData.categories, nameToCategoryId)
   }, [selectedStoreId, storeCategoriesData, customItems, mealItems, nameToCategoryId])
+
+  const storeHasNoCategories =
+    selectedStoreId && storeCategoriesData && storeCategoriesData.categories.length === 0
+
+  const uncategorizedCount = groups?.find((g) => g.category === OTHER_CATEGORY)?.items.length ?? 0
 
   const showFeedback = (msg: string) => {
     setCopyFeedback(msg)
@@ -122,7 +134,10 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
               <select
                 id="export-plan-select"
                 value={selectedPlanId}
-                onChange={(e) => setSelectedPlanId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedPlanId(e.target.value)
+                  setExcludedGroups(new Set())
+                }}
                 className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <option value="">-- None --</option>
@@ -134,6 +149,40 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
               </select>
             )}
           </div>
+
+          {selectedPlanId && groupsData && groupsData.groups.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Exclude ingredient groups</Label>
+              <div className="space-y-1">
+                {groupsData.groups.map((g) => {
+                  const key = `${g.recipeName}::${g.groupName}`
+                  const checked = !excludedGroups.has(g.groupName)
+                  return (
+                    <label key={key} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setExcludedGroups((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(g.groupName)) {
+                              next.delete(g.groupName)
+                            } else {
+                              next.add(g.groupName)
+                            }
+                            return next
+                          })
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-fg">{g.groupName}</span>
+                      <span className="text-muted">({g.recipeName})</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="export-store-select">Order by store (optional)</Label>
@@ -151,6 +200,19 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
               ))}
             </select>
           </div>
+
+          {storeHasNoCategories && (
+            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+              This store has no categories configured. Items will be exported as a flat list.
+            </p>
+          )}
+
+          {!storeHasNoCategories && uncategorizedCount > 0 && (
+            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+              {uncategorizedCount} item{uncategorizedCount !== 1 ? 's' : ''} have no category
+              assigned and will appear under &quot;Other&quot;.
+            </p>
+          )}
 
           {selectedStoreId && groups && (
             <div>

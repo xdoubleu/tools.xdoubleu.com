@@ -45,6 +45,9 @@ const (
 	// ShoppingListServiceGetMealPlanExportItemsProcedure is the fully-qualified name of the
 	// ShoppingListService's GetMealPlanExportItems RPC.
 	ShoppingListServiceGetMealPlanExportItemsProcedure = "/shoppinglist.v1.ShoppingListService/GetMealPlanExportItems"
+	// ShoppingListServiceGetPlanIngredientGroupsProcedure is the fully-qualified name of the
+	// ShoppingListService's GetPlanIngredientGroups RPC.
+	ShoppingListServiceGetPlanIngredientGroupsProcedure = "/shoppinglist.v1.ShoppingListService/GetPlanIngredientGroups"
 	// ShoppingListServiceListCategoriesProcedure is the fully-qualified name of the
 	// ShoppingListService's ListCategories RPC.
 	ShoppingListServiceListCategoriesProcedure = "/shoppinglist.v1.ShoppingListService/ListCategories"
@@ -92,6 +95,7 @@ type ShoppingListServiceClient interface {
 	AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error)
 	DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error)
 	GetMealPlanExportItems(context.Context, *connect.Request[v1.GetMealPlanExportItemsRequest]) (*connect.Response[v1.GetMealPlanExportItemsResponse], error)
+	GetPlanIngredientGroups(context.Context, *connect.Request[v1.GetPlanIngredientGroupsRequest]) (*connect.Response[v1.GetPlanIngredientGroupsResponse], error)
 	ListCategories(context.Context, *connect.Request[v1.ListCategoriesRequest]) (*connect.Response[v1.ListCategoriesResponse], error)
 	CreateCategory(context.Context, *connect.Request[v1.CreateCategoryRequest]) (*connect.Response[v1.CreateCategoryResponse], error)
 	RenameCategory(context.Context, *connect.Request[v1.RenameCategoryRequest]) (*connect.Response[v1.RenameCategoryResponse], error)
@@ -140,6 +144,12 @@ func NewShoppingListServiceClient(httpClient connect.HTTPClient, baseURL string,
 			httpClient,
 			baseURL+ShoppingListServiceGetMealPlanExportItemsProcedure,
 			connect.WithSchema(shoppingListServiceMethods.ByName("GetMealPlanExportItems")),
+			connect.WithClientOptions(opts...),
+		),
+		getPlanIngredientGroups: connect.NewClient[v1.GetPlanIngredientGroupsRequest, v1.GetPlanIngredientGroupsResponse](
+			httpClient,
+			baseURL+ShoppingListServiceGetPlanIngredientGroupsProcedure,
+			connect.WithSchema(shoppingListServiceMethods.ByName("GetPlanIngredientGroups")),
 			connect.WithClientOptions(opts...),
 		),
 		listCategories: connect.NewClient[v1.ListCategoriesRequest, v1.ListCategoriesResponse](
@@ -225,23 +235,24 @@ func NewShoppingListServiceClient(httpClient connect.HTTPClient, baseURL string,
 
 // shoppingListServiceClient implements ShoppingListServiceClient.
 type shoppingListServiceClient struct {
-	getCustomList          *connect.Client[v1.GetCustomListRequest, v1.GetCustomListResponse]
-	addShoppingItem        *connect.Client[v1.AddShoppingItemRequest, v1.AddShoppingItemResponse]
-	deleteShoppingItem     *connect.Client[v1.DeleteShoppingItemRequest, v1.DeleteShoppingItemResponse]
-	getMealPlanExportItems *connect.Client[v1.GetMealPlanExportItemsRequest, v1.GetMealPlanExportItemsResponse]
-	listCategories         *connect.Client[v1.ListCategoriesRequest, v1.ListCategoriesResponse]
-	createCategory         *connect.Client[v1.CreateCategoryRequest, v1.CreateCategoryResponse]
-	renameCategory         *connect.Client[v1.RenameCategoryRequest, v1.RenameCategoryResponse]
-	deleteCategory         *connect.Client[v1.DeleteCategoryRequest, v1.DeleteCategoryResponse]
-	listStores             *connect.Client[v1.ListStoresRequest, v1.ListStoresResponse]
-	createStore            *connect.Client[v1.CreateStoreRequest, v1.CreateStoreResponse]
-	renameStore            *connect.Client[v1.RenameStoreRequest, v1.RenameStoreResponse]
-	deleteStore            *connect.Client[v1.DeleteStoreRequest, v1.DeleteStoreResponse]
-	getStoreCategories     *connect.Client[v1.GetStoreCategoriesRequest, v1.GetStoreCategoriesResponse]
-	setStoreCategories     *connect.Client[v1.SetStoreCategoriesRequest, v1.SetStoreCategoriesResponse]
-	listItemNames          *connect.Client[v1.ListItemNamesRequest, v1.ListItemNamesResponse]
-	listItemCategories     *connect.Client[v1.ListItemCategoriesRequest, v1.ListItemCategoriesResponse]
-	setItemCategory        *connect.Client[v1.SetItemCategoryRequest, v1.SetItemCategoryResponse]
+	getCustomList           *connect.Client[v1.GetCustomListRequest, v1.GetCustomListResponse]
+	addShoppingItem         *connect.Client[v1.AddShoppingItemRequest, v1.AddShoppingItemResponse]
+	deleteShoppingItem      *connect.Client[v1.DeleteShoppingItemRequest, v1.DeleteShoppingItemResponse]
+	getMealPlanExportItems  *connect.Client[v1.GetMealPlanExportItemsRequest, v1.GetMealPlanExportItemsResponse]
+	getPlanIngredientGroups *connect.Client[v1.GetPlanIngredientGroupsRequest, v1.GetPlanIngredientGroupsResponse]
+	listCategories          *connect.Client[v1.ListCategoriesRequest, v1.ListCategoriesResponse]
+	createCategory          *connect.Client[v1.CreateCategoryRequest, v1.CreateCategoryResponse]
+	renameCategory          *connect.Client[v1.RenameCategoryRequest, v1.RenameCategoryResponse]
+	deleteCategory          *connect.Client[v1.DeleteCategoryRequest, v1.DeleteCategoryResponse]
+	listStores              *connect.Client[v1.ListStoresRequest, v1.ListStoresResponse]
+	createStore             *connect.Client[v1.CreateStoreRequest, v1.CreateStoreResponse]
+	renameStore             *connect.Client[v1.RenameStoreRequest, v1.RenameStoreResponse]
+	deleteStore             *connect.Client[v1.DeleteStoreRequest, v1.DeleteStoreResponse]
+	getStoreCategories      *connect.Client[v1.GetStoreCategoriesRequest, v1.GetStoreCategoriesResponse]
+	setStoreCategories      *connect.Client[v1.SetStoreCategoriesRequest, v1.SetStoreCategoriesResponse]
+	listItemNames           *connect.Client[v1.ListItemNamesRequest, v1.ListItemNamesResponse]
+	listItemCategories      *connect.Client[v1.ListItemCategoriesRequest, v1.ListItemCategoriesResponse]
+	setItemCategory         *connect.Client[v1.SetItemCategoryRequest, v1.SetItemCategoryResponse]
 }
 
 // GetCustomList calls shoppinglist.v1.ShoppingListService.GetCustomList.
@@ -262,6 +273,11 @@ func (c *shoppingListServiceClient) DeleteShoppingItem(ctx context.Context, req 
 // GetMealPlanExportItems calls shoppinglist.v1.ShoppingListService.GetMealPlanExportItems.
 func (c *shoppingListServiceClient) GetMealPlanExportItems(ctx context.Context, req *connect.Request[v1.GetMealPlanExportItemsRequest]) (*connect.Response[v1.GetMealPlanExportItemsResponse], error) {
 	return c.getMealPlanExportItems.CallUnary(ctx, req)
+}
+
+// GetPlanIngredientGroups calls shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups.
+func (c *shoppingListServiceClient) GetPlanIngredientGroups(ctx context.Context, req *connect.Request[v1.GetPlanIngredientGroupsRequest]) (*connect.Response[v1.GetPlanIngredientGroupsResponse], error) {
+	return c.getPlanIngredientGroups.CallUnary(ctx, req)
 }
 
 // ListCategories calls shoppinglist.v1.ShoppingListService.ListCategories.
@@ -336,6 +352,7 @@ type ShoppingListServiceHandler interface {
 	AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error)
 	DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error)
 	GetMealPlanExportItems(context.Context, *connect.Request[v1.GetMealPlanExportItemsRequest]) (*connect.Response[v1.GetMealPlanExportItemsResponse], error)
+	GetPlanIngredientGroups(context.Context, *connect.Request[v1.GetPlanIngredientGroupsRequest]) (*connect.Response[v1.GetPlanIngredientGroupsResponse], error)
 	ListCategories(context.Context, *connect.Request[v1.ListCategoriesRequest]) (*connect.Response[v1.ListCategoriesResponse], error)
 	CreateCategory(context.Context, *connect.Request[v1.CreateCategoryRequest]) (*connect.Response[v1.CreateCategoryResponse], error)
 	RenameCategory(context.Context, *connect.Request[v1.RenameCategoryRequest]) (*connect.Response[v1.RenameCategoryResponse], error)
@@ -380,6 +397,12 @@ func NewShoppingListServiceHandler(svc ShoppingListServiceHandler, opts ...conne
 		ShoppingListServiceGetMealPlanExportItemsProcedure,
 		svc.GetMealPlanExportItems,
 		connect.WithSchema(shoppingListServiceMethods.ByName("GetMealPlanExportItems")),
+		connect.WithHandlerOptions(opts...),
+	)
+	shoppingListServiceGetPlanIngredientGroupsHandler := connect.NewUnaryHandler(
+		ShoppingListServiceGetPlanIngredientGroupsProcedure,
+		svc.GetPlanIngredientGroups,
+		connect.WithSchema(shoppingListServiceMethods.ByName("GetPlanIngredientGroups")),
 		connect.WithHandlerOptions(opts...),
 	)
 	shoppingListServiceListCategoriesHandler := connect.NewUnaryHandler(
@@ -470,6 +493,8 @@ func NewShoppingListServiceHandler(svc ShoppingListServiceHandler, opts ...conne
 			shoppingListServiceDeleteShoppingItemHandler.ServeHTTP(w, r)
 		case ShoppingListServiceGetMealPlanExportItemsProcedure:
 			shoppingListServiceGetMealPlanExportItemsHandler.ServeHTTP(w, r)
+		case ShoppingListServiceGetPlanIngredientGroupsProcedure:
+			shoppingListServiceGetPlanIngredientGroupsHandler.ServeHTTP(w, r)
 		case ShoppingListServiceListCategoriesProcedure:
 			shoppingListServiceListCategoriesHandler.ServeHTTP(w, r)
 		case ShoppingListServiceCreateCategoryProcedure:
@@ -519,6 +544,10 @@ func (UnimplementedShoppingListServiceHandler) DeleteShoppingItem(context.Contex
 
 func (UnimplementedShoppingListServiceHandler) GetMealPlanExportItems(context.Context, *connect.Request[v1.GetMealPlanExportItemsRequest]) (*connect.Response[v1.GetMealPlanExportItemsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.GetMealPlanExportItems is not implemented"))
+}
+
+func (UnimplementedShoppingListServiceHandler) GetPlanIngredientGroups(context.Context, *connect.Request[v1.GetPlanIngredientGroupsRequest]) (*connect.Response[v1.GetPlanIngredientGroupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups is not implemented"))
 }
 
 func (UnimplementedShoppingListServiceHandler) ListCategories(context.Context, *connect.Request[v1.ListCategoriesRequest]) (*connect.Response[v1.ListCategoriesResponse], error) {

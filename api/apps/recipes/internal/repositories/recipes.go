@@ -144,9 +144,10 @@ func (r *RecipesRepository) ReplaceIngredients(
 	batch := &pgx.Batch{}
 	for i, ing := range ingredients {
 		batch.Queue(`
-			INSERT INTO recipes.ingredients (recipe_id, name, amount, unit, sort_order)
-			VALUES ($1, $2, $3, $4, $5)`,
-			recipeID, ing.Name, ing.Amount, ing.Unit, i,
+			INSERT INTO recipes.ingredients
+			(recipe_id, name, amount, unit, sort_order, group_name)
+			VALUES ($1, $2, $3, $4, $5, $6)`,
+			recipeID, ing.Name, ing.Amount, ing.Unit, i, ing.GroupName,
 		)
 	}
 
@@ -165,7 +166,7 @@ func (r *RecipesRepository) GetIngredients(
 	recipeID uuid.UUID,
 ) ([]models.Ingredient, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, recipe_id, name, amount, unit, sort_order
+		SELECT id, recipe_id, name, amount, unit, sort_order, group_name
 		FROM recipes.ingredients
 		WHERE recipe_id = $1
 		ORDER BY sort_order`,
@@ -180,7 +181,8 @@ func (r *RecipesRepository) GetIngredients(
 	for rows.Next() {
 		var ing models.Ingredient
 		if err = rows.Scan(
-			&ing.ID, &ing.RecipeID, &ing.Name, &ing.Amount, &ing.Unit, &ing.SortOrder,
+			&ing.ID, &ing.RecipeID, &ing.Name, &ing.Amount,
+			&ing.Unit, &ing.SortOrder, &ing.GroupName,
 		); err != nil {
 			return nil, err
 		}

@@ -9,6 +9,7 @@ message Ingredient {
   double amount = 4;
   string unit = 5;
   int32 sort_order = 6;
+  optional string group_name = 7;
 }
 
 message ScaledIngredient {
@@ -52,6 +53,7 @@ message CreateRecipeRequest {
   repeated double ingredient_amounts = 5;
   repeated string ingredient_units = 6;
   optional int32 batch_servings = 7;
+  repeated string ingredient_group_names = 8;
 }
 message CreateRecipeResponse { Recipe recipe = 1; }
 
@@ -64,6 +66,7 @@ message UpdateRecipeRequest {
   repeated double ingredient_amounts = 6;
   repeated string ingredient_units = 7;
   optional int32 batch_servings = 8;
+  repeated string ingredient_group_names = 9;
 }
 message UpdateRecipeResponse {}
 

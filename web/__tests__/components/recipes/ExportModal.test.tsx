@@ -24,6 +24,10 @@ jest.mock('@/hooks/useShoppingList', () => ({
       : undefined,
     isLoading: false
   }),
+  usePlanIngredientGroups: () => ({
+    data: { groups: [] },
+    isLoading: false
+  }),
   useStores: () => ({
     data: { stores: [{ id: 'store-1', name: 'Colruyt' }] },
     isLoading: false

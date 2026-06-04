@@ -19,6 +19,7 @@ interface IngredientRow {
   name: string
   amount: string
   unit: string
+  group: string
 }
 
 export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps) {
@@ -30,14 +31,16 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
     recipe?.ingredients?.map((ing) => ({
       name: ing.name,
       amount: ing.amount.toString(),
-      unit: ing.unit
-    })) || [{ name: '', amount: '', unit: '' }]
+      unit: ing.unit,
+      group: ing.groupName ?? ''
+    })) || [{ name: '', amount: '', unit: '', group: '' }]
   )
 
   const createRecipe = useCreateRecipe()
   const updateRecipe = useUpdateRecipe()
 
-  const addIngredient = () => setIngredients([...ingredients, { amount: '', unit: '', name: '' }])
+  const addIngredient = () =>
+    setIngredients([...ingredients, { amount: '', unit: '', name: '', group: '' }])
   const removeIngredient = (index: number) =>
     setIngredients(ingredients.filter((_, i) => i !== index))
   const updateIngredient = (index: number, field: string, value: string) => {
@@ -59,7 +62,8 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           steps: steps.split('\n').filter((s) => s.trim()),
           ingredientNames: ingredients.map((ing) => ing.name),
           ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
-          ingredientUnits: ingredients.map((ing) => ing.unit)
+          ingredientUnits: ingredients.map((ing) => ing.unit),
+          ingredientGroupNames: ingredients.map((ing) => ing.group)
         }
         await updateRecipe(req)
         onSave(recipe.id)
@@ -71,7 +75,8 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           steps: steps.split('\n').filter((s) => s.trim()),
           ingredientNames: ingredients.map((ing) => ing.name),
           ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
-          ingredientUnits: ingredients.map((ing) => ing.unit)
+          ingredientUnits: ingredients.map((ing) => ing.unit),
+          ingredientGroupNames: ingredients.map((ing) => ing.group)
         }
         const result = await createRecipe(req)
         onSave(result.recipe?.id || '')
@@ -140,6 +145,13 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 value={ing.name}
                 onChange={(e) => updateIngredient(idx, 'name', e.target.value)}
                 className="h-11 flex-1 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              />
+              <input
+                type="text"
+                placeholder="Group (optional)"
+                value={ing.group}
+                onChange={(e) => updateIngredient(idx, 'group', e.target.value)}
+                className="h-11 w-28 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
               {ingredients.length > 1 && (
                 <Button

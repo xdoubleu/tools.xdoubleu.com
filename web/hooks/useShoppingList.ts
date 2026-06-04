@@ -4,6 +4,7 @@ import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type {
   GetCustomListResponse,
   GetMealPlanExportItemsResponse,
+  GetPlanIngredientGroupsResponse,
   ListCategoriesResponse,
   ListStoresResponse,
   GetStoreCategoriesResponse,
@@ -16,11 +17,21 @@ export function useCustomList() {
   return useSWR<GetCustomListResponse, Error>('/shoppinglist', () => client.getCustomList({}))
 }
 
-export function useMealPlanExportItems(planId: string) {
+export function useMealPlanExportItems(planId: string, excludedGroups: string[] = []) {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<GetMealPlanExportItemsResponse, Error>(
-    planId ? `/shoppinglist/export/${planId}` : null,
-    () => client.getMealPlanExportItems({ planId })
+  const key = planId
+    ? `/shoppinglist/export/${planId}?excluded=${excludedGroups.sort().join(',')}`
+    : null
+  return useSWR<GetMealPlanExportItemsResponse, Error>(key, () =>
+    client.getMealPlanExportItems({ planId, excludedGroups })
+  )
+}
+
+export function usePlanIngredientGroups(planId: string) {
+  const client = createServiceClient(ShoppingListService)
+  return useSWR<GetPlanIngredientGroupsResponse, Error>(
+    planId ? `/shoppinglist/groups/${planId}` : null,
+    () => client.getPlanIngredientGroups({ planId })
   )
 }
 

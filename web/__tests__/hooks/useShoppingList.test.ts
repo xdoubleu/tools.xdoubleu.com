@@ -4,6 +4,7 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockClient = {
   getCustomList: jest.fn().mockResolvedValue({}),
   getMealPlanExportItems: jest.fn().mockResolvedValue({}),
+  getPlanIngredientGroups: jest.fn().mockResolvedValue({}),
   listCategories: jest.fn().mockResolvedValue({}),
   listStores: jest.fn().mockResolvedValue({}),
   getStoreCategories: jest.fn().mockResolvedValue({}),
@@ -22,6 +23,7 @@ import useSWR from 'swr'
 import {
   useCustomList,
   useMealPlanExportItems,
+  usePlanIngredientGroups,
   useCategories,
   useStores,
   useStoreCategories,
@@ -60,11 +62,34 @@ describe('useCustomList', () => {
 describe('useMealPlanExportItems', () => {
   it('uses /shoppinglist/export/:planId as key when planId is given', () => {
     renderHook(() => useMealPlanExportItems('plan-2'))
-    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/export/plan-2', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/shoppinglist/export/plan-2?excluded=',
+      expect.any(Function)
+    )
+  })
+
+  it('encodes excluded groups in the SWR key', () => {
+    renderHook(() => useMealPlanExportItems('plan-2', ['sauce', 'pasta']))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/shoppinglist/export/plan-2?excluded=pasta,sauce',
+      expect.any(Function)
+    )
   })
 
   it('passes null as key when planId is empty', () => {
     renderHook(() => useMealPlanExportItems(''))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+  })
+})
+
+describe('usePlanIngredientGroups', () => {
+  it('uses /shoppinglist/groups/:planId as key when planId is given', () => {
+    renderHook(() => usePlanIngredientGroups('plan-3'))
+    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/groups/plan-3', expect.any(Function))
+  })
+
+  it('passes null as key when planId is empty', () => {
+    renderHook(() => usePlanIngredientGroups(''))
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
   })
 })
