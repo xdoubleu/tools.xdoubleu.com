@@ -85,10 +85,7 @@ describe('useMealPlanExportItems', () => {
 describe('usePlanIngredientGroups', () => {
   it('uses /shoppinglist/groups/:planId as key when planId is given', () => {
     renderHook(() => usePlanIngredientGroups('plan-3'))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      '/shoppinglist/groups/plan-3',
-      expect.any(Function)
-    )
+    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/groups/plan-3', expect.any(Function))
   })
 
   it('passes null as key when planId is empty', () => {
