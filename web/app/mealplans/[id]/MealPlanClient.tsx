@@ -19,6 +19,11 @@ import type {
 import { useRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
 import ShareModal from '@/components/recipes/ShareModal'
+import { Button } from '@/components/ui/button'
+
+// Matches <Button variant="secondary" size="sm"> for use on a Next <Link>.
+const secondaryLinkClass =
+  'inline-flex h-8 items-center rounded-xl border border-border bg-surface px-3 text-xs font-medium text-fg transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border'
 
 export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
@@ -97,25 +102,16 @@ export default function MealPlanClient({ id }: { id: string }) {
             <h1 className="text-3xl font-bold">{plan.name}</h1>
             <div className="flex gap-2">
               {data?.icalUrl && (
-                <button
-                  onClick={handleCopyIcal}
-                  className="px-4 py-2 bg-surface border border-border rounded-xl hover:bg-border text-sm"
-                >
+                <Button variant="secondary" size="sm" onClick={handleCopyIcal}>
                   {icalCopied ? 'Copied!' : 'iCal Link'}
-                </button>
+                </Button>
               )}
               {isOwner && (
                 <>
-                  <button
-                    onClick={() => setShowShareModal(true)}
-                    className="px-4 py-2 bg-surface border border-border rounded-xl hover:bg-border text-sm"
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => setShowShareModal(true)}>
                     Share
-                  </button>
-                  <Link
-                    href={`/mealplans/${plan.id}/edit`}
-                    className="px-4 py-2 bg-surface border border-border rounded-xl hover:bg-border text-sm"
-                  >
+                  </Button>
+                  <Link href={`/mealplans/${plan.id}/edit`} className={secondaryLinkClass}>
                     Settings
                   </Link>
                 </>

@@ -5,6 +5,8 @@ import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 
 interface Props {
   data: GetSettingsResponse
@@ -47,43 +49,40 @@ export function SettingsSections({ data, mutate }: Props) {
           {data.sections.map((sec) => (
             <li
               key={sec.id}
-              className="flex items-center justify-between rounded border border-border bg-card px-3 py-2"
+              className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2"
             >
               <span className="text-sm text-subtle">{sec.name}</span>
-              <button
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
                 onClick={() => handleDelete(sec.id)}
-                className="text-xs text-danger hover:underline"
+                className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
               >
                 Delete
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       )}
       {adding ? (
         <form onSubmit={handleAdd} className="flex flex-col gap-2">
-          <input
+          <Input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Section name"
             autoFocus
-            className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           {data.workspaces.length > 0 && (
-            <select
-              value={workspaceId}
-              onChange={(e) => setWorkspaceId(e.target.value)}
-              className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
-            >
+            <Select value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)}>
               <option value="">No workspace</option>
               {data.workspaces.map((ws) => (
                 <option key={ws.id} value={ws.id}>
                   {ws.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={!name.trim()}>
@@ -95,13 +94,15 @@ export function SettingsSections({ data, mutate }: Props) {
           </div>
         </form>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
+          className="self-start"
           onClick={() => setAdding(true)}
-          className="text-sm text-accent hover:underline"
         >
           + Add section
-        </button>
+        </Button>
       )}
     </section>
   )

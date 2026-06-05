@@ -26,6 +26,10 @@ import BookSearchBar from '@/components/backlog/BookSearchBar'
 import BookEditModal from '@/components/backlog/BookEditModal'
 import BooksProgressChart from '@/components/backlog/BooksProgressChart'
 import SteamDistributionChart from '@/components/backlog/SteamDistributionChart'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { interactiveCardClass } from '@/components/ui/card'
+import { cn } from '@/lib/cn'
 
 function oneYearAgo(): string {
   const d = new Date()
@@ -41,43 +45,42 @@ function BookCard({ userBook, onEdit }: { userBook: UserBook; onEdit: (ub: UserB
   const book = userBook.book
   if (!book) return null
   return (
-    <div className="border border-border rounded p-4 flex gap-4">
+    <div className="border border-border rounded-2xl p-4 flex gap-4">
       {book.coverUrl && (
         <Image
           src={book.coverUrl}
           alt={book.title}
           width={40}
           height={60}
-          className="object-cover rounded shrink-0"
+          className="object-cover rounded-lg shrink-0"
         />
       )}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold">{book.title}</h3>
         <p className="text-sm text-muted">{book.authors.join(', ')}</p>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <span className="text-xs px-2 py-0.5 rounded bg-surface text-subtle capitalize">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-subtle capitalize">
             {userBook.status}
           </span>
           {userBook.rating > 0 && <span className="text-xs text-muted">{userBook.rating}★</span>}
           {userBook.tags.includes('favourite') && <span className="text-xs text-amber-500">♥</span>}
         </div>
       </div>
-      <button
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={() => onEdit(userBook)}
-        className="text-xs px-2 py-1 rounded bg-surface text-subtle hover:bg-border shrink-0 self-start"
+        className="shrink-0 self-start"
       >
         Edit
-      </button>
+      </Button>
     </div>
   )
 }
 
 function GameCard({ game }: { game: Game }) {
   return (
-    <Link
-      href={`/backlog/steam/${game.id}`}
-      className="block border border-border rounded p-4 hover:bg-surface transition-colors"
-    >
+    <Link href={`/backlog/steam/${game.id}`} className={cn(interactiveCardClass, 'block p-4')}>
       <h3 className="font-semibold">{game.name}</h3>
       <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
       <p className="text-sm text-muted">Completion: {game.completionRate}</p>
@@ -100,13 +103,14 @@ function TabBar<T extends string>({
   return (
     <div className="flex gap-2 mb-4">
       {tabs.map((t) => (
-        <button
+        <Button
           key={t.id}
+          variant={active === t.id ? 'default' : 'secondary'}
+          size="sm"
           onClick={() => onChange(t.id)}
-          className={`rounded-xl px-3 py-2 text-sm transition-colors ${active === t.id ? 'bg-accent text-white' : 'bg-surface text-subtle hover:bg-border'}`}
         >
           {t.label}
-        </button>
+        </Button>
       ))}
     </div>
   )
@@ -208,24 +212,24 @@ function BooksSection() {
               <label htmlFor="books-from" className="block text-xs text-muted mb-1">
                 From
               </label>
-              <input
+              <Input
                 id="books-from"
                 type="date"
                 value={progressStart}
                 onChange={(e) => setProgressStart(e.target.value)}
-                className="px-3 py-1.5 border border-input-border bg-input text-input-text rounded text-sm"
+                className="h-9 w-auto"
               />
             </div>
             <div>
               <label htmlFor="books-to" className="block text-xs text-muted mb-1">
                 To
               </label>
-              <input
+              <Input
                 id="books-to"
                 type="date"
                 value={progressEnd}
                 onChange={(e) => setProgressEnd(e.target.value)}
-                className="px-3 py-1.5 border border-input-border bg-input text-input-text rounded text-sm"
+                className="h-9 w-auto"
               />
             </div>
           </div>
@@ -335,24 +339,24 @@ function SteamSection() {
               <label htmlFor="steam-from" className="block text-xs text-muted mb-1">
                 From
               </label>
-              <input
+              <Input
                 id="steam-from"
                 type="date"
                 value={progressStart}
                 onChange={(e) => setProgressStart(e.target.value)}
-                className="px-3 py-1.5 border border-input-border bg-input text-input-text rounded text-sm"
+                className="h-9 w-auto"
               />
             </div>
             <div>
               <label htmlFor="steam-to" className="block text-xs text-muted mb-1">
                 To
               </label>
-              <input
+              <Input
                 id="steam-to"
                 type="date"
                 value={progressEnd}
                 onChange={(e) => setProgressEnd(e.target.value)}
-                className="px-3 py-1.5 border border-input-border bg-input text-input-text rounded text-sm"
+                className="h-9 w-auto"
               />
             </div>
           </div>
@@ -408,18 +412,12 @@ export default function BacklogPage() {
       <h1 className="text-3xl font-bold mb-6">Backlog</h1>
 
       <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setTab('books')}
-          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${tab === 'books' ? 'bg-accent text-white' : 'bg-surface text-subtle hover:bg-border'}`}
-        >
+        <Button variant={tab === 'books' ? 'default' : 'secondary'} onClick={() => setTab('books')}>
           Books
-        </button>
-        <button
-          onClick={() => setTab('steam')}
-          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${tab === 'steam' ? 'bg-accent text-white' : 'bg-surface text-subtle hover:bg-border'}`}
-        >
+        </Button>
+        <Button variant={tab === 'steam' ? 'default' : 'secondary'} onClick={() => setTab('steam')}>
           Steam
-        </button>
+        </Button>
       </div>
 
       {tab === 'books' && <BooksSection />}

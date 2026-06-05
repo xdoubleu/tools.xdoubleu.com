@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { attachDraggable } from '@/lib/watchparty/roomUtils'
 import { STATUS_COLOR, STATUS_LABEL } from '@/lib/watchparty/types'
 import { useWatchPartyRTC } from '@/hooks/useWatchPartyRTC'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/cn'
 
 export default function ViewerClient({ id }: { id: string }) {
   const mainVideoRef = useRef<HTMLVideoElement>(null)
@@ -75,32 +77,32 @@ export default function ViewerClient({ id }: { id: string }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border bg-surface">
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={toggleMic}
-          className={`px-4 py-1.5 rounded-xl text-sm font-medium border ${
-            micEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
-          }`}
+          className={cn(!micEnabled && 'border-warn bg-warn text-white hover:bg-warn/90')}
         >
           {micEnabled ? 'Mute Mic' : 'Unmute Mic'}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={toggleCam}
-          className={`px-4 py-1.5 rounded-xl text-sm font-medium border ${
-            camEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
-          }`}
+          className={cn(!camEnabled && 'border-warn bg-warn text-white hover:bg-warn/90')}
         >
           {camEnabled ? 'Disable Cam' : 'Enable Cam'}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={toggleSelfCam}
-          className={`px-4 py-1.5 rounded-xl text-sm font-medium border ${
-            selfCamVisible ? 'border-border hover:bg-accent' : 'border-border text-muted'
-          }`}
+          className={cn(!selfCamVisible && 'text-muted')}
         >
           {selfCamVisible ? 'Hide Self' : 'Show Self'}
-        </button>
+        </Button>
 
         <span className="ml-auto text-xs text-muted font-mono">Room: {id}</span>
       </div>

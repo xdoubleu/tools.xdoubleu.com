@@ -2,6 +2,7 @@
 
 import { useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
 import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
+import { Select } from '@/components/ui/select'
 
 interface UsersTableProps {
   users: AppUser[]
@@ -48,17 +49,16 @@ export default function UsersTable({ users, onUpdated }: UsersTableProps) {
         </thead>
         <tbody className="bg-card">
           {users.map((user) => (
-            <tr key={user.id} className="border-b border-border hover:bg-surface transition-colors">
+            <tr key={user.id} className="border-b border-border hover:bg-hover transition-colors">
               <td className="p-3 text-fg">{user.email}</td>
               <td className="p-3">
-                <select
+                <Select
                   value={user.role || 'user'}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  className="rounded-xl border border-input-border bg-input px-2 py-1 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
-                </select>
+                </Select>
               </td>
               {APPS.map((app) => (
                 <td key={app} className="p-3 text-center">

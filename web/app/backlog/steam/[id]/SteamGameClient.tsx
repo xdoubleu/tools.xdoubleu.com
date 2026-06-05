@@ -11,14 +11,14 @@ interface AchievementCardProps {
 
 function AchievementCard({ achievement }: AchievementCardProps) {
   return (
-    <div className="border border-border rounded p-3 flex gap-3 items-start">
+    <div className="border border-border rounded-2xl p-3 flex gap-3 items-start">
       {achievement.iconUrl && (
         <Image
           src={achievement.iconUrl}
           alt={achievement.displayName}
           width={48}
           height={48}
-          className="rounded shrink-0"
+          className="rounded-lg shrink-0"
         />
       )}
       <div className="min-w-0 flex-1">

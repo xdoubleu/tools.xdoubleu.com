@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useRecipe, useDeleteRecipe, useShareRecipe, useUnshareRecipe } from '@/hooks/useRecipes'
 import type { DeleteRecipeInput, ShareRecipeInput, UnshareRecipeInput } from '@/hooks/useRecipes'
 import ShareModal from '@/components/recipes/ShareModal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function RecipeClient({ id }: { id: string }) {
   const [servings, setServings] = useState(0)
@@ -66,40 +68,25 @@ export default function RecipeClient({ id }: { id: string }) {
             <h1 className="text-3xl font-bold">{recipe.name}</h1>
             {isOwner && (
               <div className="flex gap-2 ml-4 shrink-0">
-                <button
-                  onClick={() => setShowShareModal(true)}
-                  className="px-3 py-1 border border-border rounded text-sm hover:bg-surface"
-                >
+                <Button variant="secondary" size="sm" onClick={() => setShowShareModal(true)}>
                   Share
-                </button>
-                <Link
-                  href={`/recipes/${recipe.id}/edit`}
-                  className="px-3 py-1 border border-border rounded text-sm hover:bg-surface"
-                >
-                  Edit
-                </Link>
+                </Button>
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
+                </Button>
                 {deleteConfirm ? (
                   <div className="flex gap-2 items-center">
-                    <button
-                      onClick={handleDelete}
-                      className="rounded-xl bg-danger px-3 py-1.5 text-sm text-white hover:opacity-90"
-                    >
+                    <Button variant="destructive" size="sm" onClick={handleDelete}>
                       Confirm delete
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(false)}
-                      className="px-3 py-1 border border-border rounded-xl text-sm"
-                    >
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setDeleteConfirm(true)}
-                    className="rounded-xl bg-danger px-3 py-1 text-sm text-white hover:opacity-90"
-                  >
+                  <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
                     Delete
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -107,20 +94,22 @@ export default function RecipeClient({ id }: { id: string }) {
 
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <span className="text-muted text-sm">Serves</span>
-            <input
+            <Input
               type="number"
               min="1"
               value={displayServings}
               onChange={(e) => handleServingsChange(parseInt(e.target.value, 10) || 1)}
-              className="w-16 px-2 py-1 border border-input-border bg-input text-input-text rounded text-sm"
+              className="h-9 w-16 px-2"
             />
             {servings > 0 && servings !== recipe.baseServings && (
-              <button
+              <Button
+                variant="link"
+                size="sm"
                 onClick={() => setServings(0)}
-                className="text-xs text-accent hover:underline"
+                className="h-auto px-0 text-xs"
               >
                 Reset to {recipe.baseServings}
-              </button>
+              </Button>
             )}
             {recipe.batchServings != null && (
               <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-xs text-muted">

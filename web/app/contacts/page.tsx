@@ -9,6 +9,8 @@ import {
   useDeclineContact,
   useDeleteContact
 } from '@/hooks/useContacts'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function ContactsPage() {
   const { data, isLoading, error } = useContacts()
@@ -81,25 +83,21 @@ export default function ContactsPage() {
     <main className="mx-auto max-w-lg px-4 py-10">
       <h1 className="mb-6 text-xl font-semibold text-fg">Contacts</h1>
 
-      <div className="mb-6 rounded border border-border bg-card p-4">
+      <div className="mb-6 rounded-2xl border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold text-subtle">Add contact</h2>
         {addError && <p className="mb-2 text-xs text-danger">{addError}</p>}
         <form onSubmit={handleAdd} className="flex gap-2">
-          <input
+          <Input
             type="email"
             required
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={adding}
-            className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
-          >
+          <Button type="submit" disabled={adding}>
             {adding ? 'Adding…' : 'Add'}
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -117,28 +115,19 @@ export default function ContactsPage() {
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
                     <label className="mb-1 block text-xs text-muted">Name for them</label>
-                    <input
+                    <Input
                       type="text"
                       required
                       defaultValue={c.displayName}
                       onChange={(e) =>
                         setAcceptNames((prev) => ({ ...prev, [c.id]: e.target.value }))
                       }
-                      className="h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     />
                   </div>
-                  <button
-                    onClick={() => handleAccept(c.id)}
-                    className="rounded bg-fg px-3 py-1.5 text-sm font-medium text-bg hover:opacity-80"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => handleDecline(c.id)}
-                    className="rounded border border-border bg-surface px-3 py-1.5 text-sm text-subtle hover:bg-bg"
-                  >
+                  <Button onClick={() => handleAccept(c.id)}>Accept</Button>
+                  <Button variant="secondary" onClick={() => handleDecline(c.id)}>
                     Decline
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
@@ -155,15 +144,17 @@ export default function ContactsPage() {
             {contacts.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between rounded border border-border bg-card px-3 py-2"
+                className="flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2"
               >
                 <span className="text-sm font-medium text-fg">{c.displayName}</span>
-                <button
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={() => handleDelete(c.id)}
-                  className="text-xs text-danger hover:underline"
+                  className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
                 >
                   Remove
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -183,15 +174,17 @@ export default function ContactsPage() {
             {pending.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between rounded border border-border bg-card px-3 py-2"
+                className="flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2"
               >
                 <span className="text-sm text-muted">{c.displayName}</span>
-                <button
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={() => handleDelete(c.id)}
-                  className="text-xs text-subtle hover:underline"
+                  className="h-auto px-0 text-xs text-subtle hover:text-fg focus-visible:ring-border"
                 >
                   Cancel
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

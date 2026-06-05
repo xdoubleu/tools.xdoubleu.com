@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useItemNames, useCategories } from '@/hooks/useShoppingList'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { Select } from '@/components/ui/select'
 
 export default function ItemCatalog() {
   const { data: namesData, isLoading, mutate } = useItemNames()
@@ -48,11 +49,11 @@ export default function ItemCatalog() {
                 <span className="ml-2 text-xs font-medium text-danger">unassigned</span>
               )}
             </span>
-            <select
+            <Select
               aria-label={`Category for ${item.name}`}
               value={item.categoryId}
               onChange={(e) => handleChange(item.name, e.target.value)}
-              className="h-9 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="h-9 w-auto px-2"
             >
               <option value="">-- Unassigned --</option>
               {categories.map((category) => (
@@ -60,7 +61,7 @@ export default function ItemCatalog() {
                   {category.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </li>
         ))}
       </ul>

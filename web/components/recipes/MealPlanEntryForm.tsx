@@ -4,6 +4,8 @@ import { useState } from 'react'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import RecipeCombobox from './RecipeCombobox'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/cn'
 import {
   Dialog,
   DialogContent,
@@ -77,15 +79,20 @@ export default function MealPlanEntryForm({
 
         <div className="flex gap-1 rounded-xl bg-surface p-1 mb-4">
           {(['recipe', 'custom'] as Tab[]).map((t) => (
-            <button
+            <Button
               key={t}
+              variant="ghost"
+              size="sm"
               onClick={() => setTab(t)}
-              className={`flex-1 rounded-xl py-1.5 text-sm font-medium transition-colors ${
-                tab === t ? 'bg-card text-fg shadow-sm' : 'text-muted hover:text-fg'
-              }`}
+              className={cn(
+                'flex-1 rounded-lg',
+                tab === t
+                  ? 'bg-card text-fg shadow-sm'
+                  : 'text-muted hover:bg-transparent hover:text-fg'
+              )}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -98,21 +105,20 @@ export default function MealPlanEntryForm({
               autoFocus
               onEnter={handleSave}
             />
-            <input
+            <Input
               type="number"
               min="1"
               value={servings}
               onChange={(e) => setServings(parseInt(e.target.value, 10))}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               placeholder="Servings"
-              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
           </div>
         ) : (
           <div className="space-y-2">
             {customItems.map((item, i) => (
               <div key={i} className="flex gap-2">
-                <input
+                <Input
                   type="text"
                   value={item}
                   onChange={(e) => updateCustomItem(i, e.target.value)}
@@ -124,21 +130,23 @@ export default function MealPlanEntryForm({
                   }}
                   placeholder={`Item ${i + 1}`}
                   autoFocus={i === 0}
-                  className="flex h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="flex-1"
                 />
                 {customItems.length > 1 && (
-                  <button
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    aria-label="Remove item"
                     onClick={() => removeCustomItem(i)}
-                    className="flex h-11 w-11 items-center justify-center rounded-xl text-lg font-bold text-danger hover:bg-danger/10"
                   >
                     ×
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
-            <button onClick={addCustomItem} className="text-sm text-accent hover:underline">
+            <Button variant="link" size="sm" className="self-start" onClick={addCustomItem}>
               + Add item
-            </button>
+            </Button>
           </div>
         )}
 

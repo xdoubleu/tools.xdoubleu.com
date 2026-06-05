@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { Input } from '@/components/ui/input'
 
 interface RecipeComboboxProps {
   recipes: Recipe[]
@@ -87,7 +88,7 @@ export default function RecipeCombobox({
 
   return (
     <div className="relative">
-      <input
+      <Input
         ref={inputRef}
         type="text"
         value={inputValue}
@@ -96,7 +97,6 @@ export default function RecipeCombobox({
         onFocus={() => setOpen(inputValue.length > 0)}
         onBlur={handleBlur}
         placeholder="Recipe name or custom meal..."
-        className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       />
       {open && filtered.length > 0 && (
         <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto">
@@ -105,7 +105,7 @@ export default function RecipeCombobox({
               key={r.id}
               onMouseDown={() => selectRecipe(r)}
               className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
-                i === highlightedIndex ? 'bg-accent text-white' : 'text-fg hover:bg-surface'
+                i === highlightedIndex ? 'bg-accent text-white' : 'text-fg hover:bg-hover'
               }`}
             >
               {r.name}

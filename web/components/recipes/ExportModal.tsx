@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 
 interface ExportModalProps {
   customItems: ShoppingItem[]
@@ -131,14 +132,13 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
             {plansLoading ? (
               <p className="text-sm text-muted">Loading plans...</p>
             ) : (
-              <select
+              <Select
                 id="export-plan-select"
                 value={selectedPlanId}
                 onChange={(e) => {
                   setSelectedPlanId(e.target.value)
                   setExcludedGroups(new Set())
                 }}
-                className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <option value="">-- None --</option>
                 {(plansData?.plans ?? []).map((plan) => (
@@ -146,7 +146,7 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
                     {plan.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
           </div>
 
@@ -186,11 +186,10 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
 
           <div className="space-y-1.5">
             <Label htmlFor="export-store-select">Order by store (optional)</Label>
-            <select
+            <Select
               id="export-store-select"
               value={selectedStoreId}
               onChange={(e) => setSelectedStoreId(e.target.value)}
-              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <option value="">-- No store (flat list) --</option>
               {(storesData?.stores ?? []).map((store) => (
@@ -198,7 +197,7 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
                   {store.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {storeHasNoCategories && (

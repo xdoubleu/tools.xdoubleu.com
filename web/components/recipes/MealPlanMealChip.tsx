@@ -2,6 +2,7 @@
 
 import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { Button } from '@/components/ui/button'
 
 interface MealPlanMealChipProps {
   meal: PlanMeal
@@ -53,26 +54,30 @@ export default function MealPlanMealChip({
       )}
       {!inMoveMode && (
         <div className="ml-0.5 flex shrink-0 items-center gap-0.5">
-          <button
+          <Button
+            variant="ghost"
+            size="iconSm"
             aria-label="Edit meal"
             onClick={(e) => {
               e.stopPropagation()
               onEditClick(meal)
             }}
-            className="flex h-5 w-5 items-center justify-center rounded text-sm text-accent hover:bg-accent/20 active:scale-95"
+            className="text-accent hover:bg-accent/20 focus-visible:ring-accent"
           >
             ✏
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="iconSm"
             aria-label="Delete meal"
             onClick={(e) => {
               e.stopPropagation()
               onDeleteMeal(meal.id)
             }}
-            className="flex h-5 w-5 items-center justify-center rounded text-base font-bold text-danger hover:bg-danger/10 active:scale-95"
+            className="text-base font-bold text-danger hover:bg-danger/10 focus-visible:ring-danger/50"
           >
             ×
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -6,6 +6,8 @@
   --color-bg: 242 242 247;
   --color-surface: 255 255 255;
   --color-card: 255 255 255;
+  /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
+  --color-hover: 229 229 234;
 
   /* Text */
   --color-fg: 0 0 0;
@@ -40,6 +42,8 @@
     --color-bg: 0 0 0;
     --color-surface: 28 28 30;
     --color-card: 28 28 30;
+    /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
+    --color-hover: 44 44 46;
 
     /* Text */
     --color-fg: 255 255 255;

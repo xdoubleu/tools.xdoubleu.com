@@ -3,6 +3,8 @@
 import { mutate } from 'swr'
 import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
 import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 
 const APP_NAMES = ['backlog', 'icsproxy', 'recipes', 'todos', 'watchparty']
 
@@ -25,29 +27,26 @@ function UserRow({ user }: { user: AppUser }) {
     <tr className="border-b border-border last:border-0">
       <td className="px-3 py-2 text-sm text-fg">{user.email}</td>
       <td className="px-3 py-2">
-        <select
+        <Select
           value={user.role}
           onChange={(e) => handleRoleChange(e.target.value)}
-          className="rounded border border-border bg-surface px-2 py-1 text-sm text-fg focus:outline-none focus:ring-1 focus:ring-fg"
+          className="h-9 w-auto"
         >
           <option value="user">user</option>
           <option value="admin">admin</option>
-        </select>
+        </Select>
       </td>
       {APP_NAMES.map((appName) => {
         const hasAccess = user.appAccess.includes(appName)
         return (
           <td key={appName} className="px-3 py-2 text-center">
-            <button
+            <Button
+              size="sm"
+              variant={hasAccess ? 'default' : 'secondary'}
               onClick={() => handleAccessToggle(appName)}
-              className={`rounded px-2 py-1 text-xs font-medium ${
-                hasAccess
-                  ? 'bg-fg text-bg hover:opacity-80'
-                  : 'border border-border bg-surface text-muted hover:bg-bg'
-              }`}
             >
               {hasAccess ? 'Revoke' : 'Grant'}
-            </button>
+            </Button>
           </td>
         )
       })}
@@ -71,7 +70,7 @@ export default function AdminPage() {
     <main className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="mb-6 text-xl font-semibold text-fg">User Management</h1>
 
-      <div className="overflow-x-auto rounded border border-border">
+      <div className="overflow-x-auto rounded-2xl border border-border">
         <table className="w-full text-left">
           <thead className="border-b border-border bg-surface">
             <tr>

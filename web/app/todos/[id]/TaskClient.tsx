@@ -8,6 +8,7 @@ import { TaskService } from '@/lib/gen/todos/v1/tasks_pb'
 import { formatRelativeDate, isOverdue } from '@/lib/todos/dateUtils'
 import { getApiUrl } from '@/lib/env'
 import type { Subtask } from '@/lib/gen/todos/v1/tasks_pb'
+import { Button } from '@/components/ui/button'
 
 export default function TaskClient({ id }: { id: string }) {
   const router = useRouter()
@@ -74,12 +75,12 @@ export default function TaskClient({ id }: { id: string }) {
         <h1 className="text-xl font-semibold text-fg">{task.title}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
           {task.priority > 0 && (
-            <span className="rounded bg-surface px-1.5 py-0.5 text-xs font-semibold text-muted">
+            <span className="rounded-lg bg-surface px-1.5 py-0.5 text-xs font-semibold text-muted">
               P{task.priority}
             </span>
           )}
           {task.labels.map((label) => (
-            <span key={label} className="rounded bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
+            <span key={label} className="rounded-lg bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
               {label}
             </span>
           ))}
@@ -128,29 +129,27 @@ export default function TaskClient({ id }: { id: string }) {
 
       <div className="flex gap-2 border-t border-border pt-4">
         {task.status === 'open' ? (
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={() => handleAction('complete')}
-            className="rounded-xl bg-success px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            className="bg-success text-white hover:bg-success/90 focus-visible:ring-success/50"
           >
             Complete
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
-            onClick={() => handleAction('reopen')}
-            className="rounded-xl bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover"
-          >
+          <Button type="button" size="sm" onClick={() => handleAction('reopen')}>
             Reopen
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="button"
+          variant="destructive"
+          size="sm"
           onClick={() => handleAction('delete')}
-          className="rounded-xl border border-danger/30 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/10"
         >
           Delete
-        </button>
+        </Button>
       </div>
     </article>
   )

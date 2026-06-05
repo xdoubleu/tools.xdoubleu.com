@@ -3,6 +3,7 @@
 import { useState, useRef, useImperativeHandle, forwardRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { MenuItem } from '@/components/ui/menu-item'
 import { createServiceClient } from '@/lib/client'
 import { TaskService } from '@/lib/gen/todos/v1/tasks_pb'
 
@@ -108,20 +109,18 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
         {showDropdown && dropdownType === 'label' && filteredLabels.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-elevated z-10">
             {filteredLabels.map((label) => (
-              <button
+              <MenuItem
                 key={label.value}
-                type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setInput(input.replace(/@\S*$/, `@${label.value}`))
                   setShowDropdown(false)
                   inputRef.current?.focus()
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-surface flex items-center gap-2 text-sm"
               >
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: label.color }} />
                 {label.value}
-              </button>
+              </MenuItem>
             ))}
           </div>
         )}
@@ -129,19 +128,17 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
         {showDropdown && dropdownType === 'section' && filteredSections.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-2xl shadow-elevated z-10">
             {filteredSections.map((section) => (
-              <button
+              <MenuItem
                 key={section.id}
-                type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setInput(input.replace(/#\S*$/, `#${section.name}`))
                   setShowDropdown(false)
                   inputRef.current?.focus()
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-surface text-sm"
               >
                 {section.name}
-              </button>
+              </MenuItem>
             ))}
           </div>
         )}

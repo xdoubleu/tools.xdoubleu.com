@@ -3,13 +3,12 @@
 import Link from 'next/link'
 import { useBacklogDistribution } from '@/hooks/useBacklog'
 import type { Game } from '@/lib/gen/backlog/v1/games_pb'
+import { cn } from '@/lib/cn'
+import { interactiveCardClass } from '@/components/ui/card'
 
 function GameCard({ game }: { game: Game }) {
   return (
-    <Link
-      href={`/backlog/steam/${game.id}`}
-      className="block border border-border rounded p-4 hover:bg-surface transition-colors"
-    >
+    <Link href={`/backlog/steam/${game.id}`} className={cn(interactiveCardClass, 'block p-4')}>
       <h3 className="font-semibold">{game.name}</h3>
       <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
       <p className="text-sm text-muted">Completion: {game.completionRate}</p>

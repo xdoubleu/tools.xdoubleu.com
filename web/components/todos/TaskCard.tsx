@@ -4,6 +4,9 @@ import type { Task } from '@/lib/gen/todos/v1/tasks_pb'
 import { SubtaskService } from '@/lib/gen/todos/v1/subtasks_pb'
 import { formatRelativeDate, isOverdue } from '@/lib/todos/dateUtils'
 import { createServiceClient } from '@/lib/client'
+import { Button } from '@/components/ui/button'
+import { interactiveCardClass } from '@/components/ui/card'
+import { cn } from '@/lib/cn'
 
 const PRIORITY_LABELS: Record<number, string> = {
   1: 'P1',
@@ -41,7 +44,7 @@ export function TaskCard({ task, onClick, onChanged }: TaskCardProps) {
   return (
     <div
       role="listitem"
-      className="cursor-pointer rounded-2xl border border-border bg-card p-3 shadow-card transition-shadow hover:shadow-elevated active:scale-[0.99]"
+      className={cn(interactiveCardClass, 'cursor-pointer p-3')}
       onClick={onClick}
     >
       <div className="flex items-start gap-3">
@@ -82,11 +85,18 @@ export function TaskCard({ task, onClick, onChanged }: TaskCardProps) {
         <ul className="mt-2 space-y-1 border-t border-border pt-2">
           {topLevelSubtasks.map((sub) => (
             <li key={sub.id} className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="iconSm"
                 aria-label={sub.done ? 'Mark incomplete' : 'Mark done'}
                 onClick={(e) => handleSubtaskToggle(e, sub.id)}
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${sub.done ? 'border-accent bg-accent text-white' : 'border-border bg-card hover:border-accent'}`}
+                className={cn(
+                  'h-4 w-4 shrink-0 rounded-md border p-0 focus-visible:ring-accent',
+                  sub.done
+                    ? 'border-accent bg-accent text-white hover:bg-accent'
+                    : 'border-border bg-card hover:border-accent hover:bg-card'
+                )}
               >
                 {sub.done && (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
@@ -99,7 +109,7 @@ export function TaskCard({ task, onClick, onChanged }: TaskCardProps) {
                     />
                   </svg>
                 )}
-              </button>
+              </Button>
               <span
                 className={`truncate text-xs ${sub.done ? 'text-muted line-through' : 'text-subtle'}`}
                 title={sub.title}

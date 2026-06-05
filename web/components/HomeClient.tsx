@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
 import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
@@ -151,105 +153,103 @@ export default function HomeClient() {
 
   if (authState === 'mfa-challenge') {
     return (
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-fg">Two-factor authentication</h2>
-        <div className="mt-6 space-y-4">
-          <p className="text-sm text-subtle">Enter the code from your authenticator app.</p>
-          <div>
-            <label htmlFor="mfaChallengeCode" className="block text-sm font-medium text-subtle">
-              Authenticator code
-            </label>
-            <input
-              id="mfaChallengeCode"
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={mfaCode}
-              onChange={(e) => setMfaCode(e.target.value)}
-              className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            />
+      <div className="mx-auto w-full max-w-sm">
+        <h1 className="mb-4 text-center text-lg font-semibold text-fg">tools.xdoubleu.com</h1>
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-fg">Two-factor authentication</h2>
+          <div className="mt-6 space-y-4">
+            <p className="text-sm text-subtle">Enter the code from your authenticator app.</p>
+            <div>
+              <label htmlFor="mfaChallengeCode" className="block text-sm font-medium text-subtle">
+                Authenticator code
+              </label>
+              <Input
+                id="mfaChallengeCode"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            {mfaError && (
+              <p role="alert" className="text-sm text-danger">
+                {mfaError}
+              </p>
+            )}
+            <Button onClick={handleMfaChallenge} disabled={mfaSubmitting} className="w-full">
+              {mfaSubmitting ? 'Verifying...' : 'Verify'}
+            </Button>
           </div>
-          {mfaError && (
-            <p role="alert" className="text-sm text-danger">
-              {mfaError}
-            </p>
-          )}
-          <button
-            onClick={handleMfaChallenge}
-            disabled={mfaSubmitting}
-            className="h-11 w-full rounded-full bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {mfaSubmitting ? 'Verifying...' : 'Verify'}
-          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-fg">Sign In</h2>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-subtle">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-subtle">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          />
-          <div className="mt-1 text-right">
-            <Link href="/auth/forgot-password" className="text-sm text-accent hover:underline">
-              Forgot password?
-            </Link>
+    <div className="mx-auto w-full max-w-sm">
+      <h1 className="mb-4 text-center text-lg font-semibold text-fg">tools.xdoubleu.com</h1>
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-fg">Sign In</h2>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-subtle">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1"
+            />
           </div>
-        </div>
 
-        <div className="flex items-center">
-          <input
-            id="rememberMe"
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-[rgb(var(--color-accent))]"
-          />
-          <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
-            Remember me
-          </label>
-        </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-subtle">
+              Password
+            </label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1"
+            />
+            <div className="mt-1 text-right">
+              <Link href="/auth/forgot-password" className="text-sm text-accent hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+          </div>
 
-        {signInError && (
-          <p role="alert" className="text-sm text-danger">
-            {signInError}
-          </p>
-        )}
+          <div className="flex items-center">
+            <input
+              id="rememberMe"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-input-border accent-[rgb(var(--color-accent))]"
+            />
+            <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
+              Remember me
+            </label>
+          </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="h-11 w-full rounded-full bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? 'Signing in...' : 'Sign in'}
-        </button>
-      </form>
+          {signInError && (
+            <p role="alert" className="text-sm text-danger">
+              {signInError}
+            </p>
+          )}
+
+          <Button type="submit" disabled={submitting} className="w-full">
+            {submitting ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
+      </div>
     </div>
   )
 }

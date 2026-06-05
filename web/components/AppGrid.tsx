@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { cn } from '@/lib/cn'
+import { interactiveCardClass } from '@/components/ui/card'
 
 export interface AppLink {
   name: string
@@ -21,11 +23,7 @@ function AppCards({ apps }: { apps: AppLink[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {apps.map((app) => (
-        <Link
-          key={app.name}
-          href={app.href}
-          className="block rounded-2xl border border-border bg-card p-4 shadow-card transition-all hover:shadow-elevated hover:ring-1 hover:ring-accent/30 active:scale-[0.98]"
-        >
+        <Link key={app.name} href={app.href} className={cn(interactiveCardClass, 'block p-4')}>
           <div className="font-semibold text-fg">{app.label}</div>
           <div className="mt-1 text-sm text-muted">{app.description}</div>
         </Link>

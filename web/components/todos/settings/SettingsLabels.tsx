@@ -6,6 +6,7 @@ import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
 import SettingsLabelRow from '@/components/todos/SettingsLabelRow'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const LABEL_CATEGORY = 'label'
 
@@ -83,13 +84,13 @@ export function SettingsLabels({ data, mutate }: Props) {
             onChange={(e) => setColor(e.target.value)}
             className="h-9 w-9 cursor-pointer rounded-full border-0 bg-transparent p-0"
           />
-          <input
+          <Input
             type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="Label name"
             autoFocus
-            className="flex-1 rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="flex-1"
           />
           <Button type="submit" size="sm" disabled={!value.trim()}>
             Add
@@ -99,13 +100,15 @@ export function SettingsLabels({ data, mutate }: Props) {
           </Button>
         </form>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
+          className="self-start"
           onClick={() => setAdding(true)}
-          className="text-sm text-accent hover:underline"
         >
           + Add label
-        </button>
+        </Button>
       )}
     </section>
   )

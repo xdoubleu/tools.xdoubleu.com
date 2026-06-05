@@ -1,15 +1,15 @@
-import { forwardRef, type InputHTMLAttributes } from 'react'
+import { forwardRef, type SelectHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
-type InputProps = InputHTMLAttributes<HTMLInputElement>
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement>
 
-const Input = forwardRef<HTMLInputElement, InputProps>(({ className, ...props }, ref) => {
+const Select = forwardRef<HTMLSelectElement, SelectProps>(({ className, ...props }, ref) => {
   return (
-    <input
+    <select
       ref={ref}
       className={cn(
         'flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2',
-        'text-sm text-input-text placeholder:text-muted',
+        'text-sm text-input-text',
         'transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:border-accent',
         'disabled:pointer-events-none disabled:opacity-50',
@@ -20,7 +20,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({ className, ...props },
   )
 })
 
-Input.displayName = 'Input'
+Select.displayName = 'Select'
 
-export { Input }
-export type { InputProps }
+export { Select }
+export type { SelectProps }

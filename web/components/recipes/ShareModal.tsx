@@ -9,6 +9,7 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface ShareModalProps {
   sharedWith: string[]
@@ -42,12 +43,12 @@ export default function ShareModal({ sharedWith, onShare, onUnshare, onClose }: 
         </DialogHeader>
 
         <form onSubmit={handleShare} className="flex gap-2 mb-3">
-          <input
+          <Input
             type="text"
             value={shareInput}
             onChange={(e) => setShareInput(e.target.value)}
             placeholder="User ID to share with"
-            className="h-11 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex-1"
           />
           <Button type="submit" size="md">
             Share
@@ -61,12 +62,14 @@ export default function ShareModal({ sharedWith, onShare, onUnshare, onClose }: 
             {sharedWith.map((userId) => (
               <li key={userId} className="flex items-center justify-between text-sm">
                 <span>{userId}</span>
-                <button
+                <Button
+                  variant="link"
+                  size="sm"
                   onClick={() => onUnshare(userId)}
-                  className="text-xs text-danger hover:underline"
+                  className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
                 >
                   Unshare
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

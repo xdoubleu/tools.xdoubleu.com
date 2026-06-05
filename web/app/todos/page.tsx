@@ -8,7 +8,16 @@ import { useTodoSettings } from '@/hooks/useTodoSettings'
 import { TaskCard } from '@/components/todos/TaskCard'
 import { PoliciesBanner } from '@/components/todos/PoliciesBanner'
 import QuickAddBar, { type QuickAddBarHandle } from '@/components/todos/QuickAddBar'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/cn'
 import { createServiceClient } from '@/lib/client'
+
+const navButtonClass = (active: boolean) =>
+  cn(
+    'h-auto w-full justify-start rounded-lg px-2 py-2 text-sm font-normal',
+    active ? 'bg-accent/10 font-medium text-accent hover:bg-accent/10' : 'text-subtle'
+  )
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 
 type Tab = 'active' | 'done' | 'archive'
@@ -188,20 +197,22 @@ export default function TodosPage() {
         <div className="flex items-center gap-4 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-muted">
           {SHORTCUTS.map(({ key, desc }) => (
             <span key={key}>
-              <kbd className="rounded border border-border bg-card px-1 py-0.5 font-mono text-xs">
+              <kbd className="rounded-lg border border-border bg-card px-1 py-0.5 font-mono text-xs">
                 {key}
               </kbd>{' '}
               {desc}
             </span>
           ))}
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="iconSm"
             onClick={dismissShortcutHints}
-            className="ml-auto text-muted hover:text-subtle"
+            className="ml-auto h-5 w-5 text-muted hover:bg-transparent hover:text-subtle"
             aria-label="Dismiss shortcut hints"
           >
             ✕
-          </button>
+          </Button>
         </div>
       )}
 
@@ -216,23 +227,25 @@ export default function TodosPage() {
               </h2>
               <ul>
                 <li>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => selectWorkspace(undefined)}
-                    className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedWorkspaceId === undefined ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
+                    className={navButtonClass(selectedWorkspaceId === undefined)}
                   >
                     All workspaces
-                  </button>
+                  </Button>
                 </li>
                 {workspaces.map((ws) => (
                   <li key={ws.id}>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => selectWorkspace(ws.id)}
-                      className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedWorkspaceId === ws.id ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
+                      className={navButtonClass(selectedWorkspaceId === ws.id)}
                     >
                       {ws.name}
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -247,29 +260,31 @@ export default function TodosPage() {
               </h2>
               <ul>
                 <li>
-                  <button
+                  <Button
                     ref={(el) => {
                       sectionRefs.current[0] = el
                     }}
                     type="button"
+                    variant="ghost"
                     onClick={() => setSelectedSectionId(undefined)}
-                    className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedSectionId === undefined ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
+                    className={navButtonClass(selectedSectionId === undefined)}
                   >
                     All sections
-                  </button>
+                  </Button>
                 </li>
                 {sections.map((sec, i) => (
                   <li key={sec.id}>
-                    <button
+                    <Button
                       ref={(el) => {
                         sectionRefs.current[i + 1] = el
                       }}
                       type="button"
+                      variant="ghost"
                       onClick={() => setSelectedSectionId(sec.id)}
-                      className={`w-full rounded-lg px-2 py-2 text-left text-sm transition-colors ${selectedSectionId === sec.id ? 'bg-accent/10 font-medium text-accent' : 'text-subtle hover:bg-surface'}`}
+                      className={navButtonClass(selectedSectionId === sec.id)}
                     >
                       {sec.name}
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -277,27 +292,30 @@ export default function TodosPage() {
           )}
           {/* Settings link */}
           <div className="mt-6 border-t border-border pt-4">
-            <Link
-              href="/todos/settings"
-              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-subtle transition-colors hover:bg-surface hover:text-fg"
+            <Button
+              asChild
+              variant="ghost"
+              className="h-auto w-full justify-start gap-2 rounded-lg px-2 py-2 text-sm font-normal text-subtle hover:text-fg"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-              Settings
-            </Link>
+              <Link href="/todos/settings">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Settings
+              </Link>
+            </Button>
           </div>
         </aside>
 
@@ -305,12 +323,11 @@ export default function TodosPage() {
         <div className="min-w-0 flex-1">
           {/* Search — always visible */}
           <div className="mb-4">
-            <input
+            <Input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tasks…"
-              className="w-full rounded border border-input-border bg-input px-3 py-2 text-sm text-input-text"
               aria-label="Search tasks"
             />
           </div>

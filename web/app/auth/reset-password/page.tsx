@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ConnectError } from '@connectrpc/connect'
 import { useExchangeToken, useUpdatePassword } from '@/hooks/useAuth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 type State = 'loading' | 'form' | 'done' | 'invalid'
 
@@ -99,28 +101,28 @@ export default function ResetPasswordPage() {
                 <label htmlFor="new_password" className="block text-sm font-medium text-subtle">
                   New password
                 </label>
-                <input
+                <Input
                   id="new_password"
                   type="password"
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="mt-1"
                 />
               </div>
               <div>
                 <label htmlFor="confirm_password" className="block text-sm font-medium text-subtle">
                   Confirm new password
                 </label>
-                <input
+                <Input
                   id="confirm_password"
                   type="password"
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="mt-1"
                 />
               </div>
 
@@ -133,13 +135,9 @@ export default function ResetPasswordPage() {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="h-11 w-full rounded-xl bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-              >
+              <Button type="submit" disabled={submitting} className="w-full">
                 {submitting ? 'Updating…' : 'Update password'}
-              </button>
+              </Button>
             </form>
           )}
         </div>

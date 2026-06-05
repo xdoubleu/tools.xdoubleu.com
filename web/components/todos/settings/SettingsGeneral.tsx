@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
+import { Input } from '@/components/ui/input'
 
 const OBSIDIAN_VAULT_KEY = 'todos:obsidian_vault'
 
@@ -50,7 +51,7 @@ export function SettingsGeneral({ data, mutate }: Props) {
             type="checkbox"
             checked={!hideShortcutHints}
             onChange={handleToggleHints}
-            className="h-4 w-4 rounded border-border accent-accent"
+            className="h-4 w-4 rounded accent-[rgb(var(--color-accent))]"
           />
           <span className="text-sm text-subtle">Show keyboard shortcut hints</span>
         </label>
@@ -59,13 +60,12 @@ export function SettingsGeneral({ data, mutate }: Props) {
           <label htmlFor="obsidian-vault" className="mb-1 block text-sm text-subtle">
             Obsidian vault name
           </label>
-          <input
+          <Input
             id="obsidian-vault"
             type="text"
             value={vault}
             onChange={handleVaultChange}
             placeholder="my-vault"
-            className="w-full rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           {vault.trim() && (
             <p className="mt-1 truncate text-xs text-muted">

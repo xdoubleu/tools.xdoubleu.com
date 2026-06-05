@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
 
@@ -71,29 +73,24 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="status-select">Status</Label>
-            <select
-              id="status-select"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
+            <Select id="status-select" value={status} onChange={(e) => setStatus(e.target.value)}>
               {BOOK_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="notes-area">Notes</Label>
-            <textarea
+            <Textarea
               id="notes-area"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Optional notes..."
-              className="w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="resize-none"
             />
           </div>
 

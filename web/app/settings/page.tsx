@@ -10,6 +10,8 @@ import {
   useMFAEnrollVerify,
   useMFAUnenroll
 } from '@/hooks/useAuth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 type MFAEnrollState = 'idle' | 'qr' | 'done'
 
@@ -154,37 +156,31 @@ export default function SettingsPage() {
             <label htmlFor="new_password" className="mb-1 block text-sm text-subtle">
               New password
             </label>
-            <input
+            <Input
               id="new_password"
               type="password"
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
             />
           </div>
           <div>
             <label htmlFor="confirm_password" className="mb-1 block text-sm text-subtle">
               Confirm new password
             </label>
-            <input
+            <Input
               id="confirm_password"
               type="password"
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
             />
           </div>
-          <button
-            type="submit"
-            disabled={pwSaving}
-            className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-          >
+          <Button type="submit" size="sm" disabled={pwSaving}>
             {pwSaving ? 'Updating…' : 'Update password'}
-          </button>
+          </Button>
         </form>
       </section>
 
@@ -211,13 +207,9 @@ export default function SettingsPage() {
             <p className="text-sm text-subtle">
               Two-factor authentication is <span className="font-medium text-fg">enabled</span>.
             </p>
-            <button
-              onClick={handleMFADisable}
-              disabled={mfaBusy}
-              className="rounded border border-danger/40 bg-danger/10 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
-            >
+            <Button variant="destructive" size="sm" onClick={handleMFADisable} disabled={mfaBusy}>
               {mfaBusy ? 'Disabling…' : 'Disable MFA'}
-            </button>
+            </Button>
           </div>
         ) : mfaState === 'qr' ? (
           <div className="space-y-4">
@@ -225,7 +217,7 @@ export default function SettingsPage() {
               Scan this QR code with your authenticator app, then enter the 6-digit code below.
             </p>
             <div
-              className="w-48 rounded border border-border bg-white p-2"
+              className="w-48 rounded-xl border border-border bg-white p-2"
               dangerouslySetInnerHTML={{ __html: mfaQr }}
             />
             <p className="text-xs text-muted">
@@ -237,7 +229,7 @@ export default function SettingsPage() {
                 <label htmlFor="mfa_code" className="mb-1 block text-sm text-subtle">
                   Authenticator code
                 </label>
-                <input
+                <Input
                   id="mfa_code"
                   type="text"
                   inputMode="numeric"
@@ -245,24 +237,15 @@ export default function SettingsPage() {
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value)}
                   required
-                  className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
                 />
               </div>
               <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={mfaBusy || mfaCode.length < 6}
-                  className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-                >
+                <Button type="submit" size="sm" disabled={mfaBusy || mfaCode.length < 6}>
                   {mfaBusy ? 'Verifying…' : 'Verify & enable'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMfaState('idle')}
-                  className="rounded px-3 py-1.5 text-sm text-muted hover:text-subtle"
-                >
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setMfaState('idle')}>
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -272,13 +255,9 @@ export default function SettingsPage() {
               Two-factor authentication is <span className="font-medium text-fg">disabled</span>.
               Enable it for additional security.
             </p>
-            <button
-              onClick={handleMFAEnable}
-              disabled={mfaBusy}
-              className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-            >
+            <Button size="sm" onClick={handleMFAEnable} disabled={mfaBusy}>
               {mfaBusy ? 'Loading…' : 'Enable MFA'}
-            </button>
+            </Button>
           </div>
         ) : null}
       </section>

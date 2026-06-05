@@ -40,7 +40,11 @@ yarn generate                             # Regenerate lib/gen/ from proto defin
 - **Mobile-first and responsive**: use Tailwind responsive breakpoints (`sm:`, `md:`, `lg:`) and relative units. No fixed-pixel widths.
 - **Server Components by default**: use Client Components only where interactivity (`useState`, `useEffect`, event handlers) is required.
 - **Minimal friction**: prefer SWR / React state updates over full page reloads. Use optimistic UI where appropriate; avoid unnecessary loading states.
-- **shadcn/ui primitives**: reach for existing components in `components/ui/` before writing custom markup.
+- **shadcn/ui primitives**: every interactive control must use a `components/ui/` primitive — `Button`, `Input`, `Select`, `Textarea`, `MenuItem` (dropdown rows), `Badge`, `Card`, `Dialog`. Do **not** hand-style raw `<button>`/`<input>`/`<select>`/`<textarea>`. The only sanctioned raw elements are genuinely different patterns: ARIA `role="tab"` strips, sidebar nav lists, and native checkbox/color/file inputs.
+- **Consistent shape**: interactive controls are `rounded-xl` (buttons, inputs, selects, textareas), small/tiny controls `rounded-lg`, containers (cards, dialogs, dropdown panels) `rounded-2xl`, status badges `rounded-full`. Never use bare `rounded` — always pick a value from the scale.
+- **Clickable cards**: navigable cards (Links or `onClick` divs that look like cards) share one hover treatment via `interactiveCardClass` from `components/ui/card.tsx` — `cn(interactiveCardClass, 'block p-4')`. Do not hand-roll per-card `hover:shadow`/`hover:bg` variants.
+- **Class overrides**: merge classes with `cn()` from `lib/cn.ts` (clsx + tailwind-merge) so a `className` prop reliably overrides a primitive's defaults (e.g. `<Input className="w-16" />` beats the default `w-full`). All `components/ui/` primitives already use `cn`.
+- **Links that look like buttons**: use `<Button asChild><Link …/></Button>` rather than re-styling the `<Link>`.
 
 ## File Size & Splits
 

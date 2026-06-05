@@ -188,16 +188,17 @@ export default function MealPlanCalendar({
           </div>
         ) : (
           !movingMeal && (
-            <button
+            <Button
+              variant="ghost"
               onClick={(e) => {
                 e.stopPropagation()
                 setSelectedSlot(slot)
                 setSelectedDate(formattedDate)
               }}
-              className="flex h-full min-h-10 w-full items-center justify-center rounded-xl text-lg text-muted hover:bg-surface"
+              className="h-full min-h-10 w-full px-0 text-lg text-muted"
             >
               +
-            </button>
+            </Button>
           )
         )}
       </div>
@@ -223,12 +224,14 @@ export default function MealPlanCalendar({
           <span>
             Moving <strong>{movingMealName}</strong> — click a cell to place it
           </span>
-          <button
+          <Button
+            variant="link"
+            size="sm"
+            className="ml-4 shrink-0"
             onClick={() => setMovingMeal(null)}
-            className="ml-4 font-medium underline hover:no-underline"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       )}
 

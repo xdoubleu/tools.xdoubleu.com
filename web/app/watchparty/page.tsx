@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { createServiceClient } from '@/lib/client'
 import { RoomService } from '@/lib/gen/watchparty/v1/rooms_pb'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function WatchpartyPage() {
   const [roomCode, setRoomCode] = useState('')
@@ -47,13 +49,9 @@ export default function WatchpartyPage() {
       <h1 className="text-3xl font-bold mb-8 text-center">Watch Party</h1>
 
       <div className="mb-8">
-        <button
-          onClick={handleCreate}
-          disabled={loading}
-          className="h-12 w-full rounded-xl bg-accent text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
-        >
+        <Button size="lg" className="w-full" onClick={handleCreate} disabled={loading}>
           {loading ? 'Creating...' : 'Create Room'}
-        </button>
+        </Button>
       </div>
 
       <div className="relative mb-8">
@@ -66,20 +64,16 @@ export default function WatchpartyPage() {
       </div>
 
       <form onSubmit={handleJoin} className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={roomCode}
           onChange={(e) => setRoomCode(e.target.value)}
           placeholder="Room code"
-          className="flex-1 border border-input-border bg-input text-input-text rounded px-3 py-2 text-sm"
+          className="flex-1"
         />
-        <button
-          type="submit"
-          disabled={loading || !roomCode.trim()}
-          className="px-4 py-2 bg-subtle text-bg rounded-xl text-sm hover:bg-fg disabled:opacity-50"
-        >
+        <Button type="submit" variant="secondary" disabled={loading || !roomCode.trim()}>
           Join
-        </button>
+        </Button>
       </form>
 
       {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
