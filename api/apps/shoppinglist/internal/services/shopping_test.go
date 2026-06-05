@@ -193,16 +193,6 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 			GroupName:  "dry",
 		},
 	}
-	customItems := []repositories.ShoppingItem{
-		{
-			ID:         "cid-1",
-			Name:       "olive oil",
-			Unit:       "ml",
-			Amount:     100,
-			RecipeName: "",
-			GroupName:  "",
-		},
-	}
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(
 		_ context.Context, pID uuid.UUID, s, e time.Time, ps, _ []string,
@@ -213,11 +203,13 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 		assert.Equal(t, pastSlots, ps)
 		return planItems, nil
 	}
+	// Custom items must NOT be fetched here; the frontend merges them once on
+	// its own. Fetching and appending would duplicate them per meal plan.
 	m.GetCustomItemsFn = func(
-		_ context.Context, userID string,
+		_ context.Context, _ string,
 	) ([]repositories.ShoppingItem, error) {
-		assert.Equal(t, "user1", userID)
-		return customItems, nil
+		t.Fatal("GetCustomItems must not be called from GetMealPlanExportItems")
+		return nil, nil
 	}
 
 	svc := services.NewShoppingService(m)
@@ -231,35 +223,7 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 		[]string{},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, append(planItems, customItems...), got)
-}
-
-func TestGetMealPlanExportItems_CustomItemsError(t *testing.T) {
-	repoErr := errors.New("db error")
-	m := accessGrantedMock()
-	m.GetMealPlanExportItemsFn = func(
-		_ context.Context, _ uuid.UUID, _, _ time.Time, _, _ []string,
-	) ([]repositories.ShoppingItem, error) {
-		return []repositories.ShoppingItem{}, nil
-	}
-	m.GetCustomItemsFn = func(
-		_ context.Context, _ string,
-	) ([]repositories.ShoppingItem, error) {
-		return nil, repoErr
-	}
-
-	svc := services.NewShoppingService(m)
-	start := time.Now().UTC()
-	_, err := svc.GetMealPlanExportItems(
-		context.Background(),
-		uuid.New(),
-		"user1",
-		start,
-		start.AddDate(0, 0, 6),
-		[]string{},
-		[]string{},
-	)
-	assert.ErrorIs(t, err, repoErr)
+	assert.Equal(t, planItems, got)
 }
 
 func TestGetMealPlanExportItems_RepoError(t *testing.T) {

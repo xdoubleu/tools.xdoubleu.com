@@ -233,7 +233,11 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	assert.NotNil(t, resp.Msg)
 }
 
-func TestGetMealPlanExportItems_IncludesCustomItems(t *testing.T) {
+// Custom items must NOT be returned by the meal-plan export endpoint. The
+// frontend fetches them separately and merges them once; because the export
+// hook calls this endpoint per meal plan, including them here would duplicate
+// each custom item once per plan.
+func TestGetMealPlanExportItems_ExcludesCustomItems(t *testing.T) {
 	planID := createTestPlan(t, "Plan With Custom")
 	t.Cleanup(func() { deletePlan(t, planID) })
 
@@ -271,7 +275,7 @@ func TestGetMealPlanExportItems_IncludesCustomItems(t *testing.T) {
 	for _, item := range resp.Msg.Items {
 		names = append(names, item.Name)
 	}
-	assert.Contains(t, names, "Olive Oil")
+	assert.NotContains(t, names, "Olive Oil")
 }
 
 // createTestRecipeWithGroups inserts a recipe with two grouped ingredients and
