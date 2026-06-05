@@ -72,6 +72,15 @@ function openAddDialog() {
   fireEvent.click(screen.getAllByRole('button', { name: '+' })[0])
 }
 
+function openMealMenu() {
+  fireEvent.click(screen.getAllByRole('button', { name: /Meal actions/i })[0])
+}
+
+function startMove() {
+  openMealMenu()
+  fireEvent.click(screen.getAllByRole('menuitem', { name: /Move/i })[0])
+}
+
 describe('MealPlanCalendar', () => {
   it('shows slot label in grid', () => {
     render(
@@ -350,7 +359,7 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    fireEvent.click(screen.getAllByText(/Eggs/)[0])
+    startMove()
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
   })
 
@@ -381,8 +390,8 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    // Select the meal
-    fireEvent.click(screen.getAllByText(/Eggs/)[0])
+    // Select the meal for moving via its actions menu
+    startMove()
     // In moving mode the "+" buttons are hidden; click the cell div directly.
     // All cells have hover:border-accent class in moving mode; index 1 is the first empty slot.
     const movingCells = document.querySelectorAll('[class*="hover:border-accent"]')
@@ -420,11 +429,11 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    // First click selects the meal
-    fireEvent.click(screen.getAllByText(/Eggs/)[0])
+    // Start a move via the actions menu
+    startMove()
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
 
-    // After selection the banner shows <strong>Eggs</strong>; click the item in the chip (has 'wrap-break-word' class)
+    // In move mode, clicking the same chip body cancels. The item has the 'wrap-break-word' class.
     const mealItem = screen
       .getAllByText(/Eggs/)
       .find((el) => el.classList.contains('wrap-break-word'))!
@@ -498,7 +507,8 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    expect(screen.getAllByRole('button', { name: /Edit meal/i })[0]).toBeInTheDocument()
+    openMealMenu()
+    expect(screen.getAllByRole('menuitem', { name: /Edit/i })[0]).toBeInTheDocument()
   })
 
   it('clicking edit button opens edit dialog pre-populated with custom items', () => {
@@ -525,7 +535,8 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
+    openMealMenu()
+    fireEvent.click(screen.getAllByRole('menuitem', { name: /Edit/i })[0])
     expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
     const input = screen.getByPlaceholderText('Item 1')
     if (!(input instanceof HTMLInputElement)) throw new Error('expected input')
@@ -559,7 +570,8 @@ describe('MealPlanCalendar', () => {
         onMoveMeal={onMoveMeal}
       />
     )
-    fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
+    openMealMenu()
+    fireEvent.click(screen.getAllByRole('menuitem', { name: /Edit/i })[0])
     const input = screen.getByPlaceholderText('Item 1')
     fireEvent.change(input, { target: { value: 'Updated meal' } })
     fireEvent.click(screen.getByRole('button', { name: /^Save$/i }))
@@ -596,13 +608,14 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    fireEvent.click(screen.getAllByRole('button', { name: /Edit meal/i })[0])
+    openMealMenu()
+    fireEvent.click(screen.getAllByRole('menuitem', { name: /Edit/i })[0])
     expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }))
     expect(screen.queryByRole('button', { name: /^Save$/i })).not.toBeInTheDocument()
   })
 
-  it('edit button is hidden during move mode', () => {
+  it('actions menu trigger is hidden during move mode', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -626,9 +639,9 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    // Enter move mode by clicking the meal chip
-    fireEvent.click(screen.getAllByText(/Eggs/)[0])
-    expect(screen.queryAllByRole('button', { name: /Edit meal/i })).toHaveLength(0)
+    // Enter move mode via the actions menu; the trigger then disappears.
+    startMove()
+    expect(screen.queryAllByRole('button', { name: /Meal actions/i })).toHaveLength(0)
   })
 
   it('highlights today with accent label in mobile view', () => {
@@ -677,7 +690,7 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    fireEvent.click(screen.getAllByText(/Eggs/)[0])
+    startMove()
     expect(screen.getByText(/Moving/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Cancel/i }))
     expect(screen.queryByText(/Moving/i)).not.toBeInTheDocument()

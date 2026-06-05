@@ -96,13 +96,14 @@ export default function MealPlanCalendar({
     }
   }
 
+  const handleStartMove = (meal: PlanMeal) => {
+    setMovingMeal(meal)
+    setSelectedSlot(null)
+    setSelectedDate(null)
+  }
+
   const handleMealClick = (meal: PlanMeal) => {
-    if (!movingMeal) {
-      setMovingMeal(meal)
-      setSelectedSlot(null)
-      setSelectedDate(null)
-      return
-    }
+    if (!movingMeal) return
     if (movingMeal.id === meal.id) {
       setMovingMeal(null)
       return
@@ -168,7 +169,7 @@ export default function MealPlanCalendar({
     return (
       <div
         key={`${formattedDate}-${slot}`}
-        className={`min-h-14 min-w-0 overflow-hidden rounded-xl border p-1.5 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
+        className={`min-h-14 min-w-0 rounded-xl border p-1.5 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
         onClick={() => handleCellClick(formattedDate, slot)}
       >
         {mealsInSlot.length > 0 ? (
@@ -181,25 +182,28 @@ export default function MealPlanCalendar({
                 isMoving={movingMeal?.id === meal.id}
                 inMoveMode={!!movingMeal}
                 onMealClick={handleMealClick}
+                onMoveClick={handleStartMove}
                 onEditClick={handleEditClick}
                 onDeleteMeal={handleDeleteMeal}
               />
             ))}
           </div>
+        ) : movingMeal ? (
+          <div className="flex h-full min-h-10 items-center justify-center text-xs text-muted">
+            Place here
+          </div>
         ) : (
-          !movingMeal && (
-            <Button
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation()
-                setSelectedSlot(slot)
-                setSelectedDate(formattedDate)
-              }}
-              className="h-full min-h-10 w-full px-0 text-lg text-muted"
-            >
-              +
-            </Button>
-          )
+          <Button
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation()
+              setSelectedSlot(slot)
+              setSelectedDate(formattedDate)
+            }}
+            className="h-full min-h-10 w-full px-0 text-lg text-muted"
+          >
+            +
+          </Button>
         )}
       </div>
     )
@@ -220,14 +224,14 @@ export default function MealPlanCalendar({
       </div>
 
       {movingMeal && (
-        <div className="flex items-center justify-between rounded-2xl border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">
-          <span>
-            Moving <strong>{movingMealName}</strong> — click a cell to place it
+        <div className="fixed inset-x-0 bottom-4 z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-accent/30 bg-card px-4 py-2.5 text-sm text-accent shadow-elevated">
+          <span className="min-w-0 truncate">
+            Moving <strong>{movingMealName}</strong> — tap a cell to place it
           </span>
           <Button
-            variant="link"
+            variant="secondary"
             size="sm"
-            className="ml-4 shrink-0"
+            className="shrink-0"
             onClick={() => setMovingMeal(null)}
           >
             Cancel
