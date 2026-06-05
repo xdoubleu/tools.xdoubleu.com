@@ -192,16 +192,17 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
 
           {!storeHasNoCategories && uncategorizedCount > 0 && (
             <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
-              {uncategorizedCount} item{uncategorizedCount !== 1 ? 's' : ''} have no category
-              assigned and will appear under &quot;Other&quot;.
+              {uncategorizedCount === 1
+                ? '1 item has no category assigned and will appear under "Other".'
+                : `${uncategorizedCount} items have no category assigned and will appear under "Other".`}
             </p>
           )}
 
           {!storeHasNoCategories && unorderedCount > 0 && (
             <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
-              {unorderedCount} item{unorderedCount !== 1 ? 's' : ''} have a category that this store
-              doesn&apos;t order, so their place in the aisle order is unknown. They will appear
-              under &quot;Other&quot;.
+              {unorderedCount === 1
+                ? '1 item has a category that this store doesn\'t order, so its place in the aisle order is unknown. It will appear under "Other".'
+                : `${unorderedCount} items have a category that this store doesn't order, so their place in the aisle order is unknown. They will appear under "Other".`}
             </p>
           )}
 

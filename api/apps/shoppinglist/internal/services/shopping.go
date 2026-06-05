@@ -127,6 +127,11 @@ func (s *ShoppingService) DeleteItem(
 	return s.repo.DeleteCustomItem(ctx, userID, itemID)
 }
 
+// GetMealPlanExportItems returns only the aggregated meal-plan ingredients for
+// the plan. Custom items are intentionally not included here: the frontend
+// fetches them separately and merges them once. Because the export hook calls
+// this per meal plan, appending custom items here would duplicate them once per
+// plan (plus once more from the separate custom-list fetch).
 func (s *ShoppingService) GetMealPlanExportItems(
 	ctx context.Context,
 	planID uuid.UUID,
@@ -138,17 +143,9 @@ func (s *ShoppingService) GetMealPlanExportItems(
 	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
 		return nil, err
 	}
-	items, err := s.repo.GetMealPlanExportItems(
+	return s.repo.GetMealPlanExportItems(
 		ctx, planID, start, end, pastSlots, excludedGroups,
 	)
-	if err != nil {
-		return nil, err
-	}
-	customItems, err := s.repo.GetCustomItems(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	return append(items, customItems...), nil
 }
 
 func (s *ShoppingService) GetPlanIngredientGroups(

@@ -419,11 +419,9 @@ describe('shoppingExport', () => {
       expect(formatGroupedAsTxt(groups)).toBe(formatGroupedForClipboard(groups))
     })
 
-    it('formatGroupedForAppleNotes includes the date title', () => {
+    it('formatGroupedForAppleNotes flattens items without store category headers', () => {
       const result = formatGroupedForAppleNotes(groups, new Date(2026, 4, 26))
-      expect(result).toBe(
-        'Shopping list 26/05/2026\n\nProduce:\n2  apples\n\nOther:\n1 tub icecream'
-      )
+      expect(result).toBe('Shopping list 26/05/2026\n\n2  apples\n1 tub icecream')
     })
 
     it('formatGroupedForAppleNotes returns just the title when there are no groups', () => {

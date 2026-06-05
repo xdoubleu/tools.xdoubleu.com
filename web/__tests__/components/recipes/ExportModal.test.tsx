@@ -116,8 +116,11 @@ describe('ExportModal', () => {
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
-    // garlic (from the meal plan) maps to no category at all
-    expect(screen.getByText(/no category assigned/)).toBeInTheDocument()
+    // garlic (from the meal plan) maps to no category at all — exactly one item,
+    // so the message must read "1 item has" with the space intact (not "1 itemhas")
+    expect(
+      screen.getByText('1 item has no category assigned and will appear under "Other".')
+    ).toBeInTheDocument()
   })
 
   it('warns when an item has a category the selected store does not order', () => {

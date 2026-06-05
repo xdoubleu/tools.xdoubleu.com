@@ -235,20 +235,17 @@ export function formatGroupedAsTxt(groups: CategoryGroup[]): string {
   return formatGroupedForClipboard(groups)
 }
 
+// Apple Notes is exported as a flat list without store category headers: Notes
+// renders better as a single checklist, so the store ordering is preserved only
+// in the order of the items, not as section titles.
 export function formatGroupedForAppleNotes(
   groups: CategoryGroup[],
   date: Date = new Date()
 ): string {
   const title = appleNotesTitle(date)
   const body = groups
-    .map((group) =>
-      [
-        `${group.category}:`,
-        ...group.items.map(
-          (item) => `${item.amount} ${item.unit} ${item.name}${formatOrigins(item.origins)}`
-        )
-      ].join('\n')
-    )
-    .join('\n\n')
+    .flatMap((group) => group.items)
+    .map((item) => `${item.amount} ${item.unit} ${item.name}${formatOrigins(item.origins)}`)
+    .join('\n')
   return body ? `${title}\n\n${body}` : title
 }
