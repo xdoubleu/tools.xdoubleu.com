@@ -27,6 +27,8 @@ type ShoppingItem struct {
 	Amount        string                 `protobuf:"bytes,2,opt,name=amount,proto3" json:"amount,omitempty"`
 	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`
 	Id            string                 `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
+	RecipeName    string                 `protobuf:"bytes,5,opt,name=recipe_name,json=recipeName,proto3" json:"recipe_name,omitempty"`
+	GroupName     string                 `protobuf:"bytes,6,opt,name=group_name,json=groupName,proto3" json:"group_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -85,6 +87,20 @@ func (x *ShoppingItem) GetUnit() string {
 func (x *ShoppingItem) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *ShoppingItem) GetRecipeName() string {
+	if x != nil {
+		return x.RecipeName
+	}
+	return ""
+}
+
+func (x *ShoppingItem) GetGroupName() string {
+	if x != nil {
+		return x.GroupName
 	}
 	return ""
 }
@@ -1918,12 +1934,16 @@ var File_shoppinglist_v1_shoppinglist_proto protoreflect.FileDescriptor
 
 const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\n" +
-	"\"shoppinglist/v1/shoppinglist.proto\x12\x0fshoppinglist.v1\"^\n" +
+	"\"shoppinglist/v1/shoppinglist.proto\x12\x0fshoppinglist.v1\"\x9e\x01\n" +
 	"\fShoppingItem\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
 	"\x04unit\x18\x03 \x01(\tR\x04unit\x12\x0e\n" +
-	"\x02id\x18\x04 \x01(\tR\x02id\"\x16\n" +
+	"\x02id\x18\x04 \x01(\tR\x02id\x12\x1f\n" +
+	"\vrecipe_name\x18\x05 \x01(\tR\n" +
+	"recipeName\x12\x1d\n" +
+	"\n" +
+	"group_name\x18\x06 \x01(\tR\tgroupName\"\x16\n" +
 	"\x14GetCustomListRequest\"L\n" +
 	"\x15GetCustomListResponse\x123\n" +
 	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"X\n" +

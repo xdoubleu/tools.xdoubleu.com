@@ -200,12 +200,7 @@ func (h *mealplansConnectHandler) GetPlan(
 
 	offset := int(req.Msg.Offset)
 	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
-	weekday := int(today.Weekday())
-	if weekday == 0 {
-		weekday = 7
-	}
-	monday := today.AddDate(0, 0, 1-weekday)
-	windowStart := monday.AddDate(0, 0, daysPerWeek*offset)
+	windowStart := today.AddDate(0, 0, daysPerWeek*offset)
 	windowEnd := windowStart.AddDate(0, 0, daysPerWeek-1)
 
 	meals, err := h.app.services.Plans.GetMeals(

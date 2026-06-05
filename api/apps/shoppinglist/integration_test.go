@@ -378,6 +378,59 @@ func TestGetPlanIngredientGroups_ReturnsGroups(t *testing.T) {
 	assert.Contains(t, groupNames, "pasta")
 }
 
+// ── GetMealPlanExportItems with recipe and group attribution ──────────────────
+
+func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
+	planID := createTestPlan(t, "Attribution Plan")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	recipeID := createTestRecipeWithGroups(t)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			"DELETE FROM recipes.recipes WHERE id = $1",
+			recipeID,
+		)
+	})
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	addPlanMeal(t, planID, recipeID, tomorrow, "noon")
+
+	client := newShoppingClient(t)
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.Msg.Items, "expected meal-plan items in response")
+
+	// Index items by name for targeted assertions.
+	byName := make(map[string]*shoppinglistv1.ShoppingItem, len(resp.Msg.Items))
+	for _, item := range resp.Msg.Items {
+		byName[item.Name] = item
+	}
+
+	// Each ingredient from the Spaghetti recipe must carry the recipe name and
+	// its ingredient group.
+	for _, tc := range []struct {
+		name  string
+		group string
+	}{
+		{"tomatoes", "sauce"},
+		{"garlic", "sauce"},
+		{"spaghetti", "pasta"},
+	} {
+		item, ok := byName[tc.name]
+		if !assert.True(t, ok, "item %q not found in response", tc.name) {
+			continue
+		}
+		assert.Equal(t, "Spaghetti", item.RecipeName, "item %q RecipeName", tc.name)
+		assert.Equal(t, tc.group, item.GroupName, "item %q GroupName", tc.name)
+	}
+}
+
 // ── GetMealPlanExportItems with group exclusion ───────────────────────────────
 
 func TestGetMealPlanExportItems_ExcludesGroup(t *testing.T) {

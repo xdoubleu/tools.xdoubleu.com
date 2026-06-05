@@ -109,6 +109,27 @@ func ToFractionCeiling(f float64) string {
 	return fmt.Sprintf("%d%s", whole, symbol)
 }
 
+//nolint:gochecknoglobals // read-only lookup table
+var measurementUnits = map[string]struct{}{
+	"g": {}, "kg": {}, "mg": {}, "oz": {}, "lb": {}, "lbs": {},
+	"ml": {}, "l": {}, "dl": {}, "cl": {},
+	"tsp": {}, "tbsp": {}, "cup": {}, "cups": {},
+	"pt": {}, "qt": {}, "gal": {}, "fl oz": {},
+}
+
+// ToAmountString formats amount for display. Measurement units (weight/volume)
+// get fraction-ceiling formatting; packaging/count units are rounded up to the
+// nearest whole number.
+func ToAmountString(amount float64, unit string) string {
+	if _, ok := measurementUnits[strings.ToLower(strings.TrimSpace(unit))]; ok {
+		return ToFractionCeiling(amount)
+	}
+	if amount <= 0 {
+		return "0"
+	}
+	return fmt.Sprintf("%d", int(math.Ceil(amount)))
+}
+
 var mdLinkRE = regexp.MustCompile(`\[([^\]]+)\]\(((?:https?://)?[^\s)]+)\)`)
 
 // HasMdLink reports whether s contains a markdown link.
