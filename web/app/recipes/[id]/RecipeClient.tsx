@@ -24,10 +24,45 @@ export default function RecipeClient({ id }: { id: string }) {
   const isOwner = data?.isOwner ?? false
   const displayServings = servings || recipe?.baseServings || 1
   const scaledIngredients = data?.scaledIngredients ?? []
-  const ingredients =
+  const sortedIngredients = (recipe?.ingredients ?? [])
+    .slice()
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+
+  type DisplayIngredient = {
+    id: string
+    name: string
+    amount: string | number
+    unit: string
+    groupName?: string
+  }
+  const displayIngredients: DisplayIngredient[] =
     scaledIngredients.length > 0
-      ? scaledIngredients
-      : (recipe?.ingredients ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder)
+      ? scaledIngredients.map((scaled, idx) => ({
+          id: sortedIngredients[idx]?.id ?? String(idx),
+          name: scaled.name,
+          amount: scaled.amount,
+          unit: scaled.unit,
+          groupName: sortedIngredients[idx]?.groupName
+        }))
+      : sortedIngredients.map((ing) => ({
+          id: ing.id,
+          name: ing.name,
+          amount: ing.amount,
+          unit: ing.unit,
+          groupName: ing.groupName
+        }))
+
+  type GroupedSection = { groupName: string | undefined; items: DisplayIngredient[] }
+  const groupedIngredients = displayIngredients.reduce<GroupedSection[]>((acc, ing) => {
+    const group = ing.groupName ?? undefined
+    const last = acc[acc.length - 1]
+    if (last && last.groupName === group) {
+      last.items.push(ing)
+    } else {
+      acc.push({ groupName: group, items: [ing] })
+    }
+    return acc
+  }, [])
 
   const handleServingsChange = (val: number) => {
     setServings(val <= 0 || val === recipe?.baseServings ? 0 : val)
@@ -118,22 +153,31 @@ export default function RecipeClient({ id }: { id: string }) {
             )}
           </div>
 
-          {ingredients.length > 0 && (
+          {displayIngredients.length > 0 && (
             <section className="mb-6">
               <h2 className="text-xl font-semibold mb-3">Ingredients</h2>
-              <ul>
-                {ingredients.map((ing, idx) => (
-                  <li
-                    key={'id' in ing ? ing.id : idx}
-                    className="flex gap-2 py-1 border-b last:border-0 border-border"
-                  >
-                    <span className="font-medium">
-                      {ing.amount} {ing.unit}
-                    </span>
-                    <span>{ing.name}</span>
-                  </li>
-                ))}
-              </ul>
+              {groupedIngredients.map((section, sIdx) => (
+                <div key={sIdx}>
+                  {section.groupName && (
+                    <p className="text-sm font-semibold text-muted mt-3 mb-1">
+                      {section.groupName}
+                    </p>
+                  )}
+                  <ul>
+                    {section.items.map((ing, idx) => (
+                      <li
+                        key={'id' in ing ? ing.id : idx}
+                        className="flex gap-2 py-1 border-b last:border-0 border-border"
+                      >
+                        <span className="font-medium">
+                          {ing.amount} {ing.unit}
+                        </span>
+                        <span>{ing.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </section>
           )}
 

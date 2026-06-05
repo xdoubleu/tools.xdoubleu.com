@@ -1,8 +1,16 @@
+export interface ItemOrigin {
+  recipeName: string
+  amount: string
+  unit: string
+}
+
 export interface ShoppingItem {
   amount: string
   unit: string
   name: string
   id?: string
+  recipeName?: string
+  origins?: ItemOrigin[]
 }
 
 const UNIT_UPGRADES: Record<string, { threshold: number; nextUnit: string; divisor: number }> = {
@@ -21,11 +29,76 @@ function upgradeUnit(item: ShoppingItem): ShoppingItem {
   return { ...item, amount: formatted, unit: upgrade.nextUnit }
 }
 
+function formatAmount(n: number): string {
+  return n % 1 === 0 ? String(n) : String(parseFloat(n.toFixed(3)))
+}
+
+export function formatOrigins(origins: ItemOrigin[] | undefined): string {
+  if (!origins || origins.length === 0) return ''
+  if (origins.length === 1) return ` (${origins[0].recipeName})`
+  return ` (${origins.map((o) => `${o.recipeName}: ${o.amount} ${o.unit}`).join(', ')})`
+}
+
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase()
+}
+
+// Combines meal plan items (those with recipeName) that share the same
+// normalized name and unit into a single item with summed amounts and origins.
+// Custom items (no recipeName) pass through unchanged.
+function combineItems(items: ShoppingItem[]): ShoppingItem[] {
+  const result: ShoppingItem[] = []
+  const mealByKey = new Map<string, ShoppingItem[]>()
+
+  for (const item of items) {
+    if (!item.recipeName) {
+      result.push(item)
+      continue
+    }
+    const key = `${normalizeName(item.name)}::${item.unit}`
+    const group = mealByKey.get(key)
+    if (group) group.push(item)
+    else mealByKey.set(key, [item])
+  }
+
+  for (const group of mealByKey.values()) {
+    const first = group[0]
+    const origins: ItemOrigin[] = group.map((i) => ({
+      recipeName: i.recipeName!,
+      amount: i.amount,
+      unit: i.unit
+    }))
+    if (group.length === 1) {
+      result.push({ ...first, origins })
+    } else {
+      const allNumeric = group.every((i) => !isNaN(parseFloat(i.amount)))
+      const amount = allNumeric
+        ? formatAmount(group.reduce((sum, i) => sum + parseFloat(i.amount), 0))
+        : first.amount
+      result.push({ name: first.name, amount, unit: first.unit, origins })
+    }
+  }
+
+  return result
+}
+
+// Merges custom and meal plan items, upgrades units, and combines meal items
+// that share the same ingredient name and unit across recipes.
 function mergeItems(
   customItems: ShoppingItem[],
   mealItems: ShoppingItem[] | undefined
 ): ShoppingItem[] {
-  return [...customItems, ...(mealItems ?? [])].map(upgradeUnit)
+  const upgraded = [...customItems, ...(mealItems ?? [])].map(upgradeUnit)
+  return combineItems(upgraded).map(upgradeUnit)
+}
+
+// Returns the fully prepared (merged, combined, unit-upgraded) item list for
+// the given custom and meal plan items. Exported for use in the export preview.
+export function prepareForExport(
+  customItems: ShoppingItem[],
+  mealItems?: ShoppingItem[]
+): ShoppingItem[] {
+  return mergeItems(customItems, mealItems)
 }
 
 export function formatForClipboard(
@@ -33,7 +106,7 @@ export function formatForClipboard(
   mealItems?: ShoppingItem[]
 ): string {
   return mergeItems(customItems, mealItems)
-    .map((item) => `${item.amount} ${item.unit} - ${item.name}`)
+    .map((item) => `${item.amount} ${item.unit} - ${item.name}${formatOrigins(item.origins)}`)
     .join('\n')
 }
 
@@ -51,7 +124,7 @@ export function formatForAppleNotes(
 ): string {
   const title = appleNotesTitle(date)
   const body = mergeItems(customItems, mealItems)
-    .map((item) => `${item.amount} ${item.unit} ${item.name}`)
+    .map((item) => `${item.amount} ${item.unit} ${item.name}${formatOrigins(item.origins)}`)
     .join('\n')
   return body ? `${title}\n\n${body}` : title
 }
@@ -75,10 +148,6 @@ export interface CategoryGroup {
 // Items whose name maps to no category, or to one not present in the chosen
 // store's ordering, are collected under this trailing bucket.
 export const OTHER_CATEGORY = 'Other'
-
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase()
-}
 
 // groupByStore merges the custom and meal items, then buckets them by the
 // category their (normalized) name maps to, emitting the buckets in the store's
@@ -119,7 +188,9 @@ export function formatGroupedForClipboard(groups: CategoryGroup[]): string {
     .map((group) =>
       [
         `${group.category}:`,
-        ...group.items.map((item) => `${item.amount} ${item.unit} - ${item.name}`)
+        ...group.items.map(
+          (item) => `${item.amount} ${item.unit} - ${item.name}${formatOrigins(item.origins)}`
+        )
       ].join('\n')
     )
     .join('\n\n')
@@ -138,7 +209,9 @@ export function formatGroupedForAppleNotes(
     .map((group) =>
       [
         `${group.category}:`,
-        ...group.items.map((item) => `${item.amount} ${item.unit} ${item.name}`)
+        ...group.items.map(
+          (item) => `${item.amount} ${item.unit} ${item.name}${formatOrigins(item.origins)}`
+        )
       ].join('\n')
     )
     .join('\n\n')
