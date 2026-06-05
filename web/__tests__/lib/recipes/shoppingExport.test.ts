@@ -6,8 +6,11 @@ import {
   formatGroupedForClipboard,
   formatGroupedForAppleNotes,
   formatGroupedAsTxt,
+  prepareForExport,
+  formatOrigins,
   type Category,
-  type ShoppingItem
+  type ShoppingItem,
+  type ItemOrigin
 } from '@/lib/recipes/shoppingExport'
 
 const customItems: ShoppingItem[] = [{ id: 'c1', amount: '0.5', unit: 'tsp', name: 'salt' }]
@@ -48,6 +51,124 @@ describe('shoppingExport', () => {
     it('does not convert unknown units', () => {
       const result = formatForClipboard([{ amount: '1000', unit: 'tsp', name: 'salt' }])
       expect(result).toBe('1000 tsp - salt')
+    })
+
+    it('upgrades combined total after summing (600g + 600g = 1.2kg)', () => {
+      const items: ShoppingItem[] = [
+        { amount: '600', unit: 'g', name: 'flour', recipeName: 'Recipe A' },
+        { amount: '600', unit: 'g', name: 'flour', recipeName: 'Recipe B' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('1.2 kg - flour (Recipe A: 600 g, Recipe B: 600 g)')
+    })
+  })
+
+  describe('formatOrigins', () => {
+    it('returns empty string for undefined', () => {
+      expect(formatOrigins(undefined)).toBe('')
+    })
+
+    it('returns empty string for empty array', () => {
+      expect(formatOrigins([])).toBe('')
+    })
+
+    it('formats single origin as just the recipe name', () => {
+      const origins: ItemOrigin[] = [{ recipeName: 'Pasta', amount: '2', unit: 'cups' }]
+      expect(formatOrigins(origins)).toBe(' (Pasta)')
+    })
+
+    it('formats multiple origins with name: amount unit per entry', () => {
+      const origins: ItemOrigin[] = [
+        { recipeName: 'Pasta', amount: '2', unit: 'cups' },
+        { recipeName: 'Soup', amount: '1', unit: 'cups' }
+      ]
+      expect(formatOrigins(origins)).toBe(' (Pasta: 2 cups, Soup: 1 cups)')
+    })
+  })
+
+  describe('combining same-name meal plan items', () => {
+    it('combines items with the same name and unit from different recipes', () => {
+      const items: ShoppingItem[] = [
+        { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Recipe A' },
+        { amount: '1', unit: 'cups', name: 'flour', recipeName: 'Recipe B' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('3 cups - flour (Recipe A: 2 cups, Recipe B: 1 cups)')
+    })
+
+    it('does not combine items with the same name but different units', () => {
+      const items: ShoppingItem[] = [
+        { amount: '200', unit: 'g', name: 'butter', recipeName: 'Recipe A' },
+        { amount: '2', unit: 'tbsp', name: 'butter', recipeName: 'Recipe B' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('200 g - butter (Recipe A)\n2 tbsp - butter (Recipe B)')
+    })
+
+    it('does not combine custom items with meal plan items of same name', () => {
+      const custom: ShoppingItem[] = [{ id: 'c1', amount: '1', unit: 'cups', name: 'flour' }]
+      const meal: ShoppingItem[] = [
+        { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Recipe A' }
+      ]
+      const result = formatForClipboard(custom, meal)
+      expect(result).toBe('1 cups - flour\n2 cups - flour (Recipe A)')
+    })
+
+    it('treats two custom items with same name independently (no recipeName)', () => {
+      const items: ShoppingItem[] = [
+        { id: 'a', amount: '1', unit: 'cups', name: 'milk' },
+        { id: 'b', amount: '2', unit: 'cups', name: 'milk' }
+      ]
+      const result = formatForClipboard(items)
+      expect(result).toBe('1 cups - milk\n2 cups - milk')
+    })
+
+    it('shows single recipe origin for a non-combined meal item', () => {
+      const items: ShoppingItem[] = [
+        { amount: '3', unit: 'tbsp', name: 'oil', recipeName: 'Stir Fry' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('3 tbsp - oil (Stir Fry)')
+    })
+
+    it('combines case-insensitively by name', () => {
+      const items: ShoppingItem[] = [
+        { amount: '1', unit: 'cup', name: 'Rice', recipeName: 'Recipe A' },
+        { amount: '2', unit: 'cup', name: 'rice', recipeName: 'Recipe B' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('3 cup - Rice (Recipe A: 1 cup, Recipe B: 2 cup)')
+    })
+
+    it('falls back to first amount when amounts are non-numeric', () => {
+      const items: ShoppingItem[] = [
+        { amount: 'some', unit: 'tbsp', name: 'spice', recipeName: 'Recipe A' },
+        { amount: 'a bit', unit: 'tbsp', name: 'spice', recipeName: 'Recipe B' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('some tbsp - spice (Recipe A: some tbsp, Recipe B: a bit tbsp)')
+    })
+  })
+
+  describe('prepareForExport', () => {
+    it('returns merged and combined items', () => {
+      const custom: ShoppingItem[] = [{ id: 'c1', amount: '1', unit: 'L', name: 'milk' }]
+      const meal: ShoppingItem[] = [
+        { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Cake' },
+        { amount: '1', unit: 'cups', name: 'flour', recipeName: 'Bread' }
+      ]
+      const result = prepareForExport(custom, meal)
+      expect(result).toHaveLength(2)
+      expect(result[0]).toMatchObject({ name: 'milk', amount: '1', unit: 'L' })
+      expect(result[1]).toMatchObject({ name: 'flour', amount: '3', unit: 'cups' })
+      expect(result[1].origins).toHaveLength(2)
+    })
+
+    it('returns custom items only when no meal items given', () => {
+      const custom: ShoppingItem[] = [{ id: 'c1', amount: '1', unit: 'L', name: 'milk' }]
+      const result = prepareForExport(custom)
+      expect(result).toHaveLength(1)
+      expect(result[0]).toMatchObject({ name: 'milk' })
     })
   })
 
@@ -100,6 +221,14 @@ describe('shoppingExport', () => {
     it('formats meal items only when custom items are empty', () => {
       const result = formatForAppleNotes([], mealItems, fixedDate)
       expect(result).toBe('Shopping list 26/05/2026\n\n2 cups flour\n1 tbsp sugar\n100 g butter')
+    })
+
+    it('includes origin in Apple Notes format', () => {
+      const meal: ShoppingItem[] = [
+        { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Cake' }
+      ]
+      const result = formatForAppleNotes([], meal, fixedDate)
+      expect(result).toBe('Shopping list 26/05/2026\n\n2 cups flour (Cake)')
     })
   })
 
@@ -155,6 +284,18 @@ describe('shoppingExport', () => {
       const groups = groupByStore(items, undefined, orderedCategories, { flour: 'cat-baking' })
       expect(groups[0].items[0]).toMatchObject({ amount: '1', unit: 'kg' })
     })
+
+    it('combines same-name meal items within a store group', () => {
+      const meal: ShoppingItem[] = [
+        { amount: '1', unit: 'cups', name: 'flour', recipeName: 'Cake' },
+        { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Bread' }
+      ]
+      const groups = groupByStore([], meal, orderedCategories, { flour: 'cat-baking' })
+      const flourItems = groups.find((g) => g.category === 'Baking')?.items ?? []
+      expect(flourItems).toHaveLength(1)
+      expect(flourItems[0]).toMatchObject({ amount: '3', unit: 'cups', name: 'flour' })
+      expect(flourItems[0].origins).toHaveLength(2)
+    })
   })
 
   describe('grouped formatters', () => {
@@ -182,6 +323,28 @@ describe('shoppingExport', () => {
 
     it('formatGroupedForAppleNotes returns just the title when there are no groups', () => {
       expect(formatGroupedForAppleNotes([], new Date(2026, 4, 26))).toBe('Shopping list 26/05/2026')
+    })
+
+    it('formatGroupedForClipboard appends origins for items with origins', () => {
+      const groupsWithOrigins = [
+        {
+          category: 'Baking',
+          items: [
+            {
+              amount: '3',
+              unit: 'cups',
+              name: 'flour',
+              origins: [
+                { recipeName: 'Cake', amount: '2', unit: 'cups' },
+                { recipeName: 'Bread', amount: '1', unit: 'cups' }
+              ]
+            }
+          ]
+        }
+      ]
+      expect(formatGroupedForClipboard(groupsWithOrigins)).toBe(
+        'Baking:\n3 cups - flour (Cake: 2 cups, Bread: 1 cups)'
+      )
     })
   })
 })

@@ -16,7 +16,9 @@ import {
   groupByStore,
   formatGroupedForClipboard,
   formatGroupedForAppleNotes,
-  formatGroupedAsTxt
+  formatGroupedAsTxt,
+  prepareForExport,
+  formatOrigins
 } from '@/lib/recipes/shoppingExport'
 import { OTHER_CATEGORY } from '@/lib/recipes/shoppingExport'
 import type { ShoppingItem, CategoryGroup } from '@/lib/recipes/shoppingExport'
@@ -57,7 +59,8 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
       ? exportData.items.map((item) => ({
           name: item.name,
           amount: item.amount,
-          unit: item.unit
+          unit: item.unit,
+          recipeName: item.recipeName
         }))
       : undefined
 
@@ -229,6 +232,9 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
                         {group.items.map((item, i) => (
                           <li key={i} className="text-sm text-subtle">
                             {item.amount} {item.unit} — {item.name}
+                            {item.origins && item.origins.length > 0 && (
+                              <span className="text-muted">{formatOrigins(item.origins)}</span>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -242,7 +248,7 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
           {selectedPlanId && !selectedStoreId && (
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
-                Meal plan — next 7 days
+                Export preview
               </h3>
               {exportLoading && <p className="text-sm text-muted">Loading...</p>}
               {!exportLoading && mealItems && mealItems.length === 0 && (
@@ -250,9 +256,12 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
               )}
               {!exportLoading && mealItems && mealItems.length > 0 && (
                 <ul className="space-y-1">
-                  {mealItems.map((item, i) => (
+                  {prepareForExport(customItems, mealItems).map((item, i) => (
                     <li key={i} className="text-sm text-subtle">
                       {item.amount} {item.unit} — {item.name}
+                      {item.origins && item.origins.length > 0 && (
+                        <span className="text-muted">{formatOrigins(item.origins)}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
