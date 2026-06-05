@@ -49,14 +49,23 @@ beforeEach(() => {
 describe('RecipeClient', () => {
   it('shows loading state', () => {
     // @ts-expect-error -- partial SWRResponse
-    jest.mocked(useRecipe).mockReturnValue({ data: undefined, isLoading: true, error: undefined, mutate: jest.fn() })
+    jest
+      .mocked(useRecipe)
+      .mockReturnValue({ data: undefined, isLoading: true, error: undefined, mutate: jest.fn() })
     render(<RecipeClient id="r1" />)
     expect(screen.getByText('Loading recipe...')).toBeInTheDocument()
   })
 
   it('shows error state', () => {
     // @ts-expect-error -- partial SWRResponse
-    jest.mocked(useRecipe).mockReturnValue({ data: undefined, isLoading: false, error: new Error('fail'), mutate: jest.fn() })
+    jest
+      .mocked(useRecipe)
+      .mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('fail'),
+        mutate: jest.fn()
+      })
     render(<RecipeClient id="r1" />)
     expect(screen.getByText('Failed to load recipe.')).toBeInTheDocument()
   })
@@ -72,7 +81,14 @@ describe('RecipeClient', () => {
       ]
     })
     // @ts-expect-error -- partial SWRResponse
-    jest.mocked(useRecipe).mockReturnValue({ data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }), isLoading: false, error: undefined, mutate: jest.fn() })
+    jest
+      .mocked(useRecipe)
+      .mockReturnValue({
+        data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+        isLoading: false,
+        error: undefined,
+        mutate: jest.fn()
+      })
 
     render(<RecipeClient id="r1" />)
     expect(screen.getByText('Flour')).toBeInTheDocument()
@@ -86,13 +102,41 @@ describe('RecipeClient', () => {
       name: 'Stew',
       baseServings: 4,
       ingredients: [
-        create(IngredientSchema, { id: 'i1', name: 'Onion', amount: 1, unit: '', sortOrder: 1, groupName: 'Vegetables' }),
-        create(IngredientSchema, { id: 'i2', name: 'Carrot', amount: 2, unit: '', sortOrder: 2, groupName: 'Vegetables' }),
-        create(IngredientSchema, { id: 'i3', name: 'Beef', amount: 500, unit: 'g', sortOrder: 3, groupName: 'Meat' })
+        create(IngredientSchema, {
+          id: 'i1',
+          name: 'Onion',
+          amount: 1,
+          unit: '',
+          sortOrder: 1,
+          groupName: 'Vegetables'
+        }),
+        create(IngredientSchema, {
+          id: 'i2',
+          name: 'Carrot',
+          amount: 2,
+          unit: '',
+          sortOrder: 2,
+          groupName: 'Vegetables'
+        }),
+        create(IngredientSchema, {
+          id: 'i3',
+          name: 'Beef',
+          amount: 500,
+          unit: 'g',
+          sortOrder: 3,
+          groupName: 'Meat'
+        })
       ]
     })
     // @ts-expect-error -- partial SWRResponse
-    jest.mocked(useRecipe).mockReturnValue({ data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }), isLoading: false, error: undefined, mutate: jest.fn() })
+    jest
+      .mocked(useRecipe)
+      .mockReturnValue({
+        data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+        isLoading: false,
+        error: undefined,
+        mutate: jest.fn()
+      })
 
     render(<RecipeClient id="r1" />)
     expect(screen.getByText('Vegetables')).toBeInTheDocument()
@@ -107,8 +151,22 @@ describe('RecipeClient', () => {
       name: 'Stew',
       baseServings: 4,
       ingredients: [
-        create(IngredientSchema, { id: 'i1', name: 'Onion', amount: 1, unit: '', sortOrder: 1, groupName: 'Vegetables' }),
-        create(IngredientSchema, { id: 'i2', name: 'Beef', amount: 500, unit: 'g', sortOrder: 2, groupName: 'Meat' })
+        create(IngredientSchema, {
+          id: 'i1',
+          name: 'Onion',
+          amount: 1,
+          unit: '',
+          sortOrder: 1,
+          groupName: 'Vegetables'
+        }),
+        create(IngredientSchema, {
+          id: 'i2',
+          name: 'Beef',
+          amount: 500,
+          unit: 'g',
+          sortOrder: 2,
+          groupName: 'Meat'
+        })
       ]
     })
     const scaled = [
@@ -116,7 +174,18 @@ describe('RecipeClient', () => {
       create(ScaledIngredientSchema, { name: 'Beef', amount: '1000', unit: 'g' })
     ]
     // @ts-expect-error -- partial SWRResponse
-    jest.mocked(useRecipe).mockReturnValue({ data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: scaled }), isLoading: false, error: undefined, mutate: jest.fn() })
+    jest
+      .mocked(useRecipe)
+      .mockReturnValue({
+        data: create(GetRecipeResponseSchema, {
+          recipe,
+          isOwner: false,
+          scaledIngredients: scaled
+        }),
+        isLoading: false,
+        error: undefined,
+        mutate: jest.fn()
+      })
 
     render(<RecipeClient id="r1" />)
     expect(screen.getByText('Vegetables')).toBeInTheDocument()
