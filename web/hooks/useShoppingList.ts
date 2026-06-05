@@ -11,6 +11,7 @@ import type {
   ListItemNamesResponse,
   ListItemCategoriesResponse
 } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { MealPlansService } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
 export function useCustomList() {
   const client = createServiceClient(ShoppingListService)
@@ -67,4 +68,56 @@ export function useItemCategories() {
   return useSWR<ListItemCategoriesResponse, Error>('/shoppinglist/item-categories', () =>
     client.listItemCategories({})
   )
+}
+
+export interface AllExportItem {
+  name: string
+  amount: string
+  unit: string
+  recipeName: string
+  groupName: string
+}
+
+export interface AllIngredientGroup {
+  recipeName: string
+  groupName: string
+}
+
+export function useAllMealPlanExportItems(excludedGroups: string[] = []) {
+  const mealPlansClient = createServiceClient(MealPlansService)
+  const shoppingClient = createServiceClient(ShoppingListService)
+  const key = `/shoppinglist/export/all?excluded=${[...excludedGroups].sort().join(',')}`
+  return useSWR<{ items: AllExportItem[] }, Error>(key, async () => {
+    const plansResp = await mealPlansClient.listPlans({})
+    const planIds = plansResp.plans.map((p) => p.id)
+    if (planIds.length === 0) return { items: [] }
+    const responses = await Promise.all(
+      planIds.map((planId) => shoppingClient.getMealPlanExportItems({ planId, excludedGroups }))
+    )
+    return { items: responses.flatMap((r) => r.items as AllExportItem[]) }
+  })
+}
+
+export function useAllPlanIngredientGroups() {
+  const mealPlansClient = createServiceClient(MealPlansService)
+  const shoppingClient = createServiceClient(ShoppingListService)
+  return useSWR<{ groups: AllIngredientGroup[] }, Error>('/shoppinglist/groups/all', async () => {
+    const plansResp = await mealPlansClient.listPlans({})
+    const planIds = plansResp.plans.map((p) => p.id)
+    if (planIds.length === 0) return { groups: [] }
+    const responses = await Promise.all(
+      planIds.map((planId) => shoppingClient.getPlanIngredientGroups({ planId }))
+    )
+    const seen = new Set<string>()
+    const groups: AllIngredientGroup[] = []
+    for (const resp of responses) {
+      for (const group of resp.groups) {
+        if (!seen.has(group.groupName)) {
+          seen.add(group.groupName)
+          groups.push({ recipeName: group.recipeName, groupName: group.groupName })
+        }
+      }
+    }
+    return { groups }
+  })
 }

@@ -3,29 +3,17 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import ExportModal from '@/components/recipes/ExportModal'
 import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 
-jest.mock('@/hooks/useMealPlans', () => ({
-  useMealPlans: () => ({
+jest.mock('@/hooks/useShoppingList', () => ({
+  useAllMealPlanExportItems: (excludedGroups: string[]) => ({
     data: {
-      plans: [
-        { id: 'plan-1', name: 'Week Plan' },
-        { id: 'plan-2', name: 'Party Plan' }
-      ]
+      items: excludedGroups.includes('Sauce')
+        ? []
+        : [{ name: 'garlic', amount: '2', unit: 'cloves', recipeName: 'Pasta', groupName: 'Sauce' }]
     },
     isLoading: false
-  })
-}))
-
-jest.mock('@/hooks/useShoppingList', () => ({
-  useMealPlanExportItems: (planId: string) => ({
-    data: planId
-      ? {
-          items: [{ name: 'garlic', amount: '2', unit: 'cloves' }]
-        }
-      : undefined,
-    isLoading: false
   }),
-  usePlanIngredientGroups: () => ({
-    data: { groups: [] },
+  useAllPlanIngredientGroups: () => ({
+    data: { groups: [{ recipeName: 'Pasta', groupName: 'Sauce' }] },
     isLoading: false
   }),
   useStores: () => ({
@@ -44,7 +32,13 @@ jest.mock('@/hooks/useShoppingList', () => ({
     isLoading: false
   }),
   useItemCategories: () => ({
-    data: { items: [{ name: 'milk', categoryId: 'cat-dairy' }] },
+    data: {
+      items: [
+        { name: 'milk', categoryId: 'cat-dairy' },
+        // cat-frozen is a real category, but store-1 does not order it
+        { name: 'icecream', categoryId: 'cat-frozen' }
+      ]
+    },
     isLoading: false
   })
 }))
@@ -72,22 +66,34 @@ describe('ExportModal', () => {
     expect(screen.getByRole('button', { name: /Download .txt/ })).toBeInTheDocument()
   })
 
-  it('renders plan selector with options', () => {
+  it('does not render a plan selector dropdown', () => {
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    expect(screen.getByRole('option', { name: 'Week Plan' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Party Plan' })).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Add meal plan ingredients/)).not.toBeInTheDocument()
   })
 
-  it('shows aggregated meal plan items when a plan is selected', () => {
+  it('always shows meal plan items in the export preview', () => {
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    const select = screen.getByLabelText('Add meal plan ingredients (optional)')
-    fireEvent.change(select, { target: { value: 'plan-1' } })
     expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
   })
 
-  it('does not show meal plan section when no plan is selected', () => {
+  it('shows ingredient groups for exclusion', () => {
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    expect(screen.queryByText(/cloves — garlic/)).not.toBeInTheDocument()
+    expect(screen.getByText('Sauce')).toBeInTheDocument()
+    expect(screen.getByText('(Pasta)')).toBeInTheDocument()
+  })
+
+  it('excludes ingredient group items when group is unchecked', () => {
+    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).toBeChecked()
+    fireEvent.click(checkbox)
+    // After excluding 'Sauce', garlic (from Sauce group) should be gone
+    expect(screen.queryByText(/garlic/)).not.toBeInTheDocument()
+  })
+
+  it('shows ingredient group name in origin label in the preview', () => {
+    render(<ExportModal customItems={[]} onClose={jest.fn()} />)
+    expect(screen.getByText(/Pasta \[Sauce\]/)).toBeInTheDocument()
   })
 
   it('renders store selector with options', () => {
@@ -100,10 +106,37 @@ describe('ExportModal', () => {
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
-    // milk is mapped to Dairy; the grouped preview heading appears.
     expect(screen.getByText('Grouped by store aisle')).toBeInTheDocument()
     expect(screen.getByText('Dairy')).toBeInTheDocument()
     expect(screen.getByText(/1 L — milk/)).toBeInTheDocument()
+  })
+
+  it('warns when items have no category assigned for the selected store', () => {
+    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
+      target: { value: 'store-1' }
+    })
+    // garlic (from the meal plan) maps to no category at all
+    expect(screen.getByText(/no category assigned/)).toBeInTheDocument()
+  })
+
+  it('warns when an item has a category the selected store does not order', () => {
+    const items: ShoppingItem[] = [
+      ...customItems,
+      { id: 'c2', amount: '1', unit: 'tub', name: 'icecream' }
+    ]
+    render(<ExportModal customItems={items} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
+      target: { value: 'store-1' }
+    })
+    // icecream → cat-frozen, which store-1 does not order
+    expect(screen.getByText(/this store doesn.t order/)).toBeInTheDocument()
+  })
+
+  it('does not show store-coverage warnings until a store is selected', () => {
+    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    expect(screen.queryByText(/no category assigned/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/this store doesn.t order/)).not.toBeInTheDocument()
   })
 
   it('copies grouped output to clipboard when a store is selected', async () => {
@@ -114,7 +147,10 @@ describe('ExportModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Copy to Clipboard/ }))
     })
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Dairy:\n1 L - milk')
+    // milk → Dairy; garlic → Other (not in nameToCategoryId)
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Dairy:\n1 L - milk')
+    )
   })
 
   it('calls onClose when close button is clicked', () => {

@@ -3,13 +3,14 @@ import { renderHook } from '@testing-library/react'
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockClient = {
   getCustomList: jest.fn().mockResolvedValue({}),
-  getMealPlanExportItems: jest.fn().mockResolvedValue({}),
-  getPlanIngredientGroups: jest.fn().mockResolvedValue({}),
+  getMealPlanExportItems: jest.fn().mockResolvedValue({ items: [] }),
+  getPlanIngredientGroups: jest.fn().mockResolvedValue({ groups: [] }),
   listCategories: jest.fn().mockResolvedValue({}),
   listStores: jest.fn().mockResolvedValue({}),
   getStoreCategories: jest.fn().mockResolvedValue({}),
   listItemNames: jest.fn().mockResolvedValue({}),
-  listItemCategories: jest.fn().mockResolvedValue({})
+  listItemCategories: jest.fn().mockResolvedValue({}),
+  listPlans: jest.fn().mockResolvedValue({ plans: [] })
 }
 
 jest.mock('@/lib/client', () => ({
@@ -17,6 +18,9 @@ jest.mock('@/lib/client', () => ({
 }))
 jest.mock('@/lib/gen/shoppinglist/v1/shoppinglist_pb', () => ({
   ShoppingListService: {}
+}))
+jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
+  MealPlansService: {}
 }))
 
 import useSWR from 'swr'
@@ -28,7 +32,9 @@ import {
   useStores,
   useStoreCategories,
   useItemNames,
-  useItemCategories
+  useItemCategories,
+  useAllMealPlanExportItems,
+  useAllPlanIngredientGroups
 } from '@/hooks/useShoppingList'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -164,5 +170,96 @@ describe('useItemCategories', () => {
     renderHook(() => useItemCategories())
     await callFetcher()
     expect(mockClient.listItemCategories).toHaveBeenCalledWith({})
+  })
+})
+
+describe('useAllMealPlanExportItems', () => {
+  it('uses /shoppinglist/export/all as key with sorted excluded groups', () => {
+    renderHook(() => useAllMealPlanExportItems(['sauce', 'pasta']))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/shoppinglist/export/all?excluded=pasta,sauce',
+      expect.any(Function)
+    )
+  })
+
+  it('uses empty excluded string when no groups excluded', () => {
+    renderHook(() => useAllMealPlanExportItems())
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/shoppinglist/export/all?excluded=',
+      expect.any(Function)
+    )
+  })
+
+  it('fetcher returns empty items when no plans exist', async () => {
+    mockClient.listPlans.mockResolvedValueOnce({ plans: [] })
+    renderHook(() => useAllMealPlanExportItems())
+    const fetcher = mockUseSWR.mock.calls[0]?.[1]
+    const result = typeof fetcher === 'function' ? await fetcher() : undefined
+    expect(result).toEqual({ items: [] })
+    expect(mockClient.getMealPlanExportItems).not.toHaveBeenCalled()
+  })
+
+  it('fetcher calls getMealPlanExportItems for each plan and merges results', async () => {
+    mockClient.listPlans.mockResolvedValueOnce({
+      plans: [{ id: 'plan-1' }, { id: 'plan-2' }]
+    })
+    mockClient.getMealPlanExportItems
+      .mockResolvedValueOnce({ items: [{ name: 'garlic', amount: '2', unit: 'cloves' }] })
+      .mockResolvedValueOnce({ items: [{ name: 'onion', amount: '1', unit: 'pc' }] })
+    renderHook(() => useAllMealPlanExportItems())
+    const fetcher = mockUseSWR.mock.calls[0]?.[1]
+    const result = typeof fetcher === 'function' ? await fetcher() : undefined
+    expect(mockClient.getMealPlanExportItems).toHaveBeenCalledTimes(2)
+    expect(result).toEqual({
+      items: [
+        { name: 'garlic', amount: '2', unit: 'cloves' },
+        { name: 'onion', amount: '1', unit: 'pc' }
+      ]
+    })
+  })
+})
+
+describe('useAllPlanIngredientGroups', () => {
+  it('uses /shoppinglist/groups/all as the SWR key', () => {
+    renderHook(() => useAllPlanIngredientGroups())
+    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/groups/all', expect.any(Function))
+  })
+
+  it('fetcher returns empty groups when no plans exist', async () => {
+    mockClient.listPlans.mockResolvedValueOnce({ plans: [] })
+    renderHook(() => useAllPlanIngredientGroups())
+    const fetcher = mockUseSWR.mock.calls[0]?.[1]
+    const result = typeof fetcher === 'function' ? await fetcher() : undefined
+    expect(result).toEqual({ groups: [] })
+    expect(mockClient.getPlanIngredientGroups).not.toHaveBeenCalled()
+  })
+
+  it('fetcher merges and deduplicates groups across plans by groupName', async () => {
+    mockClient.listPlans.mockResolvedValueOnce({
+      plans: [{ id: 'plan-1' }, { id: 'plan-2' }]
+    })
+    mockClient.getPlanIngredientGroups
+      .mockResolvedValueOnce({
+        groups: [
+          { recipeName: 'Pasta', groupName: 'Sauce' },
+          { recipeName: 'Pasta', groupName: 'Base' }
+        ]
+      })
+      .mockResolvedValueOnce({
+        groups: [
+          { recipeName: 'Soup', groupName: 'Sauce' }, // duplicate groupName — deduplicated
+          { recipeName: 'Soup', groupName: 'Broth' }
+        ]
+      })
+    renderHook(() => useAllPlanIngredientGroups())
+    const fetcher = mockUseSWR.mock.calls[0]?.[1]
+    const result = typeof fetcher === 'function' ? await fetcher() : undefined
+    expect(result).toEqual({
+      groups: [
+        { recipeName: 'Pasta', groupName: 'Sauce' },
+        { recipeName: 'Pasta', groupName: 'Base' },
+        { recipeName: 'Soup', groupName: 'Broth' }
+      ]
+    })
   })
 })

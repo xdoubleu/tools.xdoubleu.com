@@ -3,6 +3,7 @@ import {
   formatForAppleNotes,
   formatAsTxt,
   groupByStore,
+  toExportGroups,
   formatGroupedForClipboard,
   formatGroupedForAppleNotes,
   formatGroupedAsTxt,
@@ -77,12 +78,35 @@ describe('shoppingExport', () => {
       expect(formatOrigins(origins)).toBe(' (Pasta)')
     })
 
+    it('formats single origin with group name', () => {
+      const origins: ItemOrigin[] = [
+        { recipeName: 'Pasta', amount: '2', unit: 'cups', groupName: 'Sauce' }
+      ]
+      expect(formatOrigins(origins)).toBe(' (Pasta [Sauce])')
+    })
+
     it('formats multiple origins with name: amount unit per entry', () => {
       const origins: ItemOrigin[] = [
         { recipeName: 'Pasta', amount: '2', unit: 'cups' },
         { recipeName: 'Soup', amount: '1', unit: 'cups' }
       ]
       expect(formatOrigins(origins)).toBe(' (Pasta: 2 cups, Soup: 1 cups)')
+    })
+
+    it('formats multiple origins with group names', () => {
+      const origins: ItemOrigin[] = [
+        { recipeName: 'Pasta', amount: '2', unit: 'cups', groupName: 'Sauce' },
+        { recipeName: 'Soup', amount: '1', unit: 'cups', groupName: 'Base' }
+      ]
+      expect(formatOrigins(origins)).toBe(' (Pasta [Sauce]: 2 cups, Soup [Base]: 1 cups)')
+    })
+
+    it('formats mixed origins where only some have group names', () => {
+      const origins: ItemOrigin[] = [
+        { recipeName: 'Pasta', amount: '2', unit: 'cups', groupName: 'Sauce' },
+        { recipeName: 'Soup', amount: '1', unit: 'cups' }
+      ]
+      expect(formatOrigins(origins)).toBe(' (Pasta [Sauce]: 2 cups, Soup: 1 cups)')
     })
   })
 
@@ -129,6 +153,23 @@ describe('shoppingExport', () => {
       ]
       const result = formatForClipboard([], items)
       expect(result).toBe('3 tbsp - oil (Stir Fry)')
+    })
+
+    it('includes group name in origin for a single meal item with group', () => {
+      const items: ShoppingItem[] = [
+        { amount: '3', unit: 'tbsp', name: 'oil', recipeName: 'Stir Fry', groupName: 'Sauce' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('3 tbsp - oil (Stir Fry [Sauce])')
+    })
+
+    it('includes group names in origins when combining items from multiple recipes', () => {
+      const items: ShoppingItem[] = [
+        { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Cake', groupName: 'Dry' },
+        { amount: '1', unit: 'cups', name: 'flour', recipeName: 'Bread', groupName: 'Base' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('3 cups - flour (Cake [Dry]: 2 cups, Bread [Base]: 1 cups)')
     })
 
     it('combines case-insensitively by name', () => {
@@ -254,34 +295,69 @@ describe('shoppingExport', () => {
       sugar: 'cat-produce'
     }
 
-    it('orders groups by the store order and buckets unmapped items into Other', () => {
-      const groups = groupByStore(customItems, mealItems, orderedCategories, nameToCategoryId)
-      expect(groups.map((g) => g.category)).toEqual(['Produce', 'Baking', 'Other'])
+    it('orders groups by the store order and reports items with no category as uncategorized', () => {
+      const { groups, uncategorized, unordered } = groupByStore(
+        customItems,
+        mealItems,
+        orderedCategories,
+        nameToCategoryId
+      )
+      expect(groups.map((g) => g.category)).toEqual(['Produce', 'Baking'])
       expect(groups[0].items.map((i) => i.name)).toEqual(['sugar'])
       expect(groups[1].items.map((i) => i.name)).toEqual(['salt', 'flour'])
-      expect(groups[2].items.map((i) => i.name)).toEqual(['butter'])
+      // butter maps to no category at all
+      expect(uncategorized.map((i) => i.name)).toEqual(['butter'])
+      expect(unordered).toEqual([])
+    })
+
+    it('reports items whose category is not part of the store as unordered', () => {
+      const items: ShoppingItem[] = [
+        { amount: '1', unit: '', name: 'frozen pizza' },
+        { amount: '2', unit: '', name: 'apples' }
+      ]
+      // frozen pizza has a real category, but the store does not order "cat-frozen"
+      const { groups, uncategorized, unordered } = groupByStore(
+        items,
+        undefined,
+        orderedCategories,
+        {
+          'frozen pizza': 'cat-frozen',
+          apples: 'cat-produce'
+        }
+      )
+      expect(groups.map((g) => g.category)).toEqual(['Produce'])
+      expect(groups[0].items.map((i) => i.name)).toEqual(['apples'])
+      expect(unordered.map((i) => i.name)).toEqual(['frozen pizza'])
+      expect(uncategorized).toEqual([])
     })
 
     it('omits categories that have no items', () => {
-      const groups = groupByStore([], mealItems, orderedCategories, { flour: 'cat-baking' })
-      expect(groups.map((g) => g.category)).toEqual(['Baking', 'Other'])
+      const { groups, uncategorized } = groupByStore([], mealItems, orderedCategories, {
+        flour: 'cat-baking'
+      })
+      expect(groups.map((g) => g.category)).toEqual(['Baking'])
+      expect(uncategorized.map((i) => i.name)).toEqual(['sugar', 'butter'])
     })
 
     it('matches category by normalized (trimmed, lowercased) name', () => {
       const items: ShoppingItem[] = [{ amount: '1', unit: '', name: '  SALT  ' }]
-      const groups = groupByStore(items, undefined, orderedCategories, { salt: 'cat-baking' })
+      const { groups } = groupByStore(items, undefined, orderedCategories, { salt: 'cat-baking' })
       expect(groups).toEqual([
         { category: 'Baking', items: [{ amount: '1', unit: '', name: '  SALT  ' }] }
       ])
     })
 
-    it('returns an empty array when there are no items', () => {
-      expect(groupByStore([], [], orderedCategories, nameToCategoryId)).toEqual([])
+    it('returns empty buckets when there are no items', () => {
+      expect(groupByStore([], [], orderedCategories, nameToCategoryId)).toEqual({
+        groups: [],
+        uncategorized: [],
+        unordered: []
+      })
     })
 
     it('applies unit upgrades inside groups', () => {
       const items: ShoppingItem[] = [{ amount: '1000', unit: 'g', name: 'flour' }]
-      const groups = groupByStore(items, undefined, orderedCategories, { flour: 'cat-baking' })
+      const { groups } = groupByStore(items, undefined, orderedCategories, { flour: 'cat-baking' })
       expect(groups[0].items[0]).toMatchObject({ amount: '1', unit: 'kg' })
     })
 
@@ -290,11 +366,40 @@ describe('shoppingExport', () => {
         { amount: '1', unit: 'cups', name: 'flour', recipeName: 'Cake' },
         { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Bread' }
       ]
-      const groups = groupByStore([], meal, orderedCategories, { flour: 'cat-baking' })
+      const { groups } = groupByStore([], meal, orderedCategories, { flour: 'cat-baking' })
       const flourItems = groups.find((g) => g.category === 'Baking')?.items ?? []
       expect(flourItems).toHaveLength(1)
       expect(flourItems[0]).toMatchObject({ amount: '3', unit: 'cups', name: 'flour' })
       expect(flourItems[0].origins).toHaveLength(2)
+    })
+  })
+
+  describe('toExportGroups', () => {
+    it('returns just the store groups when nothing is left over', () => {
+      const grouping = {
+        groups: [{ category: 'Produce', items: [{ amount: '2', unit: '', name: 'apples' }] }],
+        uncategorized: [],
+        unordered: []
+      }
+      expect(toExportGroups(grouping)).toEqual(grouping.groups)
+    })
+
+    it('appends a single trailing Other group combining uncategorized and unordered items', () => {
+      const grouping = {
+        groups: [{ category: 'Produce', items: [{ amount: '2', unit: '', name: 'apples' }] }],
+        uncategorized: [{ amount: '1', unit: '', name: 'butter' }],
+        unordered: [{ amount: '1', unit: '', name: 'frozen pizza' }]
+      }
+      expect(toExportGroups(grouping)).toEqual([
+        ...grouping.groups,
+        {
+          category: 'Other',
+          items: [
+            { amount: '1', unit: '', name: 'butter' },
+            { amount: '1', unit: '', name: 'frozen pizza' }
+          ]
+        }
+      ])
     })
   })
 
