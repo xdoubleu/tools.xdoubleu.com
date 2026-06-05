@@ -38,9 +38,10 @@ jobs:
   proto-check:
     needs: changes
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      github.event_name != 'push' &&
+      (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.workflows == 'true'
+      needs.changes.outputs.workflows == 'true')
     name: Proto Staleness Check Workflow
     uses: ./.github/workflows/proto-check.yml
     secrets: inherit
@@ -49,6 +50,7 @@ jobs:
     needs: [changes, proto-check]
     if: |
       always() &&
+      github.event_name != 'push' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
@@ -62,6 +64,7 @@ jobs:
     needs: [changes, proto-check]
     if: |
       always() &&
+      github.event_name != 'push' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
@@ -72,60 +75,56 @@ jobs:
     secrets: inherit
 
   api-lint:
-    needs: [changes, build-api]
+    needs: changes
     if: |
-      always() &&
+      github.event_name != 'push' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.workflows == 'true') &&
-      needs.build-api.result == 'success'
+      needs.changes.outputs.workflows == 'true')
     name: API Lint Workflow
     uses: ./.github/workflows/api-lint.yml
     secrets: inherit
 
   web-lint:
-    needs: [changes, build-web]
+    needs: changes
     if: |
-      always() &&
+      github.event_name != 'push' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.workflows == 'true') &&
-      needs.build-web.result == 'success'
+      needs.changes.outputs.workflows == 'true')
     name: Web Lint Workflow
     uses: ./.github/workflows/web-lint.yml
     secrets: inherit
 
   api-test:
-    needs: [changes, build-api]
+    needs: changes
     if: |
-      always() &&
+      github.event_name != 'push' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.workflows == 'true') &&
-      needs.build-api.result == 'success'
+      needs.changes.outputs.workflows == 'true')
     name: API Test Workflow
     uses: ./.github/workflows/api-test.yml
     secrets: inherit
 
   web-test:
-    needs: [changes, build-web]
+    needs: changes
     if: |
-      always() &&
+      github.event_name != 'push' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.workflows == 'true') &&
-      needs.build-web.result == 'success'
+      needs.changes.outputs.workflows == 'true')
     name: Web Test Workflow
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
 
   ci-pass:
     needs: [proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
-    if: always()
+    if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs passed or were skipped
@@ -139,14 +138,10 @@ jobs:
           done
 
   docker:
-    needs: [changes, proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
+    needs: changes
     if: |
-      always() &&
       github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped') &&
-      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped')
+      github.ref == 'refs/heads/main'
     name: Docker Build & Push Workflow
     uses: ./.github/workflows/docker.yml
     with:
