@@ -2,6 +2,9 @@
 
 import Link from 'next/link'
 import { useCurrentUser, useSignOut } from '@/hooks/useAuth'
+import { Button } from '@/components/ui/button'
+
+const navItemClass = 'text-muted hover:bg-transparent hover:text-accent'
 
 export default function Navbar() {
   const { data, isLoading } = useCurrentUser()
@@ -26,18 +29,12 @@ export default function Navbar() {
           tools.xdoubleu.com
         </Link>
         <div className="flex items-center gap-1">
-          <Link
-            href="/settings"
-            className="inline-flex min-h-9 items-center rounded-xl px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent"
-          >
-            Settings
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="inline-flex min-h-9 items-center rounded-xl px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent"
-          >
+          <Button asChild variant="ghost" size="sm" className={navItemClass}>
+            <Link href="/settings">Settings</Link>
+          </Button>
+          <Button variant="ghost" size="sm" className={navItemClass} onClick={handleSignOut}>
             Sign out
-          </button>
+          </Button>
         </div>
       </nav>
     </header>

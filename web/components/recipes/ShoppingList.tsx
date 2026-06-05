@@ -52,13 +52,15 @@ export default function ShoppingList({ items, onDelete, onExport }: ShoppingList
                   {item.amount} {item.unit} - {item.name}
                 </span>
                 {item.id && onDelete && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="iconSm"
                     onClick={() => onDelete(item.id!)}
                     aria-label={`Remove ${item.name}`}
-                    className="min-h-8 min-w-8 rounded-full px-1 text-muted transition-colors hover:text-danger"
+                    className="rounded-full text-muted hover:bg-transparent hover:text-danger focus-visible:ring-danger/50"
                   >
                     ×
-                  </button>
+                  </Button>
                 )}
               </div>
             )

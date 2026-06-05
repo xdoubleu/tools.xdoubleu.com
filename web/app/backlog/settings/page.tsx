@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useSettings, useSaveSettings } from '@/hooks/useSettings'
 import { mutate } from 'swr'
 import type { Integrations } from '@/lib/gen/settings/v1/settings_pb'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function BacklogSettingsPage() {
   const { data, isLoading, error } = useSettings()
@@ -86,25 +88,23 @@ export default function BacklogSettingsPage() {
               <label htmlFor="steam_api_key" className="mb-1 block text-sm text-subtle">
                 API Key
               </label>
-              <input
+              <Input
                 id="steam_api_key"
                 type="password"
                 autoComplete="off"
                 value={steamApiKey}
                 onChange={(e) => setSteamApiKey(e.target.value)}
-                className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
               />
             </div>
             <div>
               <label htmlFor="steam_user_id" className="mb-1 block text-sm text-subtle">
                 Steam User ID
               </label>
-              <input
+              <Input
                 id="steam_user_id"
                 type="text"
                 value={steamUserId}
                 onChange={(e) => setSteamUserId(e.target.value)}
-                className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
               />
             </div>
           </div>
@@ -118,13 +118,12 @@ export default function BacklogSettingsPage() {
             <label htmlFor="hardcover_api_key" className="mb-1 block text-sm text-subtle">
               API Key
             </label>
-            <input
+            <Input
               id="hardcover_api_key"
               type="password"
               autoComplete="off"
               value={hardcoverApiKey}
               onChange={(e) => setHardcoverApiKey(e.target.value)}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-fg"
             />
             <p className="mt-1 text-xs text-muted">
               Find your API key at hardcover.app → Settings → API.
@@ -132,13 +131,9 @@ export default function BacklogSettingsPage() {
           </div>
         </section>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded bg-fg px-4 py-2 text-sm font-medium text-bg hover:opacity-80 disabled:opacity-50"
-        >
+        <Button type="submit" disabled={saving}>
           {saving ? 'Saving…' : 'Save'}
-        </button>
+        </Button>
       </form>
     </main>
   )

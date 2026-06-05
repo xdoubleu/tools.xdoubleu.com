@@ -5,6 +5,7 @@ import { useSearchExternal, useImportBooks } from '@/hooks/useBacklog'
 import type { ExternalBookResult } from '@/lib/gen/backlog/v1/books_pb'
 import BookModal from '@/components/backlog/BookModal'
 import { Input } from '@/components/ui/input'
+import { MenuItem } from '@/components/ui/menu-item'
 
 interface BookSearchBarProps {
   onAdded: () => void
@@ -89,20 +90,18 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
           <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-64 overflow-y-auto">
             {results.map((book) => (
               <li key={`${book.provider}-${book.providerId}`}>
-                <button
-                  type="button"
+                <MenuItem
                   onClick={() => {
                     setSelectedBook(book)
                     setResults([])
                     setQuery('')
                   }}
-                  className="w-full text-left px-4 py-2 hover:bg-surface text-sm"
                 >
                   <span className="font-medium">{book.title}</span>
                   {book.authors.length > 0 && (
                     <span className="text-muted ml-2">— {book.authors.join(', ')}</span>
                   )}
-                </button>
+                </MenuItem>
               </li>
             ))}
           </ul>
@@ -110,7 +109,7 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="inline-flex h-8 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-xs text-fg transition-colors hover:bg-card">
+        <label className="inline-flex h-8 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-xs text-fg transition-colors hover:bg-hover">
           Import CSV
           <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
         </label>

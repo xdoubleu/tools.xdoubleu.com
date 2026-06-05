@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useForgotPassword } from '@/hooks/useAuth'
 import { ConnectError } from '@connectrpc/connect'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function ForgotPasswordPage() {
   const forgotPassword = useForgotPassword()
@@ -53,13 +55,13 @@ export default function ForgotPasswordPage() {
             <label htmlFor="email" className="block text-sm font-medium text-subtle">
               Email
             </label>
-            <input
+            <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 h-11 block w-full rounded-xl border border-input-border bg-input px-3 py-2 text-input-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="mt-1"
             />
           </div>
 
@@ -69,13 +71,9 @@ export default function ForgotPasswordPage() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="h-11 w-full rounded-xl bg-accent px-4 font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button type="submit" disabled={submitting} className="w-full">
             {submitting ? 'Sending…' : 'Send reset link'}
-          </button>
+          </Button>
 
           <div className="text-center">
             <Link href="/auth/sign-in" className="text-sm text-accent hover:underline">

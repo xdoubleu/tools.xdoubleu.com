@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useICSFeeds, useDeleteConfig } from '@/hooks/useICSProxy'
 import { getApiUrl } from '@/lib/env'
 import type { FilterConfig } from '@/lib/gen/icsproxy/v1/proxy_pb'
+import { Button } from '@/components/ui/button'
 
 const BASE_URL = getApiUrl()
 
@@ -26,7 +27,7 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
   }
 
   return (
-    <div className="border border-border rounded p-4">
+    <div className="border border-border rounded-2xl p-4">
       <p className="text-sm font-mono text-subtle break-all">{config.sourceUrl}</p>
       <div className="flex items-center gap-3 mt-3 flex-wrap">
         <a
@@ -52,27 +53,22 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
         <span className="text-border">|</span>
         {deleteConfirm ? (
           <div className="flex gap-2 items-center">
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="rounded-xl bg-danger px-3 py-1.5 text-xs text-white hover:opacity-90 disabled:opacity-50"
-            >
+            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? 'Deleting...' : 'Confirm delete'}
-            </button>
-            <button
-              onClick={() => setDeleteConfirm(false)}
-              className="px-3 py-1 border border-border text-xs rounded hover:bg-surface"
-            >
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => setDeleteConfirm(true)}
-            className="text-sm text-danger hover:underline"
+            className="h-auto px-0 text-sm text-danger focus-visible:ring-danger/50"
           >
             Delete
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -86,12 +82,9 @@ export default function ICSProxyPage() {
     <main className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">ICS Proxy</h1>
-        <Link
-          href="/icsproxy/new"
-          className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
-        >
-          New Feed
-        </Link>
+        <Button asChild>
+          <Link href="/icsproxy/new">New Feed</Link>
+        </Button>
       </div>
 
       {isLoading && <p>Loading feeds...</p>}

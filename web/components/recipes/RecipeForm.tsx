@@ -8,6 +8,7 @@ import { parseFraction } from '@/lib/recipes/parseFraction'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 interface RecipeFormProps {
   recipe?: Recipe
@@ -125,33 +126,33 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         <div className="space-y-2">
           {ingredients.map((ing, idx) => (
             <div key={idx} className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 placeholder="e.g. 1/3"
                 value={ing.amount}
                 onChange={(e) => updateIngredient(idx, 'amount', e.target.value)}
-                className="h-11 w-16 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="w-16"
               />
-              <input
+              <Input
                 type="text"
                 placeholder="Unit"
                 value={ing.unit}
                 onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
-                className="h-11 w-20 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="w-20"
               />
-              <input
+              <Input
                 type="text"
                 placeholder="Name"
                 value={ing.name}
                 onChange={(e) => updateIngredient(idx, 'name', e.target.value)}
-                className="h-11 flex-1 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="flex-1"
               />
-              <input
+              <Input
                 type="text"
                 placeholder="Group (optional)"
                 value={ing.group}
                 onChange={(e) => updateIngredient(idx, 'group', e.target.value)}
-                className="h-11 w-28 rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="w-28"
               />
               {ingredients.length > 1 && (
                 <Button
@@ -174,12 +175,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
       <div className="space-y-1.5">
         <Label>Steps</Label>
-        <textarea
-          value={steps}
-          onChange={(e) => setSteps(e.target.value)}
-          rows={6}
-          className="w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        />
+        <Textarea value={steps} onChange={(e) => setSteps(e.target.value)} rows={6} />
       </div>
 
       <div className="flex gap-2">

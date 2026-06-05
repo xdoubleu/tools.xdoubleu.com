@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface Props {
   data: GetSettingsResponse
@@ -49,26 +50,28 @@ export function SettingsWorkspaces({ data, mutate }: Props) {
               className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2"
             >
               <span className="text-sm text-subtle">{ws.name}</span>
-              <button
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
                 onClick={() => handleDelete(ws.id)}
-                className="text-xs text-danger hover:underline"
+                className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
               >
                 Delete
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       )}
       {adding ? (
         <form onSubmit={handleAdd} className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Workspace name"
             autoFocus
-            className="flex-1 rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+            className="flex-1"
           />
           <Button type="submit" size="sm" disabled={!name.trim()}>
             Add
@@ -78,13 +81,15 @@ export function SettingsWorkspaces({ data, mutate }: Props) {
           </Button>
         </form>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
+          className="self-start"
           onClick={() => setAdding(true)}
-          className="text-sm text-accent hover:underline"
         >
           + Add workspace
-        </button>
+        </Button>
       )}
     </section>
   )

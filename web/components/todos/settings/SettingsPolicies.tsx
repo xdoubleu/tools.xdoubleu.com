@@ -4,6 +4,10 @@ import { useState } from 'react'
 import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse, Policy } from '@/lib/gen/todos/v1/settings_pb'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 interface Props {
   data: GetSettingsResponse
@@ -81,10 +85,10 @@ export function SettingsPolicies({ data, mutate }: Props) {
           {data.policies.map((policy) => {
             const edit = editing[policy.id]
             return (
-              <li key={policy.id} className="rounded border border-warn/30 bg-warn/10 p-3">
+              <li key={policy.id} className="rounded-xl border border-warn/30 bg-warn/10 p-3">
                 {edit ? (
                   <div className="flex flex-col gap-2">
-                    <textarea
+                    <Textarea
                       value={edit.text}
                       onChange={(e) =>
                         setEditing((prev) => ({
@@ -93,11 +97,10 @@ export function SettingsPolicies({ data, mutate }: Props) {
                         }))
                       }
                       rows={2}
-                      className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
                     />
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-muted">Re-appear after</label>
-                      <input
+                      <Input
                         type="number"
                         min={0}
                         value={edit.reappearAfterHours}
@@ -110,20 +113,18 @@ export function SettingsPolicies({ data, mutate }: Props) {
                             }
                           }))
                         }
-                        className="w-16 rounded border border-input-border bg-input px-2 py-1 text-sm text-input-text"
+                        className="h-9 w-16 px-2"
                       />
                       <label className="text-xs text-muted">hours</label>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleUpdate(policy.id)}
-                        className="rounded bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-hover"
-                      >
+                      <Button type="button" size="sm" onClick={() => handleUpdate(policy.id)}>
                         Save
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        size="sm"
+                        variant="ghost"
                         onClick={() =>
                           setEditing((prev) => {
                             const next = { ...prev }
@@ -131,10 +132,9 @@ export function SettingsPolicies({ data, mutate }: Props) {
                             return next
                           })
                         }
-                        className="rounded px-3 py-1 text-xs text-muted hover:text-subtle"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -146,20 +146,24 @@ export function SettingsPolicies({ data, mutate }: Props) {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => startEdit(policy)}
-                        className="text-xs text-accent hover:underline"
+                        className="h-auto px-0 text-xs"
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => handleDelete(policy.id)}
-                        className="text-xs text-danger hover:underline"
+                        className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -170,64 +174,53 @@ export function SettingsPolicies({ data, mutate }: Props) {
       )}
       {adding ? (
         <form onSubmit={handleAdd} className="flex flex-col gap-2">
-          <textarea
+          <Textarea
             value={addText}
             onChange={(e) => setAddText(e.target.value)}
             placeholder="Policy text"
             rows={2}
             autoFocus
-            className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted">Re-appear after</label>
-            <input
+            <Input
               type="number"
               min={0}
               value={addHours}
               onChange={(e) => setAddHours(Number(e.target.value))}
-              className="w-16 rounded border border-input-border bg-input px-2 py-1 text-sm text-input-text"
+              className="h-9 w-16 px-2"
             />
             <label className="text-xs text-muted">hours</label>
           </div>
           {data.workspaces.length > 0 && (
-            <select
-              value={addWorkspaceId}
-              onChange={(e) => setAddWorkspaceId(e.target.value)}
-              className="rounded border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
-            >
+            <Select value={addWorkspaceId} onChange={(e) => setAddWorkspaceId(e.target.value)}>
               <option value="">No workspace</option>
               {data.workspaces.map((ws) => (
                 <option key={ws.id} value={ws.id}>
                   {ws.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={!addText.trim()}
-              className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-            >
+            <Button type="submit" size="sm" disabled={!addText.trim()}>
               Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdding(false)}
-              className="rounded px-3 py-1.5 text-sm text-muted hover:text-subtle"
-            >
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
+          className="self-start"
           onClick={() => setAdding(true)}
-          className="text-sm text-accent hover:underline"
         >
           + Add policy
-        </button>
+        </Button>
       )}
     </section>
   )

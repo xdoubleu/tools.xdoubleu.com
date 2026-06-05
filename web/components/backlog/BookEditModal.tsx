@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
 
@@ -78,45 +80,39 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="edit-status">Status</Label>
-            <select
-              id="edit-status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
+            <Select id="edit-status" value={status} onChange={(e) => setStatus(e.target.value)}>
               {BOOK_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-rating">Rating (0 = unrated)</Label>
-            <select
+            <Select
               id="edit-rating"
               value={rating}
               onChange={(e) => setRating(Number(e.target.value))}
-              className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {[0, 1, 2, 3, 4, 5].map((r) => (
                 <option key={r} value={r}>
                   {r === 0 ? 'No rating' : `${r} star${r > 1 ? 's' : ''}`}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-notes">Notes</Label>
-            <textarea
+            <Textarea
               id="edit-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Optional notes..."
-              className="w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="resize-none"
             />
           </div>
 

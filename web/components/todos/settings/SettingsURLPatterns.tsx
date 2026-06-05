@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface Props {
   data: GetSettingsResponse
@@ -72,13 +73,15 @@ export function SettingsURLPatterns({ data, mutate }: Props) {
                     </span>
                   )}
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="sm"
                   onClick={() => handleDelete(pattern.id)}
-                  className="text-xs text-danger hover:underline"
+                  className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -86,34 +89,30 @@ export function SettingsURLPatterns({ data, mutate }: Props) {
       )}
       {adding ? (
         <form onSubmit={handleAdd} className="flex flex-col gap-2">
-          <input
+          <Input
             type="text"
             value={form.platformName}
             onChange={(e) => setField('platformName', e.target.value)}
             placeholder="Platform name (e.g. GitHub)"
             autoFocus
-            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
-          <input
+          <Input
             type="text"
             value={form.urlPrefix}
             onChange={(e) => setField('urlPrefix', e.target.value)}
             placeholder="URL prefix (e.g. https://github.com/)"
-            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
-          <input
+          <Input
             type="text"
             value={form.label}
             onChange={(e) => setField('label', e.target.value)}
             placeholder="Label (optional)"
-            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
-          <input
+          <Input
             type="text"
             value={form.shortcut}
             onChange={(e) => setField('shortcut', e.target.value)}
             placeholder="Shortcut key (optional)"
-            className="rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
           />
           <div className="flex gap-2">
             <Button
@@ -129,13 +128,15 @@ export function SettingsURLPatterns({ data, mutate }: Props) {
           </div>
         </form>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
+          className="self-start"
           onClick={() => setAdding(true)}
-          className="text-sm text-accent hover:underline"
         >
           + Add URL pattern
-        </button>
+        </Button>
       )}
     </section>
   )

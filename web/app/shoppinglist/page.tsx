@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useCustomList } from '@/hooks/useShoppingList'
 import ShoppingList from '@/components/recipes/ShoppingList'
 import ExportModal from '@/components/recipes/ExportModal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { ShoppingItem as ShoppingItemExport } from '@/lib/recipes/shoppingExport'
@@ -65,37 +67,33 @@ export default function ShoppingPage() {
       </div>
 
       <form onSubmit={handleAdd} className="flex flex-wrap gap-2 mb-6">
-        <input
+        <Input
           type="text"
           placeholder="Item name"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           required
-          className="h-11 min-w-32 flex-1 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="min-w-32 flex-1"
         />
-        <input
+        <Input
           type="number"
           placeholder="Amount"
           value={newAmount}
           onChange={(e) => setNewAmount(e.target.value)}
           min="0"
           step="any"
-          className="h-11 w-24 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="w-24"
         />
-        <input
+        <Input
           type="text"
           placeholder="Unit"
           value={newUnit}
           onChange={(e) => setNewUnit(e.target.value)}
-          className="h-11 w-24 rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="w-24"
         />
-        <button
-          type="submit"
-          disabled={adding || !newName.trim()}
-          className="h-11 rounded-xl bg-accent px-4 text-sm text-white hover:bg-accent-hover disabled:opacity-50"
-        >
+        <Button type="submit" disabled={adding || !newName.trim()}>
           Add
-        </button>
+        </Button>
       </form>
 
       {isLoading && <p>Loading...</p>}

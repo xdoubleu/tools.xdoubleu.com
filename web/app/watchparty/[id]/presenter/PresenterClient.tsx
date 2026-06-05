@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { attachDraggable } from '@/lib/watchparty/roomUtils'
 import { STATUS_COLOR, STATUS_LABEL } from '@/lib/watchparty/types'
 import { useWatchPartyRTC, type ScreenControls } from '@/hooks/useWatchPartyRTC'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/cn'
 
 export default function PresenterClient({ id }: { id: string }) {
   const mainVideoRef = useRef<HTMLVideoElement>(null)
@@ -90,48 +92,44 @@ export default function PresenterClient({ id }: { id: string }) {
 
       <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border bg-surface">
         {!sharing ? (
-          <button
+          <Button
             onClick={() => void screenControlsRef.current.start()}
             disabled={status !== 'connected'}
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             Share Screen
-          </button>
+          </Button>
         ) : (
-          <button
-            onClick={() => screenControlsRef.current.stop()}
-            className="rounded-xl bg-danger px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-          >
+          <Button variant="destructive" onClick={() => screenControlsRef.current.stop()}>
             Stop Sharing
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={toggleMic}
-          className={`px-4 py-1.5 rounded text-sm font-medium border ${
-            micEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
-          }`}
+          className={cn(!micEnabled && 'border-warn bg-warn text-white hover:bg-warn/90')}
         >
           {micEnabled ? 'Mute Mic' : 'Unmute Mic'}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={toggleCam}
-          className={`px-4 py-1.5 rounded text-sm font-medium border ${
-            camEnabled ? 'border-border hover:bg-accent' : 'bg-warn text-white border-warn'
-          }`}
+          className={cn(!camEnabled && 'border-warn bg-warn text-white hover:bg-warn/90')}
         >
           {camEnabled ? 'Disable Cam' : 'Enable Cam'}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={toggleSelfCam}
-          className={`px-4 py-1.5 rounded text-sm font-medium border ${
-            selfCamVisible ? 'border-border hover:bg-accent' : 'border-border text-muted'
-          }`}
+          className={cn(!selfCamVisible && 'text-muted')}
         >
           {selfCamVisible ? 'Hide Self' : 'Show Self'}
-        </button>
+        </Button>
 
         <span className="ml-auto text-xs text-muted font-mono">Room: {id}</span>
       </div>

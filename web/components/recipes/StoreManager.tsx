@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 
 interface OrderedCategory {
   id: string
@@ -207,11 +208,10 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
       )}
 
       {available.length > 0 && (
-        <select
+        <Select
           aria-label="Add category to store"
           value=""
           onChange={(e) => e.target.value && add(e.target.value)}
-          className="h-9 w-full rounded-xl border border-input-border bg-input px-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <option value="">+ Add category…</option>
           {available.map((category) => (
@@ -219,7 +219,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
               {category.name}
             </option>
           ))}
-        </select>
+        </Select>
       )}
 
       <div className="flex items-center gap-2">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { Policy } from '@/lib/gen/todos/v1/settings_pb'
 import { isPolicyBannerDismissed, dismissPolicyBanner } from '@/lib/todos/policiesBanner'
+import { Button } from '@/components/ui/button'
 
 interface PoliciesBannerProps {
   policies: Policy[]
@@ -45,14 +46,16 @@ export function PoliciesBanner({ policies }: PoliciesBannerProps) {
             ))}
           </ul>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="iconSm"
           onClick={handleDismiss}
           aria-label="Dismiss policies banner"
-          className="rounded-full p-1 text-fg hover:bg-warn/20 transition-colors"
+          className="rounded-full text-fg hover:bg-warn/20 focus-visible:ring-warn/50"
         >
           ✕
-        </button>
+        </Button>
       </div>
     </aside>
   )

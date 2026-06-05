@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { filterLabels } from '@/lib/todos/labelFilter'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface LabelPickerProps {
   value: string[]
@@ -31,7 +33,7 @@ export function LabelPicker({
 
   return (
     <div className="relative">
-      <input
+      <Input
         type="text"
         value={query}
         onChange={(e) => {
@@ -41,7 +43,6 @@ export function LabelPicker({
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className="flex h-11 w-full rounded-xl border border-input-border bg-input px-3 py-2 text-sm text-input-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-label="Label search"
       />
       {open && filtered.length > 0 && (
@@ -51,7 +52,7 @@ export function LabelPicker({
         >
           {filtered.map((label) => (
             <li key={label} role="option" aria-selected={value.includes(label)}>
-              <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-surface">
+              <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-hover">
                 <input
                   type="checkbox"
                   checked={value.includes(label)}
@@ -72,14 +73,16 @@ export function LabelPicker({
               className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-xs text-accent"
             >
               {label}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="iconSm"
                 onClick={() => toggleLabel(label)}
                 aria-label={`Remove ${label}`}
-                className="hover:text-accent-hover"
+                className="h-4 w-4 rounded-sm text-accent hover:bg-transparent hover:text-accent-hover focus-visible:ring-1 focus-visible:ring-accent"
               >
                 ×
-              </button>
+              </Button>
             </span>
           ))}
         </div>

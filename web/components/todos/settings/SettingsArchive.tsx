@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/client'
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 import type { GetSettingsResponse } from '@/lib/gen/todos/v1/settings_pb'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface Props {
   data: GetSettingsResponse
@@ -35,7 +36,7 @@ export function SettingsArchive({ data, mutate }: Props) {
       </h2>
       <form onSubmit={handleSubmit} className="flex items-center gap-3">
         <label className="text-sm text-subtle">Archive completed tasks after</label>
-        <input
+        <Input
           type="number"
           min={0}
           value={hours}
@@ -43,7 +44,7 @@ export function SettingsArchive({ data, mutate }: Props) {
             setHours(Number(e.target.value))
             setSaved(false)
           }}
-          className="w-20 rounded-xl border border-input-border bg-input px-3 py-1.5 text-sm text-input-text"
+          className="h-9 w-20"
         />
         <label className="text-sm text-subtle">hour{hours === 1 ? '' : 's'}</label>
         <Button type="submit" size="sm" disabled={hours === current}>
