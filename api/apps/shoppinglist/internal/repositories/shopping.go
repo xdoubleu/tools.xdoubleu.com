@@ -20,10 +20,12 @@ func New(db postgres.DB) *ShoppingRepository {
 }
 
 type ShoppingItem struct {
-	ID     string
-	Name   string
-	Amount float64
-	Unit   string
+	ID         string
+	Name       string
+	Amount     float64
+	Unit       string
+	RecipeName string
+	GroupName  string
 }
 
 // CheckPlanAccess returns an error if userID cannot access planID.
@@ -130,10 +132,19 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	pastSlots []string,
 	excludedGroups []string,
 ) ([]ShoppingItem, error) {
+	// pgx sends nil slices as SQL NULL; normalize to empty arrays so that
+	// ANY($n::text[]) never evaluates to NULL and accidentally excludes rows.
+	if pastSlots == nil {
+		pastSlots = []string{}
+	}
+	if excludedGroups == nil {
+		excludedGroups = []string{}
+	}
 	rows, err := r.db.Query(ctx, `
 		WITH recipe_effective_servings AS (
 		    SELECT
 		        r.id AS recipe_id,
+		        r.name AS recipe_name,
 		        COALESCE(r.batch_servings, SUM(pm.servings))::NUMERIC
 		            AS effective_servings,
 		        r.base_servings::NUMERIC
@@ -142,9 +153,11 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		    WHERE pm.plan_id = $1
 		      AND pm.meal_date BETWEEN $2 AND $3
 		      AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
-		    GROUP BY r.id, r.batch_servings, r.base_servings
+		    GROUP BY r.id, r.name, r.batch_servings, r.base_servings
 		)
 		SELECT
+		    res.recipe_name,
+		    COALESCE(i.group_name, '') AS group_name,
 		    LOWER(i.name) AS name,
 		    i.unit,
 		    SUM(i.amount * res.effective_servings / res.base_servings)
@@ -152,8 +165,8 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		FROM recipe_effective_servings res
 		JOIN recipes.ingredients i ON i.recipe_id = res.recipe_id
 		WHERE i.group_name IS NULL OR NOT (i.group_name = ANY($5::text[]))
-		GROUP BY LOWER(i.name), i.unit
-		ORDER BY LOWER(i.name)`,
+		GROUP BY res.recipe_name, i.group_name, LOWER(i.name), i.unit
+		ORDER BY res.recipe_name, COALESCE(i.group_name, ''), LOWER(i.name)`,
 		planID, start, end, pastSlots, excludedGroups,
 	)
 	if err != nil {
@@ -164,7 +177,9 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	var result []ShoppingItem
 	for rows.Next() {
 		var item ShoppingItem
-		if err = rows.Scan(&item.Name, &item.Unit, &item.Amount); err != nil {
+		if err = rows.Scan(
+			&item.RecipeName, &item.GroupName, &item.Name, &item.Unit, &item.Amount,
+		); err != nil {
 			return nil, err
 		}
 		result = append(result, item)
@@ -183,6 +198,9 @@ func (r *ShoppingRepository) GetPlanIngredientGroups(
 	start, end time.Time,
 	pastSlots []string,
 ) ([]PlanIngredientGroup, error) {
+	if pastSlots == nil {
+		pastSlots = []string{}
+	}
 	rows, err := r.db.Query(ctx, `
 		SELECT DISTINCT r.name AS recipe_name, i.group_name
 		FROM mealplans.plan_meals pm

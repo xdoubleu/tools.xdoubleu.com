@@ -235,6 +235,47 @@ func TestToFractionCeiling_AlmostWhole(t *testing.T) {
 	assert.Equal(t, "1", format.ToFractionCeiling(0.95))
 }
 
+// ── ToAmountString ────────────────────────────────────────────────────────────
+
+func TestToAmountString_MeasurementUnitFraction(t *testing.T) {
+	// kg is a measurement unit → fraction ceiling
+	assert.Equal(t, "1½", format.ToAmountString(1.5, "kg"))
+}
+
+func TestToAmountString_MeasurementUnitCaseInsensitive(t *testing.T) {
+	assert.Equal(t, "1½", format.ToAmountString(1.5, "KG"))
+}
+
+func TestToAmountString_MeasurementUnitWhole(t *testing.T) {
+	assert.Equal(t, "2", format.ToAmountString(2.0, "l"))
+}
+
+func TestToAmountString_PackagingUnitCeilsToWhole(t *testing.T) {
+	// 3⅔ Pots → must buy 4
+	assert.Equal(t, "4", format.ToAmountString(3.0+2.0/3, "Pot"))
+}
+
+func TestToAmountString_PackagingUnitPcs(t *testing.T) {
+	assert.Equal(t, "2", format.ToAmountString(1.5, "pcs"))
+}
+
+func TestToAmountString_PackagingUnitWholeUnchanged(t *testing.T) {
+	assert.Equal(t, "3", format.ToAmountString(3.0, "bottle"))
+}
+
+func TestToAmountString_ZeroAmount(t *testing.T) {
+	assert.Equal(t, "0", format.ToAmountString(0, "Pot"))
+}
+
+func TestToAmountString_NegativeAmount(t *testing.T) {
+	assert.Equal(t, "0", format.ToAmountString(-1, "kg"))
+}
+
+func TestToAmountString_EmptyUnit(t *testing.T) {
+	// Empty unit is treated as packaging → whole-number ceiling
+	assert.Equal(t, "2", format.ToAmountString(1.5, ""))
+}
+
 // ── RenderError ───────────────────────────────────────────────────────────────
 
 func TestRenderError_WritesStatusAndBody(t *testing.T) {

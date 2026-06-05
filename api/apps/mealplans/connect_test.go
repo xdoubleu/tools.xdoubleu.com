@@ -124,6 +124,31 @@ func TestGetPlan_Success(t *testing.T) {
 	assert.Equal(t, int32(0), getResp.Msg.Offset)
 }
 
+func TestGetPlan_WindowStartsToday(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	planID := createPlanInDB(t, "Rolling Plan")
+
+	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	assert.Equal(t, today.Format(time.RFC3339), getResp.Msg.WindowStart)
+	assert.Equal(
+		t,
+		today.AddDate(0, 0, 6).Format(time.RFC3339),
+		getResp.Msg.WindowEnd,
+	)
+}
+
 func TestUpdatePlan_Success(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(

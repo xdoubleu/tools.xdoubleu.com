@@ -22,11 +22,13 @@ import (
 )
 
 const (
-	daysPerWeek     = 7
-	hoursPerDay     = 24
-	breakfastCutoff = 12
-	noonCutoff      = 17
-	eveningCutoff   = 22
+	daysPerWeek = 7
+	hoursPerDay = 24
+
+	// Slot end hours (UTC) — match the iCal DTEND times in mealplans/ical.go.
+	slotBreakfastEnd = 9
+	slotNoonEnd      = 13
+	slotEveningEnd   = 20
 
 	slotBreakfast = "breakfast"
 	slotNoon      = "noon"
@@ -172,14 +174,15 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 
 func exportWindow(now time.Time) (time.Time, []string) {
 	today := now.Truncate(hoursPerDay * time.Hour)
-	pastSlots := []string{}
-	switch {
-	case now.Hour() >= eveningCutoff:
-		today = today.AddDate(0, 0, 1)
-	case now.Hour() >= noonCutoff:
-		pastSlots = []string{slotBreakfast, slotNoon}
-	case now.Hour() >= breakfastCutoff:
-		pastSlots = []string{slotBreakfast}
+	var pastSlots []string
+	if now.Hour() >= slotBreakfastEnd {
+		pastSlots = append(pastSlots, slotBreakfast)
+	}
+	if now.Hour() >= slotNoonEnd {
+		pastSlots = append(pastSlots, slotNoon)
+	}
+	if now.Hour() >= slotEveningEnd {
+		pastSlots = append(pastSlots, slotEvening)
 	}
 	return today, pastSlots
 }
@@ -206,7 +209,11 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 
 	now := time.Now().UTC()
 	today, pastSlots := exportWindow(now)
-	end := today.AddDate(0, 0, daysPerWeek-1)
+	endOffset := daysPerWeek - 1
+	if len(pastSlots) > 0 {
+		endOffset = daysPerWeek
+	}
+	end := today.AddDate(0, 0, endOffset)
 
 	items, err := h.app.services.Shopping.GetMealPlanExportItems(
 		ctx, planID, user.ID, today, end, pastSlots, req.Msg.ExcludedGroups,
@@ -218,9 +225,11 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	pb := make([]*shoppinglistv1.ShoppingItem, len(items))
 	for i, item := range items {
 		pb[i] = &shoppinglistv1.ShoppingItem{
-			Name:   item.Name,
-			Amount: format.ToFractionCeiling(item.Amount),
-			Unit:   item.Unit,
+			Name:       item.Name,
+			Amount:     format.ToAmountString(item.Amount, item.Unit),
+			Unit:       item.Unit,
+			RecipeName: item.RecipeName,
+			GroupName:  item.GroupName,
 		}
 	}
 
@@ -251,7 +260,11 @@ func (h *shoppingConnectHandler) GetPlanIngredientGroups(
 
 	now := time.Now().UTC()
 	today, pastSlots := exportWindow(now)
-	end := today.AddDate(0, 0, daysPerWeek-1)
+	endOffset := daysPerWeek - 1
+	if len(pastSlots) > 0 {
+		endOffset = daysPerWeek
+	}
+	end := today.AddDate(0, 0, endOffset)
 
 	groups, err := h.app.services.Shopping.GetPlanIngredientGroups(
 		ctx, planID, user.ID, today, end, pastSlots,

@@ -64,8 +64,8 @@ func accessDeniedMock() *mocks.ShoppingRepoMock {
 
 func TestGetCustomList_ReturnsItems(t *testing.T) {
 	want := []repositories.ShoppingItem{
-		{ID: "id-1", Name: "milk", Unit: "L", Amount: 1},
-		{ID: "id-2", Name: "eggs", Unit: "", Amount: 6},
+		{ID: "id-1", Name: "milk", Unit: "L", Amount: 1, RecipeName: "", GroupName: ""},
+		{ID: "id-2", Name: "eggs", Unit: "", Amount: 6, RecipeName: "", GroupName: ""},
 	}
 	m := baseMock()
 	m.GetCustomItemsFn = func(
@@ -97,10 +97,12 @@ func TestGetCustomList_RepoError(t *testing.T) {
 
 func TestAddItem_Success(t *testing.T) {
 	want := repositories.ShoppingItem{
-		ID:     uuid.NewString(),
-		Name:   "milk",
-		Unit:   "L",
-		Amount: 1,
+		ID:         uuid.NewString(),
+		Name:       "milk",
+		Unit:       "L",
+		Amount:     1,
+		RecipeName: "",
+		GroupName:  "",
 	}
 	m := baseMock()
 	m.AddCustomItemFn = func(
@@ -182,10 +184,24 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	end := start.AddDate(0, 0, 6)
 	pastSlots := []string{"breakfast"}
 	planItems := []repositories.ShoppingItem{
-		{ID: "", Name: "flour", Unit: "g", Amount: 200},
+		{
+			ID:         "",
+			Name:       "flour",
+			Unit:       "g",
+			Amount:     200,
+			RecipeName: "Bread",
+			GroupName:  "dry",
+		},
 	}
 	customItems := []repositories.ShoppingItem{
-		{ID: "cid-1", Name: "olive oil", Unit: "ml", Amount: 100},
+		{
+			ID:         "cid-1",
+			Name:       "olive oil",
+			Unit:       "ml",
+			Amount:     100,
+			RecipeName: "",
+			GroupName:  "",
+		},
 	}
 	m := accessGrantedMock()
 	m.GetMealPlanExportItemsFn = func(

@@ -66,31 +66,30 @@ func TestMapError_GenericError(t *testing.T) {
 
 // ── exportWindow ──────────────────────────────────────────────────────────────
 
-func TestExportWindow_BeforeBreakfast(t *testing.T) {
-	now := time.Date(2026, 1, 1, 8, 0, 0, 0, time.UTC) // hour < 12
+func TestExportWindow_BeforeBreakfastEnd(t *testing.T) {
+	now := time.Date(2026, 1, 1, slotBreakfastEnd-1, 0, 0, 0, time.UTC)
 	today, pastSlots := exportWindow(now)
 	assert.Equal(t, now.Truncate(hoursPerDay*time.Hour), today)
 	assert.Empty(t, pastSlots)
 }
 
-func TestExportWindow_AtBreakfastCutoff(t *testing.T) {
-	now := time.Date(2026, 1, 1, breakfastCutoff, 0, 0, 0, time.UTC) // hour == 12
+func TestExportWindow_AtBreakfastEnd(t *testing.T) {
+	now := time.Date(2026, 1, 1, slotBreakfastEnd, 0, 0, 0, time.UTC)
 	today, pastSlots := exportWindow(now)
 	assert.Equal(t, now.Truncate(hoursPerDay*time.Hour), today)
 	assert.Equal(t, []string{slotBreakfast}, pastSlots)
 }
 
-func TestExportWindow_AtNoonCutoff(t *testing.T) {
-	now := time.Date(2026, 1, 1, noonCutoff, 0, 0, 0, time.UTC) // hour == 17
+func TestExportWindow_AtNoonEnd(t *testing.T) {
+	now := time.Date(2026, 1, 1, slotNoonEnd, 0, 0, 0, time.UTC)
 	today, pastSlots := exportWindow(now)
 	assert.Equal(t, now.Truncate(hoursPerDay*time.Hour), today)
 	assert.Equal(t, []string{slotBreakfast, slotNoon}, pastSlots)
 }
 
-func TestExportWindow_AtEveningCutoff(t *testing.T) {
-	now := time.Date(2026, 1, 1, eveningCutoff, 0, 0, 0, time.UTC) // hour == 22
+func TestExportWindow_AtEveningEnd(t *testing.T) {
+	now := time.Date(2026, 1, 1, slotEveningEnd, 0, 0, 0, time.UTC)
 	today, pastSlots := exportWindow(now)
-	expected := now.Truncate(hoursPerDay*time.Hour).AddDate(0, 0, 1)
-	assert.Equal(t, expected, today)
-	assert.Empty(t, pastSlots)
+	assert.Equal(t, now.Truncate(hoursPerDay*time.Hour), today)
+	assert.Equal(t, []string{slotBreakfast, slotNoon, slotEvening}, pastSlots)
 }

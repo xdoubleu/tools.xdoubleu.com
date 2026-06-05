@@ -13,14 +13,14 @@ describe('mealPlanCalendar', () => {
       expect(dates).toHaveLength(7)
     })
 
-    it('should start from Monday of the current week at offset 0', () => {
+    it('should start from today at offset 0', () => {
       jest.useFakeTimers()
-      // June 3 2026 is a Wednesday — Monday of that week is June 1
+      // June 3 2026 is a Wednesday — the window should start on that day.
       // Use local-time constructor to avoid UTC-offset shifting the date
       jest.setSystemTime(new Date(2026, 5, 3, 12, 0, 0))
       try {
         const dates = getWeekDates(0)
-        expect(formatMealDate(dates[0])).toBe('2026-06-01')
+        expect(formatMealDate(dates[0])).toBe('2026-06-03')
         // Each subsequent date should be 1 day later (Math.round handles DST hour shifts)
         for (let i = 1; i < 7; i++) {
           const diff = Math.round(
@@ -33,25 +33,15 @@ describe('mealPlanCalendar', () => {
       }
     })
 
-    it('should start from Monday when today is Sunday', () => {
+    it('should start from today regardless of weekday', () => {
       jest.useFakeTimers()
-      // June 7 2026 is a Sunday — Monday of that week is June 1
-      jest.setSystemTime(new Date(2026, 5, 7, 12, 0, 0))
       try {
-        const dates = getWeekDates(0)
-        expect(formatMealDate(dates[0])).toBe('2026-06-01')
-      } finally {
-        jest.useRealTimers()
-      }
-    })
-
-    it('should start from Monday when today is Monday', () => {
-      jest.useFakeTimers()
-      // June 1 2026 is a Monday
-      jest.setSystemTime(new Date(2026, 5, 1, 12, 0, 0))
-      try {
-        const dates = getWeekDates(0)
-        expect(formatMealDate(dates[0])).toBe('2026-06-01')
+        // Sunday
+        jest.setSystemTime(new Date(2026, 5, 7, 12, 0, 0))
+        expect(formatMealDate(getWeekDates(0)[0])).toBe('2026-06-07')
+        // Monday
+        jest.setSystemTime(new Date(2026, 5, 1, 12, 0, 0))
+        expect(formatMealDate(getWeekDates(0)[0])).toBe('2026-06-01')
       } finally {
         jest.useRealTimers()
       }
