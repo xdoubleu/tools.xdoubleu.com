@@ -2,6 +2,7 @@ export interface ItemOrigin {
   recipeName: string
   amount: string
   unit: string
+  groupName?: string
 }
 
 export interface ShoppingItem {
@@ -10,6 +11,7 @@ export interface ShoppingItem {
   name: string
   id?: string
   recipeName?: string
+  groupName?: string
   origins?: ItemOrigin[]
 }
 
@@ -33,10 +35,14 @@ function formatAmount(n: number): string {
   return n % 1 === 0 ? String(n) : String(parseFloat(n.toFixed(3)))
 }
 
+function formatOriginLabel(o: ItemOrigin): string {
+  return o.groupName ? `${o.recipeName} [${o.groupName}]` : o.recipeName
+}
+
 export function formatOrigins(origins: ItemOrigin[] | undefined): string {
   if (!origins || origins.length === 0) return ''
-  if (origins.length === 1) return ` (${origins[0].recipeName})`
-  return ` (${origins.map((o) => `${o.recipeName}: ${o.amount} ${o.unit}`).join(', ')})`
+  if (origins.length === 1) return ` (${formatOriginLabel(origins[0])})`
+  return ` (${origins.map((o) => `${formatOriginLabel(o)}: ${o.amount} ${o.unit}`).join(', ')})`
 }
 
 function normalizeName(name: string): string {
@@ -66,7 +72,8 @@ function combineItems(items: ShoppingItem[]): ShoppingItem[] {
     const origins: ItemOrigin[] = group.map((i) => ({
       recipeName: i.recipeName!,
       amount: i.amount,
-      unit: i.unit
+      unit: i.unit,
+      groupName: i.groupName
     }))
     if (group.length === 1) {
       result.push({ ...first, origins })
@@ -145,33 +152,52 @@ export interface CategoryGroup {
   items: ShoppingItem[]
 }
 
-// Items whose name maps to no category, or to one not present in the chosen
-// store's ordering, are collected under this trailing bucket.
-export const OTHER_CATEGORY = 'Other'
+// Items that can't be placed in the store's walk-through order are collected
+// under this trailing bucket in the exported list.
+const OTHER_CATEGORY = 'Other'
+
+// The outcome of bucketing items against a store's ordered categories. `groups`
+// holds the items that map to a category present in this store, in walk-through
+// order. The remaining items can't be ordered and are split so the UI can warn
+// about each case distinctly:
+//   - `uncategorized`: the item's name maps to no category at all.
+//   - `unordered`: the item has a category, but it isn't part of this store's
+//     ordering, so we can't tell where it falls in the walk-through.
+export interface StoreGrouping {
+  groups: CategoryGroup[]
+  uncategorized: ShoppingItem[]
+  unordered: ShoppingItem[]
+}
 
 // groupByStore merges the custom and meal items, then buckets them by the
 // category their (normalized) name maps to, emitting the buckets in the store's
-// walk-through order. Categories with no items are omitted; unmapped items land
-// in a trailing "Other" group.
+// walk-through order. Categories with no items are omitted. Items that can't be
+// placed are returned separately, split by whether they lack a category
+// entirely or carry one that this store doesn't order.
 export function groupByStore(
   customItems: ShoppingItem[],
   mealItems: ShoppingItem[] | undefined,
   orderedCategories: Category[],
   nameToCategoryId: Record<string, string>
-): CategoryGroup[] {
+): StoreGrouping {
   const merged = mergeItems(customItems, mealItems)
 
   const byCategoryId = new Map<string, ShoppingItem[]>()
   for (const category of orderedCategories) {
     byCategoryId.set(category.id, [])
   }
-  const other: ShoppingItem[] = []
+  const uncategorized: ShoppingItem[] = []
+  const unordered: ShoppingItem[] = []
 
   for (const item of merged) {
     const categoryId = nameToCategoryId[normalizeName(item.name)]
-    const bucket = categoryId ? byCategoryId.get(categoryId) : undefined
+    if (!categoryId) {
+      uncategorized.push(item)
+      continue
+    }
+    const bucket = byCategoryId.get(categoryId)
     if (bucket) bucket.push(item)
-    else other.push(item)
+    else unordered.push(item)
   }
 
   const groups: CategoryGroup[] = []
@@ -179,8 +205,17 @@ export function groupByStore(
     const items = byCategoryId.get(category.id) ?? []
     if (items.length > 0) groups.push({ category: category.name, items })
   }
-  if (other.length > 0) groups.push({ category: OTHER_CATEGORY, items: other })
-  return groups
+  return { groups, uncategorized, unordered }
+}
+
+// toExportGroups flattens a StoreGrouping into the list passed to the grouped
+// formatters: the store-ordered groups followed by a single trailing "Other"
+// group holding every item that couldn't be ordered (both uncategorized and
+// not-ordered-by-this-store items).
+export function toExportGroups(grouping: StoreGrouping): CategoryGroup[] {
+  const other = [...grouping.uncategorized, ...grouping.unordered]
+  if (other.length === 0) return grouping.groups
+  return [...grouping.groups, { category: OTHER_CATEGORY, items: other }]
 }
 
 export function formatGroupedForClipboard(groups: CategoryGroup[]): string {

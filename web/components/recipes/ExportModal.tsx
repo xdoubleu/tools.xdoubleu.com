@@ -1,10 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useMealPlans } from '@/hooks/useMealPlans'
 import {
-  useMealPlanExportItems,
-  usePlanIngredientGroups,
+  useAllMealPlanExportItems,
+  useAllPlanIngredientGroups,
   useStores,
   useStoreCategories,
   useItemCategories
@@ -17,11 +16,11 @@ import {
   formatGroupedForClipboard,
   formatGroupedForAppleNotes,
   formatGroupedAsTxt,
+  toExportGroups,
   prepareForExport,
   formatOrigins
 } from '@/lib/recipes/shoppingExport'
-import { OTHER_CATEGORY } from '@/lib/recipes/shoppingExport'
-import type { ShoppingItem, CategoryGroup } from '@/lib/recipes/shoppingExport'
+import type { ShoppingItem, StoreGrouping } from '@/lib/recipes/shoppingExport'
 import {
   Dialog,
   DialogContent,
@@ -39,30 +38,27 @@ interface ExportModalProps {
 }
 
 export default function ExportModal({ customItems, onClose }: ExportModalProps) {
-  const [selectedPlanId, setSelectedPlanId] = useState('')
   const [selectedStoreId, setSelectedStoreId] = useState('')
   const [excludedGroups, setExcludedGroups] = useState<Set<string>>(new Set())
   const [copyFeedback, setCopyFeedback] = useState('')
 
-  const { data: plansData, isLoading: plansLoading } = useMealPlans()
-  const { data: groupsData } = usePlanIngredientGroups(selectedPlanId)
-  const { data: exportData, isLoading: exportLoading } = useMealPlanExportItems(
-    selectedPlanId,
+  const { data: groupsData } = useAllPlanIngredientGroups()
+  const { data: exportData, isLoading: exportLoading } = useAllMealPlanExportItems(
     Array.from(excludedGroups)
   )
   const { data: storesData } = useStores()
   const { data: storeCategoriesData } = useStoreCategories(selectedStoreId)
   const { data: itemCategoriesData } = useItemCategories()
 
-  const mealItems: ShoppingItem[] | undefined =
-    selectedPlanId && exportData
-      ? exportData.items.map((item) => ({
-          name: item.name,
-          amount: item.amount,
-          unit: item.unit,
-          recipeName: item.recipeName
-        }))
-      : undefined
+  const mealItems: ShoppingItem[] | undefined = exportData
+    ? exportData.items.map((item) => ({
+        name: item.name,
+        amount: item.amount,
+        unit: item.unit,
+        recipeName: item.recipeName,
+        groupName: item.groupName || undefined
+      }))
+    : undefined
 
   const nameToCategoryId = useMemo(() => {
     const map: Record<string, string> = {}
@@ -72,15 +68,18 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
     return map
   }, [itemCategoriesData])
 
-  const groups: CategoryGroup[] | undefined = useMemo(() => {
+  const grouping: StoreGrouping | undefined = useMemo(() => {
     if (!selectedStoreId || !storeCategoriesData) return undefined
     return groupByStore(customItems, mealItems, storeCategoriesData.categories, nameToCategoryId)
   }, [selectedStoreId, storeCategoriesData, customItems, mealItems, nameToCategoryId])
 
+  const exportGroups = useMemo(() => (grouping ? toExportGroups(grouping) : undefined), [grouping])
+
   const storeHasNoCategories =
     selectedStoreId && storeCategoriesData && storeCategoriesData.categories.length === 0
 
-  const uncategorizedCount = groups?.find((g) => g.category === OTHER_CATEGORY)?.items.length ?? 0
+  const uncategorizedCount = grouping?.uncategorized.length ?? 0
+  const unorderedCount = grouping?.unordered.length ?? 0
 
   const showFeedback = (msg: string) => {
     setCopyFeedback(msg)
@@ -88,12 +87,17 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
   }
 
   const clipboardText = () =>
-    groups ? formatGroupedForClipboard(groups) : formatForClipboard(customItems, mealItems)
+    exportGroups
+      ? formatGroupedForClipboard(exportGroups)
+      : formatForClipboard(customItems, mealItems)
 
   const appleNotesText = () =>
-    groups ? formatGroupedForAppleNotes(groups) : formatForAppleNotes(customItems, mealItems)
+    exportGroups
+      ? formatGroupedForAppleNotes(exportGroups)
+      : formatForAppleNotes(customItems, mealItems)
 
-  const txtText = () => (groups ? formatGroupedAsTxt(groups) : formatAsTxt(customItems, mealItems))
+  const txtText = () =>
+    exportGroups ? formatGroupedAsTxt(exportGroups) : formatAsTxt(customItems, mealItems)
 
   const handleExportClipboard = async () => {
     await navigator.clipboard.writeText(clipboardText())
@@ -130,30 +134,7 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
         </DialogHeader>
 
         <div className="space-y-5">
-          <div className="space-y-1.5">
-            <Label htmlFor="export-plan-select">Add meal plan ingredients (optional)</Label>
-            {plansLoading ? (
-              <p className="text-sm text-muted">Loading plans...</p>
-            ) : (
-              <Select
-                id="export-plan-select"
-                value={selectedPlanId}
-                onChange={(e) => {
-                  setSelectedPlanId(e.target.value)
-                  setExcludedGroups(new Set())
-                }}
-              >
-                <option value="">-- None --</option>
-                {(plansData?.plans ?? []).map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </div>
-
-          {selectedPlanId && groupsData && groupsData.groups.length > 0 && (
+          {groupsData && groupsData.groups.length > 0 && (
             <div className="space-y-1.5">
               <Label>Exclude ingredient groups</Label>
               <div className="space-y-1">
@@ -216,16 +197,24 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
             </p>
           )}
 
-          {selectedStoreId && groups && (
+          {!storeHasNoCategories && unorderedCount > 0 && (
+            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+              {unorderedCount} item{unorderedCount !== 1 ? 's' : ''} have a category that this store
+              doesn&apos;t order, so their place in the aisle order is unknown. They will appear
+              under &quot;Other&quot;.
+            </p>
+          )}
+
+          {selectedStoreId && exportGroups && (
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
                 Grouped by store aisle
               </h3>
-              {groups.length === 0 ? (
+              {exportGroups.length === 0 ? (
                 <p className="text-sm text-muted">No items to export.</p>
               ) : (
                 <div className="space-y-3">
-                  {groups.map((group) => (
+                  {exportGroups.map((group) => (
                     <div key={group.category}>
                       <p className="text-sm font-semibold text-fg">{group.category}</p>
                       <ul className="space-y-1">
@@ -245,16 +234,13 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
             </div>
           )}
 
-          {selectedPlanId && !selectedStoreId && (
+          {!selectedStoreId && (
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
                 Export preview
               </h3>
               {exportLoading && <p className="text-sm text-muted">Loading...</p>}
-              {!exportLoading && mealItems && mealItems.length === 0 && (
-                <p className="text-sm text-muted">No meals with recipes in the next 7 days.</p>
-              )}
-              {!exportLoading && mealItems && mealItems.length > 0 && (
+              {!exportLoading && (
                 <ul className="space-y-1">
                   {prepareForExport(customItems, mealItems).map((item, i) => (
                     <li key={i} className="text-sm text-subtle">
