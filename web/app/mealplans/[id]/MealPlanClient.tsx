@@ -127,7 +127,7 @@ export default function MealPlanClient({ id }: { id: string }) {
             onNextWeek={() => setOffset(data?.nextOffset ?? offset + 1)}
             onAddMeal={handleAddMeal}
             onDeleteMeal={handleDeleteMeal}
-            onMoveMeal={() => mutate()}
+            onMutate={() => mutate()}
           />
 
           {showShareModal && (

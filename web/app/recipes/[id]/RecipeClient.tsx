@@ -55,9 +55,9 @@ export default function RecipeClient({ id }: { id: string }) {
   type GroupedSection = { groupName: string | undefined; items: DisplayIngredient[] }
   const groupedIngredients = displayIngredients.reduce<GroupedSection[]>((acc, ing) => {
     const group = ing.groupName ?? undefined
-    const last = acc[acc.length - 1]
-    if (last && last.groupName === group) {
-      last.items.push(ing)
+    const existing = acc.find((s) => s.groupName === group)
+    if (existing) {
+      existing.items.push(ing)
     } else {
       acc.push({ groupName: group, items: [ing] })
     }

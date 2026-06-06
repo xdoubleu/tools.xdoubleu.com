@@ -172,6 +172,18 @@ describe('shoppingExport', () => {
       expect(result).toBe('3 cups - flour (Cake [Dry]: 2 cups, Bread [Base]: 1 cups)')
     })
 
+    it('combines same-name items when one recipe crosses the unit-upgrade threshold', () => {
+      // A bulk-prep recipe contributes ≥1000 g of an ingredient that another
+      // recipe also uses in a smaller amount. Both must still combine into one
+      // line; the upgrade to kg happens only on the summed total.
+      const items: ShoppingItem[] = [
+        { amount: '1500', unit: 'g', name: 'flour', recipeName: 'Bulk Prep' },
+        { amount: '600', unit: 'g', name: 'flour', recipeName: 'Recipe B' }
+      ]
+      const result = formatForClipboard([], items)
+      expect(result).toBe('2.1 kg - flour (Bulk Prep: 1500 g, Recipe B: 600 g)')
+    })
+
     it('combines case-insensitively by name', () => {
       const items: ShoppingItem[] = [
         { amount: '1', unit: 'cup', name: 'Rice', recipeName: 'Recipe A' },

@@ -76,9 +76,9 @@ function openMealMenu() {
   fireEvent.click(screen.getAllByRole('button', { name: /Meal actions/i })[0])
 }
 
-function startMove() {
+function startSwap() {
   openMealMenu()
-  fireEvent.click(screen.getAllByRole('menuitem', { name: /Move/i })[0])
+  fireEvent.click(screen.getAllByRole('menuitem', { name: /Swap/i })[0])
 }
 
 describe('MealPlanCalendar', () => {
@@ -334,7 +334,7 @@ describe('MealPlanCalendar', () => {
     expect(screen.queryByPlaceholderText('Item 1')).not.toBeInTheDocument()
   })
 
-  it('shows move banner when a meal is selected', () => {
+  it('shows swap banner when a meal is selected', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -359,11 +359,11 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    startMove()
-    expect(screen.getByText(/Moving/i)).toBeInTheDocument()
+    startSwap()
+    expect(screen.getByText(/Swapping/i)).toBeInTheDocument()
   })
 
-  it('calls moveMeal and onMoveMeal when placing a selected meal on an empty cell', async () => {
+  it('calls moveMeal and onMutate when placing a selected meal on an empty cell', async () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -378,7 +378,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    const onMoveMeal = jest.fn()
+    const onMutate = jest.fn()
     render(
       <MealPlanCalendar
         plan={planWithMeal}
@@ -386,22 +386,78 @@ describe('MealPlanCalendar', () => {
         {...defaultNavProps}
         onAddMeal={jest.fn()}
         onDeleteMeal={jest.fn()}
-        onMoveMeal={onMoveMeal}
+        onMutate={onMutate}
       />
     )
 
-    // Select the meal for moving via its actions menu
-    startMove()
-    // In moving mode the "+" buttons are hidden; click the cell div directly.
-    // All cells have hover:border-accent class in moving mode; index 1 is the first empty slot.
-    const movingCells = document.querySelectorAll('[class*="hover:border-accent"]')
-    fireEvent.click(movingCells[1])
+    // Select the meal for swapping via its actions menu
+    startSwap()
+    // In swap mode the "+" buttons are hidden; click the cell div directly.
+    // All cells have hover:border-accent class in swap mode; index 1 is the first empty slot.
+    const swapCells = document.querySelectorAll('[class*="hover:border-accent"]')
+    fireEvent.click(swapCells[1])
 
     await waitFor(() => expect(mockMoveMeal).toHaveBeenCalled())
+    // Empty target → only the picked meal moves, no swap-back.
+    expect(mockMoveMeal).toHaveBeenCalledTimes(1)
     const req = mockMoveMeal.mock.calls[0][0]
     expect(req.mealId).toBe('m1')
     expect(req.newSlot).toBe('breakfast')
-    await waitFor(() => expect(onMoveMeal).toHaveBeenCalled())
+    await waitFor(() => expect(onMutate).toHaveBeenCalled())
+  })
+
+  it('swaps two meals positions when placing onto an occupied cell', async () => {
+    const planWithMeals = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        }),
+        makePlanMeal({
+          id: 'm2',
+          mealDate: '2026-05-26',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Pancakes',
+          servings: 1
+        })
+      ]
+    }
+
+    const onMutate = jest.fn()
+    render(
+      <MealPlanCalendar
+        plan={planWithMeals}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onAddMeal={jest.fn()}
+        onDeleteMeal={jest.fn()}
+        onMutate={onMutate}
+      />
+    )
+
+    // Pick m1 (Eggs) for swapping, then tap m2 (Pancakes) to swap positions.
+    startSwap()
+    const target = screen
+      .getAllByText(/Pancakes/)
+      .find((el) => el.classList.contains('wrap-break-word'))!
+    fireEvent.click(target)
+
+    await waitFor(() => expect(mockMoveMeal).toHaveBeenCalledTimes(2))
+    const first = mockMoveMeal.mock.calls[0][0]
+    const second = mockMoveMeal.mock.calls[1][0]
+    // Picked meal moves to the target's slot.
+    expect(first.mealId).toBe('m1')
+    expect(first.newDate).toBe('2026-05-26')
+    // Target meal moves back to the picked meal's original slot.
+    expect(second.mealId).toBe('m2')
+    expect(second.newDate).toBe('2026-05-25')
+    await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
   it('deselects meal when clicking it again', () => {
@@ -429,16 +485,16 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    // Start a move via the actions menu
-    startMove()
-    expect(screen.getByText(/Moving/i)).toBeInTheDocument()
+    // Start a swap via the actions menu
+    startSwap()
+    expect(screen.getByText(/Swapping/i)).toBeInTheDocument()
 
-    // In move mode, clicking the same chip body cancels. The item has the 'wrap-break-word' class.
+    // In swap mode, clicking the same chip body cancels. The item has the 'wrap-break-word' class.
     const mealItem = screen
       .getAllByText(/Eggs/)
       .find((el) => el.classList.contains('wrap-break-word'))!
     fireEvent.click(mealItem)
-    expect(screen.queryByText(/Moving/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Swapping/i)).not.toBeInTheDocument()
   })
 
   it('calls onPrevWeek when Previous Week button is clicked', () => {
@@ -543,9 +599,9 @@ describe('MealPlanCalendar', () => {
     expect(input.value).toBe('Eggs')
   })
 
-  it('save edit calls addMeal with same date/slot and new values, then onMoveMeal (not onAddMeal)', async () => {
+  it('save edit calls addMeal with same date/slot and new values, then onMutate (not onAddMeal)', async () => {
     const onAddMeal = jest.fn()
-    const onMoveMeal = jest.fn()
+    const onMutate = jest.fn()
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -567,7 +623,7 @@ describe('MealPlanCalendar', () => {
         {...defaultNavProps}
         onAddMeal={onAddMeal}
         onDeleteMeal={jest.fn()}
-        onMoveMeal={onMoveMeal}
+        onMutate={onMutate}
       />
     )
     openMealMenu()
@@ -580,7 +636,7 @@ describe('MealPlanCalendar', () => {
     expect(req.mealDate).toBe('2026-05-25')
     expect(req.mealSlot).toBe('breakfast')
     expect(req.customName).toBe('Updated meal')
-    expect(onMoveMeal).toHaveBeenCalled()
+    expect(onMutate).toHaveBeenCalled()
     expect(onAddMeal).not.toHaveBeenCalled()
   })
 
@@ -615,7 +671,7 @@ describe('MealPlanCalendar', () => {
     expect(screen.queryByRole('button', { name: /^Save$/i })).not.toBeInTheDocument()
   })
 
-  it('actions menu trigger is hidden during move mode', () => {
+  it('actions menu trigger is hidden during swap mode', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -639,8 +695,8 @@ describe('MealPlanCalendar', () => {
         onDeleteMeal={jest.fn()}
       />
     )
-    // Enter move mode via the actions menu; the trigger then disappears.
-    startMove()
+    // Enter swap mode via the actions menu; the trigger then disappears.
+    startSwap()
     expect(screen.queryAllByRole('button', { name: /Meal actions/i })).toHaveLength(0)
   })
 
@@ -665,7 +721,7 @@ describe('MealPlanCalendar', () => {
     }
   })
 
-  it('cancels move when Cancel button in banner is clicked', () => {
+  it('cancels swap when Cancel button in banner is clicked', () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -690,10 +746,10 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    startMove()
-    expect(screen.getByText(/Moving/i)).toBeInTheDocument()
+    startSwap()
+    expect(screen.getByText(/Swapping/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Cancel/i }))
-    expect(screen.queryByText(/Moving/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Swapping/i)).not.toBeInTheDocument()
   })
 
   it('does not show add button when slot already has a meal', () => {

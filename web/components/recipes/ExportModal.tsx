@@ -107,7 +107,12 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
   const handleExportAppleNotes = async () => {
     const text = appleNotesText()
     if (navigator.share) {
-      await navigator.share({ text })
+      try {
+        await navigator.share({ text })
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        throw e
+      }
     } else {
       await navigator.clipboard.writeText(text)
       showFeedback('Copied (Apple Notes format)!')

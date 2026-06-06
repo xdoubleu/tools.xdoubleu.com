@@ -142,6 +142,55 @@ describe('RecipeClient', () => {
     expect(screen.getByText('Beef')).toBeInTheDocument()
   })
 
+  it('groups non-consecutive ingredients with the same group name together', () => {
+    const recipe = create(RecipeSchema, {
+      id: 'r1',
+      name: 'Stew',
+      baseServings: 4,
+      ingredients: [
+        create(IngredientSchema, {
+          id: 'i1',
+          name: 'Onion',
+          amount: 1,
+          unit: '',
+          sortOrder: 1,
+          groupName: 'Vegetables'
+        }),
+        create(IngredientSchema, {
+          id: 'i2',
+          name: 'Beef',
+          amount: 500,
+          unit: 'g',
+          sortOrder: 2,
+          groupName: 'Meat'
+        }),
+        create(IngredientSchema, {
+          id: 'i3',
+          name: 'Carrot',
+          amount: 2,
+          unit: '',
+          sortOrder: 3,
+          groupName: 'Vegetables'
+        })
+      ]
+    })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    // 'Vegetables' header should appear exactly once even though its ingredients are non-consecutive
+    expect(screen.getAllByText('Vegetables')).toHaveLength(1)
+    expect(screen.getAllByText('Meat')).toHaveLength(1)
+    expect(screen.getByText('Onion')).toBeInTheDocument()
+    expect(screen.getByText('Carrot')).toBeInTheDocument()
+    expect(screen.getByText('Beef')).toBeInTheDocument()
+  })
+
   it('shows group headers with scaled ingredients by mapping from sorted originals', () => {
     const recipe = create(RecipeSchema, {
       id: 'r1',

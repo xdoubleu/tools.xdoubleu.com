@@ -21,7 +21,7 @@ function makeMeal(overrides: Partial<Record<string, unknown>> = {}) {
 function renderChip(props: Partial<React.ComponentProps<typeof MealPlanMealChip>> = {}) {
   const handlers = {
     onMealClick: jest.fn(),
-    onMoveClick: jest.fn(),
+    onSwapClick: jest.fn(),
     onEditClick: jest.fn(),
     onDeleteMeal: jest.fn()
   }
@@ -29,8 +29,8 @@ function renderChip(props: Partial<React.ComponentProps<typeof MealPlanMealChip>
     <MealPlanMealChip
       meal={makeMeal()}
       recipe={recipe}
-      isMoving={false}
-      inMoveMode={false}
+      isSwapping={false}
+      inSwapMode={false}
       {...handlers}
       {...props}
     />
@@ -54,19 +54,19 @@ describe('MealPlanMealChip', () => {
     expect(screen.getByText(/Rice/)).toBeInTheDocument()
   })
 
-  it('opens the actions menu with Move, Edit and Delete', () => {
+  it('opens the actions menu with Swap, Edit and Delete', () => {
     renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
-    expect(screen.getByRole('menuitem', { name: /Move/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Swap/i })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: /Edit/i })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: /Delete/i })).toBeInTheDocument()
   })
 
-  it('Move action calls onMoveClick', () => {
-    const { onMoveClick } = renderChip()
+  it('Swap action calls onSwapClick', () => {
+    const { onSwapClick } = renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
-    fireEvent.click(screen.getByRole('menuitem', { name: /Move/i }))
-    expect(onMoveClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Swap/i }))
+    expect(onSwapClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }))
   })
 
   it('Edit action calls onEditClick', () => {
@@ -99,8 +99,45 @@ describe('MealPlanMealChip', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
-  it('hides the actions trigger in move mode and routes body taps to onMealClick', () => {
-    const { onMealClick } = renderChip({ inMoveMode: true })
+  it('opens the menu downward when there is room below', () => {
+    renderChip()
+    fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
+    const menu = screen.getByRole('menu')
+    expect(menu).toHaveClass('top-full')
+    expect(menu).not.toHaveClass('bottom-full')
+  })
+
+  it('flips the menu upward when the trigger is near the bottom of the viewport', () => {
+    const rect: DOMRect = {
+      top: 700,
+      bottom: 730,
+      height: 30,
+      left: 0,
+      right: 0,
+      width: 0,
+      x: 0,
+      y: 700,
+      toJSON: () => ({})
+    }
+    const rectSpy = jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(rect)
+    const originalInnerHeight = window.innerHeight
+    Object.defineProperty(window, 'innerHeight', { value: 768, configurable: true })
+
+    renderChip()
+    fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
+    const menu = screen.getByRole('menu')
+    expect(menu).toHaveClass('bottom-full')
+    expect(menu).not.toHaveClass('top-full')
+
+    rectSpy.mockRestore()
+    Object.defineProperty(window, 'innerHeight', {
+      value: originalInnerHeight,
+      configurable: true
+    })
+  })
+
+  it('hides the actions trigger in swap mode and routes body taps to onMealClick', () => {
+    const { onMealClick } = renderChip({ inSwapMode: true })
     expect(screen.queryByRole('button', { name: /Meal actions/i })).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('Spaghetti bolognese'))
     expect(onMealClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }))

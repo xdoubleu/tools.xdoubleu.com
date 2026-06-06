@@ -24,7 +24,7 @@ interface MealPlanCalendarProps {
     servings: number
   ) => void
   onDeleteMeal: (mealId: string) => void
-  onMoveMeal?: () => void
+  onMutate?: () => void
 }
 
 export default function MealPlanCalendar({
@@ -35,11 +35,11 @@ export default function MealPlanCalendar({
   onNextWeek,
   onAddMeal,
   onDeleteMeal,
-  onMoveMeal
+  onMutate
 }: MealPlanCalendarProps) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [movingMeal, setMovingMeal] = useState<PlanMeal | null>(null)
+  const [swappingMeal, setSwappingMeal] = useState<PlanMeal | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
 
   const addMeal = useAddMeal()
@@ -56,13 +56,13 @@ export default function MealPlanCalendar({
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (movingMeal) setMovingMeal(null)
+        if (swappingMeal) setSwappingMeal(null)
         if (editingMeal) setEditingMeal(null)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [movingMeal, editingMeal])
+  }, [swappingMeal, editingMeal])
 
   const handleSaveAdd = async (recipeId: string, customName: string, servings: number) => {
     if (!selectedSlot || !selectedDate) return
@@ -96,24 +96,24 @@ export default function MealPlanCalendar({
     }
   }
 
-  const handleStartMove = (meal: PlanMeal) => {
-    setMovingMeal(meal)
+  const handleStartSwap = (meal: PlanMeal) => {
+    setSwappingMeal(meal)
     setSelectedSlot(null)
     setSelectedDate(null)
   }
 
   const handleMealClick = (meal: PlanMeal) => {
-    if (!movingMeal) return
-    if (movingMeal.id === meal.id) {
-      setMovingMeal(null)
+    if (!swappingMeal) return
+    if (swappingMeal.id === meal.id) {
+      setSwappingMeal(null)
       return
     }
-    handlePlaceMove(meal.mealDate, meal.mealSlot)
+    handlePlaceSwap(meal.mealDate, meal.mealSlot)
   }
 
   const handleCellClick = (date: string, slot: string) => {
-    if (movingMeal) {
-      handlePlaceMove(date, slot)
+    if (swappingMeal) {
+      handlePlaceSwap(date, slot)
       return
     }
     if (getMealsForSlot(date, slot).length === 0) {
@@ -122,20 +122,41 @@ export default function MealPlanCalendar({
     }
   }
 
-  const handlePlaceMove = async (newDate: string, newSlot: string) => {
-    if (!movingMeal) return
+  // Move the picked meal to the target slot. If the target slot already holds a
+  // meal, the two trade places so each slot keeps a single entry.
+  const handlePlaceSwap = async (newDate: string, newSlot: string) => {
+    if (!swappingMeal) return
+    if (swappingMeal.mealDate === newDate && swappingMeal.mealSlot === newSlot) {
+      setSwappingMeal(null)
+      return
+    }
     try {
-      const req: MoveMealInput = { planId: plan.id, mealId: movingMeal.id, newDate, newSlot }
-      await moveMeal(req)
-      setMovingMeal(null)
-      onMoveMeal?.()
+      const target = getMealsForSlot(newDate, newSlot).find((m) => m.id !== swappingMeal.id)
+      const moveSelf: MoveMealInput = {
+        planId: plan.id,
+        mealId: swappingMeal.id,
+        newDate,
+        newSlot
+      }
+      await moveMeal(moveSelf)
+      if (target) {
+        const moveTarget: MoveMealInput = {
+          planId: plan.id,
+          mealId: target.id,
+          newDate: swappingMeal.mealDate,
+          newSlot: swappingMeal.mealSlot
+        }
+        await moveMeal(moveTarget)
+      }
+      setSwappingMeal(null)
+      onMutate?.()
     } catch (err) {
-      console.error('Failed to move meal:', err)
+      console.error('Failed to swap meal:', err)
     }
   }
 
   const handleEditClick = (meal: PlanMeal) => {
-    setMovingMeal(null)
+    setSwappingMeal(null)
     setSelectedSlot(null)
     setSelectedDate(null)
     setEditingMeal(meal)
@@ -155,21 +176,21 @@ export default function MealPlanCalendar({
       }
       await addMeal(req)
       setEditingMeal(null)
-      onMoveMeal?.()
+      onMutate?.()
     } catch (err) {
       console.error('Failed to edit meal:', err)
     }
   }
 
-  const movingMealName =
-    movingMeal?.customName || recipes.find((r) => r.id === movingMeal?.recipeId)?.name || '?'
+  const swappingMealName =
+    swappingMeal?.customName || recipes.find((r) => r.id === swappingMeal?.recipeId)?.name || '?'
 
   const renderCell = (formattedDate: string, slot: string) => {
     const mealsInSlot = getMealsForSlot(formattedDate, slot)
     return (
       <div
         key={`${formattedDate}-${slot}`}
-        className={`min-h-14 min-w-0 rounded-xl border p-1.5 ${movingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
+        className={`min-h-14 min-w-0 rounded-xl border p-1.5 ${swappingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
         onClick={() => handleCellClick(formattedDate, slot)}
       >
         {mealsInSlot.length > 0 ? (
@@ -179,16 +200,16 @@ export default function MealPlanCalendar({
                 key={meal.id}
                 meal={meal}
                 recipe={recipes.find((r) => r.id === meal.recipeId)}
-                isMoving={movingMeal?.id === meal.id}
-                inMoveMode={!!movingMeal}
+                isSwapping={swappingMeal?.id === meal.id}
+                inSwapMode={!!swappingMeal}
                 onMealClick={handleMealClick}
-                onMoveClick={handleStartMove}
+                onSwapClick={handleStartSwap}
                 onEditClick={handleEditClick}
                 onDeleteMeal={handleDeleteMeal}
               />
             ))}
           </div>
-        ) : movingMeal ? (
+        ) : swappingMeal ? (
           <div className="flex h-full min-h-10 items-center justify-center text-xs text-muted">
             Place here
           </div>
@@ -223,16 +244,16 @@ export default function MealPlanCalendar({
         </Button>
       </div>
 
-      {movingMeal && (
+      {swappingMeal && (
         <div className="fixed inset-x-0 bottom-4 z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-accent/30 bg-card px-4 py-2.5 text-sm text-accent shadow-elevated">
           <span className="min-w-0 truncate">
-            Moving <strong>{movingMealName}</strong> — tap a cell to place it
+            Swapping <strong>{swappingMealName}</strong> — tap another meal or an empty cell
           </span>
           <Button
             variant="secondary"
             size="sm"
             className="shrink-0"
-            onClick={() => setMovingMeal(null)}
+            onClick={() => setSwappingMeal(null)}
           >
             Cancel
           </Button>
@@ -242,7 +263,7 @@ export default function MealPlanCalendar({
       <div className="flex flex-col gap-4 items-start">
         <div className="w-full min-w-0">
           {/* Mobile: stacked by day */}
-          <div className={`sm:hidden space-y-3 text-xs${movingMeal ? ' cursor-crosshair' : ''}`}>
+          <div className={`sm:hidden space-y-3 text-xs${swappingMeal ? ' cursor-crosshair' : ''}`}>
             {weekDates.map((date) => {
               const formattedDate = formatMealDate(date)
               const isToday = formattedDate === today
@@ -271,7 +292,7 @@ export default function MealPlanCalendar({
 
           {/* Desktop: 7-column grid */}
           <div
-            className={`hidden sm:block overflow-x-auto${movingMeal ? ' cursor-crosshair' : ''}`}
+            className={`hidden sm:block overflow-x-auto${swappingMeal ? ' cursor-crosshair' : ''}`}
           >
             <div
               className="grid gap-1.5 text-sm"

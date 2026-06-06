@@ -200,6 +200,22 @@ describe('ExportModal', () => {
     expect(mockShare).toHaveBeenCalled()
   })
 
+  it('Share to Apple Notes does not throw when user cancels the share sheet', async () => {
+    const abortError = new DOMException('Share cancelled', 'AbortError')
+    const mockShare = jest.fn().mockRejectedValue(abortError)
+    Object.defineProperty(navigator, 'share', {
+      value: mockShare,
+      writable: true,
+      configurable: true
+    })
+    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
+    })
+    expect(mockShare).toHaveBeenCalled()
+    // no error thrown
+  })
+
   it('Download .txt triggers file download', () => {
     const mockClick = jest.fn()
     render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
