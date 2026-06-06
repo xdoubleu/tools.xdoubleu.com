@@ -278,6 +278,80 @@ func TestGetMealPlanExportItems_ExcludesCustomItems(t *testing.T) {
 	assert.NotContains(t, names, "Olive Oil")
 }
 
+// addCustomPlanMeal inserts a custom (recipe-less) meal entry whose custom_name
+// holds newline-separated item names, mirroring how the meal plan UI stores
+// hand-typed items.
+func addCustomPlanMeal(
+	t *testing.T,
+	planID uuid.UUID,
+	mealDate time.Time,
+	slot, customName string,
+) {
+	t.Helper()
+	_, err := testDB.Exec(context.Background(), `
+		INSERT INTO mealplans.plan_meals
+		(plan_id, meal_date, meal_slot, custom_name, servings)
+		VALUES ($1, $2, $3, $4, 1)`,
+		planID, mealDate.Format("2006-01-02"), slot, customName,
+	)
+	require.NoError(t, err)
+}
+
+// Custom meal entries inside a plan (recipe-less, newline-separated item names)
+// must be included in the export so the user's hand-added items reach the list.
+func TestGetMealPlanExportItems_IncludesCustomMealItems(t *testing.T) {
+	planID := createTestPlan(t, "Plan With Custom Meal")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	addCustomPlanMeal(t, planID, tomorrow, "noon", "Olive Oil\nPaper Towels")
+
+	client := newShoppingClient(t)
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+
+	names := make([]string, 0, len(resp.Msg.Items))
+	for _, item := range resp.Msg.Items {
+		names = append(names, item.Name)
+	}
+	assert.Contains(t, names, "olive oil")
+	assert.Contains(t, names, "paper towels")
+}
+
+// Duplicate custom meal items within a plan collapse to a single line so the
+// shopping list does not repeat the same hand-added item per day.
+func TestGetMealPlanExportItems_DedupesCustomMealItems(t *testing.T) {
+	planID := createTestPlan(t, "Plan With Duplicate Custom Meal")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	dayAfter := time.Now().UTC().Add(48 * time.Hour)
+	addCustomPlanMeal(t, planID, tomorrow, "noon", "Olive Oil")
+	addCustomPlanMeal(t, planID, dayAfter, "noon", "olive oil")
+
+	client := newShoppingClient(t)
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+
+	count := 0
+	for _, item := range resp.Msg.Items {
+		if item.Name == "olive oil" {
+			count++
+		}
+	}
+	assert.Equal(t, 1, count)
+}
+
 // createTestRecipeWithGroups inserts a recipe with two grouped ingredients and
 // returns the recipe ID.
 func createTestRecipeWithGroups(t *testing.T) uuid.UUID {

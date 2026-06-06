@@ -9,10 +9,10 @@ import { MenuItem } from '@/components/ui/menu-item'
 interface MealPlanMealChipProps {
   meal: PlanMeal
   recipe: Recipe | undefined
-  isMoving: boolean
-  inMoveMode: boolean
+  isSwapping: boolean
+  inSwapMode: boolean
   onMealClick: (meal: PlanMeal) => void
-  onMoveClick: (meal: PlanMeal) => void
+  onSwapClick: (meal: PlanMeal) => void
   onEditClick: (meal: PlanMeal) => void
   onDeleteMeal: (mealId: string) => void
 }
@@ -20,10 +20,10 @@ interface MealPlanMealChipProps {
 export default function MealPlanMealChip({
   meal,
   recipe,
-  isMoving,
-  inMoveMode,
+  isSwapping,
+  inSwapMode,
   onMealClick,
-  onMoveClick,
+  onSwapClick,
   onEditClick,
   onDeleteMeal
 }: MealPlanMealChipProps) {
@@ -33,7 +33,24 @@ export default function MealPlanMealChip({
 
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [openUp, setOpenUp] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // Approximate height of the 3-item menu; used to decide flip direction.
+  const MENU_HEIGHT = 140
+
+  // Open upward when there isn't enough room below the trigger, so a chip near
+  // the bottom of the viewport doesn't push the page down and force a scroll.
+  const toggleMenu = () => {
+    setMenuOpen((open) => {
+      if (!open && menuRef.current) {
+        const rect = menuRef.current.getBoundingClientRect()
+        const spaceBelow = window.innerHeight - rect.bottom
+        setOpenUp(spaceBelow < MENU_HEIGHT && rect.top > spaceBelow)
+      }
+      return !open
+    })
+  }
 
   useEffect(() => {
     if (!menuOpen) return
@@ -55,15 +72,15 @@ export default function MealPlanMealChip({
 
   // Collapse any expansion / close the menu whenever we leave the chip's normal state.
   useEffect(() => {
-    if (inMoveMode) {
+    if (inSwapMode) {
       setExpanded(false)
       setMenuOpen(false)
     }
-  }, [inMoveMode])
+  }, [inSwapMode])
 
   const handleBodyClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (inMoveMode) {
+    if (inSwapMode) {
       onMealClick(meal)
       return
     }
@@ -82,9 +99,9 @@ export default function MealPlanMealChip({
     <div
       onClick={handleBodyClick}
       title={fullText}
-      aria-expanded={!inMoveMode ? expanded : undefined}
+      aria-expanded={!inSwapMode ? expanded : undefined}
       className={`flex min-w-0 cursor-pointer select-none items-start justify-between gap-1 rounded-xl px-1.5 py-1 ${
-        isMoving ? 'bg-accent/20 ring-2 ring-accent' : 'bg-accent/10 hover:bg-accent/20'
+        isSwapping ? 'bg-accent/20 ring-2 ring-accent' : 'bg-accent/10 hover:bg-accent/20'
       }`}
     >
       <div className="min-w-0 flex-1">
@@ -103,8 +120,8 @@ export default function MealPlanMealChip({
       {!isCustom && meal.servings > 1 && (
         <span className="shrink-0 pt-0.5 text-xs text-muted">×{meal.servings}</span>
       )}
-      {inMoveMode ? (
-        // Reserve the trigger's width so chips keep a constant size in move mode.
+      {inSwapMode ? (
+        // Reserve the trigger's width so chips keep a constant size in swap mode.
         <span aria-hidden className="ml-0.5 h-6 w-6 shrink-0" />
       ) : (
         <div ref={menuRef} className="relative ml-0.5 shrink-0">
@@ -116,7 +133,7 @@ export default function MealPlanMealChip({
             aria-expanded={menuOpen}
             onClick={(e) => {
               e.stopPropagation()
-              setMenuOpen((v) => !v)
+              toggleMenu()
             }}
             className="text-muted hover:bg-accent/20 hover:text-fg focus-visible:ring-accent"
           >
@@ -125,20 +142,22 @@ export default function MealPlanMealChip({
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 z-10 mt-1 w-32 rounded-2xl border border-border bg-card p-1 shadow-elevated"
+              className={`absolute right-0 z-10 w-32 rounded-2xl border border-border bg-card p-1 shadow-elevated ${
+                openUp ? 'bottom-full mb-1' : 'top-full mt-1'
+              }`}
             >
-              <MenuItem role="menuitem" onClick={runAction(() => onMoveClick(meal))}>
-                <span aria-hidden>↪</span> Move
+              <MenuItem role="menuitem" onClick={runAction(() => onSwapClick(meal))}>
+                Swap
               </MenuItem>
               <MenuItem role="menuitem" onClick={runAction(() => onEditClick(meal))}>
-                <span aria-hidden>✏</span> Edit
+                Edit
               </MenuItem>
               <MenuItem
                 role="menuitem"
                 onClick={runAction(() => onDeleteMeal(meal.id))}
                 className="text-danger hover:bg-danger/10"
               >
-                <span aria-hidden>🗑</span> Delete
+                Delete
               </MenuItem>
             </div>
           )}

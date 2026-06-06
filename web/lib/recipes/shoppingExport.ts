@@ -89,14 +89,17 @@ function combineItems(items: ShoppingItem[]): ShoppingItem[] {
   return result
 }
 
-// Merges custom and meal plan items, upgrades units, and combines meal items
-// that share the same ingredient name and unit across recipes.
+// Merges custom and meal plan items, combines meal items that share the same
+// ingredient name and unit across recipes, then upgrades units. Combining runs
+// on the original source units (e.g. grams): upgrading first would convert a
+// large amount (1500 g → 1.5 kg, common for bulk-prep recipes) while a smaller
+// amount of the same ingredient stays in grams, so the units would diverge and
+// the two lines would never combine.
 function mergeItems(
   customItems: ShoppingItem[],
   mealItems: ShoppingItem[] | undefined
 ): ShoppingItem[] {
-  const upgraded = [...customItems, ...(mealItems ?? [])].map(upgradeUnit)
-  return combineItems(upgraded).map(upgradeUnit)
+  return combineItems([...customItems, ...(mealItems ?? [])]).map(upgradeUnit)
 }
 
 // Returns the fully prepared (merged, combined, unit-upgraded) item list for

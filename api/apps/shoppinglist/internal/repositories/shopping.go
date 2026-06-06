@@ -166,7 +166,29 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		JOIN recipes.ingredients i ON i.recipe_id = res.recipe_id
 		WHERE i.group_name IS NULL OR NOT (i.group_name = ANY($5::text[]))
 		GROUP BY res.recipe_name, i.group_name, LOWER(i.name), i.unit
-		ORDER BY res.recipe_name, COALESCE(i.group_name, ''), LOWER(i.name)`,
+
+		UNION ALL
+
+		-- Custom (recipe-less) meal entries store hand-typed item names as a
+		-- newline-separated list in custom_name. Expand each line into its own
+		-- amount/unit-less item so it reaches the shopping list. Dedupe by name
+		-- within the plan so the same item added on several days is one line.
+		SELECT
+		    '' AS recipe_name,
+		    '' AS group_name,
+		    LOWER(TRIM(item)) AS name,
+		    '' AS unit,
+		    0::numeric AS total_amount
+		FROM mealplans.plan_meals pm,
+		     unnest(string_to_array(pm.custom_name, E'\n')) AS item
+		WHERE pm.plan_id = $1
+		  AND pm.recipe_id IS NULL
+		  AND pm.meal_date BETWEEN $2 AND $3
+		  AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
+		  AND TRIM(item) <> ''
+		GROUP BY LOWER(TRIM(item))
+
+		ORDER BY 1, 2, 3`,
 		planID, start, end, pastSlots, excludedGroups,
 	)
 	if err != nil {
