@@ -9,6 +9,7 @@ import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import MealPlanEntryForm from './MealPlanEntryForm'
 import MealPlanMealChip from './MealPlanMealChip'
 import { Button } from '@/components/ui/button'
+import { formatCustomNameLabel } from '@/lib/customItems'
 
 interface MealPlanCalendarProps {
   plan: Plan
@@ -16,14 +17,6 @@ interface MealPlanCalendarProps {
   weekOffset: number
   onPrevWeek: () => void
   onNextWeek: () => void
-  onAddMeal: (
-    date: string,
-    slot: string,
-    recipeId: string,
-    customName: string,
-    servings: number
-  ) => void
-  onDeleteMeal: (mealId: string) => void
   onMutate?: () => void
 }
 
@@ -33,8 +26,6 @@ export default function MealPlanCalendar({
   weekOffset,
   onPrevWeek,
   onNextWeek,
-  onAddMeal,
-  onDeleteMeal,
   onMutate
 }: MealPlanCalendarProps) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
@@ -50,8 +41,9 @@ export default function MealPlanCalendar({
   const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const today = formatMealDate(new Date())
 
-  const getMealsForSlot = (date: string, slot: string) =>
-    (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
+  // Each slot holds at most one meal; return the first match if present.
+  const getMealForSlot = (date: string, slot: string) =>
+    (plan.meals || []).find((m) => m.mealDate === date && m.mealSlot === slot)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -64,7 +56,12 @@ export default function MealPlanCalendar({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [swappingMeal, editingMeal])
 
-  const handleSaveAdd = async (recipeId: string, customName: string, servings: number) => {
+  const handleSaveAdd = async (
+    recipeId: string,
+    customName: string,
+    servings: number,
+    isEvent: boolean
+  ) => {
     if (!selectedSlot || !selectedDate) return
     try {
       const req: AddMealInput = {
@@ -73,14 +70,13 @@ export default function MealPlanCalendar({
         mealSlot: selectedSlot,
         recipeId,
         customName,
-        servings
+        servings,
+        isEvent
       }
       await addMeal(req)
-      const date = selectedDate
-      const slot = selectedSlot
       setSelectedSlot(null)
       setSelectedDate(null)
-      onAddMeal(date, slot, recipeId, customName, servings)
+      onMutate?.()
     } catch (err) {
       console.error('Failed to add meal:', err)
     }
@@ -90,7 +86,7 @@ export default function MealPlanCalendar({
     try {
       const req: DeleteMealInput = { planId: plan.id, mealId }
       await deleteMeal(req)
-      onDeleteMeal(mealId)
+      onMutate?.()
     } catch (err) {
       console.error('Failed to delete meal:', err)
     }
@@ -116,7 +112,7 @@ export default function MealPlanCalendar({
       handlePlaceSwap(date, slot)
       return
     }
-    if (getMealsForSlot(date, slot).length === 0) {
+    if (!getMealForSlot(date, slot)) {
       setSelectedSlot(slot)
       setSelectedDate(date)
     }
@@ -131,7 +127,8 @@ export default function MealPlanCalendar({
       return
     }
     try {
-      const target = getMealsForSlot(newDate, newSlot).find((m) => m.id !== swappingMeal.id)
+      const targetMeal = getMealForSlot(newDate, newSlot)
+      const target = targetMeal && targetMeal.id !== swappingMeal.id ? targetMeal : undefined
       const moveSelf: MoveMealInput = {
         planId: plan.id,
         mealId: swappingMeal.id,
@@ -162,7 +159,12 @@ export default function MealPlanCalendar({
     setEditingMeal(meal)
   }
 
-  const handleSaveEdit = async (recipeId: string, customName: string, servings: number) => {
+  const handleSaveEdit = async (
+    recipeId: string,
+    customName: string,
+    servings: number,
+    isEvent: boolean
+  ) => {
     if (!editingMeal) return
     try {
       await deleteMeal({ planId: plan.id, mealId: editingMeal.id })
@@ -172,7 +174,8 @@ export default function MealPlanCalendar({
         mealSlot: editingMeal.mealSlot,
         recipeId,
         customName,
-        servings
+        servings,
+        isEvent
       }
       await addMeal(req)
       setEditingMeal(null)
@@ -182,33 +185,31 @@ export default function MealPlanCalendar({
     }
   }
 
-  const swappingMealName =
-    swappingMeal?.customName || recipes.find((r) => r.id === swappingMeal?.recipeId)?.name || '?'
+  const swappingMealName = swappingMeal?.customName
+    ? swappingMeal.isEvent
+      ? swappingMeal.customName
+      : formatCustomNameLabel(swappingMeal.customName)
+    : recipes.find((r) => r.id === swappingMeal?.recipeId)?.name || '?'
 
   const renderCell = (formattedDate: string, slot: string) => {
-    const mealsInSlot = getMealsForSlot(formattedDate, slot)
+    const meal = getMealForSlot(formattedDate, slot)
     return (
       <div
         key={`${formattedDate}-${slot}`}
         className={`min-h-14 min-w-0 rounded-xl border p-1.5 ${swappingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
         onClick={() => handleCellClick(formattedDate, slot)}
       >
-        {mealsInSlot.length > 0 ? (
-          <div className="min-w-0 space-y-1">
-            {mealsInSlot.map((meal) => (
-              <MealPlanMealChip
-                key={meal.id}
-                meal={meal}
-                recipe={recipes.find((r) => r.id === meal.recipeId)}
-                isSwapping={swappingMeal?.id === meal.id}
-                inSwapMode={!!swappingMeal}
-                onMealClick={handleMealClick}
-                onSwapClick={handleStartSwap}
-                onEditClick={handleEditClick}
-                onDeleteMeal={handleDeleteMeal}
-              />
-            ))}
-          </div>
+        {meal ? (
+          <MealPlanMealChip
+            meal={meal}
+            recipe={recipes.find((r) => r.id === meal.recipeId)}
+            isSwapping={swappingMeal?.id === meal.id}
+            inSwapMode={!!swappingMeal}
+            onMealClick={handleMealClick}
+            onSwapClick={handleStartSwap}
+            onEditClick={handleEditClick}
+            onDeleteMeal={handleDeleteMeal}
+          />
         ) : swappingMeal ? (
           <div className="flex h-full min-h-10 items-center justify-center text-xs text-muted">
             Place here
@@ -365,6 +366,7 @@ export default function MealPlanCalendar({
             initialRecipeId={isEditing ? editingMeal!.recipeId : ''}
             initialCustomName={isEditing ? editingMeal!.customName : ''}
             initialServings={isEditing ? editingMeal!.servings : 1}
+            initialIsEvent={isEditing ? editingMeal!.isEvent : false}
             saveLabel={isAdding ? 'Add' : 'Save'}
             onSave={isAdding ? handleSaveAdd : handleSaveEdit}
             onCancel={handleCancel}

@@ -54,6 +54,28 @@ describe('MealPlanMealChip', () => {
     expect(screen.getByText(/Rice/)).toBeInTheDocument()
   })
 
+  it('renders custom item amounts before the name', () => {
+    renderChip({ meal: makeMeal({ recipeId: '', customName: 'Chicken\t2\nRice' }) })
+    expect(screen.getByText('• 2 Chicken')).toBeInTheDocument()
+    expect(screen.getByText('• Rice')).toBeInTheDocument()
+  })
+
+  it('renders an event without bullets and does not split on newlines', () => {
+    renderChip({
+      meal: makeMeal({ recipeId: '', customName: 'Birthday party', isEvent: true })
+    })
+    // The name is shown as one italic label, not as a bullet list.
+    expect(screen.getByText('Birthday party')).toBeInTheDocument()
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
+  })
+
+  it('does not show a servings multiplier for events', () => {
+    renderChip({
+      meal: makeMeal({ recipeId: '', customName: 'Dinner out', servings: 4, isEvent: true })
+    })
+    expect(screen.queryByText('×4')).not.toBeInTheDocument()
+  })
+
   it('opens the actions menu with Swap, Edit and Delete', () => {
     renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
@@ -103,8 +125,10 @@ describe('MealPlanMealChip', () => {
     renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
     const menu = screen.getByRole('menu')
-    expect(menu).toHaveClass('top-full')
-    expect(menu).not.toHaveClass('bottom-full')
+    expect(menu).toHaveStyle({ position: 'fixed' })
+    expect(menu.style.top).not.toBe('')
+    expect(menu.style.bottom).toBe('')
+    expect(menu).not.toHaveAttribute('data-open-up')
   })
 
   it('flips the menu upward when the trigger is near the bottom of the viewport', () => {
@@ -126,8 +150,10 @@ describe('MealPlanMealChip', () => {
     renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
     const menu = screen.getByRole('menu')
-    expect(menu).toHaveClass('bottom-full')
-    expect(menu).not.toHaveClass('top-full')
+    expect(menu).toHaveStyle({ position: 'fixed' })
+    expect(menu.style.bottom).not.toBe('')
+    expect(menu.style.top).toBe('')
+    expect(menu).toHaveAttribute('data-open-up')
 
     rectSpy.mockRestore()
     Object.defineProperty(window, 'innerHeight', {

@@ -41,4 +41,5 @@ type PlanMeal struct {
 	CustomName string
 	Servings   int
 	RecipeName string
+	IsEvent    bool
 }

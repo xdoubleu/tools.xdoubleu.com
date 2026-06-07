@@ -323,6 +323,51 @@ func TestGetMealPlanExportItems_IncludesCustomMealItems(t *testing.T) {
 	assert.Contains(t, names, "paper towels")
 }
 
+// addEventPlanMeal inserts a planning-only event entry (recipe-less, is_event)
+// that must never reach the shopping list export.
+func addEventPlanMeal(
+	t *testing.T,
+	planID uuid.UUID,
+	mealDate time.Time,
+	name string,
+) {
+	t.Helper()
+	_, err := testDB.Exec(context.Background(), `
+		INSERT INTO mealplans.plan_meals
+		(plan_id, meal_date, meal_slot, custom_name, servings, is_event)
+		VALUES ($1, $2, 'evening', $3, 1, TRUE)`,
+		planID, mealDate.Format("2006-01-02"), name,
+	)
+	require.NoError(t, err)
+}
+
+// Event entries are planning-only and must be excluded from the export, even
+// though they are stored recipe-less like custom items.
+func TestGetMealPlanExportItems_ExcludesEvents(t *testing.T) {
+	planID := createTestPlan(t, "Plan With Event")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	addCustomPlanMeal(t, planID, tomorrow, "breakfast", "Olive Oil")
+	addEventPlanMeal(t, planID, tomorrow, "Birthday Dinner")
+
+	client := newShoppingClient(t)
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+
+	names := make([]string, 0, len(resp.Msg.Items))
+	for _, item := range resp.Msg.Items {
+		names = append(names, item.Name)
+	}
+	assert.Contains(t, names, "olive oil")
+	assert.NotContains(t, names, "birthday dinner")
+}
+
 // Duplicate custom meal items within a plan collapse to a single line so the
 // shopping list does not repeat the same hand-added item per day.
 func TestGetMealPlanExportItems_DedupesCustomMealItems(t *testing.T) {
@@ -350,6 +395,64 @@ func TestGetMealPlanExportItems_DedupesCustomMealItems(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1, count)
+}
+
+// Custom meal items may carry an amount after a tab in custom_name. The export
+// parses that amount and surfaces it on the shopping item.
+func TestGetMealPlanExportItems_IncludesCustomMealItemAmounts(t *testing.T) {
+	planID := createTestPlan(t, "Plan With Custom Amounts")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	addCustomPlanMeal(t, planID, tomorrow, "noon", "Olive Oil\t2")
+
+	client := newShoppingClient(t)
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+
+	var found *shoppinglistv1.ShoppingItem
+	for _, item := range resp.Msg.Items {
+		if item.Name == "olive oil" {
+			found = item
+		}
+	}
+	require.NotNil(t, found)
+	assert.Equal(t, "2", found.Amount)
+}
+
+// Amounts for the same custom item added on several days are summed in the
+// export, just as the deduped name collapses to one line.
+func TestGetMealPlanExportItems_SumsCustomMealItemAmounts(t *testing.T) {
+	planID := createTestPlan(t, "Plan With Summed Amounts")
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	dayAfter := time.Now().UTC().Add(48 * time.Hour)
+	addCustomPlanMeal(t, planID, tomorrow, "noon", "Olive Oil\t2")
+	addCustomPlanMeal(t, planID, dayAfter, "noon", "olive oil\t3")
+
+	client := newShoppingClient(t)
+	resp, err := client.GetMealPlanExportItems(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			PlanId: planID.String(),
+		}),
+	)
+	require.NoError(t, err)
+
+	var found *shoppinglistv1.ShoppingItem
+	for _, item := range resp.Msg.Items {
+		if item.Name == "olive oil" {
+			found = item
+		}
+	}
+	require.NotNil(t, found)
+	assert.Equal(t, "5", found.Amount)
 }
 
 // createTestRecipeWithGroups inserts a recipe with two grouped ingredients and

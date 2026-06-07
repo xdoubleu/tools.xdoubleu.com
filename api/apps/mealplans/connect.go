@@ -82,6 +82,7 @@ func protoPlanMeal(m *models.PlanMeal) *mealplansv1.PlanMeal {
 		RecipeId:   recipeID,
 		CustomName: m.CustomName,
 		Servings:   int32(m.Servings), //nolint:gosec // int32 safe for domain values
+		IsEvent:    m.IsEvent,
 	}
 	if m.RecipeID != nil && m.RecipeName != "" {
 		pb.Recipe = &recipesv1.Recipe{
@@ -324,6 +325,7 @@ func (h *mealplansConnectHandler) AddMeal(
 		RecipeID:   recipeID,
 		CustomName: req.Msg.CustomName,
 		Servings:   servings,
+		IsEvent:    req.Msg.IsEvent,
 	}
 
 	if err = h.app.services.Plans.AddMeal(ctx, planID, user.ID, meal); err != nil {

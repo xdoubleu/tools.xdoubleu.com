@@ -3,19 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { getApiUrl } from '@/lib/env'
-import {
-  useMealPlan,
-  useAddMeal,
-  useDeleteMeal,
-  useSharePlan,
-  useUnsharePlan
-} from '@/hooks/useMealPlans'
-import type {
-  AddMealInput,
-  DeleteMealInput,
-  SharePlanInput,
-  UnsharePlanInput
-} from '@/hooks/useMealPlans'
+import { useMealPlan, useSharePlan, useUnsharePlan } from '@/hooks/useMealPlans'
+import type { SharePlanInput, UnsharePlanInput } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
 import ShareModal from '@/components/recipes/ShareModal'
@@ -29,8 +18,6 @@ export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
   const { data, error, isLoading, mutate } = useMealPlan(id, offset)
   const { data: recipesData } = useRecipes()
-  const addMeal = useAddMeal()
-  const deleteMeal = useDeleteMeal()
   const sharePlan = useSharePlan()
   const unsharePlan = useUnsharePlan()
 
@@ -49,33 +36,6 @@ export default function MealPlanClient({ id }: { id: string }) {
   const plan = data?.plan
   const recipes = recipesData?.recipes ?? []
   const isOwner = data?.isOwner ?? false
-
-  const handleAddMeal = async (
-    date: string,
-    slot: string,
-    recipeId: string,
-    customName: string,
-    servings: number
-  ) => {
-    if (!plan) return
-    const req: AddMealInput = {
-      planId: plan.id,
-      mealDate: date,
-      mealSlot: slot,
-      recipeId,
-      customName,
-      servings
-    }
-    await addMeal(req)
-    await mutate()
-  }
-
-  const handleDeleteMeal = async (mealId: string) => {
-    if (!plan) return
-    const req: DeleteMealInput = { planId: plan.id, mealId }
-    await deleteMeal(req)
-    await mutate()
-  }
 
   const handleShare = async (userId: string) => {
     if (!plan) return
@@ -125,8 +85,6 @@ export default function MealPlanClient({ id }: { id: string }) {
             weekOffset={offset}
             onPrevWeek={() => setOffset(data?.prevOffset ?? offset - 1)}
             onNextWeek={() => setOffset(data?.nextOffset ?? offset + 1)}
-            onAddMeal={handleAddMeal}
-            onDeleteMeal={handleDeleteMeal}
             onMutate={() => mutate()}
           />
 
