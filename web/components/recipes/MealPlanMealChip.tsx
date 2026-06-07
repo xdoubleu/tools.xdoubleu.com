@@ -143,7 +143,7 @@ export default function MealPlanMealChip({
                 className={`wrap-break-word text-xs ${excluded ? 'text-muted' : 'text-fg'}`}
               >
                 • {formatCustomItemLabel(item)}
-                {excluded && i === 0 && <span aria-hidden> 🚫</span>}
+                {excluded && i === 0 && <span className="text-muted"> (not on list)</span>}
               </li>
             ))}
           </ul>
