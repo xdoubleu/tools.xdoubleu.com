@@ -100,24 +100,26 @@ jobs:
 
   api-test:
     needs: changes
+    # Runs on push to main too (in parallel with docker/deploy, which do not
+    # depend on it) purely to refresh Codecov's default-branch baseline.
     if: |
-      github.event_name != 'push' &&
-      (github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.workflows == 'true')
+      needs.changes.outputs.workflows == 'true'
     name: API Test Workflow
     uses: ./.github/workflows/api-test.yml
     secrets: inherit
 
   web-test:
     needs: changes
+    # Runs on push to main too (in parallel with docker/deploy, which do not
+    # depend on it) purely to refresh Codecov's default-branch baseline.
     if: |
-      github.event_name != 'push' &&
-      (github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.workflows == 'true')
+      needs.changes.outputs.workflows == 'true'
     name: Web Test Workflow
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
