@@ -51,4 +51,13 @@ describe('customItems', () => {
   it('formats a whole customName for display', () => {
     expect(formatCustomNameLabel('Rice\nOlive oil\t2')).toBe('Rice\n2 Olive oil')
   })
+
+  it('ignores the UI-only categoryId when encoding', () => {
+    expect(
+      encodeCustomItems([
+        { name: 'Rice', amount: '', categoryId: 'cat-1' },
+        { name: 'Olive oil', amount: '2', categoryId: 'cat-2' }
+      ])
+    ).toBe('Rice\nOlive oil\t2')
+  })
 })

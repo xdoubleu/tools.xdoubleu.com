@@ -6,6 +6,9 @@
 export interface CustomItem {
   name: string
   amount: string
+  // UI-only: the category chosen in the entry form. It is written to the
+  // name->category catalog on save and is never encoded into `customName`.
+  categoryId?: string
 }
 
 const SEP = '\t'

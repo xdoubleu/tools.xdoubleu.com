@@ -1,12 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useSWRConfig } from 'swr'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import RecipeCombobox from './RecipeCombobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
 import { parseCustomItems, encodeCustomItems, type CustomItem } from '@/lib/customItems'
+import { useCategories, useItemCategories } from '@/hooks/useShoppingList'
+import { createServiceClient } from '@/lib/client'
+import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import {
   Dialog,
   DialogContent,
@@ -59,13 +64,56 @@ export default function MealPlanEntryForm({
     initialExcludeFromShoppingList
   )
 
-  const handleSave = () => {
+  const { data: categoriesData } = useCategories()
+  const { data: itemCategoriesData } = useItemCategories()
+  const categories = categoriesData?.categories ?? []
+  const { mutate: globalMutate } = useSWRConfig()
+
+  // Current name->category catalog assignments, keyed by normalized name. Used
+  // to pre-fill each row's category and to avoid redundant catalog writes.
+  const nameToCategoryId = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const entry of itemCategoriesData?.items ?? []) {
+      map[entry.name] = entry.categoryId
+    }
+    return map
+  }, [itemCategoriesData])
+
+  // The category shown for a row: an explicit choice wins, otherwise fall back
+  // to the name's existing catalog assignment.
+  const effectiveCategoryId = (item: CustomItem) =>
+    item.categoryId ?? nameToCategoryId[item.name.trim().toLowerCase()] ?? ''
+
+  const persistCategories = async () => {
+    const client = createServiceClient(ShoppingListService)
+    const seen = new Set<string>()
+    let wrote = false
+    for (const item of customItems) {
+      const name = item.name.trim()
+      const categoryId = effectiveCategoryId(item)
+      const key = name.toLowerCase()
+      // Skip blanks, dupes (last write wins is handled by order), and rows
+      // already matching the catalog.
+      if (!name || !categoryId || seen.has(key)) continue
+      seen.add(key)
+      if (nameToCategoryId[key] === categoryId) continue
+      await client.setItemCategory({ name, categoryId })
+      wrote = true
+    }
+    if (wrote) {
+      await globalMutate('/shoppinglist/item-categories')
+      await globalMutate('/shoppinglist/item-names')
+    }
+  }
+
+  const handleSave = async () => {
     if (tab === 'recipe') {
       if (!recipeId) return
       onSave(recipeId, '', servings, false)
     } else {
       const joined = encodeCustomItems(customItems)
       if (!joined) return
+      await persistCategories()
       onSave('', joined, 1, excludeFromShoppingList)
     }
   }
@@ -129,46 +177,63 @@ export default function MealPlanEntryForm({
         ) : (
           <div className="space-y-2">
             {customItems.map((item, i) => (
-              <div key={i} className="flex gap-2">
-                <Input
-                  type="text"
-                  value={item.name}
-                  onChange={(e) => updateCustomItem(i, { name: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      if (i === customItems.length - 1) addCustomItem()
-                    }
-                  }}
-                  placeholder={`Item ${i + 1}`}
-                  autoFocus={i === 0}
-                  className="flex-1"
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={item.amount}
-                  onChange={(e) => updateCustomItem(i, { amount: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      if (i === customItems.length - 1) addCustomItem()
-                    }
-                  }}
-                  placeholder="Qty"
-                  aria-label={`Amount for item ${i + 1}`}
-                  className="w-20"
-                />
-                {customItems.length > 1 && (
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    aria-label="Remove item"
-                    onClick={() => removeCustomItem(i)}
+              <div key={i} className="space-y-2 rounded-xl border border-border p-2">
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={item.name}
+                    onChange={(e) => updateCustomItem(i, { name: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        if (i === customItems.length - 1) addCustomItem()
+                      }
+                    }}
+                    placeholder={`Item ${i + 1}`}
+                    autoFocus={i === 0}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={item.amount}
+                    onChange={(e) => updateCustomItem(i, { amount: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        if (i === customItems.length - 1) addCustomItem()
+                      }
+                    }}
+                    placeholder="Qty"
+                    aria-label={`Amount for item ${i + 1}`}
+                    className="w-20"
+                  />
+                  {customItems.length > 1 && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      aria-label="Remove item"
+                      onClick={() => removeCustomItem(i)}
+                    >
+                      ×
+                    </Button>
+                  )}
+                </div>
+                {categories.length > 0 && (
+                  <Select
+                    aria-label={`Category for item ${i + 1}`}
+                    value={effectiveCategoryId(item)}
+                    onChange={(e) => updateCustomItem(i, { categoryId: e.target.value })}
+                    className="h-9"
                   >
-                    ×
-                  </Button>
+                    <option value="">-- Category --</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </Select>
                 )}
               </div>
             ))}

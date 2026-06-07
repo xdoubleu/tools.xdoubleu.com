@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useSWRConfig } from 'swr'
 import Link from 'next/link'
-import { useCustomList } from '@/hooks/useShoppingList'
+import { useCustomList, useCategories } from '@/hooks/useShoppingList'
 import ShoppingList from '@/components/recipes/ShoppingList'
 import ExportModal from '@/components/recipes/ExportModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { ShoppingItem as ShoppingItemExport } from '@/lib/recipes/shoppingExport'
@@ -25,31 +27,45 @@ export default function ShoppingPage() {
   const [newName, setNewName] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [newUnit, setNewUnit] = useState('')
+  const [newCategoryId, setNewCategoryId] = useState('')
   const [adding, setAdding] = useState(false)
   const [showExport, setShowExport] = useState(false)
 
   const { data, isLoading, mutate } = useCustomList()
-  const items = (data?.items ?? []).map(toExportItem)
+  const { data: categoriesData } = useCategories()
+  const categories = categoriesData?.categories ?? []
+  const { mutate: globalMutate } = useSWRConfig()
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newName.trim()) return
+    const name = newName.trim()
+    if (!name) return
     setAdding(true)
     try {
       const client = createServiceClient(ShoppingListService)
       await client.addShoppingItem({
-        name: newName.trim(),
+        name,
         amount: newAmount || '0',
         unit: newUnit.trim()
       })
+      // The category lives in the name->category catalog, not on the item, so
+      // assigning it here makes it persist by name across every list and export.
+      if (newCategoryId) {
+        await client.setItemCategory({ name, categoryId: newCategoryId })
+        await globalMutate('/shoppinglist/item-categories')
+        await globalMutate('/shoppinglist/item-names')
+      }
       setNewName('')
       setNewAmount('')
       setNewUnit('')
+      setNewCategoryId('')
       await mutate()
     } finally {
       setAdding(false)
     }
   }
+
+  const items = (data?.items ?? []).map(toExportItem)
 
   const handleDelete = async (itemId: string) => {
     const client = createServiceClient(ShoppingListService)
@@ -91,6 +107,21 @@ export default function ShoppingPage() {
           onChange={(e) => setNewUnit(e.target.value)}
           className="w-24"
         />
+        {categories.length > 0 && (
+          <Select
+            aria-label="Category"
+            value={newCategoryId}
+            onChange={(e) => setNewCategoryId(e.target.value)}
+            className="w-auto"
+          >
+            <option value="">-- Category --</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+        )}
         <Button type="submit" disabled={adding || !newName.trim()}>
           Add
         </Button>
