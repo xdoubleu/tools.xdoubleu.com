@@ -150,22 +150,25 @@ jobs:
           # PRs: Codecov reports on the head commit, not the merge commit github.sha exposes.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          echo "Waiting for Codecov status on $SHA"
+          # Codecov reports via the Checks API (codecov/patch, codecov/project),
+          # not the legacy commit-status API, so poll check-runs.
+          echo "Waiting for Codecov checks on $SHA"
           deadline=$(( $(date +%s) + 600 ))
           while true; do
-            statuses=$(gh api "repos/$REPO/commits/$SHA/status" \
-              --jq '.statuses[] | select(.context | startswith("codecov")) | "\(.context)=\(.state)"')
+            checks=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+              --jq '.check_runs[] | select(.name | startswith("codecov")) | "\(.name)=\(.status):\(.conclusion)"')
 
-            if [[ -z "$statuses" ]]; then
-              echo "No Codecov statuses yet; waiting..."
+            if [[ -z "$checks" ]]; then
+              echo "No Codecov checks yet; waiting..."
             else
-              echo "$statuses"
-              if echo "$statuses" | grep -qE '=(failure|error)$'; then
-                echo "Codecov reported a failing status."
+              echo "$checks"
+              if echo "$checks" | grep -qv '=completed:'; then
+                echo "Codecov checks still running..."
+              elif echo "$checks" | grep -qvE '=completed:(success|neutral|skipped)$'; then
+                echo "Codecov reported a failing check."
                 exit 1
-              fi
-              if ! echo "$statuses" | grep -q '=pending$'; then
-                echo "All Codecov statuses succeeded."
+              else
+                echo "All Codecov checks succeeded."
                 exit 0
               fi
             fi
