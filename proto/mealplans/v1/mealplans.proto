@@ -13,6 +13,9 @@ message PlanMeal {
   string custom_name = 6;
   int32 servings = 7;
   recipes.v1.Recipe recipe = 8;
+  // Planning-only entry: shows on the calendar and the iCal feed but is
+  // excluded from the shopping-list export.
+  bool is_event = 9;
 }
 
 message Plan {
@@ -69,6 +72,7 @@ message AddMealRequest {
   string recipe_id = 4;
   string custom_name = 5;
   int32 servings = 6;
+  bool is_event = 7;
 }
 message AddMealResponse {}
 

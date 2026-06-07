@@ -44,6 +44,7 @@ function makePlanMeal(overrides: {
   recipeId: string
   customName: string
   servings: number
+  isEvent?: boolean
 }) {
   return create(PlanMealSchema, overrides)
 }
@@ -83,59 +84,95 @@ function startSwap() {
 
 describe('MealPlanCalendar', () => {
   it('shows slot label in grid', () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     // Both mobile and desktop views render slot labels
     expect(screen.getAllByText('Breakfast').length).toBeGreaterThan(0)
   })
 
-  it('opens add dialog with Recipe and Custom tabs when + is clicked', () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+  it('opens add dialog with Recipe, Custom and Event tabs when + is clicked', () => {
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     expect(screen.getByRole('button', { name: 'Recipe' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Custom' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Event' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Item 1')).toBeInTheDocument()
   })
 
-  it('shows recipe combobox when Recipe tab is selected', () => {
+  it('adds an event with isEvent set and no servings', async () => {
+    const onMutate = jest.fn()
     render(
       <MealPlanCalendar
         plan={basePlan}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
+        onMutate={onMutate}
       />
     )
+    openAddDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Event' }))
+    fireEvent.change(screen.getByPlaceholderText('Event name'), {
+      target: { value: 'Birthday dinner' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
+    const req = mockAddMeal.mock.calls[0][0]
+    expect(req.isEvent).toBe(true)
+    expect(req.recipeId).toBe('')
+    expect(req.customName).toBe('Birthday dinner')
+    expect(req.servings).toBe(1)
+    expect(onMutate).toHaveBeenCalled()
+  })
+
+  it('does not submit an event with a blank name', async () => {
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
+    openAddDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Event' }))
+    fireEvent.change(screen.getByPlaceholderText('Event name'), {
+      target: { value: '   ' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    await waitFor(() => expect(mockAddMeal).not.toHaveBeenCalled())
+  })
+
+  it('opens the edit dialog on the Event tab pre-populated for an event meal', () => {
+    const planWithEvent = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eating out',
+          servings: 1,
+          isEvent: true
+        })
+      ]
+    }
+
+    render(<MealPlanCalendar plan={planWithEvent} recipes={baseRecipes} {...defaultNavProps} />)
+    openMealMenu()
+    fireEvent.click(screen.getAllByRole('menuitem', { name: /Edit/i })[0])
+    const input = screen.getByPlaceholderText('Event name')
+    if (!(input instanceof HTMLInputElement)) throw new Error('expected input')
+    expect(input.value).toBe('Eating out')
+  })
+
+  it('shows recipe combobox when Recipe tab is selected', () => {
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
     expect(screen.getByPlaceholderText(/recipe name or custom meal/i)).toBeInTheDocument()
   })
 
   it('adds meal with recipeId when recipe selected from combobox', async () => {
-    const onAddMeal = jest.fn()
+    const onMutate = jest.fn()
     render(
       <MealPlanCalendar
         plan={basePlan}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={onAddMeal}
-        onDeleteMeal={jest.fn()}
+        onMutate={onMutate}
       />
     )
     openAddDialog()
@@ -150,18 +187,17 @@ describe('MealPlanCalendar', () => {
     expect(req.customName).toBe('')
     expect(req.mealSlot).toBe('breakfast')
     expect(req.servings).toBe(1)
-    expect(onAddMeal).toHaveBeenCalled()
+    expect(onMutate).toHaveBeenCalled()
   })
 
   it('adds meal with customName for free-text entry', async () => {
-    const onAddMeal = jest.fn()
+    const onMutate = jest.fn()
     render(
       <MealPlanCalendar
         plan={basePlan}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={onAddMeal}
-        onDeleteMeal={jest.fn()}
+        onMutate={onMutate}
       />
     )
     openAddDialog()
@@ -175,19 +211,26 @@ describe('MealPlanCalendar', () => {
     expect(req.recipeId).toBe('')
     expect(req.customName).toBe('Homemade soup')
     expect(req.servings).toBe(1)
-    expect(onAddMeal).toHaveBeenCalled()
+    expect(onMutate).toHaveBeenCalled()
+  })
+
+  it('encodes a custom item amount into customName', async () => {
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
+    openAddDialog()
+    // Custom tab is default
+    fireEvent.change(screen.getByPlaceholderText('Item 1'), {
+      target: { value: 'Olive oil' }
+    })
+    fireEvent.change(screen.getByLabelText('Amount for item 1'), {
+      target: { value: '2' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
+    expect(mockAddMeal.mock.calls[0][0].customName).toBe('Olive oil\t2')
   })
 
   it('sends custom servings value in AddMealRequest', async () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
@@ -202,15 +245,7 @@ describe('MealPlanCalendar', () => {
   })
 
   it('does not submit when custom item is empty', async () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     // Custom tab is default; Item 1 is empty
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
@@ -218,14 +253,13 @@ describe('MealPlanCalendar', () => {
   })
 
   it('submits recipe on Enter key in combobox after selecting', async () => {
-    const onAddMeal = jest.fn()
+    const onMutate = jest.fn()
     render(
       <MealPlanCalendar
         plan={basePlan}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={onAddMeal}
-        onDeleteMeal={jest.fn()}
+        onMutate={onMutate}
       />
     )
     openAddDialog()
@@ -253,13 +287,7 @@ describe('MealPlanCalendar', () => {
     }
 
     render(
-      <MealPlanCalendar
-        plan={planWithCustomMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
+      <MealPlanCalendar plan={planWithCustomMeal} recipes={baseRecipes} {...defaultNavProps} />
     )
     expect(screen.getAllByText(/Eggs and toast/)[0]).toBeInTheDocument()
   })
@@ -279,15 +307,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithServings}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithServings} recipes={baseRecipes} {...defaultNavProps} />)
     expect(screen.getAllByText('×3')[0]).toBeInTheDocument()
   })
 
@@ -307,27 +327,13 @@ describe('MealPlanCalendar', () => {
     }
 
     render(
-      <MealPlanCalendar
-        plan={planWithSingleServing}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
+      <MealPlanCalendar plan={planWithSingleServing} recipes={baseRecipes} {...defaultNavProps} />
     )
     expect(screen.queryByText('×1')).not.toBeInTheDocument()
   })
 
   it('cancel closes the add dialog', () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     expect(screen.getByPlaceholderText('Item 1')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }))
@@ -349,15 +355,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
 
     startSwap()
     expect(screen.getByText(/Swapping/i)).toBeInTheDocument()
@@ -384,8 +382,6 @@ describe('MealPlanCalendar', () => {
         plan={planWithMeal}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
         onMutate={onMutate}
       />
     )
@@ -435,8 +431,6 @@ describe('MealPlanCalendar', () => {
         plan={planWithMeals}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
         onMutate={onMutate}
       />
     )
@@ -475,15 +469,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
 
     // Start a swap via the actions menu
     startSwap()
@@ -498,43 +484,19 @@ describe('MealPlanCalendar', () => {
   })
 
   it('calls onPrevWeek when Previous Week button is clicked', () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     fireEvent.click(screen.getByRole('button', { name: /Prev/i }))
     expect(mockOnPrevWeek).toHaveBeenCalledTimes(1)
   })
 
   it('calls onNextWeek when Next Week button is clicked', () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     fireEvent.click(screen.getByRole('button', { name: /Next/i }))
     expect(mockOnNextWeek).toHaveBeenCalledTimes(1)
   })
 
   it('shows week date range in dd/mm/yyyy format', () => {
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     // Mock week: 2026-05-25 to 2026-05-31
     expect(screen.getByText('25/05/2026 – 31/05/2026')).toBeInTheDocument()
   })
@@ -554,15 +516,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
     openMealMenu()
     expect(screen.getAllByRole('menuitem', { name: /Edit/i })[0]).toBeInTheDocument()
   })
@@ -582,15 +536,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
     openMealMenu()
     fireEvent.click(screen.getAllByRole('menuitem', { name: /Edit/i })[0])
     expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
@@ -599,8 +545,7 @@ describe('MealPlanCalendar', () => {
     expect(input.value).toBe('Eggs')
   })
 
-  it('save edit calls addMeal with same date/slot and new values, then onMutate (not onAddMeal)', async () => {
-    const onAddMeal = jest.fn()
+  it('save edit calls addMeal with same date/slot and new values, then onMutate', async () => {
     const onMutate = jest.fn()
     const planWithMeal = {
       ...basePlan,
@@ -621,8 +566,6 @@ describe('MealPlanCalendar', () => {
         plan={planWithMeal}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={onAddMeal}
-        onDeleteMeal={jest.fn()}
         onMutate={onMutate}
       />
     )
@@ -637,7 +580,6 @@ describe('MealPlanCalendar', () => {
     expect(req.mealSlot).toBe('breakfast')
     expect(req.customName).toBe('Updated meal')
     expect(onMutate).toHaveBeenCalled()
-    expect(onAddMeal).not.toHaveBeenCalled()
   })
 
   it('cancel closes edit dialog', () => {
@@ -655,15 +597,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
     openMealMenu()
     fireEvent.click(screen.getAllByRole('menuitem', { name: /Edit/i })[0])
     expect(screen.getByText(/Edit meal/i)).toBeInTheDocument()
@@ -686,15 +620,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
     // Enter swap mode via the actions menu; the trigger then disappears.
     startSwap()
     expect(screen.queryAllByRole('button', { name: /Meal actions/i })).toHaveLength(0)
@@ -705,15 +631,7 @@ describe('MealPlanCalendar', () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-05-30'))
     try {
-      render(
-        <MealPlanCalendar
-          plan={basePlan}
-          recipes={baseRecipes}
-          {...defaultNavProps}
-          onAddMeal={jest.fn()}
-          onDeleteMeal={jest.fn()}
-        />
-      )
+      render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
       // Mobile view appends "(today)" next to the day header for today.
       expect(screen.getAllByText('(today)').length).toBeGreaterThan(0)
     } finally {
@@ -736,15 +654,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
 
     startSwap()
     expect(screen.getByText(/Swapping/i)).toBeInTheDocument()
@@ -767,15 +677,7 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMeal}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
     // The occupied slot (2026-05-25 breakfast) should not have a "+" button;
     // only the remaining 6 empty days have them.
     const addButtons = screen.getAllByRole('button', { name: '+' })
@@ -784,14 +686,13 @@ describe('MealPlanCalendar', () => {
   })
 
   it('adds multiple custom items joined by newline', async () => {
-    const onAddMeal = jest.fn()
+    const onMutate = jest.fn()
     render(
       <MealPlanCalendar
         plan={basePlan}
         recipes={baseRecipes}
         {...defaultNavProps}
-        onAddMeal={onAddMeal}
-        onDeleteMeal={jest.fn()}
+        onMutate={onMutate}
       />
     )
     openAddDialog()
@@ -811,6 +712,21 @@ describe('MealPlanCalendar', () => {
     expect(req.recipeId).toBe('')
   })
 
+  it('adds a new item row on Enter in the amount field and removes a row', async () => {
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
+    openAddDialog()
+    fireEvent.change(screen.getByPlaceholderText('Item 1'), {
+      target: { value: 'Chicken' }
+    })
+    // Enter in the amount field adds a second row.
+    fireEvent.keyDown(screen.getByLabelText('Amount for item 1'), { key: 'Enter' })
+    expect(screen.getByPlaceholderText('Item 2')).toBeInTheDocument()
+    // Removing the second row collapses back to one.
+    const removeButtons = screen.getAllByRole('button', { name: /Remove item/i })
+    fireEvent.click(removeButtons[removeButtons.length - 1])
+    expect(screen.queryByPlaceholderText('Item 2')).not.toBeInTheDocument()
+  })
+
   it('displays multiple custom items as bullet list in meal chip', () => {
     const planWithMultiItem = {
       ...basePlan,
@@ -826,16 +742,52 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(
-      <MealPlanCalendar
-        plan={planWithMultiItem}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onAddMeal={jest.fn()}
-        onDeleteMeal={jest.fn()}
-      />
-    )
+    render(<MealPlanCalendar plan={planWithMultiItem} recipes={baseRecipes} {...defaultNavProps} />)
     expect(screen.getAllByText(/Chicken/)[0]).toBeInTheDocument()
     expect(screen.getAllByText(/Rice/)[0]).toBeInTheDocument()
+  })
+
+  it('sends a single addMeal request when adding a custom item (no double add)', async () => {
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
+    openAddDialog()
+    fireEvent.change(screen.getByPlaceholderText('Item 1'), {
+      target: { value: 'Homemade soup' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
+    expect(mockAddMeal).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders a single chip when a slot somehow holds more than one meal', () => {
+    const planWithDuplicates = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        }),
+        makePlanMeal({
+          id: 'm2',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Pancakes',
+          servings: 1
+        })
+      ]
+    }
+
+    render(
+      <MealPlanCalendar plan={planWithDuplicates} recipes={baseRecipes} {...defaultNavProps} />
+    )
+    // Only the first meal is shown; the duplicate never renders a second chip.
+    expect(screen.getAllByText(/Eggs/).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/Pancakes/)).not.toBeInTheDocument()
+    // One chip per view (mobile + desktop) → two action triggers, not four.
+    expect(screen.getAllByRole('button', { name: /Meal actions/i })).toHaveLength(2)
   })
 })

@@ -169,24 +169,31 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 
 		UNION ALL
 
-		-- Custom (recipe-less) meal entries store hand-typed item names as a
-		-- newline-separated list in custom_name. Expand each line into its own
-		-- amount/unit-less item so it reaches the shopping list. Dedupe by name
-		-- within the plan so the same item added on several days is one line.
+		-- Custom (recipe-less) meal entries store hand-typed items as a
+		-- newline-separated list in custom_name, where each line is either a
+		-- bare "name" or "name\tamount". Expand each line into its own item so
+		-- it reaches the shopping list, parsing the optional amount after the
+		-- tab. Dedupe by name within the plan so the same item added on several
+		-- days is one line, summing the amounts. Events are planning-only
+		-- entries that never reach the shopping list.
 		SELECT
 		    '' AS recipe_name,
 		    '' AS group_name,
-		    LOWER(TRIM(item)) AS name,
+		    LOWER(TRIM(split_part(item, E'\t', 1))) AS name,
 		    '' AS unit,
-		    0::numeric AS total_amount
+		    COALESCE(
+		        SUM(NULLIF(TRIM(split_part(item, E'\t', 2)), '')::numeric),
+		        0
+		    ) AS total_amount
 		FROM mealplans.plan_meals pm,
 		     unnest(string_to_array(pm.custom_name, E'\n')) AS item
 		WHERE pm.plan_id = $1
 		  AND pm.recipe_id IS NULL
+		  AND pm.is_event = FALSE
 		  AND pm.meal_date BETWEEN $2 AND $3
 		  AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
-		  AND TRIM(item) <> ''
-		GROUP BY LOWER(TRIM(item))
+		  AND TRIM(split_part(item, E'\t', 1)) <> ''
+		GROUP BY LOWER(TRIM(split_part(item, E'\t', 1)))
 
 		ORDER BY 1, 2, 3`,
 		planID, start, end, pastSlots, excludedGroups,

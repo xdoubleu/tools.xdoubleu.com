@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 
 jest.mock('@/hooks/useRecipes', () => ({
   useRecipe: jest.fn(),
@@ -189,6 +189,48 @@ describe('RecipeClient', () => {
     expect(screen.getByText('Onion')).toBeInTheDocument()
     expect(screen.getByText('Carrot')).toBeInTheDocument()
     expect(screen.getByText('Beef')).toBeInTheDocument()
+  })
+
+  it('visually contains grouped ingredients separately from ungrouped ones listed after', () => {
+    const recipe = create(RecipeSchema, {
+      id: 'r1',
+      name: 'Stew',
+      baseServings: 4,
+      ingredients: [
+        create(IngredientSchema, {
+          id: 'i1',
+          name: 'Onion',
+          amount: 1,
+          unit: '',
+          sortOrder: 1,
+          groupName: 'Sauce'
+        }),
+        create(IngredientSchema, {
+          id: 'i2',
+          name: 'Salt',
+          amount: 1,
+          unit: 'tsp',
+          sortOrder: 2
+        })
+      ]
+    })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    // The group heading and its item live inside the same container...
+    const heading = screen.getByRole('heading', { name: 'Sauce', level: 3 })
+    const groupContainer = heading.parentElement
+    if (!groupContainer) throw new Error('expected group container')
+    expect(within(groupContainer).getByText('Onion')).toBeInTheDocument()
+    // ...while the ungrouped ingredient sits outside that container.
+    expect(within(groupContainer).queryByText('Salt')).not.toBeInTheDocument()
+    expect(screen.getByText('Salt')).toBeInTheDocument()
   })
 
   it('shows group headers with scaled ingredients by mapping from sorted originals', () => {

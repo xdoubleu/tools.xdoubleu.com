@@ -56,11 +56,18 @@ func renderICalFeed(plan *models.Plan, meals []models.PlanMeal) string {
 			dtend = dateStr + "T130000"
 		}
 
-		name := meal.CustomName
-		if meal.RecipeName != "" {
-			name = meal.RecipeName
+		// Events are planning-only entries with no recipe or meaningful
+		// serving count, so they show just their name.
+		var summary string
+		if meal.IsEvent {
+			summary = fmt.Sprintf("%s – %s", slot, meal.CustomName)
+		} else {
+			name := displayCustomName(meal.CustomName)
+			if meal.RecipeName != "" {
+				name = meal.RecipeName
+			}
+			summary = fmt.Sprintf("%s – %s (×%d)", slot, name, meal.Servings)
 		}
-		summary := fmt.Sprintf("%s – %s (×%d)", slot, name, meal.Servings)
 
 		dtstamp := time.Now().UTC().Format("20060102T150405Z")
 		writeln("BEGIN:VEVENT")

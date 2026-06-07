@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { Button } from '@/components/ui/button'
 import { MenuItem } from '@/components/ui/menu-item'
+import { parseCustomItems, formatCustomItemLabel } from '@/lib/customItems'
 
 interface MealPlanMealChipProps {
   meal: PlanMeal
@@ -27,48 +29,74 @@ export default function MealPlanMealChip({
   onEditClick,
   onDeleteMeal
 }: MealPlanMealChipProps) {
-  const customItems = meal.customName ? meal.customName.split('\n').filter(Boolean) : []
+  const isEvent = meal.isEvent
+  const customItems = !isEvent && meal.customName ? parseCustomItems(meal.customName) : []
   const isCustom = customItems.length > 0
-  const fullText = isCustom ? customItems.join('\n') : recipe?.name || '?'
+  const fullText = isEvent
+    ? meal.customName
+    : isCustom
+      ? customItems.map(formatCustomItemLabel).join('\n')
+      : recipe?.name || '?'
 
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [openUp, setOpenUp] = useState(false)
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
   const menuRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   // Approximate height of the 3-item menu; used to decide flip direction.
   const MENU_HEIGHT = 140
 
-  // Open upward when there isn't enough room below the trigger, so a chip near
-  // the bottom of the viewport doesn't push the page down and force a scroll.
-  const toggleMenu = () => {
-    setMenuOpen((open) => {
-      if (!open && menuRef.current) {
-        const rect = menuRef.current.getBoundingClientRect()
-        const spaceBelow = window.innerHeight - rect.bottom
-        setOpenUp(spaceBelow < MENU_HEIGHT && rect.top > spaceBelow)
-      }
-      return !open
+  // The menu is rendered in a portal with `position: fixed` so it never
+  // contributes to the document's scroll height — opening it on a chip at the
+  // bottom of the list can no longer grow the page and force a sudden scroll.
+  // We still flip it upward when there isn't enough room below in the viewport.
+  const computePosition = useCallback(() => {
+    const el = menuRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const up = spaceBelow < MENU_HEIGHT && rect.top > spaceBelow
+    setOpenUp(up)
+    setMenuStyle({
+      position: 'fixed',
+      right: Math.max(8, window.innerWidth - rect.right),
+      ...(up ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 })
     })
+  }, [])
+
+  const toggleMenu = () => {
+    if (!menuOpen) computePosition()
+    setMenuOpen((open) => !open)
   }
 
   useEffect(() => {
     if (!menuOpen) return
+    const reposition = () => computePosition()
     const onPointerDown = (e: MouseEvent) => {
-      if (e.target instanceof Node && menuRef.current && !menuRef.current.contains(e.target)) {
+      if (
+        e.target instanceof Node &&
+        !menuRef.current?.contains(e.target) &&
+        !panelRef.current?.contains(e.target)
+      ) {
         setMenuOpen(false)
       }
     }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuOpen(false)
     }
+    window.addEventListener('scroll', reposition, true)
+    window.addEventListener('resize', reposition)
     document.addEventListener('mousedown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
     return () => {
+      window.removeEventListener('scroll', reposition, true)
+      window.removeEventListener('resize', reposition)
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [menuOpen])
+  }, [menuOpen, computePosition])
 
   // Collapse any expansion / close the menu whenever we leave the chip's normal state.
   useEffect(() => {
@@ -101,15 +129,24 @@ export default function MealPlanMealChip({
       title={fullText}
       aria-expanded={!inSwapMode ? expanded : undefined}
       className={`flex min-w-0 cursor-pointer select-none items-start justify-between gap-1 rounded-xl px-1.5 py-1 ${
-        isSwapping ? 'bg-accent/20 ring-2 ring-accent' : 'bg-accent/10 hover:bg-accent/20'
+        isSwapping
+          ? 'bg-accent/20 ring-2 ring-accent'
+          : isEvent
+            ? 'bg-surface hover:bg-hover'
+            : 'bg-accent/10 hover:bg-accent/20'
       }`}
     >
       <div className="min-w-0 flex-1">
-        {isCustom ? (
+        {isEvent ? (
+          <span className={`flex items-start gap-1 wrap-break-word text-xs text-muted ${clamp}`}>
+            <span aria-hidden>📅</span>
+            <span className="italic">{meal.customName}</span>
+          </span>
+        ) : isCustom ? (
           <ul className={`space-y-0.5 ${clamp}`}>
             {customItems.map((item, i) => (
               <li key={i} className="wrap-break-word text-xs text-fg">
-                • {item}
+                • {formatCustomItemLabel(item)}
               </li>
             ))}
           </ul>
@@ -117,7 +154,7 @@ export default function MealPlanMealChip({
           <span className={`wrap-break-word text-sm text-fg ${clamp}`}>{recipe?.name || '?'}</span>
         )}
       </div>
-      {!isCustom && meal.servings > 1 && (
+      {!isCustom && !isEvent && meal.servings > 1 && (
         <span className="shrink-0 pt-0.5 text-xs text-muted">×{meal.servings}</span>
       )}
       {inSwapMode ? (
@@ -139,28 +176,31 @@ export default function MealPlanMealChip({
           >
             ⋯
           </Button>
-          {menuOpen && (
-            <div
-              role="menu"
-              className={`absolute right-0 z-10 w-32 rounded-2xl border border-border bg-card p-1 shadow-elevated ${
-                openUp ? 'bottom-full mb-1' : 'top-full mt-1'
-              }`}
-            >
-              <MenuItem role="menuitem" onClick={runAction(() => onSwapClick(meal))}>
-                Swap
-              </MenuItem>
-              <MenuItem role="menuitem" onClick={runAction(() => onEditClick(meal))}>
-                Edit
-              </MenuItem>
-              <MenuItem
-                role="menuitem"
-                onClick={runAction(() => onDeleteMeal(meal.id))}
-                className="text-danger hover:bg-danger/10"
+          {menuOpen &&
+            createPortal(
+              <div
+                ref={panelRef}
+                role="menu"
+                data-open-up={openUp || undefined}
+                style={menuStyle}
+                className="z-50 w-32 rounded-2xl border border-border bg-card p-1 shadow-elevated"
               >
-                Delete
-              </MenuItem>
-            </div>
-          )}
+                <MenuItem role="menuitem" onClick={runAction(() => onSwapClick(meal))}>
+                  Swap
+                </MenuItem>
+                <MenuItem role="menuitem" onClick={runAction(() => onEditClick(meal))}>
+                  Edit
+                </MenuItem>
+                <MenuItem
+                  role="menuitem"
+                  onClick={runAction(() => onDeleteMeal(meal.id))}
+                  className="text-danger hover:bg-danger/10"
+                >
+                  Delete
+                </MenuItem>
+              </div>,
+              document.body
+            )}
         </div>
       )}
     </div>

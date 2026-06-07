@@ -130,6 +130,28 @@ func TestRenderICalFeed_RecipeNameTakesPriority(t *testing.T) {
 	assert.Contains(t, out, "Pasta Carbonara")
 }
 
+func TestRenderICalFeed_EventIncluded(t *testing.T) {
+	plan := makeTestPlan("P", nil, false)
+	event := makeMeal("noon", 1)
+	event.CustomName = "Birthday Dinner"
+	event.IsEvent = true
+	meals := []models.PlanMeal{event, makeMeal("evening", 1)}
+	out := renderICalFeed(plan, meals)
+	assert.Equal(t, 2, strings.Count(out, "BEGIN:VEVENT"))
+	assert.Contains(t, out, "Birthday Dinner")
+}
+
+func TestRenderICalFeed_EventOmitsServings(t *testing.T) {
+	plan := makeTestPlan("P", nil, false)
+	event := makeMeal("noon", 1)
+	event.CustomName = "Birthday Dinner"
+	event.Servings = 4
+	event.IsEvent = true
+	out := renderICalFeed(plan, []models.PlanMeal{event})
+	assert.Contains(t, out, "Noon – Birthday Dinner")
+	assert.NotContains(t, out, "×")
+}
+
 func TestRenderICalFeed_UsesCRLF(t *testing.T) {
 	plan := makeTestPlan("P", nil, false)
 	out := renderICalFeed(plan, nil)

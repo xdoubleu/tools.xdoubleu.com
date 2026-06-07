@@ -156,28 +156,39 @@ export default function RecipeClient({ id }: { id: string }) {
           {displayIngredients.length > 0 && (
             <section className="mb-6">
               <h2 className="text-xl font-semibold mb-3">Ingredients</h2>
-              {groupedIngredients.map((section, sIdx) => (
-                <div key={sIdx}>
-                  {section.groupName && (
-                    <p className="text-sm font-semibold text-muted mt-3 mb-1">
-                      {section.groupName}
-                    </p>
-                  )}
-                  <ul>
-                    {section.items.map((ing, idx) => (
-                      <li
-                        key={'id' in ing ? ing.id : idx}
-                        className="flex gap-2 py-1 border-b last:border-0 border-border"
-                      >
-                        <span className="font-medium">
-                          {ing.amount} {ing.unit}
-                        </span>
-                        <span>{ing.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              <div className="space-y-3">
+                {groupedIngredients.map((section, sIdx) => {
+                  const list = (
+                    <ul>
+                      {section.items.map((ing, idx) => (
+                        <li
+                          key={'id' in ing ? ing.id : idx}
+                          className="flex gap-2 py-1 border-b last:border-0 border-border"
+                        >
+                          <span className="font-medium">
+                            {ing.amount} {ing.unit}
+                          </span>
+                          <span>{ing.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                  if (!section.groupName) {
+                    return <div key={sIdx}>{list}</div>
+                  }
+                  return (
+                    <div
+                      key={sIdx}
+                      className="rounded-2xl border border-border bg-surface/50 overflow-hidden"
+                    >
+                      <h3 className="bg-surface px-3 py-1.5 text-sm font-semibold text-subtle border-b border-border">
+                        {section.groupName}
+                      </h3>
+                      <div className="px-3 py-1">{list}</div>
+                    </div>
+                  )
+                })}
+              </div>
             </section>
           )}
 

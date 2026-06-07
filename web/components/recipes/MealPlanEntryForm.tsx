@@ -6,6 +6,7 @@ import RecipeCombobox from './RecipeCombobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/cn'
+import { parseCustomItems, encodeCustomItems, type CustomItem } from '@/lib/customItems'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 
-type Tab = 'recipe' | 'custom'
+type Tab = 'recipe' | 'custom' | 'event'
 
 interface MealPlanEntryFormProps {
   open: boolean
@@ -23,8 +24,9 @@ interface MealPlanEntryFormProps {
   initialRecipeId?: string
   initialCustomName?: string
   initialServings?: number
+  initialIsEvent?: boolean
   saveLabel?: string
-  onSave: (recipeId: string, customName: string, servings: number) => void
+  onSave: (recipeId: string, customName: string, servings: number, isEvent: boolean) => void
   onCancel: () => void
 }
 
@@ -35,32 +37,39 @@ export default function MealPlanEntryForm({
   initialRecipeId = '',
   initialCustomName = '',
   initialServings = 1,
+  initialIsEvent = false,
   saveLabel = 'Save',
   onSave,
   onCancel
 }: MealPlanEntryFormProps) {
-  const initialTab: Tab = initialRecipeId ? 'recipe' : 'custom'
+  const initialTab: Tab = initialRecipeId ? 'recipe' : initialIsEvent ? 'event' : 'custom'
   const [tab, setTab] = useState<Tab>(initialTab)
   const [recipeId, setRecipeId] = useState(initialRecipeId)
   const [servings, setServings] = useState(initialServings)
-  const [customItems, setCustomItems] = useState<string[]>(
-    initialCustomName ? initialCustomName.split('\n').filter(Boolean) : ['']
-  )
+  const [customItems, setCustomItems] = useState<CustomItem[]>(() => {
+    const parsed = !initialIsEvent && initialCustomName ? parseCustomItems(initialCustomName) : []
+    return parsed.length > 0 ? parsed : [{ name: '', amount: '' }]
+  })
+  const [eventName, setEventName] = useState(initialIsEvent ? initialCustomName : '')
 
   const handleSave = () => {
     if (tab === 'recipe') {
       if (!recipeId) return
-      onSave(recipeId, '', servings)
+      onSave(recipeId, '', servings, false)
+    } else if (tab === 'event') {
+      const trimmed = eventName.trim()
+      if (!trimmed) return
+      onSave('', trimmed, 1, true)
     } else {
-      const joined = customItems.filter((s) => s.trim()).join('\n')
+      const joined = encodeCustomItems(customItems)
       if (!joined) return
-      onSave('', joined, 1)
+      onSave('', joined, 1, false)
     }
   }
 
-  const addCustomItem = () => setCustomItems((prev) => [...prev, ''])
-  const updateCustomItem = (i: number, val: string) =>
-    setCustomItems((prev) => prev.map((item, idx) => (idx === i ? val : item)))
+  const addCustomItem = () => setCustomItems((prev) => [...prev, { name: '', amount: '' }])
+  const updateCustomItem = (i: number, patch: Partial<CustomItem>) =>
+    setCustomItems((prev) => prev.map((item, idx) => (idx === i ? { ...item, ...patch } : item)))
   const removeCustomItem = (i: number) =>
     setCustomItems((prev) => prev.filter((_, idx) => idx !== i))
 
@@ -78,7 +87,7 @@ export default function MealPlanEntryForm({
         </DialogHeader>
 
         <div className="flex gap-1 rounded-xl bg-surface p-1 mb-4">
-          {(['recipe', 'custom'] as Tab[]).map((t) => (
+          {(['recipe', 'custom', 'event'] as Tab[]).map((t) => (
             <Button
               key={t}
               variant="ghost"
@@ -114,14 +123,26 @@ export default function MealPlanEntryForm({
               placeholder="Servings"
             />
           </div>
+        ) : tab === 'event' ? (
+          <div className="space-y-2">
+            <Input
+              type="text"
+              value={eventName}
+              onChange={(e) => setEventName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              placeholder="Event name"
+              autoFocus
+            />
+            <p className="text-xs text-muted">Events stay on the calendar but aren’t exported.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {customItems.map((item, i) => (
               <div key={i} className="flex gap-2">
                 <Input
                   type="text"
-                  value={item}
-                  onChange={(e) => updateCustomItem(i, e.target.value)}
+                  value={item.name}
+                  onChange={(e) => updateCustomItem(i, { name: e.target.value })}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -131,6 +152,22 @@ export default function MealPlanEntryForm({
                   placeholder={`Item ${i + 1}`}
                   autoFocus={i === 0}
                   className="flex-1"
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={item.amount}
+                  onChange={(e) => updateCustomItem(i, { amount: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (i === customItems.length - 1) addCustomItem()
+                    }
+                  }}
+                  placeholder="Qty"
+                  aria-label={`Amount for item ${i + 1}`}
+                  className="w-20"
                 />
                 {customItems.length > 1 && (
                   <Button
