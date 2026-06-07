@@ -12,20 +12,20 @@ on:
         default: false
     outputs:
       api_built:
-        value: ${{ jobs.docker.outputs.api_built }}
+        value: ${{ jobs.docker-api.outputs.built }}
       web_built:
-        value: ${{ jobs.docker.outputs.web_built }}
+        value: ${{ jobs.docker-web.outputs.built }}
 
 jobs:
-  docker:
-    name: Docker Build & Push
+  docker-api:
+    name: Docker Build & Push API
+    if: github.event_name == 'workflow_dispatch' || inputs.build_api
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     outputs:
-      api_built: ${{ steps.build-api.conclusion == 'success' }}
-      web_built: ${{ steps.build-web.conclusion == 'success' }}
+      built: ${{ steps.build.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -38,8 +38,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/metadata-action@v6
-        id: meta-api
-        if: github.event_name == 'workflow_dispatch' || inputs.build_api
+        id: meta
         with:
           images: ghcr.io/${{ github.repository }}/api
           tags: |
@@ -47,21 +46,39 @@ jobs:
             type=raw,value=latest
 
       - uses: docker/build-push-action@v7
-        id: build-api
-        if: github.event_name == 'workflow_dispatch' || inputs.build_api
+        id: build
         with:
           context: .
           file: api/Dockerfile
           push: true
-          tags: ${{ steps.meta-api.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,scope=api,mode=max
           build-args: |
             RELEASE=${{ github.sha }}
 
+  docker-web:
+    name: Docker Build & Push Web
+    if: github.event_name == 'workflow_dispatch' || inputs.build_web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      built: ${{ steps.build.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: docker/metadata-action@v6
-        id: meta-web
-        if: github.event_name == 'workflow_dispatch' || inputs.build_web
+        id: meta
         with:
           images: ghcr.io/${{ github.repository }}/web
           tags: |
@@ -69,13 +86,12 @@ jobs:
             type=raw,value=latest
 
       - uses: docker/build-push-action@v7
-        id: build-web
-        if: github.event_name == 'workflow_dispatch' || inputs.build_web
+        id: build
         with:
           context: .
           file: web/Dockerfile
           push: true
-          tags: ${{ steps.meta-web.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
           build-args: |

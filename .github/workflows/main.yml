@@ -126,6 +126,9 @@ jobs:
     needs: [proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: read
     steps:
       - name: Check all jobs passed or were skipped
         run: |
@@ -135,6 +138,46 @@ jobs:
               echo "Job failed with result: $result"
               exit 1
             fi
+          done
+
+      - name: Wait for Codecov to report
+        # Only the test jobs upload coverage, so only wait when one of them ran.
+        # If both were skipped, Codecov never posts a status and there is nothing to wait for.
+        if: needs.api-test.result == 'success' || needs.web-test.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # PRs: Codecov reports on the head commit, not the merge commit github.sha exposes.
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          # Codecov reports via the Checks API (codecov/patch, codecov/project),
+          # not the legacy commit-status API, so poll check-runs.
+          echo "Waiting for Codecov checks on $SHA"
+          deadline=$(( $(date +%s) + 600 ))
+          while true; do
+            checks=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+              --jq '.check_runs[] | select(.name | startswith("codecov")) | "\(.name)=\(.status):\(.conclusion)"')
+
+            if [[ -z "$checks" ]]; then
+              echo "No Codecov checks yet; waiting..."
+            else
+              echo "$checks"
+              if echo "$checks" | grep -qv '=completed:'; then
+                echo "Codecov checks still running..."
+              elif echo "$checks" | grep -qvE '=completed:(success|neutral|skipped)$'; then
+                echo "Codecov reported a failing check."
+                exit 1
+              else
+                echo "All Codecov checks succeeded."
+                exit 0
+              fi
+            fi
+
+            if [[ $(date +%s) -ge $deadline ]]; then
+              echo "Timed out waiting for Codecov to report."
+              exit 1
+            fi
+            sleep 15
           done
 
   docker:
