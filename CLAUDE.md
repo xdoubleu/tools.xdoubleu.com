@@ -92,7 +92,7 @@ These two steps are **not optional**. Do not mark any task complete without runn
 
 See `.github/workflows/` for the pipeline. `main.yml` orchestrates reusable workflows: `proto-check`, `build-api`, `build-web`, `api-lint`, `api-test`, `web-lint`, `web-test`, gated by a `changes` path filter.
 
-- **On pull requests** (and `workflow_dispatch`): the full suite runs. Lint and test run in parallel with the builds (they compile independently — they do not wait on `build-*`). The `ci-pass` job aggregates them and is the required status check.
+- **On pull requests** (and `workflow_dispatch`): the full suite runs. Lint and test run in parallel with the builds (they compile independently — they do not wait on `build-*`). The `ci-pass` job aggregates them and is the required status check. It also waits for Codecov to post its commit statuses (`codecov/project`, `codecov/patch`) and fails if Codecov reports a failure — so coverage gating flows through `ci-pass` without it recomputing coverage itself. The wait is skipped when neither test job ran (no upload, so no Codecov status to wait for).
 - **On push to `main`**: CI does **not** re-run — the PR's green checks are trusted. Only `changes → docker → deploy` runs. Docker's own multi-stage build is the build gate (a failed `go build`/`yarn build` stops the push and deploy). `docker.yml` uses GitHub Actions layer caching (`type=gha`, scoped per image) so unchanged dependency layers are reused. `deploy` then triggers the DigitalOcean deployment.
 
 Because `main` is deployed without re-testing, protect `main` from direct pushes and merge only PRs whose CI passed.

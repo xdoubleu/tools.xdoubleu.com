@@ -126,6 +126,9 @@ jobs:
     needs: [proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: read
     steps:
       - name: Check all jobs passed or were skipped
         run: |
@@ -135,6 +138,43 @@ jobs:
               echo "Job failed with result: $result"
               exit 1
             fi
+          done
+
+      - name: Wait for Codecov to report
+        # Only the test jobs upload coverage, so only wait when one of them ran.
+        # If both were skipped, Codecov never posts a status and there is nothing to wait for.
+        if: needs.api-test.result == 'success' || needs.web-test.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # PRs: Codecov reports on the head commit, not the merge commit github.sha exposes.
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          echo "Waiting for Codecov status on $SHA"
+          deadline=$(( $(date +%s) + 600 ))
+          while true; do
+            statuses=$(gh api "repos/$REPO/commits/$SHA/status" \
+              --jq '.statuses[] | select(.context | startswith("codecov")) | "\(.context)=\(.state)"')
+
+            if [[ -z "$statuses" ]]; then
+              echo "No Codecov statuses yet; waiting..."
+            else
+              echo "$statuses"
+              if echo "$statuses" | grep -qE '=(failure|error)$'; then
+                echo "Codecov reported a failing status."
+                exit 1
+              fi
+              if ! echo "$statuses" | grep -q '=pending$'; then
+                echo "All Codecov statuses succeeded."
+                exit 0
+              fi
+            fi
+
+            if [[ $(date +%s) -ge $deadline ]]; then
+              echo "Timed out waiting for Codecov to report."
+              exit 1
+            fi
+            sleep 15
           done
 
   docker:
