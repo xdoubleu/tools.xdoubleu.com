@@ -3,6 +3,7 @@ package shoppinglist_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -477,5 +478,65 @@ func TestListItemNames_IncludesCustomItemsWithAssignment(t *testing.T) {
 		}
 	}
 	require.True(t, found)
+	assert.Equal(t, cat.Id, got)
+}
+
+// Custom (recipe-less) meal-plan entries store hand-typed item names in
+// custom_name. Those names must surface in the item catalog so they can be
+// categorized; otherwise they always export as uncategorized.
+func TestListItemNames_IncludesMealPlanCustomItems(t *testing.T) {
+	planID := createTestPlan(t, "Catalog Plan "+uuid.NewString())
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	// Two newline-separated items; the second carries a tab amount that must be
+	// stripped so only the bare name reaches the catalog.
+	plain := "tortillas-" + uuid.NewString()
+	withAmount := "salsa-" + uuid.NewString()
+	addCustomPlanMeal(t, planID, tomorrow, "noon", plain+"\n"+withAmount+"\t2")
+
+	client := newShoppingClient(t)
+	resp, err := client.ListItemNames(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+	)
+	require.NoError(t, err)
+
+	byName := make(map[string]string, len(resp.Msg.Names))
+	for _, n := range resp.Msg.Names {
+		byName[n.Name] = n.CategoryId
+	}
+	catID, plainFound := byName[plain]
+	require.True(t, plainFound, "plain meal-plan custom name missing from catalog")
+	assert.Empty(t, catID, "unassigned name should have empty category")
+	_, amountFound := byName[withAmount]
+	require.True(
+		t,
+		amountFound,
+		"tab-amount meal-plan custom name missing from catalog",
+	)
+
+	// The surfaced name is categorizable, and the assignment is reflected back.
+	cat := createCategory(t, client, "Mexican-"+uuid.NewString())
+	_, err = client.SetItemCategory(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.SetItemCategoryRequest{
+			Name:       plain,
+			CategoryId: cat.Id,
+		}),
+	)
+	require.NoError(t, err)
+
+	resp, err = client.ListItemNames(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+	)
+	require.NoError(t, err)
+	var got string
+	for _, n := range resp.Msg.Names {
+		if n.Name == plain {
+			got = n.CategoryId
+		}
+	}
 	assert.Equal(t, cat.Id, got)
 }
