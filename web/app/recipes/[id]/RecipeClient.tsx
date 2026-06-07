@@ -173,17 +173,16 @@ export default function RecipeClient({ id }: { id: string }) {
                       ))}
                     </ul>
                   )
-                  if (!section.groupName) {
-                    return <div key={sIdx}>{list}</div>
-                  }
                   return (
                     <div
                       key={sIdx}
                       className="rounded-2xl border border-border bg-surface/50 overflow-hidden"
                     >
-                      <h3 className="bg-surface px-3 py-1.5 text-sm font-semibold text-subtle border-b border-border">
-                        {section.groupName}
-                      </h3>
+                      {section.groupName && (
+                        <h3 className="bg-surface px-3 py-1.5 text-sm font-semibold text-subtle border-b border-border">
+                          {section.groupName}
+                        </h3>
+                      )}
                       <div className="px-3 py-1">{list}</div>
                     </div>
                   )

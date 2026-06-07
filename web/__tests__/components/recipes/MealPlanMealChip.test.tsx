@@ -60,18 +60,22 @@ describe('MealPlanMealChip', () => {
     expect(screen.getByText('• Rice')).toBeInTheDocument()
   })
 
-  it('renders an event without bullets and does not split on newlines', () => {
+  it('renders an excluded custom entry as a muted bullet list', () => {
     renderChip({
-      meal: makeMeal({ recipeId: '', customName: 'Birthday party', isEvent: true })
+      meal: makeMeal({
+        recipeId: '',
+        customName: 'Chicken\nRice',
+        excludeFromShoppingList: true
+      })
     })
-    // The name is shown as one italic label, not as a bullet list.
-    expect(screen.getByText('Birthday party')).toBeInTheDocument()
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
+    const items = screen.getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(items[0]).toHaveClass('text-muted')
   })
 
-  it('does not show a servings multiplier for events', () => {
+  it('does not show a servings multiplier for custom entries', () => {
     renderChip({
-      meal: makeMeal({ recipeId: '', customName: 'Dinner out', servings: 4, isEvent: true })
+      meal: makeMeal({ recipeId: '', customName: 'Dinner out', servings: 4 })
     })
     expect(screen.queryByText('×4')).not.toBeInTheDocument()
   })

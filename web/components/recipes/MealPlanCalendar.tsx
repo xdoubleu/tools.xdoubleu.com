@@ -60,7 +60,7 @@ export default function MealPlanCalendar({
     recipeId: string,
     customName: string,
     servings: number,
-    isEvent: boolean
+    excludeFromShoppingList: boolean
   ) => {
     if (!selectedSlot || !selectedDate) return
     try {
@@ -71,7 +71,7 @@ export default function MealPlanCalendar({
         recipeId,
         customName,
         servings,
-        isEvent
+        excludeFromShoppingList
       }
       await addMeal(req)
       setSelectedSlot(null)
@@ -163,7 +163,7 @@ export default function MealPlanCalendar({
     recipeId: string,
     customName: string,
     servings: number,
-    isEvent: boolean
+    excludeFromShoppingList: boolean
   ) => {
     if (!editingMeal) return
     try {
@@ -175,7 +175,7 @@ export default function MealPlanCalendar({
         recipeId,
         customName,
         servings,
-        isEvent
+        excludeFromShoppingList
       }
       await addMeal(req)
       setEditingMeal(null)
@@ -186,9 +186,7 @@ export default function MealPlanCalendar({
   }
 
   const swappingMealName = swappingMeal?.customName
-    ? swappingMeal.isEvent
-      ? swappingMeal.customName
-      : formatCustomNameLabel(swappingMeal.customName)
+    ? formatCustomNameLabel(swappingMeal.customName)
     : recipes.find((r) => r.id === swappingMeal?.recipeId)?.name || '?'
 
   const renderCell = (formattedDate: string, slot: string) => {
@@ -366,7 +364,9 @@ export default function MealPlanCalendar({
             initialRecipeId={isEditing ? editingMeal!.recipeId : ''}
             initialCustomName={isEditing ? editingMeal!.customName : ''}
             initialServings={isEditing ? editingMeal!.servings : 1}
-            initialIsEvent={isEditing ? editingMeal!.isEvent : false}
+            initialExcludeFromShoppingList={
+              isEditing ? editingMeal!.excludeFromShoppingList : false
+            }
             saveLabel={isAdding ? 'Add' : 'Save'}
             onSave={isAdding ? handleSaveAdd : handleSaveEdit}
             onCancel={handleCancel}

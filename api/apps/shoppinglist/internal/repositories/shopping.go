@@ -174,8 +174,8 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		-- bare "name" or "name\tamount". Expand each line into its own item so
 		-- it reaches the shopping list, parsing the optional amount after the
 		-- tab. Dedupe by name within the plan so the same item added on several
-		-- days is one line, summing the amounts. Events are planning-only
-		-- entries that never reach the shopping list.
+		-- days is one line, summing the amounts. Custom entries flagged
+		-- exclude_from_shopping_list never reach the shopping list.
 		SELECT
 		    '' AS recipe_name,
 		    '' AS group_name,
@@ -189,7 +189,7 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		     unnest(string_to_array(pm.custom_name, E'\n')) AS item
 		WHERE pm.plan_id = $1
 		  AND pm.recipe_id IS NULL
-		  AND pm.is_event = FALSE
+		  AND pm.exclude_from_shopping_list = FALSE
 		  AND pm.meal_date BETWEEN $2 AND $3
 		  AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
 		  AND TRIM(split_part(item, E'\t', 1)) <> ''

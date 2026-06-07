@@ -233,6 +233,47 @@ describe('RecipeClient', () => {
     expect(screen.getByText('Salt')).toBeInTheDocument()
   })
 
+  it('wraps ungrouped ingredients in a card matching the grouped sections', () => {
+    const recipe = create(RecipeSchema, {
+      id: 'r1',
+      name: 'Stew',
+      baseServings: 4,
+      ingredients: [
+        create(IngredientSchema, {
+          id: 'i1',
+          name: 'Onion',
+          amount: 1,
+          unit: '',
+          sortOrder: 1,
+          groupName: 'Sauce'
+        }),
+        create(IngredientSchema, {
+          id: 'i2',
+          name: 'Salt',
+          amount: 1,
+          unit: 'tsp',
+          sortOrder: 2
+        })
+      ]
+    })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    // The ungrouped ingredient is wrapped in the same rounded card shell as grouped ones,
+    // just without a header — climb to the bordered card container.
+    const saltCard = screen.getByText('Salt').closest('.rounded-2xl')
+    if (!(saltCard instanceof HTMLElement)) throw new Error('expected ungrouped card')
+    expect(saltCard).toHaveClass('border')
+    // It has no group heading of its own.
+    expect(within(saltCard).queryByRole('heading')).not.toBeInTheDocument()
+  })
+
   it('shows group headers with scaled ingredients by mapping from sorted originals', () => {
     const recipe = create(RecipeSchema, {
       id: 'r1',

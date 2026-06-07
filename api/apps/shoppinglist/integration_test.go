@@ -323,9 +323,9 @@ func TestGetMealPlanExportItems_IncludesCustomMealItems(t *testing.T) {
 	assert.Contains(t, names, "paper towels")
 }
 
-// addEventPlanMeal inserts a planning-only event entry (recipe-less, is_event)
-// that must never reach the shopping list export.
-func addEventPlanMeal(
+// addExcludedPlanMeal inserts a recipe-less entry flagged
+// exclude_from_shopping_list that must never reach the shopping list export.
+func addExcludedPlanMeal(
 	t *testing.T,
 	planID uuid.UUID,
 	mealDate time.Time,
@@ -334,22 +334,23 @@ func addEventPlanMeal(
 	t.Helper()
 	_, err := testDB.Exec(context.Background(), `
 		INSERT INTO mealplans.plan_meals
-		(plan_id, meal_date, meal_slot, custom_name, servings, is_event)
+		(plan_id, meal_date, meal_slot, custom_name, servings,
+		 exclude_from_shopping_list)
 		VALUES ($1, $2, 'evening', $3, 1, TRUE)`,
 		planID, mealDate.Format("2006-01-02"), name,
 	)
 	require.NoError(t, err)
 }
 
-// Event entries are planning-only and must be excluded from the export, even
-// though they are stored recipe-less like custom items.
-func TestGetMealPlanExportItems_ExcludesEvents(t *testing.T) {
-	planID := createTestPlan(t, "Plan With Event")
+// Entries flagged exclude_from_shopping_list must be excluded from the export,
+// even though they are stored recipe-less like custom items.
+func TestGetMealPlanExportItems_ExcludesFlaggedEntries(t *testing.T) {
+	planID := createTestPlan(t, "Plan With Excluded Entry")
 	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
 	addCustomPlanMeal(t, planID, tomorrow, "breakfast", "Olive Oil")
-	addEventPlanMeal(t, planID, tomorrow, "Birthday Dinner")
+	addExcludedPlanMeal(t, planID, tomorrow, "Birthday Dinner")
 
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(

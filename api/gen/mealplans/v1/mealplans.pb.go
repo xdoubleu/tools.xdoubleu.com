@@ -32,11 +32,11 @@ type PlanMeal struct {
 	CustomName string                 `protobuf:"bytes,6,opt,name=custom_name,json=customName,proto3" json:"custom_name,omitempty"`
 	Servings   int32                  `protobuf:"varint,7,opt,name=servings,proto3" json:"servings,omitempty"`
 	Recipe     *v1.Recipe             `protobuf:"bytes,8,opt,name=recipe,proto3" json:"recipe,omitempty"`
-	// Planning-only entry: shows on the calendar and the iCal feed but is
-	// excluded from the shopping-list export.
-	IsEvent       bool `protobuf:"varint,9,opt,name=is_event,json=isEvent,proto3" json:"is_event,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// When set, a custom (recipe-less) entry still shows on the calendar and the
+	// iCal feed but its items are excluded from the shopping-list export.
+	ExcludeFromShoppingList bool `protobuf:"varint,9,opt,name=exclude_from_shopping_list,json=excludeFromShoppingList,proto3" json:"exclude_from_shopping_list,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *PlanMeal) Reset() {
@@ -125,9 +125,9 @@ func (x *PlanMeal) GetRecipe() *v1.Recipe {
 	return nil
 }
 
-func (x *PlanMeal) GetIsEvent() bool {
+func (x *PlanMeal) GetExcludeFromShoppingList() bool {
 	if x != nil {
-		return x.IsEvent
+		return x.ExcludeFromShoppingList
 	}
 	return false
 }
@@ -661,16 +661,16 @@ func (*UpdatePlanResponse) Descriptor() ([]byte, []int) {
 }
 
 type AddMealRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PlanId        string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	MealDate      string                 `protobuf:"bytes,2,opt,name=meal_date,json=mealDate,proto3" json:"meal_date,omitempty"`
-	MealSlot      string                 `protobuf:"bytes,3,opt,name=meal_slot,json=mealSlot,proto3" json:"meal_slot,omitempty"`
-	RecipeId      string                 `protobuf:"bytes,4,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
-	CustomName    string                 `protobuf:"bytes,5,opt,name=custom_name,json=customName,proto3" json:"custom_name,omitempty"`
-	Servings      int32                  `protobuf:"varint,6,opt,name=servings,proto3" json:"servings,omitempty"`
-	IsEvent       bool                   `protobuf:"varint,7,opt,name=is_event,json=isEvent,proto3" json:"is_event,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	PlanId                  string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	MealDate                string                 `protobuf:"bytes,2,opt,name=meal_date,json=mealDate,proto3" json:"meal_date,omitempty"`
+	MealSlot                string                 `protobuf:"bytes,3,opt,name=meal_slot,json=mealSlot,proto3" json:"meal_slot,omitempty"`
+	RecipeId                string                 `protobuf:"bytes,4,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	CustomName              string                 `protobuf:"bytes,5,opt,name=custom_name,json=customName,proto3" json:"custom_name,omitempty"`
+	Servings                int32                  `protobuf:"varint,6,opt,name=servings,proto3" json:"servings,omitempty"`
+	ExcludeFromShoppingList bool                   `protobuf:"varint,7,opt,name=exclude_from_shopping_list,json=excludeFromShoppingList,proto3" json:"exclude_from_shopping_list,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *AddMealRequest) Reset() {
@@ -745,9 +745,9 @@ func (x *AddMealRequest) GetServings() int32 {
 	return 0
 }
 
-func (x *AddMealRequest) GetIsEvent() bool {
+func (x *AddMealRequest) GetExcludeFromShoppingList() bool {
 	if x != nil {
-		return x.IsEvent
+		return x.ExcludeFromShoppingList
 	}
 	return false
 }
@@ -1168,7 +1168,7 @@ var File_mealplans_v1_mealplans_proto protoreflect.FileDescriptor
 
 const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\n" +
-	"\x1cmealplans/v1/mealplans.proto\x12\fmealplans.v1\x1a\x18recipes/v1/recipes.proto\"\x8e\x02\n" +
+	"\x1cmealplans/v1/mealplans.proto\x12\fmealplans.v1\x1a\x18recipes/v1/recipes.proto\"\xb0\x02\n" +
 	"\bPlanMeal\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\aplan_id\x18\x02 \x01(\tR\x06planId\x12\x1b\n" +
@@ -1178,8 +1178,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\vcustom_name\x18\x06 \x01(\tR\n" +
 	"customName\x12\x1a\n" +
 	"\bservings\x18\a \x01(\x05R\bservings\x12*\n" +
-	"\x06recipe\x18\b \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\x12\x19\n" +
-	"\bis_event\x18\t \x01(\bR\aisEvent\"\xc2\x02\n" +
+	"\x06recipe\x18\b \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\x12;\n" +
+	"\x1aexclude_from_shopping_list\x18\t \x01(\bR\x17excludeFromShoppingList\"\xc2\x02\n" +
 	"\x04Plan\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
 	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\x12\x12\n" +
@@ -1226,7 +1226,7 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
 	"\x0fical_hide_slots\x18\x03 \x03(\tR\ricalHideSlots\x12$\n" +
 	"\x0eical_hide_past\x18\x04 \x01(\bR\ficalHidePast\"\x14\n" +
-	"\x12UpdatePlanResponse\"\xd8\x01\n" +
+	"\x12UpdatePlanResponse\"\xfa\x01\n" +
 	"\x0eAddMealRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
 	"\tmeal_date\x18\x02 \x01(\tR\bmealDate\x12\x1b\n" +
@@ -1234,8 +1234,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\trecipe_id\x18\x04 \x01(\tR\brecipeId\x12\x1f\n" +
 	"\vcustom_name\x18\x05 \x01(\tR\n" +
 	"customName\x12\x1a\n" +
-	"\bservings\x18\x06 \x01(\x05R\bservings\x12\x19\n" +
-	"\bis_event\x18\a \x01(\bR\aisEvent\"\x11\n" +
+	"\bservings\x18\x06 \x01(\x05R\bservings\x12;\n" +
+	"\x1aexclude_from_shopping_list\x18\a \x01(\bR\x17excludeFromShoppingList\"\x11\n" +
 	"\x0fAddMealResponse\"E\n" +
 	"\x11DeleteMealRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
