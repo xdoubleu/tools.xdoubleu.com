@@ -33,13 +33,13 @@ type Plan struct {
 }
 
 type PlanMeal struct {
-	ID         uuid.UUID
-	PlanID     uuid.UUID
-	MealDate   time.Time
-	MealSlot   string
-	RecipeID   *uuid.UUID
-	CustomName string
-	Servings   int
-	RecipeName string
-	IsEvent    bool
+	ID                      uuid.UUID
+	PlanID                  uuid.UUID
+	MealDate                time.Time
+	MealSlot                string
+	RecipeID                *uuid.UUID
+	CustomName              string
+	Servings                int
+	RecipeName              string
+	ExcludeFromShoppingList bool
 }

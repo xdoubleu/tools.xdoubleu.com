@@ -15,7 +15,7 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 
-type Tab = 'recipe' | 'custom' | 'event'
+type Tab = 'recipe' | 'custom'
 
 interface MealPlanEntryFormProps {
   open: boolean
@@ -24,9 +24,14 @@ interface MealPlanEntryFormProps {
   initialRecipeId?: string
   initialCustomName?: string
   initialServings?: number
-  initialIsEvent?: boolean
+  initialExcludeFromShoppingList?: boolean
   saveLabel?: string
-  onSave: (recipeId: string, customName: string, servings: number, isEvent: boolean) => void
+  onSave: (
+    recipeId: string,
+    customName: string,
+    servings: number,
+    excludeFromShoppingList: boolean
+  ) => void
   onCancel: () => void
 }
 
@@ -37,33 +42,31 @@ export default function MealPlanEntryForm({
   initialRecipeId = '',
   initialCustomName = '',
   initialServings = 1,
-  initialIsEvent = false,
+  initialExcludeFromShoppingList = false,
   saveLabel = 'Save',
   onSave,
   onCancel
 }: MealPlanEntryFormProps) {
-  const initialTab: Tab = initialRecipeId ? 'recipe' : initialIsEvent ? 'event' : 'custom'
+  const initialTab: Tab = initialRecipeId ? 'recipe' : 'custom'
   const [tab, setTab] = useState<Tab>(initialTab)
   const [recipeId, setRecipeId] = useState(initialRecipeId)
   const [servings, setServings] = useState(initialServings)
   const [customItems, setCustomItems] = useState<CustomItem[]>(() => {
-    const parsed = !initialIsEvent && initialCustomName ? parseCustomItems(initialCustomName) : []
+    const parsed = initialCustomName ? parseCustomItems(initialCustomName) : []
     return parsed.length > 0 ? parsed : [{ name: '', amount: '' }]
   })
-  const [eventName, setEventName] = useState(initialIsEvent ? initialCustomName : '')
+  const [excludeFromShoppingList, setExcludeFromShoppingList] = useState(
+    initialExcludeFromShoppingList
+  )
 
   const handleSave = () => {
     if (tab === 'recipe') {
       if (!recipeId) return
       onSave(recipeId, '', servings, false)
-    } else if (tab === 'event') {
-      const trimmed = eventName.trim()
-      if (!trimmed) return
-      onSave('', trimmed, 1, true)
     } else {
       const joined = encodeCustomItems(customItems)
       if (!joined) return
-      onSave('', joined, 1, false)
+      onSave('', joined, 1, excludeFromShoppingList)
     }
   }
 
@@ -87,7 +90,7 @@ export default function MealPlanEntryForm({
         </DialogHeader>
 
         <div className="flex gap-1 rounded-xl bg-surface p-1 mb-4">
-          {(['recipe', 'custom', 'event'] as Tab[]).map((t) => (
+          {(['recipe', 'custom'] as Tab[]).map((t) => (
             <Button
               key={t}
               variant="ghost"
@@ -122,18 +125,6 @@ export default function MealPlanEntryForm({
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               placeholder="Servings"
             />
-          </div>
-        ) : tab === 'event' ? (
-          <div className="space-y-2">
-            <Input
-              type="text"
-              value={eventName}
-              onChange={(e) => setEventName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              placeholder="Event name"
-              autoFocus
-            />
-            <p className="text-xs text-muted">Events stay on the calendar but aren’t exported.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -184,6 +175,15 @@ export default function MealPlanEntryForm({
             <Button variant="link" size="sm" className="self-start" onClick={addCustomItem}>
               + Add item
             </Button>
+            <label className="flex items-center gap-2 pt-1 text-xs text-muted">
+              <input
+                type="checkbox"
+                checked={excludeFromShoppingList}
+                onChange={(e) => setExcludeFromShoppingList(e.target.checked)}
+                className="size-4 rounded accent-accent"
+              />
+              Keep off the shopping list
+            </label>
           </div>
         )}
 

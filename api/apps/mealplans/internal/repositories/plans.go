@@ -150,11 +150,12 @@ func (r *PlansRepository) AddMeal(
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO mealplans.plan_meals
 		       (plan_id, meal_date, meal_slot, recipe_id, custom_name,
-		        servings, is_event)
+		        servings, exclude_from_shopping_list)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id`,
 		meal.PlanID, meal.MealDate, meal.MealSlot,
-		meal.RecipeID, meal.CustomName, meal.Servings, meal.IsEvent,
+		meal.RecipeID, meal.CustomName, meal.Servings,
+		meal.ExcludeFromShoppingList,
 	).Scan(&meal.ID)
 	if err != nil {
 		return nil, err
@@ -186,8 +187,8 @@ func (r *PlansRepository) GetMealsInWindow(
 
 	const baseCols = `
 		SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot,
-		       pm.recipe_id, pm.custom_name, pm.servings, pm.is_event,
-		       r.name
+		       pm.recipe_id, pm.custom_name, pm.servings,
+		       pm.exclude_from_shopping_list, r.name
 		FROM mealplans.plan_meals pm
 		LEFT JOIN recipes.recipes r ON r.id = pm.recipe_id`
 
@@ -224,7 +225,7 @@ func (r *PlansRepository) GetMealsInWindow(
 			&meal.RecipeID,
 			&meal.CustomName,
 			&meal.Servings,
-			&meal.IsEvent,
+			&meal.ExcludeFromShoppingList,
 			&recipeName,
 		); err != nil {
 			return nil, err

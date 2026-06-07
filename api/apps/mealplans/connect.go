@@ -74,15 +74,16 @@ func protoPlanMeal(m *models.PlanMeal) *mealplansv1.PlanMeal {
 	if m.RecipeID != nil {
 		recipeID = m.RecipeID.String()
 	}
+	servings := int32(m.Servings) //nolint:gosec // int32 safe for domain values
 	pb := &mealplansv1.PlanMeal{
-		Id:         m.ID.String(),
-		PlanId:     m.PlanID.String(),
-		MealDate:   m.MealDate.Format(time.DateOnly),
-		MealSlot:   m.MealSlot,
-		RecipeId:   recipeID,
-		CustomName: m.CustomName,
-		Servings:   int32(m.Servings), //nolint:gosec // int32 safe for domain values
-		IsEvent:    m.IsEvent,
+		Id:                      m.ID.String(),
+		PlanId:                  m.PlanID.String(),
+		MealDate:                m.MealDate.Format(time.DateOnly),
+		MealSlot:                m.MealSlot,
+		RecipeId:                recipeID,
+		CustomName:              m.CustomName,
+		Servings:                servings,
+		ExcludeFromShoppingList: m.ExcludeFromShoppingList,
 	}
 	if m.RecipeID != nil && m.RecipeName != "" {
 		pb.Recipe = &recipesv1.Recipe{
@@ -319,13 +320,13 @@ func (h *mealplansConnectHandler) AddMeal(
 	}
 
 	meal := models.PlanMeal{ //nolint:exhaustruct // other fields optional
-		PlanID:     planID,
-		MealDate:   mealDate,
-		MealSlot:   req.Msg.MealSlot,
-		RecipeID:   recipeID,
-		CustomName: req.Msg.CustomName,
-		Servings:   servings,
-		IsEvent:    req.Msg.IsEvent,
+		PlanID:                  planID,
+		MealDate:                mealDate,
+		MealSlot:                req.Msg.MealSlot,
+		RecipeID:                recipeID,
+		CustomName:              req.Msg.CustomName,
+		Servings:                servings,
+		ExcludeFromShoppingList: req.Msg.ExcludeFromShoppingList,
 	}
 
 	if err = h.app.services.Plans.AddMeal(ctx, planID, user.ID, meal); err != nil {

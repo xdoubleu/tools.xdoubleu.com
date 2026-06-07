@@ -29,14 +29,12 @@ export default function MealPlanMealChip({
   onEditClick,
   onDeleteMeal
 }: MealPlanMealChipProps) {
-  const isEvent = meal.isEvent
-  const customItems = !isEvent && meal.customName ? parseCustomItems(meal.customName) : []
+  const excluded = meal.excludeFromShoppingList
+  const customItems = meal.customName ? parseCustomItems(meal.customName) : []
   const isCustom = customItems.length > 0
-  const fullText = isEvent
-    ? meal.customName
-    : isCustom
-      ? customItems.map(formatCustomItemLabel).join('\n')
-      : recipe?.name || '?'
+  const fullText = isCustom
+    ? customItems.map(formatCustomItemLabel).join('\n')
+    : recipe?.name || '?'
 
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -131,22 +129,21 @@ export default function MealPlanMealChip({
       className={`flex min-w-0 cursor-pointer select-none items-start justify-between gap-1 rounded-xl px-1.5 py-1 ${
         isSwapping
           ? 'bg-accent/20 ring-2 ring-accent'
-          : isEvent
+          : excluded
             ? 'bg-surface hover:bg-hover'
             : 'bg-accent/10 hover:bg-accent/20'
       }`}
     >
       <div className="min-w-0 flex-1">
-        {isEvent ? (
-          <span className={`flex items-start gap-1 wrap-break-word text-xs text-muted ${clamp}`}>
-            <span aria-hidden>📅</span>
-            <span className="italic">{meal.customName}</span>
-          </span>
-        ) : isCustom ? (
+        {isCustom ? (
           <ul className={`space-y-0.5 ${clamp}`}>
             {customItems.map((item, i) => (
-              <li key={i} className="wrap-break-word text-xs text-fg">
+              <li
+                key={i}
+                className={`wrap-break-word text-xs ${excluded ? 'text-muted' : 'text-fg'}`}
+              >
                 • {formatCustomItemLabel(item)}
+                {excluded && i === 0 && <span aria-hidden> 🚫</span>}
               </li>
             ))}
           </ul>
@@ -154,7 +151,7 @@ export default function MealPlanMealChip({
           <span className={`wrap-break-word text-sm text-fg ${clamp}`}>{recipe?.name || '?'}</span>
         )}
       </div>
-      {!isCustom && !isEvent && meal.servings > 1 && (
+      {!isCustom && meal.servings > 1 && (
         <span className="shrink-0 pt-0.5 text-xs text-muted">×{meal.servings}</span>
       )}
       {inSwapMode ? (

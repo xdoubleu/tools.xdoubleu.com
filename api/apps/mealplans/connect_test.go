@@ -235,7 +235,7 @@ func TestAddMeal_WithCustomName(t *testing.T) {
 	assert.Equal(t, "", getResp.Msg.Plan.Meals[0].RecipeId)
 }
 
-func TestAddMeal_AsEvent(t *testing.T) {
+func TestAddMeal_ExcludedFromShoppingList(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(
 		context.Background(),
@@ -247,11 +247,11 @@ func TestAddMeal_AsEvent(t *testing.T) {
 	planID := createPlanInDB(t, "Event Plan")
 
 	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
-		PlanId:     planID,
-		MealDate:   time.Now().Format("2006-01-02"),
-		MealSlot:   "evening",
-		CustomName: "Birthday dinner",
-		IsEvent:    true,
+		PlanId:                  planID,
+		MealDate:                time.Now().Format("2006-01-02"),
+		MealSlot:                "evening",
+		CustomName:              "Birthday dinner",
+		ExcludeFromShoppingList: true,
 	}))
 	require.NoError(t, err)
 
@@ -263,7 +263,7 @@ func TestAddMeal_AsEvent(t *testing.T) {
 	meal := getResp.Msg.Plan.Meals[0]
 	assert.Equal(t, "Birthday dinner", meal.CustomName)
 	assert.Empty(t, meal.RecipeId)
-	assert.True(t, meal.IsEvent)
+	assert.True(t, meal.ExcludeFromShoppingList)
 }
 
 func TestAddMeal_RequiresRecipeOrName(t *testing.T) {
