@@ -109,7 +109,7 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    expect(screen.getByText('The Witcher 3')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'The Witcher 3' })).toBeInTheDocument()
   })
 
   it('renders achievements section when achievements exist', () => {
@@ -150,7 +150,7 @@ describe('SteamGameClient', () => {
     expect(useBacklogSteamGame).toHaveBeenCalledWith(456)
   })
 
-  it('renders backlog link', () => {
+  it('renders games link', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     jest.mocked(useBacklogSteamGame).mockReturnValue({
       data: undefined,
@@ -159,8 +159,8 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    const backlogLink = screen.getByText(/Backlog/).closest('a')
-    expect(backlogLink).toHaveAttribute('href', '/backlog')
+    const backlogLink = screen.getByText(/Games/).closest('a')
+    expect(backlogLink).toHaveAttribute('href', '/backlog/steam')
   })
 
   it('displays playtime in hours', () => {

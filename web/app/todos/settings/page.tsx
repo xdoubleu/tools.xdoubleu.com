@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useTodoSettings } from '@/hooks/useTodoSettings'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { SettingsWorkspaces } from '@/components/todos/settings/SettingsWorkspaces'
 import { SettingsSections } from '@/components/todos/settings/SettingsSections'
 import { SettingsLabels } from '@/components/todos/settings/SettingsLabels'
@@ -23,10 +23,11 @@ export default function TodoSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
-      <div className="flex items-center gap-4">
-        <Link href="/todos" className="text-sm text-muted hover:text-fg">
-          ← Back
-        </Link>
+      <div>
+        <Breadcrumb
+          className="mb-3"
+          items={[{ label: 'Todos', href: '/todos' }, { label: 'Settings' }]}
+        />
         <h1 className="text-xl font-semibold text-fg">Settings</h1>
       </div>
       <SettingsGeneral data={data} mutate={mutate} />

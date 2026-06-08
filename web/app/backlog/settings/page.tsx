@@ -1,16 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useSettings, useSaveSettings } from '@/hooks/useSettings'
+import { useImportBooks } from '@/hooks/useBacklog'
 import { mutate } from 'swr'
 import type { Integrations } from '@/lib/gen/settings/v1/settings_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function BacklogSettingsPage() {
   const { data, isLoading, error } = useSettings()
   const saveSettings = useSaveSettings()
+  const importBooks = useImportBooks()
 
   const [steamApiKey, setSteamApiKey] = useState('')
   const [steamUserId, setSteamUserId] = useState('')
@@ -19,6 +21,7 @@ export default function BacklogSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [initialized, setInitialized] = useState(false)
+  const [importStatus, setImportStatus] = useState('')
 
   if (!isLoading && data?.integrations && !initialized) {
     setSteamApiKey(data.integrations.steamApiKey)
@@ -57,17 +60,33 @@ export default function BacklogSettingsPage() {
     }
   }
 
+  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportStatus('Importing…')
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const csvData = ev.target?.result
+      if (typeof csvData !== 'string') return
+      try {
+        const res = await importBooks(csvData)
+        setImportStatus(`Imported ${res.importedCount} book(s).`)
+        await mutate('/backlog/books')
+      } catch {
+        setImportStatus('Import failed.')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
-      <div className="mb-6 flex items-center gap-2 text-sm text-muted">
-        <Link href="/backlog" className="hover:text-accent">
-          Backlog
-        </Link>
-        <span>/</span>
-        <span className="text-fg">Integrations</span>
-      </div>
-
-      <h1 className="mb-6 text-xl font-semibold text-fg">Integrations</h1>
+      <Breadcrumb
+        className="mb-4"
+        items={[{ label: 'Backlog', href: '/backlog' }, { label: 'Settings' }]}
+      />
+      <h1 className="mb-6 text-xl font-semibold text-fg">Settings</h1>
 
       {saved && (
         <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
@@ -135,6 +154,22 @@ export default function BacklogSettingsPage() {
           {saving ? 'Saving…' : 'Save'}
         </Button>
       </form>
+
+      <section className="mt-10 border-t border-border pt-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+          Import books
+        </h2>
+        <p className="mb-3 text-xs text-muted">
+          Import your library from a Goodreads or Hardcover CSV export.
+        </p>
+        <div className="flex items-center gap-2">
+          <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover">
+            Import CSV
+            <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
+          </label>
+          {importStatus && <span className="text-sm text-muted">{importStatus}</span>}
+        </div>
+      </section>
     </main>
   )
 }

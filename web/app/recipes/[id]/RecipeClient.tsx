@@ -8,6 +8,7 @@ import type { DeleteRecipeInput, ShareRecipeInput, UnshareRecipeInput } from '@/
 import ShareModal from '@/components/recipes/ShareModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function RecipeClient({ id }: { id: string }) {
   const [servings, setServings] = useState(0)
@@ -91,9 +92,10 @@ export default function RecipeClient({ id }: { id: string }) {
 
   return (
     <main className="max-w-2xl mx-auto p-6">
-      <Link href="/recipes/list" className="mb-4 block text-sm text-accent hover:underline">
-        &larr; Back to recipes
-      </Link>
+      <Breadcrumb
+        className="mb-4"
+        items={[{ label: 'Recipes', href: '/recipes/list' }, { label: recipe?.name ?? 'Recipe' }]}
+      />
 
       {isLoading && !recipe && <p>Loading recipe...</p>}
       {error && <p className="text-danger">Failed to load recipe.</p>}

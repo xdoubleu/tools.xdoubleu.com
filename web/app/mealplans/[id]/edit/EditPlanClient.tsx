@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import PlanForm from '@/components/recipes/PlanForm'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function EditPlanClient({ id }: { id: string }) {
   const { data, isLoading, error } = useMealPlan(id)
@@ -12,12 +12,15 @@ export default function EditPlanClient({ id }: { id: string }) {
 
   return (
     <main className="max-w-2xl mx-auto p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Link href={`/mealplans/${id}`} className="text-sm text-accent hover:underline">
-          &larr; Back to Plan
-        </Link>
-        <h1 className="text-3xl font-bold">Settings</h1>
-      </div>
+      <Breadcrumb
+        className="mb-4"
+        items={[
+          { label: 'Meal Plans', href: '/mealplans' },
+          { label: plan?.name ?? 'Plan', href: `/mealplans/${id}` },
+          { label: 'Settings' }
+        ]}
+      />
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
       {isLoading && <p>Loading plan...</p>}
       {error && <p className="text-danger">Failed to load plan.</p>}

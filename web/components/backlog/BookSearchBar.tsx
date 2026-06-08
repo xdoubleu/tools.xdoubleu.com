@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { useSearchExternal, useImportBooks } from '@/hooks/useBacklog'
+import { useSearchExternal } from '@/hooks/useBacklog'
 import type { ExternalBookResult } from '@/lib/gen/backlog/v1/books_pb'
 import BookModal from '@/components/backlog/BookModal'
 import { Input } from '@/components/ui/input'
@@ -16,11 +16,9 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
   const [results, setResults] = useState<ExternalBookResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [selectedBook, setSelectedBook] = useState<ExternalBookResult | null>(null)
-  const [importStatus, setImportStatus] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const searchExternal = useSearchExternal()
-  const importBooks = useImportBooks()
 
   const handleQueryChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,29 +45,6 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
       }, 300)
     },
     [searchExternal]
-  )
-
-  const handleImport = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
-      setImportStatus('Importing...')
-      const reader = new FileReader()
-      reader.onload = async (ev) => {
-        const csvData = ev.target?.result
-        if (typeof csvData !== 'string') return
-        try {
-          const res = await importBooks(csvData)
-          setImportStatus(`Imported ${res.importedCount} book(s).`)
-          onAdded()
-        } catch {
-          setImportStatus('Import failed.')
-        }
-      }
-      reader.readAsText(file)
-      e.target.value = ''
-    },
-    [importBooks, onAdded]
   )
 
   return (
@@ -106,14 +81,6 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
             ))}
           </ul>
         )}
-      </div>
-
-      <div className="flex items-center gap-2">
-        <label className="inline-flex h-8 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-xs text-fg transition-colors hover:bg-hover">
-          Import CSV
-          <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
-        </label>
-        {importStatus && <span className="text-sm text-muted">{importStatus}</span>}
       </div>
 
       {selectedBook && (

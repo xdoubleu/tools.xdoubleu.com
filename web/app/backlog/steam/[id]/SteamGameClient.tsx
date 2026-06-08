@@ -1,9 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import Image from 'next/image'
 import { useBacklogSteamGame } from '@/hooks/useBacklog'
 import type { Achievement } from '@/lib/gen/backlog/v1/games_pb'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 interface AchievementCardProps {
   achievement: Achievement
@@ -53,9 +53,13 @@ export default function SteamGameClient({ id }: { id: string }) {
 
   return (
     <main className="max-w-4xl mx-auto p-6">
-      <Link href="/backlog" className="text-sm text-accent hover:underline">
-        &larr; Backlog
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: 'Backlog', href: '/backlog' },
+          { label: 'Games', href: '/backlog/steam' },
+          { label: game?.name ?? 'Game' }
+        ]}
+      />
 
       {isLoading && <p className="mt-6 text-muted">Loading game...</p>}
       {error && <p className="mt-6 text-danger">Failed to load game.</p>}

@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
+import { getApiUrl } from '@/lib/env'
 import {
   BooksService,
   AddBookRequestSchema,
@@ -58,6 +59,13 @@ export function useBooksProgress(dateStart?: string, dateEnd?: string) {
   return useSWR<GetBooksProgressResponse, Error>(key, () =>
     client.getBooksProgress({ dateStart, dateEnd })
   )
+}
+
+export function useRefreshSteam() {
+  return () =>
+    fetch(`${getApiUrl()}/backlog/api/progress/steam/refresh`, {
+      credentials: 'include'
+    })
 }
 
 export function useSearchExternal() {
