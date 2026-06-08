@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { attachDraggable } from '@/lib/watchparty/roomUtils'
 import { STATUS_COLOR, STATUS_LABEL } from '@/lib/watchparty/types'
 import { useWatchPartyRTC, type ScreenControls } from '@/hooks/useWatchPartyRTC'
 import { Button } from '@/components/ui/button'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { cn } from '@/lib/cn'
 
 export default function PresenterClient({ id }: { id: string }) {
@@ -51,10 +51,9 @@ export default function PresenterClient({ id }: { id: string }) {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-border">
-        <Link href="/watchparty" className="text-sm text-accent hover:underline">
-          &larr; Back
-        </Link>
-        <h1 className="text-xl font-bold">Watch Party (Presenter)</h1>
+        <Breadcrumb
+          items={[{ label: 'Watch Party', href: '/watchparty' }, { label: 'Presenter' }]}
+        />
         <div className="flex items-center gap-2 ml-auto">
           <span className={`w-2.5 h-2.5 rounded-full ${STATUS_COLOR[status]}`} />
           <span className="text-sm text-muted">{STATUS_LABEL[status]}</span>

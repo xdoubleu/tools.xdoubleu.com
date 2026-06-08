@@ -94,7 +94,7 @@ describe('EditRecipeClient', () => {
     })
 
     render(<EditRecipeClient id="recipe-1" />)
-    const backLink = screen.getByText(/Back to Recipe/).closest('a')
+    const backLink = screen.getByRole('link', { name: 'Recipe' })
     expect(backLink).toHaveAttribute('href', '/recipes/recipe-1')
   })
 

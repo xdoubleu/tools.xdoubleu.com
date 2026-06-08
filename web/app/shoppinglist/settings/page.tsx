@@ -1,20 +1,19 @@
 'use client'
 
-import Link from 'next/link'
 import CategoryManager from '@/components/recipes/CategoryManager'
 import ItemCatalog from '@/components/recipes/ItemCatalog'
 import StoreManager from '@/components/recipes/StoreManager'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function ShoppingListSettingsPage() {
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Shopping List Settings</h1>
-        <Link href="/shoppinglist" className="text-sm text-accent hover:underline">
-          ← Back to list
-        </Link>
-      </div>
+      <Breadcrumb
+        className="mb-4"
+        items={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}
+      />
+      <h1 className="mb-6 text-3xl font-bold">Shopping List Settings</h1>
 
       <div className="space-y-6">
         <Card>

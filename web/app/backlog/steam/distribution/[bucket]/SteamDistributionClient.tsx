@@ -5,6 +5,7 @@ import { useBacklogDistribution } from '@/hooks/useBacklog'
 import type { Game } from '@/lib/gen/backlog/v1/games_pb'
 import { cn } from '@/lib/cn'
 import { interactiveCardClass } from '@/components/ui/card'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 function GameCard({ game }: { game: Game }) {
   return (
@@ -25,9 +26,13 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
 
   return (
     <main className="max-w-4xl mx-auto p-6">
-      <Link href="/backlog" className="text-sm text-accent hover:underline">
-        &larr; Backlog
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: 'Backlog', href: '/backlog' },
+          { label: 'Games', href: '/backlog/steam' },
+          { label }
+        ]}
+      />
 
       {isLoading && <p className="mt-6 text-muted">Loading...</p>}
       {error && <p className="mt-6 text-danger">Failed to load distribution.</p>}

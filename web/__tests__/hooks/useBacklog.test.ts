@@ -12,6 +12,7 @@ jest.mock('@/lib/client', () => ({
 }))
 jest.mock('@/lib/gen/backlog/v1/books_pb', () => ({ BooksService: {} }))
 jest.mock('@/lib/gen/backlog/v1/games_pb', () => ({ GamesService: {} }))
+jest.mock('@/lib/env', () => ({ getApiUrl: () => 'https://api.test' }))
 
 import useSWR from 'swr'
 import {
@@ -21,6 +22,7 @@ import {
   useBacklogDistribution,
   useBooksProgress,
   useSteamProgress,
+  useRefreshSteam,
   useSearchExternal,
   useAddBook,
   useImportBooks,
@@ -142,6 +144,18 @@ describe('useBooksProgress', () => {
       dateStart: '2024-01-01',
       dateEnd: '2024-12-31'
     })
+  })
+})
+
+describe('useRefreshSteam', () => {
+  it('fetches the steam refresh endpoint with credentials', async () => {
+    global.fetch = jest.fn().mockResolvedValue({})
+    const { result } = renderHook(() => useRefreshSteam())
+    await result.current()
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.test/backlog/api/progress/steam/refresh',
+      { credentials: 'include' }
+    )
   })
 })
 

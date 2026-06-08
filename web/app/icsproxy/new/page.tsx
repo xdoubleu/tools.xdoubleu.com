@@ -1,17 +1,16 @@
 'use client'
 
-import Link from 'next/link'
 import FeedForm from '@/components/icsproxy/FeedForm'
+import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function NewFeedPage() {
   return (
     <main className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/icsproxy" className="text-sm text-accent hover:underline">
-          &larr; ICS Proxy
-        </Link>
-        <h1 className="text-3xl font-bold">New Feed</h1>
-      </div>
+      <Breadcrumb
+        className="mb-4"
+        items={[{ label: 'ICS Proxy', href: '/icsproxy' }, { label: 'New Feed' }]}
+      />
+      <h1 className="text-3xl font-bold mb-6">New Feed</h1>
       <FeedForm />
     </main>
   )

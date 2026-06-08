@@ -3,12 +3,10 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import BookSearchBar from '@/components/backlog/BookSearchBar'
 
 const mockSearchExternal = jest.fn()
-const mockImportBooks = jest.fn()
 const mockAddBook = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useSearchExternal: () => mockSearchExternal,
-  useImportBooks: () => mockImportBooks,
   useAddBook: () => mockAddBook
 }))
 
@@ -17,7 +15,6 @@ jest.useFakeTimers()
 describe('BookSearchBar', () => {
   beforeEach(() => {
     mockSearchExternal.mockReset()
-    mockImportBooks.mockReset()
     mockAddBook.mockReset()
   })
 
