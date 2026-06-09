@@ -43,6 +43,14 @@ message SteamDistributionResponse {
   repeated Game games = 2;
 }
 
+message RecentGame {
+  int32 id = 1;
+  string name = 2;
+  string completion_rate = 3;
+  int32 recent_unlocks = 4;
+  string last_unlocked_at = 5;
+}
+
 message GetSteamRequest {
   string date_start = 1;
   string date_end = 2;
@@ -55,8 +63,12 @@ message GetSteamGameResponse { SteamGameResponse data = 1; }
 message GetSteamDistributionRequest { int32 bucket = 1; }
 message GetSteamDistributionResponse { SteamDistributionResponse data = 1; }
 
+message GetRecentlyActiveGamesRequest {}
+message GetRecentlyActiveGamesResponse { repeated RecentGame games = 1; }
+
 service GamesService {
   rpc GetSteam(GetSteamRequest) returns (GetSteamResponse);
   rpc GetSteamGame(GetSteamGameRequest) returns (GetSteamGameResponse);
   rpc GetSteamDistribution(GetSteamDistributionRequest) returns (GetSteamDistributionResponse);
+  rpc GetRecentlyActiveGames(GetRecentlyActiveGamesRequest) returns (GetRecentlyActiveGamesResponse);
 }

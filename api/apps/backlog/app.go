@@ -100,7 +100,7 @@ func (app *Backlog) setDB(
 
 func (app *Backlog) setJobs() {
 	err := app.jobQueue.AddJob(
-		jobs.NewSteamJob(app.Services.Auth, app.Services.Steam, app.Services.Progress),
+		jobs.NewSteamJob(app.Services.Auth, app.Services.Steam),
 		app.Services.WebSocket.UpdateState,
 	)
 	if err != nil {

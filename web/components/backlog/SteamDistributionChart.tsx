@@ -45,7 +45,7 @@ export default function SteamDistributionChart({
   }))
 
   return (
-    <div className="w-full h-64">
+    <div className="h-full min-h-0 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} style={onBucketClick ? { cursor: 'pointer' } : undefined}>
           <CartesianGrid strokeDasharray="3 3" />

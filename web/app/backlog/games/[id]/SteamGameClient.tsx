@@ -56,7 +56,7 @@ export default function SteamGameClient({ id }: { id: string }) {
       <Breadcrumb
         items={[
           { label: 'Backlog', href: '/backlog' },
-          { label: 'Games', href: '/backlog/steam' },
+          { label: 'Games', href: '/backlog/games' },
           { label: game?.name ?? 'Game' }
         ]}
       />

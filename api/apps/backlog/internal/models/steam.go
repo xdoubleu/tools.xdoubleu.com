@@ -26,6 +26,16 @@ type Achievement struct {
 	GlobalPercent *float64   `json:"globalPercent"`
 }
 
+// RecentGame is a game the user recently unlocked achievements in, used by the
+// dashboard to surface what is currently being worked on.
+type RecentGame struct {
+	ID             int       `json:"id"`
+	Name           string    `json:"name"`
+	CompletionRate string    `json:"completionRate"`
+	RecentUnlocks  int       `json:"recentUnlocks"`
+	LastUnlocked   time.Time `json:"lastUnlocked"`
+}
+
 func (a Achievement) HasGlobalPercent() bool {
 	return a.GlobalPercent != nil
 }

@@ -19,7 +19,8 @@ export type UpdateBookStatusInput = MessageInitShape<typeof UpdateBookStatusRequ
 import type {
   GetSteamResponse,
   GetSteamGameResponse,
-  GetSteamDistributionResponse
+  GetSteamDistributionResponse,
+  GetRecentlyActiveGamesResponse
 } from '@/lib/gen/backlog/v1/games_pb'
 
 export function useBacklogLibrary() {
@@ -29,27 +30,34 @@ export function useBacklogLibrary() {
 
 export function useBacklogSteam() {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamResponse, Error>('/backlog/steam', () => client.getSteam({}))
+  return useSWR<GetSteamResponse, Error>('/backlog/games', () => client.getSteam({}))
 }
 
 export function useBacklogSteamGame(gameId: number) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamGameResponse, Error>(gameId ? `/backlog/steam/${gameId}` : null, () =>
+  return useSWR<GetSteamGameResponse, Error>(gameId ? `/backlog/games/${gameId}` : null, () =>
     client.getSteamGame({ gameId })
   )
 }
 
 export function useBacklogDistribution(bucket: number) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamDistributionResponse, Error>(`/backlog/steam/distribution/${bucket}`, () =>
+  return useSWR<GetSteamDistributionResponse, Error>(`/backlog/games/distribution/${bucket}`, () =>
     client.getSteamDistribution({ bucket })
   )
 }
 
 export function useSteamProgress(dateStart?: string, dateEnd?: string) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamResponse, Error>(['/backlog/steam/progress', dateStart, dateEnd], () =>
+  return useSWR<GetSteamResponse, Error>(['/backlog/games/progress', dateStart, dateEnd], () =>
     client.getSteam({ dateStart, dateEnd })
+  )
+}
+
+export function useRecentlyActiveGames() {
+  const client = createServiceClient(GamesService)
+  return useSWR<GetRecentlyActiveGamesResponse, Error>('/backlog/games/recent', () =>
+    client.getRecentlyActiveGames({})
   )
 }
 

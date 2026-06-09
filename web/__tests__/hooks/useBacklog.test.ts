@@ -6,6 +6,7 @@ jest.mock('@/lib/client', () => ({
     getSteamGame: jest.fn().mockResolvedValue({}),
     getSteamDistribution: jest.fn().mockResolvedValue({}),
     getSteam: jest.fn().mockResolvedValue({}),
+    getRecentlyActiveGames: jest.fn().mockResolvedValue({}),
     getBooksProgress: jest.fn().mockResolvedValue({}),
     importBooks: jest.fn().mockResolvedValue({})
   }))
@@ -22,6 +23,7 @@ import {
   useBacklogDistribution,
   useBooksProgress,
   useSteamProgress,
+  useRecentlyActiveGames,
   useRefreshSteam,
   useSearchExternal,
   useAddBook,
@@ -49,16 +51,33 @@ describe('useBacklogLibrary', () => {
 })
 
 describe('useBacklogSteam', () => {
-  it('uses /backlog/steam as key', () => {
+  it('uses /backlog/games as key', () => {
     renderHook(() => useBacklogSteam())
-    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/steam', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/games', expect.any(Function))
+  })
+})
+
+describe('useRecentlyActiveGames', () => {
+  it('uses /backlog/games/recent as key', () => {
+    renderHook(() => useRecentlyActiveGames())
+    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/games/recent', expect.any(Function))
+  })
+
+  it('fetcher calls client.getRecentlyActiveGames', async () => {
+    const mockClient = { getRecentlyActiveGames: jest.fn().mockResolvedValue({}) }
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce(mockClient)
+    renderHook(() => useRecentlyActiveGames())
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockClient.getRecentlyActiveGames).toHaveBeenCalledWith({})
   })
 })
 
 describe('useBacklogSteamGame', () => {
   it('uses correct key when gameId is provided', () => {
     renderHook(() => useBacklogSteamGame(12345))
-    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/steam/12345', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/games/12345', expect.any(Function))
   })
 
   it('passes null as key when gameId is 0', () => {
@@ -78,9 +97,9 @@ describe('useBacklogSteamGame', () => {
 })
 
 describe('useBacklogDistribution', () => {
-  it('uses /backlog/steam/distribution/${bucket} as key', () => {
+  it('uses /backlog/games/distribution/${bucket} as key', () => {
     renderHook(() => useBacklogDistribution(10))
-    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/steam/distribution/10', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/backlog/games/distribution/10', expect.any(Function))
   })
 
   it('fetcher calls client.getSteamDistribution', async () => {
@@ -98,13 +117,13 @@ describe('useSteamProgress', () => {
   it('uses correct key with dates', () => {
     renderHook(() => useSteamProgress('2024-01-01', '2024-12-31'))
     const [key] = mockUseSWR.mock.calls[0]
-    expect(key).toEqual(['/backlog/steam/progress', '2024-01-01', '2024-12-31'])
+    expect(key).toEqual(['/backlog/games/progress', '2024-01-01', '2024-12-31'])
   })
 
   it('uses key with undefined dates', () => {
     renderHook(() => useSteamProgress())
     const [key] = mockUseSWR.mock.calls[0]
-    expect(key).toEqual(['/backlog/steam/progress', undefined, undefined])
+    expect(key).toEqual(['/backlog/games/progress', undefined, undefined])
   })
 
   it('fetcher calls client.getSteam with dates', async () => {

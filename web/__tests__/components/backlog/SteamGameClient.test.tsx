@@ -26,7 +26,7 @@ jest.mock('next/image', () => {
   }
 })
 
-import SteamGameClient from '@/app/backlog/steam/[id]/SteamGameClient'
+import SteamGameClient from '@/app/backlog/games/[id]/SteamGameClient'
 import { useBacklogSteamGame } from '@/hooks/useBacklog'
 import { create } from '@bufbuild/protobuf'
 import {
@@ -160,7 +160,7 @@ describe('SteamGameClient', () => {
 
     render(<SteamGameClient id="123" />)
     const backlogLink = screen.getByText(/Games/).closest('a')
-    expect(backlogLink).toHaveAttribute('href', '/backlog/steam')
+    expect(backlogLink).toHaveAttribute('href', '/backlog/games')
   })
 
   it('displays playtime in hours', () => {

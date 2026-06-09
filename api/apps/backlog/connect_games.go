@@ -179,6 +179,28 @@ func (h *gamesConnectHandler) GetSteamDistribution(
 	}), nil
 }
 
+func (h *gamesConnectHandler) GetRecentlyActiveGames(
+	ctx context.Context,
+	_ *connect.Request[backlogv1.GetRecentlyActiveGamesRequest],
+) (*connect.Response[backlogv1.GetRecentlyActiveGamesResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+
+	games, err := h.app.Services.Steam.GetRecentlyActive(ctx, user.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&backlogv1.GetRecentlyActiveGamesResponse{
+		Games: protoRecentGames(games),
+	}), nil
+}
+
 // Proto conversion helpers for games
 
 func protoGame(g models.Game) *backlogv1.Game {
@@ -196,6 +218,21 @@ func protoGames(games []models.Game) []*backlogv1.Game {
 	result := make([]*backlogv1.Game, len(games))
 	for i, g := range games {
 		result[i] = protoGame(g)
+	}
+	return result
+}
+
+func protoRecentGames(games []models.RecentGame) []*backlogv1.RecentGame {
+	result := make([]*backlogv1.RecentGame, len(games))
+	for i, g := range games {
+		result[i] = &backlogv1.RecentGame{
+			Id:             int32(g.ID), //nolint:gosec // int32 safe for domain values
+			Name:           g.Name,
+			CompletionRate: g.CompletionRate,
+			//nolint:gosec // safe for domain counts
+			RecentUnlocks:  int32(g.RecentUnlocks),
+			LastUnlockedAt: g.LastUnlocked.Format(models.ProgressDateFormat),
+		}
 	}
 	return result
 }

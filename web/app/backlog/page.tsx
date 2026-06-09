@@ -22,7 +22,7 @@ export default function BacklogPage() {
           <h2 className="text-xl font-semibold">Books</h2>
           <p className="text-sm text-muted mt-1">Search, library and reading progress.</p>
         </Link>
-        <Link href="/backlog/steam" className={cn(interactiveCardClass, 'block p-6')}>
+        <Link href="/backlog/games" className={cn(interactiveCardClass, 'block p-6')}>
           <h2 className="text-xl font-semibold">Games</h2>
           <p className="text-sm text-muted mt-1">Steam backlog, progress and distribution.</p>
         </Link>

@@ -48,7 +48,6 @@ func TestSteamJobNoUsers(t *testing.T) {
 	job := jobs.NewSteamJob(
 		&noUsersAuthService{},
 		testApp.Services.Steam,
-		testApp.Services.Progress,
 	)
 	err := job.Run(context.Background(), logging.NewNopLogger())
 	assert.Nil(t, err)
@@ -58,7 +57,6 @@ func TestSteamJob(t *testing.T) {
 	job := jobs.NewSteamJob(
 		testApp.Services.Auth,
 		testApp.Services.Steam,
-		testApp.Services.Progress,
 	)
 	assert.NotEmpty(t, job.ID())
 	assert.NotZero(t, job.RunEvery())

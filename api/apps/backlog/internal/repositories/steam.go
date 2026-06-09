@@ -8,11 +8,36 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
-	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 )
 
 type SteamRepository struct {
 	db postgres.DB
+}
+
+// WithTx runs fn inside a single transaction, committing on success and rolling
+// back on any error so a Steam refresh applies atomically.
+func (repo *SteamRepository) WithTx(
+	ctx context.Context,
+	fn func(tx pgx.Tx) error,
+) error {
+	//nolint:exhaustruct //default tx options
+	tx, err := repo.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	if err = fn(tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+
+	return nil
 }
 
 func (repo *SteamRepository) GetAllGames(
@@ -208,11 +233,72 @@ func (repo *SteamRepository) GetCompleted(
 	return games, nil
 }
 
+// GetRecentlyActiveGames returns the games in which the user unlocked an
+// achievement since the given time, ordered by most recent unlock first and
+// capped at limit. recent_unlocks counts only the unlocks inside the window.
+func (repo *SteamRepository) GetRecentlyActiveGames(
+	ctx context.Context,
+	userID string,
+	since time.Time,
+	limit int,
+) ([]models.RecentGame, error) {
+	query := `
+		SELECT sg.id, sg.name, sg.completion_rate,
+		       COUNT(*) AS recent_unlocks, MAX(sa.unlock_time) AS last_unlock
+		FROM backlog.steam_games sg
+		JOIN backlog.steam_achievements sa
+		    ON sa.game_id = sg.id AND sa.user_id = sg.user_id
+		WHERE sg.user_id = $1
+		    AND sa.achieved = true
+		    AND sa.unlock_time IS NOT NULL
+		    AND sa.unlock_time >= $2
+		    AND sg.is_delisted = false
+		GROUP BY sg.id, sg.name, sg.completion_rate
+		ORDER BY last_unlock DESC
+		LIMIT $3
+	`
+
+	rows, err := repo.db.Query(ctx, query, userID, since, limit)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	games := []models.RecentGame{}
+	for rows.Next() {
+		var game models.RecentGame
+
+		err = rows.Scan(
+			&game.ID,
+			&game.Name,
+			&game.CompletionRate,
+			&game.RecentUnlocks,
+			&game.LastUnlocked,
+		)
+		if err != nil {
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+
+		games = append(games, game)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return games, nil
+}
+
 func (repo *SteamRepository) UpsertGames(
 	ctx context.Context,
+	q Querier,
 	games map[int]*models.Game,
 	userID string,
 ) error {
+	if q == nil {
+		q = repo.db
+	}
+
 	query := `
 		INSERT INTO backlog.steam_games
 		    (id, user_id, name, is_delisted, completion_rate, contribution, playtime_forever)
@@ -237,7 +323,7 @@ func (repo *SteamRepository) UpsertGames(
 		)
 	}
 
-	err := repo.db.SendBatch(ctx, b).Close()
+	err := q.SendBatch(ctx, b).Close()
 	if err != nil {
 		return postgres.PgxErrorToHTTPError(err)
 	}
@@ -322,24 +408,22 @@ func (repo *SteamRepository) GetGameByID(
 	return &game, nil
 }
 
-func (repo *SteamRepository) UpsertAchievements(
+// ReplaceAchievements replaces all stored achievements for a game with the given
+// rows: it deletes the existing rows and inserts the fresh set. It runs on the
+// supplied Querier (pass a transaction to make a refresh atomic; pass nil to use
+// the repository connection).
+func (repo *SteamRepository) ReplaceAchievements(
 	ctx context.Context,
-	achievements []steam.Achievement,
-	globalPercents map[string]float64,
-	schemas map[string]steam.AchievementSchema,
+	q Querier,
 	userID string,
 	gameID int,
+	achievements []models.Achievement,
 ) error {
-	//nolint:exhaustruct //fields are optional
-	tx, err := repo.db.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return postgres.PgxErrorToHTTPError(err)
+	if q == nil {
+		q = repo.db
 	}
-	defer func() {
-		_ = tx.Rollback(ctx)
-	}()
 
-	_, err = tx.Exec(
+	_, err := q.Exec(
 		ctx,
 		"DELETE FROM backlog.steam_achievements WHERE game_id = $1 AND user_id = $2",
 		gameID,
@@ -362,72 +446,21 @@ func (repo *SteamRepository) UpsertAchievements(
 	//nolint:exhaustruct //fields are optional
 	b := &pgx.Batch{}
 	for _, achievement := range achievements {
-		var unlockTime *time.Time
-		if achievement.Achieved == 1 {
-			value := time.Unix(achievement.UnlockTime, 0)
-			unlockTime = &value
-		}
-		var globalPercent *float64
-		if p, ok := globalPercents[achievement.APIName]; ok {
-			globalPercent = &p
-		}
-		schema := schemas[achievement.APIName]
 		b.Queue(
 			query,
-			achievement.APIName,
-			schema.DisplayName,
-			schema.Description,
-			schema.Icon,
+			achievement.Name,
+			achievement.DisplayName,
+			achievement.Description,
+			achievement.IconURL,
 			userID,
 			gameID,
-			achievement.Achieved == 1,
-			unlockTime,
-			globalPercent,
+			achievement.Achieved,
+			achievement.UnlockTime,
+			achievement.GlobalPercent,
 		)
 	}
 
-	err = tx.SendBatch(ctx, b).Close()
-	if err != nil {
-		return postgres.PgxErrorToHTTPError(err)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return postgres.PgxErrorToHTTPError(err)
-	}
-
-	return nil
-}
-
-func (repo *SteamRepository) UpsertAchievementSchemas(
-	ctx context.Context,
-	achievementSchemas []steam.AchievementSchema,
-	globalPercents map[string]float64,
-	userID string,
-	gameID int,
-) error {
-	query := `
-		INSERT INTO backlog.steam_achievements
-		(name, display_name, description, icon_url, user_id, game_id, global_percent)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT (name, user_id, game_id)
-		DO UPDATE SET display_name = $2, description = $3, icon_url = $4,
-		              global_percent = $7
-	`
-
-	//nolint:exhaustruct //fields are optional
-	b := &pgx.Batch{}
-	for _, s := range achievementSchemas {
-		var globalPercent *float64
-		if p, ok := globalPercents[s.Name]; ok {
-			globalPercent = &p
-		}
-		b.Queue(query, s.Name, s.DisplayName, s.Description, s.Icon, userID, gameID,
-			globalPercent)
-	}
-
-	err := repo.db.SendBatch(ctx, b).Close()
-	if err != nil {
+	if err = q.SendBatch(ctx, b).Close(); err != nil {
 		return postgres.PgxErrorToHTTPError(err)
 	}
 

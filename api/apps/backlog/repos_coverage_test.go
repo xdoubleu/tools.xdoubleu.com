@@ -218,7 +218,7 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		_, err = app2.Services.Steam.ImportOwnedGames(ctx, isolatedUser)
+		err = app2.Services.Steam.SyncUser(ctx, isolatedUser)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			_, _ = testDB.Exec(context.Background(),

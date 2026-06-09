@@ -16,13 +16,13 @@ import (
 )
 
 // seedSteamData imports steam games for userID using the mock client.
-// It saves integrations with dummy steam credentials so ImportOwnedGames
+// It saves integrations with dummy steam credentials so SyncUser
 // uses the mock factory (the actual keys are ignored by the mock).
 func seedSteamData(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 
-	// Save dummy integrations so ImportOwnedGames can build a client from
+	// Save dummy integrations so SyncUser can build a client from
 	// the factory.
 	err := testApp.SaveIntegrations(
 		ctx,
@@ -34,12 +34,13 @@ func seedSteamData(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = testApp.Services.Steam.ImportOwnedGames(ctx, userID)
+	err = testApp.Services.Steam.SyncUser(ctx, userID)
 	require.NoError(t, err)
 }
 
 // mockEmptyAchievementsSteamClient is a steam client whose GetPlayerAchievements
-// returns an empty achievement list, triggering the UpsertAchievementSchemas path.
+// returns an empty achievement list, so the schema defines the (all unachieved)
+// achievement set.
 type mockEmptyAchievementsSteamClient struct{}
 
 func (mockEmptyAchievementsSteamClient) GetOwnedGames(
@@ -140,9 +141,60 @@ func TestSteamCompletionRate_WithRecord(t *testing.T) {
 	assert.Equal(t, "55.00", rate)
 }
 
-// TestUpsertAchievementSchemas exercises the UpsertAchievementSchemas repository
-// method by importing games with a steam client that returns no player achievements.
-func TestUpsertAchievementSchemas(t *testing.T) {
+// TestGetRecentlyActiveGames_Repo seeds steam data (game 1 with an achievement
+// unlocked ~now) then verifies the repository returns it inside the window and
+// excludes it once the window starts in the future.
+func TestGetRecentlyActiveGames_Repo(t *testing.T) {
+	seedSteamData(t)
+	ctx := context.Background()
+
+	since := time.Now().AddDate(0, 0, -30)
+	games, err := testApp.Repositories.Steam.GetRecentlyActiveGames(
+		ctx, userID, since, 10,
+	)
+	require.NoError(t, err)
+
+	var found *models.RecentGame
+	for i := range games {
+		if games[i].ID == 1 {
+			found = &games[i]
+		}
+	}
+	require.NotNil(t, found, "seeded game should be recently active")
+	assert.GreaterOrEqual(t, found.RecentUnlocks, 1)
+	assert.False(t, found.LastUnlocked.IsZero())
+
+	// A window starting in the future excludes every unlock.
+	future := time.Now().Add(time.Hour)
+	empty, err := testApp.Repositories.Steam.GetRecentlyActiveGames(
+		ctx, userID, future, 10,
+	)
+	require.NoError(t, err)
+	assert.Empty(t, empty)
+}
+
+// TestGetRecentlyActive_Service covers the service wrapper that computes the
+// window and delegates to the repository.
+func TestGetRecentlyActive_Service(t *testing.T) {
+	seedSteamData(t)
+
+	games, err := testApp.Services.Steam.GetRecentlyActive(
+		context.Background(), userID,
+	)
+	require.NoError(t, err)
+
+	found := false
+	for _, g := range games {
+		if g.ID == 1 {
+			found = true
+		}
+	}
+	assert.True(t, found, "seeded game should be returned by the service")
+}
+
+// TestSyncUser_SchemaOnlyAchievements exercises the schema-only achievement path
+// by syncing a user whose steam client returns no player achievements.
+func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 	ctx := context.Background()
 	const isolatedUserID = "upsert-schema-test-user-id"
 
@@ -172,7 +224,7 @@ func TestUpsertAchievementSchemas(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = app2.Services.Steam.ImportOwnedGames(ctx, isolatedUserID)
+	err = app2.Services.Steam.SyncUser(ctx, isolatedUserID)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
