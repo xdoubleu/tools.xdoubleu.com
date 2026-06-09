@@ -76,7 +76,7 @@ function mockSteam() {
         inProgress: [create(GameSchema, { id: 10, name: 'Hades' })],
         completed: [create(GameSchema, { id: 12, name: 'Bastion' })],
         totalBacklog: 2,
-        currentRate: '1/week',
+        currentRate: '50.00',
         distribution: [1, 2, 3]
       })
     }),
@@ -90,9 +90,10 @@ function mockRecent(
     create(RecentGameSchema, {
       id: 10,
       name: 'Hades',
-      completionRate: '60%',
+      completionRate: '60.00',
       recentUnlocks: 3,
-      lastUnlockedAt: '2026-06-01'
+      lastUnlockedAt: '2026-06-01',
+      imageUrl: 'https://example.com/hades.jpg'
     })
   ]
 ) {
@@ -120,9 +121,17 @@ describe('GamesDashboard', () => {
     mockNoProgress()
     render(<GamesDashboard />)
     expect(screen.getByText('Total backlog')).toBeInTheDocument()
-    expect(screen.getByText('1/week')).toBeInTheDocument()
+    expect(screen.getByText('50.00%')).toBeInTheDocument()
     expect(screen.getByText('In progress')).toBeInTheDocument()
     expect(screen.getByText('Completed')).toBeInTheDocument()
+  })
+
+  it('renders the completion rate with a percentage sign', () => {
+    mockSteam()
+    mockRecent()
+    mockNoProgress()
+    render(<GamesDashboard />)
+    expect(screen.getByText('Completion: 60.00%')).toBeInTheDocument()
   })
 
   it('renders recently active games linking to their detail page', () => {
@@ -135,13 +144,21 @@ describe('GamesDashboard', () => {
     expect(screen.getByText(/3 recent unlocks/)).toBeInTheDocument()
   })
 
+  it('renders the recent game icon with a locked square aspect ratio', () => {
+    mockSteam()
+    mockRecent()
+    mockNoProgress()
+    render(<GamesDashboard />)
+    expect(screen.getByAltText('Hades')).toHaveClass('h-8', 'w-8', 'object-cover')
+  })
+
   it('uses the singular label for a single recent unlock', () => {
     mockSteam()
     mockRecent([
       create(RecentGameSchema, {
         id: 11,
         name: 'Celeste',
-        completionRate: '10%',
+        completionRate: '10.00',
         recentUnlocks: 1,
         lastUnlockedAt: '2026-06-02'
       })
@@ -164,6 +181,7 @@ describe('GamesDashboard', () => {
     mockRecent()
     mockNoProgress()
     render(<GamesDashboard />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Progress' }))
     expect(screen.getByText('No progress data for this range.')).toBeInTheDocument()
   })
 
@@ -181,6 +199,7 @@ describe('GamesDashboard', () => {
       isLoading: false
     })
     render(<GamesDashboard />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Progress' }))
     expect(screen.queryByText('No progress data for this range.')).not.toBeInTheDocument()
     const from = screen.getByLabelText('From')
     fireEvent.change(from, { target: { value: '2026-01-01' } })
@@ -194,6 +213,24 @@ describe('GamesDashboard', () => {
     render(<GamesDashboard />)
     fireEvent.click(screen.getByTestId('distribution-chart'))
     expect(mockPush).toHaveBeenCalledWith('/backlog/games/distribution/3')
+  })
+
+  it('switches between the distribution and progress views', () => {
+    mockSteam()
+    mockRecent()
+    mockNoProgress()
+    render(<GamesDashboard />)
+
+    // Distribution is the default view.
+    expect(screen.getByTestId('distribution-chart')).toBeInTheDocument()
+    expect(screen.queryByText('No progress data for this range.')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Progress' }))
+    expect(screen.getByText('No progress data for this range.')).toBeInTheDocument()
+    expect(screen.queryByTestId('distribution-chart')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Distribution' }))
+    expect(screen.getByTestId('distribution-chart')).toBeInTheDocument()
   })
 
   it('links to the full library', () => {

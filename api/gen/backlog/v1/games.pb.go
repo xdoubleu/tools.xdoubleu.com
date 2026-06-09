@@ -29,6 +29,7 @@ type Game struct {
 	CompletionRate string                 `protobuf:"bytes,4,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
 	Contribution   string                 `protobuf:"bytes,5,opt,name=contribution,proto3" json:"contribution,omitempty"`
 	Playtime       int32                  `protobuf:"varint,6,opt,name=playtime,proto3" json:"playtime,omitempty"`
+	ImageUrl       string                 `protobuf:"bytes,7,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -103,6 +104,13 @@ func (x *Game) GetPlaytime() int32 {
 		return x.Playtime
 	}
 	return 0
+}
+
+func (x *Game) GetImageUrl() string {
+	if x != nil {
+		return x.ImageUrl
+	}
+	return ""
 }
 
 type Achievement struct {
@@ -416,6 +424,7 @@ type RecentGame struct {
 	CompletionRate string                 `protobuf:"bytes,3,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
 	RecentUnlocks  int32                  `protobuf:"varint,4,opt,name=recent_unlocks,json=recentUnlocks,proto3" json:"recent_unlocks,omitempty"`
 	LastUnlockedAt string                 `protobuf:"bytes,5,opt,name=last_unlocked_at,json=lastUnlockedAt,proto3" json:"last_unlocked_at,omitempty"`
+	ImageUrl       string                 `protobuf:"bytes,6,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -481,6 +490,13 @@ func (x *RecentGame) GetRecentUnlocks() int32 {
 func (x *RecentGame) GetLastUnlockedAt() string {
 	if x != nil {
 		return x.LastUnlockedAt
+	}
+	return ""
+}
+
+func (x *RecentGame) GetImageUrl() string {
+	if x != nil {
+		return x.ImageUrl
 	}
 	return ""
 }
@@ -842,7 +858,7 @@ var File_backlog_v1_games_proto protoreflect.FileDescriptor
 const file_backlog_v1_games_proto_rawDesc = "" +
 	"\n" +
 	"\x16backlog/v1/games.proto\x12\n" +
-	"backlog.v1\"\xb4\x01\n" +
+	"backlog.v1\"\xd1\x01\n" +
 	"\x04Game\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -850,7 +866,8 @@ const file_backlog_v1_games_proto_rawDesc = "" +
 	"isDelisted\x12'\n" +
 	"\x0fcompletion_rate\x18\x04 \x01(\tR\x0ecompletionRate\x12\"\n" +
 	"\fcontribution\x18\x05 \x01(\tR\fcontribution\x12\x1a\n" +
-	"\bplaytime\x18\x06 \x01(\x05R\bplaytime\"\xdc\x01\n" +
+	"\bplaytime\x18\x06 \x01(\x05R\bplaytime\x12\x1b\n" +
+	"\timage_url\x18\a \x01(\tR\bimageUrl\"\xdc\x01\n" +
 	"\vAchievement\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
@@ -879,14 +896,15 @@ const file_backlog_v1_games_proto_rawDesc = "" +
 	"\fachievements\x18\x02 \x03(\v2\x17.backlog.v1.AchievementR\fachievements\"Y\n" +
 	"\x19SteamDistributionResponse\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12&\n" +
-	"\x05games\x18\x02 \x03(\v2\x10.backlog.v1.GameR\x05games\"\xaa\x01\n" +
+	"\x05games\x18\x02 \x03(\v2\x10.backlog.v1.GameR\x05games\"\xc7\x01\n" +
 	"\n" +
 	"RecentGame\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
 	"\x0fcompletion_rate\x18\x03 \x01(\tR\x0ecompletionRate\x12%\n" +
 	"\x0erecent_unlocks\x18\x04 \x01(\x05R\rrecentUnlocks\x12(\n" +
-	"\x10last_unlocked_at\x18\x05 \x01(\tR\x0elastUnlockedAt\"K\n" +
+	"\x10last_unlocked_at\x18\x05 \x01(\tR\x0elastUnlockedAt\x12\x1b\n" +
+	"\timage_url\x18\x06 \x01(\tR\bimageUrl\"K\n" +
 	"\x0fGetSteamRequest\x12\x1d\n" +
 	"\n" +
 	"date_start\x18\x01 \x01(\tR\tdateStart\x12\x19\n" +

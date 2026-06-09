@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { mutate } from 'swr'
 import { useBacklogSteam } from '@/hooks/useBacklog'
 import { useSteamRefresh } from '@/lib/backlog/steamRefresh'
@@ -13,10 +14,21 @@ import { cn } from '@/lib/cn'
 
 function GameCard({ game }: { game: Game }) {
   return (
-    <Link href={`/backlog/games/${game.id}`} className={cn(interactiveCardClass, 'block p-4')}>
-      <h3 className="font-semibold">{game.name}</h3>
-      <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
-      <p className="text-sm text-muted">Completion: {game.completionRate}</p>
+    <Link href={`/backlog/games/${game.id}`} className={cn(interactiveCardClass, 'flex gap-3 p-4')}>
+      {game.imageUrl && (
+        <Image
+          src={game.imageUrl}
+          alt={game.name}
+          width={32}
+          height={32}
+          className="h-8 w-8 rounded-lg object-cover shrink-0"
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <h3 className="font-semibold">{game.name}</h3>
+        <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
+        <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
+      </div>
     </Link>
   )
 }

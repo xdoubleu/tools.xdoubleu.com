@@ -211,6 +211,7 @@ func protoGame(g models.Game) *backlogv1.Game {
 		CompletionRate: g.CompletionRate,
 		Contribution:   g.Contribution,
 		Playtime:       int32(g.Playtime), //nolint:gosec // safe for domain values
+		ImageUrl:       g.ImageURL,
 	}
 }
 
@@ -232,6 +233,7 @@ func protoRecentGames(games []models.RecentGame) []*backlogv1.RecentGame {
 			//nolint:gosec // safe for domain counts
 			RecentUnlocks:  int32(g.RecentUnlocks),
 			LastUnlockedAt: g.LastUnlocked.Format(models.ProgressDateFormat),
+			ImageUrl:       g.ImageURL,
 		}
 	}
 	return result

@@ -40,17 +40,15 @@ func (repo *SteamRepository) WithTx(
 	return nil
 }
 
-func (repo *SteamRepository) GetAllGames(
+// queryGames runs a games query and scans every row into a models.Game. All the
+// list endpoints share the same column projection, so they delegate the row
+// handling here and differ only in their WHERE/ORDER BY clauses.
+func (repo *SteamRepository) queryGames(
 	ctx context.Context,
-	userID string,
+	query string,
+	args ...any,
 ) ([]models.Game, error) {
-	query := `
-		SELECT id, name, is_delisted, completion_rate, contribution, playtime_forever
-		FROM backlog.steam_games
-		WHERE user_id = $1
-	`
-
-	rows, err := repo.db.Query(ctx, query, userID)
+	rows, err := repo.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -67,6 +65,7 @@ func (repo *SteamRepository) GetAllGames(
 			&game.CompletionRate,
 			&game.Contribution,
 			&game.Playtime,
+			&game.ImageURL,
 		)
 		if err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
@@ -82,13 +81,27 @@ func (repo *SteamRepository) GetAllGames(
 	return games, nil
 }
 
+func (repo *SteamRepository) GetAllGames(
+	ctx context.Context,
+	userID string,
+) ([]models.Game, error) {
+	query := `
+		SELECT id, name, is_delisted, completion_rate, contribution,
+		       playtime_forever, image_url
+		FROM backlog.steam_games
+		WHERE user_id = $1
+	`
+
+	return repo.queryGames(ctx, query, userID)
+}
+
 func (repo *SteamRepository) GetBacklog(
 	ctx context.Context,
 	userID string,
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever
+		       sg.contribution, sg.playtime_forever, sg.image_url
 		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) = 0
@@ -100,36 +113,7 @@ func (repo *SteamRepository) GetBacklog(
 		ORDER BY sg.name
 	`
 
-	rows, err := repo.db.Query(ctx, query, userID)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	games := []models.Game{}
-	for rows.Next() {
-		var game models.Game
-
-		err = rows.Scan(
-			&game.ID,
-			&game.Name,
-			&game.IsDelisted,
-			&game.CompletionRate,
-			&game.Contribution,
-			&game.Playtime,
-		)
-		if err != nil {
-			return nil, postgres.PgxErrorToHTTPError(err)
-		}
-
-		games = append(games, game)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return games, nil
+	return repo.queryGames(ctx, query, userID)
 }
 
 func (repo *SteamRepository) GetInProgress(
@@ -138,7 +122,7 @@ func (repo *SteamRepository) GetInProgress(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever
+		       sg.contribution, sg.playtime_forever, sg.image_url
 		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) > 0
@@ -151,36 +135,7 @@ func (repo *SteamRepository) GetInProgress(
 		ORDER BY CAST(sg.completion_rate AS FLOAT) ASC, sg.name
 	`
 
-	rows, err := repo.db.Query(ctx, query, userID)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	games := []models.Game{}
-	for rows.Next() {
-		var game models.Game
-
-		err = rows.Scan(
-			&game.ID,
-			&game.Name,
-			&game.IsDelisted,
-			&game.CompletionRate,
-			&game.Contribution,
-			&game.Playtime,
-		)
-		if err != nil {
-			return nil, postgres.PgxErrorToHTTPError(err)
-		}
-
-		games = append(games, game)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return games, nil
+	return repo.queryGames(ctx, query, userID)
 }
 
 func (repo *SteamRepository) GetCompleted(
@@ -189,7 +144,7 @@ func (repo *SteamRepository) GetCompleted(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever
+		       sg.contribution, sg.playtime_forever, sg.image_url
 		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND sg.is_delisted = false
@@ -201,36 +156,7 @@ func (repo *SteamRepository) GetCompleted(
 		ORDER BY CAST(sg.completion_rate AS FLOAT) ASC, sg.name
 	`
 
-	rows, err := repo.db.Query(ctx, query, userID)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	games := []models.Game{}
-	for rows.Next() {
-		var game models.Game
-
-		err = rows.Scan(
-			&game.ID,
-			&game.Name,
-			&game.IsDelisted,
-			&game.CompletionRate,
-			&game.Contribution,
-			&game.Playtime,
-		)
-		if err != nil {
-			return nil, postgres.PgxErrorToHTTPError(err)
-		}
-
-		games = append(games, game)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return games, nil
+	return repo.queryGames(ctx, query, userID)
 }
 
 // GetRecentlyActiveGames returns the games in which the user unlocked an
@@ -243,7 +169,7 @@ func (repo *SteamRepository) GetRecentlyActiveGames(
 	limit int,
 ) ([]models.RecentGame, error) {
 	query := `
-		SELECT sg.id, sg.name, sg.completion_rate,
+		SELECT sg.id, sg.name, sg.completion_rate, sg.image_url,
 		       COUNT(*) AS recent_unlocks, MAX(sa.unlock_time) AS last_unlock
 		FROM backlog.steam_games sg
 		JOIN backlog.steam_achievements sa
@@ -253,7 +179,7 @@ func (repo *SteamRepository) GetRecentlyActiveGames(
 		    AND sa.unlock_time IS NOT NULL
 		    AND sa.unlock_time >= $2
 		    AND sg.is_delisted = false
-		GROUP BY sg.id, sg.name, sg.completion_rate
+		GROUP BY sg.id, sg.name, sg.completion_rate, sg.image_url
 		ORDER BY last_unlock DESC
 		LIMIT $3
 	`
@@ -272,6 +198,7 @@ func (repo *SteamRepository) GetRecentlyActiveGames(
 			&game.ID,
 			&game.Name,
 			&game.CompletionRate,
+			&game.ImageURL,
 			&game.RecentUnlocks,
 			&game.LastUnlocked,
 		)
@@ -301,11 +228,12 @@ func (repo *SteamRepository) UpsertGames(
 
 	query := `
 		INSERT INTO backlog.steam_games
-		    (id, user_id, name, is_delisted, completion_rate, contribution, playtime_forever)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		    (id, user_id, name, is_delisted, completion_rate, contribution,
+		     playtime_forever, image_url)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (id, user_id)
 		DO UPDATE SET name = $3, is_delisted = $4, completion_rate = $5,
-		              contribution = $6, playtime_forever = $7
+		              contribution = $6, playtime_forever = $7, image_url = $8
 	`
 
 	//nolint:exhaustruct //fields are optional
@@ -320,6 +248,7 @@ func (repo *SteamRepository) UpsertGames(
 			game.CompletionRate,
 			game.Contribution,
 			game.Playtime,
+			game.ImageURL,
 		)
 	}
 
@@ -387,7 +316,8 @@ func (repo *SteamRepository) GetGameByID(
 	userID string,
 ) (*models.Game, error) {
 	query := `
-		SELECT id, name, is_delisted, completion_rate, contribution, playtime_forever
+		SELECT id, name, is_delisted, completion_rate, contribution,
+		       playtime_forever, image_url
 		FROM backlog.steam_games
 		WHERE id = $1 AND user_id = $2
 	`
@@ -400,6 +330,7 @@ func (repo *SteamRepository) GetGameByID(
 		&game.CompletionRate,
 		&game.Contribution,
 		&game.Playtime,
+		&game.ImageURL,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

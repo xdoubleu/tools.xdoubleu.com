@@ -143,6 +143,7 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		{
 			AppID:                    gameA,
 			Name:                     "Game A",
+			ImgIconURL:               "iconhasha",
 			HasCommunityVisibleStats: true,
 		},
 		//nolint:exhaustruct //only required fields
@@ -168,6 +169,12 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 	gA, err := app.Services.Steam.GetGameByID(ctx, gameA, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", gA.CompletionRate)
+	assert.Equal(
+		t,
+		games[0].GetFullImgIconURL(),
+		gA.ImageURL,
+		"game image url is derived from the Steam icon and persisted",
+	)
 	gB, err := app.Services.Steam.GetGameByID(ctx, gameB, user)
 	require.NoError(t, err)
 	assert.Equal(t, "100.00", gB.CompletionRate)
@@ -234,6 +241,145 @@ func TestSyncUser_NoLongerOwnedGameIsDelisted(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, dropped.IsDelisted, "no-longer-owned game is marked delisted")
 	assert.Equal(t, "100.00", dropped.CompletionRate, "delisted game keeps its rate")
+}
+
+// TestSyncUser_RefreshUpdatesListsAndRate reproduces the reported bug: after a
+// refresh (second sync) the game lists and the dashboard "current rate" must
+// reflect the freshly fetched achievements.
+func TestSyncUser_RefreshUpdatesListsAndRate(t *testing.T) {
+	ctx := context.Background()
+	const user = "sync-refresh-user"
+	const gameA = 8001
+
+	games := []steam.Game{
+		//nolint:exhaustruct //only required fields
+		{AppID: gameA, Name: "Game A", HasCommunityVisibleStats: true},
+	}
+
+	// First sync: 1 of 4 achieved => 25.00
+	app := newSyncTestApp(t, user, syncFakeClient{
+		games: games,
+		playerAch: map[int][]steam.Achievement{
+			gameA: {ach("A1", 1), ach("A2", 0), ach("A3", 0), ach("A4", 0)},
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+
+	inProgress, err := app.Services.Steam.GetInProgress(ctx, user)
+	require.NoError(t, err)
+	require.Len(t, inProgress, 1)
+	assert.Equal(t, "25.00", inProgress[0].CompletionRate)
+
+	rate, err := app.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, "25.00", rate)
+
+	// Refresh: 2 of 4 achieved => 50.00
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games: games,
+		playerAch: map[int][]steam.Achievement{
+			gameA: {ach("A1", 1), ach("A2", 1), ach("A3", 0), ach("A4", 0)},
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+
+	inProgress, err = app2.Services.Steam.GetInProgress(ctx, user)
+	require.NoError(t, err)
+	require.Len(t, inProgress, 1)
+	assert.Equal(t, "50.00", inProgress[0].CompletionRate,
+		"refreshed game must show the updated completion rate")
+
+	rate, err = app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", rate,
+		"dashboard current rate must reflect the refreshed achievements")
+}
+
+// TestSyncUser_RatePreservedOnPartialFetchFailure reproduces the "current rate is
+// wrong vs before" regression: on a refresh where one game's achievement fetch
+// fails, the dashboard current rate must still reflect ALL games (the failed
+// game keeps its persisted achievements), not just the games fetched this run.
+func TestSyncUser_RatePreservedOnPartialFetchFailure(t *testing.T) {
+	ctx := context.Background()
+	const user = "sync-rate-partial-user"
+	const gameA = 8101 // 1/4 => 25.00, always succeeds
+	const gameB = 8102 // 4/4 => 100.00, fails on the refresh
+
+	games := []steam.Game{
+		//nolint:exhaustruct //only required fields
+		{AppID: gameA, Name: "Game A", HasCommunityVisibleStats: true},
+		//nolint:exhaustruct //only required fields
+		{AppID: gameB, Name: "Game B", HasCommunityVisibleStats: true},
+	}
+	playerAch := map[int][]steam.Achievement{
+		gameA: {ach("A1", 1), ach("A2", 0), ach("A3", 0), ach("A4", 0)},
+		gameB: {ach("B1", 1), ach("B2", 1), ach("B3", 1), ach("B4", 1)},
+	}
+
+	// First sync: both succeed. Rate = avg(25, 100) = 62.50.
+	app := newSyncTestApp(t, user, syncFakeClient{
+		games: games, playerAch: playerAch, schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+
+	rate, err := app.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	require.Equal(t, "62.50", rate)
+
+	// Refresh: game B's achievement fetch fails. Its achievements are preserved,
+	// so the rate must stay 62.50, not drop to 25.00.
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games: games, playerAch: playerAch, schemaErr: map[int]bool{gameB: true},
+	})
+	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+
+	rate, err = app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, "62.50", rate,
+		"current rate must include the game whose fetch failed (kept from DB)")
+}
+
+// TestSyncUser_RefetchesGameMetadata verifies that owned-game metadata (name and
+// playtime) is refetched from Steam and persisted on every sync, not just on the
+// first import.
+func TestSyncUser_RefetchesGameMetadata(t *testing.T) {
+	ctx := context.Background()
+	const user = "sync-metadata-user"
+	const gameID = 8201
+
+	playerAch := map[int][]steam.Achievement{
+		gameID: {ach("M1", 1), ach("M2", 0)},
+	}
+
+	app := newSyncTestApp(t, user, syncFakeClient{
+		games: []steam.Game{
+			//nolint:exhaustruct //only required fields
+			{AppID: gameID, Name: "Old Name", PlaytimeForever: 60,
+				HasCommunityVisibleStats: true},
+		},
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+
+	// Refresh: Steam now reports a new name and more playtime.
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games: []steam.Game{
+			//nolint:exhaustruct //only required fields
+			{AppID: gameID, Name: "New Name", PlaytimeForever: 600,
+				HasCommunityVisibleStats: true},
+		},
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+
+	game, err := app2.Services.Steam.GetGameByID(ctx, gameID, user)
+	require.NoError(t, err)
+	assert.Equal(t, "New Name", game.Name, "game name must be refetched")
+	assert.Equal(t, 600, game.Playtime, "game playtime must be refetched")
 }
 
 // TestSteamWithTx_CommitAndRollback verifies the transaction wrapper: a fn that

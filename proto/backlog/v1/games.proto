@@ -9,6 +9,7 @@ message Game {
   string completion_rate = 4;
   string contribution = 5;
   int32 playtime = 6;
+  string image_url = 7;
 }
 
 message Achievement {
@@ -49,6 +50,7 @@ message RecentGame {
   string completion_rate = 3;
   int32 recent_unlocks = 4;
   string last_unlocked_at = 5;
+  string image_url = 6;
 }
 
 message GetSteamRequest {

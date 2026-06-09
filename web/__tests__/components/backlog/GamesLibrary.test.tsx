@@ -47,14 +47,15 @@ const inProgressGame = create(GameSchema, {
   id: 10,
   name: 'Hades',
   playtime: 1200,
-  completionRate: '60%'
+  completionRate: '60.00',
+  imageUrl: 'https://example.com/hades.jpg'
 })
 
 const notStartedGame = create(GameSchema, {
   id: 11,
   name: 'Celeste',
   playtime: 0,
-  completionRate: '0%'
+  completionRate: '0.00'
 })
 
 function mockSteam() {
@@ -86,6 +87,8 @@ describe('GamesLibrary', () => {
     expect(screen.getByText('Celeste')).toBeInTheDocument()
     expect(screen.getByText('In Progress (1)')).toBeInTheDocument()
     expect(screen.getByText('Not Started (1)')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 60.00%')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 0.00%')).toBeInTheDocument()
   })
 
   it('filters games by the search input', () => {
@@ -134,6 +137,13 @@ describe('GamesLibrary', () => {
     const onSynced = mockUseSteamRefresh.mock.calls[0]![0]
     onSynced?.()
     expect(mutate).toHaveBeenCalledWith('/backlog/games')
+  })
+
+  it('renders the game icon with a locked square aspect ratio', () => {
+    mockSteam()
+    render(<GamesLibrary />)
+    const img = screen.getByAltText('Hades')
+    expect(img).toHaveClass('h-8', 'w-8', 'object-cover')
   })
 
   it('links a game card to its detail page', () => {

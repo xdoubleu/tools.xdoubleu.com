@@ -1,18 +1,31 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useBacklogDistribution } from '@/hooks/useBacklog'
 import type { Game } from '@/lib/gen/backlog/v1/games_pb'
 import { cn } from '@/lib/cn'
 import { interactiveCardClass } from '@/components/ui/card'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 
-function GameCard({ game }: { game: Game }) {
+function GameCard({ game, bucket, label }: { game: Game; bucket: number; label: string }) {
+  const href = `/backlog/games/${game.id}?bucket=${bucket}&label=${encodeURIComponent(label)}`
   return (
-    <Link href={`/backlog/games/${game.id}`} className={cn(interactiveCardClass, 'block p-4')}>
-      <h3 className="font-semibold">{game.name}</h3>
-      <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
-      <p className="text-sm text-muted">Completion: {game.completionRate}</p>
+    <Link href={href} className={cn(interactiveCardClass, 'flex gap-3 p-4')}>
+      {game.imageUrl && (
+        <Image
+          src={game.imageUrl}
+          alt={game.name}
+          width={32}
+          height={32}
+          className="h-8 w-8 rounded-lg object-cover shrink-0"
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <h3 className="font-semibold">{game.name}</h3>
+        <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
+        <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
+      </div>
     </Link>
   )
 }
@@ -44,7 +57,7 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
           {games.length > 0 && (
             <div className="grid sm:grid-cols-2 gap-3">
               {games.map((g) => (
-                <GameCard key={g.id} game={g} />
+                <GameCard key={g.id} game={g} bucket={bucketNum} label={label} />
               ))}
             </div>
           )}
