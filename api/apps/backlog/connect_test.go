@@ -194,6 +194,32 @@ func TestConnectGetSteamGame_WithSeededData(t *testing.T) {
 	assert.NotNil(t, resp.Msg.Data.Game)
 }
 
+func TestConnectGetRecentlyActiveGames(t *testing.T) {
+	seedSteamData(t)
+
+	client := newGamesTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&backlogv1.GetRecentlyActiveGamesRequest{})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.GetRecentlyActiveGames(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotEmpty(t, resp.Msg.Games)
+
+	found := false
+	for _, g := range resp.Msg.Games {
+		if g.Id == 1 {
+			found = true
+			assert.GreaterOrEqual(t, g.RecentUnlocks, int32(1))
+			assert.NotEmpty(t, g.LastUnlockedAt)
+		}
+	}
+	assert.True(t, found, "seeded game should appear in recent activity")
+}
+
 func TestConnectGetSteamDistribution_ValidBucket(t *testing.T) {
 	client := newGamesTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())

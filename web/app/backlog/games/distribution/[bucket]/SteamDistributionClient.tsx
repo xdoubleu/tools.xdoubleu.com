@@ -9,7 +9,7 @@ import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 function GameCard({ game }: { game: Game }) {
   return (
-    <Link href={`/backlog/steam/${game.id}`} className={cn(interactiveCardClass, 'block p-4')}>
+    <Link href={`/backlog/games/${game.id}`} className={cn(interactiveCardClass, 'block p-4')}>
       <h3 className="font-semibold">{game.name}</h3>
       <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
       <p className="text-sm text-muted">Completion: {game.completionRate}</p>
@@ -29,7 +29,7 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
       <Breadcrumb
         items={[
           { label: 'Backlog', href: '/backlog' },
-          { label: 'Games', href: '/backlog/steam' },
+          { label: 'Games', href: '/backlog/games' },
           { label }
         ]}
       />

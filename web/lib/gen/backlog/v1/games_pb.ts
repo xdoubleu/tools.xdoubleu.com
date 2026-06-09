@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file backlog/v1/games.proto.
  */
 export const file_backlog_v1_games: GenFile = /*@__PURE__*/
-  fileDesc("ChZiYWNrbG9nL3YxL2dhbWVzLnByb3RvEgpiYWNrbG9nLnYxInYKBEdhbWUSCgoCaWQYASABKAUSDAoEbmFtZRgCIAEoCRITCgtpc19kZWxpc3RlZBgDIAEoCBIXCg9jb21wbGV0aW9uX3JhdGUYBCABKAkSFAoMY29udHJpYnV0aW9uGAUgASgJEhAKCHBsYXl0aW1lGAYgASgFIpoBCgtBY2hpZXZlbWVudBIMCgRuYW1lGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIQCghhY2hpZXZlZBgFIAEoCBIbCg5nbG9iYWxfcGVyY2VudBgGIAEoAUgAiAEBQhEKD19nbG9iYWxfcGVyY2VudCKLAgoNU3RlYW1SZXNwb25zZRIlCgtub3Rfc3RhcnRlZBgBIAMoCzIQLmJhY2tsb2cudjEuR2FtZRIlCgtpbl9wcm9ncmVzcxgCIAMoCzIQLmJhY2tsb2cudjEuR2FtZRIjCgljb21wbGV0ZWQYAyADKAsyEC5iYWNrbG9nLnYxLkdhbWUSFQoNdG90YWxfYmFja2xvZxgEIAEoBRIUCgxjdXJyZW50X3JhdGUYBSABKAkSFAoMZGlzdHJpYnV0aW9uGAYgAygFEg4KBmxhYmVscxgHIAMoCRIOCgZ2YWx1ZXMYCCADKAkSEgoKZGF0ZV9zdGFydBgJIAEoCRIQCghkYXRlX2VuZBgKIAEoCSJiChFTdGVhbUdhbWVSZXNwb25zZRIeCgRnYW1lGAEgASgLMhAuYmFja2xvZy52MS5HYW1lEi0KDGFjaGlldmVtZW50cxgCIAMoCzIXLmJhY2tsb2cudjEuQWNoaWV2ZW1lbnQiSwoZU3RlYW1EaXN0cmlidXRpb25SZXNwb25zZRINCgVsYWJlbBgBIAEoCRIfCgVnYW1lcxgCIAMoCzIQLmJhY2tsb2cudjEuR2FtZSI3Cg9HZXRTdGVhbVJlcXVlc3QSEgoKZGF0ZV9zdGFydBgBIAEoCRIQCghkYXRlX2VuZBgCIAEoCSI8ChBHZXRTdGVhbVJlc3BvbnNlEigKBXN0ZWFtGAEgASgLMhkuYmFja2xvZy52MS5TdGVhbVJlc3BvbnNlIiYKE0dldFN0ZWFtR2FtZVJlcXVlc3QSDwoHZ2FtZV9pZBgBIAEoBSJDChRHZXRTdGVhbUdhbWVSZXNwb25zZRIrCgRkYXRhGAEgASgLMh0uYmFja2xvZy52MS5TdGVhbUdhbWVSZXNwb25zZSItChtHZXRTdGVhbURpc3RyaWJ1dGlvblJlcXVlc3QSDgoGYnVja2V0GAEgASgFIlMKHEdldFN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2USMwoEZGF0YRgBIAEoCzIlLmJhY2tsb2cudjEuU3RlYW1EaXN0cmlidXRpb25SZXNwb25zZTKTAgoMR2FtZXNTZXJ2aWNlEkUKCEdldFN0ZWFtEhsuYmFja2xvZy52MS5HZXRTdGVhbVJlcXVlc3QaHC5iYWNrbG9nLnYxLkdldFN0ZWFtUmVzcG9uc2USUQoMR2V0U3RlYW1HYW1lEh8uYmFja2xvZy52MS5HZXRTdGVhbUdhbWVSZXF1ZXN0GiAuYmFja2xvZy52MS5HZXRTdGVhbUdhbWVSZXNwb25zZRJpChRHZXRTdGVhbURpc3RyaWJ1dGlvbhInLmJhY2tsb2cudjEuR2V0U3RlYW1EaXN0cmlidXRpb25SZXF1ZXN0GiguYmFja2xvZy52MS5HZXRTdGVhbURpc3RyaWJ1dGlvblJlc3BvbnNlQi1aK3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vYmFja2xvZy92MTtiYWNrbG9ndjFiBnByb3RvMw");
+  fileDesc("ChZiYWNrbG9nL3YxL2dhbWVzLnByb3RvEgpiYWNrbG9nLnYxInYKBEdhbWUSCgoCaWQYASABKAUSDAoEbmFtZRgCIAEoCRITCgtpc19kZWxpc3RlZBgDIAEoCBIXCg9jb21wbGV0aW9uX3JhdGUYBCABKAkSFAoMY29udHJpYnV0aW9uGAUgASgJEhAKCHBsYXl0aW1lGAYgASgFIpoBCgtBY2hpZXZlbWVudBIMCgRuYW1lGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIQCghhY2hpZXZlZBgFIAEoCBIbCg5nbG9iYWxfcGVyY2VudBgGIAEoAUgAiAEBQhEKD19nbG9iYWxfcGVyY2VudCKLAgoNU3RlYW1SZXNwb25zZRIlCgtub3Rfc3RhcnRlZBgBIAMoCzIQLmJhY2tsb2cudjEuR2FtZRIlCgtpbl9wcm9ncmVzcxgCIAMoCzIQLmJhY2tsb2cudjEuR2FtZRIjCgljb21wbGV0ZWQYAyADKAsyEC5iYWNrbG9nLnYxLkdhbWUSFQoNdG90YWxfYmFja2xvZxgEIAEoBRIUCgxjdXJyZW50X3JhdGUYBSABKAkSFAoMZGlzdHJpYnV0aW9uGAYgAygFEg4KBmxhYmVscxgHIAMoCRIOCgZ2YWx1ZXMYCCADKAkSEgoKZGF0ZV9zdGFydBgJIAEoCRIQCghkYXRlX2VuZBgKIAEoCSJiChFTdGVhbUdhbWVSZXNwb25zZRIeCgRnYW1lGAEgASgLMhAuYmFja2xvZy52MS5HYW1lEi0KDGFjaGlldmVtZW50cxgCIAMoCzIXLmJhY2tsb2cudjEuQWNoaWV2ZW1lbnQiSwoZU3RlYW1EaXN0cmlidXRpb25SZXNwb25zZRINCgVsYWJlbBgBIAEoCRIfCgVnYW1lcxgCIAMoCzIQLmJhY2tsb2cudjEuR2FtZSJxCgpSZWNlbnRHYW1lEgoKAmlkGAEgASgFEgwKBG5hbWUYAiABKAkSFwoPY29tcGxldGlvbl9yYXRlGAMgASgJEhYKDnJlY2VudF91bmxvY2tzGAQgASgFEhgKEGxhc3RfdW5sb2NrZWRfYXQYBSABKAkiNwoPR2V0U3RlYW1SZXF1ZXN0EhIKCmRhdGVfc3RhcnQYASABKAkSEAoIZGF0ZV9lbmQYAiABKAkiPAoQR2V0U3RlYW1SZXNwb25zZRIoCgVzdGVhbRgBIAEoCzIZLmJhY2tsb2cudjEuU3RlYW1SZXNwb25zZSImChNHZXRTdGVhbUdhbWVSZXF1ZXN0Eg8KB2dhbWVfaWQYASABKAUiQwoUR2V0U3RlYW1HYW1lUmVzcG9uc2USKwoEZGF0YRgBIAEoCzIdLmJhY2tsb2cudjEuU3RlYW1HYW1lUmVzcG9uc2UiLQobR2V0U3RlYW1EaXN0cmlidXRpb25SZXF1ZXN0Eg4KBmJ1Y2tldBgBIAEoBSJTChxHZXRTdGVhbURpc3RyaWJ1dGlvblJlc3BvbnNlEjMKBGRhdGEYASABKAsyJS5iYWNrbG9nLnYxLlN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2UiHwodR2V0UmVjZW50bHlBY3RpdmVHYW1lc1JlcXVlc3QiRwoeR2V0UmVjZW50bHlBY3RpdmVHYW1lc1Jlc3BvbnNlEiUKBWdhbWVzGAEgAygLMhYuYmFja2xvZy52MS5SZWNlbnRHYW1lMoQDCgxHYW1lc1NlcnZpY2USRQoIR2V0U3RlYW0SGy5iYWNrbG9nLnYxLkdldFN0ZWFtUmVxdWVzdBocLmJhY2tsb2cudjEuR2V0U3RlYW1SZXNwb25zZRJRCgxHZXRTdGVhbUdhbWUSHy5iYWNrbG9nLnYxLkdldFN0ZWFtR2FtZVJlcXVlc3QaIC5iYWNrbG9nLnYxLkdldFN0ZWFtR2FtZVJlc3BvbnNlEmkKFEdldFN0ZWFtRGlzdHJpYnV0aW9uEicuYmFja2xvZy52MS5HZXRTdGVhbURpc3RyaWJ1dGlvblJlcXVlc3QaKC5iYWNrbG9nLnYxLkdldFN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2USbwoWR2V0UmVjZW50bHlBY3RpdmVHYW1lcxIpLmJhY2tsb2cudjEuR2V0UmVjZW50bHlBY3RpdmVHYW1lc1JlcXVlc3QaKi5iYWNrbG9nLnYxLkdldFJlY2VudGx5QWN0aXZlR2FtZXNSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL2JhY2tsb2cvdjE7YmFja2xvZ3YxYgZwcm90bzM");
 
 /**
  * @generated from message backlog.v1.Game
@@ -203,6 +203,43 @@ export const SteamDistributionResponseSchema: GenMessage<SteamDistributionRespon
   messageDesc(file_backlog_v1_games, 4);
 
 /**
+ * @generated from message backlog.v1.RecentGame
+ */
+export type RecentGame = Message<"backlog.v1.RecentGame"> & {
+  /**
+   * @generated from field: int32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string completion_rate = 3;
+   */
+  completionRate: string;
+
+  /**
+   * @generated from field: int32 recent_unlocks = 4;
+   */
+  recentUnlocks: number;
+
+  /**
+   * @generated from field: string last_unlocked_at = 5;
+   */
+  lastUnlockedAt: string;
+};
+
+/**
+ * Describes the message backlog.v1.RecentGame.
+ * Use `create(RecentGameSchema)` to create a new message.
+ */
+export const RecentGameSchema: GenMessage<RecentGame> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_games, 5);
+
+/**
  * @generated from message backlog.v1.GetSteamRequest
  */
 export type GetSteamRequest = Message<"backlog.v1.GetSteamRequest"> & {
@@ -222,7 +259,7 @@ export type GetSteamRequest = Message<"backlog.v1.GetSteamRequest"> & {
  * Use `create(GetSteamRequestSchema)` to create a new message.
  */
 export const GetSteamRequestSchema: GenMessage<GetSteamRequest> = /*@__PURE__*/
-  messageDesc(file_backlog_v1_games, 5);
+  messageDesc(file_backlog_v1_games, 6);
 
 /**
  * @generated from message backlog.v1.GetSteamResponse
@@ -239,7 +276,7 @@ export type GetSteamResponse = Message<"backlog.v1.GetSteamResponse"> & {
  * Use `create(GetSteamResponseSchema)` to create a new message.
  */
 export const GetSteamResponseSchema: GenMessage<GetSteamResponse> = /*@__PURE__*/
-  messageDesc(file_backlog_v1_games, 6);
+  messageDesc(file_backlog_v1_games, 7);
 
 /**
  * @generated from message backlog.v1.GetSteamGameRequest
@@ -256,7 +293,7 @@ export type GetSteamGameRequest = Message<"backlog.v1.GetSteamGameRequest"> & {
  * Use `create(GetSteamGameRequestSchema)` to create a new message.
  */
 export const GetSteamGameRequestSchema: GenMessage<GetSteamGameRequest> = /*@__PURE__*/
-  messageDesc(file_backlog_v1_games, 7);
+  messageDesc(file_backlog_v1_games, 8);
 
 /**
  * @generated from message backlog.v1.GetSteamGameResponse
@@ -273,7 +310,7 @@ export type GetSteamGameResponse = Message<"backlog.v1.GetSteamGameResponse"> & 
  * Use `create(GetSteamGameResponseSchema)` to create a new message.
  */
 export const GetSteamGameResponseSchema: GenMessage<GetSteamGameResponse> = /*@__PURE__*/
-  messageDesc(file_backlog_v1_games, 8);
+  messageDesc(file_backlog_v1_games, 9);
 
 /**
  * @generated from message backlog.v1.GetSteamDistributionRequest
@@ -290,7 +327,7 @@ export type GetSteamDistributionRequest = Message<"backlog.v1.GetSteamDistributi
  * Use `create(GetSteamDistributionRequestSchema)` to create a new message.
  */
 export const GetSteamDistributionRequestSchema: GenMessage<GetSteamDistributionRequest> = /*@__PURE__*/
-  messageDesc(file_backlog_v1_games, 9);
+  messageDesc(file_backlog_v1_games, 10);
 
 /**
  * @generated from message backlog.v1.GetSteamDistributionResponse
@@ -307,7 +344,37 @@ export type GetSteamDistributionResponse = Message<"backlog.v1.GetSteamDistribut
  * Use `create(GetSteamDistributionResponseSchema)` to create a new message.
  */
 export const GetSteamDistributionResponseSchema: GenMessage<GetSteamDistributionResponse> = /*@__PURE__*/
-  messageDesc(file_backlog_v1_games, 10);
+  messageDesc(file_backlog_v1_games, 11);
+
+/**
+ * @generated from message backlog.v1.GetRecentlyActiveGamesRequest
+ */
+export type GetRecentlyActiveGamesRequest = Message<"backlog.v1.GetRecentlyActiveGamesRequest"> & {
+};
+
+/**
+ * Describes the message backlog.v1.GetRecentlyActiveGamesRequest.
+ * Use `create(GetRecentlyActiveGamesRequestSchema)` to create a new message.
+ */
+export const GetRecentlyActiveGamesRequestSchema: GenMessage<GetRecentlyActiveGamesRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_games, 12);
+
+/**
+ * @generated from message backlog.v1.GetRecentlyActiveGamesResponse
+ */
+export type GetRecentlyActiveGamesResponse = Message<"backlog.v1.GetRecentlyActiveGamesResponse"> & {
+  /**
+   * @generated from field: repeated backlog.v1.RecentGame games = 1;
+   */
+  games: RecentGame[];
+};
+
+/**
+ * Describes the message backlog.v1.GetRecentlyActiveGamesResponse.
+ * Use `create(GetRecentlyActiveGamesResponseSchema)` to create a new message.
+ */
+export const GetRecentlyActiveGamesResponseSchema: GenMessage<GetRecentlyActiveGamesResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_games, 13);
 
 /**
  * @generated from service backlog.v1.GamesService
@@ -336,6 +403,14 @@ export const GamesService: GenService<{
     methodKind: "unary";
     input: typeof GetSteamDistributionRequestSchema;
     output: typeof GetSteamDistributionResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.GamesService.GetRecentlyActiveGames
+   */
+  getRecentlyActiveGames: {
+    methodKind: "unary";
+    input: typeof GetRecentlyActiveGamesRequestSchema;
+    output: typeof GetRecentlyActiveGamesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_backlog_v1_games, 0);

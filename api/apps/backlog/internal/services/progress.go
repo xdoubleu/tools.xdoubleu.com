@@ -26,7 +26,7 @@ func (s *ProgressService) Save(
 	dates []string,
 	values []string,
 ) error {
-	return s.progress.Upsert(ctx, typeID, userID, dates, values)
+	return s.progress.Upsert(ctx, nil, typeID, userID, dates, values)
 }
 
 func (s *ProgressService) GetByTypeIDAndDates(

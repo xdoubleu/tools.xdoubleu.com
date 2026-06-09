@@ -100,11 +100,16 @@ func (repo *ProgressRepository) GetLastValueBefore(
 
 func (repo *ProgressRepository) Upsert(
 	ctx context.Context,
+	q Querier,
 	typeID string,
 	userID string,
 	dates []string,
 	values []string,
 ) error {
+	if q == nil {
+		q = repo.db
+	}
+
 	query := `
 		INSERT INTO backlog.progress (type_id, user_id, date, value)
 		VALUES ($1, $2, $3, $4)
@@ -119,7 +124,7 @@ func (repo *ProgressRepository) Upsert(
 		b.Queue(query, typeID, userID, date, values[i])
 	}
 
-	err := repo.db.SendBatch(ctx, b).Close()
+	err := q.SendBatch(ctx, b).Close()
 	if err != nil {
 		return postgres.PgxErrorToHTTPError(err)
 	}

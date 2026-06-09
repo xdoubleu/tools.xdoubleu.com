@@ -47,6 +47,7 @@ func New(
 		logger:        logger,
 		clientFactory: steamFactory,
 		steam:         repositories.Steam,
+		progress:      repositories.Progress,
 		integrations:  integrations,
 	}
 	progressSvc := &ProgressService{

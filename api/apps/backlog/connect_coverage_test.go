@@ -280,7 +280,7 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = app2.Services.Steam.ImportOwnedGames(context.Background(), isolatedUser)
+	err = app2.Services.Steam.SyncUser(context.Background(), isolatedUser)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

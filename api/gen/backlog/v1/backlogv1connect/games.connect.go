@@ -41,6 +41,9 @@ const (
 	// GamesServiceGetSteamDistributionProcedure is the fully-qualified name of the GamesService's
 	// GetSteamDistribution RPC.
 	GamesServiceGetSteamDistributionProcedure = "/backlog.v1.GamesService/GetSteamDistribution"
+	// GamesServiceGetRecentlyActiveGamesProcedure is the fully-qualified name of the GamesService's
+	// GetRecentlyActiveGames RPC.
+	GamesServiceGetRecentlyActiveGamesProcedure = "/backlog.v1.GamesService/GetRecentlyActiveGames"
 )
 
 // GamesServiceClient is a client for the backlog.v1.GamesService service.
@@ -48,6 +51,7 @@ type GamesServiceClient interface {
 	GetSteam(context.Context, *connect.Request[v1.GetSteamRequest]) (*connect.Response[v1.GetSteamResponse], error)
 	GetSteamGame(context.Context, *connect.Request[v1.GetSteamGameRequest]) (*connect.Response[v1.GetSteamGameResponse], error)
 	GetSteamDistribution(context.Context, *connect.Request[v1.GetSteamDistributionRequest]) (*connect.Response[v1.GetSteamDistributionResponse], error)
+	GetRecentlyActiveGames(context.Context, *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error)
 }
 
 // NewGamesServiceClient constructs a client for the backlog.v1.GamesService service. By default, it
@@ -79,14 +83,21 @@ func NewGamesServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(gamesServiceMethods.ByName("GetSteamDistribution")),
 			connect.WithClientOptions(opts...),
 		),
+		getRecentlyActiveGames: connect.NewClient[v1.GetRecentlyActiveGamesRequest, v1.GetRecentlyActiveGamesResponse](
+			httpClient,
+			baseURL+GamesServiceGetRecentlyActiveGamesProcedure,
+			connect.WithSchema(gamesServiceMethods.ByName("GetRecentlyActiveGames")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // gamesServiceClient implements GamesServiceClient.
 type gamesServiceClient struct {
-	getSteam             *connect.Client[v1.GetSteamRequest, v1.GetSteamResponse]
-	getSteamGame         *connect.Client[v1.GetSteamGameRequest, v1.GetSteamGameResponse]
-	getSteamDistribution *connect.Client[v1.GetSteamDistributionRequest, v1.GetSteamDistributionResponse]
+	getSteam               *connect.Client[v1.GetSteamRequest, v1.GetSteamResponse]
+	getSteamGame           *connect.Client[v1.GetSteamGameRequest, v1.GetSteamGameResponse]
+	getSteamDistribution   *connect.Client[v1.GetSteamDistributionRequest, v1.GetSteamDistributionResponse]
+	getRecentlyActiveGames *connect.Client[v1.GetRecentlyActiveGamesRequest, v1.GetRecentlyActiveGamesResponse]
 }
 
 // GetSteam calls backlog.v1.GamesService.GetSteam.
@@ -104,11 +115,17 @@ func (c *gamesServiceClient) GetSteamDistribution(ctx context.Context, req *conn
 	return c.getSteamDistribution.CallUnary(ctx, req)
 }
 
+// GetRecentlyActiveGames calls backlog.v1.GamesService.GetRecentlyActiveGames.
+func (c *gamesServiceClient) GetRecentlyActiveGames(ctx context.Context, req *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error) {
+	return c.getRecentlyActiveGames.CallUnary(ctx, req)
+}
+
 // GamesServiceHandler is an implementation of the backlog.v1.GamesService service.
 type GamesServiceHandler interface {
 	GetSteam(context.Context, *connect.Request[v1.GetSteamRequest]) (*connect.Response[v1.GetSteamResponse], error)
 	GetSteamGame(context.Context, *connect.Request[v1.GetSteamGameRequest]) (*connect.Response[v1.GetSteamGameResponse], error)
 	GetSteamDistribution(context.Context, *connect.Request[v1.GetSteamDistributionRequest]) (*connect.Response[v1.GetSteamDistributionResponse], error)
+	GetRecentlyActiveGames(context.Context, *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error)
 }
 
 // NewGamesServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -136,6 +153,12 @@ func NewGamesServiceHandler(svc GamesServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(gamesServiceMethods.ByName("GetSteamDistribution")),
 		connect.WithHandlerOptions(opts...),
 	)
+	gamesServiceGetRecentlyActiveGamesHandler := connect.NewUnaryHandler(
+		GamesServiceGetRecentlyActiveGamesProcedure,
+		svc.GetRecentlyActiveGames,
+		connect.WithSchema(gamesServiceMethods.ByName("GetRecentlyActiveGames")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/backlog.v1.GamesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case GamesServiceGetSteamProcedure:
@@ -144,6 +167,8 @@ func NewGamesServiceHandler(svc GamesServiceHandler, opts ...connect.HandlerOpti
 			gamesServiceGetSteamGameHandler.ServeHTTP(w, r)
 		case GamesServiceGetSteamDistributionProcedure:
 			gamesServiceGetSteamDistributionHandler.ServeHTTP(w, r)
+		case GamesServiceGetRecentlyActiveGamesProcedure:
+			gamesServiceGetRecentlyActiveGamesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -163,4 +188,8 @@ func (UnimplementedGamesServiceHandler) GetSteamGame(context.Context, *connect.R
 
 func (UnimplementedGamesServiceHandler) GetSteamDistribution(context.Context, *connect.Request[v1.GetSteamDistributionRequest]) (*connect.Response[v1.GetSteamDistributionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.GamesService.GetSteamDistribution is not implemented"))
+}
+
+func (UnimplementedGamesServiceHandler) GetRecentlyActiveGames(context.Context, *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.GamesService.GetRecentlyActiveGames is not implemented"))
 }
