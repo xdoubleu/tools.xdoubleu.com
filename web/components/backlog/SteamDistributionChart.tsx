@@ -25,6 +25,13 @@ const BUCKET_LABELS = [
   '100%'
 ]
 
+const tooltipContentStyle = {
+  backgroundColor: 'rgb(var(--color-surface))',
+  border: '1px solid rgb(var(--color-border))',
+  borderRadius: '0.75rem',
+  color: 'rgb(var(--color-fg))'
+}
+
 interface SteamDistributionChartProps {
   distribution: number[]
   onBucketClick?: (bucket: number) => void
@@ -41,7 +48,7 @@ export default function SteamDistributionChart({
   const chartData = distribution.map((count, i) => ({
     range: BUCKET_LABELS[i] ?? `${i * 10}%`,
     count,
-    bucket: i * 10
+    bucket: i
   }))
 
   return (
@@ -51,7 +58,13 @@ export default function SteamDistributionChart({
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="range" tick={{ fontSize: 11 }} />
           <YAxis allowDecimals={false} />
-          <Tooltip formatter={(value) => [value, 'Games']} />
+          <Tooltip
+            formatter={(value) => [value, 'Games']}
+            cursor={{ fill: 'rgb(var(--color-hover) / 0.5)' }}
+            contentStyle={tooltipContentStyle}
+            labelStyle={{ color: 'rgb(var(--color-fg))' }}
+            itemStyle={{ color: 'rgb(var(--color-fg))' }}
+          />
           <Bar
             dataKey="count"
             onClick={

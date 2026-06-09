@@ -1,8 +1,13 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 jest.mock('@/hooks/useBacklog', () => ({
   useBacklogSteamGame: jest.fn()
+}))
+
+let mockSearchParams = new URLSearchParams()
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => mockSearchParams
 }))
 
 jest.mock('next/link', () => {
@@ -40,7 +45,7 @@ const mockGame = create(GameSchema, {
   id: 1,
   name: 'The Witcher 3',
   playtime: 3600,
-  completionRate: '85%',
+  completionRate: '85.00',
   isDelisted: false
 })
 
@@ -65,6 +70,7 @@ const mockAchievements = [
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockSearchParams = new URLSearchParams()
 })
 
 const mockSteamGameResponse = (
@@ -112,7 +118,7 @@ describe('SteamGameClient', () => {
     expect(screen.getByRole('heading', { name: 'The Witcher 3' })).toBeInTheDocument()
   })
 
-  it('renders achievements section when achievements exist', () => {
+  it('renders achievements section with unlocked achievements by default', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     jest.mocked(useBacklogSteamGame).mockReturnValue({
       data: mockSteamGameResponse(mockGame, mockAchievements),
@@ -122,8 +128,92 @@ describe('SteamGameClient', () => {
 
     render(<SteamGameClient id="123" />)
     expect(screen.getByText(/Achievements/)).toBeInTheDocument()
+    // Achievement 1 is achieved (completed) so it is hidden by default.
+    expect(screen.queryByText('Achievement 1')).not.toBeInTheDocument()
+    expect(screen.getByText('Achievement 2')).toBeInTheDocument()
+  })
+
+  it('renders the achievement icon with a locked square aspect ratio', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.getByAltText('Achievement 2')).toHaveClass('h-12', 'w-12', 'object-cover')
+  })
+
+  it('orders achievements by descending global percent', () => {
+    const achievements = [
+      create(AchievementSchema, {
+        name: 'low',
+        displayName: 'Low percent',
+        achieved: false,
+        globalPercent: 10.5
+      }),
+      create(AchievementSchema, {
+        name: 'high',
+        displayName: 'High percent',
+        achieved: false,
+        globalPercent: 80.2
+      }),
+      create(AchievementSchema, {
+        name: 'mid',
+        displayName: 'Mid percent',
+        achieved: false,
+        globalPercent: 40.1
+      })
+    ]
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, achievements),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    const headings = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
+    expect(headings).toEqual(['High percent', 'Mid percent', 'Low percent'])
+  })
+
+  it('toggles completed achievements visibility', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    const toggle = screen.getByRole('button', { name: 'Show completed' })
+    fireEvent.click(toggle)
     expect(screen.getByText('Achievement 1')).toBeInTheDocument()
     expect(screen.getByText('Achievement 2')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide completed' }))
+    expect(screen.queryByText('Achievement 1')).not.toBeInTheDocument()
+  })
+
+  it('shows all-completed message when every achievement is unlocked', () => {
+    const allDone = [
+      create(AchievementSchema, {
+        name: 'done',
+        displayName: 'Done',
+        achieved: true,
+        globalPercent: 30
+      })
+    ]
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, allDone),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.getByText('All achievements completed.')).toBeInTheDocument()
   })
 
   it('shows no achievements message when list is empty', () => {
@@ -163,6 +253,46 @@ describe('SteamGameClient', () => {
     expect(backlogLink).toHaveAttribute('href', '/backlog/games')
   })
 
+  it('does not render a distribution breadcrumb without a bucket param', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.queryByText('80-89%')).not.toBeInTheDocument()
+  })
+
+  it('renders a distribution breadcrumb linking back to the bucket overview', () => {
+    mockSearchParams = new URLSearchParams({ bucket: '8', label: '80-89%' })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    const bucketLink = screen.getByText('80-89%').closest('a')
+    expect(bucketLink).toHaveAttribute('href', '/backlog/games/distribution/8')
+  })
+
+  it('falls back to a range label when only the bucket param is present', () => {
+    mockSearchParams = new URLSearchParams({ bucket: '3' })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    const bucketLink = screen.getByText('3% range').closest('a')
+    expect(bucketLink).toHaveAttribute('href', '/backlog/games/distribution/3')
+  })
+
   it('displays playtime in hours', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     jest.mocked(useBacklogSteamGame).mockReturnValue({
@@ -184,7 +314,7 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    expect(screen.getByText('Completion: 85%')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 85.00%')).toBeInTheDocument()
   })
 
   it('displays achieved count in achievements header', () => {
@@ -208,8 +338,11 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    expect(screen.getByText('Achieved')).toBeInTheDocument()
+    // Locked is visible by default; Achieved appears once completed are shown.
     expect(screen.getByText('Locked')).toBeInTheDocument()
+    expect(screen.queryByText('Achieved')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Show completed' }))
+    expect(screen.getByText('Achieved')).toBeInTheDocument()
   })
 
   it('shows delisted badge when game is delisted', () => {

@@ -13,6 +13,7 @@ type Game struct {
 	CompletionRate string `json:"completionRate"`
 	Contribution   string `json:"contribution"`
 	Playtime       int    `json:"playtime"`
+	ImageURL       string `json:"imageUrl"`
 }
 
 type Achievement struct {
@@ -34,6 +35,7 @@ type RecentGame struct {
 	CompletionRate string    `json:"completionRate"`
 	RecentUnlocks  int       `json:"recentUnlocks"`
 	LastUnlocked   time.Time `json:"lastUnlocked"`
+	ImageURL       string    `json:"imageUrl"`
 }
 
 func (a Achievement) HasGlobalPercent() bool {

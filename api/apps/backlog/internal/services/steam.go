@@ -63,7 +63,15 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 		gamesMap[id].SetCalculatedInfo(rows, len(gamesMap))
 	}
 
-	labels, values := buildProgress(fetched)
+	// The progress graph must reflect the whole library, so include the stored
+	// achievements of any game whose fetch failed this run (their data is kept,
+	// not reset) instead of dropping them from the average.
+	complete, err := service.completeAchievements(ctx, userID, gamesMap, fetched)
+	if err != nil {
+		return err
+	}
+
+	labels, values := buildProgress(complete)
 
 	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
 		if errIn := service.steam.UpsertGames(ctx, tx, gamesMap, userID); errIn != nil {
@@ -82,6 +90,42 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 	})
 }
 
+// completeAchievements returns the achievement rows used to compute derived
+// progress: the freshly fetched rows plus, for any game whose fetch failed this
+// run, the rows already stored in the database. This keeps the progress graph
+// representative of the whole library rather than only this run's successes.
+func (service *SteamService) completeAchievements(
+	ctx context.Context,
+	userID string,
+	gamesMap map[int]*models.Game,
+	fetched map[int][]models.Achievement,
+) (map[int][]models.Achievement, error) {
+	complete := make(map[int][]models.Achievement, len(gamesMap))
+	for id, rows := range fetched {
+		complete[id] = rows
+	}
+
+	missing := []int{}
+	for id := range gamesMap {
+		if _, ok := fetched[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+	if len(missing) == 0 {
+		return complete, nil
+	}
+
+	stored, err := service.steam.GetAchievementsForGames(ctx, missing, userID)
+	if err != nil {
+		return nil, err
+	}
+	for id, rows := range stored {
+		complete[id] = rows
+	}
+
+	return complete, nil
+}
+
 // buildGamesMap merges the currently owned games with the games already stored
 // for the user. Owned games seed their completion rate / contribution from the
 // stored record so a later failed achievement fetch preserves those values;
@@ -96,6 +140,10 @@ func (service *SteamService) buildGamesMap(
 	if err != nil {
 		return nil, err
 	}
+	service.logger.DebugContext(
+		ctx,
+		fmt.Sprintf("fetched %d owned games", len(ownedResp.Response.Games)),
+	)
 
 	existing, err := service.steam.GetAllGames(ctx, userID)
 	if err != nil {
@@ -115,6 +163,7 @@ func (service *SteamService) buildGamesMap(
 			CompletionRate: "0.00",
 			Contribution:   "0.0000",
 			IsDelisted:     false,
+			ImageURL:       g.GetFullImgIconURL(),
 		}
 		if prev, ok := existingByID[g.AppID]; ok {
 			game.CompletionRate = prev.CompletionRate
@@ -348,17 +397,20 @@ func (service *SteamService) GetCompleted(
 	return service.steam.GetCompleted(ctx, userID)
 }
 
-// GetRecentlyActive returns the games the user unlocked achievements in over
-// the last recentWindowDays, capped at recentGamesLimit, ordered most recent
-// first. It powers the dashboard's "what you're working on" section.
+// GetRecentlyActive returns the games the user most recently unlocked
+// achievements in, capped at recentGamesLimit and ordered most recent first,
+// regardless of how long ago the last unlock happened. It powers the
+// dashboard's "recently active" section.
 func (service *SteamService) GetRecentlyActive(
 	ctx context.Context,
 	userID string,
 ) ([]models.RecentGame, error) {
-	const recentWindowDays = 30
-	const recentGamesLimit = 6
-	since := time.Now().AddDate(0, 0, -recentWindowDays)
-	return service.steam.GetRecentlyActiveGames(ctx, userID, since, recentGamesLimit)
+	const recentGamesLimit = 5
+	// A zero time leaves the window unbounded so games surface no matter how
+	// long ago their last achievement was unlocked.
+	return service.steam.GetRecentlyActiveGames(
+		ctx, userID, time.Time{}, recentGamesLimit,
+	)
 }
 
 func (service *SteamService) GetGameByID(

@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { mutate } from 'swr'
 import {
   LineChart,
@@ -25,9 +26,9 @@ import { oneYearAgo, today } from '@/lib/backlog/dates'
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <Card className="p-4">
+    <Card className="p-3">
       <p className="text-xs text-muted">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
+      <p className="text-xl font-bold mt-0.5">{value}</p>
     </Card>
   )
 }
@@ -35,12 +36,23 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 function RecentGameCard({ game }: { game: RecentGame }) {
   const unlockLabel = game.recentUnlocks === 1 ? 'unlock' : 'unlocks'
   return (
-    <Link href={`/backlog/games/${game.id}`} className={cn(interactiveCardClass, 'block p-4')}>
-      <h3 className="font-semibold truncate">{game.name}</h3>
-      <p className="text-sm text-muted">Completion: {game.completionRate}</p>
-      <p className="text-sm text-muted">
-        {game.recentUnlocks} recent {unlockLabel} &mdash; last {game.lastUnlockedAt}
-      </p>
+    <Link href={`/backlog/games/${game.id}`} className={cn(interactiveCardClass, 'flex gap-3 p-4')}>
+      {game.imageUrl && (
+        <Image
+          src={game.imageUrl}
+          alt={game.name}
+          width={32}
+          height={32}
+          className="h-8 w-8 rounded-lg object-cover shrink-0"
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <h3 className="font-semibold truncate">{game.name}</h3>
+        <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
+        <p className="text-sm text-muted">
+          {game.recentUnlocks} recent {unlockLabel} &mdash; last {game.lastUnlockedAt}
+        </p>
+      </div>
     </Link>
   )
 }
@@ -50,6 +62,7 @@ export default function GamesDashboard() {
 
   const [progressStart, setProgressStart] = useState(oneYearAgo())
   const [progressEnd, setProgressEnd] = useState(today())
+  const [view, setView] = useState<'progress' | 'distribution'>('distribution')
 
   const { data: steamData, error: steamError, isLoading: steamLoading } = useBacklogSteam()
   const { data: progressData, isLoading: progressLoading } = useSteamProgress(
@@ -75,7 +88,7 @@ export default function GamesDashboard() {
     })) ?? []
 
   return (
-    <section className="flex flex-col gap-4 lg:min-h-0 lg:flex-1">
+    <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-end gap-2">
         {lastRefresh && (
           <span className="mr-auto text-xs text-muted">
@@ -96,15 +109,15 @@ export default function GamesDashboard() {
       {steam && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Total backlog" value={steam.totalBacklog} />
-          <StatCard label="Current rate" value={steam.currentRate} />
+          <StatCard label="Current rate" value={`${steam.currentRate}%`} />
           <StatCard label="In progress" value={steam.inProgress.length} />
           <StatCard label="Completed" value={steam.completed.length} />
         </div>
       )}
 
-      <div className="grid min-h-0 gap-4 lg:flex-1 lg:grid-cols-2 lg:grid-rows-2">
-        <div className="flex min-h-0 flex-col lg:row-span-2">
-          <h2 className="mb-3 text-lg font-semibold">Recently active</h2>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="flex min-h-0 flex-col">
+          <h2 className="mb-2 text-base font-semibold">Recently active</h2>
           {recentLoading && <p className="text-muted">Loading recent activity...</p>}
           {!recentLoading && recentGames.length === 0 && (
             <p className="text-muted text-sm">No recent achievement activity.</p>
@@ -119,68 +132,109 @@ export default function GamesDashboard() {
         </div>
 
         <div className="flex min-h-0 flex-col">
-          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold">Progress</h2>
-            <div className="flex gap-3">
-              <div>
-                <label htmlFor="dash-from" className="mb-1 block text-xs text-muted">
-                  From
-                </label>
-                <Input
-                  id="dash-from"
-                  type="date"
-                  value={progressStart}
-                  onChange={(e) => setProgressStart(e.target.value)}
-                  className="h-9 w-auto"
-                />
-              </div>
-              <div>
-                <label htmlFor="dash-to" className="mb-1 block text-xs text-muted">
-                  To
-                </label>
-                <Input
-                  id="dash-to"
-                  type="date"
-                  value={progressEnd}
-                  onChange={(e) => setProgressEnd(e.target.value)}
-                  className="h-9 w-auto"
-                />
-              </div>
+          <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
+            <div
+              role="tablist"
+              aria-label="Chart view"
+              className="flex gap-1 rounded-xl border border-border bg-surface p-1"
+            >
+              <Button
+                role="tab"
+                aria-selected={view === 'distribution'}
+                size="sm"
+                variant={view === 'distribution' ? 'default' : 'ghost'}
+                onClick={() => setView('distribution')}
+              >
+                Distribution
+              </Button>
+              <Button
+                role="tab"
+                aria-selected={view === 'progress'}
+                size="sm"
+                variant={view === 'progress' ? 'default' : 'ghost'}
+                onClick={() => setView('progress')}
+              >
+                Progress
+              </Button>
             </div>
-          </div>
-          {progressLoading && <p className="text-muted">Loading progress...</p>}
-          {!progressLoading && progressChartData.length === 0 && (
-            <p className="text-muted">No progress data for this range.</p>
-          )}
-          {progressChartData.length > 0 && (
-            <div className="min-h-0 w-full flex-1">
-              <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-                <LineChart data={progressChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="rgb(var(--color-accent))"
-                    strokeWidth={2}
-                    dot={false}
+            {view === 'progress' && (
+              <div className="flex gap-3">
+                <div>
+                  <label htmlFor="dash-from" className="mb-1 block text-xs text-muted">
+                    From
+                  </label>
+                  <Input
+                    id="dash-from"
+                    type="date"
+                    value={progressStart}
+                    onChange={(e) => setProgressStart(e.target.value)}
+                    className="h-9 w-auto"
                   />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
+                </div>
+                <div>
+                  <label htmlFor="dash-to" className="mb-1 block text-xs text-muted">
+                    To
+                  </label>
+                  <Input
+                    id="dash-to"
+                    type="date"
+                    value={progressEnd}
+                    onChange={(e) => setProgressEnd(e.target.value)}
+                    className="h-9 w-auto"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
-        <div className="flex min-h-0 flex-col">
-          <h2 className="mb-3 text-lg font-semibold">Distribution</h2>
-          {steamLoading && <p>Loading distribution...</p>}
-          {steam && (
-            <SteamDistributionChart
-              distribution={steam.distribution}
-              onBucketClick={(bucket) => router.push(`/backlog/games/distribution/${bucket}`)}
-            />
+          {view === 'progress' && (
+            <>
+              {progressLoading && <p className="text-muted">Loading progress...</p>}
+              {!progressLoading && progressChartData.length === 0 && (
+                <p className="text-muted">No progress data for this range.</p>
+              )}
+              {progressChartData.length > 0 && (
+                <div className="min-h-0 w-full flex-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={progressChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                      <YAxis />
+                      <Tooltip
+                        cursor={{ stroke: 'rgb(var(--color-border))' }}
+                        contentStyle={{
+                          backgroundColor: 'rgb(var(--color-surface))',
+                          border: '1px solid rgb(var(--color-border))',
+                          borderRadius: '0.75rem',
+                          color: 'rgb(var(--color-fg))'
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="rgb(var(--color-accent))"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </>
+          )}
+
+          {view === 'distribution' && (
+            <>
+              {steamLoading && <p>Loading distribution...</p>}
+              {steam && (
+                <div className="min-h-0 w-full flex-1">
+                  <SteamDistributionChart
+                    distribution={steam.distribution}
+                    onBucketClick={(bucket) => router.push(`/backlog/games/distribution/${bucket}`)}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
