@@ -17,6 +17,8 @@ message Contact {
   string display_name = 4;
   string status = 5;
   string created_at = 6;
+  string owner_email = 7;
+  string contact_email = 8;
 }
 
 message ListContactsRequest {}

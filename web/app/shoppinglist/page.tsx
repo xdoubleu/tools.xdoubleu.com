@@ -23,11 +23,16 @@ function toExportItem(item: ShoppingItem): ShoppingItemExport {
   }
 }
 
+// Sentinel category id that switches the category select into "create a new
+// category" mode, revealing the name input below it.
+const NEW_CATEGORY = '__new__'
+
 export default function ShoppingPage() {
   const [newName, setNewName] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [newUnit, setNewUnit] = useState('')
   const [newCategoryId, setNewCategoryId] = useState('')
+  const [newCategoryName, setNewCategoryName] = useState('')
   const [adding, setAdding] = useState(false)
   const [showExport, setShowExport] = useState(false)
 
@@ -44,14 +49,26 @@ export default function ShoppingPage() {
     try {
       const client = createServiceClient(ShoppingListService)
       await client.addShoppingItem({
-        name,
         amount: newAmount || '0',
-        unit: newUnit.trim()
+        unit: newUnit.trim(),
+        name
       })
+      // Resolve the effective category id: either an existing selection or a
+      // brand-new category created inline from the add form.
+      let categoryId = newCategoryId
+      if (newCategoryId === NEW_CATEGORY) {
+        const trimmed = newCategoryName.trim()
+        categoryId = ''
+        if (trimmed) {
+          const resp = await client.createCategory({ name: trimmed })
+          categoryId = resp.category?.id ?? ''
+          await globalMutate('/shoppinglist/categories')
+        }
+      }
       // The category lives in the name->category catalog, not on the item, so
       // assigning it here makes it persist by name across every list and export.
-      if (newCategoryId) {
-        await client.setItemCategory({ name, categoryId: newCategoryId })
+      if (categoryId) {
+        await client.setItemCategory({ name, categoryId })
         await globalMutate('/shoppinglist/item-categories')
         await globalMutate('/shoppinglist/item-names')
       }
@@ -59,6 +76,7 @@ export default function ShoppingPage() {
       setNewAmount('')
       setNewUnit('')
       setNewCategoryId('')
+      setNewCategoryName('')
       await mutate()
     } finally {
       setAdding(false)
@@ -84,14 +102,6 @@ export default function ShoppingPage() {
 
       <form onSubmit={handleAdd} className="flex flex-wrap gap-2 mb-6">
         <Input
-          type="text"
-          placeholder="Item name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          required
-          className="min-w-32 flex-1"
-        />
-        <Input
           type="number"
           placeholder="Amount"
           value={newAmount}
@@ -107,20 +117,37 @@ export default function ShoppingPage() {
           onChange={(e) => setNewUnit(e.target.value)}
           className="w-24"
         />
-        {categories.length > 0 && (
-          <Select
-            aria-label="Category"
-            value={newCategoryId}
-            onChange={(e) => setNewCategoryId(e.target.value)}
-            className="w-auto"
-          >
-            <option value="">-- Category --</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
+        <Input
+          type="text"
+          placeholder="Item name"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          required
+          className="min-w-32 flex-1"
+        />
+        <Select
+          aria-label="Category"
+          value={newCategoryId}
+          onChange={(e) => setNewCategoryId(e.target.value)}
+          className="w-auto"
+        >
+          <option value="">-- Category --</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+          <option value={NEW_CATEGORY}>+ New category</option>
+        </Select>
+        {newCategoryId === NEW_CATEGORY && (
+          <Input
+            type="text"
+            placeholder="New category"
+            aria-label="New category name"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            className="w-32"
+          />
         )}
         <Button type="submit" disabled={adding || !newName.trim()}>
           Add

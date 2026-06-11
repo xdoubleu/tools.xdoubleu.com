@@ -14,7 +14,7 @@ jest.mock('@/hooks/useContacts', () => ({
 
 const incomingContact = create(ContactSchema, {
   id: 'r1',
-  ownerUserId: 'sender@example.com',
+  ownerEmail: 'sender@example.com',
   displayName: 'Bob',
   status: 'incoming'
 })

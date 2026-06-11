@@ -83,6 +83,12 @@ describe('MealPlanEntryForm category picker', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('', 'apple\t3\tkg', 1, false))
   })
 
+  it('defaults to the recipe tab for a new entry', () => {
+    render(<MealPlanEntryForm open title="Add" recipes={[]} onSave={onSave} onCancel={onCancel} />)
+    expect(screen.getByPlaceholderText('Servings')).toBeInTheDocument()
+    expect(screen.queryByText('+ Add item')).not.toBeInTheDocument()
+  })
+
   it('hides the category selector when keep off shopping list is checked', async () => {
     render(
       <MealPlanEntryForm

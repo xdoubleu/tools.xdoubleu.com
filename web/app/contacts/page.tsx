@@ -44,7 +44,7 @@ export default function ContactsPage() {
   }
 
   async function handleAccept(id: string) {
-    const displayName = acceptNames[id] ?? ''
+    const displayName = acceptNames[id] ?? incoming.find((c) => c.id === id)?.ownerEmail ?? ''
     try {
       await acceptContact(id, displayName)
       await mutate('/contacts')
@@ -110,7 +110,7 @@ export default function ContactsPage() {
             {incoming.map((c) => (
               <li key={c.id} className="rounded-2xl border border-warn/30 bg-warn/10 p-3">
                 <p className="mb-2 text-sm font-semibold text-fg">
-                  {c.displayName} wants to connect
+                  {c.ownerEmail} wants to connect
                 </p>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
@@ -118,7 +118,7 @@ export default function ContactsPage() {
                     <Input
                       type="text"
                       required
-                      defaultValue={c.displayName}
+                      defaultValue={c.ownerEmail}
                       onChange={(e) =>
                         setAcceptNames((prev) => ({ ...prev, [c.id]: e.target.value }))
                       }

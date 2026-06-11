@@ -29,6 +29,8 @@ type Contact struct {
 	DisplayName   string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	OwnerEmail    string                 `protobuf:"bytes,7,opt,name=owner_email,json=ownerEmail,proto3" json:"owner_email,omitempty"`
+	ContactEmail  string                 `protobuf:"bytes,8,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -101,6 +103,20 @@ func (x *Contact) GetStatus() string {
 func (x *Contact) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Contact) GetOwnerEmail() string {
+	if x != nil {
+		return x.OwnerEmail
+	}
+	return ""
+}
+
+func (x *Contact) GetContactEmail() string {
+	if x != nil {
+		return x.ContactEmail
 	}
 	return ""
 }
@@ -541,7 +557,7 @@ var File_contacts_v1_contacts_proto protoreflect.FileDescriptor
 
 const file_contacts_v1_contacts_proto_rawDesc = "" +
 	"\n" +
-	"\x1acontacts/v1/contacts.proto\x12\vcontacts.v1\"\xbf\x01\n" +
+	"\x1acontacts/v1/contacts.proto\x12\vcontacts.v1\"\x85\x02\n" +
 	"\aContact\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
 	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\x12&\n" +
@@ -549,7 +565,10 @@ const file_contacts_v1_contacts_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x16\n" +
 	"\x06status\x18\x05 \x01(\tR\x06status\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\tR\tcreatedAt\"\x15\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1f\n" +
+	"\vowner_email\x18\a \x01(\tR\n" +
+	"ownerEmail\x12#\n" +
+	"\rcontact_email\x18\b \x01(\tR\fcontactEmail\"\x15\n" +
 	"\x13ListContactsRequest\"\xaa\x01\n" +
 	"\x14ListContactsResponse\x120\n" +
 	"\bcontacts\x18\x01 \x03(\v2\x14.contacts.v1.ContactR\bcontacts\x12.\n" +
