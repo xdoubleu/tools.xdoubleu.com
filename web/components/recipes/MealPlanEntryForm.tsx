@@ -58,7 +58,7 @@ export default function MealPlanEntryForm({
   const [servings, setServings] = useState(initialServings)
   const [customItems, setCustomItems] = useState<CustomItem[]>(() => {
     const parsed = initialCustomName ? parseCustomItems(initialCustomName) : []
-    return parsed.length > 0 ? parsed : [{ name: '', amount: '' }]
+    return parsed.length > 0 ? parsed : [{ name: '', amount: '', unit: '' }]
   })
   const [excludeFromShoppingList, setExcludeFromShoppingList] = useState(
     initialExcludeFromShoppingList
@@ -118,7 +118,8 @@ export default function MealPlanEntryForm({
     }
   }
 
-  const addCustomItem = () => setCustomItems((prev) => [...prev, { name: '', amount: '' }])
+  const addCustomItem = () =>
+    setCustomItems((prev) => [...prev, { name: '', amount: '', unit: '' }])
   const updateCustomItem = (i: number, patch: Partial<CustomItem>) =>
     setCustomItems((prev) => prev.map((item, idx) => (idx === i ? { ...item, ...patch } : item)))
   const removeCustomItem = (i: number) =>
@@ -137,7 +138,7 @@ export default function MealPlanEntryForm({
           <DialogClose aria-label="Close">×</DialogClose>
         </DialogHeader>
 
-        <div className="flex gap-1 rounded-xl bg-surface p-1 mb-4">
+        <div className="flex gap-1 rounded-xl bg-hover p-1 mb-4">
           {(['recipe', 'custom'] as Tab[]).map((t) => (
             <Button
               key={t}
@@ -180,20 +181,6 @@ export default function MealPlanEntryForm({
               <div key={i} className="space-y-2 rounded-xl border border-border p-2">
                 <div className="flex gap-2">
                   <Input
-                    type="text"
-                    value={item.name}
-                    onChange={(e) => updateCustomItem(i, { name: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        if (i === customItems.length - 1) addCustomItem()
-                      }
-                    }}
-                    placeholder={`Item ${i + 1}`}
-                    autoFocus={i === 0}
-                    className="flex-1"
-                  />
-                  <Input
                     type="number"
                     min="0"
                     step="any"
@@ -209,6 +196,34 @@ export default function MealPlanEntryForm({
                     aria-label={`Amount for item ${i + 1}`}
                     className="w-20"
                   />
+                  <Input
+                    type="text"
+                    value={item.unit ?? ''}
+                    onChange={(e) => updateCustomItem(i, { unit: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        if (i === customItems.length - 1) addCustomItem()
+                      }
+                    }}
+                    placeholder="Unit"
+                    aria-label={`Unit for item ${i + 1}`}
+                    className="w-20"
+                  />
+                  <Input
+                    type="text"
+                    value={item.name}
+                    onChange={(e) => updateCustomItem(i, { name: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        if (i === customItems.length - 1) addCustomItem()
+                      }
+                    }}
+                    placeholder={`Item ${i + 1}`}
+                    autoFocus={i === 0}
+                    className="flex-1"
+                  />
                   {customItems.length > 1 && (
                     <Button
                       variant="destructive"
@@ -220,7 +235,7 @@ export default function MealPlanEntryForm({
                     </Button>
                   )}
                 </div>
-                {categories.length > 0 && (
+                {categories.length > 0 && !excludeFromShoppingList && (
                   <Select
                     aria-label={`Category for item ${i + 1}`}
                     value={effectiveCategoryId(item)}

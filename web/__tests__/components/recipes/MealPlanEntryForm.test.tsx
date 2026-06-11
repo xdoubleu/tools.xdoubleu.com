@@ -73,4 +73,29 @@ describe('MealPlanEntryForm category picker', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('', 'milk', 1, false))
     expect(setItemCategory).not.toHaveBeenCalled()
   })
+
+  it('encodes unit into customName on save', async () => {
+    renderForm('apple')
+    fireEvent.change(screen.getByLabelText('Amount for item 1'), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText('Unit for item 1'), { target: { value: 'kg' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith('', 'apple\t3\tkg', 1, false))
+  })
+
+  it('hides the category selector when keep off shopping list is checked', async () => {
+    render(
+      <MealPlanEntryForm
+        open
+        title="Add"
+        recipes={[]}
+        initialCustomName="apple"
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    )
+    expect(screen.getByLabelText('Category for item 1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(screen.queryByLabelText('Category for item 1')).not.toBeInTheDocument()
+  })
 })

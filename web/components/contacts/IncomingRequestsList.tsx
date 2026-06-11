@@ -49,7 +49,7 @@ export default function IncomingRequestsList({ contacts, onUpdated }: IncomingRe
           key={contact.id}
           className="rounded-2xl border border-border bg-card p-4 shadow-card space-y-2"
         >
-          <p className="text-sm text-muted">{contact.contactUserId}</p>
+          <p className="text-sm text-muted">{contact.ownerUserId}</p>
           <Input
             type="text"
             placeholder="Display name"
