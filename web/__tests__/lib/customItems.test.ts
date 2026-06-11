@@ -13,6 +13,12 @@ describe('customItems', () => {
     ])
   })
 
+  it('parses name/amount/unit triples', () => {
+    expect(parseCustomItems('Flour\t2\tcups')).toEqual([
+      { name: 'Flour', amount: '2', unit: 'cups' }
+    ])
+  })
+
   it('drops blank lines when parsing', () => {
     expect(parseCustomItems('\nRice\n')).toEqual([{ name: 'Rice', amount: '' }])
   })
@@ -24,6 +30,14 @@ describe('customItems', () => {
         { name: 'Olive oil', amount: '2' }
       ])
     ).toBe('Rice\nOlive oil\t2')
+  })
+
+  it('encodes unit as a third tab field when present', () => {
+    expect(encodeCustomItems([{ name: 'Flour', amount: '2', unit: 'cups' }])).toBe('Flour\t2\tcups')
+  })
+
+  it('omits unit when amount is empty', () => {
+    expect(encodeCustomItems([{ name: 'Flour', amount: '', unit: 'cups' }])).toBe('Flour')
   })
 
   it('drops items with blank names and trims when encoding', () => {
@@ -48,8 +62,16 @@ describe('customItems', () => {
     expect(formatCustomItemLabel({ name: 'Apples', amount: '' })).toBe('Apples')
   })
 
+  it('formats a label with amount and unit', () => {
+    expect(formatCustomItemLabel({ name: 'Flour', amount: '2', unit: 'cups' })).toBe('2 cups Flour')
+  })
+
   it('formats a whole customName for display', () => {
     expect(formatCustomNameLabel('Rice\nOlive oil\t2')).toBe('Rice\n2 Olive oil')
+  })
+
+  it('formats a whole customName with units for display', () => {
+    expect(formatCustomNameLabel('Flour\t2\tcups')).toBe('2 cups Flour')
   })
 
   it('ignores the UI-only categoryId when encoding', () => {
