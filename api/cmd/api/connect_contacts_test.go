@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -150,4 +151,22 @@ func TestListContacts_WithIncoming(t *testing.T) {
 	resp, err := client.ListContacts(context.Background(), req)
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.Msg.Incoming)
+}
+
+func TestListContacts_IncomingShowsSenderEmail(t *testing.T) {
+	_ = insertPendingContact(t)
+
+	client := contactsClient(t)
+	req := connect.NewRequest(&contactsv1.ListContactsRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.ListContacts(context.Background(), req)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.Msg.Incoming)
+
+	got := resp.Msg.Incoming[0]
+	// owner_email must be the sender's email, not the recipient's own email.
+	assert.True(t, strings.HasPrefix(got.OwnerEmail, "sender-"),
+		"owner_email should resolve to the sender, got %q", got.OwnerEmail)
+	assert.True(t, strings.HasSuffix(got.OwnerEmail, "@example.com"))
+	assert.Equal(t, "user@example.com", got.ContactEmail)
 }

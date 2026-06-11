@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const addShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
 const setItemCategory = jest.fn().mockResolvedValue({})
+const createCategory = jest.fn().mockResolvedValue({ category: { id: 'cat-new' } })
 const deleteShoppingItem = jest.fn().mockResolvedValue({})
 const listMutate = jest.fn().mockResolvedValue(undefined)
 const globalMutate = jest.fn().mockResolvedValue(undefined)
@@ -13,7 +14,12 @@ jest.mock('@/hooks/useShoppingList', () => ({
 }))
 
 jest.mock('@/lib/client', () => ({
-  createServiceClient: () => ({ addShoppingItem, setItemCategory, deleteShoppingItem })
+  createServiceClient: () => ({
+    addShoppingItem,
+    setItemCategory,
+    createCategory,
+    deleteShoppingItem
+  })
 }))
 
 jest.mock('swr', () => ({
@@ -48,5 +54,18 @@ describe('ShoppingPage add form', () => {
 
     await waitFor(() => expect(addShoppingItem).toHaveBeenCalled())
     expect(setItemCategory).not.toHaveBeenCalled()
+  })
+
+  it('creates a new category inline and assigns it on add', async () => {
+    render(<ShoppingPage />)
+
+    fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Kiwi' } })
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
+    fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'Fruit' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() => expect(createCategory).toHaveBeenCalledWith({ name: 'Fruit' }))
+    expect(setItemCategory).toHaveBeenCalledWith({ name: 'Kiwi', categoryId: 'cat-new' })
+    expect(globalMutate).toHaveBeenCalledWith('/shoppinglist/categories')
   })
 })

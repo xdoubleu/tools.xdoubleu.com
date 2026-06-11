@@ -73,6 +73,13 @@ function openAddDialog() {
   fireEvent.click(screen.getAllByRole('button', { name: '+' })[0])
 }
 
+// The add dialog now opens on the Recipe tab by default; switch to Custom for
+// the free-text entry tests.
+function openAddDialogCustom() {
+  openAddDialog()
+  fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+}
+
 function openMealMenu() {
   fireEvent.click(screen.getAllByRole('button', { name: /Meal actions/i })[0])
 }
@@ -95,6 +102,7 @@ describe('MealPlanCalendar', () => {
     expect(screen.getByRole('button', { name: 'Recipe' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Custom' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Event' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
     expect(screen.getByPlaceholderText('Item 1')).toBeInTheDocument()
   })
 
@@ -108,7 +116,7 @@ describe('MealPlanCalendar', () => {
         onMutate={onMutate}
       />
     )
-    openAddDialog()
+    openAddDialogCustom()
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Birthday dinner' }
     })
@@ -192,8 +200,7 @@ describe('MealPlanCalendar', () => {
         onMutate={onMutate}
       />
     )
-    openAddDialog()
-    // Custom tab is default
+    openAddDialogCustom()
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Homemade soup' }
     })
@@ -208,8 +215,7 @@ describe('MealPlanCalendar', () => {
 
   it('encodes a custom item amount into customName', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    openAddDialog()
-    // Custom tab is default
+    openAddDialogCustom()
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Olive oil' }
     })
@@ -238,8 +244,8 @@ describe('MealPlanCalendar', () => {
 
   it('does not submit when custom item is empty', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    openAddDialog()
-    // Custom tab is default; Item 1 is empty
+    openAddDialogCustom()
+    // Item 1 is empty
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
     await waitFor(() => expect(mockAddMeal).not.toHaveBeenCalled())
   })
@@ -326,7 +332,7 @@ describe('MealPlanCalendar', () => {
 
   it('cancel closes the add dialog', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    openAddDialog()
+    openAddDialogCustom()
     expect(screen.getByPlaceholderText('Item 1')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^Cancel$/i }))
     expect(screen.queryByPlaceholderText('Item 1')).not.toBeInTheDocument()
@@ -687,7 +693,7 @@ describe('MealPlanCalendar', () => {
         onMutate={onMutate}
       />
     )
-    openAddDialog()
+    openAddDialogCustom()
     // Fill first item
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Chicken' }
@@ -706,7 +712,7 @@ describe('MealPlanCalendar', () => {
 
   it('adds a new item row on Enter in the amount field and removes a row', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    openAddDialog()
+    openAddDialogCustom()
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Chicken' }
     })
@@ -741,7 +747,7 @@ describe('MealPlanCalendar', () => {
 
   it('sends a single addMeal request when adding a custom item (no double add)', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    openAddDialog()
+    openAddDialogCustom()
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Homemade soup' }
     })

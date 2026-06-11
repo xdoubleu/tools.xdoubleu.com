@@ -52,7 +52,7 @@ export default function MealPlanEntryForm({
   onSave,
   onCancel
 }: MealPlanEntryFormProps) {
-  const initialTab: Tab = initialRecipeId ? 'recipe' : 'custom'
+  const initialTab: Tab = initialCustomName ? 'custom' : 'recipe'
   const [tab, setTab] = useState<Tab>(initialTab)
   const [recipeId, setRecipeId] = useState(initialRecipeId)
   const [servings, setServings] = useState(initialServings)

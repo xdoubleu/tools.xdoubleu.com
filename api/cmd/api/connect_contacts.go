@@ -26,7 +26,7 @@ func (h *contactsConnectHandler) userID(ctx context.Context) string {
 	return u.ID
 }
 
-func protoContact(c models.Contact) *contactsv1.Contact {
+func protoContact(c models.Contact, emails map[string]string) *contactsv1.Contact {
 	return &contactsv1.Contact{
 		Id:            c.ID.String(),
 		OwnerUserId:   c.OwnerUserID,
@@ -34,13 +34,18 @@ func protoContact(c models.Contact) *contactsv1.Contact {
 		DisplayName:   c.DisplayName,
 		Status:        c.Status,
 		CreatedAt:     c.CreatedAt.Format(time.RFC3339),
+		OwnerEmail:    emails[c.OwnerUserID],
+		ContactEmail:  emails[c.ContactUserID],
 	}
 }
 
-func protoContactSlice(cs []models.Contact) []*contactsv1.Contact {
+func protoContactSlice(
+	cs []models.Contact,
+	emails map[string]string,
+) []*contactsv1.Contact {
 	out := make([]*contactsv1.Contact, len(cs))
 	for i, c := range cs {
-		out[i] = protoContact(c)
+		out[i] = protoContact(c, emails)
 	}
 	return out
 }
@@ -66,11 +71,31 @@ func (h *contactsConnectHandler) ListContacts(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	emails, err := h.emailsByUserID()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	return connect.NewResponse(&contactsv1.ListContactsResponse{
-		Contacts: protoContactSlice(contacts),
-		Pending:  protoContactSlice(pending),
-		Incoming: protoContactSlice(incoming),
+		Contacts: protoContactSlice(contacts, emails),
+		Pending:  protoContactSlice(pending, emails),
+		Incoming: protoContactSlice(incoming, emails),
 	}), nil
+}
+
+// emailsByUserID resolves user IDs to their email addresses so contacts,
+// which are stored by user ID, can be displayed by email.
+func (h *contactsConnectHandler) emailsByUserID() (map[string]string, error) {
+	users, err := h.app.services.Auth.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	emails := make(map[string]string, len(users))
+	for _, u := range users {
+		emails[u.ID] = u.Email
+	}
+	return emails, nil
 }
 
 func (h *contactsConnectHandler) CreateContact(
