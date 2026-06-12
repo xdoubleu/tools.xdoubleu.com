@@ -88,7 +88,7 @@ export default function GamesDashboard() {
     })) ?? []
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3 lg:h-full lg:min-h-0">
       <div className="flex flex-wrap items-center justify-end gap-2">
         {lastRefresh && (
           <span className="mr-auto text-xs text-muted">
@@ -115,7 +115,7 @@ export default function GamesDashboard() {
         </div>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="flex min-h-0 flex-col">
           <h2 className="mb-2 text-base font-semibold">Recently active</h2>
           {recentLoading && <p className="text-muted">Loading recent activity...</p>}
@@ -123,7 +123,7 @@ export default function GamesDashboard() {
             <p className="text-muted text-sm">No recent achievement activity.</p>
           )}
           {recentGames.length > 0 && (
-            <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:flex-1 lg:grid-cols-1">
               {recentGames.map((g) => (
                 <RecentGameCard key={g.id} game={g} />
               ))}
@@ -194,7 +194,7 @@ export default function GamesDashboard() {
                 <p className="text-muted">No progress data for this range.</p>
               )}
               {progressChartData.length > 0 && (
-                <div className="min-h-0 w-full flex-1">
+                <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={progressChartData}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -227,7 +227,7 @@ export default function GamesDashboard() {
             <>
               {steamLoading && <p>Loading distribution...</p>}
               {steam && (
-                <div className="min-h-0 w-full flex-1">
+                <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
                   <SteamDistributionChart
                     distribution={steam.distribution}
                     onBucketClick={(bucket) => router.push(`/backlog/games/distribution/${bucket}`)}
