@@ -75,7 +75,7 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 - **`auth/`** — Supabase GoTrue authentication (`gotrue-go`)
 - **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v4`
 - **`constants/`** — Shared constants
-- **`contacts/`** — Contact management service (used by recipes for sharing)
+- **`contacts/`** — Contact management service with editable display names (used by recipes, shopping list, and meal-plan sharing)
 - **`crypto/`** — Encryption utilities
 - **`models/`** — Shared domain models
 - **`repositories/`** — Shared DB repositories
@@ -102,8 +102,8 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 - **backlog** — Goals/backlog tracker with external sync (Steam, Hardcover/Goodreads). Has background jobs (2 workers) and WebSocket live updates. Uses `backlog` DB schema.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no background jobs.
 - **icsproxy** — ICS calendar feed filtering and proxying. Uses `icsproxy` DB schema.
-- **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and contact-based sharing. Uses `recipes` DB schema.
-- **shoppinglist** — Custom items plus meal-plan ingredient aggregation, with user-defined categories, a name→category catalog, and per-store category ordering that drives a store-ordered (Apple Notes) export. Uses `shoppinglist` DB schema.
+- **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (`recipebook_access`, view-only or edit). Uses `recipes` DB schema.
+- **shoppinglist** — Custom items plus meal-plan ingredient aggregation, with user-defined categories, a name→category catalog, and per-store category ordering that drives a store-ordered (Apple Notes) export. The whole list is shareable with contacts (`shoppinglist_access`, view-only or edit); data RPCs accept an `owner_user_id` so a recipient can act on a shared owner's list. Uses `shoppinglist` DB schema.
 - **todos** — Task management with sections, workspaces, subtasks, policies, archive, search, and background archive jobs. Uses `todos` DB schema.
 
 ### Database Conventions

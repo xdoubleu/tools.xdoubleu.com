@@ -107,6 +107,7 @@ func (x *ShoppingItem) GetGroupName() string {
 
 type GetCustomListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	OwnerUserId   string                 `protobuf:"bytes,1,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,6 +140,13 @@ func (x *GetCustomListRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetCustomListRequest.ProtoReflect.Descriptor instead.
 func (*GetCustomListRequest) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetCustomListRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
 }
 
 type GetCustomListResponse struct {
@@ -190,6 +198,7 @@ type AddShoppingItemRequest struct {
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Amount        string                 `protobuf:"bytes,2,opt,name=amount,proto3" json:"amount,omitempty"`
 	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,4,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -245,6 +254,13 @@ func (x *AddShoppingItemRequest) GetUnit() string {
 	return ""
 }
 
+func (x *AddShoppingItemRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
 type AddShoppingItemResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Item          *ShoppingItem          `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
@@ -292,6 +308,7 @@ func (x *AddShoppingItemResponse) GetItem() *ShoppingItem {
 type DeleteShoppingItemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -329,6 +346,13 @@ func (*DeleteShoppingItemRequest) Descriptor() ([]byte, []int) {
 func (x *DeleteShoppingItemRequest) GetItemId() string {
 	if x != nil {
 		return x.ItemId
+	}
+	return ""
+}
+
+func (x *DeleteShoppingItemRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -659,6 +683,7 @@ func (x *Category) GetName() string {
 
 type ListCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	OwnerUserId   string                 `protobuf:"bytes,1,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -691,6 +716,13 @@ func (x *ListCategoriesRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*ListCategoriesRequest) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListCategoriesRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
 }
 
 type ListCategoriesResponse struct {
@@ -740,6 +772,7 @@ func (x *ListCategoriesResponse) GetCategories() []*Category {
 type CreateCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -777,6 +810,13 @@ func (*CreateCategoryRequest) Descriptor() ([]byte, []int) {
 func (x *CreateCategoryRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateCategoryRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -829,6 +869,7 @@ type RenameCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,3,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -873,6 +914,13 @@ func (x *RenameCategoryRequest) GetId() string {
 func (x *RenameCategoryRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *RenameCategoryRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -924,6 +972,7 @@ func (x *RenameCategoryResponse) GetCategory() *Category {
 type DeleteCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -961,6 +1010,13 @@ func (*DeleteCategoryRequest) Descriptor() ([]byte, []int) {
 func (x *DeleteCategoryRequest) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *DeleteCategoryRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1055,6 +1111,7 @@ func (x *Store) GetName() string {
 
 type ListStoresRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	OwnerUserId   string                 `protobuf:"bytes,1,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1087,6 +1144,13 @@ func (x *ListStoresRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListStoresRequest.ProtoReflect.Descriptor instead.
 func (*ListStoresRequest) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListStoresRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
 }
 
 type ListStoresResponse struct {
@@ -1136,6 +1200,7 @@ func (x *ListStoresResponse) GetStores() []*Store {
 type CreateStoreRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1173,6 +1238,13 @@ func (*CreateStoreRequest) Descriptor() ([]byte, []int) {
 func (x *CreateStoreRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateStoreRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1225,6 +1297,7 @@ type RenameStoreRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,3,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1269,6 +1342,13 @@ func (x *RenameStoreRequest) GetId() string {
 func (x *RenameStoreRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *RenameStoreRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1320,6 +1400,7 @@ func (x *RenameStoreResponse) GetStore() *Store {
 type DeleteStoreRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1357,6 +1438,13 @@ func (*DeleteStoreRequest) Descriptor() ([]byte, []int) {
 func (x *DeleteStoreRequest) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *DeleteStoreRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1403,6 +1491,7 @@ func (*DeleteStoreResponse) Descriptor() ([]byte, []int) {
 type GetStoreCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StoreId       string                 `protobuf:"bytes,1,opt,name=store_id,json=storeId,proto3" json:"store_id,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1440,6 +1529,13 @@ func (*GetStoreCategoriesRequest) Descriptor() ([]byte, []int) {
 func (x *GetStoreCategoriesRequest) GetStoreId() string {
 	if x != nil {
 		return x.StoreId
+	}
+	return ""
+}
+
+func (x *GetStoreCategoriesRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1492,6 +1588,7 @@ type SetStoreCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StoreId       string                 `protobuf:"bytes,1,opt,name=store_id,json=storeId,proto3" json:"store_id,omitempty"`
 	CategoryIds   []string               `protobuf:"bytes,2,rep,name=category_ids,json=categoryIds,proto3" json:"category_ids,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,3,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1538,6 +1635,13 @@ func (x *SetStoreCategoriesRequest) GetCategoryIds() []string {
 		return x.CategoryIds
 	}
 	return nil
+}
+
+func (x *SetStoreCategoriesRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
 }
 
 type SetStoreCategoriesResponse struct {
@@ -1684,6 +1788,7 @@ func (x *ItemCategory) GetCategoryId() string {
 
 type ListItemNamesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	OwnerUserId   string                 `protobuf:"bytes,1,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1716,6 +1821,13 @@ func (x *ListItemNamesRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListItemNamesRequest.ProtoReflect.Descriptor instead.
 func (*ListItemNamesRequest) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *ListItemNamesRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
 }
 
 type ListItemNamesResponse struct {
@@ -1764,6 +1876,7 @@ func (x *ListItemNamesResponse) GetNames() []*ItemName {
 
 type ListItemCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	OwnerUserId   string                 `protobuf:"bytes,1,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1796,6 +1909,13 @@ func (x *ListItemCategoriesRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListItemCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*ListItemCategoriesRequest) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *ListItemCategoriesRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
 }
 
 type ListItemCategoriesResponse struct {
@@ -1846,6 +1966,7 @@ type SetItemCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	OwnerUserId   string                 `protobuf:"bytes,3,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1894,6 +2015,13 @@ func (x *SetItemCategoryRequest) GetCategoryId() string {
 	return ""
 }
 
+func (x *SetItemCategoryRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
 type SetItemCategoryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1930,6 +2058,466 @@ func (*SetItemCategoryResponse) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{41}
 }
 
+// ShoppingListShare is a user the caller has shared their list with.
+// display_name resolves via the owner's contacts.
+type ShoppingListShare struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	CanEdit       bool                   `protobuf:"varint,2,opt,name=can_edit,json=canEdit,proto3" json:"can_edit,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShoppingListShare) Reset() {
+	*x = ShoppingListShare{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShoppingListShare) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShoppingListShare) ProtoMessage() {}
+
+func (x *ShoppingListShare) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShoppingListShare.ProtoReflect.Descriptor instead.
+func (*ShoppingListShare) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *ShoppingListShare) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ShoppingListShare) GetCanEdit() bool {
+	if x != nil {
+		return x.CanEdit
+	}
+	return false
+}
+
+func (x *ShoppingListShare) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type ShareShoppingListRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContactUserId string                 `protobuf:"bytes,1,opt,name=contact_user_id,json=contactUserId,proto3" json:"contact_user_id,omitempty"`
+	CanEdit       bool                   `protobuf:"varint,2,opt,name=can_edit,json=canEdit,proto3" json:"can_edit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShareShoppingListRequest) Reset() {
+	*x = ShareShoppingListRequest{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShareShoppingListRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShareShoppingListRequest) ProtoMessage() {}
+
+func (x *ShareShoppingListRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShareShoppingListRequest.ProtoReflect.Descriptor instead.
+func (*ShareShoppingListRequest) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *ShareShoppingListRequest) GetContactUserId() string {
+	if x != nil {
+		return x.ContactUserId
+	}
+	return ""
+}
+
+func (x *ShareShoppingListRequest) GetCanEdit() bool {
+	if x != nil {
+		return x.CanEdit
+	}
+	return false
+}
+
+type ShareShoppingListResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShareShoppingListResponse) Reset() {
+	*x = ShareShoppingListResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShareShoppingListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShareShoppingListResponse) ProtoMessage() {}
+
+func (x *ShareShoppingListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShareShoppingListResponse.ProtoReflect.Descriptor instead.
+func (*ShareShoppingListResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{44}
+}
+
+type UnshareShoppingListRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetUserId  string                 `protobuf:"bytes,1,opt,name=target_user_id,json=targetUserId,proto3" json:"target_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnshareShoppingListRequest) Reset() {
+	*x = UnshareShoppingListRequest{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnshareShoppingListRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnshareShoppingListRequest) ProtoMessage() {}
+
+func (x *UnshareShoppingListRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnshareShoppingListRequest.ProtoReflect.Descriptor instead.
+func (*UnshareShoppingListRequest) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *UnshareShoppingListRequest) GetTargetUserId() string {
+	if x != nil {
+		return x.TargetUserId
+	}
+	return ""
+}
+
+type UnshareShoppingListResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnshareShoppingListResponse) Reset() {
+	*x = UnshareShoppingListResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnshareShoppingListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnshareShoppingListResponse) ProtoMessage() {}
+
+func (x *UnshareShoppingListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnshareShoppingListResponse.ProtoReflect.Descriptor instead.
+func (*UnshareShoppingListResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{46}
+}
+
+type ListShoppingListSharesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListShoppingListSharesRequest) Reset() {
+	*x = ListShoppingListSharesRequest{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListShoppingListSharesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListShoppingListSharesRequest) ProtoMessage() {}
+
+func (x *ListShoppingListSharesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListShoppingListSharesRequest.ProtoReflect.Descriptor instead.
+func (*ListShoppingListSharesRequest) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{47}
+}
+
+type ListShoppingListSharesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Shares        []*ShoppingListShare   `protobuf:"bytes,1,rep,name=shares,proto3" json:"shares,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListShoppingListSharesResponse) Reset() {
+	*x = ListShoppingListSharesResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListShoppingListSharesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListShoppingListSharesResponse) ProtoMessage() {}
+
+func (x *ListShoppingListSharesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListShoppingListSharesResponse.ProtoReflect.Descriptor instead.
+func (*ListShoppingListSharesResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *ListShoppingListSharesResponse) GetShares() []*ShoppingListShare {
+	if x != nil {
+		return x.Shares
+	}
+	return nil
+}
+
+// A list the caller can act on: their own (is_self) plus lists shared with
+// them. Used to populate the "Viewing" owner switcher.
+type ListOwner struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	CanEdit       bool                   `protobuf:"varint,3,opt,name=can_edit,json=canEdit,proto3" json:"can_edit,omitempty"`
+	IsSelf        bool                   `protobuf:"varint,4,opt,name=is_self,json=isSelf,proto3" json:"is_self,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOwner) Reset() {
+	*x = ListOwner{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOwner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOwner) ProtoMessage() {}
+
+func (x *ListOwner) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOwner.ProtoReflect.Descriptor instead.
+func (*ListOwner) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *ListOwner) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ListOwner) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *ListOwner) GetCanEdit() bool {
+	if x != nil {
+		return x.CanEdit
+	}
+	return false
+}
+
+func (x *ListOwner) GetIsSelf() bool {
+	if x != nil {
+		return x.IsSelf
+	}
+	return false
+}
+
+type ListAccessibleListsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccessibleListsRequest) Reset() {
+	*x = ListAccessibleListsRequest{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccessibleListsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccessibleListsRequest) ProtoMessage() {}
+
+func (x *ListAccessibleListsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccessibleListsRequest.ProtoReflect.Descriptor instead.
+func (*ListAccessibleListsRequest) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{50}
+}
+
+type ListAccessibleListsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Owners        []*ListOwner           `protobuf:"bytes,1,rep,name=owners,proto3" json:"owners,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccessibleListsResponse) Reset() {
+	*x = ListAccessibleListsResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccessibleListsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccessibleListsResponse) ProtoMessage() {}
+
+func (x *ListAccessibleListsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccessibleListsResponse.ProtoReflect.Descriptor instead.
+func (*ListAccessibleListsResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *ListAccessibleListsResponse) GetOwners() []*ListOwner {
+	if x != nil {
+		return x.Owners
+	}
+	return nil
+}
+
 var File_shoppinglist_v1_shoppinglist_proto protoreflect.FileDescriptor
 
 const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
@@ -1943,18 +2531,21 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\vrecipe_name\x18\x05 \x01(\tR\n" +
 	"recipeName\x12\x1d\n" +
 	"\n" +
-	"group_name\x18\x06 \x01(\tR\tgroupName\"\x16\n" +
-	"\x14GetCustomListRequest\"L\n" +
+	"group_name\x18\x06 \x01(\tR\tgroupName\":\n" +
+	"\x14GetCustomListRequest\x12\"\n" +
+	"\rowner_user_id\x18\x01 \x01(\tR\vownerUserId\"L\n" +
 	"\x15GetCustomListResponse\x123\n" +
-	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"X\n" +
+	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"|\n" +
 	"\x16AddShoppingItemRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
-	"\x04unit\x18\x03 \x01(\tR\x04unit\"L\n" +
+	"\x04unit\x18\x03 \x01(\tR\x04unit\x12\"\n" +
+	"\rowner_user_id\x18\x04 \x01(\tR\vownerUserId\"L\n" +
 	"\x17AddShoppingItemResponse\x121\n" +
-	"\x04item\x18\x01 \x01(\v2\x1d.shoppinglist.v1.ShoppingItemR\x04item\"4\n" +
+	"\x04item\x18\x01 \x01(\v2\x1d.shoppinglist.v1.ShoppingItemR\x04item\"X\n" +
 	"\x19DeleteShoppingItemRequest\x12\x17\n" +
-	"\aitem_id\x18\x01 \x01(\tR\x06itemId\"\x1c\n" +
+	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\"\n" +
+	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"\x1c\n" +
 	"\x1aDeleteShoppingItemResponse\"a\n" +
 	"\x1dGetMealPlanExportItemsRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12'\n" +
@@ -1972,51 +2563,61 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x06groups\x18\x01 \x03(\v2$.shoppinglist.v1.PlanIngredientGroupR\x06groups\".\n" +
 	"\bCategory\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\x17\n" +
-	"\x15ListCategoriesRequest\"S\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\";\n" +
+	"\x15ListCategoriesRequest\x12\"\n" +
+	"\rowner_user_id\x18\x01 \x01(\tR\vownerUserId\"S\n" +
 	"\x16ListCategoriesResponse\x129\n" +
 	"\n" +
 	"categories\x18\x01 \x03(\v2\x19.shoppinglist.v1.CategoryR\n" +
-	"categories\"+\n" +
+	"categories\"O\n" +
 	"\x15CreateCategoryRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"O\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\"\n" +
+	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"O\n" +
 	"\x16CreateCategoryResponse\x125\n" +
-	"\bcategory\x18\x01 \x01(\v2\x19.shoppinglist.v1.CategoryR\bcategory\";\n" +
+	"\bcategory\x18\x01 \x01(\v2\x19.shoppinglist.v1.CategoryR\bcategory\"_\n" +
 	"\x15RenameCategoryRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"O\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\"\n" +
+	"\rowner_user_id\x18\x03 \x01(\tR\vownerUserId\"O\n" +
 	"\x16RenameCategoryResponse\x125\n" +
-	"\bcategory\x18\x01 \x01(\v2\x19.shoppinglist.v1.CategoryR\bcategory\"'\n" +
+	"\bcategory\x18\x01 \x01(\v2\x19.shoppinglist.v1.CategoryR\bcategory\"K\n" +
 	"\x15DeleteCategoryRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x18\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
+	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"\x18\n" +
 	"\x16DeleteCategoryResponse\"+\n" +
 	"\x05Store\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\x13\n" +
-	"\x11ListStoresRequest\"D\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"7\n" +
+	"\x11ListStoresRequest\x12\"\n" +
+	"\rowner_user_id\x18\x01 \x01(\tR\vownerUserId\"D\n" +
 	"\x12ListStoresResponse\x12.\n" +
-	"\x06stores\x18\x01 \x03(\v2\x16.shoppinglist.v1.StoreR\x06stores\"(\n" +
+	"\x06stores\x18\x01 \x03(\v2\x16.shoppinglist.v1.StoreR\x06stores\"L\n" +
 	"\x12CreateStoreRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"C\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\"\n" +
+	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"C\n" +
 	"\x13CreateStoreResponse\x12,\n" +
-	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"8\n" +
+	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"\\\n" +
 	"\x12RenameStoreRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"C\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\"\n" +
+	"\rowner_user_id\x18\x03 \x01(\tR\vownerUserId\"C\n" +
 	"\x13RenameStoreResponse\x12,\n" +
-	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"$\n" +
+	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"H\n" +
 	"\x12DeleteStoreRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13DeleteStoreResponse\"6\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
+	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"\x15\n" +
+	"\x13DeleteStoreResponse\"Z\n" +
 	"\x19GetStoreCategoriesRequest\x12\x19\n" +
-	"\bstore_id\x18\x01 \x01(\tR\astoreId\"W\n" +
+	"\bstore_id\x18\x01 \x01(\tR\astoreId\x12\"\n" +
+	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"W\n" +
 	"\x1aGetStoreCategoriesResponse\x129\n" +
 	"\n" +
 	"categories\x18\x01 \x03(\v2\x19.shoppinglist.v1.CategoryR\n" +
-	"categories\"Y\n" +
+	"categories\"}\n" +
 	"\x19SetStoreCategoriesRequest\x12\x19\n" +
 	"\bstore_id\x18\x01 \x01(\tR\astoreId\x12!\n" +
-	"\fcategory_ids\x18\x02 \x03(\tR\vcategoryIds\"\x1c\n" +
+	"\fcategory_ids\x18\x02 \x03(\tR\vcategoryIds\x12\"\n" +
+	"\rowner_user_id\x18\x03 \x01(\tR\vownerUserId\"\x1c\n" +
 	"\x1aSetStoreCategoriesResponse\"?\n" +
 	"\bItemName\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
@@ -2025,18 +2626,43 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\fItemCategory\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vcategory_id\x18\x02 \x01(\tR\n" +
-	"categoryId\"\x16\n" +
-	"\x14ListItemNamesRequest\"H\n" +
+	"categoryId\":\n" +
+	"\x14ListItemNamesRequest\x12\"\n" +
+	"\rowner_user_id\x18\x01 \x01(\tR\vownerUserId\"H\n" +
 	"\x15ListItemNamesResponse\x12/\n" +
-	"\x05names\x18\x01 \x03(\v2\x19.shoppinglist.v1.ItemNameR\x05names\"\x1b\n" +
-	"\x19ListItemCategoriesRequest\"Q\n" +
+	"\x05names\x18\x01 \x03(\v2\x19.shoppinglist.v1.ItemNameR\x05names\"?\n" +
+	"\x19ListItemCategoriesRequest\x12\"\n" +
+	"\rowner_user_id\x18\x01 \x01(\tR\vownerUserId\"Q\n" +
 	"\x1aListItemCategoriesResponse\x123\n" +
-	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ItemCategoryR\x05items\"M\n" +
+	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ItemCategoryR\x05items\"q\n" +
 	"\x16SetItemCategoryRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vcategory_id\x18\x02 \x01(\tR\n" +
-	"categoryId\"\x19\n" +
-	"\x17SetItemCategoryResponse2\xc7\x0e\n" +
+	"categoryId\x12\"\n" +
+	"\rowner_user_id\x18\x03 \x01(\tR\vownerUserId\"\x19\n" +
+	"\x17SetItemCategoryResponse\"j\n" +
+	"\x11ShoppingListShare\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
+	"\bcan_edit\x18\x02 \x01(\bR\acanEdit\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"]\n" +
+	"\x18ShareShoppingListRequest\x12&\n" +
+	"\x0fcontact_user_id\x18\x01 \x01(\tR\rcontactUserId\x12\x19\n" +
+	"\bcan_edit\x18\x02 \x01(\bR\acanEdit\"\x1b\n" +
+	"\x19ShareShoppingListResponse\"B\n" +
+	"\x1aUnshareShoppingListRequest\x12$\n" +
+	"\x0etarget_user_id\x18\x01 \x01(\tR\ftargetUserId\"\x1d\n" +
+	"\x1bUnshareShoppingListResponse\"\x1f\n" +
+	"\x1dListShoppingListSharesRequest\"\\\n" +
+	"\x1eListShoppingListSharesResponse\x12:\n" +
+	"\x06shares\x18\x01 \x03(\v2\".shoppinglist.v1.ShoppingListShareR\x06shares\"{\n" +
+	"\tListOwner\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x19\n" +
+	"\bcan_edit\x18\x03 \x01(\bR\acanEdit\x12\x17\n" +
+	"\ais_self\x18\x04 \x01(\bR\x06isSelf\"\x1c\n" +
+	"\x1aListAccessibleListsRequest\"Q\n" +
+	"\x1bListAccessibleListsResponse\x122\n" +
+	"\x06owners\x18\x01 \x03(\v2\x1a.shoppinglist.v1.ListOwnerR\x06owners2\x92\x12\n" +
 	"\x13ShoppingListService\x12^\n" +
 	"\rGetCustomList\x12%.shoppinglist.v1.GetCustomListRequest\x1a&.shoppinglist.v1.GetCustomListResponse\x12d\n" +
 	"\x0fAddShoppingItem\x12'.shoppinglist.v1.AddShoppingItemRequest\x1a(.shoppinglist.v1.AddShoppingItemResponse\x12m\n" +
@@ -2056,7 +2682,11 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x12SetStoreCategories\x12*.shoppinglist.v1.SetStoreCategoriesRequest\x1a+.shoppinglist.v1.SetStoreCategoriesResponse\x12^\n" +
 	"\rListItemNames\x12%.shoppinglist.v1.ListItemNamesRequest\x1a&.shoppinglist.v1.ListItemNamesResponse\x12m\n" +
 	"\x12ListItemCategories\x12*.shoppinglist.v1.ListItemCategoriesRequest\x1a+.shoppinglist.v1.ListItemCategoriesResponse\x12d\n" +
-	"\x0fSetItemCategory\x12'.shoppinglist.v1.SetItemCategoryRequest\x1a(.shoppinglist.v1.SetItemCategoryResponseB7Z5tools.xdoubleu.com/gen/shoppinglist/v1;shoppinglistv1b\x06proto3"
+	"\x0fSetItemCategory\x12'.shoppinglist.v1.SetItemCategoryRequest\x1a(.shoppinglist.v1.SetItemCategoryResponse\x12j\n" +
+	"\x11ShareShoppingList\x12).shoppinglist.v1.ShareShoppingListRequest\x1a*.shoppinglist.v1.ShareShoppingListResponse\x12p\n" +
+	"\x13UnshareShoppingList\x12+.shoppinglist.v1.UnshareShoppingListRequest\x1a,.shoppinglist.v1.UnshareShoppingListResponse\x12y\n" +
+	"\x16ListShoppingListShares\x12..shoppinglist.v1.ListShoppingListSharesRequest\x1a/.shoppinglist.v1.ListShoppingListSharesResponse\x12p\n" +
+	"\x13ListAccessibleLists\x12+.shoppinglist.v1.ListAccessibleListsRequest\x1a,.shoppinglist.v1.ListAccessibleListsResponseB7Z5tools.xdoubleu.com/gen/shoppinglist/v1;shoppinglistv1b\x06proto3"
 
 var (
 	file_shoppinglist_v1_shoppinglist_proto_rawDescOnce sync.Once
@@ -2070,7 +2700,7 @@ func file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP() []byte {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescData
 }
 
-var file_shoppinglist_v1_shoppinglist_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
+var file_shoppinglist_v1_shoppinglist_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_shoppinglist_v1_shoppinglist_proto_goTypes = []any{
 	(*ShoppingItem)(nil),                    // 0: shoppinglist.v1.ShoppingItem
 	(*GetCustomListRequest)(nil),            // 1: shoppinglist.v1.GetCustomListRequest
@@ -2114,6 +2744,16 @@ var file_shoppinglist_v1_shoppinglist_proto_goTypes = []any{
 	(*ListItemCategoriesResponse)(nil),      // 39: shoppinglist.v1.ListItemCategoriesResponse
 	(*SetItemCategoryRequest)(nil),          // 40: shoppinglist.v1.SetItemCategoryRequest
 	(*SetItemCategoryResponse)(nil),         // 41: shoppinglist.v1.SetItemCategoryResponse
+	(*ShoppingListShare)(nil),               // 42: shoppinglist.v1.ShoppingListShare
+	(*ShareShoppingListRequest)(nil),        // 43: shoppinglist.v1.ShareShoppingListRequest
+	(*ShareShoppingListResponse)(nil),       // 44: shoppinglist.v1.ShareShoppingListResponse
+	(*UnshareShoppingListRequest)(nil),      // 45: shoppinglist.v1.UnshareShoppingListRequest
+	(*UnshareShoppingListResponse)(nil),     // 46: shoppinglist.v1.UnshareShoppingListResponse
+	(*ListShoppingListSharesRequest)(nil),   // 47: shoppinglist.v1.ListShoppingListSharesRequest
+	(*ListShoppingListSharesResponse)(nil),  // 48: shoppinglist.v1.ListShoppingListSharesResponse
+	(*ListOwner)(nil),                       // 49: shoppinglist.v1.ListOwner
+	(*ListAccessibleListsRequest)(nil),      // 50: shoppinglist.v1.ListAccessibleListsRequest
+	(*ListAccessibleListsResponse)(nil),     // 51: shoppinglist.v1.ListAccessibleListsResponse
 }
 var file_shoppinglist_v1_shoppinglist_proto_depIdxs = []int32{
 	0,  // 0: shoppinglist.v1.GetCustomListResponse.items:type_name -> shoppinglist.v1.ShoppingItem
@@ -2129,47 +2769,57 @@ var file_shoppinglist_v1_shoppinglist_proto_depIdxs = []int32{
 	12, // 10: shoppinglist.v1.GetStoreCategoriesResponse.categories:type_name -> shoppinglist.v1.Category
 	34, // 11: shoppinglist.v1.ListItemNamesResponse.names:type_name -> shoppinglist.v1.ItemName
 	35, // 12: shoppinglist.v1.ListItemCategoriesResponse.items:type_name -> shoppinglist.v1.ItemCategory
-	1,  // 13: shoppinglist.v1.ShoppingListService.GetCustomList:input_type -> shoppinglist.v1.GetCustomListRequest
-	3,  // 14: shoppinglist.v1.ShoppingListService.AddShoppingItem:input_type -> shoppinglist.v1.AddShoppingItemRequest
-	5,  // 15: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
-	7,  // 16: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:input_type -> shoppinglist.v1.GetMealPlanExportItemsRequest
-	9,  // 17: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:input_type -> shoppinglist.v1.GetPlanIngredientGroupsRequest
-	13, // 18: shoppinglist.v1.ShoppingListService.ListCategories:input_type -> shoppinglist.v1.ListCategoriesRequest
-	15, // 19: shoppinglist.v1.ShoppingListService.CreateCategory:input_type -> shoppinglist.v1.CreateCategoryRequest
-	17, // 20: shoppinglist.v1.ShoppingListService.RenameCategory:input_type -> shoppinglist.v1.RenameCategoryRequest
-	19, // 21: shoppinglist.v1.ShoppingListService.DeleteCategory:input_type -> shoppinglist.v1.DeleteCategoryRequest
-	22, // 22: shoppinglist.v1.ShoppingListService.ListStores:input_type -> shoppinglist.v1.ListStoresRequest
-	24, // 23: shoppinglist.v1.ShoppingListService.CreateStore:input_type -> shoppinglist.v1.CreateStoreRequest
-	26, // 24: shoppinglist.v1.ShoppingListService.RenameStore:input_type -> shoppinglist.v1.RenameStoreRequest
-	28, // 25: shoppinglist.v1.ShoppingListService.DeleteStore:input_type -> shoppinglist.v1.DeleteStoreRequest
-	30, // 26: shoppinglist.v1.ShoppingListService.GetStoreCategories:input_type -> shoppinglist.v1.GetStoreCategoriesRequest
-	32, // 27: shoppinglist.v1.ShoppingListService.SetStoreCategories:input_type -> shoppinglist.v1.SetStoreCategoriesRequest
-	36, // 28: shoppinglist.v1.ShoppingListService.ListItemNames:input_type -> shoppinglist.v1.ListItemNamesRequest
-	38, // 29: shoppinglist.v1.ShoppingListService.ListItemCategories:input_type -> shoppinglist.v1.ListItemCategoriesRequest
-	40, // 30: shoppinglist.v1.ShoppingListService.SetItemCategory:input_type -> shoppinglist.v1.SetItemCategoryRequest
-	2,  // 31: shoppinglist.v1.ShoppingListService.GetCustomList:output_type -> shoppinglist.v1.GetCustomListResponse
-	4,  // 32: shoppinglist.v1.ShoppingListService.AddShoppingItem:output_type -> shoppinglist.v1.AddShoppingItemResponse
-	6,  // 33: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
-	8,  // 34: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:output_type -> shoppinglist.v1.GetMealPlanExportItemsResponse
-	11, // 35: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:output_type -> shoppinglist.v1.GetPlanIngredientGroupsResponse
-	14, // 36: shoppinglist.v1.ShoppingListService.ListCategories:output_type -> shoppinglist.v1.ListCategoriesResponse
-	16, // 37: shoppinglist.v1.ShoppingListService.CreateCategory:output_type -> shoppinglist.v1.CreateCategoryResponse
-	18, // 38: shoppinglist.v1.ShoppingListService.RenameCategory:output_type -> shoppinglist.v1.RenameCategoryResponse
-	20, // 39: shoppinglist.v1.ShoppingListService.DeleteCategory:output_type -> shoppinglist.v1.DeleteCategoryResponse
-	23, // 40: shoppinglist.v1.ShoppingListService.ListStores:output_type -> shoppinglist.v1.ListStoresResponse
-	25, // 41: shoppinglist.v1.ShoppingListService.CreateStore:output_type -> shoppinglist.v1.CreateStoreResponse
-	27, // 42: shoppinglist.v1.ShoppingListService.RenameStore:output_type -> shoppinglist.v1.RenameStoreResponse
-	29, // 43: shoppinglist.v1.ShoppingListService.DeleteStore:output_type -> shoppinglist.v1.DeleteStoreResponse
-	31, // 44: shoppinglist.v1.ShoppingListService.GetStoreCategories:output_type -> shoppinglist.v1.GetStoreCategoriesResponse
-	33, // 45: shoppinglist.v1.ShoppingListService.SetStoreCategories:output_type -> shoppinglist.v1.SetStoreCategoriesResponse
-	37, // 46: shoppinglist.v1.ShoppingListService.ListItemNames:output_type -> shoppinglist.v1.ListItemNamesResponse
-	39, // 47: shoppinglist.v1.ShoppingListService.ListItemCategories:output_type -> shoppinglist.v1.ListItemCategoriesResponse
-	41, // 48: shoppinglist.v1.ShoppingListService.SetItemCategory:output_type -> shoppinglist.v1.SetItemCategoryResponse
-	31, // [31:49] is the sub-list for method output_type
-	13, // [13:31] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	42, // 13: shoppinglist.v1.ListShoppingListSharesResponse.shares:type_name -> shoppinglist.v1.ShoppingListShare
+	49, // 14: shoppinglist.v1.ListAccessibleListsResponse.owners:type_name -> shoppinglist.v1.ListOwner
+	1,  // 15: shoppinglist.v1.ShoppingListService.GetCustomList:input_type -> shoppinglist.v1.GetCustomListRequest
+	3,  // 16: shoppinglist.v1.ShoppingListService.AddShoppingItem:input_type -> shoppinglist.v1.AddShoppingItemRequest
+	5,  // 17: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
+	7,  // 18: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:input_type -> shoppinglist.v1.GetMealPlanExportItemsRequest
+	9,  // 19: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:input_type -> shoppinglist.v1.GetPlanIngredientGroupsRequest
+	13, // 20: shoppinglist.v1.ShoppingListService.ListCategories:input_type -> shoppinglist.v1.ListCategoriesRequest
+	15, // 21: shoppinglist.v1.ShoppingListService.CreateCategory:input_type -> shoppinglist.v1.CreateCategoryRequest
+	17, // 22: shoppinglist.v1.ShoppingListService.RenameCategory:input_type -> shoppinglist.v1.RenameCategoryRequest
+	19, // 23: shoppinglist.v1.ShoppingListService.DeleteCategory:input_type -> shoppinglist.v1.DeleteCategoryRequest
+	22, // 24: shoppinglist.v1.ShoppingListService.ListStores:input_type -> shoppinglist.v1.ListStoresRequest
+	24, // 25: shoppinglist.v1.ShoppingListService.CreateStore:input_type -> shoppinglist.v1.CreateStoreRequest
+	26, // 26: shoppinglist.v1.ShoppingListService.RenameStore:input_type -> shoppinglist.v1.RenameStoreRequest
+	28, // 27: shoppinglist.v1.ShoppingListService.DeleteStore:input_type -> shoppinglist.v1.DeleteStoreRequest
+	30, // 28: shoppinglist.v1.ShoppingListService.GetStoreCategories:input_type -> shoppinglist.v1.GetStoreCategoriesRequest
+	32, // 29: shoppinglist.v1.ShoppingListService.SetStoreCategories:input_type -> shoppinglist.v1.SetStoreCategoriesRequest
+	36, // 30: shoppinglist.v1.ShoppingListService.ListItemNames:input_type -> shoppinglist.v1.ListItemNamesRequest
+	38, // 31: shoppinglist.v1.ShoppingListService.ListItemCategories:input_type -> shoppinglist.v1.ListItemCategoriesRequest
+	40, // 32: shoppinglist.v1.ShoppingListService.SetItemCategory:input_type -> shoppinglist.v1.SetItemCategoryRequest
+	43, // 33: shoppinglist.v1.ShoppingListService.ShareShoppingList:input_type -> shoppinglist.v1.ShareShoppingListRequest
+	45, // 34: shoppinglist.v1.ShoppingListService.UnshareShoppingList:input_type -> shoppinglist.v1.UnshareShoppingListRequest
+	47, // 35: shoppinglist.v1.ShoppingListService.ListShoppingListShares:input_type -> shoppinglist.v1.ListShoppingListSharesRequest
+	50, // 36: shoppinglist.v1.ShoppingListService.ListAccessibleLists:input_type -> shoppinglist.v1.ListAccessibleListsRequest
+	2,  // 37: shoppinglist.v1.ShoppingListService.GetCustomList:output_type -> shoppinglist.v1.GetCustomListResponse
+	4,  // 38: shoppinglist.v1.ShoppingListService.AddShoppingItem:output_type -> shoppinglist.v1.AddShoppingItemResponse
+	6,  // 39: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
+	8,  // 40: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:output_type -> shoppinglist.v1.GetMealPlanExportItemsResponse
+	11, // 41: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:output_type -> shoppinglist.v1.GetPlanIngredientGroupsResponse
+	14, // 42: shoppinglist.v1.ShoppingListService.ListCategories:output_type -> shoppinglist.v1.ListCategoriesResponse
+	16, // 43: shoppinglist.v1.ShoppingListService.CreateCategory:output_type -> shoppinglist.v1.CreateCategoryResponse
+	18, // 44: shoppinglist.v1.ShoppingListService.RenameCategory:output_type -> shoppinglist.v1.RenameCategoryResponse
+	20, // 45: shoppinglist.v1.ShoppingListService.DeleteCategory:output_type -> shoppinglist.v1.DeleteCategoryResponse
+	23, // 46: shoppinglist.v1.ShoppingListService.ListStores:output_type -> shoppinglist.v1.ListStoresResponse
+	25, // 47: shoppinglist.v1.ShoppingListService.CreateStore:output_type -> shoppinglist.v1.CreateStoreResponse
+	27, // 48: shoppinglist.v1.ShoppingListService.RenameStore:output_type -> shoppinglist.v1.RenameStoreResponse
+	29, // 49: shoppinglist.v1.ShoppingListService.DeleteStore:output_type -> shoppinglist.v1.DeleteStoreResponse
+	31, // 50: shoppinglist.v1.ShoppingListService.GetStoreCategories:output_type -> shoppinglist.v1.GetStoreCategoriesResponse
+	33, // 51: shoppinglist.v1.ShoppingListService.SetStoreCategories:output_type -> shoppinglist.v1.SetStoreCategoriesResponse
+	37, // 52: shoppinglist.v1.ShoppingListService.ListItemNames:output_type -> shoppinglist.v1.ListItemNamesResponse
+	39, // 53: shoppinglist.v1.ShoppingListService.ListItemCategories:output_type -> shoppinglist.v1.ListItemCategoriesResponse
+	41, // 54: shoppinglist.v1.ShoppingListService.SetItemCategory:output_type -> shoppinglist.v1.SetItemCategoryResponse
+	44, // 55: shoppinglist.v1.ShoppingListService.ShareShoppingList:output_type -> shoppinglist.v1.ShareShoppingListResponse
+	46, // 56: shoppinglist.v1.ShoppingListService.UnshareShoppingList:output_type -> shoppinglist.v1.UnshareShoppingListResponse
+	48, // 57: shoppinglist.v1.ShoppingListService.ListShoppingListShares:output_type -> shoppinglist.v1.ListShoppingListSharesResponse
+	51, // 58: shoppinglist.v1.ShoppingListService.ListAccessibleLists:output_type -> shoppinglist.v1.ListAccessibleListsResponse
+	37, // [37:59] is the sub-list for method output_type
+	15, // [15:37] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_shoppinglist_v1_shoppinglist_proto_init() }
@@ -2183,7 +2833,7 @@ func file_shoppinglist_v1_shoppinglist_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shoppinglist_v1_shoppinglist_proto_rawDesc), len(file_shoppinglist_v1_shoppinglist_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   42,
+			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

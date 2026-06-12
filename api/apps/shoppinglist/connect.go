@@ -45,6 +45,28 @@ func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 }
 
+// resolveOwner authenticates the caller and resolves which list the request
+// acts on. requestedOwner empty means the caller's own list; a non-empty value
+// must reference a list shared with the caller (writes require edit rights).
+// The returned error is already a connect error ready to return.
+func (h *shoppingConnectHandler) resolveOwner(
+	ctx context.Context,
+	requestedOwner string,
+	write bool,
+) (string, error) {
+	user := getUser(ctx)
+	if user == nil {
+		return "", errUnauthenticated()
+	}
+	owner, err := h.app.services.Sharing.ResolveOwner(
+		ctx, requestedOwner, user.ID, write,
+	)
+	if err != nil {
+		return "", mapError(err)
+	}
+	return owner, nil
+}
+
 func mapError(err error) error {
 	if err == nil {
 		return nil
@@ -73,17 +95,14 @@ func mapError(err error) error {
 
 func (h *shoppingConnectHandler) GetCustomList(
 	ctx context.Context,
-	_ *connect.Request[shoppinglistv1.GetCustomListRequest],
+	req *connect.Request[shoppinglistv1.GetCustomListRequest],
 ) (*connect.Response[shoppinglistv1.GetCustomListResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, false)
+	if err != nil {
+		return nil, err
 	}
 
-	items, err := h.app.services.Shopping.GetCustomList(ctx, user.ID)
+	items, err := h.app.services.Shopping.GetCustomList(ctx, ownerID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -105,14 +124,6 @@ func (h *shoppingConnectHandler) AddShoppingItem(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.AddShoppingItemRequest],
 ) (*connect.Response[shoppinglistv1.AddShoppingItemResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
 	if req.Msg.Name == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
@@ -128,8 +139,13 @@ func (h *shoppingConnectHandler) AddShoppingItem(
 		)
 	}
 
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
+
 	item, err := h.app.services.Shopping.AddItem(
-		ctx, user.ID, req.Msg.Name, req.Msg.Unit, amount,
+		ctx, ownerID, req.Msg.Name, req.Msg.Unit, amount,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -149,14 +165,6 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.DeleteShoppingItemRequest],
 ) (*connect.Response[shoppinglistv1.DeleteShoppingItemResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
 	itemID, err := uuid.Parse(req.Msg.ItemId)
 	if err != nil {
 		return nil, connect.NewError(
@@ -165,7 +173,12 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 		)
 	}
 
-	if err = h.app.services.Shopping.DeleteItem(ctx, user.ID, itemID); err != nil {
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = h.app.services.Shopping.DeleteItem(ctx, ownerID, itemID); err != nil {
 		return nil, mapError(err)
 	}
 

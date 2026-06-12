@@ -1,8 +1,13 @@
 import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
+const mockClient = {
+  listRecipeBookShares: jest.fn().mockResolvedValue({ shares: [] }),
+  shareRecipeBook: jest.fn().mockResolvedValue({}),
+  unshareRecipeBook: jest.fn().mockResolvedValue({})
+}
 jest.mock('@/lib/client', () => ({
-  createServiceClient: jest.fn(() => ({}))
+  createServiceClient: jest.fn(() => mockClient)
 }))
 jest.mock('@/lib/gen/recipes/v1/recipes_pb', () => ({
   RecipesService: {}
@@ -15,8 +20,9 @@ import {
   useCreateRecipe,
   useUpdateRecipe,
   useDeleteRecipe,
-  useShareRecipe,
-  useUnshareRecipe
+  useRecipeBookShares,
+  useShareRecipeBook,
+  useUnshareRecipeBook
 } from '@/hooks/useRecipes'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -69,13 +75,23 @@ describe('mutation hooks return functions', () => {
     expect(typeof result.current).toBe('function')
   })
 
-  it('useShareRecipe returns a function', () => {
-    const { result } = renderHook(() => useShareRecipe())
-    expect(typeof result.current).toBe('function')
+  it('useShareRecipeBook calls shareRecipeBook with contact and permission', () => {
+    const { result } = renderHook(() => useShareRecipeBook())
+    result.current('u-1', true)
+    expect(mockClient.shareRecipeBook).toHaveBeenCalledWith({
+      contactUserId: 'u-1',
+      canEdit: true
+    })
   })
 
-  it('useUnshareRecipe returns a function', () => {
-    const { result } = renderHook(() => useUnshareRecipe())
-    expect(typeof result.current).toBe('function')
+  it('useUnshareRecipeBook calls unshareRecipeBook with the target', () => {
+    const { result } = renderHook(() => useUnshareRecipeBook())
+    result.current('u-2')
+    expect(mockClient.unshareRecipeBook).toHaveBeenCalledWith({ targetUserId: 'u-2' })
+  })
+
+  it('useRecipeBookShares uses /recipes/book-shares as key', () => {
+    renderHook(() => useRecipeBookShares())
+    expect(mockUseSWR).toHaveBeenCalledWith('/recipes/book-shares', expect.any(Function))
   })
 })

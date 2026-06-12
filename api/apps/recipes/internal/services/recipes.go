@@ -24,43 +24,39 @@ func (s *RecipeService) List(
 	return s.repo.ListForUser(ctx, userID)
 }
 
+// Get returns a recipe the user owns or has book access to, along with whether
+// the user may edit it.
 func (s *RecipeService) Get(
 	ctx context.Context,
 	id uuid.UUID,
 	userID string,
-) (*models.Recipe, error) {
+) (*models.Recipe, bool, error) {
 	recipe, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	sharedWith, err := s.repo.GetSharedUserIDs(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	isSharedWithUser := false
-	for _, uid := range sharedWith {
-		if uid == userID {
-			isSharedWithUser = true
-			break
+	canEdit := recipe.UserID == userID
+	if recipe.UserID != userID {
+		shareEdit, ok, accessErr := s.repo.GetBookAccess(ctx, recipe.UserID, userID)
+		if accessErr != nil {
+			return nil, false, accessErr
 		}
-	}
-
-	if recipe.UserID != userID && !isSharedWithUser {
-		return nil, &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: "You do not have access to this recipe",
+		if !ok {
+			return nil, false, &app.HTTPError{
+				Status:  http.StatusForbidden,
+				Message: "You do not have access to this recipe",
+			}
 		}
+		canEdit = shareEdit
 	}
 
 	ingredients, err := s.repo.GetIngredients(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	recipe.Ingredients = ingredients
-	recipe.SharedWith = sharedWith
-	return recipe, nil
+	return recipe, canEdit, nil
 }
 
 func (s *RecipeService) Create(
@@ -91,13 +87,21 @@ func (s *RecipeService) Update(
 		return err
 	}
 	if existing.UserID != userID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNotRecipeOwner,
+		canEdit, ok, accessErr := s.repo.GetBookAccess(ctx, existing.UserID, userID)
+		if accessErr != nil {
+			return accessErr
+		}
+		if !ok || !canEdit {
+			return &app.HTTPError{
+				Status:  http.StatusForbidden,
+				Message: errNotRecipeOwner,
+			}
 		}
 	}
 
-	recipe.UserID = userID
+	// Recipes always remain owned by their original creator, even when an
+	// edit-sharer updates them.
+	recipe.UserID = existing.UserID
 	if err = s.repo.Update(ctx, recipe); err != nil {
 		return err
 	}
@@ -122,38 +126,31 @@ func (s *RecipeService) Delete(
 	return s.repo.Delete(ctx, id, userID)
 }
 
-func (s *RecipeService) Share(
+// ShareBook shares the owner's whole recipe book with targetUserID.
+func (s *RecipeService) ShareBook(
 	ctx context.Context,
-	recipeID uuid.UUID,
 	ownerID, targetUserID string,
+	canEdit bool,
 ) error {
-	existing, err := s.repo.GetByID(ctx, recipeID)
-	if err != nil {
-		return err
-	}
-	if existing.UserID != ownerID {
+	if targetUserID == "" || targetUserID == ownerID {
 		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNotRecipeOwner,
+			Status:  http.StatusBadRequest,
+			Message: "Invalid contact to share with",
 		}
 	}
-	return s.repo.ShareRecipe(ctx, recipeID, targetUserID)
+	return s.repo.ShareBook(ctx, ownerID, targetUserID, canEdit)
 }
 
-func (s *RecipeService) Unshare(
+func (s *RecipeService) UnshareBook(
 	ctx context.Context,
-	recipeID uuid.UUID,
 	ownerID, targetUserID string,
 ) error {
-	existing, err := s.repo.GetByID(ctx, recipeID)
-	if err != nil {
-		return err
-	}
-	if existing.UserID != ownerID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNotRecipeOwner,
-		}
-	}
-	return s.repo.UnshareRecipe(ctx, recipeID, targetUserID)
+	return s.repo.UnshareBook(ctx, ownerID, targetUserID)
+}
+
+func (s *RecipeService) ListBookShares(
+	ctx context.Context,
+	ownerID string,
+) ([]models.RecipeBookShare, error) {
+	return s.repo.ListBookShares(ctx, ownerID)
 }

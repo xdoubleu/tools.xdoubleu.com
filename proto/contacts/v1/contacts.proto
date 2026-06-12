@@ -7,6 +7,7 @@ service ContactsService {
   rpc CreateContact(CreateContactRequest) returns (CreateContactResponse);
   rpc AcceptContact(AcceptContactRequest) returns (AcceptContactResponse);
   rpc DeclineContact(DeclineContactRequest) returns (DeclineContactResponse);
+  rpc UpdateContact(UpdateContactRequest) returns (UpdateContactResponse);
   rpc DeleteContact(DeleteContactRequest) returns (DeleteContactResponse);
 }
 
@@ -48,6 +49,13 @@ message DeclineContactRequest {
 }
 
 message DeclineContactResponse {}
+
+message UpdateContactRequest {
+  string id = 1;
+  string display_name = 2;
+}
+
+message UpdateContactResponse {}
 
 message DeleteContactRequest {
   string id = 1;

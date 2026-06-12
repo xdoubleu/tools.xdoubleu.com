@@ -23,6 +23,11 @@ export function useDeclineContact() {
   return (id: string) => client.declineContact({ id })
 }
 
+export function useUpdateContact() {
+  const client = createServiceClient(ContactsService)
+  return (id: string, displayName: string) => client.updateContact({ id, displayName })
+}
+
 export function useDeleteContact() {
   const client = createServiceClient(ContactsService)
   return (id: string) => client.deleteContact({ id })

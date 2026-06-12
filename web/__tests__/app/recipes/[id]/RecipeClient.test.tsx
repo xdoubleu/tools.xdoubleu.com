@@ -3,9 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 
 jest.mock('@/hooks/useRecipes', () => ({
   useRecipe: jest.fn(),
-  useDeleteRecipe: jest.fn(),
-  useShareRecipe: jest.fn(),
-  useUnshareRecipe: jest.fn()
+  useDeleteRecipe: jest.fn()
 }))
 
 jest.mock('next/navigation', () => ({
@@ -18,14 +16,8 @@ jest.mock('next/link', () => {
   )
 })
 
-jest.mock('@/components/recipes/ShareModal', () => {
-  return function MockShareModal() {
-    return <div data-testid="share-modal" />
-  }
-})
-
 import RecipeClient from '@/app/recipes/[id]/RecipeClient'
-import { useRecipe, useDeleteRecipe, useShareRecipe, useUnshareRecipe } from '@/hooks/useRecipes'
+import { useRecipe, useDeleteRecipe } from '@/hooks/useRecipes'
 import { useRouter } from 'next/navigation'
 import { create } from '@bufbuild/protobuf'
 import {
@@ -42,8 +34,6 @@ beforeEach(() => {
   // @ts-expect-error -- partial mock
   jest.mocked(useRouter).mockReturnValue(mockRouter)
   jest.mocked(useDeleteRecipe).mockReturnValue(jest.fn())
-  jest.mocked(useShareRecipe).mockReturnValue(jest.fn())
-  jest.mocked(useUnshareRecipe).mockReturnValue(jest.fn())
 })
 
 describe('RecipeClient', () => {

@@ -7,6 +7,7 @@ import {
   useCreateContact,
   useAcceptContact,
   useDeclineContact,
+  useUpdateContact,
   useDeleteContact
 } from '@/hooks/useContacts'
 import { Button } from '@/components/ui/button'
@@ -17,12 +18,15 @@ export default function ContactsPage() {
   const createContact = useCreateContact()
   const acceptContact = useAcceptContact()
   const declineContact = useDeclineContact()
+  const updateContact = useUpdateContact()
   const deleteContact = useDeleteContact()
 
   const [email, setEmail] = useState('')
   const [addError, setAddError] = useState('')
   const [adding, setAdding] = useState(false)
   const [acceptNames, setAcceptNames] = useState<Record<string, string>>({})
+  const [editingId, setEditingId] = useState('')
+  const [editName, setEditName] = useState('')
 
   const contacts = data?.contacts ?? []
   const pending = data?.pending ?? []
@@ -65,6 +69,18 @@ export default function ContactsPage() {
   async function handleDelete(id: string) {
     try {
       await deleteContact(id)
+      await mutate('/contacts')
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleRename(id: string) {
+    if (!editName.trim()) return
+    try {
+      await updateContact(id, editName.trim())
+      setEditingId('')
+      setEditName('')
       await mutate('/contacts')
     } catch {
       // ignore
@@ -144,17 +160,49 @@ export default function ContactsPage() {
             {contacts.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between rounded-2xl border border-border bg-card px-3 py-2"
+                className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-3 py-2"
               >
-                <span className="text-sm font-medium text-fg">{c.displayName}</span>
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={() => handleDelete(c.id)}
-                  className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
-                >
-                  Remove
-                </Button>
+                {editingId === c.id ? (
+                  <>
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="h-9 flex-1"
+                      aria-label={`Rename ${c.displayName}`}
+                    />
+                    <Button size="sm" onClick={() => handleRename(c.id)}>
+                      Save
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setEditingId('')}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-medium text-fg">{c.displayName}</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => {
+                          setEditingId(c.id)
+                          setEditName(c.displayName)
+                        }}
+                        className="h-auto px-0 text-xs"
+                      >
+                        Rename
+                      </Button>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => handleDelete(c.id)}
+                        className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>

@@ -155,6 +155,27 @@ func (h *contactsConnectHandler) DeclineContact(
 	return connect.NewResponse(&contactsv1.DeclineContactResponse{}), nil
 }
 
+func (h *contactsConnectHandler) UpdateContact(
+	ctx context.Context,
+	req *connect.Request[contactsv1.UpdateContactRequest],
+) (*connect.Response[contactsv1.UpdateContactResponse], error) {
+	userID := h.userID(ctx)
+
+	id, err := uuid.Parse(req.Msg.Id)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid contact id"),
+		)
+	}
+
+	if err = h.app.contacts.Update(ctx, id, userID, req.Msg.DisplayName); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&contactsv1.UpdateContactResponse{}), nil
+}
+
 func (h *contactsConnectHandler) DeleteContact(
 	ctx context.Context,
 	req *connect.Request[contactsv1.DeleteContactRequest],
