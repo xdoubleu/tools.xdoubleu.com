@@ -233,6 +233,28 @@ describe('GamesDashboard', () => {
     expect(screen.getByTestId('distribution-chart')).toBeInTheDocument()
   })
 
+  it('gives both chart views an explicit mobile height so they are visible when the grid is single-column', () => {
+    mockSteam()
+    mockRecent()
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseSteamProgress.mockReturnValue({
+      data: create(GetSteamResponseSchema, {
+        steam: create(SteamResponseSchema, { labels: ['Jan'], values: ['10'] })
+      }),
+      isLoading: false
+    })
+    render(<GamesDashboard />)
+
+    // Distribution view (default): the chart wrapper has a fixed height on
+    // mobile and only fills its flex parent at lg.
+    const distWrapper = screen.getByTestId('distribution-chart').parentElement!
+    expect(distWrapper).toHaveClass('h-72', 'lg:h-full', 'lg:flex-1')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Progress' }))
+    const progressWrapper = document.querySelector('.h-72.lg\\:flex-1')
+    expect(progressWrapper).toBeInTheDocument()
+  })
+
   it('links to the full library', () => {
     mockSteam()
     mockRecent()

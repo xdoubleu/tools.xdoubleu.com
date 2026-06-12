@@ -3,7 +3,7 @@ import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function BacklogGamesPage() {
   return (
-    <main className="mx-auto max-w-6xl p-6 lg:p-4">
+    <main className="mx-auto max-w-6xl p-6 lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden lg:p-4">
       <Breadcrumb
         className="mb-4 lg:mb-2"
         items={[{ label: 'Backlog', href: '/backlog' }, { label: 'Games' }]}
