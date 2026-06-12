@@ -18,6 +18,7 @@ type Service interface {
 	AddByEmail(ctx context.Context, ownerUserID, email, displayName string) error
 	Accept(ctx context.Context, rowID uuid.UUID, acceptorID, displayName string) error
 	Decline(ctx context.Context, rowID uuid.UUID, acceptorID string) error
+	Update(ctx context.Context, id uuid.UUID, ownerUserID, displayName string) error
 	Delete(ctx context.Context, id uuid.UUID, ownerUserID string) error
 }
 
@@ -87,6 +88,14 @@ func (s *contactsService) Decline(
 	acceptorID string,
 ) error {
 	return s.repo.Decline(ctx, rowID, acceptorID)
+}
+
+func (s *contactsService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	ownerUserID, displayName string,
+) error {
+	return s.repo.UpdateDisplayName(ctx, id, ownerUserID, displayName)
 }
 
 func (s *contactsService) Delete(

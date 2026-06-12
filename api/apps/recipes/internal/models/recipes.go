@@ -16,7 +16,13 @@ type Recipe struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Ingredients   []Ingredient
-	SharedWith    []string
+}
+
+// RecipeBookShare is a user the owner shares their whole recipe book with.
+type RecipeBookShare struct {
+	UserID      string
+	CanEdit     bool
+	DisplayName string
 }
 
 type Ingredient struct {

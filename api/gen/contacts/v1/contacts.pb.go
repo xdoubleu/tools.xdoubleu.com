@@ -473,6 +473,94 @@ func (*DeclineContactResponse) Descriptor() ([]byte, []int) {
 	return file_contacts_v1_contacts_proto_rawDescGZIP(), []int{8}
 }
 
+type UpdateContactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateContactRequest) Reset() {
+	*x = UpdateContactRequest{}
+	mi := &file_contacts_v1_contacts_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateContactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateContactRequest) ProtoMessage() {}
+
+func (x *UpdateContactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_contacts_v1_contacts_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateContactRequest.ProtoReflect.Descriptor instead.
+func (*UpdateContactRequest) Descriptor() ([]byte, []int) {
+	return file_contacts_v1_contacts_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UpdateContactRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateContactRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type UpdateContactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateContactResponse) Reset() {
+	*x = UpdateContactResponse{}
+	mi := &file_contacts_v1_contacts_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateContactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateContactResponse) ProtoMessage() {}
+
+func (x *UpdateContactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_contacts_v1_contacts_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateContactResponse.ProtoReflect.Descriptor instead.
+func (*UpdateContactResponse) Descriptor() ([]byte, []int) {
+	return file_contacts_v1_contacts_proto_rawDescGZIP(), []int{10}
+}
+
 type DeleteContactRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -482,7 +570,7 @@ type DeleteContactRequest struct {
 
 func (x *DeleteContactRequest) Reset() {
 	*x = DeleteContactRequest{}
-	mi := &file_contacts_v1_contacts_proto_msgTypes[9]
+	mi := &file_contacts_v1_contacts_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -494,7 +582,7 @@ func (x *DeleteContactRequest) String() string {
 func (*DeleteContactRequest) ProtoMessage() {}
 
 func (x *DeleteContactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_contacts_v1_contacts_proto_msgTypes[9]
+	mi := &file_contacts_v1_contacts_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -507,7 +595,7 @@ func (x *DeleteContactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteContactRequest.ProtoReflect.Descriptor instead.
 func (*DeleteContactRequest) Descriptor() ([]byte, []int) {
-	return file_contacts_v1_contacts_proto_rawDescGZIP(), []int{9}
+	return file_contacts_v1_contacts_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteContactRequest) GetId() string {
@@ -525,7 +613,7 @@ type DeleteContactResponse struct {
 
 func (x *DeleteContactResponse) Reset() {
 	*x = DeleteContactResponse{}
-	mi := &file_contacts_v1_contacts_proto_msgTypes[10]
+	mi := &file_contacts_v1_contacts_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -537,7 +625,7 @@ func (x *DeleteContactResponse) String() string {
 func (*DeleteContactResponse) ProtoMessage() {}
 
 func (x *DeleteContactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_contacts_v1_contacts_proto_msgTypes[10]
+	mi := &file_contacts_v1_contacts_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -550,7 +638,7 @@ func (x *DeleteContactResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteContactResponse.ProtoReflect.Descriptor instead.
 func (*DeleteContactResponse) Descriptor() ([]byte, []int) {
-	return file_contacts_v1_contacts_proto_rawDescGZIP(), []int{10}
+	return file_contacts_v1_contacts_proto_rawDescGZIP(), []int{12}
 }
 
 var File_contacts_v1_contacts_proto protoreflect.FileDescriptor
@@ -584,15 +672,20 @@ const file_contacts_v1_contacts_proto_rawDesc = "" +
 	"\x15AcceptContactResponse\"'\n" +
 	"\x15DeclineContactRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x18\n" +
-	"\x16DeclineContactResponse\"&\n" +
+	"\x16DeclineContactResponse\"I\n" +
+	"\x14UpdateContactRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"\x17\n" +
+	"\x15UpdateContactResponse\"&\n" +
 	"\x14DeleteContactRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
-	"\x15DeleteContactResponse2\xc9\x03\n" +
+	"\x15DeleteContactResponse2\xa1\x04\n" +
 	"\x0fContactsService\x12S\n" +
 	"\fListContacts\x12 .contacts.v1.ListContactsRequest\x1a!.contacts.v1.ListContactsResponse\x12V\n" +
 	"\rCreateContact\x12!.contacts.v1.CreateContactRequest\x1a\".contacts.v1.CreateContactResponse\x12V\n" +
 	"\rAcceptContact\x12!.contacts.v1.AcceptContactRequest\x1a\".contacts.v1.AcceptContactResponse\x12Y\n" +
 	"\x0eDeclineContact\x12\".contacts.v1.DeclineContactRequest\x1a#.contacts.v1.DeclineContactResponse\x12V\n" +
+	"\rUpdateContact\x12!.contacts.v1.UpdateContactRequest\x1a\".contacts.v1.UpdateContactResponse\x12V\n" +
 	"\rDeleteContact\x12!.contacts.v1.DeleteContactRequest\x1a\".contacts.v1.DeleteContactResponseB/Z-tools.xdoubleu.com/gen/contacts/v1;contactsv1b\x06proto3"
 
 var (
@@ -607,7 +700,7 @@ func file_contacts_v1_contacts_proto_rawDescGZIP() []byte {
 	return file_contacts_v1_contacts_proto_rawDescData
 }
 
-var file_contacts_v1_contacts_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_contacts_v1_contacts_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_contacts_v1_contacts_proto_goTypes = []any{
 	(*Contact)(nil),                // 0: contacts.v1.Contact
 	(*ListContactsRequest)(nil),    // 1: contacts.v1.ListContactsRequest
@@ -618,8 +711,10 @@ var file_contacts_v1_contacts_proto_goTypes = []any{
 	(*AcceptContactResponse)(nil),  // 6: contacts.v1.AcceptContactResponse
 	(*DeclineContactRequest)(nil),  // 7: contacts.v1.DeclineContactRequest
 	(*DeclineContactResponse)(nil), // 8: contacts.v1.DeclineContactResponse
-	(*DeleteContactRequest)(nil),   // 9: contacts.v1.DeleteContactRequest
-	(*DeleteContactResponse)(nil),  // 10: contacts.v1.DeleteContactResponse
+	(*UpdateContactRequest)(nil),   // 9: contacts.v1.UpdateContactRequest
+	(*UpdateContactResponse)(nil),  // 10: contacts.v1.UpdateContactResponse
+	(*DeleteContactRequest)(nil),   // 11: contacts.v1.DeleteContactRequest
+	(*DeleteContactResponse)(nil),  // 12: contacts.v1.DeleteContactResponse
 }
 var file_contacts_v1_contacts_proto_depIdxs = []int32{
 	0,  // 0: contacts.v1.ListContactsResponse.contacts:type_name -> contacts.v1.Contact
@@ -629,14 +724,16 @@ var file_contacts_v1_contacts_proto_depIdxs = []int32{
 	3,  // 4: contacts.v1.ContactsService.CreateContact:input_type -> contacts.v1.CreateContactRequest
 	5,  // 5: contacts.v1.ContactsService.AcceptContact:input_type -> contacts.v1.AcceptContactRequest
 	7,  // 6: contacts.v1.ContactsService.DeclineContact:input_type -> contacts.v1.DeclineContactRequest
-	9,  // 7: contacts.v1.ContactsService.DeleteContact:input_type -> contacts.v1.DeleteContactRequest
-	2,  // 8: contacts.v1.ContactsService.ListContacts:output_type -> contacts.v1.ListContactsResponse
-	4,  // 9: contacts.v1.ContactsService.CreateContact:output_type -> contacts.v1.CreateContactResponse
-	6,  // 10: contacts.v1.ContactsService.AcceptContact:output_type -> contacts.v1.AcceptContactResponse
-	8,  // 11: contacts.v1.ContactsService.DeclineContact:output_type -> contacts.v1.DeclineContactResponse
-	10, // 12: contacts.v1.ContactsService.DeleteContact:output_type -> contacts.v1.DeleteContactResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
+	9,  // 7: contacts.v1.ContactsService.UpdateContact:input_type -> contacts.v1.UpdateContactRequest
+	11, // 8: contacts.v1.ContactsService.DeleteContact:input_type -> contacts.v1.DeleteContactRequest
+	2,  // 9: contacts.v1.ContactsService.ListContacts:output_type -> contacts.v1.ListContactsResponse
+	4,  // 10: contacts.v1.ContactsService.CreateContact:output_type -> contacts.v1.CreateContactResponse
+	6,  // 11: contacts.v1.ContactsService.AcceptContact:output_type -> contacts.v1.AcceptContactResponse
+	8,  // 12: contacts.v1.ContactsService.DeclineContact:output_type -> contacts.v1.DeclineContactResponse
+	10, // 13: contacts.v1.ContactsService.UpdateContact:output_type -> contacts.v1.UpdateContactResponse
+	12, // 14: contacts.v1.ContactsService.DeleteContact:output_type -> contacts.v1.DeleteContactResponse
+	9,  // [9:15] is the sub-list for method output_type
+	3,  // [3:9] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -653,7 +750,7 @@ func file_contacts_v1_contacts_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_contacts_v1_contacts_proto_rawDesc), len(file_contacts_v1_contacts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

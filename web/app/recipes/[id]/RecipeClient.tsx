@@ -3,26 +3,23 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useRecipe, useDeleteRecipe, useShareRecipe, useUnshareRecipe } from '@/hooks/useRecipes'
-import type { DeleteRecipeInput, ShareRecipeInput, UnshareRecipeInput } from '@/hooks/useRecipes'
-import ShareModal from '@/components/recipes/ShareModal'
+import { useRecipe, useDeleteRecipe } from '@/hooks/useRecipes'
+import type { DeleteRecipeInput } from '@/hooks/useRecipes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function RecipeClient({ id }: { id: string }) {
   const [servings, setServings] = useState(0)
-  const { data, error, isLoading, mutate } = useRecipe(id, servings || undefined)
+  const { data, error, isLoading } = useRecipe(id, servings || undefined)
   const deleteRecipe = useDeleteRecipe()
-  const shareRecipe = useShareRecipe()
-  const unshareRecipe = useUnshareRecipe()
   const router = useRouter()
 
-  const [showShareModal, setShowShareModal] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
 
   const recipe = data?.recipe
   const isOwner = data?.isOwner ?? false
+  const canEdit = data?.canEdit ?? false
   const displayServings = servings || recipe?.baseServings || 1
   const scaledIngredients = data?.scaledIngredients ?? []
   const sortedIngredients = (recipe?.ingredients ?? [])
@@ -76,20 +73,6 @@ export default function RecipeClient({ id }: { id: string }) {
     router.push('/recipes/list')
   }
 
-  const handleShare = async (userId: string) => {
-    if (!recipe) return
-    const req: ShareRecipeInput = { id: recipe.id, contactUserId: userId }
-    await shareRecipe(req)
-    await mutate()
-  }
-
-  const handleUnshare = async (userId: string) => {
-    if (!recipe) return
-    const req: UnshareRecipeInput = { id: recipe.id, targetUserId: userId }
-    await unshareRecipe(req)
-    await mutate()
-  }
-
   return (
     <main className="max-w-2xl mx-auto p-6">
       <Breadcrumb
@@ -103,28 +86,26 @@ export default function RecipeClient({ id }: { id: string }) {
         <>
           <div className="flex items-start justify-between mb-2">
             <h1 className="text-3xl font-bold">{recipe.name}</h1>
-            {isOwner && (
+            {canEdit && (
               <div className="flex gap-2 ml-4 shrink-0">
-                <Button variant="secondary" size="sm" onClick={() => setShowShareModal(true)}>
-                  Share
-                </Button>
                 <Button asChild variant="secondary" size="sm">
                   <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
                 </Button>
-                {deleteConfirm ? (
-                  <div className="flex gap-2 items-center">
-                    <Button variant="destructive" size="sm" onClick={handleDelete}>
-                      Confirm delete
+                {isOwner &&
+                  (deleteConfirm ? (
+                    <div className="flex gap-2 items-center">
+                      <Button variant="destructive" size="sm" onClick={handleDelete}>
+                        Confirm delete
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
+                      Delete
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
-                    Delete
-                  </Button>
-                )}
+                  ))}
               </div>
             )}
           </div>
@@ -200,15 +181,6 @@ export default function RecipeClient({ id }: { id: string }) {
                 {recipe.instructions}
               </div>
             </section>
-          )}
-
-          {showShareModal && (
-            <ShareModal
-              sharedWith={recipe.sharedWith}
-              onShare={handleShare}
-              onUnshare={handleUnshare}
-              onClose={() => setShowShareModal(false)}
-            />
           )}
         </>
       )}

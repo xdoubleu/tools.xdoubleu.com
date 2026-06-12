@@ -27,7 +27,7 @@ message Recipe {
   string created_at = 6;
   string updated_at = 7;
   repeated Ingredient ingredients = 8;
-  repeated string shared_with = 9;
+  reserved 9; // was: repeated string shared_with (per-recipe sharing removed)
   optional int32 batch_servings = 10;
 }
 
@@ -43,6 +43,7 @@ message GetRecipeResponse {
   int32 servings = 2;
   bool is_owner = 3;
   repeated ScaledIngredient scaled_ingredients = 4;
+  bool can_edit = 5;
 }
 
 message CreateRecipeRequest {
@@ -73,11 +74,22 @@ message UpdateRecipeResponse {}
 message DeleteRecipeRequest { string id = 1; }
 message DeleteRecipeResponse {}
 
-message ShareRecipeRequest { string id = 1; string contact_user_id = 2; }
-message ShareRecipeResponse {}
+// RecipeBookShare describes a user the owner has shared their whole recipe
+// book with. display_name resolves via the owner's contacts.
+message RecipeBookShare {
+  string user_id = 1;
+  bool can_edit = 2;
+  string display_name = 3;
+}
 
-message UnshareRecipeRequest { string id = 1; string target_user_id = 2; }
-message UnshareRecipeResponse {}
+message ShareRecipeBookRequest { string contact_user_id = 1; bool can_edit = 2; }
+message ShareRecipeBookResponse {}
+
+message UnshareRecipeBookRequest { string target_user_id = 1; }
+message UnshareRecipeBookResponse {}
+
+message ListRecipeBookSharesRequest {}
+message ListRecipeBookSharesResponse { repeated RecipeBookShare shares = 1; }
 
 service RecipesService {
   rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
@@ -85,6 +97,9 @@ service RecipesService {
   rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
   rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
   rpc DeleteRecipe(DeleteRecipeRequest) returns (DeleteRecipeResponse);
-  rpc ShareRecipe(ShareRecipeRequest) returns (ShareRecipeResponse);
-  rpc UnshareRecipe(UnshareRecipeRequest) returns (UnshareRecipeResponse);
+  rpc ShareRecipeBook(ShareRecipeBookRequest) returns (ShareRecipeBookResponse);
+  rpc UnshareRecipeBook(UnshareRecipeBookRequest)
+      returns (UnshareRecipeBookResponse);
+  rpc ListRecipeBookShares(ListRecipeBookSharesRequest)
+      returns (ListRecipeBookSharesResponse);
 }

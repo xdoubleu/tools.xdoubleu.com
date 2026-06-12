@@ -147,6 +147,20 @@ func (r *ContactsRepository) Decline(
 	return err
 }
 
+// UpdateDisplayName renames an accepted or pending contact owned by ownerUserID.
+func (r *ContactsRepository) UpdateDisplayName(
+	ctx context.Context,
+	id uuid.UUID,
+	ownerUserID, displayName string,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE global.contacts SET display_name = $3
+		WHERE id = $1 AND owner_user_id = $2`,
+		id, ownerUserID, displayName,
+	)
+	return err
+}
+
 func (r *ContactsRepository) Delete(
 	ctx context.Context,
 	id uuid.UUID,

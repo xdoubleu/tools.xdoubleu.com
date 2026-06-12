@@ -37,9 +37,9 @@ export default function MealPlanClient({ id }: { id: string }) {
   const recipes = recipesData?.recipes ?? []
   const isOwner = data?.isOwner ?? false
 
-  const handleShare = async (userId: string) => {
+  const handleShare = async (userId: string, canEdit: boolean) => {
     if (!plan) return
-    const req: SharePlanInput = { planId: plan.id, contactUserId: userId, canEdit: false }
+    const req: SharePlanInput = { planId: plan.id, contactUserId: userId, canEdit }
     await sharePlan(req)
     await mutate()
   }
@@ -90,7 +90,12 @@ export default function MealPlanClient({ id }: { id: string }) {
 
           {showShareModal && (
             <ShareModal
-              sharedWith={(data?.sharedWith ?? []).map((u) => u.userId)}
+              title="Share meal plan"
+              shares={(data?.sharedWith ?? []).map((u) => ({
+                userId: u.userId,
+                displayName: u.displayName,
+                canEdit: u.canEdit
+              }))}
               onShare={handleShare}
               onUnshare={handleUnshare}
               onClose={() => setShowShareModal(false)}

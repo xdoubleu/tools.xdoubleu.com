@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file shoppinglist/v1/shoppinglist.proto.
  */
 export const file_shoppinglist_v1_shoppinglist: GenFile = /*@__PURE__*/
-  fileDesc("CiJzaG9wcGluZ2xpc3QvdjEvc2hvcHBpbmdsaXN0LnByb3RvEg9zaG9wcGluZ2xpc3QudjEibwoMU2hvcHBpbmdJdGVtEgwKBG5hbWUYASABKAkSDgoGYW1vdW50GAIgASgJEgwKBHVuaXQYAyABKAkSCgoCaWQYBCABKAkSEwoLcmVjaXBlX25hbWUYBSABKAkSEgoKZ3JvdXBfbmFtZRgGIAEoCSIWChRHZXRDdXN0b21MaXN0UmVxdWVzdCJFChVHZXRDdXN0b21MaXN0UmVzcG9uc2USLAoFaXRlbXMYASADKAsyHS5zaG9wcGluZ2xpc3QudjEuU2hvcHBpbmdJdGVtIkQKFkFkZFNob3BwaW5nSXRlbVJlcXVlc3QSDAoEbmFtZRgBIAEoCRIOCgZhbW91bnQYAiABKAkSDAoEdW5pdBgDIAEoCSJGChdBZGRTaG9wcGluZ0l0ZW1SZXNwb25zZRIrCgRpdGVtGAEgASgLMh0uc2hvcHBpbmdsaXN0LnYxLlNob3BwaW5nSXRlbSIsChlEZWxldGVTaG9wcGluZ0l0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkiHAoaRGVsZXRlU2hvcHBpbmdJdGVtUmVzcG9uc2UiSQodR2V0TWVhbFBsYW5FeHBvcnRJdGVtc1JlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIXCg9leGNsdWRlZF9ncm91cHMYAiADKAkiTgoeR2V0TWVhbFBsYW5FeHBvcnRJdGVtc1Jlc3BvbnNlEiwKBWl0ZW1zGAEgAygLMh0uc2hvcHBpbmdsaXN0LnYxLlNob3BwaW5nSXRlbSIxCh5HZXRQbGFuSW5ncmVkaWVudEdyb3Vwc1JlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCSI+ChNQbGFuSW5ncmVkaWVudEdyb3VwEhMKC3JlY2lwZV9uYW1lGAEgASgJEhIKCmdyb3VwX25hbWUYAiABKAkiVwofR2V0UGxhbkluZ3JlZGllbnRHcm91cHNSZXNwb25zZRI0CgZncm91cHMYASADKAsyJC5zaG9wcGluZ2xpc3QudjEuUGxhbkluZ3JlZGllbnRHcm91cCIkCghDYXRlZ29yeRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJIhcKFUxpc3RDYXRlZ29yaWVzUmVxdWVzdCJHChZMaXN0Q2F0ZWdvcmllc1Jlc3BvbnNlEi0KCmNhdGVnb3JpZXMYASADKAsyGS5zaG9wcGluZ2xpc3QudjEuQ2F0ZWdvcnkiJQoVQ3JlYXRlQ2F0ZWdvcnlSZXF1ZXN0EgwKBG5hbWUYASABKAkiRQoWQ3JlYXRlQ2F0ZWdvcnlSZXNwb25zZRIrCghjYXRlZ29yeRgBIAEoCzIZLnNob3BwaW5nbGlzdC52MS5DYXRlZ29yeSIxChVSZW5hbWVDYXRlZ29yeVJlcXVlc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSJFChZSZW5hbWVDYXRlZ29yeVJlc3BvbnNlEisKCGNhdGVnb3J5GAEgASgLMhkuc2hvcHBpbmdsaXN0LnYxLkNhdGVnb3J5IiMKFURlbGV0ZUNhdGVnb3J5UmVxdWVzdBIKCgJpZBgBIAEoCSIYChZEZWxldGVDYXRlZ29yeVJlc3BvbnNlIiEKBVN0b3JlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkiEwoRTGlzdFN0b3Jlc1JlcXVlc3QiPAoSTGlzdFN0b3Jlc1Jlc3BvbnNlEiYKBnN0b3JlcxgBIAMoCzIWLnNob3BwaW5nbGlzdC52MS5TdG9yZSIiChJDcmVhdGVTdG9yZVJlcXVlc3QSDAoEbmFtZRgBIAEoCSI8ChNDcmVhdGVTdG9yZVJlc3BvbnNlEiUKBXN0b3JlGAEgASgLMhYuc2hvcHBpbmdsaXN0LnYxLlN0b3JlIi4KElJlbmFtZVN0b3JlUmVxdWVzdBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJIjwKE1JlbmFtZVN0b3JlUmVzcG9uc2USJQoFc3RvcmUYASABKAsyFi5zaG9wcGluZ2xpc3QudjEuU3RvcmUiIAoSRGVsZXRlU3RvcmVSZXF1ZXN0EgoKAmlkGAEgASgJIhUKE0RlbGV0ZVN0b3JlUmVzcG9uc2UiLQoZR2V0U3RvcmVDYXRlZ29yaWVzUmVxdWVzdBIQCghzdG9yZV9pZBgBIAEoCSJLChpHZXRTdG9yZUNhdGVnb3JpZXNSZXNwb25zZRItCgpjYXRlZ29yaWVzGAEgAygLMhkuc2hvcHBpbmdsaXN0LnYxLkNhdGVnb3J5IkMKGVNldFN0b3JlQ2F0ZWdvcmllc1JlcXVlc3QSEAoIc3RvcmVfaWQYASABKAkSFAoMY2F0ZWdvcnlfaWRzGAIgAygJIhwKGlNldFN0b3JlQ2F0ZWdvcmllc1Jlc3BvbnNlIi0KCEl0ZW1OYW1lEgwKBG5hbWUYASABKAkSEwoLY2F0ZWdvcnlfaWQYAiABKAkiMQoMSXRlbUNhdGVnb3J5EgwKBG5hbWUYASABKAkSEwoLY2F0ZWdvcnlfaWQYAiABKAkiFgoUTGlzdEl0ZW1OYW1lc1JlcXVlc3QiQQoVTGlzdEl0ZW1OYW1lc1Jlc3BvbnNlEigKBW5hbWVzGAEgAygLMhkuc2hvcHBpbmdsaXN0LnYxLkl0ZW1OYW1lIhsKGUxpc3RJdGVtQ2F0ZWdvcmllc1JlcXVlc3QiSgoaTGlzdEl0ZW1DYXRlZ29yaWVzUmVzcG9uc2USLAoFaXRlbXMYASADKAsyHS5zaG9wcGluZ2xpc3QudjEuSXRlbUNhdGVnb3J5IjsKFlNldEl0ZW1DYXRlZ29yeVJlcXVlc3QSDAoEbmFtZRgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCSIZChdTZXRJdGVtQ2F0ZWdvcnlSZXNwb25zZTLHDgoTU2hvcHBpbmdMaXN0U2VydmljZRJeCg1HZXRDdXN0b21MaXN0EiUuc2hvcHBpbmdsaXN0LnYxLkdldEN1c3RvbUxpc3RSZXF1ZXN0GiYuc2hvcHBpbmdsaXN0LnYxLkdldEN1c3RvbUxpc3RSZXNwb25zZRJkCg9BZGRTaG9wcGluZ0l0ZW0SJy5zaG9wcGluZ2xpc3QudjEuQWRkU2hvcHBpbmdJdGVtUmVxdWVzdBooLnNob3BwaW5nbGlzdC52MS5BZGRTaG9wcGluZ0l0ZW1SZXNwb25zZRJtChJEZWxldGVTaG9wcGluZ0l0ZW0SKi5zaG9wcGluZ2xpc3QudjEuRGVsZXRlU2hvcHBpbmdJdGVtUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5EZWxldGVTaG9wcGluZ0l0ZW1SZXNwb25zZRJ5ChZHZXRNZWFsUGxhbkV4cG9ydEl0ZW1zEi4uc2hvcHBpbmdsaXN0LnYxLkdldE1lYWxQbGFuRXhwb3J0SXRlbXNSZXF1ZXN0Gi8uc2hvcHBpbmdsaXN0LnYxLkdldE1lYWxQbGFuRXhwb3J0SXRlbXNSZXNwb25zZRJ8ChdHZXRQbGFuSW5ncmVkaWVudEdyb3VwcxIvLnNob3BwaW5nbGlzdC52MS5HZXRQbGFuSW5ncmVkaWVudEdyb3Vwc1JlcXVlc3QaMC5zaG9wcGluZ2xpc3QudjEuR2V0UGxhbkluZ3JlZGllbnRHcm91cHNSZXNwb25zZRJhCg5MaXN0Q2F0ZWdvcmllcxImLnNob3BwaW5nbGlzdC52MS5MaXN0Q2F0ZWdvcmllc1JlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuTGlzdENhdGVnb3JpZXNSZXNwb25zZRJhCg5DcmVhdGVDYXRlZ29yeRImLnNob3BwaW5nbGlzdC52MS5DcmVhdGVDYXRlZ29yeVJlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuQ3JlYXRlQ2F0ZWdvcnlSZXNwb25zZRJhCg5SZW5hbWVDYXRlZ29yeRImLnNob3BwaW5nbGlzdC52MS5SZW5hbWVDYXRlZ29yeVJlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuUmVuYW1lQ2F0ZWdvcnlSZXNwb25zZRJhCg5EZWxldGVDYXRlZ29yeRImLnNob3BwaW5nbGlzdC52MS5EZWxldGVDYXRlZ29yeVJlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuRGVsZXRlQ2F0ZWdvcnlSZXNwb25zZRJVCgpMaXN0U3RvcmVzEiIuc2hvcHBpbmdsaXN0LnYxLkxpc3RTdG9yZXNSZXF1ZXN0GiMuc2hvcHBpbmdsaXN0LnYxLkxpc3RTdG9yZXNSZXNwb25zZRJYCgtDcmVhdGVTdG9yZRIjLnNob3BwaW5nbGlzdC52MS5DcmVhdGVTdG9yZVJlcXVlc3QaJC5zaG9wcGluZ2xpc3QudjEuQ3JlYXRlU3RvcmVSZXNwb25zZRJYCgtSZW5hbWVTdG9yZRIjLnNob3BwaW5nbGlzdC52MS5SZW5hbWVTdG9yZVJlcXVlc3QaJC5zaG9wcGluZ2xpc3QudjEuUmVuYW1lU3RvcmVSZXNwb25zZRJYCgtEZWxldGVTdG9yZRIjLnNob3BwaW5nbGlzdC52MS5EZWxldGVTdG9yZVJlcXVlc3QaJC5zaG9wcGluZ2xpc3QudjEuRGVsZXRlU3RvcmVSZXNwb25zZRJtChJHZXRTdG9yZUNhdGVnb3JpZXMSKi5zaG9wcGluZ2xpc3QudjEuR2V0U3RvcmVDYXRlZ29yaWVzUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5HZXRTdG9yZUNhdGVnb3JpZXNSZXNwb25zZRJtChJTZXRTdG9yZUNhdGVnb3JpZXMSKi5zaG9wcGluZ2xpc3QudjEuU2V0U3RvcmVDYXRlZ29yaWVzUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5TZXRTdG9yZUNhdGVnb3JpZXNSZXNwb25zZRJeCg1MaXN0SXRlbU5hbWVzEiUuc2hvcHBpbmdsaXN0LnYxLkxpc3RJdGVtTmFtZXNSZXF1ZXN0GiYuc2hvcHBpbmdsaXN0LnYxLkxpc3RJdGVtTmFtZXNSZXNwb25zZRJtChJMaXN0SXRlbUNhdGVnb3JpZXMSKi5zaG9wcGluZ2xpc3QudjEuTGlzdEl0ZW1DYXRlZ29yaWVzUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5MaXN0SXRlbUNhdGVnb3JpZXNSZXNwb25zZRJkCg9TZXRJdGVtQ2F0ZWdvcnkSJy5zaG9wcGluZ2xpc3QudjEuU2V0SXRlbUNhdGVnb3J5UmVxdWVzdBooLnNob3BwaW5nbGlzdC52MS5TZXRJdGVtQ2F0ZWdvcnlSZXNwb25zZUI3WjV0b29scy54ZG91YmxldS5jb20vZ2VuL3Nob3BwaW5nbGlzdC92MTtzaG9wcGluZ2xpc3R2MWIGcHJvdG8z");
+  fileDesc("CiJzaG9wcGluZ2xpc3QvdjEvc2hvcHBpbmdsaXN0LnByb3RvEg9zaG9wcGluZ2xpc3QudjEibwoMU2hvcHBpbmdJdGVtEgwKBG5hbWUYASABKAkSDgoGYW1vdW50GAIgASgJEgwKBHVuaXQYAyABKAkSCgoCaWQYBCABKAkSEwoLcmVjaXBlX25hbWUYBSABKAkSEgoKZ3JvdXBfbmFtZRgGIAEoCSItChRHZXRDdXN0b21MaXN0UmVxdWVzdBIVCg1vd25lcl91c2VyX2lkGAEgASgJIkUKFUdldEN1c3RvbUxpc3RSZXNwb25zZRIsCgVpdGVtcxgBIAMoCzIdLnNob3BwaW5nbGlzdC52MS5TaG9wcGluZ0l0ZW0iWwoWQWRkU2hvcHBpbmdJdGVtUmVxdWVzdBIMCgRuYW1lGAEgASgJEg4KBmFtb3VudBgCIAEoCRIMCgR1bml0GAMgASgJEhUKDW93bmVyX3VzZXJfaWQYBCABKAkiRgoXQWRkU2hvcHBpbmdJdGVtUmVzcG9uc2USKwoEaXRlbRgBIAEoCzIdLnNob3BwaW5nbGlzdC52MS5TaG9wcGluZ0l0ZW0iQwoZRGVsZXRlU2hvcHBpbmdJdGVtUmVxdWVzdBIPCgdpdGVtX2lkGAEgASgJEhUKDW93bmVyX3VzZXJfaWQYAiABKAkiHAoaRGVsZXRlU2hvcHBpbmdJdGVtUmVzcG9uc2UiSQodR2V0TWVhbFBsYW5FeHBvcnRJdGVtc1JlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIXCg9leGNsdWRlZF9ncm91cHMYAiADKAkiTgoeR2V0TWVhbFBsYW5FeHBvcnRJdGVtc1Jlc3BvbnNlEiwKBWl0ZW1zGAEgAygLMh0uc2hvcHBpbmdsaXN0LnYxLlNob3BwaW5nSXRlbSIxCh5HZXRQbGFuSW5ncmVkaWVudEdyb3Vwc1JlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCSI+ChNQbGFuSW5ncmVkaWVudEdyb3VwEhMKC3JlY2lwZV9uYW1lGAEgASgJEhIKCmdyb3VwX25hbWUYAiABKAkiVwofR2V0UGxhbkluZ3JlZGllbnRHcm91cHNSZXNwb25zZRI0CgZncm91cHMYASADKAsyJC5zaG9wcGluZ2xpc3QudjEuUGxhbkluZ3JlZGllbnRHcm91cCIkCghDYXRlZ29yeRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJIi4KFUxpc3RDYXRlZ29yaWVzUmVxdWVzdBIVCg1vd25lcl91c2VyX2lkGAEgASgJIkcKFkxpc3RDYXRlZ29yaWVzUmVzcG9uc2USLQoKY2F0ZWdvcmllcxgBIAMoCzIZLnNob3BwaW5nbGlzdC52MS5DYXRlZ29yeSI8ChVDcmVhdGVDYXRlZ29yeVJlcXVlc3QSDAoEbmFtZRgBIAEoCRIVCg1vd25lcl91c2VyX2lkGAIgASgJIkUKFkNyZWF0ZUNhdGVnb3J5UmVzcG9uc2USKwoIY2F0ZWdvcnkYASABKAsyGS5zaG9wcGluZ2xpc3QudjEuQ2F0ZWdvcnkiSAoVUmVuYW1lQ2F0ZWdvcnlSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSFQoNb3duZXJfdXNlcl9pZBgDIAEoCSJFChZSZW5hbWVDYXRlZ29yeVJlc3BvbnNlEisKCGNhdGVnb3J5GAEgASgLMhkuc2hvcHBpbmdsaXN0LnYxLkNhdGVnb3J5IjoKFURlbGV0ZUNhdGVnb3J5UmVxdWVzdBIKCgJpZBgBIAEoCRIVCg1vd25lcl91c2VyX2lkGAIgASgJIhgKFkRlbGV0ZUNhdGVnb3J5UmVzcG9uc2UiIQoFU3RvcmUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSIqChFMaXN0U3RvcmVzUmVxdWVzdBIVCg1vd25lcl91c2VyX2lkGAEgASgJIjwKEkxpc3RTdG9yZXNSZXNwb25zZRImCgZzdG9yZXMYASADKAsyFi5zaG9wcGluZ2xpc3QudjEuU3RvcmUiOQoSQ3JlYXRlU3RvcmVSZXF1ZXN0EgwKBG5hbWUYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCSI8ChNDcmVhdGVTdG9yZVJlc3BvbnNlEiUKBXN0b3JlGAEgASgLMhYuc2hvcHBpbmdsaXN0LnYxLlN0b3JlIkUKElJlbmFtZVN0b3JlUmVxdWVzdBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhUKDW93bmVyX3VzZXJfaWQYAyABKAkiPAoTUmVuYW1lU3RvcmVSZXNwb25zZRIlCgVzdG9yZRgBIAEoCzIWLnNob3BwaW5nbGlzdC52MS5TdG9yZSI3ChJEZWxldGVTdG9yZVJlcXVlc3QSCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCSIVChNEZWxldGVTdG9yZVJlc3BvbnNlIkQKGUdldFN0b3JlQ2F0ZWdvcmllc1JlcXVlc3QSEAoIc3RvcmVfaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCSJLChpHZXRTdG9yZUNhdGVnb3JpZXNSZXNwb25zZRItCgpjYXRlZ29yaWVzGAEgAygLMhkuc2hvcHBpbmdsaXN0LnYxLkNhdGVnb3J5IloKGVNldFN0b3JlQ2F0ZWdvcmllc1JlcXVlc3QSEAoIc3RvcmVfaWQYASABKAkSFAoMY2F0ZWdvcnlfaWRzGAIgAygJEhUKDW93bmVyX3VzZXJfaWQYAyABKAkiHAoaU2V0U3RvcmVDYXRlZ29yaWVzUmVzcG9uc2UiLQoISXRlbU5hbWUSDAoEbmFtZRgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCSIxCgxJdGVtQ2F0ZWdvcnkSDAoEbmFtZRgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCSItChRMaXN0SXRlbU5hbWVzUmVxdWVzdBIVCg1vd25lcl91c2VyX2lkGAEgASgJIkEKFUxpc3RJdGVtTmFtZXNSZXNwb25zZRIoCgVuYW1lcxgBIAMoCzIZLnNob3BwaW5nbGlzdC52MS5JdGVtTmFtZSIyChlMaXN0SXRlbUNhdGVnb3JpZXNSZXF1ZXN0EhUKDW93bmVyX3VzZXJfaWQYASABKAkiSgoaTGlzdEl0ZW1DYXRlZ29yaWVzUmVzcG9uc2USLAoFaXRlbXMYASADKAsyHS5zaG9wcGluZ2xpc3QudjEuSXRlbUNhdGVnb3J5IlIKFlNldEl0ZW1DYXRlZ29yeVJlcXVlc3QSDAoEbmFtZRgBIAEoCRITCgtjYXRlZ29yeV9pZBgCIAEoCRIVCg1vd25lcl91c2VyX2lkGAMgASgJIhkKF1NldEl0ZW1DYXRlZ29yeVJlc3BvbnNlIkwKEVNob3BwaW5nTGlzdFNoYXJlEg8KB3VzZXJfaWQYASABKAkSEAoIY2FuX2VkaXQYAiABKAgSFAoMZGlzcGxheV9uYW1lGAMgASgJIkUKGFNoYXJlU2hvcHBpbmdMaXN0UmVxdWVzdBIXCg9jb250YWN0X3VzZXJfaWQYASABKAkSEAoIY2FuX2VkaXQYAiABKAgiGwoZU2hhcmVTaG9wcGluZ0xpc3RSZXNwb25zZSI0ChpVbnNoYXJlU2hvcHBpbmdMaXN0UmVxdWVzdBIWCg50YXJnZXRfdXNlcl9pZBgBIAEoCSIdChtVbnNoYXJlU2hvcHBpbmdMaXN0UmVzcG9uc2UiHwodTGlzdFNob3BwaW5nTGlzdFNoYXJlc1JlcXVlc3QiVAoeTGlzdFNob3BwaW5nTGlzdFNoYXJlc1Jlc3BvbnNlEjIKBnNoYXJlcxgBIAMoCzIiLnNob3BwaW5nbGlzdC52MS5TaG9wcGluZ0xpc3RTaGFyZSJVCglMaXN0T3duZXISDwoHdXNlcl9pZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSEAoIY2FuX2VkaXQYAyABKAgSDwoHaXNfc2VsZhgEIAEoCCIcChpMaXN0QWNjZXNzaWJsZUxpc3RzUmVxdWVzdCJJChtMaXN0QWNjZXNzaWJsZUxpc3RzUmVzcG9uc2USKgoGb3duZXJzGAEgAygLMhouc2hvcHBpbmdsaXN0LnYxLkxpc3RPd25lcjKSEgoTU2hvcHBpbmdMaXN0U2VydmljZRJeCg1HZXRDdXN0b21MaXN0EiUuc2hvcHBpbmdsaXN0LnYxLkdldEN1c3RvbUxpc3RSZXF1ZXN0GiYuc2hvcHBpbmdsaXN0LnYxLkdldEN1c3RvbUxpc3RSZXNwb25zZRJkCg9BZGRTaG9wcGluZ0l0ZW0SJy5zaG9wcGluZ2xpc3QudjEuQWRkU2hvcHBpbmdJdGVtUmVxdWVzdBooLnNob3BwaW5nbGlzdC52MS5BZGRTaG9wcGluZ0l0ZW1SZXNwb25zZRJtChJEZWxldGVTaG9wcGluZ0l0ZW0SKi5zaG9wcGluZ2xpc3QudjEuRGVsZXRlU2hvcHBpbmdJdGVtUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5EZWxldGVTaG9wcGluZ0l0ZW1SZXNwb25zZRJ5ChZHZXRNZWFsUGxhbkV4cG9ydEl0ZW1zEi4uc2hvcHBpbmdsaXN0LnYxLkdldE1lYWxQbGFuRXhwb3J0SXRlbXNSZXF1ZXN0Gi8uc2hvcHBpbmdsaXN0LnYxLkdldE1lYWxQbGFuRXhwb3J0SXRlbXNSZXNwb25zZRJ8ChdHZXRQbGFuSW5ncmVkaWVudEdyb3VwcxIvLnNob3BwaW5nbGlzdC52MS5HZXRQbGFuSW5ncmVkaWVudEdyb3Vwc1JlcXVlc3QaMC5zaG9wcGluZ2xpc3QudjEuR2V0UGxhbkluZ3JlZGllbnRHcm91cHNSZXNwb25zZRJhCg5MaXN0Q2F0ZWdvcmllcxImLnNob3BwaW5nbGlzdC52MS5MaXN0Q2F0ZWdvcmllc1JlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuTGlzdENhdGVnb3JpZXNSZXNwb25zZRJhCg5DcmVhdGVDYXRlZ29yeRImLnNob3BwaW5nbGlzdC52MS5DcmVhdGVDYXRlZ29yeVJlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuQ3JlYXRlQ2F0ZWdvcnlSZXNwb25zZRJhCg5SZW5hbWVDYXRlZ29yeRImLnNob3BwaW5nbGlzdC52MS5SZW5hbWVDYXRlZ29yeVJlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuUmVuYW1lQ2F0ZWdvcnlSZXNwb25zZRJhCg5EZWxldGVDYXRlZ29yeRImLnNob3BwaW5nbGlzdC52MS5EZWxldGVDYXRlZ29yeVJlcXVlc3QaJy5zaG9wcGluZ2xpc3QudjEuRGVsZXRlQ2F0ZWdvcnlSZXNwb25zZRJVCgpMaXN0U3RvcmVzEiIuc2hvcHBpbmdsaXN0LnYxLkxpc3RTdG9yZXNSZXF1ZXN0GiMuc2hvcHBpbmdsaXN0LnYxLkxpc3RTdG9yZXNSZXNwb25zZRJYCgtDcmVhdGVTdG9yZRIjLnNob3BwaW5nbGlzdC52MS5DcmVhdGVTdG9yZVJlcXVlc3QaJC5zaG9wcGluZ2xpc3QudjEuQ3JlYXRlU3RvcmVSZXNwb25zZRJYCgtSZW5hbWVTdG9yZRIjLnNob3BwaW5nbGlzdC52MS5SZW5hbWVTdG9yZVJlcXVlc3QaJC5zaG9wcGluZ2xpc3QudjEuUmVuYW1lU3RvcmVSZXNwb25zZRJYCgtEZWxldGVTdG9yZRIjLnNob3BwaW5nbGlzdC52MS5EZWxldGVTdG9yZVJlcXVlc3QaJC5zaG9wcGluZ2xpc3QudjEuRGVsZXRlU3RvcmVSZXNwb25zZRJtChJHZXRTdG9yZUNhdGVnb3JpZXMSKi5zaG9wcGluZ2xpc3QudjEuR2V0U3RvcmVDYXRlZ29yaWVzUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5HZXRTdG9yZUNhdGVnb3JpZXNSZXNwb25zZRJtChJTZXRTdG9yZUNhdGVnb3JpZXMSKi5zaG9wcGluZ2xpc3QudjEuU2V0U3RvcmVDYXRlZ29yaWVzUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5TZXRTdG9yZUNhdGVnb3JpZXNSZXNwb25zZRJeCg1MaXN0SXRlbU5hbWVzEiUuc2hvcHBpbmdsaXN0LnYxLkxpc3RJdGVtTmFtZXNSZXF1ZXN0GiYuc2hvcHBpbmdsaXN0LnYxLkxpc3RJdGVtTmFtZXNSZXNwb25zZRJtChJMaXN0SXRlbUNhdGVnb3JpZXMSKi5zaG9wcGluZ2xpc3QudjEuTGlzdEl0ZW1DYXRlZ29yaWVzUmVxdWVzdBorLnNob3BwaW5nbGlzdC52MS5MaXN0SXRlbUNhdGVnb3JpZXNSZXNwb25zZRJkCg9TZXRJdGVtQ2F0ZWdvcnkSJy5zaG9wcGluZ2xpc3QudjEuU2V0SXRlbUNhdGVnb3J5UmVxdWVzdBooLnNob3BwaW5nbGlzdC52MS5TZXRJdGVtQ2F0ZWdvcnlSZXNwb25zZRJqChFTaGFyZVNob3BwaW5nTGlzdBIpLnNob3BwaW5nbGlzdC52MS5TaGFyZVNob3BwaW5nTGlzdFJlcXVlc3QaKi5zaG9wcGluZ2xpc3QudjEuU2hhcmVTaG9wcGluZ0xpc3RSZXNwb25zZRJwChNVbnNoYXJlU2hvcHBpbmdMaXN0Eisuc2hvcHBpbmdsaXN0LnYxLlVuc2hhcmVTaG9wcGluZ0xpc3RSZXF1ZXN0Giwuc2hvcHBpbmdsaXN0LnYxLlVuc2hhcmVTaG9wcGluZ0xpc3RSZXNwb25zZRJ5ChZMaXN0U2hvcHBpbmdMaXN0U2hhcmVzEi4uc2hvcHBpbmdsaXN0LnYxLkxpc3RTaG9wcGluZ0xpc3RTaGFyZXNSZXF1ZXN0Gi8uc2hvcHBpbmdsaXN0LnYxLkxpc3RTaG9wcGluZ0xpc3RTaGFyZXNSZXNwb25zZRJwChNMaXN0QWNjZXNzaWJsZUxpc3RzEisuc2hvcHBpbmdsaXN0LnYxLkxpc3RBY2Nlc3NpYmxlTGlzdHNSZXF1ZXN0Giwuc2hvcHBpbmdsaXN0LnYxLkxpc3RBY2Nlc3NpYmxlTGlzdHNSZXNwb25zZUI3WjV0b29scy54ZG91YmxldS5jb20vZ2VuL3Nob3BwaW5nbGlzdC92MTtzaG9wcGluZ2xpc3R2MWIGcHJvdG8z");
 
 /**
  * @generated from message shoppinglist.v1.ShoppingItem
@@ -58,6 +58,10 @@ export const ShoppingItemSchema: GenMessage<ShoppingItem> = /*@__PURE__*/
  * @generated from message shoppinglist.v1.GetCustomListRequest
  */
 export type GetCustomListRequest = Message<"shoppinglist.v1.GetCustomListRequest"> & {
+  /**
+   * @generated from field: string owner_user_id = 1;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -102,6 +106,11 @@ export type AddShoppingItemRequest = Message<"shoppinglist.v1.AddShoppingItemReq
    * @generated from field: string unit = 3;
    */
   unit: string;
+
+  /**
+   * @generated from field: string owner_user_id = 4;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -136,6 +145,11 @@ export type DeleteShoppingItemRequest = Message<"shoppinglist.v1.DeleteShoppingI
    * @generated from field: string item_id = 1;
    */
   itemId: string;
+
+  /**
+   * @generated from field: string owner_user_id = 2;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -279,6 +293,10 @@ export const CategorySchema: GenMessage<Category> = /*@__PURE__*/
  * @generated from message shoppinglist.v1.ListCategoriesRequest
  */
 export type ListCategoriesRequest = Message<"shoppinglist.v1.ListCategoriesRequest"> & {
+  /**
+   * @generated from field: string owner_user_id = 1;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -313,6 +331,11 @@ export type CreateCategoryRequest = Message<"shoppinglist.v1.CreateCategoryReque
    * @generated from field: string name = 1;
    */
   name: string;
+
+  /**
+   * @generated from field: string owner_user_id = 2;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -352,6 +375,11 @@ export type RenameCategoryRequest = Message<"shoppinglist.v1.RenameCategoryReque
    * @generated from field: string name = 2;
    */
   name: string;
+
+  /**
+   * @generated from field: string owner_user_id = 3;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -386,6 +414,11 @@ export type DeleteCategoryRequest = Message<"shoppinglist.v1.DeleteCategoryReque
    * @generated from field: string id = 1;
    */
   id: string;
+
+  /**
+   * @generated from field: string owner_user_id = 2;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -434,6 +467,10 @@ export const StoreSchema: GenMessage<Store> = /*@__PURE__*/
  * @generated from message shoppinglist.v1.ListStoresRequest
  */
 export type ListStoresRequest = Message<"shoppinglist.v1.ListStoresRequest"> & {
+  /**
+   * @generated from field: string owner_user_id = 1;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -468,6 +505,11 @@ export type CreateStoreRequest = Message<"shoppinglist.v1.CreateStoreRequest"> &
    * @generated from field: string name = 1;
    */
   name: string;
+
+  /**
+   * @generated from field: string owner_user_id = 2;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -507,6 +549,11 @@ export type RenameStoreRequest = Message<"shoppinglist.v1.RenameStoreRequest"> &
    * @generated from field: string name = 2;
    */
   name: string;
+
+  /**
+   * @generated from field: string owner_user_id = 3;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -541,6 +588,11 @@ export type DeleteStoreRequest = Message<"shoppinglist.v1.DeleteStoreRequest"> &
    * @generated from field: string id = 1;
    */
   id: string;
+
+  /**
+   * @generated from field: string owner_user_id = 2;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -575,6 +627,11 @@ export type GetStoreCategoriesRequest = Message<"shoppinglist.v1.GetStoreCategor
    * @generated from field: string store_id = 1;
    */
   storeId: string;
+
+  /**
+   * @generated from field: string owner_user_id = 2;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -614,6 +671,11 @@ export type SetStoreCategoriesRequest = Message<"shoppinglist.v1.SetStoreCategor
    * @generated from field: repeated string category_ids = 2;
    */
   categoryIds: string[];
+
+  /**
+   * @generated from field: string owner_user_id = 3;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -687,6 +749,10 @@ export const ItemCategorySchema: GenMessage<ItemCategory> = /*@__PURE__*/
  * @generated from message shoppinglist.v1.ListItemNamesRequest
  */
 export type ListItemNamesRequest = Message<"shoppinglist.v1.ListItemNamesRequest"> & {
+  /**
+   * @generated from field: string owner_user_id = 1;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -717,6 +783,10 @@ export const ListItemNamesResponseSchema: GenMessage<ListItemNamesResponse> = /*
  * @generated from message shoppinglist.v1.ListItemCategoriesRequest
  */
 export type ListItemCategoriesRequest = Message<"shoppinglist.v1.ListItemCategoriesRequest"> & {
+  /**
+   * @generated from field: string owner_user_id = 1;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -756,6 +826,11 @@ export type SetItemCategoryRequest = Message<"shoppinglist.v1.SetItemCategoryReq
    * @generated from field: string category_id = 2;
    */
   categoryId: string;
+
+  /**
+   * @generated from field: string owner_user_id = 3;
+   */
+  ownerUserId: string;
 };
 
 /**
@@ -777,6 +852,196 @@ export type SetItemCategoryResponse = Message<"shoppinglist.v1.SetItemCategoryRe
  */
 export const SetItemCategoryResponseSchema: GenMessage<SetItemCategoryResponse> = /*@__PURE__*/
   messageDesc(file_shoppinglist_v1_shoppinglist, 41);
+
+/**
+ * ShoppingListShare is a user the caller has shared their list with.
+ * display_name resolves via the owner's contacts.
+ *
+ * @generated from message shoppinglist.v1.ShoppingListShare
+ */
+export type ShoppingListShare = Message<"shoppinglist.v1.ShoppingListShare"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: bool can_edit = 2;
+   */
+  canEdit: boolean;
+
+  /**
+   * @generated from field: string display_name = 3;
+   */
+  displayName: string;
+};
+
+/**
+ * Describes the message shoppinglist.v1.ShoppingListShare.
+ * Use `create(ShoppingListShareSchema)` to create a new message.
+ */
+export const ShoppingListShareSchema: GenMessage<ShoppingListShare> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 42);
+
+/**
+ * @generated from message shoppinglist.v1.ShareShoppingListRequest
+ */
+export type ShareShoppingListRequest = Message<"shoppinglist.v1.ShareShoppingListRequest"> & {
+  /**
+   * @generated from field: string contact_user_id = 1;
+   */
+  contactUserId: string;
+
+  /**
+   * @generated from field: bool can_edit = 2;
+   */
+  canEdit: boolean;
+};
+
+/**
+ * Describes the message shoppinglist.v1.ShareShoppingListRequest.
+ * Use `create(ShareShoppingListRequestSchema)` to create a new message.
+ */
+export const ShareShoppingListRequestSchema: GenMessage<ShareShoppingListRequest> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 43);
+
+/**
+ * @generated from message shoppinglist.v1.ShareShoppingListResponse
+ */
+export type ShareShoppingListResponse = Message<"shoppinglist.v1.ShareShoppingListResponse"> & {
+};
+
+/**
+ * Describes the message shoppinglist.v1.ShareShoppingListResponse.
+ * Use `create(ShareShoppingListResponseSchema)` to create a new message.
+ */
+export const ShareShoppingListResponseSchema: GenMessage<ShareShoppingListResponse> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 44);
+
+/**
+ * @generated from message shoppinglist.v1.UnshareShoppingListRequest
+ */
+export type UnshareShoppingListRequest = Message<"shoppinglist.v1.UnshareShoppingListRequest"> & {
+  /**
+   * @generated from field: string target_user_id = 1;
+   */
+  targetUserId: string;
+};
+
+/**
+ * Describes the message shoppinglist.v1.UnshareShoppingListRequest.
+ * Use `create(UnshareShoppingListRequestSchema)` to create a new message.
+ */
+export const UnshareShoppingListRequestSchema: GenMessage<UnshareShoppingListRequest> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 45);
+
+/**
+ * @generated from message shoppinglist.v1.UnshareShoppingListResponse
+ */
+export type UnshareShoppingListResponse = Message<"shoppinglist.v1.UnshareShoppingListResponse"> & {
+};
+
+/**
+ * Describes the message shoppinglist.v1.UnshareShoppingListResponse.
+ * Use `create(UnshareShoppingListResponseSchema)` to create a new message.
+ */
+export const UnshareShoppingListResponseSchema: GenMessage<UnshareShoppingListResponse> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 46);
+
+/**
+ * @generated from message shoppinglist.v1.ListShoppingListSharesRequest
+ */
+export type ListShoppingListSharesRequest = Message<"shoppinglist.v1.ListShoppingListSharesRequest"> & {
+};
+
+/**
+ * Describes the message shoppinglist.v1.ListShoppingListSharesRequest.
+ * Use `create(ListShoppingListSharesRequestSchema)` to create a new message.
+ */
+export const ListShoppingListSharesRequestSchema: GenMessage<ListShoppingListSharesRequest> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 47);
+
+/**
+ * @generated from message shoppinglist.v1.ListShoppingListSharesResponse
+ */
+export type ListShoppingListSharesResponse = Message<"shoppinglist.v1.ListShoppingListSharesResponse"> & {
+  /**
+   * @generated from field: repeated shoppinglist.v1.ShoppingListShare shares = 1;
+   */
+  shares: ShoppingListShare[];
+};
+
+/**
+ * Describes the message shoppinglist.v1.ListShoppingListSharesResponse.
+ * Use `create(ListShoppingListSharesResponseSchema)` to create a new message.
+ */
+export const ListShoppingListSharesResponseSchema: GenMessage<ListShoppingListSharesResponse> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 48);
+
+/**
+ * A list the caller can act on: their own (is_self) plus lists shared with
+ * them. Used to populate the "Viewing" owner switcher.
+ *
+ * @generated from message shoppinglist.v1.ListOwner
+ */
+export type ListOwner = Message<"shoppinglist.v1.ListOwner"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string display_name = 2;
+   */
+  displayName: string;
+
+  /**
+   * @generated from field: bool can_edit = 3;
+   */
+  canEdit: boolean;
+
+  /**
+   * @generated from field: bool is_self = 4;
+   */
+  isSelf: boolean;
+};
+
+/**
+ * Describes the message shoppinglist.v1.ListOwner.
+ * Use `create(ListOwnerSchema)` to create a new message.
+ */
+export const ListOwnerSchema: GenMessage<ListOwner> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 49);
+
+/**
+ * @generated from message shoppinglist.v1.ListAccessibleListsRequest
+ */
+export type ListAccessibleListsRequest = Message<"shoppinglist.v1.ListAccessibleListsRequest"> & {
+};
+
+/**
+ * Describes the message shoppinglist.v1.ListAccessibleListsRequest.
+ * Use `create(ListAccessibleListsRequestSchema)` to create a new message.
+ */
+export const ListAccessibleListsRequestSchema: GenMessage<ListAccessibleListsRequest> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 50);
+
+/**
+ * @generated from message shoppinglist.v1.ListAccessibleListsResponse
+ */
+export type ListAccessibleListsResponse = Message<"shoppinglist.v1.ListAccessibleListsResponse"> & {
+  /**
+   * @generated from field: repeated shoppinglist.v1.ListOwner owners = 1;
+   */
+  owners: ListOwner[];
+};
+
+/**
+ * Describes the message shoppinglist.v1.ListAccessibleListsResponse.
+ * Use `create(ListAccessibleListsResponseSchema)` to create a new message.
+ */
+export const ListAccessibleListsResponseSchema: GenMessage<ListAccessibleListsResponse> = /*@__PURE__*/
+  messageDesc(file_shoppinglist_v1_shoppinglist, 51);
 
 /**
  * @generated from service shoppinglist.v1.ShoppingListService
@@ -925,6 +1190,38 @@ export const ShoppingListService: GenService<{
     methodKind: "unary";
     input: typeof SetItemCategoryRequestSchema;
     output: typeof SetItemCategoryResponseSchema;
+  },
+  /**
+   * @generated from rpc shoppinglist.v1.ShoppingListService.ShareShoppingList
+   */
+  shareShoppingList: {
+    methodKind: "unary";
+    input: typeof ShareShoppingListRequestSchema;
+    output: typeof ShareShoppingListResponseSchema;
+  },
+  /**
+   * @generated from rpc shoppinglist.v1.ShoppingListService.UnshareShoppingList
+   */
+  unshareShoppingList: {
+    methodKind: "unary";
+    input: typeof UnshareShoppingListRequestSchema;
+    output: typeof UnshareShoppingListResponseSchema;
+  },
+  /**
+   * @generated from rpc shoppinglist.v1.ShoppingListService.ListShoppingListShares
+   */
+  listShoppingListShares: {
+    methodKind: "unary";
+    input: typeof ListShoppingListSharesRequestSchema;
+    output: typeof ListShoppingListSharesResponseSchema;
+  },
+  /**
+   * @generated from rpc shoppinglist.v1.ShoppingListService.ListAccessibleLists
+   */
+  listAccessibleLists: {
+    methodKind: "unary";
+    input: typeof ListAccessibleListsRequestSchema;
+    output: typeof ListAccessibleListsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_shoppinglist_v1_shoppinglist, 0);

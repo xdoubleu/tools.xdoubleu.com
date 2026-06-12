@@ -183,7 +183,6 @@ type Recipe struct {
 	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Ingredients   []*Ingredient          `protobuf:"bytes,8,rep,name=ingredients,proto3" json:"ingredients,omitempty"`
-	SharedWith    []string               `protobuf:"bytes,9,rep,name=shared_with,json=sharedWith,proto3" json:"shared_with,omitempty"`
 	BatchServings *int32                 `protobuf:"varint,10,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -271,13 +270,6 @@ func (x *Recipe) GetUpdatedAt() string {
 func (x *Recipe) GetIngredients() []*Ingredient {
 	if x != nil {
 		return x.Ingredients
-	}
-	return nil
-}
-
-func (x *Recipe) GetSharedWith() []string {
-	if x != nil {
-		return x.SharedWith
 	}
 	return nil
 }
@@ -427,6 +419,7 @@ type GetRecipeResponse struct {
 	Servings          int32                  `protobuf:"varint,2,opt,name=servings,proto3" json:"servings,omitempty"`
 	IsOwner           bool                   `protobuf:"varint,3,opt,name=is_owner,json=isOwner,proto3" json:"is_owner,omitempty"`
 	ScaledIngredients []*ScaledIngredient    `protobuf:"bytes,4,rep,name=scaled_ingredients,json=scaledIngredients,proto3" json:"scaled_ingredients,omitempty"`
+	CanEdit           bool                   `protobuf:"varint,5,opt,name=can_edit,json=canEdit,proto3" json:"can_edit,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -487,6 +480,13 @@ func (x *GetRecipeResponse) GetScaledIngredients() []*ScaledIngredient {
 		return x.ScaledIngredients
 	}
 	return nil
+}
+
+func (x *GetRecipeResponse) GetCanEdit() bool {
+	if x != nil {
+		return x.CanEdit
+	}
+	return false
 }
 
 type CreateRecipeRequest struct {
@@ -857,28 +857,31 @@ func (*DeleteRecipeResponse) Descriptor() ([]byte, []int) {
 	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{12}
 }
 
-type ShareRecipeRequest struct {
+// RecipeBookShare describes a user the owner has shared their whole recipe
+// book with. display_name resolves via the owner's contacts.
+type RecipeBookShare struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ContactUserId string                 `protobuf:"bytes,2,opt,name=contact_user_id,json=contactUserId,proto3" json:"contact_user_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	CanEdit       bool                   `protobuf:"varint,2,opt,name=can_edit,json=canEdit,proto3" json:"can_edit,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ShareRecipeRequest) Reset() {
-	*x = ShareRecipeRequest{}
+func (x *RecipeBookShare) Reset() {
+	*x = RecipeBookShare{}
 	mi := &file_recipes_v1_recipes_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ShareRecipeRequest) String() string {
+func (x *RecipeBookShare) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ShareRecipeRequest) ProtoMessage() {}
+func (*RecipeBookShare) ProtoMessage() {}
 
-func (x *ShareRecipeRequest) ProtoReflect() protoreflect.Message {
+func (x *RecipeBookShare) ProtoReflect() protoreflect.Message {
 	mi := &file_recipes_v1_recipes_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -890,83 +893,104 @@ func (x *ShareRecipeRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ShareRecipeRequest.ProtoReflect.Descriptor instead.
-func (*ShareRecipeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use RecipeBookShare.ProtoReflect.Descriptor instead.
+func (*RecipeBookShare) Descriptor() ([]byte, []int) {
 	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *ShareRecipeRequest) GetId() string {
+func (x *RecipeBookShare) GetUserId() string {
 	if x != nil {
-		return x.Id
+		return x.UserId
 	}
 	return ""
 }
 
-func (x *ShareRecipeRequest) GetContactUserId() string {
+func (x *RecipeBookShare) GetCanEdit() bool {
+	if x != nil {
+		return x.CanEdit
+	}
+	return false
+}
+
+func (x *RecipeBookShare) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type ShareRecipeBookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContactUserId string                 `protobuf:"bytes,1,opt,name=contact_user_id,json=contactUserId,proto3" json:"contact_user_id,omitempty"`
+	CanEdit       bool                   `protobuf:"varint,2,opt,name=can_edit,json=canEdit,proto3" json:"can_edit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShareRecipeBookRequest) Reset() {
+	*x = ShareRecipeBookRequest{}
+	mi := &file_recipes_v1_recipes_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShareRecipeBookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShareRecipeBookRequest) ProtoMessage() {}
+
+func (x *ShareRecipeBookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_recipes_v1_recipes_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShareRecipeBookRequest.ProtoReflect.Descriptor instead.
+func (*ShareRecipeBookRequest) Descriptor() ([]byte, []int) {
+	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ShareRecipeBookRequest) GetContactUserId() string {
 	if x != nil {
 		return x.ContactUserId
 	}
 	return ""
 }
 
-type ShareRecipeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ShareRecipeResponse) Reset() {
-	*x = ShareRecipeResponse{}
-	mi := &file_recipes_v1_recipes_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ShareRecipeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ShareRecipeResponse) ProtoMessage() {}
-
-func (x *ShareRecipeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_recipes_v1_recipes_proto_msgTypes[14]
+func (x *ShareRecipeBookRequest) GetCanEdit() bool {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.CanEdit
 	}
-	return mi.MessageOf(x)
+	return false
 }
 
-// Deprecated: Use ShareRecipeResponse.ProtoReflect.Descriptor instead.
-func (*ShareRecipeResponse) Descriptor() ([]byte, []int) {
-	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{14}
-}
-
-type UnshareRecipeRequest struct {
+type ShareRecipeBookResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	TargetUserId  string                 `protobuf:"bytes,2,opt,name=target_user_id,json=targetUserId,proto3" json:"target_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UnshareRecipeRequest) Reset() {
-	*x = UnshareRecipeRequest{}
+func (x *ShareRecipeBookResponse) Reset() {
+	*x = ShareRecipeBookResponse{}
 	mi := &file_recipes_v1_recipes_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UnshareRecipeRequest) String() string {
+func (x *ShareRecipeBookResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UnshareRecipeRequest) ProtoMessage() {}
+func (*ShareRecipeBookResponse) ProtoMessage() {}
 
-func (x *UnshareRecipeRequest) ProtoReflect() protoreflect.Message {
+func (x *ShareRecipeBookResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_recipes_v1_recipes_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -978,46 +1002,76 @@ func (x *UnshareRecipeRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UnshareRecipeRequest.ProtoReflect.Descriptor instead.
-func (*UnshareRecipeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ShareRecipeBookResponse.ProtoReflect.Descriptor instead.
+func (*ShareRecipeBookResponse) Descriptor() ([]byte, []int) {
 	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *UnshareRecipeRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
+type UnshareRecipeBookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetUserId  string                 `protobuf:"bytes,1,opt,name=target_user_id,json=targetUserId,proto3" json:"target_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UnshareRecipeRequest) GetTargetUserId() string {
+func (x *UnshareRecipeBookRequest) Reset() {
+	*x = UnshareRecipeBookRequest{}
+	mi := &file_recipes_v1_recipes_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnshareRecipeBookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnshareRecipeBookRequest) ProtoMessage() {}
+
+func (x *UnshareRecipeBookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_recipes_v1_recipes_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnshareRecipeBookRequest.ProtoReflect.Descriptor instead.
+func (*UnshareRecipeBookRequest) Descriptor() ([]byte, []int) {
+	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UnshareRecipeBookRequest) GetTargetUserId() string {
 	if x != nil {
 		return x.TargetUserId
 	}
 	return ""
 }
 
-type UnshareRecipeResponse struct {
+type UnshareRecipeBookResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *UnshareRecipeResponse) Reset() {
-	*x = UnshareRecipeResponse{}
-	mi := &file_recipes_v1_recipes_proto_msgTypes[16]
+func (x *UnshareRecipeBookResponse) Reset() {
+	*x = UnshareRecipeBookResponse{}
+	mi := &file_recipes_v1_recipes_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *UnshareRecipeResponse) String() string {
+func (x *UnshareRecipeBookResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*UnshareRecipeResponse) ProtoMessage() {}
+func (*UnshareRecipeBookResponse) ProtoMessage() {}
 
-func (x *UnshareRecipeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_recipes_v1_recipes_proto_msgTypes[16]
+func (x *UnshareRecipeBookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_recipes_v1_recipes_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1028,9 +1082,89 @@ func (x *UnshareRecipeResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UnshareRecipeResponse.ProtoReflect.Descriptor instead.
-func (*UnshareRecipeResponse) Descriptor() ([]byte, []int) {
-	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{16}
+// Deprecated: Use UnshareRecipeBookResponse.ProtoReflect.Descriptor instead.
+func (*UnshareRecipeBookResponse) Descriptor() ([]byte, []int) {
+	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{17}
+}
+
+type ListRecipeBookSharesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRecipeBookSharesRequest) Reset() {
+	*x = ListRecipeBookSharesRequest{}
+	mi := &file_recipes_v1_recipes_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRecipeBookSharesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRecipeBookSharesRequest) ProtoMessage() {}
+
+func (x *ListRecipeBookSharesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_recipes_v1_recipes_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRecipeBookSharesRequest.ProtoReflect.Descriptor instead.
+func (*ListRecipeBookSharesRequest) Descriptor() ([]byte, []int) {
+	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{18}
+}
+
+type ListRecipeBookSharesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Shares        []*RecipeBookShare     `protobuf:"bytes,1,rep,name=shares,proto3" json:"shares,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRecipeBookSharesResponse) Reset() {
+	*x = ListRecipeBookSharesResponse{}
+	mi := &file_recipes_v1_recipes_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRecipeBookSharesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRecipeBookSharesResponse) ProtoMessage() {}
+
+func (x *ListRecipeBookSharesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_recipes_v1_recipes_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRecipeBookSharesResponse.ProtoReflect.Descriptor instead.
+func (*ListRecipeBookSharesResponse) Descriptor() ([]byte, []int) {
+	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListRecipeBookSharesResponse) GetShares() []*RecipeBookShare {
+	if x != nil {
+		return x.Shares
+	}
+	return nil
 }
 
 var File_recipes_v1_recipes_proto protoreflect.FileDescriptor
@@ -1054,7 +1188,7 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x10ScaledIngredient\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
-	"\x04unit\x18\x03 \x01(\tR\x04unit\"\xe6\x02\n" +
+	"\x04unit\x18\x03 \x01(\tR\x04unit\"\xcb\x02\n" +
 	"\x06Recipe\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -1065,23 +1199,23 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\a \x01(\tR\tupdatedAt\x128\n" +
-	"\vingredients\x18\b \x03(\v2\x16.recipes.v1.IngredientR\vingredients\x12\x1f\n" +
-	"\vshared_with\x18\t \x03(\tR\n" +
-	"sharedWith\x12*\n" +
+	"\vingredients\x18\b \x03(\v2\x16.recipes.v1.IngredientR\vingredients\x12*\n" +
 	"\x0ebatch_servings\x18\n" +
 	" \x01(\x05H\x00R\rbatchServings\x88\x01\x01B\x11\n" +
-	"\x0f_batch_servings\"\x14\n" +
+	"\x0f_batch_servingsJ\x04\b\t\x10\n" +
+	"\"\x14\n" +
 	"\x12ListRecipesRequest\"C\n" +
 	"\x13ListRecipesResponse\x12,\n" +
 	"\arecipes\x18\x01 \x03(\v2\x12.recipes.v1.RecipeR\arecipes\">\n" +
 	"\x10GetRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
-	"\bservings\x18\x02 \x01(\x05R\bservings\"\xc3\x01\n" +
+	"\bservings\x18\x02 \x01(\x05R\bservings\"\xde\x01\n" +
 	"\x11GetRecipeResponse\x12*\n" +
 	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\x12\x1a\n" +
 	"\bservings\x18\x02 \x01(\x05R\bservings\x12\x19\n" +
 	"\bis_owner\x18\x03 \x01(\bR\aisOwner\x12K\n" +
-	"\x12scaled_ingredients\x18\x04 \x03(\v2\x1c.recipes.v1.ScaledIngredientR\x11scaledIngredients\"\xde\x02\n" +
+	"\x12scaled_ingredients\x18\x04 \x03(\v2\x1c.recipes.v1.ScaledIngredientR\x11scaledIngredients\x12\x19\n" +
+	"\bcan_edit\x18\x05 \x01(\bR\acanEdit\"\xde\x02\n" +
 	"\x13CreateRecipeRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05steps\x18\x02 \x03(\tR\x05steps\x12#\n" +
@@ -1108,23 +1242,30 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x14UpdateRecipeResponse\"%\n" +
 	"\x13DeleteRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x16\n" +
-	"\x14DeleteRecipeResponse\"L\n" +
-	"\x12ShareRecipeRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12&\n" +
-	"\x0fcontact_user_id\x18\x02 \x01(\tR\rcontactUserId\"\x15\n" +
-	"\x13ShareRecipeResponse\"L\n" +
-	"\x14UnshareRecipeRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
-	"\x0etarget_user_id\x18\x02 \x01(\tR\ftargetUserId\"\x17\n" +
-	"\x15UnshareRecipeResponse2\xc9\x04\n" +
+	"\x14DeleteRecipeResponse\"h\n" +
+	"\x0fRecipeBookShare\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
+	"\bcan_edit\x18\x02 \x01(\bR\acanEdit\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"[\n" +
+	"\x16ShareRecipeBookRequest\x12&\n" +
+	"\x0fcontact_user_id\x18\x01 \x01(\tR\rcontactUserId\x12\x19\n" +
+	"\bcan_edit\x18\x02 \x01(\bR\acanEdit\"\x19\n" +
+	"\x17ShareRecipeBookResponse\"@\n" +
+	"\x18UnshareRecipeBookRequest\x12$\n" +
+	"\x0etarget_user_id\x18\x01 \x01(\tR\ftargetUserId\"\x1b\n" +
+	"\x19UnshareRecipeBookResponse\"\x1d\n" +
+	"\x1bListRecipeBookSharesRequest\"S\n" +
+	"\x1cListRecipeBookSharesResponse\x123\n" +
+	"\x06shares\x18\x01 \x03(\v2\x1b.recipes.v1.RecipeBookShareR\x06shares2\xcc\x05\n" +
 	"\x0eRecipesService\x12N\n" +
 	"\vListRecipes\x12\x1e.recipes.v1.ListRecipesRequest\x1a\x1f.recipes.v1.ListRecipesResponse\x12H\n" +
 	"\tGetRecipe\x12\x1c.recipes.v1.GetRecipeRequest\x1a\x1d.recipes.v1.GetRecipeResponse\x12Q\n" +
 	"\fCreateRecipe\x12\x1f.recipes.v1.CreateRecipeRequest\x1a .recipes.v1.CreateRecipeResponse\x12Q\n" +
 	"\fUpdateRecipe\x12\x1f.recipes.v1.UpdateRecipeRequest\x1a .recipes.v1.UpdateRecipeResponse\x12Q\n" +
-	"\fDeleteRecipe\x12\x1f.recipes.v1.DeleteRecipeRequest\x1a .recipes.v1.DeleteRecipeResponse\x12N\n" +
-	"\vShareRecipe\x12\x1e.recipes.v1.ShareRecipeRequest\x1a\x1f.recipes.v1.ShareRecipeResponse\x12T\n" +
-	"\rUnshareRecipe\x12 .recipes.v1.UnshareRecipeRequest\x1a!.recipes.v1.UnshareRecipeResponseB-Z+tools.xdoubleu.com/gen/recipes/v1;recipesv1b\x06proto3"
+	"\fDeleteRecipe\x12\x1f.recipes.v1.DeleteRecipeRequest\x1a .recipes.v1.DeleteRecipeResponse\x12Z\n" +
+	"\x0fShareRecipeBook\x12\".recipes.v1.ShareRecipeBookRequest\x1a#.recipes.v1.ShareRecipeBookResponse\x12`\n" +
+	"\x11UnshareRecipeBook\x12$.recipes.v1.UnshareRecipeBookRequest\x1a%.recipes.v1.UnshareRecipeBookResponse\x12i\n" +
+	"\x14ListRecipeBookShares\x12'.recipes.v1.ListRecipeBookSharesRequest\x1a(.recipes.v1.ListRecipeBookSharesResponseB-Z+tools.xdoubleu.com/gen/recipes/v1;recipesv1b\x06proto3"
 
 var (
 	file_recipes_v1_recipes_proto_rawDescOnce sync.Once
@@ -1138,25 +1279,28 @@ func file_recipes_v1_recipes_proto_rawDescGZIP() []byte {
 	return file_recipes_v1_recipes_proto_rawDescData
 }
 
-var file_recipes_v1_recipes_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_recipes_v1_recipes_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_recipes_v1_recipes_proto_goTypes = []any{
-	(*Ingredient)(nil),            // 0: recipes.v1.Ingredient
-	(*ScaledIngredient)(nil),      // 1: recipes.v1.ScaledIngredient
-	(*Recipe)(nil),                // 2: recipes.v1.Recipe
-	(*ListRecipesRequest)(nil),    // 3: recipes.v1.ListRecipesRequest
-	(*ListRecipesResponse)(nil),   // 4: recipes.v1.ListRecipesResponse
-	(*GetRecipeRequest)(nil),      // 5: recipes.v1.GetRecipeRequest
-	(*GetRecipeResponse)(nil),     // 6: recipes.v1.GetRecipeResponse
-	(*CreateRecipeRequest)(nil),   // 7: recipes.v1.CreateRecipeRequest
-	(*CreateRecipeResponse)(nil),  // 8: recipes.v1.CreateRecipeResponse
-	(*UpdateRecipeRequest)(nil),   // 9: recipes.v1.UpdateRecipeRequest
-	(*UpdateRecipeResponse)(nil),  // 10: recipes.v1.UpdateRecipeResponse
-	(*DeleteRecipeRequest)(nil),   // 11: recipes.v1.DeleteRecipeRequest
-	(*DeleteRecipeResponse)(nil),  // 12: recipes.v1.DeleteRecipeResponse
-	(*ShareRecipeRequest)(nil),    // 13: recipes.v1.ShareRecipeRequest
-	(*ShareRecipeResponse)(nil),   // 14: recipes.v1.ShareRecipeResponse
-	(*UnshareRecipeRequest)(nil),  // 15: recipes.v1.UnshareRecipeRequest
-	(*UnshareRecipeResponse)(nil), // 16: recipes.v1.UnshareRecipeResponse
+	(*Ingredient)(nil),                   // 0: recipes.v1.Ingredient
+	(*ScaledIngredient)(nil),             // 1: recipes.v1.ScaledIngredient
+	(*Recipe)(nil),                       // 2: recipes.v1.Recipe
+	(*ListRecipesRequest)(nil),           // 3: recipes.v1.ListRecipesRequest
+	(*ListRecipesResponse)(nil),          // 4: recipes.v1.ListRecipesResponse
+	(*GetRecipeRequest)(nil),             // 5: recipes.v1.GetRecipeRequest
+	(*GetRecipeResponse)(nil),            // 6: recipes.v1.GetRecipeResponse
+	(*CreateRecipeRequest)(nil),          // 7: recipes.v1.CreateRecipeRequest
+	(*CreateRecipeResponse)(nil),         // 8: recipes.v1.CreateRecipeResponse
+	(*UpdateRecipeRequest)(nil),          // 9: recipes.v1.UpdateRecipeRequest
+	(*UpdateRecipeResponse)(nil),         // 10: recipes.v1.UpdateRecipeResponse
+	(*DeleteRecipeRequest)(nil),          // 11: recipes.v1.DeleteRecipeRequest
+	(*DeleteRecipeResponse)(nil),         // 12: recipes.v1.DeleteRecipeResponse
+	(*RecipeBookShare)(nil),              // 13: recipes.v1.RecipeBookShare
+	(*ShareRecipeBookRequest)(nil),       // 14: recipes.v1.ShareRecipeBookRequest
+	(*ShareRecipeBookResponse)(nil),      // 15: recipes.v1.ShareRecipeBookResponse
+	(*UnshareRecipeBookRequest)(nil),     // 16: recipes.v1.UnshareRecipeBookRequest
+	(*UnshareRecipeBookResponse)(nil),    // 17: recipes.v1.UnshareRecipeBookResponse
+	(*ListRecipeBookSharesRequest)(nil),  // 18: recipes.v1.ListRecipeBookSharesRequest
+	(*ListRecipeBookSharesResponse)(nil), // 19: recipes.v1.ListRecipeBookSharesResponse
 }
 var file_recipes_v1_recipes_proto_depIdxs = []int32{
 	0,  // 0: recipes.v1.Recipe.ingredients:type_name -> recipes.v1.Ingredient
@@ -1164,25 +1308,28 @@ var file_recipes_v1_recipes_proto_depIdxs = []int32{
 	2,  // 2: recipes.v1.GetRecipeResponse.recipe:type_name -> recipes.v1.Recipe
 	1,  // 3: recipes.v1.GetRecipeResponse.scaled_ingredients:type_name -> recipes.v1.ScaledIngredient
 	2,  // 4: recipes.v1.CreateRecipeResponse.recipe:type_name -> recipes.v1.Recipe
-	3,  // 5: recipes.v1.RecipesService.ListRecipes:input_type -> recipes.v1.ListRecipesRequest
-	5,  // 6: recipes.v1.RecipesService.GetRecipe:input_type -> recipes.v1.GetRecipeRequest
-	7,  // 7: recipes.v1.RecipesService.CreateRecipe:input_type -> recipes.v1.CreateRecipeRequest
-	9,  // 8: recipes.v1.RecipesService.UpdateRecipe:input_type -> recipes.v1.UpdateRecipeRequest
-	11, // 9: recipes.v1.RecipesService.DeleteRecipe:input_type -> recipes.v1.DeleteRecipeRequest
-	13, // 10: recipes.v1.RecipesService.ShareRecipe:input_type -> recipes.v1.ShareRecipeRequest
-	15, // 11: recipes.v1.RecipesService.UnshareRecipe:input_type -> recipes.v1.UnshareRecipeRequest
-	4,  // 12: recipes.v1.RecipesService.ListRecipes:output_type -> recipes.v1.ListRecipesResponse
-	6,  // 13: recipes.v1.RecipesService.GetRecipe:output_type -> recipes.v1.GetRecipeResponse
-	8,  // 14: recipes.v1.RecipesService.CreateRecipe:output_type -> recipes.v1.CreateRecipeResponse
-	10, // 15: recipes.v1.RecipesService.UpdateRecipe:output_type -> recipes.v1.UpdateRecipeResponse
-	12, // 16: recipes.v1.RecipesService.DeleteRecipe:output_type -> recipes.v1.DeleteRecipeResponse
-	14, // 17: recipes.v1.RecipesService.ShareRecipe:output_type -> recipes.v1.ShareRecipeResponse
-	16, // 18: recipes.v1.RecipesService.UnshareRecipe:output_type -> recipes.v1.UnshareRecipeResponse
-	12, // [12:19] is the sub-list for method output_type
-	5,  // [5:12] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	13, // 5: recipes.v1.ListRecipeBookSharesResponse.shares:type_name -> recipes.v1.RecipeBookShare
+	3,  // 6: recipes.v1.RecipesService.ListRecipes:input_type -> recipes.v1.ListRecipesRequest
+	5,  // 7: recipes.v1.RecipesService.GetRecipe:input_type -> recipes.v1.GetRecipeRequest
+	7,  // 8: recipes.v1.RecipesService.CreateRecipe:input_type -> recipes.v1.CreateRecipeRequest
+	9,  // 9: recipes.v1.RecipesService.UpdateRecipe:input_type -> recipes.v1.UpdateRecipeRequest
+	11, // 10: recipes.v1.RecipesService.DeleteRecipe:input_type -> recipes.v1.DeleteRecipeRequest
+	14, // 11: recipes.v1.RecipesService.ShareRecipeBook:input_type -> recipes.v1.ShareRecipeBookRequest
+	16, // 12: recipes.v1.RecipesService.UnshareRecipeBook:input_type -> recipes.v1.UnshareRecipeBookRequest
+	18, // 13: recipes.v1.RecipesService.ListRecipeBookShares:input_type -> recipes.v1.ListRecipeBookSharesRequest
+	4,  // 14: recipes.v1.RecipesService.ListRecipes:output_type -> recipes.v1.ListRecipesResponse
+	6,  // 15: recipes.v1.RecipesService.GetRecipe:output_type -> recipes.v1.GetRecipeResponse
+	8,  // 16: recipes.v1.RecipesService.CreateRecipe:output_type -> recipes.v1.CreateRecipeResponse
+	10, // 17: recipes.v1.RecipesService.UpdateRecipe:output_type -> recipes.v1.UpdateRecipeResponse
+	12, // 18: recipes.v1.RecipesService.DeleteRecipe:output_type -> recipes.v1.DeleteRecipeResponse
+	15, // 19: recipes.v1.RecipesService.ShareRecipeBook:output_type -> recipes.v1.ShareRecipeBookResponse
+	17, // 20: recipes.v1.RecipesService.UnshareRecipeBook:output_type -> recipes.v1.UnshareRecipeBookResponse
+	19, // 21: recipes.v1.RecipesService.ListRecipeBookShares:output_type -> recipes.v1.ListRecipeBookSharesResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_recipes_v1_recipes_proto_init() }
@@ -1200,7 +1347,7 @@ func file_recipes_v1_recipes_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_recipes_v1_recipes_proto_rawDesc), len(file_recipes_v1_recipes_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

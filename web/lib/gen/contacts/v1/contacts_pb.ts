@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file contacts/v1/contacts.proto.
  */
 export const file_contacts_v1_contacts: GenFile = /*@__PURE__*/
-  fileDesc("Chpjb250YWN0cy92MS9jb250YWN0cy5wcm90bxILY29udGFjdHMudjEiqwEKB0NvbnRhY3QSCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCRIXCg9jb250YWN0X3VzZXJfaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRISCgpjcmVhdGVkX2F0GAYgASgJEhMKC293bmVyX2VtYWlsGAcgASgJEhUKDWNvbnRhY3RfZW1haWwYCCABKAkiFQoTTGlzdENvbnRhY3RzUmVxdWVzdCKNAQoUTGlzdENvbnRhY3RzUmVzcG9uc2USJgoIY29udGFjdHMYASADKAsyFC5jb250YWN0cy52MS5Db250YWN0EiUKB3BlbmRpbmcYAiADKAsyFC5jb250YWN0cy52MS5Db250YWN0EiYKCGluY29taW5nGAMgAygLMhQuY29udGFjdHMudjEuQ29udGFjdCI7ChRDcmVhdGVDb250YWN0UmVxdWVzdBINCgVlbWFpbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkiFwoVQ3JlYXRlQ29udGFjdFJlc3BvbnNlIjgKFEFjY2VwdENvbnRhY3RSZXF1ZXN0EgoKAmlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCSIXChVBY2NlcHRDb250YWN0UmVzcG9uc2UiIwoVRGVjbGluZUNvbnRhY3RSZXF1ZXN0EgoKAmlkGAEgASgJIhgKFkRlY2xpbmVDb250YWN0UmVzcG9uc2UiIgoURGVsZXRlQ29udGFjdFJlcXVlc3QSCgoCaWQYASABKAkiFwoVRGVsZXRlQ29udGFjdFJlc3BvbnNlMskDCg9Db250YWN0c1NlcnZpY2USUwoMTGlzdENvbnRhY3RzEiAuY29udGFjdHMudjEuTGlzdENvbnRhY3RzUmVxdWVzdBohLmNvbnRhY3RzLnYxLkxpc3RDb250YWN0c1Jlc3BvbnNlElYKDUNyZWF0ZUNvbnRhY3QSIS5jb250YWN0cy52MS5DcmVhdGVDb250YWN0UmVxdWVzdBoiLmNvbnRhY3RzLnYxLkNyZWF0ZUNvbnRhY3RSZXNwb25zZRJWCg1BY2NlcHRDb250YWN0EiEuY29udGFjdHMudjEuQWNjZXB0Q29udGFjdFJlcXVlc3QaIi5jb250YWN0cy52MS5BY2NlcHRDb250YWN0UmVzcG9uc2USWQoORGVjbGluZUNvbnRhY3QSIi5jb250YWN0cy52MS5EZWNsaW5lQ29udGFjdFJlcXVlc3QaIy5jb250YWN0cy52MS5EZWNsaW5lQ29udGFjdFJlc3BvbnNlElYKDURlbGV0ZUNvbnRhY3QSIS5jb250YWN0cy52MS5EZWxldGVDb250YWN0UmVxdWVzdBoiLmNvbnRhY3RzLnYxLkRlbGV0ZUNvbnRhY3RSZXNwb25zZUIvWi10b29scy54ZG91YmxldS5jb20vZ2VuL2NvbnRhY3RzL3YxO2NvbnRhY3RzdjFiBnByb3RvMw");
+  fileDesc("Chpjb250YWN0cy92MS9jb250YWN0cy5wcm90bxILY29udGFjdHMudjEiqwEKB0NvbnRhY3QSCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCRIXCg9jb250YWN0X3VzZXJfaWQYAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRISCgpjcmVhdGVkX2F0GAYgASgJEhMKC293bmVyX2VtYWlsGAcgASgJEhUKDWNvbnRhY3RfZW1haWwYCCABKAkiFQoTTGlzdENvbnRhY3RzUmVxdWVzdCKNAQoUTGlzdENvbnRhY3RzUmVzcG9uc2USJgoIY29udGFjdHMYASADKAsyFC5jb250YWN0cy52MS5Db250YWN0EiUKB3BlbmRpbmcYAiADKAsyFC5jb250YWN0cy52MS5Db250YWN0EiYKCGluY29taW5nGAMgAygLMhQuY29udGFjdHMudjEuQ29udGFjdCI7ChRDcmVhdGVDb250YWN0UmVxdWVzdBINCgVlbWFpbBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkiFwoVQ3JlYXRlQ29udGFjdFJlc3BvbnNlIjgKFEFjY2VwdENvbnRhY3RSZXF1ZXN0EgoKAmlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCSIXChVBY2NlcHRDb250YWN0UmVzcG9uc2UiIwoVRGVjbGluZUNvbnRhY3RSZXF1ZXN0EgoKAmlkGAEgASgJIhgKFkRlY2xpbmVDb250YWN0UmVzcG9uc2UiOAoUVXBkYXRlQ29udGFjdFJlcXVlc3QSCgoCaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJIhcKFVVwZGF0ZUNvbnRhY3RSZXNwb25zZSIiChREZWxldGVDb250YWN0UmVxdWVzdBIKCgJpZBgBIAEoCSIXChVEZWxldGVDb250YWN0UmVzcG9uc2UyoQQKD0NvbnRhY3RzU2VydmljZRJTCgxMaXN0Q29udGFjdHMSIC5jb250YWN0cy52MS5MaXN0Q29udGFjdHNSZXF1ZXN0GiEuY29udGFjdHMudjEuTGlzdENvbnRhY3RzUmVzcG9uc2USVgoNQ3JlYXRlQ29udGFjdBIhLmNvbnRhY3RzLnYxLkNyZWF0ZUNvbnRhY3RSZXF1ZXN0GiIuY29udGFjdHMudjEuQ3JlYXRlQ29udGFjdFJlc3BvbnNlElYKDUFjY2VwdENvbnRhY3QSIS5jb250YWN0cy52MS5BY2NlcHRDb250YWN0UmVxdWVzdBoiLmNvbnRhY3RzLnYxLkFjY2VwdENvbnRhY3RSZXNwb25zZRJZCg5EZWNsaW5lQ29udGFjdBIiLmNvbnRhY3RzLnYxLkRlY2xpbmVDb250YWN0UmVxdWVzdBojLmNvbnRhY3RzLnYxLkRlY2xpbmVDb250YWN0UmVzcG9uc2USVgoNVXBkYXRlQ29udGFjdBIhLmNvbnRhY3RzLnYxLlVwZGF0ZUNvbnRhY3RSZXF1ZXN0GiIuY29udGFjdHMudjEuVXBkYXRlQ29udGFjdFJlc3BvbnNlElYKDURlbGV0ZUNvbnRhY3QSIS5jb250YWN0cy52MS5EZWxldGVDb250YWN0UmVxdWVzdBoiLmNvbnRhY3RzLnYxLkRlbGV0ZUNvbnRhY3RSZXNwb25zZUIvWi10b29scy54ZG91YmxldS5jb20vZ2VuL2NvbnRhY3RzL3YxO2NvbnRhY3RzdjFiBnByb3RvMw");
 
 /**
  * @generated from message contacts.v1.Contact
@@ -205,6 +205,41 @@ export const DeclineContactResponseSchema: GenMessage<DeclineContactResponse> = 
   messageDesc(file_contacts_v1_contacts, 8);
 
 /**
+ * @generated from message contacts.v1.UpdateContactRequest
+ */
+export type UpdateContactRequest = Message<"contacts.v1.UpdateContactRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string display_name = 2;
+   */
+  displayName: string;
+};
+
+/**
+ * Describes the message contacts.v1.UpdateContactRequest.
+ * Use `create(UpdateContactRequestSchema)` to create a new message.
+ */
+export const UpdateContactRequestSchema: GenMessage<UpdateContactRequest> = /*@__PURE__*/
+  messageDesc(file_contacts_v1_contacts, 9);
+
+/**
+ * @generated from message contacts.v1.UpdateContactResponse
+ */
+export type UpdateContactResponse = Message<"contacts.v1.UpdateContactResponse"> & {
+};
+
+/**
+ * Describes the message contacts.v1.UpdateContactResponse.
+ * Use `create(UpdateContactResponseSchema)` to create a new message.
+ */
+export const UpdateContactResponseSchema: GenMessage<UpdateContactResponse> = /*@__PURE__*/
+  messageDesc(file_contacts_v1_contacts, 10);
+
+/**
  * @generated from message contacts.v1.DeleteContactRequest
  */
 export type DeleteContactRequest = Message<"contacts.v1.DeleteContactRequest"> & {
@@ -219,7 +254,7 @@ export type DeleteContactRequest = Message<"contacts.v1.DeleteContactRequest"> &
  * Use `create(DeleteContactRequestSchema)` to create a new message.
  */
 export const DeleteContactRequestSchema: GenMessage<DeleteContactRequest> = /*@__PURE__*/
-  messageDesc(file_contacts_v1_contacts, 9);
+  messageDesc(file_contacts_v1_contacts, 11);
 
 /**
  * @generated from message contacts.v1.DeleteContactResponse
@@ -232,7 +267,7 @@ export type DeleteContactResponse = Message<"contacts.v1.DeleteContactResponse">
  * Use `create(DeleteContactResponseSchema)` to create a new message.
  */
 export const DeleteContactResponseSchema: GenMessage<DeleteContactResponse> = /*@__PURE__*/
-  messageDesc(file_contacts_v1_contacts, 10);
+  messageDesc(file_contacts_v1_contacts, 12);
 
 /**
  * @generated from service contacts.v1.ContactsService
@@ -269,6 +304,14 @@ export const ContactsService: GenService<{
     methodKind: "unary";
     input: typeof DeclineContactRequestSchema;
     output: typeof DeclineContactResponseSchema;
+  },
+  /**
+   * @generated from rpc contacts.v1.ContactsService.UpdateContact
+   */
+  updateContact: {
+    methodKind: "unary";
+    input: typeof UpdateContactRequestSchema;
+    output: typeof UpdateContactResponseSchema;
   },
   /**
    * @generated from rpc contacts.v1.ContactsService.DeleteContact

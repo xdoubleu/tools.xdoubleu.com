@@ -45,6 +45,9 @@ const (
 	// ContactsServiceDeclineContactProcedure is the fully-qualified name of the ContactsService's
 	// DeclineContact RPC.
 	ContactsServiceDeclineContactProcedure = "/contacts.v1.ContactsService/DeclineContact"
+	// ContactsServiceUpdateContactProcedure is the fully-qualified name of the ContactsService's
+	// UpdateContact RPC.
+	ContactsServiceUpdateContactProcedure = "/contacts.v1.ContactsService/UpdateContact"
 	// ContactsServiceDeleteContactProcedure is the fully-qualified name of the ContactsService's
 	// DeleteContact RPC.
 	ContactsServiceDeleteContactProcedure = "/contacts.v1.ContactsService/DeleteContact"
@@ -56,6 +59,7 @@ type ContactsServiceClient interface {
 	CreateContact(context.Context, *connect.Request[v1.CreateContactRequest]) (*connect.Response[v1.CreateContactResponse], error)
 	AcceptContact(context.Context, *connect.Request[v1.AcceptContactRequest]) (*connect.Response[v1.AcceptContactResponse], error)
 	DeclineContact(context.Context, *connect.Request[v1.DeclineContactRequest]) (*connect.Response[v1.DeclineContactResponse], error)
+	UpdateContact(context.Context, *connect.Request[v1.UpdateContactRequest]) (*connect.Response[v1.UpdateContactResponse], error)
 	DeleteContact(context.Context, *connect.Request[v1.DeleteContactRequest]) (*connect.Response[v1.DeleteContactResponse], error)
 }
 
@@ -94,6 +98,12 @@ func NewContactsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(contactsServiceMethods.ByName("DeclineContact")),
 			connect.WithClientOptions(opts...),
 		),
+		updateContact: connect.NewClient[v1.UpdateContactRequest, v1.UpdateContactResponse](
+			httpClient,
+			baseURL+ContactsServiceUpdateContactProcedure,
+			connect.WithSchema(contactsServiceMethods.ByName("UpdateContact")),
+			connect.WithClientOptions(opts...),
+		),
 		deleteContact: connect.NewClient[v1.DeleteContactRequest, v1.DeleteContactResponse](
 			httpClient,
 			baseURL+ContactsServiceDeleteContactProcedure,
@@ -109,6 +119,7 @@ type contactsServiceClient struct {
 	createContact  *connect.Client[v1.CreateContactRequest, v1.CreateContactResponse]
 	acceptContact  *connect.Client[v1.AcceptContactRequest, v1.AcceptContactResponse]
 	declineContact *connect.Client[v1.DeclineContactRequest, v1.DeclineContactResponse]
+	updateContact  *connect.Client[v1.UpdateContactRequest, v1.UpdateContactResponse]
 	deleteContact  *connect.Client[v1.DeleteContactRequest, v1.DeleteContactResponse]
 }
 
@@ -132,6 +143,11 @@ func (c *contactsServiceClient) DeclineContact(ctx context.Context, req *connect
 	return c.declineContact.CallUnary(ctx, req)
 }
 
+// UpdateContact calls contacts.v1.ContactsService.UpdateContact.
+func (c *contactsServiceClient) UpdateContact(ctx context.Context, req *connect.Request[v1.UpdateContactRequest]) (*connect.Response[v1.UpdateContactResponse], error) {
+	return c.updateContact.CallUnary(ctx, req)
+}
+
 // DeleteContact calls contacts.v1.ContactsService.DeleteContact.
 func (c *contactsServiceClient) DeleteContact(ctx context.Context, req *connect.Request[v1.DeleteContactRequest]) (*connect.Response[v1.DeleteContactResponse], error) {
 	return c.deleteContact.CallUnary(ctx, req)
@@ -143,6 +159,7 @@ type ContactsServiceHandler interface {
 	CreateContact(context.Context, *connect.Request[v1.CreateContactRequest]) (*connect.Response[v1.CreateContactResponse], error)
 	AcceptContact(context.Context, *connect.Request[v1.AcceptContactRequest]) (*connect.Response[v1.AcceptContactResponse], error)
 	DeclineContact(context.Context, *connect.Request[v1.DeclineContactRequest]) (*connect.Response[v1.DeclineContactResponse], error)
+	UpdateContact(context.Context, *connect.Request[v1.UpdateContactRequest]) (*connect.Response[v1.UpdateContactResponse], error)
 	DeleteContact(context.Context, *connect.Request[v1.DeleteContactRequest]) (*connect.Response[v1.DeleteContactResponse], error)
 }
 
@@ -177,6 +194,12 @@ func NewContactsServiceHandler(svc ContactsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(contactsServiceMethods.ByName("DeclineContact")),
 		connect.WithHandlerOptions(opts...),
 	)
+	contactsServiceUpdateContactHandler := connect.NewUnaryHandler(
+		ContactsServiceUpdateContactProcedure,
+		svc.UpdateContact,
+		connect.WithSchema(contactsServiceMethods.ByName("UpdateContact")),
+		connect.WithHandlerOptions(opts...),
+	)
 	contactsServiceDeleteContactHandler := connect.NewUnaryHandler(
 		ContactsServiceDeleteContactProcedure,
 		svc.DeleteContact,
@@ -193,6 +216,8 @@ func NewContactsServiceHandler(svc ContactsServiceHandler, opts ...connect.Handl
 			contactsServiceAcceptContactHandler.ServeHTTP(w, r)
 		case ContactsServiceDeclineContactProcedure:
 			contactsServiceDeclineContactHandler.ServeHTTP(w, r)
+		case ContactsServiceUpdateContactProcedure:
+			contactsServiceUpdateContactHandler.ServeHTTP(w, r)
 		case ContactsServiceDeleteContactProcedure:
 			contactsServiceDeleteContactHandler.ServeHTTP(w, r)
 		default:
@@ -218,6 +243,10 @@ func (UnimplementedContactsServiceHandler) AcceptContact(context.Context, *conne
 
 func (UnimplementedContactsServiceHandler) DeclineContact(context.Context, *connect.Request[v1.DeclineContactRequest]) (*connect.Response[v1.DeclineContactResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("contacts.v1.ContactsService.DeclineContact is not implemented"))
+}
+
+func (UnimplementedContactsServiceHandler) UpdateContact(context.Context, *connect.Request[v1.UpdateContactRequest]) (*connect.Response[v1.UpdateContactResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("contacts.v1.ContactsService.UpdateContact is not implemented"))
 }
 
 func (UnimplementedContactsServiceHandler) DeleteContact(context.Context, *connect.Request[v1.DeleteContactRequest]) (*connect.Response[v1.DeleteContactResponse], error) {

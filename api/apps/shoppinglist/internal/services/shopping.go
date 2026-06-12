@@ -85,12 +85,14 @@ type shoppingRepo interface {
 type Services struct {
 	Auth     auth.Service
 	Shopping *ShoppingService
+	Sharing  *SharingService
 }
 
 func New(repo *repositories.ShoppingRepository, authService auth.Service) *Services {
 	return &Services{
 		Auth:     authService,
 		Shopping: &ShoppingService{repo: repo},
+		Sharing:  &SharingService{repo: repo},
 	}
 }
 

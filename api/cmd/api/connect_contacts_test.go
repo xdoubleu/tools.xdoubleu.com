@@ -142,6 +142,50 @@ func TestDeleteContact_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUpdateContact_InvalidUUID(t *testing.T) {
+	client := contactsClient(t)
+	req := connect.NewRequest(&contactsv1.UpdateContactRequest{
+		Id: "not-a-uuid", DisplayName: "X",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.UpdateContact(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestUpdateContact_Success(t *testing.T) {
+	contactID := insertPendingContact(t)
+	ctx := context.Background()
+	id := mustParseUUID(t, contactID)
+	require.NoError(t, testApp.contacts.Accept(ctx, id, testUserID, "Sender"))
+
+	accepted, err := testApp.contacts.List(ctx, testUserID)
+	require.NoError(t, err)
+	require.NotEmpty(t, accepted)
+	acceptedID := accepted[0].ID.String()
+
+	client := contactsClient(t)
+	req := connect.NewRequest(&contactsv1.UpdateContactRequest{
+		Id: acceptedID, DisplayName: "Renamed Friend",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err = client.UpdateContact(context.Background(), req)
+	require.NoError(t, err)
+
+	updated, err := testApp.contacts.List(ctx, testUserID)
+	require.NoError(t, err)
+	var found bool
+	for _, c := range updated {
+		if c.ID.String() == acceptedID {
+			found = true
+			assert.Equal(t, "Renamed Friend", c.DisplayName)
+		}
+	}
+	assert.True(t, found)
+}
+
 func TestListContacts_WithIncoming(t *testing.T) {
 	_ = insertPendingContact(t)
 

@@ -21,6 +21,7 @@ import {
   useCreateContact,
   useAcceptContact,
   useDeclineContact,
+  useUpdateContact,
   useDeleteContact
 } from '@/hooks/useContacts'
 
@@ -101,6 +102,20 @@ describe('useDeclineContact', () => {
     const { result } = renderHook(() => useDeclineContact())
     result.current('contact-2')
     expect(mockDeclineContact).toHaveBeenCalledWith({ id: 'contact-2' })
+  })
+})
+
+describe('useUpdateContact', () => {
+  it('returns a function that calls client.updateContact', () => {
+    const mockUpdateContact = jest.fn().mockResolvedValue({})
+    mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
+      updateContact: mockUpdateContact
+    })
+
+    const { result } = renderHook(() => useUpdateContact())
+    result.current('contact-9', 'New Name')
+    expect(mockUpdateContact).toHaveBeenCalledWith({ id: 'contact-9', displayName: 'New Name' })
   })
 })
 

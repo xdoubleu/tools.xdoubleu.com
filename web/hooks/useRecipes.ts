@@ -5,17 +5,17 @@ import {
   RecipesService,
   CreateRecipeRequestSchema,
   UpdateRecipeRequestSchema,
-  DeleteRecipeRequestSchema,
-  ShareRecipeRequestSchema,
-  UnshareRecipeRequestSchema
+  DeleteRecipeRequestSchema
 } from '@/lib/gen/recipes/v1/recipes_pb'
-import type { ListRecipesResponse, GetRecipeResponse } from '@/lib/gen/recipes/v1/recipes_pb'
+import type {
+  ListRecipesResponse,
+  GetRecipeResponse,
+  ListRecipeBookSharesResponse
+} from '@/lib/gen/recipes/v1/recipes_pb'
 
 export type CreateRecipeInput = MessageInitShape<typeof CreateRecipeRequestSchema>
 export type UpdateRecipeInput = MessageInitShape<typeof UpdateRecipeRequestSchema>
 export type DeleteRecipeInput = MessageInitShape<typeof DeleteRecipeRequestSchema>
-export type ShareRecipeInput = MessageInitShape<typeof ShareRecipeRequestSchema>
-export type UnshareRecipeInput = MessageInitShape<typeof UnshareRecipeRequestSchema>
 
 export function useRecipes() {
   const client = createServiceClient(RecipesService)
@@ -49,12 +49,20 @@ export function useDeleteRecipe() {
   return (req: DeleteRecipeInput) => client.deleteRecipe(req)
 }
 
-export function useShareRecipe() {
+export function useRecipeBookShares() {
   const client = createServiceClient(RecipesService)
-  return (req: ShareRecipeInput) => client.shareRecipe(req)
+  return useSWR<ListRecipeBookSharesResponse, Error>('/recipes/book-shares', () =>
+    client.listRecipeBookShares({})
+  )
 }
 
-export function useUnshareRecipe() {
+export function useShareRecipeBook() {
   const client = createServiceClient(RecipesService)
-  return (req: UnshareRecipeInput) => client.unshareRecipe(req)
+  return (contactUserId: string, canEdit: boolean) =>
+    client.shareRecipeBook({ contactUserId, canEdit })
+}
+
+export function useUnshareRecipeBook() {
+  const client = createServiceClient(RecipesService)
+  return (targetUserId: string) => client.unshareRecipeBook({ targetUserId })
 }

@@ -40,6 +40,12 @@ const ALL_APPS: AppLink[] = [
   },
   { name: 'settings', label: 'Settings', href: '/settings', description: 'User preferences' },
   { name: 'contacts', label: 'Contacts', href: '/contacts', description: 'Manage contacts' },
+  {
+    name: 'sharing',
+    label: 'Sharing',
+    href: '/sharing',
+    description: 'Manage what you share'
+  },
   { name: 'admin', label: 'Admin', href: '/admin', description: 'Administration' }
 ]
 
@@ -49,11 +55,11 @@ const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Productivity', names: ['backlog', 'todos'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty', 'icsproxy'] },
-  { title: 'Account', names: ['settings', 'contacts'] },
+  { title: 'Account', names: ['settings', 'contacts', 'sharing'] },
   { title: 'Admin', names: ['admin'] }
 ]
 
-const ALWAYS_VISIBLE = new Set(['settings', 'contacts'])
+const ALWAYS_VISIBLE = new Set(['settings', 'contacts', 'sharing'])
 const ADMIN_ONLY = new Set(['admin'])
 
 export default function HomeClient() {

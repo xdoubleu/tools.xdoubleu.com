@@ -239,7 +239,7 @@ func TestDeleteRecipe_Success(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
 
-func TestShareRecipe_Success(t *testing.T) {
+func TestShareRecipeBook_Success(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
 		context.Background(),
@@ -248,26 +248,31 @@ func TestShareRecipe_Success(t *testing.T) {
 		},
 	)
 
-	createResp, err := client.CreateRecipe(
+	_, err := client.ShareRecipeBook(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
-			Name: "Share Me", Steps: []string{"Share"}, BaseServings: 2,
+		connect.NewRequest(&recipesv1.ShareRecipeBookRequest{
+			ContactUserId: "share-success-target",
+			CanEdit:       true,
 		}),
 	)
 	require.NoError(t, err)
 
-	shareResp, err := client.ShareRecipe(
+	shares, err := client.ListRecipeBookShares(
 		ctx,
-		connect.NewRequest(&recipesv1.ShareRecipeRequest{
-			Id:            createResp.Msg.Recipe.Id,
-			ContactUserId: "other-user-id",
-		}),
+		connect.NewRequest(&recipesv1.ListRecipeBookSharesRequest{}),
 	)
 	require.NoError(t, err)
-	_ = shareResp
+	var found *recipesv1.RecipeBookShare
+	for _, s := range shares.Msg.Shares {
+		if s.UserId == "share-success-target" {
+			found = s
+		}
+	}
+	require.NotNil(t, found)
+	assert.True(t, found.CanEdit)
 }
 
-func TestUnshareRecipe_RequiresTargetUserID(t *testing.T) {
+func TestShareRecipeBook_RejectsSelf(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
 		context.Background(),
@@ -276,25 +281,15 @@ func TestUnshareRecipe_RequiresTargetUserID(t *testing.T) {
 		},
 	)
 
-	createResp, err := client.CreateRecipe(
+	_, err := client.ShareRecipeBook(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
-			Name: "Unshare Me", Steps: []string{"Unshare"}, BaseServings: 2,
-		}),
-	)
-	require.NoError(t, err)
-
-	_, err = client.UnshareRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.UnshareRecipeRequest{
-			Id: createResp.Msg.Recipe.Id, TargetUserId: "",
-		}),
+		connect.NewRequest(&recipesv1.ShareRecipeBookRequest{ContactUserId: userID}),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
 
-func TestUnshareRecipe_Success(t *testing.T) {
+func TestGetRecipe_NoBookAccessDenied(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
 		context.Background(),
@@ -303,30 +298,88 @@ func TestUnshareRecipe_Success(t *testing.T) {
 		},
 	)
 
-	createResp, err := client.CreateRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
-			Name: "Unshare Success", Steps: []string{"step"}, BaseServings: 2,
-		}),
-	)
-	require.NoError(t, err)
-	recipeID := createResp.Msg.Recipe.Id
-
-	_, err = client.ShareRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.ShareRecipeRequest{
-			Id: recipeID, ContactUserId: "other-user-id",
-		}),
-	)
+	// A recipe owned by someone else with no recipe-book grant is inaccessible.
+	var recipeID string
+	err := testDB.QueryRow(context.Background(), `
+		INSERT INTO recipes.recipes (user_id, name, instructions, base_servings)
+		VALUES ('no-grant-owner', 'Hidden Dish', 'mix', 2)
+		RETURNING id::text`,
+	).Scan(&recipeID)
 	require.NoError(t, err)
 
-	_, err = client.UnshareRecipe(
+	_, err = client.GetRecipe(
+		ctx, connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+	)
+	require.Error(t, err)
+}
+
+func TestShareRecipeBook_RequiresContact(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.ShareRecipeBook(
 		ctx,
-		connect.NewRequest(&recipesv1.UnshareRecipeRequest{
-			Id: recipeID, TargetUserId: "other-user-id",
+		connect.NewRequest(&recipesv1.ShareRecipeBookRequest{ContactUserId: ""}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
+func TestUnshareRecipeBook_RequiresTargetUserID(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UnshareRecipeBook(
+		ctx,
+		connect.NewRequest(&recipesv1.UnshareRecipeBookRequest{TargetUserId: ""}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
+func TestUnshareRecipeBook_Success(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.ShareRecipeBook(
+		ctx,
+		connect.NewRequest(&recipesv1.ShareRecipeBookRequest{
+			ContactUserId: "unshare-target",
 		}),
 	)
 	require.NoError(t, err)
+
+	_, err = client.UnshareRecipeBook(
+		ctx,
+		connect.NewRequest(&recipesv1.UnshareRecipeBookRequest{
+			TargetUserId: "unshare-target",
+		}),
+	)
+	require.NoError(t, err)
+
+	shares, err := client.ListRecipeBookShares(
+		ctx,
+		connect.NewRequest(&recipesv1.ListRecipeBookSharesRequest{}),
+	)
+	require.NoError(t, err)
+	for _, s := range shares.Msg.Shares {
+		assert.NotEqual(t, "unshare-target", s.UserId)
+	}
 }
 
 func TestCreateRecipe_WithBatchServings(t *testing.T) {
@@ -476,7 +529,11 @@ func TestDeleteRecipe_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
 
-func TestGetRecipe_AfterSharing(t *testing.T) {
+// TestRecipeBookShare_GrantsAccess sets up a recipe owned by a different user
+// and a recipe-book grant to userID directly in the DB (the mock auth always
+// authenticates the server as userID, so the recipient side must be staged in
+// the database), then exercises the access paths through the handler as userID.
+func TestRecipeBookShare_GrantsAccess(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
 		context.Background(),
@@ -485,29 +542,95 @@ func TestGetRecipe_AfterSharing(t *testing.T) {
 		},
 	)
 
-	createResp, err := client.CreateRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
-			Name: "Shared Recipe", Steps: []string{"step"}, BaseServings: 2,
+	const otherOwner = "book-owner-2"
+	var recipeID string
+	err := testDB.QueryRow(context.Background(), `
+		INSERT INTO recipes.recipes (user_id, name, instructions, base_servings)
+		VALUES ($1, 'Other Owner Dish', 'mix', 2)
+		RETURNING id::text`,
+		otherOwner,
+	).Scan(&recipeID)
+	require.NoError(t, err)
+
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO recipes.recipebook_access (owner_user_id, user_id, can_edit)
+		VALUES ($1, $2, TRUE)`,
+		otherOwner, userID,
+	)
+	require.NoError(t, err)
+
+	// ListRecipes surfaces the shared owner's recipe.
+	listResp, err := client.ListRecipes(
+		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{}),
+	)
+	require.NoError(t, err)
+	var inList bool
+	for _, r := range listResp.Msg.Recipes {
+		if r.Id == recipeID {
+			inList = true
+		}
+	}
+	assert.True(t, inList, "shared recipe should appear in the recipient's list")
+
+	// GetRecipe grants access with edit rights but not ownership.
+	getResp, err := client.GetRecipe(
+		ctx, connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+	)
+	require.NoError(t, err)
+	assert.False(t, getResp.Msg.IsOwner)
+	assert.True(t, getResp.Msg.CanEdit)
+
+	// An edit-sharer may update the recipe; ownership stays with the creator.
+	_, err = client.UpdateRecipe(
+		ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+			Id: recipeID, Name: "Edited By Sharer",
+			Steps: []string{"new"}, BaseServings: 3,
 		}),
 	)
 	require.NoError(t, err)
-	recipeID := createResp.Msg.Recipe.Id
+}
 
-	_, err = client.ShareRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.ShareRecipeRequest{
-			Id: recipeID, ContactUserId: "other-user-id",
+// TestRecipeBookShare_ViewOnlyCannotEdit stages a view-only grant and confirms
+// the recipient can read but not update the recipe.
+func TestRecipeBookShare_ViewOnlyCannotEdit(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	const otherOwner = "book-owner-3"
+	var recipeID string
+	err := testDB.QueryRow(context.Background(), `
+		INSERT INTO recipes.recipes (user_id, name, instructions, base_servings)
+		VALUES ($1, 'View Only Dish', 'mix', 2)
+		RETURNING id::text`,
+		otherOwner,
+	).Scan(&recipeID)
+	require.NoError(t, err)
+
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO recipes.recipebook_access (owner_user_id, user_id, can_edit)
+		VALUES ($1, $2, FALSE)`,
+		otherOwner, userID,
+	)
+	require.NoError(t, err)
+
+	getResp, err := client.GetRecipe(
+		ctx, connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+	)
+	require.NoError(t, err)
+	assert.False(t, getResp.Msg.CanEdit)
+
+	_, err = client.UpdateRecipe(
+		ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+			Id: recipeID, Name: "Should Fail",
+			Steps: []string{"x"}, BaseServings: 2,
 		}),
 	)
-	require.NoError(t, err)
-
-	resp, err := client.GetRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
-	)
-	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Recipe.SharedWith)
+	require.Error(t, err)
 }
 
 func TestUpdateRecipe_NotFound(t *testing.T) {
@@ -575,42 +698,6 @@ func TestDeleteRecipe_InvalidID(t *testing.T) {
 	_, err := client.DeleteRecipe(
 		ctx,
 		connect.NewRequest(&recipesv1.DeleteRecipeRequest{Id: "not-a-uuid"}),
-	)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
-}
-
-func TestShareRecipe_InvalidID(t *testing.T) {
-	client := setupRecipesClient(getRoutes())
-	ctx := contextWithUser(
-		context.Background(),
-		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
-			ID: userID,
-		},
-	)
-	_, err := client.ShareRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.ShareRecipeRequest{
-			Id: "not-a-uuid", ContactUserId: "someone",
-		}),
-	)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
-}
-
-func TestUnshareRecipe_InvalidID(t *testing.T) {
-	client := setupRecipesClient(getRoutes())
-	ctx := contextWithUser(
-		context.Background(),
-		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
-			ID: userID,
-		},
-	)
-	_, err := client.UnshareRecipe(
-		ctx,
-		connect.NewRequest(&recipesv1.UnshareRecipeRequest{
-			Id: "not-a-uuid", TargetUserId: "someone",
-		}),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())

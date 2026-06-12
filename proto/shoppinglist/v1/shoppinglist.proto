@@ -11,17 +11,26 @@ message ShoppingItem {
   string group_name  = 6;
 }
 
-message GetCustomListRequest  {}
+// owner_user_id, present on the data RPCs below, selects whose list to act on.
+// Empty means the caller's own list. A non-empty value must reference a list
+// the caller has been granted access to (see ShareShoppingList); writes also
+// require can_edit on that grant.
+
+message GetCustomListRequest  { string owner_user_id = 1; }
 message GetCustomListResponse { repeated ShoppingItem items = 1; }
 
 message AddShoppingItemRequest {
   string name   = 1;
   string amount = 2;
   string unit   = 3;
+  string owner_user_id = 4;
 }
 message AddShoppingItemResponse { ShoppingItem item = 1; }
 
-message DeleteShoppingItemRequest  { string item_id = 1; }
+message DeleteShoppingItemRequest  {
+  string item_id = 1;
+  string owner_user_id = 2;
+}
 message DeleteShoppingItemResponse {}
 
 message GetMealPlanExportItemsRequest  {
@@ -46,16 +55,20 @@ message Category {
   string name = 2;
 }
 
-message ListCategoriesRequest  {}
+message ListCategoriesRequest  { string owner_user_id = 1; }
 message ListCategoriesResponse { repeated Category categories = 1; }
 
-message CreateCategoryRequest  { string name = 1; }
+message CreateCategoryRequest  { string name = 1; string owner_user_id = 2; }
 message CreateCategoryResponse { Category category = 1; }
 
-message RenameCategoryRequest  { string id = 1; string name = 2; }
+message RenameCategoryRequest  {
+  string id = 1;
+  string name = 2;
+  string owner_user_id = 3;
+}
 message RenameCategoryResponse { Category category = 1; }
 
-message DeleteCategoryRequest  { string id = 1; }
+message DeleteCategoryRequest  { string id = 1; string owner_user_id = 2; }
 message DeleteCategoryResponse {}
 
 // --- Stores ---
@@ -65,27 +78,35 @@ message Store {
   string name = 2;
 }
 
-message ListStoresRequest  {}
+message ListStoresRequest  { string owner_user_id = 1; }
 message ListStoresResponse { repeated Store stores = 1; }
 
-message CreateStoreRequest  { string name = 1; }
+message CreateStoreRequest  { string name = 1; string owner_user_id = 2; }
 message CreateStoreResponse { Store store = 1; }
 
-message RenameStoreRequest  { string id = 1; string name = 2; }
+message RenameStoreRequest  {
+  string id = 1;
+  string name = 2;
+  string owner_user_id = 3;
+}
 message RenameStoreResponse { Store store = 1; }
 
-message DeleteStoreRequest  { string id = 1; }
+message DeleteStoreRequest  { string id = 1; string owner_user_id = 2; }
 message DeleteStoreResponse {}
 
 // Ordered list of categories for a store. GetStoreCategories returns the
 // categories in walk-through order; SetStoreCategories fully replaces it,
 // using array index as sort_order.
-message GetStoreCategoriesRequest  { string store_id = 1; }
+message GetStoreCategoriesRequest  {
+  string store_id = 1;
+  string owner_user_id = 2;
+}
 message GetStoreCategoriesResponse { repeated Category categories = 1; }
 
 message SetStoreCategoriesRequest  {
   string store_id              = 1;
   repeated string category_ids = 2;
+  string owner_user_id         = 3;
 }
 message SetStoreCategoriesResponse {}
 
@@ -103,14 +124,54 @@ message ItemCategory {
   string category_id = 2;
 }
 
-message ListItemNamesRequest  {}
+message ListItemNamesRequest  { string owner_user_id = 1; }
 message ListItemNamesResponse { repeated ItemName names = 1; }
 
-message ListItemCategoriesRequest  {}
+message ListItemCategoriesRequest  { string owner_user_id = 1; }
 message ListItemCategoriesResponse { repeated ItemCategory items = 1; }
 
-message SetItemCategoryRequest  { string name = 1; string category_id = 2; }
+message SetItemCategoryRequest  {
+  string name = 1;
+  string category_id = 2;
+  string owner_user_id = 3;
+}
 message SetItemCategoryResponse {}
+
+// --- Sharing ---
+
+// ShoppingListShare is a user the caller has shared their list with.
+// display_name resolves via the owner's contacts.
+message ShoppingListShare {
+  string user_id = 1;
+  bool can_edit = 2;
+  string display_name = 3;
+}
+
+message ShareShoppingListRequest {
+  string contact_user_id = 1;
+  bool can_edit = 2;
+}
+message ShareShoppingListResponse {}
+
+message UnshareShoppingListRequest { string target_user_id = 1; }
+message UnshareShoppingListResponse {}
+
+message ListShoppingListSharesRequest {}
+message ListShoppingListSharesResponse {
+  repeated ShoppingListShare shares = 1;
+}
+
+// A list the caller can act on: their own (is_self) plus lists shared with
+// them. Used to populate the "Viewing" owner switcher.
+message ListOwner {
+  string user_id = 1;
+  string display_name = 2;
+  bool can_edit = 3;
+  bool is_self = 4;
+}
+
+message ListAccessibleListsRequest {}
+message ListAccessibleListsResponse { repeated ListOwner owners = 1; }
 
 service ShoppingListService {
   rpc GetCustomList             (GetCustomListRequest)             returns (GetCustomListResponse);
@@ -134,4 +195,9 @@ service ShoppingListService {
   rpc ListItemNames      (ListItemNamesRequest)      returns (ListItemNamesResponse);
   rpc ListItemCategories (ListItemCategoriesRequest) returns (ListItemCategoriesResponse);
   rpc SetItemCategory    (SetItemCategoryRequest)    returns (SetItemCategoryResponse);
+
+  rpc ShareShoppingList      (ShareShoppingListRequest)      returns (ShareShoppingListResponse);
+  rpc UnshareShoppingList    (UnshareShoppingListRequest)    returns (UnshareShoppingListResponse);
+  rpc ListShoppingListShares (ListShoppingListSharesRequest) returns (ListShoppingListSharesResponse);
+  rpc ListAccessibleLists    (ListAccessibleListsRequest)    returns (ListAccessibleListsResponse);
 }

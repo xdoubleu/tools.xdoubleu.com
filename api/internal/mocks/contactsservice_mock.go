@@ -59,6 +59,14 @@ func (m *MockedContactsService) Decline(
 	return nil
 }
 
+func (m *MockedContactsService) Update(
+	_ context.Context,
+	_ uuid.UUID,
+	_, _ string,
+) error {
+	return nil
+}
+
 func (m *MockedContactsService) Delete(
 	_ context.Context,
 	_ uuid.UUID,

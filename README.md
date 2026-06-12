@@ -11,8 +11,8 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 - **backlog** — Goals/backlog tracker with external sync (Steam, Hardcover/Goodreads), background jobs, and WebSocket live updates.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
-- **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and contact-based sharing.
-- **shoppinglist** — Shopping list with meal-plan ingredient aggregation, item categories, and store-ordered export (group items by the aisle order of the store you're visiting).
+- **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
+- **shoppinglist** — Shopping list with meal-plan ingredient aggregation, item categories, store-ordered export (group items by the aisle order of the store you're visiting), and full-list sharing with contacts (switch between your own and shared lists).
 - **todos** — Task management with sections, workspaces, subtasks, policies, archive, and search.
 
 ## Quick Start

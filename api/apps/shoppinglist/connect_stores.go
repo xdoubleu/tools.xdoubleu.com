@@ -11,14 +11,14 @@ import (
 
 func (h *shoppingConnectHandler) ListStores(
 	ctx context.Context,
-	_ *connect.Request[shoppinglistv1.ListStoresRequest],
+	req *connect.Request[shoppinglistv1.ListStoresRequest],
 ) (*connect.Response[shoppinglistv1.ListStoresResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, errUnauthenticated()
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, false)
+	if err != nil {
+		return nil, err
 	}
 
-	stores, err := h.app.services.Shopping.ListStores(ctx, user.ID)
+	stores, err := h.app.services.Shopping.ListStores(ctx, ownerID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -34,15 +34,15 @@ func (h *shoppingConnectHandler) CreateStore(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.CreateStoreRequest],
 ) (*connect.Response[shoppinglistv1.CreateStoreResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, errUnauthenticated()
-	}
 	if req.Msg.Name == "" {
 		return nil, errNameRequired()
 	}
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
 
-	s, err := h.app.services.Shopping.CreateStore(ctx, user.ID, req.Msg.Name)
+	s, err := h.app.services.Shopping.CreateStore(ctx, ownerID, req.Msg.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -51,14 +51,11 @@ func (h *shoppingConnectHandler) CreateStore(
 	}), nil
 }
 
+//nolint:dupl // parallel to RenameCategory but operates on a distinct entity
 func (h *shoppingConnectHandler) RenameStore(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.RenameStoreRequest],
 ) (*connect.Response[shoppinglistv1.RenameStoreResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, errUnauthenticated()
-	}
 	if req.Msg.Name == "" {
 		return nil, errNameRequired()
 	}
@@ -66,8 +63,12 @@ func (h *shoppingConnectHandler) RenameStore(
 	if err != nil {
 		return nil, errInvalidID()
 	}
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
 
-	s, err := h.app.services.Shopping.RenameStore(ctx, user.ID, id, req.Msg.Name)
+	s, err := h.app.services.Shopping.RenameStore(ctx, ownerID, id, req.Msg.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -80,16 +81,16 @@ func (h *shoppingConnectHandler) DeleteStore(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.DeleteStoreRequest],
 ) (*connect.Response[shoppinglistv1.DeleteStoreResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, errUnauthenticated()
-	}
 	id, err := uuid.Parse(req.Msg.Id)
 	if err != nil {
 		return nil, errInvalidID()
 	}
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
 
-	if err = h.app.services.Shopping.DeleteStore(ctx, user.ID, id); err != nil {
+	if err = h.app.services.Shopping.DeleteStore(ctx, ownerID, id); err != nil {
 		return nil, mapError(err)
 	}
 	return connect.NewResponse(&shoppinglistv1.DeleteStoreResponse{}), nil
@@ -99,17 +100,17 @@ func (h *shoppingConnectHandler) GetStoreCategories(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.GetStoreCategoriesRequest],
 ) (*connect.Response[shoppinglistv1.GetStoreCategoriesResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, errUnauthenticated()
-	}
 	storeID, err := uuid.Parse(req.Msg.StoreId)
 	if err != nil {
 		return nil, errInvalidID()
 	}
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, false)
+	if err != nil {
+		return nil, err
+	}
 
 	categories, err := h.app.services.Shopping.GetStoreCategories(
-		ctx, user.ID, storeID,
+		ctx, ownerID, storeID,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -128,10 +129,6 @@ func (h *shoppingConnectHandler) SetStoreCategories(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.SetStoreCategoriesRequest],
 ) (*connect.Response[shoppinglistv1.SetStoreCategoriesResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, errUnauthenticated()
-	}
 	storeID, err := uuid.Parse(req.Msg.StoreId)
 	if err != nil {
 		return nil, errInvalidID()
@@ -146,8 +143,13 @@ func (h *shoppingConnectHandler) SetStoreCategories(
 		categoryIDs[i] = parsed
 	}
 
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
+
 	err = h.app.services.Shopping.SetStoreCategories(
-		ctx, user.ID, storeID, categoryIDs,
+		ctx, ownerID, storeID, categoryIDs,
 	)
 	if err != nil {
 		return nil, mapError(err)

@@ -1,11 +1,18 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { useRecipes } from '@/hooks/useRecipes'
+import {
+  useRecipes,
+  useRecipeBookShares,
+  useShareRecipeBook,
+  useUnshareRecipeBook
+} from '@/hooks/useRecipes'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
+import ShareModal from '@/components/recipes/ShareModal'
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
@@ -18,14 +25,33 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
 
 export default function RecipesListPage() {
   const { data, error, isLoading } = useRecipes()
+  const { data: sharesData, mutate: mutateShares } = useRecipeBookShares()
+  const shareBook = useShareRecipeBook()
+  const unshareBook = useUnshareRecipeBook()
+  const [showShareModal, setShowShareModal] = useState(false)
+
+  const handleShare = async (contactUserId: string, canEdit: boolean) => {
+    await shareBook(contactUserId, canEdit)
+    await mutateShares()
+  }
+
+  const handleUnshare = async (userId: string) => {
+    await unshareBook(userId)
+    await mutateShares()
+  }
 
   return (
     <main className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Recipes</h1>
-        <Button asChild>
-          <Link href="/recipes/new">New Recipe</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowShareModal(true)}>
+            Share
+          </Button>
+          <Button asChild>
+            <Link href="/recipes/new">New Recipe</Link>
+          </Button>
+        </div>
       </div>
 
       {isLoading && <p>Loading recipes...</p>}
@@ -39,6 +65,20 @@ export default function RecipesListPage() {
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
         </div>
+      )}
+
+      {showShareModal && (
+        <ShareModal
+          title="Share recipe book"
+          shares={(sharesData?.shares ?? []).map((s) => ({
+            userId: s.userId,
+            displayName: s.displayName,
+            canEdit: s.canEdit
+          }))}
+          onShare={handleShare}
+          onUnshare={handleUnshare}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </main>
   )
