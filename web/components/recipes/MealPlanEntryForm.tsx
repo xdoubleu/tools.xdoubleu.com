@@ -26,6 +26,7 @@ interface MealPlanEntryFormProps {
   open: boolean
   title: string
   recipes: Recipe[]
+  suggestedRecipes?: Recipe[]
   initialRecipeId?: string
   initialCustomName?: string
   initialServings?: number
@@ -44,6 +45,7 @@ export default function MealPlanEntryForm({
   open,
   title,
   recipes,
+  suggestedRecipes = [],
   initialRecipeId = '',
   initialCustomName = '',
   initialServings = 1,
@@ -56,6 +58,9 @@ export default function MealPlanEntryForm({
   const [tab, setTab] = useState<Tab>(initialTab)
   const [recipeId, setRecipeId] = useState(initialRecipeId)
   const [servings, setServings] = useState(initialServings)
+  // Bumped on suggestion-chip clicks to remount RecipeCombobox so its
+  // initialValue re-applies and the chosen recipe name shows in the input.
+  const [comboboxKey, setComboboxKey] = useState(0)
   const [customItems, setCustomItems] = useState<CustomItem[]>(() => {
     const parsed = initialCustomName ? parseCustomItems(initialCustomName) : []
     return parsed.length > 0 ? parsed : [{ name: '', amount: '', unit: '' }]
@@ -118,6 +123,11 @@ export default function MealPlanEntryForm({
     }
   }
 
+  const selectSuggestion = (recipe: Recipe) => {
+    setRecipeId(recipe.id)
+    setComboboxKey((k) => k + 1)
+  }
+
   const addCustomItem = () =>
     setCustomItems((prev) => [...prev, { name: '', amount: '', unit: '' }])
   const updateCustomItem = (i: number, patch: Partial<CustomItem>) =>
@@ -159,7 +169,26 @@ export default function MealPlanEntryForm({
 
         {tab === 'recipe' ? (
           <div className="space-y-3">
+            {suggestedRecipes.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-xs font-medium text-muted">Suggestions</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {suggestedRecipes.map((recipe) => (
+                    <Button
+                      key={recipe.id}
+                      variant={recipe.id === recipeId ? 'default' : 'secondary'}
+                      size="sm"
+                      className="rounded-lg"
+                      onClick={() => selectSuggestion(recipe)}
+                    >
+                      {recipe.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             <RecipeCombobox
+              key={comboboxKey}
               recipes={recipes}
               initialValue={recipes.find((r) => r.id === recipeId)?.name || ''}
               onSelect={(id) => setRecipeId(id)}

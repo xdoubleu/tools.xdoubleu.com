@@ -428,6 +428,51 @@ func (h *mealplansConnectHandler) MoveMeal(
 	return connect.NewResponse(&mealplansv1.MoveMealResponse{}), nil
 }
 
+func (h *mealplansConnectHandler) SuggestRecipes(
+	ctx context.Context,
+	req *connect.Request[mealplansv1.SuggestRecipesRequest],
+) (*connect.Response[mealplansv1.SuggestRecipesResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	planID, err := uuid.Parse(req.Msg.PlanId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	mealDate, err := time.Parse(time.DateOnly, req.Msg.MealDate)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid meal date"),
+		)
+	}
+
+	ids, err := h.app.services.Plans.SuggestRecipes(
+		ctx, planID, user.ID, mealDate, req.Msg.MealSlot,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	recipeIDs := make([]string, len(ids))
+	for i, id := range ids {
+		recipeIDs[i] = id.String()
+	}
+
+	return connect.NewResponse(&mealplansv1.SuggestRecipesResponse{
+		RecipeIds: recipeIDs,
+	}), nil
+}
+
 func (h *mealplansConnectHandler) SharePlan(
 	ctx context.Context,
 	req *connect.Request[mealplansv1.SharePlanRequest],

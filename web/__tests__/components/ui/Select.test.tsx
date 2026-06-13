@@ -15,6 +15,15 @@ describe('Select', () => {
     expect(screen.getByRole('option', { name: 'Admin' })).toBeInTheDocument()
   })
 
+  it('uses 16px font on mobile to avoid iOS focus zoom', () => {
+    render(
+      <Select aria-label="role" defaultValue="user">
+        <option value="user">User</option>
+      </Select>
+    )
+    expect(screen.getByLabelText('role')).toHaveClass('text-base', 'md:text-sm')
+  })
+
   it('fires onChange', () => {
     const onChange = jest.fn()
     render(

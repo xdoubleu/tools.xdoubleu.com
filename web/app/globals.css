@@ -77,6 +77,8 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* App-like: allow scrolling, disable double-tap zoom and tap delay */
+  touch-action: manipulation;
 }
 
 button:not([disabled]) {

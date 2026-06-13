@@ -12,6 +12,7 @@ import useSWR from 'swr'
 import {
   useMealPlans,
   useMealPlan,
+  useMealSuggestions,
   useUpdatePlan,
   useAddMeal,
   useDeleteMeal,
@@ -48,6 +49,21 @@ describe('useMealPlan', () => {
 
   it('passes null as key when id is empty', () => {
     renderHook(() => useMealPlan(''))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+  })
+})
+
+describe('useMealSuggestions', () => {
+  it('builds a key from plan, date and slot', () => {
+    renderHook(() => useMealSuggestions('plan-1', '2024-01-22', 'noon'))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/mealplans/plan-1/suggest?d=2024-01-22&s=noon',
+      expect.any(Function)
+    )
+  })
+
+  it('passes null as key when any argument is missing', () => {
+    renderHook(() => useMealSuggestions('plan-1', '', 'noon'))
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
   })
 })

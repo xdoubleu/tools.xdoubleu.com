@@ -17,6 +17,7 @@ import {
 import { useBacklogSteam, useSteamProgress, useRecentlyActiveGames } from '@/hooks/useBacklog'
 import { useSteamRefresh } from '@/lib/backlog/steamRefresh'
 import type { RecentGame } from '@/lib/gen/backlog/v1/games_pb'
+import GamesSearch from '@/components/backlog/GamesSearch'
 import SteamDistributionChart from '@/components/backlog/SteamDistributionChart'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -90,10 +91,9 @@ export default function GamesDashboard() {
   return (
     <section className="flex flex-col gap-3 lg:h-full lg:min-h-0">
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <GamesSearch className="mr-auto flex-1 max-w-xs" />
         {lastRefresh && (
-          <span className="mr-auto text-xs text-muted">
-            Last: {lastRefresh.toLocaleString('en-GB')}
-          </span>
+          <span className="text-xs text-muted">Last: {lastRefresh.toLocaleString('en-GB')}</span>
         )}
         <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
           {isRefreshing ? 'Refreshing...' : 'Refresh'}

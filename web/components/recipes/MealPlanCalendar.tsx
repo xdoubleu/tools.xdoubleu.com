@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
-import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useMealPlans'
+import { useAddMeal, useDeleteMeal, useMoveMeal, useMealSuggestions } from '@/hooks/useMealPlans'
 import type { AddMealInput, DeleteMealInput, MoveMealInput } from '@/hooks/useMealPlans'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
@@ -36,6 +36,14 @@ export default function MealPlanCalendar({
   const addMeal = useAddMeal()
   const deleteMeal = useDeleteMeal()
   const moveMeal = useMoveMeal()
+
+  // Suggestions only load while adding (selectedDate + selectedSlot set); the
+  // hook's key is null otherwise. Map returned IDs to the recipes we already
+  // have, dropping any that are no longer available.
+  const { data: suggestData } = useMealSuggestions(plan.id, selectedDate ?? '', selectedSlot ?? '')
+  const suggestedRecipes = (suggestData?.recipeIds ?? [])
+    .map((id) => recipes.find((r) => r.id === id))
+    .filter((r): r is Recipe => r !== undefined)
 
   const weekDates = getWeekDates(weekOffset)
   const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -361,6 +369,7 @@ export default function MealPlanCalendar({
             open={isAdding || isEditing}
             title={formTitle}
             recipes={recipes}
+            suggestedRecipes={isAdding ? suggestedRecipes : []}
             initialRecipeId={isEditing ? editingMeal!.recipeId : ''}
             initialCustomName={isEditing ? editingMeal!.customName : ''}
             initialServings={isEditing ? editingMeal!.servings : 1}

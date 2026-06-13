@@ -238,6 +238,44 @@ func (r *PlansRepository) GetMealsInWindow(
 	return result, rows.Err()
 }
 
+// SuggestRecipes returns recipe IDs previously planned in the same plan on the
+// same weekday and meal slot as mealDate, ranked by how often they were used
+// (most recent breaking ties). Used to suggest entries when adding a meal.
+func (r *PlansRepository) SuggestRecipes(
+	ctx context.Context,
+	planID uuid.UUID,
+	mealDate time.Time,
+	slot string,
+	limit int,
+) ([]uuid.UUID, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT recipe_id
+		FROM mealplans.plan_meals
+		WHERE plan_id = $1
+		  AND recipe_id IS NOT NULL
+		  AND meal_slot = $2
+		  AND EXTRACT(DOW FROM meal_date) = EXTRACT(DOW FROM $3::date)
+		GROUP BY recipe_id
+		ORDER BY COUNT(*) DESC, MAX(meal_date) DESC
+		LIMIT $4`,
+		planID, slot, mealDate, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		result = append(result, id)
+	}
+	return result, rows.Err()
+}
+
 func (r *PlansRepository) GetSharedWith(
 	ctx context.Context,
 	planID uuid.UUID,
