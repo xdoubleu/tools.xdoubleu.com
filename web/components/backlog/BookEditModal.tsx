@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBacklog'
+import { useUpdateBookStatus, useToggleTag, useUpdateProgress } from '@/hooks/useBacklog'
 import type { UpdateBookStatusInput } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import { PROGRESS_MODE_PAGES, PROGRESS_MODE_PERCENT } from '@/lib/backlog/bookProgress'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,9 +33,13 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
   const [favourite, setFavourite] = useState(userBook.tags.includes('favourite'))
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
   const [ownDigital, setOwnDigital] = useState(userBook.tags.includes('own-digital'))
+  const [progressMode, setProgressMode] = useState(userBook.progressMode || PROGRESS_MODE_PAGES)
+  const [currentPage, setCurrentPage] = useState(userBook.currentPage)
+  const [progressPercent, setProgressPercent] = useState(userBook.progressPercent)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const updateBookStatus = useUpdateBookStatus()
+  const updateProgress = useUpdateProgress()
   const toggleTag = useToggleTag()
 
   const book = userBook.book
@@ -54,6 +60,12 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
       }
       await Promise.all([
         updateBookStatus(req),
+        updateProgress({
+          bookId: userBook.id,
+          progressMode,
+          currentPage,
+          progressPercent
+        }),
         ownPhysical !== currentOwnPhysical && toggleTag(userBook.id, 'own-physical'),
         ownDigital !== currentOwnDigital && toggleTag(userBook.id, 'own-digital')
       ])
@@ -102,6 +114,47 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
                 </option>
               ))}
             </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-progress-mode">Progress</Label>
+            <div className="flex gap-2">
+              <Select
+                id="edit-progress-mode"
+                value={progressMode}
+                onChange={(e) => setProgressMode(e.target.value)}
+                className="w-32"
+              >
+                <option value={PROGRESS_MODE_PAGES}>Pages</option>
+                <option value={PROGRESS_MODE_PERCENT}>Percent</option>
+              </Select>
+              {progressMode === PROGRESS_MODE_PAGES ? (
+                <div className="flex flex-1 items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={currentPage}
+                    onChange={(e) => setCurrentPage(Number(e.target.value))}
+                    aria-label="Current page"
+                  />
+                  {book?.pageCount ? (
+                    <span className="text-sm text-muted whitespace-nowrap">/ {book.pageCount}</span>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex flex-1 items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={progressPercent}
+                    onChange={(e) => setProgressPercent(Number(e.target.value))}
+                    aria-label="Progress percent"
+                  />
+                  <span className="text-sm text-muted">%</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">

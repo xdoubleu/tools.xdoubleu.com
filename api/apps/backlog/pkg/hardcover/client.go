@@ -70,6 +70,7 @@ func (c client) GetByID(ctx context.Context, id string) (*ExternalBook, error) {
 				title
 				contributions { author { name } }
 				description
+				pages
 				default_physical_edition {
 					isbn_13
 					isbn_10
@@ -160,6 +161,12 @@ func toExternalBook(doc searchDocument) ExternalBook {
 		isbn10 = doc.DefaultEdition.ISBN10
 	}
 
+	if coverURL == nil {
+		if fallback := OpenLibraryCoverURL(isbn13); fallback != "" {
+			coverURL = &fallback
+		}
+	}
+
 	return ExternalBook{
 		Provider:    "hardcover",
 		ProviderID:  doc.ID,
@@ -169,5 +176,17 @@ func toExternalBook(doc searchDocument) ExternalBook {
 		ISBN10:      isbn10,
 		CoverURL:    coverURL,
 		Description: doc.Description,
+		PageCount:   doc.Pages,
 	}
+}
+
+// OpenLibraryCoverURL returns an OpenLibrary cover URL for the given ISBN13, or
+// an empty string when no ISBN13 is available. OpenLibrary serves covers keyed
+// by ISBN without requiring an API key, so it is used as a fallback when
+// Hardcover does not provide a cover image.
+func OpenLibraryCoverURL(isbn13 *string) string {
+	if isbn13 == nil || *isbn13 == "" {
+		return ""
+	}
+	return "https://covers.openlibrary.org/b/isbn/" + *isbn13 + "-L.jpg"
 }

@@ -73,6 +73,88 @@ func TestSearch_ReturnsMappedBooks(t *testing.T) {
 	assert.Equal(t, coverURL, *book.CoverURL)
 }
 
+func TestSearch_FallsBackToOpenLibraryCover(t *testing.T) {
+	isbn13 := "9780593099322"
+	setupTestServer(t, map[string]any{
+		"data": map[string]any{
+			"search": map[string]any{
+				"results": map[string]any{
+					"hits": []map[string]any{
+						{
+							"document": map[string]any{
+								"id":            "42",
+								"title":         "Project Hail Mary",
+								"pages":         496,
+								"contributions": []map[string]any{},
+								"default_physical_edition": map[string]any{
+									"isbn_13": isbn13,
+									"isbn_10": nil,
+									"image":   nil,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	c := New(logging.NewNopLogger(), "test-token")
+	results, err := c.Search(context.Background(), "hail mary")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	book := results[0]
+	require.NotNil(t, book.CoverURL)
+	assert.Equal(t, OpenLibraryCoverURL(&isbn13), *book.CoverURL)
+	require.NotNil(t, book.PageCount)
+	assert.Equal(t, 496, *book.PageCount)
+}
+
+func TestOpenLibraryCoverURL(t *testing.T) {
+	assert.Empty(t, OpenLibraryCoverURL(nil))
+	empty := ""
+	assert.Empty(t, OpenLibraryCoverURL(&empty))
+	isbn := "9780593099322"
+	assert.Equal(
+		t,
+		"https://covers.openlibrary.org/b/isbn/9780593099322-L.jpg",
+		OpenLibraryCoverURL(&isbn),
+	)
+}
+
+func TestGetByID_ReturnsPagesAndCover(t *testing.T) {
+	isbn13 := "9780593099322"
+	coverURL := "https://example.com/cover.jpg"
+	setupTestServer(t, map[string]any{
+		"data": map[string]any{
+			"books": []map[string]any{
+				{
+					"id":    "42",
+					"title": "Project Hail Mary",
+					"pages": 496,
+					"contributions": []map[string]any{
+						{"author": map[string]any{"name": "Andy Weir"}},
+					},
+					"default_physical_edition": map[string]any{
+						"isbn_13": isbn13,
+						"isbn_10": nil,
+						"image":   map[string]any{"url": coverURL},
+					},
+				},
+			},
+		},
+	})
+
+	c := New(logging.NewNopLogger(), "test-token")
+	book, err := c.GetByID(context.Background(), "42")
+	require.NoError(t, err)
+	require.NotNil(t, book.PageCount)
+	assert.Equal(t, 496, *book.PageCount)
+	require.NotNil(t, book.CoverURL)
+	assert.Equal(t, coverURL, *book.CoverURL)
+}
+
 func TestSearch_GraphQLError(t *testing.T) {
 	setupTestServer(t, map[string]any{
 		"errors": []map[string]any{

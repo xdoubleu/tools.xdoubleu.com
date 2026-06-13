@@ -6,10 +6,12 @@ import { UserBookSchema, BookSchema } from '@/lib/gen/backlog/v1/books_pb'
 
 const mockUpdateBookStatus = jest.fn()
 const mockToggleTag = jest.fn()
+const mockUpdateProgress = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useUpdateBookStatus: () => mockUpdateBookStatus,
-  useToggleTag: () => mockToggleTag
+  useToggleTag: () => mockToggleTag,
+  useUpdateProgress: () => mockUpdateProgress
 }))
 
 const userBook = create(UserBookSchema, {
@@ -18,9 +20,12 @@ const userBook = create(UserBookSchema, {
   rating: 3,
   notes: 'Great so far',
   tags: ['favourite'],
+  progressMode: 'pages',
+  currentPage: 50,
   book: create(BookSchema, {
     title: 'Clean Code',
-    authors: ['Robert C. Martin']
+    authors: ['Robert C. Martin'],
+    pageCount: 200
   })
 })
 
@@ -28,6 +33,8 @@ describe('BookEditModal', () => {
   beforeEach(() => {
     mockUpdateBookStatus.mockReset()
     mockToggleTag.mockReset()
+    mockUpdateProgress.mockReset()
+    mockUpdateProgress.mockResolvedValue(undefined)
   })
 
   it('renders book title and authors', () => {
@@ -92,6 +99,44 @@ describe('BookEditModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => {
       expect(mockToggleTag).toHaveBeenCalledWith('ub-1', 'own-physical')
+    })
+  })
+
+  it('pre-fills the current page in pages mode and shows the total', () => {
+    render(<BookEditModal userBook={userBook} onClose={jest.fn()} onSaved={jest.fn()} />)
+    const page = screen.getByLabelText('Current page') as HTMLInputElement
+    expect(page.value).toBe('50')
+    expect(screen.getByText('/ 200')).toBeInTheDocument()
+  })
+
+  it('saves updated page progress', async () => {
+    mockUpdateBookStatus.mockResolvedValue(undefined)
+    render(<BookEditModal userBook={userBook} onClose={jest.fn()} onSaved={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText('Current page'), { target: { value: '120' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(mockUpdateProgress).toHaveBeenCalledWith({
+        bookId: 'ub-1',
+        progressMode: 'pages',
+        currentPage: 120,
+        progressPercent: 0
+      })
+    })
+  })
+
+  it('switches to percent mode and saves a percent value', async () => {
+    mockUpdateBookStatus.mockResolvedValue(undefined)
+    render(<BookEditModal userBook={userBook} onClose={jest.fn()} onSaved={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText('Progress'), { target: { value: 'percent' } })
+    fireEvent.change(screen.getByLabelText('Progress percent'), { target: { value: '75' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(mockUpdateProgress).toHaveBeenCalledWith({
+        bookId: 'ub-1',
+        progressMode: 'percent',
+        currentPage: 50,
+        progressPercent: 75
+      })
     })
   })
 })

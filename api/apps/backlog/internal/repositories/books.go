@@ -30,8 +30,9 @@ func (repo *BooksRepository) UpsertBook(
 	// Try match by ISBN13 first, then fall back to title+first author.
 	query := `
 		INSERT INTO backlog.books
-		    (title, authors, isbn13, isbn10, cover_url, description, external_refs)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		    (title, authors, isbn13, isbn10, cover_url, description,
+		     page_count, external_refs)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
@@ -39,11 +40,10 @@ func (repo *BooksRepository) UpsertBook(
 		    isbn10        = COALESCE(EXCLUDED.isbn10, backlog.books.isbn10),
 		    cover_url     = COALESCE(EXCLUDED.cover_url, backlog.books.cover_url),
 		    description   = COALESCE(EXCLUDED.description, backlog.books.description),
+		    page_count    = COALESCE(EXCLUDED.page_count, backlog.books.page_count),
 		    external_refs = backlog.books.external_refs || EXCLUDED.external_refs,
 		    updated_at    = now()
-		RETURNING id, title, authors, isbn13, isbn10, cover_url, description,
-		          external_refs, created_at, updated_at
-	`
+		RETURNING ` + bookColumns
 
 	row := repo.db.QueryRow(ctx, query,
 		book.Title,
@@ -52,6 +52,7 @@ func (repo *BooksRepository) UpsertBook(
 		book.ISBN10,
 		book.CoverURL,
 		book.Description,
+		book.PageCount,
 		externalRefsJSON,
 	)
 
@@ -64,8 +65,7 @@ func (repo *BooksRepository) FindBookByTitleAndAuthor(
 	author string,
 ) (*models.Book, error) {
 	query := `
-		SELECT id, title, authors, isbn13, isbn10, cover_url, description,
-		       external_refs, created_at, updated_at
+		SELECT ` + bookColumns + `
 		FROM backlog.books
 		WHERE title = $1 AND $2 = ANY(authors)
 		LIMIT 1
@@ -125,10 +125,7 @@ func (repo *BooksRepository) GetByStatus(
 	status string,
 ) ([]models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
-		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
-		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
-		       b.description, b.external_refs, b.created_at, b.updated_at
+		SELECT ` + userBookColumns + `
 		FROM backlog.user_books ub
 		JOIN backlog.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1 AND ub.status = $2
@@ -143,10 +140,7 @@ func (repo *BooksRepository) GetLibrary(
 	userID string,
 ) ([]models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
-		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
-		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
-		       b.description, b.external_refs, b.created_at, b.updated_at
+		SELECT ` + userBookColumns + `
 		FROM backlog.user_books ub
 		JOIN backlog.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1
@@ -212,93 +206,6 @@ func (repo *BooksRepository) queryUserBooks(
 	return userBooks, nil
 }
 
-func nullTime(t time.Time) *time.Time {
-	if t.IsZero() {
-		return nil
-	}
-	return &t
-}
-
-func scanBook(row pgx.Row) (*models.Book, error) {
-	var book models.Book
-	var refsJSON []byte
-
-	err := row.Scan(
-		&book.ID,
-		&book.Title,
-		&book.Authors,
-		&book.ISBN13,
-		&book.ISBN10,
-		&book.CoverURL,
-		&book.Description,
-		&refsJSON,
-		&book.CreatedAt,
-		&book.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	book.ExternalRefs = map[string]string{}
-	if len(refsJSON) > 0 {
-		if jsonErr := json.Unmarshal(refsJSON, &book.ExternalRefs); jsonErr != nil {
-			return nil, jsonErr
-		}
-	}
-
-	return &book, nil
-}
-
-func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
-	var ub models.UserBook
-	var book models.Book
-	var refsJSON, posJSON []byte
-
-	err := rows.Scan(
-		&ub.ID,
-		&ub.UserID,
-		&ub.BookID,
-		&ub.Status,
-		&ub.Tags,
-		&posJSON,
-		&ub.Rating,
-		&ub.Notes,
-		&ub.FinishedAt,
-		&ub.AddedAt,
-		&ub.UpdatedAt,
-		&book.ID,
-		&book.Title,
-		&book.Authors,
-		&book.ISBN13,
-		&book.ISBN10,
-		&book.CoverURL,
-		&book.Description,
-		&refsJSON,
-		&book.CreatedAt,
-		&book.UpdatedAt,
-	)
-	if err != nil {
-		return models.UserBook{}, err
-	}
-
-	book.ExternalRefs = map[string]string{}
-	if len(refsJSON) > 0 {
-		if jsonErr := json.Unmarshal(refsJSON, &book.ExternalRefs); jsonErr != nil {
-			return models.UserBook{}, jsonErr
-		}
-	}
-
-	ub.ShelfPositions = map[string]int{}
-	if len(posJSON) > 0 {
-		if jsonErr := json.Unmarshal(posJSON, &ub.ShelfPositions); jsonErr != nil {
-			return models.UserBook{}, jsonErr
-		}
-	}
-
-	ub.Book = &book
-	return ub, nil
-}
-
 //nolint:funlen // two-phase batch upsert; hard to split without obscuring the boundary
 func (repo *BooksRepository) BatchUpsert(
 	ctx context.Context,
@@ -324,14 +231,16 @@ func (repo *BooksRepository) BatchUpsert(
 	// ---------------------------
 	upsertBookQuery := `
 		INSERT INTO backlog.books
-		    (title, authors, isbn13, isbn10, cover_url, description, external_refs)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		    (title, authors, isbn13, isbn10, cover_url, description,
+		     page_count, external_refs)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
 		    authors       = EXCLUDED.authors,
 		    cover_url     = COALESCE(EXCLUDED.cover_url, backlog.books.cover_url),
 		    description   = COALESCE(EXCLUDED.description, backlog.books.description),
+		    page_count    = COALESCE(EXCLUDED.page_count, backlog.books.page_count),
 		    external_refs = backlog.books.external_refs
 		              || COALESCE(EXCLUDED.external_refs, '{}'),
 		    updated_at    = now()
@@ -356,6 +265,7 @@ func (repo *BooksRepository) BatchUpsert(
 			book.ISBN10,
 			book.CoverURL,
 			book.Description,
+			book.PageCount,
 			string(refsJSON),
 		)
 	}
@@ -440,8 +350,7 @@ func (repo *BooksRepository) FindByExternalRef(
 	providerID string,
 ) (*models.Book, error) {
 	query := `
-		SELECT id, title, authors, isbn13, isbn10, cover_url, description,
-		       external_refs, created_at, updated_at
+		SELECT ` + bookColumns + `
 		FROM backlog.books
 		WHERE external_refs->>$1 = $2
 		LIMIT 1
@@ -463,10 +372,7 @@ func (repo *BooksRepository) GetUserBook(
 	bookID uuid.UUID,
 ) (*models.UserBook, error) {
 	query := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
-		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
-		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
-		       b.description, b.external_refs, b.created_at, b.updated_at
+		SELECT ` + userBookColumns + `
 		FROM backlog.user_books ub
 		JOIN backlog.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1 AND ub.book_id = $2
@@ -497,10 +403,7 @@ func (repo *BooksRepository) SearchLibrary(
 	query string,
 ) ([]models.UserBook, error) {
 	q := `
-		SELECT ub.id, ub.user_id, ub.book_id, ub.status, ub.tags, ub.shelf_positions,
-		       ub.rating, ub.notes, ub.finished_at, ub.added_at, ub.updated_at,
-		       b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url,
-		       b.description, b.external_refs, b.created_at, b.updated_at
+		SELECT ` + userBookColumns + `
 		FROM backlog.user_books ub
 		JOIN backlog.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1

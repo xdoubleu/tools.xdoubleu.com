@@ -9,6 +9,7 @@ message Book {
   string isbn13 = 4;
   string cover_url = 5;
   string description = 6;
+  int32 page_count = 7;
 }
 
 message UserBook {
@@ -23,6 +24,9 @@ message UserBook {
   repeated string finished_at = 9;
   string added_at = 10;
   string updated_at = 11;
+  string progress_mode = 12;
+  int32 current_page = 13;
+  int32 progress_percent = 14;
 }
 
 message BookShelf {
@@ -108,6 +112,14 @@ message ToggleTagRequest {
 }
 message ToggleTagResponse {}
 
+message UpdateProgressRequest {
+  string book_id = 1;
+  string progress_mode = 2;
+  int32 current_page = 3;
+  int32 progress_percent = 4;
+}
+message UpdateProgressResponse {}
+
 message ImportBooksRequest { bytes csv_data = 1; }
 message ImportBooksResponse { int32 imported_count = 1; }
 
@@ -120,6 +132,7 @@ service BooksService {
   rpc SearchExternal(SearchExternalRequest) returns (SearchExternalResponse);
   rpc AddBook(AddBookRequest) returns (AddBookResponse);
   rpc UpdateBookStatus(UpdateBookStatusRequest) returns (UpdateBookStatusResponse);
+  rpc UpdateProgress(UpdateProgressRequest) returns (UpdateProgressResponse);
   rpc ToggleTag(ToggleTagRequest) returns (ToggleTagResponse);
   rpc ImportBooks(ImportBooksRequest) returns (ImportBooksResponse);
 }

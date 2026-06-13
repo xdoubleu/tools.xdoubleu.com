@@ -211,13 +211,50 @@ func countDatesOn(dates []time.Time, dateStr string) int {
 }
 
 func externalToBook(ext hardcover.ExternalBook) models.Book {
+	coverURL := ext.CoverURL
+	if coverURL == nil {
+		if fallback := hardcover.OpenLibraryCoverURL(ext.ISBN13); fallback != "" {
+			coverURL = &fallback
+		}
+	}
+
 	return models.Book{ //nolint:exhaustruct //optional fields
 		Title:        ext.Title,
 		Authors:      ext.Authors,
 		ISBN13:       ext.ISBN13,
 		ISBN10:       ext.ISBN10,
-		CoverURL:     ext.CoverURL,
+		CoverURL:     coverURL,
 		Description:  ext.Description,
+		PageCount:    ext.PageCount,
 		ExternalRefs: map[string]string{ext.Provider: ext.ProviderID},
 	}
+}
+
+// UpdateProgress validates and persists reading-progress for a user_book. The
+// mode selects which value is authoritative: pages mode tracks current_page,
+// percent mode tracks progress_percent (clamped to 0-100).
+func (s *BookService) UpdateProgress(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	mode string,
+	currentPage int,
+	progressPercent int,
+) error {
+	if mode != models.ProgressModePages && mode != models.ProgressModePercent {
+		return fmt.Errorf("invalid progress mode %q", mode)
+	}
+	if currentPage < 0 {
+		currentPage = 0
+	}
+	if progressPercent < 0 {
+		progressPercent = 0
+	}
+	if progressPercent > models.MaxProgressPercent {
+		progressPercent = models.MaxProgressPercent
+	}
+
+	return s.books.UpdateProgress(
+		ctx, userID, bookID, mode, currentPage, progressPercent,
+	)
 }

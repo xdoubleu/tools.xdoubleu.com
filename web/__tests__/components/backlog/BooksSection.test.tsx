@@ -54,13 +54,16 @@ const mockUseBooksProgress = jest.mocked(useBooksProgress)
 
 const readingBook = create(UserBookSchema, {
   id: '1',
-  status: 'reading',
+  status: 'currently-reading',
   rating: 4,
   tags: ['favourite'],
+  progressMode: 'pages',
+  currentPage: 50,
   book: create(BookSchema, {
     title: 'Dune',
     authors: ['Frank Herbert'],
-    coverUrl: 'http://example.com/dune.png'
+    coverUrl: 'http://example.com/dune.png',
+    pageCount: 200
   })
 })
 
@@ -167,5 +170,17 @@ describe('BooksSection', () => {
     render(<BooksSection />)
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
     expect(screen.getByTestId('book-edit-modal')).toBeInTheDocument()
+  })
+
+  it('gives book cards a white card background', () => {
+    mockLibrary()
+    render(<BooksSection />)
+    expect(screen.getByText('Dune').closest('.bg-card')).toBeInTheDocument()
+  })
+
+  it('shows a progress bar for currently reading books', () => {
+    mockLibrary()
+    render(<BooksSection />)
+    expect(screen.getAllByRole('progressbar').length).toBeGreaterThan(0)
   })
 })

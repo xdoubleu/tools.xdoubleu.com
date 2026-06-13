@@ -8,6 +8,7 @@ import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import BookSearchBar from '@/components/backlog/BookSearchBar'
 import BookEditModal from '@/components/backlog/BookEditModal'
 import BooksProgressChart from '@/components/backlog/BooksProgressChart'
+import BookProgressBar from '@/components/backlog/BookProgressBar'
 import SectionTabBar from '@/components/backlog/SectionTabBar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,7 +20,7 @@ function BookCard({ userBook, onEdit }: { userBook: UserBook; onEdit: (ub: UserB
   const book = userBook.book
   if (!book) return null
   return (
-    <div className="border border-border rounded-2xl p-4 flex gap-4">
+    <div className="rounded-2xl border border-border bg-card shadow-card p-4 flex gap-4">
       {book.coverUrl && (
         <Image
           src={book.coverUrl}
@@ -39,6 +40,11 @@ function BookCard({ userBook, onEdit }: { userBook: UserBook; onEdit: (ub: UserB
           {userBook.rating > 0 && <span className="text-xs text-muted">{userBook.rating}★</span>}
           {userBook.tags.includes('favourite') && <span className="text-xs text-amber-500">♥</span>}
         </div>
+        {userBook.status === 'currently-reading' && (
+          <div className="mt-2">
+            <BookProgressBar userBook={userBook} />
+          </div>
+        )}
       </div>
       <Button
         variant="secondary"

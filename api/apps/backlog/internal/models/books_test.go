@@ -60,3 +60,83 @@ func TestUserBook_DisplayTags_Empty(t *testing.T) {
 	ub := models.UserBook{} //nolint:exhaustruct //no tags
 	assert.Empty(t, ub.DisplayTags())
 }
+
+func intPtr(i int) *int { return &i }
+
+func TestUserBook_DisplayProgressPercent(t *testing.T) {
+	pages := func(p *int) *models.Book {
+		return &models.Book{PageCount: p} //nolint:exhaustruct //only PageCount
+	}
+	tests := []struct {
+		name string
+		ub   models.UserBook
+		want int
+	}{
+		{
+			name: "percent mode returns stored percent",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode:    models.ProgressModePercent,
+				ProgressPercent: 60,
+			},
+			want: 60,
+		},
+		{
+			name: "percent mode clamps above 100",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode:    models.ProgressModePercent,
+				ProgressPercent: 140,
+			},
+			want: 100,
+		},
+		{
+			name: "pages mode derives percent",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode: models.ProgressModePages,
+				CurrentPage:  150,
+				Book:         pages(intPtr(300)),
+			},
+			want: 50,
+		},
+		{
+			name: "pages mode rounds",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode: models.ProgressModePages,
+				CurrentPage:  1,
+				Book:         pages(intPtr(3)),
+			},
+			want: 33,
+		},
+		{
+			name: "pages mode clamps above 100",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode: models.ProgressModePages,
+				CurrentPage:  400,
+				Book:         pages(intPtr(300)),
+			},
+			want: 100,
+		},
+		{
+			name: "pages mode without page count returns zero",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode: models.ProgressModePages,
+				CurrentPage:  150,
+				Book:         pages(nil),
+			},
+			want: 0,
+		},
+		{
+			name: "pages mode without book returns zero",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode: models.ProgressModePages,
+				CurrentPage:  150,
+			},
+			want: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.ub.DisplayProgressPercent())
+		})
+	}
+}
