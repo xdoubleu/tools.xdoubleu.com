@@ -39,6 +39,9 @@ const (
 	// ShoppingListServiceAddShoppingItemProcedure is the fully-qualified name of the
 	// ShoppingListService's AddShoppingItem RPC.
 	ShoppingListServiceAddShoppingItemProcedure = "/shoppinglist.v1.ShoppingListService/AddShoppingItem"
+	// ShoppingListServiceUpdateShoppingItemProcedure is the fully-qualified name of the
+	// ShoppingListService's UpdateShoppingItem RPC.
+	ShoppingListServiceUpdateShoppingItemProcedure = "/shoppinglist.v1.ShoppingListService/UpdateShoppingItem"
 	// ShoppingListServiceDeleteShoppingItemProcedure is the fully-qualified name of the
 	// ShoppingListService's DeleteShoppingItem RPC.
 	ShoppingListServiceDeleteShoppingItemProcedure = "/shoppinglist.v1.ShoppingListService/DeleteShoppingItem"
@@ -87,6 +90,9 @@ const (
 	// ShoppingListServiceSetItemCategoryProcedure is the fully-qualified name of the
 	// ShoppingListService's SetItemCategory RPC.
 	ShoppingListServiceSetItemCategoryProcedure = "/shoppinglist.v1.ShoppingListService/SetItemCategory"
+	// ShoppingListServiceSetItemExcludedProcedure is the fully-qualified name of the
+	// ShoppingListService's SetItemExcluded RPC.
+	ShoppingListServiceSetItemExcludedProcedure = "/shoppinglist.v1.ShoppingListService/SetItemExcluded"
 	// ShoppingListServiceShareShoppingListProcedure is the fully-qualified name of the
 	// ShoppingListService's ShareShoppingList RPC.
 	ShoppingListServiceShareShoppingListProcedure = "/shoppinglist.v1.ShoppingListService/ShareShoppingList"
@@ -105,6 +111,7 @@ const (
 type ShoppingListServiceClient interface {
 	GetCustomList(context.Context, *connect.Request[v1.GetCustomListRequest]) (*connect.Response[v1.GetCustomListResponse], error)
 	AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error)
+	UpdateShoppingItem(context.Context, *connect.Request[v1.UpdateShoppingItemRequest]) (*connect.Response[v1.UpdateShoppingItemResponse], error)
 	DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error)
 	GetMealPlanExportItems(context.Context, *connect.Request[v1.GetMealPlanExportItemsRequest]) (*connect.Response[v1.GetMealPlanExportItemsResponse], error)
 	GetPlanIngredientGroups(context.Context, *connect.Request[v1.GetPlanIngredientGroupsRequest]) (*connect.Response[v1.GetPlanIngredientGroupsResponse], error)
@@ -121,6 +128,7 @@ type ShoppingListServiceClient interface {
 	ListItemNames(context.Context, *connect.Request[v1.ListItemNamesRequest]) (*connect.Response[v1.ListItemNamesResponse], error)
 	ListItemCategories(context.Context, *connect.Request[v1.ListItemCategoriesRequest]) (*connect.Response[v1.ListItemCategoriesResponse], error)
 	SetItemCategory(context.Context, *connect.Request[v1.SetItemCategoryRequest]) (*connect.Response[v1.SetItemCategoryResponse], error)
+	SetItemExcluded(context.Context, *connect.Request[v1.SetItemExcludedRequest]) (*connect.Response[v1.SetItemExcludedResponse], error)
 	ShareShoppingList(context.Context, *connect.Request[v1.ShareShoppingListRequest]) (*connect.Response[v1.ShareShoppingListResponse], error)
 	UnshareShoppingList(context.Context, *connect.Request[v1.UnshareShoppingListRequest]) (*connect.Response[v1.UnshareShoppingListResponse], error)
 	ListShoppingListShares(context.Context, *connect.Request[v1.ListShoppingListSharesRequest]) (*connect.Response[v1.ListShoppingListSharesResponse], error)
@@ -148,6 +156,12 @@ func NewShoppingListServiceClient(httpClient connect.HTTPClient, baseURL string,
 			httpClient,
 			baseURL+ShoppingListServiceAddShoppingItemProcedure,
 			connect.WithSchema(shoppingListServiceMethods.ByName("AddShoppingItem")),
+			connect.WithClientOptions(opts...),
+		),
+		updateShoppingItem: connect.NewClient[v1.UpdateShoppingItemRequest, v1.UpdateShoppingItemResponse](
+			httpClient,
+			baseURL+ShoppingListServiceUpdateShoppingItemProcedure,
+			connect.WithSchema(shoppingListServiceMethods.ByName("UpdateShoppingItem")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteShoppingItem: connect.NewClient[v1.DeleteShoppingItemRequest, v1.DeleteShoppingItemResponse](
@@ -246,6 +260,12 @@ func NewShoppingListServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(shoppingListServiceMethods.ByName("SetItemCategory")),
 			connect.WithClientOptions(opts...),
 		),
+		setItemExcluded: connect.NewClient[v1.SetItemExcludedRequest, v1.SetItemExcludedResponse](
+			httpClient,
+			baseURL+ShoppingListServiceSetItemExcludedProcedure,
+			connect.WithSchema(shoppingListServiceMethods.ByName("SetItemExcluded")),
+			connect.WithClientOptions(opts...),
+		),
 		shareShoppingList: connect.NewClient[v1.ShareShoppingListRequest, v1.ShareShoppingListResponse](
 			httpClient,
 			baseURL+ShoppingListServiceShareShoppingListProcedure,
@@ -277,6 +297,7 @@ func NewShoppingListServiceClient(httpClient connect.HTTPClient, baseURL string,
 type shoppingListServiceClient struct {
 	getCustomList           *connect.Client[v1.GetCustomListRequest, v1.GetCustomListResponse]
 	addShoppingItem         *connect.Client[v1.AddShoppingItemRequest, v1.AddShoppingItemResponse]
+	updateShoppingItem      *connect.Client[v1.UpdateShoppingItemRequest, v1.UpdateShoppingItemResponse]
 	deleteShoppingItem      *connect.Client[v1.DeleteShoppingItemRequest, v1.DeleteShoppingItemResponse]
 	getMealPlanExportItems  *connect.Client[v1.GetMealPlanExportItemsRequest, v1.GetMealPlanExportItemsResponse]
 	getPlanIngredientGroups *connect.Client[v1.GetPlanIngredientGroupsRequest, v1.GetPlanIngredientGroupsResponse]
@@ -293,6 +314,7 @@ type shoppingListServiceClient struct {
 	listItemNames           *connect.Client[v1.ListItemNamesRequest, v1.ListItemNamesResponse]
 	listItemCategories      *connect.Client[v1.ListItemCategoriesRequest, v1.ListItemCategoriesResponse]
 	setItemCategory         *connect.Client[v1.SetItemCategoryRequest, v1.SetItemCategoryResponse]
+	setItemExcluded         *connect.Client[v1.SetItemExcludedRequest, v1.SetItemExcludedResponse]
 	shareShoppingList       *connect.Client[v1.ShareShoppingListRequest, v1.ShareShoppingListResponse]
 	unshareShoppingList     *connect.Client[v1.UnshareShoppingListRequest, v1.UnshareShoppingListResponse]
 	listShoppingListShares  *connect.Client[v1.ListShoppingListSharesRequest, v1.ListShoppingListSharesResponse]
@@ -307,6 +329,11 @@ func (c *shoppingListServiceClient) GetCustomList(ctx context.Context, req *conn
 // AddShoppingItem calls shoppinglist.v1.ShoppingListService.AddShoppingItem.
 func (c *shoppingListServiceClient) AddShoppingItem(ctx context.Context, req *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error) {
 	return c.addShoppingItem.CallUnary(ctx, req)
+}
+
+// UpdateShoppingItem calls shoppinglist.v1.ShoppingListService.UpdateShoppingItem.
+func (c *shoppingListServiceClient) UpdateShoppingItem(ctx context.Context, req *connect.Request[v1.UpdateShoppingItemRequest]) (*connect.Response[v1.UpdateShoppingItemResponse], error) {
+	return c.updateShoppingItem.CallUnary(ctx, req)
 }
 
 // DeleteShoppingItem calls shoppinglist.v1.ShoppingListService.DeleteShoppingItem.
@@ -389,6 +416,11 @@ func (c *shoppingListServiceClient) SetItemCategory(ctx context.Context, req *co
 	return c.setItemCategory.CallUnary(ctx, req)
 }
 
+// SetItemExcluded calls shoppinglist.v1.ShoppingListService.SetItemExcluded.
+func (c *shoppingListServiceClient) SetItemExcluded(ctx context.Context, req *connect.Request[v1.SetItemExcludedRequest]) (*connect.Response[v1.SetItemExcludedResponse], error) {
+	return c.setItemExcluded.CallUnary(ctx, req)
+}
+
 // ShareShoppingList calls shoppinglist.v1.ShoppingListService.ShareShoppingList.
 func (c *shoppingListServiceClient) ShareShoppingList(ctx context.Context, req *connect.Request[v1.ShareShoppingListRequest]) (*connect.Response[v1.ShareShoppingListResponse], error) {
 	return c.shareShoppingList.CallUnary(ctx, req)
@@ -414,6 +446,7 @@ func (c *shoppingListServiceClient) ListAccessibleLists(ctx context.Context, req
 type ShoppingListServiceHandler interface {
 	GetCustomList(context.Context, *connect.Request[v1.GetCustomListRequest]) (*connect.Response[v1.GetCustomListResponse], error)
 	AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error)
+	UpdateShoppingItem(context.Context, *connect.Request[v1.UpdateShoppingItemRequest]) (*connect.Response[v1.UpdateShoppingItemResponse], error)
 	DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error)
 	GetMealPlanExportItems(context.Context, *connect.Request[v1.GetMealPlanExportItemsRequest]) (*connect.Response[v1.GetMealPlanExportItemsResponse], error)
 	GetPlanIngredientGroups(context.Context, *connect.Request[v1.GetPlanIngredientGroupsRequest]) (*connect.Response[v1.GetPlanIngredientGroupsResponse], error)
@@ -430,6 +463,7 @@ type ShoppingListServiceHandler interface {
 	ListItemNames(context.Context, *connect.Request[v1.ListItemNamesRequest]) (*connect.Response[v1.ListItemNamesResponse], error)
 	ListItemCategories(context.Context, *connect.Request[v1.ListItemCategoriesRequest]) (*connect.Response[v1.ListItemCategoriesResponse], error)
 	SetItemCategory(context.Context, *connect.Request[v1.SetItemCategoryRequest]) (*connect.Response[v1.SetItemCategoryResponse], error)
+	SetItemExcluded(context.Context, *connect.Request[v1.SetItemExcludedRequest]) (*connect.Response[v1.SetItemExcludedResponse], error)
 	ShareShoppingList(context.Context, *connect.Request[v1.ShareShoppingListRequest]) (*connect.Response[v1.ShareShoppingListResponse], error)
 	UnshareShoppingList(context.Context, *connect.Request[v1.UnshareShoppingListRequest]) (*connect.Response[v1.UnshareShoppingListResponse], error)
 	ListShoppingListShares(context.Context, *connect.Request[v1.ListShoppingListSharesRequest]) (*connect.Response[v1.ListShoppingListSharesResponse], error)
@@ -453,6 +487,12 @@ func NewShoppingListServiceHandler(svc ShoppingListServiceHandler, opts ...conne
 		ShoppingListServiceAddShoppingItemProcedure,
 		svc.AddShoppingItem,
 		connect.WithSchema(shoppingListServiceMethods.ByName("AddShoppingItem")),
+		connect.WithHandlerOptions(opts...),
+	)
+	shoppingListServiceUpdateShoppingItemHandler := connect.NewUnaryHandler(
+		ShoppingListServiceUpdateShoppingItemProcedure,
+		svc.UpdateShoppingItem,
+		connect.WithSchema(shoppingListServiceMethods.ByName("UpdateShoppingItem")),
 		connect.WithHandlerOptions(opts...),
 	)
 	shoppingListServiceDeleteShoppingItemHandler := connect.NewUnaryHandler(
@@ -551,6 +591,12 @@ func NewShoppingListServiceHandler(svc ShoppingListServiceHandler, opts ...conne
 		connect.WithSchema(shoppingListServiceMethods.ByName("SetItemCategory")),
 		connect.WithHandlerOptions(opts...),
 	)
+	shoppingListServiceSetItemExcludedHandler := connect.NewUnaryHandler(
+		ShoppingListServiceSetItemExcludedProcedure,
+		svc.SetItemExcluded,
+		connect.WithSchema(shoppingListServiceMethods.ByName("SetItemExcluded")),
+		connect.WithHandlerOptions(opts...),
+	)
 	shoppingListServiceShareShoppingListHandler := connect.NewUnaryHandler(
 		ShoppingListServiceShareShoppingListProcedure,
 		svc.ShareShoppingList,
@@ -581,6 +627,8 @@ func NewShoppingListServiceHandler(svc ShoppingListServiceHandler, opts ...conne
 			shoppingListServiceGetCustomListHandler.ServeHTTP(w, r)
 		case ShoppingListServiceAddShoppingItemProcedure:
 			shoppingListServiceAddShoppingItemHandler.ServeHTTP(w, r)
+		case ShoppingListServiceUpdateShoppingItemProcedure:
+			shoppingListServiceUpdateShoppingItemHandler.ServeHTTP(w, r)
 		case ShoppingListServiceDeleteShoppingItemProcedure:
 			shoppingListServiceDeleteShoppingItemHandler.ServeHTTP(w, r)
 		case ShoppingListServiceGetMealPlanExportItemsProcedure:
@@ -613,6 +661,8 @@ func NewShoppingListServiceHandler(svc ShoppingListServiceHandler, opts ...conne
 			shoppingListServiceListItemCategoriesHandler.ServeHTTP(w, r)
 		case ShoppingListServiceSetItemCategoryProcedure:
 			shoppingListServiceSetItemCategoryHandler.ServeHTTP(w, r)
+		case ShoppingListServiceSetItemExcludedProcedure:
+			shoppingListServiceSetItemExcludedHandler.ServeHTTP(w, r)
 		case ShoppingListServiceShareShoppingListProcedure:
 			shoppingListServiceShareShoppingListHandler.ServeHTTP(w, r)
 		case ShoppingListServiceUnshareShoppingListProcedure:
@@ -636,6 +686,10 @@ func (UnimplementedShoppingListServiceHandler) GetCustomList(context.Context, *c
 
 func (UnimplementedShoppingListServiceHandler) AddShoppingItem(context.Context, *connect.Request[v1.AddShoppingItemRequest]) (*connect.Response[v1.AddShoppingItemResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.AddShoppingItem is not implemented"))
+}
+
+func (UnimplementedShoppingListServiceHandler) UpdateShoppingItem(context.Context, *connect.Request[v1.UpdateShoppingItemRequest]) (*connect.Response[v1.UpdateShoppingItemResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.UpdateShoppingItem is not implemented"))
 }
 
 func (UnimplementedShoppingListServiceHandler) DeleteShoppingItem(context.Context, *connect.Request[v1.DeleteShoppingItemRequest]) (*connect.Response[v1.DeleteShoppingItemResponse], error) {
@@ -700,6 +754,10 @@ func (UnimplementedShoppingListServiceHandler) ListItemCategories(context.Contex
 
 func (UnimplementedShoppingListServiceHandler) SetItemCategory(context.Context, *connect.Request[v1.SetItemCategoryRequest]) (*connect.Response[v1.SetItemCategoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.SetItemCategory is not implemented"))
+}
+
+func (UnimplementedShoppingListServiceHandler) SetItemExcluded(context.Context, *connect.Request[v1.SetItemExcludedRequest]) (*connect.Response[v1.SetItemExcludedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("shoppinglist.v1.ShoppingListService.SetItemExcluded is not implemented"))
 }
 
 func (UnimplementedShoppingListServiceHandler) ShareShoppingList(context.Context, *connect.Request[v1.ShareShoppingListRequest]) (*connect.Response[v1.ShareShoppingListResponse], error) {

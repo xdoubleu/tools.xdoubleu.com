@@ -48,6 +48,62 @@ describe('ShoppingList', () => {
     })
   })
 
+  describe('edit button', () => {
+    it('does not render edit buttons when onEdit is not provided', () => {
+      render(<ShoppingList items={items} />)
+      expect(screen.queryByRole('button', { name: /Edit/ })).not.toBeInTheDocument()
+    })
+
+    it('renders edit button only for items that have an id', () => {
+      render(<ShoppingList items={items} onEdit={jest.fn()} />)
+      expect(screen.queryByRole('button', { name: /Edit flour/ })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Edit milk/ })).toBeInTheDocument()
+    })
+
+    it('shows an inline edit form prefilled with the item values', () => {
+      render(<ShoppingList items={items} onEdit={jest.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      expect(screen.getByLabelText('Item name')).toHaveValue('milk')
+      expect(screen.getByLabelText('Amount')).toHaveValue(1)
+      expect(screen.getByLabelText('Unit')).toHaveValue('L')
+    })
+
+    it('calls onEdit with the item id and edited values when saved', async () => {
+      const onEdit = jest.fn().mockResolvedValue(undefined)
+      render(<ShoppingList items={items} onEdit={onEdit} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'oat milk' } })
+      fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '2' } })
+      fireEvent.change(screen.getByLabelText('Unit'), { target: { value: 'cartons' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(() =>
+        expect(onEdit).toHaveBeenCalledWith('custom-1', {
+          name: 'oat milk',
+          amount: '2',
+          unit: 'cartons'
+        })
+      )
+    })
+
+    it('does not call onEdit when the name is blank', () => {
+      const onEdit = jest.fn()
+      render(<ShoppingList items={items} onEdit={onEdit} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      fireEvent.change(screen.getByLabelText('Item name'), { target: { value: '   ' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      expect(onEdit).not.toHaveBeenCalled()
+    })
+
+    it('cancels editing without calling onEdit', () => {
+      const onEdit = jest.fn()
+      render(<ShoppingList items={items} onEdit={onEdit} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(onEdit).not.toHaveBeenCalled()
+      expect(screen.getByText(/1 L - milk/)).toBeInTheDocument()
+    })
+  })
+
   describe('export button', () => {
     it('does not render export button when onExport is not provided', () => {
       render(<ShoppingList items={items} />)

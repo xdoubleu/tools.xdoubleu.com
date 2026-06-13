@@ -19,115 +19,18 @@ func RenderError(w http.ResponseWriter, status int, message string) {
 	http.Error(w, message, status)
 }
 
-type fracEntry struct {
-	val    float64
-	symbol string
-}
-
-//nolint:gochecknoglobals //package-level lookup table, not mutable state
-var commonFractions = []fracEntry{
-	{0.0, ""},
-	{1.0 / 8, "⅛"},
-	{1.0 / 4, "¼"},
-	{1.0 / 3, "⅓"},
-	{3.0 / 8, "⅜"},
-	{1.0 / 2, "½"},
-	{5.0 / 8, "⅝"},
-	{2.0 / 3, "⅔"},
-	{3.0 / 4, "¾"},
-	{7.0 / 8, "⅞"},
-	{1.0, ""},
-}
-
-// ToFraction converts a float64 to a Unicode cooking fraction string.
-func ToFraction(f float64) string {
+// ToAmount formats an amount for display as its exact value, with no rounding.
+// Trailing zeros (and a dangling decimal point) are trimmed, so 0.5 -> "0.5"
+// and 1.0 -> "1". The value is capped at 3 decimals, which matches the web
+// formatter and absorbs float noise like 0.1+0.2.
+func ToAmount(f float64) string {
 	if f <= 0 {
 		return "0"
 	}
-	whole := int(math.Floor(f))
-	frac := f - float64(whole)
-
-	bestDiff := math.MaxFloat64
-	bestIdx := 0
-	for i, cf := range commonFractions {
-		if diff := math.Abs(frac - cf.val); diff <= bestDiff {
-			bestDiff = diff
-			bestIdx = i
-		}
-	}
-	symbol := commonFractions[bestIdx].symbol
-	if bestIdx == len(commonFractions)-1 {
-		whole++
-		symbol = ""
-	}
-
-	if whole == 0 {
-		if symbol == "" {
-			return "0"
-		}
-		return symbol
-	}
-	if symbol == "" {
-		return fmt.Sprintf("%d", whole)
-	}
-	return fmt.Sprintf("%d%s", whole, symbol)
-}
-
-// ToFractionCeiling converts a float64 to a Unicode cooking fraction string,
-// rounding UP to the nearest common fraction so the quantity is never short.
-func ToFractionCeiling(f float64) string {
-	if f <= 0 {
-		return "0"
-	}
-	whole := int(math.Floor(f))
-	frac := f - float64(whole)
-
-	const eps = 1e-9
-	bestIdx := len(commonFractions) - 1
-	for i, cf := range commonFractions {
-		if cf.val >= frac-eps {
-			bestIdx = i
-			break
-		}
-	}
-
-	symbol := commonFractions[bestIdx].symbol
-	if bestIdx == len(commonFractions)-1 {
-		whole++
-		symbol = ""
-	}
-
-	if whole == 0 {
-		if symbol == "" {
-			return "0"
-		}
-		return symbol
-	}
-	if symbol == "" {
-		return fmt.Sprintf("%d", whole)
-	}
-	return fmt.Sprintf("%d%s", whole, symbol)
-}
-
-//nolint:gochecknoglobals // read-only lookup table
-var measurementUnits = map[string]struct{}{
-	"g": {}, "kg": {}, "mg": {}, "oz": {}, "lb": {}, "lbs": {},
-	"ml": {}, "l": {}, "dl": {}, "cl": {},
-	"tsp": {}, "tbsp": {}, "cup": {}, "cups": {},
-	"pt": {}, "qt": {}, "gal": {}, "fl oz": {},
-}
-
-// ToAmountString formats amount for display. Measurement units (weight/volume)
-// get fraction-ceiling formatting; packaging/count units are rounded up to the
-// nearest whole number.
-func ToAmountString(amount float64, unit string) string {
-	if _, ok := measurementUnits[strings.ToLower(strings.TrimSpace(unit))]; ok {
-		return ToFractionCeiling(amount)
-	}
-	if amount <= 0 {
-		return "0"
-	}
-	return fmt.Sprintf("%d", int(math.Ceil(amount)))
+	s := strconv.FormatFloat(f, 'f', 3, 64)
+	s = strings.TrimRight(s, "0")
+	s = strings.TrimRight(s, ".")
+	return s
 }
 
 var mdLinkRE = regexp.MustCompile(`\[([^\]]+)\]\(((?:https?://)?[^\s)]+)\)`)

@@ -60,3 +60,11 @@ func (s *ShoppingService) SetItemCategory(
 ) error {
 	return s.repo.SetItemCategory(ctx, userID, name, categoryID)
 }
+
+func (s *ShoppingService) SetItemExcluded(
+	ctx context.Context,
+	userID, name string,
+	excluded bool,
+) error {
+	return s.repo.SetItemExcluded(ctx, userID, name, excluded)
+}

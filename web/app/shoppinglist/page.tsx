@@ -120,6 +120,21 @@ export default function ShoppingPage() {
     await mutate()
   }
 
+  const handleEdit = async (
+    itemId: string,
+    values: { name: string; amount: string; unit: string }
+  ) => {
+    const client = createServiceClient(ShoppingListService)
+    await client.updateShoppingItem({
+      itemId,
+      name: values.name,
+      amount: values.amount || '0',
+      unit: values.unit,
+      ownerUserId
+    })
+    await mutate()
+  }
+
   return (
     <main className="max-w-3xl mx-auto p-6">
       <div className="mb-6 flex items-center justify-between gap-2">
@@ -211,6 +226,7 @@ export default function ShoppingPage() {
         <ShoppingList
           items={items}
           onDelete={canEdit ? handleDelete : undefined}
+          onEdit={canEdit ? handleEdit : undefined}
           onExport={() => setShowExport(true)}
         />
       )}
