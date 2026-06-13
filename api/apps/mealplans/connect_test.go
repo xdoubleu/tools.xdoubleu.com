@@ -741,6 +741,127 @@ func TestSharePlan_InvalidPlanID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
 
+func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	recipeA := createRecipeInDB(t, "Suggest A")
+	recipeB := createRecipeInDB(t, "Suggest B")
+	planID := createPlanInDB(t, "Suggest Plan")
+	otherPlanID := createPlanInDB(t, "Suggest Other Plan")
+
+	add := func(plan, date, slot string, recipe uuid.UUID) {
+		_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+			PlanId: plan, MealDate: date, MealSlot: slot,
+			RecipeId: recipe.String(), Servings: 2,
+		}))
+		require.NoError(t, err)
+	}
+
+	// Mondays at noon: A twice, B once -> A ranks first.
+	add(planID, "2024-01-01", "noon", recipeA) // Monday
+	add(planID, "2024-01-08", "noon", recipeA) // Monday
+	add(planID, "2024-01-15", "noon", recipeB) // Monday
+	// Noise that must be excluded:
+	add(planID, "2024-01-02", "noon", recipeB)    // Tuesday
+	add(planID, "2024-01-01", "evening", recipeB) // wrong slot
+	add(otherPlanID, "2024-01-01", "noon", recipeB)
+
+	resp, err := client.SuggestRecipes(
+		ctx,
+		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+			PlanId: planID, MealDate: "2024-01-22", MealSlot: "noon", // a Monday
+		}),
+	)
+	require.NoError(t, err)
+	require.Equal(
+		t,
+		[]string{recipeA.String(), recipeB.String()},
+		resp.Msg.RecipeIds,
+	)
+}
+
+func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	planID := createPlanInDB(t, "Empty Suggest Plan")
+
+	resp, err := client.SuggestRecipes(
+		ctx,
+		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+			PlanId: planID, MealDate: "2024-01-22", MealSlot: "evening",
+		}),
+	)
+	require.NoError(t, err)
+	assert.Empty(t, resp.Msg.RecipeIds)
+}
+
+func TestSuggestRecipes_PlanNotFound(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.SuggestRecipes(
+		ctx,
+		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+			PlanId: uuid.New().String(), MealDate: "2024-01-22", MealSlot: "noon",
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
+}
+
+func TestSuggestRecipes_InvalidPlanID(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.SuggestRecipes(
+		ctx,
+		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+			PlanId: "not-a-uuid", MealDate: "2024-01-22", MealSlot: "noon",
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
+func TestSuggestRecipes_InvalidDate(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	_, err := client.SuggestRecipes(
+		ctx,
+		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+			PlanId: uuid.New().String(), MealDate: "not-a-date", MealSlot: "noon",
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
+
 func TestUnsharePlan_InvalidPlanID(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(

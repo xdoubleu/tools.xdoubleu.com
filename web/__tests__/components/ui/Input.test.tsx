@@ -9,6 +9,11 @@ describe('Input', () => {
     expect(input).toHaveClass('rounded-xl', 'border-input-border', 'bg-input')
   })
 
+  it('uses 16px font on mobile to avoid iOS focus zoom', () => {
+    render(<Input aria-label="name" />)
+    expect(screen.getByLabelText('name')).toHaveClass('text-base', 'md:text-sm')
+  })
+
   it('lets className override the default width', () => {
     render(<Input aria-label="amount" className="w-16" />)
     const input = screen.getByLabelText('amount')

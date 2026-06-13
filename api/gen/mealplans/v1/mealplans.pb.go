@@ -1164,6 +1164,110 @@ func (*UnsharePlanResponse) Descriptor() ([]byte, []int) {
 	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{18}
 }
 
+type SuggestRecipesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PlanId        string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	MealDate      string                 `protobuf:"bytes,2,opt,name=meal_date,json=mealDate,proto3" json:"meal_date,omitempty"`
+	MealSlot      string                 `protobuf:"bytes,3,opt,name=meal_slot,json=mealSlot,proto3" json:"meal_slot,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SuggestRecipesRequest) Reset() {
+	*x = SuggestRecipesRequest{}
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SuggestRecipesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SuggestRecipesRequest) ProtoMessage() {}
+
+func (x *SuggestRecipesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SuggestRecipesRequest.ProtoReflect.Descriptor instead.
+func (*SuggestRecipesRequest) Descriptor() ([]byte, []int) {
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *SuggestRecipesRequest) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+func (x *SuggestRecipesRequest) GetMealDate() string {
+	if x != nil {
+		return x.MealDate
+	}
+	return ""
+}
+
+func (x *SuggestRecipesRequest) GetMealSlot() string {
+	if x != nil {
+		return x.MealSlot
+	}
+	return ""
+}
+
+type SuggestRecipesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RecipeIds     []string               `protobuf:"bytes,1,rep,name=recipe_ids,json=recipeIds,proto3" json:"recipe_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SuggestRecipesResponse) Reset() {
+	*x = SuggestRecipesResponse{}
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SuggestRecipesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SuggestRecipesResponse) ProtoMessage() {}
+
+func (x *SuggestRecipesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SuggestRecipesResponse.ProtoReflect.Descriptor instead.
+func (*SuggestRecipesResponse) Descriptor() ([]byte, []int) {
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *SuggestRecipesResponse) GetRecipeIds() []string {
+	if x != nil {
+		return x.RecipeIds
+	}
+	return nil
+}
+
 var File_mealplans_v1_mealplans_proto protoreflect.FileDescriptor
 
 const file_mealplans_v1_mealplans_proto_rawDesc = "" +
@@ -1255,7 +1359,14 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x12UnsharePlanRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12$\n" +
 	"\x0etarget_user_id\x18\x02 \x01(\tR\ftargetUserId\"\x15\n" +
-	"\x13UnsharePlanResponse2\xff\x04\n" +
+	"\x13UnsharePlanResponse\"j\n" +
+	"\x15SuggestRecipesRequest\x12\x17\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
+	"\tmeal_date\x18\x02 \x01(\tR\bmealDate\x12\x1b\n" +
+	"\tmeal_slot\x18\x03 \x01(\tR\bmealSlot\"7\n" +
+	"\x16SuggestRecipesResponse\x12\x1d\n" +
+	"\n" +
+	"recipe_ids\x18\x01 \x03(\tR\trecipeIds2\xdc\x05\n" +
 	"\x10MealPlansService\x12L\n" +
 	"\tListPlans\x12\x1e.mealplans.v1.ListPlansRequest\x1a\x1f.mealplans.v1.ListPlansResponse\x12F\n" +
 	"\aGetPlan\x12\x1c.mealplans.v1.GetPlanRequest\x1a\x1d.mealplans.v1.GetPlanResponse\x12O\n" +
@@ -1266,7 +1377,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"DeleteMeal\x12\x1f.mealplans.v1.DeleteMealRequest\x1a .mealplans.v1.DeleteMealResponse\x12I\n" +
 	"\bMoveMeal\x12\x1d.mealplans.v1.MoveMealRequest\x1a\x1e.mealplans.v1.MoveMealResponse\x12L\n" +
 	"\tSharePlan\x12\x1e.mealplans.v1.SharePlanRequest\x1a\x1f.mealplans.v1.SharePlanResponse\x12R\n" +
-	"\vUnsharePlan\x12 .mealplans.v1.UnsharePlanRequest\x1a!.mealplans.v1.UnsharePlanResponseB1Z/tools.xdoubleu.com/gen/mealplans/v1;mealplansv1b\x06proto3"
+	"\vUnsharePlan\x12 .mealplans.v1.UnsharePlanRequest\x1a!.mealplans.v1.UnsharePlanResponse\x12[\n" +
+	"\x0eSuggestRecipes\x12#.mealplans.v1.SuggestRecipesRequest\x1a$.mealplans.v1.SuggestRecipesResponseB1Z/tools.xdoubleu.com/gen/mealplans/v1;mealplansv1b\x06proto3"
 
 var (
 	file_mealplans_v1_mealplans_proto_rawDescOnce sync.Once
@@ -1280,35 +1392,37 @@ func file_mealplans_v1_mealplans_proto_rawDescGZIP() []byte {
 	return file_mealplans_v1_mealplans_proto_rawDescData
 }
 
-var file_mealplans_v1_mealplans_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_mealplans_v1_mealplans_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_mealplans_v1_mealplans_proto_goTypes = []any{
-	(*PlanMeal)(nil),            // 0: mealplans.v1.PlanMeal
-	(*Plan)(nil),                // 1: mealplans.v1.Plan
-	(*PlanSharedUser)(nil),      // 2: mealplans.v1.PlanSharedUser
-	(*ListPlansRequest)(nil),    // 3: mealplans.v1.ListPlansRequest
-	(*ListPlansResponse)(nil),   // 4: mealplans.v1.ListPlansResponse
-	(*GetPlanRequest)(nil),      // 5: mealplans.v1.GetPlanRequest
-	(*GetPlanResponse)(nil),     // 6: mealplans.v1.GetPlanResponse
-	(*UpdatePlanRequest)(nil),   // 7: mealplans.v1.UpdatePlanRequest
-	(*UpdatePlanResponse)(nil),  // 8: mealplans.v1.UpdatePlanResponse
-	(*AddMealRequest)(nil),      // 9: mealplans.v1.AddMealRequest
-	(*AddMealResponse)(nil),     // 10: mealplans.v1.AddMealResponse
-	(*DeleteMealRequest)(nil),   // 11: mealplans.v1.DeleteMealRequest
-	(*DeleteMealResponse)(nil),  // 12: mealplans.v1.DeleteMealResponse
-	(*MoveMealRequest)(nil),     // 13: mealplans.v1.MoveMealRequest
-	(*MoveMealResponse)(nil),    // 14: mealplans.v1.MoveMealResponse
-	(*SharePlanRequest)(nil),    // 15: mealplans.v1.SharePlanRequest
-	(*SharePlanResponse)(nil),   // 16: mealplans.v1.SharePlanResponse
-	(*UnsharePlanRequest)(nil),  // 17: mealplans.v1.UnsharePlanRequest
-	(*UnsharePlanResponse)(nil), // 18: mealplans.v1.UnsharePlanResponse
-	(*v1.Recipe)(nil),           // 19: recipes.v1.Recipe
+	(*PlanMeal)(nil),               // 0: mealplans.v1.PlanMeal
+	(*Plan)(nil),                   // 1: mealplans.v1.Plan
+	(*PlanSharedUser)(nil),         // 2: mealplans.v1.PlanSharedUser
+	(*ListPlansRequest)(nil),       // 3: mealplans.v1.ListPlansRequest
+	(*ListPlansResponse)(nil),      // 4: mealplans.v1.ListPlansResponse
+	(*GetPlanRequest)(nil),         // 5: mealplans.v1.GetPlanRequest
+	(*GetPlanResponse)(nil),        // 6: mealplans.v1.GetPlanResponse
+	(*UpdatePlanRequest)(nil),      // 7: mealplans.v1.UpdatePlanRequest
+	(*UpdatePlanResponse)(nil),     // 8: mealplans.v1.UpdatePlanResponse
+	(*AddMealRequest)(nil),         // 9: mealplans.v1.AddMealRequest
+	(*AddMealResponse)(nil),        // 10: mealplans.v1.AddMealResponse
+	(*DeleteMealRequest)(nil),      // 11: mealplans.v1.DeleteMealRequest
+	(*DeleteMealResponse)(nil),     // 12: mealplans.v1.DeleteMealResponse
+	(*MoveMealRequest)(nil),        // 13: mealplans.v1.MoveMealRequest
+	(*MoveMealResponse)(nil),       // 14: mealplans.v1.MoveMealResponse
+	(*SharePlanRequest)(nil),       // 15: mealplans.v1.SharePlanRequest
+	(*SharePlanResponse)(nil),      // 16: mealplans.v1.SharePlanResponse
+	(*UnsharePlanRequest)(nil),     // 17: mealplans.v1.UnsharePlanRequest
+	(*UnsharePlanResponse)(nil),    // 18: mealplans.v1.UnsharePlanResponse
+	(*SuggestRecipesRequest)(nil),  // 19: mealplans.v1.SuggestRecipesRequest
+	(*SuggestRecipesResponse)(nil), // 20: mealplans.v1.SuggestRecipesResponse
+	(*v1.Recipe)(nil),              // 21: recipes.v1.Recipe
 }
 var file_mealplans_v1_mealplans_proto_depIdxs = []int32{
-	19, // 0: mealplans.v1.PlanMeal.recipe:type_name -> recipes.v1.Recipe
+	21, // 0: mealplans.v1.PlanMeal.recipe:type_name -> recipes.v1.Recipe
 	0,  // 1: mealplans.v1.Plan.meals:type_name -> mealplans.v1.PlanMeal
 	1,  // 2: mealplans.v1.ListPlansResponse.plans:type_name -> mealplans.v1.Plan
 	1,  // 3: mealplans.v1.GetPlanResponse.plan:type_name -> mealplans.v1.Plan
-	19, // 4: mealplans.v1.GetPlanResponse.recipes:type_name -> recipes.v1.Recipe
+	21, // 4: mealplans.v1.GetPlanResponse.recipes:type_name -> recipes.v1.Recipe
 	2,  // 5: mealplans.v1.GetPlanResponse.shared_with:type_name -> mealplans.v1.PlanSharedUser
 	3,  // 6: mealplans.v1.MealPlansService.ListPlans:input_type -> mealplans.v1.ListPlansRequest
 	5,  // 7: mealplans.v1.MealPlansService.GetPlan:input_type -> mealplans.v1.GetPlanRequest
@@ -1318,16 +1432,18 @@ var file_mealplans_v1_mealplans_proto_depIdxs = []int32{
 	13, // 11: mealplans.v1.MealPlansService.MoveMeal:input_type -> mealplans.v1.MoveMealRequest
 	15, // 12: mealplans.v1.MealPlansService.SharePlan:input_type -> mealplans.v1.SharePlanRequest
 	17, // 13: mealplans.v1.MealPlansService.UnsharePlan:input_type -> mealplans.v1.UnsharePlanRequest
-	4,  // 14: mealplans.v1.MealPlansService.ListPlans:output_type -> mealplans.v1.ListPlansResponse
-	6,  // 15: mealplans.v1.MealPlansService.GetPlan:output_type -> mealplans.v1.GetPlanResponse
-	8,  // 16: mealplans.v1.MealPlansService.UpdatePlan:output_type -> mealplans.v1.UpdatePlanResponse
-	10, // 17: mealplans.v1.MealPlansService.AddMeal:output_type -> mealplans.v1.AddMealResponse
-	12, // 18: mealplans.v1.MealPlansService.DeleteMeal:output_type -> mealplans.v1.DeleteMealResponse
-	14, // 19: mealplans.v1.MealPlansService.MoveMeal:output_type -> mealplans.v1.MoveMealResponse
-	16, // 20: mealplans.v1.MealPlansService.SharePlan:output_type -> mealplans.v1.SharePlanResponse
-	18, // 21: mealplans.v1.MealPlansService.UnsharePlan:output_type -> mealplans.v1.UnsharePlanResponse
-	14, // [14:22] is the sub-list for method output_type
-	6,  // [6:14] is the sub-list for method input_type
+	19, // 14: mealplans.v1.MealPlansService.SuggestRecipes:input_type -> mealplans.v1.SuggestRecipesRequest
+	4,  // 15: mealplans.v1.MealPlansService.ListPlans:output_type -> mealplans.v1.ListPlansResponse
+	6,  // 16: mealplans.v1.MealPlansService.GetPlan:output_type -> mealplans.v1.GetPlanResponse
+	8,  // 17: mealplans.v1.MealPlansService.UpdatePlan:output_type -> mealplans.v1.UpdatePlanResponse
+	10, // 18: mealplans.v1.MealPlansService.AddMeal:output_type -> mealplans.v1.AddMealResponse
+	12, // 19: mealplans.v1.MealPlansService.DeleteMeal:output_type -> mealplans.v1.DeleteMealResponse
+	14, // 20: mealplans.v1.MealPlansService.MoveMeal:output_type -> mealplans.v1.MoveMealResponse
+	16, // 21: mealplans.v1.MealPlansService.SharePlan:output_type -> mealplans.v1.SharePlanResponse
+	18, // 22: mealplans.v1.MealPlansService.UnsharePlan:output_type -> mealplans.v1.UnsharePlanResponse
+	20, // 23: mealplans.v1.MealPlansService.SuggestRecipes:output_type -> mealplans.v1.SuggestRecipesResponse
+	15, // [15:24] is the sub-list for method output_type
+	6,  // [6:15] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -1344,7 +1460,7 @@ func file_mealplans_v1_mealplans_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mealplans_v1_mealplans_proto_rawDesc), len(file_mealplans_v1_mealplans_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

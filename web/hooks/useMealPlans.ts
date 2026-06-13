@@ -10,7 +10,11 @@ import {
   SharePlanRequestSchema,
   UnsharePlanRequestSchema
 } from '@/lib/gen/mealplans/v1/mealplans_pb'
-import type { ListPlansResponse, GetPlanResponse } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import type {
+  ListPlansResponse,
+  GetPlanResponse,
+  SuggestRecipesResponse
+} from '@/lib/gen/mealplans/v1/mealplans_pb'
 
 export type UpdatePlanInput = MessageInitShape<typeof UpdatePlanRequestSchema>
 export type AddMealInput = MessageInitShape<typeof AddMealRequestSchema>
@@ -28,6 +32,19 @@ export function useMealPlan(id: string, offset: number = 0) {
   const client = createServiceClient(MealPlansService)
   return useSWR<GetPlanResponse, Error>(id ? `/mealplans/${id}?offset=${offset}` : null, () =>
     client.getPlan({ id, offset })
+  )
+}
+
+// useMealSuggestions fetches recipe IDs previously planned on the same weekday
+// and slot. The key is null (no fetch) until a cell is chosen, so it only runs
+// while the add-entry form is open.
+export function useMealSuggestions(planId: string, mealDate: string, mealSlot: string) {
+  const client = createServiceClient(MealPlansService)
+  return useSWR<SuggestRecipesResponse, Error>(
+    planId && mealDate && mealSlot
+      ? `/mealplans/${planId}/suggest?d=${mealDate}&s=${mealSlot}`
+      : null,
+    () => client.suggestRecipes({ planId, mealDate, mealSlot })
   )
 }
 

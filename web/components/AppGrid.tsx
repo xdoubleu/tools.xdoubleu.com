@@ -7,6 +7,7 @@ export interface AppLink {
   label: string
   href: string
   description: string
+  accessKey?: string
 }
 
 export interface AppSection {

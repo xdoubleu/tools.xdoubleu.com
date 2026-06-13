@@ -103,6 +103,13 @@ message UnsharePlanRequest {
 }
 message UnsharePlanResponse {}
 
+message SuggestRecipesRequest {
+  string plan_id = 1;
+  string meal_date = 2;
+  string meal_slot = 3;
+}
+message SuggestRecipesResponse { repeated string recipe_ids = 1; }
+
 service MealPlansService {
   rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
   rpc GetPlan(GetPlanRequest) returns (GetPlanResponse);
@@ -112,4 +119,5 @@ service MealPlansService {
   rpc MoveMeal(MoveMealRequest) returns (MoveMealResponse);
   rpc SharePlan(SharePlanRequest) returns (SharePlanResponse);
   rpc UnsharePlan(UnsharePlanRequest) returns (UnsharePlanResponse);
+  rpc SuggestRecipes(SuggestRecipesRequest) returns (SuggestRecipesResponse);
 }

@@ -31,6 +31,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN: process.env.SENTRY_DSN ?? '', RELEASE: process.env.RELEASE ?? 'dev' })}`
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.addEventListener('gesturestart',function(e){e.preventDefault()});document.addEventListener('gesturechange',function(e){e.preventDefault()});`
+          }}
+        />
       </head>
       <body className="flex min-h-screen flex-col bg-bg text-fg">
         <Navbar />

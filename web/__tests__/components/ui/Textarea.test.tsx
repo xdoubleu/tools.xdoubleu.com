@@ -10,6 +10,11 @@ describe('Textarea', () => {
     expect(area).toHaveClass('rounded-xl', 'border-input-border', 'bg-input')
   })
 
+  it('uses 16px font on mobile to avoid iOS focus zoom', () => {
+    render(<Textarea aria-label="notes" />)
+    expect(screen.getByLabelText('notes')).toHaveClass('text-base', 'md:text-sm')
+  })
+
   it('merges additional className', () => {
     render(<Textarea aria-label="notes" className="resize-none" />)
     expect(screen.getByLabelText('notes')).toHaveClass('resize-none')

@@ -39,7 +39,9 @@ func TestShareShoppingList_RejectsSelf(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.ShareShoppingList(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ShareShoppingListRequest{ContactUserId: userID}),
+		connect.NewRequest(
+			&shoppinglistv1.ShareShoppingListRequest{ContactUserId: userID},
+		),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -49,7 +51,9 @@ func TestUnshareShoppingList_RequiresTarget(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.UnshareShoppingList(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.UnshareShoppingListRequest{TargetUserId: ""}),
+		connect.NewRequest(
+			&shoppinglistv1.UnshareShoppingListRequest{TargetUserId: ""},
+		),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))

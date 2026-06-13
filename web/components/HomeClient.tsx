@@ -11,7 +11,20 @@ import { ConnectError } from '@connectrpc/connect'
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
 
 const ALL_APPS: AppLink[] = [
-  { name: 'backlog', label: 'Backlog', href: '/backlog', description: 'Goals and backlog tracker' },
+  {
+    name: 'games',
+    label: 'Games',
+    href: '/backlog/games',
+    description: 'Steam backlog, progress and distribution.',
+    accessKey: 'backlog'
+  },
+  {
+    name: 'books',
+    label: 'Books',
+    href: '/backlog/books',
+    description: 'Search, library and reading progress.',
+    accessKey: 'backlog'
+  },
   { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' },
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
   {
@@ -52,7 +65,7 @@ const ALL_APPS: AppLink[] = [
 const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 
 const SECTION_DEFS: { title: string; names: string[] }[] = [
-  { title: 'Productivity', names: ['backlog', 'todos'] },
+  { title: 'Productivity', names: ['games', 'books', 'todos'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty', 'icsproxy'] },
   { title: 'Account', names: ['settings', 'contacts', 'sharing'] },
@@ -144,14 +157,14 @@ export default function HomeClient() {
 
   if (authState === 'authenticated' && data) {
     const appAccess = new Set(data.appAccess ?? [])
-    const isVisible = (name: string) => {
-      if (ALWAYS_VISIBLE.has(name)) return true
-      if (ADMIN_ONLY.has(name)) return data.role === 'admin'
-      return data.role === 'admin' || appAccess.has(name)
+    const isVisible = (app: AppLink) => {
+      if (ALWAYS_VISIBLE.has(app.name)) return true
+      if (ADMIN_ONLY.has(app.name)) return data.role === 'admin'
+      return data.role === 'admin' || appAccess.has(app.accessKey ?? app.name)
     }
     const sections: AppSection[] = SECTION_DEFS.map(({ title, names }) => ({
       title,
-      apps: names.map((n) => APP_MAP.get(n)!).filter((app) => isVisible(app.name))
+      apps: names.map((n) => APP_MAP.get(n)!).filter((app) => isVisible(app))
     }))
 
     return <AppGrid sections={sections} />

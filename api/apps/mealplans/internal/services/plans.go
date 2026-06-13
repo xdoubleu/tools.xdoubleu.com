@@ -55,6 +55,22 @@ func (s *PlanService) GetMeals(
 	return s.repo.GetMealsInWindow(ctx, planID, start, end)
 }
 
+// suggestRecipesLimit caps how many suggestions are returned per cell.
+const suggestRecipesLimit = 5
+
+func (s *PlanService) SuggestRecipes(
+	ctx context.Context,
+	planID uuid.UUID,
+	userID string,
+	mealDate time.Time,
+	slot string,
+) ([]uuid.UUID, error) {
+	if _, err := s.repo.GetByID(ctx, planID, userID); err != nil {
+		return nil, err
+	}
+	return s.repo.SuggestRecipes(ctx, planID, mealDate, slot, suggestRecipesLimit)
+}
+
 func (s *PlanService) GetByICalToken(
 	ctx context.Context,
 	token uuid.UUID,

@@ -4,7 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 jest.mock('@/hooks/useMealPlans', () => ({
   useAddMeal: jest.fn(),
   useDeleteMeal: jest.fn(),
-  useMoveMeal: jest.fn()
+  useMoveMeal: jest.fn(),
+  useMealSuggestions: jest.fn(() => ({ data: undefined }))
 }))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
 jest.mock('@/lib/recipes/mealPlanCalendar', () => {
