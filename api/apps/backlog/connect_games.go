@@ -141,6 +141,61 @@ func (h *gamesConnectHandler) GetSteamGame(
 	}), nil
 }
 
+func (h *gamesConnectHandler) RefreshSteamGame(
+	ctx context.Context,
+	req *connect.Request[backlogv1.RefreshSteamGameRequest],
+) (*connect.Response[backlogv1.RefreshSteamGameResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+
+	gameID := int(req.Msg.GameId)
+
+	if err := h.app.Services.Steam.SyncGame(ctx, user.ID, gameID); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	game, err := h.app.Services.Steam.GetGameByID(ctx, gameID, user.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	achievements, err := h.app.Services.Steam.GetAchievementsForGame(
+		ctx,
+		gameID,
+		user.ID,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	sort.Slice(achievements, func(i, j int) bool {
+		pi := achievements[i].GlobalPercent
+		pj := achievements[j].GlobalPercent
+		if pi == nil && pj == nil {
+			return achievements[i].DisplayName < achievements[j].DisplayName
+		}
+		if pi == nil {
+			return false
+		}
+		if pj == nil {
+			return true
+		}
+		return *pi > *pj
+	})
+
+	return connect.NewResponse(&backlogv1.RefreshSteamGameResponse{
+		Data: &backlogv1.SteamGameResponse{
+			Game:         protoGame(*game),
+			Achievements: protoAchievements(achievements),
+		},
+	}), nil
+}
+
 func (h *gamesConnectHandler) GetSteamDistribution(
 	ctx context.Context,
 	req *connect.Request[backlogv1.GetSteamDistributionRequest],

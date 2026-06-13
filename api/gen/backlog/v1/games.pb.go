@@ -853,6 +853,94 @@ func (x *GetRecentlyActiveGamesResponse) GetGames() []*RecentGame {
 	return nil
 }
 
+type RefreshSteamGameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GameId        int32                  `protobuf:"varint,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshSteamGameRequest) Reset() {
+	*x = RefreshSteamGameRequest{}
+	mi := &file_backlog_v1_games_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshSteamGameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshSteamGameRequest) ProtoMessage() {}
+
+func (x *RefreshSteamGameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_games_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshSteamGameRequest.ProtoReflect.Descriptor instead.
+func (*RefreshSteamGameRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_games_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RefreshSteamGameRequest) GetGameId() int32 {
+	if x != nil {
+		return x.GameId
+	}
+	return 0
+}
+
+type RefreshSteamGameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          *SteamGameResponse     `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshSteamGameResponse) Reset() {
+	*x = RefreshSteamGameResponse{}
+	mi := &file_backlog_v1_games_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshSteamGameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshSteamGameResponse) ProtoMessage() {}
+
+func (x *RefreshSteamGameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_games_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshSteamGameResponse.ProtoReflect.Descriptor instead.
+func (*RefreshSteamGameResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_games_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *RefreshSteamGameResponse) GetData() *SteamGameResponse {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 var File_backlog_v1_games_proto protoreflect.FileDescriptor
 
 const file_backlog_v1_games_proto_rawDesc = "" +
@@ -921,12 +1009,17 @@ const file_backlog_v1_games_proto_rawDesc = "" +
 	"\x04data\x18\x01 \x01(\v2%.backlog.v1.SteamDistributionResponseR\x04data\"\x1f\n" +
 	"\x1dGetRecentlyActiveGamesRequest\"N\n" +
 	"\x1eGetRecentlyActiveGamesResponse\x12,\n" +
-	"\x05games\x18\x01 \x03(\v2\x16.backlog.v1.RecentGameR\x05games2\x84\x03\n" +
+	"\x05games\x18\x01 \x03(\v2\x16.backlog.v1.RecentGameR\x05games\"2\n" +
+	"\x17RefreshSteamGameRequest\x12\x17\n" +
+	"\agame_id\x18\x01 \x01(\x05R\x06gameId\"M\n" +
+	"\x18RefreshSteamGameResponse\x121\n" +
+	"\x04data\x18\x01 \x01(\v2\x1d.backlog.v1.SteamGameResponseR\x04data2\xe3\x03\n" +
 	"\fGamesService\x12E\n" +
 	"\bGetSteam\x12\x1b.backlog.v1.GetSteamRequest\x1a\x1c.backlog.v1.GetSteamResponse\x12Q\n" +
 	"\fGetSteamGame\x12\x1f.backlog.v1.GetSteamGameRequest\x1a .backlog.v1.GetSteamGameResponse\x12i\n" +
 	"\x14GetSteamDistribution\x12'.backlog.v1.GetSteamDistributionRequest\x1a(.backlog.v1.GetSteamDistributionResponse\x12o\n" +
-	"\x16GetRecentlyActiveGames\x12).backlog.v1.GetRecentlyActiveGamesRequest\x1a*.backlog.v1.GetRecentlyActiveGamesResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
+	"\x16GetRecentlyActiveGames\x12).backlog.v1.GetRecentlyActiveGamesRequest\x1a*.backlog.v1.GetRecentlyActiveGamesResponse\x12]\n" +
+	"\x10RefreshSteamGame\x12#.backlog.v1.RefreshSteamGameRequest\x1a$.backlog.v1.RefreshSteamGameResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
 
 var (
 	file_backlog_v1_games_proto_rawDescOnce sync.Once
@@ -940,7 +1033,7 @@ func file_backlog_v1_games_proto_rawDescGZIP() []byte {
 	return file_backlog_v1_games_proto_rawDescData
 }
 
-var file_backlog_v1_games_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_backlog_v1_games_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_backlog_v1_games_proto_goTypes = []any{
 	(*Game)(nil),                           // 0: backlog.v1.Game
 	(*Achievement)(nil),                    // 1: backlog.v1.Achievement
@@ -956,6 +1049,8 @@ var file_backlog_v1_games_proto_goTypes = []any{
 	(*GetSteamDistributionResponse)(nil),   // 11: backlog.v1.GetSteamDistributionResponse
 	(*GetRecentlyActiveGamesRequest)(nil),  // 12: backlog.v1.GetRecentlyActiveGamesRequest
 	(*GetRecentlyActiveGamesResponse)(nil), // 13: backlog.v1.GetRecentlyActiveGamesResponse
+	(*RefreshSteamGameRequest)(nil),        // 14: backlog.v1.RefreshSteamGameRequest
+	(*RefreshSteamGameResponse)(nil),       // 15: backlog.v1.RefreshSteamGameResponse
 }
 var file_backlog_v1_games_proto_depIdxs = []int32{
 	0,  // 0: backlog.v1.SteamResponse.not_started:type_name -> backlog.v1.Game
@@ -968,19 +1063,22 @@ var file_backlog_v1_games_proto_depIdxs = []int32{
 	3,  // 7: backlog.v1.GetSteamGameResponse.data:type_name -> backlog.v1.SteamGameResponse
 	4,  // 8: backlog.v1.GetSteamDistributionResponse.data:type_name -> backlog.v1.SteamDistributionResponse
 	5,  // 9: backlog.v1.GetRecentlyActiveGamesResponse.games:type_name -> backlog.v1.RecentGame
-	6,  // 10: backlog.v1.GamesService.GetSteam:input_type -> backlog.v1.GetSteamRequest
-	8,  // 11: backlog.v1.GamesService.GetSteamGame:input_type -> backlog.v1.GetSteamGameRequest
-	10, // 12: backlog.v1.GamesService.GetSteamDistribution:input_type -> backlog.v1.GetSteamDistributionRequest
-	12, // 13: backlog.v1.GamesService.GetRecentlyActiveGames:input_type -> backlog.v1.GetRecentlyActiveGamesRequest
-	7,  // 14: backlog.v1.GamesService.GetSteam:output_type -> backlog.v1.GetSteamResponse
-	9,  // 15: backlog.v1.GamesService.GetSteamGame:output_type -> backlog.v1.GetSteamGameResponse
-	11, // 16: backlog.v1.GamesService.GetSteamDistribution:output_type -> backlog.v1.GetSteamDistributionResponse
-	13, // 17: backlog.v1.GamesService.GetRecentlyActiveGames:output_type -> backlog.v1.GetRecentlyActiveGamesResponse
-	14, // [14:18] is the sub-list for method output_type
-	10, // [10:14] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	3,  // 10: backlog.v1.RefreshSteamGameResponse.data:type_name -> backlog.v1.SteamGameResponse
+	6,  // 11: backlog.v1.GamesService.GetSteam:input_type -> backlog.v1.GetSteamRequest
+	8,  // 12: backlog.v1.GamesService.GetSteamGame:input_type -> backlog.v1.GetSteamGameRequest
+	10, // 13: backlog.v1.GamesService.GetSteamDistribution:input_type -> backlog.v1.GetSteamDistributionRequest
+	12, // 14: backlog.v1.GamesService.GetRecentlyActiveGames:input_type -> backlog.v1.GetRecentlyActiveGamesRequest
+	14, // 15: backlog.v1.GamesService.RefreshSteamGame:input_type -> backlog.v1.RefreshSteamGameRequest
+	7,  // 16: backlog.v1.GamesService.GetSteam:output_type -> backlog.v1.GetSteamResponse
+	9,  // 17: backlog.v1.GamesService.GetSteamGame:output_type -> backlog.v1.GetSteamGameResponse
+	11, // 18: backlog.v1.GamesService.GetSteamDistribution:output_type -> backlog.v1.GetSteamDistributionResponse
+	13, // 19: backlog.v1.GamesService.GetRecentlyActiveGames:output_type -> backlog.v1.GetRecentlyActiveGamesResponse
+	15, // 20: backlog.v1.GamesService.RefreshSteamGame:output_type -> backlog.v1.RefreshSteamGameResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_backlog_v1_games_proto_init() }
@@ -995,7 +1093,7 @@ func file_backlog_v1_games_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backlog_v1_games_proto_rawDesc), len(file_backlog_v1_games_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

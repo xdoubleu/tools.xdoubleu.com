@@ -254,6 +254,43 @@ func TestConnectGetSteamDistribution_InvalidBucket(t *testing.T) {
 	assert.True(t, errors.As(err, &connectErr))
 }
 
+// TestConnectRefreshSteamGame_GameNotFound verifies that RefreshSteamGame
+// returns an error when the requested game does not exist in the database (the
+// no-credentials no-op still falls through to GetGameByID which fails).
+func TestConnectRefreshSteamGame_GameNotFound(t *testing.T) {
+	client := newGamesTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Game 999999 was never seeded; testApp has empty Steam creds so SyncGame
+	// is a no-op, and GetGameByID returns an error.
+	req := connect.NewRequest(&backlogv1.RefreshSteamGameRequest{GameId: 999999})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.RefreshSteamGame(ctx, req)
+	assert.Error(t, err)
+	var connectErr *connect.Error
+	assert.True(t, errors.As(err, &connectErr))
+}
+
+func TestConnectRefreshSteamGame_WithSeededData(t *testing.T) {
+	seedSteamData(t)
+
+	client := newGamesTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&backlogv1.RefreshSteamGameRequest{GameId: 1})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.RefreshSteamGame(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.Msg.Data)
+	assert.NotNil(t, resp.Msg.Data.Game)
+	assert.NotEmpty(t, resp.Msg.Data.Achievements)
+}
+
 func TestConnectSearchLibrary_Empty(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
