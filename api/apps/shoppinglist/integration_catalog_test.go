@@ -540,3 +540,37 @@ func TestListItemNames_IncludesMealPlanCustomItems(t *testing.T) {
 	}
 	assert.Equal(t, cat.Id, got)
 }
+
+// Recipe-less meal entries flagged exclude_from_shopping_list never reach the
+// shopping list, so their hand-typed items must not appear in the catalog
+// either. This mirrors the export query's exclusion and lets items that leaked
+// in before the feature existed be cleaned up by excluding the meal.
+func TestListItemNames_ExcludesExcludedMealPlanItems(t *testing.T) {
+	planID := createTestPlan(t, "Catalog Exclude Plan "+uuid.NewString())
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	included := "included-" + uuid.NewString()
+	excluded := "excluded-" + uuid.NewString()
+	addCustomPlanMeal(t, planID, tomorrow, "noon", included)
+	addExcludedPlanMeal(t, planID, tomorrow, excluded)
+
+	client := newShoppingClient(t)
+	resp, err := client.ListItemNames(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+	)
+	require.NoError(t, err)
+
+	names := make([]string, 0, len(resp.Msg.Names))
+	for _, n := range resp.Msg.Names {
+		names = append(names, n.Name)
+	}
+	assert.Contains(t, names, included, "non-excluded item should be in catalog")
+	assert.NotContains(
+		t,
+		names,
+		excluded,
+		"excluded meal item must not appear in catalog",
+	)
+}

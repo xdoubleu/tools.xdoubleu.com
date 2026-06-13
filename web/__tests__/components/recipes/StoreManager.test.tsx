@@ -2,6 +2,31 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import StoreManager from '@/components/recipes/StoreManager'
 
+// jsdom returns zeroed getBoundingClientRect, so @dnd-kit's pointer/keyboard
+// sensors can't compute positions. Mock DndContext to expose onDragEnd via a
+// test trigger button, which exercises the real handleDragEnd + arrayMove logic.
+jest.mock('@dnd-kit/core', () => {
+  const actual = jest.requireActual('@dnd-kit/core')
+  return {
+    ...actual,
+    DndContext: ({
+      children,
+      onDragEnd
+    }: {
+      children: React.ReactNode
+      onDragEnd: (event: { active: { id: string }; over: { id: string } }) => void
+    }) => (
+      <>
+        <button
+          aria-label="drag Dairy above Vegetables"
+          onClick={() => onDragEnd({ active: { id: 'cat-dairy' }, over: { id: 'cat-veg' } })}
+        />
+        {children}
+      </>
+    )
+  }
+})
+
 const mutateStores = jest.fn().mockResolvedValue(undefined)
 const mutateStoreCategories = jest.fn().mockResolvedValue(undefined)
 const createStore = jest.fn().mockResolvedValue({})
@@ -69,11 +94,11 @@ describe('StoreManager', () => {
     expect(screen.getByText('Dairy')).toBeInTheDocument()
   })
 
-  it('reorders categories and saves the new order', async () => {
+  it('reorders categories on drag and saves the new order', async () => {
     render(<StoreManager />)
     fireEvent.click(screen.getByRole('button', { name: 'Edit order' }))
-    // Move Dairy up so the order becomes Dairy, Vegetables.
-    fireEvent.click(screen.getByRole('button', { name: 'Move Dairy up' }))
+    // Drag Dairy above Vegetables so the order becomes Dairy, Vegetables.
+    fireEvent.click(screen.getByRole('button', { name: 'drag Dairy above Vegetables' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save order' }))
     await waitFor(() =>
       expect(setStoreCategories).toHaveBeenCalledWith({
@@ -81,6 +106,13 @@ describe('StoreManager', () => {
         categoryIds: ['cat-dairy', 'cat-veg']
       })
     )
+  })
+
+  it('exposes a reorder drag handle for each category', () => {
+    render(<StoreManager />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit order' }))
+    expect(screen.getByRole('button', { name: 'Reorder Vegetables' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reorder Dairy' })).toBeInTheDocument()
   })
 
   it('adds an available category to the order', async () => {
