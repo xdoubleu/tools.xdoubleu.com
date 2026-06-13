@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
+	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 )
 
 const (
@@ -131,11 +132,17 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 		status,
 	)
 
+	var coverURL *string
+	if u := hardcover.OpenLibraryCoverURL(isbn13); u != "" {
+		coverURL = &u
+	}
+
 	book := models.Book{ //nolint:exhaustruct //optional fields
-		Title:   title,
-		Authors: []string{author},
-		ISBN13:  isbn13,
-		ISBN10:  isbn10,
+		Title:    title,
+		Authors:  []string{author},
+		ISBN13:   isbn13,
+		ISBN10:   isbn10,
+		CoverURL: coverURL,
 		ExternalRefs: map[string]string{
 			"goodreads": goodreadsID,
 		},

@@ -9,26 +9,25 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts'
-import type { GetBooksProgressResponse } from '@/lib/gen/backlog/v1/books_pb'
+
+export interface ProgressPoint {
+  label: string
+  value: number
+}
 
 interface BooksProgressChartProps {
-  data: GetBooksProgressResponse | undefined
+  data: ProgressPoint[]
 }
 
 export default function BooksProgressChart({ data }: BooksProgressChartProps) {
-  if (!data?.progress?.labels || data.progress.labels.length === 0) {
+  if (data.length === 0) {
     return <p className="text-muted">No progress data available.</p>
   }
 
-  const chartData = data.progress.labels.map((label: string, idx: number) => ({
-    label,
-    value: parseInt(data.progress?.values?.[idx] || '0', 10)
-  }))
-
   return (
-    <div className="w-full h-64">
+    <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
+        <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" />
           <XAxis dataKey="label" width={80} tick={{ fill: 'rgb(var(--color-muted))' }} />
           <YAxis tick={{ fill: 'rgb(var(--color-muted))' }} />
