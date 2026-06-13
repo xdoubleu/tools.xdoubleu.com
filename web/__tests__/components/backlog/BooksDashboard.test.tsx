@@ -97,6 +97,7 @@ describe('BooksDashboard', () => {
     expect(screen.getByText('Total books')).toBeInTheDocument()
     expect(screen.getByText('In progress')).toBeInTheDocument()
     expect(screen.getByText('Finished')).toBeInTheDocument()
+    expect(screen.getByText('Read this year')).toBeInTheDocument()
     expect(screen.getByText('Wishlist')).toBeInTheDocument()
   })
 
@@ -130,9 +131,13 @@ describe('BooksDashboard', () => {
     )
   })
 
-  it('updates the progress date range', () => {
+  it('shows YTD chart by default and reveals date inputs when All time is selected', () => {
     mockLibrary()
     render(<BooksDashboard />)
+    // From/To inputs are hidden in YTD view
+    expect(screen.queryByLabelText('From')).not.toBeInTheDocument()
+    // switch to All time
+    fireEvent.click(screen.getByRole('tab', { name: 'All time' }))
     const from = screen.getByLabelText('From')
     fireEvent.change(from, { target: { value: '2026-01-01' } })
     expect(from).toHaveValue('2026-01-01')

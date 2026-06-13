@@ -176,7 +176,14 @@ export default function BooksSection() {
               />
             </div>
           </div>
-          <BooksProgressChart data={progressData} />
+          <BooksProgressChart
+            data={
+              progressData?.progress?.labels?.map((label: string, idx: number) => ({
+                label,
+                value: parseInt(progressData.progress?.values?.[idx] ?? '0', 10)
+              })) ?? []
+            }
+          />
         </div>
       )}
 

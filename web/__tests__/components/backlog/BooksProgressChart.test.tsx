@@ -1,11 +1,7 @@
 import React from 'react'
-import { create } from '@bufbuild/protobuf'
 import { render, screen } from '@testing-library/react'
 import BooksProgressChart from '@/components/backlog/BooksProgressChart'
-import {
-  GetBooksProgressResponseSchema,
-  BooksProgressResponseSchema
-} from '@/lib/gen/backlog/v1/books_pb'
+import type { ProgressPoint } from '@/components/backlog/BooksProgressChart'
 
 jest.mock('recharts', () => ({
   LineChart: ({ children }: { children: React.ReactNode }) => (
@@ -20,26 +16,17 @@ jest.mock('recharts', () => ({
 }))
 
 describe('BooksProgressChart', () => {
-  it('shows empty state when data is undefined', () => {
-    render(<BooksProgressChart data={undefined} />)
+  it('shows empty state when data is an empty array', () => {
+    render(<BooksProgressChart data={[]} />)
     expect(screen.getByText('No progress data available.')).toBeInTheDocument()
   })
 
-  it('shows empty state when data has no progress labels', () => {
-    const emptyData = create(GetBooksProgressResponseSchema, {
-      progress: create(BooksProgressResponseSchema, { labels: [], values: [] })
-    })
-    render(<BooksProgressChart data={emptyData} />)
-    expect(screen.getByText('No progress data available.')).toBeInTheDocument()
-  })
-
-  it('renders chart when progress data is provided', () => {
-    const data = create(GetBooksProgressResponseSchema, {
-      progress: create(BooksProgressResponseSchema, {
-        labels: ['Jan', 'Feb', 'Mar'],
-        values: ['2', '5', '3']
-      })
-    })
+  it('renders chart when data points are provided', () => {
+    const data: ProgressPoint[] = [
+      { label: '2026-01-01', value: 1 },
+      { label: '2026-02-01', value: 3 },
+      { label: '2026-03-01', value: 5 }
+    ]
     render(<BooksProgressChart data={data} />)
     expect(screen.getByTestId('line-chart')).toBeInTheDocument()
   })

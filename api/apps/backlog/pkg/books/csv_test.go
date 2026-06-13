@@ -33,6 +33,12 @@ func TestParseCSV_HappyPath(t *testing.T) {
 	assert.Equal(t, "9780140449112", *e0.Book.ISBN13)
 	assert.Equal(t, "0140449116", *e0.Book.ISBN10)
 	assert.Equal(t, "12345", e0.Book.ExternalRefs["goodreads"])
+	// ISBN13 present → OpenLibrary cover URL populated
+	assert.Equal(
+		t,
+		"https://covers.openlibrary.org/b/isbn/9780140449112-L.jpg",
+		*e0.Book.CoverURL,
+	)
 	assert.Equal(t, models.StatusRead, e0.UserBook.Status)
 	assert.NotEmpty(t, e0.UserBook.FinishedAt)
 	assert.EqualValues(t, 5, *e0.UserBook.Rating)
@@ -51,12 +57,13 @@ func TestParseCSV_HappyPath(t *testing.T) {
 	assert.Empty(t, e1.UserBook.FinishedAt)
 	assert.Contains(t, e1.UserBook.Tags, "own-digital")
 
-	// Reading book
+	// Reading book — no ISBN, so no cover
 	e2 := entries[2]
 	assert.Equal(t, "Foundation", e2.Book.Title)
 	assert.Equal(t, models.StatusReading, e2.UserBook.Status)
 	assert.Nil(t, e2.Book.ISBN13) // empty ISBN
 	assert.Nil(t, e2.Book.ISBN10)
+	assert.Nil(t, e2.Book.CoverURL) // no ISBN → no cover
 	assert.EqualValues(t, 3, *e2.UserBook.Rating)
 }
 
@@ -79,6 +86,7 @@ func TestParseCSV_EmptyDateRead(t *testing.T) {
 	assert.Empty(t, entries[0].UserBook.FinishedAt)
 	assert.Nil(t, entries[0].Book.ISBN13)
 	assert.Nil(t, entries[0].Book.ISBN10)
+	assert.Nil(t, entries[0].Book.CoverURL) // no ISBN → no cover
 }
 
 func TestParseCSV_SkipsInvalidBookID(t *testing.T) {
