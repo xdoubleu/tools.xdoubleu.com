@@ -406,11 +406,35 @@ func (fourAchievementsMock) GetPlayerAchievements(
 			GameName: "four-ach game",
 			Achievements: []steam.Achievement{
 				// Two with global percents (different values → exercises *pi > *pj)
-				{APIName: "ACH_HIGH", Achieved: 0},
-				{APIName: "ACH_LOW", Achieved: 0},
+				{
+					APIName:     "ACH_HIGH",
+					Achieved:    0,
+					UnlockTime:  0,
+					Name:        "",
+					Description: "",
+				},
+				{
+					APIName:     "ACH_LOW",
+					Achieved:    0,
+					UnlockTime:  0,
+					Name:        "",
+					Description: "",
+				},
 				// Two without global percents (exercises both-nil DisplayName branch)
-				{APIName: "ACH_NIL_A", Achieved: 0},
-				{APIName: "ACH_NIL_B", Achieved: 0},
+				{
+					APIName:     "ACH_NIL_A",
+					Achieved:    0,
+					UnlockTime:  0,
+					Name:        "",
+					Description: "",
+				},
+				{
+					APIName:     "ACH_NIL_B",
+					Achieved:    0,
+					UnlockTime:  0,
+					Name:        "",
+					Description: "",
+				},
 			},
 		},
 	}, nil
@@ -545,7 +569,9 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&backlogv1.RefreshSteamGameRequest{GameId: int32(gameID)}) //nolint:gosec // safe for domain values
+	req := connect.NewRequest(
+		&backlogv1.RefreshSteamGameRequest{GameId: int32(gameID)},
+	)
 	req.Header().Set("Cookie", accessToken.String())
 
 	_, err := client.RefreshSteamGame(ctx, req)
