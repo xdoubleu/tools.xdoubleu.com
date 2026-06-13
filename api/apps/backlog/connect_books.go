@@ -215,6 +215,7 @@ func (h *booksConnectHandler) AddBook(
 		ISBN10:      nil,
 		CoverURL:    coverURL,
 		Description: desc,
+		PageCount:   nil,
 	}
 	initialTags := []string{}
 	if req.Msg.OwnPhysical {
@@ -280,6 +281,38 @@ func (h *booksConnectHandler) UpdateBookStatus(
 		}
 	}
 	return connect.NewResponse(&backlogv1.UpdateBookStatusResponse{}), nil
+}
+
+func (h *booksConnectHandler) UpdateProgress(
+	ctx context.Context,
+	req *connect.Request[backlogv1.UpdateProgressRequest],
+) (*connect.Response[backlogv1.UpdateProgressResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	err = h.app.Services.Books.UpdateProgress(
+		ctx,
+		user.ID,
+		bookID,
+		req.Msg.ProgressMode,
+		int(req.Msg.CurrentPage),
+		int(req.Msg.ProgressPercent),
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&backlogv1.UpdateProgressResponse{}), nil
 }
 
 func (h *booksConnectHandler) ToggleTag(
@@ -351,6 +384,7 @@ func protoBook(book *models.Book) *backlogv1.Book {
 		Isbn13:      stringPtr(book.ISBN13),
 		CoverUrl:    stringPtr(book.CoverURL),
 		Description: stringPtr(book.Description),
+		PageCount:   int32FromIntPtr(book.PageCount),
 	}
 }
 
@@ -360,17 +394,20 @@ func protoUserBook(ub models.UserBook) *backlogv1.UserBook {
 		finishedAt[i] = t.Format(time.RFC3339)
 	}
 	return &backlogv1.UserBook{
-		Id:         ub.ID.String(),
-		UserId:     ub.UserID,
-		BookId:     ub.BookID.String(),
-		Book:       protoBook(ub.Book),
-		Status:     ub.Status,
-		Tags:       ub.Tags,
-		Rating:     int32PtrFromInt16(ub.Rating),
-		Notes:      stringPtr(ub.Notes),
-		FinishedAt: finishedAt,
-		AddedAt:    ub.AddedAt.Format(time.RFC3339),
-		UpdatedAt:  ub.UpdatedAt.Format(time.RFC3339),
+		Id:              ub.ID.String(),
+		UserId:          ub.UserID,
+		BookId:          ub.BookID.String(),
+		Book:            protoBook(ub.Book),
+		Status:          ub.Status,
+		Tags:            ub.Tags,
+		Rating:          int32PtrFromInt16(ub.Rating),
+		Notes:           stringPtr(ub.Notes),
+		FinishedAt:      finishedAt,
+		ProgressMode:    ub.ProgressMode,
+		CurrentPage:     int32FromInt(ub.CurrentPage),
+		ProgressPercent: int32FromInt(ub.ProgressPercent),
+		AddedAt:         ub.AddedAt.Format(time.RFC3339),
+		UpdatedAt:       ub.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -423,4 +460,16 @@ func int32PtrFromInt16(i *int16) int32 {
 		return 0
 	}
 	return int32(*i)
+}
+
+func int32FromInt(i int) int32 {
+	//nolint:gosec // safe for domain page/percent values
+	return int32(i)
+}
+
+func int32FromIntPtr(i *int) int32 {
+	if i == nil {
+		return 0
+	}
+	return int32FromInt(*i)
 }

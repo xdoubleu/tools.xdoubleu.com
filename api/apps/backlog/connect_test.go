@@ -394,6 +394,124 @@ func TestConnectUpdateBookStatus_MarkRead(t *testing.T) {
 	assert.NotNil(t, resp.Msg)
 }
 
+func TestConnectUpdateProgress_Pages(t *testing.T) {
+	book := addTestBook(t, "ProgressPagesBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(
+		&backlogv1.UpdateProgressRequest{
+			BookId:       book.BookID.String(),
+			ProgressMode: models.ProgressModePages,
+			CurrentPage:  120,
+		},
+	)
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.UpdateProgress(ctx, req)
+	require.NoError(t, err)
+	assert.NotNil(t, resp.Msg)
+
+	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, book.BookID)
+	require.NoError(t, err)
+	assert.Equal(t, models.ProgressModePages, saved.ProgressMode)
+	assert.Equal(t, 120, saved.CurrentPage)
+}
+
+func TestConnectUpdateProgress_PercentClamped(t *testing.T) {
+	book := addTestBook(t, "ProgressPercentBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(
+		&backlogv1.UpdateProgressRequest{
+			BookId:          book.BookID.String(),
+			ProgressMode:    models.ProgressModePercent,
+			ProgressPercent: 150,
+		},
+	)
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateProgress(ctx, req)
+	require.NoError(t, err)
+
+	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, book.BookID)
+	require.NoError(t, err)
+	assert.Equal(t, models.ProgressModePercent, saved.ProgressMode)
+	assert.Equal(t, 100, saved.ProgressPercent)
+}
+
+func TestConnectUpdateProgress_NegativeValuesClampedToZero(t *testing.T) {
+	book := addTestBook(t, "ProgressNegativeBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(
+		&backlogv1.UpdateProgressRequest{
+			BookId:          book.BookID.String(),
+			ProgressMode:    models.ProgressModePercent,
+			CurrentPage:     -5,
+			ProgressPercent: -10,
+		},
+	)
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateProgress(ctx, req)
+	require.NoError(t, err)
+
+	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, book.BookID)
+	require.NoError(t, err)
+	assert.Equal(t, 0, saved.CurrentPage)
+	assert.Equal(t, 0, saved.ProgressPercent)
+}
+
+func TestConnectUpdateProgress_InvalidBookID(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(
+		&backlogv1.UpdateProgressRequest{
+			BookId:       "not-a-uuid",
+			ProgressMode: models.ProgressModePages,
+		},
+	)
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateProgress(ctx, req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestConnectUpdateProgress_InvalidMode(t *testing.T) {
+	book := addTestBook(t, "ProgressInvalidModeBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(
+		&backlogv1.UpdateProgressRequest{
+			BookId:       book.BookID.String(),
+			ProgressMode: "chapters",
+		},
+	)
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateProgress(ctx, req)
+	require.Error(t, err)
+}
+
 func TestConnectToggleTag_AddTag(t *testing.T) {
 	book := addTestBook(t, "TagBook1")
 	require.NotNil(t, book)

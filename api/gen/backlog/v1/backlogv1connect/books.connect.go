@@ -54,6 +54,9 @@ const (
 	// BooksServiceUpdateBookStatusProcedure is the fully-qualified name of the BooksService's
 	// UpdateBookStatus RPC.
 	BooksServiceUpdateBookStatusProcedure = "/backlog.v1.BooksService/UpdateBookStatus"
+	// BooksServiceUpdateProgressProcedure is the fully-qualified name of the BooksService's
+	// UpdateProgress RPC.
+	BooksServiceUpdateProgressProcedure = "/backlog.v1.BooksService/UpdateProgress"
 	// BooksServiceToggleTagProcedure is the fully-qualified name of the BooksService's ToggleTag RPC.
 	BooksServiceToggleTagProcedure = "/backlog.v1.BooksService/ToggleTag"
 	// BooksServiceImportBooksProcedure is the fully-qualified name of the BooksService's ImportBooks
@@ -71,6 +74,7 @@ type BooksServiceClient interface {
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
 	AddBook(context.Context, *connect.Request[v1.AddBookRequest]) (*connect.Response[v1.AddBookResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
+	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
 }
@@ -134,6 +138,12 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(booksServiceMethods.ByName("UpdateBookStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		updateProgress: connect.NewClient[v1.UpdateProgressRequest, v1.UpdateProgressResponse](
+			httpClient,
+			baseURL+BooksServiceUpdateProgressProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("UpdateProgress")),
+			connect.WithClientOptions(opts...),
+		),
 		toggleTag: connect.NewClient[v1.ToggleTagRequest, v1.ToggleTagResponse](
 			httpClient,
 			baseURL+BooksServiceToggleTagProcedure,
@@ -159,6 +169,7 @@ type booksServiceClient struct {
 	searchExternal   *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
 	addBook          *connect.Client[v1.AddBookRequest, v1.AddBookResponse]
 	updateBookStatus *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
+	updateProgress   *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
 	toggleTag        *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
 	importBooks      *connect.Client[v1.ImportBooksRequest, v1.ImportBooksResponse]
 }
@@ -203,6 +214,11 @@ func (c *booksServiceClient) UpdateBookStatus(ctx context.Context, req *connect.
 	return c.updateBookStatus.CallUnary(ctx, req)
 }
 
+// UpdateProgress calls backlog.v1.BooksService.UpdateProgress.
+func (c *booksServiceClient) UpdateProgress(ctx context.Context, req *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error) {
+	return c.updateProgress.CallUnary(ctx, req)
+}
+
 // ToggleTag calls backlog.v1.BooksService.ToggleTag.
 func (c *booksServiceClient) ToggleTag(ctx context.Context, req *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error) {
 	return c.toggleTag.CallUnary(ctx, req)
@@ -223,6 +239,7 @@ type BooksServiceHandler interface {
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
 	AddBook(context.Context, *connect.Request[v1.AddBookRequest]) (*connect.Response[v1.AddBookResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
+	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
 }
@@ -282,6 +299,12 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(booksServiceMethods.ByName("UpdateBookStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	booksServiceUpdateProgressHandler := connect.NewUnaryHandler(
+		BooksServiceUpdateProgressProcedure,
+		svc.UpdateProgress,
+		connect.WithSchema(booksServiceMethods.ByName("UpdateProgress")),
+		connect.WithHandlerOptions(opts...),
+	)
 	booksServiceToggleTagHandler := connect.NewUnaryHandler(
 		BooksServiceToggleTagProcedure,
 		svc.ToggleTag,
@@ -312,6 +335,8 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 			booksServiceAddBookHandler.ServeHTTP(w, r)
 		case BooksServiceUpdateBookStatusProcedure:
 			booksServiceUpdateBookStatusHandler.ServeHTTP(w, r)
+		case BooksServiceUpdateProgressProcedure:
+			booksServiceUpdateProgressHandler.ServeHTTP(w, r)
 		case BooksServiceToggleTagProcedure:
 			booksServiceToggleTagHandler.ServeHTTP(w, r)
 		case BooksServiceImportBooksProcedure:
@@ -355,6 +380,10 @@ func (UnimplementedBooksServiceHandler) AddBook(context.Context, *connect.Reques
 
 func (UnimplementedBooksServiceHandler) UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.UpdateBookStatus is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.UpdateProgress is not implemented"))
 }
 
 func (UnimplementedBooksServiceHandler) ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error) {

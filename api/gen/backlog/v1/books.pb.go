@@ -29,6 +29,7 @@ type Book struct {
 	Isbn13        string                 `protobuf:"bytes,4,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
 	CoverUrl      string                 `protobuf:"bytes,5,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
 	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
+	PageCount     int32                  `protobuf:"varint,7,opt,name=page_count,json=pageCount,proto3" json:"page_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -105,21 +106,31 @@ func (x *Book) GetDescription() string {
 	return ""
 }
 
+func (x *Book) GetPageCount() int32 {
+	if x != nil {
+		return x.PageCount
+	}
+	return 0
+}
+
 type UserBook struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	BookId        string                 `protobuf:"bytes,3,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
-	Book          *Book                  `protobuf:"bytes,4,opt,name=book,proto3" json:"book,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	Tags          []string               `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
-	Rating        int32                  `protobuf:"varint,7,opt,name=rating,proto3" json:"rating,omitempty"`
-	Notes         string                 `protobuf:"bytes,8,opt,name=notes,proto3" json:"notes,omitempty"`
-	FinishedAt    []string               `protobuf:"bytes,9,rep,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	AddedAt       string                 `protobuf:"bytes,10,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId          string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	BookId          string                 `protobuf:"bytes,3,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	Book            *Book                  `protobuf:"bytes,4,opt,name=book,proto3" json:"book,omitempty"`
+	Status          string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	Tags            []string               `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
+	Rating          int32                  `protobuf:"varint,7,opt,name=rating,proto3" json:"rating,omitempty"`
+	Notes           string                 `protobuf:"bytes,8,opt,name=notes,proto3" json:"notes,omitempty"`
+	FinishedAt      []string               `protobuf:"bytes,9,rep,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	AddedAt         string                 `protobuf:"bytes,10,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
+	UpdatedAt       string                 `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ProgressMode    string                 `protobuf:"bytes,12,opt,name=progress_mode,json=progressMode,proto3" json:"progress_mode,omitempty"`
+	CurrentPage     int32                  `protobuf:"varint,13,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
+	ProgressPercent int32                  `protobuf:"varint,14,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UserBook) Reset() {
@@ -227,6 +238,27 @@ func (x *UserBook) GetUpdatedAt() string {
 		return x.UpdatedAt
 	}
 	return ""
+}
+
+func (x *UserBook) GetProgressMode() string {
+	if x != nil {
+		return x.ProgressMode
+	}
+	return ""
+}
+
+func (x *UserBook) GetCurrentPage() int32 {
+	if x != nil {
+		return x.CurrentPage
+	}
+	return 0
+}
+
+func (x *UserBook) GetProgressPercent() int32 {
+	if x != nil {
+		return x.ProgressPercent
+	}
+	return 0
 }
 
 type BookShelf struct {
@@ -1433,6 +1465,110 @@ func (*ToggleTagResponse) Descriptor() ([]byte, []int) {
 	return file_backlog_v1_books_proto_rawDescGZIP(), []int{24}
 }
 
+type UpdateProgressRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	BookId          string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	ProgressMode    string                 `protobuf:"bytes,2,opt,name=progress_mode,json=progressMode,proto3" json:"progress_mode,omitempty"`
+	CurrentPage     int32                  `protobuf:"varint,3,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
+	ProgressPercent int32                  `protobuf:"varint,4,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UpdateProgressRequest) Reset() {
+	*x = UpdateProgressRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProgressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProgressRequest) ProtoMessage() {}
+
+func (x *UpdateProgressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProgressRequest.ProtoReflect.Descriptor instead.
+func (*UpdateProgressRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *UpdateProgressRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+func (x *UpdateProgressRequest) GetProgressMode() string {
+	if x != nil {
+		return x.ProgressMode
+	}
+	return ""
+}
+
+func (x *UpdateProgressRequest) GetCurrentPage() int32 {
+	if x != nil {
+		return x.CurrentPage
+	}
+	return 0
+}
+
+func (x *UpdateProgressRequest) GetProgressPercent() int32 {
+	if x != nil {
+		return x.ProgressPercent
+	}
+	return 0
+}
+
+type UpdateProgressResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateProgressResponse) Reset() {
+	*x = UpdateProgressResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProgressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProgressResponse) ProtoMessage() {}
+
+func (x *UpdateProgressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProgressResponse.ProtoReflect.Descriptor instead.
+func (*UpdateProgressResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{26}
+}
+
 type ImportBooksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CsvData       []byte                 `protobuf:"bytes,1,opt,name=csv_data,json=csvData,proto3" json:"csv_data,omitempty"`
@@ -1442,7 +1578,7 @@ type ImportBooksRequest struct {
 
 func (x *ImportBooksRequest) Reset() {
 	*x = ImportBooksRequest{}
-	mi := &file_backlog_v1_books_proto_msgTypes[25]
+	mi := &file_backlog_v1_books_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1454,7 +1590,7 @@ func (x *ImportBooksRequest) String() string {
 func (*ImportBooksRequest) ProtoMessage() {}
 
 func (x *ImportBooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_backlog_v1_books_proto_msgTypes[25]
+	mi := &file_backlog_v1_books_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1467,7 +1603,7 @@ func (x *ImportBooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportBooksRequest.ProtoReflect.Descriptor instead.
 func (*ImportBooksRequest) Descriptor() ([]byte, []int) {
-	return file_backlog_v1_books_proto_rawDescGZIP(), []int{25}
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ImportBooksRequest) GetCsvData() []byte {
@@ -1486,7 +1622,7 @@ type ImportBooksResponse struct {
 
 func (x *ImportBooksResponse) Reset() {
 	*x = ImportBooksResponse{}
-	mi := &file_backlog_v1_books_proto_msgTypes[26]
+	mi := &file_backlog_v1_books_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1498,7 +1634,7 @@ func (x *ImportBooksResponse) String() string {
 func (*ImportBooksResponse) ProtoMessage() {}
 
 func (x *ImportBooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_backlog_v1_books_proto_msgTypes[26]
+	mi := &file_backlog_v1_books_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1511,7 +1647,7 @@ func (x *ImportBooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportBooksResponse.ProtoReflect.Descriptor instead.
 func (*ImportBooksResponse) Descriptor() ([]byte, []int) {
-	return file_backlog_v1_books_proto_rawDescGZIP(), []int{26}
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ImportBooksResponse) GetImportedCount() int32 {
@@ -1526,14 +1662,16 @@ var File_backlog_v1_books_proto protoreflect.FileDescriptor
 const file_backlog_v1_books_proto_rawDesc = "" +
 	"\n" +
 	"\x16backlog/v1/books.proto\x12\n" +
-	"backlog.v1\"\x9d\x01\n" +
+	"backlog.v1\"\xbc\x01\n" +
 	"\x04Book\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
 	"\aauthors\x18\x03 \x03(\tR\aauthors\x12\x16\n" +
 	"\x06isbn13\x18\x04 \x01(\tR\x06isbn13\x12\x1b\n" +
 	"\tcover_url\x18\x05 \x01(\tR\bcoverUrl\x12 \n" +
-	"\vdescription\x18\x06 \x01(\tR\vdescription\"\xa7\x02\n" +
+	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x1d\n" +
+	"\n" +
+	"page_count\x18\a \x01(\x05R\tpageCount\"\x9a\x03\n" +
 	"\bUserBook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
@@ -1548,7 +1686,10 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\badded_at\x18\n" +
 	" \x01(\tR\aaddedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\tR\tupdatedAt\"K\n" +
+	"updated_at\x18\v \x01(\tR\tupdatedAt\x12#\n" +
+	"\rprogress_mode\x18\f \x01(\tR\fprogressMode\x12!\n" +
+	"\fcurrent_page\x18\r \x01(\x05R\vcurrentPage\x12)\n" +
+	"\x10progress_percent\x18\x0e \x01(\x05R\x0fprogressPercent\"K\n" +
 	"\tBookShelf\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12*\n" +
 	"\x05books\x18\x02 \x03(\v2\x14.backlog.v1.UserBookR\x05books\"\xd6\x01\n" +
@@ -1626,11 +1767,17 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x10ToggleTagRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x10\n" +
 	"\x03tag\x18\x02 \x01(\tR\x03tag\"\x13\n" +
-	"\x11ToggleTagResponse\"/\n" +
+	"\x11ToggleTagResponse\"\xa3\x01\n" +
+	"\x15UpdateProgressRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12#\n" +
+	"\rprogress_mode\x18\x02 \x01(\tR\fprogressMode\x12!\n" +
+	"\fcurrent_page\x18\x03 \x01(\x05R\vcurrentPage\x12)\n" +
+	"\x10progress_percent\x18\x04 \x01(\x05R\x0fprogressPercent\"\x18\n" +
+	"\x16UpdateProgressResponse\"/\n" +
 	"\x12ImportBooksRequest\x12\x19\n" +
 	"\bcsv_data\x18\x01 \x01(\fR\acsvData\"<\n" +
 	"\x13ImportBooksResponse\x12%\n" +
-	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount2\xcc\x06\n" +
+	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount2\xa5\a\n" +
 	"\fBooksService\x12K\n" +
 	"\n" +
 	"GetSummary\x12\x1d.backlog.v1.GetSummaryRequest\x1a\x1e.backlog.v1.GetSummaryResponse\x12W\n" +
@@ -1641,7 +1788,8 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\rSearchLibrary\x12 .backlog.v1.SearchLibraryRequest\x1a!.backlog.v1.SearchLibraryResponse\x12W\n" +
 	"\x0eSearchExternal\x12!.backlog.v1.SearchExternalRequest\x1a\".backlog.v1.SearchExternalResponse\x12B\n" +
 	"\aAddBook\x12\x1a.backlog.v1.AddBookRequest\x1a\x1b.backlog.v1.AddBookResponse\x12]\n" +
-	"\x10UpdateBookStatus\x12#.backlog.v1.UpdateBookStatusRequest\x1a$.backlog.v1.UpdateBookStatusResponse\x12H\n" +
+	"\x10UpdateBookStatus\x12#.backlog.v1.UpdateBookStatusRequest\x1a$.backlog.v1.UpdateBookStatusResponse\x12W\n" +
+	"\x0eUpdateProgress\x12!.backlog.v1.UpdateProgressRequest\x1a\".backlog.v1.UpdateProgressResponse\x12H\n" +
 	"\tToggleTag\x12\x1c.backlog.v1.ToggleTagRequest\x1a\x1d.backlog.v1.ToggleTagResponse\x12N\n" +
 	"\vImportBooks\x12\x1e.backlog.v1.ImportBooksRequest\x1a\x1f.backlog.v1.ImportBooksResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
 
@@ -1657,7 +1805,7 @@ func file_backlog_v1_books_proto_rawDescGZIP() []byte {
 	return file_backlog_v1_books_proto_rawDescData
 }
 
-var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_backlog_v1_books_proto_goTypes = []any{
 	(*Book)(nil),                     // 0: backlog.v1.Book
 	(*UserBook)(nil),                 // 1: backlog.v1.UserBook
@@ -1684,8 +1832,10 @@ var file_backlog_v1_books_proto_goTypes = []any{
 	(*UpdateBookStatusResponse)(nil), // 22: backlog.v1.UpdateBookStatusResponse
 	(*ToggleTagRequest)(nil),         // 23: backlog.v1.ToggleTagRequest
 	(*ToggleTagResponse)(nil),        // 24: backlog.v1.ToggleTagResponse
-	(*ImportBooksRequest)(nil),       // 25: backlog.v1.ImportBooksRequest
-	(*ImportBooksResponse)(nil),      // 26: backlog.v1.ImportBooksResponse
+	(*UpdateProgressRequest)(nil),    // 25: backlog.v1.UpdateProgressRequest
+	(*UpdateProgressResponse)(nil),   // 26: backlog.v1.UpdateProgressResponse
+	(*ImportBooksRequest)(nil),       // 27: backlog.v1.ImportBooksRequest
+	(*ImportBooksResponse)(nil),      // 28: backlog.v1.ImportBooksResponse
 }
 var file_backlog_v1_books_proto_depIdxs = []int32{
 	0,  // 0: backlog.v1.UserBook.book:type_name -> backlog.v1.Book
@@ -1708,20 +1858,22 @@ var file_backlog_v1_books_proto_depIdxs = []int32{
 	17, // 17: backlog.v1.BooksService.SearchExternal:input_type -> backlog.v1.SearchExternalRequest
 	19, // 18: backlog.v1.BooksService.AddBook:input_type -> backlog.v1.AddBookRequest
 	21, // 19: backlog.v1.BooksService.UpdateBookStatus:input_type -> backlog.v1.UpdateBookStatusRequest
-	23, // 20: backlog.v1.BooksService.ToggleTag:input_type -> backlog.v1.ToggleTagRequest
-	25, // 21: backlog.v1.BooksService.ImportBooks:input_type -> backlog.v1.ImportBooksRequest
-	8,  // 22: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
-	10, // 23: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
-	12, // 24: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
-	14, // 25: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
-	16, // 26: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
-	18, // 27: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
-	20, // 28: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
-	22, // 29: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
-	24, // 30: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
-	26, // 31: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
-	22, // [22:32] is the sub-list for method output_type
-	12, // [12:22] is the sub-list for method input_type
+	25, // 20: backlog.v1.BooksService.UpdateProgress:input_type -> backlog.v1.UpdateProgressRequest
+	23, // 21: backlog.v1.BooksService.ToggleTag:input_type -> backlog.v1.ToggleTagRequest
+	27, // 22: backlog.v1.BooksService.ImportBooks:input_type -> backlog.v1.ImportBooksRequest
+	8,  // 23: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
+	10, // 24: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
+	12, // 25: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
+	14, // 26: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
+	16, // 27: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
+	18, // 28: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
+	20, // 29: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
+	22, // 30: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
+	26, // 31: backlog.v1.BooksService.UpdateProgress:output_type -> backlog.v1.UpdateProgressResponse
+	24, // 32: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
+	28, // 33: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
+	23, // [23:34] is the sub-list for method output_type
+	12, // [12:23] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
 	12, // [12:12] is the sub-list for extension extendee
 	0,  // [0:12] is the sub-list for field type_name
@@ -1738,7 +1890,7 @@ func file_backlog_v1_books_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backlog_v1_books_proto_rawDesc), len(file_backlog_v1_books_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   27,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

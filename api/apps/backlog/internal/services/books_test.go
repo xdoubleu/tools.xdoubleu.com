@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 )
@@ -31,6 +32,8 @@ func TestExternalToBook(t *testing.T) {
 	cover := "https://example.com/cover.jpg"
 	desc := "A classic."
 
+	pages := 496
+
 	ext := hardcover.ExternalBook{
 		Provider:    "hardcover",
 		ProviderID:  "42",
@@ -40,6 +43,7 @@ func TestExternalToBook(t *testing.T) {
 		ISBN10:      &isbn10,
 		CoverURL:    &cover,
 		Description: &desc,
+		PageCount:   &pages,
 	}
 
 	book := externalToBook(ext)
@@ -50,7 +54,24 @@ func TestExternalToBook(t *testing.T) {
 	assert.Equal(t, &isbn10, book.ISBN10)
 	assert.Equal(t, &cover, book.CoverURL)
 	assert.Equal(t, &desc, book.Description)
+	assert.Equal(t, &pages, book.PageCount)
 	assert.Equal(t, "42", book.ExternalRefs["hardcover"])
+}
+
+func TestExternalToBook_FallsBackToOpenLibraryCover(t *testing.T) {
+	isbn13 := "9780140449112"
+	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields nil
+		Provider:   "hardcover",
+		ProviderID: "42",
+		Title:      "The Odyssey",
+		Authors:    []string{"Homer"},
+		ISBN13:     &isbn13,
+	}
+
+	book := externalToBook(ext)
+
+	require.NotNil(t, book.CoverURL)
+	assert.Equal(t, hardcover.OpenLibraryCoverURL(&isbn13), *book.CoverURL)
 }
 
 func TestExternalToBook_NilFields(t *testing.T) {

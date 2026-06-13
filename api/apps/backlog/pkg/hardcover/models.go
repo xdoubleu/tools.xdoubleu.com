@@ -9,6 +9,7 @@ type ExternalBook struct {
 	ISBN10      *string
 	CoverURL    *string
 	Description *string
+	PageCount   *int
 }
 
 // GraphQL response shapes
@@ -50,6 +51,7 @@ type searchDocument struct {
 	Title          string          `json:"title"`
 	Contributions  []contribution  `json:"contributions"`
 	Description    *string         `json:"description"`
+	Pages          *int            `json:"pages"`
 	DefaultEdition *defaultEdition `json:"default_physical_edition"`
 }
 
@@ -82,5 +84,6 @@ type bookRecord struct {
 	Title          string          `json:"title"`
 	Contributions  []contribution  `json:"contributions"`
 	Description    *string         `json:"description"`
+	Pages          *int            `json:"pages"`
 	DefaultEdition *defaultEdition `json:"default_physical_edition"`
 }

@@ -5,7 +5,8 @@ import { getApiUrl } from '@/lib/env'
 import {
   BooksService,
   AddBookRequestSchema,
-  UpdateBookStatusRequestSchema
+  UpdateBookStatusRequestSchema,
+  UpdateProgressRequestSchema
 } from '@/lib/gen/backlog/v1/books_pb'
 import { GamesService } from '@/lib/gen/backlog/v1/games_pb'
 import type {
@@ -16,6 +17,7 @@ import type {
 
 export type AddBookInput = MessageInitShape<typeof AddBookRequestSchema>
 export type UpdateBookStatusInput = MessageInitShape<typeof UpdateBookStatusRequestSchema>
+export type UpdateProgressInput = MessageInitShape<typeof UpdateProgressRequestSchema>
 import type {
   GetSteamResponse,
   GetSteamGameResponse,
@@ -102,4 +104,9 @@ export function useUpdateBookStatus() {
 export function useToggleTag() {
   const client = createServiceClient(BooksService)
   return (bookId: string, tag: string) => client.toggleTag({ bookId, tag })
+}
+
+export function useUpdateProgress() {
+  const client = createServiceClient(BooksService)
+  return (req: UpdateProgressInput) => client.updateProgress(req)
 }
