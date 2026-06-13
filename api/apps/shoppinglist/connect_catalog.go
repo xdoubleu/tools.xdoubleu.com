@@ -115,7 +115,11 @@ func (h *shoppingConnectHandler) ListItemNames(
 
 	pb := make([]*shoppinglistv1.ItemName, len(names))
 	for i, n := range names {
-		pb[i] = &shoppinglistv1.ItemName{Name: n.Name, CategoryId: n.CategoryID}
+		pb[i] = &shoppinglistv1.ItemName{
+			Name:       n.Name,
+			CategoryId: n.CategoryID,
+			Excluded:   n.Excluded,
+		}
 	}
 	return connect.NewResponse(&shoppinglistv1.ListItemNamesResponse{Names: pb}), nil
 }
@@ -173,6 +177,28 @@ func (h *shoppingConnectHandler) SetItemCategory(
 		return nil, mapError(err)
 	}
 	return connect.NewResponse(&shoppinglistv1.SetItemCategoryResponse{}), nil
+}
+
+func (h *shoppingConnectHandler) SetItemExcluded(
+	ctx context.Context,
+	req *connect.Request[shoppinglistv1.SetItemExcludedRequest],
+) (*connect.Response[shoppinglistv1.SetItemExcludedResponse], error) {
+	if req.Msg.Name == "" {
+		return nil, errNameRequired()
+	}
+
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = h.app.services.Shopping.SetItemExcluded(
+		ctx, ownerID, req.Msg.Name, req.Msg.Excluded,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return connect.NewResponse(&shoppinglistv1.SetItemExcludedResponse{}), nil
 }
 
 func errUnauthenticated() error {

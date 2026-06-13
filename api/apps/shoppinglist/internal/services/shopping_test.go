@@ -27,6 +27,7 @@ func baseMock() *mocks.ShoppingRepoMock {
 		CheckPlanAccessFn:         nil,
 		GetCustomItemsFn:          nil,
 		AddCustomItemFn:           nil,
+		UpdateCustomItemFn:        nil,
 		DeleteCustomItemFn:        nil,
 		GetMealPlanExportItemsFn:  nil,
 		GetPlanIngredientGroupsFn: nil,
@@ -43,6 +44,7 @@ func baseMock() *mocks.ShoppingRepoMock {
 		ListItemNamesFn:           nil,
 		ListItemCategoriesFn:      nil,
 		SetItemCategoryFn:         nil,
+		SetItemExcludedFn:         nil,
 	}
 }
 
@@ -137,6 +139,59 @@ func TestAddItem_RepoError(t *testing.T) {
 	assert.ErrorIs(t, err, repoErr)
 }
 
+func TestUpdateItem_Success(t *testing.T) {
+	itemID := uuid.New()
+	want := repositories.ShoppingItem{
+		ID:         itemID.String(),
+		Name:       "oat milk",
+		Unit:       "L",
+		Amount:     2,
+		RecipeName: "",
+		GroupName:  "",
+	}
+	m := baseMock()
+	m.UpdateCustomItemFn = func(
+		_ context.Context,
+		userID string,
+		iID uuid.UUID,
+		name, unit string,
+		amount float64,
+	) (repositories.ShoppingItem, error) {
+		assert.Equal(t, "user1", userID)
+		assert.Equal(t, itemID, iID)
+		assert.Equal(t, "oat milk", name)
+		assert.Equal(t, "L", unit)
+		assert.InDelta(t, 2.0, amount, 1e-9)
+		return want, nil
+	}
+
+	svc := services.NewShoppingService(m)
+	got, err := svc.UpdateItem(
+		context.Background(),
+		"user1",
+		itemID,
+		"oat milk",
+		"L",
+		2,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+}
+
+func TestUpdateItem_RepoError(t *testing.T) {
+	repoErr := errors.New("db error")
+	m := baseMock()
+	m.UpdateCustomItemFn = func(
+		_ context.Context, _ string, _ uuid.UUID, _, _ string, _ float64,
+	) (repositories.ShoppingItem, error) {
+		return repositories.ShoppingItem{}, repoErr
+	}
+
+	svc := services.NewShoppingService(m)
+	_, err := svc.UpdateItem(context.Background(), "user1", uuid.New(), "milk", "L", 1)
+	assert.ErrorIs(t, err, repoErr)
+}
+
 func TestDeleteItem_Success(t *testing.T) {
 	itemID := uuid.New()
 	m := baseMock()
@@ -160,6 +215,34 @@ func TestDeleteItem_RepoError(t *testing.T) {
 
 	svc := services.NewShoppingService(m)
 	err := svc.DeleteItem(context.Background(), "user1", uuid.New())
+	assert.ErrorIs(t, err, repoErr)
+}
+
+func TestSetItemExcluded_PassesThrough(t *testing.T) {
+	m := baseMock()
+	m.SetItemExcludedFn = func(
+		_ context.Context, userID, name string, excluded bool,
+	) error {
+		assert.Equal(t, "user1", userID)
+		assert.Equal(t, "olive oil", name)
+		assert.True(t, excluded)
+		return nil
+	}
+
+	svc := services.NewShoppingService(m)
+	err := svc.SetItemExcluded(context.Background(), "user1", "olive oil", true)
+	assert.NoError(t, err)
+}
+
+func TestSetItemExcluded_RepoError(t *testing.T) {
+	repoErr := errors.New("db error")
+	m := baseMock()
+	m.SetItemExcludedFn = func(_ context.Context, _, _ string, _ bool) error {
+		return repoErr
+	}
+
+	svc := services.NewShoppingService(m)
+	err := svc.SetItemExcluded(context.Background(), "user1", "olive oil", false)
 	assert.ErrorIs(t, err, repoErr)
 }
 

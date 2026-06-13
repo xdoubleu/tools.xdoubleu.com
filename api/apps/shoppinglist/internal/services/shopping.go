@@ -21,6 +21,13 @@ type shoppingRepo interface {
 		userID, name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
+	UpdateCustomItem(
+		ctx context.Context,
+		userID string,
+		itemID uuid.UUID,
+		name, unit string,
+		amount float64,
+	) (repositories.ShoppingItem, error)
 	DeleteCustomItem(ctx context.Context, userID string, itemID uuid.UUID) error
 	GetMealPlanExportItems(
 		ctx context.Context,
@@ -80,6 +87,11 @@ type shoppingRepo interface {
 		userID, name string,
 		categoryID uuid.UUID,
 	) error
+	SetItemExcluded(
+		ctx context.Context,
+		userID, name string,
+		excluded bool,
+	) error
 }
 
 type Services struct {
@@ -119,6 +131,16 @@ func (s *ShoppingService) AddItem(
 	amount float64,
 ) (repositories.ShoppingItem, error) {
 	return s.repo.AddCustomItem(ctx, userID, name, unit, amount)
+}
+
+func (s *ShoppingService) UpdateItem(
+	ctx context.Context,
+	userID string,
+	itemID uuid.UUID,
+	name, unit string,
+	amount float64,
+) (repositories.ShoppingItem, error) {
+	return s.repo.UpdateCustomItem(ctx, userID, itemID, name, unit, amount)
 }
 
 func (s *ShoppingService) DeleteItem(

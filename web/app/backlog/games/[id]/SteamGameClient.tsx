@@ -59,7 +59,6 @@ export default function SteamGameClient({ id }: { id: string }) {
   const bucket = searchParams.get('bucket')
   const bucketLabel = searchParams.get('label')
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Backlog', href: '/backlog' },
     { label: 'Games', href: '/backlog/games' },
     ...(bucket
       ? [

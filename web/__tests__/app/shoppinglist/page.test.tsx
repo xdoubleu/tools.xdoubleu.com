@@ -5,11 +5,16 @@ const addShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
 const setItemCategory = jest.fn().mockResolvedValue({})
 const createCategory = jest.fn().mockResolvedValue({ category: { id: 'cat-new' } })
 const deleteShoppingItem = jest.fn().mockResolvedValue({})
+const updateShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
 const listMutate = jest.fn().mockResolvedValue(undefined)
 const categoriesMutate = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('@/hooks/useShoppingList', () => ({
-  useCustomList: () => ({ data: { items: [] }, isLoading: false, mutate: listMutate }),
+  useCustomList: () => ({
+    data: { items: [{ id: 'i1', name: 'Milk', amount: '1', unit: 'L' }] },
+    isLoading: false,
+    mutate: listMutate
+  }),
   useCategories: () => ({
     data: { categories: [{ id: 'cat-produce', name: 'Produce' }] },
     mutate: categoriesMutate
@@ -25,7 +30,8 @@ jest.mock('@/lib/client', () => ({
     addShoppingItem,
     setItemCategory,
     createCategory,
-    deleteShoppingItem
+    deleteShoppingItem,
+    updateShoppingItem
   })
 }))
 
@@ -83,5 +89,28 @@ describe('ShoppingPage add form', () => {
       ownerUserId: ''
     })
     expect(categoriesMutate).toHaveBeenCalled()
+  })
+})
+
+describe('ShoppingPage edit', () => {
+  it('updates a custom item and refreshes the list', async () => {
+    render(<ShoppingPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Edit Milk/ }))
+    fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Oat Milk' } })
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Unit'), { target: { value: 'cartons' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() =>
+      expect(updateShoppingItem).toHaveBeenCalledWith({
+        itemId: 'i1',
+        name: 'Oat Milk',
+        amount: '2',
+        unit: 'cartons',
+        ownerUserId: ''
+      })
+    )
+    expect(listMutate).toHaveBeenCalled()
   })
 })

@@ -7,21 +7,48 @@ import { RecipeSchema, IngredientSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 const mockCreateRecipe = jest.fn()
 const mockUpdateRecipe = jest.fn()
 
+const mockShopping = {
+  itemNames: [] as { name: string; categoryId: string; excluded: boolean }[],
+  categories: [] as { id: string; name: string }[]
+}
+const mockSetItemCategory = jest.fn().mockResolvedValue({})
+const mockCreateCategory = jest.fn()
+const mockMutateCategories = jest.fn().mockResolvedValue(undefined)
+
 jest.mock('@/hooks/useRecipes', () => ({
   useCreateRecipe: () => mockCreateRecipe,
   useUpdateRecipe: () => mockUpdateRecipe
+}))
+
+jest.mock('@/hooks/useShoppingList', () => ({
+  useItemNames: () => ({ data: { names: mockShopping.itemNames } }),
+  useCategories: () => ({
+    data: { categories: mockShopping.categories },
+    mutate: mockMutateCategories
+  })
+}))
+
+jest.mock('@/lib/client', () => ({
+  createServiceClient: () => ({
+    createCategory: mockCreateCategory,
+    setItemCategory: mockSetItemCategory
+  })
 }))
 
 jest.mock('@/lib/recipes/parseFraction', () => ({
   parseFraction: (s: string) => parseFloat(s) || 0
 }))
 
-describe('RecipeForm (new recipe)', () => {
-  beforeEach(() => {
-    mockCreateRecipe.mockReset()
-    mockUpdateRecipe.mockReset()
-  })
+beforeEach(() => {
+  jest.clearAllMocks()
+  mockShopping.itemNames = []
+  mockShopping.categories = [
+    { id: 'cat-produce', name: 'Produce' },
+    { id: 'cat-dairy', name: 'Dairy' }
+  ]
+})
 
+describe('RecipeForm (new recipe)', () => {
   it('renders form fields for a new recipe', () => {
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
     expect(screen.getByText('Recipe Name')).toBeInTheDocument()
@@ -96,6 +123,74 @@ describe('RecipeForm (new recipe)', () => {
     fireEvent.click(removeButtons[0])
     expect(screen.getAllByPlaceholderText('Name')).toHaveLength(1)
   })
+
+  it('suggests known ingredient names and auto-fills the category on selection', () => {
+    mockShopping.itemNames = [
+      { name: 'tomato', categoryId: 'cat-produce', excluded: false },
+      { name: 'milk', categoryId: 'cat-dairy', excluded: false }
+    ]
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'tom' } })
+    expect(screen.getByText('tomato')).toBeInTheDocument()
+    expect(screen.queryByText('milk')).not.toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByText('tomato'))
+
+    const nameInput = screen.getByLabelText('Name') as HTMLInputElement
+    expect(nameInput.value).toBe('tomato')
+    expect((screen.getByLabelText('Category') as HTMLSelectElement).value).toBe('cat-produce')
+  })
+
+  it('assigns a selected existing category to a new ingredient on save', async () => {
+    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'r-9' } })
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'carrot' } })
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-produce' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() =>
+      expect(mockSetItemCategory).toHaveBeenCalledWith({
+        name: 'carrot',
+        categoryId: 'cat-produce',
+        ownerUserId: ''
+      })
+    )
+  })
+
+  it('creates a new category inline and assigns it on save', async () => {
+    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'r-9' } })
+    mockCreateCategory.mockResolvedValue({ category: { id: 'cat-bakery' } })
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'eggs' } })
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
+    fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'Bakery' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateCategory).toHaveBeenCalledWith({ name: 'Bakery', ownerUserId: '' })
+      expect(mockSetItemCategory).toHaveBeenCalledWith({
+        name: 'eggs',
+        categoryId: 'cat-bakery',
+        ownerUserId: ''
+      })
+    })
+  })
+
+  it('does not re-write a category that already matches the catalog', async () => {
+    mockShopping.itemNames = [{ name: 'tomato', categoryId: 'cat-produce', excluded: false }]
+    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'r-9' } })
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'tom' } })
+    fireEvent.mouseDown(screen.getByText('tomato'))
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => expect(mockCreateRecipe).toHaveBeenCalled())
+    expect(mockSetItemCategory).not.toHaveBeenCalled()
+  })
 })
 
 describe('RecipeForm (edit recipe)', () => {
@@ -115,6 +210,14 @@ describe('RecipeForm (edit recipe)', () => {
     expect(nameInputEl.value).toBe('Spaghetti')
     expect(screen.getByDisplayValue('pasta')).toBeInTheDocument()
     expect(screen.getByDisplayValue('8')).toBeInTheDocument()
+  })
+
+  it('pre-fills the ingredient category from the catalog', async () => {
+    mockShopping.itemNames = [{ name: 'pasta', categoryId: 'cat-dairy', excluded: false }]
+    render(<RecipeForm recipe={existingRecipe} onSave={jest.fn()} onCancel={jest.fn()} />)
+    await waitFor(() =>
+      expect((screen.getByLabelText('Category') as HTMLSelectElement).value).toBe('cat-dairy')
+    )
   })
 
   it('sends updated batchServings on submit', async () => {

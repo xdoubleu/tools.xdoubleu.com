@@ -27,6 +27,15 @@ message AddShoppingItemRequest {
 }
 message AddShoppingItemResponse { ShoppingItem item = 1; }
 
+message UpdateShoppingItemRequest {
+  string item_id = 1;
+  string name    = 2;
+  string amount  = 3;
+  string unit    = 4;
+  string owner_user_id = 5;
+}
+message UpdateShoppingItemResponse { ShoppingItem item = 1; }
+
 message DeleteShoppingItemRequest  {
   string item_id = 1;
   string owner_user_id = 2;
@@ -113,10 +122,14 @@ message SetStoreCategoriesResponse {}
 // --- Item catalog (name -> category) ---
 
 // A known item name and the category it currently maps to. category_id is
-// empty when the name has not been assigned a category yet.
+// empty when the name has not been assigned a category yet. excluded is true
+// when the name has been removed from the shopping-list export (its meal-plan
+// entries carry exclude_from_shopping_list and it has no remaining active
+// source); such names surface so the UI can offer to restore them.
 message ItemName {
   string name        = 1;
   string category_id = 2;
+  bool excluded      = 3;
 }
 
 message ItemCategory {
@@ -136,6 +149,17 @@ message SetItemCategoryRequest  {
   string owner_user_id = 3;
 }
 message SetItemCategoryResponse {}
+
+// SetItemExcluded removes a catalog name from (or restores it to) the shopping
+// list export. Removing flips exclude_from_shopping_list on matching meal-plan
+// custom entries and deletes matching shopping-list custom items; restoring
+// clears the flag (deleted custom items are not restored).
+message SetItemExcludedRequest  {
+  string name = 1;
+  bool excluded = 2;
+  string owner_user_id = 3;
+}
+message SetItemExcludedResponse {}
 
 // --- Sharing ---
 
@@ -176,6 +200,7 @@ message ListAccessibleListsResponse { repeated ListOwner owners = 1; }
 service ShoppingListService {
   rpc GetCustomList             (GetCustomListRequest)             returns (GetCustomListResponse);
   rpc AddShoppingItem           (AddShoppingItemRequest)           returns (AddShoppingItemResponse);
+  rpc UpdateShoppingItem        (UpdateShoppingItemRequest)        returns (UpdateShoppingItemResponse);
   rpc DeleteShoppingItem        (DeleteShoppingItemRequest)        returns (DeleteShoppingItemResponse);
   rpc GetMealPlanExportItems    (GetMealPlanExportItemsRequest)    returns (GetMealPlanExportItemsResponse);
   rpc GetPlanIngredientGroups   (GetPlanIngredientGroupsRequest)   returns (GetPlanIngredientGroupsResponse);
@@ -195,6 +220,7 @@ service ShoppingListService {
   rpc ListItemNames      (ListItemNamesRequest)      returns (ListItemNamesResponse);
   rpc ListItemCategories (ListItemCategoriesRequest) returns (ListItemCategoriesResponse);
   rpc SetItemCategory    (SetItemCategoryRequest)    returns (SetItemCategoryResponse);
+  rpc SetItemExcluded    (SetItemExcludedRequest)    returns (SetItemExcludedResponse);
 
   rpc ShareShoppingList      (ShareShoppingListRequest)      returns (ShareShoppingListResponse);
   rpc UnshareShoppingList    (UnshareShoppingListRequest)    returns (UnshareShoppingListResponse);

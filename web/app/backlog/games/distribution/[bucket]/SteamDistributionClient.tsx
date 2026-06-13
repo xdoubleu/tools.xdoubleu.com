@@ -39,13 +39,7 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
 
   return (
     <main className="max-w-4xl mx-auto p-6">
-      <Breadcrumb
-        items={[
-          { label: 'Backlog', href: '/backlog' },
-          { label: 'Games', href: '/backlog/games' },
-          { label }
-        ]}
-      />
+      <Breadcrumb items={[{ label: 'Games', href: '/backlog/games' }, { label }]} />
 
       {isLoading && <p className="mt-6 text-muted">Loading...</p>}
       {error && <p className="mt-6 text-danger">Failed to load distribution.</p>}

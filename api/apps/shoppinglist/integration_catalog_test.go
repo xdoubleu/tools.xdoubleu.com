@@ -541,11 +541,31 @@ func TestListItemNames_IncludesMealPlanCustomItems(t *testing.T) {
 	assert.Equal(t, cat.Id, got)
 }
 
-// Recipe-less meal entries flagged exclude_from_shopping_list never reach the
-// shopping list, so their hand-typed items must not appear in the catalog
-// either. This mirrors the export query's exclusion and lets items that leaked
-// in before the feature existed be cleaned up by excluding the meal.
-func TestListItemNames_ExcludesExcludedMealPlanItems(t *testing.T) {
+// catalogEntry returns the ListItemNames entry for name, or nil when absent.
+func catalogEntry(
+	t *testing.T,
+	client shoppinglistv1connect.ShoppingListServiceClient,
+	name string,
+) *shoppinglistv1.ItemName {
+	t.Helper()
+	resp, err := client.ListItemNames(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+	)
+	require.NoError(t, err)
+	for _, n := range resp.Msg.Names {
+		if n.Name == name {
+			return n
+		}
+	}
+	return nil
+}
+
+// Recipe-less meal entries flagged exclude_from_shopping_list still surface in
+// the catalog, but marked excluded, so the UI can offer to restore them. A name
+// only present on excluded entries reports excluded=true; an exporting one
+// reports excluded=false.
+func TestListItemNames_SurfacesExcludedMealPlanItems(t *testing.T) {
 	planID := createTestPlan(t, "Catalog Exclude Plan "+uuid.NewString())
 	t.Cleanup(func() { deletePlan(t, planID) })
 
@@ -556,21 +576,158 @@ func TestListItemNames_ExcludesExcludedMealPlanItems(t *testing.T) {
 	addExcludedPlanMeal(t, planID, tomorrow, excluded)
 
 	client := newShoppingClient(t)
-	resp, err := client.ListItemNames(
+
+	includedEntry := catalogEntry(t, client, included)
+	require.NotNil(t, includedEntry, "non-excluded item should be in catalog")
+	assert.False(t, includedEntry.Excluded, "exporting item should not be flagged")
+
+	excludedEntry := catalogEntry(t, client, excluded)
+	require.NotNil(t, excludedEntry, "excluded meal item should surface for restore")
+	assert.True(t, excludedEntry.Excluded, "excluded-only meal item must be flagged")
+}
+
+// A name carried by an active source (a custom item) is never reported excluded,
+// even when it also appears on an excluded meal-plan entry.
+func TestListItemNames_ActiveSourceWinsOverExcluded(t *testing.T) {
+	planID := createTestPlan(t, "Catalog Mixed Plan "+uuid.NewString())
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	name := "paprika-" + uuid.NewString()
+	client := newShoppingClient(t)
+	addResp, err := client.AddShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+			Name: name, Amount: "1", Unit: "jar",
+		}),
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			"DELETE FROM shoppinglist.custom_items WHERE id::text = $1",
+			addResp.Msg.Item.Id,
+		)
+	})
+	addExcludedPlanMeal(t, planID, time.Now().UTC().Add(24*time.Hour), name)
+
+	entry := catalogEntry(t, client, name)
+	require.NotNil(t, entry)
+	assert.False(
+		t,
+		entry.Excluded,
+		"active source should keep the name out of excluded",
+	)
+}
+
+// SetItemExcluded flips the meal-plan flag both ways: removing keeps the name in
+// the catalog (flagged) and out of the export; restoring puts it back.
+func TestSetItemExcluded_FlipsMealPlanFlagBothWays(t *testing.T) {
+	planID := createTestPlan(t, "Catalog Toggle Plan "+uuid.NewString())
+	t.Cleanup(func() { deletePlan(t, planID) })
+
+	name := "tahini-" + uuid.NewString()
+	tomorrow := time.Now().UTC().Add(24 * time.Hour)
+	addCustomPlanMeal(t, planID, tomorrow, "noon", name)
+
+	client := newShoppingClient(t)
+	inExport := func() bool {
+		resp, err := client.GetMealPlanExportItems(
+			t.Context(),
+			connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+				PlanId: planID.String(),
+			}),
+		)
+		require.NoError(t, err)
+		for _, item := range resp.Msg.Items {
+			if item.Name == name {
+				return true
+			}
+		}
+		return false
+	}
+
+	require.True(t, inExport(), "item should export before removal")
+
+	_, err := client.SetItemExcluded(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
+			Name: name, Excluded: true,
+		}),
+	)
+	require.NoError(t, err)
+	removed := catalogEntry(t, client, name)
+	require.NotNil(t, removed)
+	assert.True(t, removed.Excluded, "removed item should be flagged excluded")
+	assert.False(t, inExport(), "removed item must drop out of the export")
+
+	_, err = client.SetItemExcluded(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
+			Name: name, Excluded: false,
+		}),
+	)
+	require.NoError(t, err)
+	restored := catalogEntry(t, client, name)
+	require.NotNil(t, restored)
+	assert.False(t, restored.Excluded, "restored item should no longer be excluded")
+	assert.True(t, inExport(), "restored item should export again")
+}
+
+// Removing a shopping-list custom item deletes it outright (it has no meal-plan
+// entry to flag).
+func TestSetItemExcluded_DeletesCustomItem(t *testing.T) {
+	name := "twine-" + uuid.NewString()
+	client := newShoppingClient(t)
+	addResp, err := client.AddShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+			Name: name, Amount: "1", Unit: "roll",
+		}),
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			"DELETE FROM shoppinglist.custom_items WHERE id::text = $1",
+			addResp.Msg.Item.Id,
+		)
+	})
+
+	_, err = client.SetItemExcluded(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
+			Name: name, Excluded: true,
+		}),
 	)
 	require.NoError(t, err)
 
-	names := make([]string, 0, len(resp.Msg.Names))
-	for _, n := range resp.Msg.Names {
-		names = append(names, n.Name)
-	}
-	assert.Contains(t, names, included, "non-excluded item should be in catalog")
-	assert.NotContains(
-		t,
-		names,
-		excluded,
-		"excluded meal item must not appear in catalog",
+	resp, err := client.GetCustomList(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.GetCustomListRequest{}),
 	)
+	require.NoError(t, err)
+	for _, item := range resp.Msg.Items {
+		assert.NotEqual(t, name, item.Name, "custom item should be deleted")
+	}
+}
+
+func TestSetItemExcluded_EmptyName(t *testing.T) {
+	client := newShoppingClient(t)
+	_, err := client.SetItemExcluded(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{Name: ""}),
+	)
+	assertCode(t, err, connect.CodeInvalidArgument)
+}
+
+func TestSetItemExcluded_PermissionDenied(t *testing.T) {
+	client := newShoppingClient(t)
+	// Acting on a stranger's list without an edit grant is rejected.
+	_, err := client.SetItemExcluded(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
+			Name: "salt", OwnerUserId: "stranger-owner",
+		}),
+	)
+	assertCode(t, err, connect.CodePermissionDenied)
 }

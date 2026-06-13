@@ -2,10 +2,12 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	iapp "tools.xdoubleu.com/internal/app"
@@ -97,6 +99,33 @@ func (r *ShoppingRepository) AddCustomItem(
 		RETURNING id::text, name, unit, amount::float8`,
 		userID, name, amount, unit,
 	).Scan(&item.ID, &item.Name, &item.Unit, &item.Amount)
+	if err != nil {
+		return ShoppingItem{}, err
+	}
+	return item, nil
+}
+
+func (r *ShoppingRepository) UpdateCustomItem(
+	ctx context.Context,
+	userID string,
+	itemID uuid.UUID,
+	name, unit string,
+	amount float64,
+) (ShoppingItem, error) {
+	var item ShoppingItem
+	err := r.db.QueryRow(ctx, `
+		UPDATE shoppinglist.custom_items
+		SET name = $3, amount = $4, unit = $5
+		WHERE id = $1 AND user_id = $2
+		RETURNING id::text, name, unit, amount::float8`,
+		itemID, userID, name, amount, unit,
+	).Scan(&item.ID, &item.Name, &item.Unit, &item.Amount)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ShoppingItem{}, &iapp.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "Item not found",
+		}
+	}
 	if err != nil {
 		return ShoppingItem{}, err
 	}

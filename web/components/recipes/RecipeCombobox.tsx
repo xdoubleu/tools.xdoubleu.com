@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
-import { Input } from '@/components/ui/input'
+import { Combobox } from '@/components/ui/combobox'
 
 interface RecipeComboboxProps {
   recipes: Recipe[]
@@ -20,99 +20,27 @@ export default function RecipeCombobox({
   initialValue = ''
 }: RecipeComboboxProps) {
   const [inputValue, setInputValue] = useState(initialValue)
-  const [open, setOpen] = useState(false)
-  const [highlightedIndex, setHighlightedIndex] = useState(-1)
-  const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (autoFocus) inputRef.current?.focus()
-  }, [autoFocus])
-
-  const filtered = inputValue
-    ? recipes.filter((r) => r.name.toLowerCase().includes(inputValue.toLowerCase()))
-    : recipes
-
-  const selectRecipe = (recipe: Recipe) => {
-    setInputValue(recipe.name)
-    setOpen(false)
-    setHighlightedIndex(-1)
-    onSelect(recipe.id, '')
+  const handleChange = (value: string) => {
+    setInputValue(value)
+    onSelect('', value)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setInputValue(val)
-    setHighlightedIndex(-1)
-    setOpen(val.length > 0)
-    onSelect('', val)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      if (!open) setOpen(true)
-      setHighlightedIndex((i) => Math.min(i + 1, filtered.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setHighlightedIndex((i) => Math.max(i - 1, -1))
-    } else if (e.key === 'Tab') {
-      const target = highlightedIndex >= 0 ? filtered[highlightedIndex] : filtered[0]
-      if (open && target) {
-        e.preventDefault()
-        selectRecipe(target)
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      if (highlightedIndex >= 0 && filtered[highlightedIndex]) {
-        selectRecipe(filtered[highlightedIndex])
-      } else {
-        setOpen(false)
-        onEnter?.()
-      }
-    } else if (e.key === 'Escape') {
-      setOpen(false)
-      setHighlightedIndex(-1)
-    }
-  }
-
-  const handleBlur = () => {
-    setTimeout(() => {
-      setOpen(false)
-      const exact = recipes.find((r) => r.name.toLowerCase() === inputValue.toLowerCase())
-      if (exact) {
-        setInputValue(exact.name)
-        onSelect(exact.id, '')
-      }
-    }, 100)
+  const handleSelect = (name: string) => {
+    setInputValue(name)
+    const match = recipes.find((r) => r.name.toLowerCase() === name.toLowerCase())
+    onSelect(match?.id ?? '', '')
   }
 
   return (
-    <div className="relative">
-      <Input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setOpen(inputValue.length > 0)}
-        onBlur={handleBlur}
-        placeholder="Recipe name or custom meal..."
-      />
-      {open && filtered.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto">
-          {filtered.map((r, i) => (
-            <li
-              key={r.id}
-              onMouseDown={() => selectRecipe(r)}
-              className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
-                i === highlightedIndex ? 'bg-accent text-white' : 'text-fg hover:bg-hover'
-              }`}
-            >
-              {r.name}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <Combobox
+      value={inputValue}
+      onChange={handleChange}
+      onSelect={handleSelect}
+      suggestions={recipes.map((r) => r.name)}
+      placeholder="Recipe name or custom meal..."
+      autoFocus={autoFocus}
+      onEnter={onEnter}
+    />
   )
 }

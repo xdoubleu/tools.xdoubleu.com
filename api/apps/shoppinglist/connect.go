@@ -112,7 +112,7 @@ func (h *shoppingConnectHandler) GetCustomList(
 		pb[i] = &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: format.ToFractionCeiling(item.Amount),
+			Amount: format.ToAmount(item.Amount),
 			Unit:   item.Unit,
 		}
 	}
@@ -155,7 +155,56 @@ func (h *shoppingConnectHandler) AddShoppingItem(
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: format.ToFractionCeiling(item.Amount),
+			Amount: format.ToAmount(item.Amount),
+			Unit:   item.Unit,
+		},
+	}), nil
+}
+
+func (h *shoppingConnectHandler) UpdateShoppingItem(
+	ctx context.Context,
+	req *connect.Request[shoppinglistv1.UpdateShoppingItemRequest],
+) (*connect.Response[shoppinglistv1.UpdateShoppingItemResponse], error) {
+	itemID, err := uuid.Parse(req.Msg.ItemId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid item ID"),
+		)
+	}
+
+	if req.Msg.Name == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("name is required"),
+		)
+	}
+
+	amount, err := strconv.ParseFloat(req.Msg.Amount, 64)
+	if err != nil || amount < 0 {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("amount must be a non-negative number"),
+		)
+	}
+
+	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	if err != nil {
+		return nil, err
+	}
+
+	item, err := h.app.services.Shopping.UpdateItem(
+		ctx, ownerID, itemID, req.Msg.Name, req.Msg.Unit, amount,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	return connect.NewResponse(&shoppinglistv1.UpdateShoppingItemResponse{
+		Item: &shoppinglistv1.ShoppingItem{
+			Id:     item.ID,
+			Name:   item.Name,
+			Amount: format.ToAmount(item.Amount),
 			Unit:   item.Unit,
 		},
 	}), nil
@@ -239,7 +288,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	for i, item := range items {
 		pb[i] = &shoppinglistv1.ShoppingItem{
 			Name:       item.Name,
-			Amount:     format.ToAmountString(item.Amount, item.Unit),
+			Amount:     format.ToAmount(item.Amount),
 			Unit:       item.Unit,
 			RecipeName: item.RecipeName,
 			GroupName:  item.GroupName,

@@ -24,6 +24,13 @@ type ShoppingRepoMock struct {
 		userID, name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
+	UpdateCustomItemFn func(
+		ctx context.Context,
+		userID string,
+		itemID uuid.UUID,
+		name, unit string,
+		amount float64,
+	) (repositories.ShoppingItem, error)
 	DeleteCustomItemFn func(
 		ctx context.Context, userID string, itemID uuid.UUID,
 	) error
@@ -75,6 +82,9 @@ type ShoppingRepoMock struct {
 	SetItemCategoryFn func(
 		ctx context.Context, userID, name string, categoryID uuid.UUID,
 	) error
+	SetItemExcludedFn func(
+		ctx context.Context, userID, name string, excluded bool,
+	) error
 }
 
 func (m *ShoppingRepoMock) CheckPlanAccess(
@@ -98,6 +108,16 @@ func (m *ShoppingRepoMock) AddCustomItem(
 	amount float64,
 ) (repositories.ShoppingItem, error) {
 	return m.AddCustomItemFn(ctx, userID, name, unit, amount)
+}
+
+func (m *ShoppingRepoMock) UpdateCustomItem(
+	ctx context.Context,
+	userID string,
+	itemID uuid.UUID,
+	name, unit string,
+	amount float64,
+) (repositories.ShoppingItem, error) {
+	return m.UpdateCustomItemFn(ctx, userID, itemID, name, unit, amount)
 }
 
 func (m *ShoppingRepoMock) DeleteCustomItem(
@@ -233,4 +253,12 @@ func (m *ShoppingRepoMock) SetItemCategory(
 	categoryID uuid.UUID,
 ) error {
 	return m.SetItemCategoryFn(ctx, userID, name, categoryID)
+}
+
+func (m *ShoppingRepoMock) SetItemExcluded(
+	ctx context.Context,
+	userID, name string,
+	excluded bool,
+) error {
+	return m.SetItemExcludedFn(ctx, userID, name, excluded)
 }

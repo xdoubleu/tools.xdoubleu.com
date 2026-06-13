@@ -61,31 +61,40 @@ func TestHasMdLink_False(t *testing.T) {
 	assert.False(t, format.HasMdLink("plain text"))
 }
 
-// ── ToFraction ───────────────────────────────────────────────────────────────
+// ── ToAmount ─────────────────────────────────────────────────────────────────
 
-func TestToFraction_Zero(t *testing.T) {
-	assert.Equal(t, "0", format.ToFraction(0))
+func TestToAmount_Zero(t *testing.T) {
+	assert.Equal(t, "0", format.ToAmount(0))
 }
 
-func TestToFraction_Negative(t *testing.T) {
-	assert.Equal(t, "0", format.ToFraction(-1))
+func TestToAmount_Negative(t *testing.T) {
+	assert.Equal(t, "0", format.ToAmount(-1))
 }
 
-func TestToFraction_Whole(t *testing.T) {
-	assert.Equal(t, "2", format.ToFraction(2.0))
+func TestToAmount_Half(t *testing.T) {
+	// No rounding: 0.5 stays 0.5 (previously rounded up to 1 for count units).
+	assert.Equal(t, "0.5", format.ToAmount(0.5))
 }
 
-func TestToFraction_Half(t *testing.T) {
-	assert.Equal(t, "½", format.ToFraction(0.5))
+func TestToAmount_Whole(t *testing.T) {
+	assert.Equal(t, "1", format.ToAmount(1.0))
 }
 
-func TestToFraction_WholePlusHalf(t *testing.T) {
-	assert.Equal(t, "1½", format.ToFraction(1.5))
+func TestToAmount_WholeTwo(t *testing.T) {
+	assert.Equal(t, "2", format.ToAmount(2.0))
 }
 
-func TestToFraction_RoundsUp(t *testing.T) {
-	// 0.9375 → nearest 1/8 = 1 → whole 1, frac 0
-	assert.Equal(t, "1", format.ToFraction(0.9375))
+func TestToAmount_WholePlusHalf(t *testing.T) {
+	assert.Equal(t, "1.5", format.ToAmount(1.5))
+}
+
+func TestToAmount_OneThirdCapsAtThreeDecimals(t *testing.T) {
+	assert.Equal(t, "0.333", format.ToAmount(1.0/3))
+}
+
+func TestToAmount_AbsorbsFloatNoise(t *testing.T) {
+	// 0.1+0.2 == 0.30000000000000004 in float64; capping at 3 decimals -> "0.3".
+	assert.Equal(t, "0.3", format.ToAmount(0.1+0.2))
 }
 
 // ── RecurInputDisplay ─────────────────────────────────────────────────────────
@@ -188,92 +197,6 @@ func TestDescFirstLine_MultiLine(t *testing.T) {
 
 func TestDescFirstLine_Empty(t *testing.T) {
 	assert.Equal(t, "", format.DescFirstLine(""))
-}
-
-func TestToFraction_OneThird(t *testing.T) {
-	assert.Equal(t, "⅓", format.ToFraction(1.0/3))
-}
-
-func TestToFraction_TwoThirds(t *testing.T) {
-	assert.Equal(t, "⅔", format.ToFraction(2.0/3))
-}
-
-func TestToFraction_OneAndOneThird(t *testing.T) {
-	assert.Equal(t, "1⅓", format.ToFraction(1.0+1.0/3))
-}
-
-// ── ToFractionCeiling ─────────────────────────────────────────────────────────
-
-func TestToFractionCeiling_Zero(t *testing.T) {
-	assert.Equal(t, "0", format.ToFractionCeiling(0))
-}
-
-func TestToFractionCeiling_Negative(t *testing.T) {
-	assert.Equal(t, "0", format.ToFractionCeiling(-1))
-}
-
-func TestToFractionCeiling_Exact(t *testing.T) {
-	assert.Equal(t, "½", format.ToFractionCeiling(0.5))
-}
-
-func TestToFractionCeiling_RoundsUp(t *testing.T) {
-	// 0.1 → rounds up to nearest common fraction ⅛ → ⅛
-	assert.Equal(t, "⅛", format.ToFractionCeiling(0.1))
-}
-
-func TestToFractionCeiling_Whole(t *testing.T) {
-	assert.Equal(t, "3", format.ToFractionCeiling(3.0))
-}
-
-func TestToFractionCeiling_WholePlusFraction(t *testing.T) {
-	// 1.1 → fractional part 0.1, ceiling to nearest common fraction ⅛ (0.125)
-	assert.Equal(t, "1⅛", format.ToFractionCeiling(1.1))
-}
-
-func TestToFractionCeiling_AlmostWhole(t *testing.T) {
-	// 0.95 → rounds up to 1
-	assert.Equal(t, "1", format.ToFractionCeiling(0.95))
-}
-
-// ── ToAmountString ────────────────────────────────────────────────────────────
-
-func TestToAmountString_MeasurementUnitFraction(t *testing.T) {
-	// kg is a measurement unit → fraction ceiling
-	assert.Equal(t, "1½", format.ToAmountString(1.5, "kg"))
-}
-
-func TestToAmountString_MeasurementUnitCaseInsensitive(t *testing.T) {
-	assert.Equal(t, "1½", format.ToAmountString(1.5, "KG"))
-}
-
-func TestToAmountString_MeasurementUnitWhole(t *testing.T) {
-	assert.Equal(t, "2", format.ToAmountString(2.0, "l"))
-}
-
-func TestToAmountString_PackagingUnitCeilsToWhole(t *testing.T) {
-	// 3⅔ Pots → must buy 4
-	assert.Equal(t, "4", format.ToAmountString(3.0+2.0/3, "Pot"))
-}
-
-func TestToAmountString_PackagingUnitPcs(t *testing.T) {
-	assert.Equal(t, "2", format.ToAmountString(1.5, "pcs"))
-}
-
-func TestToAmountString_PackagingUnitWholeUnchanged(t *testing.T) {
-	assert.Equal(t, "3", format.ToAmountString(3.0, "bottle"))
-}
-
-func TestToAmountString_ZeroAmount(t *testing.T) {
-	assert.Equal(t, "0", format.ToAmountString(0, "Pot"))
-}
-
-func TestToAmountString_NegativeAmount(t *testing.T) {
-	assert.Equal(t, "0", format.ToAmountString(-1, "kg"))
-}
-
-func TestToAmountString_EmptyUnit(t *testing.T) {
-	// Empty unit is treated as packaging → whole-number ceiling
-	assert.Equal(t, "2", format.ToAmountString(1.5, ""))
 }
 
 // ── RenderError ───────────────────────────────────────────────────────────────

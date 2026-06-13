@@ -112,6 +112,127 @@ func TestAddShoppingItem_InvalidAmount(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
 
+// ── UpdateShoppingItem ────────────────────────────────────────────────────────
+
+func TestUpdateShoppingItem_Success(t *testing.T) {
+	client := newShoppingClient(t)
+
+	addResp, err := client.AddShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+			Name:   "Milk",
+			Amount: "2",
+			Unit:   "L",
+		}),
+	)
+	require.NoError(t, err)
+
+	resp, err := client.UpdateShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: addResp.Msg.Item.Id,
+			Name:   "Oat Milk",
+			Amount: "3",
+			Unit:   "cartons",
+		}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, addResp.Msg.Item.Id, resp.Msg.Item.Id)
+	assert.Equal(t, "Oat Milk", resp.Msg.Item.Name)
+	assert.Equal(t, "cartons", resp.Msg.Item.Unit)
+	assert.Equal(t, "3", resp.Msg.Item.Amount)
+}
+
+func TestUpdateShoppingItem_EmptyName(t *testing.T) {
+	client := newShoppingClient(t)
+
+	addResp, err := client.AddShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+			Name:   "Bread",
+			Amount: "1",
+			Unit:   "loaf",
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.UpdateShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: addResp.Msg.Item.Id,
+			Name:   "",
+			Amount: "1",
+			Unit:   "loaf",
+		}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestUpdateShoppingItem_InvalidAmount(t *testing.T) {
+	client := newShoppingClient(t)
+
+	addResp, err := client.AddShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+			Name:   "Eggs",
+			Amount: "6",
+			Unit:   "pcs",
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.UpdateShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: addResp.Msg.Item.Id,
+			Name:   "Eggs",
+			Amount: "not-a-number",
+			Unit:   "pcs",
+		}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestUpdateShoppingItem_NotFound(t *testing.T) {
+	client := newShoppingClient(t)
+	_, err := client.UpdateShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: uuid.New().String(),
+			Name:   "Ghost",
+			Amount: "1",
+			Unit:   "",
+		}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeNotFound, connectErr.Code())
+}
+
+func TestUpdateShoppingItem_InvalidID(t *testing.T) {
+	client := newShoppingClient(t)
+	_, err := client.UpdateShoppingItem(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: "not-a-uuid",
+			Name:   "Milk",
+			Amount: "1",
+			Unit:   "L",
+		}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
 // ── DeleteShoppingItem ────────────────────────────────────────────────────────
 
 func TestDeleteShoppingItem_Success(t *testing.T) {
