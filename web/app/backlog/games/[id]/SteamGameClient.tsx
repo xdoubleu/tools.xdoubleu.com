@@ -1,10 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { useBacklogSteamGame } from '@/hooks/useBacklog'
+import { create } from '@bufbuild/protobuf'
+import { useBacklogSteamGame, useRefreshSteamGame } from '@/hooks/useBacklog'
 import type { Achievement } from '@/lib/gen/backlog/v1/games_pb'
+import { GetSteamGameResponseSchema } from '@/lib/gen/backlog/v1/games_pb'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 
@@ -14,7 +16,7 @@ interface AchievementCardProps {
 
 function AchievementCard({ achievement }: AchievementCardProps) {
   return (
-    <div className="border border-border rounded-2xl p-3 flex gap-3 items-start">
+    <div className="border border-border bg-card rounded-2xl p-3 flex gap-3 items-start">
       {achievement.iconUrl && (
         <Image
           src={achievement.iconUrl}
@@ -34,6 +36,9 @@ function AchievementCard({ achievement }: AchievementCardProps) {
           ) : (
             <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">Locked</span>
           )}
+          {!achievement.description && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">Hidden</span>
+          )}
         </div>
         {achievement.description && (
           <p className="text-xs text-muted mt-0.5 line-clamp-2">{achievement.description}</p>
@@ -48,13 +53,31 @@ function AchievementCard({ achievement }: AchievementCardProps) {
   )
 }
 
+const REFRESH_INTERVAL_MS = 60_000
+
 export default function SteamGameClient({ id }: { id: string }) {
   const gameId = Number(id)
   const searchParams = useSearchParams()
-  const { data, error, isLoading } = useBacklogSteamGame(gameId)
+  const { data, error, isLoading, mutate } = useBacklogSteamGame(gameId)
+  const refreshGame = useRefreshSteamGame()
   const game = data?.data?.game
   const achievements = data?.data?.achievements ?? []
   const [showCompleted, setShowCompleted] = useState(false)
+
+  useEffect(() => {
+    if (!gameId) return
+    const interval = setInterval(() => {
+      if (document.hidden) return
+      refreshGame(gameId)
+        .then((fresh) =>
+          mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), {
+            revalidate: false
+          })
+        )
+        .catch(() => {})
+    }, REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [gameId, mutate, refreshGame])
 
   const bucket = searchParams.get('bucket')
   const bucketLabel = searchParams.get('label')

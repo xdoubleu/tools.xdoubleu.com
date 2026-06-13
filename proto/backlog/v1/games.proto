@@ -68,9 +68,13 @@ message GetSteamDistributionResponse { SteamDistributionResponse data = 1; }
 message GetRecentlyActiveGamesRequest {}
 message GetRecentlyActiveGamesResponse { repeated RecentGame games = 1; }
 
+message RefreshSteamGameRequest { int32 game_id = 1; }
+message RefreshSteamGameResponse { SteamGameResponse data = 1; }
+
 service GamesService {
   rpc GetSteam(GetSteamRequest) returns (GetSteamResponse);
   rpc GetSteamGame(GetSteamGameRequest) returns (GetSteamGameResponse);
   rpc GetSteamDistribution(GetSteamDistributionRequest) returns (GetSteamDistributionResponse);
   rpc GetRecentlyActiveGames(GetRecentlyActiveGamesRequest) returns (GetRecentlyActiveGamesResponse);
+  rpc RefreshSteamGame(RefreshSteamGameRequest) returns (RefreshSteamGameResponse);
 }

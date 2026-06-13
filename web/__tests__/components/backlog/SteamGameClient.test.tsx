@@ -1,8 +1,11 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent } from '@testing-library/react'
+
+const mockRefreshSteamGame = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
-  useBacklogSteamGame: jest.fn()
+  useBacklogSteamGame: jest.fn(),
+  useRefreshSteamGame: jest.fn(() => mockRefreshSteamGame)
 }))
 
 let mockSearchParams = new URLSearchParams()
@@ -32,13 +35,14 @@ jest.mock('next/image', () => {
 })
 
 import SteamGameClient from '@/app/backlog/games/[id]/SteamGameClient'
-import { useBacklogSteamGame } from '@/hooks/useBacklog'
+import { useBacklogSteamGame, useRefreshSteamGame } from '@/hooks/useBacklog'
 import { create } from '@bufbuild/protobuf'
 import {
   GameSchema,
   AchievementSchema,
   GetSteamGameResponseSchema,
-  SteamGameResponseSchema
+  SteamGameResponseSchema,
+  RefreshSteamGameResponseSchema
 } from '@/lib/gen/backlog/v1/games_pb'
 
 const mockGame = create(GameSchema, {
@@ -68,9 +72,20 @@ const mockAchievements = [
   })
 ]
 
+const mockHiddenAchievement = create(AchievementSchema, {
+  name: 'ach3',
+  displayName: 'Secret Achievement',
+  description: '',
+  achieved: false,
+  globalPercent: 1.2,
+  iconUrl: 'http://example.com/ach3.png'
+})
+
 beforeEach(() => {
   jest.clearAllMocks()
   mockSearchParams = new URLSearchParams()
+  mockRefreshSteamGame.mockResolvedValue(undefined)
+  jest.mocked(useRefreshSteamGame).mockReturnValue(mockRefreshSteamGame)
 })
 
 const mockSteamGameResponse = (
@@ -131,6 +146,45 @@ describe('SteamGameClient', () => {
     // Achievement 1 is achieved (completed) so it is hidden by default.
     expect(screen.queryByText('Achievement 1')).not.toBeInTheDocument()
     expect(screen.getByText('Achievement 2')).toBeInTheDocument()
+  })
+
+  it('gives each achievement card a solid card background', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    const card = screen.getByText('Achievement 2').closest('div.bg-card')
+    expect(card).toBeInTheDocument()
+  })
+
+  it('shows a Hidden badge for achievements without a description', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, [mockHiddenAchievement]),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.getByText('Secret Achievement')).toBeInTheDocument()
+    expect(screen.getByText('Hidden')).toBeInTheDocument()
+  })
+
+  it('does not show a Hidden badge for achievements with a description', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.getByText('Achievement 2')).toBeInTheDocument()
+    expect(screen.queryByText('Hidden')).not.toBeInTheDocument()
   })
 
   it('renders the achievement icon with a locked square aspect ratio', () => {
@@ -368,5 +422,111 @@ describe('SteamGameClient', () => {
 
     render(<SteamGameClient id="123" />)
     expect(screen.queryByText('Delisted')).not.toBeInTheDocument()
+  })
+
+  describe('live polling', () => {
+    beforeEach(() => {
+      jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it('calls refreshSteamGame after 60s and updates data via mutate', async () => {
+      const mutate = jest.fn().mockResolvedValue(undefined)
+      const freshRefreshResponse = create(RefreshSteamGameResponseSchema, {
+        data: create(SteamGameResponseSchema, { game: mockGame, achievements: [] })
+      })
+      mockRefreshSteamGame.mockResolvedValue(freshRefreshResponse)
+
+      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+      jest.mocked(useBacklogSteamGame).mockReturnValue({
+        data: mockSteamGameResponse(mockGame, mockAchievements),
+        isLoading: false,
+        error: undefined,
+        mutate
+      })
+
+      render(<SteamGameClient id="123" />)
+
+      // No call before interval fires.
+      expect(mockRefreshSteamGame).not.toHaveBeenCalled()
+
+      await act(async () => {
+        jest.advanceTimersByTime(60_000)
+      })
+
+      expect(mockRefreshSteamGame).toHaveBeenCalledWith(123)
+      expect(mutate).toHaveBeenCalledWith(
+        expect.objectContaining({ data: freshRefreshResponse.data }),
+        { revalidate: false }
+      )
+    })
+
+    it('does not call refreshSteamGame when the tab is hidden', async () => {
+      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+      jest.mocked(useBacklogSteamGame).mockReturnValue({
+        data: mockSteamGameResponse(mockGame, []),
+        isLoading: false,
+        error: undefined,
+        mutate: jest.fn()
+      })
+
+      Object.defineProperty(document, 'hidden', { value: true, writable: true })
+
+      render(<SteamGameClient id="123" />)
+
+      await act(async () => {
+        jest.advanceTimersByTime(60_000)
+      })
+
+      expect(mockRefreshSteamGame).not.toHaveBeenCalled()
+
+      Object.defineProperty(document, 'hidden', { value: false, writable: true })
+    })
+
+    it('clears the interval on unmount', async () => {
+      const mutate = jest.fn()
+      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+      jest.mocked(useBacklogSteamGame).mockReturnValue({
+        data: mockSteamGameResponse(mockGame, []),
+        isLoading: false,
+        error: undefined,
+        mutate
+      })
+
+      const { unmount } = render(<SteamGameClient id="123" />)
+      unmount()
+
+      await act(async () => {
+        jest.advanceTimersByTime(120_000)
+      })
+
+      expect(mockRefreshSteamGame).not.toHaveBeenCalled()
+    })
+
+    it('keeps showing prior data when refreshSteamGame rejects', async () => {
+      const mutate = jest.fn()
+      mockRefreshSteamGame.mockRejectedValue(new Error('network error'))
+
+      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+      jest.mocked(useBacklogSteamGame).mockReturnValue({
+        data: mockSteamGameResponse(mockGame, mockAchievements),
+        isLoading: false,
+        error: undefined,
+        mutate
+      })
+
+      render(<SteamGameClient id="123" />)
+
+      await act(async () => {
+        jest.advanceTimersByTime(60_000)
+      })
+
+      // mutate must not be called on failure; prior data remains.
+      expect(mutate).not.toHaveBeenCalled()
+      expect(screen.getByText('Achievement 2')).toBeInTheDocument()
+    })
   })
 })

@@ -429,3 +429,109 @@ func TestSteamWithTx_CommitAndRollback(t *testing.T) {
 	_, err = repo.GetGameByID(ctx, rolledBackID, user)
 	require.Error(t, err, "rolled-back game must not be persisted")
 }
+
+// TestSyncGame_UpdatesAchievements verifies that SyncGame refreshes the stored
+// achievements and recomputes the game's completion rate for a single game
+// without touching any other games.
+func TestSyncGame_UpdatesAchievements(t *testing.T) {
+	ctx := context.Background()
+	const user = "syncgame-update-user"
+	const gameID = 9001
+
+	game := steam.Game{ //nolint:exhaustruct //only required fields
+		AppID: gameID, Name: "SyncGame Test", HasCommunityVisibleStats: true,
+	}
+
+	// Seed: 1/4 achieved => 25.00
+	app1 := newSyncTestApp(t, user, syncFakeClient{
+		games: []steam.Game{game},
+		playerAch: map[int][]steam.Achievement{
+			gameID: {ach("G1", 1), ach("G2", 0), ach("G3", 0), ach("G4", 0)},
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app1.Services.Steam.SyncUser(ctx, user))
+
+	g, err := app1.Services.Steam.GetGameByID(ctx, gameID, user)
+	require.NoError(t, err)
+	assert.Equal(t, "25.00", g.CompletionRate)
+
+	// SyncGame: 2/4 achieved => 50.00
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games: []steam.Game{game},
+		playerAch: map[int][]steam.Achievement{
+			gameID: {ach("G1", 1), ach("G2", 1), ach("G3", 0), ach("G4", 0)},
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app2.Services.Steam.SyncGame(ctx, user, gameID))
+
+	g, err = app2.Services.Steam.GetGameByID(ctx, gameID, user)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", g.CompletionRate,
+		"SyncGame must update the game's completion rate")
+}
+
+// TestSyncGame_UnconfiguredCreds verifies that SyncGame is a no-op when the
+// user has no Steam credentials configured.
+func TestSyncGame_UnconfiguredCreds(t *testing.T) {
+	ctx := context.Background()
+	const user = "syncgame-nocreds-user"
+
+	// Create app without calling SaveIntegrations so creds are empty.
+	app := backlog.NewInner(
+		ctx,
+		sharedmocks.NewMockedAuthService(user),
+		testApp.Logger,
+		testCfg,
+		testDB,
+		backlog.Clients{
+			SteamFactory:     func(_ string) steam.Client { return nil },
+			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+		},
+	)
+
+	err := app.Services.Steam.SyncGame(ctx, user, 9999)
+	assert.NoError(t, err, "SyncGame with no credentials must be a no-op")
+}
+
+// TestSyncGame_FetchErrorPropagates verifies that when the Steam API fetch
+// fails, SyncGame returns the error and leaves the stored data unchanged.
+func TestSyncGame_FetchErrorPropagates(t *testing.T) {
+	ctx := context.Background()
+	const user = "syncgame-error-user"
+	const gameID = 9002
+
+	game := steam.Game{ //nolint:exhaustruct //only required fields
+		AppID: gameID, Name: "Error Game", HasCommunityVisibleStats: true,
+	}
+
+	// Seed: 1/2 achieved => 50.00
+	app1 := newSyncTestApp(t, user, syncFakeClient{
+		games: []steam.Game{game},
+		playerAch: map[int][]steam.Achievement{
+			gameID: {ach("E1", 1), ach("E2", 0)},
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app1.Services.Steam.SyncUser(ctx, user))
+
+	g, err := app1.Services.Steam.GetGameByID(ctx, gameID, user)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", g.CompletionRate)
+
+	// SyncGame with a schema fetch failure: must return error.
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games:     []steam.Game{game},
+		playerAch: map[int][]steam.Achievement{},
+		schemaErr: map[int]bool{gameID: true},
+	})
+	err = app2.Services.Steam.SyncGame(ctx, user, gameID)
+	assert.Error(t, err, "SyncGame must propagate Steam fetch errors")
+
+	// Stored completion rate must be unchanged.
+	g, err = app2.Services.Steam.GetGameByID(ctx, gameID, user)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", g.CompletionRate,
+		"stored data must be unchanged after a failed SyncGame")
+}

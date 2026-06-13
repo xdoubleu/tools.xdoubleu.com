@@ -71,6 +71,11 @@ export function useBooksProgress(dateStart?: string, dateEnd?: string) {
   )
 }
 
+export function useRefreshSteamGame() {
+  const client = createServiceClient(GamesService)
+  return (gameId: number) => client.refreshSteamGame({ gameId })
+}
+
 export function useRefreshSteam() {
   return () =>
     fetch(`${getApiUrl()}/backlog/api/progress/steam/refresh`, {

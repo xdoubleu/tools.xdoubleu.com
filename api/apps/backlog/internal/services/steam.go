@@ -397,6 +397,62 @@ func (service *SteamService) GetCompleted(
 	return service.steam.GetCompleted(ctx, userID)
 }
 
+// SyncGame refreshes a single game's achievements from Steam and persists the
+// updated rows and completion rate. Unlike SyncUser, it only touches the one
+// game and intentionally does not recompute the library-wide progress graph,
+// which remains owned by the daily SteamJob.
+func (service *SteamService) SyncGame(
+	ctx context.Context,
+	userID string,
+	gameID int,
+) error {
+	creds, err := service.integrations.Get(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if creds.SteamAPIKey == "" || creds.SteamUserID == "" {
+		service.logger.DebugContext(
+			ctx,
+			"steam not configured for user",
+			"userID",
+			userID,
+		)
+		return nil
+	}
+
+	client := service.clientFactory(creds.SteamAPIKey)
+
+	rows, err := service.fetchAchievementsForGame(
+		ctx, client, creds.SteamUserID, gameID,
+	)
+	if err != nil {
+		return err
+	}
+
+	allGames, err := service.steam.GetAllGames(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	game, err := service.steam.GetGameByID(ctx, gameID, userID)
+	if err != nil {
+		return err
+	}
+
+	game.SetCalculatedInfo(rows, len(allGames))
+
+	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
+		if errIn := service.steam.ReplaceAchievements(
+			ctx, tx, userID, gameID, rows,
+		); errIn != nil {
+			return errIn
+		}
+		return service.steam.UpsertGames(
+			ctx, tx, map[int]*models.Game{gameID: game}, userID,
+		)
+	})
+}
+
 // GetRecentlyActive returns the games the user most recently unlocked
 // achievements in, capped at recentGamesLimit and ordered most recent first,
 // regardless of how long ago the last unlock happened. It powers the
