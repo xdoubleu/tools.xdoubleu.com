@@ -43,11 +43,15 @@ func (r *ShoppingRepository) ListItemNames(
 		    -- Recipe-less meal entries store hand-typed items as a
 		    -- newline-separated list in custom_name (each line a bare "name" or
 		    -- "name\tamount"); surface those names so they can be categorized.
+		    -- Entries flagged exclude_from_shopping_list are skipped: they never
+		    -- reach the shopping list, so they must not appear in the catalog
+		    -- either.
 		    SELECT DISTINCT LOWER(TRIM(split_part(item, E'\t', 1))) AS name
 		    FROM mealplans.plan_meals pm
 		    JOIN mealplans.plans p ON p.id = pm.plan_id,
 		         unnest(string_to_array(pm.custom_name, E'\n')) AS item
 		    WHERE pm.recipe_id IS NULL
+		      AND pm.exclude_from_shopping_list = FALSE
 		      AND (p.owner_user_id = $1
 		           OR p.id IN (
 		               SELECT plan_id FROM mealplans.plan_access WHERE user_id = $1

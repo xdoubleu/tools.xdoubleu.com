@@ -1,6 +1,23 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useStores, useStoreCategories, useCategories } from '@/hooks/useShoppingList'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
@@ -125,12 +142,20 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
   const allCategories = categoriesData?.categories ?? []
   const available = allCategories.filter((c) => !order.some((o) => o.id === c.id))
 
-  const move = (index: number, delta: number) => {
-    const target = index + delta
-    if (target < 0 || target >= order.length) return
-    const next = [...order]
-    ;[next[index], next[target]] = [next[target], next[index]]
-    setOrder(next)
+  const sensors = useSensors(
+    // A small activation distance lets taps still reach the × button without
+    // accidentally starting a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = order.findIndex((o) => o.id === active.id)
+    const newIndex = order.findIndex((o) => o.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    setOrder(arrayMove(order, oldIndex, newIndex))
     setSaved(false)
   }
 
@@ -168,43 +193,20 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
       {order.length === 0 ? (
         <p className="text-sm text-muted">No categories added to this store yet.</p>
       ) : (
-        <ul className="space-y-2">
-          {order.map((category, index) => (
-            <li
-              key={category.id}
-              className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2"
-            >
-              <span className="w-6 text-xs text-muted">{index + 1}.</span>
-              <span className="flex-1 text-sm text-fg">{category.name}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={index === 0}
-                onClick={() => move(index, -1)}
-                aria-label={`Move ${category.name} up`}
-              >
-                ↑
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={index === order.length - 1}
-                onClick={() => move(index, 1)}
-                aria-label={`Move ${category.name} down`}
-              >
-                ↓
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => remove(category.id)}
-                aria-label={`Remove ${category.name}`}
-              >
-                ×
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={order.map((o) => o.id)} strategy={verticalListSortingStrategy}>
+            <ul className="space-y-2">
+              {order.map((category, index) => (
+                <SortableCategoryRow
+                  key={category.id}
+                  category={category}
+                  index={index}
+                  onRemove={remove}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       {available.length > 0 && (
@@ -229,5 +231,54 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
         {saved && <span className="text-sm text-success">Saved!</span>}
       </div>
     </div>
+  )
+}
+
+function SortableCategoryRow({
+  category,
+  index,
+  onRemove
+}: {
+  category: OrderedCategory
+  index: number
+  onRemove: (id: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category.id
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2"
+    >
+      <Button
+        size="iconSm"
+        variant="ghost"
+        className="cursor-grab touch-none active:cursor-grabbing"
+        aria-label={`Reorder ${category.name}`}
+        {...attributes}
+        {...listeners}
+      >
+        ⠿
+      </Button>
+      <span className="w-6 text-xs text-muted">{index + 1}.</span>
+      <span className="flex-1 text-sm text-fg">{category.name}</span>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => onRemove(category.id)}
+        aria-label={`Remove ${category.name}`}
+      >
+        ×
+      </Button>
+    </li>
   )
 }
