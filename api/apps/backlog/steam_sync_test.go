@@ -94,6 +94,7 @@ func newSyncTestApp(
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 
@@ -492,6 +493,7 @@ func TestSyncGame_UnconfiguredCreds(t *testing.T) {
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 

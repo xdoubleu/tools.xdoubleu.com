@@ -16,8 +16,8 @@ import (
 )
 
 // registerTestDevice registers a new Kobo device for ownerID and returns the
-// raw token.  It exists as a helper because all Kobo route tests need a valid
-// bearer token to authenticate.
+// raw token. It exists as a helper because all Kobo route tests need a valid
+// token to authenticate (embedded in the URL path, not a Bearer header).
 func registerTestDevice(t *testing.T, ownerID string) string {
 	t.Helper()
 	_, rawToken, err := testApp.Services.Integrations.RegisterKoboDevice(
@@ -31,7 +31,6 @@ func registerTestDevice(t *testing.T, ownerID string) string {
 
 // TestKoboProxy_UnhandledPathProxied shows that a path we do not own is
 // forwarded verbatim to the upstream Kobo store.
-// FAILING before proxy implementation: ServeMux returns 404 for unknown paths.
 func TestKoboProxy_UnhandledPathProxied(t *testing.T) {
 	upstream := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -47,17 +46,50 @@ func TestKoboProxy_UnhandledPathProxied(t *testing.T) {
 	rawToken := registerTestDevice(t, "kobo-proxy-unhandled-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/UpgradeCheck"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/UpgradeCheck"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	// After fix: upstream's 200; before fix: 404 from ServeMux.
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
-// TestKoboProxy_RequiresAuth shows that the catch-all proxy still enforces
-// our bearer-token auth before forwarding to upstream.
-func TestKoboProxy_RequiresAuth(t *testing.T) {
+// TestKoboProxy_TokenStrippedFromUpstreamPath verifies that when the catch-all
+// proxy forwards a request to the upstream Kobo store, the token segment is
+// stripped so the upstream receives a clean /v1/… path, not /{token}/v1/….
+// This is the regression test for the "sync failed / /auth/device 401" bug:
+// previously the proxy forwarded the token to storeapi.kobo.com, which
+// rejected the malformed path with a 401, causing "sync failed" on device.
+func TestKoboProxy_TokenStrippedFromUpstreamPath(t *testing.T) {
+	var capturedPath string
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedPath = r.URL.Path
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
+	t.Cleanup(upstream.Close)
+
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-proxy-strip-"+uuid.NewString())
+
+	// The device requests: /{prefix}/kobo/{token}/v1/auth/device
+	// The upstream must receive: /v1/auth/device (token stripped).
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/auth/device"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "/v1/auth/device", capturedPath,
+		"upstream must receive /v1/auth/device without the token segment")
+}
+
+// TestKoboProxy_InvalidToken_Returns401 shows that the catch-all proxy still
+// enforces our token auth before forwarding to upstream.
+func TestKoboProxy_InvalidToken_Returns401(t *testing.T) {
 	upstream := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -68,15 +100,10 @@ func TestKoboProxy_RequiresAuth(t *testing.T) {
 	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
 	t.Cleanup(ts.Close)
 
-	req, err := http.NewRequestWithContext(
-		context.Background(), http.MethodGet,
-		koboURL(ts, "/v1/UpgradeCheck"), nil,
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet,
+			koboURL(ts, "not-a-registered-token", "/v1/UpgradeCheck"), nil),
 	)
-	require.NoError(t, err)
-	req.Header.Set("X-Forwarded-Proto", "https")
-	// Deliberately no Authorization header.
-
-	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
@@ -84,8 +111,6 @@ func TestKoboProxy_RequiresAuth(t *testing.T) {
 
 // TestKoboLibrarySync_MergesUpstreamItems shows that items returned by the
 // upstream /v1/library/sync are preserved (additive merge).
-// FAILING before merge implementation: upstream is never called, so only our
-// books appear and the upstream item is absent.
 func TestKoboLibrarySync_MergesUpstreamItems(t *testing.T) {
 	const upstreamRevID = "upstream-book-001"
 	upstreamPayload := `[{"BookEntitlement":` +
@@ -114,7 +139,7 @@ func TestKoboLibrarySync_MergesUpstreamItems(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -147,7 +172,7 @@ func TestKoboProxy_UpstreamDown_ReturnsBadGateway(t *testing.T) {
 	rawToken := registerTestDevice(t, "kobo-proxy-down-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/UpgradeCheck"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/UpgradeCheck"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -171,7 +196,7 @@ func TestKoboLibrarySync_UpstreamNon200_FallsBackToOurBooks(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -209,7 +234,7 @@ func TestKoboLibrarySync_ForwardsSyncToken(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -230,7 +255,7 @@ func TestKoboLibrarySync_OurBooksPreservedWhenUpstreamDown(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -252,16 +277,16 @@ func TestKoboLibrarySync_OurBooksPreservedWhenUpstreamDown(t *testing.T) {
 }
 
 // koboURL builds a URL for the Kobo sync API on the given httptest server.
-func koboURL(ts *httptest.Server, path string) string {
-	return ts.URL + "/backlog/kobo" + path
+// The rawToken is embedded in the path, matching the real device URL shape:
+// the device sets api_endpoint = <server>/backlog/kobo/<rawToken> and appends
+// store protocol paths (e.g. /v1/library/sync) to form the full request URL.
+func koboURL(ts *httptest.Server, rawToken, path string) string {
+	return ts.URL + "/backlog/kobo/" + rawToken + path
 }
 
-// koboReq builds an HTTP request with the Kobo bearer token and HTTPS header set.
-func koboReq(
-	t *testing.T,
-	method, url, rawToken string,
-	body []byte,
-) *http.Request {
+// koboReq builds an HTTP request with the HTTPS forwarded-proto header set.
+// The Kobo token lives in the URL path (via koboURL), not in an auth header.
+func koboReq(t *testing.T, method, url string, body []byte) *http.Request {
 	t.Helper()
 	var req *http.Request
 	var err error
@@ -273,9 +298,6 @@ func koboReq(
 		req, err = http.NewRequestWithContext(context.Background(), method, url, nil)
 	}
 	require.NoError(t, err)
-	if rawToken != "" {
-		req.Header.Set("Authorization", "Bearer "+rawToken)
-	}
 	req.Header.Set("X-Forwarded-Proto", "https")
 	return req
 }
@@ -319,24 +341,20 @@ func setupKoboPDFSyncBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 
 // --- Auth / HTTPS gate tests ---
 
-func TestKoboInit_MissingToken(t *testing.T) {
+func TestKoboInit_UnregisteredToken_Returns401(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 
-	req, err := http.NewRequestWithContext(
-		context.Background(), http.MethodPost,
-		koboURL(ts, "/v1/initialization"), nil,
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodPost,
+			koboURL(ts, "not-a-registered-token", "/v1/initialization"), nil),
 	)
-	require.NoError(t, err)
-	req.Header.Set("X-Forwarded-Proto", "https")
-
-	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
-func TestKoboInit_InvalidToken(t *testing.T) {
+func TestKoboInit_InvalidToken_Returns401(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 
@@ -344,8 +362,7 @@ func TestKoboInit_InvalidToken(t *testing.T) {
 		koboReq(
 			t,
 			http.MethodPost,
-			koboURL(ts, "/v1/initialization"),
-			"bad-token-xyz",
+			koboURL(ts, "bad-token-xyz", "/v1/initialization"),
 			nil,
 		),
 	)
@@ -362,10 +379,9 @@ func TestKoboInit_NonHTTPS_Rejected(t *testing.T) {
 
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodPost,
-		koboURL(ts, "/v1/initialization"), nil,
+		koboURL(ts, rawToken, "/v1/initialization"), nil,
 	)
 	require.NoError(t, err)
-	req.Header.Set("Authorization", "Bearer "+rawToken)
 	// Deliberately NOT setting X-Forwarded-Proto: https
 
 	resp, err := http.DefaultClient.Do(req)
@@ -381,7 +397,7 @@ func TestKoboInit_ValidToken_ReturnsInitData(t *testing.T) {
 	rawToken := registerTestDevice(t, "kobo-init-ok-user")
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodPost, koboURL(ts, "/v1/initialization"), rawToken, nil),
+		koboReq(t, http.MethodPost, koboURL(ts, rawToken, "/v1/initialization"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -402,7 +418,7 @@ func TestKoboLibrarySync_EmptyLibrary(t *testing.T) {
 	rawToken := registerTestDevice(t, "kobo-sync-empty-user")
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -428,7 +444,7 @@ func TestKoboLibrarySync_ConvertingKEPUBSkipped(t *testing.T) {
 	))
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -448,7 +464,7 @@ func TestKoboLibrarySync_ReadyKEPUBIncluded(t *testing.T) {
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -487,7 +503,7 @@ func TestKoboLibrarySync_UserACannotSeeUserBBooks(t *testing.T) {
 	rawTokenA := registerTestDevice(t, "kobo-iso-a-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawTokenA, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawTokenA, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -507,7 +523,7 @@ func TestKoboFile_InvalidRevisionID(t *testing.T) {
 	rawToken := registerTestDevice(t, "kobo-file-badid-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/not-a-uuid/file"), rawToken, nil))
+		koboURL(ts, rawToken, "/v1/library/not-a-uuid/file"), nil))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -520,7 +536,7 @@ func TestKoboGetState_InvalidRevisionID(t *testing.T) {
 	rawToken := registerTestDevice(t, "kobo-gstate-badid-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/not-a-uuid/state"), rawToken, nil))
+		koboURL(ts, rawToken, "/v1/library/not-a-uuid/state"), nil))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -533,7 +549,7 @@ func TestKoboPutState_InvalidRevisionID(t *testing.T) {
 	rawToken := registerTestDevice(t, "kobo-pstate-badid-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
-		koboURL(ts, "/v1/library/not-a-uuid/state"), rawToken, []byte(`{}`)))
+		koboURL(ts, rawToken, "/v1/library/not-a-uuid/state"), []byte(`{}`)))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -547,8 +563,8 @@ func TestKoboPutState_BadJSON(t *testing.T) {
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/state"),
-		rawToken, []byte(`not-json`)))
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"),
+		[]byte(`not-json`)))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -571,7 +587,7 @@ func TestKoboFile_Download_Redirect(t *testing.T) {
 	}
 
 	req := koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/file"), rawToken, nil)
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/file"), nil)
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -591,7 +607,7 @@ func TestKoboFile_UserBCannotDownloadUserAFile(t *testing.T) {
 	rawTokenB := registerTestDevice(t, "kobo-file-iso-user-b")
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/file"), rawTokenB, nil))
+		koboURL(ts, rawTokenB, "/v1/library/"+bookID.String()+"/file"), nil))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -607,7 +623,7 @@ func TestKoboState_GetNoState(t *testing.T) {
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/state"), rawToken, nil))
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), nil))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -640,14 +656,14 @@ func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
 
 	// PUT state
 	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/state"), rawToken, body))
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), body))
 	require.NoError(t, err)
 	defer putResp.Body.Close()
 	assert.Equal(t, http.StatusOK, putResp.StatusCode)
 
 	// GET state — should reflect the written value.
 	getResp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/state"), rawToken, nil))
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), nil))
 	require.NoError(t, err)
 	defer getResp.Body.Close()
 	assert.Equal(t, http.StatusOK, getResp.StatusCode)
@@ -671,7 +687,7 @@ func TestKoboLibrarySync_PDFFormat_ServesPDF(t *testing.T) {
 	rawToken, bookID := setupKoboPDFSyncBook(t, owner)
 
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, koboURL(ts, "/v1/library/sync"), rawToken, nil),
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -712,7 +728,7 @@ func TestKoboFile_PDFFormat_RedirectsToPDF(t *testing.T) {
 	}
 
 	req := koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/file"), rawToken, nil)
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/file"), nil)
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -740,7 +756,7 @@ func TestKoboState_UserBCannotReadUserAState(t *testing.T) {
 	})
 	require.NoError(t, err)
 	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/state"), rawTokenA, body))
+		koboURL(ts, rawTokenA, "/v1/library/"+bookID.String()+"/state"), body))
 	require.NoError(t, err)
 	putResp.Body.Close()
 	require.Equal(t, http.StatusOK, putResp.StatusCode)
@@ -749,7 +765,7 @@ func TestKoboState_UserBCannotReadUserAState(t *testing.T) {
 	rawTokenB := registerTestDevice(t, "kobo-state-iso-user-b")
 
 	getResp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, "/v1/library/"+bookID.String()+"/state"), rawTokenB, nil))
+		koboURL(ts, rawTokenB, "/v1/library/"+bookID.String()+"/state"), nil))
 	require.NoError(t, err)
 	defer getResp.Body.Close()
 	assert.Equal(t, http.StatusOK, getResp.StatusCode)

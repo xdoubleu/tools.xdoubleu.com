@@ -42,6 +42,9 @@ services:
       - key: WEB_URL
         scope: RUN_TIME
         value: https://tools.xdoubleu.com
+      - key: API_URL
+        scope: RUN_TIME
+        value: https://tools.xdoubleu.com/api
       - key: DB_DSN
         scope: RUN_TIME
         type: SECRET
