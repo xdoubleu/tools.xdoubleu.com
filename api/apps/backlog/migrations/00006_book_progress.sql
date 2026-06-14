@@ -8,11 +8,23 @@ ADD COLUMN IF NOT EXISTS progress_mode TEXT NOT NULL DEFAULT 'pages',
 ADD COLUMN IF NOT EXISTS current_page INTEGER NOT NULL DEFAULT 0,
 ADD COLUMN IF NOT EXISTS progress_percent SMALLINT NOT NULL DEFAULT 0;
 
-ALTER TABLE backlog.user_books
-ADD CONSTRAINT user_books_progress_mode_chk
-CHECK (progress_mode IN ('pages', 'percent')),
-ADD CONSTRAINT user_books_progress_percent_chk
-CHECK (progress_percent BETWEEN 0 AND 100);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'user_books_progress_mode_chk'
+    ) THEN
+        ALTER TABLE backlog.user_books
+        ADD CONSTRAINT user_books_progress_mode_chk
+        CHECK (progress_mode IN ('pages', 'percent'));
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'user_books_progress_percent_chk'
+    ) THEN
+        ALTER TABLE backlog.user_books
+        ADD CONSTRAINT user_books_progress_percent_chk
+        CHECK (progress_percent BETWEEN 0 AND 100);
+    END IF;
+END $$;
 -- +goose StatementEnd
 
 -- +goose Down

@@ -53,7 +53,7 @@ func (repo *BooksRepository) UpsertBook(
 		book.CoverURL,
 		book.Description,
 		book.PageCount,
-		externalRefsJSON,
+		string(externalRefsJSON),
 	)
 
 	return scanBook(row)
@@ -109,7 +109,7 @@ func (repo *BooksRepository) UpsertUserBook(
 		ub.BookID,
 		ub.Status,
 		ub.Tags,
-		posJSON,
+		string(posJSON),
 		ub.Rating,
 		ub.Notes,
 		ub.FinishedAt,
@@ -419,6 +419,90 @@ func (repo *BooksRepository) SearchLibrary(
 	return repo.queryUserBooks(ctx, q, userID, query)
 }
 
+// FindUserBookByISBN13 finds the user's library entry for a book with the given ISBN13.
+func (repo *BooksRepository) FindUserBookByISBN13(
+	ctx context.Context,
+	userID string,
+	isbn13 string,
+) (*models.UserBook, error) {
+	query := `
+		SELECT ` + userBookColumns + `
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
+		WHERE ub.user_id = $1 AND b.isbn13 = $2
+		LIMIT 1
+	`
+
+	rows, err := repo.db.Query(ctx, query, userID, isbn13)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, database.ErrResourceNotFound
+	}
+
+	ub, err := scanUserBookWithBook(rows)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return &ub, nil
+}
+
+// FindUserBookByTitleAndAuthor finds a user_book using case-insensitive exact
+// matching on title and at least one author.
+func (repo *BooksRepository) FindUserBookByTitleAndAuthor(
+	ctx context.Context,
+	userID string,
+	title string,
+	author string,
+) (*models.UserBook, error) {
+	query := `
+		SELECT ` + userBookColumns + `
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
+		WHERE ub.user_id = $1
+		  AND lower(b.title) = lower($2)
+		  AND EXISTS (
+		      SELECT 1 FROM unnest(b.authors) a WHERE lower(a) = lower($3)
+		  )
+		LIMIT 1
+	`
+
+	rows, err := repo.db.Query(ctx, query, userID, title, author)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, database.ErrResourceNotFound
+	}
+
+	ub, err := scanUserBookWithBook(rows)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return &ub, nil
+}
+
+// DeleteUserBooks removes all entries from user_books for a given user.
+// It does NOT touch backlog.books (the shared catalog).
+func (repo *BooksRepository) DeleteUserBooks(
+	ctx context.Context,
+	userID string,
+) (int64, error) {
+	query := `DELETE FROM backlog.user_books WHERE user_id = $1`
+	tag, err := repo.db.Exec(ctx, query, userID)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	return tag.RowsAffected(), nil
+}
+
 // UpdateTags replaces the tag list for a user_book.
 func (repo *BooksRepository) UpdateTags(
 	ctx context.Context,
@@ -433,4 +517,49 @@ func (repo *BooksRepository) UpdateTags(
 	`
 	_, err := repo.db.Exec(ctx, query, userID, bookID, tags)
 	return postgres.PgxErrorToHTTPError(err)
+}
+
+// ListKoboSyncBooks returns all books for a user that have the kobo-sync tag
+// and a ready file to serve to the Kobo device. The file format is chosen
+// per-book: "pdf" when the kobo-format-pdf tag is present, "kepub" otherwise.
+func (repo *BooksRepository) ListKoboSyncBooks(
+	ctx context.Context,
+	userID string,
+) ([]models.KoboSyncBook, error) {
+	query := `
+		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
+		JOIN backlog.book_files bf
+		    ON bf.book_id = ub.book_id
+		    AND bf.user_id = ub.user_id
+		    AND bf.status = 'ready'
+		    AND bf.format = CASE
+		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
+		        ELSE 'kepub'
+		    END
+		WHERE ub.user_id = $1 AND 'kobo-sync' = ANY(ub.tags)
+		ORDER BY b.title
+	`
+
+	rows, err := repo.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []models.KoboSyncBook
+	for rows.Next() {
+		var b models.KoboSyncBook
+		if scanErr := rows.Scan(
+			&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+		); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out = append(out, b)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
 }

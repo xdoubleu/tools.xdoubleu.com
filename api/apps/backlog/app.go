@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/internal/services"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
@@ -38,6 +39,28 @@ func New(
 	cfg config.Config,
 	db postgres.DB,
 ) *Backlog {
+	if cfg.R2AccountID == "" || cfg.R2AccessKeyID == "" ||
+		cfg.R2SecretKey == "" || cfg.R2Bucket == "" {
+		logger.Warn(
+			"R2 object store is not fully configured — book file uploads will fail;" +
+				" set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET",
+		)
+	}
+
+	if cfg.HardcoverAPIKey == "" {
+		logger.Warn(
+			"HARDCOVER_API_KEY is not set — Hardcover book search will be disabled",
+		)
+	}
+
+	if cfg.SteamAPIKey == "" {
+		logger.Warn(
+			"STEAM_API_KEY is not set — Steam sync will be disabled",
+		)
+	}
+
+	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
+
 	clients := Clients{
 		SteamFactory: func(apiKey string) steam.Client {
 			return steam.New(logger, apiKey)
@@ -45,6 +68,13 @@ func New(
 		HardcoverFactory: func(apiKey string) hardcover.Client {
 			return hardcover.New(logger, apiKey)
 		},
+		ObjectStore: objectstore.NewR2(
+			endpoint,
+			cfg.R2AccessKeyID,
+			cfg.R2SecretKey,
+			cfg.R2Bucket,
+		),
+		KoboStoreBaseURL: "https://storeapi.kobo.com",
 	}
 
 	return NewInner(ctx, authService, logger, cfg, db, clients)
@@ -85,7 +115,7 @@ func (app *Backlog) setDB(
 	spandb := postgres.NewSpanDB(db)
 	app.db = spandb
 
-	app.Repositories = repositories.New(app.db, app.Config.EncryptionKey)
+	app.Repositories = repositories.New(app.db)
 	app.Services = services.New(
 		app.Ctx,
 		app.Logger,
@@ -94,6 +124,7 @@ func (app *Backlog) setDB(
 		app.Repositories,
 		app.clients.SteamFactory,
 		app.clients.HardcoverFactory,
+		app.clients.ObjectStore,
 		authService,
 	)
 }

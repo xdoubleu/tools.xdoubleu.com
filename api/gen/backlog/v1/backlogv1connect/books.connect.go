@@ -62,6 +62,42 @@ const (
 	// BooksServiceImportBooksProcedure is the fully-qualified name of the BooksService's ImportBooks
 	// RPC.
 	BooksServiceImportBooksProcedure = "/backlog.v1.BooksService/ImportBooks"
+	// BooksServiceUpdateReadingProgressProcedure is the fully-qualified name of the BooksService's
+	// UpdateReadingProgress RPC.
+	BooksServiceUpdateReadingProgressProcedure = "/backlog.v1.BooksService/UpdateReadingProgress"
+	// BooksServiceGetReadingStateProcedure is the fully-qualified name of the BooksService's
+	// GetReadingState RPC.
+	BooksServiceGetReadingStateProcedure = "/backlog.v1.BooksService/GetReadingState"
+	// BooksServiceCreateBookUploadProcedure is the fully-qualified name of the BooksService's
+	// CreateBookUpload RPC.
+	BooksServiceCreateBookUploadProcedure = "/backlog.v1.BooksService/CreateBookUpload"
+	// BooksServiceFinalizeBookUploadProcedure is the fully-qualified name of the BooksService's
+	// FinalizeBookUpload RPC.
+	BooksServiceFinalizeBookUploadProcedure = "/backlog.v1.BooksService/FinalizeBookUpload"
+	// BooksServiceGetBookFileProcedure is the fully-qualified name of the BooksService's GetBookFile
+	// RPC.
+	BooksServiceGetBookFileProcedure = "/backlog.v1.BooksService/GetBookFile"
+	// BooksServiceEnableKoboSyncProcedure is the fully-qualified name of the BooksService's
+	// EnableKoboSync RPC.
+	BooksServiceEnableKoboSyncProcedure = "/backlog.v1.BooksService/EnableKoboSync"
+	// BooksServiceRequestKEPUBConversionProcedure is the fully-qualified name of the BooksService's
+	// RequestKEPUBConversion RPC.
+	BooksServiceRequestKEPUBConversionProcedure = "/backlog.v1.BooksService/RequestKEPUBConversion"
+	// BooksServiceGetKEPUBStatusProcedure is the fully-qualified name of the BooksService's
+	// GetKEPUBStatus RPC.
+	BooksServiceGetKEPUBStatusProcedure = "/backlog.v1.BooksService/GetKEPUBStatus"
+	// BooksServiceRegisterKoboDeviceProcedure is the fully-qualified name of the BooksService's
+	// RegisterKoboDevice RPC.
+	BooksServiceRegisterKoboDeviceProcedure = "/backlog.v1.BooksService/RegisterKoboDevice"
+	// BooksServiceListKoboDevicesProcedure is the fully-qualified name of the BooksService's
+	// ListKoboDevices RPC.
+	BooksServiceListKoboDevicesProcedure = "/backlog.v1.BooksService/ListKoboDevices"
+	// BooksServiceDisconnectKoboDeviceProcedure is the fully-qualified name of the BooksService's
+	// DisconnectKoboDevice RPC.
+	BooksServiceDisconnectKoboDeviceProcedure = "/backlog.v1.BooksService/DisconnectKoboDevice"
+	// BooksServiceClearLibraryProcedure is the fully-qualified name of the BooksService's ClearLibrary
+	// RPC.
+	BooksServiceClearLibraryProcedure = "/backlog.v1.BooksService/ClearLibrary"
 )
 
 // BooksServiceClient is a client for the backlog.v1.BooksService service.
@@ -77,6 +113,18 @@ type BooksServiceClient interface {
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
+	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
+	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
+	CreateBookUpload(context.Context, *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error)
+	FinalizeBookUpload(context.Context, *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error)
+	GetBookFile(context.Context, *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error)
+	EnableKoboSync(context.Context, *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error)
+	RequestKEPUBConversion(context.Context, *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error)
+	GetKEPUBStatus(context.Context, *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error)
+	RegisterKoboDevice(context.Context, *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error)
+	ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error)
+	DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error)
+	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 }
 
 // NewBooksServiceClient constructs a client for the backlog.v1.BooksService service. By default, it
@@ -156,22 +204,106 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(booksServiceMethods.ByName("ImportBooks")),
 			connect.WithClientOptions(opts...),
 		),
+		updateReadingProgress: connect.NewClient[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse](
+			httpClient,
+			baseURL+BooksServiceUpdateReadingProgressProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("UpdateReadingProgress")),
+			connect.WithClientOptions(opts...),
+		),
+		getReadingState: connect.NewClient[v1.GetReadingStateRequest, v1.GetReadingStateResponse](
+			httpClient,
+			baseURL+BooksServiceGetReadingStateProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("GetReadingState")),
+			connect.WithClientOptions(opts...),
+		),
+		createBookUpload: connect.NewClient[v1.CreateBookUploadRequest, v1.CreateBookUploadResponse](
+			httpClient,
+			baseURL+BooksServiceCreateBookUploadProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("CreateBookUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		finalizeBookUpload: connect.NewClient[v1.FinalizeBookUploadRequest, v1.FinalizeBookUploadResponse](
+			httpClient,
+			baseURL+BooksServiceFinalizeBookUploadProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("FinalizeBookUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		getBookFile: connect.NewClient[v1.GetBookFileRequest, v1.GetBookFileResponse](
+			httpClient,
+			baseURL+BooksServiceGetBookFileProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("GetBookFile")),
+			connect.WithClientOptions(opts...),
+		),
+		enableKoboSync: connect.NewClient[v1.EnableKoboSyncRequest, v1.EnableKoboSyncResponse](
+			httpClient,
+			baseURL+BooksServiceEnableKoboSyncProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("EnableKoboSync")),
+			connect.WithClientOptions(opts...),
+		),
+		requestKEPUBConversion: connect.NewClient[v1.RequestKEPUBConversionRequest, v1.RequestKEPUBConversionResponse](
+			httpClient,
+			baseURL+BooksServiceRequestKEPUBConversionProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("RequestKEPUBConversion")),
+			connect.WithClientOptions(opts...),
+		),
+		getKEPUBStatus: connect.NewClient[v1.GetKEPUBStatusRequest, v1.GetKEPUBStatusResponse](
+			httpClient,
+			baseURL+BooksServiceGetKEPUBStatusProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("GetKEPUBStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		registerKoboDevice: connect.NewClient[v1.RegisterKoboDeviceRequest, v1.RegisterKoboDeviceResponse](
+			httpClient,
+			baseURL+BooksServiceRegisterKoboDeviceProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("RegisterKoboDevice")),
+			connect.WithClientOptions(opts...),
+		),
+		listKoboDevices: connect.NewClient[v1.ListKoboDevicesRequest, v1.ListKoboDevicesResponse](
+			httpClient,
+			baseURL+BooksServiceListKoboDevicesProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("ListKoboDevices")),
+			connect.WithClientOptions(opts...),
+		),
+		disconnectKoboDevice: connect.NewClient[v1.DisconnectKoboDeviceRequest, v1.DisconnectKoboDeviceResponse](
+			httpClient,
+			baseURL+BooksServiceDisconnectKoboDeviceProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("DisconnectKoboDevice")),
+			connect.WithClientOptions(opts...),
+		),
+		clearLibrary: connect.NewClient[v1.ClearLibraryRequest, v1.ClearLibraryResponse](
+			httpClient,
+			baseURL+BooksServiceClearLibraryProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("ClearLibrary")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // booksServiceClient implements BooksServiceClient.
 type booksServiceClient struct {
-	getSummary       *connect.Client[v1.GetSummaryRequest, v1.GetSummaryResponse]
-	getUserSummary   *connect.Client[v1.GetUserSummaryRequest, v1.GetUserSummaryResponse]
-	getLibrary       *connect.Client[v1.GetLibraryRequest, v1.GetLibraryResponse]
-	getBooksProgress *connect.Client[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse]
-	searchLibrary    *connect.Client[v1.SearchLibraryRequest, v1.SearchLibraryResponse]
-	searchExternal   *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
-	addBook          *connect.Client[v1.AddBookRequest, v1.AddBookResponse]
-	updateBookStatus *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
-	updateProgress   *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
-	toggleTag        *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
-	importBooks      *connect.Client[v1.ImportBooksRequest, v1.ImportBooksResponse]
+	getSummary             *connect.Client[v1.GetSummaryRequest, v1.GetSummaryResponse]
+	getUserSummary         *connect.Client[v1.GetUserSummaryRequest, v1.GetUserSummaryResponse]
+	getLibrary             *connect.Client[v1.GetLibraryRequest, v1.GetLibraryResponse]
+	getBooksProgress       *connect.Client[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse]
+	searchLibrary          *connect.Client[v1.SearchLibraryRequest, v1.SearchLibraryResponse]
+	searchExternal         *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
+	addBook                *connect.Client[v1.AddBookRequest, v1.AddBookResponse]
+	updateBookStatus       *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
+	updateProgress         *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
+	toggleTag              *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
+	importBooks            *connect.Client[v1.ImportBooksRequest, v1.ImportBooksResponse]
+	updateReadingProgress  *connect.Client[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse]
+	getReadingState        *connect.Client[v1.GetReadingStateRequest, v1.GetReadingStateResponse]
+	createBookUpload       *connect.Client[v1.CreateBookUploadRequest, v1.CreateBookUploadResponse]
+	finalizeBookUpload     *connect.Client[v1.FinalizeBookUploadRequest, v1.FinalizeBookUploadResponse]
+	getBookFile            *connect.Client[v1.GetBookFileRequest, v1.GetBookFileResponse]
+	enableKoboSync         *connect.Client[v1.EnableKoboSyncRequest, v1.EnableKoboSyncResponse]
+	requestKEPUBConversion *connect.Client[v1.RequestKEPUBConversionRequest, v1.RequestKEPUBConversionResponse]
+	getKEPUBStatus         *connect.Client[v1.GetKEPUBStatusRequest, v1.GetKEPUBStatusResponse]
+	registerKoboDevice     *connect.Client[v1.RegisterKoboDeviceRequest, v1.RegisterKoboDeviceResponse]
+	listKoboDevices        *connect.Client[v1.ListKoboDevicesRequest, v1.ListKoboDevicesResponse]
+	disconnectKoboDevice   *connect.Client[v1.DisconnectKoboDeviceRequest, v1.DisconnectKoboDeviceResponse]
+	clearLibrary           *connect.Client[v1.ClearLibraryRequest, v1.ClearLibraryResponse]
 }
 
 // GetSummary calls backlog.v1.BooksService.GetSummary.
@@ -229,6 +361,66 @@ func (c *booksServiceClient) ImportBooks(ctx context.Context, req *connect.Reque
 	return c.importBooks.CallUnary(ctx, req)
 }
 
+// UpdateReadingProgress calls backlog.v1.BooksService.UpdateReadingProgress.
+func (c *booksServiceClient) UpdateReadingProgress(ctx context.Context, req *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error) {
+	return c.updateReadingProgress.CallUnary(ctx, req)
+}
+
+// GetReadingState calls backlog.v1.BooksService.GetReadingState.
+func (c *booksServiceClient) GetReadingState(ctx context.Context, req *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error) {
+	return c.getReadingState.CallUnary(ctx, req)
+}
+
+// CreateBookUpload calls backlog.v1.BooksService.CreateBookUpload.
+func (c *booksServiceClient) CreateBookUpload(ctx context.Context, req *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error) {
+	return c.createBookUpload.CallUnary(ctx, req)
+}
+
+// FinalizeBookUpload calls backlog.v1.BooksService.FinalizeBookUpload.
+func (c *booksServiceClient) FinalizeBookUpload(ctx context.Context, req *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error) {
+	return c.finalizeBookUpload.CallUnary(ctx, req)
+}
+
+// GetBookFile calls backlog.v1.BooksService.GetBookFile.
+func (c *booksServiceClient) GetBookFile(ctx context.Context, req *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error) {
+	return c.getBookFile.CallUnary(ctx, req)
+}
+
+// EnableKoboSync calls backlog.v1.BooksService.EnableKoboSync.
+func (c *booksServiceClient) EnableKoboSync(ctx context.Context, req *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error) {
+	return c.enableKoboSync.CallUnary(ctx, req)
+}
+
+// RequestKEPUBConversion calls backlog.v1.BooksService.RequestKEPUBConversion.
+func (c *booksServiceClient) RequestKEPUBConversion(ctx context.Context, req *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error) {
+	return c.requestKEPUBConversion.CallUnary(ctx, req)
+}
+
+// GetKEPUBStatus calls backlog.v1.BooksService.GetKEPUBStatus.
+func (c *booksServiceClient) GetKEPUBStatus(ctx context.Context, req *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error) {
+	return c.getKEPUBStatus.CallUnary(ctx, req)
+}
+
+// RegisterKoboDevice calls backlog.v1.BooksService.RegisterKoboDevice.
+func (c *booksServiceClient) RegisterKoboDevice(ctx context.Context, req *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error) {
+	return c.registerKoboDevice.CallUnary(ctx, req)
+}
+
+// ListKoboDevices calls backlog.v1.BooksService.ListKoboDevices.
+func (c *booksServiceClient) ListKoboDevices(ctx context.Context, req *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error) {
+	return c.listKoboDevices.CallUnary(ctx, req)
+}
+
+// DisconnectKoboDevice calls backlog.v1.BooksService.DisconnectKoboDevice.
+func (c *booksServiceClient) DisconnectKoboDevice(ctx context.Context, req *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error) {
+	return c.disconnectKoboDevice.CallUnary(ctx, req)
+}
+
+// ClearLibrary calls backlog.v1.BooksService.ClearLibrary.
+func (c *booksServiceClient) ClearLibrary(ctx context.Context, req *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error) {
+	return c.clearLibrary.CallUnary(ctx, req)
+}
+
 // BooksServiceHandler is an implementation of the backlog.v1.BooksService service.
 type BooksServiceHandler interface {
 	GetSummary(context.Context, *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error)
@@ -242,6 +434,18 @@ type BooksServiceHandler interface {
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
+	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
+	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
+	CreateBookUpload(context.Context, *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error)
+	FinalizeBookUpload(context.Context, *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error)
+	GetBookFile(context.Context, *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error)
+	EnableKoboSync(context.Context, *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error)
+	RequestKEPUBConversion(context.Context, *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error)
+	GetKEPUBStatus(context.Context, *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error)
+	RegisterKoboDevice(context.Context, *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error)
+	ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error)
+	DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error)
+	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 }
 
 // NewBooksServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -317,6 +521,78 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(booksServiceMethods.ByName("ImportBooks")),
 		connect.WithHandlerOptions(opts...),
 	)
+	booksServiceUpdateReadingProgressHandler := connect.NewUnaryHandler(
+		BooksServiceUpdateReadingProgressProcedure,
+		svc.UpdateReadingProgress,
+		connect.WithSchema(booksServiceMethods.ByName("UpdateReadingProgress")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceGetReadingStateHandler := connect.NewUnaryHandler(
+		BooksServiceGetReadingStateProcedure,
+		svc.GetReadingState,
+		connect.WithSchema(booksServiceMethods.ByName("GetReadingState")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceCreateBookUploadHandler := connect.NewUnaryHandler(
+		BooksServiceCreateBookUploadProcedure,
+		svc.CreateBookUpload,
+		connect.WithSchema(booksServiceMethods.ByName("CreateBookUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceFinalizeBookUploadHandler := connect.NewUnaryHandler(
+		BooksServiceFinalizeBookUploadProcedure,
+		svc.FinalizeBookUpload,
+		connect.WithSchema(booksServiceMethods.ByName("FinalizeBookUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceGetBookFileHandler := connect.NewUnaryHandler(
+		BooksServiceGetBookFileProcedure,
+		svc.GetBookFile,
+		connect.WithSchema(booksServiceMethods.ByName("GetBookFile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceEnableKoboSyncHandler := connect.NewUnaryHandler(
+		BooksServiceEnableKoboSyncProcedure,
+		svc.EnableKoboSync,
+		connect.WithSchema(booksServiceMethods.ByName("EnableKoboSync")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceRequestKEPUBConversionHandler := connect.NewUnaryHandler(
+		BooksServiceRequestKEPUBConversionProcedure,
+		svc.RequestKEPUBConversion,
+		connect.WithSchema(booksServiceMethods.ByName("RequestKEPUBConversion")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceGetKEPUBStatusHandler := connect.NewUnaryHandler(
+		BooksServiceGetKEPUBStatusProcedure,
+		svc.GetKEPUBStatus,
+		connect.WithSchema(booksServiceMethods.ByName("GetKEPUBStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceRegisterKoboDeviceHandler := connect.NewUnaryHandler(
+		BooksServiceRegisterKoboDeviceProcedure,
+		svc.RegisterKoboDevice,
+		connect.WithSchema(booksServiceMethods.ByName("RegisterKoboDevice")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceListKoboDevicesHandler := connect.NewUnaryHandler(
+		BooksServiceListKoboDevicesProcedure,
+		svc.ListKoboDevices,
+		connect.WithSchema(booksServiceMethods.ByName("ListKoboDevices")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceDisconnectKoboDeviceHandler := connect.NewUnaryHandler(
+		BooksServiceDisconnectKoboDeviceProcedure,
+		svc.DisconnectKoboDevice,
+		connect.WithSchema(booksServiceMethods.ByName("DisconnectKoboDevice")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceClearLibraryHandler := connect.NewUnaryHandler(
+		BooksServiceClearLibraryProcedure,
+		svc.ClearLibrary,
+		connect.WithSchema(booksServiceMethods.ByName("ClearLibrary")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/backlog.v1.BooksService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BooksServiceGetSummaryProcedure:
@@ -341,6 +617,30 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 			booksServiceToggleTagHandler.ServeHTTP(w, r)
 		case BooksServiceImportBooksProcedure:
 			booksServiceImportBooksHandler.ServeHTTP(w, r)
+		case BooksServiceUpdateReadingProgressProcedure:
+			booksServiceUpdateReadingProgressHandler.ServeHTTP(w, r)
+		case BooksServiceGetReadingStateProcedure:
+			booksServiceGetReadingStateHandler.ServeHTTP(w, r)
+		case BooksServiceCreateBookUploadProcedure:
+			booksServiceCreateBookUploadHandler.ServeHTTP(w, r)
+		case BooksServiceFinalizeBookUploadProcedure:
+			booksServiceFinalizeBookUploadHandler.ServeHTTP(w, r)
+		case BooksServiceGetBookFileProcedure:
+			booksServiceGetBookFileHandler.ServeHTTP(w, r)
+		case BooksServiceEnableKoboSyncProcedure:
+			booksServiceEnableKoboSyncHandler.ServeHTTP(w, r)
+		case BooksServiceRequestKEPUBConversionProcedure:
+			booksServiceRequestKEPUBConversionHandler.ServeHTTP(w, r)
+		case BooksServiceGetKEPUBStatusProcedure:
+			booksServiceGetKEPUBStatusHandler.ServeHTTP(w, r)
+		case BooksServiceRegisterKoboDeviceProcedure:
+			booksServiceRegisterKoboDeviceHandler.ServeHTTP(w, r)
+		case BooksServiceListKoboDevicesProcedure:
+			booksServiceListKoboDevicesHandler.ServeHTTP(w, r)
+		case BooksServiceDisconnectKoboDeviceProcedure:
+			booksServiceDisconnectKoboDeviceHandler.ServeHTTP(w, r)
+		case BooksServiceClearLibraryProcedure:
+			booksServiceClearLibraryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -392,4 +692,52 @@ func (UnimplementedBooksServiceHandler) ToggleTag(context.Context, *connect.Requ
 
 func (UnimplementedBooksServiceHandler) ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.ImportBooks is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.UpdateReadingProgress is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.GetReadingState is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) CreateBookUpload(context.Context, *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.CreateBookUpload is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) FinalizeBookUpload(context.Context, *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.FinalizeBookUpload is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) GetBookFile(context.Context, *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.GetBookFile is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) EnableKoboSync(context.Context, *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.EnableKoboSync is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) RequestKEPUBConversion(context.Context, *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.RequestKEPUBConversion is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) GetKEPUBStatus(context.Context, *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.GetKEPUBStatus is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) RegisterKoboDevice(context.Context, *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.RegisterKoboDevice is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.ListKoboDevices is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.DisconnectKoboDevice is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.ClearLibrary is not implemented"))
 }

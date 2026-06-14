@@ -13,16 +13,13 @@ import (
 func TestGetIntegrationsEmpty(t *testing.T) {
 	i, err := testApp.GetIntegrations(context.Background(), "no-integrations-user")
 	require.NoError(t, err)
-	assert.Empty(t, i.SteamAPIKey)
-	assert.Empty(t, i.HardcoverAPIKey)
+	assert.Empty(t, i.SteamUserID)
 }
 
 func TestSaveAndGetIntegrations(t *testing.T) {
 	ctx := context.Background()
 	want := backlog.Integrations{
-		SteamAPIKey:     "steam-key",
-		SteamUserID:     "steam-user",
-		HardcoverAPIKey: "hardcover-key",
+		SteamUserID: "steam-user",
 	}
 
 	err := testApp.SaveIntegrations(ctx, userID, want)
@@ -39,25 +36,20 @@ func TestSaveIntegrationsIsolation(t *testing.T) {
 	userB := "isolation-user-b"
 
 	err := testApp.SaveIntegrations(ctx, userA, backlog.Integrations{
-		SteamAPIKey:     "user-a-key",
-		SteamUserID:     "",
-		HardcoverAPIKey: "",
+		SteamUserID: "111111",
 	})
 	require.NoError(t, err)
 
 	err = testApp.SaveIntegrations(ctx, userB, backlog.Integrations{
-		SteamAPIKey:     "user-b-key",
-		SteamUserID:     "",
-		HardcoverAPIKey: "",
+		SteamUserID: "222222",
 	})
 	require.NoError(t, err)
 
 	gotA, err := testApp.GetIntegrations(ctx, userA)
 	require.NoError(t, err)
-	assert.Equal(t, "user-a-key", gotA.SteamAPIKey)
+	assert.Equal(t, "111111", gotA.SteamUserID)
 
 	gotB, err := testApp.GetIntegrations(ctx, userB)
 	require.NoError(t, err)
-	assert.Equal(t, "user-b-key", gotB.SteamAPIKey)
-	assert.Equal(t, "", gotB.HardcoverAPIKey)
+	assert.Equal(t, "222222", gotB.SteamUserID)
 }

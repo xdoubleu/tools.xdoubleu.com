@@ -12,6 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
@@ -207,13 +208,14 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 			backlog.Clients{
 				SteamFactory:     factory,
 				HardcoverFactory: func(_ string) hardcover.Client { return nil },
+				ObjectStore:      objectstore.NewFake(),
+				KoboStoreBaseURL: "",
 			},
 		)
 		err := app2.SaveIntegrations(
 			ctx,
 			isolatedUser,
-			backlog.Integrations{ //nolint:exhaustruct //only steam
-				SteamAPIKey: "test-key",
+			backlog.Integrations{
 				SteamUserID: "76561197960287930",
 			},
 		)

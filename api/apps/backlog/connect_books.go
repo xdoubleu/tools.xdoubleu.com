@@ -12,6 +12,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
+	"tools.xdoubleu.com/apps/backlog/internal/services"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
@@ -168,7 +169,6 @@ func (h *booksConnectHandler) SearchExternal(
 	}
 	hardcoverResults, err := h.app.Services.Books.SearchHardcover(
 		ctx,
-		user.ID,
 		req.Msg.Query,
 	)
 	if err != nil {
@@ -371,6 +371,419 @@ func (h *booksConnectHandler) ImportBooks(
 	}), nil
 }
 
+func (h *booksConnectHandler) UpdateReadingProgress(
+	ctx context.Context,
+	req *connect.Request[backlogv1.UpdateReadingProgressRequest],
+) (*connect.Response[backlogv1.UpdateReadingProgressResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	var location *string
+	if req.Msg.Location != "" {
+		location = &req.Msg.Location
+	}
+	err = h.app.Services.Books.UpdateReadingProgress(
+		ctx,
+		user.ID,
+		bookID,
+		req.Msg.Source,
+		int(req.Msg.Percent),
+		location,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&backlogv1.UpdateReadingProgressResponse{}), nil
+}
+
+func (h *booksConnectHandler) GetReadingState(
+	ctx context.Context,
+	req *connect.Request[backlogv1.GetReadingStateRequest],
+) (*connect.Response[backlogv1.GetReadingStateResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	state, err := h.app.Services.Books.GetReadingState(ctx, user.ID, bookID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	var protoState *backlogv1.BookReadingStateData
+	if state != nil {
+		protoState = &backlogv1.BookReadingStateData{
+			Source:    state.Source,
+			Percent:   int32FromInt(state.Percent),
+			Location:  stringPtr(state.Location),
+			UpdatedAt: state.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+	return connect.NewResponse(&backlogv1.GetReadingStateResponse{
+		State: protoState,
+	}), nil
+}
+
+func (h *booksConnectHandler) GetBookFile(
+	ctx context.Context,
+	req *connect.Request[backlogv1.GetBookFileRequest],
+) (*connect.Response[backlogv1.GetBookFileResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	result, err := h.app.Services.Books.GetBookFile(
+		ctx, user.ID, bookID, req.Msg.Format,
+	)
+	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&backlogv1.GetBookFileResponse{
+		Url:       result.URL,
+		ExpiresAt: result.ExpiresAt.Format(time.RFC3339),
+		Format:    result.Format,
+	}), nil
+}
+
+// maybeStartKEPUBConversion checks whether a background KEPUB conversion should
+// be started for the given book and user. If no KEPUB row exists yet and a
+// convertible source (EPUB or PDF) is available it launches EnsureKEPUB in a
+// detached goroutine and returns models.FileStatusConverting; otherwise it
+// returns the current kepubStatus unchanged.
+//
+// whenKEPUBOnly controls the wantsKEPUB gate: pass true to respect the user's
+// raw-PDF preference (EnableKoboSync), false to always convert regardless
+// (RequestKEPUBConversion for in-browser preview).
+func (h *booksConnectHandler) maybeStartKEPUBConversion(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	statusResult *services.KEPUBStatusResult,
+	whenKEPUBOnly bool,
+) (string, error) {
+	kepubStatus := statusResult.KepubStatus
+	hasSource := statusResult.HasEPUB || statusResult.HasPDF
+	if kepubStatus != "" || !hasSource {
+		return kepubStatus, nil
+	}
+
+	if whenKEPUBOnly {
+		koboFormat, err := h.app.Services.Books.GetKoboFileFormat(ctx, userID, bookID)
+		if err != nil {
+			return "", err
+		}
+		if koboFormat != models.FileFormatKEPUB {
+			return kepubStatus, nil
+		}
+	}
+
+	convCtx := context.WithoutCancel(ctx)
+	go func() {
+		_, _ = h.app.Services.Conversion.EnsureKEPUB(convCtx, userID, bookID)
+	}()
+	return models.FileStatusConverting, nil
+}
+
+func (h *booksConnectHandler) EnableKoboSync(
+	ctx context.Context,
+	req *connect.Request[backlogv1.EnableKoboSyncRequest],
+) (*connect.Response[backlogv1.EnableKoboSyncResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	if err = h.app.Services.Books.EnableKoboSync(ctx, user.ID, bookID); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	kepubStatus, convErr := h.maybeStartKEPUBConversion(
+		ctx, user.ID, bookID, statusResult, true,
+	)
+	if convErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, convErr)
+	}
+	return connect.NewResponse(&backlogv1.EnableKoboSyncResponse{
+		KepubStatus: kepubStatus,
+	}), nil
+}
+
+func (h *booksConnectHandler) RequestKEPUBConversion(
+	ctx context.Context,
+	req *connect.Request[backlogv1.RequestKEPUBConversionRequest],
+) (*connect.Response[backlogv1.RequestKEPUBConversionResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	// whenKEPUBOnly=false: always convert regardless of the kobo-format-pdf tag,
+	// so the user can preview the EPUB output before deciding on a Kobo sync format.
+	kepubStatus, convErr := h.maybeStartKEPUBConversion(
+		ctx, user.ID, bookID, statusResult, false,
+	)
+	if convErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, convErr)
+	}
+	return connect.NewResponse(&backlogv1.RequestKEPUBConversionResponse{
+		KepubStatus: kepubStatus,
+	}), nil
+}
+
+func (h *booksConnectHandler) GetKEPUBStatus(
+	ctx context.Context,
+	req *connect.Request[backlogv1.GetKEPUBStatusRequest],
+) (*connect.Response[backlogv1.GetKEPUBStatusResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	result, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&backlogv1.GetKEPUBStatusResponse{
+		HasEpub:     result.HasEPUB,
+		HasPdf:      result.HasPDF,
+		KepubStatus: result.KepubStatus,
+	}), nil
+}
+
+func koboDeviceProto(d models.KoboDevice) *backlogv1.KoboDevice {
+	lastSeen := ""
+	if d.LastSeenAt != nil {
+		lastSeen = d.LastSeenAt.Format(time.RFC3339)
+	}
+	return &backlogv1.KoboDevice{
+		Id:         d.ID,
+		Name:       d.Name,
+		Serial:     d.Serial,
+		CreatedAt:  d.CreatedAt.Format(time.RFC3339),
+		LastSeenAt: lastSeen,
+	}
+}
+
+func (h *booksConnectHandler) RegisterKoboDevice(
+	ctx context.Context,
+	req *connect.Request[backlogv1.RegisterKoboDeviceRequest],
+) (*connect.Response[backlogv1.RegisterKoboDeviceResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	device, rawToken, err := h.app.Services.Integrations.RegisterKoboDevice(
+		ctx, user.ID, req.Msg.Name, req.Msg.Serial,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&backlogv1.RegisterKoboDeviceResponse{
+		Device:   koboDeviceProto(device),
+		RawToken: rawToken,
+	}), nil
+}
+
+func (h *booksConnectHandler) ListKoboDevices(
+	ctx context.Context,
+	_ *connect.Request[backlogv1.ListKoboDevicesRequest],
+) (*connect.Response[backlogv1.ListKoboDevicesResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	devices, err := h.app.Services.Integrations.ListKoboDevices(ctx, user.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	resp := &backlogv1.ListKoboDevicesResponse{
+		Devices: make([]*backlogv1.KoboDevice, len(devices)),
+	}
+	for i, d := range devices {
+		resp.Devices[i] = koboDeviceProto(d)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *booksConnectHandler) DisconnectKoboDevice(
+	ctx context.Context,
+	req *connect.Request[backlogv1.DisconnectKoboDeviceRequest],
+) (*connect.Response[backlogv1.DisconnectKoboDeviceResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	deviceID, err := uuid.Parse(req.Msg.Id)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid device ID"),
+		)
+	}
+	err = h.app.Services.Integrations.DisconnectKoboDevice(ctx, user.ID, deviceID)
+	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return nil, connect.NewError(
+				connect.CodeNotFound,
+				errors.New("device not found"),
+			)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&backlogv1.DisconnectKoboDeviceResponse{}), nil
+}
+
+func (h *booksConnectHandler) CreateBookUpload(
+	ctx context.Context,
+	req *connect.Request[backlogv1.CreateBookUploadRequest],
+) (*connect.Response[backlogv1.CreateBookUploadResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	uploadID, url, alreadyExists, err := h.app.Services.Books.CreateUpload(
+		ctx,
+		user.ID,
+		req.Msg.Filename,
+		req.Msg.ContentType,
+		req.Msg.Size,
+		req.Msg.Checksum,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrFileTooLarge):
+			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+		default:
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+	return connect.NewResponse(&backlogv1.CreateBookUploadResponse{
+		UploadId:      uploadID,
+		Url:           url,
+		AlreadyExists: alreadyExists,
+	}), nil
+}
+
+func (h *booksConnectHandler) FinalizeBookUpload(
+	ctx context.Context,
+	req *connect.Request[backlogv1.FinalizeBookUploadRequest],
+) (*connect.Response[backlogv1.FinalizeBookUploadResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	result, err := h.app.Services.Books.FinalizeUpload(
+		context.WithoutCancel(ctx),
+		user.ID,
+		req.Msg.UploadId,
+		req.Msg.Filename,
+		req.Msg.ContentType,
+		req.Msg.Checksum,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvalidFormat):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, services.ErrUnrecognizedBook):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, services.ErrInvalidUploadID):
+			return nil, connect.NewError(connect.CodePermissionDenied, err)
+		case errors.Is(err, services.ErrUploadMissing):
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		default:
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+	return connect.NewResponse(&backlogv1.FinalizeBookUploadResponse{
+		BookId:          result.UserBook.BookID.String(),
+		FileId:          result.BookFile.ID.String(),
+		RecognizedTitle: result.UserBook.Book.Title,
+		MatchedExisting: result.MatchedExisting,
+		Format:          result.BookFile.Format,
+	}), nil
+}
+
 // Proto conversion helpers for books
 
 func protoBook(book *models.Book) *backlogv1.Book {
@@ -400,6 +813,7 @@ func protoUserBook(ub models.UserBook) *backlogv1.UserBook {
 		Book:            protoBook(ub.Book),
 		Status:          ub.Status,
 		Tags:            ub.Tags,
+		Formats:         ub.Formats,
 		Rating:          int32PtrFromInt16(ub.Rating),
 		Notes:           stringPtr(ub.Notes),
 		FinishedAt:      finishedAt,
@@ -446,6 +860,30 @@ func protoExternalBooks(
 		}
 	}
 	return result
+}
+
+func (h *booksConnectHandler) ClearLibrary(
+	ctx context.Context,
+	_ *connect.Request[backlogv1.ClearLibraryRequest],
+) (*connect.Response[backlogv1.ClearLibraryResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	deletedBooks, deletedFiles, err := h.app.Services.Books.ClearLibrary(ctx, user.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+	}
+	return connect.NewResponse(&backlogv1.ClearLibraryResponse{
+		DeletedBooks: deletedBooks,
+		DeletedFiles: deletedFiles,
+	}), nil
 }
 
 func stringPtr(s *string) string {

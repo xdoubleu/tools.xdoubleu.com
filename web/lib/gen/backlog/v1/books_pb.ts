@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file backlog/v1/books.proto.
  */
 export const file_backlog_v1_books: GenFile = /*@__PURE__*/
-  fileDesc("ChZiYWNrbG9nL3YxL2Jvb2tzLnByb3RvEgpiYWNrbG9nLnYxIn4KBEJvb2sSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHYXV0aG9ycxgDIAMoCRIOCgZpc2JuMTMYBCABKAkSEQoJY292ZXJfdXJsGAUgASgJEhMKC2Rlc2NyaXB0aW9uGAYgASgJEhIKCnBhZ2VfY291bnQYByABKAUilwIKCFVzZXJCb29rEgoKAmlkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSDwoHYm9va19pZBgDIAEoCRIeCgRib29rGAQgASgLMhAuYmFja2xvZy52MS5Cb29rEg4KBnN0YXR1cxgFIAEoCRIMCgR0YWdzGAYgAygJEg4KBnJhdGluZxgHIAEoBRINCgVub3RlcxgIIAEoCRITCgtmaW5pc2hlZF9hdBgJIAMoCRIQCghhZGRlZF9hdBgKIAEoCRISCgp1cGRhdGVkX2F0GAsgASgJEhUKDXByb2dyZXNzX21vZGUYDCABKAkSFAoMY3VycmVudF9wYWdlGA0gASgFEhgKEHByb2dyZXNzX3BlcmNlbnQYDiABKAUiPgoJQm9va1NoZWxmEgwKBG5hbWUYASABKAkSIwoFYm9va3MYAiADKAsyFC5iYWNrbG9nLnYxLlVzZXJCb29rIrABCg9MaWJyYXJ5UmVzcG9uc2USJQoHcmVhZGluZxgBIAMoCzIULmJhY2tsb2cudjEuVXNlckJvb2sSJgoId2lzaGxpc3QYAiADKAsyFC5iYWNrbG9nLnYxLlVzZXJCb29rEiYKCGZpbmlzaGVkGAMgAygLMhQuYmFja2xvZy52MS5Vc2VyQm9vaxImCgdzaGVsdmVzGAQgAygLMhUuYmFja2xvZy52MS5Cb29rU2hlbGYiOgoOQmFja2xvZ1N1bW1hcnkSEwoLc3RlYW1fY291bnQYASABKAUSEwoLYm9va3NfY291bnQYAiABKAUiXQoVQm9va3NQcm9ncmVzc1Jlc3BvbnNlEg4KBmxhYmVscxgBIAMoCRIOCgZ2YWx1ZXMYAiADKAkSEgoKZGF0ZV9zdGFydBgDIAEoCRIQCghkYXRlX2VuZBgEIAEoCSKTAQoSRXh0ZXJuYWxCb29rUmVzdWx0EhAKCHByb3ZpZGVyGAEgASgJEhMKC3Byb3ZpZGVyX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2F1dGhvcnMYBCADKAkSDgoGaXNibjEzGAUgASgJEhEKCWNvdmVyX3VybBgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCSITChFHZXRTdW1tYXJ5UmVxdWVzdCJBChJHZXRTdW1tYXJ5UmVzcG9uc2USKwoHc3VtbWFyeRgBIAEoCzIaLmJhY2tsb2cudjEuQmFja2xvZ1N1bW1hcnkiKAoVR2V0VXNlclN1bW1hcnlSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkiRQoWR2V0VXNlclN1bW1hcnlSZXNwb25zZRIrCgdzdW1tYXJ5GAEgASgLMhouYmFja2xvZy52MS5CYWNrbG9nU3VtbWFyeSITChFHZXRMaWJyYXJ5UmVxdWVzdCJCChJHZXRMaWJyYXJ5UmVzcG9uc2USLAoHbGlicmFyeRgBIAEoCzIbLmJhY2tsb2cudjEuTGlicmFyeVJlc3BvbnNlIj8KF0dldEJvb2tzUHJvZ3Jlc3NSZXF1ZXN0EhIKCmRhdGVfc3RhcnQYASABKAkSEAoIZGF0ZV9lbmQYAiABKAkiTwoYR2V0Qm9va3NQcm9ncmVzc1Jlc3BvbnNlEjMKCHByb2dyZXNzGAEgASgLMiEuYmFja2xvZy52MS5Cb29rc1Byb2dyZXNzUmVzcG9uc2UiJQoUU2VhcmNoTGlicmFyeVJlcXVlc3QSDQoFcXVlcnkYASABKAkiPAoVU2VhcmNoTGlicmFyeVJlc3BvbnNlEiMKBWJvb2tzGAEgAygLMhQuYmFja2xvZy52MS5Vc2VyQm9vayImChVTZWFyY2hFeHRlcm5hbFJlcXVlc3QSDQoFcXVlcnkYASABKAkiSQoWU2VhcmNoRXh0ZXJuYWxSZXNwb25zZRIvCgdyZXN1bHRzGAEgAygLMh4uYmFja2xvZy52MS5FeHRlcm5hbEJvb2tSZXN1bHQiyQEKDkFkZEJvb2tSZXF1ZXN0EhAKCHByb3ZpZGVyGAEgASgJEhMKC3Byb3ZpZGVyX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg4KBmF1dGhvchgEIAEoCRIOCgZzdGF0dXMYBSABKAkSDgoGaXNibjEzGAYgASgJEhEKCWNvdmVyX3VybBgHIAEoCRITCgtkZXNjcmlwdGlvbhgIIAEoCRIUCgxvd25fcGh5c2ljYWwYCSABKAgSEwoLb3duX2RpZ2l0YWwYCiABKAgiEQoPQWRkQm9va1Jlc3BvbnNlImwKF1VwZGF0ZUJvb2tTdGF0dXNSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc3RhdHVzGAIgASgJEhEKCWZhdm91cml0ZRgDIAEoCBIOCgZyYXRpbmcYBCABKAkSDQoFbm90ZXMYBSABKAkiGgoYVXBkYXRlQm9va1N0YXR1c1Jlc3BvbnNlIjAKEFRvZ2dsZVRhZ1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRILCgN0YWcYAiABKAkiEwoRVG9nZ2xlVGFnUmVzcG9uc2UibwoVVXBkYXRlUHJvZ3Jlc3NSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSFQoNcHJvZ3Jlc3NfbW9kZRgCIAEoCRIUCgxjdXJyZW50X3BhZ2UYAyABKAUSGAoQcHJvZ3Jlc3NfcGVyY2VudBgEIAEoBSIYChZVcGRhdGVQcm9ncmVzc1Jlc3BvbnNlIiYKEkltcG9ydEJvb2tzUmVxdWVzdBIQCghjc3ZfZGF0YRgBIAEoDCItChNJbXBvcnRCb29rc1Jlc3BvbnNlEhYKDmltcG9ydGVkX2NvdW50GAEgASgFMqUHCgxCb29rc1NlcnZpY2USSwoKR2V0U3VtbWFyeRIdLmJhY2tsb2cudjEuR2V0U3VtbWFyeVJlcXVlc3QaHi5iYWNrbG9nLnYxLkdldFN1bW1hcnlSZXNwb25zZRJXCg5HZXRVc2VyU3VtbWFyeRIhLmJhY2tsb2cudjEuR2V0VXNlclN1bW1hcnlSZXF1ZXN0GiIuYmFja2xvZy52MS5HZXRVc2VyU3VtbWFyeVJlc3BvbnNlEksKCkdldExpYnJhcnkSHS5iYWNrbG9nLnYxLkdldExpYnJhcnlSZXF1ZXN0Gh4uYmFja2xvZy52MS5HZXRMaWJyYXJ5UmVzcG9uc2USXQoQR2V0Qm9va3NQcm9ncmVzcxIjLmJhY2tsb2cudjEuR2V0Qm9va3NQcm9ncmVzc1JlcXVlc3QaJC5iYWNrbG9nLnYxLkdldEJvb2tzUHJvZ3Jlc3NSZXNwb25zZRJUCg1TZWFyY2hMaWJyYXJ5EiAuYmFja2xvZy52MS5TZWFyY2hMaWJyYXJ5UmVxdWVzdBohLmJhY2tsb2cudjEuU2VhcmNoTGlicmFyeVJlc3BvbnNlElcKDlNlYXJjaEV4dGVybmFsEiEuYmFja2xvZy52MS5TZWFyY2hFeHRlcm5hbFJlcXVlc3QaIi5iYWNrbG9nLnYxLlNlYXJjaEV4dGVybmFsUmVzcG9uc2USQgoHQWRkQm9vaxIaLmJhY2tsb2cudjEuQWRkQm9va1JlcXVlc3QaGy5iYWNrbG9nLnYxLkFkZEJvb2tSZXNwb25zZRJdChBVcGRhdGVCb29rU3RhdHVzEiMuYmFja2xvZy52MS5VcGRhdGVCb29rU3RhdHVzUmVxdWVzdBokLmJhY2tsb2cudjEuVXBkYXRlQm9va1N0YXR1c1Jlc3BvbnNlElcKDlVwZGF0ZVByb2dyZXNzEiEuYmFja2xvZy52MS5VcGRhdGVQcm9ncmVzc1JlcXVlc3QaIi5iYWNrbG9nLnYxLlVwZGF0ZVByb2dyZXNzUmVzcG9uc2USSAoJVG9nZ2xlVGFnEhwuYmFja2xvZy52MS5Ub2dnbGVUYWdSZXF1ZXN0Gh0uYmFja2xvZy52MS5Ub2dnbGVUYWdSZXNwb25zZRJOCgtJbXBvcnRCb29rcxIeLmJhY2tsb2cudjEuSW1wb3J0Qm9va3NSZXF1ZXN0Gh8uYmFja2xvZy52MS5JbXBvcnRCb29rc1Jlc3BvbnNlQi1aK3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vYmFja2xvZy92MTtiYWNrbG9ndjFiBnByb3RvMw");
+  fileDesc("ChZiYWNrbG9nL3YxL2Jvb2tzLnByb3RvEgpiYWNrbG9nLnYxIn4KBEJvb2sSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHYXV0aG9ycxgDIAMoCRIOCgZpc2JuMTMYBCABKAkSEQoJY292ZXJfdXJsGAUgASgJEhMKC2Rlc2NyaXB0aW9uGAYgASgJEhIKCnBhZ2VfY291bnQYByABKAUiqAIKCFVzZXJCb29rEgoKAmlkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSDwoHYm9va19pZBgDIAEoCRIeCgRib29rGAQgASgLMhAuYmFja2xvZy52MS5Cb29rEg4KBnN0YXR1cxgFIAEoCRIMCgR0YWdzGAYgAygJEg4KBnJhdGluZxgHIAEoBRINCgVub3RlcxgIIAEoCRITCgtmaW5pc2hlZF9hdBgJIAMoCRIQCghhZGRlZF9hdBgKIAEoCRISCgp1cGRhdGVkX2F0GAsgASgJEhUKDXByb2dyZXNzX21vZGUYDCABKAkSFAoMY3VycmVudF9wYWdlGA0gASgFEhgKEHByb2dyZXNzX3BlcmNlbnQYDiABKAUSDwoHZm9ybWF0cxgPIAMoCSI+CglCb29rU2hlbGYSDAoEbmFtZRgBIAEoCRIjCgVib29rcxgCIAMoCzIULmJhY2tsb2cudjEuVXNlckJvb2sisAEKD0xpYnJhcnlSZXNwb25zZRIlCgdyZWFkaW5nGAEgAygLMhQuYmFja2xvZy52MS5Vc2VyQm9vaxImCgh3aXNobGlzdBgCIAMoCzIULmJhY2tsb2cudjEuVXNlckJvb2sSJgoIZmluaXNoZWQYAyADKAsyFC5iYWNrbG9nLnYxLlVzZXJCb29rEiYKB3NoZWx2ZXMYBCADKAsyFS5iYWNrbG9nLnYxLkJvb2tTaGVsZiI6Cg5CYWNrbG9nU3VtbWFyeRITCgtzdGVhbV9jb3VudBgBIAEoBRITCgtib29rc19jb3VudBgCIAEoBSJdChVCb29rc1Byb2dyZXNzUmVzcG9uc2USDgoGbGFiZWxzGAEgAygJEg4KBnZhbHVlcxgCIAMoCRISCgpkYXRlX3N0YXJ0GAMgASgJEhAKCGRhdGVfZW5kGAQgASgJIpMBChJFeHRlcm5hbEJvb2tSZXN1bHQSEAoIcHJvdmlkZXIYASABKAkSEwoLcHJvdmlkZXJfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSDwoHYXV0aG9ycxgEIAMoCRIOCgZpc2JuMTMYBSABKAkSEQoJY292ZXJfdXJsGAYgASgJEhMKC2Rlc2NyaXB0aW9uGAcgASgJIhMKEUdldFN1bW1hcnlSZXF1ZXN0IkEKEkdldFN1bW1hcnlSZXNwb25zZRIrCgdzdW1tYXJ5GAEgASgLMhouYmFja2xvZy52MS5CYWNrbG9nU3VtbWFyeSIoChVHZXRVc2VyU3VtbWFyeVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCSJFChZHZXRVc2VyU3VtbWFyeVJlc3BvbnNlEisKB3N1bW1hcnkYASABKAsyGi5iYWNrbG9nLnYxLkJhY2tsb2dTdW1tYXJ5IhMKEUdldExpYnJhcnlSZXF1ZXN0IkIKEkdldExpYnJhcnlSZXNwb25zZRIsCgdsaWJyYXJ5GAEgASgLMhsuYmFja2xvZy52MS5MaWJyYXJ5UmVzcG9uc2UiPwoXR2V0Qm9va3NQcm9ncmVzc1JlcXVlc3QSEgoKZGF0ZV9zdGFydBgBIAEoCRIQCghkYXRlX2VuZBgCIAEoCSJPChhHZXRCb29rc1Byb2dyZXNzUmVzcG9uc2USMwoIcHJvZ3Jlc3MYASABKAsyIS5iYWNrbG9nLnYxLkJvb2tzUHJvZ3Jlc3NSZXNwb25zZSIlChRTZWFyY2hMaWJyYXJ5UmVxdWVzdBINCgVxdWVyeRgBIAEoCSI8ChVTZWFyY2hMaWJyYXJ5UmVzcG9uc2USIwoFYm9va3MYASADKAsyFC5iYWNrbG9nLnYxLlVzZXJCb29rIiYKFVNlYXJjaEV4dGVybmFsUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJJChZTZWFyY2hFeHRlcm5hbFJlc3BvbnNlEi8KB3Jlc3VsdHMYASADKAsyHi5iYWNrbG9nLnYxLkV4dGVybmFsQm9va1Jlc3VsdCLJAQoOQWRkQm9va1JlcXVlc3QSEAoIcHJvdmlkZXIYASABKAkSEwoLcHJvdmlkZXJfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSDgoGYXV0aG9yGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIOCgZpc2JuMTMYBiABKAkSEQoJY292ZXJfdXJsGAcgASgJEhMKC2Rlc2NyaXB0aW9uGAggASgJEhQKDG93bl9waHlzaWNhbBgJIAEoCBITCgtvd25fZGlnaXRhbBgKIAEoCCIRCg9BZGRCb29rUmVzcG9uc2UibAoXVXBkYXRlQm9va1N0YXR1c1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSEQoJZmF2b3VyaXRlGAMgASgIEg4KBnJhdGluZxgEIAEoCRINCgVub3RlcxgFIAEoCSIaChhVcGRhdGVCb29rU3RhdHVzUmVzcG9uc2UiMAoQVG9nZ2xlVGFnUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEgsKA3RhZxgCIAEoCSITChFUb2dnbGVUYWdSZXNwb25zZSJvChVVcGRhdGVQcm9ncmVzc1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRIVCg1wcm9ncmVzc19tb2RlGAIgASgJEhQKDGN1cnJlbnRfcGFnZRgDIAEoBRIYChBwcm9ncmVzc19wZXJjZW50GAQgASgFIhgKFlVwZGF0ZVByb2dyZXNzUmVzcG9uc2UiJgoSSW1wb3J0Qm9va3NSZXF1ZXN0EhAKCGNzdl9kYXRhGAEgASgMIi0KE0ltcG9ydEJvb2tzUmVzcG9uc2USFgoOaW1wb3J0ZWRfY291bnQYASABKAUiYQoXQ3JlYXRlQm9va1VwbG9hZFJlcXVlc3QSEAoIZmlsZW5hbWUYASABKAkSFAoMY29udGVudF90eXBlGAIgASgJEgwKBHNpemUYAyABKAMSEAoIY2hlY2tzdW0YBCABKAkiUgoYQ3JlYXRlQm9va1VwbG9hZFJlc3BvbnNlEhEKCXVwbG9hZF9pZBgBIAEoCRILCgN1cmwYAiABKAkSFgoOYWxyZWFkeV9leGlzdHMYAyABKAgiaAoZRmluYWxpemVCb29rVXBsb2FkUmVxdWVzdBIRCgl1cGxvYWRfaWQYASABKAkSEAoIZmlsZW5hbWUYAiABKAkSFAoMY29udGVudF90eXBlGAMgASgJEhAKCGNoZWNrc3VtGAQgASgJIoIBChpGaW5hbGl6ZUJvb2tVcGxvYWRSZXNwb25zZRIPCgdib29rX2lkGAEgASgJEg8KB2ZpbGVfaWQYAiABKAkSGAoQcmVjb2duaXplZF90aXRsZRgDIAEoCRIYChBtYXRjaGVkX2V4aXN0aW5nGAQgASgIEg4KBmZvcm1hdBgFIAEoCSJdChRCb29rUmVhZGluZ1N0YXRlRGF0YRIOCgZzb3VyY2UYASABKAkSDwoHcGVyY2VudBgCIAEoBRIQCghsb2NhdGlvbhgDIAEoCRISCgp1cGRhdGVkX2F0GAQgASgJImIKHFVwZGF0ZVJlYWRpbmdQcm9ncmVzc1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRIOCgZzb3VyY2UYAiABKAkSDwoHcGVyY2VudBgDIAEoBRIQCghsb2NhdGlvbhgEIAEoCSIfCh1VcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXNwb25zZSIpChZHZXRSZWFkaW5nU3RhdGVSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkiSgoXR2V0UmVhZGluZ1N0YXRlUmVzcG9uc2USLwoFc3RhdGUYASABKAsyIC5iYWNrbG9nLnYxLkJvb2tSZWFkaW5nU3RhdGVEYXRhIjUKEkdldEJvb2tGaWxlUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEg4KBmZvcm1hdBgCIAEoCSJGChNHZXRCb29rRmlsZVJlc3BvbnNlEgsKA3VybBgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgJEg4KBmZvcm1hdBgDIAEoCSIoChVFbmFibGVLb2JvU3luY1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCSIuChZFbmFibGVLb2JvU3luY1Jlc3BvbnNlEhQKDGtlcHViX3N0YXR1cxgBIAEoCSIoChVHZXRLRVBVQlN0YXR1c1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCSJRChZHZXRLRVBVQlN0YXR1c1Jlc3BvbnNlEhAKCGhhc19lcHViGAEgASgIEhQKDGtlcHViX3N0YXR1cxgCIAEoCRIPCgdoYXNfcGRmGAMgASgIImAKCktvYm9EZXZpY2USCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIOCgZzZXJpYWwYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoCRIUCgxsYXN0X3NlZW5fYXQYBSABKAkiOQoZUmVnaXN0ZXJLb2JvRGV2aWNlUmVxdWVzdBIMCgRuYW1lGAEgASgJEg4KBnNlcmlhbBgCIAEoCSJXChpSZWdpc3RlcktvYm9EZXZpY2VSZXNwb25zZRImCgZkZXZpY2UYASABKAsyFi5iYWNrbG9nLnYxLktvYm9EZXZpY2USEQoJcmF3X3Rva2VuGAIgASgJIhgKFkxpc3RLb2JvRGV2aWNlc1JlcXVlc3QiQgoXTGlzdEtvYm9EZXZpY2VzUmVzcG9uc2USJwoHZGV2aWNlcxgBIAMoCzIWLmJhY2tsb2cudjEuS29ib0RldmljZSIpChtEaXNjb25uZWN0S29ib0RldmljZVJlcXVlc3QSCgoCaWQYASABKAkiHgocRGlzY29ubmVjdEtvYm9EZXZpY2VSZXNwb25zZSIwCh1SZXF1ZXN0S0VQVUJDb252ZXJzaW9uUmVxdWVzdBIPCgdib29rX2lkGAEgASgJIjYKHlJlcXVlc3RLRVBVQkNvbnZlcnNpb25SZXNwb25zZRIUCgxrZXB1Yl9zdGF0dXMYASABKAkiFQoTQ2xlYXJMaWJyYXJ5UmVxdWVzdCJEChRDbGVhckxpYnJhcnlSZXNwb25zZRIVCg1kZWxldGVkX2Jvb2tzGAEgASgNEhUKDWRlbGV0ZWRfZmlsZXMYAiABKA0ypRAKDEJvb2tzU2VydmljZRJLCgpHZXRTdW1tYXJ5Eh0uYmFja2xvZy52MS5HZXRTdW1tYXJ5UmVxdWVzdBoeLmJhY2tsb2cudjEuR2V0U3VtbWFyeVJlc3BvbnNlElcKDkdldFVzZXJTdW1tYXJ5EiEuYmFja2xvZy52MS5HZXRVc2VyU3VtbWFyeVJlcXVlc3QaIi5iYWNrbG9nLnYxLkdldFVzZXJTdW1tYXJ5UmVzcG9uc2USSwoKR2V0TGlicmFyeRIdLmJhY2tsb2cudjEuR2V0TGlicmFyeVJlcXVlc3QaHi5iYWNrbG9nLnYxLkdldExpYnJhcnlSZXNwb25zZRJdChBHZXRCb29rc1Byb2dyZXNzEiMuYmFja2xvZy52MS5HZXRCb29rc1Byb2dyZXNzUmVxdWVzdBokLmJhY2tsb2cudjEuR2V0Qm9va3NQcm9ncmVzc1Jlc3BvbnNlElQKDVNlYXJjaExpYnJhcnkSIC5iYWNrbG9nLnYxLlNlYXJjaExpYnJhcnlSZXF1ZXN0GiEuYmFja2xvZy52MS5TZWFyY2hMaWJyYXJ5UmVzcG9uc2USVwoOU2VhcmNoRXh0ZXJuYWwSIS5iYWNrbG9nLnYxLlNlYXJjaEV4dGVybmFsUmVxdWVzdBoiLmJhY2tsb2cudjEuU2VhcmNoRXh0ZXJuYWxSZXNwb25zZRJCCgdBZGRCb29rEhouYmFja2xvZy52MS5BZGRCb29rUmVxdWVzdBobLmJhY2tsb2cudjEuQWRkQm9va1Jlc3BvbnNlEl0KEFVwZGF0ZUJvb2tTdGF0dXMSIy5iYWNrbG9nLnYxLlVwZGF0ZUJvb2tTdGF0dXNSZXF1ZXN0GiQuYmFja2xvZy52MS5VcGRhdGVCb29rU3RhdHVzUmVzcG9uc2USVwoOVXBkYXRlUHJvZ3Jlc3MSIS5iYWNrbG9nLnYxLlVwZGF0ZVByb2dyZXNzUmVxdWVzdBoiLmJhY2tsb2cudjEuVXBkYXRlUHJvZ3Jlc3NSZXNwb25zZRJICglUb2dnbGVUYWcSHC5iYWNrbG9nLnYxLlRvZ2dsZVRhZ1JlcXVlc3QaHS5iYWNrbG9nLnYxLlRvZ2dsZVRhZ1Jlc3BvbnNlEk4KC0ltcG9ydEJvb2tzEh4uYmFja2xvZy52MS5JbXBvcnRCb29rc1JlcXVlc3QaHy5iYWNrbG9nLnYxLkltcG9ydEJvb2tzUmVzcG9uc2USbAoVVXBkYXRlUmVhZGluZ1Byb2dyZXNzEiguYmFja2xvZy52MS5VcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXF1ZXN0GikuYmFja2xvZy52MS5VcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXNwb25zZRJaCg9HZXRSZWFkaW5nU3RhdGUSIi5iYWNrbG9nLnYxLkdldFJlYWRpbmdTdGF0ZVJlcXVlc3QaIy5iYWNrbG9nLnYxLkdldFJlYWRpbmdTdGF0ZVJlc3BvbnNlEl0KEENyZWF0ZUJvb2tVcGxvYWQSIy5iYWNrbG9nLnYxLkNyZWF0ZUJvb2tVcGxvYWRSZXF1ZXN0GiQuYmFja2xvZy52MS5DcmVhdGVCb29rVXBsb2FkUmVzcG9uc2USYwoSRmluYWxpemVCb29rVXBsb2FkEiUuYmFja2xvZy52MS5GaW5hbGl6ZUJvb2tVcGxvYWRSZXF1ZXN0GiYuYmFja2xvZy52MS5GaW5hbGl6ZUJvb2tVcGxvYWRSZXNwb25zZRJOCgtHZXRCb29rRmlsZRIeLmJhY2tsb2cudjEuR2V0Qm9va0ZpbGVSZXF1ZXN0Gh8uYmFja2xvZy52MS5HZXRCb29rRmlsZVJlc3BvbnNlElcKDkVuYWJsZUtvYm9TeW5jEiEuYmFja2xvZy52MS5FbmFibGVLb2JvU3luY1JlcXVlc3QaIi5iYWNrbG9nLnYxLkVuYWJsZUtvYm9TeW5jUmVzcG9uc2USbwoWUmVxdWVzdEtFUFVCQ29udmVyc2lvbhIpLmJhY2tsb2cudjEuUmVxdWVzdEtFUFVCQ29udmVyc2lvblJlcXVlc3QaKi5iYWNrbG9nLnYxLlJlcXVlc3RLRVBVQkNvbnZlcnNpb25SZXNwb25zZRJXCg5HZXRLRVBVQlN0YXR1cxIhLmJhY2tsb2cudjEuR2V0S0VQVUJTdGF0dXNSZXF1ZXN0GiIuYmFja2xvZy52MS5HZXRLRVBVQlN0YXR1c1Jlc3BvbnNlEmMKElJlZ2lzdGVyS29ib0RldmljZRIlLmJhY2tsb2cudjEuUmVnaXN0ZXJLb2JvRGV2aWNlUmVxdWVzdBomLmJhY2tsb2cudjEuUmVnaXN0ZXJLb2JvRGV2aWNlUmVzcG9uc2USWgoPTGlzdEtvYm9EZXZpY2VzEiIuYmFja2xvZy52MS5MaXN0S29ib0RldmljZXNSZXF1ZXN0GiMuYmFja2xvZy52MS5MaXN0S29ib0RldmljZXNSZXNwb25zZRJpChREaXNjb25uZWN0S29ib0RldmljZRInLmJhY2tsb2cudjEuRGlzY29ubmVjdEtvYm9EZXZpY2VSZXF1ZXN0GiguYmFja2xvZy52MS5EaXNjb25uZWN0S29ib0RldmljZVJlc3BvbnNlElEKDENsZWFyTGlicmFyeRIfLmJhY2tsb2cudjEuQ2xlYXJMaWJyYXJ5UmVxdWVzdBogLmJhY2tsb2cudjEuQ2xlYXJMaWJyYXJ5UmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9iYWNrbG9nL3YxO2JhY2tsb2d2MWIGcHJvdG8z");
 
 /**
  * @generated from message backlog.v1.Book
@@ -132,6 +132,11 @@ export type UserBook = Message<"backlog.v1.UserBook"> & {
    * @generated from field: int32 progress_percent = 14;
    */
   progressPercent: number;
+
+  /**
+   * @generated from field: repeated string formats = 15;
+   */
+  formats: string[];
 };
 
 /**
@@ -737,6 +742,591 @@ export const ImportBooksResponseSchema: GenMessage<ImportBooksResponse> = /*@__P
   messageDesc(file_backlog_v1_books, 28);
 
 /**
+ * @generated from message backlog.v1.CreateBookUploadRequest
+ */
+export type CreateBookUploadRequest = Message<"backlog.v1.CreateBookUploadRequest"> & {
+  /**
+   * @generated from field: string filename = 1;
+   */
+  filename: string;
+
+  /**
+   * @generated from field: string content_type = 2;
+   */
+  contentType: string;
+
+  /**
+   * @generated from field: int64 size = 3;
+   */
+  size: bigint;
+
+  /**
+   * SHA-256 hex digest of the file content, computed by the client.
+   * When the content already exists in the store the server sets
+   * already_exists=true in the response and the client skips the PUT.
+   *
+   * @generated from field: string checksum = 4;
+   */
+  checksum: string;
+};
+
+/**
+ * Describes the message backlog.v1.CreateBookUploadRequest.
+ * Use `create(CreateBookUploadRequestSchema)` to create a new message.
+ */
+export const CreateBookUploadRequestSchema: GenMessage<CreateBookUploadRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 29);
+
+/**
+ * @generated from message backlog.v1.CreateBookUploadResponse
+ */
+export type CreateBookUploadResponse = Message<"backlog.v1.CreateBookUploadResponse"> & {
+  /**
+   * @generated from field: string upload_id = 1;
+   */
+  uploadId: string;
+
+  /**
+   * @generated from field: string url = 2;
+   */
+  url: string;
+
+  /**
+   * True when the file content is already stored. The client must skip the
+   * PUT to url and call FinalizeBookUpload directly with the upload_id empty.
+   *
+   * @generated from field: bool already_exists = 3;
+   */
+  alreadyExists: boolean;
+};
+
+/**
+ * Describes the message backlog.v1.CreateBookUploadResponse.
+ * Use `create(CreateBookUploadResponseSchema)` to create a new message.
+ */
+export const CreateBookUploadResponseSchema: GenMessage<CreateBookUploadResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 30);
+
+/**
+ * @generated from message backlog.v1.FinalizeBookUploadRequest
+ */
+export type FinalizeBookUploadRequest = Message<"backlog.v1.FinalizeBookUploadRequest"> & {
+  /**
+   * @generated from field: string upload_id = 1;
+   */
+  uploadId: string;
+
+  /**
+   * @generated from field: string filename = 2;
+   */
+  filename: string;
+
+  /**
+   * @generated from field: string content_type = 3;
+   */
+  contentType: string;
+
+  /**
+   * SHA-256 hex digest matching what was sent in CreateBookUploadRequest.
+   *
+   * @generated from field: string checksum = 4;
+   */
+  checksum: string;
+};
+
+/**
+ * Describes the message backlog.v1.FinalizeBookUploadRequest.
+ * Use `create(FinalizeBookUploadRequestSchema)` to create a new message.
+ */
+export const FinalizeBookUploadRequestSchema: GenMessage<FinalizeBookUploadRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 31);
+
+/**
+ * @generated from message backlog.v1.FinalizeBookUploadResponse
+ */
+export type FinalizeBookUploadResponse = Message<"backlog.v1.FinalizeBookUploadResponse"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+
+  /**
+   * @generated from field: string file_id = 2;
+   */
+  fileId: string;
+
+  /**
+   * @generated from field: string recognized_title = 3;
+   */
+  recognizedTitle: string;
+
+  /**
+   * @generated from field: bool matched_existing = 4;
+   */
+  matchedExisting: boolean;
+
+  /**
+   * @generated from field: string format = 5;
+   */
+  format: string;
+};
+
+/**
+ * Describes the message backlog.v1.FinalizeBookUploadResponse.
+ * Use `create(FinalizeBookUploadResponseSchema)` to create a new message.
+ */
+export const FinalizeBookUploadResponseSchema: GenMessage<FinalizeBookUploadResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 32);
+
+/**
+ * @generated from message backlog.v1.BookReadingStateData
+ */
+export type BookReadingStateData = Message<"backlog.v1.BookReadingStateData"> & {
+  /**
+   * @generated from field: string source = 1;
+   */
+  source: string;
+
+  /**
+   * @generated from field: int32 percent = 2;
+   */
+  percent: number;
+
+  /**
+   * @generated from field: string location = 3;
+   */
+  location: string;
+
+  /**
+   * @generated from field: string updated_at = 4;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message backlog.v1.BookReadingStateData.
+ * Use `create(BookReadingStateDataSchema)` to create a new message.
+ */
+export const BookReadingStateDataSchema: GenMessage<BookReadingStateData> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 33);
+
+/**
+ * @generated from message backlog.v1.UpdateReadingProgressRequest
+ */
+export type UpdateReadingProgressRequest = Message<"backlog.v1.UpdateReadingProgressRequest"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+
+  /**
+   * @generated from field: string source = 2;
+   */
+  source: string;
+
+  /**
+   * @generated from field: int32 percent = 3;
+   */
+  percent: number;
+
+  /**
+   * @generated from field: string location = 4;
+   */
+  location: string;
+};
+
+/**
+ * Describes the message backlog.v1.UpdateReadingProgressRequest.
+ * Use `create(UpdateReadingProgressRequestSchema)` to create a new message.
+ */
+export const UpdateReadingProgressRequestSchema: GenMessage<UpdateReadingProgressRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 34);
+
+/**
+ * @generated from message backlog.v1.UpdateReadingProgressResponse
+ */
+export type UpdateReadingProgressResponse = Message<"backlog.v1.UpdateReadingProgressResponse"> & {
+};
+
+/**
+ * Describes the message backlog.v1.UpdateReadingProgressResponse.
+ * Use `create(UpdateReadingProgressResponseSchema)` to create a new message.
+ */
+export const UpdateReadingProgressResponseSchema: GenMessage<UpdateReadingProgressResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 35);
+
+/**
+ * @generated from message backlog.v1.GetReadingStateRequest
+ */
+export type GetReadingStateRequest = Message<"backlog.v1.GetReadingStateRequest"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+};
+
+/**
+ * Describes the message backlog.v1.GetReadingStateRequest.
+ * Use `create(GetReadingStateRequestSchema)` to create a new message.
+ */
+export const GetReadingStateRequestSchema: GenMessage<GetReadingStateRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 36);
+
+/**
+ * @generated from message backlog.v1.GetReadingStateResponse
+ */
+export type GetReadingStateResponse = Message<"backlog.v1.GetReadingStateResponse"> & {
+  /**
+   * @generated from field: backlog.v1.BookReadingStateData state = 1;
+   */
+  state?: BookReadingStateData | undefined;
+};
+
+/**
+ * Describes the message backlog.v1.GetReadingStateResponse.
+ * Use `create(GetReadingStateResponseSchema)` to create a new message.
+ */
+export const GetReadingStateResponseSchema: GenMessage<GetReadingStateResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 37);
+
+/**
+ * @generated from message backlog.v1.GetBookFileRequest
+ */
+export type GetBookFileRequest = Message<"backlog.v1.GetBookFileRequest"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+
+  /**
+   * @generated from field: string format = 2;
+   */
+  format: string;
+};
+
+/**
+ * Describes the message backlog.v1.GetBookFileRequest.
+ * Use `create(GetBookFileRequestSchema)` to create a new message.
+ */
+export const GetBookFileRequestSchema: GenMessage<GetBookFileRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 38);
+
+/**
+ * @generated from message backlog.v1.GetBookFileResponse
+ */
+export type GetBookFileResponse = Message<"backlog.v1.GetBookFileResponse"> & {
+  /**
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string expires_at = 2;
+   */
+  expiresAt: string;
+
+  /**
+   * @generated from field: string format = 3;
+   */
+  format: string;
+};
+
+/**
+ * Describes the message backlog.v1.GetBookFileResponse.
+ * Use `create(GetBookFileResponseSchema)` to create a new message.
+ */
+export const GetBookFileResponseSchema: GenMessage<GetBookFileResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 39);
+
+/**
+ * @generated from message backlog.v1.EnableKoboSyncRequest
+ */
+export type EnableKoboSyncRequest = Message<"backlog.v1.EnableKoboSyncRequest"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+};
+
+/**
+ * Describes the message backlog.v1.EnableKoboSyncRequest.
+ * Use `create(EnableKoboSyncRequestSchema)` to create a new message.
+ */
+export const EnableKoboSyncRequestSchema: GenMessage<EnableKoboSyncRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 40);
+
+/**
+ * @generated from message backlog.v1.EnableKoboSyncResponse
+ */
+export type EnableKoboSyncResponse = Message<"backlog.v1.EnableKoboSyncResponse"> & {
+  /**
+   * @generated from field: string kepub_status = 1;
+   */
+  kepubStatus: string;
+};
+
+/**
+ * Describes the message backlog.v1.EnableKoboSyncResponse.
+ * Use `create(EnableKoboSyncResponseSchema)` to create a new message.
+ */
+export const EnableKoboSyncResponseSchema: GenMessage<EnableKoboSyncResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 41);
+
+/**
+ * @generated from message backlog.v1.GetKEPUBStatusRequest
+ */
+export type GetKEPUBStatusRequest = Message<"backlog.v1.GetKEPUBStatusRequest"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+};
+
+/**
+ * Describes the message backlog.v1.GetKEPUBStatusRequest.
+ * Use `create(GetKEPUBStatusRequestSchema)` to create a new message.
+ */
+export const GetKEPUBStatusRequestSchema: GenMessage<GetKEPUBStatusRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 42);
+
+/**
+ * @generated from message backlog.v1.GetKEPUBStatusResponse
+ */
+export type GetKEPUBStatusResponse = Message<"backlog.v1.GetKEPUBStatusResponse"> & {
+  /**
+   * @generated from field: bool has_epub = 1;
+   */
+  hasEpub: boolean;
+
+  /**
+   * @generated from field: string kepub_status = 2;
+   */
+  kepubStatus: string;
+
+  /**
+   * @generated from field: bool has_pdf = 3;
+   */
+  hasPdf: boolean;
+};
+
+/**
+ * Describes the message backlog.v1.GetKEPUBStatusResponse.
+ * Use `create(GetKEPUBStatusResponseSchema)` to create a new message.
+ */
+export const GetKEPUBStatusResponseSchema: GenMessage<GetKEPUBStatusResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 43);
+
+/**
+ * @generated from message backlog.v1.KoboDevice
+ */
+export type KoboDevice = Message<"backlog.v1.KoboDevice"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string serial = 3;
+   */
+  serial: string;
+
+  /**
+   * @generated from field: string created_at = 4;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: string last_seen_at = 5;
+   */
+  lastSeenAt: string;
+};
+
+/**
+ * Describes the message backlog.v1.KoboDevice.
+ * Use `create(KoboDeviceSchema)` to create a new message.
+ */
+export const KoboDeviceSchema: GenMessage<KoboDevice> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 44);
+
+/**
+ * @generated from message backlog.v1.RegisterKoboDeviceRequest
+ */
+export type RegisterKoboDeviceRequest = Message<"backlog.v1.RegisterKoboDeviceRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string serial = 2;
+   */
+  serial: string;
+};
+
+/**
+ * Describes the message backlog.v1.RegisterKoboDeviceRequest.
+ * Use `create(RegisterKoboDeviceRequestSchema)` to create a new message.
+ */
+export const RegisterKoboDeviceRequestSchema: GenMessage<RegisterKoboDeviceRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 45);
+
+/**
+ * @generated from message backlog.v1.RegisterKoboDeviceResponse
+ */
+export type RegisterKoboDeviceResponse = Message<"backlog.v1.RegisterKoboDeviceResponse"> & {
+  /**
+   * @generated from field: backlog.v1.KoboDevice device = 1;
+   */
+  device?: KoboDevice | undefined;
+
+  /**
+   * @generated from field: string raw_token = 2;
+   */
+  rawToken: string;
+};
+
+/**
+ * Describes the message backlog.v1.RegisterKoboDeviceResponse.
+ * Use `create(RegisterKoboDeviceResponseSchema)` to create a new message.
+ */
+export const RegisterKoboDeviceResponseSchema: GenMessage<RegisterKoboDeviceResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 46);
+
+/**
+ * @generated from message backlog.v1.ListKoboDevicesRequest
+ */
+export type ListKoboDevicesRequest = Message<"backlog.v1.ListKoboDevicesRequest"> & {
+};
+
+/**
+ * Describes the message backlog.v1.ListKoboDevicesRequest.
+ * Use `create(ListKoboDevicesRequestSchema)` to create a new message.
+ */
+export const ListKoboDevicesRequestSchema: GenMessage<ListKoboDevicesRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 47);
+
+/**
+ * @generated from message backlog.v1.ListKoboDevicesResponse
+ */
+export type ListKoboDevicesResponse = Message<"backlog.v1.ListKoboDevicesResponse"> & {
+  /**
+   * @generated from field: repeated backlog.v1.KoboDevice devices = 1;
+   */
+  devices: KoboDevice[];
+};
+
+/**
+ * Describes the message backlog.v1.ListKoboDevicesResponse.
+ * Use `create(ListKoboDevicesResponseSchema)` to create a new message.
+ */
+export const ListKoboDevicesResponseSchema: GenMessage<ListKoboDevicesResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 48);
+
+/**
+ * @generated from message backlog.v1.DisconnectKoboDeviceRequest
+ */
+export type DisconnectKoboDeviceRequest = Message<"backlog.v1.DisconnectKoboDeviceRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message backlog.v1.DisconnectKoboDeviceRequest.
+ * Use `create(DisconnectKoboDeviceRequestSchema)` to create a new message.
+ */
+export const DisconnectKoboDeviceRequestSchema: GenMessage<DisconnectKoboDeviceRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 49);
+
+/**
+ * @generated from message backlog.v1.DisconnectKoboDeviceResponse
+ */
+export type DisconnectKoboDeviceResponse = Message<"backlog.v1.DisconnectKoboDeviceResponse"> & {
+};
+
+/**
+ * Describes the message backlog.v1.DisconnectKoboDeviceResponse.
+ * Use `create(DisconnectKoboDeviceResponseSchema)` to create a new message.
+ */
+export const DisconnectKoboDeviceResponseSchema: GenMessage<DisconnectKoboDeviceResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 50);
+
+/**
+ * @generated from message backlog.v1.RequestKEPUBConversionRequest
+ */
+export type RequestKEPUBConversionRequest = Message<"backlog.v1.RequestKEPUBConversionRequest"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+};
+
+/**
+ * Describes the message backlog.v1.RequestKEPUBConversionRequest.
+ * Use `create(RequestKEPUBConversionRequestSchema)` to create a new message.
+ */
+export const RequestKEPUBConversionRequestSchema: GenMessage<RequestKEPUBConversionRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 51);
+
+/**
+ * @generated from message backlog.v1.RequestKEPUBConversionResponse
+ */
+export type RequestKEPUBConversionResponse = Message<"backlog.v1.RequestKEPUBConversionResponse"> & {
+  /**
+   * @generated from field: string kepub_status = 1;
+   */
+  kepubStatus: string;
+};
+
+/**
+ * Describes the message backlog.v1.RequestKEPUBConversionResponse.
+ * Use `create(RequestKEPUBConversionResponseSchema)` to create a new message.
+ */
+export const RequestKEPUBConversionResponseSchema: GenMessage<RequestKEPUBConversionResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 52);
+
+/**
+ * @generated from message backlog.v1.ClearLibraryRequest
+ */
+export type ClearLibraryRequest = Message<"backlog.v1.ClearLibraryRequest"> & {
+};
+
+/**
+ * Describes the message backlog.v1.ClearLibraryRequest.
+ * Use `create(ClearLibraryRequestSchema)` to create a new message.
+ */
+export const ClearLibraryRequestSchema: GenMessage<ClearLibraryRequest> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 53);
+
+/**
+ * @generated from message backlog.v1.ClearLibraryResponse
+ */
+export type ClearLibraryResponse = Message<"backlog.v1.ClearLibraryResponse"> & {
+  /**
+   * @generated from field: uint32 deleted_books = 1;
+   */
+  deletedBooks: number;
+
+  /**
+   * @generated from field: uint32 deleted_files = 2;
+   */
+  deletedFiles: number;
+};
+
+/**
+ * Describes the message backlog.v1.ClearLibraryResponse.
+ * Use `create(ClearLibraryResponseSchema)` to create a new message.
+ */
+export const ClearLibraryResponseSchema: GenMessage<ClearLibraryResponse> = /*@__PURE__*/
+  messageDesc(file_backlog_v1_books, 54);
+
+/**
  * @generated from service backlog.v1.BooksService
  */
 export const BooksService: GenService<{
@@ -827,6 +1417,102 @@ export const BooksService: GenService<{
     methodKind: "unary";
     input: typeof ImportBooksRequestSchema;
     output: typeof ImportBooksResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.UpdateReadingProgress
+   */
+  updateReadingProgress: {
+    methodKind: "unary";
+    input: typeof UpdateReadingProgressRequestSchema;
+    output: typeof UpdateReadingProgressResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.GetReadingState
+   */
+  getReadingState: {
+    methodKind: "unary";
+    input: typeof GetReadingStateRequestSchema;
+    output: typeof GetReadingStateResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.CreateBookUpload
+   */
+  createBookUpload: {
+    methodKind: "unary";
+    input: typeof CreateBookUploadRequestSchema;
+    output: typeof CreateBookUploadResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.FinalizeBookUpload
+   */
+  finalizeBookUpload: {
+    methodKind: "unary";
+    input: typeof FinalizeBookUploadRequestSchema;
+    output: typeof FinalizeBookUploadResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.GetBookFile
+   */
+  getBookFile: {
+    methodKind: "unary";
+    input: typeof GetBookFileRequestSchema;
+    output: typeof GetBookFileResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.EnableKoboSync
+   */
+  enableKoboSync: {
+    methodKind: "unary";
+    input: typeof EnableKoboSyncRequestSchema;
+    output: typeof EnableKoboSyncResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.RequestKEPUBConversion
+   */
+  requestKEPUBConversion: {
+    methodKind: "unary";
+    input: typeof RequestKEPUBConversionRequestSchema;
+    output: typeof RequestKEPUBConversionResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.GetKEPUBStatus
+   */
+  getKEPUBStatus: {
+    methodKind: "unary";
+    input: typeof GetKEPUBStatusRequestSchema;
+    output: typeof GetKEPUBStatusResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.RegisterKoboDevice
+   */
+  registerKoboDevice: {
+    methodKind: "unary";
+    input: typeof RegisterKoboDeviceRequestSchema;
+    output: typeof RegisterKoboDeviceResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.ListKoboDevices
+   */
+  listKoboDevices: {
+    methodKind: "unary";
+    input: typeof ListKoboDevicesRequestSchema;
+    output: typeof ListKoboDevicesResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.DisconnectKoboDevice
+   */
+  disconnectKoboDevice: {
+    methodKind: "unary";
+    input: typeof DisconnectKoboDeviceRequestSchema;
+    output: typeof DisconnectKoboDeviceResponseSchema;
+  },
+  /**
+   * @generated from rpc backlog.v1.BooksService.ClearLibrary
+   */
+  clearLibrary: {
+    methodKind: "unary";
+    input: typeof ClearLibraryRequestSchema;
+    output: typeof ClearLibraryResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_backlog_v1_books, 0);

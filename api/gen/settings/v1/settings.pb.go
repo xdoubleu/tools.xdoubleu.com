@@ -22,12 +22,10 @@ const (
 )
 
 type Integrations struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	SteamApiKey     string                 `protobuf:"bytes,1,opt,name=steam_api_key,json=steamApiKey,proto3" json:"steam_api_key,omitempty"`
-	SteamUserId     string                 `protobuf:"bytes,2,opt,name=steam_user_id,json=steamUserId,proto3" json:"steam_user_id,omitempty"`
-	HardcoverApiKey string                 `protobuf:"bytes,3,opt,name=hardcover_api_key,json=hardcoverApiKey,proto3" json:"hardcover_api_key,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SteamUserId   string                 `protobuf:"bytes,2,opt,name=steam_user_id,json=steamUserId,proto3" json:"steam_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Integrations) Reset() {
@@ -60,23 +58,9 @@ func (*Integrations) Descriptor() ([]byte, []int) {
 	return file_settings_v1_settings_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Integrations) GetSteamApiKey() string {
-	if x != nil {
-		return x.SteamApiKey
-	}
-	return ""
-}
-
 func (x *Integrations) GetSteamUserId() string {
 	if x != nil {
 		return x.SteamUserId
-	}
-	return ""
-}
-
-func (x *Integrations) GetHardcoverApiKey() string {
-	if x != nil {
-		return x.HardcoverApiKey
 	}
 	return ""
 }
@@ -245,11 +229,9 @@ var File_settings_v1_settings_proto protoreflect.FileDescriptor
 
 const file_settings_v1_settings_proto_rawDesc = "" +
 	"\n" +
-	"\x1asettings/v1/settings.proto\x12\vsettings.v1\"\x82\x01\n" +
+	"\x1asettings/v1/settings.proto\x12\vsettings.v1\"`\n" +
 	"\fIntegrations\x12\"\n" +
-	"\rsteam_api_key\x18\x01 \x01(\tR\vsteamApiKey\x12\"\n" +
-	"\rsteam_user_id\x18\x02 \x01(\tR\vsteamUserId\x12*\n" +
-	"\x11hardcover_api_key\x18\x03 \x01(\tR\x0fhardcoverApiKey\"\x14\n" +
+	"\rsteam_user_id\x18\x02 \x01(\tR\vsteamUserIdJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04R\rsteam_api_keyR\x11hardcover_api_key\"\x14\n" +
 	"\x12GetSettingsRequest\"T\n" +
 	"\x13GetSettingsResponse\x12=\n" +
 	"\fintegrations\x18\x01 \x01(\v2\x19.settings.v1.IntegrationsR\fintegrations\"T\n" +

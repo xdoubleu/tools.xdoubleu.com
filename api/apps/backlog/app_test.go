@@ -17,6 +17,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/mocks"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -40,16 +41,23 @@ var accessToken = http.Cookie{
 	Value: "access",
 }
 
+// fakeStore is the shared in-memory object store used by testApp.
+// Tests can Put bytes directly then call FinalizeUpload to simulate R2 uploads.
+var fakeStore *objectstore.FakeClient //nolint:gochecknoglobals //needed for tests
+
 func TestMain(m *testing.M) {
 	var err error
 
 	testCfg = config.New(logging.NewNopLogger())
 	testCfg.Env = configtools.TestEnv
 	testCfg.Throttle = false
+	testCfg.SteamAPIKey = "test-steam-api-key"
+	testCfg.HardcoverAPIKey = "test-hardcover-api-key"
 
 	postgresDB := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = postgresDB
 
+	fakeStore = objectstore.NewFake()
 	clients := backlog.Clients{
 		SteamFactory: func(_ string) steam.Client {
 			return mocks.NewMockSteamClient()
@@ -57,6 +65,8 @@ func TestMain(m *testing.M) {
 		HardcoverFactory: func(_ string) hardcover.Client {
 			return mocks.NewMockHardcoverClient()
 		},
+		ObjectStore:      fakeStore,
+		KoboStoreBaseURL: "",
 	}
 
 	testApp = backlog.NewInner(
@@ -88,6 +98,32 @@ func TestMain(m *testing.M) {
 
 func getRoutes() http.Handler {
 	return testhelper.BuildMux(testApp)
+}
+
+// getRoutesWithKoboUpstream creates a Backlog instance identical to testApp
+// but with a custom KoboStoreBaseURL (for proxy/merge tests).
+// It shares the same DB so tokens generated via testApp are recognised.
+func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
+	t.Helper()
+	clients := backlog.Clients{
+		SteamFactory: func(_ string) steam.Client {
+			return mocks.NewMockSteamClient()
+		},
+		HardcoverFactory: func(_ string) hardcover.Client {
+			return mocks.NewMockHardcoverClient()
+		},
+		ObjectStore:      objectstore.NewFake(),
+		KoboStoreBaseURL: upstreamURL,
+	}
+	app := backlog.NewInner(
+		context.Background(),
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(),
+		testCfg,
+		testDB,
+		clients,
+	)
+	return testhelper.BuildMux(app)
 }
 
 func TestGetDisplayName(t *testing.T) {

@@ -8,9 +8,9 @@ service SettingsService {
 }
 
 message Integrations {
-  string steam_api_key = 1;
+  reserved 1, 3;
+  reserved "steam_api_key", "hardcover_api_key";
   string steam_user_id = 2;
-  string hardcover_api_key = 3;
 }
 
 message GetSettingsRequest {}

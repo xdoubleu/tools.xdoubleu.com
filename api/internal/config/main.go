@@ -2,18 +2,9 @@
 package config
 
 import (
-	"encoding/base64"
 	"log/slog"
 
 	"github.com/xdoubleu/essentia/v4/pkg/config"
-)
-
-// devEncryptionKey is a well-known 32-byte key used only in dev/test environments.
-// Production deployments must set ENCRYPTION_KEY to a securely generated value.
-//
-//nolint:gochecknoglobals //dev-only default, replaced by ENCRYPTION_KEY in prod
-var devEncryptionKey = []byte(
-	"dev-tools-xdoubleu-encrypt-key!!",
 )
 
 type Config struct {
@@ -29,7 +20,12 @@ type Config struct {
 	Release         string
 	SupabaseProjRef string
 	SupabaseAPIKey  string
-	EncryptionKey   []byte
+	HardcoverAPIKey string
+	SteamAPIKey     string
+	R2AccountID     string
+	R2AccessKeyID   string
+	R2SecretKey     string
+	R2Bucket        string
 }
 
 func New(logger *slog.Logger) Config {
@@ -51,16 +47,13 @@ func New(logger *slog.Logger) Config {
 	cfg.SupabaseProjRef = parser.EnvStr("SUPABASE_PROJ_REF", "")
 	cfg.SupabaseAPIKey = parser.EnvStr("SUPABASE_API_KEY", "")
 
-	encKeyStr := parser.EnvStr("ENCRYPTION_KEY", "")
-	if encKeyStr == "" {
-		cfg.EncryptionKey = devEncryptionKey
-	} else {
-		key, err := base64.StdEncoding.DecodeString(encKeyStr)
-		if err != nil || len(key) != 32 {
-			panic("ENCRYPTION_KEY must be a base64-encoded 32-byte value")
-		}
-		cfg.EncryptionKey = key
-	}
+	cfg.HardcoverAPIKey = parser.EnvStr("HARDCOVER_API_KEY", "")
+	cfg.SteamAPIKey = parser.EnvStr("STEAM_API_KEY", "")
+
+	cfg.R2AccountID = parser.EnvStr("R2_ACCOUNT_ID", "")
+	cfg.R2AccessKeyID = parser.EnvStr("R2_ACCESS_KEY_ID", "")
+	cfg.R2SecretKey = parser.EnvStr("R2_SECRET_ACCESS_KEY", "")
+	cfg.R2Bucket = parser.EnvStr("R2_BUCKET", "")
 
 	return cfg
 }

@@ -7,11 +7,17 @@ import { UserBookSchema, BookSchema } from '@/lib/gen/backlog/v1/books_pb'
 const mockUpdateBookStatus = jest.fn()
 const mockToggleTag = jest.fn()
 const mockUpdateProgress = jest.fn()
+const mockEnableKoboSync = jest.fn()
+const mockRequestConversion = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useUpdateBookStatus: () => mockUpdateBookStatus,
   useToggleTag: () => mockToggleTag,
-  useUpdateProgress: () => mockUpdateProgress
+  useUpdateProgress: () => mockUpdateProgress,
+  useEnableKoboSync: () => mockEnableKoboSync,
+  useKEPUBStatus: () => ({ data: { hasEpub: false, kepubStatus: '' } }),
+  useRequestKEPUBConversion: () => () => mockRequestConversion(),
+  useGetBookFile: () => ({ data: null, error: null })
 }))
 
 const userBook = create(UserBookSchema, {
@@ -137,6 +143,41 @@ describe('BookEditModal', () => {
         currentPage: 50,
         progressPercent: 75
       })
+    })
+  })
+
+  describe('Preview buttons', () => {
+    const pdfOnlyBook = create(UserBookSchema, {
+      ...userBook,
+      formats: ['pdf']
+    })
+
+    const epubAndPdfBook = create(UserBookSchema, {
+      ...userBook,
+      formats: ['epub', 'pdf']
+    })
+
+    it('shows "Preview PDF" when book has pdf format', () => {
+      render(<BookEditModal userBook={pdfOnlyBook} onClose={jest.fn()} onSaved={jest.fn()} />)
+      expect(screen.getByRole('button', { name: 'Preview PDF' })).toBeInTheDocument()
+    })
+
+    it('shows "Preview EPUB" for a PDF-only book (triggers on-demand conversion)', () => {
+      render(<BookEditModal userBook={pdfOnlyBook} onClose={jest.fn()} onSaved={jest.fn()} />)
+      expect(screen.getByRole('button', { name: 'Preview EPUB' })).toBeInTheDocument()
+    })
+
+    it('shows "Preview EPUB" pointing at the native epub when book has epub format', () => {
+      render(<BookEditModal userBook={epubAndPdfBook} onClose={jest.fn()} onSaved={jest.fn()} />)
+      // Both buttons present; EPUB button from native epub (not kepub conversion).
+      expect(screen.getByRole('button', { name: 'Preview PDF' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Preview EPUB' })).toBeInTheDocument()
+    })
+
+    it('does not show "Preview EPUB" when book has no pdf or epub', () => {
+      const noFormatsBook = create(UserBookSchema, { ...userBook, formats: [] })
+      render(<BookEditModal userBook={noFormatsBook} onClose={jest.fn()} onSaved={jest.fn()} />)
+      expect(screen.queryByRole('button', { name: 'Preview EPUB' })).not.toBeInTheDocument()
     })
   })
 })

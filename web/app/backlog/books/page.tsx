@@ -1,9 +1,20 @@
+import Link from 'next/link'
 import BooksDashboard from '@/components/backlog/BooksDashboard'
+import { Button } from '@/components/ui/button'
+import SettingsIcon from '@/components/SettingsIcon'
 
 export default function BacklogBooksPage() {
   return (
     <main className="mx-auto max-w-6xl p-6 lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden lg:p-4">
-      <h1 className="mb-4 text-3xl font-bold lg:mb-3 lg:text-2xl">Books</h1>
+      <div className="mb-4 flex items-center justify-between gap-4 lg:mb-3">
+        <h1 className="text-3xl font-bold lg:text-2xl">Books</h1>
+        <Button asChild variant="ghost" size="sm" className="gap-2">
+          <Link href="/backlog/books/settings">
+            <SettingsIcon />
+            Settings
+          </Link>
+        </Button>
+      </div>
 
       <BooksDashboard />
     </main>

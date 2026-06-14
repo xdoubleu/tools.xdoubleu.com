@@ -129,6 +129,7 @@ type UserBook struct {
 	ProgressMode    string                 `protobuf:"bytes,12,opt,name=progress_mode,json=progressMode,proto3" json:"progress_mode,omitempty"`
 	CurrentPage     int32                  `protobuf:"varint,13,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
 	ProgressPercent int32                  `protobuf:"varint,14,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
+	Formats         []string               `protobuf:"bytes,15,rep,name=formats,proto3" json:"formats,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -259,6 +260,13 @@ func (x *UserBook) GetProgressPercent() int32 {
 		return x.ProgressPercent
 	}
 	return 0
+}
+
+func (x *UserBook) GetFormats() []string {
+	if x != nil {
+		return x.Formats
+	}
+	return nil
 }
 
 type BookShelf struct {
@@ -1657,6 +1665,1364 @@ func (x *ImportBooksResponse) GetImportedCount() int32 {
 	return 0
 }
 
+type CreateBookUploadRequest struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Filename    string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	ContentType string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	Size        int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	// SHA-256 hex digest of the file content, computed by the client.
+	// When the content already exists in the store the server sets
+	// already_exists=true in the response and the client skips the PUT.
+	Checksum      string `protobuf:"bytes,4,opt,name=checksum,proto3" json:"checksum,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateBookUploadRequest) Reset() {
+	*x = CreateBookUploadRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateBookUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateBookUploadRequest) ProtoMessage() {}
+
+func (x *CreateBookUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateBookUploadRequest.ProtoReflect.Descriptor instead.
+func (*CreateBookUploadRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *CreateBookUploadRequest) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *CreateBookUploadRequest) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *CreateBookUploadRequest) GetSize() int64 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *CreateBookUploadRequest) GetChecksum() string {
+	if x != nil {
+		return x.Checksum
+	}
+	return ""
+}
+
+type CreateBookUploadResponse struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	UploadId string                 `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
+	Url      string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// True when the file content is already stored. The client must skip the
+	// PUT to url and call FinalizeBookUpload directly with the upload_id empty.
+	AlreadyExists bool `protobuf:"varint,3,opt,name=already_exists,json=alreadyExists,proto3" json:"already_exists,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateBookUploadResponse) Reset() {
+	*x = CreateBookUploadResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateBookUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateBookUploadResponse) ProtoMessage() {}
+
+func (x *CreateBookUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateBookUploadResponse.ProtoReflect.Descriptor instead.
+func (*CreateBookUploadResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *CreateBookUploadResponse) GetUploadId() string {
+	if x != nil {
+		return x.UploadId
+	}
+	return ""
+}
+
+func (x *CreateBookUploadResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *CreateBookUploadResponse) GetAlreadyExists() bool {
+	if x != nil {
+		return x.AlreadyExists
+	}
+	return false
+}
+
+type FinalizeBookUploadRequest struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	UploadId    string                 `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
+	Filename    string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
+	ContentType string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	// SHA-256 hex digest matching what was sent in CreateBookUploadRequest.
+	Checksum      string `protobuf:"bytes,4,opt,name=checksum,proto3" json:"checksum,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FinalizeBookUploadRequest) Reset() {
+	*x = FinalizeBookUploadRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinalizeBookUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinalizeBookUploadRequest) ProtoMessage() {}
+
+func (x *FinalizeBookUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinalizeBookUploadRequest.ProtoReflect.Descriptor instead.
+func (*FinalizeBookUploadRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *FinalizeBookUploadRequest) GetUploadId() string {
+	if x != nil {
+		return x.UploadId
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadRequest) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadRequest) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadRequest) GetChecksum() string {
+	if x != nil {
+		return x.Checksum
+	}
+	return ""
+}
+
+type FinalizeBookUploadResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	BookId          string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	FileId          string                 `protobuf:"bytes,2,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	RecognizedTitle string                 `protobuf:"bytes,3,opt,name=recognized_title,json=recognizedTitle,proto3" json:"recognized_title,omitempty"`
+	MatchedExisting bool                   `protobuf:"varint,4,opt,name=matched_existing,json=matchedExisting,proto3" json:"matched_existing,omitempty"`
+	Format          string                 `protobuf:"bytes,5,opt,name=format,proto3" json:"format,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *FinalizeBookUploadResponse) Reset() {
+	*x = FinalizeBookUploadResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FinalizeBookUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FinalizeBookUploadResponse) ProtoMessage() {}
+
+func (x *FinalizeBookUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FinalizeBookUploadResponse.ProtoReflect.Descriptor instead.
+func (*FinalizeBookUploadResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *FinalizeBookUploadResponse) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadResponse) GetFileId() string {
+	if x != nil {
+		return x.FileId
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadResponse) GetRecognizedTitle() string {
+	if x != nil {
+		return x.RecognizedTitle
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadResponse) GetMatchedExisting() bool {
+	if x != nil {
+		return x.MatchedExisting
+	}
+	return false
+}
+
+func (x *FinalizeBookUploadResponse) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
+type BookReadingStateData struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	Percent       int32                  `protobuf:"varint,2,opt,name=percent,proto3" json:"percent,omitempty"`
+	Location      string                 `protobuf:"bytes,3,opt,name=location,proto3" json:"location,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BookReadingStateData) Reset() {
+	*x = BookReadingStateData{}
+	mi := &file_backlog_v1_books_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BookReadingStateData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BookReadingStateData) ProtoMessage() {}
+
+func (x *BookReadingStateData) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BookReadingStateData.ProtoReflect.Descriptor instead.
+func (*BookReadingStateData) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *BookReadingStateData) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *BookReadingStateData) GetPercent() int32 {
+	if x != nil {
+		return x.Percent
+	}
+	return 0
+}
+
+func (x *BookReadingStateData) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+func (x *BookReadingStateData) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type UpdateReadingProgressRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	Percent       int32                  `protobuf:"varint,3,opt,name=percent,proto3" json:"percent,omitempty"`
+	Location      string                 `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateReadingProgressRequest) Reset() {
+	*x = UpdateReadingProgressRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateReadingProgressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateReadingProgressRequest) ProtoMessage() {}
+
+func (x *UpdateReadingProgressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateReadingProgressRequest.ProtoReflect.Descriptor instead.
+func (*UpdateReadingProgressRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *UpdateReadingProgressRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+func (x *UpdateReadingProgressRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *UpdateReadingProgressRequest) GetPercent() int32 {
+	if x != nil {
+		return x.Percent
+	}
+	return 0
+}
+
+func (x *UpdateReadingProgressRequest) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+type UpdateReadingProgressResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateReadingProgressResponse) Reset() {
+	*x = UpdateReadingProgressResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateReadingProgressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateReadingProgressResponse) ProtoMessage() {}
+
+func (x *UpdateReadingProgressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateReadingProgressResponse.ProtoReflect.Descriptor instead.
+func (*UpdateReadingProgressResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{35}
+}
+
+type GetReadingStateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetReadingStateRequest) Reset() {
+	*x = GetReadingStateRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetReadingStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetReadingStateRequest) ProtoMessage() {}
+
+func (x *GetReadingStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetReadingStateRequest.ProtoReflect.Descriptor instead.
+func (*GetReadingStateRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *GetReadingStateRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+type GetReadingStateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	State         *BookReadingStateData  `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetReadingStateResponse) Reset() {
+	*x = GetReadingStateResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetReadingStateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetReadingStateResponse) ProtoMessage() {}
+
+func (x *GetReadingStateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetReadingStateResponse.ProtoReflect.Descriptor instead.
+func (*GetReadingStateResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *GetReadingStateResponse) GetState() *BookReadingStateData {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+type GetBookFileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	Format        string                 `protobuf:"bytes,2,opt,name=format,proto3" json:"format,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBookFileRequest) Reset() {
+	*x = GetBookFileRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBookFileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBookFileRequest) ProtoMessage() {}
+
+func (x *GetBookFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBookFileRequest.ProtoReflect.Descriptor instead.
+func (*GetBookFileRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *GetBookFileRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+func (x *GetBookFileRequest) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
+type GetBookFileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	ExpiresAt     string                 `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Format        string                 `protobuf:"bytes,3,opt,name=format,proto3" json:"format,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBookFileResponse) Reset() {
+	*x = GetBookFileResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBookFileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBookFileResponse) ProtoMessage() {}
+
+func (x *GetBookFileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBookFileResponse.ProtoReflect.Descriptor instead.
+func (*GetBookFileResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *GetBookFileResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *GetBookFileResponse) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
+func (x *GetBookFileResponse) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
+type EnableKoboSyncRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnableKoboSyncRequest) Reset() {
+	*x = EnableKoboSyncRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnableKoboSyncRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnableKoboSyncRequest) ProtoMessage() {}
+
+func (x *EnableKoboSyncRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnableKoboSyncRequest.ProtoReflect.Descriptor instead.
+func (*EnableKoboSyncRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *EnableKoboSyncRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+type EnableKoboSyncResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	KepubStatus   string                 `protobuf:"bytes,1,opt,name=kepub_status,json=kepubStatus,proto3" json:"kepub_status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnableKoboSyncResponse) Reset() {
+	*x = EnableKoboSyncResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnableKoboSyncResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnableKoboSyncResponse) ProtoMessage() {}
+
+func (x *EnableKoboSyncResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnableKoboSyncResponse.ProtoReflect.Descriptor instead.
+func (*EnableKoboSyncResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *EnableKoboSyncResponse) GetKepubStatus() string {
+	if x != nil {
+		return x.KepubStatus
+	}
+	return ""
+}
+
+type GetKEPUBStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetKEPUBStatusRequest) Reset() {
+	*x = GetKEPUBStatusRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetKEPUBStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetKEPUBStatusRequest) ProtoMessage() {}
+
+func (x *GetKEPUBStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetKEPUBStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetKEPUBStatusRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *GetKEPUBStatusRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+type GetKEPUBStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HasEpub       bool                   `protobuf:"varint,1,opt,name=has_epub,json=hasEpub,proto3" json:"has_epub,omitempty"`
+	KepubStatus   string                 `protobuf:"bytes,2,opt,name=kepub_status,json=kepubStatus,proto3" json:"kepub_status,omitempty"`
+	HasPdf        bool                   `protobuf:"varint,3,opt,name=has_pdf,json=hasPdf,proto3" json:"has_pdf,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetKEPUBStatusResponse) Reset() {
+	*x = GetKEPUBStatusResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetKEPUBStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetKEPUBStatusResponse) ProtoMessage() {}
+
+func (x *GetKEPUBStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetKEPUBStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetKEPUBStatusResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *GetKEPUBStatusResponse) GetHasEpub() bool {
+	if x != nil {
+		return x.HasEpub
+	}
+	return false
+}
+
+func (x *GetKEPUBStatusResponse) GetKepubStatus() string {
+	if x != nil {
+		return x.KepubStatus
+	}
+	return ""
+}
+
+func (x *GetKEPUBStatusResponse) GetHasPdf() bool {
+	if x != nil {
+		return x.HasPdf
+	}
+	return false
+}
+
+type KoboDevice struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Serial        string                 `protobuf:"bytes,3,opt,name=serial,proto3" json:"serial,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LastSeenAt    string                 `protobuf:"bytes,5,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KoboDevice) Reset() {
+	*x = KoboDevice{}
+	mi := &file_backlog_v1_books_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KoboDevice) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KoboDevice) ProtoMessage() {}
+
+func (x *KoboDevice) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KoboDevice.ProtoReflect.Descriptor instead.
+func (*KoboDevice) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *KoboDevice) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *KoboDevice) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *KoboDevice) GetSerial() string {
+	if x != nil {
+		return x.Serial
+	}
+	return ""
+}
+
+func (x *KoboDevice) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *KoboDevice) GetLastSeenAt() string {
+	if x != nil {
+		return x.LastSeenAt
+	}
+	return ""
+}
+
+type RegisterKoboDeviceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Serial        string                 `protobuf:"bytes,2,opt,name=serial,proto3" json:"serial,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterKoboDeviceRequest) Reset() {
+	*x = RegisterKoboDeviceRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterKoboDeviceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterKoboDeviceRequest) ProtoMessage() {}
+
+func (x *RegisterKoboDeviceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterKoboDeviceRequest.ProtoReflect.Descriptor instead.
+func (*RegisterKoboDeviceRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *RegisterKoboDeviceRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RegisterKoboDeviceRequest) GetSerial() string {
+	if x != nil {
+		return x.Serial
+	}
+	return ""
+}
+
+type RegisterKoboDeviceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Device        *KoboDevice            `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
+	RawToken      string                 `protobuf:"bytes,2,opt,name=raw_token,json=rawToken,proto3" json:"raw_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterKoboDeviceResponse) Reset() {
+	*x = RegisterKoboDeviceResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterKoboDeviceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterKoboDeviceResponse) ProtoMessage() {}
+
+func (x *RegisterKoboDeviceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterKoboDeviceResponse.ProtoReflect.Descriptor instead.
+func (*RegisterKoboDeviceResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *RegisterKoboDeviceResponse) GetDevice() *KoboDevice {
+	if x != nil {
+		return x.Device
+	}
+	return nil
+}
+
+func (x *RegisterKoboDeviceResponse) GetRawToken() string {
+	if x != nil {
+		return x.RawToken
+	}
+	return ""
+}
+
+type ListKoboDevicesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKoboDevicesRequest) Reset() {
+	*x = ListKoboDevicesRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKoboDevicesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKoboDevicesRequest) ProtoMessage() {}
+
+func (x *ListKoboDevicesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKoboDevicesRequest.ProtoReflect.Descriptor instead.
+func (*ListKoboDevicesRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{47}
+}
+
+type ListKoboDevicesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Devices       []*KoboDevice          `protobuf:"bytes,1,rep,name=devices,proto3" json:"devices,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKoboDevicesResponse) Reset() {
+	*x = ListKoboDevicesResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKoboDevicesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKoboDevicesResponse) ProtoMessage() {}
+
+func (x *ListKoboDevicesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKoboDevicesResponse.ProtoReflect.Descriptor instead.
+func (*ListKoboDevicesResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *ListKoboDevicesResponse) GetDevices() []*KoboDevice {
+	if x != nil {
+		return x.Devices
+	}
+	return nil
+}
+
+type DisconnectKoboDeviceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisconnectKoboDeviceRequest) Reset() {
+	*x = DisconnectKoboDeviceRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectKoboDeviceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectKoboDeviceRequest) ProtoMessage() {}
+
+func (x *DisconnectKoboDeviceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectKoboDeviceRequest.ProtoReflect.Descriptor instead.
+func (*DisconnectKoboDeviceRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *DisconnectKoboDeviceRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DisconnectKoboDeviceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisconnectKoboDeviceResponse) Reset() {
+	*x = DisconnectKoboDeviceResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectKoboDeviceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectKoboDeviceResponse) ProtoMessage() {}
+
+func (x *DisconnectKoboDeviceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectKoboDeviceResponse.ProtoReflect.Descriptor instead.
+func (*DisconnectKoboDeviceResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{50}
+}
+
+type RequestKEPUBConversionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestKEPUBConversionRequest) Reset() {
+	*x = RequestKEPUBConversionRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestKEPUBConversionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestKEPUBConversionRequest) ProtoMessage() {}
+
+func (x *RequestKEPUBConversionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestKEPUBConversionRequest.ProtoReflect.Descriptor instead.
+func (*RequestKEPUBConversionRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *RequestKEPUBConversionRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+type RequestKEPUBConversionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	KepubStatus   string                 `protobuf:"bytes,1,opt,name=kepub_status,json=kepubStatus,proto3" json:"kepub_status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestKEPUBConversionResponse) Reset() {
+	*x = RequestKEPUBConversionResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestKEPUBConversionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestKEPUBConversionResponse) ProtoMessage() {}
+
+func (x *RequestKEPUBConversionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestKEPUBConversionResponse.ProtoReflect.Descriptor instead.
+func (*RequestKEPUBConversionResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *RequestKEPUBConversionResponse) GetKepubStatus() string {
+	if x != nil {
+		return x.KepubStatus
+	}
+	return ""
+}
+
+type ClearLibraryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClearLibraryRequest) Reset() {
+	*x = ClearLibraryRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClearLibraryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClearLibraryRequest) ProtoMessage() {}
+
+func (x *ClearLibraryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClearLibraryRequest.ProtoReflect.Descriptor instead.
+func (*ClearLibraryRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{53}
+}
+
+type ClearLibraryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeletedBooks  uint32                 `protobuf:"varint,1,opt,name=deleted_books,json=deletedBooks,proto3" json:"deleted_books,omitempty"`
+	DeletedFiles  uint32                 `protobuf:"varint,2,opt,name=deleted_files,json=deletedFiles,proto3" json:"deleted_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClearLibraryResponse) Reset() {
+	*x = ClearLibraryResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClearLibraryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClearLibraryResponse) ProtoMessage() {}
+
+func (x *ClearLibraryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClearLibraryResponse.ProtoReflect.Descriptor instead.
+func (*ClearLibraryResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *ClearLibraryResponse) GetDeletedBooks() uint32 {
+	if x != nil {
+		return x.DeletedBooks
+	}
+	return 0
+}
+
+func (x *ClearLibraryResponse) GetDeletedFiles() uint32 {
+	if x != nil {
+		return x.DeletedFiles
+	}
+	return 0
+}
+
 var File_backlog_v1_books_proto protoreflect.FileDescriptor
 
 const file_backlog_v1_books_proto_rawDesc = "" +
@@ -1671,7 +3037,7 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\tcover_url\x18\x05 \x01(\tR\bcoverUrl\x12 \n" +
 	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
-	"page_count\x18\a \x01(\x05R\tpageCount\"\x9a\x03\n" +
+	"page_count\x18\a \x01(\x05R\tpageCount\"\xb4\x03\n" +
 	"\bUserBook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
@@ -1689,7 +3055,8 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"updated_at\x18\v \x01(\tR\tupdatedAt\x12#\n" +
 	"\rprogress_mode\x18\f \x01(\tR\fprogressMode\x12!\n" +
 	"\fcurrent_page\x18\r \x01(\x05R\vcurrentPage\x12)\n" +
-	"\x10progress_percent\x18\x0e \x01(\x05R\x0fprogressPercent\"K\n" +
+	"\x10progress_percent\x18\x0e \x01(\x05R\x0fprogressPercent\x12\x18\n" +
+	"\aformats\x18\x0f \x03(\tR\aformats\"K\n" +
 	"\tBookShelf\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12*\n" +
 	"\x05books\x18\x02 \x03(\v2\x14.backlog.v1.UserBookR\x05books\"\xd6\x01\n" +
@@ -1777,7 +3144,90 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x12ImportBooksRequest\x12\x19\n" +
 	"\bcsv_data\x18\x01 \x01(\fR\acsvData\"<\n" +
 	"\x13ImportBooksResponse\x12%\n" +
-	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount2\xa5\a\n" +
+	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount\"\x88\x01\n" +
+	"\x17CreateBookUploadRequest\x12\x1a\n" +
+	"\bfilename\x18\x01 \x01(\tR\bfilename\x12!\n" +
+	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x12\n" +
+	"\x04size\x18\x03 \x01(\x03R\x04size\x12\x1a\n" +
+	"\bchecksum\x18\x04 \x01(\tR\bchecksum\"p\n" +
+	"\x18CreateBookUploadResponse\x12\x1b\n" +
+	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12%\n" +
+	"\x0ealready_exists\x18\x03 \x01(\bR\ralreadyExists\"\x93\x01\n" +
+	"\x19FinalizeBookUploadRequest\x12\x1b\n" +
+	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12\x1a\n" +
+	"\bfilename\x18\x02 \x01(\tR\bfilename\x12!\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12\x1a\n" +
+	"\bchecksum\x18\x04 \x01(\tR\bchecksum\"\xbc\x01\n" +
+	"\x1aFinalizeBookUploadResponse\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x17\n" +
+	"\afile_id\x18\x02 \x01(\tR\x06fileId\x12)\n" +
+	"\x10recognized_title\x18\x03 \x01(\tR\x0frecognizedTitle\x12)\n" +
+	"\x10matched_existing\x18\x04 \x01(\bR\x0fmatchedExisting\x12\x16\n" +
+	"\x06format\x18\x05 \x01(\tR\x06format\"\x83\x01\n" +
+	"\x14BookReadingStateData\x12\x16\n" +
+	"\x06source\x18\x01 \x01(\tR\x06source\x12\x18\n" +
+	"\apercent\x18\x02 \x01(\x05R\apercent\x12\x1a\n" +
+	"\blocation\x18\x03 \x01(\tR\blocation\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x04 \x01(\tR\tupdatedAt\"\x85\x01\n" +
+	"\x1cUpdateReadingProgressRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x18\n" +
+	"\apercent\x18\x03 \x01(\x05R\apercent\x12\x1a\n" +
+	"\blocation\x18\x04 \x01(\tR\blocation\"\x1f\n" +
+	"\x1dUpdateReadingProgressResponse\"1\n" +
+	"\x16GetReadingStateRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\"Q\n" +
+	"\x17GetReadingStateResponse\x126\n" +
+	"\x05state\x18\x01 \x01(\v2 .backlog.v1.BookReadingStateDataR\x05state\"E\n" +
+	"\x12GetBookFileRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
+	"\x06format\x18\x02 \x01(\tR\x06format\"^\n" +
+	"\x13GetBookFileResponse\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\tR\texpiresAt\x12\x16\n" +
+	"\x06format\x18\x03 \x01(\tR\x06format\"0\n" +
+	"\x15EnableKoboSyncRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\";\n" +
+	"\x16EnableKoboSyncResponse\x12!\n" +
+	"\fkepub_status\x18\x01 \x01(\tR\vkepubStatus\"0\n" +
+	"\x15GetKEPUBStatusRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\"o\n" +
+	"\x16GetKEPUBStatusResponse\x12\x19\n" +
+	"\bhas_epub\x18\x01 \x01(\bR\ahasEpub\x12!\n" +
+	"\fkepub_status\x18\x02 \x01(\tR\vkepubStatus\x12\x17\n" +
+	"\ahas_pdf\x18\x03 \x01(\bR\x06hasPdf\"\x89\x01\n" +
+	"\n" +
+	"KoboDevice\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
+	"\x06serial\x18\x03 \x01(\tR\x06serial\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12 \n" +
+	"\flast_seen_at\x18\x05 \x01(\tR\n" +
+	"lastSeenAt\"G\n" +
+	"\x19RegisterKoboDeviceRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06serial\x18\x02 \x01(\tR\x06serial\"i\n" +
+	"\x1aRegisterKoboDeviceResponse\x12.\n" +
+	"\x06device\x18\x01 \x01(\v2\x16.backlog.v1.KoboDeviceR\x06device\x12\x1b\n" +
+	"\traw_token\x18\x02 \x01(\tR\brawToken\"\x18\n" +
+	"\x16ListKoboDevicesRequest\"K\n" +
+	"\x17ListKoboDevicesResponse\x120\n" +
+	"\adevices\x18\x01 \x03(\v2\x16.backlog.v1.KoboDeviceR\adevices\"-\n" +
+	"\x1bDisconnectKoboDeviceRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x1e\n" +
+	"\x1cDisconnectKoboDeviceResponse\"8\n" +
+	"\x1dRequestKEPUBConversionRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\"C\n" +
+	"\x1eRequestKEPUBConversionResponse\x12!\n" +
+	"\fkepub_status\x18\x01 \x01(\tR\vkepubStatus\"\x15\n" +
+	"\x13ClearLibraryRequest\"`\n" +
+	"\x14ClearLibraryResponse\x12#\n" +
+	"\rdeleted_books\x18\x01 \x01(\rR\fdeletedBooks\x12#\n" +
+	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles2\xa5\x10\n" +
 	"\fBooksService\x12K\n" +
 	"\n" +
 	"GetSummary\x12\x1d.backlog.v1.GetSummaryRequest\x1a\x1e.backlog.v1.GetSummaryResponse\x12W\n" +
@@ -1791,7 +3241,19 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x10UpdateBookStatus\x12#.backlog.v1.UpdateBookStatusRequest\x1a$.backlog.v1.UpdateBookStatusResponse\x12W\n" +
 	"\x0eUpdateProgress\x12!.backlog.v1.UpdateProgressRequest\x1a\".backlog.v1.UpdateProgressResponse\x12H\n" +
 	"\tToggleTag\x12\x1c.backlog.v1.ToggleTagRequest\x1a\x1d.backlog.v1.ToggleTagResponse\x12N\n" +
-	"\vImportBooks\x12\x1e.backlog.v1.ImportBooksRequest\x1a\x1f.backlog.v1.ImportBooksResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
+	"\vImportBooks\x12\x1e.backlog.v1.ImportBooksRequest\x1a\x1f.backlog.v1.ImportBooksResponse\x12l\n" +
+	"\x15UpdateReadingProgress\x12(.backlog.v1.UpdateReadingProgressRequest\x1a).backlog.v1.UpdateReadingProgressResponse\x12Z\n" +
+	"\x0fGetReadingState\x12\".backlog.v1.GetReadingStateRequest\x1a#.backlog.v1.GetReadingStateResponse\x12]\n" +
+	"\x10CreateBookUpload\x12#.backlog.v1.CreateBookUploadRequest\x1a$.backlog.v1.CreateBookUploadResponse\x12c\n" +
+	"\x12FinalizeBookUpload\x12%.backlog.v1.FinalizeBookUploadRequest\x1a&.backlog.v1.FinalizeBookUploadResponse\x12N\n" +
+	"\vGetBookFile\x12\x1e.backlog.v1.GetBookFileRequest\x1a\x1f.backlog.v1.GetBookFileResponse\x12W\n" +
+	"\x0eEnableKoboSync\x12!.backlog.v1.EnableKoboSyncRequest\x1a\".backlog.v1.EnableKoboSyncResponse\x12o\n" +
+	"\x16RequestKEPUBConversion\x12).backlog.v1.RequestKEPUBConversionRequest\x1a*.backlog.v1.RequestKEPUBConversionResponse\x12W\n" +
+	"\x0eGetKEPUBStatus\x12!.backlog.v1.GetKEPUBStatusRequest\x1a\".backlog.v1.GetKEPUBStatusResponse\x12c\n" +
+	"\x12RegisterKoboDevice\x12%.backlog.v1.RegisterKoboDeviceRequest\x1a&.backlog.v1.RegisterKoboDeviceResponse\x12Z\n" +
+	"\x0fListKoboDevices\x12\".backlog.v1.ListKoboDevicesRequest\x1a#.backlog.v1.ListKoboDevicesResponse\x12i\n" +
+	"\x14DisconnectKoboDevice\x12'.backlog.v1.DisconnectKoboDeviceRequest\x1a(.backlog.v1.DisconnectKoboDeviceResponse\x12Q\n" +
+	"\fClearLibrary\x12\x1f.backlog.v1.ClearLibraryRequest\x1a .backlog.v1.ClearLibraryResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
 
 var (
 	file_backlog_v1_books_proto_rawDescOnce sync.Once
@@ -1805,37 +3267,63 @@ func file_backlog_v1_books_proto_rawDescGZIP() []byte {
 	return file_backlog_v1_books_proto_rawDescData
 }
 
-var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
 var file_backlog_v1_books_proto_goTypes = []any{
-	(*Book)(nil),                     // 0: backlog.v1.Book
-	(*UserBook)(nil),                 // 1: backlog.v1.UserBook
-	(*BookShelf)(nil),                // 2: backlog.v1.BookShelf
-	(*LibraryResponse)(nil),          // 3: backlog.v1.LibraryResponse
-	(*BacklogSummary)(nil),           // 4: backlog.v1.BacklogSummary
-	(*BooksProgressResponse)(nil),    // 5: backlog.v1.BooksProgressResponse
-	(*ExternalBookResult)(nil),       // 6: backlog.v1.ExternalBookResult
-	(*GetSummaryRequest)(nil),        // 7: backlog.v1.GetSummaryRequest
-	(*GetSummaryResponse)(nil),       // 8: backlog.v1.GetSummaryResponse
-	(*GetUserSummaryRequest)(nil),    // 9: backlog.v1.GetUserSummaryRequest
-	(*GetUserSummaryResponse)(nil),   // 10: backlog.v1.GetUserSummaryResponse
-	(*GetLibraryRequest)(nil),        // 11: backlog.v1.GetLibraryRequest
-	(*GetLibraryResponse)(nil),       // 12: backlog.v1.GetLibraryResponse
-	(*GetBooksProgressRequest)(nil),  // 13: backlog.v1.GetBooksProgressRequest
-	(*GetBooksProgressResponse)(nil), // 14: backlog.v1.GetBooksProgressResponse
-	(*SearchLibraryRequest)(nil),     // 15: backlog.v1.SearchLibraryRequest
-	(*SearchLibraryResponse)(nil),    // 16: backlog.v1.SearchLibraryResponse
-	(*SearchExternalRequest)(nil),    // 17: backlog.v1.SearchExternalRequest
-	(*SearchExternalResponse)(nil),   // 18: backlog.v1.SearchExternalResponse
-	(*AddBookRequest)(nil),           // 19: backlog.v1.AddBookRequest
-	(*AddBookResponse)(nil),          // 20: backlog.v1.AddBookResponse
-	(*UpdateBookStatusRequest)(nil),  // 21: backlog.v1.UpdateBookStatusRequest
-	(*UpdateBookStatusResponse)(nil), // 22: backlog.v1.UpdateBookStatusResponse
-	(*ToggleTagRequest)(nil),         // 23: backlog.v1.ToggleTagRequest
-	(*ToggleTagResponse)(nil),        // 24: backlog.v1.ToggleTagResponse
-	(*UpdateProgressRequest)(nil),    // 25: backlog.v1.UpdateProgressRequest
-	(*UpdateProgressResponse)(nil),   // 26: backlog.v1.UpdateProgressResponse
-	(*ImportBooksRequest)(nil),       // 27: backlog.v1.ImportBooksRequest
-	(*ImportBooksResponse)(nil),      // 28: backlog.v1.ImportBooksResponse
+	(*Book)(nil),                           // 0: backlog.v1.Book
+	(*UserBook)(nil),                       // 1: backlog.v1.UserBook
+	(*BookShelf)(nil),                      // 2: backlog.v1.BookShelf
+	(*LibraryResponse)(nil),                // 3: backlog.v1.LibraryResponse
+	(*BacklogSummary)(nil),                 // 4: backlog.v1.BacklogSummary
+	(*BooksProgressResponse)(nil),          // 5: backlog.v1.BooksProgressResponse
+	(*ExternalBookResult)(nil),             // 6: backlog.v1.ExternalBookResult
+	(*GetSummaryRequest)(nil),              // 7: backlog.v1.GetSummaryRequest
+	(*GetSummaryResponse)(nil),             // 8: backlog.v1.GetSummaryResponse
+	(*GetUserSummaryRequest)(nil),          // 9: backlog.v1.GetUserSummaryRequest
+	(*GetUserSummaryResponse)(nil),         // 10: backlog.v1.GetUserSummaryResponse
+	(*GetLibraryRequest)(nil),              // 11: backlog.v1.GetLibraryRequest
+	(*GetLibraryResponse)(nil),             // 12: backlog.v1.GetLibraryResponse
+	(*GetBooksProgressRequest)(nil),        // 13: backlog.v1.GetBooksProgressRequest
+	(*GetBooksProgressResponse)(nil),       // 14: backlog.v1.GetBooksProgressResponse
+	(*SearchLibraryRequest)(nil),           // 15: backlog.v1.SearchLibraryRequest
+	(*SearchLibraryResponse)(nil),          // 16: backlog.v1.SearchLibraryResponse
+	(*SearchExternalRequest)(nil),          // 17: backlog.v1.SearchExternalRequest
+	(*SearchExternalResponse)(nil),         // 18: backlog.v1.SearchExternalResponse
+	(*AddBookRequest)(nil),                 // 19: backlog.v1.AddBookRequest
+	(*AddBookResponse)(nil),                // 20: backlog.v1.AddBookResponse
+	(*UpdateBookStatusRequest)(nil),        // 21: backlog.v1.UpdateBookStatusRequest
+	(*UpdateBookStatusResponse)(nil),       // 22: backlog.v1.UpdateBookStatusResponse
+	(*ToggleTagRequest)(nil),               // 23: backlog.v1.ToggleTagRequest
+	(*ToggleTagResponse)(nil),              // 24: backlog.v1.ToggleTagResponse
+	(*UpdateProgressRequest)(nil),          // 25: backlog.v1.UpdateProgressRequest
+	(*UpdateProgressResponse)(nil),         // 26: backlog.v1.UpdateProgressResponse
+	(*ImportBooksRequest)(nil),             // 27: backlog.v1.ImportBooksRequest
+	(*ImportBooksResponse)(nil),            // 28: backlog.v1.ImportBooksResponse
+	(*CreateBookUploadRequest)(nil),        // 29: backlog.v1.CreateBookUploadRequest
+	(*CreateBookUploadResponse)(nil),       // 30: backlog.v1.CreateBookUploadResponse
+	(*FinalizeBookUploadRequest)(nil),      // 31: backlog.v1.FinalizeBookUploadRequest
+	(*FinalizeBookUploadResponse)(nil),     // 32: backlog.v1.FinalizeBookUploadResponse
+	(*BookReadingStateData)(nil),           // 33: backlog.v1.BookReadingStateData
+	(*UpdateReadingProgressRequest)(nil),   // 34: backlog.v1.UpdateReadingProgressRequest
+	(*UpdateReadingProgressResponse)(nil),  // 35: backlog.v1.UpdateReadingProgressResponse
+	(*GetReadingStateRequest)(nil),         // 36: backlog.v1.GetReadingStateRequest
+	(*GetReadingStateResponse)(nil),        // 37: backlog.v1.GetReadingStateResponse
+	(*GetBookFileRequest)(nil),             // 38: backlog.v1.GetBookFileRequest
+	(*GetBookFileResponse)(nil),            // 39: backlog.v1.GetBookFileResponse
+	(*EnableKoboSyncRequest)(nil),          // 40: backlog.v1.EnableKoboSyncRequest
+	(*EnableKoboSyncResponse)(nil),         // 41: backlog.v1.EnableKoboSyncResponse
+	(*GetKEPUBStatusRequest)(nil),          // 42: backlog.v1.GetKEPUBStatusRequest
+	(*GetKEPUBStatusResponse)(nil),         // 43: backlog.v1.GetKEPUBStatusResponse
+	(*KoboDevice)(nil),                     // 44: backlog.v1.KoboDevice
+	(*RegisterKoboDeviceRequest)(nil),      // 45: backlog.v1.RegisterKoboDeviceRequest
+	(*RegisterKoboDeviceResponse)(nil),     // 46: backlog.v1.RegisterKoboDeviceResponse
+	(*ListKoboDevicesRequest)(nil),         // 47: backlog.v1.ListKoboDevicesRequest
+	(*ListKoboDevicesResponse)(nil),        // 48: backlog.v1.ListKoboDevicesResponse
+	(*DisconnectKoboDeviceRequest)(nil),    // 49: backlog.v1.DisconnectKoboDeviceRequest
+	(*DisconnectKoboDeviceResponse)(nil),   // 50: backlog.v1.DisconnectKoboDeviceResponse
+	(*RequestKEPUBConversionRequest)(nil),  // 51: backlog.v1.RequestKEPUBConversionRequest
+	(*RequestKEPUBConversionResponse)(nil), // 52: backlog.v1.RequestKEPUBConversionResponse
+	(*ClearLibraryRequest)(nil),            // 53: backlog.v1.ClearLibraryRequest
+	(*ClearLibraryResponse)(nil),           // 54: backlog.v1.ClearLibraryResponse
 }
 var file_backlog_v1_books_proto_depIdxs = []int32{
 	0,  // 0: backlog.v1.UserBook.book:type_name -> backlog.v1.Book
@@ -1850,33 +3338,60 @@ var file_backlog_v1_books_proto_depIdxs = []int32{
 	5,  // 9: backlog.v1.GetBooksProgressResponse.progress:type_name -> backlog.v1.BooksProgressResponse
 	1,  // 10: backlog.v1.SearchLibraryResponse.books:type_name -> backlog.v1.UserBook
 	6,  // 11: backlog.v1.SearchExternalResponse.results:type_name -> backlog.v1.ExternalBookResult
-	7,  // 12: backlog.v1.BooksService.GetSummary:input_type -> backlog.v1.GetSummaryRequest
-	9,  // 13: backlog.v1.BooksService.GetUserSummary:input_type -> backlog.v1.GetUserSummaryRequest
-	11, // 14: backlog.v1.BooksService.GetLibrary:input_type -> backlog.v1.GetLibraryRequest
-	13, // 15: backlog.v1.BooksService.GetBooksProgress:input_type -> backlog.v1.GetBooksProgressRequest
-	15, // 16: backlog.v1.BooksService.SearchLibrary:input_type -> backlog.v1.SearchLibraryRequest
-	17, // 17: backlog.v1.BooksService.SearchExternal:input_type -> backlog.v1.SearchExternalRequest
-	19, // 18: backlog.v1.BooksService.AddBook:input_type -> backlog.v1.AddBookRequest
-	21, // 19: backlog.v1.BooksService.UpdateBookStatus:input_type -> backlog.v1.UpdateBookStatusRequest
-	25, // 20: backlog.v1.BooksService.UpdateProgress:input_type -> backlog.v1.UpdateProgressRequest
-	23, // 21: backlog.v1.BooksService.ToggleTag:input_type -> backlog.v1.ToggleTagRequest
-	27, // 22: backlog.v1.BooksService.ImportBooks:input_type -> backlog.v1.ImportBooksRequest
-	8,  // 23: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
-	10, // 24: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
-	12, // 25: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
-	14, // 26: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
-	16, // 27: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
-	18, // 28: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
-	20, // 29: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
-	22, // 30: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
-	26, // 31: backlog.v1.BooksService.UpdateProgress:output_type -> backlog.v1.UpdateProgressResponse
-	24, // 32: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
-	28, // 33: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
-	23, // [23:34] is the sub-list for method output_type
-	12, // [12:23] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	33, // 12: backlog.v1.GetReadingStateResponse.state:type_name -> backlog.v1.BookReadingStateData
+	44, // 13: backlog.v1.RegisterKoboDeviceResponse.device:type_name -> backlog.v1.KoboDevice
+	44, // 14: backlog.v1.ListKoboDevicesResponse.devices:type_name -> backlog.v1.KoboDevice
+	7,  // 15: backlog.v1.BooksService.GetSummary:input_type -> backlog.v1.GetSummaryRequest
+	9,  // 16: backlog.v1.BooksService.GetUserSummary:input_type -> backlog.v1.GetUserSummaryRequest
+	11, // 17: backlog.v1.BooksService.GetLibrary:input_type -> backlog.v1.GetLibraryRequest
+	13, // 18: backlog.v1.BooksService.GetBooksProgress:input_type -> backlog.v1.GetBooksProgressRequest
+	15, // 19: backlog.v1.BooksService.SearchLibrary:input_type -> backlog.v1.SearchLibraryRequest
+	17, // 20: backlog.v1.BooksService.SearchExternal:input_type -> backlog.v1.SearchExternalRequest
+	19, // 21: backlog.v1.BooksService.AddBook:input_type -> backlog.v1.AddBookRequest
+	21, // 22: backlog.v1.BooksService.UpdateBookStatus:input_type -> backlog.v1.UpdateBookStatusRequest
+	25, // 23: backlog.v1.BooksService.UpdateProgress:input_type -> backlog.v1.UpdateProgressRequest
+	23, // 24: backlog.v1.BooksService.ToggleTag:input_type -> backlog.v1.ToggleTagRequest
+	27, // 25: backlog.v1.BooksService.ImportBooks:input_type -> backlog.v1.ImportBooksRequest
+	34, // 26: backlog.v1.BooksService.UpdateReadingProgress:input_type -> backlog.v1.UpdateReadingProgressRequest
+	36, // 27: backlog.v1.BooksService.GetReadingState:input_type -> backlog.v1.GetReadingStateRequest
+	29, // 28: backlog.v1.BooksService.CreateBookUpload:input_type -> backlog.v1.CreateBookUploadRequest
+	31, // 29: backlog.v1.BooksService.FinalizeBookUpload:input_type -> backlog.v1.FinalizeBookUploadRequest
+	38, // 30: backlog.v1.BooksService.GetBookFile:input_type -> backlog.v1.GetBookFileRequest
+	40, // 31: backlog.v1.BooksService.EnableKoboSync:input_type -> backlog.v1.EnableKoboSyncRequest
+	51, // 32: backlog.v1.BooksService.RequestKEPUBConversion:input_type -> backlog.v1.RequestKEPUBConversionRequest
+	42, // 33: backlog.v1.BooksService.GetKEPUBStatus:input_type -> backlog.v1.GetKEPUBStatusRequest
+	45, // 34: backlog.v1.BooksService.RegisterKoboDevice:input_type -> backlog.v1.RegisterKoboDeviceRequest
+	47, // 35: backlog.v1.BooksService.ListKoboDevices:input_type -> backlog.v1.ListKoboDevicesRequest
+	49, // 36: backlog.v1.BooksService.DisconnectKoboDevice:input_type -> backlog.v1.DisconnectKoboDeviceRequest
+	53, // 37: backlog.v1.BooksService.ClearLibrary:input_type -> backlog.v1.ClearLibraryRequest
+	8,  // 38: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
+	10, // 39: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
+	12, // 40: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
+	14, // 41: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
+	16, // 42: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
+	18, // 43: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
+	20, // 44: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
+	22, // 45: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
+	26, // 46: backlog.v1.BooksService.UpdateProgress:output_type -> backlog.v1.UpdateProgressResponse
+	24, // 47: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
+	28, // 48: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
+	35, // 49: backlog.v1.BooksService.UpdateReadingProgress:output_type -> backlog.v1.UpdateReadingProgressResponse
+	37, // 50: backlog.v1.BooksService.GetReadingState:output_type -> backlog.v1.GetReadingStateResponse
+	30, // 51: backlog.v1.BooksService.CreateBookUpload:output_type -> backlog.v1.CreateBookUploadResponse
+	32, // 52: backlog.v1.BooksService.FinalizeBookUpload:output_type -> backlog.v1.FinalizeBookUploadResponse
+	39, // 53: backlog.v1.BooksService.GetBookFile:output_type -> backlog.v1.GetBookFileResponse
+	41, // 54: backlog.v1.BooksService.EnableKoboSync:output_type -> backlog.v1.EnableKoboSyncResponse
+	52, // 55: backlog.v1.BooksService.RequestKEPUBConversion:output_type -> backlog.v1.RequestKEPUBConversionResponse
+	43, // 56: backlog.v1.BooksService.GetKEPUBStatus:output_type -> backlog.v1.GetKEPUBStatusResponse
+	46, // 57: backlog.v1.BooksService.RegisterKoboDevice:output_type -> backlog.v1.RegisterKoboDeviceResponse
+	48, // 58: backlog.v1.BooksService.ListKoboDevices:output_type -> backlog.v1.ListKoboDevicesResponse
+	50, // 59: backlog.v1.BooksService.DisconnectKoboDevice:output_type -> backlog.v1.DisconnectKoboDeviceResponse
+	54, // 60: backlog.v1.BooksService.ClearLibrary:output_type -> backlog.v1.ClearLibraryResponse
+	38, // [38:61] is the sub-list for method output_type
+	15, // [15:38] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_backlog_v1_books_proto_init() }
@@ -1890,7 +3405,7 @@ func file_backlog_v1_books_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backlog_v1_books_proto_rawDesc), len(file_backlog_v1_books_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   55,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
