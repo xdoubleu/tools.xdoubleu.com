@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 )
@@ -91,14 +92,15 @@ func newSyncTestApp(
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return client },
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 
 	err := app.SaveIntegrations(
 		ctx,
 		userID,
-		backlog.Integrations{ //nolint:exhaustruct //only steam
-			SteamAPIKey: "test-key",
+		backlog.Integrations{
 			SteamUserID: "76561197960287930",
 		},
 	)
@@ -488,6 +490,8 @@ func TestSyncGame_UnconfiguredCreds(t *testing.T) {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return nil },
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 

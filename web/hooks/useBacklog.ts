@@ -1,7 +1,9 @@
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
+import { ConnectError, Code } from '@connectrpc/connect'
 import { createServiceClient } from '@/lib/client'
 import { getApiUrl } from '@/lib/env'
+import { sha256Hex } from '@/lib/backlog/checksum'
 import {
   BooksService,
   AddBookRequestSchema,
@@ -12,7 +14,10 @@ import { GamesService } from '@/lib/gen/backlog/v1/games_pb'
 import type {
   GetLibraryResponse,
   GetBooksProgressResponse,
-  SearchExternalResponse
+  SearchExternalResponse,
+  GetKEPUBStatusResponse,
+  GetBookFileResponse,
+  ListKoboDevicesResponse
 } from '@/lib/gen/backlog/v1/books_pb'
 
 export type AddBookInput = MessageInitShape<typeof AddBookRequestSchema>
@@ -114,4 +119,124 @@ export function useToggleTag() {
 export function useUpdateProgress() {
   const client = createServiceClient(BooksService)
   return (req: UpdateProgressInput) => client.updateProgress(req)
+}
+
+export function useUploadBookFile() {
+  const client = createServiceClient(BooksService)
+  return async (file: File): Promise<void> => {
+    // 0. Compute file hash so the server can skip a duplicate upload.
+    const checksum = await sha256Hex(file)
+
+    // 1. Ask the server whether the content already exists.
+    //    When alreadyExists is true the server already has the blob, so the
+    //    client skips the PUT and goes straight to Finalize.
+    const { uploadId, url, alreadyExists } = await client.createBookUpload({
+      filename: file.name,
+      contentType: file.type || 'application/octet-stream',
+      size: BigInt(file.size),
+      checksum
+    })
+
+    if (!alreadyExists) {
+      // 2. PUT the file directly to R2, bypassing the API server and DO ingress.
+      const putResp = await fetch(url, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type || 'application/octet-stream' }
+      })
+      if (!putResp.ok) {
+        throw new Error(`Upload to storage failed (${putResp.status})`)
+      }
+    }
+
+    // 3. Tell the API to validate, register, and recognise the file.
+    //    On FailedPrecondition the blob disappeared between Create and Finalize
+    //    (race condition); retry the full flow once without the checksum shortcut
+    //    so the client uploads the bytes this time.
+    try {
+      await client.finalizeBookUpload({
+        uploadId,
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+        checksum
+      })
+    } catch (err) {
+      if (alreadyExists && err instanceof ConnectError && err.code === Code.FailedPrecondition) {
+        // The canonical blob was deleted between Create and Finalize; upload now.
+        const retry = await client.createBookUpload({
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          size: BigInt(file.size)
+          // No checksum: force a fresh upload URL.
+        })
+        const putResp = await fetch(retry.url, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type || 'application/octet-stream' }
+        })
+        if (!putResp.ok) {
+          throw new Error(`Upload to storage failed on retry (${putResp.status})`, {
+            cause: err
+          })
+        }
+        await client.finalizeBookUpload({
+          uploadId: retry.uploadId,
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          checksum
+        })
+      } else {
+        throw err
+      }
+    }
+  }
+}
+
+export function useEnableKoboSync() {
+  const client = createServiceClient(BooksService)
+  return (bookId: string) => client.enableKoboSync({ bookId })
+}
+
+export function useRequestKEPUBConversion() {
+  const client = createServiceClient(BooksService)
+  return (bookId: string) => client.requestKEPUBConversion({ bookId })
+}
+
+export function useRegisterKoboDevice() {
+  const client = createServiceClient(BooksService)
+  return (name: string, serial: string) => client.registerKoboDevice({ name, serial })
+}
+
+export function useListKoboDevices() {
+  const client = createServiceClient(BooksService)
+  return useSWR<ListKoboDevicesResponse, Error>('/backlog/kobo/devices', () =>
+    client.listKoboDevices({})
+  )
+}
+
+export function useDisconnectKoboDevice() {
+  const client = createServiceClient(BooksService)
+  return (id: string) => client.disconnectKoboDevice({ id })
+}
+
+export function useClearLibrary() {
+  const client = createServiceClient(BooksService)
+  return () => client.clearLibrary({})
+}
+
+export function useKEPUBStatus(bookId: string | null) {
+  const client = createServiceClient(BooksService)
+  return useSWR<GetKEPUBStatusResponse, Error>(
+    bookId ? ['/backlog/books/kepub-status', bookId] : null,
+    () => client.getKEPUBStatus({ bookId: bookId! }),
+    { refreshInterval: (data) => (data?.kepubStatus === 'converting' ? 2000 : 0) }
+  )
+}
+
+export function useGetBookFile(bookId: string | null, format: string | null) {
+  const client = createServiceClient(BooksService)
+  return useSWR<GetBookFileResponse, Error>(
+    bookId && format ? ['/backlog/books/file', bookId, format] : null,
+    () => client.getBookFile({ bookId: bookId!, format: format! })
+  )
 }

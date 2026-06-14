@@ -35,4 +35,5 @@ func (app *Backlog) backlogRoutes(prefix string, mux *http.ServeMux) {
 
 func (app *Backlog) Routes(prefix string, mux *http.ServeMux) {
 	app.backlogRoutes(prefix, mux)
+	app.koboRoutes(prefix, mux)
 }

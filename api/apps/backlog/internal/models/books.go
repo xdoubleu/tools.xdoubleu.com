@@ -15,9 +15,11 @@ const (
 )
 
 const (
-	TagOwnPhysical = "own-physical"
-	TagOwnDigital  = "own-digital"
-	TagFavourite   = "favourite"
+	TagOwnPhysical   = "own-physical"
+	TagOwnDigital    = "own-digital"
+	TagFavourite     = "favourite"
+	TagKoboSync      = "kobo-sync"
+	TagKoboFormatPDF = "kobo-format-pdf"
 )
 
 const (
@@ -75,6 +77,7 @@ type UserBook struct {
 	Book            *Book
 	Status          string
 	Tags            []string
+	Formats         []string
 	ShelfPositions  map[string]int
 	Rating          *int16
 	Notes           *string

@@ -42,7 +42,7 @@ describe('useSettings', () => {
 
   it('returns SWR result', () => {
     const mockData = {
-      integrations: { steamApiKey: 'key', steamUserId: 'id', hardcoverApiKey: '' }
+      integrations: { steamUserId: 'id' }
     }
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseSWR.mockReturnValueOnce({
@@ -64,9 +64,7 @@ describe('useSaveSettings', () => {
     })
 
     const integrations = create(IntegrationsSchema, {
-      steamApiKey: 'key',
-      steamUserId: 'id',
-      hardcoverApiKey: 'hkey'
+      steamUserId: 'id'
     })
 
     const { result } = renderHook(() => useSaveSettings())

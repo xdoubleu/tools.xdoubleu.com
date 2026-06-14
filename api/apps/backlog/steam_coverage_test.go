@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 )
@@ -22,13 +23,11 @@ func seedSteamData(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 
-	// Save dummy integrations so SyncUser can build a client from
-	// the factory.
+	// Save dummy integrations so SyncUser can find the steam user ID.
 	err := testApp.SaveIntegrations(
 		ctx,
 		userID,
-		backlog.Integrations{ //nolint:exhaustruct //HardcoverAPIKey not needed for steam seed
-			SteamAPIKey: "test-steam-api-key",
+		backlog.Integrations{
 			SteamUserID: "76561197960287930",
 		},
 	)
@@ -211,14 +210,15 @@ func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 			HardcoverFactory: func(_ string) hardcover.Client {
 				return nil
 			},
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 
 	err := app2.SaveIntegrations(
 		ctx,
 		isolatedUserID,
-		backlog.Integrations{ //nolint:exhaustruct //only steam needed
-			SteamAPIKey: "test-key",
+		backlog.Integrations{
 			SteamUserID: "76561197960287930",
 		},
 	)

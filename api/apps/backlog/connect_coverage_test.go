@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
@@ -51,6 +52,8 @@ func TestStart_RegistersJobs(t *testing.T) {
 			HardcoverFactory: func(_ string) hardcover.Client {
 				return nil
 			},
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 	require.NotNil(t, bl)
@@ -268,14 +271,15 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 			HardcoverFactory: func(_ string) hardcover.Client {
 				return nil
 			},
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 
 	err := app2.SaveIntegrations(
 		context.Background(),
 		isolatedUser,
-		backlog.Integrations{ //nolint:exhaustruct //only steam needed
-			SteamAPIKey: "test-key",
+		backlog.Integrations{
 			SteamUserID: "76561197960287930",
 		},
 	)
@@ -326,13 +330,14 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return twoAchievementsMock{} },
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 	require.NoError(t, app2.SaveIntegrations(
 		context.Background(),
 		isolatedUser,
-		backlog.Integrations{ //nolint:exhaustruct //only steam needed
-			SteamAPIKey: "test-key",
+		backlog.Integrations{
 			SteamUserID: "76561197960287930",
 		},
 	))
@@ -479,13 +484,14 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return fourAchievementsMock{} },
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 	require.NoError(t, app2.SaveIntegrations(
 		ctx,
 		isolatedUser,
-		backlog.Integrations{ //nolint:exhaustruct //only steam needed
-			SteamAPIKey: "test-key",
+		backlog.Integrations{
 			SteamUserID: "76561197960287930",
 		},
 	))
@@ -543,13 +549,14 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 				}
 			},
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
 		},
 	)
 	require.NoError(t, app2.SaveIntegrations(
 		context.Background(),
 		isolatedUser,
-		backlog.Integrations{ //nolint:exhaustruct //only steam needed
-			SteamAPIKey: "test-key",
+		backlog.Integrations{
 			SteamUserID: "76561197960287930",
 		},
 	))
@@ -579,4 +586,45 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 	var connectErr *connect.Error
 	require.True(t, errors.As(err, &connectErr))
 	assert.Equal(t, connect.CodeInternal, connectErr.Code())
+}
+
+// TestConnectGetLibrary_FormatsPopulated asserts that a book with an uploaded
+// PDF file has its Formats field populated on the GetLibrary response.
+func TestConnectGetLibrary_FormatsPopulated(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	uid := uuid.New().String()[:8]
+	book := addTestBookWithISBN(t, "FormatsBook-"+uid, "9780000099001")
+
+	// Insert a ready PDF book_file row directly via the repository so we don't
+	// need a real object store upload.
+	pdfFile := models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
+		BookID:     book.BookID,
+		UserID:     userID,
+		Format:     models.FileFormatPDF,
+		StorageKey: "users/test/books/pdf/formats-lib.pdf",
+		SizeBytes:  512,
+		Status:     models.FileStatusReady,
+	}
+	_, err := testApp.Repositories.BookFiles.Insert(ctx, pdfFile)
+	require.NoError(t, err)
+
+	libReq := connect.NewRequest(&backlogv1.GetLibraryRequest{})
+	libReq.Header().Set("Cookie", accessToken.String())
+	resp, err := newBooksTestClient(t).GetLibrary(ctx, libReq)
+	require.NoError(t, err)
+	require.NotNil(t, resp.Msg.Library)
+
+	// Find our book in the wishlist (default status is to-read).
+	var found bool
+	for _, ub := range resp.Msg.Library.Wishlist {
+		if ub.BookId == book.BookID.String() {
+			assert.Contains(t, ub.Formats, models.FileFormatPDF)
+			assert.NotContains(t, ub.Formats, models.FileFormatEPUB)
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected book in wishlist")
 }

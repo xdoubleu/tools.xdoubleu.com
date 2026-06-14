@@ -19,6 +19,7 @@ import (
 type SteamService struct {
 	logger        *slog.Logger
 	clientFactory func(apiKey string) steam.Client
+	steamAPIKey   string
 	steam         *repositories.SteamRepository
 	progress      *repositories.ProgressRepository
 	integrations  *IntegrationsService
@@ -35,7 +36,7 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 	if err != nil {
 		return err
 	}
-	if creds.SteamAPIKey == "" || creds.SteamUserID == "" {
+	if service.steamAPIKey == "" || creds.SteamUserID == "" {
 		service.logger.DebugContext(
 			ctx,
 			"steam not configured for user",
@@ -45,7 +46,7 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 		return nil
 	}
 
-	client := service.clientFactory(creds.SteamAPIKey)
+	client := service.clientFactory(service.steamAPIKey)
 
 	gamesMap, err := service.buildGamesMap(ctx, client, creds.SteamUserID, userID)
 	if err != nil {
@@ -410,7 +411,7 @@ func (service *SteamService) SyncGame(
 	if err != nil {
 		return err
 	}
-	if creds.SteamAPIKey == "" || creds.SteamUserID == "" {
+	if service.steamAPIKey == "" || creds.SteamUserID == "" {
 		service.logger.DebugContext(
 			ctx,
 			"steam not configured for user",
@@ -420,7 +421,7 @@ func (service *SteamService) SyncGame(
 		return nil
 	}
 
-	client := service.clientFactory(creds.SteamAPIKey)
+	client := service.clientFactory(service.steamAPIKey)
 
 	rows, err := service.fetchAchievementsForGame(
 		ctx, client, creds.SteamUserID, gameID,

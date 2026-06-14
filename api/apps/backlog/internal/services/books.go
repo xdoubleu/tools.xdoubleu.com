@@ -16,13 +16,17 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/books"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 )
 
 type BookService struct {
 	logger          *slog.Logger
 	books           *repositories.BooksRepository
+	bookFiles       *repositories.BookFilesRepository
+	objectStore     objectstore.Client
+	readingState    *repositories.BookReadingStateRepository
 	providerFactory func(apiKey string) hardcover.Client
-	integrations    *IntegrationsService
+	hardcoverAPIKey string
 }
 
 // SearchLibrary searches the user's own library by title/author substring.
@@ -37,18 +41,13 @@ func (s *BookService) SearchLibrary(
 // SearchHardcover calls the Hardcover API. Returns nil if no API key configured.
 func (s *BookService) SearchHardcover(
 	ctx context.Context,
-	userID string,
 	query string,
 ) ([]hardcover.ExternalBook, error) {
-	creds, err := s.integrations.Get(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	if creds.HardcoverAPIKey == "" {
+	if s.hardcoverAPIKey == "" {
 		return nil, nil
 	}
 
-	return s.providerFactory(creds.HardcoverAPIKey).Search(ctx, query)
+	return s.providerFactory(s.hardcoverAPIKey).Search(ctx, query)
 }
 
 func (s *BookService) AddToLibrary(
@@ -65,10 +64,11 @@ func (s *BookService) AddToLibrary(
 	}
 
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
-		UserID: userID,
-		BookID: saved.ID,
-		Status: status,
-		Tags:   initialTags,
+		UserID:         userID,
+		BookID:         saved.ID,
+		Status:         status,
+		Tags:           initialTags,
+		ShelfPositions: map[string]int{},
 	}
 	if err = s.books.UpsertUserBook(ctx, ub); err != nil {
 		return nil, err
@@ -230,6 +230,58 @@ func externalToBook(ext hardcover.ExternalBook) models.Book {
 	}
 }
 
+// ListKoboSyncBooks returns every book the user has enabled Kobo sync for and
+// that has a ready KEPUB — the exact set served by the sync protocol routes.
+func (s *BookService) ListKoboSyncBooks(
+	ctx context.Context,
+	userID string,
+) ([]models.KoboSyncBook, error) {
+	return s.books.ListKoboSyncBooks(ctx, userID)
+}
+
+// UpdateReadingProgress upserts a resumable reading position for a book.
+// source must be one of web/kobo/manual; percent is clamped to 0-100.
+func (s *BookService) UpdateReadingProgress(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	source string,
+	percent int,
+	location *string,
+) error {
+	if source != models.ReadingSourceWeb &&
+		source != models.ReadingSourceKobo &&
+		source != models.ReadingSourceManual {
+		return fmt.Errorf("invalid reading source %q", source)
+	}
+	if percent < 0 {
+		percent = 0
+	}
+	if percent > models.MaxProgressPercent {
+		percent = models.MaxProgressPercent
+	}
+
+	return s.readingState.Upsert(
+		ctx,
+		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
+			UserID:   userID,
+			BookID:   bookID,
+			Source:   source,
+			Percent:  percent,
+			Location: location,
+		},
+	)
+}
+
+// GetReadingState returns the current resumable position for a book.
+func (s *BookService) GetReadingState(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (*models.BookReadingState, error) {
+	return s.readingState.Get(ctx, userID, bookID)
+}
+
 // UpdateProgress validates and persists reading-progress for a user_book. The
 // mode selects which value is authoritative: pages mode tracks current_page,
 // percent mode tracks progress_percent (clamped to 0-100).
@@ -257,4 +309,67 @@ func (s *BookService) UpdateProgress(
 	return s.books.UpdateProgress(
 		ctx, userID, bookID, mode, currentPage, progressPercent,
 	)
+}
+
+// ClearLibrary removes all per-user books data: uploaded files (DB rows + R2
+// objects), reading state, and user_books entries. The shared backlog.books
+// catalog is never touched. R2 deletes are best-effort — a failed object delete
+// is logged and skipped so the user can retry without being blocked.
+//
+// R2 objects shared with other users (content-addressed canonical blobs) are
+// only deleted when no other book_files row still references them; this is
+// checked after DeleteByUser so the count already excludes this user's rows.
+func (s *BookService) ClearLibrary(
+	ctx context.Context,
+	userID string,
+) (uint32, uint32, error) {
+	keys, err := s.bookFiles.StorageKeysByUser(ctx, userID)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	fileCount, err := s.bookFiles.DeleteByUser(ctx, userID)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// Deduplicate keys so we issue at most one refcount check per object.
+	seen := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		if key == "" {
+			continue
+		}
+		if _, already := seen[key]; already {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		// Only delete the R2 object when no other row still references it.
+		remaining, countErr := s.bookFiles.CountByStorageKey(ctx, key)
+		if countErr != nil {
+			s.logger.Warn("failed to count references for book file",
+				"key", key, "err", countErr)
+			continue
+		}
+		if remaining > 0 {
+			continue
+		}
+
+		if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
+			s.logger.Warn("failed to delete book file from object store",
+				"key", key, "err", delErr)
+		}
+	}
+
+	if err = s.readingState.DeleteByUser(ctx, userID); err != nil {
+		return 0, 0, err
+	}
+
+	bookCount, err := s.books.DeleteUserBooks(ctx, userID)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	//nolint:gosec // row counts are safe to downcast
+	return uint32(bookCount), uint32(fileCount), nil
 }

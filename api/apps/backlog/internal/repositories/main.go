@@ -20,16 +20,20 @@ type Querier interface {
 
 type Repositories struct {
 	Books        *BooksRepository
+	BookFiles    *BookFilesRepository
+	ReadingState *BookReadingStateRepository
 	Steam        *SteamRepository
 	Progress     *ProgressRepository
 	Integrations *IntegrationsRepository
 }
 
-func New(db postgres.DB, encryptionKey []byte) *Repositories {
+func New(db postgres.DB) *Repositories {
 	return &Repositories{
 		Books:        &BooksRepository{db: db},
+		BookFiles:    &BookFilesRepository{db: db},
+		ReadingState: &BookReadingStateRepository{db: db},
 		Steam:        &SteamRepository{db: db},
 		Progress:     &ProgressRepository{db: db},
-		Integrations: &IntegrationsRepository{db: db, encryptionKey: encryptionKey},
+		Integrations: &IntegrationsRepository{db: db},
 	}
 }

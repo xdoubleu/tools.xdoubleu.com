@@ -31,6 +31,38 @@ make lint/pkg PKG=apps/recipes  # Lint a single package
 make proto/generate
 ```
 
+## Docker Image
+
+The api image uses `debian:12-slim` (not distroless) as the final stage because the
+**backlog book-conversion feature** shells out to Calibre's `ebook-convert` binary to
+convert PDFs to EPUB before kepubification. Calibre requires Qt and Python shared
+libraries that distroless cannot provide.
+
+This makes the image significantly larger than a distroless build (~700 MB vs ~20 MB).
+The Calibre layer is cached via `type=gha` GitHub Actions layer caching, so CI rebuild
+times are only affected when `apt-get install calibre` would pull a new version.
+
+## R2 Bucket CORS
+
+The in-browser EPUB/KEPUB preview reads bytes client-side via epub.js (XHR), so the R2
+bucket must allow cross-origin GET requests from the web frontend's origin. Apply this CORS
+policy to **each** bucket (adjust `AllowedOrigins` per environment):
+
+```json
+[{
+  "AllowedOrigins": ["http://localhost:3000"],
+  "AllowedMethods": ["GET", "HEAD"],
+  "AllowedHeaders": ["*"],
+  "ExposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges", "ETag"],
+  "MaxAgeSeconds": 3600
+}]
+```
+
+Set it via the Cloudflare R2 dashboard (bucket → Settings → CORS Policy) or `aws s3api
+put-bucket-cors` against the R2 endpoint. Production origin: `https://tools.xdoubleu.com`.
+PDF preview (iframe navigation) is unaffected by this rule. Recreating a bucket requires
+re-applying the rule — it is not stored in this repo.
+
 ## Architecture
 
 A Go monorepo that serves multiple web apps from a single binary. All apps are registered in `cmd/api/apps.go` and share a single HTTP mux routed by URL prefix. Apps expose ConnectRPC endpoints consumed by the Next.js frontend in `web/`.

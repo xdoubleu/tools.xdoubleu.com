@@ -100,6 +100,14 @@ After scaffolding:
 4. If using DB, edit `api/apps/mytool/migrations/00001_init.sql`
 5. Run `cd api && make build` to verify
 
+## Deploy Notes
+
+**R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
+each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin
+(`http://localhost:3000` dev, `https://tools.xdoubleu.com` prod). See
+[api/CLAUDE.md](api/CLAUDE.md) for the exact rule and how to apply it. This must be
+re-applied if a bucket is recreated.
+
 ## Contributing
 
 Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` (from `api/`) before committing.

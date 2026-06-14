@@ -10,26 +10,16 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file settings/v1/settings.proto.
  */
 export const file_settings_v1_settings: GenFile = /*@__PURE__*/
-  fileDesc("ChpzZXR0aW5ncy92MS9zZXR0aW5ncy5wcm90bxILc2V0dGluZ3MudjEiVwoMSW50ZWdyYXRpb25zEhUKDXN0ZWFtX2FwaV9rZXkYASABKAkSFQoNc3RlYW1fdXNlcl9pZBgCIAEoCRIZChFoYXJkY292ZXJfYXBpX2tleRgDIAEoCSIUChJHZXRTZXR0aW5nc1JlcXVlc3QiRgoTR2V0U2V0dGluZ3NSZXNwb25zZRIvCgxpbnRlZ3JhdGlvbnMYASABKAsyGS5zZXR0aW5ncy52MS5JbnRlZ3JhdGlvbnMiRgoTU2F2ZVNldHRpbmdzUmVxdWVzdBIvCgxpbnRlZ3JhdGlvbnMYASABKAsyGS5zZXR0aW5ncy52MS5JbnRlZ3JhdGlvbnMiFgoUU2F2ZVNldHRpbmdzUmVzcG9uc2UyuAEKD1NldHRpbmdzU2VydmljZRJQCgtHZXRTZXR0aW5ncxIfLnNldHRpbmdzLnYxLkdldFNldHRpbmdzUmVxdWVzdBogLnNldHRpbmdzLnYxLkdldFNldHRpbmdzUmVzcG9uc2USUwoMU2F2ZVNldHRpbmdzEiAuc2V0dGluZ3MudjEuU2F2ZVNldHRpbmdzUmVxdWVzdBohLnNldHRpbmdzLnYxLlNhdmVTZXR0aW5nc1Jlc3BvbnNlQi9aLXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vc2V0dGluZ3MvdjE7c2V0dGluZ3N2MWIGcHJvdG8z");
+  fileDesc("ChpzZXR0aW5ncy92MS9zZXR0aW5ncy5wcm90bxILc2V0dGluZ3MudjEiUwoMSW50ZWdyYXRpb25zEhUKDXN0ZWFtX3VzZXJfaWQYAiABKAlKBAgBEAJKBAgDEARSDXN0ZWFtX2FwaV9rZXlSEWhhcmRjb3Zlcl9hcGlfa2V5IhQKEkdldFNldHRpbmdzUmVxdWVzdCJGChNHZXRTZXR0aW5nc1Jlc3BvbnNlEi8KDGludGVncmF0aW9ucxgBIAEoCzIZLnNldHRpbmdzLnYxLkludGVncmF0aW9ucyJGChNTYXZlU2V0dGluZ3NSZXF1ZXN0Ei8KDGludGVncmF0aW9ucxgBIAEoCzIZLnNldHRpbmdzLnYxLkludGVncmF0aW9ucyIWChRTYXZlU2V0dGluZ3NSZXNwb25zZTK4AQoPU2V0dGluZ3NTZXJ2aWNlElAKC0dldFNldHRpbmdzEh8uc2V0dGluZ3MudjEuR2V0U2V0dGluZ3NSZXF1ZXN0GiAuc2V0dGluZ3MudjEuR2V0U2V0dGluZ3NSZXNwb25zZRJTCgxTYXZlU2V0dGluZ3MSIC5zZXR0aW5ncy52MS5TYXZlU2V0dGluZ3NSZXF1ZXN0GiEuc2V0dGluZ3MudjEuU2F2ZVNldHRpbmdzUmVzcG9uc2VCL1otdG9vbHMueGRvdWJsZXUuY29tL2dlbi9zZXR0aW5ncy92MTtzZXR0aW5nc3YxYgZwcm90bzM");
 
 /**
  * @generated from message settings.v1.Integrations
  */
 export type Integrations = Message<"settings.v1.Integrations"> & {
   /**
-   * @generated from field: string steam_api_key = 1;
-   */
-  steamApiKey: string;
-
-  /**
    * @generated from field: string steam_user_id = 2;
    */
   steamUserId: string;
-
-  /**
-   * @generated from field: string hardcover_api_key = 3;
-   */
-  hardcoverApiKey: string;
 };
 
 /**

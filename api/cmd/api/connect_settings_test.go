@@ -41,9 +41,7 @@ func TestSaveSettings_Success(t *testing.T) {
 	client := settingsClient(t)
 	req := connect.NewRequest(&settingsv1.SaveSettingsRequest{
 		Integrations: &settingsv1.Integrations{
-			SteamApiKey:     "test-steam-key",
-			SteamUserId:     "76561197960287930",
-			HardcoverApiKey: "test-hardcover-key",
+			SteamUserId: "76561197960287930",
 		},
 	})
 	setCookieOnRequest(req, accessToken)
@@ -77,11 +75,11 @@ func TestSaveSettings_NilIntegrations(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
 
-func TestSaveSettings_FieldsTooLong(t *testing.T) {
+func TestSaveSettings_SteamUserIDTooLong(t *testing.T) {
 	client := settingsClient(t)
 	req := connect.NewRequest(&settingsv1.SaveSettingsRequest{
 		Integrations: &settingsv1.Integrations{
-			SteamApiKey: strings.Repeat("x", steamAPIKeyMaxLen+1),
+			SteamUserId: strings.Repeat("1", steamUserIDMaxLen+1),
 		},
 	})
 	setCookieOnRequest(req, accessToken)
@@ -97,9 +95,7 @@ func TestSaveSettings_RoundTrip(t *testing.T) {
 
 	saveReq := connect.NewRequest(&settingsv1.SaveSettingsRequest{
 		Integrations: &settingsv1.Integrations{
-			SteamApiKey:     "round-trip-key",
-			SteamUserId:     "76561197960287930",
-			HardcoverApiKey: "round-trip-hc-key",
+			SteamUserId: "76561197960287930",
 		},
 	})
 	setCookieOnRequest(saveReq, accessToken)
@@ -110,5 +106,5 @@ func TestSaveSettings_RoundTrip(t *testing.T) {
 	setCookieOnRequest(getReq, accessToken)
 	resp, err := client.GetSettings(context.Background(), getReq)
 	require.NoError(t, err)
-	assert.Equal(t, "round-trip-key", resp.Msg.Integrations.SteamApiKey)
+	assert.Equal(t, "76561197960287930", resp.Msg.Integrations.SteamUserId)
 }

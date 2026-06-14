@@ -78,6 +78,14 @@ func (app *Backlog) buildLibraryData(
 		return booksPageData{}, err
 	}
 
+	formats, err := app.Services.Books.FormatsByUser(ctx, userID)
+	if err != nil {
+		return booksPageData{}, err
+	}
+	for i := range library {
+		library[i].Formats = formats[library[i].BookID]
+	}
+
 	var reading, wishlist, finished []models.UserBook
 	for _, ub := range library {
 		switch ub.Status {

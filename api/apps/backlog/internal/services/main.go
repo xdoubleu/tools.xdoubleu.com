@@ -8,6 +8,7 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -17,6 +18,7 @@ type Services struct {
 	Auth         auth.Service
 	Steam        *SteamService
 	Books        *BookService
+	Conversion   *ConversionService
 	Progress     *ProgressService
 	Backlog      *BacklogService
 	Integrations *IntegrationsService
@@ -31,6 +33,7 @@ func New(
 	repositories *repositories.Repositories,
 	steamFactory func(apiKey string) steam.Client,
 	hardcoverFactory func(apiKey string) hardcover.Client,
+	objectStore objectstore.Client,
 	authService auth.Service,
 ) *Services {
 	integrations := &IntegrationsService{
@@ -40,12 +43,16 @@ func New(
 	booksSvc := &BookService{
 		logger:          logger,
 		books:           repositories.Books,
+		bookFiles:       repositories.BookFiles,
+		objectStore:     objectStore,
+		readingState:    repositories.ReadingState,
 		providerFactory: hardcoverFactory,
-		integrations:    integrations,
+		hardcoverAPIKey: config.HardcoverAPIKey,
 	}
 	steamSvc := &SteamService{
 		logger:        logger,
 		clientFactory: steamFactory,
+		steamAPIKey:   config.SteamAPIKey,
 		steam:         repositories.Steam,
 		progress:      repositories.Progress,
 		integrations:  integrations,
@@ -59,10 +66,19 @@ func New(
 		books: booksSvc,
 	}
 
+	conversionSvc := NewConversionService(
+		logger,
+		repositories.BookFiles,
+		objectStore,
+		nil, // converter: defaults to kepubify
+		nil, // convertPDF: defaults to calibrePDFConverter (ebook-convert subprocess)
+	)
+
 	return &Services{
 		Auth:         authService,
 		Steam:        steamSvc,
 		Books:        booksSvc,
+		Conversion:   conversionSvc,
 		Progress:     progressSvc,
 		Backlog:      backlogSvc,
 		Integrations: integrations,

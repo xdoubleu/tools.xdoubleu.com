@@ -15,11 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-const (
-	steamAPIKeyMaxLen     = 64
-	steamUserIDMaxLen     = 20
-	hardcoverAPIKeyMaxLen = 256
-)
+const steamUserIDMaxLen = 20
 
 var numericOrEmptyRe = regexp.MustCompile(`^\d*$`)
 
@@ -47,9 +43,7 @@ func (h *settingsConnectHandler) GetSettings(
 
 	return connect.NewResponse(&settingsv1.GetSettingsResponse{
 		Integrations: &settingsv1.Integrations{
-			SteamApiKey:     integrations.SteamAPIKey,
-			SteamUserId:     integrations.SteamUserID,
-			HardcoverApiKey: integrations.HardcoverAPIKey,
+			SteamUserId: integrations.SteamUserID,
 		},
 	}), nil
 }
@@ -68,12 +62,6 @@ func (h *settingsConnectHandler) SaveSettings(
 	}
 
 	i := req.Msg.Integrations
-	if len(i.SteamApiKey) > steamAPIKeyMaxLen {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			errors.New("steam_api_key too long"),
-		)
-	}
 	if !numericOrEmptyRe.MatchString(i.SteamUserId) {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
@@ -86,17 +74,9 @@ func (h *settingsConnectHandler) SaveSettings(
 			errors.New("steam_user_id too long"),
 		)
 	}
-	if len(i.HardcoverApiKey) > hardcoverAPIKeyMaxLen {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			errors.New("hardcover_api_key too long"),
-		)
-	}
 
 	integrations := backlog.Integrations{
-		SteamAPIKey:     i.SteamApiKey,
-		SteamUserID:     i.SteamUserId,
-		HardcoverAPIKey: i.HardcoverApiKey,
+		SteamUserID: i.SteamUserId,
 	}
 
 	if err := h.app.backlog.SaveIntegrations(ctx, userID, integrations); err != nil {
