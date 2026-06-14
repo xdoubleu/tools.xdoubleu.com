@@ -75,6 +75,7 @@ func New(
 			cfg.R2Bucket,
 		),
 		KoboStoreBaseURL: "https://storeapi.kobo.com",
+		PublicAPIBaseURL: cfg.APIURL,
 	}
 
 	return NewInner(ctx, authService, logger, cfg, db, clients)

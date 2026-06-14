@@ -67,6 +67,7 @@ func TestMain(m *testing.M) {
 		},
 		ObjectStore:      fakeStore,
 		KoboStoreBaseURL: "",
+		PublicAPIBaseURL: "",
 	}
 
 	testApp = backlog.NewInner(
@@ -114,6 +115,7 @@ func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 		},
 		ObjectStore:      objectstore.NewFake(),
 		KoboStoreBaseURL: upstreamURL,
+		PublicAPIBaseURL: "",
 	}
 	app := backlog.NewInner(
 		context.Background(),

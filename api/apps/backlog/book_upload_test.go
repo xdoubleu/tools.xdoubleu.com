@@ -605,6 +605,7 @@ func TestUploadFile_EPUB_HardcoverFallback(t *testing.T) {
 			},
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 	require.NoError(t, app2.SaveIntegrations(
@@ -950,6 +951,7 @@ func noHardcoverApp(t *testing.T, isolatedUser string) *backlog.Backlog {
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 }

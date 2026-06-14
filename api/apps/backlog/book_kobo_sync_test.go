@@ -547,7 +547,7 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 
 	// Token must work before disconnect.
 	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodPost, koboURL(ts, "/v1/initialization"), rawToken, nil),
+		koboReq(t, http.MethodPost, koboURL(ts, rawToken, "/v1/initialization"), nil),
 	)
 	require.NoError(t, err)
 	resp.Body.Close()
@@ -567,7 +567,7 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 
 	// Token must be rejected after disconnect.
 	resp2, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodPost, koboURL(ts, "/v1/initialization"), rawToken, nil),
+		koboReq(t, http.MethodPost, koboURL(ts, rawToken, "/v1/initialization"), nil),
 	)
 	require.NoError(t, err)
 	resp2.Body.Close()

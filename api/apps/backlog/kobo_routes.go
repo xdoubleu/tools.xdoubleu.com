@@ -18,14 +18,18 @@ import (
 )
 
 // koboRoutes mounts the Kobo native sync protocol endpoints under
-// /{prefix}/kobo/. Auth is bearer-token only — AppAccess is NOT used.
+// /{prefix}/kobo/{token}/. The token is a raw bearer secret embedded in the
+// device's api_endpoint URL by the web setup flow; it is SHA-256 hashed before
+// the DB lookup so the plaintext is never stored. AppAccess is NOT used.
 //
-// Endpoints we own are registered with explicit method+path patterns so they
-// take precedence. The trailing-slash catch-all proxies everything else to the
-// real Kobo store so firmware updates, store purchases, and account endpoints
-// continue to work (proxy mode).
+// The device's firmware sets api_endpoint = <our base>/{token}, then appends
+// store-protocol paths (e.g. /v1/initialization, /v1/library/sync). Each
+// request therefore arrives as /{prefix}/kobo/{token}/v1/…. We own explicit
+// patterns for the endpoints we implement; the catch-all proxies everything
+// else (firmware updates, store purchases, auth) to the real Kobo store so
+// those continue to work.
 func (app *Backlog) koboRoutes(prefix string, mux *http.ServeMux) {
-	base := "/" + prefix + "/kobo"
+	base := "/" + prefix + "/kobo/{token}"
 	mux.HandleFunc("POST "+base+"/v1/initialization", app.koboInitHandler)
 	mux.HandleFunc("GET "+base+"/v1/library/sync", app.koboLibrarySyncHandler)
 	mux.HandleFunc(
@@ -38,10 +42,10 @@ func (app *Backlog) koboRoutes(prefix string, mux *http.ServeMux) {
 		"PUT "+base+"/v1/library/{revisionId}/state", app.koboPutStateHandler,
 	)
 	// Catch-all: proxy unrecognised paths to the upstream Kobo store.
-	mux.HandleFunc(base+"/", app.koboProxyHandler)
+	mux.HandleFunc("/"+prefix+"/kobo/{token}/", app.koboProxyHandler)
 }
 
-// koboAuth validates HTTPS and the bearer token.
+// koboAuth validates HTTPS and the token embedded in the request URL path.
 // Returns (userID, true) on success; writes an error response and returns
 // ("", false) on failure — callers must return immediately on false.
 func (app *Backlog) koboAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
@@ -54,13 +58,11 @@ func (app *Backlog) koboAuth(w http.ResponseWriter, r *http.Request) (string, bo
 		return "", false
 	}
 
-	auth := r.Header.Get("Authorization")
-	const bearerPrefix = "Bearer "
-	if !strings.HasPrefix(auth, bearerPrefix) || len(auth) == len(bearerPrefix) {
+	raw := r.PathValue("token")
+	if raw == "" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return "", false
 	}
-	raw := auth[len(bearerPrefix):]
 
 	// Always hash — keeps the lookup constant-time-ish regardless of match.
 	h := sha256.Sum256([]byte(raw))
@@ -194,7 +196,7 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	libraryBase := koboLibraryBase(r)
+	libraryBase := app.koboLibraryBase(r)
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	ourEntries := make([]json.RawMessage, len(books))
@@ -258,13 +260,15 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 
 // koboProxyHandler is the catch-all for paths we don't own: it proxies the
 // request verbatim to the upstream Kobo store after authenticating our token.
+// The token segment is stripped so the upstream receives a clean /v1/… path.
 func (app *Backlog) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 	if _, ok := app.koboAuth(w, r); !ok {
 		return
 	}
 
-	// Strip "/{prefix}/kobo" to obtain the Kobo-relative path.
-	_, koboPath, _ := strings.Cut(r.URL.Path, "/kobo")
+	// Strip "/{prefix}/kobo/{token}" to obtain the Kobo-relative path.
+	token := r.PathValue("token")
+	_, koboPath, _ := strings.Cut(r.URL.Path, "/kobo/"+token)
 
 	targetURL := app.clients.KoboStoreBaseURL + koboPath
 	if r.URL.RawQuery != "" {
@@ -451,15 +455,25 @@ func (app *Backlog) koboPutStateHandler(w http.ResponseWriter, r *http.Request) 
 
 // --- helpers ---
 
-// koboLibraryBase derives the https://host/…/kobo/v1/library prefix from the
-// current request. koboAuth already enforces HTTPS, so the scheme is fixed.
-func koboLibraryBase(r *http.Request) string {
+// koboLibraryBase derives the https://host/…/kobo/{token}/v1/library prefix
+// used to build per-book file download URLs returned in the sync manifest.
+//
+// When clients.PublicAPIBaseURL is set (e.g. "https://tools.xdoubleu.com/api")
+// it is used directly. This is necessary when a reverse proxy strips a path
+// prefix (e.g. /api) before forwarding to this server, because r.URL.Path
+// would not contain that prefix. koboAuth already enforces HTTPS for the
+// device-facing request, so the scheme is fixed to https in both paths.
+func (app *Backlog) koboLibraryBase(r *http.Request) string {
+	// r.URL.Path is "/{prefix}/kobo/{token}/v1/library/sync" — strip "/sync".
+	base := strings.TrimSuffix(r.URL.Path, "/sync")
+	if app.clients.PublicAPIBaseURL != "" {
+		return strings.TrimSuffix(app.clients.PublicAPIBaseURL, "/") + base
+	}
+	// Fallback: derive scheme+host from request headers (dev / test).
 	host := r.Header.Get("X-Forwarded-Host")
 	if host == "" {
 		host = r.Host
 	}
-	// r.URL.Path is "/{prefix}/kobo/v1/library/sync" — strip "/sync" suffix.
-	base := strings.TrimSuffix(r.URL.Path, "/sync")
 	return "https://" + host + base
 }
 

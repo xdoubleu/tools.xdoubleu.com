@@ -210,6 +210,7 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 				HardcoverFactory: func(_ string) hardcover.Client { return nil },
 				ObjectStore:      objectstore.NewFake(),
 				KoboStoreBaseURL: "",
+				PublicAPIBaseURL: "",
 			},
 		)
 		err := app2.SaveIntegrations(

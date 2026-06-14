@@ -212,6 +212,7 @@ func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 			},
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 

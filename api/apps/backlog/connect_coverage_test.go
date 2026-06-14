@@ -54,6 +54,7 @@ func TestStart_RegistersJobs(t *testing.T) {
 			},
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 	require.NotNil(t, bl)
@@ -273,6 +274,7 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 			},
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 
@@ -332,6 +334,7 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 	require.NoError(t, app2.SaveIntegrations(
@@ -486,6 +489,7 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 	require.NoError(t, app2.SaveIntegrations(
@@ -551,6 +555,7 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 			HardcoverFactory: func(_ string) hardcover.Client { return nil },
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
 		},
 	)
 	require.NoError(t, app2.SaveIntegrations(
