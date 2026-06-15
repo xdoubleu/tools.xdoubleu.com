@@ -247,7 +247,7 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 						Format:   downloadFormat,
 						Size:     b.Size,
 						URL:      libraryBase + "/" + id + "/file",
-						Platform: "Desktop",
+						Platform: "Generic",
 					}},
 				},
 				ReadingState: nil,
