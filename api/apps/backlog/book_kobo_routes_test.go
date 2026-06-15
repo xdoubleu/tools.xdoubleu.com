@@ -206,7 +206,11 @@ func TestKoboLibrarySync_UpstreamNon200_FallsBackToOurBooks(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
 	found := false
 	for _, e := range entries {
-		if ent, ok := e["BookEntitlement"].(map[string]any); ok {
+		ne, neOK := e["NewEntitlement"].(map[string]any)
+		if !neOK {
+			continue
+		}
+		if ent, entOK := ne["BookEntitlement"].(map[string]any); entOK {
 			if ent["RevisionId"] == bookID.String() {
 				found = true
 				break
@@ -266,7 +270,11 @@ func TestKoboLibrarySync_OurBooksPreservedWhenUpstreamDown(t *testing.T) {
 
 	found := false
 	for _, e := range entries {
-		if ent, ok := e["BookEntitlement"].(map[string]any); ok {
+		ne, neOK := e["NewEntitlement"].(map[string]any)
+		if !neOK {
+			continue
+		}
+		if ent, entOK := ne["BookEntitlement"].(map[string]any); entOK {
 			if ent["RevisionId"] == bookID.String() {
 				found = true
 				break
@@ -474,11 +482,17 @@ func TestKoboLibrarySync_ReadyKEPUBIncluded(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
 	require.Len(t, entries, 1)
 
-	entitlement, ok := entries[0]["BookEntitlement"].(map[string]any)
+	// Each of our entries must be wrapped in the NewEntitlement discriminator key.
+	ne, ok := entries[0]["NewEntitlement"].(map[string]any)
+	require.True(t, ok, "entry must be wrapped under NewEntitlement")
+
+	entitlement, ok := ne["BookEntitlement"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, bookID.String(), entitlement["RevisionId"])
 
-	dlUrls, ok := entries[0]["DownloadUrls"].([]any)
+	meta, ok := ne["BookMetadata"].(map[string]any)
+	require.True(t, ok)
+	dlUrls, ok := meta["DownloadUrls"].([]any)
 	require.True(t, ok)
 	require.Len(t, dlUrls, 1)
 	dl, ok := dlUrls[0].(map[string]any)
@@ -697,11 +711,15 @@ func TestKoboLibrarySync_PDFFormat_ServesPDF(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
 	require.Len(t, entries, 1)
 
-	meta, ok := entries[0]["BookMetadata"].(map[string]any)
+	// Each of our entries must be wrapped in the NewEntitlement discriminator key.
+	ne, ok := entries[0]["NewEntitlement"].(map[string]any)
+	require.True(t, ok, "entry must be wrapped under NewEntitlement")
+
+	meta, ok := ne["BookMetadata"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "application/pdf", meta["ContentType"])
 
-	dlUrls, ok := entries[0]["DownloadUrls"].([]any)
+	dlUrls, ok := meta["DownloadUrls"].([]any)
 	require.True(t, ok)
 	require.Len(t, dlUrls, 1)
 	dl, ok := dlUrls[0].(map[string]any)
