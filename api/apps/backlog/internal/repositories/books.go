@@ -451,6 +451,39 @@ func (repo *BooksRepository) FindUserBookByISBN13(
 	return &ub, nil
 }
 
+// FindUserBookByISBN10 finds the user's library entry for a book with the
+// given ISBN10.
+func (repo *BooksRepository) FindUserBookByISBN10(
+	ctx context.Context,
+	userID string,
+	isbn10 string,
+) (*models.UserBook, error) {
+	query := `
+		SELECT ` + userBookColumns + `
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
+		WHERE ub.user_id = $1 AND b.isbn10 = $2
+		LIMIT 1
+	`
+
+	rows, err := repo.db.Query(ctx, query, userID, isbn10)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, database.ErrResourceNotFound
+	}
+
+	ub, err := scanUserBookWithBook(rows)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return &ub, nil
+}
+
 // FindUserBookByTitleAndAuthor finds a user_book using case-insensitive exact
 // matching on title and at least one author.
 func (repo *BooksRepository) FindUserBookByTitleAndAuthor(
@@ -487,6 +520,18 @@ func (repo *BooksRepository) FindUserBookByTitleAndAuthor(
 	}
 
 	return &ub, nil
+}
+
+// DeleteUserBook removes a single user_book row.
+// It does NOT touch backlog.books (the shared catalog).
+func (repo *BooksRepository) DeleteUserBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) error {
+	query := `DELETE FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`
+	_, err := repo.db.Exec(ctx, query, userID, bookID)
+	return postgres.PgxErrorToHTTPError(err)
 }
 
 // DeleteUserBooks removes all entries from user_books for a given user.

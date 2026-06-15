@@ -5,7 +5,9 @@ const mockImportBooks = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useImportBooks: () => mockImportBooks,
-  useClearLibrary: () => jest.fn()
+  useClearLibrary: () => jest.fn(),
+  useFindDuplicates: () => ({ data: undefined, isLoading: false, mutate: jest.fn() }),
+  useMergeBooks: () => jest.fn()
 }))
 
 jest.mock('@/components/backlog/BulkBookUploader', () => ({

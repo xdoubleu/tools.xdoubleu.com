@@ -2,6 +2,7 @@
 
 import { useState, DragEvent } from 'react'
 import { useUploadBookFile } from '@/hooks/useBacklog'
+import type { UploadBookFileResult } from '@/hooks/useBacklog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { isBookFile, filesFromDataTransfer, MAX_UPLOAD_BYTES } from '@/lib/backlog/zipFiles'
@@ -14,6 +15,8 @@ type UploadProgress = {
   processed: number
   failed: number
   total: number
+  linked: number
+  added: number
   errors: string[]
 }
 
@@ -40,6 +43,8 @@ export default function BulkBookUploader() {
       processed: 0,
       failed: 0,
       total: books.length,
+      linked: 0,
+      added: 0,
       errors: []
     }
     setPhase({ kind: 'uploading', progress: { ...progress } })
@@ -56,8 +61,13 @@ export default function BulkBookUploader() {
         continue
       }
       try {
-        await uploadBookFile(file)
+        const result: UploadBookFileResult = await uploadBookFile(file)
         progress.processed++
+        if (result.matchedExisting) {
+          progress.linked++
+        } else {
+          progress.added++
+        }
       } catch (err) {
         progress.failed++
         const msg = err instanceof Error ? err.message : 'Upload failed'
@@ -179,7 +189,7 @@ interface UploadProgressDisplayProps {
 }
 
 function UploadProgressDisplay({ progress, done }: UploadProgressDisplayProps) {
-  const { processed, failed, total, errors } = progress
+  const { processed, failed, total, linked, added, errors } = progress
   const allFailed = done && failed === total
 
   return (
@@ -193,6 +203,14 @@ function UploadProgressDisplay({ progress, done }: UploadProgressDisplayProps) {
         {done && !allFailed && <span className="text-xs text-success">Done</span>}
         {done && allFailed && <span className="text-xs text-danger">Failed</span>}
       </div>
+
+      {done && processed > 0 && (
+        <p className="text-xs text-muted">
+          {linked > 0 && `${linked} linked to existing`}
+          {linked > 0 && added > 0 && ' — '}
+          {added > 0 && `${added} added as new`}
+        </p>
+      )}
 
       {errors.length > 0 && (
         <ul className="space-y-0.5">

@@ -226,6 +226,30 @@ message ClearLibraryResponse {
   uint32 deleted_files = 2;
 }
 
+message DuplicateGroup {
+  // Library entries judged to be the same book. entries[0] is the suggested
+  // winner (the entry to keep); the rest are the suggested losers.
+  repeated UserBook entries = 1;
+  // Strongest matching signal: "isbn13" | "isbn10" | "title+author"
+  string reason = 2;
+}
+
+message FindDuplicatesRequest {}
+message FindDuplicatesResponse { repeated DuplicateGroup groups = 1; }
+
+message MergeBooksRequest {
+  // book_id of the UserBook entry to keep.
+  string winner_book_id = 1;
+  // book_ids of UserBook entries to merge into the winner, then delete.
+  repeated string loser_book_ids = 2;
+}
+message MergeBooksResponse {
+  // Always 1 — one group merged per call.
+  uint32 merged_groups = 1;
+  // Duplicate file rows removed (after format+checksum dedup).
+  uint32 deleted_files = 2;
+}
+
 service BooksService {
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
   rpc GetUserSummary(GetUserSummaryRequest) returns (GetUserSummaryResponse);
@@ -250,4 +274,6 @@ service BooksService {
   rpc ListKoboDevices(ListKoboDevicesRequest) returns (ListKoboDevicesResponse);
   rpc DisconnectKoboDevice(DisconnectKoboDeviceRequest) returns (DisconnectKoboDeviceResponse);
   rpc ClearLibrary(ClearLibraryRequest) returns (ClearLibraryResponse);
+  rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
+  rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
 }

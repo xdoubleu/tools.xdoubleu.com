@@ -436,12 +436,19 @@ func extForFormat(format string) string {
 }
 
 // recognizeBook matches meta to an existing user_book or creates a new one.
+// Matching is attempted in order from most to least precise:
+//  1. ISBN13 exact match
+//  2. ISBN10 exact match
+//  3. Exact case-insensitive title + first author
+//  4. Normalized title + author last-name overlap (strips subtitles, folds
+//     diacritics, handles "Last, First" vs "First Last" formatting)
+//  5. Hardcover search (creates a new library entry, matchedExisting=false)
 func (s *BookService) recognizeBook(
 	ctx context.Context,
 	userID string,
 	meta ebookmeta.Metadata,
 ) (*models.UserBook, bool, error) {
-	// Match by ISBN13 first.
+	// 1. Match by ISBN13.
 	if meta.ISBN13 != nil {
 		ub, err := s.books.FindUserBookByISBN13(ctx, userID, *meta.ISBN13)
 		if err == nil {
@@ -452,7 +459,18 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// Match by title + first author (case-insensitive exact).
+	// 2. Match by ISBN10.
+	if meta.ISBN10 != nil {
+		ub, err := s.books.FindUserBookByISBN10(ctx, userID, *meta.ISBN10)
+		if err == nil {
+			return ub, true, nil
+		}
+		if !errors.Is(err, database.ErrResourceNotFound) {
+			return nil, false, err
+		}
+	}
+
+	// 3. Exact case-insensitive title + first author.
 	if meta.Title != "" && len(meta.Authors) > 0 {
 		ub, err := s.books.FindUserBookByTitleAndAuthor(
 			ctx, userID, meta.Title, meta.Authors[0],
@@ -465,12 +483,23 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// Try Hardcover when a title is available and an API key is configured.
+	// 4. Normalized title + author last-name overlap.
+	// Fetches the full library once; the list is small relative to the
+	// cost of a Hardcover HTTP round-trip that would otherwise follow.
+	lib, err := s.books.GetLibrary(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	if ub := matchLibraryByMetadata(lib, meta); ub != nil {
+		return ub, true, nil
+	}
+
+	// 5. Try Hardcover when a title is available and an API key is configured.
 	if ub := s.tryHardcoverLookup(ctx, userID, meta); ub != nil {
 		return ub, false, nil
 	}
 
-	// No real match — reject the upload.
+	// No match — reject the upload.
 	return nil, false, ErrUnrecognizedBook
 }
 

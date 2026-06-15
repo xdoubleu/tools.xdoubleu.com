@@ -6,6 +6,7 @@ import BulkBookUploader from '@/components/backlog/BulkBookUploader'
 import KoboSetup from '@/components/backlog/KoboSetup'
 import KoboDevices from '@/components/backlog/KoboDevices'
 import ClearLibraryDialog from '@/components/backlog/ClearLibraryDialog'
+import ManageDuplicatesDialog from '@/components/backlog/ManageDuplicatesDialog'
 import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
@@ -16,6 +17,7 @@ export default function BacklogBooksSettingsPage() {
   const [importStatus, setImportStatus] = useState('')
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearStatus, setClearStatus] = useState('')
+  const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -91,6 +93,25 @@ export default function BacklogBooksSettingsPage() {
 
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+          Find duplicates
+        </h2>
+        <p className="mb-3 text-xs text-muted">
+          Detect duplicate library entries and merge them. Matching is based on ISBN or normalised
+          title and author. Files, tags, and reading progress are consolidated onto the entry you
+          choose to keep.
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setDuplicatesDialogOpen(true)}
+          data-testid="find-duplicates-btn"
+        >
+          Find duplicates
+        </Button>
+      </section>
+
+      <section className="mt-10 border-t border-border pt-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
           Danger zone
         </h2>
         <p className="mb-3 text-xs text-muted">
@@ -120,6 +141,8 @@ export default function BacklogBooksSettingsPage() {
         onOpenChange={setClearDialogOpen}
         onCleared={() => setClearStatus('Library cleared successfully.')}
       />
+
+      <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />
     </main>
   )
 }

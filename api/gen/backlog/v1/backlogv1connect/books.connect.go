@@ -98,6 +98,11 @@ const (
 	// BooksServiceClearLibraryProcedure is the fully-qualified name of the BooksService's ClearLibrary
 	// RPC.
 	BooksServiceClearLibraryProcedure = "/backlog.v1.BooksService/ClearLibrary"
+	// BooksServiceFindDuplicatesProcedure is the fully-qualified name of the BooksService's
+	// FindDuplicates RPC.
+	BooksServiceFindDuplicatesProcedure = "/backlog.v1.BooksService/FindDuplicates"
+	// BooksServiceMergeBooksProcedure is the fully-qualified name of the BooksService's MergeBooks RPC.
+	BooksServiceMergeBooksProcedure = "/backlog.v1.BooksService/MergeBooks"
 )
 
 // BooksServiceClient is a client for the backlog.v1.BooksService service.
@@ -125,6 +130,8 @@ type BooksServiceClient interface {
 	ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error)
 	DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error)
 	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
+	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
+	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
 }
 
 // NewBooksServiceClient constructs a client for the backlog.v1.BooksService service. By default, it
@@ -276,6 +283,18 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(booksServiceMethods.ByName("ClearLibrary")),
 			connect.WithClientOptions(opts...),
 		),
+		findDuplicates: connect.NewClient[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse](
+			httpClient,
+			baseURL+BooksServiceFindDuplicatesProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("FindDuplicates")),
+			connect.WithClientOptions(opts...),
+		),
+		mergeBooks: connect.NewClient[v1.MergeBooksRequest, v1.MergeBooksResponse](
+			httpClient,
+			baseURL+BooksServiceMergeBooksProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("MergeBooks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -304,6 +323,8 @@ type booksServiceClient struct {
 	listKoboDevices        *connect.Client[v1.ListKoboDevicesRequest, v1.ListKoboDevicesResponse]
 	disconnectKoboDevice   *connect.Client[v1.DisconnectKoboDeviceRequest, v1.DisconnectKoboDeviceResponse]
 	clearLibrary           *connect.Client[v1.ClearLibraryRequest, v1.ClearLibraryResponse]
+	findDuplicates         *connect.Client[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse]
+	mergeBooks             *connect.Client[v1.MergeBooksRequest, v1.MergeBooksResponse]
 }
 
 // GetSummary calls backlog.v1.BooksService.GetSummary.
@@ -421,6 +442,16 @@ func (c *booksServiceClient) ClearLibrary(ctx context.Context, req *connect.Requ
 	return c.clearLibrary.CallUnary(ctx, req)
 }
 
+// FindDuplicates calls backlog.v1.BooksService.FindDuplicates.
+func (c *booksServiceClient) FindDuplicates(ctx context.Context, req *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error) {
+	return c.findDuplicates.CallUnary(ctx, req)
+}
+
+// MergeBooks calls backlog.v1.BooksService.MergeBooks.
+func (c *booksServiceClient) MergeBooks(ctx context.Context, req *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error) {
+	return c.mergeBooks.CallUnary(ctx, req)
+}
+
 // BooksServiceHandler is an implementation of the backlog.v1.BooksService service.
 type BooksServiceHandler interface {
 	GetSummary(context.Context, *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error)
@@ -446,6 +477,8 @@ type BooksServiceHandler interface {
 	ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error)
 	DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error)
 	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
+	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
+	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
 }
 
 // NewBooksServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -593,6 +626,18 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(booksServiceMethods.ByName("ClearLibrary")),
 		connect.WithHandlerOptions(opts...),
 	)
+	booksServiceFindDuplicatesHandler := connect.NewUnaryHandler(
+		BooksServiceFindDuplicatesProcedure,
+		svc.FindDuplicates,
+		connect.WithSchema(booksServiceMethods.ByName("FindDuplicates")),
+		connect.WithHandlerOptions(opts...),
+	)
+	booksServiceMergeBooksHandler := connect.NewUnaryHandler(
+		BooksServiceMergeBooksProcedure,
+		svc.MergeBooks,
+		connect.WithSchema(booksServiceMethods.ByName("MergeBooks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/backlog.v1.BooksService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BooksServiceGetSummaryProcedure:
@@ -641,6 +686,10 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 			booksServiceDisconnectKoboDeviceHandler.ServeHTTP(w, r)
 		case BooksServiceClearLibraryProcedure:
 			booksServiceClearLibraryHandler.ServeHTTP(w, r)
+		case BooksServiceFindDuplicatesProcedure:
+			booksServiceFindDuplicatesHandler.ServeHTTP(w, r)
+		case BooksServiceMergeBooksProcedure:
+			booksServiceMergeBooksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -740,4 +789,12 @@ func (UnimplementedBooksServiceHandler) DisconnectKoboDevice(context.Context, *c
 
 func (UnimplementedBooksServiceHandler) ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.ClearLibrary is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.FindDuplicates is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.MergeBooks is not implemented"))
 }

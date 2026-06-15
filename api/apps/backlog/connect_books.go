@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
@@ -882,6 +883,92 @@ func (h *booksConnectHandler) ClearLibrary(
 	}
 	return connect.NewResponse(&backlogv1.ClearLibraryResponse{
 		DeletedBooks: deletedBooks,
+		DeletedFiles: deletedFiles,
+	}), nil
+}
+
+func (h *booksConnectHandler) FindDuplicates(
+	ctx context.Context,
+	_ *connect.Request[backlogv1.FindDuplicatesRequest],
+) (*connect.Response[backlogv1.FindDuplicatesResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+
+	groups, err := h.app.Services.Books.FindDuplicates(ctx, user.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	protoGroups := make([]*backlogv1.DuplicateGroup, len(groups))
+	for i, g := range groups {
+		entries := make([]*backlogv1.UserBook, len(g.Entries))
+		for j, e := range g.Entries {
+			entries[j] = protoUserBook(e)
+		}
+		protoGroups[i] = &backlogv1.DuplicateGroup{
+			Entries: entries,
+			Reason:  g.Reason,
+		}
+	}
+
+	return connect.NewResponse(&backlogv1.FindDuplicatesResponse{
+		Groups: protoGroups,
+	}), nil
+}
+
+func (h *booksConnectHandler) MergeBooks(
+	ctx context.Context,
+	req *connect.Request[backlogv1.MergeBooksRequest],
+) (*connect.Response[backlogv1.MergeBooksResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+
+	winnerID, err := uuid.Parse(req.Msg.WinnerBookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid winner_book_id: %w", err),
+		)
+	}
+
+	loserIDs := make([]uuid.UUID, 0, len(req.Msg.LoserBookIds))
+	for _, raw := range req.Msg.LoserBookIds {
+		id, parseErr := uuid.Parse(raw)
+		if parseErr != nil {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				fmt.Errorf("invalid loser_book_id %q: %w", raw, parseErr),
+			)
+		}
+		loserIDs = append(loserIDs, id)
+	}
+
+	deletedFiles, err := h.app.Services.Books.MergeBooks(
+		ctx,
+		user.ID,
+		winnerID,
+		loserIDs,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+	}
+
+	return connect.NewResponse(&backlogv1.MergeBooksResponse{
+		MergedGroups: 1,
 		DeletedFiles: deletedFiles,
 	}), nil
 }
