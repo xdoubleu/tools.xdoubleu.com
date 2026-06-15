@@ -36,6 +36,9 @@ func (app *Backlog) koboRoutes(prefix string, mux *http.ServeMux) {
 		"GET "+base+"/v1/library/{revisionId}/file", app.koboFileHandler,
 	)
 	mux.HandleFunc(
+		"GET "+base+"/v1/library/{revisionId}/metadata", app.koboMetadataHandler,
+	)
+	mux.HandleFunc(
 		"GET "+base+"/v1/library/{revisionId}/state", app.koboGetStateHandler,
 	)
 	mux.HandleFunc(
@@ -211,14 +214,6 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 	for i, b := range books {
 		id := b.BookID.String()
 
-		// Drive the content type and download format off the stored file format.
-		downloadFormat := "KEPUB"
-		contentType := "application/x-kobo-epub+zip"
-		if b.Format == models.FileFormatPDF {
-			downloadFormat = "PDF"
-			contentType = "application/pdf"
-		}
-
 		// json.Marshal cannot fail on this fully-typed struct.
 		// Each entry must be wrapped in the NewEntitlement discriminator key
 		// so the Kobo firmware recognises it — a bare payload is silently ignored.
@@ -238,18 +233,7 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 					Status:          "Active",
 					Type:            "ebook",
 				},
-				BookMetadata: koboBookMetadata{
-					Title:       b.Title,
-					ContentType: contentType,
-					RevisionId:  id,
-					Language:    "en",
-					DownloadUrls: []koboDownloadURL{{
-						Format:   downloadFormat,
-						Size:     b.Size,
-						URL:      libraryBase + "/" + id + "/file",
-						Platform: "Generic",
-					}},
-				},
+				BookMetadata: buildKoboMetadata(b, libraryBase),
 				ReadingState: nil,
 			},
 		})
@@ -352,6 +336,63 @@ func (app *Backlog) koboFetchUpstreamSync(
 		return nil, hdrs
 	}
 	return items, hdrs
+}
+
+// buildKoboMetadata constructs the BookMetadata payload for a kobo-sync book.
+// It is used by both the library sync handler and the dedicated metadata
+// endpoint so the two responses stay byte-identical (the device cross-checks).
+func buildKoboMetadata(b models.KoboSyncBook, libraryBase string) koboBookMetadata {
+	downloadFormat := "KEPUB"
+	contentType := "application/x-kobo-epub+zip"
+	if b.Format == models.FileFormatPDF {
+		downloadFormat = "PDF"
+		contentType = "application/pdf"
+	}
+	id := b.BookID.String()
+	return koboBookMetadata{
+		Title:       b.Title,
+		ContentType: contentType,
+		RevisionId:  id,
+		Language:    "en",
+		DownloadUrls: []koboDownloadURL{{
+			Format:   downloadFormat,
+			Size:     b.Size,
+			URL:      libraryBase + "/" + id + "/file",
+			Platform: "Generic",
+		}},
+	}
+}
+
+// koboMetadataHandler handles GET /v1/library/{revisionId}/metadata.
+// If the book belongs to the authenticated user's kobo-sync list it is served
+// locally; otherwise the request is proxied to the upstream Kobo store so
+// genuine store purchases keep working (same additive philosophy as the sync
+// handler).
+func (app *Backlog) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := app.koboAuth(w, r)
+	if !ok {
+		return
+	}
+
+	bookID, err := uuid.Parse(r.PathValue("revisionId"))
+	if err != nil {
+		http.Error(w, "invalid book id", http.StatusBadRequest)
+		return
+	}
+
+	book, err := app.Services.Books.GetKoboSyncBook(r.Context(), userID, bookID)
+	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			// Not one of our kobo-sync books — proxy to the upstream store.
+			app.koboProxyHandler(w, r)
+			return
+		}
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	meta := buildKoboMetadata(book, app.koboLibraryBase(r))
+	koboWriteJSON(w, []koboBookMetadata{meta})
 }
 
 // koboFileHandler handles GET /v1/library/{revisionId}/file — issues a 302
@@ -469,7 +510,8 @@ func (app *Backlog) koboPutStateHandler(w http.ResponseWriter, r *http.Request) 
 // --- helpers ---
 
 // koboLibraryBase derives the https://host/…/kobo/{token}/v1/library prefix
-// used to build per-book file download URLs returned in the sync manifest.
+// used to build per-book file download URLs returned in the sync manifest and
+// the metadata endpoint.
 //
 // When clients.PublicAPIBaseURL is set (e.g. "https://tools.xdoubleu.com/api")
 // it is used directly. This is necessary when a reverse proxy strips a path
@@ -477,17 +519,21 @@ func (app *Backlog) koboPutStateHandler(w http.ResponseWriter, r *http.Request) 
 // would not contain that prefix. koboAuth already enforces HTTPS for the
 // device-facing request, so the scheme is fixed to https in both paths.
 func (app *Backlog) koboLibraryBase(r *http.Request) string {
-	// r.URL.Path is "/{prefix}/kobo/{token}/v1/library/sync" — strip "/sync".
-	base := strings.TrimSuffix(r.URL.Path, "/sync")
+	// Cut the path at /v1/library so this works for any sub-path
+	// (e.g. /v1/library/sync, /v1/library/{id}/metadata, etc.).
+	path := r.URL.Path
+	if idx := strings.Index(path, "/v1/library"); idx != -1 {
+		path = path[:idx] + "/v1/library"
+	}
 	if app.clients.PublicAPIBaseURL != "" {
-		return strings.TrimSuffix(app.clients.PublicAPIBaseURL, "/") + base
+		return strings.TrimSuffix(app.clients.PublicAPIBaseURL, "/") + path
 	}
 	// Fallback: derive scheme+host from request headers (dev / test).
 	host := r.Header.Get("X-Forwarded-Host")
 	if host == "" {
 		host = r.Host
 	}
-	return "https://" + host + base
+	return "https://" + host + path
 }
 
 // buildKoboState converts an optional BookReadingState into the Kobo reading
