@@ -76,6 +76,51 @@ func TestReadingStateRepo_Upsert_Updates(t *testing.T) {
 	assert.Equal(t, 75, got.Percent)
 }
 
+func TestReadingStateRepo_ListByUser(t *testing.T) {
+	book1 := addUniqueBook(t)
+	book2 := addUniqueBook(t)
+	owner := "list-by-user-" + book1.ID.String()
+	ctx := context.Background()
+
+	require.NoError(t, testApp.Repositories.ReadingState.Upsert(ctx,
+		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
+			UserID:  owner,
+			BookID:  book1.ID,
+			Source:  models.ReadingSourceKobo,
+			Percent: 30,
+		},
+	))
+	require.NoError(t, testApp.Repositories.ReadingState.Upsert(ctx,
+		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
+			UserID:  owner,
+			BookID:  book2.ID,
+			Source:  models.ReadingSourceWeb,
+			Percent: 80,
+		},
+	))
+
+	got, err := testApp.Repositories.ReadingState.ListByUser(ctx, owner)
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+
+	byBook := make(map[string]int, len(got))
+	for _, s := range got {
+		byBook[s.BookID.String()] = s.Percent
+	}
+	assert.Equal(t, 30, byBook[book1.ID.String()])
+	assert.Equal(t, 80, byBook[book2.ID.String()])
+}
+
+func TestReadingStateRepo_ListByUser_Empty(t *testing.T) {
+	ctx := context.Background()
+	got, err := testApp.Repositories.ReadingState.ListByUser(
+		ctx,
+		"no-states-user-"+uuid.NewString(),
+	)
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
 func TestReadingStateRepo_Get_NotFound(t *testing.T) {
 	book := addUniqueBook(t)
 	ctx := context.Background()

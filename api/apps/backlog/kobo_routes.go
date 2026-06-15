@@ -207,6 +207,14 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Batch-load all reading states so the sync manifest can include them
+	// without issuing a per-book query (avoids N+1).
+	stateByBook, err := app.Services.Books.ListReadingStates(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	libraryBase := app.koboLibraryBase(r)
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -218,6 +226,8 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 		// Each entry must be wrapped in the NewEntitlement discriminator key
 		// so the Kobo firmware recognises it — a bare payload is silently ignored.
 		// DownloadUrls lives inside BookMetadata per the Kobo store protocol.
+		// ReadingState must be non-nil so the firmware participates in
+		// reading-state sync and issues PUT …/state on progress changes.
 		raw, _ := json.Marshal(koboNewEntitlement{
 			NewEntitlement: koboSyncEntry{
 				BookEntitlement: koboBookEntitlement{
@@ -234,7 +244,7 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 					Type:            "ebook",
 				},
 				BookMetadata: buildKoboMetadata(b, libraryBase),
-				ReadingState: nil,
+				ReadingState: buildKoboState(id, stateByBook[b.BookID]),
 			},
 		})
 		ourEntries[i] = raw

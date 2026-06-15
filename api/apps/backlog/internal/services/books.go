@@ -303,6 +303,25 @@ func (s *BookService) GetReadingState(
 	return s.readingState.Get(ctx, userID, bookID)
 }
 
+// ListReadingStates returns all reading states for the user, indexed by
+// book ID. Use this instead of per-book GetReadingState when processing a
+// batch of books to avoid N+1 queries.
+func (s *BookService) ListReadingStates(
+	ctx context.Context,
+	userID string,
+) (map[uuid.UUID]*models.BookReadingState, error) {
+	rows, err := s.readingState.ListByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	index := make(map[uuid.UUID]*models.BookReadingState, len(rows))
+	for i := range rows {
+		index[rows[i].BookID] = &rows[i]
+	}
+	return index, nil
+}
+
 // UpdateProgress validates and persists reading-progress for a user_book. The
 // mode selects which value is authoritative: pages mode tracks current_page,
 // percent mode tracks progress_percent (clamped to 0-100).
