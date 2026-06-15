@@ -651,6 +651,15 @@ func TestKoboState_GetNoState(t *testing.T) {
 	bm, ok := state["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
 	assert.InDelta(t, 0.0, bm["ContentSourceProgressPercent"], 0.001)
+
+	// LastModified must be the epoch, not time.Now(). Returning "now" would
+	// make the server always appear newer than the device, causing the firmware
+	// to overwrite local progress with 0% and never push via PUT …/state.
+	assert.Equal(t, "1970-01-01T00:00:00Z", state["LastModified"],
+		"no-state LastModified must be epoch so device wins conflict and pushes")
+	si, ok := state["StatusInfo"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "1970-01-01T00:00:00Z", si["LastModified"])
 }
 
 func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
@@ -726,6 +735,12 @@ func TestKoboLibrarySync_ReadingStateIncluded(t *testing.T) {
 	require.True(t, ok)
 	assert.InDelta(t, 0.0, bm["ContentSourceProgressPercent"], 0.001,
 		"new book with no progress should advertise 0.0")
+
+	// LastModified must be the epoch. Returning time.Now() would make the
+	// server appear newer than the device on every sync, causing it to pull
+	// 0% and never push progress via PUT …/state.
+	assert.Equal(t, "1970-01-01T00:00:00Z", rs["LastModified"],
+		"no-state ReadingState.LastModified must be epoch so device pushes progress")
 }
 
 // TestKoboLibrarySync_ReadingStateReflectsProgress verifies that after the

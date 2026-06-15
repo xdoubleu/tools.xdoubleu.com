@@ -86,6 +86,14 @@ func (app *Backlog) koboAuth(w http.ResponseWriter, r *http.Request) (string, bo
 // koboProgressScale converts between Kobo's 0.0–1.0 and our 0–100 integer.
 const koboProgressScale = 100
 
+// koboEpoch is used as LastModified when no reading state exists server-side.
+// Returning time.Now() would make the server always appear newer than the
+// device, causing the firmware to overwrite local progress with the server's
+// 0% and never issue PUT …/state. An epoch timestamp ensures the device's
+// local progress is always "newer" so it wins the conflict and pushes its
+// progress to us.
+const koboEpoch = "1970-01-01T00:00:00Z"
+
 // koboWriteJSON writes v as JSON with status 200.
 func koboWriteJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -556,9 +564,9 @@ func buildKoboState(id string, state *models.BookReadingState) *koboReadingState
 				Location:                     nil,
 			},
 			EntitlementId: id,
-			LastModified:  time.Now().UTC().Format(time.RFC3339),
+			LastModified:  koboEpoch,
 			StatusInfo: koboStatusInfo{
-				LastModified: time.Now().UTC().Format(time.RFC3339),
+				LastModified: koboEpoch,
 				Status:       "ReadyToRead",
 				TimestampId:  id,
 			},
