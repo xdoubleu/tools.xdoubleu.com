@@ -27,12 +27,7 @@ jest.mock('swr', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeEntry(
-  bookId: string,
-  title: string,
-  status = 'to-read',
-  formats: string[] = []
-) {
+function makeEntry(bookId: string, title: string, status = 'to-read', formats: string[] = []) {
   return {
     id: `ub-${bookId}`,
     bookId,
@@ -60,17 +55,12 @@ function makeEntry(
   }
 }
 
-function makeGroup(
-  entries: ReturnType<typeof makeEntry>[],
-  reason = 'isbn13'
-) {
+function makeGroup(entries: ReturnType<typeof makeEntry>[], reason = 'isbn13') {
   return { entries, reason }
 }
 
 function renderDialog(open = true, onOpenChange = jest.fn()) {
-  return render(
-    <ManageDuplicatesDialog open={open} onOpenChange={onOpenChange} />
-  )
+  return render(<ManageDuplicatesDialog open={open} onOpenChange={onOpenChange} />)
 }
 
 // ---------------------------------------------------------------------------
@@ -189,9 +179,7 @@ describe('ManageDuplicatesDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Merge' }))
 
-    await waitFor(() =>
-      expect(screen.getByText(/Merge failed/)).toBeInTheDocument()
-    )
+    await waitFor(() => expect(screen.getByText(/Merge failed/)).toBeInTheDocument())
   })
 
   it('shows Merge all button when more than one group', () => {
