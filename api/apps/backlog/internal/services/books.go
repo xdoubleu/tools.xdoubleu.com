@@ -239,6 +239,17 @@ func (s *BookService) ListKoboSyncBooks(
 	return s.books.ListKoboSyncBooks(ctx, userID)
 }
 
+// GetKoboSyncBook returns a single kobo-sync book by ID for the user.
+// Returns database.ErrResourceNotFound when the book is not in the user's
+// kobo-sync list or has no ready file.
+func (s *BookService) GetKoboSyncBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (models.KoboSyncBook, error) {
+	return s.books.GetKoboSyncBook(ctx, userID, bookID)
+}
+
 // UpdateReadingProgress upserts a resumable reading position for a book.
 // source must be one of web/kobo/manual; percent is clamped to 0-100.
 func (s *BookService) UpdateReadingProgress(

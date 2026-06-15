@@ -799,3 +799,129 @@ func TestKoboState_UserBCannotReadUserAState(t *testing.T) {
 	// User B has no reading state for this book → percent must be 0.
 	assert.InDelta(t, 0.0, bm["ContentSourceProgressPercent"], 0.001)
 }
+
+// --- Metadata endpoint tests ---
+
+func TestKoboMetadata_ReturnsDownloadURL(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-meta-kepub-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/metadata"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var metas []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&metas))
+	require.Len(t, metas, 1)
+
+	meta := metas[0]
+	assert.Equal(t, bookID.String(), meta["RevisionId"])
+	assert.Equal(t, "application/x-kobo-epub+zip", meta["ContentType"])
+
+	dlUrls, ok := meta["DownloadUrls"].([]any)
+	require.True(t, ok)
+	require.Len(t, dlUrls, 1)
+	dl, ok := dlUrls[0].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "KEPUB", dl["Format"])
+	assert.Equal(t, "Generic", dl["Platform"])
+	dlURL, ok := dl["Url"].(string)
+	require.True(t, ok)
+	assert.Contains(t, dlURL, bookID.String()+"/file")
+}
+
+func TestKoboMetadata_PDF(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-meta-pdf-user"
+	rawToken, bookID := setupKoboPDFSyncBook(t, owner)
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/metadata"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var metas []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&metas))
+	require.Len(t, metas, 1)
+
+	dl, ok := metas[0]["DownloadUrls"].([]any)
+	require.True(t, ok)
+	require.Len(t, dl, 1)
+	entry, ok := dl[0].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "PDF", entry["Format"])
+	assert.Equal(t, "application/pdf", metas[0]["ContentType"])
+}
+
+func TestKoboMetadata_InvalidRevisionID(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-meta-invalid-"+uuid.NewString())
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/v1/library/not-a-uuid/metadata"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestKoboMetadata_UnknownBookProxiedUpstream verifies that a valid UUID for a
+// book the user does not own (no kobo-sync row) is forwarded to the upstream
+// Kobo store rather than returning a local 4xx.
+func TestKoboMetadata_UnknownBookProxiedUpstream(t *testing.T) {
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`[{"RevisionId":"upstream-book"}]`))
+		}),
+	)
+	t.Cleanup(upstream.Close)
+
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-meta-proxy-"+uuid.NewString())
+	unknownID := uuid.New()
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/v1/library/"+unknownID.String()+"/metadata"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	// Upstream responded 200, so we must relay it (not 400/404 locally).
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+// TestKoboMetadata_CrossUserProxied verifies that user B requesting user A's
+// book ID is proxied upstream (not served from our DB).
+func TestKoboMetadata_CrossUserProxied(t *testing.T) {
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}),
+	)
+	t.Cleanup(upstream.Close)
+
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	const userA = "kobo-meta-iso-user-a"
+	_, bookID := setupKoboSyncBook(t, userA)
+
+	// User B's token requesting user A's book id.
+	rawTokenB := registerTestDevice(t, "kobo-meta-iso-user-b")
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawTokenB, "/v1/library/"+bookID.String()+"/metadata"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	// Not in user B's kobo-sync list → proxied upstream, which returned 404.
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}

@@ -608,3 +608,37 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	}
 	return out, nil
 }
+
+// GetKoboSyncBook returns the single kobo-sync book matching bookID for the
+// user. It uses the same eligibility criteria as ListKoboSyncBooks: the book
+// must have the kobo-sync tag and a ready file. Returns
+// database.ErrResourceNotFound when no matching row exists.
+func (repo *BooksRepository) GetKoboSyncBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (models.KoboSyncBook, error) {
+	query := `
+		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes
+		FROM backlog.user_books ub
+		JOIN backlog.books b ON b.id = ub.book_id
+		JOIN backlog.book_files bf
+		    ON bf.book_id = ub.book_id
+		    AND bf.user_id = ub.user_id
+		    AND bf.status = 'ready'
+		    AND bf.format = CASE
+		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
+		        ELSE 'kepub'
+		    END
+		WHERE ub.user_id = $1 AND ub.book_id = $2 AND 'kobo-sync' = ANY(ub.tags)
+	`
+
+	var b models.KoboSyncBook
+	err := repo.db.QueryRow(ctx, query, userID, bookID).Scan(
+		&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+	)
+	if err != nil {
+		return models.KoboSyncBook{}, postgres.PgxErrorToHTTPError(err)
+	}
+	return b, nil
+}
