@@ -224,11 +224,16 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	libraryBase := app.koboLibraryBase(r)
-	now := time.Now().UTC().Format(time.RFC3339)
 
 	ourEntries := make([]json.RawMessage, len(books))
 	for i, b := range books {
 		id := b.BookID.String()
+		// Use the time kobo-sync was enabled for this book so the entitlement
+		// payload is byte-identical on every sync. time.Now() would produce a
+		// different Created/PurchasedDate each request, causing the Kobo firmware
+		// to tear down and recreate the entitlement on every sync (the visible
+		// "books briefly disappear" flicker).
+		enabled := b.KoboSyncEnabledAt.UTC().Format(time.RFC3339)
 
 		// json.Marshal cannot fail on this fully-typed struct.
 		// Each entry must be wrapped in the NewEntitlement discriminator key
@@ -240,13 +245,13 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 			NewEntitlement: koboSyncEntry{
 				BookEntitlement: koboBookEntitlement{
 					Accessibility:   "Full",
-					ActivePeriod:    map[string]string{"From": now},
-					Created:         now,
+					ActivePeriod:    map[string]string{"From": enabled},
+					Created:         enabled,
 					CrossRevisionId: id,
 					Id:              id,
 					IsRemoved:       false,
 					IsHiddenFromUI:  false,
-					PurchasedDate:   now,
+					PurchasedDate:   enabled,
 					RevisionId:      id,
 					Status:          "Active",
 					Type:            "ebook",

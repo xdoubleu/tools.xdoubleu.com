@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -125,6 +126,7 @@ func TestGetKoboFileFormat_PDFTag_ReturnsPDF(t *testing.T) {
 	err := testApp.Repositories.Books.UpdateTags(
 		context.Background(), userID, ub.BookID,
 		[]string{models.TagKoboFormatPDF},
+		false, // no kobo-sync tag
 	)
 	require.NoError(t, err)
 
@@ -756,6 +758,7 @@ func TestConnectRequestKEPUBConversion_PDFWithKoboFormatPDFTag_StillConverts(
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 	err := testApp.Repositories.Books.UpdateTags(
 		context.Background(), userID, bookID, []string{models.TagKoboFormatPDF},
+		false, // no kobo-sync tag
 	)
 	require.NoError(t, err)
 
@@ -786,4 +789,99 @@ func TestConnectRequestKEPUBConversion_InvalidBookID(t *testing.T) {
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+// --- UpdateTags kobo_sync_enabled_at repository tests ---
+
+// TestUpdateTags_SetsKoboSyncEnabledAt asserts that UpdateTags writes
+// kobo_sync_enabled_at when the new tag list contains kobo-sync.
+func TestUpdateTags_SetsKoboSyncEnabledAt(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "TagsEnabledAt-"+uuid.NewString())
+
+	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+		ctx, userID, ub.BookID, []string{models.TagKoboSync},
+		true,
+	))
+
+	var enabledAt *time.Time
+	err := testDB.QueryRow(ctx,
+		`SELECT kobo_sync_enabled_at
+		   FROM backlog.user_books
+		  WHERE user_id = $1 AND book_id = $2`,
+		userID, ub.BookID,
+	).Scan(&enabledAt)
+	require.NoError(t, err)
+	assert.NotNil(
+		t,
+		enabledAt,
+		"kobo_sync_enabled_at must be set after enabling kobo-sync",
+	)
+}
+
+// TestUpdateTags_PreservesKoboSyncEnabledAt asserts that a subsequent tag
+// edit that keeps kobo-sync does not overwrite the original enable timestamp.
+func TestUpdateTags_PreservesKoboSyncEnabledAt(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "TagsPreserveAt-"+uuid.NewString())
+
+	// Enable kobo-sync.
+	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+		ctx, userID, ub.BookID, []string{models.TagKoboSync},
+		true,
+	))
+
+	var first time.Time
+	require.NoError(t, testDB.QueryRow(ctx,
+		`SELECT kobo_sync_enabled_at
+		   FROM backlog.user_books
+		  WHERE user_id = $1 AND book_id = $2`,
+		userID, ub.BookID,
+	).Scan(&first))
+
+	// Add another tag while keeping kobo-sync.
+	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+		ctx, userID, ub.BookID,
+		[]string{models.TagKoboSync, models.TagKoboFormatPDF},
+		true,
+	))
+
+	var second time.Time
+	require.NoError(t, testDB.QueryRow(ctx,
+		`SELECT kobo_sync_enabled_at
+		   FROM backlog.user_books
+		  WHERE user_id = $1 AND book_id = $2`,
+		userID, ub.BookID,
+	).Scan(&second))
+
+	assert.True(t, first.Equal(second),
+		"kobo_sync_enabled_at must not change when kobo-sync tag is kept")
+}
+
+// TestUpdateTags_ClearsKoboSyncEnabledAt asserts that removing the kobo-sync
+// tag sets kobo_sync_enabled_at back to NULL.
+func TestUpdateTags_ClearsKoboSyncEnabledAt(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "TagsClearAt-"+uuid.NewString())
+
+	// Enable then disable.
+	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+		ctx, userID, ub.BookID, []string{models.TagKoboSync},
+		true,
+	))
+	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+		ctx, userID, ub.BookID, []string{},
+		false,
+	))
+
+	var enabledAt *time.Time
+	require.NoError(t, testDB.QueryRow(ctx,
+		`SELECT kobo_sync_enabled_at
+		   FROM backlog.user_books
+		  WHERE user_id = $1 AND book_id = $2`,
+		userID, ub.BookID,
+	).Scan(&enabledAt))
+
+	assert.Nil(t, enabledAt,
+		"kobo_sync_enabled_at must be NULL after kobo-sync tag is removed")
 }

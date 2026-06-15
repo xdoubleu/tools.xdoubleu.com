@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -550,7 +551,11 @@ func (s *BookService) ensureTag(
 			return nil
 		}
 	}
-	return s.books.UpdateTags(ctx, userID, bookID, append(ub.Tags, tag))
+	newTags := append(ub.Tags, tag) //nolint:gocritic // intentional: tags is owned here
+	return s.books.UpdateTags(
+		ctx, userID, bookID, newTags,
+		slices.Contains(newTags, models.TagKoboSync),
+	)
 }
 
 // KEPUBStatusResult is returned by GetKEPUBStatus.

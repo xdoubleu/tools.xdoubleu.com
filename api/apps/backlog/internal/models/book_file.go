@@ -22,12 +22,13 @@ const (
 // the kobo-sync tag that has a ready file in R2. Format is either "kepub" or
 // "pdf" depending on the user's per-book kobo-format-pdf tag.
 type KoboSyncBook struct {
-	BookID     uuid.UUID
-	Title      string
-	Authors    []string
-	Format     string
-	StorageKey string
-	Size       int64
+	BookID            uuid.UUID
+	Title             string
+	Authors           []string
+	Format            string
+	StorageKey        string
+	Size              int64
+	KoboSyncEnabledAt time.Time
 }
 
 type BookFile struct {
