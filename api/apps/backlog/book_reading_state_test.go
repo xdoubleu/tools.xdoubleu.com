@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
@@ -238,4 +239,104 @@ func TestConnectGetReadingState_InvalidBookID(t *testing.T) {
 	_, err := client.GetReadingState(ctx, req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// ---------------------------------------------------------------------------
+// Auto-promote tests (status promotion when progress > 0)
+// ---------------------------------------------------------------------------
+
+// seedUserBook creates a user_book row for the global userID with the given status.
+func seedUserBook(t *testing.T, bookID uuid.UUID, status string) {
+	t.Helper()
+	require.NoError(t, testApp.Repositories.Books.UpsertUserBook(
+		context.Background(),
+		models.UserBook{ //nolint:exhaustruct //optional fields
+			UserID:         userID,
+			BookID:         bookID,
+			Status:         status,
+			Tags:           []string{},
+			ShelfPositions: map[string]int{},
+		},
+	))
+}
+
+func getUserBookStatus(t *testing.T, bookID uuid.UUID) string {
+	t.Helper()
+	ub, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(),
+		userID,
+		bookID,
+	)
+	require.NoError(t, err)
+	return ub.Status
+}
+
+// TestUpdateReadingProgress_PromotesToReading_FromToRead verifies that a book
+// with status "to-read" is promoted to "currently-reading" when progress > 0.
+func TestUpdateReadingProgress_PromotesToReading_FromToRead(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusToRead)
+
+	err := testApp.Services.Books.UpdateReadingProgress(
+		context.Background(), userID, book.ID, models.ReadingSourceKobo, 10, nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
+}
+
+// TestUpdateReadingProgress_PromotesToReading_FromDropped verifies that a
+// dropped book is revived to "currently-reading" when progress > 0.
+func TestUpdateReadingProgress_PromotesToReading_FromDropped(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusDropped)
+
+	err := testApp.Services.Books.UpdateReadingProgress(
+		context.Background(), userID, book.ID, models.ReadingSourceKobo, 5, nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
+}
+
+// TestUpdateReadingProgress_NoPromote_AlreadyReading confirms a book already
+// "currently-reading" keeps its status unchanged.
+func TestUpdateReadingProgress_NoPromote_AlreadyReading(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusReading)
+
+	err := testApp.Services.Books.UpdateReadingProgress(
+		context.Background(), userID, book.ID, models.ReadingSourceWeb, 50, nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
+}
+
+// TestUpdateReadingProgress_NoPromote_AlreadyRead confirms a finished book is
+// not demoted back to "currently-reading".
+func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusRead)
+
+	err := testApp.Services.Books.UpdateReadingProgress(
+		context.Background(), userID, book.ID, models.ReadingSourceWeb, 80, nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, models.StatusRead, getUserBookStatus(t, book.ID))
+}
+
+// TestUpdateReadingProgress_NoPromote_ZeroPercent confirms that a 0% progress
+// update does not promote the book (Kobo sends 0 on initial open/sync).
+func TestUpdateReadingProgress_NoPromote_ZeroPercent(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusToRead)
+
+	err := testApp.Services.Books.UpdateReadingProgress(
+		context.Background(), userID, book.ID, models.ReadingSourceKobo, 0, nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, models.StatusToRead, getUserBookStatus(t, book.ID))
 }
