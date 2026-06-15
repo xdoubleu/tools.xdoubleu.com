@@ -107,8 +107,15 @@ type koboSettings struct {
 type koboSyncEntry struct {
 	BookEntitlement koboBookEntitlement `json:"BookEntitlement"`
 	BookMetadata    koboBookMetadata    `json:"BookMetadata"`
-	DownloadUrls    []koboDownloadURL   `json:"DownloadUrls"`
 	ReadingState    *koboReadingState   `json:"ReadingState"`
+}
+
+// koboNewEntitlement wraps a koboSyncEntry in the discriminator key that the
+// Kobo firmware requires. Each element of the /v1/library/sync array must be
+// an object keyed by a change-type tag (NewEntitlement, ChangedEntitlement,
+// etc.) with the payload nested inside — a bare payload is silently ignored.
+type koboNewEntitlement struct {
+	NewEntitlement koboSyncEntry `json:"NewEntitlement"`
 }
 
 type koboBookEntitlement struct {
@@ -132,8 +139,9 @@ type koboBookMetadata struct {
 	Title       string `json:"Title"`
 	ContentType string `json:"ContentType"`
 	//nolint:revive,stylecheck // Kobo protocol field name
-	RevisionId string `json:"RevisionId"`
-	Language   string `json:"Language"`
+	RevisionId   string            `json:"RevisionId"`
+	Language     string            `json:"Language"`
+	DownloadUrls []koboDownloadURL `json:"DownloadUrls"`
 }
 
 type koboDownloadURL struct {
@@ -212,33 +220,38 @@ func (app *Backlog) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Reques
 		}
 
 		// json.Marshal cannot fail on this fully-typed struct.
-		raw, _ := json.Marshal(koboSyncEntry{
-			BookEntitlement: koboBookEntitlement{
-				Accessibility:   "Full",
-				ActivePeriod:    map[string]string{"From": now},
-				Created:         now,
-				CrossRevisionId: id,
-				Id:              id,
-				IsRemoved:       false,
-				IsHiddenFromUI:  false,
-				PurchasedDate:   now,
-				RevisionId:      id,
-				Status:          "Active",
-				Type:            "ebook",
+		// Each entry must be wrapped in the NewEntitlement discriminator key
+		// so the Kobo firmware recognises it — a bare payload is silently ignored.
+		// DownloadUrls lives inside BookMetadata per the Kobo store protocol.
+		raw, _ := json.Marshal(koboNewEntitlement{
+			NewEntitlement: koboSyncEntry{
+				BookEntitlement: koboBookEntitlement{
+					Accessibility:   "Full",
+					ActivePeriod:    map[string]string{"From": now},
+					Created:         now,
+					CrossRevisionId: id,
+					Id:              id,
+					IsRemoved:       false,
+					IsHiddenFromUI:  false,
+					PurchasedDate:   now,
+					RevisionId:      id,
+					Status:          "Active",
+					Type:            "ebook",
+				},
+				BookMetadata: koboBookMetadata{
+					Title:       b.Title,
+					ContentType: contentType,
+					RevisionId:  id,
+					Language:    "en",
+					DownloadUrls: []koboDownloadURL{{
+						Format:   downloadFormat,
+						Size:     b.Size,
+						URL:      libraryBase + "/" + id + "/file",
+						Platform: "Desktop",
+					}},
+				},
+				ReadingState: nil,
 			},
-			BookMetadata: koboBookMetadata{
-				Title:       b.Title,
-				ContentType: contentType,
-				RevisionId:  id,
-				Language:    "en",
-			},
-			DownloadUrls: []koboDownloadURL{{
-				Format:   downloadFormat,
-				Size:     b.Size,
-				URL:      libraryBase + "/" + id + "/file",
-				Platform: "Desktop",
-			}},
-			ReadingState: nil,
 		})
 		ourEntries[i] = raw
 	}
