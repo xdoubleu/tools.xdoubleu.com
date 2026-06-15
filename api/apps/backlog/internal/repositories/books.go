@@ -549,18 +549,28 @@ func (repo *BooksRepository) DeleteUserBooks(
 }
 
 // UpdateTags replaces the tag list for a user_book.
+// koboSync must be true when the resulting tag list contains the kobo-sync
+// tag so that kobo_sync_enabled_at is set (on first enable) or preserved
+// (when other tags change while kobo-sync stays). Passing false clears the
+// column so a re-enable gets a fresh timestamp.
 func (repo *BooksRepository) UpdateTags(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	tags []string,
+	koboSync bool,
 ) error {
 	query := `
 		UPDATE backlog.user_books
-		SET tags = $3, updated_at = now()
+		SET tags = $3,
+		    kobo_sync_enabled_at = CASE
+		        WHEN $4 THEN COALESCE(kobo_sync_enabled_at, now())
+		        ELSE NULL
+		    END,
+		    updated_at = now()
 		WHERE user_id = $1 AND book_id = $2
 	`
-	_, err := repo.db.Exec(ctx, query, userID, bookID, tags)
+	_, err := repo.db.Exec(ctx, query, userID, bookID, tags, koboSync)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
@@ -572,7 +582,8 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	userID string,
 ) ([]models.KoboSyncBook, error) {
 	query := `
-		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes
+		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
+		       COALESCE(ub.kobo_sync_enabled_at, ub.added_at)
 		FROM backlog.user_books ub
 		JOIN backlog.books b ON b.id = ub.book_id
 		JOIN backlog.book_files bf
@@ -598,6 +609,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 		var b models.KoboSyncBook
 		if scanErr := rows.Scan(
 			&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+			&b.KoboSyncEnabledAt,
 		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}

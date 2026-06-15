@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -341,6 +342,7 @@ func setupKoboPDFSyncBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 	err := testApp.Repositories.Books.UpdateTags(
 		context.Background(), ownerID, bookID,
 		[]string{models.TagKoboSync, models.TagKoboFormatPDF},
+		true, // has kobo-sync tag
 	)
 	require.NoError(t, err)
 	rawToken := registerTestDevice(t, ownerID)
@@ -998,6 +1000,95 @@ func TestKoboMetadata_UnknownBookProxiedUpstream(t *testing.T) {
 	defer resp.Body.Close()
 	// Upstream responded 200, so we must relay it (not 400/404 locally).
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+// TestKoboLibrarySync_EntitlementStableAcrossSyncs is the regression test for
+// the "books briefly disappear then reappear" flicker: it syncs the same
+// library twice and asserts the entitlement timestamps are identical. Before
+// the fix, Created/PurchasedDate/ActivePeriod.From were time.Now() — different
+// on every request — causing the Kobo firmware to tear down and recreate the
+// entitlement on each sync.
+func TestKoboLibrarySync_EntitlementStableAcrossSyncs(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-stable-ts-" + uuid.NewString()
+	rawToken, _ := setupKoboSyncBook(t, owner)
+
+	syncOnce := func() map[string]any {
+		resp, err := http.DefaultClient.Do(
+			koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+		)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var entries []map[string]any
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+		require.Len(t, entries, 1)
+
+		ne, ok := entries[0]["NewEntitlement"].(map[string]any)
+		require.True(t, ok)
+		ent, ok := ne["BookEntitlement"].(map[string]any)
+		require.True(t, ok)
+		return ent
+	}
+
+	first := syncOnce()
+	second := syncOnce()
+
+	assert.Equal(t, first["Created"], second["Created"],
+		"Created must be identical across syncs")
+	assert.Equal(t, first["PurchasedDate"], second["PurchasedDate"],
+		"PurchasedDate must be identical across syncs")
+
+	ap1, ok1 := first["ActivePeriod"].(map[string]any)
+	ap2, ok2 := second["ActivePeriod"].(map[string]any)
+	require.True(t, ok1 && ok2)
+	assert.Equal(t, ap1["From"], ap2["From"],
+		"ActivePeriod.From must be identical across syncs")
+}
+
+// TestKoboLibrarySync_EntitlementTimestampIsEnableTime asserts that the
+// Created/PurchasedDate/ActivePeriod.From timestamps in the sync manifest
+// reflect the moment kobo-sync was enabled, not the request time.
+func TestKoboLibrarySync_EntitlementTimestampIsEnableTime(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-enable-ts-" + uuid.NewString()
+
+	before := time.Now().UTC().Add(-time.Second)
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+	after := time.Now().UTC().Add(time.Second)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var entries []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+	require.Len(t, entries, 1)
+
+	ne, ok := entries[0]["NewEntitlement"].(map[string]any)
+	require.True(t, ok)
+	ent, ok := ne["BookEntitlement"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, bookID.String(), ent["RevisionId"])
+
+	created, ok := ent["Created"].(string)
+	require.True(t, ok, "Created must be a string timestamp")
+	ts2, err := time.Parse(time.RFC3339, created)
+	require.NoError(t, err, "Created must be a valid RFC3339 timestamp")
+
+	// The timestamp must fall within the window when we called EnableKoboSync,
+	// not be equal to the request time (which would be later).
+	assert.True(t, !ts2.Before(before) && !ts2.After(after),
+		"Created must equal the kobo-sync enable time, got %s (window: %s–%s)",
+		ts2, before, after)
 }
 
 // TestKoboMetadata_CrossUserProxied verifies that user B requesting user A's

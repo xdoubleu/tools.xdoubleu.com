@@ -113,7 +113,10 @@ func (s *BookService) ToggleTag(
 		newTags = append(newTags, tag)
 	}
 
-	return s.books.UpdateTags(ctx, userID, bookID, newTags)
+	return s.books.UpdateTags(
+		ctx, userID, bookID, newTags,
+		slices.Contains(newTags, models.TagKoboSync),
+	)
 }
 
 func (s *BookService) GetUserBook(
