@@ -364,6 +364,66 @@ func (r *BookFilesRepository) FormatsByUser(
 	return result, nil
 }
 
+// RepointAndDedup moves all of fromBookID's files to toBookID for a given
+// user. Files whose (format, checksum) pair already exists on toBookID are
+// deleted instead of repointed (they are exact duplicates). The storage_keys
+// of deleted duplicate rows are returned so the caller can do a refcount-safe
+// R2 cleanup.
+func (r *BookFilesRepository) RepointAndDedup(
+	ctx context.Context,
+	userID string,
+	fromBookID uuid.UUID,
+	toBookID uuid.UUID,
+) ([]string, error) {
+	// 1. Delete duplicate files (same format+checksum already on winner).
+	//    Collect their storage_keys for R2 cleanup.
+	deleteQuery := `
+		DELETE FROM backlog.book_files f
+		USING (
+			SELECT format, checksum
+			FROM backlog.book_files
+			WHERE user_id = $1 AND book_id = $3
+		) winner
+		WHERE f.user_id = $1
+		  AND f.book_id = $2
+		  AND f.format   = winner.format
+		  AND f.checksum = winner.checksum
+		RETURNING f.storage_key
+	`
+
+	rows, err := r.db.Query(ctx, deleteQuery, userID, fromBookID, toBookID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var keys []string
+	for rows.Next() {
+		var key string
+		if scanErr := rows.Scan(&key); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		keys = append(keys, key)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	rows.Close()
+
+	// 2. Repoint remaining files from loser to winner.
+	repointQuery := `
+		UPDATE backlog.book_files
+		SET book_id = $3, updated_at = now()
+		WHERE user_id = $1 AND book_id = $2
+	`
+	_, err = r.db.Exec(ctx, repointQuery, userID, fromBookID, toBookID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return keys, nil
+}
+
 func scanBookFile(row pgx.Row) (*models.BookFile, error) {
 	var f models.BookFile
 

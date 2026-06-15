@@ -498,6 +498,10 @@ func TestKoboLibrarySync_ReadyKEPUBIncluded(t *testing.T) {
 	dl, ok := dlUrls[0].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "KEPUB", dl["Format"])
+	// Platform must be "Generic" so the device's DownloadUrlFilter=Generic,Android
+	// header accepts the entry — "Desktop" is not in that list and is silently
+	// discarded by the firmware, resulting in books never appearing on the device.
+	assert.Equal(t, "Generic", dl["Platform"])
 	dlURL, ok := dl["Url"].(string)
 	require.True(t, ok)
 	assert.Contains(t, dlURL, bookID.String()+"/file")

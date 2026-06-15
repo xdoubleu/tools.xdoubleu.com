@@ -3023,6 +3023,249 @@ func (x *ClearLibraryResponse) GetDeletedFiles() uint32 {
 	return 0
 }
 
+type DuplicateGroup struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Library entries judged to be the same book. entries[0] is the suggested
+	// winner (the entry to keep); the rest are the suggested losers.
+	Entries []*UserBook `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Strongest matching signal: "isbn13" | "isbn10" | "title+author"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DuplicateGroup) Reset() {
+	*x = DuplicateGroup{}
+	mi := &file_backlog_v1_books_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DuplicateGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DuplicateGroup) ProtoMessage() {}
+
+func (x *DuplicateGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DuplicateGroup.ProtoReflect.Descriptor instead.
+func (*DuplicateGroup) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *DuplicateGroup) GetEntries() []*UserBook {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *DuplicateGroup) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type FindDuplicatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindDuplicatesRequest) Reset() {
+	*x = FindDuplicatesRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindDuplicatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindDuplicatesRequest) ProtoMessage() {}
+
+func (x *FindDuplicatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindDuplicatesRequest.ProtoReflect.Descriptor instead.
+func (*FindDuplicatesRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{56}
+}
+
+type FindDuplicatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Groups        []*DuplicateGroup      `protobuf:"bytes,1,rep,name=groups,proto3" json:"groups,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindDuplicatesResponse) Reset() {
+	*x = FindDuplicatesResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindDuplicatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindDuplicatesResponse) ProtoMessage() {}
+
+func (x *FindDuplicatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindDuplicatesResponse.ProtoReflect.Descriptor instead.
+func (*FindDuplicatesResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *FindDuplicatesResponse) GetGroups() []*DuplicateGroup {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+type MergeBooksRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// book_id of the UserBook entry to keep.
+	WinnerBookId string `protobuf:"bytes,1,opt,name=winner_book_id,json=winnerBookId,proto3" json:"winner_book_id,omitempty"`
+	// book_ids of UserBook entries to merge into the winner, then delete.
+	LoserBookIds  []string `protobuf:"bytes,2,rep,name=loser_book_ids,json=loserBookIds,proto3" json:"loser_book_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MergeBooksRequest) Reset() {
+	*x = MergeBooksRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeBooksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeBooksRequest) ProtoMessage() {}
+
+func (x *MergeBooksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MergeBooksRequest.ProtoReflect.Descriptor instead.
+func (*MergeBooksRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *MergeBooksRequest) GetWinnerBookId() string {
+	if x != nil {
+		return x.WinnerBookId
+	}
+	return ""
+}
+
+func (x *MergeBooksRequest) GetLoserBookIds() []string {
+	if x != nil {
+		return x.LoserBookIds
+	}
+	return nil
+}
+
+type MergeBooksResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Always 1 — one group merged per call.
+	MergedGroups uint32 `protobuf:"varint,1,opt,name=merged_groups,json=mergedGroups,proto3" json:"merged_groups,omitempty"`
+	// Duplicate file rows removed (after format+checksum dedup).
+	DeletedFiles  uint32 `protobuf:"varint,2,opt,name=deleted_files,json=deletedFiles,proto3" json:"deleted_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MergeBooksResponse) Reset() {
+	*x = MergeBooksResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeBooksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeBooksResponse) ProtoMessage() {}
+
+func (x *MergeBooksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MergeBooksResponse.ProtoReflect.Descriptor instead.
+func (*MergeBooksResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *MergeBooksResponse) GetMergedGroups() uint32 {
+	if x != nil {
+		return x.MergedGroups
+	}
+	return 0
+}
+
+func (x *MergeBooksResponse) GetDeletedFiles() uint32 {
+	if x != nil {
+		return x.DeletedFiles
+	}
+	return 0
+}
+
 var File_backlog_v1_books_proto protoreflect.FileDescriptor
 
 const file_backlog_v1_books_proto_rawDesc = "" +
@@ -3227,7 +3470,19 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x13ClearLibraryRequest\"`\n" +
 	"\x14ClearLibraryResponse\x12#\n" +
 	"\rdeleted_books\x18\x01 \x01(\rR\fdeletedBooks\x12#\n" +
-	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles2\xa5\x10\n" +
+	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles\"X\n" +
+	"\x0eDuplicateGroup\x12.\n" +
+	"\aentries\x18\x01 \x03(\v2\x14.backlog.v1.UserBookR\aentries\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x17\n" +
+	"\x15FindDuplicatesRequest\"L\n" +
+	"\x16FindDuplicatesResponse\x122\n" +
+	"\x06groups\x18\x01 \x03(\v2\x1a.backlog.v1.DuplicateGroupR\x06groups\"_\n" +
+	"\x11MergeBooksRequest\x12$\n" +
+	"\x0ewinner_book_id\x18\x01 \x01(\tR\fwinnerBookId\x12$\n" +
+	"\x0eloser_book_ids\x18\x02 \x03(\tR\floserBookIds\"^\n" +
+	"\x12MergeBooksResponse\x12#\n" +
+	"\rmerged_groups\x18\x01 \x01(\rR\fmergedGroups\x12#\n" +
+	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles2\xcb\x11\n" +
 	"\fBooksService\x12K\n" +
 	"\n" +
 	"GetSummary\x12\x1d.backlog.v1.GetSummaryRequest\x1a\x1e.backlog.v1.GetSummaryResponse\x12W\n" +
@@ -3253,7 +3508,10 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x12RegisterKoboDevice\x12%.backlog.v1.RegisterKoboDeviceRequest\x1a&.backlog.v1.RegisterKoboDeviceResponse\x12Z\n" +
 	"\x0fListKoboDevices\x12\".backlog.v1.ListKoboDevicesRequest\x1a#.backlog.v1.ListKoboDevicesResponse\x12i\n" +
 	"\x14DisconnectKoboDevice\x12'.backlog.v1.DisconnectKoboDeviceRequest\x1a(.backlog.v1.DisconnectKoboDeviceResponse\x12Q\n" +
-	"\fClearLibrary\x12\x1f.backlog.v1.ClearLibraryRequest\x1a .backlog.v1.ClearLibraryResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
+	"\fClearLibrary\x12\x1f.backlog.v1.ClearLibraryRequest\x1a .backlog.v1.ClearLibraryResponse\x12W\n" +
+	"\x0eFindDuplicates\x12!.backlog.v1.FindDuplicatesRequest\x1a\".backlog.v1.FindDuplicatesResponse\x12K\n" +
+	"\n" +
+	"MergeBooks\x12\x1d.backlog.v1.MergeBooksRequest\x1a\x1e.backlog.v1.MergeBooksResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
 
 var (
 	file_backlog_v1_books_proto_rawDescOnce sync.Once
@@ -3267,7 +3525,7 @@ func file_backlog_v1_books_proto_rawDescGZIP() []byte {
 	return file_backlog_v1_books_proto_rawDescData
 }
 
-var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
+var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 60)
 var file_backlog_v1_books_proto_goTypes = []any{
 	(*Book)(nil),                           // 0: backlog.v1.Book
 	(*UserBook)(nil),                       // 1: backlog.v1.UserBook
@@ -3324,6 +3582,11 @@ var file_backlog_v1_books_proto_goTypes = []any{
 	(*RequestKEPUBConversionResponse)(nil), // 52: backlog.v1.RequestKEPUBConversionResponse
 	(*ClearLibraryRequest)(nil),            // 53: backlog.v1.ClearLibraryRequest
 	(*ClearLibraryResponse)(nil),           // 54: backlog.v1.ClearLibraryResponse
+	(*DuplicateGroup)(nil),                 // 55: backlog.v1.DuplicateGroup
+	(*FindDuplicatesRequest)(nil),          // 56: backlog.v1.FindDuplicatesRequest
+	(*FindDuplicatesResponse)(nil),         // 57: backlog.v1.FindDuplicatesResponse
+	(*MergeBooksRequest)(nil),              // 58: backlog.v1.MergeBooksRequest
+	(*MergeBooksResponse)(nil),             // 59: backlog.v1.MergeBooksResponse
 }
 var file_backlog_v1_books_proto_depIdxs = []int32{
 	0,  // 0: backlog.v1.UserBook.book:type_name -> backlog.v1.Book
@@ -3341,57 +3604,63 @@ var file_backlog_v1_books_proto_depIdxs = []int32{
 	33, // 12: backlog.v1.GetReadingStateResponse.state:type_name -> backlog.v1.BookReadingStateData
 	44, // 13: backlog.v1.RegisterKoboDeviceResponse.device:type_name -> backlog.v1.KoboDevice
 	44, // 14: backlog.v1.ListKoboDevicesResponse.devices:type_name -> backlog.v1.KoboDevice
-	7,  // 15: backlog.v1.BooksService.GetSummary:input_type -> backlog.v1.GetSummaryRequest
-	9,  // 16: backlog.v1.BooksService.GetUserSummary:input_type -> backlog.v1.GetUserSummaryRequest
-	11, // 17: backlog.v1.BooksService.GetLibrary:input_type -> backlog.v1.GetLibraryRequest
-	13, // 18: backlog.v1.BooksService.GetBooksProgress:input_type -> backlog.v1.GetBooksProgressRequest
-	15, // 19: backlog.v1.BooksService.SearchLibrary:input_type -> backlog.v1.SearchLibraryRequest
-	17, // 20: backlog.v1.BooksService.SearchExternal:input_type -> backlog.v1.SearchExternalRequest
-	19, // 21: backlog.v1.BooksService.AddBook:input_type -> backlog.v1.AddBookRequest
-	21, // 22: backlog.v1.BooksService.UpdateBookStatus:input_type -> backlog.v1.UpdateBookStatusRequest
-	25, // 23: backlog.v1.BooksService.UpdateProgress:input_type -> backlog.v1.UpdateProgressRequest
-	23, // 24: backlog.v1.BooksService.ToggleTag:input_type -> backlog.v1.ToggleTagRequest
-	27, // 25: backlog.v1.BooksService.ImportBooks:input_type -> backlog.v1.ImportBooksRequest
-	34, // 26: backlog.v1.BooksService.UpdateReadingProgress:input_type -> backlog.v1.UpdateReadingProgressRequest
-	36, // 27: backlog.v1.BooksService.GetReadingState:input_type -> backlog.v1.GetReadingStateRequest
-	29, // 28: backlog.v1.BooksService.CreateBookUpload:input_type -> backlog.v1.CreateBookUploadRequest
-	31, // 29: backlog.v1.BooksService.FinalizeBookUpload:input_type -> backlog.v1.FinalizeBookUploadRequest
-	38, // 30: backlog.v1.BooksService.GetBookFile:input_type -> backlog.v1.GetBookFileRequest
-	40, // 31: backlog.v1.BooksService.EnableKoboSync:input_type -> backlog.v1.EnableKoboSyncRequest
-	51, // 32: backlog.v1.BooksService.RequestKEPUBConversion:input_type -> backlog.v1.RequestKEPUBConversionRequest
-	42, // 33: backlog.v1.BooksService.GetKEPUBStatus:input_type -> backlog.v1.GetKEPUBStatusRequest
-	45, // 34: backlog.v1.BooksService.RegisterKoboDevice:input_type -> backlog.v1.RegisterKoboDeviceRequest
-	47, // 35: backlog.v1.BooksService.ListKoboDevices:input_type -> backlog.v1.ListKoboDevicesRequest
-	49, // 36: backlog.v1.BooksService.DisconnectKoboDevice:input_type -> backlog.v1.DisconnectKoboDeviceRequest
-	53, // 37: backlog.v1.BooksService.ClearLibrary:input_type -> backlog.v1.ClearLibraryRequest
-	8,  // 38: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
-	10, // 39: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
-	12, // 40: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
-	14, // 41: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
-	16, // 42: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
-	18, // 43: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
-	20, // 44: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
-	22, // 45: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
-	26, // 46: backlog.v1.BooksService.UpdateProgress:output_type -> backlog.v1.UpdateProgressResponse
-	24, // 47: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
-	28, // 48: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
-	35, // 49: backlog.v1.BooksService.UpdateReadingProgress:output_type -> backlog.v1.UpdateReadingProgressResponse
-	37, // 50: backlog.v1.BooksService.GetReadingState:output_type -> backlog.v1.GetReadingStateResponse
-	30, // 51: backlog.v1.BooksService.CreateBookUpload:output_type -> backlog.v1.CreateBookUploadResponse
-	32, // 52: backlog.v1.BooksService.FinalizeBookUpload:output_type -> backlog.v1.FinalizeBookUploadResponse
-	39, // 53: backlog.v1.BooksService.GetBookFile:output_type -> backlog.v1.GetBookFileResponse
-	41, // 54: backlog.v1.BooksService.EnableKoboSync:output_type -> backlog.v1.EnableKoboSyncResponse
-	52, // 55: backlog.v1.BooksService.RequestKEPUBConversion:output_type -> backlog.v1.RequestKEPUBConversionResponse
-	43, // 56: backlog.v1.BooksService.GetKEPUBStatus:output_type -> backlog.v1.GetKEPUBStatusResponse
-	46, // 57: backlog.v1.BooksService.RegisterKoboDevice:output_type -> backlog.v1.RegisterKoboDeviceResponse
-	48, // 58: backlog.v1.BooksService.ListKoboDevices:output_type -> backlog.v1.ListKoboDevicesResponse
-	50, // 59: backlog.v1.BooksService.DisconnectKoboDevice:output_type -> backlog.v1.DisconnectKoboDeviceResponse
-	54, // 60: backlog.v1.BooksService.ClearLibrary:output_type -> backlog.v1.ClearLibraryResponse
-	38, // [38:61] is the sub-list for method output_type
-	15, // [15:38] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	1,  // 15: backlog.v1.DuplicateGroup.entries:type_name -> backlog.v1.UserBook
+	55, // 16: backlog.v1.FindDuplicatesResponse.groups:type_name -> backlog.v1.DuplicateGroup
+	7,  // 17: backlog.v1.BooksService.GetSummary:input_type -> backlog.v1.GetSummaryRequest
+	9,  // 18: backlog.v1.BooksService.GetUserSummary:input_type -> backlog.v1.GetUserSummaryRequest
+	11, // 19: backlog.v1.BooksService.GetLibrary:input_type -> backlog.v1.GetLibraryRequest
+	13, // 20: backlog.v1.BooksService.GetBooksProgress:input_type -> backlog.v1.GetBooksProgressRequest
+	15, // 21: backlog.v1.BooksService.SearchLibrary:input_type -> backlog.v1.SearchLibraryRequest
+	17, // 22: backlog.v1.BooksService.SearchExternal:input_type -> backlog.v1.SearchExternalRequest
+	19, // 23: backlog.v1.BooksService.AddBook:input_type -> backlog.v1.AddBookRequest
+	21, // 24: backlog.v1.BooksService.UpdateBookStatus:input_type -> backlog.v1.UpdateBookStatusRequest
+	25, // 25: backlog.v1.BooksService.UpdateProgress:input_type -> backlog.v1.UpdateProgressRequest
+	23, // 26: backlog.v1.BooksService.ToggleTag:input_type -> backlog.v1.ToggleTagRequest
+	27, // 27: backlog.v1.BooksService.ImportBooks:input_type -> backlog.v1.ImportBooksRequest
+	34, // 28: backlog.v1.BooksService.UpdateReadingProgress:input_type -> backlog.v1.UpdateReadingProgressRequest
+	36, // 29: backlog.v1.BooksService.GetReadingState:input_type -> backlog.v1.GetReadingStateRequest
+	29, // 30: backlog.v1.BooksService.CreateBookUpload:input_type -> backlog.v1.CreateBookUploadRequest
+	31, // 31: backlog.v1.BooksService.FinalizeBookUpload:input_type -> backlog.v1.FinalizeBookUploadRequest
+	38, // 32: backlog.v1.BooksService.GetBookFile:input_type -> backlog.v1.GetBookFileRequest
+	40, // 33: backlog.v1.BooksService.EnableKoboSync:input_type -> backlog.v1.EnableKoboSyncRequest
+	51, // 34: backlog.v1.BooksService.RequestKEPUBConversion:input_type -> backlog.v1.RequestKEPUBConversionRequest
+	42, // 35: backlog.v1.BooksService.GetKEPUBStatus:input_type -> backlog.v1.GetKEPUBStatusRequest
+	45, // 36: backlog.v1.BooksService.RegisterKoboDevice:input_type -> backlog.v1.RegisterKoboDeviceRequest
+	47, // 37: backlog.v1.BooksService.ListKoboDevices:input_type -> backlog.v1.ListKoboDevicesRequest
+	49, // 38: backlog.v1.BooksService.DisconnectKoboDevice:input_type -> backlog.v1.DisconnectKoboDeviceRequest
+	53, // 39: backlog.v1.BooksService.ClearLibrary:input_type -> backlog.v1.ClearLibraryRequest
+	56, // 40: backlog.v1.BooksService.FindDuplicates:input_type -> backlog.v1.FindDuplicatesRequest
+	58, // 41: backlog.v1.BooksService.MergeBooks:input_type -> backlog.v1.MergeBooksRequest
+	8,  // 42: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
+	10, // 43: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
+	12, // 44: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
+	14, // 45: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
+	16, // 46: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
+	18, // 47: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
+	20, // 48: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
+	22, // 49: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
+	26, // 50: backlog.v1.BooksService.UpdateProgress:output_type -> backlog.v1.UpdateProgressResponse
+	24, // 51: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
+	28, // 52: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
+	35, // 53: backlog.v1.BooksService.UpdateReadingProgress:output_type -> backlog.v1.UpdateReadingProgressResponse
+	37, // 54: backlog.v1.BooksService.GetReadingState:output_type -> backlog.v1.GetReadingStateResponse
+	30, // 55: backlog.v1.BooksService.CreateBookUpload:output_type -> backlog.v1.CreateBookUploadResponse
+	32, // 56: backlog.v1.BooksService.FinalizeBookUpload:output_type -> backlog.v1.FinalizeBookUploadResponse
+	39, // 57: backlog.v1.BooksService.GetBookFile:output_type -> backlog.v1.GetBookFileResponse
+	41, // 58: backlog.v1.BooksService.EnableKoboSync:output_type -> backlog.v1.EnableKoboSyncResponse
+	52, // 59: backlog.v1.BooksService.RequestKEPUBConversion:output_type -> backlog.v1.RequestKEPUBConversionResponse
+	43, // 60: backlog.v1.BooksService.GetKEPUBStatus:output_type -> backlog.v1.GetKEPUBStatusResponse
+	46, // 61: backlog.v1.BooksService.RegisterKoboDevice:output_type -> backlog.v1.RegisterKoboDeviceResponse
+	48, // 62: backlog.v1.BooksService.ListKoboDevices:output_type -> backlog.v1.ListKoboDevicesResponse
+	50, // 63: backlog.v1.BooksService.DisconnectKoboDevice:output_type -> backlog.v1.DisconnectKoboDeviceResponse
+	54, // 64: backlog.v1.BooksService.ClearLibrary:output_type -> backlog.v1.ClearLibraryResponse
+	57, // 65: backlog.v1.BooksService.FindDuplicates:output_type -> backlog.v1.FindDuplicatesResponse
+	59, // 66: backlog.v1.BooksService.MergeBooks:output_type -> backlog.v1.MergeBooksResponse
+	42, // [42:67] is the sub-list for method output_type
+	17, // [17:42] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_backlog_v1_books_proto_init() }
@@ -3405,7 +3674,7 @@ func file_backlog_v1_books_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backlog_v1_books_proto_rawDesc), len(file_backlog_v1_books_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   55,
+			NumMessages:   60,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

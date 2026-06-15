@@ -986,6 +986,233 @@ func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook)
 }
 
+// --- ISBN10 matching tests ---
+
+// seedBookWithISBN10 adds a book that carries an ISBN10 (no ISBN13) to the
+// specified user's library. The library lookup for the upload must use
+// FindUserBookByISBN10 to link the file.
+func seedBookWithISBN10(
+	t *testing.T,
+	uid, title, author, isbn10 string,
+) *models.UserBook {
+	t.Helper()
+	cover := "https://example.com/cover.jpg"
+	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields not needed
+		Provider:   "manual",
+		ProviderID: fmt.Sprintf("isbn10-test-%s-%s", title, uuid.New()),
+		Title:      title,
+		Authors:    []string{author},
+		ISBN10:     &isbn10,
+		CoverURL:   &cover,
+	}
+	ub, err := testApp.Services.Books.AddToLibrary(
+		context.Background(), uid, ext, models.StatusToRead, []string{},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, ub)
+	return ub
+}
+
+func TestBooksRepo_FindUserBookByISBN10_Found(t *testing.T) {
+	// Use an isolated user so the isbn10 value is unique in the DB for this test.
+	const isolatedUser = "isbn10-repo-find-user"
+	const isbn10 = "0140449116"
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
+	})
+
+	ub := seedBookWithISBN10(t, isolatedUser, "FindISBN10Book", "ISBN10 Author", isbn10)
+
+	got, err := testApp.Repositories.Books.FindUserBookByISBN10(
+		context.Background(), isolatedUser, isbn10,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, ub.BookID, got.BookID)
+}
+
+func TestBooksRepo_FindUserBookByISBN10_NotFound(t *testing.T) {
+	got, err := testApp.Repositories.Books.FindUserBookByISBN10(
+		context.Background(), userID, "0000000000",
+	)
+	assert.ErrorIs(t, err, database.ErrResourceNotFound)
+	assert.Nil(t, got)
+}
+
+// TestUploadFile_EPUB_MatchByISBN10 verifies that an EPUB whose only identifier
+// is an ISBN10 links to an existing library entry that carries that ISBN10.
+// Uses an isolated user to avoid cross-test isbn10 collisions.
+func TestUploadFile_EPUB_MatchByISBN10(t *testing.T) {
+	const isolatedUser = "isbn10-match-upload-user"
+	// isbn10 must be exactly 10 digits so classifyISBN detects it as ISBN10.
+	// Use a value unique to this test to avoid shared-DB collisions.
+	const isbn10 = "0062459961"
+	app2 := noHardcoverApp(t, isolatedUser)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.book_files WHERE user_id = $1`, isolatedUser)
+	})
+
+	ub := seedBookInLibrary(t, isolatedUser, "ISBN10MatchBook", "ISBN10 Author", "")
+	// Write isbn10 directly onto the book so FindUserBookByISBN10 can find it.
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE backlog.books SET isbn10 = $1 WHERE id = $2`,
+		isbn10, ub.BookID,
+	)
+	require.NoError(t, err)
+
+	// buildEPUBBytes embeds the identifier via dc:identifier; classifyISBN
+	// will detect a 10-character string as ISBN10.
+	data := buildEPUBBytes("ISBN10MatchBook", "ISBN10 Author", isbn10)
+	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+		context.Background(), isolatedUser, "isbn10-match.epub", "application/epub+zip",
+		int64(len(data)), "",
+	)
+	require.NoError(t, err)
+	require.NoError(t, fakeStore.Put(
+		context.Background(), uploadID,
+		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
+	))
+
+	result, err := app2.Services.Books.FinalizeUpload(
+		context.Background(), isolatedUser, uploadID,
+		"isbn10-match.epub", "application/epub+zip", "",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.MatchedExisting)
+	assert.Equal(t, ub.BookID, result.UserBook.BookID)
+}
+
+// --- normalized title / author matching tests ---
+
+// TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle verifies that a file
+// carrying "Title: Subtitle" links to a library entry that has only "Title".
+func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
+	const isolatedUser = "norm-title-subtitle-user"
+	app2 := noHardcoverApp(t, isolatedUser)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.book_files WHERE user_id = $1`, isolatedUser)
+	})
+
+	// Library has "The Silmarillion" without the subtitle.
+	ub := seedBookInLibrary(
+		t, isolatedUser,
+		"The Silmarillion", "J.R.R. Tolkien", "",
+	)
+
+	// EPUB carries the full title with subtitle.
+	data := buildEPUBBytes(
+		"The Silmarillion: Being the Myths and Legends of the First Age",
+		"J.R.R. Tolkien",
+		"",
+	)
+	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+		context.Background(), isolatedUser, "silm.epub", "application/epub+zip",
+		int64(len(data)), "",
+	)
+	require.NoError(t, err)
+	require.NoError(t, fakeStore.Put(
+		context.Background(), uploadID,
+		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
+	))
+
+	result, err := app2.Services.Books.FinalizeUpload(
+		context.Background(), isolatedUser, uploadID,
+		"silm.epub", "application/epub+zip", "",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.MatchedExisting, "subtitle mismatch must still link")
+	assert.Equal(t, ub.BookID, result.UserBook.BookID)
+}
+
+// TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst verifies that a file
+// whose author is formatted "Last, First" links to a library entry with
+// "First Last" formatting.
+func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
+	const isolatedUser = "norm-author-lastfirst-user"
+	app2 := noHardcoverApp(t, isolatedUser)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.book_files WHERE user_id = $1`, isolatedUser)
+	})
+
+	// Library has "First Last" author format.
+	ub := seedBookInLibrary(
+		t, isolatedUser, "The Two Towers", "J.R.R. Tolkien", "",
+	)
+
+	// EPUB carries "Last, First" author format.
+	data := buildEPUBBytes("The Two Towers", "Tolkien, J.R.R.", "")
+	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+		context.Background(), isolatedUser, "ttt.epub", "application/epub+zip",
+		int64(len(data)), "",
+	)
+	require.NoError(t, err)
+	require.NoError(t, fakeStore.Put(
+		context.Background(), uploadID,
+		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
+	))
+
+	result, err := app2.Services.Books.FinalizeUpload(
+		context.Background(), isolatedUser, uploadID,
+		"ttt.epub", "application/epub+zip", "",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(
+		t, result.MatchedExisting,
+		"last-comma-first author format must still link",
+	)
+	assert.Equal(t, ub.BookID, result.UserBook.BookID)
+}
+
+// TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive verifies
+// that same-title books by different authors are NOT linked incorrectly.
+func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *testing.T) {
+	const isolatedUser = "norm-false-positive-user"
+	app2 := noHardcoverApp(t, isolatedUser)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM backlog.book_files WHERE user_id = $1`, isolatedUser)
+	})
+
+	// Library has "Hamlet" by Shakespeare — not by Orwell.
+	seedBookInLibrary(t, isolatedUser, "Hamlet", "William Shakespeare", "")
+
+	// File claims "Hamlet" by George Orwell — must NOT link.
+	data := buildEPUBBytes("Hamlet", "George Orwell", "")
+	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+		context.Background(), isolatedUser, "hamlet.epub", "application/epub+zip",
+		int64(len(data)), "",
+	)
+	require.NoError(t, err)
+	require.NoError(t, fakeStore.Put(
+		context.Background(), uploadID,
+		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
+	))
+
+	_, err = app2.Services.Books.FinalizeUpload(
+		context.Background(), isolatedUser, uploadID,
+		"hamlet.epub", "application/epub+zip", "",
+	)
+	// With no Hardcover and no match, expect ErrUnrecognizedBook.
+	require.Error(t, err)
+	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook,
+		"different author must not create a false-positive link")
+}
+
 // TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument verifies
 // that the ConnectRPC handler maps ErrUnrecognizedBook to CodeInvalidArgument.
 func TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument(t *testing.T) {

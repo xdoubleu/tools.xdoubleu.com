@@ -17,7 +17,8 @@ import type {
   SearchExternalResponse,
   GetKEPUBStatusResponse,
   GetBookFileResponse,
-  ListKoboDevicesResponse
+  ListKoboDevicesResponse,
+  FindDuplicatesResponse
 } from '@/lib/gen/backlog/v1/books_pb'
 
 export type AddBookInput = MessageInitShape<typeof AddBookRequestSchema>
@@ -121,9 +122,14 @@ export function useUpdateProgress() {
   return (req: UpdateProgressInput) => client.updateProgress(req)
 }
 
+export type UploadBookFileResult = {
+  matchedExisting: boolean
+  recognizedTitle: string
+}
+
 export function useUploadBookFile() {
   const client = createServiceClient(BooksService)
-  return async (file: File): Promise<void> => {
+  return async (file: File): Promise<UploadBookFileResult> => {
     // 0. Compute file hash so the server can skip a duplicate upload.
     const checksum = await sha256Hex(file)
 
@@ -154,12 +160,16 @@ export function useUploadBookFile() {
     //    (race condition); retry the full flow once without the checksum shortcut
     //    so the client uploads the bytes this time.
     try {
-      await client.finalizeBookUpload({
+      const result = await client.finalizeBookUpload({
         uploadId,
         filename: file.name,
         contentType: file.type || 'application/octet-stream',
         checksum
       })
+      return {
+        matchedExisting: result.matchedExisting,
+        recognizedTitle: result.recognizedTitle
+      }
     } catch (err) {
       if (alreadyExists && err instanceof ConnectError && err.code === Code.FailedPrecondition) {
         // The canonical blob was deleted between Create and Finalize; upload now.
@@ -179,12 +189,16 @@ export function useUploadBookFile() {
             cause: err
           })
         }
-        await client.finalizeBookUpload({
+        const retryResult = await client.finalizeBookUpload({
           uploadId: retry.uploadId,
           filename: file.name,
           contentType: file.type || 'application/octet-stream',
           checksum
         })
+        return {
+          matchedExisting: retryResult.matchedExisting,
+          recognizedTitle: retryResult.recognizedTitle
+        }
       } else {
         throw err
       }
@@ -222,6 +236,19 @@ export function useDisconnectKoboDevice() {
 export function useClearLibrary() {
   const client = createServiceClient(BooksService)
   return () => client.clearLibrary({})
+}
+
+export function useFindDuplicates() {
+  const client = createServiceClient(BooksService)
+  return useSWR<FindDuplicatesResponse, Error>('/backlog/books/duplicates', () =>
+    client.findDuplicates({})
+  )
+}
+
+export function useMergeBooks() {
+  const client = createServiceClient(BooksService)
+  return (winnerBookId: string, loserBookIds: string[]) =>
+    client.mergeBooks({ winnerBookId, loserBookIds })
 }
 
 export function useKEPUBStatus(bookId: string | null) {

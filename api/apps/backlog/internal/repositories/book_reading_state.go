@@ -75,6 +75,20 @@ func (r *BookReadingStateRepository) DeleteByUser(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// DeleteByBook removes the reading state for a single book owned by userID.
+func (r *BookReadingStateRepository) DeleteByBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) error {
+	query := `
+		DELETE FROM backlog.book_reading_state
+		WHERE user_id = $1 AND book_id = $2
+	`
+	_, err := r.db.Exec(ctx, query, userID, bookID)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 func scanReadingState(row pgx.Row) (*models.BookReadingState, error) {
 	var s models.BookReadingState
 
