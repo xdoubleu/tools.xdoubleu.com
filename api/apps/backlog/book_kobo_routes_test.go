@@ -694,6 +694,92 @@ func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
 	assert.Equal(t, location, bm["Location"])
 }
 
+// TestKoboLibrarySync_ReadingStateIncluded verifies that every entry in the
+// library sync manifest carries a non-nil ReadingState block, which is
+// required for the Kobo firmware to participate in reading-state sync.
+// Without it the device never issues PUT .../state and progress is never saved.
+func TestKoboLibrarySync_ReadingStateIncluded(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-state-present-" + uuid.NewString()
+	rawToken, _ := setupKoboSyncBook(t, owner)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var entries []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+	require.Len(t, entries, 1)
+
+	ne, ok := entries[0]["NewEntitlement"].(map[string]any)
+	require.True(t, ok, "entry must be wrapped under NewEntitlement")
+
+	rs, ok := ne["ReadingState"].(map[string]any)
+	require.True(t, ok, "ReadingState must be non-nil so the firmware syncs progress")
+
+	bm, ok := rs["CurrentBookmark"].(map[string]any)
+	require.True(t, ok)
+	assert.InDelta(t, 0.0, bm["ContentSourceProgressPercent"], 0.001,
+		"new book with no progress should advertise 0.0")
+}
+
+// TestKoboLibrarySync_ReadingStateReflectsProgress verifies that after the
+// device pushes progress via PUT .../state, the library sync manifest echoes
+// that progress in the ReadingState block so other devices pick it up.
+func TestKoboLibrarySync_ReadingStateReflectsProgress(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-state-progress-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+	location := "epubcfi(/6/4[chap01]!/4/2/1:0)"
+
+	// Push progress as the device would.
+	putBody, err := json.Marshal(map[string]any{
+		"ReadingState": map[string]any{
+			"CurrentBookmark": map[string]any{
+				"ContentSourceProgressPercent": 0.65,
+				"Location":                     location,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), putBody))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	// Sync — the manifest entry must now reflect the saved progress.
+	syncResp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer syncResp.Body.Close()
+	assert.Equal(t, http.StatusOK, syncResp.StatusCode)
+
+	var entries []map[string]any
+	require.NoError(t, json.NewDecoder(syncResp.Body).Decode(&entries))
+	require.Len(t, entries, 1)
+
+	ne, ok := entries[0]["NewEntitlement"].(map[string]any)
+	require.True(t, ok)
+
+	rs, ok := ne["ReadingState"].(map[string]any)
+	require.True(t, ok, "ReadingState must be present")
+
+	bm, ok := rs["CurrentBookmark"].(map[string]any)
+	require.True(t, ok)
+	assert.InDelta(t, 0.65, bm["ContentSourceProgressPercent"], 0.01)
+	assert.Equal(t, location, bm["Location"])
+}
+
 // TestKoboLibrarySync_PDFFormat_ServesPDF verifies that when a book has the
 // kobo-format-pdf tag the sync manifest advertises "PDF" format and the correct
 // content type, not "KEPUB".

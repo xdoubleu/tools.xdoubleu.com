@@ -66,6 +66,34 @@ func (r *BookReadingStateRepository) Get(
 	return state, nil
 }
 
+// ListByUser returns all reading states for the given user, keyed by book ID.
+func (r *BookReadingStateRepository) ListByUser(
+	ctx context.Context,
+	userID string,
+) ([]models.BookReadingState, error) {
+	query := `
+		SELECT ` + readingStateColumns + `
+		FROM backlog.book_reading_state
+		WHERE user_id = $1
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var states []models.BookReadingState
+	for rows.Next() {
+		s, scanErr := scanReadingState(rows)
+		if scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		states = append(states, *s)
+	}
+	return states, rows.Err()
+}
+
 func (r *BookReadingStateRepository) DeleteByUser(
 	ctx context.Context,
 	userID string,
