@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { create } from '@bufbuild/protobuf'
@@ -63,21 +63,30 @@ export default function SteamGameClient({ id }: { id: string }) {
   const game = data?.data?.game
   const achievements = data?.data?.achievements ?? []
   const [showCompleted, setShowCompleted] = useState(false)
+  const [isRefetching, setIsRefetching] = useState(false)
+  const [highPollMode, setHighPollMode] = useState(false)
+
+  const refetch = useCallback(() => {
+    if (!gameId) return Promise.resolve()
+    setIsRefetching(true)
+    return refreshGame(gameId)
+      .then((fresh) =>
+        mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), {
+          revalidate: false
+        })
+      )
+      .catch(() => {})
+      .finally(() => setIsRefetching(false))
+  }, [gameId, mutate, refreshGame])
 
   useEffect(() => {
-    if (!gameId) return
+    if (!gameId || !highPollMode) return
     const interval = setInterval(() => {
       if (document.hidden) return
-      refreshGame(gameId)
-        .then((fresh) =>
-          mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), {
-            revalidate: false
-          })
-        )
-        .catch(() => {})
+      void refetch()
     }, REFRESH_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [gameId, mutate, refreshGame])
+  }, [gameId, highPollMode, refetch])
 
   const bucket = searchParams.get('bucket')
   const bucketLabel = searchParams.get('label')
@@ -113,7 +122,7 @@ export default function SteamGameClient({ id }: { id: string }) {
 
       {game && (
         <>
-          <div className="mt-4 mb-6">
+          <div className="mt-4 mb-4">
             <h1 className="text-3xl font-bold">{game.name}</h1>
             <div className="flex gap-6 mt-2 text-muted">
               <span>{Math.round(game.playtime / 60)} hrs played</span>
@@ -122,6 +131,29 @@ export default function SteamGameClient({ id }: { id: string }) {
                 <span className="text-amber-600 text-sm font-medium">Delisted</span>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void refetch()}
+              disabled={isRefetching}
+            >
+              {isRefetching ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button
+              variant={highPollMode ? 'default' : 'secondary'}
+              size="sm"
+              onClick={() => setHighPollMode((prev) => !prev)}
+            >
+              {highPollMode ? 'High poll: on' : 'High poll: off'}
+            </Button>
+            {game.lastSyncedAt && (
+              <span className="text-xs text-muted">
+                Last synced: {new Date(game.lastSyncedAt).toLocaleString()}
+              </span>
+            )}
           </div>
 
           {achievements.length > 0 && (

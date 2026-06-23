@@ -50,7 +50,8 @@ const mockGame = create(GameSchema, {
   name: 'The Witcher 3',
   playtime: 3600,
   completionRate: '85.00',
-  isDelisted: false
+  isDelisted: false,
+  lastSyncedAt: '2026-06-23T10:00:00Z'
 })
 
 const mockAchievements = [
@@ -424,6 +425,88 @@ describe('SteamGameClient', () => {
     expect(screen.queryByText('Delisted')).not.toBeInTheDocument()
   })
 
+  it('renders the Refresh and High poll buttons', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'High poll: off' })).toBeInTheDocument()
+  })
+
+  it('toggles high poll mode label', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    const toggle = screen.getByRole('button', { name: 'High poll: off' })
+    fireEvent.click(toggle)
+    expect(screen.getByRole('button', { name: 'High poll: on' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'High poll: on' }))
+    expect(screen.getByRole('button', { name: 'High poll: off' })).toBeInTheDocument()
+  })
+
+  it('displays last synced timestamp', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.getByText(/Last synced:/)).toBeInTheDocument()
+  })
+
+  it('does not display last synced when lastSyncedAt is empty', () => {
+    const gameNoSync = create(GameSchema, { ...mockGame, lastSyncedAt: '' })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(gameNoSync, []),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<SteamGameClient id="123" />)
+    expect(screen.queryByText(/Last synced:/)).not.toBeInTheDocument()
+  })
+
+  it('calls refreshSteamGame when Refresh button is clicked', async () => {
+    const mutate = jest.fn().mockResolvedValue(undefined)
+    const freshRefreshResponse = create(RefreshSteamGameResponseSchema, {
+      data: create(SteamGameResponseSchema, { game: mockGame, achievements: [] })
+    })
+    mockRefreshSteamGame.mockResolvedValue(freshRefreshResponse)
+
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
+      isLoading: false,
+      error: undefined,
+      mutate
+    })
+
+    render(<SteamGameClient id="123" />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    })
+
+    expect(mockRefreshSteamGame).toHaveBeenCalledWith(123)
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: freshRefreshResponse.data }),
+      { revalidate: false }
+    )
+  })
+
   describe('live polling', () => {
     beforeEach(() => {
       jest.useFakeTimers()
@@ -433,7 +516,25 @@ describe('SteamGameClient', () => {
       jest.useRealTimers()
     })
 
-    it('calls refreshSteamGame after 60s and updates data via mutate', async () => {
+    it('does not poll by default (high poll mode off)', async () => {
+      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+      jest.mocked(useBacklogSteamGame).mockReturnValue({
+        data: mockSteamGameResponse(mockGame, []),
+        isLoading: false,
+        error: undefined,
+        mutate: jest.fn()
+      })
+
+      render(<SteamGameClient id="123" />)
+
+      await act(async () => {
+        jest.advanceTimersByTime(60_000)
+      })
+
+      expect(mockRefreshSteamGame).not.toHaveBeenCalled()
+    })
+
+    it('calls refreshSteamGame after 60s when high poll mode is enabled', async () => {
       const mutate = jest.fn().mockResolvedValue(undefined)
       const freshRefreshResponse = create(RefreshSteamGameResponseSchema, {
         data: create(SteamGameResponseSchema, { game: mockGame, achievements: [] })
@@ -449,6 +550,11 @@ describe('SteamGameClient', () => {
       })
 
       render(<SteamGameClient id="123" />)
+
+      // Enable high poll mode.
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+      })
 
       // No call before interval fires.
       expect(mockRefreshSteamGame).not.toHaveBeenCalled()
@@ -478,6 +584,10 @@ describe('SteamGameClient', () => {
       render(<SteamGameClient id="123" />)
 
       await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+      })
+
+      await act(async () => {
         jest.advanceTimersByTime(60_000)
       })
 
@@ -497,10 +607,47 @@ describe('SteamGameClient', () => {
       })
 
       const { unmount } = render(<SteamGameClient id="123" />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+      })
+
       unmount()
 
       await act(async () => {
         jest.advanceTimersByTime(120_000)
+      })
+
+      expect(mockRefreshSteamGame).not.toHaveBeenCalled()
+    })
+
+    it('stops polling when high poll mode is toggled off', async () => {
+      const mutate = jest.fn().mockResolvedValue(undefined)
+      const freshRefreshResponse = create(RefreshSteamGameResponseSchema, {
+        data: create(SteamGameResponseSchema, { game: mockGame, achievements: [] })
+      })
+      mockRefreshSteamGame.mockResolvedValue(freshRefreshResponse)
+
+      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+      jest.mocked(useBacklogSteamGame).mockReturnValue({
+        data: mockSteamGameResponse(mockGame, []),
+        isLoading: false,
+        error: undefined,
+        mutate
+      })
+
+      render(<SteamGameClient id="123" />)
+
+      // Enable then disable.
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+      })
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'High poll: on' }))
+      })
+
+      await act(async () => {
+        jest.advanceTimersByTime(60_000)
       })
 
       expect(mockRefreshSteamGame).not.toHaveBeenCalled()
@@ -519,6 +666,10 @@ describe('SteamGameClient', () => {
       })
 
       render(<SteamGameClient id="123" />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+      })
 
       await act(async () => {
         jest.advanceTimersByTime(60_000)

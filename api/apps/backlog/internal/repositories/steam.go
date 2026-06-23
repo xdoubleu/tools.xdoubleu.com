@@ -66,6 +66,7 @@ func (repo *SteamRepository) queryGames(
 			&game.Contribution,
 			&game.Playtime,
 			&game.ImageURL,
+			&game.LastSyncedAt,
 		)
 		if err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
@@ -87,7 +88,7 @@ func (repo *SteamRepository) GetAllGames(
 ) ([]models.Game, error) {
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url
+		       playtime_forever, image_url, last_synced_at
 		FROM backlog.steam_games
 		WHERE user_id = $1
 	`
@@ -101,7 +102,7 @@ func (repo *SteamRepository) GetBacklog(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url
+		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at
 		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) = 0
@@ -122,7 +123,7 @@ func (repo *SteamRepository) GetInProgress(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url
+		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at
 		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) > 0
@@ -144,7 +145,7 @@ func (repo *SteamRepository) GetCompleted(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url
+		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at
 		FROM backlog.steam_games sg
 		WHERE sg.user_id = $1
 		    AND sg.is_delisted = false
@@ -229,11 +230,12 @@ func (repo *SteamRepository) UpsertGames(
 	query := `
 		INSERT INTO backlog.steam_games
 		    (id, user_id, name, is_delisted, completion_rate, contribution,
-		     playtime_forever, image_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		     playtime_forever, image_url, last_synced_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
 		ON CONFLICT (id, user_id)
 		DO UPDATE SET name = $3, is_delisted = $4, completion_rate = $5,
-		              contribution = $6, playtime_forever = $7, image_url = $8
+		              contribution = $6, playtime_forever = $7, image_url = $8,
+		              last_synced_at = now()
 	`
 
 	//nolint:exhaustruct //fields are optional
@@ -317,7 +319,7 @@ func (repo *SteamRepository) GetGameByID(
 ) (*models.Game, error) {
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url
+		       playtime_forever, image_url, last_synced_at
 		FROM backlog.steam_games
 		WHERE id = $1 AND user_id = $2
 	`
@@ -331,6 +333,7 @@ func (repo *SteamRepository) GetGameByID(
 		&game.Contribution,
 		&game.Playtime,
 		&game.ImageURL,
+		&game.LastSyncedAt,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
