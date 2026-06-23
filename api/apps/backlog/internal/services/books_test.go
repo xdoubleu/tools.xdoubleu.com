@@ -36,6 +36,13 @@ func (f *fakeOLClient) GetByISBN(
 	return f.detail, f.err
 }
 
+func (f *fakeOLClient) FetchCover(
+	_ context.Context,
+	_ string,
+) ([]byte, string, error) {
+	return nil, "", errors.New("fakeOLClient: FetchCover not implemented")
+}
+
 func strPtr(s string) *string { return &s }
 func intPtr(i int) *int       { return &i }
 

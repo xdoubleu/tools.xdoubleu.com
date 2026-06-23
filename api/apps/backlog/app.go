@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
@@ -123,11 +124,17 @@ func (app *Backlog) setDB(
 }
 
 func (app *Backlog) setJobs() {
-	err := app.jobQueue.AddJob(
+	if err := app.jobQueue.AddJob(
 		jobs.NewSteamJob(app.Services.Auth, app.Services.Steam),
 		app.Services.WebSocket.UpdateState,
-	)
-	if err != nil {
+	); err != nil {
+		panic(err)
+	}
+
+	if err := app.jobQueue.AddJob(
+		jobs.NewRelocateFilesJob(app.Services.Books),
+		func(string, bool, *time.Time) {},
+	); err != nil {
 		panic(err)
 	}
 

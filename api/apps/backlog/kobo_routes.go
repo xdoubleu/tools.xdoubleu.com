@@ -133,14 +133,14 @@ type koboBookEntitlement struct {
 	Accessibility string            `json:"Accessibility"`
 	ActivePeriod  map[string]string `json:"ActivePeriod"`
 	Created       string            `json:"Created"`
-	//nolint:revive,stylecheck // Kobo protocol field name
+	//nolint:revive // Kobo protocol field name
 	CrossRevisionId string `json:"CrossRevisionId"`
-	//nolint:revive,stylecheck // Kobo protocol field name
+	//nolint:revive // Kobo protocol field name
 	Id             string `json:"Id"`
 	IsRemoved      bool   `json:"IsRemoved"`
 	IsHiddenFromUI bool   `json:"IsHiddenFromUI"`
 	PurchasedDate  string `json:"PurchasedDate"`
-	//nolint:revive,stylecheck // Kobo protocol field name
+	//nolint:revive // Kobo protocol field name
 	RevisionId string `json:"RevisionId"`
 	Status     string `json:"Status"`
 	Type       string `json:"Type"`
@@ -149,7 +149,7 @@ type koboBookEntitlement struct {
 type koboBookMetadata struct {
 	Title       string `json:"Title"`
 	ContentType string `json:"ContentType"`
-	//nolint:revive,stylecheck // Kobo protocol field name
+	//nolint:revive // Kobo protocol field name
 	RevisionId   string            `json:"RevisionId"`
 	Language     string            `json:"Language"`
 	DownloadUrls []koboDownloadURL `json:"DownloadUrls"`
@@ -164,7 +164,7 @@ type koboDownloadURL struct {
 
 type koboReadingState struct {
 	CurrentBookmark koboBookmark `json:"CurrentBookmark"`
-	//nolint:revive,stylecheck // Kobo protocol field name
+	//nolint:revive // Kobo protocol field name
 	EntitlementId string         `json:"EntitlementId"`
 	LastModified  string         `json:"LastModified"`
 	StatusInfo    koboStatusInfo `json:"StatusInfo"`
@@ -178,7 +178,7 @@ type koboBookmark struct {
 type koboStatusInfo struct {
 	LastModified string `json:"LastModified"`
 	Status       string `json:"Status"`
-	//nolint:revive,stylecheck // Kobo protocol field name
+	//nolint:revive // Kobo protocol field name
 	TimestampId string `json:"TimestampId"`
 }
 

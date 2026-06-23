@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { mutate } from 'swr'
 import { useBacklogLibrary, useBooksProgress } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import BookCover from '@/components/backlog/BookCover'
 import BookSearchBar from '@/components/backlog/BookSearchBar'
 import BookEditModal from '@/components/backlog/BookEditModal'
 import BooksProgressChart from '@/components/backlog/BooksProgressChart'
@@ -41,15 +41,7 @@ function ReadingBookCard({
       onClick={() => onEdit(userBook)}
       className={cn(interactiveCardClass, 'flex w-full gap-3 p-4 text-left sm:w-60 self-start')}
     >
-      {book.coverUrl && (
-        <Image
-          src={book.coverUrl}
-          alt={book.title}
-          width={48}
-          height={72}
-          className="rounded-lg object-cover shrink-0"
-        />
-      )}
+      <BookCover coverUrl={book.coverUrl} title={book.title} size="md" />
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold truncate">{book.title}</h3>
         <p className="text-sm text-muted truncate">{book.authors.join(', ')}</p>

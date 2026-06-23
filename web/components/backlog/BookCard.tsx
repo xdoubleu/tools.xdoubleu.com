@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import BookCover from '@/components/backlog/BookCover'
 import BookProgressBar from '@/components/backlog/BookProgressBar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -35,15 +35,7 @@ export default function BookCard({ userBook, onEdit }: BookCardProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-card shadow-card p-4 flex gap-4">
-      {book.coverUrl && (
-        <Image
-          src={book.coverUrl}
-          alt={book.title}
-          width={40}
-          height={60}
-          className="object-cover rounded-lg shrink-0"
-        />
-      )}
+      <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold">{book.title}</h3>
         <p className="text-sm text-muted">{book.authors.join(', ')}</p>

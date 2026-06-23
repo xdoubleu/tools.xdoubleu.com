@@ -88,6 +88,58 @@ func (c client) GetByISBN(ctx context.Context, isbn string) (*ExternalBook, erro
 	return &book, nil
 }
 
+// FetchCover downloads the raw image bytes for the given Open Library cover
+// URL. It appends ?default=false so that Open Library returns HTTP 404 instead
+// of a blank placeholder image when no cover exists.
+func (c client) FetchCover(
+	ctx context.Context,
+	coverURL string,
+) ([]byte, string, error) {
+	// Append default=false to get a proper 404 instead of a blank placeholder.
+	endpoint := coverURL
+	if strings.Contains(coverURL, "?") {
+		endpoint += "&default=false"
+	} else {
+		endpoint += "?default=false"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, "", ErrCoverNotFound
+	}
+
+	if resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, "", fmt.Errorf(
+			"openlibrary cover fetch returned %d for %s",
+			resp.StatusCode,
+			coverURL,
+		)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("read cover body: %w", err)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+
+	return data, contentType, nil
+}
+
 func (c client) get(ctx context.Context, endpoint string, dst any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {

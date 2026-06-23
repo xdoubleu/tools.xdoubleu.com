@@ -80,6 +80,27 @@ func (repo *BooksRepository) FindBookByTitleAndAuthor(
 	return book, nil
 }
 
+// GetBookByID returns the book with the given ID.
+// Returns database.ErrResourceNotFound when no book matches.
+func (repo *BooksRepository) GetBookByID(
+	ctx context.Context,
+	bookID uuid.UUID,
+) (*models.Book, error) {
+	query := `
+		SELECT ` + bookColumns + `
+		FROM backlog.books
+		WHERE id = $1
+	`
+
+	row := repo.db.QueryRow(ctx, query, bookID)
+	book, err := scanBook(row)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return book, nil
+}
+
 func (repo *BooksRepository) UpsertUserBook(
 	ctx context.Context,
 	ub models.UserBook,

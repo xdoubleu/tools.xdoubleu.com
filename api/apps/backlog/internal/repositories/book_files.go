@@ -424,6 +424,60 @@ func (r *BookFilesRepository) RepointAndDedup(
 	return keys, nil
 }
 
+// ListWithFlatStorageKey returns all book_files rows whose storage_key follows
+// the legacy flat scheme (books/<checksum><ext> — no UUID subfolder). These are
+// the rows that the backfill relocation job needs to migrate.
+func (r *BookFilesRepository) ListWithFlatStorageKey(
+	ctx context.Context,
+) ([]models.BookFile, error) {
+	// A per-book key has the form books/<uuid>/<rest>. A flat key has no UUID
+	// component: books/<hex>.<ext>. We detect flat keys by checking that the
+	// path segment after "books/" does NOT start with a UUID (36-char + hyphen
+	// structure). The simplest SQL predicate: after stripping "books/", the next
+	// 37 chars do not contain a '-' in the UUID positions. In practice we
+	// distinguish by path-segment count: flat keys have exactly one slash (the
+	// "books/" prefix), per-book keys have two or more.
+	query := `
+		SELECT ` + bookFileColumns + `
+		FROM backlog.book_files
+		WHERE storage_key LIKE 'books/%'
+		  AND length(storage_key) - length(replace(storage_key, '/', '')) = 1
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var files []models.BookFile
+	for rows.Next() {
+		f, scanErr := scanBookFile(rows)
+		if scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		files = append(files, *f)
+	}
+
+	return files, rows.Err()
+}
+
+// UpdateStorageKey atomically sets the storage_key of a book_files row.
+func (r *BookFilesRepository) UpdateStorageKey(
+	ctx context.Context,
+	id uuid.UUID,
+	storageKey string,
+) error {
+	query := `
+		UPDATE backlog.book_files
+		SET storage_key = $2, updated_at = now()
+		WHERE id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, id, storageKey)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 func scanBookFile(row pgx.Row) (*models.BookFile, error) {
 	var f models.BookFile
 
