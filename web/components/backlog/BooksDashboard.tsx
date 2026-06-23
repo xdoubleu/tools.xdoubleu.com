@@ -7,7 +7,6 @@ import { useBacklogLibrary, useBooksProgress } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import BookCover from '@/components/backlog/BookCover'
 import BookSearchBar from '@/components/backlog/BookSearchBar'
-import BookEditModal from '@/components/backlog/BookEditModal'
 import BooksProgressChart from '@/components/backlog/BooksProgressChart'
 import BookProgressBar from '@/components/backlog/BookProgressBar'
 import { Button } from '@/components/ui/button'
@@ -26,19 +25,12 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-function ReadingBookCard({
-  userBook,
-  onEdit
-}: {
-  userBook: UserBook
-  onEdit: (ub: UserBook) => void
-}) {
+function ReadingBookCard({ userBook }: { userBook: UserBook }) {
   const book = userBook.book
   if (!book) return null
   return (
-    <button
-      type="button"
-      onClick={() => onEdit(userBook)}
+    <Link
+      href={`/backlog/books/${userBook.id}`}
       className={cn(interactiveCardClass, 'flex w-full gap-3 p-4 text-left sm:w-60 self-start')}
     >
       <BookCover coverUrl={book.coverUrl} title={book.title} size="md" />
@@ -49,12 +41,11 @@ function ReadingBookCard({
           <BookProgressBar userBook={userBook} />
         </div>
       </div>
-    </button>
+    </Link>
   )
 }
 
 export default function BooksDashboard() {
-  const [editingBook, setEditingBook] = useState<UserBook | null>(null)
   const [view, setView] = useState<'ytd' | 'all'>('ytd')
   const [progressStart, setProgressStart] = useState(oneYearAgo())
   const [progressEnd, setProgressEnd] = useState(today())
@@ -116,7 +107,7 @@ export default function BooksDashboard() {
           {reading.length > 0 && (
             <div className="flex min-h-0 flex-wrap content-start gap-3 overflow-y-auto pr-1 lg:flex-1">
               {reading.map((ub) => (
-                <ReadingBookCard key={ub.id} userBook={ub} onEdit={setEditingBook} />
+                <ReadingBookCard key={ub.id} userBook={ub} />
               ))}
             </div>
           )}
@@ -191,14 +182,6 @@ export default function BooksDashboard() {
           {view === 'all' && <BooksProgressChart data={allTimeChartData} />}
         </div>
       </div>
-
-      {editingBook && (
-        <BookEditModal
-          userBook={editingBook}
-          onClose={() => setEditingBook(null)}
-          onSaved={handleRefresh}
-        />
-      )}
     </section>
   )
 }

@@ -17,6 +17,7 @@ const customJestConfig = {
     'lib/**/*.{ts,tsx}',
     'hooks/**/*.{ts,tsx}',
     'app/global-error.tsx',
+    'app/backlog/books/[id]/BookDetailClient.tsx',
     'instrumentation-client.ts',
     '!lib/gen/**',
     '!**/*.d.ts'

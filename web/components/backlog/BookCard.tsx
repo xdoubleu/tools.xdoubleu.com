@@ -1,10 +1,13 @@
 'use client'
 
+import Link from 'next/link'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import BookCover from '@/components/backlog/BookCover'
 import BookProgressBar from '@/components/backlog/BookProgressBar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { interactiveCardClass } from '@/components/ui/card'
+import { cn } from '@/lib/cn'
 
 function OwnershipBadges({ userBook }: { userBook: UserBook }) {
   const physical = userBook.tags.includes('own-physical')
@@ -34,9 +37,17 @@ export default function BookCard({ userBook, onEdit }: BookCardProps) {
   if (!book) return null
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-card p-4 flex gap-4">
-      <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
-      <div className="flex-1 min-w-0">
+    <div className={cn(interactiveCardClass, 'relative p-4 flex gap-4 items-start')}>
+      {/* Stretched link covers the whole card; Edit button sits above it via z-10 */}
+      <Link
+        href={`/backlog/books/${userBook.id}`}
+        className="absolute inset-0 rounded-2xl"
+        aria-label={book.title}
+      />
+      <div className="relative z-10 shrink-0">
+        <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
+      </div>
+      <div className="relative z-10 flex-1 min-w-0">
         <h3 className="font-semibold">{book.title}</h3>
         <p className="text-sm text-muted">{book.authors.join(', ')}</p>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -57,7 +68,7 @@ export default function BookCard({ userBook, onEdit }: BookCardProps) {
         variant="secondary"
         size="sm"
         onClick={() => onEdit(userBook)}
-        className="shrink-0 self-start"
+        className="relative z-10 shrink-0 self-start"
       >
         Edit
       </Button>

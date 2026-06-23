@@ -12,6 +12,12 @@ jest.mock('next/image', () => {
   }
 })
 
+jest.mock('next/link', () => {
+  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  )
+})
+
 jest.mock('@/components/backlog/BookSearchBar', () => {
   return function MockBookSearchBar({ onAdded }: { onAdded: () => void }) {
     return (

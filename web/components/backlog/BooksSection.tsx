@@ -16,7 +16,7 @@ export default function BooksSection() {
   const library = libraryData?.library
 
   const handleLibraryRefresh = () => {
-    mutate('/backlog/books')
+    void mutate('/backlog/books')
   }
 
   return (

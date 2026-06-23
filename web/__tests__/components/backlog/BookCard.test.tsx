@@ -4,6 +4,22 @@ import { create } from '@bufbuild/protobuf'
 import BookCard from '@/components/backlog/BookCard'
 import { UserBookSchema, BookSchema } from '@/lib/gen/backlog/v1/books_pb'
 
+jest.mock('next/link', () => {
+  return ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode
+    href: string
+    [key: string]: unknown
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  )
+})
+
 jest.mock('next/image', () => {
   return function MockImage({ src, alt, ...props }: { src: string; alt: string }) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -48,6 +64,12 @@ describe('BookCard', () => {
     render(<BookCard userBook={makeBook()} onEdit={jest.fn()} />)
     expect(screen.getByText('Test Book')).toBeInTheDocument()
     expect(screen.getByText('Test Author')).toBeInTheDocument()
+  })
+
+  it('renders a link to the book detail page', () => {
+    render(<BookCard userBook={makeBook()} onEdit={jest.fn()} />)
+    const link = screen.getByRole('link', { name: 'Test Book' })
+    expect(link).toHaveAttribute('href', '/backlog/books/ub-1')
   })
 
   it('calls onEdit when Edit clicked', () => {

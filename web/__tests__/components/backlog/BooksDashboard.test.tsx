@@ -31,16 +31,6 @@ jest.mock('@/components/backlog/BooksProgressChart', () => {
   }
 })
 
-jest.mock('@/components/backlog/BookEditModal', () => {
-  return function MockBookEditModal({ onClose }: { onClose: () => void }) {
-    return (
-      <button data-testid="book-edit-modal" onClick={onClose}>
-        modal
-      </button>
-    )
-  }
-})
-
 jest.mock('swr', () => ({ mutate: jest.fn() }))
 
 import BooksDashboard from '@/components/backlog/BooksDashboard'
@@ -109,11 +99,11 @@ describe('BooksDashboard', () => {
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25')
   })
 
-  it('opens the edit modal when a reading card is clicked', () => {
+  it('links reading cards to the book detail page', () => {
     mockLibrary()
     render(<BooksDashboard />)
-    fireEvent.click(screen.getByText('Dune'))
-    expect(screen.getByTestId('book-edit-modal')).toBeInTheDocument()
+    const link = screen.getByText('Dune').closest('a')
+    expect(link).toHaveAttribute('href', '/backlog/books/1')
   })
 
   it('shows an empty message when nothing is in progress', () => {
