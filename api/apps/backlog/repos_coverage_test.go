@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/backlog"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
@@ -64,7 +64,7 @@ func TestFindByExternalRef_Found(t *testing.T) {
 	isbn := "9780000001234"
 	providerID := "extref-coverage-test-id"
 	cover := "https://example.com/cover.jpg"
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields not needed
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields not needed
 		Provider:   "manual",
 		ProviderID: providerID,
 		Title:      "FindByExternalRefBook",
@@ -207,7 +207,7 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 			testDB,
 			backlog.Clients{
 				SteamFactory:     factory,
-				HardcoverFactory: func(_ string) hardcover.Client { return nil },
+				OpenLibrary:      nil,
 				ObjectStore:      objectstore.NewFake(),
 				KoboStoreBaseURL: "",
 				PublicAPIBaseURL: "",

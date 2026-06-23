@@ -20,8 +20,8 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/mocks"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	bsvc "tools.xdoubleu.com/apps/backlog/internal/services"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
@@ -128,7 +128,7 @@ func uploadViaTestApp(
 func seedBookInLibrary(t *testing.T, uid, title, author, isbn string) *models.UserBook {
 	t.Helper()
 	cover := "https://example.com/cover.jpg"
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields not needed
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields not needed
 		Provider:   "manual",
 		ProviderID: fmt.Sprintf("upload-test-%s-%s", title, uuid.New()),
 		Title:      title,
@@ -588,9 +588,9 @@ func TestBookFilesRepo_CountByStorageKey(t *testing.T) {
 	assert.Equal(t, int64(2), n)
 }
 
-// TestUploadFile_EPUB_HardcoverFallback covers the Hardcover search branch.
-func TestUploadFile_EPUB_HardcoverFallback(t *testing.T) {
-	const isolatedUser = "hc-fallback-upload-user"
+// TestUploadFile_EPUB_OpenLibraryFallback covers the Open Library search branch.
+func TestUploadFile_EPUB_OpenLibraryFallback(t *testing.T) {
+	const isolatedUser = "ol-fallback-upload-user"
 
 	app2 := backlog.NewInner(
 		context.Background(),
@@ -599,10 +599,8 @@ func TestUploadFile_EPUB_HardcoverFallback(t *testing.T) {
 		testCfg,
 		testDB,
 		backlog.Clients{
-			SteamFactory: func(_ string) steam.Client { return nil },
-			HardcoverFactory: func(_ string) hardcover.Client {
-				return mocks.NewMockHardcoverClient()
-			},
+			SteamFactory:     func(_ string) steam.Client { return nil },
+			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -611,7 +609,7 @@ func TestUploadFile_EPUB_HardcoverFallback(t *testing.T) {
 	require.NoError(t, app2.SaveIntegrations(
 		context.Background(),
 		isolatedUser,
-		backlog.Integrations{}, //nolint:exhaustruct //hardcover key comes from config
+		backlog.Integrations{}, //nolint:exhaustruct //intentionally empty
 	))
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(context.Background(),
@@ -901,9 +899,9 @@ func TestConnectFinalizeBookUpload_WrongOwner_ReturnsPermissionDenied(t *testing
 }
 
 // TestUploadFile_Unrecognized_EmptyMetadata_Rejected uploads an EPUB whose OPF
-// metadata has empty title, author, and no ISBN. With no library match and no
-// Hardcover client, the service must return ErrUnrecognizedBook and clean up
-// the temp upload object.
+// metadata has empty title, author, and no ISBN. With no library match and an
+// empty title (so no Open Library lookup is attempted), the service must return
+// ErrUnrecognizedBook and clean up the temp upload object.
 func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 	data := buildEPUBBytes("", "", "")
 	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
@@ -933,22 +931,20 @@ func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 	assert.False(t, exists, "temp upload object must be deleted on rejection")
 }
 
-// noHardcoverApp returns an isolated Backlog instance with no Hardcover API key
-// set, so SearchHardcover always returns nil. Used to test the rejection path
-// when neither a library match nor a Hardcover match is found.
-func noHardcoverApp(t *testing.T, isolatedUser string) *backlog.Backlog {
+// noExternalMatchApp returns an isolated Backlog instance whose Open Library
+// client returns no results, so SearchExternal never finds a match. Used to test
+// the rejection path when neither a library match nor an external match is found.
+func noExternalMatchApp(t *testing.T, isolatedUser string) *backlog.Backlog {
 	t.Helper()
-	cfg := testCfg
-	cfg.HardcoverAPIKey = ""
 	return backlog.NewInner(
 		context.Background(),
 		sharedmocks.NewMockedAuthService(isolatedUser),
 		testApp.Logger,
-		cfg,
+		testCfg,
 		testDB,
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return nil },
-			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			OpenLibrary:      mocks.NewMockEmptyOpenLibraryClient(),
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -957,11 +953,11 @@ func noHardcoverApp(t *testing.T, isolatedUser string) *backlog.Backlog {
 }
 
 // TestUploadFile_Unrecognized_NoLibraryMatch_Rejected uploads an EPUB that has
-// valid title/author metadata but is not in the library and the app has no
-// Hardcover key configured. The upload must be rejected with ErrUnrecognizedBook.
+// valid title/author metadata but is not in the library and no external provider
+// match is found. The upload must be rejected with ErrUnrecognizedBook.
 func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 	const isolatedUser = "no-match-upload-user"
-	app2 := noHardcoverApp(t, isolatedUser)
+	app2 := noExternalMatchApp(t, isolatedUser)
 
 	data := buildEPUBBytes("NoLibraryMatchTitle", "NoLibraryMatchAuthor", "")
 	uploadID, _, _, err := app2.Services.Books.CreateUpload(
@@ -997,7 +993,7 @@ func seedBookWithISBN10(
 ) *models.UserBook {
 	t.Helper()
 	cover := "https://example.com/cover.jpg"
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields not needed
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields not needed
 		Provider:   "manual",
 		ProviderID: fmt.Sprintf("isbn10-test-%s-%s", title, uuid.New()),
 		Title:      title,
@@ -1048,7 +1044,7 @@ func TestUploadFile_EPUB_MatchByISBN10(t *testing.T) {
 	// isbn10 must be exactly 10 digits so classifyISBN detects it as ISBN10.
 	// Use a value unique to this test to avoid shared-DB collisions.
 	const isbn10 = "0062459961"
-	app2 := noHardcoverApp(t, isolatedUser)
+	app2 := noExternalMatchApp(t, isolatedUser)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
@@ -1093,7 +1089,7 @@ func TestUploadFile_EPUB_MatchByISBN10(t *testing.T) {
 // carrying "Title: Subtitle" links to a library entry that has only "Title".
 func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 	const isolatedUser = "norm-title-subtitle-user"
-	app2 := noHardcoverApp(t, isolatedUser)
+	app2 := noExternalMatchApp(t, isolatedUser)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
@@ -1138,7 +1134,7 @@ func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 // "First Last" formatting.
 func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 	const isolatedUser = "norm-author-lastfirst-user"
-	app2 := noHardcoverApp(t, isolatedUser)
+	app2 := noExternalMatchApp(t, isolatedUser)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
@@ -1180,7 +1176,7 @@ func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 // that same-title books by different authors are NOT linked incorrectly.
 func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *testing.T) {
 	const isolatedUser = "norm-false-positive-user"
-	app2 := noHardcoverApp(t, isolatedUser)
+	app2 := noExternalMatchApp(t, isolatedUser)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM backlog.user_books WHERE user_id = $1`, isolatedUser)
@@ -1207,7 +1203,7 @@ func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *test
 		context.Background(), isolatedUser, uploadID,
 		"hamlet.epub", "application/epub+zip", "",
 	)
-	// With no Hardcover and no match, expect ErrUnrecognizedBook.
+	// With no external match, expect ErrUnrecognizedBook.
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook,
 		"different author must not create a false-positive link")
@@ -1217,7 +1213,7 @@ func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *test
 // that the ConnectRPC handler maps ErrUnrecognizedBook to CodeInvalidArgument.
 func TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument(t *testing.T) {
 	const isolatedUser = "handler-unrecognized-upload-user"
-	app2 := noHardcoverApp(t, isolatedUser)
+	app2 := noExternalMatchApp(t, isolatedUser)
 
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)

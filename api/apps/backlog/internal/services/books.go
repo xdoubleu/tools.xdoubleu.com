@@ -15,18 +15,17 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/books"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 )
 
 type BookService struct {
-	logger          *slog.Logger
-	books           *repositories.BooksRepository
-	bookFiles       *repositories.BookFilesRepository
-	objectStore     objectstore.Client
-	readingState    *repositories.BookReadingStateRepository
-	providerFactory func(apiKey string) hardcover.Client
-	hardcoverAPIKey string
+	logger       *slog.Logger
+	books        *repositories.BooksRepository
+	bookFiles    *repositories.BookFilesRepository
+	objectStore  objectstore.Client
+	readingState *repositories.BookReadingStateRepository
+	external     openlibrary.Client
 }
 
 // SearchLibrary searches the user's own library by title/author substring.
@@ -38,26 +37,22 @@ func (s *BookService) SearchLibrary(
 	return s.books.SearchLibrary(ctx, userID, query)
 }
 
-// SearchHardcover calls the Hardcover API. Returns nil if no API key configured.
-func (s *BookService) SearchHardcover(
+// SearchExternal searches the Open Library API for books matching the query.
+func (s *BookService) SearchExternal(
 	ctx context.Context,
 	query string,
-) ([]hardcover.ExternalBook, error) {
-	if s.hardcoverAPIKey == "" {
-		return nil, nil
-	}
-
-	return s.providerFactory(s.hardcoverAPIKey).Search(ctx, query)
+) ([]openlibrary.ExternalBook, error) {
+	return s.external.Search(ctx, query)
 }
 
 func (s *BookService) AddToLibrary(
 	ctx context.Context,
 	userID string,
-	ext hardcover.ExternalBook,
+	ext openlibrary.ExternalBook,
 	status string,
 	initialTags []string,
 ) (*models.UserBook, error) {
-	book := externalToBook(ext)
+	book := externalToBook(s.enrichByISBN(ctx, ext))
 	saved, err := s.books.UpsertBook(ctx, book)
 	if err != nil {
 		return nil, err
@@ -213,10 +208,46 @@ func countDatesOn(dates []time.Time, dateStr string) int {
 	return count
 }
 
-func externalToBook(ext hardcover.ExternalBook) models.Book {
+// enrichByISBN best-effort fills missing description/page-count/cover on a book
+// by looking it up in Open Library by ISBN13. Open Library's search results omit
+// the description and sometimes the page count, so this is run when a book is
+// added to the library. Lookup failures are logged and the original book is
+// returned unchanged — enrichment never blocks an add.
+func (s *BookService) enrichByISBN(
+	ctx context.Context,
+	ext openlibrary.ExternalBook,
+) openlibrary.ExternalBook {
+	if ext.ISBN13 == nil || *ext.ISBN13 == "" {
+		return ext
+	}
+	if ext.Description != nil && ext.PageCount != nil && ext.CoverURL != nil {
+		return ext
+	}
+
+	detail, err := s.external.GetByISBN(ctx, *ext.ISBN13)
+	if err != nil || detail == nil {
+		if err != nil && !errors.Is(err, openlibrary.ErrNotFound) {
+			s.logger.WarnContext(ctx, "open library ISBN lookup failed", "error", err)
+		}
+		return ext
+	}
+
+	if ext.Description == nil {
+		ext.Description = detail.Description
+	}
+	if ext.PageCount == nil {
+		ext.PageCount = detail.PageCount
+	}
+	if ext.CoverURL == nil {
+		ext.CoverURL = detail.CoverURL
+	}
+	return ext
+}
+
+func externalToBook(ext openlibrary.ExternalBook) models.Book {
 	coverURL := ext.CoverURL
 	if coverURL == nil {
-		if fallback := hardcover.OpenLibraryCoverURL(ext.ISBN13); fallback != "" {
+		if fallback := openlibrary.CoverURLByISBN(ext.ISBN13); fallback != "" {
 			coverURL = &fallback
 		}
 	}

@@ -21,7 +21,6 @@ type Config struct {
 	Release         string
 	SupabaseProjRef string
 	SupabaseAPIKey  string
-	HardcoverAPIKey string
 	SteamAPIKey     string
 	R2AccountID     string
 	R2AccessKeyID   string
@@ -49,7 +48,6 @@ func New(logger *slog.Logger) Config {
 	cfg.SupabaseProjRef = parser.EnvStr("SUPABASE_PROJ_REF", "")
 	cfg.SupabaseAPIKey = parser.EnvStr("SUPABASE_API_KEY", "")
 
-	cfg.HardcoverAPIKey = parser.EnvStr("HARDCOVER_API_KEY", "")
 	cfg.SteamAPIKey = parser.EnvStr("STEAM_API_KEY", "")
 
 	cfg.R2AccountID = parser.EnvStr("R2_ACCOUNT_ID", "")

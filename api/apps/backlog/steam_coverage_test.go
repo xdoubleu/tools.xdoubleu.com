@@ -10,7 +10,6 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -207,9 +206,7 @@ func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 			SteamFactory: func(_ string) steam.Client {
 				return mockEmptyAchievementsSteamClient{}
 			},
-			HardcoverFactory: func(_ string) hardcover.Client {
-				return nil
-			},
+			OpenLibrary:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",

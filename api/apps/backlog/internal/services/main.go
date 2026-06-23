@@ -7,8 +7,8 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -32,7 +32,7 @@ func New(
 	jobQueue *threading.JobQueue,
 	repositories *repositories.Repositories,
 	steamFactory func(apiKey string) steam.Client,
-	hardcoverFactory func(apiKey string) hardcover.Client,
+	external openlibrary.Client,
 	objectStore objectstore.Client,
 	authService auth.Service,
 ) *Services {
@@ -41,13 +41,12 @@ func New(
 	}
 
 	booksSvc := &BookService{
-		logger:          logger,
-		books:           repositories.Books,
-		bookFiles:       repositories.BookFiles,
-		objectStore:     objectStore,
-		readingState:    repositories.ReadingState,
-		providerFactory: hardcoverFactory,
-		hardcoverAPIKey: config.HardcoverAPIKey,
+		logger:       logger,
+		books:        repositories.Books,
+		bookFiles:    repositories.BookFiles,
+		objectStore:  objectStore,
+		readingState: repositories.ReadingState,
+		external:     external,
 	}
 	steamSvc := &SteamService{
 		logger:        logger,

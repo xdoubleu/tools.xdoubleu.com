@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 )
 
 const (
@@ -133,7 +133,7 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 	)
 
 	var coverURL *string
-	if u := hardcover.OpenLibraryCoverURL(isbn13); u != "" {
+	if u := openlibrary.CoverURLByISBN(isbn13); u != "" {
 		coverURL = &u
 	}
 

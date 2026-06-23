@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 )
 
@@ -39,7 +39,7 @@ func addMergeBook(
 ) *models.UserBook {
 	t.Helper()
 	cover := "https://example.com/cover.jpg"
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //only required fields
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
 		Provider:   "manual",
 		ProviderID: fmt.Sprintf("merge-%s-%s", title, uuid.NewString()),
 		Title:      title,

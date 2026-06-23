@@ -35,7 +35,7 @@ var ErrInvalidUploadID = errors.New("invalid or unauthorized upload_id")
 var ErrUploadMissing = errors.New("upload missing: retry the upload")
 
 // ErrUnrecognizedBook is returned when an uploaded file's metadata does not
-// match any known book (no ISBN/title+author match and no Hardcover result).
+// match any known book (no ISBN/title+author match and no Open Library result).
 // The upload is rejected and the temp object is removed from the bucket.
 var ErrUnrecognizedBook = errors.New("book could not be recognized from metadata")
 
@@ -443,7 +443,7 @@ func extForFormat(format string) string {
 //  3. Exact case-insensitive title + first author
 //  4. Normalized title + author last-name overlap (strips subtitles, folds
 //     diacritics, handles "Last, First" vs "First Last" formatting)
-//  5. Hardcover search (creates a new library entry, matchedExisting=false)
+//  5. Open Library search (creates a new library entry, matchedExisting=false)
 func (s *BookService) recognizeBook(
 	ctx context.Context,
 	userID string,
@@ -486,7 +486,7 @@ func (s *BookService) recognizeBook(
 
 	// 4. Normalized title + author last-name overlap.
 	// Fetches the full library once; the list is small relative to the
-	// cost of a Hardcover HTTP round-trip that would otherwise follow.
+	// cost of an Open Library HTTP round-trip that would otherwise follow.
 	lib, err := s.books.GetLibrary(ctx, userID)
 	if err != nil {
 		return nil, false, err
@@ -495,8 +495,8 @@ func (s *BookService) recognizeBook(
 		return ub, true, nil
 	}
 
-	// 5. Try Hardcover when a title is available and an API key is configured.
-	if ub := s.tryHardcoverLookup(ctx, userID, meta); ub != nil {
+	// 5. Try Open Library when a title is available.
+	if ub := s.tryExternalLookup(ctx, userID, meta); ub != nil {
 		return ub, false, nil
 	}
 
@@ -504,9 +504,9 @@ func (s *BookService) recognizeBook(
 	return nil, false, ErrUnrecognizedBook
 }
 
-// tryHardcoverLookup searches Hardcover and adds the top result to the library.
-// Returns nil when there is no API key, no results, or the add fails.
-func (s *BookService) tryHardcoverLookup(
+// tryExternalLookup searches Open Library and adds the top result to the
+// library. Returns nil when there is no title, no results, or the add fails.
+func (s *BookService) tryExternalLookup(
 	ctx context.Context,
 	userID string,
 	meta ebookmeta.Metadata,
@@ -518,7 +518,7 @@ func (s *BookService) tryHardcoverLookup(
 	if len(meta.Authors) > 0 {
 		query = meta.Title + " " + meta.Authors[0]
 	}
-	results, err := s.SearchHardcover(ctx, query)
+	results, err := s.SearchExternal(ctx, query)
 	if err != nil || len(results) == 0 {
 		return nil
 	}
