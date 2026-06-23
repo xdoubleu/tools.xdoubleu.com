@@ -1058,9 +1058,12 @@ func TestKoboLibrarySync_EntitlementTimestampIsEnableTime(t *testing.T) {
 
 	owner := "kobo-enable-ts-" + uuid.NewString()
 
-	before := time.Now().UTC().Add(-time.Second)
+	// Truncate to seconds: the Created field is encoded as RFC3339 (second
+	// precision), so sub-second timestamps would cause spurious failures when
+	// the enable time straddles a second boundary.
+	before := time.Now().UTC().Add(-time.Second).Truncate(time.Second)
 	rawToken, bookID := setupKoboSyncBook(t, owner)
-	after := time.Now().UTC().Add(time.Second)
+	after := time.Now().UTC().Add(time.Second).Truncate(time.Second)
 
 	resp, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),

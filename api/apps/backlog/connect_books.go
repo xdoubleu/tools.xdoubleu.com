@@ -85,12 +85,13 @@ func (h *booksConnectHandler) GetLibrary(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	base := h.app.clients.PublicAPIBaseURL
 	return connect.NewResponse(&backlogv1.GetLibraryResponse{
 		Library: &backlogv1.LibraryResponse{
-			Reading:  protoUserBooks(data.Reading),
-			Wishlist: protoUserBooks(data.Wishlist),
-			Finished: protoUserBooks(data.Finished),
-			Shelves:  protoBookshelves(data.Shelves),
+			Reading:  protoUserBooks(data.Reading, base),
+			Wishlist: protoUserBooks(data.Wishlist, base),
+			Finished: protoUserBooks(data.Finished, base),
+			Shelves:  protoBookshelves(data.Shelves, base),
 		},
 	}), nil
 }
@@ -148,7 +149,7 @@ func (h *booksConnectHandler) SearchLibrary(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&backlogv1.SearchLibraryResponse{
-		Books: protoUserBooks(libraryResults),
+		Books: protoUserBooks(libraryResults, h.app.clients.PublicAPIBaseURL),
 	}), nil
 }
 
@@ -787,31 +788,52 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 
 // Proto conversion helpers for books
 
-func protoBook(book *models.Book) *backlogv1.Book {
+// coverProxyURL returns the proxy URL for a book cover served through our own
+// endpoint. When coverBaseURL is empty (e.g. in tests) it returns an empty
+// string, and the book will have no cover_url in the proto response.
+func coverProxyURL(bookID fmt.Stringer, coverBaseURL string) string {
+	if coverBaseURL == "" {
+		return ""
+	}
+
+	return coverBaseURL + "/backlog/api/cover/" + bookID.String()
+}
+
+func protoBook(book *models.Book, coverBaseURL string) *backlogv1.Book {
 	if book == nil {
 		return nil
 	}
+
+	// Only expose a cover URL when the book has one stored. The actual image is
+	// served through our proxy endpoint (which caches it in R2) rather than
+	// directly from Open Library.
+	proxyURL := ""
+	if book.CoverURL != nil && *book.CoverURL != "" {
+		proxyURL = coverProxyURL(book.ID, coverBaseURL)
+	}
+
 	return &backlogv1.Book{
 		Id:          book.ID.String(),
 		Title:       book.Title,
 		Authors:     book.Authors,
 		Isbn13:      stringPtr(book.ISBN13),
-		CoverUrl:    stringPtr(book.CoverURL),
+		CoverUrl:    proxyURL,
 		Description: stringPtr(book.Description),
 		PageCount:   int32FromIntPtr(book.PageCount),
 	}
 }
 
-func protoUserBook(ub models.UserBook) *backlogv1.UserBook {
+func protoUserBook(ub models.UserBook, coverBaseURL string) *backlogv1.UserBook {
 	finishedAt := make([]string, len(ub.FinishedAt))
 	for i, t := range ub.FinishedAt {
 		finishedAt[i] = t.Format(time.RFC3339)
 	}
+
 	return &backlogv1.UserBook{
 		Id:              ub.ID.String(),
 		UserId:          ub.UserID,
 		BookId:          ub.BookID.String(),
-		Book:            protoBook(ub.Book),
+		Book:            protoBook(ub.Book, coverBaseURL),
 		Status:          ub.Status,
 		Tags:            ub.Tags,
 		Formats:         ub.Formats,
@@ -826,20 +848,24 @@ func protoUserBook(ub models.UserBook) *backlogv1.UserBook {
 	}
 }
 
-func protoUserBooks(books []models.UserBook) []*backlogv1.UserBook {
+func protoUserBooks(
+	books []models.UserBook,
+	coverBaseURL string,
+) []*backlogv1.UserBook {
 	result := make([]*backlogv1.UserBook, len(books))
 	for i, b := range books {
-		result[i] = protoUserBook(b)
+		result[i] = protoUserBook(b, coverBaseURL)
 	}
+
 	return result
 }
 
-func protoBookshelves(shelves []bookShelf) []*backlogv1.BookShelf {
+func protoBookshelves(shelves []bookShelf, coverBaseURL string) []*backlogv1.BookShelf {
 	result := make([]*backlogv1.BookShelf, len(shelves))
 	for i, s := range shelves {
 		result[i] = &backlogv1.BookShelf{
 			Name:  s.Name,
-			Books: protoUserBooks(s.Books),
+			Books: protoUserBooks(s.Books, coverBaseURL),
 		}
 	}
 	return result
@@ -904,11 +930,12 @@ func (h *booksConnectHandler) FindDuplicates(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	base := h.app.clients.PublicAPIBaseURL
 	protoGroups := make([]*backlogv1.DuplicateGroup, len(groups))
 	for i, g := range groups {
 		entries := make([]*backlogv1.UserBook, len(g.Entries))
 		for j, e := range g.Entries {
-			entries[j] = protoUserBook(e)
+			entries[j] = protoUserBook(e, base)
 		}
 		protoGroups[i] = &backlogv1.DuplicateGroup{
 			Entries: entries,

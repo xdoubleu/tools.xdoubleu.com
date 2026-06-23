@@ -395,8 +395,8 @@ func seedEPUBFileForUser(
 }
 
 // TestEnsureKEPUB_CanonicalKey_WhenSourceHasChecksum verifies that when the
-// source file has a checksum, the KEPUB is stored at the canonical key
-// books/<checksum>.kepub (not a per-user path).
+// source file has a checksum, the KEPUB is stored at the canonical per-book key
+// books/<bookID>/<checksum>.kepub (not a per-user path).
 func TestEnsureKEPUB_CanonicalKey_WhenSourceHasChecksum(t *testing.T) {
 	book := addUniqueBook(t)
 	// Use the book ID as a unique-per-run checksum so parallel test runs do not
@@ -412,8 +412,12 @@ func TestEnsureKEPUB_CanonicalKey_WhenSourceHasChecksum(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	assert.Equal(t, "books/"+checksum+".kepub", result.StorageKey,
-		"KEPUB must be stored at canonical key, not a per-user path")
+	assert.Equal(
+		t,
+		"books/"+book.ID.String()+"/"+checksum+".kepub",
+		result.StorageKey,
+		"KEPUB must be stored at per-book canonical key, not a per-user path",
+	)
 	assert.Equal(t, models.FileStatusReady, result.Status)
 }
 
@@ -441,7 +445,7 @@ func TestEnsureKEPUB_CrossUserDedup_SkipsConversion(t *testing.T) {
 	result1, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, counter.calls, "converter must run exactly once for user 1")
-	assert.Equal(t, "books/"+checksum+".kepub", result1.StorageKey)
+	assert.Equal(t, "books/"+book.ID.String()+"/"+checksum+".kepub", result1.StorageKey)
 
 	// User 2: warm path — canonical blob already exists; converter must NOT run.
 	result2, err := conv.EnsureKEPUB(context.Background(), user2ID, book.ID)

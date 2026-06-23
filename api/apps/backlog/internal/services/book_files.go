@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"slices"
 	"strings"
@@ -53,10 +54,28 @@ const magicBytesLen = 4
 // maxFilenameBytes caps the stored original_filename to avoid overly long values.
 const maxFilenameBytes = 255
 
-// canonicalKeyPrefix is the R2 prefix used for content-addressed blobs shared
-// across all users. Rows with a key under this prefix are eligible for global
-// deduplication.
-const canonicalKeyPrefix = "books/"
+// booksFolderPrefix is the R2 prefix under which per-book asset folders live.
+// Every book's files (epub/pdf/kepub/cover) are stored under
+// books/<bookID>/<name>.
+const booksFolderPrefix = "books/"
+
+// bookFileKey returns the canonical R2 key for a book file:
+//
+//	books/<bookID>/<checksum><ext>
+func bookFileKey(bookID fmt.Stringer, checksum, ext string) string {
+	return booksFolderPrefix + bookID.String() + "/" + checksum + ext
+}
+
+// bookCoverKey returns the R2 key used to cache a book's cover image.
+func bookCoverKey(bookID fmt.Stringer) string {
+	return booksFolderPrefix + bookID.String() + "/cover.jpg"
+}
+
+// bookCoverMissingKey returns the R2 key used as a negative-cache marker when
+// a book has no cover (or its stored cover URL returns 404).
+func bookCoverMissingKey(bookID fmt.Stringer) string {
+	return booksFolderPrefix + bookID.String() + "/cover.missing"
+}
 
 const extEPUB = ".epub"
 const extPDF = ".pdf"
@@ -192,14 +211,26 @@ func (s *BookService) finalizeDuplicate(
 		return nil, lookupErr
 	}
 
-	// Insert a new row that shares the canonical blob.
+	// Ensure the blob lives under this book's per-book folder. If the existing
+	// row was written with a flat (legacy) key, copy it into the folder-based
+	// key first. The copy is idempotent — objectStore.Copy overwrites.
+	destKey := bookFileKey(existing.BookID, checksum, extForFormat(existing.Format))
+	if destKey != existing.StorageKey {
+		bgCtx := context.WithoutCancel(ctx)
+		copyErr := s.objectStore.Copy(bgCtx, existing.StorageKey, destKey)
+		if copyErr != nil {
+			return nil, fmt.Errorf("copy to book folder: %w", copyErr)
+		}
+	}
+
+	// Insert a new row pointing at the per-book folder key.
 	bf, insertErr := s.bookFiles.Insert(
 		ctx,
 		models.BookFile{ //nolint:exhaustruct //optional fields
 			BookID:           existing.BookID,
 			UserID:           userID,
 			Format:           existing.Format,
-			StorageKey:       existing.StorageKey,
+			StorageKey:       destKey,
 			SizeBytes:        existing.SizeBytes,
 			Checksum:         &checksum,
 			OriginalFilename: &filename,
@@ -346,8 +377,8 @@ func (s *BookService) finalizeNew(
 		return nil, dupeErr
 	}
 
-	// 10. Copy to canonical content-addressed key; delete the temp upload.
-	canonicalKey := canonicalKeyPrefix + uf.checksum + extForFormat(uf.format)
+	// 10. Copy to per-book canonical key; delete the temp upload.
+	canonicalKey := bookFileKey(ub.BookID, uf.checksum, extForFormat(uf.format))
 	bgCtx := context.WithoutCancel(ctx)
 	if copyErr := s.objectStore.Copy(bgCtx, uploadID, canonicalKey); copyErr != nil {
 		return nil, fmt.Errorf("copy to canonical key: %w", copyErr)
@@ -710,4 +741,53 @@ func (s *BookService) FormatsByUser(
 	userID string,
 ) (map[uuid.UUID][]string, error) {
 	return s.bookFiles.FormatsByUser(ctx, userID)
+}
+
+// RelocateFlatKeyFiles migrates book_files rows that still use the legacy flat
+// storage scheme (books/<checksum><ext>) to the per-book folder scheme
+// (books/<bookID>/<checksum><ext>). Returns the number of rows migrated.
+// Safe to call concurrently; it skips rows that already use the new scheme.
+func (s *BookService) RelocateFlatKeyFiles(
+	ctx context.Context,
+	logger *slog.Logger,
+) (int, error) {
+	files, err := s.bookFiles.ListWithFlatStorageKey(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	migrated := 0
+	for i := range files {
+		f := &files[i]
+		if f.Checksum == nil {
+			continue
+		}
+		newKey := bookFileKey(f.BookID, *f.Checksum, extForFormat(f.Format))
+		if newKey == f.StorageKey {
+			continue // already migrated
+		}
+
+		bgCtx := context.WithoutCancel(ctx)
+		if copyErr := s.objectStore.Copy(bgCtx, f.StorageKey, newKey); copyErr != nil {
+			logger.WarnContext(ctx, "failed to copy file to per-book folder",
+				slog.String("id", f.ID.String()),
+				slog.String("src", f.StorageKey),
+				slog.String("dst", newKey),
+				slog.Any("error", copyErr),
+			)
+			continue
+		}
+
+		if updateErr := s.bookFiles.UpdateStorageKey(ctx, f.ID, newKey); updateErr != nil {
+			logger.WarnContext(ctx, "failed to update storage_key after copy",
+				slog.String("id", f.ID.String()),
+				slog.Any("error", updateErr),
+			)
+			continue
+		}
+
+		migrated++
+	}
+
+	return migrated, nil
 }

@@ -191,7 +191,7 @@ func (s *ConversionService) resolveCanonicalKEPUB(
 	if sourceFile.Checksum == nil || *sourceFile.Checksum == "" {
 		return nil, "", nil
 	}
-	canonicalKey := canonicalKeyPrefix + *sourceFile.Checksum + extKEPUB
+	canonicalKey := bookFileKey(bookID, *sourceFile.Checksum, extKEPUB)
 
 	globalRow, err := s.bookFiles.FindByStorageKeyGlobal(ctx, canonicalKey)
 	if errors.Is(err, database.ErrResourceNotFound) {

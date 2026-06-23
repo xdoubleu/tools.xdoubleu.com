@@ -25,6 +25,13 @@ func (m MockOpenLibraryClient) GetByISBN(
 	return &book, nil
 }
 
+func (m MockOpenLibraryClient) FetchCover(
+	_ context.Context,
+	_ string,
+) ([]byte, string, error) {
+	return []byte("fake-cover-bytes"), "image/jpeg", nil
+}
+
 func NewMockOpenLibraryClient() openlibrary.Client {
 	return MockOpenLibraryClient{}
 }
@@ -60,6 +67,13 @@ func (m MockEmptyOpenLibraryClient) GetByISBN(
 	_ string,
 ) (*openlibrary.ExternalBook, error) {
 	return nil, openlibrary.ErrNotFound
+}
+
+func (m MockEmptyOpenLibraryClient) FetchCover(
+	_ context.Context,
+	_ string,
+) ([]byte, string, error) {
+	return nil, "", openlibrary.ErrCoverNotFound
 }
 
 func NewMockEmptyOpenLibraryClient() openlibrary.Client {
