@@ -212,7 +212,11 @@ func TestGetBookCover_BookHasNoCoverURL(t *testing.T) {
 	// A .missing marker should be written so we don't re-fetch on every request.
 	missingKey := "books/" + book.ID.String() + "/cover.missing"
 	_, hasMissing := store.GetContent(missingKey)
-	assert.True(t, hasMissing, "cover.missing marker should be written when book has no cover URL")
+	assert.True(
+		t,
+		hasMissing,
+		"cover.missing marker should be written when book has no cover URL",
+	)
 }
 
 // errFetchClient is an openlibrary.Client stub whose FetchCover always returns
