@@ -10,6 +10,7 @@ message Game {
   string contribution = 5;
   int32 playtime = 6;
   string image_url = 7;
+  string last_synced_at = 8;
 }
 
 message Achievement {

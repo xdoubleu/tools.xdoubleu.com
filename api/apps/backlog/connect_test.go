@@ -192,6 +192,8 @@ func TestConnectGetSteamGame_WithSeededData(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.NotNil(t, resp.Msg.Data)
 	assert.NotNil(t, resp.Msg.Data.Game)
+	assert.NotEmpty(t, resp.Msg.Data.Game.LastSyncedAt,
+		"GetSteamGame should populate last_synced_at")
 }
 
 func TestConnectGetRecentlyActiveGames(t *testing.T) {
@@ -289,6 +291,8 @@ func TestConnectRefreshSteamGame_WithSeededData(t *testing.T) {
 	require.NotNil(t, resp.Msg.Data)
 	assert.NotNil(t, resp.Msg.Data.Game)
 	assert.NotEmpty(t, resp.Msg.Data.Achievements)
+	assert.NotEmpty(t, resp.Msg.Data.Game.LastSyncedAt,
+		"RefreshSteamGame should populate last_synced_at")
 }
 
 func TestConnectSearchLibrary_Empty(t *testing.T) {

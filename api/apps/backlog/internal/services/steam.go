@@ -165,6 +165,7 @@ func (service *SteamService) buildGamesMap(
 			Contribution:   "0.0000",
 			IsDelisted:     false,
 			ImageURL:       g.GetFullImgIconURL(),
+			LastSyncedAt:   time.Time{}, // set by DB via now() in UpsertGames
 		}
 		if prev, ok := existingByID[g.AppID]; ok {
 			game.CompletionRate = prev.CompletionRate

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
@@ -267,6 +268,7 @@ func protoGame(g models.Game) *backlogv1.Game {
 		Contribution:   g.Contribution,
 		Playtime:       int32(g.Playtime), //nolint:gosec // safe for domain values
 		ImageUrl:       g.ImageURL,
+		LastSyncedAt:   g.LastSyncedAt.Format(time.RFC3339),
 	}
 }
 

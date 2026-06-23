@@ -190,6 +190,41 @@ func TestGetRecentlyActive_Service(t *testing.T) {
 	assert.True(t, found, "seeded game should be returned by the service")
 }
 
+// TestUpsertGames_SetsLastSyncedAt verifies that UpsertGames writes a non-zero
+// last_synced_at timestamp that is then returned by GetGameByID.
+func TestUpsertGames_SetsLastSyncedAt(t *testing.T) {
+	ctx := context.Background()
+	const isolatedUser = "last-synced-at-test-user"
+
+	game := &models.Game{ //nolint:exhaustruct //defaults are fine for test
+		ID:             88881,
+		Name:           "sync-ts test game",
+		IsDelisted:     false,
+		CompletionRate: "0.00",
+		Contribution:   "0.0000",
+		Playtime:       0,
+		ImageURL:       "",
+	}
+
+	err := testApp.Repositories.Steam.UpsertGames(ctx, nil, map[int]*models.Game{
+		game.ID: game,
+	}, isolatedUser)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(ctx,
+			`DELETE FROM backlog.steam_games WHERE user_id = $1`,
+			isolatedUser,
+		)
+	})
+
+	got, err := testApp.Repositories.Steam.GetGameByID(ctx, game.ID, isolatedUser)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.False(t, got.LastSyncedAt.IsZero(),
+		"UpsertGames should set last_synced_at to a non-zero timestamp")
+}
+
 // TestSyncUser_SchemaOnlyAchievements exercises the schema-only achievement path
 // by syncing a user whose steam client returns no player achievements.
 func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
