@@ -39,7 +39,7 @@ describe('BookSearchBar', () => {
     mockSearchExternal.mockResolvedValue({
       results: [
         {
-          provider: 'hc',
+          provider: 'openlibrary',
           providerId: '1',
           title: 'Go Book',
           authors: ['Donovan'],
@@ -82,7 +82,7 @@ describe('BookSearchBar', () => {
     mockSearchExternal.mockResolvedValue({
       results: [
         {
-          provider: 'hc',
+          provider: 'openlibrary',
           providerId: '1',
           title: 'Go Book',
           authors: [],

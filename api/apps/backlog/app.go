@@ -12,8 +12,8 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/jobs"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/internal/services"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
@@ -47,12 +47,6 @@ func New(
 		)
 	}
 
-	if cfg.HardcoverAPIKey == "" {
-		logger.Warn(
-			"HARDCOVER_API_KEY is not set — Hardcover book search will be disabled",
-		)
-	}
-
 	if cfg.SteamAPIKey == "" {
 		logger.Warn(
 			"STEAM_API_KEY is not set — Steam sync will be disabled",
@@ -65,9 +59,7 @@ func New(
 		SteamFactory: func(apiKey string) steam.Client {
 			return steam.New(logger, apiKey)
 		},
-		HardcoverFactory: func(apiKey string) hardcover.Client {
-			return hardcover.New(logger, apiKey)
-		},
+		OpenLibrary: openlibrary.New(logger),
 		ObjectStore: objectstore.NewR2(
 			endpoint,
 			cfg.R2AccessKeyID,
@@ -124,7 +116,7 @@ func (app *Backlog) setDB(
 		app.jobQueue,
 		app.Repositories,
 		app.clients.SteamFactory,
-		app.clients.HardcoverFactory,
+		app.clients.OpenLibrary,
 		app.clients.ObjectStore,
 		authService,
 	)

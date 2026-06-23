@@ -16,8 +16,8 @@ import (
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/mocks"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -52,7 +52,6 @@ func TestMain(m *testing.M) {
 	testCfg.Env = configtools.TestEnv
 	testCfg.Throttle = false
 	testCfg.SteamAPIKey = "test-steam-api-key"
-	testCfg.HardcoverAPIKey = "test-hardcover-api-key"
 
 	postgresDB := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = postgresDB
@@ -62,9 +61,7 @@ func TestMain(m *testing.M) {
 		SteamFactory: func(_ string) steam.Client {
 			return mocks.NewMockSteamClient()
 		},
-		HardcoverFactory: func(_ string) hardcover.Client {
-			return mocks.NewMockHardcoverClient()
-		},
+		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
 		ObjectStore:      fakeStore,
 		KoboStoreBaseURL: "",
 		PublicAPIBaseURL: "",
@@ -110,9 +107,7 @@ func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 		SteamFactory: func(_ string) steam.Client {
 			return mocks.NewMockSteamClient()
 		},
-		HardcoverFactory: func(_ string) hardcover.Client {
-			return mocks.NewMockHardcoverClient()
-		},
+		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
 		ObjectStore:      objectstore.NewFake(),
 		KoboStoreBaseURL: upstreamURL,
 		PublicAPIBaseURL: "",
@@ -144,7 +139,7 @@ func addTestBook(t *testing.T, title string) *models.UserBook {
 	isbn := "9780140449112"
 	cover := "https://example.com/cover.jpg"
 	desc := "Test description."
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional ISBN10 not needed
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional ISBN10 not needed
 		Provider:    "manual",
 		ProviderID:  fmt.Sprintf("test-%s", title),
 		Title:       title,

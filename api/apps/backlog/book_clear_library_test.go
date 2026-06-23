@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 )
 
@@ -24,7 +24,7 @@ func addBooksForClear(t *testing.T, n int) {
 	for i := range n {
 		isbn := fmt.Sprintf("978%010d", i+1)
 		cover := "https://example.com/cover.jpg"
-		ext := hardcover.ExternalBook{ //nolint:exhaustruct //only required fields
+		ext := openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
 			Provider:   "manual",
 			ProviderID: fmt.Sprintf("clear-test-%d-%s", i, uuid.NewString()),
 			Title:      fmt.Sprintf("ClearBook%d", i),
@@ -242,7 +242,7 @@ func TestConnectClearLibrary_OK(t *testing.T) {
 	isbn1 := "9780099512432"
 	isbn2 := "9780007458424"
 	cover := "https://example.com/cover.jpg"
-	for _, ext := range []hardcover.ExternalBook{
+	for _, ext := range []openlibrary.ExternalBook{
 		{ //nolint:exhaustruct //only required fields
 			Provider:   "manual",
 			ProviderID: "clear-handler-1",

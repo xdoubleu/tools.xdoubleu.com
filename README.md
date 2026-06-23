@@ -8,7 +8,7 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 
 ## Tools
 
-- **backlog** — Goals/backlog tracker with external sync (Steam, Hardcover/Goodreads), background jobs, and WebSocket live updates.
+- **backlog** — Goals/backlog tracker with external sync (Steam, Open Library/Goodreads), background jobs, and WebSocket live updates.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).

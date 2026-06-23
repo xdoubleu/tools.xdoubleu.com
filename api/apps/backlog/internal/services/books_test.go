@@ -2,14 +2,42 @@
 package services
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 )
+
+// fakeOLClient is a configurable openlibrary.Client stub for enrichment tests.
+type fakeOLClient struct {
+	detail *openlibrary.ExternalBook
+	err    error
+	calls  int
+}
+
+func (f *fakeOLClient) Search(
+	_ context.Context,
+	_ string,
+) ([]openlibrary.ExternalBook, error) {
+	return nil, nil
+}
+
+func (f *fakeOLClient) GetByISBN(
+	_ context.Context,
+	_ string,
+) (*openlibrary.ExternalBook, error) {
+	f.calls++
+	return f.detail, f.err
+}
+
+func strPtr(s string) *string { return &s }
+func intPtr(i int) *int       { return &i }
 
 func TestCountDatesOn(t *testing.T) {
 	dates := []time.Time{
@@ -34,9 +62,9 @@ func TestExternalToBook(t *testing.T) {
 
 	pages := 496
 
-	ext := hardcover.ExternalBook{
-		Provider:    "hardcover",
-		ProviderID:  "42",
+	ext := openlibrary.ExternalBook{
+		Provider:    "openlibrary",
+		ProviderID:  "OL42W",
 		Title:       "The Odyssey",
 		Authors:     []string{"Homer"},
 		ISBN13:      &isbn13,
@@ -55,14 +83,14 @@ func TestExternalToBook(t *testing.T) {
 	assert.Equal(t, &cover, book.CoverURL)
 	assert.Equal(t, &desc, book.Description)
 	assert.Equal(t, &pages, book.PageCount)
-	assert.Equal(t, "42", book.ExternalRefs["hardcover"])
+	assert.Equal(t, "OL42W", book.ExternalRefs["openlibrary"])
 }
 
 func TestExternalToBook_FallsBackToOpenLibraryCover(t *testing.T) {
 	isbn13 := "9780140449112"
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields nil
-		Provider:   "hardcover",
-		ProviderID: "42",
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields nil
+		Provider:   "openlibrary",
+		ProviderID: "OL42W",
 		Title:      "The Odyssey",
 		Authors:    []string{"Homer"},
 		ISBN13:     &isbn13,
@@ -71,11 +99,87 @@ func TestExternalToBook_FallsBackToOpenLibraryCover(t *testing.T) {
 	book := externalToBook(ext)
 
 	require.NotNil(t, book.CoverURL)
-	assert.Equal(t, hardcover.OpenLibraryCoverURL(&isbn13), *book.CoverURL)
+	assert.Equal(t, openlibrary.CoverURLByISBN(&isbn13), *book.CoverURL)
+}
+
+func TestEnrichByISBN_NoISBN13_ReturnsUnchanged(t *testing.T) {
+	fake := &fakeOLClient{} //nolint:exhaustruct //zero values intended
+	svc := &BookService{    //nolint:exhaustruct //only external needed
+		logger:   logging.NewNopLogger(),
+		external: fake,
+	}
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //no ISBN13
+		Title: "No ISBN",
+	}
+	out := svc.enrichByISBN(context.Background(), ext)
+	assert.Equal(t, ext, out)
+	assert.Zero(t, fake.calls, "no lookup without ISBN13")
+}
+
+func TestEnrichByISBN_AlreadyComplete_SkipsLookup(t *testing.T) {
+	fake := &fakeOLClient{} //nolint:exhaustruct //zero values intended
+	svc := &BookService{    //nolint:exhaustruct //only external needed
+		logger:   logging.NewNopLogger(),
+		external: fake,
+	}
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //all enriched fields set
+		Title:       "Complete",
+		ISBN13:      strPtr("9780140449112"),
+		Description: strPtr("desc"),
+		PageCount:   intPtr(100),
+		CoverURL:    strPtr("https://example.com/c.jpg"),
+	}
+	out := svc.enrichByISBN(context.Background(), ext)
+	assert.Equal(t, ext, out)
+	assert.Zero(t, fake.calls, "no lookup when all fields present")
+}
+
+func TestEnrichByISBN_FillsMissingFields(t *testing.T) {
+	fake := &fakeOLClient{ //nolint:exhaustruct //err nil
+		detail: &openlibrary.ExternalBook{ //nolint:exhaustruct //only enriched fields
+			Description: strPtr("fetched description"),
+			PageCount:   intPtr(496),
+			CoverURL:    strPtr("https://example.com/fetched.jpg"),
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct //only external needed
+		logger:   logging.NewNopLogger(),
+		external: fake,
+	}
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //missing fields filled
+		Title:  "Sparse",
+		ISBN13: strPtr("9780140449112"),
+	}
+	out := svc.enrichByISBN(context.Background(), ext)
+	assert.Equal(t, 1, fake.calls)
+	require.NotNil(t, out.Description)
+	assert.Equal(t, "fetched description", *out.Description)
+	require.NotNil(t, out.PageCount)
+	assert.Equal(t, 496, *out.PageCount)
+	require.NotNil(t, out.CoverURL)
+	assert.Equal(t, "https://example.com/fetched.jpg", *out.CoverURL)
+}
+
+func TestEnrichByISBN_LookupError_ReturnsUnchanged(t *testing.T) {
+	fake := &fakeOLClient{ //nolint:exhaustruct //detail nil
+		err: errors.New("boom"),
+	}
+	svc := &BookService{ //nolint:exhaustruct //only external needed
+		logger:   logging.NewNopLogger(),
+		external: fake,
+	}
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //missing fields
+		Title:  "Errors",
+		ISBN13: strPtr("9780140449112"),
+	}
+	out := svc.enrichByISBN(context.Background(), ext)
+	assert.Equal(t, 1, fake.calls)
+	assert.Nil(t, out.Description)
+	assert.Nil(t, out.PageCount)
 }
 
 func TestExternalToBook_NilFields(t *testing.T) {
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields nil
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields nil
 		Provider:   "manual",
 		ProviderID: "1",
 		Title:      "Untitled",

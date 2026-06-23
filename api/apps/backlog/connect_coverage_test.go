@@ -15,8 +15,8 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/internal/models"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
@@ -25,7 +25,7 @@ import (
 )
 
 // TestNew_ReturnsApp covers the production New constructor that wires real
-// steam/hardcover factories.
+// steam/Open Library factories.
 func TestNew_ReturnsApp(t *testing.T) {
 	bl := backlog.New(
 		context.Background(),
@@ -49,9 +49,7 @@ func TestStart_RegistersJobs(t *testing.T) {
 			SteamFactory: func(_ string) steam.Client {
 				return nil
 			},
-			HardcoverFactory: func(_ string) hardcover.Client {
-				return nil
-			},
+			OpenLibrary:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -66,7 +64,7 @@ func TestStart_RegistersJobs(t *testing.T) {
 func addTestBookWithISBN(t *testing.T, title, isbn string) *models.UserBook {
 	t.Helper()
 	cover := "https://example.com/cover.jpg"
-	ext := hardcover.ExternalBook{ //nolint:exhaustruct //optional fields not needed
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields not needed
 		Provider:   "manual",
 		ProviderID: fmt.Sprintf("cov-%s-%s", title, uuid.New()),
 		Title:      title,
@@ -269,9 +267,7 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 			SteamFactory: func(_ string) steam.Client {
 				return twoAchievementsMock{}
 			},
-			HardcoverFactory: func(_ string) hardcover.Client {
-				return nil
-			},
+			OpenLibrary:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -331,7 +327,7 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 		testDB,
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return twoAchievementsMock{} },
-			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			OpenLibrary:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -486,7 +482,7 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 		testDB,
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return fourAchievementsMock{} },
-			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			OpenLibrary:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -552,7 +548,7 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 					schemaErr: map[int]bool{gameID: true},
 				}
 			},
-			HardcoverFactory: func(_ string) hardcover.Client { return nil },
+			OpenLibrary:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",

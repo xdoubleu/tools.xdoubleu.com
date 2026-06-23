@@ -14,7 +14,7 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/services"
-	"tools.xdoubleu.com/apps/backlog/pkg/hardcover"
+	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
 	"tools.xdoubleu.com/internal/constants"
@@ -168,15 +168,15 @@ func (h *booksConnectHandler) SearchExternal(
 			Results: []*backlogv1.ExternalBookResult{},
 		}), nil
 	}
-	hardcoverResults, err := h.app.Services.Books.SearchHardcover(
+	results, err := h.app.Services.Books.SearchExternal(
 		ctx,
 		req.Msg.Query,
 	)
 	if err != nil {
-		h.app.Logger.WarnContext(ctx, "hardcover search failed", "error", err)
+		h.app.Logger.WarnContext(ctx, "open library search failed", "error", err)
 	}
 	return connect.NewResponse(&backlogv1.SearchExternalResponse{
-		Results: protoExternalBooks(hardcoverResults),
+		Results: protoExternalBooks(results),
 	}), nil
 }
 
@@ -207,7 +207,7 @@ func (h *booksConnectHandler) AddBook(
 	if req.Msg.Description != "" {
 		desc = &req.Msg.Description
 	}
-	ext := hardcover.ExternalBook{
+	ext := openlibrary.ExternalBook{
 		Provider:    req.Msg.Provider,
 		ProviderID:  req.Msg.ProviderId,
 		Title:       req.Msg.Title,
@@ -846,7 +846,7 @@ func protoBookshelves(shelves []bookShelf) []*backlogv1.BookShelf {
 }
 
 func protoExternalBooks(
-	books []hardcover.ExternalBook,
+	books []openlibrary.ExternalBook,
 ) []*backlogv1.ExternalBookResult {
 	result := make([]*backlogv1.ExternalBookResult, len(books))
 	for i, b := range books {
