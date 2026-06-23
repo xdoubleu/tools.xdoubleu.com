@@ -26,11 +26,12 @@ var embedMigrations embed.FS
 
 type Backlog struct {
 	app.Base
-	db           postgres.DB
-	clients      Clients
-	Services     *services.Services
-	Repositories *repositories.Repositories
-	jobQueue     *threading.JobQueue
+	db             postgres.DB
+	clients        Clients
+	Services       *services.Services
+	Repositories   *repositories.Repositories
+	jobQueue       *threading.JobQueue
+	resyncBooksJob *jobs.ResyncOpenLibraryJob
 }
 
 func New(
@@ -121,6 +122,7 @@ func (app *Backlog) setDB(
 		app.clients.ObjectStore,
 		authService,
 	)
+	app.resyncBooksJob = jobs.NewResyncOpenLibraryJob(app.Services.Books)
 }
 
 func (app *Backlog) setJobs() {
@@ -134,6 +136,13 @@ func (app *Backlog) setJobs() {
 	if err := app.jobQueue.AddJob(
 		jobs.NewRelocateFilesJob(app.Services.Books),
 		func(string, bool, *time.Time) {},
+	); err != nil {
+		panic(err)
+	}
+
+	if err := app.jobQueue.AddJob(
+		app.resyncBooksJob,
+		app.Services.WebSocket.UpdateState,
 	); err != nil {
 		panic(err)
 	}

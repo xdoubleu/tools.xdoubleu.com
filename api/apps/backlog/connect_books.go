@@ -1000,6 +1000,24 @@ func (h *booksConnectHandler) MergeBooks(
 	}), nil
 }
 
+func (h *booksConnectHandler) ResyncOpenLibrary(
+	ctx context.Context,
+	_ *connect.Request[backlogv1.ResyncOpenLibraryRequest],
+) (*connect.Response[backlogv1.ResyncOpenLibraryResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+
+	h.app.resyncBooksJob.Arm()
+	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
+
+	return connect.NewResponse(&backlogv1.ResyncOpenLibraryResponse{}), nil
+}
+
 func stringPtr(s *string) string {
 	if s == nil {
 		return ""

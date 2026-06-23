@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useImportBooks } from '@/hooks/useBacklog'
+import { useImportBooks, useResyncOpenLibrary } from '@/hooks/useBacklog'
 import BulkBookUploader from '@/components/backlog/BulkBookUploader'
 import KoboSetup from '@/components/backlog/KoboSetup'
 import KoboDevices from '@/components/backlog/KoboDevices'
@@ -13,11 +13,14 @@ import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function BacklogBooksSettingsPage() {
   const importBooks = useImportBooks()
+  const resyncOpenLibrary = useResyncOpenLibrary()
 
   const [importStatus, setImportStatus] = useState('')
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearStatus, setClearStatus] = useState('')
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
+  const [resyncing, setResyncing] = useState(false)
+  const [resyncStatus, setResyncStatus] = useState('')
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -89,6 +92,44 @@ export default function BacklogBooksSettingsPage() {
           </h3>
           <KoboDevices />
         </div>
+      </section>
+
+      <section className="mt-10 border-t border-border pt-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+          Resync with Open Library
+        </h2>
+        <p className="mb-3 text-xs text-muted">
+          Re-fetch cover images and metadata (description, page count) for all books with an ISBN.
+          Existing cached covers are cleared so updated images download on next view.
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={resyncing}
+          onClick={async () => {
+            setResyncing(true)
+            setResyncStatus('')
+            try {
+              await resyncOpenLibrary()
+              setResyncStatus('Resync started — covers and metadata refresh in the background.')
+            } catch {
+              setResyncStatus('Resync failed. Please try again.')
+            } finally {
+              setResyncing(false)
+            }
+          }}
+          data-testid="resync-openlibrary-btn"
+        >
+          {resyncing ? 'Resyncing…' : 'Resync with Open Library'}
+        </Button>
+        {resyncStatus && (
+          <p
+            className={`mt-2 text-sm ${resyncStatus.includes('failed') ? 'text-danger' : 'text-success'}`}
+            data-testid="resync-openlibrary-status"
+          >
+            {resyncStatus}
+          </p>
+        )}
       </section>
 
       <section className="mt-10 border-t border-border pt-8">

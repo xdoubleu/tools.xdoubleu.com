@@ -103,6 +103,9 @@ const (
 	BooksServiceFindDuplicatesProcedure = "/backlog.v1.BooksService/FindDuplicates"
 	// BooksServiceMergeBooksProcedure is the fully-qualified name of the BooksService's MergeBooks RPC.
 	BooksServiceMergeBooksProcedure = "/backlog.v1.BooksService/MergeBooks"
+	// BooksServiceResyncOpenLibraryProcedure is the fully-qualified name of the BooksService's
+	// ResyncOpenLibrary RPC.
+	BooksServiceResyncOpenLibraryProcedure = "/backlog.v1.BooksService/ResyncOpenLibrary"
 )
 
 // BooksServiceClient is a client for the backlog.v1.BooksService service.
@@ -132,6 +135,7 @@ type BooksServiceClient interface {
 	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
+	ResyncOpenLibrary(context.Context, *connect.Request[v1.ResyncOpenLibraryRequest]) (*connect.Response[v1.ResyncOpenLibraryResponse], error)
 }
 
 // NewBooksServiceClient constructs a client for the backlog.v1.BooksService service. By default, it
@@ -295,6 +299,12 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(booksServiceMethods.ByName("MergeBooks")),
 			connect.WithClientOptions(opts...),
 		),
+		resyncOpenLibrary: connect.NewClient[v1.ResyncOpenLibraryRequest, v1.ResyncOpenLibraryResponse](
+			httpClient,
+			baseURL+BooksServiceResyncOpenLibraryProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("ResyncOpenLibrary")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -325,6 +335,7 @@ type booksServiceClient struct {
 	clearLibrary           *connect.Client[v1.ClearLibraryRequest, v1.ClearLibraryResponse]
 	findDuplicates         *connect.Client[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse]
 	mergeBooks             *connect.Client[v1.MergeBooksRequest, v1.MergeBooksResponse]
+	resyncOpenLibrary      *connect.Client[v1.ResyncOpenLibraryRequest, v1.ResyncOpenLibraryResponse]
 }
 
 // GetSummary calls backlog.v1.BooksService.GetSummary.
@@ -452,6 +463,11 @@ func (c *booksServiceClient) MergeBooks(ctx context.Context, req *connect.Reques
 	return c.mergeBooks.CallUnary(ctx, req)
 }
 
+// ResyncOpenLibrary calls backlog.v1.BooksService.ResyncOpenLibrary.
+func (c *booksServiceClient) ResyncOpenLibrary(ctx context.Context, req *connect.Request[v1.ResyncOpenLibraryRequest]) (*connect.Response[v1.ResyncOpenLibraryResponse], error) {
+	return c.resyncOpenLibrary.CallUnary(ctx, req)
+}
+
 // BooksServiceHandler is an implementation of the backlog.v1.BooksService service.
 type BooksServiceHandler interface {
 	GetSummary(context.Context, *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error)
@@ -479,6 +495,7 @@ type BooksServiceHandler interface {
 	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
+	ResyncOpenLibrary(context.Context, *connect.Request[v1.ResyncOpenLibraryRequest]) (*connect.Response[v1.ResyncOpenLibraryResponse], error)
 }
 
 // NewBooksServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -638,6 +655,12 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(booksServiceMethods.ByName("MergeBooks")),
 		connect.WithHandlerOptions(opts...),
 	)
+	booksServiceResyncOpenLibraryHandler := connect.NewUnaryHandler(
+		BooksServiceResyncOpenLibraryProcedure,
+		svc.ResyncOpenLibrary,
+		connect.WithSchema(booksServiceMethods.ByName("ResyncOpenLibrary")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/backlog.v1.BooksService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BooksServiceGetSummaryProcedure:
@@ -690,6 +713,8 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 			booksServiceFindDuplicatesHandler.ServeHTTP(w, r)
 		case BooksServiceMergeBooksProcedure:
 			booksServiceMergeBooksHandler.ServeHTTP(w, r)
+		case BooksServiceResyncOpenLibraryProcedure:
+			booksServiceResyncOpenLibraryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -797,4 +822,8 @@ func (UnimplementedBooksServiceHandler) FindDuplicates(context.Context, *connect
 
 func (UnimplementedBooksServiceHandler) MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.MergeBooks is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) ResyncOpenLibrary(context.Context, *connect.Request[v1.ResyncOpenLibraryRequest]) (*connect.Response[v1.ResyncOpenLibraryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.ResyncOpenLibrary is not implemented"))
 }

@@ -642,6 +642,59 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	return out, nil
 }
 
+// ListBooksWithISBN13 returns all catalog books that have a non-null ISBN13.
+// Used by the Open Library resync job to re-fetch metadata and covers.
+func (repo *BooksRepository) ListBooksWithISBN13(
+	ctx context.Context,
+) ([]models.Book, error) {
+	query := `
+		SELECT ` + bookColumns + `
+		FROM backlog.books
+		WHERE isbn13 IS NOT NULL
+	`
+
+	rows, err := repo.db.Query(ctx, query)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var books []models.Book
+	for rows.Next() {
+		b, scanErr := scanBook(rows)
+		if scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		books = append(books, *b)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return books, nil
+}
+
+// RefreshBookExternalData updates a book's Open Library-sourced fields.
+// cover_url is always overwritten; description and page_count use COALESCE so
+// a nil from Open Library never erases data we already have.
+func (repo *BooksRepository) RefreshBookExternalData(
+	ctx context.Context,
+	bookID uuid.UUID,
+	coverURL *string,
+	description *string,
+	pageCount *int,
+) error {
+	query := `
+		UPDATE backlog.books
+		SET cover_url   = $2,
+		    description = COALESCE($3, description),
+		    page_count  = COALESCE($4, page_count),
+		    updated_at  = now()
+		WHERE id = $1
+	`
+	_, err := repo.db.Exec(ctx, query, bookID, coverURL, description, pageCount)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // GetKoboSyncBook returns the single kobo-sync book matching bookID for the
 // user. It uses the same eligibility criteria as ListKoboSyncBooks: the book
 // must have the kobo-sync tag and a ready file. Returns

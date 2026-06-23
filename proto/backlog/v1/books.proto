@@ -250,6 +250,9 @@ message MergeBooksResponse {
   uint32 deleted_files = 2;
 }
 
+message ResyncOpenLibraryRequest {}
+message ResyncOpenLibraryResponse {}
+
 service BooksService {
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
   rpc GetUserSummary(GetUserSummaryRequest) returns (GetUserSummaryResponse);
@@ -276,4 +279,5 @@ service BooksService {
   rpc ClearLibrary(ClearLibraryRequest) returns (ClearLibraryResponse);
   rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
   rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
+  rpc ResyncOpenLibrary(ResyncOpenLibraryRequest) returns (ResyncOpenLibraryResponse);
 }
