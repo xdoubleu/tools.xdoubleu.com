@@ -238,6 +238,11 @@ export function useClearLibrary() {
   return () => client.clearLibrary({})
 }
 
+export function useResyncOpenLibrary() {
+  const client = createServiceClient(BooksService)
+  return () => client.resyncOpenLibrary({})
+}
+
 export function useFindDuplicates() {
   const client = createServiceClient(BooksService)
   return useSWR<FindDuplicatesResponse, Error>('/backlog/books/duplicates', () =>

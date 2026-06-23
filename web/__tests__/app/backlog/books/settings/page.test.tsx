@@ -1,11 +1,13 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const mockImportBooks = jest.fn()
+const mockResyncOpenLibrary = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useImportBooks: () => mockImportBooks,
   useClearLibrary: () => jest.fn(),
+  useResyncOpenLibrary: () => mockResyncOpenLibrary,
   useFindDuplicates: () => ({ data: undefined, isLoading: false, mutate: jest.fn() }),
   useMergeBooks: () => jest.fn()
 }))
@@ -81,5 +83,35 @@ describe('BacklogBooksSettingsPage', () => {
     render(<BacklogBooksSettingsPage />)
     expect(screen.getByText('Danger zone')).toBeInTheDocument()
     expect(screen.getByTestId('clear-library-btn')).toBeInTheDocument()
+  })
+
+  it('renders the Resync with Open Library section and button', () => {
+    render(<BacklogBooksSettingsPage />)
+    expect(screen.getAllByText('Resync with Open Library').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByTestId('resync-openlibrary-btn')).toBeInTheDocument()
+  })
+
+  it('shows success status after resync completes', async () => {
+    mockResyncOpenLibrary.mockResolvedValueOnce({})
+    render(<BacklogBooksSettingsPage />)
+
+    fireEvent.click(screen.getByTestId('resync-openlibrary-btn'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('resync-openlibrary-status')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('resync-openlibrary-status').textContent).toContain('Resync started')
+  })
+
+  it('shows error status when resync fails', async () => {
+    mockResyncOpenLibrary.mockRejectedValueOnce(new Error('network error'))
+    render(<BacklogBooksSettingsPage />)
+
+    fireEvent.click(screen.getByTestId('resync-openlibrary-btn'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('resync-openlibrary-status')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('resync-openlibrary-status').textContent).toContain('failed')
   })
 })

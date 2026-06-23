@@ -1,6 +1,7 @@
 package backlog_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -628,4 +629,66 @@ func TestConnectGetLibrary_FormatsPopulated(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "expected book in wishlist")
+}
+
+// TestConnectResyncOpenLibrary_Success verifies that an authenticated user can
+// trigger the resync endpoint and get a 200 response.
+func TestConnectResyncOpenLibrary_Success(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&backlogv1.ResyncOpenLibraryRequest{})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.ResyncOpenLibrary(ctx, req)
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+}
+
+// TestResyncAllFromOpenLibrary_Service exercises the service layer end-to-end
+// against the real DB: seed a book with an ISBN13, run ResyncAllFromOpenLibrary,
+// and confirm that the R2 cover cache keys were cleared.
+func TestResyncAllFromOpenLibrary_Service(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	uid := uuid.New().String()[:8]
+	book := addTestBookWithISBN(t, "ResyncTest-"+uid, "9780000099001")
+
+	// Pre-seed a cached cover and missing marker in fakeStore so we can verify
+	// they are deleted after the resync.
+	coverKey := "books/" + book.BookID.String() + "/cover.jpg"
+	missingKey := "books/" + book.BookID.String() + "/cover.missing"
+	require.NoError(
+		t,
+		fakeStore.Put(ctx, coverKey, bytes.NewReader([]byte("img")), 3, "image/jpeg"),
+	)
+	require.NoError(
+		t,
+		fakeStore.Put(
+			ctx,
+			missingKey,
+			bytes.NewReader([]byte{}),
+			0,
+			"application/octet-stream",
+		),
+	)
+
+	exists, err := fakeStore.Exists(ctx, coverKey)
+	require.NoError(t, err)
+	require.True(t, exists, "cover should be in store before resync")
+
+	n, resyncErr := testApp.Services.Books.ResyncAllFromOpenLibrary(ctx, testApp.Logger)
+	require.NoError(t, resyncErr)
+	assert.GreaterOrEqual(t, n, 1, "at least the seeded book should be resynced")
+
+	// Cache keys must be cleared so GetBookCover re-fetches on next request.
+	exists, err = fakeStore.Exists(ctx, coverKey)
+	require.NoError(t, err)
+	assert.False(t, exists, "cover.jpg cache should be deleted after resync")
+
+	missing, err := fakeStore.Exists(ctx, missingKey)
+	require.NoError(t, err)
+	assert.False(t, missing, "cover.missing marker should be deleted after resync")
 }

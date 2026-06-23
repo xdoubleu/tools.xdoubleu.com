@@ -3266,6 +3266,78 @@ func (x *MergeBooksResponse) GetDeletedFiles() uint32 {
 	return 0
 }
 
+type ResyncOpenLibraryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResyncOpenLibraryRequest) Reset() {
+	*x = ResyncOpenLibraryRequest{}
+	mi := &file_backlog_v1_books_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResyncOpenLibraryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResyncOpenLibraryRequest) ProtoMessage() {}
+
+func (x *ResyncOpenLibraryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResyncOpenLibraryRequest.ProtoReflect.Descriptor instead.
+func (*ResyncOpenLibraryRequest) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{60}
+}
+
+type ResyncOpenLibraryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResyncOpenLibraryResponse) Reset() {
+	*x = ResyncOpenLibraryResponse{}
+	mi := &file_backlog_v1_books_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResyncOpenLibraryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResyncOpenLibraryResponse) ProtoMessage() {}
+
+func (x *ResyncOpenLibraryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_backlog_v1_books_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResyncOpenLibraryResponse.ProtoReflect.Descriptor instead.
+func (*ResyncOpenLibraryResponse) Descriptor() ([]byte, []int) {
+	return file_backlog_v1_books_proto_rawDescGZIP(), []int{61}
+}
+
 var File_backlog_v1_books_proto protoreflect.FileDescriptor
 
 const file_backlog_v1_books_proto_rawDesc = "" +
@@ -3482,7 +3554,9 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x0eloser_book_ids\x18\x02 \x03(\tR\floserBookIds\"^\n" +
 	"\x12MergeBooksResponse\x12#\n" +
 	"\rmerged_groups\x18\x01 \x01(\rR\fmergedGroups\x12#\n" +
-	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles2\xcb\x11\n" +
+	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles\"\x1a\n" +
+	"\x18ResyncOpenLibraryRequest\"\x1b\n" +
+	"\x19ResyncOpenLibraryResponse2\xad\x12\n" +
 	"\fBooksService\x12K\n" +
 	"\n" +
 	"GetSummary\x12\x1d.backlog.v1.GetSummaryRequest\x1a\x1e.backlog.v1.GetSummaryResponse\x12W\n" +
@@ -3511,7 +3585,8 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\fClearLibrary\x12\x1f.backlog.v1.ClearLibraryRequest\x1a .backlog.v1.ClearLibraryResponse\x12W\n" +
 	"\x0eFindDuplicates\x12!.backlog.v1.FindDuplicatesRequest\x1a\".backlog.v1.FindDuplicatesResponse\x12K\n" +
 	"\n" +
-	"MergeBooks\x12\x1d.backlog.v1.MergeBooksRequest\x1a\x1e.backlog.v1.MergeBooksResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
+	"MergeBooks\x12\x1d.backlog.v1.MergeBooksRequest\x1a\x1e.backlog.v1.MergeBooksResponse\x12`\n" +
+	"\x11ResyncOpenLibrary\x12$.backlog.v1.ResyncOpenLibraryRequest\x1a%.backlog.v1.ResyncOpenLibraryResponseB-Z+tools.xdoubleu.com/gen/backlog/v1;backlogv1b\x06proto3"
 
 var (
 	file_backlog_v1_books_proto_rawDescOnce sync.Once
@@ -3525,7 +3600,7 @@ func file_backlog_v1_books_proto_rawDescGZIP() []byte {
 	return file_backlog_v1_books_proto_rawDescData
 }
 
-var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 60)
+var file_backlog_v1_books_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
 var file_backlog_v1_books_proto_goTypes = []any{
 	(*Book)(nil),                           // 0: backlog.v1.Book
 	(*UserBook)(nil),                       // 1: backlog.v1.UserBook
@@ -3587,6 +3662,8 @@ var file_backlog_v1_books_proto_goTypes = []any{
 	(*FindDuplicatesResponse)(nil),         // 57: backlog.v1.FindDuplicatesResponse
 	(*MergeBooksRequest)(nil),              // 58: backlog.v1.MergeBooksRequest
 	(*MergeBooksResponse)(nil),             // 59: backlog.v1.MergeBooksResponse
+	(*ResyncOpenLibraryRequest)(nil),       // 60: backlog.v1.ResyncOpenLibraryRequest
+	(*ResyncOpenLibraryResponse)(nil),      // 61: backlog.v1.ResyncOpenLibraryResponse
 }
 var file_backlog_v1_books_proto_depIdxs = []int32{
 	0,  // 0: backlog.v1.UserBook.book:type_name -> backlog.v1.Book
@@ -3631,33 +3708,35 @@ var file_backlog_v1_books_proto_depIdxs = []int32{
 	53, // 39: backlog.v1.BooksService.ClearLibrary:input_type -> backlog.v1.ClearLibraryRequest
 	56, // 40: backlog.v1.BooksService.FindDuplicates:input_type -> backlog.v1.FindDuplicatesRequest
 	58, // 41: backlog.v1.BooksService.MergeBooks:input_type -> backlog.v1.MergeBooksRequest
-	8,  // 42: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
-	10, // 43: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
-	12, // 44: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
-	14, // 45: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
-	16, // 46: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
-	18, // 47: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
-	20, // 48: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
-	22, // 49: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
-	26, // 50: backlog.v1.BooksService.UpdateProgress:output_type -> backlog.v1.UpdateProgressResponse
-	24, // 51: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
-	28, // 52: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
-	35, // 53: backlog.v1.BooksService.UpdateReadingProgress:output_type -> backlog.v1.UpdateReadingProgressResponse
-	37, // 54: backlog.v1.BooksService.GetReadingState:output_type -> backlog.v1.GetReadingStateResponse
-	30, // 55: backlog.v1.BooksService.CreateBookUpload:output_type -> backlog.v1.CreateBookUploadResponse
-	32, // 56: backlog.v1.BooksService.FinalizeBookUpload:output_type -> backlog.v1.FinalizeBookUploadResponse
-	39, // 57: backlog.v1.BooksService.GetBookFile:output_type -> backlog.v1.GetBookFileResponse
-	41, // 58: backlog.v1.BooksService.EnableKoboSync:output_type -> backlog.v1.EnableKoboSyncResponse
-	52, // 59: backlog.v1.BooksService.RequestKEPUBConversion:output_type -> backlog.v1.RequestKEPUBConversionResponse
-	43, // 60: backlog.v1.BooksService.GetKEPUBStatus:output_type -> backlog.v1.GetKEPUBStatusResponse
-	46, // 61: backlog.v1.BooksService.RegisterKoboDevice:output_type -> backlog.v1.RegisterKoboDeviceResponse
-	48, // 62: backlog.v1.BooksService.ListKoboDevices:output_type -> backlog.v1.ListKoboDevicesResponse
-	50, // 63: backlog.v1.BooksService.DisconnectKoboDevice:output_type -> backlog.v1.DisconnectKoboDeviceResponse
-	54, // 64: backlog.v1.BooksService.ClearLibrary:output_type -> backlog.v1.ClearLibraryResponse
-	57, // 65: backlog.v1.BooksService.FindDuplicates:output_type -> backlog.v1.FindDuplicatesResponse
-	59, // 66: backlog.v1.BooksService.MergeBooks:output_type -> backlog.v1.MergeBooksResponse
-	42, // [42:67] is the sub-list for method output_type
-	17, // [17:42] is the sub-list for method input_type
+	60, // 42: backlog.v1.BooksService.ResyncOpenLibrary:input_type -> backlog.v1.ResyncOpenLibraryRequest
+	8,  // 43: backlog.v1.BooksService.GetSummary:output_type -> backlog.v1.GetSummaryResponse
+	10, // 44: backlog.v1.BooksService.GetUserSummary:output_type -> backlog.v1.GetUserSummaryResponse
+	12, // 45: backlog.v1.BooksService.GetLibrary:output_type -> backlog.v1.GetLibraryResponse
+	14, // 46: backlog.v1.BooksService.GetBooksProgress:output_type -> backlog.v1.GetBooksProgressResponse
+	16, // 47: backlog.v1.BooksService.SearchLibrary:output_type -> backlog.v1.SearchLibraryResponse
+	18, // 48: backlog.v1.BooksService.SearchExternal:output_type -> backlog.v1.SearchExternalResponse
+	20, // 49: backlog.v1.BooksService.AddBook:output_type -> backlog.v1.AddBookResponse
+	22, // 50: backlog.v1.BooksService.UpdateBookStatus:output_type -> backlog.v1.UpdateBookStatusResponse
+	26, // 51: backlog.v1.BooksService.UpdateProgress:output_type -> backlog.v1.UpdateProgressResponse
+	24, // 52: backlog.v1.BooksService.ToggleTag:output_type -> backlog.v1.ToggleTagResponse
+	28, // 53: backlog.v1.BooksService.ImportBooks:output_type -> backlog.v1.ImportBooksResponse
+	35, // 54: backlog.v1.BooksService.UpdateReadingProgress:output_type -> backlog.v1.UpdateReadingProgressResponse
+	37, // 55: backlog.v1.BooksService.GetReadingState:output_type -> backlog.v1.GetReadingStateResponse
+	30, // 56: backlog.v1.BooksService.CreateBookUpload:output_type -> backlog.v1.CreateBookUploadResponse
+	32, // 57: backlog.v1.BooksService.FinalizeBookUpload:output_type -> backlog.v1.FinalizeBookUploadResponse
+	39, // 58: backlog.v1.BooksService.GetBookFile:output_type -> backlog.v1.GetBookFileResponse
+	41, // 59: backlog.v1.BooksService.EnableKoboSync:output_type -> backlog.v1.EnableKoboSyncResponse
+	52, // 60: backlog.v1.BooksService.RequestKEPUBConversion:output_type -> backlog.v1.RequestKEPUBConversionResponse
+	43, // 61: backlog.v1.BooksService.GetKEPUBStatus:output_type -> backlog.v1.GetKEPUBStatusResponse
+	46, // 62: backlog.v1.BooksService.RegisterKoboDevice:output_type -> backlog.v1.RegisterKoboDeviceResponse
+	48, // 63: backlog.v1.BooksService.ListKoboDevices:output_type -> backlog.v1.ListKoboDevicesResponse
+	50, // 64: backlog.v1.BooksService.DisconnectKoboDevice:output_type -> backlog.v1.DisconnectKoboDeviceResponse
+	54, // 65: backlog.v1.BooksService.ClearLibrary:output_type -> backlog.v1.ClearLibraryResponse
+	57, // 66: backlog.v1.BooksService.FindDuplicates:output_type -> backlog.v1.FindDuplicatesResponse
+	59, // 67: backlog.v1.BooksService.MergeBooks:output_type -> backlog.v1.MergeBooksResponse
+	61, // 68: backlog.v1.BooksService.ResyncOpenLibrary:output_type -> backlog.v1.ResyncOpenLibraryResponse
+	43, // [43:69] is the sub-list for method output_type
+	17, // [17:43] is the sub-list for method input_type
 	17, // [17:17] is the sub-list for extension type_name
 	17, // [17:17] is the sub-list for extension extendee
 	0,  // [0:17] is the sub-list for field type_name
@@ -3674,7 +3753,7 @@ func file_backlog_v1_books_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backlog_v1_books_proto_rawDesc), len(file_backlog_v1_books_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   60,
+			NumMessages:   62,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
