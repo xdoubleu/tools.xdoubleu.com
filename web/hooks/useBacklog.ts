@@ -14,6 +14,7 @@ import { GamesService } from '@/lib/gen/backlog/v1/games_pb'
 import type {
   GetLibraryResponse,
   GetBooksProgressResponse,
+  SearchLibraryResponse,
   SearchExternalResponse,
   GetKEPUBStatusResponse,
   GetBookFileResponse,
@@ -87,6 +88,11 @@ export function useRefreshSteam() {
     fetch(`${getApiUrl()}/backlog/api/progress/steam/refresh`, {
       credentials: 'include'
     })
+}
+
+export function useSearchLibrary() {
+  const client = createServiceClient(BooksService)
+  return (query: string) => client.searchLibrary({ query }).then((r: SearchLibraryResponse) => r)
 }
 
 export function useSearchExternal() {
