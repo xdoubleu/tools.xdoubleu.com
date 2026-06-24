@@ -68,6 +68,28 @@ func (service *WebSocketService) UpdateState(
 	topic.EnqueueEvent(dtos.StateMessageDto{
 		IsRefreshing: isRunning,
 		LastRefresh:  lastRunTime,
+		Processed:    nil,
+		Total:        nil,
+	})
+}
+
+// UpdateProgress enqueues a mid-run progress event on the named topic. It is
+// meant for long-running background jobs (e.g. the Open Library resync) that
+// want to broadcast "X of N items done" to connected clients. The message
+// carries IsRefreshing: true so clients keep the running indicator active.
+func (service *WebSocketService) UpdateProgress(id string, processed, total int) {
+	service.mu.RLock()
+	topic, ok := service.topics[id]
+	service.mu.RUnlock()
+	if !ok {
+		return
+	}
+
+	topic.EnqueueEvent(dtos.StateMessageDto{
+		IsRefreshing: true,
+		LastRefresh:  nil,
+		Processed:    &processed,
+		Total:        &total,
 	})
 }
 
@@ -99,5 +121,7 @@ func (service *WebSocketService) fetchState(topic *wstools.Topic) dtos.StateMess
 	return dtos.StateMessageDto{
 		IsRefreshing: isRefreshing,
 		LastRefresh:  lastRefresh,
+		Processed:    nil,
+		Total:        nil,
 	}
 }

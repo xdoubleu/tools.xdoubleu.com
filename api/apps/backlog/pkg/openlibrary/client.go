@@ -85,7 +85,39 @@ func (c client) GetByISBN(ctx context.Context, isbn string) (*ExternalBook, erro
 	}
 
 	book := detailsToExternalBook(isbn, entry.Details)
+
+	// Descriptions live on the Work record, not on the edition returned by
+	// jscmd=details. If the edition had no description and a work key is
+	// available, fetch the work to fill it in.
+	if book.Description == nil && len(entry.Details.Works) > 0 {
+		book.Description = c.fetchWorkDescription(ctx, entry.Details.Works[0].Key)
+	}
+
 	return &book, nil
+}
+
+// fetchWorkDescription fetches the description field from an Open Library
+// Work record (GET /works/OL…W.json). It returns nil on any error or when
+// the work carries no description — the caller must treat a nil return as
+// "no description available" rather than a hard failure.
+func (c client) fetchWorkDescription(ctx context.Context, workKey string) *string {
+	endpoint := baseURL + workKey + ".json"
+
+	var work workResponse
+	if err := c.get(ctx, endpoint, &work); err != nil {
+		c.logger.WarnContext(ctx, "failed to fetch work description",
+			slog.String("workKey", workKey),
+			slog.Any("error", err),
+		)
+		return nil
+	}
+
+	if work.Description.Value == "" {
+		return nil
+	}
+
+	v := work.Description.Value
+	return &v
 }
 
 // FetchCover downloads the raw image bytes for the given Open Library cover

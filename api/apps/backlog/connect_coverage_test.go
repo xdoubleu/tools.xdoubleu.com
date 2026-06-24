@@ -679,7 +679,11 @@ func TestResyncAllFromOpenLibrary_Service(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, exists, "cover should be in store before resync")
 
-	n, resyncErr := testApp.Services.Books.ResyncAllFromOpenLibrary(ctx, testApp.Logger)
+	n, resyncErr := testApp.Services.Books.ResyncAllFromOpenLibrary(
+		ctx,
+		testApp.Logger,
+		nil,
+	)
 	require.NoError(t, resyncErr)
 	assert.GreaterOrEqual(t, n, 1, "at least the seeded book should be resynced")
 

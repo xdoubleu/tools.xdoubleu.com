@@ -12,14 +12,14 @@ import (
 )
 
 func TestResyncOpenLibraryJob_ID(t *testing.T) {
-	j := jobs.NewResyncOpenLibraryJob(nil)
+	j := jobs.NewResyncOpenLibraryJob(nil, nil)
 	assert.Equal(t, "resync-openlibrary", j.ID())
 }
 
 // TestResyncOpenLibraryJob_NotArmed_IsNoop verifies that an unarmed Run call
 // returns nil without touching the (nil) books service.
 func TestResyncOpenLibraryJob_NotArmed_IsNoop(t *testing.T) {
-	j := jobs.NewResyncOpenLibraryJob(nil)
+	j := jobs.NewResyncOpenLibraryJob(nil, nil)
 	err := j.Run(context.Background(), logging.NewNopLogger())
 	require.NoError(t, err)
 }
@@ -27,7 +27,7 @@ func TestResyncOpenLibraryJob_NotArmed_IsNoop(t *testing.T) {
 // TestResyncOpenLibraryJob_ArmThenDisarm verifies that Arm sets the flag and a
 // subsequent unarmed Run does nothing (simulates the guard without calling books).
 func TestResyncOpenLibraryJob_ArmThenDisarm(t *testing.T) {
-	j := jobs.NewResyncOpenLibraryJob(nil)
+	j := jobs.NewResyncOpenLibraryJob(nil, nil)
 	j.Arm()
 
 	// A second Run (not yet called) resets the flag — simulate by calling Run

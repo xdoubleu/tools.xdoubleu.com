@@ -16,8 +16,22 @@ import (
 
 // setupTestServer starts an httptest server that routes by path: /search.json
 // returns searchPayload and /api/books returns booksPayload. Either payload may
-// be nil to serve an empty JSON object.
+// be nil to serve an empty JSON object. Unknown paths (e.g. /works/…) return
+// an empty JSON object, which lets tests that don't need work payloads pass
+// without modification.
 func setupTestServer(t *testing.T, searchPayload, booksPayload any) {
+	t.Helper()
+	setupTestServerFull(t, searchPayload, booksPayload, nil)
+}
+
+// setupTestServerFull is like setupTestServer but also routes work record
+// requests. workPayloads is keyed by the URL path (e.g. "/works/OL27448W.json");
+// paths not found in the map return an empty JSON object.
+func setupTestServerFull(
+	t *testing.T,
+	searchPayload, booksPayload any,
+	workPayloads map[string]any,
+) {
 	t.Helper()
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +45,12 @@ func setupTestServer(t *testing.T, searchPayload, booksPayload any) {
 			case strings.HasPrefix(r.URL.Path, "/api/books"):
 				if booksPayload != nil {
 					payload = booksPayload
+				}
+			default:
+				if workPayloads != nil {
+					if p, ok := workPayloads[r.URL.Path]; ok {
+						payload = p
+					}
 				}
 			}
 			require.NoError(t, json.NewEncoder(w).Encode(payload))
@@ -191,6 +211,85 @@ func TestGetByISBN_NotFound(t *testing.T) {
 	c := New(logging.NewNopLogger())
 	_, err := c.GetByISBN(context.Background(), "0000000000000")
 	require.ErrorIs(t, err, ErrNotFound)
+}
+
+// TestGetByISBN_FetchesDescriptionFromWork verifies that when the edition
+// record has no description but references a Work, GetByISBN fetches the Work
+// record and returns its description.
+func TestGetByISBN_FetchesDescriptionFromWork(t *testing.T) {
+	isbn := "9780618640157"
+	setupTestServerFull(t,
+		nil,
+		map[string]any{
+			"ISBN:" + isbn: map[string]any{
+				"details": map[string]any{
+					"title":   "The Lord of the Rings",
+					"covers":  []int{258027},
+					"isbn_13": []string{isbn},
+					// No description on the edition; work key is present.
+					"works": []map[string]any{
+						{"key": "/works/OL27448W"},
+					},
+				},
+			},
+		},
+		map[string]any{
+			"/works/OL27448W.json": map[string]any{
+				"description": "An epic high-fantasy novel set in Middle-earth.",
+			},
+		},
+	)
+
+	c := New(logging.NewNopLogger())
+	book, err := c.GetByISBN(context.Background(), isbn)
+	require.NoError(t, err)
+	require.NotNil(t, book)
+	require.NotNil(t, book.Description)
+	assert.Equal(
+		t,
+		"An epic high-fantasy novel set in Middle-earth.",
+		*book.Description,
+	)
+}
+
+// TestGetByISBN_WorkFetchError_GracefulFallback verifies that a failure to
+// fetch the Work record does not cause GetByISBN to return an error — the book
+// is returned with a nil description instead.
+func TestGetByISBN_WorkFetchError_GracefulFallback(t *testing.T) {
+	isbn := "9780618640157"
+
+	// Serve /api/books normally; serve all work paths with a 500 to simulate
+	// an Open Library outage on the work endpoint.
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/api/books") {
+				w.Header().Set("Content-Type", "application/json")
+				payload := map[string]any{
+					"ISBN:" + isbn: map[string]any{
+						"details": map[string]any{
+							"title":   "Some Book",
+							"isbn_13": []string{isbn},
+							"works":   []map[string]any{{"key": "/works/OL1W"}},
+						},
+					},
+				}
+				require.NoError(t, json.NewEncoder(w).Encode(payload))
+				return
+			}
+			http.Error(w, "server error", http.StatusInternalServerError)
+		}),
+	)
+	t.Cleanup(func() {
+		srv.Close()
+		baseURL = "https://openlibrary.org"
+	})
+	baseURL = srv.URL
+
+	c := New(logging.NewNopLogger())
+	book, err := c.GetByISBN(context.Background(), isbn)
+	require.NoError(t, err, "work fetch failure must not propagate as an error")
+	require.NotNil(t, book)
+	assert.Nil(t, book.Description)
 }
 
 func TestCoverURLByISBN(t *testing.T) {

@@ -36,6 +36,10 @@ type booksDetailsEntry struct {
 	Details bookDetails `json:"details"`
 }
 
+type workRef struct {
+	Key string `json:"key"`
+}
+
 type bookDetails struct {
 	Title         string      `json:"title"`
 	Description   description `json:"description"`
@@ -43,6 +47,13 @@ type bookDetails struct {
 	Covers        []int       `json:"covers"`
 	ISBN13        []string    `json:"isbn_13"`
 	ISBN10        []string    `json:"isbn_10"`
+	Works         []workRef   `json:"works"`
+}
+
+// workResponse is the subset of the Open Library Work record
+// (GET /works/OL…W.json) that we care about.
+type workResponse struct {
+	Description description `json:"description"`
 }
 
 // description handles Open Library's two description encodings: a bare string or
