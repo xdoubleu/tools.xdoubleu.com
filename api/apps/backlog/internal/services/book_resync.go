@@ -4,11 +4,37 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync"
+	"sync/atomic"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 
+	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 )
+
+// booksResyncSource is the narrow subset of BooksRepository used by the resync
+// path. Defined as an interface so tests can stub it without a real DB.
+type booksResyncSource interface {
+	ListBooksWithISBN13(ctx context.Context) ([]models.Book, error)
+	RefreshBookExternalData(
+		ctx context.Context,
+		bookID uuid.UUID,
+		coverURL *string,
+		description *string,
+		pageCount *int,
+	) error
+}
+
+// resyncRepo returns the books repo to use for resync operations.
+// Tests may set BookService.booksResync to override the real repository.
+func (s *BookService) resyncRepo() booksResyncSource {
+	if s.booksResync != nil {
+		return s.booksResync
+	}
+	return s.books
+}
 
 // ResyncAllFromOpenLibrary re-fetches Open Library metadata for every catalog
 // book that has an ISBN13. It overwrites cover_url and fills description and
@@ -28,7 +54,7 @@ func (s *BookService) ResyncAllFromOpenLibrary(
 	logger *slog.Logger,
 	onProgress func(processed, total int),
 ) (int, error) {
-	books, err := s.books.ListBooksWithISBN13(ctx)
+	books, err := s.resyncRepo().ListBooksWithISBN13(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -38,27 +64,45 @@ func (s *BookService) ResyncAllFromOpenLibrary(
 		onProgress(0, total)
 	}
 
-	var errs []error
-	refreshed := 0
+	const concurrency = 10
 
-	for i, book := range books {
-		if bookErr := s.resyncBook(ctx, logger, book.ID, *book.ISBN13); bookErr != nil {
-			logger.ErrorContext(ctx, "failed to resync book from open library",
-				slog.String("bookID", book.ID.String()),
-				slog.String("isbn13", *book.ISBN13),
-				slog.Any("error", bookErr),
-			)
-			errs = append(errs, bookErr)
-		} else {
-			refreshed++
-		}
+	var (
+		mu        sync.Mutex
+		errs      []error
+		refreshed atomic.Int64
+		processed atomic.Int64
+	)
 
-		if onProgress != nil {
-			onProgress(i+1, total)
-		}
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(concurrency)
+
+	for _, book := range books {
+		b := book
+		eg.Go(func() error {
+			bookErr := s.resyncBook(egCtx, logger, b.ID, *b.ISBN13)
+			if bookErr != nil {
+				logger.ErrorContext(egCtx, "failed to resync book from open library",
+					slog.String("bookID", b.ID.String()),
+					slog.String("isbn13", *b.ISBN13),
+					slog.Any("error", bookErr),
+				)
+				mu.Lock()
+				errs = append(errs, bookErr)
+				mu.Unlock()
+			} else {
+				refreshed.Add(1)
+			}
+
+			if onProgress != nil {
+				onProgress(int(processed.Add(1)), total)
+			}
+			return nil
+		})
 	}
 
-	return refreshed, errors.Join(errs...)
+	_ = eg.Wait()
+
+	return int(refreshed.Load()), errors.Join(errs...)
 }
 
 func (s *BookService) resyncBook(
@@ -82,7 +126,7 @@ func (s *BookService) resyncBook(
 		}
 	}
 
-	if dbErr := s.books.RefreshBookExternalData(
+	if dbErr := s.resyncRepo().RefreshBookExternalData(
 		ctx,
 		bookID,
 		coverURL,

@@ -6,6 +6,7 @@ import type { UploadBookFileResult } from '@/hooks/useBacklog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { isBookFile, filesFromDataTransfer, MAX_UPLOAD_BYTES } from '@/lib/backlog/zipFiles'
+import { runPool } from '@/lib/backlog/pool'
 
 // ---------------------------------------------------------------------------
 // Upload phase state
@@ -35,6 +36,10 @@ export default function BulkBookUploader() {
   const [phase, setPhase] = useState<UploadPhase>({ kind: 'idle' })
   const [dragging, setDragging] = useState(false)
 
+  // Number of files to upload concurrently. Modest to avoid saturating the
+  // user's upstream and the server's per-file processing.
+  const UPLOAD_CONCURRENCY = 4
+
   async function processFiles(files: File[]) {
     const books = files.filter(isBookFile)
     if (books.length === 0) return
@@ -49,7 +54,7 @@ export default function BulkBookUploader() {
     }
     setPhase({ kind: 'uploading', progress: { ...progress } })
 
-    for (const file of books) {
+    await runPool(books, UPLOAD_CONCURRENCY, async (file) => {
       if (file.size > MAX_UPLOAD_BYTES) {
         progress.failed++
         const limitMB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))
@@ -58,7 +63,7 @@ export default function BulkBookUploader() {
           `${file.name}: file is too large (max ${limitMB} MB)`
         ]
         setPhase({ kind: 'uploading', progress: { ...progress } })
-        continue
+        return
       }
       try {
         const result: UploadBookFileResult = await uploadBookFile(file)
@@ -74,7 +79,7 @@ export default function BulkBookUploader() {
         progress.errors = [...progress.errors, `${file.name}: ${msg}`]
       }
       setPhase({ kind: 'uploading', progress: { ...progress } })
-    }
+    })
 
     setPhase({ kind: 'done', progress: { ...progress } })
   }
