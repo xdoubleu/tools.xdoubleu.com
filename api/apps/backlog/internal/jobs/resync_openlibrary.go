@@ -14,15 +14,22 @@ import (
 // only: it must be armed via Arm() before Run() does any work, so the
 // unavoidable startup run (added by JobQueue.AddJob) and the daily scheduler
 // tick are no-ops.
+//
+// The job holds a reference to WebSocketService so it can emit per-book
+// progress events (X of N) over the /backlog/api/progress WebSocket.
 type ResyncOpenLibraryJob struct {
 	books   *services.BookService
+	ws      *services.WebSocketService
 	armed   atomic.Bool
 	running atomic.Bool
 }
 
-func NewResyncOpenLibraryJob(books *services.BookService) *ResyncOpenLibraryJob {
+func NewResyncOpenLibraryJob(
+	books *services.BookService,
+	ws *services.WebSocketService,
+) *ResyncOpenLibraryJob {
 	//nolint:exhaustruct //armed + running are atomic.Bool; zero value = false
-	return &ResyncOpenLibraryJob{books: books}
+	return &ResyncOpenLibraryJob{books: books, ws: ws}
 }
 
 func (j *ResyncOpenLibraryJob) ID() string {
@@ -49,7 +56,15 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 	}
 	defer j.running.Store(false)
 
-	n, err := j.books.ResyncAllFromOpenLibrary(ctx, logger)
+	var onProgress func(int, int)
+	if j.ws != nil {
+		id := j.ID()
+		onProgress = func(processed, total int) {
+			j.ws.UpdateProgress(id, processed, total)
+		}
+	}
+
+	n, err := j.books.ResyncAllFromOpenLibrary(ctx, logger, onProgress)
 	if n > 0 {
 		logger.InfoContext(ctx, "resynced books from open library",
 			slog.Int("count", n),

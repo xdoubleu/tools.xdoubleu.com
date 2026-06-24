@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useImportBooks, useResyncOpenLibrary } from '@/hooks/useBacklog'
+import { useImportBooks } from '@/hooks/useBacklog'
+import { useResyncRefresh } from '@/lib/backlog/resyncRefresh'
 import BulkBookUploader from '@/components/backlog/BulkBookUploader'
 import KoboSetup from '@/components/backlog/KoboSetup'
 import KoboDevices from '@/components/backlog/KoboDevices'
@@ -13,14 +14,15 @@ import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function BacklogBooksSettingsPage() {
   const importBooks = useImportBooks()
-  const resyncOpenLibrary = useResyncOpenLibrary()
+
+  const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
+    () => void mutate('/backlog/books')
+  )
 
   const [importStatus, setImportStatus] = useState('')
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearStatus, setClearStatus] = useState('')
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
-  const [resyncing, setResyncing] = useState(false)
-  const [resyncStatus, setResyncStatus] = useState('')
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -105,29 +107,39 @@ export default function BacklogBooksSettingsPage() {
         <Button
           type="button"
           variant="secondary"
-          disabled={resyncing}
-          onClick={async () => {
-            setResyncing(true)
-            setResyncStatus('')
-            try {
-              await resyncOpenLibrary()
-              setResyncStatus('Resync started — covers and metadata refresh in the background.')
-            } catch {
-              setResyncStatus('Resync failed. Please try again.')
-            } finally {
-              setResyncing(false)
-            }
-          }}
+          disabled={isRefreshing}
+          onClick={refresh}
           data-testid="resync-openlibrary-btn"
         >
-          {resyncing ? 'Resyncing…' : 'Resync with Open Library'}
+          {isRefreshing ? 'Resyncing…' : 'Resync with Open Library'}
         </Button>
-        {resyncStatus && (
-          <p
-            className={`mt-2 text-sm ${resyncStatus.includes('failed') ? 'text-danger' : 'text-success'}`}
-            data-testid="resync-openlibrary-status"
-          >
-            {resyncStatus}
+        {isRefreshing && (
+          <div className="mt-3" data-testid="resync-openlibrary-progress">
+            {total !== null ? (
+              <>
+                <div className="mb-1 flex justify-between text-xs text-muted">
+                  <span>Resyncing books…</span>
+                  <span>
+                    {processed ?? 0} / {total}
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-border">
+                  <div
+                    className="h-full rounded-full bg-fg transition-all duration-300"
+                    style={{
+                      width: `${total > 0 ? (((processed ?? 0) / total) * 100).toFixed(1) : 0}%`
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted">Resyncing…</p>
+            )}
+          </div>
+        )}
+        {!isRefreshing && lastRefresh && (
+          <p className="mt-2 text-xs text-muted" data-testid="resync-openlibrary-status">
+            Last synced {lastRefresh.toLocaleString()}
           </p>
         )}
       </section>

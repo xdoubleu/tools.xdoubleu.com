@@ -122,7 +122,10 @@ func (app *Backlog) setDB(
 		app.clients.ObjectStore,
 		authService,
 	)
-	app.resyncBooksJob = jobs.NewResyncOpenLibraryJob(app.Services.Books)
+	app.resyncBooksJob = jobs.NewResyncOpenLibraryJob(
+		app.Services.Books,
+		app.Services.WebSocket,
+	)
 }
 
 func (app *Backlog) setJobs() {
