@@ -67,7 +67,7 @@ func (s *BookService) ResyncAllFromOpenLibrary(
 		onProgress(0, total)
 	}
 
-	const concurrency = 10
+	const concurrency = 100
 
 	var (
 		mu        sync.Mutex
