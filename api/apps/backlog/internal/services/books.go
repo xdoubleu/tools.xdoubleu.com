@@ -26,6 +26,9 @@ type BookService struct {
 	objectStore  objectstore.Client
 	readingState *repositories.BookReadingStateRepository
 	external     openlibrary.Client
+	// booksResync overrides s.books for the resync path in unit tests.
+	// Nil in production — resyncRepo() falls back to s.books.
+	booksResync booksResyncSource
 }
 
 // SearchLibrary searches the user's own library by title/author substring.

@@ -4,6 +4,7 @@ package services
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,9 +16,13 @@ import (
 )
 
 // fakeOLClient is a configurable openlibrary.Client stub for enrichment tests.
+// All fields other than mu are set once before the test and read-only during
+// the test, except calls which is protected by mu so the stub is safe for
+// concurrent use (e.g. from the parallel resync fan-out).
 type fakeOLClient struct {
 	detail *openlibrary.ExternalBook
 	err    error
+	mu     sync.Mutex
 	calls  int
 }
 
@@ -32,7 +37,9 @@ func (f *fakeOLClient) GetByISBN(
 	_ context.Context,
 	_ string,
 ) (*openlibrary.ExternalBook, error) {
+	f.mu.Lock()
 	f.calls++
+	f.mu.Unlock()
 	return f.detail, f.err
 }
 

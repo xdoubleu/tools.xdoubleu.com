@@ -47,6 +47,7 @@ func New(
 		objectStore:  objectStore,
 		readingState: repositories.ReadingState,
 		external:     external,
+		booksResync:  nil, // nil → resyncRepo() falls back to books
 	}
 	steamSvc := &SteamService{
 		logger:        logger,
