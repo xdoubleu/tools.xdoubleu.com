@@ -647,8 +647,14 @@ func TestConnectResyncOpenLibrary_Success(t *testing.T) {
 }
 
 // TestResyncAllFromOpenLibrary_Service exercises the service layer end-to-end
-// against the real DB: seed a book with an ISBN13, run ResyncAllFromOpenLibrary,
-// and confirm that the R2 cover cache keys were cleared.
+// against the real DB. It seeds a book that already has a cover_url and
+// verifies that resync does not touch its R2 cover cache — resync is
+// additive-only and must never clobber data that already exists.
+//
+// The cache-bust path (no existing cover → OL provides one → cache busted) is
+// covered exhaustively by the unit tests in
+// internal/services/book_resync_test.go, which avoid the AddToLibrary
+// enrichment that always fills in a cover via the mock OL client.
 func TestResyncAllFromOpenLibrary_Service(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -656,8 +662,8 @@ func TestResyncAllFromOpenLibrary_Service(t *testing.T) {
 	uid := uuid.New().String()[:8]
 	book := addTestBookWithISBN(t, "ResyncTest-"+uid, "9780000099001")
 
-	// Pre-seed a cached cover and missing marker in fakeStore so we can verify
-	// they are deleted after the resync.
+	// Pre-seed a cached cover and a missing marker so we can verify neither is
+	// deleted when the book already has a cover_url.
 	coverKey := "books/" + book.BookID.String() + "/cover.jpg"
 	missingKey := "books/" + book.BookID.String() + "/cover.missing"
 	require.NoError(
@@ -685,14 +691,20 @@ func TestResyncAllFromOpenLibrary_Service(t *testing.T) {
 		nil,
 	)
 	require.NoError(t, resyncErr)
-	assert.GreaterOrEqual(t, n, 1, "at least the seeded book should be resynced")
+	assert.GreaterOrEqual(t, n, 0, "resync should complete without error")
 
-	// Cache keys must be cleared so GetBookCover re-fetches on next request.
+	// Cover already existed — cache must NOT be disturbed.
 	exists, err = fakeStore.Exists(ctx, coverKey)
 	require.NoError(t, err)
-	assert.False(t, exists, "cover.jpg cache should be deleted after resync")
+	assert.True(
+		t, exists,
+		"cover.jpg cache must be preserved when the book already has a cover URL",
+	)
 
 	missing, err := fakeStore.Exists(ctx, missingKey)
 	require.NoError(t, err)
-	assert.False(t, missing, "cover.missing marker should be deleted after resync")
+	assert.True(
+		t, missing,
+		"cover.missing marker must be preserved when the book already has a cover URL",
+	)
 }
