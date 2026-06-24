@@ -3,11 +3,11 @@ import { renderHook, act } from '@testing-library/react'
 const mockTrigger = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
-  useResyncOpenLibrary: () => mockTrigger,
+  useResyncOpenLibrary: () => mockTrigger
 }))
 
 jest.mock('@/lib/env', () => ({
-  getApiUrl: jest.fn(() => 'https://api.test'),
+  getApiUrl: jest.fn(() => 'https://api.test')
 }))
 
 import { useResyncRefresh } from '@/lib/backlog/resyncRefresh'
@@ -49,7 +49,7 @@ class MockWebSocket {
 Object.defineProperty(global, 'WebSocket', {
   value: MockWebSocket,
   writable: true,
-  configurable: true,
+  configurable: true
 })
 
 function latest() {
