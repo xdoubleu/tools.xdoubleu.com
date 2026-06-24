@@ -673,9 +673,9 @@ func (repo *BooksRepository) ListBooksWithISBN13(
 	return books, nil
 }
 
-// RefreshBookExternalData updates a book's Open Library-sourced fields.
-// cover_url is always overwritten; description and page_count use COALESCE so
-// a nil from Open Library never erases data we already have.
+// RefreshBookExternalData backfills a book's Open Library-sourced fields.
+// All three columns use COALESCE so a nil argument never erases an existing
+// value — callers pass nil for fields they do not want to touch.
 func (repo *BooksRepository) RefreshBookExternalData(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -685,7 +685,7 @@ func (repo *BooksRepository) RefreshBookExternalData(
 ) error {
 	query := `
 		UPDATE backlog.books
-		SET cover_url   = $2,
+		SET cover_url   = COALESCE($2, cover_url),
 		    description = COALESCE($3, description),
 		    page_count  = COALESCE($4, page_count),
 		    updated_at  = now()
