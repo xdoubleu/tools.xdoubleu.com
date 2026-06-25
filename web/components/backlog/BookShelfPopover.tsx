@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
 
-// Tags that have reserved UI treatment — not custom shelves.
+// Tags that have reserved UI treatment — not user-visible shelves/tags.
 const SPECIAL_TAGS = new Set([
   'favourite',
   'own-physical',
@@ -43,12 +43,9 @@ export default function BookShelfPopover({
     userBook.tags.filter((t) => !SPECIAL_TAGS.has(t))
   )
   const [shelfInput, setShelfInput] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const updateBookStatus = useUpdateBookStatus()
   const toggleTag = useToggleTag()
-
-  const originalShelves = userBook.tags.filter((t) => !SPECIAL_TAGS.has(t))
 
   const handleStatusChange = async (newStatus: string) => {
     const prev = status
@@ -70,7 +67,7 @@ export default function BookShelfPopover({
     }
   }
 
-  const addShelf = async (name: string) => {
+  const addTag = async (name: string) => {
     const trimmed = name.trim()
     if (!trimmed || shelves.includes(trimmed)) {
       setShelfInput('')
@@ -85,11 +82,11 @@ export default function BookShelfPopover({
       onSaved?.()
     } catch {
       setShelves((prev) => prev.filter((s) => s !== trimmed))
-      setError('Failed to add shelf.')
+      setError('Failed to add tag.')
     }
   }
 
-  const removeShelf = async (name: string) => {
+  const removeTag = async (name: string) => {
     setShelves((prev) => prev.filter((s) => s !== name))
     setError(null)
     try {
@@ -98,26 +95,24 @@ export default function BookShelfPopover({
       onSaved?.()
     } catch {
       setShelves((prev) => [...prev, name])
-      setError('Failed to remove shelf.')
+      setError('Failed to remove tag.')
     }
   }
 
   const suggestions = knownShelves.filter((s) => !SPECIAL_TAGS.has(s) && !shelves.includes(s))
 
-  void originalShelves
-  void isSaving
-  void setIsSaving
+  const triggerLabel = shelves.length > 0 ? `Shelves & tags (${shelves.length})` : 'Shelves & tags'
 
   return (
     <Popover
       align="right"
       trigger={({ open, onClick }) => (
-        <PopoverTrigger onClick={onClick} aria-expanded={open} aria-label="Edit status and shelves">
-          ...
+        <PopoverTrigger onClick={onClick} aria-expanded={open} aria-label="Edit shelves and tags">
+          {triggerLabel}
         </PopoverTrigger>
       )}
     >
-      <div className="space-y-3 min-w-[200px]">
+      <div className="space-y-3 min-w-50">
         <div className="space-y-1">
           <Label htmlFor="shelf-popover-status" className="text-xs">
             Status
@@ -136,7 +131,7 @@ export default function BookShelfPopover({
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs">Shelves</Label>
+          <Label className="text-xs">Shelves & tags</Label>
           {shelves.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-1.5">
               {shelves.map((shelf) => (
@@ -144,9 +139,9 @@ export default function BookShelfPopover({
                   {shelf}
                   <button
                     type="button"
-                    onClick={() => void removeShelf(shelf)}
+                    onClick={() => void removeTag(shelf)}
                     className="ml-1 text-muted hover:text-foreground leading-none"
-                    aria-label={`Remove shelf ${shelf}`}
+                    aria-label={`Remove ${shelf}`}
                   >
                     ×
                   </button>
@@ -158,18 +153,18 @@ export default function BookShelfPopover({
             <Combobox
               value={shelfInput}
               onChange={setShelfInput}
-              onSelect={(v) => void addShelf(v)}
-              onEnter={() => void addShelf(shelfInput)}
+              onSelect={(v) => void addTag(v)}
+              onEnter={() => void addTag(shelfInput)}
               suggestions={suggestions}
-              placeholder="Add a shelf..."
-              aria-label="Shelf name"
+              placeholder="Add a shelf or tag..."
+              aria-label="Shelf or tag name"
               className="flex-1"
             />
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => void addShelf(shelfInput)}
+              onClick={() => void addTag(shelfInput)}
               disabled={!shelfInput.trim()}
             >
               Add

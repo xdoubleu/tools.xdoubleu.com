@@ -174,14 +174,44 @@ describe('BookCard', () => {
     expect(screen.getByAltText('Test Book')).toBeInTheDocument()
   })
 
-  it('renders the rating stars control', () => {
-    render(<BookCard userBook={makeBook({ rating: 3 })} knownShelves={[]} onSaved={jest.fn()} />)
+  it('renders rating stars and favourite for a read book', () => {
+    render(
+      <BookCard
+        userBook={makeBook({ status: 'read', rating: 3 })}
+        knownShelves={[]}
+        onSaved={jest.fn()}
+      />
+    )
     expect(screen.getByTestId('rating-stars')).toBeInTheDocument()
+    expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
   })
 
-  it('renders the favourite button', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
-    expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
+  it('hides rating stars and favourite for a to-read book', () => {
+    render(
+      <BookCard userBook={makeBook({ status: 'to-read' })} knownShelves={[]} onSaved={jest.fn()} />
+    )
+    expect(screen.queryByTestId('rating-stars')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('favourite-button')).not.toBeInTheDocument()
+  })
+
+  it('hides rating stars and favourite for a currently-reading book', () => {
+    render(
+      <BookCard
+        userBook={makeBook({ status: 'currently-reading' })}
+        knownShelves={[]}
+        onSaved={jest.fn()}
+      />
+    )
+    expect(screen.queryByTestId('rating-stars')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('favourite-button')).not.toBeInTheDocument()
+  })
+
+  it('hides rating stars and favourite for a dropped book', () => {
+    render(
+      <BookCard userBook={makeBook({ status: 'dropped' })} knownShelves={[]} onSaved={jest.fn()} />
+    )
+    expect(screen.queryByTestId('rating-stars')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('favourite-button')).not.toBeInTheDocument()
   })
 
   it('renders the ownership toggles', () => {
@@ -219,7 +249,6 @@ describe('BookCard', () => {
   })
 
   it('passes knownShelves to shelf popover', () => {
-    // Shelf popover mock is rendered — just ensure card renders without error
     render(
       <BookCard userBook={makeBook()} knownShelves={['sci-fi', 'fantasy']} onSaved={jest.fn()} />
     )
@@ -240,22 +269,12 @@ describe('BookCard', () => {
     expect(screen.getByText('EPUB')).toBeInTheDocument()
   })
 
-  // These tests exercise the onClick={(e) => e.preventDefault()} handlers that
-  // sit between the stretched Link and the interactive controls, ensuring clicks
-  // on controls don't trigger navigation.
-  it('clicking rating stars does not bubble to link', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
-    // Firing click on the child of the stopPropagation div covers the inline handler
-    fireEvent.click(screen.getByTestId('rating-stars'))
-    // No assertion needed — just verifying it doesn't throw and handler runs
-  })
-
-  it('clicking ownership toggles does not bubble to link', () => {
+  it('clicking ownership toggles does not throw', () => {
     render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
     fireEvent.click(screen.getByTestId('ownership-toggles'))
   })
 
-  it('clicking progress editor does not bubble to link', () => {
+  it('clicking progress editor does not throw', () => {
     render(
       <BookCard
         userBook={makeBook({ status: 'currently-reading' })}
@@ -266,7 +285,7 @@ describe('BookCard', () => {
     fireEvent.click(screen.getByTestId('progress-editor'))
   })
 
-  it('clicking shelf popover does not bubble to link', () => {
+  it('clicking shelf popover does not throw', () => {
     render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
     fireEvent.click(screen.getByTestId('shelf-popover'))
   })

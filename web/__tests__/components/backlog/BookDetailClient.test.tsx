@@ -183,10 +183,23 @@ describe('BookDetailClient', () => {
     expect(screen.getByText('No description available.')).toBeInTheDocument()
   })
 
-  it('renders star rating control', () => {
+  it('renders star rating control for a read book', () => {
+    const readBook = create(UserBookSchema, { ...mockUserBook, status: 'read' })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogLibrary).mockReturnValue({
+      data: makeLibraryData([], [], [readBook]),
+      isLoading: false,
+      error: undefined
+    })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('rating-stars')).toBeInTheDocument()
     expect(screen.getByLabelText('4 out of 5 stars')).toBeInTheDocument()
+  })
+
+  it('hides star rating and favourite for a non-read book', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByTestId('rating-stars')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('favourite-button')).not.toBeInTheDocument()
   })
 
   it('renders page count', () => {
@@ -221,11 +234,6 @@ describe('BookDetailClient', () => {
     expect(screen.getByText('Great read so far.')).toBeInTheDocument()
   })
 
-  it('renders user tags (excluding system tags)', () => {
-    render(<BookDetailClient id="ub-1" />)
-    expect(screen.getByText('sci-fi')).toBeInTheDocument()
-  })
-
   it('renders breadcrumb link back to Books', () => {
     render(<BookDetailClient id="ub-1" />)
     const booksLink = screen.getByText('Books').closest('a')
@@ -237,7 +245,14 @@ describe('BookDetailClient', () => {
     expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
   })
 
-  it('renders favourite button', () => {
+  it('renders favourite button for a read book', () => {
+    const readBook = create(UserBookSchema, { ...mockUserBook, status: 'read' })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogLibrary).mockReturnValue({
+      data: makeLibraryData([], [], [readBook]),
+      isLoading: false,
+      error: undefined
+    })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
   })

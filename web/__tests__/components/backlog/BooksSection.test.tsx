@@ -182,11 +182,22 @@ describe('BooksSection', () => {
     expect(screen.getAllByRole('progressbar').length).toBeGreaterThan(0)
   })
 
-  it('renders inline controls (rating, favourite, shelf popover) for each card', () => {
+  it('renders rating, favourite, and shelf popover for finished (read) books', () => {
     mockLibrary()
     render(<BooksSection />)
+    // Switch to the Finished shelf, which contains the 'read' book
+    fireEvent.click(screen.getAllByText('Finished')[0])
     expect(screen.getByTestId('rating-stars')).toBeInTheDocument()
     expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
+    expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
+  })
+
+  it('hides rating and favourite for currently-reading books (shelf popover still shown)', () => {
+    mockLibrary()
+    render(<BooksSection />)
+    // Default shelf is Currently Reading
+    expect(screen.queryByTestId('rating-stars')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('favourite-button')).not.toBeInTheDocument()
     expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
   })
 })
