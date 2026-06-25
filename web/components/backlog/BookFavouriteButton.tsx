@@ -24,8 +24,7 @@ export default function BookFavouriteButton({ userBook, onSaved }: BookFavourite
         bookId: userBook.id,
         status: userBook.status,
         favourite: newFavourite,
-        rating: String(userBook.rating),
-        notes: userBook.notes
+        rating: String(userBook.rating)
       })
       mutate('/backlog/books')
       onSaved?.()

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import {
   UserBookSchema,
@@ -97,7 +97,6 @@ const mockUserBook = create(UserBookSchema, {
   book: mockBook,
   status: 'currently-reading',
   rating: 4,
-  notes: 'Great read so far.',
   tags: ['favourite', 'sci-fi'],
   formats: ['epub'],
   finishedAt: [],
@@ -229,11 +228,6 @@ describe('BookDetailClient', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   })
 
-  it('renders notes', () => {
-    render(<BookDetailClient id="ub-1" />)
-    expect(screen.getByText('Great read so far.')).toBeInTheDocument()
-  })
-
   it('renders breadcrumb link back to Books', () => {
     render(<BookDetailClient id="ub-1" />)
     const booksLink = screen.getByText('Books').closest('a')
@@ -257,7 +251,22 @@ describe('BookDetailClient', () => {
     expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
   })
 
-  it('renders Kobo sync toggle', () => {
+  it('hides Kobo sync toggle when book is not owned digitally', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByTestId('kobo-sync-toggle')).not.toBeInTheDocument()
+  })
+
+  it('shows Kobo sync toggle when book is owned digitally', () => {
+    const digitalBook = create(UserBookSchema, {
+      ...mockUserBook,
+      tags: ['favourite', 'sci-fi', 'own-digital']
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogLibrary).mockReturnValue({
+      data: makeLibraryData([digitalBook]),
+      isLoading: false,
+      error: undefined
+    })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('kobo-sync-toggle')).toBeInTheDocument()
   })
@@ -277,56 +286,6 @@ describe('BookDetailClient', () => {
     })
     render(<BookDetailClient id="ub-shelf" />)
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument()
-  })
-
-  describe('InlineNotes', () => {
-    it('shows notes text as a clickable button when not editing', () => {
-      render(<BookDetailClient id="ub-1" />)
-      expect(screen.getByText('Great read so far.')).toBeInTheDocument()
-    })
-
-    it('shows placeholder when notes are empty', () => {
-      const emptyNotesBook = create(UserBookSchema, { ...mockUserBook, notes: '' })
-      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
-      jest.mocked(useBacklogLibrary).mockReturnValue({
-        data: makeLibraryData([emptyNotesBook]),
-        isLoading: false,
-        error: undefined
-      })
-      render(<BookDetailClient id="ub-1" />)
-      expect(screen.getByText('Add notes...')).toBeInTheDocument()
-    })
-
-    it('opens textarea when notes button is clicked', () => {
-      render(<BookDetailClient id="ub-1" />)
-      fireEvent.click(screen.getByText('Great read so far.'))
-      expect(screen.getByDisplayValue('Great read so far.')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
-    })
-
-    it('saves notes and closes editor on Save', async () => {
-      render(<BookDetailClient id="ub-1" />)
-      fireEvent.click(screen.getByText('Great read so far.'))
-
-      const textarea = screen.getByDisplayValue('Great read so far.')
-      fireEvent.change(textarea, { target: { value: 'Updated notes' } })
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-
-      await waitFor(() => {
-        expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
-      })
-    })
-
-    it('cancels and closes editor on Cancel', () => {
-      render(<BookDetailClient id="ub-1" />)
-      fireEvent.click(screen.getByText('Great read so far.'))
-      expect(screen.getByDisplayValue('Great read so far.')).toBeInTheDocument()
-
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-      expect(screen.queryByDisplayValue('Great read so far.')).not.toBeInTheDocument()
-      expect(screen.getByText('Great read so far.')).toBeInTheDocument()
-    })
   })
 
   it('shows preview buttons when book has epub format', () => {

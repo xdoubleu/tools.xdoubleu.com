@@ -24,7 +24,6 @@ function makeBook(tags: string[] = [], rating = 3, status = 'to-read') {
     rating,
     tags,
     formats: [],
-    notes: 'n',
     book: create(BookSchema, { title: 'Test', authors: [] })
   })
 }
@@ -61,8 +60,7 @@ describe('BookFavouriteButton', () => {
         bookId: 'ub-1',
         status: 'to-read',
         favourite: true,
-        rating: '3',
-        notes: 'n'
+        rating: '3'
       })
     })
     expect(mockMutate).toHaveBeenCalledWith('/backlog/books')

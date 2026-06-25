@@ -113,14 +113,13 @@ func (repo *BooksRepository) UpsertUserBook(
 	query := `
 		INSERT INTO backlog.user_books
 		    (user_id, book_id, status, tags, shelf_positions,
-		     rating, notes, finished_at, added_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, now()))
+		     rating, finished_at, added_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, now()))
 		ON CONFLICT (user_id, book_id) DO UPDATE SET
 		    status          = EXCLUDED.status,
 		    tags            = EXCLUDED.tags,
 		    shelf_positions = EXCLUDED.shelf_positions,
 		    rating          = COALESCE(EXCLUDED.rating, backlog.user_books.rating),
-		    notes           = COALESCE(EXCLUDED.notes, backlog.user_books.notes),
 		    finished_at     = EXCLUDED.finished_at,
 		    updated_at      = now()
 	`
@@ -132,7 +131,6 @@ func (repo *BooksRepository) UpsertUserBook(
 		ub.Tags,
 		string(posJSON),
 		ub.Rating,
-		ub.Notes,
 		ub.FinishedAt,
 		nullTime(ub.AddedAt),
 	)
@@ -316,8 +314,8 @@ func (repo *BooksRepository) BatchUpsert(
 	upsertUserBookQuery := `
 		INSERT INTO backlog.user_books
 		    (user_id, book_id, status, tags, shelf_positions,
-		     rating, notes, finished_at, added_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, now()))
+		     rating, finished_at, added_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, now()))
 		ON CONFLICT (user_id, book_id) DO UPDATE SET
 		    status          = EXCLUDED.status,
 		    tags            = EXCLUDED.tags,
@@ -343,7 +341,6 @@ func (repo *BooksRepository) BatchUpsert(
 			ub.Tags,
 			string(posJSON),
 			ub.Rating,
-			ub.Notes,
 			ub.FinishedAt,
 			nullTime(ub.AddedAt),
 		)

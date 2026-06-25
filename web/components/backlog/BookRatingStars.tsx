@@ -36,8 +36,7 @@ export default function BookRatingStars({
         bookId: userBook.id,
         status: userBook.status,
         favourite: userBook.tags.includes('favourite'),
-        rating: String(newRating),
-        notes: userBook.notes
+        rating: String(newRating)
       })
       mutate('/backlog/books')
       onSaved?.()

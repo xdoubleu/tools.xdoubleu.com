@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { mutate } from 'swr'
-import { useUpdateBookStatus, useBacklogLibrary } from '@/hooks/useBacklog'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { useBacklogLibrary } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import BookCover from '@/components/backlog/BookCover'
 import BookProgressEditor from '@/components/backlog/BookProgressEditor'
@@ -14,7 +16,6 @@ import KoboSyncToggle from '@/components/backlog/KoboSyncToggle'
 import BookPreviewDialog from '@/components/backlog/BookPreviewDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 
 function flattenLibrary(
   library: NonNullable<ReturnType<typeof useBacklogLibrary>['data']>['library']
@@ -31,79 +32,6 @@ function formatDate(iso: string): string {
     month: 'short',
     day: 'numeric'
   })
-}
-
-interface InlineNotesProps {
-  userBook: UserBook
-  onSaved: () => void
-}
-
-function InlineNotes({ userBook, onSaved }: InlineNotesProps) {
-  const [editing, setEditing] = useState(false)
-  const [notes, setNotes] = useState(userBook.notes)
-  const [isSaving, setIsSaving] = useState(false)
-  const updateBookStatus = useUpdateBookStatus()
-
-  const handleCommit = async () => {
-    if (isSaving) return
-    setIsSaving(true)
-    try {
-      await updateBookStatus({
-        bookId: userBook.id,
-        status: userBook.status,
-        favourite: userBook.tags.includes('favourite'),
-        rating: String(userBook.rating),
-        notes
-      })
-      mutate('/backlog/books')
-      onSaved()
-      setEditing(false)
-    } catch {
-      // keep editing open for retry
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  if (editing) {
-    return (
-      <div className="space-y-2">
-        <Textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={4}
-          autoFocus
-          placeholder="Add notes..."
-          className="resize-none"
-        />
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => void handleCommit()} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setNotes(userBook.notes)
-              setEditing(false)
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => setEditing(true)}
-      className="w-full text-left text-sm whitespace-pre-line focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded"
-    >
-      {notes ? notes : <span className="text-muted italic">Add notes...</span>}
-    </button>
-  )
 }
 
 export default function BookDetailClient({ id }: { id: string }) {
@@ -188,9 +116,9 @@ export default function BookDetailClient({ id }: { id: string }) {
           <section className="mt-8">
             <h2 className="text-lg font-semibold mb-2">Description</h2>
             {book.description ? (
-              <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">
-                {book.description}
-              </p>
+              <div className="prose prose-sm max-w-none text-foreground">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{book.description}</ReactMarkdown>
+              </div>
             ) : (
               <p className="text-sm text-muted">No description available.</p>
             )}
@@ -207,11 +135,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              <div>
-                <p className="text-xs text-muted mb-1">Notes</p>
-                <InlineNotes userBook={userBook} onSaved={handleSaved} />
-              </div>
-
               {userBook.finishedAt.length > 0 && (
                 <div>
                   <p className="text-xs text-muted mb-1">
@@ -227,16 +150,18 @@ export default function BookDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              {/* Kobo sync */}
-              <div>
-                <p className="text-xs text-muted mb-1">Kobo sync</p>
-                <KoboSyncToggle
-                  bookId={userBook.bookId}
-                  enabled={userBook.tags.includes('kobo-sync')}
-                  tags={userBook.tags}
-                  onChanged={handleSaved}
-                />
-              </div>
+              {/* Kobo sync — only shown when the book is owned digitally */}
+              {userBook.tags.includes('own-digital') && (
+                <div>
+                  <p className="text-xs text-muted mb-1">Kobo sync</p>
+                  <KoboSyncToggle
+                    bookId={userBook.bookId}
+                    enabled={userBook.tags.includes('kobo-sync')}
+                    tags={userBook.tags}
+                    onChanged={handleSaved}
+                  />
+                </div>
+              )}
 
               {/* File preview buttons */}
               {(userBook.formats.includes('pdf') || userBook.formats.includes('epub')) && (

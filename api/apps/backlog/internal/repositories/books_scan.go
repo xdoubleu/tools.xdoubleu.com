@@ -17,7 +17,7 @@ const bookColumns = `id, title, authors, isbn13, isbn10, cover_url, description,
 // userBookColumns is the joined column list for user_book selects. The order must
 // match scanUserBookWithBook (user_book columns first, then the joined book).
 const userBookColumns = `ub.id, ub.user_id, ub.book_id, ub.status, ub.tags,
-	ub.shelf_positions, ub.rating, ub.notes, ub.finished_at, ub.progress_mode,
+	ub.shelf_positions, ub.rating, ub.finished_at, ub.progress_mode,
 	ub.current_page, ub.progress_percent, ub.added_at, ub.updated_at,
 	b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url, b.description,
 	b.page_count, b.external_refs, b.created_at, b.updated_at`
@@ -73,7 +73,6 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&ub.Tags,
 		&posJSON,
 		&ub.Rating,
-		&ub.Notes,
 		&ub.FinishedAt,
 		&ub.ProgressMode,
 		&ub.CurrentPage,

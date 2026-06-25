@@ -16,7 +16,6 @@ type AddBookDto struct {
 type UpdateBookStatusDto struct {
 	Status    string `schema:"status"`
 	Rating    string `schema:"rating"`
-	Notes     string `schema:"notes"`
 	Favourite bool   `schema:"favourite"`
 }
 

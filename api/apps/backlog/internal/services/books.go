@@ -467,7 +467,7 @@ func (s *BookService) FindDuplicates(
 
 // MergeBooks consolidates loserBookIDs into winnerBookID:
 //  1. Union tags, finished_at, shelf_positions; prefer the most-progressed
-//     status; keep winner's rating/notes, fall back to a loser's if unset.
+//     status; keep winner's rating, fall back to a loser's if unset.
 //  2. Repoint book_files from each loser to the winner (dedupe by format+checksum).
 //  3. Consolidate book_reading_state: if the winner has no state, copy the best
 //     loser state onto it, then delete all loser states.
@@ -534,12 +534,9 @@ func (s *BookService) MergeBooks(
 			winner.Status = loser.Status
 		}
 
-		// Keep winner's rating/notes, fall back to loser if winner has none.
+		// Keep winner's rating, fall back to loser if winner has none.
 		if winner.Rating == nil && loser.Rating != nil {
 			winner.Rating = loser.Rating
-		}
-		if winner.Notes == nil && loser.Notes != nil {
-			winner.Notes = loser.Notes
 		}
 
 		// Keep the higher progress values.
