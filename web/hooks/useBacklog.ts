@@ -278,3 +278,23 @@ export function useGetBookFile(bookId: string | null, format: string | null) {
     () => client.getBookFile({ bookId: bookId!, format: format! })
   )
 }
+
+export function useRenameShelf() {
+  const client = createServiceClient(BooksService)
+  return (oldName: string, newName: string) => client.renameShelf({ oldName, newName })
+}
+
+export function useDeleteShelf() {
+  const client = createServiceClient(BooksService)
+  return (name: string, targetName: string) => client.deleteShelf({ name, targetName })
+}
+
+export function useRenameTag() {
+  const client = createServiceClient(BooksService)
+  return (oldName: string, newName: string) => client.renameTag({ oldName, newName })
+}
+
+export function useDeleteTag() {
+  const client = createServiceClient(BooksService)
+  return (name: string) => client.deleteTag({ name })
+}

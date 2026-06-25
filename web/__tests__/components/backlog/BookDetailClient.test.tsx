@@ -228,10 +228,12 @@ describe('BookDetailClient', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   })
 
-  it('renders breadcrumb link back to Books', () => {
+  it('renders breadcrumb with Books and Library links', () => {
     render(<BookDetailClient id="ub-1" />)
     const booksLink = screen.getByText('Books').closest('a')
     expect(booksLink).toHaveAttribute('href', '/backlog/books')
+    const libraryLink = screen.getByText('Library').closest('a')
+    expect(libraryLink).toHaveAttribute('href', '/backlog/books/library')
   })
 
   it('renders shelf popover', () => {

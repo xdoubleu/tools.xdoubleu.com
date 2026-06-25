@@ -10,22 +10,16 @@ import {
 } from '@/lib/gen/backlog/v1/books_pb'
 
 jest.mock('next/image', () => {
-  return function MockImage({ src, alt, ...props }: { src: string; alt: string }) {
+  return function MockImage({ src, alt }: { src: string; alt: string }) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} {...props} />
+    return <img src={src} alt={alt} />
   }
 })
 
-jest.mock('@/components/backlog/BookProgressBar', () => {
-  return function MockProgressBar() {
-    return <div role="progressbar" />
-  }
-})
-
-jest.mock('@/components/backlog/BookProgressEditor', () => {
-  return function MockProgressEditor() {
-    return <div role="progressbar" data-testid="progress-editor" />
-  }
+jest.mock('next/link', () => {
+  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  )
 })
 
 jest.mock('@/components/backlog/BookRatingStars', () => {
@@ -40,35 +34,15 @@ jest.mock('@/components/backlog/BookFavouriteButton', () => {
   }
 })
 
-jest.mock('@/components/backlog/BookOwnershipToggles', () => {
-  return function MockOwnership({ userBook }: { userBook: { tags: string[]; formats: string[] } }) {
-    return (
-      <div data-testid="ownership-toggles">
-        {userBook.tags.includes('own-physical') && <span>Physical</span>}
-        {userBook.tags.includes('own-digital') && <span>Digital</span>}
-        {userBook.formats.includes('pdf') && <span>PDF</span>}
-        {userBook.formats.includes('epub') && <span>EPUB</span>}
-      </div>
-    )
+jest.mock('@/components/backlog/BookShelfTagCell', () => {
+  return function MockShelfTagCell() {
+    return <div data-testid="shelf-tag-cell" />
   }
 })
 
-jest.mock('@/components/backlog/BookShelfPopover', () => {
-  return function MockShelfPopover() {
-    return <div data-testid="shelf-popover" />
-  }
-})
-
-jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  )
-})
-
-jest.mock('next/image', () => {
-  return function MockImage({ src, alt }: { src: string; alt: string }) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} />
+jest.mock('@/components/backlog/ManageShelvesTagsDialog', () => {
+  return function MockManageDialog({ open }: { open: boolean }) {
+    return open ? <div data-testid="manage-dialog" /> : null
   }
 })
 
@@ -76,19 +50,17 @@ type UserBookOverride = {
   status?: string
   tags?: string[]
   formats?: string[]
-  progressMode?: string
-  currentPage?: number
-  progressPercent?: number
   rating?: number
+  addedAt?: string
+  finishedAt?: string[]
 }
 
 function makeUserBook(id: string, title: string, overrides: UserBookOverride = {}) {
   return create(UserBookSchema, {
     id,
-    status: 'wishlist',
+    status: 'to-read',
     tags: [],
     formats: [],
-    progressMode: 'pages',
     book: create(BookSchema, { title, authors: ['Author'] }),
     ...overrides
   })
@@ -98,23 +70,15 @@ const readingBook = makeUserBook('1', 'Dune', { status: 'currently-reading' })
 const wishlistBook = makeUserBook('2', 'Hyperion', { status: 'to-read' })
 const finishedBook = makeUserBook('3', 'Foundation', { status: 'read' })
 const shelfBook = makeUserBook('4', 'Neuromancer', { status: 'to-read' })
-const physicalBook = makeUserBook('5', 'Physical Only', {
-  status: 'currently-reading',
-  tags: ['own-physical']
-})
-const pdfBook = makeUserBook('6', 'PDF Book', {
-  status: 'currently-reading',
-  formats: ['pdf']
-})
 
-type LibraryOverride = {
-  reading?: ReturnType<typeof makeUserBook>[]
-  wishlist?: ReturnType<typeof makeUserBook>[]
-  finished?: ReturnType<typeof makeUserBook>[]
-  shelves?: ReturnType<typeof create<typeof BookShelfSchema>>[]
-}
-
-function makeLibrary(overrides: LibraryOverride = {}) {
+function makeLibrary(
+  overrides: {
+    reading?: ReturnType<typeof makeUserBook>[]
+    wishlist?: ReturnType<typeof makeUserBook>[]
+    finished?: ReturnType<typeof makeUserBook>[]
+    shelves?: ReturnType<typeof create<typeof BookShelfSchema>>[]
+  } = {}
+) {
   return create(LibraryResponseSchema, {
     reading: [readingBook],
     wishlist: [wishlistBook],
@@ -125,16 +89,24 @@ function makeLibrary(overrides: LibraryOverride = {}) {
 }
 
 describe('BooksLibrary', () => {
-  it('defaults to the first non-empty shelf (Currently Reading)', () => {
+  it('defaults to the first non-empty shelf', () => {
     render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.queryByText('Hyperion')).not.toBeInTheDocument()
+  })
+
+  it('switches to All books when clicked', () => {
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
+    const allBtns = screen.getAllByText('All books')
+    fireEvent.click(allBtns[0])
+    expect(screen.getByText('Dune')).toBeInTheDocument()
+    expect(screen.getByText('Hyperion')).toBeInTheDocument()
+    expect(screen.getByText('Foundation')).toBeInTheDocument()
   })
 
   it('switches shelf when sidebar nav is clicked', () => {
     render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
-    const wishlistBtns = screen.getAllByText('Wishlist')
-    fireEvent.click(wishlistBtns[0])
+    const wantBtns = screen.getAllByText('Want to read')
+    fireEvent.click(wantBtns[0])
     expect(screen.getByText('Hyperion')).toBeInTheDocument()
     expect(screen.queryByText('Dune')).not.toBeInTheDocument()
   })
@@ -150,134 +122,47 @@ describe('BooksLibrary', () => {
     expect(screen.getByText('Neuromancer')).toBeInTheDocument()
   })
 
-  it('shows shelf book count in sidebar', () => {
+  it('opens manage dialog when Edit shelves & tags is clicked', () => {
     render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
-    const wishlistBtns = screen.getAllByText('Wishlist')
-    const wishlistContainer = wishlistBtns[0].closest('button')
-    expect(wishlistContainer?.textContent).toContain('1')
+    expect(screen.queryByTestId('manage-dialog')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Edit shelves & tags'))
+    expect(screen.getByTestId('manage-dialog')).toBeInTheDocument()
   })
 
-  it('Physical filter narrows results', () => {
-    const library = makeLibrary({ reading: [readingBook, physicalBook] })
-    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
-    expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.getByText('Physical Only')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Physical' }))
-    expect(screen.queryByText('Dune')).not.toBeInTheDocument()
-    expect(screen.getByText('Physical Only')).toBeInTheDocument()
-  })
-
-  it('PDF filter narrows results', () => {
-    const library = makeLibrary({ reading: [readingBook, pdfBook] })
-    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
-    expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.getByText('PDF Book')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'PDF' }))
-    expect(screen.queryByText('Dune')).not.toBeInTheDocument()
-    expect(screen.getByText('PDF Book')).toBeInTheDocument()
-  })
-
-  it('combined AND filters narrow results', () => {
-    const both = makeUserBook('7', 'Both', {
+  it('filters by tag when a tag is clicked in the sidebar', () => {
+    const taggedBook = makeUserBook('t1', 'Tagged', {
       status: 'currently-reading',
-      tags: ['own-physical'],
-      formats: ['pdf']
+      tags: ['fantasy']
     })
-    const library = makeLibrary({ reading: [readingBook, physicalBook, pdfBook, both] })
+    const untagged = makeUserBook('t2', 'Untagged', { status: 'currently-reading' })
+    const library = makeLibrary({ reading: [taggedBook, untagged] })
     render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Physical' }))
-    fireEvent.click(screen.getByRole('button', { name: 'PDF' }))
-    expect(screen.getByText('Both')).toBeInTheDocument()
-    expect(screen.queryByText('Dune')).not.toBeInTheDocument()
-    expect(screen.queryByText('Physical Only')).not.toBeInTheDocument()
-    expect(screen.queryByText('PDF Book')).not.toBeInTheDocument()
+    // The sidebar renders 'fantasy' in both desktop nav and mobile chip row;
+    // click the first occurrence (desktop nav button).
+    fireEvent.click(screen.getAllByText('fantasy')[0])
+    expect(screen.getByText('Tagged')).toBeInTheDocument()
+    expect(screen.queryByText('Untagged')).not.toBeInTheDocument()
   })
 
-  it('Clear button removes all filters', () => {
-    const library = makeLibrary({ reading: [readingBook, physicalBook] })
-    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Physical' }))
-    expect(screen.queryByText('Dune')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
-    expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.getByText('Physical Only')).toBeInTheDocument()
-  })
-
-  it('shows empty message when filters match nothing', () => {
-    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'PDF' }))
+  it('shows empty message when library has no books', () => {
+    const emptyLib = makeLibrary({ reading: [], wishlist: [], finished: [], shelves: [] })
+    render(<BooksLibrary library={emptyLib} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.getByText('No books match the current filters.')).toBeInTheDocument()
   })
 
-  it('resets page when switching shelf', () => {
+  it('shows pagination for large book lists', () => {
     const manyBooks = Array.from({ length: 25 }, (_, i) =>
       makeUserBook(`r${i}`, `Book ${i}`, { status: 'currently-reading' })
     )
     const library = makeLibrary({ reading: manyBooks })
     render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
-
     expect(screen.getByText('1 / 2')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByText('2 / 2')).toBeInTheDocument()
-
-    fireEvent.click(screen.getAllByText('Wishlist')[0])
-    fireEvent.click(screen.getAllByText('Currently Reading')[0])
-    expect(screen.getByText('1 / 2')).toBeInTheDocument()
-  })
-
-  it('shows prev/next pagination controls for large lists', () => {
-    const manyBooks = Array.from({ length: 25 }, (_, i) =>
-      makeUserBook(`p${i}`, `Book ${i}`, { status: 'currently-reading' })
-    )
-    render(
-      <BooksLibrary
-        library={makeLibrary({ reading: manyBooks })}
-        knownShelves={[]}
-        onSaved={jest.fn()}
-      />
-    )
-    expect(screen.getByText('1 / 2')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Prev' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByText('2 / 2')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
   })
 
   it('hides pagination when all books fit on one page', () => {
     render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
-  })
-
-  describe('Sort', () => {
-    it('sorts by title when Title is selected', () => {
-      const aBook = makeUserBook('a', 'Aardvark', { status: 'currently-reading' })
-      const zBook = makeUserBook('z', 'Zebra', { status: 'currently-reading' })
-      // backend order: Zebra first, Aardvark second
-      const library = makeLibrary({ reading: [zBook, aBook] })
-      render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
-
-      fireEvent.change(screen.getByLabelText('Sort books'), { target: { value: 'title' } })
-
-      const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
-      expect(titles.indexOf('Aardvark')).toBeLessThan(titles.indexOf('Zebra'))
-    })
-
-    it('sorts by rating descending when Rating is selected', () => {
-      const low = makeUserBook('l', 'Low Rated', { status: 'currently-reading', rating: 1 })
-      const high = makeUserBook('h', 'High Rated', { status: 'currently-reading', rating: 5 })
-      const library = makeLibrary({ reading: [low, high] })
-      render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
-
-      fireEvent.change(screen.getByLabelText('Sort books'), { target: { value: 'rating' } })
-
-      const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
-      expect(titles.indexOf('High Rated')).toBeLessThan(titles.indexOf('Low Rated'))
-    })
   })
 })

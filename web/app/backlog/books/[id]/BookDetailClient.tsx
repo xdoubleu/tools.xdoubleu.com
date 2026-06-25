@@ -49,6 +49,7 @@ export default function BookDetailClient({ id }: { id: string }) {
 
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: 'Books', href: '/backlog/books' },
+    { label: 'Library', href: '/backlog/books/library' },
     { label: book?.title ?? 'Book' }
   ]
 
