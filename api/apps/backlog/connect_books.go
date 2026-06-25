@@ -261,17 +261,12 @@ func (h *booksConnectHandler) UpdateBookStatus(
 	}
 	existingTags = toggleTag(existingTags, models.TagFavourite, req.Msg.Favourite)
 	rating := parseRating(req.Msg.Rating)
-	var notes *string
-	if req.Msg.Notes != "" {
-		notes = &req.Msg.Notes
-	}
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
 		UserID:     user.ID,
 		BookID:     bookID,
 		Status:     req.Msg.Status,
 		Tags:       existingTags,
 		Rating:     rating,
-		Notes:      notes,
 		FinishedAt: buildFinishedAt(existing, req.Msg.Status),
 	}
 	if err = h.app.Services.Books.UpdateStatus(ctx, user.ID, ub); err != nil {
@@ -838,7 +833,6 @@ func protoUserBook(ub models.UserBook, coverBaseURL string) *backlogv1.UserBook 
 		Tags:            ub.Tags,
 		Formats:         ub.Formats,
 		Rating:          int32PtrFromInt16(ub.Rating),
-		Notes:           stringPtr(ub.Notes),
 		FinishedAt:      finishedAt,
 		ProgressMode:    ub.ProgressMode,
 		CurrentPage:     int32FromInt(ub.CurrentPage),

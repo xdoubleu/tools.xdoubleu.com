@@ -26,7 +26,6 @@ function makeBook(tags: string[] = [], status = 'to-read') {
     rating: 3,
     tags,
     formats: [],
-    notes: 'n',
     book: create(BookSchema, { title: 'Dune', authors: ['Frank Herbert'] })
   })
 }

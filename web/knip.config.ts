@@ -9,7 +9,13 @@ const config: KnipConfig = {
     'hooks/**/*.{ts,tsx}'
   ],
   ignore: ['lib/gen/**'],
-  ignoreDependencies: ['@bufbuild/protoc-gen-es', 'eslint-config-next', '@next/eslint-plugin-next'],
+  ignoreDependencies: [
+    '@bufbuild/protoc-gen-es',
+    'eslint-config-next',
+    '@next/eslint-plugin-next',
+    // Used via CSS @plugin directive in app/globals.css — knip cannot trace CSS imports
+    '@tailwindcss/typography'
+  ],
   ignoreBinaries: ['buf']
 }
 

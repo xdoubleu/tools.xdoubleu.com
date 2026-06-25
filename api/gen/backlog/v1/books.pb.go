@@ -122,7 +122,6 @@ type UserBook struct {
 	Status          string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	Tags            []string               `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
 	Rating          int32                  `protobuf:"varint,7,opt,name=rating,proto3" json:"rating,omitempty"`
-	Notes           string                 `protobuf:"bytes,8,opt,name=notes,proto3" json:"notes,omitempty"`
 	FinishedAt      []string               `protobuf:"bytes,9,rep,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	AddedAt         string                 `protobuf:"bytes,10,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
 	UpdatedAt       string                 `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
@@ -211,13 +210,6 @@ func (x *UserBook) GetRating() int32 {
 		return x.Rating
 	}
 	return 0
-}
-
-func (x *UserBook) GetNotes() string {
-	if x != nil {
-		return x.Notes
-	}
-	return ""
 }
 
 func (x *UserBook) GetFinishedAt() []string {
@@ -1279,7 +1271,6 @@ type UpdateBookStatusRequest struct {
 	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	Favourite     bool                   `protobuf:"varint,3,opt,name=favourite,proto3" json:"favourite,omitempty"`
 	Rating        string                 `protobuf:"bytes,4,opt,name=rating,proto3" json:"rating,omitempty"`
-	Notes         string                 `protobuf:"bytes,5,opt,name=notes,proto3" json:"notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1338,13 +1329,6 @@ func (x *UpdateBookStatusRequest) GetFavourite() bool {
 func (x *UpdateBookStatusRequest) GetRating() string {
 	if x != nil {
 		return x.Rating
-	}
-	return ""
-}
-
-func (x *UpdateBookStatusRequest) GetNotes() string {
-	if x != nil {
-		return x.Notes
 	}
 	return ""
 }
@@ -3352,7 +3336,7 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\tcover_url\x18\x05 \x01(\tR\bcoverUrl\x12 \n" +
 	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
-	"page_count\x18\a \x01(\x05R\tpageCount\"\xb4\x03\n" +
+	"page_count\x18\a \x01(\x05R\tpageCount\"\xa4\x03\n" +
 	"\bUserBook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
@@ -3360,8 +3344,7 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x04book\x18\x04 \x01(\v2\x10.backlog.v1.BookR\x04book\x12\x16\n" +
 	"\x06status\x18\x05 \x01(\tR\x06status\x12\x12\n" +
 	"\x04tags\x18\x06 \x03(\tR\x04tags\x12\x16\n" +
-	"\x06rating\x18\a \x01(\x05R\x06rating\x12\x14\n" +
-	"\x05notes\x18\b \x01(\tR\x05notes\x12\x1f\n" +
+	"\x06rating\x18\a \x01(\x05R\x06rating\x12\x1f\n" +
 	"\vfinished_at\x18\t \x03(\tR\n" +
 	"finishedAt\x12\x19\n" +
 	"\badded_at\x18\n" +
@@ -3371,7 +3354,7 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\rprogress_mode\x18\f \x01(\tR\fprogressMode\x12!\n" +
 	"\fcurrent_page\x18\r \x01(\x05R\vcurrentPage\x12)\n" +
 	"\x10progress_percent\x18\x0e \x01(\x05R\x0fprogressPercent\x12\x18\n" +
-	"\aformats\x18\x0f \x03(\tR\aformats\"K\n" +
+	"\aformats\x18\x0f \x03(\tR\aformatsJ\x04\b\b\x10\t\"K\n" +
 	"\tBookShelf\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12*\n" +
 	"\x05books\x18\x02 \x03(\v2\x14.backlog.v1.UserBookR\x05books\"\xd6\x01\n" +
@@ -3438,13 +3421,12 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\vown_digital\x18\n" +
 	" \x01(\bR\n" +
 	"ownDigital\"\x11\n" +
-	"\x0fAddBookResponse\"\x96\x01\n" +
+	"\x0fAddBookResponse\"\x86\x01\n" +
 	"\x17UpdateBookStatusRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1c\n" +
 	"\tfavourite\x18\x03 \x01(\bR\tfavourite\x12\x16\n" +
-	"\x06rating\x18\x04 \x01(\tR\x06rating\x12\x14\n" +
-	"\x05notes\x18\x05 \x01(\tR\x05notes\"\x1a\n" +
+	"\x06rating\x18\x04 \x01(\tR\x06ratingJ\x04\b\x05\x10\x06\"\x1a\n" +
 	"\x18UpdateBookStatusResponse\"=\n" +
 	"\x10ToggleTagRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x10\n" +

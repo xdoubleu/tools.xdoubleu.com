@@ -75,11 +75,6 @@ describe('BookModal', () => {
     })
   })
 
-  it('renders notes textarea', () => {
-    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
-    expect(screen.getByLabelText('Notes')).toBeInTheDocument()
-  })
-
   it('closes when Escape is pressed', () => {
     const onClose = jest.fn()
     render(<BookModal book={fakeBook} onClose={onClose} onAdded={jest.fn()} />)

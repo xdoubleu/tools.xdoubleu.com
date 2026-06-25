@@ -56,8 +56,7 @@ export default function BookShelfPopover({
         bookId: userBook.id,
         status: newStatus,
         favourite: userBook.tags.includes('favourite'),
-        rating: String(userBook.rating),
-        notes: userBook.notes
+        rating: String(userBook.rating)
       })
       mutate('/backlog/books')
       onSaved?.()

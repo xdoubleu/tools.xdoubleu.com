@@ -354,7 +354,7 @@ func TestMergeBooks_NoLosers_IsNoop(t *testing.T) {
 	assert.Equal(t, uint32(0), deleted)
 }
 
-func TestMergeBooks_FallsBackToLoserRatingAndNotes(t *testing.T) {
+func TestMergeBooks_FallsBackToLoserRating(t *testing.T) {
 	cleanupMergeUser(t)
 
 	isbn1 := "9780007777771"
@@ -374,13 +374,12 @@ func TestMergeBooks_FallsBackToLoserRatingAndNotes(t *testing.T) {
 		[]string{},
 	)
 
-	// Give the loser a rating and notes; winner has neither.
+	// Give the loser a rating; winner has none.
 	rating := int16(4)
-	notes := "great read"
 	_, err := testDB.Exec(context.Background(),
-		`UPDATE backlog.user_books SET rating = $1, notes = $2
-		 WHERE user_id = $3 AND book_id = $4`,
-		rating, notes, mergeTestUser, loser.BookID)
+		`UPDATE backlog.user_books SET rating = $1
+		 WHERE user_id = $2 AND book_id = $3`,
+		rating, mergeTestUser, loser.BookID)
 	require.NoError(t, err)
 
 	_, err = testApp.Services.Books.MergeBooks(
@@ -389,18 +388,15 @@ func TestMergeBooks_FallsBackToLoserRatingAndNotes(t *testing.T) {
 	require.NoError(t, err)
 
 	var gotRating *int16
-	var gotNotes *string
 	err = testDB.QueryRow(
 		context.Background(),
-		`SELECT rating, notes FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		`SELECT rating FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
 		mergeTestUser,
 		winner.BookID,
-	).Scan(&gotRating, &gotNotes)
+	).Scan(&gotRating)
 	require.NoError(t, err)
 	require.NotNil(t, gotRating)
 	assert.Equal(t, rating, *gotRating, "winner should inherit loser rating")
-	require.NotNil(t, gotNotes)
-	assert.Equal(t, notes, *gotNotes, "winner should inherit loser notes")
 }
 
 func TestMergeBooks_WinnerReadingStateNotOverridden(t *testing.T) {

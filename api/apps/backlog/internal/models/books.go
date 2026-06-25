@@ -80,7 +80,6 @@ type UserBook struct {
 	Formats         []string
 	ShelfPositions  map[string]int
 	Rating          *int16
-	Notes           *string
 	FinishedAt      []time.Time
 	ProgressMode    string
 	CurrentPage     int

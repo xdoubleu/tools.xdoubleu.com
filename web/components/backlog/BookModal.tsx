@@ -14,7 +14,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 
 const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
 
@@ -26,7 +25,6 @@ interface BookModalProps {
 
 export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
   const [status, setStatus] = useState('wishlist')
-  const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const addBook = useAddBook()
@@ -80,18 +78,6 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
                 </option>
               ))}
             </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="notes-area">Notes</Label>
-            <Textarea
-              id="notes-area"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Optional notes..."
-              className="resize-none"
-            />
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}

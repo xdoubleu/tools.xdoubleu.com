@@ -20,7 +20,7 @@ message UserBook {
   string status = 5;
   repeated string tags = 6;
   int32 rating = 7;
-  string notes = 8;
+  reserved 8;
   repeated string finished_at = 9;
   string added_at = 10;
   string updated_at = 11;
@@ -103,7 +103,7 @@ message UpdateBookStatusRequest {
   string status = 2;
   bool favourite = 3;
   string rating = 4;
-  string notes = 5;
+  reserved 5;
 }
 message UpdateBookStatusResponse {}
 
