@@ -42,7 +42,8 @@ jest.mock('@/components/backlog/BookShelfTagCell', () => {
 })
 
 jest.mock('@/hooks/useBacklog', () => ({
-  useBacklogLibrary: jest.fn()
+  useBacklogLibrary: jest.fn(),
+  useToggleTag: () => jest.fn()
 }))
 
 jest.mock('swr', () => ({

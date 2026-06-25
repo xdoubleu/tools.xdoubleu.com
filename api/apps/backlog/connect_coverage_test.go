@@ -85,8 +85,9 @@ func addTestBookWithISBN(t *testing.T, title, isbn string) *models.UserBook {
 //   - StatusReading and StatusRead cases in buildLibraryData
 //   - int32PtrFromInt16 nil path (fresh book, no rating set)
 //   - int32PtrFromInt16 non-nil path (book with rating "4")
-//   - groupByTags inner loop and protoBookshelves loop body
+//   - protoBookshelves loop body via 3 custom-status shelves
 //   - slices.SortFunc comparison body (return -1 and return 1) via 3+ shelves
+//   - tags staying on books without leaking into Library.Shelves
 func TestConnectGetLibrary_WithVariousBooksAndShelves(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -116,15 +117,31 @@ func TestConnectGetLibrary_WithVariousBooksAndShelves(t *testing.T) {
 
 	// bookC stays as to-read with nil rating, covering int32PtrFromInt16 nil branch.
 
-	// Add 3 distinct tags (one per book) to create 3 shelves, triggering
-	// the SortFunc comparison for both return -1 and return 1 paths.
-	for i, tag := range []string{"aaa-shelf", "mmm-shelf", "zzz-shelf"} {
-		book := []*models.UserBook{bookA, bookB, bookC}[i]
-		tagReq := connect.NewRequest(&backlogv1.ToggleTagRequest{
-			BookId: book.BookID.String(), Tag: tag,
+	// Add a user tag to bookA to verify it is NOT reflected in Library.Shelves.
+	tagReq := connect.NewRequest(&backlogv1.ToggleTagRequest{
+		BookId: bookA.BookID.String(), Tag: "cov-user-tag",
+	})
+	tagReq.Header().Set("Cookie", accessToken.String())
+	_, err = newBooksTestClient(t).ToggleTag(ctx, tagReq)
+	require.NoError(t, err)
+
+	// Add 3 custom-status shelves (one per extra book) to exercise
+	// protoBookshelves loop body and SortFunc -1/1 comparison paths.
+	bookD := addTestBookWithISBN(t, "CovCustomA-"+uid, "9780000000004")
+	bookE := addTestBookWithISBN(t, "CovCustomB-"+uid, "9780000000005")
+	for _, tc := range []struct {
+		book   *models.UserBook
+		status string
+	}{
+		{bookC, "alpha-shelf"},
+		{bookD, "beta-shelf"},
+		{bookE, "gamma-shelf"},
+	} {
+		statusReq := connect.NewRequest(&backlogv1.UpdateBookStatusRequest{
+			BookId: tc.book.BookID.String(), Status: tc.status,
 		})
-		tagReq.Header().Set("Cookie", accessToken.String())
-		_, err = newBooksTestClient(t).ToggleTag(ctx, tagReq)
+		statusReq.Header().Set("Cookie", accessToken.String())
+		_, err = newBooksTestClient(t).UpdateBookStatus(ctx, statusReq)
 		require.NoError(t, err)
 	}
 
@@ -136,6 +153,12 @@ func TestConnectGetLibrary_WithVariousBooksAndShelves(t *testing.T) {
 	assert.NotNil(t, resp.Msg.Library)
 	assert.NotEmpty(t, resp.Msg.Library.Finished)
 	assert.NotEmpty(t, resp.Msg.Library.Shelves)
+	// Tags must not bleed into shelves — the tag "cov-user-tag" is on bookA
+	// but must not appear as a shelf name.
+	for _, shelf := range resp.Msg.Library.Shelves {
+		assert.NotEqual(t, "cov-user-tag", shelf.Name,
+			"user tag must not appear as a shelf")
+	}
 }
 
 // TestConnectUpdateBookStatus_ZeroRating covers parseRating's "0" early-return branch.

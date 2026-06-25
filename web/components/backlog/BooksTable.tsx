@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import BookCover from '@/components/backlog/BookCover'
 import BookRatingStars from '@/components/backlog/BookRatingStars'
 import BookFavouriteButton from '@/components/backlog/BookFavouriteButton'
+import BookOwnershipToggles from '@/components/backlog/BookOwnershipToggles'
 import BookShelfTagCell from '@/components/backlog/BookShelfTagCell'
 import { statusLabel, displayTags } from '@/lib/backlog/bookShelves'
 
@@ -142,6 +143,9 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
             <SortableHeader dir={sortDir('favourite')} onSort={() => handleSort('favourite')}>
               Fav
             </SortableHeader>
+            <SortableHeader dir={null} onSort={() => {}} className="hidden md:table-cell">
+              Owned
+            </SortableHeader>
             <SortableHeader
               dir={sortDir('shelf')}
               onSort={() => handleSort('shelf')}
@@ -168,7 +172,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
         <TableBody>
           {pageBooks.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="py-8 text-center text-muted text-sm">
+              <TableCell colSpan={10} className="py-8 text-center text-muted text-sm">
                 No books match the current filters.
               </TableCell>
             </TableRow>
@@ -226,6 +230,11 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
                   {/* Favourite */}
                   <TableCell className="w-10">
                     <BookFavouriteButton userBook={ub} onSaved={onSaved} />
+                  </TableCell>
+
+                  {/* Owned */}
+                  <TableCell className="hidden md:table-cell">
+                    <BookOwnershipToggles userBook={ub} onSaved={onSaved} />
                   </TableCell>
 
                   {/* Shelf & tags */}
