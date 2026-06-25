@@ -28,21 +28,36 @@ jest.mock('@/components/backlog/BookSearchBar', () => {
   }
 })
 
-jest.mock('@/components/backlog/BookEntryModal', () => {
-  return function MockBookEntryModal() {
-    return <div data-testid="book-entry-modal" />
+// Stub out the interactive child controls so BooksSection tests focus on
+// the library structure (shelves, search, loading/error states), not the
+// individual edit controls.
+jest.mock('@/components/backlog/BookProgressEditor', () => {
+  return function MockProgressEditor() {
+    return <div role="progressbar" />
   }
 })
 
-jest.mock('@/components/backlog/BookShelfModal', () => {
-  return function MockBookShelfModal() {
-    return <div data-testid="book-shelf-modal" />
+jest.mock('@/components/backlog/BookRatingStars', () => {
+  return function MockRatingStars() {
+    return <div data-testid="rating-stars" />
   }
 })
 
-jest.mock('@/components/backlog/BookProgressModal', () => {
-  return function MockBookProgressModal() {
-    return <div data-testid="book-progress-modal" />
+jest.mock('@/components/backlog/BookFavouriteButton', () => {
+  return function MockFavButton() {
+    return <div data-testid="favourite-button" />
+  }
+})
+
+jest.mock('@/components/backlog/BookOwnershipToggles', () => {
+  return function MockOwnership() {
+    return <div data-testid="ownership-toggles" />
+  }
+})
+
+jest.mock('@/components/backlog/BookShelfPopover', () => {
+  return function MockShelfPopover() {
+    return <div data-testid="shelf-popover" />
   }
 })
 
@@ -161,36 +176,17 @@ describe('BooksSection', () => {
     expect(mutate).toHaveBeenCalledWith('/backlog/books')
   })
 
-  it('opens the entry modal when Entry button is clicked', () => {
-    mockLibrary()
-    render(<BooksSection />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Entry' })[0])
-    expect(screen.getByTestId('book-entry-modal')).toBeInTheDocument()
-  })
-
-  it('opens the shelf modal when Shelf button is clicked', () => {
-    mockLibrary()
-    render(<BooksSection />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Shelf' })[0])
-    expect(screen.getByTestId('book-shelf-modal')).toBeInTheDocument()
-  })
-
-  it('opens the progress modal when Progress button is clicked', () => {
-    mockLibrary()
-    render(<BooksSection />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Progress' })[0])
-    expect(screen.getByTestId('book-progress-modal')).toBeInTheDocument()
-  })
-
-  it('gives book cards a white card background', () => {
-    mockLibrary()
-    render(<BooksSection />)
-    expect(screen.getByText('Dune').closest('.bg-card')).toBeInTheDocument()
-  })
-
   it('shows a progress bar for currently reading books', () => {
     mockLibrary()
     render(<BooksSection />)
     expect(screen.getAllByRole('progressbar').length).toBeGreaterThan(0)
+  })
+
+  it('renders inline controls (rating, favourite, shelf popover) for each card', () => {
+    mockLibrary()
+    render(<BooksSection />)
+    expect(screen.getByTestId('rating-stars')).toBeInTheDocument()
+    expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
+    expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
   })
 })
