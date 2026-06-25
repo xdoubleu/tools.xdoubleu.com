@@ -1,6 +1,11 @@
 import { create } from '@bufbuild/protobuf'
 import { UserBookSchema, BookSchema } from '@/lib/gen/backlog/v1/books_pb'
-import { displayProgressPercent } from '@/lib/backlog/bookProgress'
+import {
+  displayProgressPercent,
+  defaultProgressMode,
+  PROGRESS_MODE_PAGES,
+  PROGRESS_MODE_PERCENT
+} from '@/lib/backlog/bookProgress'
 
 function userBook(fields: Parameters<typeof create<typeof UserBookSchema>>[1]) {
   return create(UserBookSchema, fields)
@@ -41,5 +46,41 @@ describe('displayProgressPercent', () => {
 
   it('returns zero when there is no book', () => {
     expect(displayProgressPercent(userBook({ progressMode: 'pages', currentPage: 10 }))).toBe(0)
+  })
+})
+
+describe('defaultProgressMode', () => {
+  it('returns the stored mode when already set', () => {
+    expect(defaultProgressMode(userBook({ progressMode: PROGRESS_MODE_PERCENT }))).toBe(
+      PROGRESS_MODE_PERCENT
+    )
+    expect(defaultProgressMode(userBook({ progressMode: PROGRESS_MODE_PAGES }))).toBe(
+      PROGRESS_MODE_PAGES
+    )
+  })
+
+  it('defaults to percent for digital-only books', () => {
+    expect(defaultProgressMode(userBook({ tags: ['own-digital'] }))).toBe(PROGRESS_MODE_PERCENT)
+  })
+
+  it('defaults to pages for physical books', () => {
+    expect(defaultProgressMode(userBook({ tags: ['own-physical'] }))).toBe(PROGRESS_MODE_PAGES)
+  })
+
+  it('defaults to pages for books with both physical and digital', () => {
+    expect(defaultProgressMode(userBook({ tags: ['own-physical', 'own-digital'] }))).toBe(
+      PROGRESS_MODE_PAGES
+    )
+  })
+
+  it('defaults to pages for books with no ownership tags', () => {
+    expect(defaultProgressMode(userBook({}))).toBe(PROGRESS_MODE_PAGES)
+  })
+
+  it('respects stored mode over tag defaults', () => {
+    // Has stored mode "percent" even though it is a physical book.
+    expect(
+      defaultProgressMode(userBook({ progressMode: PROGRESS_MODE_PERCENT, tags: ['own-physical'] }))
+    ).toBe(PROGRESS_MODE_PERCENT)
   })
 })

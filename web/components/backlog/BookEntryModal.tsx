@@ -1,10 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useUpdateBookStatus, useToggleTag, useUpdateProgress } from '@/hooks/useBacklog'
-import type { UpdateBookStatusInput } from '@/hooks/useBacklog'
+import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
-import { PROGRESS_MODE_PAGES, PROGRESS_MODE_PERCENT } from '@/lib/backlog/bookProgress'
 import KoboSyncToggle from '@/components/backlog/KoboSyncToggle'
 import BookPreviewDialog from '@/components/backlog/BookPreviewDialog'
 import {
@@ -15,34 +13,26 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
-const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
-
-interface BookEditModalProps {
+interface BookEntryModalProps {
   userBook: UserBook
   onClose: () => void
   onSaved: () => void
 }
 
-export default function BookEditModal({ userBook, onClose, onSaved }: BookEditModalProps) {
-  const [status, setStatus] = useState(userBook.status)
+export default function BookEntryModal({ userBook, onClose, onSaved }: BookEntryModalProps) {
   const [rating, setRating] = useState(userBook.rating)
   const [notes, setNotes] = useState(userBook.notes)
   const [favourite, setFavourite] = useState(userBook.tags.includes('favourite'))
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
   const [ownDigital, setOwnDigital] = useState(userBook.tags.includes('own-digital'))
-  const [progressMode, setProgressMode] = useState(userBook.progressMode || PROGRESS_MODE_PAGES)
-  const [currentPage, setCurrentPage] = useState(userBook.currentPage)
-  const [progressPercent, setProgressPercent] = useState(userBook.progressPercent)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewFormat, setPreviewFormat] = useState<'pdf' | 'epub' | 'kepub' | null>(null)
   const updateBookStatus = useUpdateBookStatus()
-  const updateProgress = useUpdateProgress()
   const toggleTag = useToggleTag()
 
   const book = userBook.book
@@ -54,20 +44,14 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
     try {
       const currentOwnPhysical = userBook.tags.includes('own-physical')
       const currentOwnDigital = userBook.tags.includes('own-digital')
-      const req: UpdateBookStatusInput = {
-        bookId: userBook.id,
-        status,
-        rating: String(rating),
-        notes,
-        favourite
-      }
       await Promise.all([
-        updateBookStatus(req),
-        updateProgress({
+        updateBookStatus({
           bookId: userBook.id,
-          progressMode,
-          currentPage,
-          progressPercent
+          // Pass through status so this modal doesn't clobber it.
+          status: userBook.status,
+          rating: String(rating),
+          notes,
+          favourite
         }),
         ownPhysical !== currentOwnPhysical && toggleTag(userBook.id, 'own-physical'),
         ownDigital !== currentOwnDigital && toggleTag(userBook.id, 'own-digital')
@@ -86,7 +70,7 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
       <Dialog open onOpenChange={(open) => !open && onClose()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{book?.title ?? 'Edit Book'}</DialogTitle>
+            <DialogTitle>{book?.title ?? 'Edit Entry'}</DialogTitle>
             <DialogClose>×</DialogClose>
           </DialogHeader>
           {book && book.authors.length > 0 && (
@@ -95,20 +79,9 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select id="edit-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-                {BOOK_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-rating">Rating (0 = unrated)</Label>
+              <Label htmlFor="entry-rating">Rating</Label>
               <Select
-                id="edit-rating"
+                id="entry-rating"
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
               >
@@ -121,52 +94,9 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="edit-progress-mode">Progress</Label>
-              <div className="flex gap-2">
-                <Select
-                  id="edit-progress-mode"
-                  value={progressMode}
-                  onChange={(e) => setProgressMode(e.target.value)}
-                  className="w-32"
-                >
-                  <option value={PROGRESS_MODE_PAGES}>Pages</option>
-                  <option value={PROGRESS_MODE_PERCENT}>Percent</option>
-                </Select>
-                {progressMode === PROGRESS_MODE_PAGES ? (
-                  <div className="flex flex-1 items-center gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={currentPage}
-                      onChange={(e) => setCurrentPage(Number(e.target.value))}
-                      aria-label="Current page"
-                    />
-                    {book?.pageCount ? (
-                      <span className="text-sm text-muted whitespace-nowrap">
-                        / {book.pageCount}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="flex flex-1 items-center gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={progressPercent}
-                      onChange={(e) => setProgressPercent(Number(e.target.value))}
-                      aria-label="Progress percent"
-                    />
-                    <span className="text-sm text-muted">%</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-notes">Notes</Label>
+              <Label htmlFor="entry-notes">Notes</Label>
               <Textarea
-                id="edit-notes"
+                id="entry-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
@@ -178,19 +108,19 @@ export default function BookEditModal({ userBook, onClose, onSaved }: BookEditMo
             <div className="flex flex-wrap gap-4">
               {[
                 {
-                  id: 'edit-favourite',
+                  id: 'entry-favourite',
                   state: favourite,
                   setter: setFavourite,
                   label: 'Favourite'
                 },
                 {
-                  id: 'edit-own-physical',
+                  id: 'entry-own-physical',
                   state: ownPhysical,
                   setter: setOwnPhysical,
                   label: 'Own physical'
                 },
                 {
-                  id: 'edit-own-digital',
+                  id: 'entry-own-digital',
                   state: ownDigital,
                   setter: setOwnDigital,
                   label: 'Own digital'

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
 
+export type BookActionKind = 'entry' | 'shelf' | 'progress'
+
 function OwnershipBadges({ userBook }: { userBook: UserBook }) {
   const physical = userBook.tags.includes('own-physical')
   const digital = userBook.tags.includes('own-digital')
@@ -29,16 +31,16 @@ function OwnershipBadges({ userBook }: { userBook: UserBook }) {
 
 interface BookCardProps {
   userBook: UserBook
-  onEdit: (ub: UserBook) => void
+  onAction: (kind: BookActionKind, ub: UserBook) => void
 }
 
-export default function BookCard({ userBook, onEdit }: BookCardProps) {
+export default function BookCard({ userBook, onAction }: BookCardProps) {
   const book = userBook.book
   if (!book) return null
 
   return (
-    <div className={cn(interactiveCardClass, 'relative p-4 flex gap-4 items-start')}>
-      {/* Stretched link covers the whole card; Edit button sits above it via z-10 */}
+    <div className={cn(interactiveCardClass, 'relative p-3 flex gap-3 items-start')}>
+      {/* Stretched link covers the whole card; action buttons sit above it via z-10 */}
       <Link
         href={`/backlog/books/${userBook.id}`}
         className="absolute inset-0 rounded-2xl"
@@ -48,11 +50,11 @@ export default function BookCard({ userBook, onEdit }: BookCardProps) {
         <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
       </div>
       <div className="relative z-10 flex-1 min-w-0">
-        <h3 className="font-semibold">{book.title}</h3>
-        <p className="text-sm text-muted">{book.authors.join(', ')}</p>
+        <h3 className="font-semibold text-sm leading-snug">{book.title}</h3>
+        <p className="text-xs text-muted">{book.authors.join(', ')}</p>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-subtle capitalize">
-            {userBook.status}
+            {userBook.status.replace(/-/g, ' ')}
           </span>
           {userBook.rating > 0 && <span className="text-xs text-muted">{userBook.rating}★</span>}
           {userBook.tags.includes('favourite') && <span className="text-xs text-amber-500">♥</span>}
@@ -64,14 +66,32 @@ export default function BookCard({ userBook, onEdit }: BookCardProps) {
           </div>
         )}
       </div>
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={() => onEdit(userBook)}
-        className="relative z-10 shrink-0 self-start"
-      >
-        Edit
-      </Button>
+      <div className="relative z-10 shrink-0 flex flex-col gap-1 items-end">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onAction('entry', userBook)}
+          className="text-xs"
+        >
+          Entry
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onAction('shelf', userBook)}
+          className="text-xs"
+        >
+          Shelf
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onAction('progress', userBook)}
+          className="text-xs"
+        >
+          Progress
+        </Button>
+      </div>
     </div>
   )
 }

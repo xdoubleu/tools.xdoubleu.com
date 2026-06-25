@@ -36,10 +36,30 @@ jest.mock('@/components/backlog/BookProgressBar', () => {
   }
 })
 
-jest.mock('@/components/backlog/BookEditModal', () => {
-  return function MockBookEditModal({ onClose }: { onClose: () => void }) {
+jest.mock('@/components/backlog/BookEntryModal', () => {
+  return function MockBookEntryModal({ onClose }: { onClose: () => void }) {
     return (
-      <div role="dialog" aria-label="Edit Book">
+      <div role="dialog" aria-label="Edit Entry">
+        <button onClick={onClose}>Close</button>
+      </div>
+    )
+  }
+})
+
+jest.mock('@/components/backlog/BookShelfModal', () => {
+  return function MockBookShelfModal({ onClose }: { onClose: () => void }) {
+    return (
+      <div role="dialog" aria-label="Move in library">
+        <button onClick={onClose}>Close</button>
+      </div>
+    )
+  }
+})
+
+jest.mock('@/components/backlog/BookProgressModal', () => {
+  return function MockBookProgressModal({ onClose }: { onClose: () => void }) {
+    return (
+      <div role="dialog" aria-label="Update progress">
         <button onClick={onClose}>Close</button>
       </div>
     )
@@ -93,7 +113,6 @@ function makeLibraryData(
 
 beforeEach(() => {
   jest.clearAllMocks()
-  // Default: loaded with mockUserBook
   // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   jest.mocked(useBacklogLibrary).mockReturnValue({
     data: makeLibraryData(),
@@ -177,7 +196,7 @@ describe('BookDetailClient', () => {
   })
 
   it('does not render progress bar for non-reading status', () => {
-    const wishlistBook = create(UserBookSchema, { ...mockUserBook, status: 'wishlist' })
+    const wishlistBook = create(UserBookSchema, { ...mockUserBook, status: 'to-read' })
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     jest.mocked(useBacklogLibrary).mockReturnValue({
       data: makeLibraryData([], [wishlistBook]),
@@ -196,7 +215,6 @@ describe('BookDetailClient', () => {
   it('renders user tags (excluding system tags)', () => {
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByText('sci-fi')).toBeInTheDocument()
-    // favourite is shown as a badge, not in the tags list
     expect(screen.getByText('Favourite')).toBeInTheDocument()
   })
 
@@ -206,24 +224,36 @@ describe('BookDetailClient', () => {
     expect(booksLink).toHaveAttribute('href', '/backlog/books')
   })
 
-  it('opens BookEditModal when Edit is clicked', () => {
+  it('opens entry modal when Entry is clicked', () => {
     render(<BookDetailClient id="ub-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(screen.getByRole('dialog', { name: 'Edit Book' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Entry' }))
+    expect(screen.getByRole('dialog', { name: 'Edit Entry' })).toBeInTheDocument()
   })
 
-  it('closes BookEditModal when closed', () => {
+  it('closes entry modal when closed', () => {
     render(<BookDetailClient id="ub-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Entry' }))
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(screen.queryByRole('dialog', { name: 'Edit Book' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Edit Entry' })).not.toBeInTheDocument()
+  })
+
+  it('opens shelf modal when Shelf is clicked', () => {
+    render(<BookDetailClient id="ub-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Shelf' }))
+    expect(screen.getByRole('dialog', { name: 'Move in library' })).toBeInTheDocument()
+  })
+
+  it('opens progress modal when Progress is clicked', () => {
+    render(<BookDetailClient id="ub-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Progress' }))
+    expect(screen.getByRole('dialog', { name: 'Update progress' })).toBeInTheDocument()
   })
 
   it('finds a book in shelves', () => {
     const shelfBook = create(UserBookSchema, {
       ...mockUserBook,
       id: 'ub-shelf',
-      status: 'wishlist'
+      status: 'to-read'
     })
     const shelf = create(BookShelfSchema, { name: 'To Buy', books: [shelfBook] })
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
