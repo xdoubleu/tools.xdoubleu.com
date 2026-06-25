@@ -4,13 +4,21 @@ import { useMemo, useState } from 'react'
 import { mutate } from 'swr'
 import { useBacklogLibrary } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import type { BookActionKind } from '@/components/backlog/BookCard'
 import BookCover from '@/components/backlog/BookCover'
 import BookProgressBar from '@/components/backlog/BookProgressBar'
-import BookEditModal from '@/components/backlog/BookEditModal'
+import BookEntryModal from '@/components/backlog/BookEntryModal'
+import BookShelfModal from '@/components/backlog/BookShelfModal'
+import BookProgressModal from '@/components/backlog/BookProgressModal'
 import { OwnershipBadges } from '@/components/backlog/BookCard'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+
+interface ActiveEdit {
+  kind: BookActionKind
+  book: UserBook
+}
 
 function StarRating({ rating }: { rating: number }) {
   if (rating <= 0) return null
@@ -45,7 +53,7 @@ function flattenLibrary(
 
 export default function BookDetailClient({ id }: { id: string }) {
   const { data, error, isLoading } = useBacklogLibrary()
-  const [editingBook, setEditingBook] = useState<UserBook | null>(null)
+  const [activeEdit, setActiveEdit] = useState<ActiveEdit | null>(null)
 
   const userBook = useMemo(() => {
     if (!data?.library) return null
@@ -53,6 +61,8 @@ export default function BookDetailClient({ id }: { id: string }) {
   }, [data, id])
 
   const book = userBook?.book
+
+  const knownShelves = data?.library?.shelves.map((s) => s.name) ?? []
 
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: 'Books', href: '/backlog/books' },
@@ -62,6 +72,8 @@ export default function BookDetailClient({ id }: { id: string }) {
   const handleSaved = () => {
     void mutate('/backlog/books')
   }
+
+  const handleClose = () => setActiveEdit(null)
 
   return (
     <main className="max-w-4xl mx-auto p-6">
@@ -104,9 +116,27 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
 
-              <div className="mt-4">
-                <Button variant="secondary" size="sm" onClick={() => setEditingBook(userBook)}>
-                  Edit
+              <div className="mt-4 flex gap-2 flex-wrap">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setActiveEdit({ kind: 'entry', book: userBook })}
+                >
+                  Entry
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setActiveEdit({ kind: 'shelf', book: userBook })}
+                >
+                  Shelf
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setActiveEdit({ kind: 'progress', book: userBook })}
+                >
+                  Progress
                 </Button>
               </div>
             </div>
@@ -184,10 +214,28 @@ export default function BookDetailClient({ id }: { id: string }) {
         </>
       )}
 
-      {editingBook && (
-        <BookEditModal
-          userBook={editingBook}
-          onClose={() => setEditingBook(null)}
+      {userBook && activeEdit?.kind === 'entry' && (
+        <BookEntryModal
+          key={activeEdit.book.id}
+          userBook={activeEdit.book}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
+      {userBook && activeEdit?.kind === 'shelf' && (
+        <BookShelfModal
+          key={activeEdit.book.id}
+          userBook={activeEdit.book}
+          knownShelves={knownShelves}
+          onClose={handleClose}
+          onSaved={handleSaved}
+        />
+      )}
+      {userBook && activeEdit?.kind === 'progress' && (
+        <BookProgressModal
+          key={activeEdit.book.id}
+          userBook={activeEdit.book}
+          onClose={handleClose}
           onSaved={handleSaved}
         />
       )}

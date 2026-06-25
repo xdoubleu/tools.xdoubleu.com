@@ -1,20 +1,36 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import type { LibraryResponse, UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import type { BookActionKind } from '@/components/backlog/BookCard'
 import BookCard from '@/components/backlog/BookCard'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
+import { displayProgressPercent } from '@/lib/backlog/bookProgress'
 
 const PAGE_SIZE = 20
 
 type FilterKey = 'physical' | 'digital' | 'pdf' | 'epub'
 
-const FILTERS: { key: FilterKey; label: string }[] = [
+type SortKey = 'added' | 'title' | 'author' | 'rating' | 'progress'
+
+const OWNERSHIP_FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'physical', label: 'Physical' },
-  { key: 'digital', label: 'Digital' },
+  { key: 'digital', label: 'Digital' }
+]
+
+const FORMAT_FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'pdf', label: 'PDF' },
   { key: 'epub', label: 'EPUB' }
+]
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'added', label: 'Date added' },
+  { value: 'title', label: 'Title' },
+  { value: 'author', label: 'Author' },
+  { value: 'rating', label: 'Rating' },
+  { value: 'progress', label: 'Progress' }
 ]
 
 type ShelfId = 'currently-reading' | 'wishlist' | 'finished' | (string & Record<never, never>)
@@ -47,6 +63,25 @@ function passesFilter(book: UserBook, activeFilters: Set<FilterKey>): boolean {
     if (f === 'epub' && !book.formats.includes('epub')) return false
   }
   return true
+}
+
+function sortBooks(books: UserBook[], sortKey: SortKey): UserBook[] {
+  const sorted = [...books]
+  switch (sortKey) {
+    case 'title':
+      return sorted.sort((a, b) => (a.book?.title ?? '').localeCompare(b.book?.title ?? ''))
+    case 'author':
+      return sorted.sort((a, b) =>
+        (a.book?.authors[0] ?? '').localeCompare(b.book?.authors[0] ?? '')
+      )
+    case 'rating':
+      return sorted.sort((a, b) => b.rating - a.rating)
+    case 'progress':
+      return sorted.sort((a, b) => displayProgressPercent(b) - displayProgressPercent(a))
+    default:
+      // 'added' — preserve backend order
+      return sorted
+  }
 }
 
 interface ShelfSidebarProps {
@@ -107,15 +142,16 @@ function ShelfSidebar({ shelves, selected, onSelect }: ShelfSidebarProps) {
 
 interface BooksLibraryProps {
   library: LibraryResponse
-  onEdit: (ub: UserBook) => void
+  onAction: (kind: BookActionKind, ub: UserBook) => void
 }
 
-export default function BooksLibrary({ library, onEdit }: BooksLibraryProps) {
+export default function BooksLibrary({ library, onAction }: BooksLibraryProps) {
   const shelves = buildShelves(library)
   const defaultShelf = shelves.find((s) => s.books.length > 0)?.id ?? shelves[0]?.id ?? ''
 
   const [selectedShelf, setSelectedShelf] = useState<ShelfId>(defaultShelf)
   const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set())
+  const [sortKey, setSortKey] = useState<SortKey>('added')
   const [page, setPage] = useState(1)
 
   const handleSelectShelf = useCallback((id: ShelfId) => {
@@ -139,42 +175,83 @@ export default function BooksLibrary({ library, onEdit }: BooksLibraryProps) {
   const currentShelf = shelves.find((s) => s.id === selectedShelf)
   const allBooks = currentShelf?.books ?? []
   const filtered = allBooks.filter((b) => passesFilter(b, activeFilters))
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const sorted = useMemo(() => sortBooks(filtered, sortKey), [filtered, sortKey])
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount)
-  const pageBooks = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const pageBooks = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const clearFilters = () => {
+    setActiveFilters(new Set())
+    setPage(1)
+  }
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
       <ShelfSidebar shelves={shelves} selected={selectedShelf} onSelect={handleSelectShelf} />
 
       <div className="flex-1 min-w-0">
-        {/* Filter chips */}
-        <div className="flex items-center gap-2 flex-wrap mb-4">
-          {FILTERS.map(({ key, label }) => (
-            <button
+        {/* Controls row: sort + filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Select
+            value={sortKey}
+            onChange={(e) => {
+              const val = e.target.value
+              const next = SORT_OPTIONS.find((o) => o.value === val)?.value ?? 'added'
+              setSortKey(next)
+              setPage(1)
+            }}
+            className="w-36 h-8 text-sm"
+            aria-label="Sort books"
+          >
+            {SORT_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+
+          <div className="h-4 w-px bg-border hidden sm:block" aria-hidden="true" />
+
+          <span className="text-xs text-muted hidden sm:inline">Ownership:</span>
+          {OWNERSHIP_FILTERS.map(({ key, label }) => (
+            <Button
               key={key}
+              variant="secondary"
+              size="sm"
               onClick={() => toggleFilter(key)}
-              className={cn(
-                'px-3 py-1 rounded-full text-sm border transition-colors',
-                activeFilters.has(key)
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-surface text-subtle border-border hover:border-accent/50 hover:text-foreground'
-              )}
               aria-pressed={activeFilters.has(key)}
+              className={cn(
+                'text-xs rounded-full',
+                activeFilters.has(key) && 'bg-accent text-white border-accent hover:bg-accent/90'
+              )}
             >
               {label}
-            </button>
+            </Button>
           ))}
-          {activeFilters.size > 0 && (
-            <button
-              onClick={() => {
-                setActiveFilters(new Set())
-                setPage(1)
-              }}
-              className="px-3 py-1 rounded-full text-sm text-muted hover:text-foreground"
+
+          <div className="h-4 w-px bg-border hidden sm:block" aria-hidden="true" />
+
+          <span className="text-xs text-muted hidden sm:inline">Format:</span>
+          {FORMAT_FILTERS.map(({ key, label }) => (
+            <Button
+              key={key}
+              variant="secondary"
+              size="sm"
+              onClick={() => toggleFilter(key)}
+              aria-pressed={activeFilters.has(key)}
+              className={cn(
+                'text-xs rounded-full',
+                activeFilters.has(key) && 'bg-accent text-white border-accent hover:bg-accent/90'
+              )}
             >
+              {label}
+            </Button>
+          ))}
+
+          {activeFilters.size > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs text-muted">
               Clear
-            </button>
+            </Button>
           )}
         </div>
 
@@ -192,9 +269,9 @@ export default function BooksLibrary({ library, onEdit }: BooksLibraryProps) {
         {pageBooks.length === 0 ? (
           <p className="text-muted text-sm">No books match the current filters.</p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-2">
             {pageBooks.map((ub) => (
-              <BookCard key={ub.id} userBook={ub} onEdit={onEdit} />
+              <BookCard key={ub.id} userBook={ub} onAction={onAction} />
             ))}
           </div>
         )}

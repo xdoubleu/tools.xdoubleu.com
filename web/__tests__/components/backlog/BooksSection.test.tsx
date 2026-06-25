@@ -28,9 +28,21 @@ jest.mock('@/components/backlog/BookSearchBar', () => {
   }
 })
 
-jest.mock('@/components/backlog/BookEditModal', () => {
-  return function MockBookEditModal() {
-    return <div data-testid="book-edit-modal" />
+jest.mock('@/components/backlog/BookEntryModal', () => {
+  return function MockBookEntryModal() {
+    return <div data-testid="book-entry-modal" />
+  }
+})
+
+jest.mock('@/components/backlog/BookShelfModal', () => {
+  return function MockBookShelfModal() {
+    return <div data-testid="book-shelf-modal" />
+  }
+})
+
+jest.mock('@/components/backlog/BookProgressModal', () => {
+  return function MockBookProgressModal() {
+    return <div data-testid="book-progress-modal" />
   }
 })
 
@@ -68,21 +80,21 @@ const readingBook = create(UserBookSchema, {
 
 const finishedBook = create(UserBookSchema, {
   id: '2',
-  status: 'finished',
+  status: 'read',
   formats: [],
   book: create(BookSchema, { title: 'Foundation', authors: ['Isaac Asimov'] })
 })
 
 const wishlistBook = create(UserBookSchema, {
   id: '3',
-  status: 'wishlist',
+  status: 'to-read',
   formats: [],
   book: create(BookSchema, { title: 'Hyperion', authors: ['Dan Simmons'] })
 })
 
 const shelfBook = create(UserBookSchema, {
   id: '4',
-  status: 'reading',
+  status: 'currently-reading',
   formats: [],
   book: create(BookSchema, { title: 'Neuromancer', authors: ['William Gibson'] })
 })
@@ -111,9 +123,7 @@ describe('BooksSection', () => {
   it('renders the default shelf (Currently Reading) on load', () => {
     mockLibrary()
     render(<BooksSection />)
-    // The first non-empty shelf is "Currently Reading"; Dune should be visible
     expect(screen.getByText('Dune')).toBeInTheDocument()
-    // Other shelves' books are not rendered until selected
     expect(screen.queryByText('Foundation')).not.toBeInTheDocument()
   })
 
@@ -151,11 +161,25 @@ describe('BooksSection', () => {
     expect(mutate).toHaveBeenCalledWith('/backlog/books')
   })
 
-  it('opens the edit modal when a book Edit button is clicked', () => {
+  it('opens the entry modal when Entry button is clicked', () => {
     mockLibrary()
     render(<BooksSection />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
-    expect(screen.getByTestId('book-edit-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Entry' })[0])
+    expect(screen.getByTestId('book-entry-modal')).toBeInTheDocument()
+  })
+
+  it('opens the shelf modal when Shelf button is clicked', () => {
+    mockLibrary()
+    render(<BooksSection />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Shelf' })[0])
+    expect(screen.getByTestId('book-shelf-modal')).toBeInTheDocument()
+  })
+
+  it('opens the progress modal when Progress button is clicked', () => {
+    mockLibrary()
+    render(<BooksSection />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Progress' })[0])
+    expect(screen.getByTestId('book-progress-modal')).toBeInTheDocument()
   })
 
   it('gives book cards a white card background', () => {
