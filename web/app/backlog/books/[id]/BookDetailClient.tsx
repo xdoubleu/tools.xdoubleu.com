@@ -13,7 +13,6 @@ import BookShelfPopover from '@/components/backlog/BookShelfPopover'
 import KoboSyncToggle from '@/components/backlog/KoboSyncToggle'
 import BookPreviewDialog from '@/components/backlog/BookPreviewDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -153,8 +152,12 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {/* Rating + favourite + page count + status */}
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <BookRatingStars userBook={userBook} size="md" onSaved={handleSaved} />
-                <BookFavouriteButton userBook={userBook} onSaved={handleSaved} />
+                {userBook.status === 'read' && (
+                  <>
+                    <BookRatingStars userBook={userBook} size="md" onSaved={handleSaved} />
+                    <BookFavouriteButton userBook={userBook} onSaved={handleSaved} />
+                  </>
+                )}
                 {book.pageCount > 0 && (
                   <span className="text-sm text-muted">{book.pageCount} pages</span>
                 )}
@@ -208,35 +211,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                 <p className="text-xs text-muted mb-1">Notes</p>
                 <InlineNotes userBook={userBook} onSaved={handleSaved} />
               </div>
-
-              {userBook.tags.filter(
-                (t) =>
-                  t !== 'favourite' &&
-                  t !== 'own-physical' &&
-                  t !== 'own-digital' &&
-                  t !== 'kobo-sync' &&
-                  t !== 'kobo-format-pdf'
-              ).length > 0 && (
-                <div>
-                  <p className="text-xs text-muted mb-1">Tags</p>
-                  <div className="flex flex-wrap gap-1">
-                    {userBook.tags
-                      .filter(
-                        (t) =>
-                          t !== 'favourite' &&
-                          t !== 'own-physical' &&
-                          t !== 'own-digital' &&
-                          t !== 'kobo-sync' &&
-                          t !== 'kobo-format-pdf'
-                      )
-                      .map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                  </div>
-                </div>
-              )}
 
               {userBook.finishedAt.length > 0 && (
                 <div>
