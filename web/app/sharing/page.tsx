@@ -15,6 +15,7 @@ import ShareModal, { type ShareEntry } from '@/components/recipes/ShareModal'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PageContainer } from '@/components/ui/page-container'
 
 function SharesPreview({ shares }: { shares: ShareEntry[] }) {
   if (shares.length === 0) {
@@ -100,7 +101,7 @@ export default function SharingPage() {
   const listEntries: ShareEntry[] = listShares?.shares ?? []
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <PageContainer className="p-6">
       <h1 className="mb-6 text-3xl font-bold">Sharing</h1>
 
       <div className="space-y-6">
@@ -167,6 +168,6 @@ export default function SharingPage() {
             />
           )
       )}
-    </main>
+    </PageContainer>
   )
 }

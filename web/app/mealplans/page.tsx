@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMealPlans } from '@/hooks/useMealPlans'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function PlansPage() {
   const { data, error, isLoading } = useMealPlans()
@@ -16,7 +17,7 @@ export default function PlansPage() {
   }, [data, router])
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <PageContainer className="p-6">
       <h1 className="text-3xl font-bold mb-6">Meal Plan</h1>
 
       {isLoading && <p>Loading...</p>}
@@ -32,6 +33,6 @@ export default function PlansPage() {
           </Link>
         </div>
       )}
-    </main>
+    </PageContainer>
   )
 }

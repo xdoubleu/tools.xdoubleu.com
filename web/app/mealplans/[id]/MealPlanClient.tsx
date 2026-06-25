@@ -9,6 +9,7 @@ import { useRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
 import ShareModal from '@/components/recipes/ShareModal'
 import { Button } from '@/components/ui/button'
+import { PageContainer } from '@/components/ui/page-container'
 
 // Matches <Button variant="secondary" size="sm"> for use on a Next <Link>.
 const secondaryLinkClass =
@@ -52,7 +53,7 @@ export default function MealPlanClient({ id }: { id: string }) {
   }
 
   return (
-    <main className="max-w-5xl mx-auto p-6">
+    <PageContainer className="p-6">
       {isLoading && <p>Loading meal plan...</p>}
       {error && <p className="text-danger">Failed to load meal plan.</p>}
 
@@ -103,6 +104,6 @@ export default function MealPlanClient({ id }: { id: string }) {
           )}
         </>
       )}
-    </main>
+    </PageContainer>
   )
 }

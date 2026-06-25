@@ -13,6 +13,7 @@ import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
 import ShareModal from '@/components/recipes/ShareModal'
+import { PageContainer } from '@/components/ui/page-container'
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
@@ -41,7 +42,7 @@ export default function RecipesListPage() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <PageContainer className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Recipes</h1>
         <div className="flex gap-2">
@@ -80,6 +81,6 @@ export default function RecipesListPage() {
           onClose={() => setShowShareModal(false)}
         />
       )}
-    </main>
+    </PageContainer>
   )
 }

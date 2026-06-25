@@ -16,6 +16,7 @@ import KoboSyncToggle from '@/components/backlog/KoboSyncToggle'
 import BookPreviewDialog from '@/components/backlog/BookPreviewDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { PageContainer } from '@/components/ui/page-container'
 
 function flattenLibrary(
   library: NonNullable<ReturnType<typeof useBacklogLibrary>['data']>['library']
@@ -58,7 +59,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   }
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <PageContainer className="p-6">
       <Breadcrumb items={breadcrumbItems} />
 
       {isLoading && <p className="mt-6 text-muted">Loading book...</p>}
@@ -224,6 +225,6 @@ export default function BookDetailClient({ id }: { id: string }) {
           onOpenChange={(open) => !open && setPreviewFormat(null)}
         />
       )}
-    </main>
+    </PageContainer>
   )
 }

@@ -7,6 +7,7 @@ import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import BooksTable from '@/components/backlog/BooksTable'
 import { SPECIAL_TAGS } from '@/lib/backlog/bookShelves'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import { PageContainer } from '@/components/ui/page-container'
 
 function flattenLibrary(
   library: NonNullable<ReturnType<typeof useBacklogLibrary>['data']>['library']
@@ -56,7 +57,7 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
   const handleSaved = () => void mutate('/backlog/books')
 
   return (
-    <div className="space-y-4">
+    <PageContainer className="space-y-4">
       <Breadcrumb items={breadcrumbItems} />
       <h1 className="text-2xl font-bold">{name}</h1>
       <p className="text-muted text-sm">
@@ -74,6 +75,6 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
           onSaved={handleSaved}
         />
       )}
-    </div>
+    </PageContainer>
   )
 }

@@ -122,10 +122,18 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
             <SortableHeader dir={sortDir('title')} onSort={() => handleSort('title')}>
               Title
             </SortableHeader>
-            <SortableHeader dir={sortDir('author')} onSort={() => handleSort('author')}>
+            <SortableHeader
+              dir={sortDir('author')}
+              onSort={() => handleSort('author')}
+              className="hidden sm:table-cell"
+            >
               Author
             </SortableHeader>
-            <SortableHeader dir={sortDir('pages')} onSort={() => handleSort('pages')}>
+            <SortableHeader
+              dir={sortDir('pages')}
+              onSort={() => handleSort('pages')}
+              className="hidden lg:table-cell"
+            >
               Pages
             </SortableHeader>
             <SortableHeader dir={sortDir('rating')} onSort={() => handleSort('rating')}>
@@ -134,13 +142,25 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
             <SortableHeader dir={sortDir('favourite')} onSort={() => handleSort('favourite')}>
               Fav
             </SortableHeader>
-            <SortableHeader dir={sortDir('shelf')} onSort={() => handleSort('shelf')}>
+            <SortableHeader
+              dir={sortDir('shelf')}
+              onSort={() => handleSort('shelf')}
+              className="hidden md:table-cell"
+            >
               Shelf & tags
             </SortableHeader>
-            <SortableHeader dir={sortDir('added')} onSort={() => handleSort('added')}>
+            <SortableHeader
+              dir={sortDir('added')}
+              onSort={() => handleSort('added')}
+              className="hidden lg:table-cell"
+            >
               Date added
             </SortableHeader>
-            <SortableHeader dir={sortDir('read')} onSort={() => handleSort('read')}>
+            <SortableHeader
+              dir={sortDir('read')}
+              onSort={() => handleSort('read')}
+              className="hidden lg:table-cell"
+            >
               Date read
             </SortableHeader>
           </TableRow>
@@ -179,7 +199,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
                   </TableCell>
 
                   {/* Author */}
-                  <TableCell className="max-w-36">
+                  <TableCell className="hidden sm:table-cell max-w-36">
                     <div className="flex flex-col gap-0.5">
                       {authors.map((author) => (
                         <Link
@@ -194,7 +214,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
                   </TableCell>
 
                   {/* Page count */}
-                  <TableCell className="text-sm text-muted w-16 text-right">
+                  <TableCell className="hidden lg:table-cell text-sm text-muted w-16 text-right">
                     {book?.pageCount ?? ''}
                   </TableCell>
 
@@ -209,7 +229,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
                   </TableCell>
 
                   {/* Shelf & tags */}
-                  <TableCell className="max-w-44">
+                  <TableCell className="hidden md:table-cell max-w-44">
                     <BookShelfTagCell
                       userBook={ub}
                       knownShelves={knownShelves}
@@ -224,12 +244,12 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
                   </TableCell>
 
                   {/* Date added */}
-                  <TableCell className="text-xs text-muted whitespace-nowrap">
+                  <TableCell className="hidden lg:table-cell text-xs text-muted whitespace-nowrap">
                     {formatShortDate(ub.addedAt)}
                   </TableCell>
 
                   {/* Date read */}
-                  <TableCell className="text-xs text-muted whitespace-nowrap">
+                  <TableCell className="hidden lg:table-cell text-xs text-muted whitespace-nowrap">
                     {formatShortDate(latestFinishedAt(ub))}
                   </TableCell>
                 </TableRow>
