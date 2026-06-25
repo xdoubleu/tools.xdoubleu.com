@@ -21,28 +21,6 @@ type booksPageData struct {
 	Shelves  []bookShelf
 }
 
-func groupByTags(userBooks []models.UserBook) []bookShelf {
-	seen := map[string][]models.UserBook{}
-	var order []string
-	for _, ub := range userBooks {
-		for _, tag := range ub.Tags {
-			if models.IsSpecialTag(tag) {
-				continue
-			}
-			if _, ok := seen[tag]; !ok {
-				order = append(order, tag)
-			}
-			seen[tag] = append(seen[tag], ub)
-		}
-	}
-	slices.Sort(order)
-	shelves := make([]bookShelf, 0, len(order))
-	for _, name := range order {
-		shelves = append(shelves, bookShelf{Name: name, Books: seen[name]})
-	}
-	return shelves
-}
-
 func groupByStatus(userBooks []models.UserBook) []bookShelf {
 	standard := map[string]bool{
 		models.StatusToRead:  true,
@@ -98,7 +76,7 @@ func (app *Backlog) buildLibraryData(
 		}
 	}
 
-	shelves := append(groupByStatus(library), groupByTags(library)...)
+	shelves := groupByStatus(library)
 	slices.SortFunc(shelves, func(a, b bookShelf) int {
 		if a.Name < b.Name {
 			return -1

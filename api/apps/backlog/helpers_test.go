@@ -35,55 +35,6 @@ func TestToggleTag_Empty(t *testing.T) {
 	assert.Equal(t, []string{"tag"}, result)
 }
 
-func TestGroupByTags_Empty(t *testing.T) {
-	shelves := groupByTags(nil)
-	assert.Empty(t, shelves)
-}
-
-func TestGroupByTags_SkipsSpecialTags(t *testing.T) {
-	books := []models.UserBook{
-		{ //nolint:exhaustruct //only Tags needed
-			Tags: []string{models.TagOwnPhysical, models.TagFavourite},
-		},
-	}
-	shelves := groupByTags(books)
-	assert.Empty(t, shelves)
-}
-
-func TestGroupByTags_GroupsAndSorts(t *testing.T) {
-	id1 := uuid.New()
-	id2 := uuid.New()
-	books := []models.UserBook{
-		{ //nolint:exhaustruct //only Tags needed
-			ID:   id1,
-			Tags: []string{"sci-fi", "classics"},
-		},
-		{ //nolint:exhaustruct //only Tags needed
-			ID:   id2,
-			Tags: []string{"classics"},
-		},
-	}
-	shelves := groupByTags(books)
-
-	assert.Len(t, shelves, 2)
-	// Sorted alphabetically: "classics" before "sci-fi"
-	assert.Equal(t, "classics", shelves[0].Name)
-	assert.Len(t, shelves[0].Books, 2)
-	assert.Equal(t, "sci-fi", shelves[1].Name)
-	assert.Len(t, shelves[1].Books, 1)
-}
-
-func TestGroupByTags_MixedSpecialAndNormal(t *testing.T) {
-	books := []models.UserBook{
-		{ //nolint:exhaustruct //only Tags needed
-			Tags: []string{models.TagOwnPhysical, "fantasy"},
-		},
-	}
-	shelves := groupByTags(books)
-	assert.Len(t, shelves, 1)
-	assert.Equal(t, "fantasy", shelves[0].Name)
-}
-
 func TestGroupByStatus_Empty(t *testing.T) {
 	shelves := groupByStatus(nil)
 	assert.Empty(t, shelves)

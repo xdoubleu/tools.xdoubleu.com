@@ -35,6 +35,12 @@ jest.mock('@/components/backlog/BookShelfTagCell', () => {
   }
 })
 
+jest.mock('@/components/backlog/BookOwnershipToggles', () => {
+  return function MockOwnershipToggles() {
+    return <div data-testid="ownership-toggles" />
+  }
+})
+
 function makeBook(id: string, title: string, author = 'Author', overrides = {}) {
   return create(UserBookSchema, {
     id,
@@ -55,6 +61,13 @@ describe('BooksTable', () => {
     expect(screen.getByRole('button', { name: 'Author' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pages' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Rating' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Owned' })).toBeInTheDocument()
+  })
+
+  it('renders ownership toggles for each book row', () => {
+    const books = [makeBook('1', 'Dune'), makeBook('2', 'Hyperion')]
+    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    expect(screen.getAllByTestId('ownership-toggles')).toHaveLength(2)
   })
 
   it('renders books in rows', () => {

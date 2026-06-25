@@ -43,57 +43,25 @@ function ToggleChip({
 
 export default function BookOwnershipToggles({ userBook, onSaved }: BookOwnershipTogglesProps) {
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
-  const [ownDigital, setOwnDigital] = useState(userBook.tags.includes('own-digital'))
   const toggleTag = useToggleTag()
 
-  const handleToggle = async (
-    tag: 'own-physical' | 'own-digital',
-    current: boolean,
-    setter: (v: boolean) => void
-  ) => {
-    setter(!current)
+  const handleToggle = async (current: boolean) => {
+    setOwnPhysical(!current)
     try {
-      await toggleTag(userBook.id, tag)
+      await toggleTag(userBook.id, 'own-physical')
       mutate('/backlog/books')
       onSaved?.()
     } catch {
-      setter(current)
+      setOwnPhysical(current)
     }
   }
 
   const hasPdf = userBook.formats.includes('pdf')
   const hasEpub = userBook.formats.includes('epub')
 
-  if (!ownPhysical && !ownDigital && !hasPdf && !hasEpub) {
-    // Show muted chips so the user can still toggle on
-    return (
-      <div className="flex items-center gap-1 flex-wrap mt-1">
-        <ToggleChip
-          label="Physical"
-          active={false}
-          onClick={() => handleToggle('own-physical', false, setOwnPhysical)}
-        />
-        <ToggleChip
-          label="Digital"
-          active={false}
-          onClick={() => handleToggle('own-digital', false, setOwnDigital)}
-        />
-      </div>
-    )
-  }
-
   return (
     <div className="flex items-center gap-1 flex-wrap mt-1">
-      <ToggleChip
-        label="Physical"
-        active={ownPhysical}
-        onClick={() => handleToggle('own-physical', ownPhysical, setOwnPhysical)}
-      />
-      <ToggleChip
-        label="Digital"
-        active={ownDigital}
-        onClick={() => handleToggle('own-digital', ownDigital, setOwnDigital)}
-      />
+      <ToggleChip label="Physical" active={ownPhysical} onClick={() => handleToggle(ownPhysical)} />
       {hasPdf && <Badge variant="default">PDF</Badge>}
       {hasEpub && <Badge variant="default">EPUB</Badge>}
     </div>

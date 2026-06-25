@@ -34,10 +34,14 @@ describe('BookOwnershipToggles', () => {
     mockToggleTag.mockResolvedValue({})
   })
 
-  it('always renders Physical and Digital chips', () => {
+  it('always renders Physical chip', () => {
     render(<BookOwnershipToggles userBook={makeBook()} />)
     expect(screen.getByText('Physical')).toBeInTheDocument()
-    expect(screen.getByText('Digital')).toBeInTheDocument()
+  })
+
+  it('does not render a Digital toggle', () => {
+    render(<BookOwnershipToggles userBook={makeBook()} />)
+    expect(screen.queryByRole('button', { name: /digital/i })).not.toBeInTheDocument()
   })
 
   it('toggles own-physical on when clicked from off', async () => {
@@ -51,16 +55,6 @@ describe('BookOwnershipToggles', () => {
     expect(mockMutate).toHaveBeenCalledWith('/backlog/books')
   })
 
-  it('toggles own-digital on when clicked from off', async () => {
-    render(<BookOwnershipToggles userBook={makeBook()} />)
-
-    fireEvent.click(screen.getByRole('button', { name: /digital/i }))
-
-    await waitFor(() => {
-      expect(mockToggleTag).toHaveBeenCalledWith('ub-1', 'own-digital')
-    })
-  })
-
   it('Physical chip is pressed when own-physical tag present', () => {
     render(<BookOwnershipToggles userBook={makeBook(['own-physical'])} />)
     expect(screen.getByRole('button', { name: /physical/i })).toHaveAttribute(
@@ -69,15 +63,34 @@ describe('BookOwnershipToggles', () => {
     )
   })
 
-  it('Digital chip is pressed when own-digital tag present', () => {
-    render(<BookOwnershipToggles userBook={makeBook(['own-digital'])} />)
-    expect(screen.getByRole('button', { name: /digital/i })).toHaveAttribute('aria-pressed', 'true')
+  it('Physical chip is not pressed when own-physical tag absent', () => {
+    render(<BookOwnershipToggles userBook={makeBook()} />)
+    expect(screen.getByRole('button', { name: /physical/i })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
   })
 
-  it('shows PDF and EPUB format badges', () => {
-    render(<BookOwnershipToggles userBook={makeBook(['own-digital'], ['pdf', 'epub'])} />)
+  it('shows PDF badge when pdf format present', () => {
+    render(<BookOwnershipToggles userBook={makeBook([], ['pdf'])} />)
+    expect(screen.getByText('PDF')).toBeInTheDocument()
+  })
+
+  it('shows EPUB badge when epub format present', () => {
+    render(<BookOwnershipToggles userBook={makeBook([], ['epub'])} />)
+    expect(screen.getByText('EPUB')).toBeInTheDocument()
+  })
+
+  it('shows both PDF and EPUB badges when both formats present', () => {
+    render(<BookOwnershipToggles userBook={makeBook([], ['pdf', 'epub'])} />)
     expect(screen.getByText('PDF')).toBeInTheDocument()
     expect(screen.getByText('EPUB')).toBeInTheDocument()
+  })
+
+  it('shows no format badges when formats is empty', () => {
+    render(<BookOwnershipToggles userBook={makeBook()} />)
+    expect(screen.queryByText('PDF')).not.toBeInTheDocument()
+    expect(screen.queryByText('EPUB')).not.toBeInTheDocument()
   })
 
   it('calls onSaved after toggle', async () => {
@@ -95,7 +108,6 @@ describe('BookOwnershipToggles', () => {
     mockToggleTag.mockRejectedValue(new Error('fail'))
     render(<BookOwnershipToggles userBook={makeBook()} />)
 
-    // Not pressed before
     expect(screen.getByRole('button', { name: /physical/i })).toHaveAttribute(
       'aria-pressed',
       'false'
@@ -103,7 +115,6 @@ describe('BookOwnershipToggles', () => {
     fireEvent.click(screen.getByRole('button', { name: /physical/i }))
 
     await waitFor(() => {
-      // Reverted
       expect(screen.getByRole('button', { name: /physical/i })).toHaveAttribute(
         'aria-pressed',
         'false'
