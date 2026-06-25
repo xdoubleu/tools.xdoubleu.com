@@ -7,6 +7,7 @@ import type { Game } from '@/lib/gen/backlog/v1/games_pb'
 import { cn } from '@/lib/cn'
 import { interactiveCardClass } from '@/components/ui/card'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageContainer } from '@/components/ui/page-container'
 
 function GameCard({ game, bucket, label }: { game: Game; bucket: number; label: string }) {
   const href = `/backlog/games/${game.id}?bucket=${bucket}&label=${encodeURIComponent(label)}`
@@ -38,7 +39,7 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
   const games = data?.data?.games ?? []
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <PageContainer className="p-6">
       <Breadcrumb items={[{ label: 'Games', href: '/backlog/games' }, { label }]} />
 
       {isLoading && <p className="mt-6 text-muted">Loading...</p>}
@@ -57,6 +58,6 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
           )}
         </>
       )}
-    </main>
+    </PageContainer>
   )
 }

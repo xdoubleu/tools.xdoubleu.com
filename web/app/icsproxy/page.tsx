@@ -6,6 +6,7 @@ import { useICSFeeds, useDeleteConfig } from '@/hooks/useICSProxy'
 import { getApiUrl } from '@/lib/env'
 import type { FilterConfig } from '@/lib/gen/icsproxy/v1/proxy_pb'
 import { Button } from '@/components/ui/button'
+import { PageContainer } from '@/components/ui/page-container'
 
 const BASE_URL = getApiUrl()
 
@@ -79,7 +80,7 @@ export default function ICSProxyPage() {
   const { data, error, isLoading, mutate } = useICSFeeds()
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <PageContainer className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">ICS Proxy</h1>
         <Button asChild>
@@ -97,6 +98,6 @@ export default function ICSProxyPage() {
           ))}
         </div>
       )}
-    </main>
+    </PageContainer>
   )
 }

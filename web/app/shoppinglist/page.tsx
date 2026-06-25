@@ -14,6 +14,7 @@ import ShoppingList from '@/components/recipes/ShoppingList'
 import ExportModal from '@/components/recipes/ExportModal'
 import ShareModal from '@/components/recipes/ShareModal'
 import { Button } from '@/components/ui/button'
+import { PageContainer } from '@/components/ui/page-container'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { createServiceClient } from '@/lib/client'
@@ -136,7 +137,7 @@ export default function ShoppingPage() {
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
+    <PageContainer className="p-6">
       <div className="mb-6 flex items-center justify-between gap-2">
         <h1 className="text-3xl font-bold">Shopping List</h1>
         <div className="flex items-center gap-3">
@@ -246,6 +247,6 @@ export default function ShoppingPage() {
           onClose={() => setShowShare(false)}
         />
       )}
-    </main>
+    </PageContainer>
   )
 }

@@ -9,6 +9,7 @@ import type { Achievement } from '@/lib/gen/backlog/v1/games_pb'
 import { GetSteamGameResponseSchema } from '@/lib/gen/backlog/v1/games_pb'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { PageContainer } from '@/components/ui/page-container'
 
 interface AchievementCardProps {
   achievement: Achievement
@@ -114,7 +115,7 @@ export default function SteamGameClient({ id }: { id: string }) {
     : sortedAchievements.filter((a) => !a.achieved)
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <PageContainer className="p-6">
       <Breadcrumb items={breadcrumbItems} />
 
       {isLoading && <p className="mt-6 text-muted">Loading game...</p>}
@@ -189,6 +190,6 @@ export default function SteamGameClient({ id }: { id: string }) {
           )}
         </>
       )}
-    </main>
+    </PageContainer>
   )
 }
