@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import type { LibraryResponse, UserBook } from '@/lib/gen/backlog/v1/books_pb'
-import type { BookActionKind } from '@/components/backlog/BookCard'
 import BookCard from '@/components/backlog/BookCard'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -142,10 +141,11 @@ function ShelfSidebar({ shelves, selected, onSelect }: ShelfSidebarProps) {
 
 interface BooksLibraryProps {
   library: LibraryResponse
-  onAction: (kind: BookActionKind, ub: UserBook) => void
+  knownShelves: string[]
+  onSaved: () => void
 }
 
-export default function BooksLibrary({ library, onAction }: BooksLibraryProps) {
+export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLibraryProps) {
   const shelves = buildShelves(library)
   const defaultShelf = shelves.find((s) => s.books.length > 0)?.id ?? shelves[0]?.id ?? ''
 
@@ -271,7 +271,7 @@ export default function BooksLibrary({ library, onAction }: BooksLibraryProps) {
         ) : (
           <div className="grid gap-2">
             {pageBooks.map((ub) => (
-              <BookCard key={ub.id} userBook={ub} onAction={onAction} />
+              <BookCard key={ub.id} userBook={ub} knownShelves={knownShelves} onSaved={onSaved} />
             ))}
           </div>
         )}

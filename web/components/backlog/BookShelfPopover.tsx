@@ -1,0 +1,184 @@
+'use client'
+
+import { useState } from 'react'
+import { mutate } from 'swr'
+import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBacklog'
+import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import { Popover, PopoverTrigger } from '@/components/ui/popover'
+import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
+import { Button } from '@/components/ui/button'
+
+// Tags that have reserved UI treatment — not custom shelves.
+const SPECIAL_TAGS = new Set([
+  'favourite',
+  'own-physical',
+  'own-digital',
+  'kobo-sync',
+  'kobo-format-pdf'
+])
+
+const BOOK_STATUSES: { value: string; label: string }[] = [
+  { value: 'to-read', label: 'Want to read' },
+  { value: 'currently-reading', label: 'Currently reading' },
+  { value: 'read', label: 'Read' },
+  { value: 'dropped', label: 'Dropped' }
+]
+
+interface BookShelfPopoverProps {
+  userBook: UserBook
+  knownShelves: string[]
+  onSaved?: () => void
+}
+
+export default function BookShelfPopover({
+  userBook,
+  knownShelves,
+  onSaved
+}: BookShelfPopoverProps) {
+  const [status, setStatus] = useState(userBook.status)
+  const [shelves, setShelves] = useState<string[]>(
+    userBook.tags.filter((t) => !SPECIAL_TAGS.has(t))
+  )
+  const [shelfInput, setShelfInput] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const updateBookStatus = useUpdateBookStatus()
+  const toggleTag = useToggleTag()
+
+  const originalShelves = userBook.tags.filter((t) => !SPECIAL_TAGS.has(t))
+
+  const handleStatusChange = async (newStatus: string) => {
+    const prev = status
+    setStatus(newStatus)
+    setError(null)
+    try {
+      await updateBookStatus({
+        bookId: userBook.id,
+        status: newStatus,
+        favourite: userBook.tags.includes('favourite'),
+        rating: String(userBook.rating),
+        notes: userBook.notes
+      })
+      mutate('/backlog/books')
+      onSaved?.()
+    } catch {
+      setStatus(prev)
+      setError('Failed to update status.')
+    }
+  }
+
+  const addShelf = async (name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed || shelves.includes(trimmed)) {
+      setShelfInput('')
+      return
+    }
+    setShelves((prev) => [...prev, trimmed])
+    setShelfInput('')
+    setError(null)
+    try {
+      await toggleTag(userBook.id, trimmed)
+      mutate('/backlog/books')
+      onSaved?.()
+    } catch {
+      setShelves((prev) => prev.filter((s) => s !== trimmed))
+      setError('Failed to add shelf.')
+    }
+  }
+
+  const removeShelf = async (name: string) => {
+    setShelves((prev) => prev.filter((s) => s !== name))
+    setError(null)
+    try {
+      await toggleTag(userBook.id, name)
+      mutate('/backlog/books')
+      onSaved?.()
+    } catch {
+      setShelves((prev) => [...prev, name])
+      setError('Failed to remove shelf.')
+    }
+  }
+
+  const suggestions = knownShelves.filter((s) => !SPECIAL_TAGS.has(s) && !shelves.includes(s))
+
+  void originalShelves
+  void isSaving
+  void setIsSaving
+
+  return (
+    <Popover
+      align="right"
+      trigger={({ open, onClick }) => (
+        <PopoverTrigger onClick={onClick} aria-expanded={open} aria-label="Edit status and shelves">
+          ...
+        </PopoverTrigger>
+      )}
+    >
+      <div className="space-y-3 min-w-[200px]">
+        <div className="space-y-1">
+          <Label htmlFor="shelf-popover-status" className="text-xs">
+            Status
+          </Label>
+          <Select
+            id="shelf-popover-status"
+            value={status}
+            onChange={(e) => void handleStatusChange(e.target.value)}
+          >
+            {BOOK_STATUSES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs">Shelves</Label>
+          {shelves.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1.5">
+              {shelves.map((shelf) => (
+                <Badge key={shelf} variant="secondary" className="gap-1">
+                  {shelf}
+                  <button
+                    type="button"
+                    onClick={() => void removeShelf(shelf)}
+                    className="ml-1 text-muted hover:text-foreground leading-none"
+                    aria-label={`Remove shelf ${shelf}`}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-1.5">
+            <Combobox
+              value={shelfInput}
+              onChange={setShelfInput}
+              onSelect={(v) => void addShelf(v)}
+              onEnter={() => void addShelf(shelfInput)}
+              suggestions={suggestions}
+              placeholder="Add a shelf..."
+              aria-label="Shelf name"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void addShelf(shelfInput)}
+              disabled={!shelfInput.trim()}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+
+        {error && <p className="text-xs text-danger">{error}</p>}
+      </div>
+    </Popover>
+  )
+}

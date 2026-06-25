@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import {
   UserBookSchema,
@@ -10,7 +10,8 @@ import {
 } from '@/lib/gen/backlog/v1/books_pb'
 
 jest.mock('@/hooks/useBacklog', () => ({
-  useBacklogLibrary: jest.fn()
+  useBacklogLibrary: jest.fn(),
+  useUpdateBookStatus: () => jest.fn().mockResolvedValue({})
 }))
 
 jest.mock('next/navigation', () => ({
@@ -30,39 +31,46 @@ jest.mock('next/image', () => {
   }
 })
 
-jest.mock('@/components/backlog/BookProgressBar', () => {
-  return function MockProgressBar() {
+// Stub inline controls so detail-page tests focus on data display
+jest.mock('@/components/backlog/BookProgressEditor', () => {
+  return function MockProgressEditor() {
     return <div role="progressbar" />
   }
 })
 
-jest.mock('@/components/backlog/BookEntryModal', () => {
-  return function MockBookEntryModal({ onClose }: { onClose: () => void }) {
-    return (
-      <div role="dialog" aria-label="Edit Entry">
-        <button onClick={onClose}>Close</button>
-      </div>
-    )
+jest.mock('@/components/backlog/BookRatingStars', () => {
+  return function MockRatingStars({ userBook }: { userBook: { rating: number } }) {
+    return <div aria-label={`${userBook.rating} out of 5 stars`} data-testid="rating-stars" />
   }
 })
 
-jest.mock('@/components/backlog/BookShelfModal', () => {
-  return function MockBookShelfModal({ onClose }: { onClose: () => void }) {
-    return (
-      <div role="dialog" aria-label="Move in library">
-        <button onClick={onClose}>Close</button>
-      </div>
-    )
+jest.mock('@/components/backlog/BookFavouriteButton', () => {
+  return function MockFavButton({ userBook }: { userBook: { tags: string[] } }) {
+    return <div data-testid="favourite-button" aria-pressed={userBook.tags.includes('favourite')} />
   }
 })
 
-jest.mock('@/components/backlog/BookProgressModal', () => {
-  return function MockBookProgressModal({ onClose }: { onClose: () => void }) {
-    return (
-      <div role="dialog" aria-label="Update progress">
-        <button onClick={onClose}>Close</button>
-      </div>
-    )
+jest.mock('@/components/backlog/BookOwnershipToggles', () => {
+  return function MockOwnership() {
+    return <div data-testid="ownership-toggles" />
+  }
+})
+
+jest.mock('@/components/backlog/BookShelfPopover', () => {
+  return function MockShelfPopover() {
+    return <div data-testid="shelf-popover" />
+  }
+})
+
+jest.mock('@/components/backlog/KoboSyncToggle', () => {
+  return function MockKoboSyncToggle() {
+    return <div data-testid="kobo-sync-toggle" />
+  }
+})
+
+jest.mock('@/components/backlog/BookPreviewDialog', () => {
+  return function MockBookPreviewDialog() {
+    return <div data-testid="book-preview-dialog" />
   }
 })
 
@@ -175,8 +183,9 @@ describe('BookDetailClient', () => {
     expect(screen.getByText('No description available.')).toBeInTheDocument()
   })
 
-  it('renders star rating', () => {
+  it('renders star rating control', () => {
     render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByTestId('rating-stars')).toBeInTheDocument()
     expect(screen.getByLabelText('4 out of 5 stars')).toBeInTheDocument()
   })
 
@@ -190,12 +199,12 @@ describe('BookDetailClient', () => {
     expect(screen.getByText('ISBN: 9780441013593')).toBeInTheDocument()
   })
 
-  it('renders progress bar for currently-reading', () => {
+  it('renders progress editor for currently-reading', () => {
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByRole('progressbar')).toBeInTheDocument()
   })
 
-  it('does not render progress bar for non-reading status', () => {
+  it('does not render progress editor for non-reading status', () => {
     const wishlistBook = create(UserBookSchema, { ...mockUserBook, status: 'to-read' })
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     jest.mocked(useBacklogLibrary).mockReturnValue({
@@ -215,7 +224,6 @@ describe('BookDetailClient', () => {
   it('renders user tags (excluding system tags)', () => {
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByText('sci-fi')).toBeInTheDocument()
-    expect(screen.getByText('Favourite')).toBeInTheDocument()
   })
 
   it('renders breadcrumb link back to Books', () => {
@@ -224,29 +232,19 @@ describe('BookDetailClient', () => {
     expect(booksLink).toHaveAttribute('href', '/backlog/books')
   })
 
-  it('opens entry modal when Entry is clicked', () => {
+  it('renders shelf popover', () => {
     render(<BookDetailClient id="ub-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Entry' }))
-    expect(screen.getByRole('dialog', { name: 'Edit Entry' })).toBeInTheDocument()
+    expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
   })
 
-  it('closes entry modal when closed', () => {
+  it('renders favourite button', () => {
     render(<BookDetailClient id="ub-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Entry' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(screen.queryByRole('dialog', { name: 'Edit Entry' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
   })
 
-  it('opens shelf modal when Shelf is clicked', () => {
+  it('renders Kobo sync toggle', () => {
     render(<BookDetailClient id="ub-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Shelf' }))
-    expect(screen.getByRole('dialog', { name: 'Move in library' })).toBeInTheDocument()
-  })
-
-  it('opens progress modal when Progress is clicked', () => {
-    render(<BookDetailClient id="ub-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Progress' }))
-    expect(screen.getByRole('dialog', { name: 'Update progress' })).toBeInTheDocument()
+    expect(screen.getByTestId('kobo-sync-toggle')).toBeInTheDocument()
   })
 
   it('finds a book in shelves', () => {
@@ -264,5 +262,99 @@ describe('BookDetailClient', () => {
     })
     render(<BookDetailClient id="ub-shelf" />)
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument()
+  })
+
+  describe('InlineNotes', () => {
+    it('shows notes text as a clickable button when not editing', () => {
+      render(<BookDetailClient id="ub-1" />)
+      expect(screen.getByText('Great read so far.')).toBeInTheDocument()
+    })
+
+    it('shows placeholder when notes are empty', () => {
+      const emptyNotesBook = create(UserBookSchema, { ...mockUserBook, notes: '' })
+      // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+      jest.mocked(useBacklogLibrary).mockReturnValue({
+        data: makeLibraryData([emptyNotesBook]),
+        isLoading: false,
+        error: undefined
+      })
+      render(<BookDetailClient id="ub-1" />)
+      expect(screen.getByText('Add notes...')).toBeInTheDocument()
+    })
+
+    it('opens textarea when notes button is clicked', () => {
+      render(<BookDetailClient id="ub-1" />)
+      fireEvent.click(screen.getByText('Great read so far.'))
+      expect(screen.getByDisplayValue('Great read so far.')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    })
+
+    it('saves notes and closes editor on Save', async () => {
+      render(<BookDetailClient id="ub-1" />)
+      fireEvent.click(screen.getByText('Great read so far.'))
+
+      const textarea = screen.getByDisplayValue('Great read so far.')
+      fireEvent.change(textarea, { target: { value: 'Updated notes' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+      })
+    })
+
+    it('cancels and closes editor on Cancel', () => {
+      render(<BookDetailClient id="ub-1" />)
+      fireEvent.click(screen.getByText('Great read so far.'))
+      expect(screen.getByDisplayValue('Great read so far.')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(screen.queryByDisplayValue('Great read so far.')).not.toBeInTheDocument()
+      expect(screen.getByText('Great read so far.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows preview buttons when book has epub format', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByRole('button', { name: 'Preview EPUB' })).toBeInTheDocument()
+  })
+
+  it('shows preview dialog when preview button is clicked', () => {
+    render(<BookDetailClient id="ub-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Preview EPUB' }))
+    expect(screen.getByTestId('book-preview-dialog')).toBeInTheDocument()
+  })
+
+  it('does not show preview buttons when no formats', () => {
+    const noFormatBook = create(UserBookSchema, { ...mockUserBook, formats: [] })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogLibrary).mockReturnValue({
+      data: makeLibraryData([noFormatBook]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByRole('button', { name: 'Preview EPUB' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Preview PDF' })).not.toBeInTheDocument()
+  })
+
+  it('shows added date', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByText(/Added/)).toBeInTheDocument()
+  })
+
+  it('shows finished dates when present', () => {
+    const finishedBook = create(UserBookSchema, {
+      ...mockUserBook,
+      finishedAt: ['2026-03-10T00:00:00Z']
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useBacklogLibrary).mockReturnValue({
+      data: makeLibraryData([finishedBook]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByText('Finished')).toBeInTheDocument()
   })
 })

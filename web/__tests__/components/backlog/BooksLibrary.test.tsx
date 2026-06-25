@@ -22,6 +22,56 @@ jest.mock('@/components/backlog/BookProgressBar', () => {
   }
 })
 
+jest.mock('@/components/backlog/BookProgressEditor', () => {
+  return function MockProgressEditor() {
+    return <div role="progressbar" data-testid="progress-editor" />
+  }
+})
+
+jest.mock('@/components/backlog/BookRatingStars', () => {
+  return function MockRatingStars() {
+    return <div data-testid="rating-stars" />
+  }
+})
+
+jest.mock('@/components/backlog/BookFavouriteButton', () => {
+  return function MockFavButton() {
+    return <div data-testid="favourite-button" />
+  }
+})
+
+jest.mock('@/components/backlog/BookOwnershipToggles', () => {
+  return function MockOwnership({ userBook }: { userBook: { tags: string[]; formats: string[] } }) {
+    return (
+      <div data-testid="ownership-toggles">
+        {userBook.tags.includes('own-physical') && <span>Physical</span>}
+        {userBook.tags.includes('own-digital') && <span>Digital</span>}
+        {userBook.formats.includes('pdf') && <span>PDF</span>}
+        {userBook.formats.includes('epub') && <span>EPUB</span>}
+      </div>
+    )
+  }
+})
+
+jest.mock('@/components/backlog/BookShelfPopover', () => {
+  return function MockShelfPopover() {
+    return <div data-testid="shelf-popover" />
+  }
+})
+
+jest.mock('next/link', () => {
+  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  )
+})
+
+jest.mock('next/image', () => {
+  return function MockImage({ src, alt }: { src: string; alt: string }) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} />
+  }
+})
+
 type UserBookOverride = {
   status?: string
   tags?: string[]
@@ -76,13 +126,13 @@ function makeLibrary(overrides: LibraryOverride = {}) {
 
 describe('BooksLibrary', () => {
   it('defaults to the first non-empty shelf (Currently Reading)', () => {
-    render(<BooksLibrary library={makeLibrary()} onAction={jest.fn()} />)
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.getByText('Dune')).toBeInTheDocument()
     expect(screen.queryByText('Hyperion')).not.toBeInTheDocument()
   })
 
   it('switches shelf when sidebar nav is clicked', () => {
-    render(<BooksLibrary library={makeLibrary()} onAction={jest.fn()} />)
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     const wishlistBtns = screen.getAllByText('Wishlist')
     fireEvent.click(wishlistBtns[0])
     expect(screen.getByText('Hyperion')).toBeInTheDocument()
@@ -90,18 +140,18 @@ describe('BooksLibrary', () => {
   })
 
   it('shows dynamic shelves in the sidebar', () => {
-    render(<BooksLibrary library={makeLibrary()} onAction={jest.fn()} />)
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.getAllByText('Sci-Fi').length).toBeGreaterThan(0)
   })
 
   it('navigates to a dynamic shelf', () => {
-    render(<BooksLibrary library={makeLibrary()} onAction={jest.fn()} />)
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     fireEvent.click(screen.getAllByText('Sci-Fi')[0])
     expect(screen.getByText('Neuromancer')).toBeInTheDocument()
   })
 
   it('shows shelf book count in sidebar', () => {
-    render(<BooksLibrary library={makeLibrary()} onAction={jest.fn()} />)
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     const wishlistBtns = screen.getAllByText('Wishlist')
     const wishlistContainer = wishlistBtns[0].closest('button')
     expect(wishlistContainer?.textContent).toContain('1')
@@ -109,7 +159,7 @@ describe('BooksLibrary', () => {
 
   it('Physical filter narrows results', () => {
     const library = makeLibrary({ reading: [readingBook, physicalBook] })
-    render(<BooksLibrary library={library} onAction={jest.fn()} />)
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.getByText('Dune')).toBeInTheDocument()
     expect(screen.getByText('Physical Only')).toBeInTheDocument()
 
@@ -120,7 +170,7 @@ describe('BooksLibrary', () => {
 
   it('PDF filter narrows results', () => {
     const library = makeLibrary({ reading: [readingBook, pdfBook] })
-    render(<BooksLibrary library={library} onAction={jest.fn()} />)
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.getByText('Dune')).toBeInTheDocument()
     expect(screen.getByText('PDF Book')).toBeInTheDocument()
 
@@ -136,7 +186,7 @@ describe('BooksLibrary', () => {
       formats: ['pdf']
     })
     const library = makeLibrary({ reading: [readingBook, physicalBook, pdfBook, both] })
-    render(<BooksLibrary library={library} onAction={jest.fn()} />)
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Physical' }))
     fireEvent.click(screen.getByRole('button', { name: 'PDF' }))
@@ -148,7 +198,7 @@ describe('BooksLibrary', () => {
 
   it('Clear button removes all filters', () => {
     const library = makeLibrary({ reading: [readingBook, physicalBook] })
-    render(<BooksLibrary library={library} onAction={jest.fn()} />)
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Physical' }))
     expect(screen.queryByText('Dune')).not.toBeInTheDocument()
 
@@ -158,7 +208,7 @@ describe('BooksLibrary', () => {
   })
 
   it('shows empty message when filters match nothing', () => {
-    render(<BooksLibrary library={makeLibrary()} onAction={jest.fn()} />)
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'PDF' }))
     expect(screen.getByText('No books match the current filters.')).toBeInTheDocument()
   })
@@ -168,7 +218,7 @@ describe('BooksLibrary', () => {
       makeUserBook(`r${i}`, `Book ${i}`, { status: 'currently-reading' })
     )
     const library = makeLibrary({ reading: manyBooks })
-    render(<BooksLibrary library={library} onAction={jest.fn()} />)
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
 
     expect(screen.getByText('1 / 2')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Next' }))
@@ -183,7 +233,13 @@ describe('BooksLibrary', () => {
     const manyBooks = Array.from({ length: 25 }, (_, i) =>
       makeUserBook(`p${i}`, `Book ${i}`, { status: 'currently-reading' })
     )
-    render(<BooksLibrary library={makeLibrary({ reading: manyBooks })} onAction={jest.fn()} />)
+    render(
+      <BooksLibrary
+        library={makeLibrary({ reading: manyBooks })}
+        knownShelves={[]}
+        onSaved={jest.fn()}
+      />
+    )
     expect(screen.getByText('1 / 2')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Prev' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
@@ -194,29 +250,8 @@ describe('BooksLibrary', () => {
   })
 
   it('hides pagination when all books fit on one page', () => {
-    render(<BooksLibrary library={makeLibrary()} onAction={jest.fn()} />)
+    render(<BooksLibrary library={makeLibrary()} knownShelves={[]} onSaved={jest.fn()} />)
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
-  })
-
-  it('calls onAction when Entry is clicked', () => {
-    const onAction = jest.fn()
-    render(<BooksLibrary library={makeLibrary()} onAction={onAction} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Entry' }))
-    expect(onAction).toHaveBeenCalledWith('entry', readingBook)
-  })
-
-  it('calls onAction when Shelf is clicked', () => {
-    const onAction = jest.fn()
-    render(<BooksLibrary library={makeLibrary()} onAction={onAction} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Shelf' }))
-    expect(onAction).toHaveBeenCalledWith('shelf', readingBook)
-  })
-
-  it('calls onAction when Progress is clicked', () => {
-    const onAction = jest.fn()
-    render(<BooksLibrary library={makeLibrary()} onAction={onAction} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Progress' }))
-    expect(onAction).toHaveBeenCalledWith('progress', readingBook)
   })
 
   describe('Sort', () => {
@@ -225,7 +260,7 @@ describe('BooksLibrary', () => {
       const zBook = makeUserBook('z', 'Zebra', { status: 'currently-reading' })
       // backend order: Zebra first, Aardvark second
       const library = makeLibrary({ reading: [zBook, aBook] })
-      render(<BooksLibrary library={library} onAction={jest.fn()} />)
+      render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
 
       fireEvent.change(screen.getByLabelText('Sort books'), { target: { value: 'title' } })
 
@@ -237,7 +272,7 @@ describe('BooksLibrary', () => {
       const low = makeUserBook('l', 'Low Rated', { status: 'currently-reading', rating: 1 })
       const high = makeUserBook('h', 'High Rated', { status: 'currently-reading', rating: 5 })
       const library = makeLibrary({ reading: [low, high] })
-      render(<BooksLibrary library={library} onAction={jest.fn()} />)
+      render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
 
       fireEvent.change(screen.getByLabelText('Sort books'), { target: { value: 'rating' } })
 
