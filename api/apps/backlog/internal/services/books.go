@@ -125,6 +125,82 @@ func (s *BookService) GetUserBook(
 	return s.books.GetUserBook(ctx, userID, bookID)
 }
 
+// builtInStatuses are the fixed reading-state values that map to the three
+// top-level library buckets. They cannot be renamed or deleted via the
+// shelf-management RPCs because they carry semantic meaning (progress gating,
+// rating unlock, etc.).
+//
+//nolint:gochecknoglobals // effectively a constant set
+var builtInStatuses = map[string]bool{
+	models.StatusToRead:  true,
+	models.StatusReading: true,
+	models.StatusRead:    true,
+	models.StatusDropped: true,
+}
+
+// RenameShelf renames a custom shelf (= status) across the user's library.
+// Returns an error if old or new name is a built-in status.
+func (s *BookService) RenameShelf(
+	ctx context.Context,
+	userID string,
+	oldName string,
+	newName string,
+) (uint32, error) {
+	if builtInStatuses[oldName] {
+		return 0, fmt.Errorf("cannot rename built-in shelf %q", oldName)
+	}
+	if builtInStatuses[newName] {
+		return 0, fmt.Errorf("cannot rename shelf to built-in value %q", newName)
+	}
+	if newName == "" {
+		return 0, fmt.Errorf("shelf name cannot be empty")
+	}
+	return s.books.RenameShelf(ctx, userID, oldName, newName)
+}
+
+// DeleteShelf moves all books on a custom shelf (= status) to targetName,
+// effectively deleting the shelf. Returns an error if name or targetName is
+// a built-in status (built-in target is allowed — e.g. move to "to-read").
+func (s *BookService) DeleteShelf(
+	ctx context.Context,
+	userID string,
+	name string,
+	targetName string,
+) (uint32, error) {
+	if builtInStatuses[name] {
+		return 0, fmt.Errorf("cannot delete built-in shelf %q", name)
+	}
+	if targetName == "" {
+		return 0, fmt.Errorf("target shelf name cannot be empty")
+	}
+	return s.books.DeleteShelf(ctx, userID, name, targetName)
+}
+
+// RenameTag renames a tag across the user's library.
+func (s *BookService) RenameTag(
+	ctx context.Context,
+	userID string,
+	oldName string,
+	newName string,
+) (uint32, error) {
+	if oldName == "" || newName == "" {
+		return 0, fmt.Errorf("tag name cannot be empty")
+	}
+	return s.books.RenameTag(ctx, userID, oldName, newName)
+}
+
+// DeleteTag removes a tag from every book in the user's library.
+func (s *BookService) DeleteTag(
+	ctx context.Context,
+	userID string,
+	name string,
+) (uint32, error) {
+	if name == "" {
+		return 0, fmt.Errorf("tag name cannot be empty")
+	}
+	return s.books.DeleteTag(ctx, userID, name)
+}
+
 func (s *BookService) GetByStatus(
 	ctx context.Context,
 	userID string,

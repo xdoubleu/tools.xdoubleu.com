@@ -692,6 +692,81 @@ func (repo *BooksRepository) RefreshBookExternalData(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// RenameShelf updates the status of every user_book with status == oldName to
+// newName. Returns the number of rows affected.
+// The caller is responsible for rejecting built-in status values.
+func (repo *BooksRepository) RenameShelf(
+	ctx context.Context,
+	userID string,
+	oldName string,
+	newName string,
+) (uint32, error) {
+	query := `
+		UPDATE backlog.user_books
+		SET status = $3, updated_at = now()
+		WHERE user_id = $1 AND status = $2
+	`
+	tag, err := repo.db.Exec(ctx, query, userID, oldName, newName)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	//nolint:gosec // row count is safe for domain values
+	return uint32(tag.RowsAffected()), nil
+}
+
+// DeleteShelf reassigns every book on shelf oldName to targetName, removing
+// oldName. Returns the number of rows moved.
+// The caller is responsible for rejecting built-in status values.
+func (repo *BooksRepository) DeleteShelf(
+	ctx context.Context,
+	userID string,
+	oldName string,
+	targetName string,
+) (uint32, error) {
+	return repo.RenameShelf(ctx, userID, oldName, targetName)
+}
+
+// RenameTag replaces every occurrence of oldName in the tags array with
+// newName across the user's library. Returns the number of rows affected.
+func (repo *BooksRepository) RenameTag(
+	ctx context.Context,
+	userID string,
+	oldName string,
+	newName string,
+) (uint32, error) {
+	query := `
+		UPDATE backlog.user_books
+		SET tags = array_replace(tags, $2, $3), updated_at = now()
+		WHERE user_id = $1 AND $2 = ANY(tags)
+	`
+	tag, err := repo.db.Exec(ctx, query, userID, oldName, newName)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	//nolint:gosec // row count is safe for domain values
+	return uint32(tag.RowsAffected()), nil
+}
+
+// DeleteTag removes every occurrence of name from the tags array across the
+// user's library. Returns the number of rows affected.
+func (repo *BooksRepository) DeleteTag(
+	ctx context.Context,
+	userID string,
+	name string,
+) (uint32, error) {
+	query := `
+		UPDATE backlog.user_books
+		SET tags = array_remove(tags, $2), updated_at = now()
+		WHERE user_id = $1 AND $2 = ANY(tags)
+	`
+	tag, err := repo.db.Exec(ctx, query, userID, name)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	//nolint:gosec // row count is safe for domain values
+	return uint32(tag.RowsAffected()), nil
+}
+
 // GetKoboSyncBook returns the single kobo-sync book matching bookID for the
 // user. It uses the same eligibility criteria as ListKoboSyncBooks: the book
 // must have the kobo-sync tag and a ready file. Returns

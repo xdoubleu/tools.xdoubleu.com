@@ -1012,6 +1012,84 @@ func (h *booksConnectHandler) ResyncOpenLibrary(
 	return connect.NewResponse(&backlogv1.ResyncOpenLibraryResponse{}), nil
 }
 
+func (h *booksConnectHandler) RenameShelf(
+	ctx context.Context,
+	req *connect.Request[backlogv1.RenameShelfRequest],
+) (*connect.Response[backlogv1.RenameShelfResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	moved, err := h.app.Services.Books.RenameShelf(
+		ctx, user.ID, req.Msg.OldName, req.Msg.NewName,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&backlogv1.RenameShelfResponse{Moved: moved}), nil
+}
+
+func (h *booksConnectHandler) DeleteShelf(
+	ctx context.Context,
+	req *connect.Request[backlogv1.DeleteShelfRequest],
+) (*connect.Response[backlogv1.DeleteShelfResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	moved, err := h.app.Services.Books.DeleteShelf(
+		ctx, user.ID, req.Msg.Name, req.Msg.TargetName,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&backlogv1.DeleteShelfResponse{Moved: moved}), nil
+}
+
+func (h *booksConnectHandler) RenameTag(
+	ctx context.Context,
+	req *connect.Request[backlogv1.RenameTagRequest],
+) (*connect.Response[backlogv1.RenameTagResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	affected, err := h.app.Services.Books.RenameTag(
+		ctx, user.ID, req.Msg.OldName, req.Msg.NewName,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&backlogv1.RenameTagResponse{Affected: affected}), nil
+}
+
+func (h *booksConnectHandler) DeleteTag(
+	ctx context.Context,
+	req *connect.Request[backlogv1.DeleteTagRequest],
+) (*connect.Response[backlogv1.DeleteTagResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	affected, err := h.app.Services.Books.DeleteTag(ctx, user.ID, req.Msg.Name)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&backlogv1.DeleteTagResponse{Affected: affected}), nil
+}
+
 func stringPtr(s *string) string {
 	if s == nil {
 		return ""

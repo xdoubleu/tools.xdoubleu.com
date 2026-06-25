@@ -11,21 +11,7 @@ import { Select } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
 
-// Tags that have reserved UI treatment — not user-visible shelves/tags.
-const SPECIAL_TAGS = new Set([
-  'favourite',
-  'own-physical',
-  'own-digital',
-  'kobo-sync',
-  'kobo-format-pdf'
-])
-
-const BOOK_STATUSES: { value: string; label: string }[] = [
-  { value: 'to-read', label: 'Want to read' },
-  { value: 'currently-reading', label: 'Currently reading' },
-  { value: 'read', label: 'Read' },
-  { value: 'dropped', label: 'Dropped' }
-]
+import { SPECIAL_TAGS, BOOK_STATUSES } from '@/lib/backlog/bookShelves'
 
 interface BookShelfPopoverProps {
   userBook: UserBook
