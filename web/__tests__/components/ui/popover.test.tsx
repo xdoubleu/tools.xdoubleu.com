@@ -87,4 +87,55 @@ describe('Popover', () => {
     expect(document.body).toContainElement(panel)
     expect(container).not.toContainElement(panel)
   })
+
+  it('panel has a maxHeight style applied to cap its height', () => {
+    render(<BasicPopover />)
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    const panel = screen.getByRole('dialog')
+    // maxHeight must be set to a positive number to prevent off-screen overflow
+    const maxH = panel.style.maxHeight
+    expect(maxH).toBeTruthy()
+    expect(parseFloat(maxH)).toBeGreaterThan(0)
+  })
+
+  it('panel has overflow-y-auto class to scroll within its bounded height', () => {
+    render(<BasicPopover />)
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    expect(screen.getByRole('dialog')).toHaveClass('overflow-y-auto')
+  })
+
+  it('flips upward (uses bottom style) when trigger is near the viewport bottom', () => {
+    // Position trigger so there is very little space below (~10px) but plenty above (~400px)
+    const spy = jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(100, 400, 100, 90) // x, y, width, height → top=400, bottom=490
+    )
+    Object.defineProperty(window, 'innerHeight', { value: 500, writable: true, configurable: true })
+
+    render(<BasicPopover />)
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    const panel = screen.getByRole('dialog')
+
+    // When flipped up, `bottom` is set and `top` is absent
+    expect(panel.style.bottom).toBeTruthy()
+    expect(panel.style.top).toBe('')
+
+    spy.mockRestore()
+    Object.defineProperty(window, 'innerHeight', { value: 768, writable: true, configurable: true })
+  })
+
+  it('opens downward (uses top style) when there is enough space below', () => {
+    const spy = jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(100, 50, 100, 30) // x, y, width, height → top=50, bottom=80
+    )
+    Object.defineProperty(window, 'innerHeight', { value: 768, writable: true, configurable: true })
+
+    render(<BasicPopover />)
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    const panel = screen.getByRole('dialog')
+
+    expect(panel.style.top).toBeTruthy()
+    expect(panel.style.bottom).toBe('')
+
+    spy.mockRestore()
+  })
 })

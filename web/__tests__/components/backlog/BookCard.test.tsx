@@ -92,13 +92,13 @@ function makeBook(overrides: BookOverride = {}) {
 
 describe('BookCard', () => {
   it('renders title and author', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
+    render(<BookCard userBook={makeBook()} knownShelves={[]} knownTags={[]} onSaved={jest.fn()} />)
     expect(screen.getByText('Test Book')).toBeInTheDocument()
     expect(screen.getByText('Test Author')).toBeInTheDocument()
   })
 
   it('renders a link to the book detail page', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
+    render(<BookCard userBook={makeBook()} knownShelves={[]} knownTags={[]} onSaved={jest.fn()} />)
     const link = screen.getByRole('link', { name: 'Test Book' })
     expect(link).toHaveAttribute('href', '/backlog/books/ub-1')
   })
@@ -108,6 +108,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ tags: ['own-physical'] })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -119,6 +120,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ tags: ['own-digital'] })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -127,14 +129,24 @@ describe('BookCard', () => {
 
   it('shows PDF badge when formats includes pdf', () => {
     render(
-      <BookCard userBook={makeBook({ formats: ['pdf'] })} knownShelves={[]} onSaved={jest.fn()} />
+      <BookCard
+        userBook={makeBook({ formats: ['pdf'] })}
+        knownShelves={[]}
+        knownTags={[]}
+        onSaved={jest.fn()}
+      />
     )
     expect(screen.getByText('PDF')).toBeInTheDocument()
   })
 
   it('shows EPUB badge when formats includes epub', () => {
     render(
-      <BookCard userBook={makeBook({ formats: ['epub'] })} knownShelves={[]} onSaved={jest.fn()} />
+      <BookCard
+        userBook={makeBook({ formats: ['epub'] })}
+        knownShelves={[]}
+        knownTags={[]}
+        onSaved={jest.fn()}
+      />
     )
     expect(screen.getByText('EPUB')).toBeInTheDocument()
   })
@@ -144,6 +156,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ status: 'currently-reading' })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -152,7 +165,12 @@ describe('BookCard', () => {
 
   it('hides progress editor for non-reading books', () => {
     render(
-      <BookCard userBook={makeBook({ status: 'to-read' })} knownShelves={[]} onSaved={jest.fn()} />
+      <BookCard
+        userBook={makeBook({ status: 'to-read' })}
+        knownShelves={[]}
+        knownTags={[]}
+        onSaved={jest.fn()}
+      />
     )
     expect(screen.queryByTestId('progress-editor')).not.toBeInTheDocument()
   })
@@ -168,6 +186,7 @@ describe('BookCard', () => {
           })
         })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -179,6 +198,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ status: 'read', rating: 3 })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -188,7 +208,12 @@ describe('BookCard', () => {
 
   it('hides rating stars and favourite for a to-read book', () => {
     render(
-      <BookCard userBook={makeBook({ status: 'to-read' })} knownShelves={[]} onSaved={jest.fn()} />
+      <BookCard
+        userBook={makeBook({ status: 'to-read' })}
+        knownShelves={[]}
+        knownTags={[]}
+        onSaved={jest.fn()}
+      />
     )
     expect(screen.queryByTestId('rating-stars')).not.toBeInTheDocument()
     expect(screen.queryByTestId('favourite-button')).not.toBeInTheDocument()
@@ -199,6 +224,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ status: 'currently-reading' })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -208,31 +234,43 @@ describe('BookCard', () => {
 
   it('hides rating stars and favourite for a dropped book', () => {
     render(
-      <BookCard userBook={makeBook({ status: 'dropped' })} knownShelves={[]} onSaved={jest.fn()} />
+      <BookCard
+        userBook={makeBook({ status: 'dropped' })}
+        knownShelves={[]}
+        knownTags={[]}
+        onSaved={jest.fn()}
+      />
     )
     expect(screen.queryByTestId('rating-stars')).not.toBeInTheDocument()
     expect(screen.queryByTestId('favourite-button')).not.toBeInTheDocument()
   })
 
   it('renders the ownership toggles', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
+    render(<BookCard userBook={makeBook()} knownShelves={[]} knownTags={[]} onSaved={jest.fn()} />)
     expect(screen.getByTestId('ownership-toggles')).toBeInTheDocument()
   })
 
   it('renders the shelf popover', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
+    render(<BookCard userBook={makeBook()} knownShelves={[]} knownTags={[]} onSaved={jest.fn()} />)
     expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
   })
 
   it('returns null when book is missing', () => {
     const ub = create(UserBookSchema, { id: 'ub-nobook', status: 'to-read', tags: [], formats: [] })
-    const { container } = render(<BookCard userBook={ub} knownShelves={[]} onSaved={jest.fn()} />)
+    const { container } = render(
+      <BookCard userBook={ub} knownShelves={[]} knownTags={[]} onSaved={jest.fn()} />
+    )
     expect(container.firstChild).toBeNull()
   })
 
   it('shows status text for non-reading books', () => {
     render(
-      <BookCard userBook={makeBook({ status: 'to-read' })} knownShelves={[]} onSaved={jest.fn()} />
+      <BookCard
+        userBook={makeBook({ status: 'to-read' })}
+        knownShelves={[]}
+        knownTags={[]}
+        onSaved={jest.fn()}
+      />
     )
     expect(screen.getByText('to read')).toBeInTheDocument()
   })
@@ -242,6 +280,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ status: 'currently-reading' })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -250,7 +289,12 @@ describe('BookCard', () => {
 
   it('passes knownShelves to shelf popover', () => {
     render(
-      <BookCard userBook={makeBook()} knownShelves={['sci-fi', 'fantasy']} onSaved={jest.fn()} />
+      <BookCard
+        userBook={makeBook()}
+        knownShelves={['sci-fi', 'fantasy']}
+        knownTags={[]}
+        onSaved={jest.fn()}
+      />
     )
     expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
   })
@@ -260,6 +304,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ tags: ['own-physical', 'own-digital'], formats: ['pdf', 'epub'] })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -270,7 +315,7 @@ describe('BookCard', () => {
   })
 
   it('clicking ownership toggles does not throw', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
+    render(<BookCard userBook={makeBook()} knownShelves={[]} knownTags={[]} onSaved={jest.fn()} />)
     fireEvent.click(screen.getByTestId('ownership-toggles'))
   })
 
@@ -279,6 +324,7 @@ describe('BookCard', () => {
       <BookCard
         userBook={makeBook({ status: 'currently-reading' })}
         knownShelves={[]}
+        knownTags={[]}
         onSaved={jest.fn()}
       />
     )
@@ -286,7 +332,7 @@ describe('BookCard', () => {
   })
 
   it('clicking shelf popover does not throw', () => {
-    render(<BookCard userBook={makeBook()} knownShelves={[]} onSaved={jest.fn()} />)
+    render(<BookCard userBook={makeBook()} knownShelves={[]} knownTags={[]} onSaved={jest.fn()} />)
     fireEvent.click(screen.getByTestId('shelf-popover'))
   })
 })
