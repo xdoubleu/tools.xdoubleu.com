@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm'
 import { useBacklogLibrary } from '@/hooks/useBacklog'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import BookCover from '@/components/backlog/BookCover'
+import { SPECIAL_TAGS } from '@/lib/backlog/bookShelves'
 import BookProgressEditor from '@/components/backlog/BookProgressEditor'
 import BookRatingStars from '@/components/backlog/BookRatingStars'
 import BookFavouriteButton from '@/components/backlog/BookFavouriteButton'
@@ -47,6 +48,17 @@ export default function BookDetailClient({ id }: { id: string }) {
   const book = userBook?.book
 
   const knownShelves = data?.library?.shelves.map((s) => s.name) ?? []
+
+  const knownTags = useMemo(() => {
+    if (!data?.library) return []
+    const seen = new Set<string>()
+    for (const ub of flattenLibrary(data.library)) {
+      for (const t of ub.tags) {
+        if (!SPECIAL_TAGS.has(t)) seen.add(t)
+      }
+    }
+    return Array.from(seen).sort()
+  }, [data])
 
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: 'Books', href: '/backlog/books' },
@@ -108,6 +120,7 @@ export default function BookDetailClient({ id }: { id: string }) {
                 <BookShelfPopover
                   userBook={userBook}
                   knownShelves={knownShelves}
+                  knownTags={knownTags}
                   onSaved={handleSaved}
                 />
               </div>

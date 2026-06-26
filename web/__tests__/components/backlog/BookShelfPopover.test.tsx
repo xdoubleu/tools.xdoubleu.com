@@ -45,24 +45,36 @@ describe('BookShelfPopover', () => {
   })
 
   it('renders a visible trigger button', () => {
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} />)
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} />)
     expect(screen.getByLabelText('Edit shelves and tags')).toBeInTheDocument()
     expect(screen.getByText('Shelves & tags')).toBeInTheDocument()
   })
 
-  it('shows tag count in trigger when tags are present', () => {
-    render(<BookShelfPopover userBook={makeBook(['fantasy', 'sci-fi'])} knownShelves={[]} />)
+  it('shows tag count in trigger when display tags are present', () => {
+    render(
+      <BookShelfPopover
+        userBook={makeBook(['fantasy', 'sci-fi'])}
+        knownShelves={[]}
+        knownTags={['fantasy', 'sci-fi']}
+      />
+    )
     expect(screen.getByText('Shelves & tags (2)')).toBeInTheDocument()
   })
 
+  it('does not count special tags in the trigger count', () => {
+    render(<BookShelfPopover userBook={makeBook(['favourite'])} knownShelves={[]} knownTags={[]} />)
+    expect(screen.getByText('Shelves & tags')).toBeInTheDocument()
+    expect(screen.queryByText(/\(\d+\)/)).not.toBeInTheDocument()
+  })
+
   it('opens the panel on trigger click', () => {
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} />)
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} />)
     openPopover()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('closes the panel on second click (toggle)', () => {
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} />)
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} />)
     openPopover()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Edit shelves and tags'))
@@ -70,149 +82,148 @@ describe('BookShelfPopover', () => {
   })
 
   it('closes the panel on Escape', () => {
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} />)
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} />)
     openPopover()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('shows the status select inside the popover', () => {
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} />)
+  it('shows a radio group for shelves inside the popover', () => {
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} />)
     openPopover()
-    expect(screen.getByLabelText('Status')).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup')).toBeInTheDocument()
+    expect(screen.getByLabelText('Want to read')).toBeInTheDocument()
+    expect(screen.getByLabelText('Read')).toBeInTheDocument()
   })
 
-  it('calls UpdateBookStatus when status changes', async () => {
-    render(<BookShelfPopover userBook={makeBook([], 'to-read')} knownShelves={[]} />)
+  it('shows custom shelves in the radio group', () => {
+    render(
+      <BookShelfPopover
+        userBook={makeBook()}
+        knownShelves={['classics', 'sci-fi']}
+        knownTags={[]}
+      />
+    )
     openPopover()
+    expect(screen.getByLabelText('classics')).toBeInTheDocument()
+    expect(screen.getByLabelText('sci-fi')).toBeInTheDocument()
+  })
 
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'read' } })
+  it('shows known tags as checkboxes', () => {
+    render(
+      <BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={['fantasy', 'sci-fi']} />
+    )
+    openPopover()
+    expect(screen.getByLabelText('fantasy')).toBeInTheDocument()
+    expect(screen.getByLabelText('sci-fi')).toBeInTheDocument()
+  })
 
-    await waitFor(() => {
+  it('shows "No tags yet." when there are no known tags and book has no tags', () => {
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} />)
+    openPopover()
+    expect(screen.getByText('No tags yet.')).toBeInTheDocument()
+  })
+
+  it('does not render an add combobox or button (select-only)', () => {
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} />)
+    openPopover()
+    expect(screen.queryByPlaceholderText(/add a shelf/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument()
+  })
+
+  it('does not render remove badges for tags (select-only)', () => {
+    render(
+      <BookShelfPopover
+        userBook={makeBook(['fantasy'])}
+        knownShelves={[]}
+        knownTags={['fantasy']}
+      />
+    )
+    openPopover()
+    expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument()
+  })
+
+  it('calls updateBookStatus when a shelf radio is selected', async () => {
+    render(<BookShelfPopover userBook={makeBook([], 'to-read')} knownShelves={[]} knownTags={[]} />)
+    openPopover()
+    fireEvent.click(screen.getByLabelText('Read'))
+    await waitFor(() =>
       expect(mockUpdateBookStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'read', bookId: 'book-1' })
+        expect.objectContaining({ bookId: 'book-1', status: 'read' })
       )
-    })
+    )
     expect(mockMutate).toHaveBeenCalledWith('/backlog/books')
   })
 
-  it('adds a tag via the Add button', async () => {
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={['sci-fi']} />)
+  it('calls toggleTag when a tag checkbox is checked', async () => {
+    render(
+      <BookShelfPopover
+        userBook={makeBook([], 'to-read')}
+        knownShelves={[]}
+        knownTags={['fantasy']}
+      />
+    )
     openPopover()
-
-    const combobox = screen.getByPlaceholderText('Add a shelf or tag...')
-    fireEvent.change(combobox, { target: { value: 'fantasy' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-
-    await waitFor(() => {
-      expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy')
-    })
-  })
-
-  it('removes a tag via the × button', async () => {
-    render(<BookShelfPopover userBook={makeBook(['sci-fi'])} knownShelves={['sci-fi']} />)
-    openPopover()
-
-    fireEvent.click(screen.getByLabelText('Remove sci-fi'))
-
-    await waitFor(() => {
-      expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'sci-fi')
-    })
-  })
-
-  it('shows existing tags as badges inside the popover', () => {
-    render(<BookShelfPopover userBook={makeBook(['fantasy'])} knownShelves={[]} />)
-    openPopover()
-    expect(screen.getByText('fantasy')).toBeInTheDocument()
-  })
-
-  it('does not add a duplicate tag', async () => {
-    render(<BookShelfPopover userBook={makeBook(['fantasy'])} knownShelves={[]} />)
-    openPopover()
-
-    const combobox = screen.getByPlaceholderText('Add a shelf or tag...')
-    fireEvent.change(combobox, { target: { value: 'fantasy' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-
-    await waitFor(() => {
-      expect(mockToggleTag).not.toHaveBeenCalled()
-    })
+    fireEvent.click(screen.getByLabelText('fantasy'))
+    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
+    expect(mockMutate).toHaveBeenCalledWith('/backlog/books')
   })
 
   it('calls onSaved after status change', async () => {
     const onSaved = jest.fn()
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} onSaved={onSaved} />)
+    render(
+      <BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={[]} onSaved={onSaved} />
+    )
     openPopover()
-
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'read' } })
-
-    await waitFor(() => {
-      expect(onSaved).toHaveBeenCalled()
-    })
+    fireEvent.click(screen.getByLabelText('Read'))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
 
-  it('calls onSaved after adding a tag', async () => {
+  it('calls onSaved after tag toggle', async () => {
     const onSaved = jest.fn()
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} onSaved={onSaved} />)
+    render(
+      <BookShelfPopover
+        userBook={makeBook()}
+        knownShelves={[]}
+        knownTags={['mystery']}
+        onSaved={onSaved}
+      />
+    )
     openPopover()
-
-    const combobox = screen.getByPlaceholderText('Add a shelf or tag...')
-    fireEvent.change(combobox, { target: { value: 'new-tag' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-
-    await waitFor(() => {
-      expect(onSaved).toHaveBeenCalled()
-    })
-  })
-
-  it('panel label reads "Shelves & tags"', () => {
-    render(<BookShelfPopover userBook={makeBook(['fantasy'])} knownShelves={[]} />)
-    openPopover()
-    // The in-panel label (not the trigger) also says "Shelves & tags"
-    const labels = screen.getAllByText('Shelves & tags')
-    // trigger + panel label — at least one is in the dialog
-    expect(labels.length).toBeGreaterThanOrEqual(1)
+    fireEvent.click(screen.getByLabelText('mystery'))
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
 
   it('shows error message when status update fails', async () => {
     mockUpdateBookStatus.mockRejectedValueOnce(new Error('network'))
-    render(<BookShelfPopover userBook={makeBook([], 'to-read')} knownShelves={[]} />)
+    render(<BookShelfPopover userBook={makeBook([], 'to-read')} knownShelves={[]} knownTags={[]} />)
     openPopover()
-
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'read' } })
-
+    fireEvent.click(screen.getByLabelText('Read'))
     await waitFor(() => {
       expect(screen.getByText('Failed to update status.')).toBeInTheDocument()
     })
   })
 
-  it('rolls back and shows error when adding a tag fails', async () => {
+  it('reverts tags optimistically on toggleTag failure', async () => {
     mockToggleTag.mockRejectedValueOnce(new Error('network'))
-    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} />)
+    render(<BookShelfPopover userBook={makeBook()} knownShelves={[]} knownTags={['mystery']} />)
     openPopover()
-
-    const combobox = screen.getByPlaceholderText('Add a shelf or tag...')
-    fireEvent.change(combobox, { target: { value: 'mystery' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-
+    fireEvent.click(screen.getByLabelText('mystery'))
     await waitFor(() => {
-      expect(screen.getByText('Failed to add tag.')).toBeInTheDocument()
+      expect(screen.getByText('Failed to update tag.')).toBeInTheDocument()
     })
-    // Tag should be rolled back — badge gone
-    expect(screen.queryByLabelText('Remove mystery')).not.toBeInTheDocument()
   })
 
-  it('rolls back and shows error when removing a tag fails', async () => {
-    mockToggleTag.mockRejectedValueOnce(new Error('network'))
-    render(<BookShelfPopover userBook={makeBook(['sci-fi'])} knownShelves={[]} />)
+  it('filters special tags from the tag list', () => {
+    render(
+      <BookShelfPopover
+        userBook={makeBook(['favourite'])}
+        knownShelves={[]}
+        knownTags={['favourite', 'sci-fi']}
+      />
+    )
     openPopover()
-
-    fireEvent.click(screen.getByLabelText('Remove sci-fi'))
-
-    await waitFor(() => {
-      expect(screen.getByText('Failed to remove tag.')).toBeInTheDocument()
-    })
-    // Tag should be restored
-    expect(screen.getByLabelText('Remove sci-fi')).toBeInTheDocument()
+    expect(screen.queryByLabelText('favourite')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('sci-fi')).toBeInTheDocument()
   })
 })

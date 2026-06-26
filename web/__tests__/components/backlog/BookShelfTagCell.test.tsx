@@ -123,11 +123,20 @@ describe('BookShelfTagCell', () => {
     expect(screen.getByText('No tags yet.')).toBeInTheDocument()
   })
 
-  it('shows active tags as removable badges', () => {
+  it('does not render remove badges for tags (select-only)', () => {
     const ub = makeUserBook({ tags: ['fantasy'] })
     render(<BookShelfTagCell userBook={ub} knownShelves={[]} knownTags={['fantasy']} />)
     openPopover()
-    expect(screen.getByRole('button', { name: 'Remove tag fantasy' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Remove tag/i })).not.toBeInTheDocument()
+  })
+
+  it('does not render an add-tag combobox or Set button (select-only)', () => {
+    const ub = makeUserBook()
+    render(<BookShelfTagCell userBook={ub} knownShelves={[]} knownTags={[]} />)
+    openPopover()
+    expect(screen.queryByPlaceholderText(/custom shelf/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /set/i })).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/add tag/i)).not.toBeInTheDocument()
   })
 
   it('reverts status optimistically on updateBookStatus failure', async () => {

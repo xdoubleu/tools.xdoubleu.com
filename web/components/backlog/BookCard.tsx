@@ -14,10 +14,11 @@ import { cn } from '@/lib/cn'
 interface BookCardProps {
   userBook: UserBook
   knownShelves: string[]
+  knownTags: string[]
   onSaved: () => void
 }
 
-export default function BookCard({ userBook, knownShelves, onSaved }: BookCardProps) {
+export default function BookCard({ userBook, knownShelves, knownTags, onSaved }: BookCardProps) {
   const book = userBook.book
   if (!book) return null
 
@@ -69,7 +70,12 @@ export default function BookCard({ userBook, knownShelves, onSaved }: BookCardPr
 
       {/* Status + shelves/tags popover */}
       <div className="relative z-10 shrink-0">
-        <BookShelfPopover userBook={userBook} knownShelves={knownShelves} onSaved={onSaved} />
+        <BookShelfPopover
+          userBook={userBook}
+          knownShelves={knownShelves}
+          knownTags={knownTags}
+          onSaved={onSaved}
+        />
       </div>
     </div>
   )

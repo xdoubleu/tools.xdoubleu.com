@@ -21,20 +21,30 @@ interface PopoverProps {
 }
 
 interface PanelCoords {
-  top: number
+  /** Top anchor (opens downward). Mutually exclusive with bottom. */
+  top?: number
+  /** Bottom anchor (opens upward). Mutually exclusive with top. */
+  bottom?: number
   left?: number
   right?: number
+  /** Available height for the panel in the chosen direction. */
+  maxHeight: number
 }
+
+const MARGIN = 8 // px clearance from viewport edges
 
 /**
  * A lightweight popover primitive: a trigger + a portaled fixed-position panel
  * that closes on outside-click and Escape. The panel is rendered via
  * createPortal to document.body so it is never clipped by an ancestor
  * overflow container (e.g. the library table's overflow-x-auto wrapper).
+ *
+ * The panel flips upward automatically when there is not enough space below
+ * the trigger, and its height is capped to the available viewport space.
  */
 export function Popover({ trigger, children, className, align = 'right' }: PopoverProps) {
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState<PanelCoords>({ top: 0 })
+  const [coords, setCoords] = useState<PanelCoords>({ top: 0, maxHeight: 400 })
   const triggerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -43,7 +53,18 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
   const computeCoords = useCallback(() => {
     if (!triggerRef.current) return
     const rect = triggerRef.current.getBoundingClientRect()
-    const c: PanelCoords = { top: rect.bottom + 4 }
+    const vh = window.innerHeight
+
+    const spaceBelow = vh - rect.bottom - MARGIN
+    const spaceAbove = rect.top - MARGIN
+
+    const c: PanelCoords =
+      spaceAbove > spaceBelow && spaceBelow < 200
+        ? // Flip upward — anchor to bottom edge of trigger
+          { bottom: vh - rect.top + 4, maxHeight: Math.max(spaceAbove, 100) }
+        : // Default — open downward
+          { top: rect.bottom + 4, maxHeight: Math.max(spaceBelow, 100) }
+
     if (align === 'right') {
       c.right = window.innerWidth - rect.right
     } else {
@@ -100,11 +121,13 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
             ref={panelRef}
             style={{
               position: 'fixed',
-              top: coords.top,
-              ...(coords.right !== undefined ? { right: coords.right } : { left: coords.left })
+              ...(coords.top !== undefined ? { top: coords.top } : { bottom: coords.bottom }),
+              ...(coords.right !== undefined ? { right: coords.right } : { left: coords.left }),
+              maxHeight: coords.maxHeight
             }}
             className={cn(
               'z-50 min-w-55 rounded-2xl border border-border bg-card shadow-elevated p-3',
+              'overflow-y-auto',
               className
             )}
             role="dialog"
