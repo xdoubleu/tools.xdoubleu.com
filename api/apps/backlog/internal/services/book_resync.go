@@ -67,7 +67,10 @@ func (s *BookService) ResyncAllFromOpenLibrary(
 		onProgress(0, total)
 	}
 
-	const concurrency = 100
+	// Keep concurrency low: the client-side rate limiter (10 req/s) is the
+	// real throttle; a small goroutine cap avoids piling up goroutines
+	// blocked in limiter.Wait when the library is large.
+	const concurrency = 10
 
 	var (
 		mu        sync.Mutex
