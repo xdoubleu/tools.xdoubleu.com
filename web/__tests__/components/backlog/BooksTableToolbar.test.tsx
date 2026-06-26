@@ -8,7 +8,8 @@ const ALL_VISIBLE = new Set<ColumnKey>(ALL_COLUMNS.map((c) => c.key))
 
 const EMPTY_FILTERS: LibraryFilters = {
   ownership: new Set(),
-  format: new Set()
+  format: new Set(),
+  kobo: new Set()
 }
 
 function renderToolbar(
@@ -18,6 +19,7 @@ function renderToolbar(
     onToggleColumn: (k: ColumnKey) => void
     onToggleOwnership: (t: string) => void
     onToggleFormat: (f: string) => void
+    onToggleKobo: (t: string) => void
     onClearFilters: () => void
   }> = {}
 ) {
@@ -29,6 +31,7 @@ function renderToolbar(
       filters={EMPTY_FILTERS}
       onToggleOwnership={jest.fn()}
       onToggleFormat={jest.fn()}
+      onToggleKobo={jest.fn()}
       onClearFilters={jest.fn()}
       {...overrides}
     />
@@ -91,15 +94,17 @@ describe('BooksTableToolbar', () => {
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       expect(screen.getByText('Ownership')).toBeInTheDocument()
       expect(screen.getByText('Format')).toBeInTheDocument()
+      expect(screen.getByText('Kobo')).toBeInTheDocument()
     })
 
-    it('shows Physical, Digital, PDF, EPUB checkboxes', () => {
+    it('shows Physical, Digital, PDF, EPUB, Synced to Kobo checkboxes', () => {
       renderToolbar()
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       expect(screen.getByRole('checkbox', { name: 'Physical' })).toBeInTheDocument()
       expect(screen.getByRole('checkbox', { name: 'Digital' })).toBeInTheDocument()
       expect(screen.getByRole('checkbox', { name: 'PDF' })).toBeInTheDocument()
       expect(screen.getByRole('checkbox', { name: 'EPUB' })).toBeInTheDocument()
+      expect(screen.getByRole('checkbox', { name: 'Synced to Kobo' })).toBeInTheDocument()
     })
 
     it('calls onToggleOwnership with own-physical when Physical is clicked', () => {
@@ -127,7 +132,8 @@ describe('BooksTableToolbar', () => {
     it('shows Clear filters button when a filter is active', () => {
       const activeFilters: LibraryFilters = {
         ownership: new Set(['own-physical']),
-        format: new Set()
+        format: new Set(),
+        kobo: new Set()
       }
       renderToolbar({ filters: activeFilters })
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
@@ -138,7 +144,8 @@ describe('BooksTableToolbar', () => {
       const onClearFilters = jest.fn()
       const activeFilters: LibraryFilters = {
         ownership: new Set(['own-physical']),
-        format: new Set()
+        format: new Set(),
+        kobo: new Set()
       }
       renderToolbar({ filters: activeFilters, onClearFilters })
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
@@ -149,10 +156,40 @@ describe('BooksTableToolbar', () => {
     it('shows badge with active filter count on the Filters button', () => {
       const activeFilters: LibraryFilters = {
         ownership: new Set(['own-physical', 'own-digital']),
-        format: new Set(['pdf'])
+        format: new Set(['pdf']),
+        kobo: new Set()
       }
       renderToolbar({ filters: activeFilters })
       expect(screen.getByText('3')).toBeInTheDocument()
+    })
+
+    it('calls onToggleKobo with kobo-sync when Synced to Kobo is clicked', () => {
+      const onToggleKobo = jest.fn()
+      renderToolbar({ onToggleKobo })
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Synced to Kobo' }))
+      expect(onToggleKobo).toHaveBeenCalledWith('kobo-sync')
+    })
+
+    it('includes kobo filter in badge count', () => {
+      const activeFilters: LibraryFilters = {
+        ownership: new Set(),
+        format: new Set(),
+        kobo: new Set(['kobo-sync'])
+      }
+      renderToolbar({ filters: activeFilters })
+      expect(screen.getByText('1')).toBeInTheDocument()
+    })
+
+    it('shows Clear filters button when kobo filter is active', () => {
+      const activeFilters: LibraryFilters = {
+        ownership: new Set(),
+        format: new Set(),
+        kobo: new Set(['kobo-sync'])
+      }
+      renderToolbar({ filters: activeFilters })
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
     })
   })
 })

@@ -380,6 +380,38 @@ describe('BooksTable', () => {
       expect(screen.getByText('2')).toBeInTheDocument()
     })
 
+    it('filters to books with kobo-sync tag when Synced to Kobo is selected', () => {
+      const books = [
+        makeBook('1', 'Kobo Book', 'A', { tags: ['kobo-sync'] }),
+        makeBook('2', 'Non-Kobo Book', 'B', { tags: [] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Synced to Kobo' }))
+
+      expect(screen.getByText('Kobo Book')).toBeInTheDocument()
+      expect(screen.queryByText('Non-Kobo Book')).not.toBeInTheDocument()
+    })
+
+    it('clears kobo filter when Clear filters is clicked', () => {
+      const books = [
+        makeBook('1', 'Kobo Book', 'A', { tags: ['kobo-sync'] }),
+        makeBook('2', 'Non-Kobo Book', 'B', { tags: [] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Synced to Kobo' }))
+
+      expect(screen.queryByText('Non-Kobo Book')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+      expect(screen.getByText('Kobo Book')).toBeInTheDocument()
+      expect(screen.getByText('Non-Kobo Book')).toBeInTheDocument()
+    })
+
     it('applies ownership and format filters together (AND between groups)', () => {
       const books = [
         makeBook('1', 'Both', 'A', { tags: ['own-physical'], formats: ['epub'] }),
