@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // ErrNotFound is returned by GetByISBN when no book matches the given ISBN.
@@ -20,7 +22,13 @@ var ErrNotFound = errors.New("openlibrary: book not found")
 //nolint:gochecknoglobals // overridable in tests
 var baseURL = "https://openlibrary.org"
 
-const apiTimeout = 5 * time.Second
+// backoffBase is the base delay for exponential backoff on retryable errors.
+// Overridable in tests to keep them fast.
+//
+//nolint:gochecknoglobals // overridable in tests
+var backoffBase = 500 * time.Millisecond
+
+const apiTimeout = 15 * time.Second
 
 const (
 	isbn13Len = 13
@@ -30,11 +38,25 @@ const (
 	// searchFields whitelists the document fields Open Library returns, keeping
 	// the search response small.
 	searchFields = "key,title,author_name,cover_i,isbn,number_of_pages_median"
+
+	// requestsPerSecond and burst control the shared token-bucket rate limiter.
+	// Open Library does not publish an official rate limit; 10 req/s with a burst
+	// of 10 is conservative enough to avoid 429s in practice.
+	requestsPerSecond = 10
+	burst             = 10
+
+	// maxAttempts is the total number of tries for a retryable request (initial
+	// attempt + retries).
+	maxAttempts = 4
+
+	// backoffCap is the maximum single sleep between retries.
+	backoffCap = 30 * time.Second
 )
 
 type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
+	limiter    *rate.Limiter
 }
 
 func New(logger *slog.Logger) Client {
@@ -43,6 +65,7 @@ func New(logger *slog.Logger) Client {
 		httpClient: &http.Client{
 			Timeout: apiTimeout,
 		},
+		limiter: rate.NewLimiter(requestsPerSecond, burst),
 	}
 }
 
@@ -135,67 +158,185 @@ func (c client) FetchCover(
 		endpoint += "?default=false"
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	var data []byte
+	var contentType string
+
+	err := c.doWithRetry(ctx, func() (bool, error) {
+		if waitErr := c.limiter.Wait(ctx); waitErr != nil {
+			return false, waitErr
+		}
+
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if reqErr != nil {
+			return false, reqErr
+		}
+
+		resp, doErr := c.httpClient.Do(req)
+		if doErr != nil {
+			return isTransientErr(doErr), doErr
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			return false, ErrCoverNotFound
+		}
+
+		if isRetryableStatus(resp.StatusCode) {
+			return true, fmt.Errorf(
+				"openlibrary cover fetch returned %d for %s",
+				resp.StatusCode,
+				coverURL,
+			)
+		}
+
+		if resp.StatusCode < http.StatusOK ||
+			resp.StatusCode >= http.StatusMultipleChoices {
+			return false, fmt.Errorf(
+				"openlibrary cover fetch returned %d for %s",
+				resp.StatusCode,
+				coverURL,
+			)
+		}
+
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return false, fmt.Errorf("read cover body: %w", readErr)
+		}
+
+		ct := resp.Header.Get("Content-Type")
+		if ct == "" {
+			ct = "image/jpeg"
+		}
+
+		data = body
+		contentType = ct
+		return false, nil
+	})
+
 	if err != nil {
 		return nil, "", err
 	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, "", ErrCoverNotFound
-	}
-
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, "", fmt.Errorf(
-			"openlibrary cover fetch returned %d for %s",
-			resp.StatusCode,
-			coverURL,
-		)
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", fmt.Errorf("read cover body: %w", err)
-	}
-
-	contentType := resp.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "image/jpeg"
-	}
-
 	return data, contentType, nil
 }
 
 func (c client) get(ctx context.Context, endpoint string, dst any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Accept", "application/json")
+	return c.doWithRetry(ctx, func() (bool, error) {
+		if waitErr := c.limiter.Wait(ctx); waitErr != nil {
+			return false, waitErr
+		}
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if reqErr != nil {
+			return false, reqErr
+		}
+		req.Header.Set("Accept", "application/json")
 
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
-		raw, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf(
-			"openlibrary API returned %d: %s",
-			resp.StatusCode,
-			string(raw),
+		resp, doErr := c.httpClient.Do(req)
+		if doErr != nil {
+			return isTransientErr(doErr), doErr
+		}
+		defer resp.Body.Close()
+
+		if isRetryableStatus(resp.StatusCode) {
+			raw, _ := io.ReadAll(resp.Body)
+			return true, fmt.Errorf(
+				"openlibrary API returned %d: %s",
+				resp.StatusCode,
+				string(raw),
+			)
+		}
+
+		if resp.StatusCode < http.StatusOK ||
+			resp.StatusCode >= http.StatusMultipleChoices {
+			raw, _ := io.ReadAll(resp.Body)
+			return false, fmt.Errorf(
+				"openlibrary API returned %d: %s",
+				resp.StatusCode,
+				string(raw),
+			)
+		}
+
+		return false, json.NewDecoder(resp.Body).Decode(dst)
+	})
+}
+
+// doWithRetry calls attempt up to maxAttempts times, sleeping with exponential
+// backoff between retries. attempt returns (retryable, error); a nil error
+// stops immediately. Context cancellation is always non-retryable.
+func (c client) doWithRetry(
+	ctx context.Context,
+	attempt func() (retryable bool, err error),
+) error {
+	var lastErr error
+	for i := range maxAttempts {
+		retryable, err := attempt()
+		if err == nil {
+			return nil
+		}
+
+		// Never retry context cancellation — the caller has given up.
+		if errors.Is(err, context.Canceled) {
+			return err
+		}
+
+		lastErr = err
+
+		if !retryable || i == maxAttempts-1 {
+			break
+		}
+
+		delay := backoffDelay(i)
+		c.logger.DebugContext(ctx, "retrying openlibrary request",
+			slog.Int("attempt", i+1),
+			slog.Duration("backoff", delay),
+			slog.Any("error", err),
 		)
-	}
 
-	return json.NewDecoder(resp.Body).Decode(dst)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(delay):
+		}
+	}
+	return lastErr
+}
+
+// backoffDelay returns the sleep duration for the given zero-based attempt
+// index: 500ms, 1s, 2s, …, capped at backoffCap.
+func backoffDelay(attempt int) time.Duration {
+	d := backoffBase * (1 << attempt)
+	if d > backoffCap {
+		return backoffCap
+	}
+	return d
+}
+
+// isRetryableStatus reports whether the HTTP status code warrants a retry
+// (429 Too Many Requests or any 5xx server error).
+func isRetryableStatus(status int) bool {
+	return status == http.StatusTooManyRequests ||
+		(status >= http.StatusInternalServerError &&
+			status < 600)
+}
+
+// isTransientErr reports whether a transport error is likely transient and
+// worth retrying. A deadline-exceeded error caused by the http.Client's own
+// Timeout (not by the caller's context) is retryable; a caller cancellation
+// is not.
+func isTransientErr(err error) bool {
+	if errors.Is(err, context.Canceled) {
+		return false
+	}
+	// DeadlineExceeded from the http.Client timeout is retryable.
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	// url.Error wraps the actual error; check IsTimeout for net-level timeouts.
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return urlErr.Timeout()
+	}
+	return false
 }
 
 func docToExternalBook(doc searchDoc) ExternalBook {

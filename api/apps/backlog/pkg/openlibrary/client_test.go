@@ -4,15 +4,28 @@ package openlibrary
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 )
+
+// TestMain overrides backoffBase so that retry-backoff tests complete in
+// milliseconds instead of seconds. The rate limiter burst (10) covers all
+// requests made in a single test without adding latency.
+func TestMain(m *testing.M) {
+	backoffBase = time.Millisecond
+	os.Exit(m.Run())
+}
 
 // setupTestServer starts an httptest server that routes by path: /search.json
 // returns searchPayload and /api/books returns booksPayload. Either payload may
@@ -309,5 +322,193 @@ func TestCoverURLByID(t *testing.T) {
 		t,
 		"https://covers.openlibrary.org/b/id/258027-L.jpg",
 		CoverURLByID(258027),
+	)
+}
+
+// --- retry / backoff tests ---
+// These rely on backoffBase being set to time.Millisecond by TestMain so they
+// complete quickly without wall-clock delays.
+
+// setupRetryServer creates an httptest server whose handler is fully
+// controlled by the caller. The baseURL is pointed at the server and restored
+// on cleanup.
+func setupRetryServer(t *testing.T, h http.HandlerFunc) {
+	t.Helper()
+	srv := httptest.NewServer(h)
+	t.Cleanup(func() {
+		srv.Close()
+		baseURL = "https://openlibrary.org"
+	})
+	baseURL = srv.URL
+}
+
+// validBooksPayload returns a well-formed /api/books JSON payload for isbn.
+func validBooksPayload(isbn string) map[string]any {
+	return map[string]any{
+		"ISBN:" + isbn: map[string]any{
+			"details": map[string]any{
+				"title":   "Retry Book",
+				"isbn_13": []string{isbn},
+			},
+		},
+	}
+}
+
+// TestRetry_429ThenSuccess verifies that a single 429 response is retried and
+// the eventual 200 is returned to the caller.
+func TestRetry_429ThenSuccess(t *testing.T) {
+	isbn := "9780618640157"
+	var calls atomic.Int32
+	payload := validBooksPayload(isbn)
+
+	setupRetryServer(t, func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		if strings.HasPrefix(r.URL.Path, "/api/books") && n == 1 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(payload))
+	})
+
+	c := New(logging.NewNopLogger())
+	book, err := c.GetByISBN(context.Background(), isbn)
+	require.NoError(t, err)
+	assert.Equal(t, "Retry Book", book.Title)
+	assert.GreaterOrEqual(t, calls.Load(), int32(2), "expected at least one retry")
+}
+
+// TestRetry_5xxThenSuccess verifies that a 500 response is retried and the
+// eventual 200 is returned.
+func TestRetry_5xxThenSuccess(t *testing.T) {
+	isbn := "9780618640157"
+	var calls atomic.Int32
+	payload := validBooksPayload(isbn)
+
+	setupRetryServer(t, func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		if strings.HasPrefix(r.URL.Path, "/api/books") && n == 1 {
+			http.Error(w, "server error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(payload))
+	})
+
+	c := New(logging.NewNopLogger())
+	book, err := c.GetByISBN(context.Background(), isbn)
+	require.NoError(t, err)
+	assert.Equal(t, "Retry Book", book.Title)
+	assert.GreaterOrEqual(t, calls.Load(), int32(2), "expected at least one retry")
+}
+
+// TestRetry_NonRetryable4xx verifies that a 400 response is NOT retried — the
+// error is returned immediately after a single attempt.
+func TestRetry_NonRetryable4xx(t *testing.T) {
+	var calls atomic.Int32
+
+	setupRetryServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		http.Error(w, "bad request", http.StatusBadRequest)
+	})
+
+	c := New(logging.NewNopLogger())
+	_, err := c.GetByISBN(context.Background(), "9780618640157")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "400")
+	assert.Equal(t, int32(1), calls.Load(), "non-retryable 4xx must not be retried")
+}
+
+// TestRetry_ExhaustedAttempts verifies that after maxAttempts the last error
+// is returned and no further requests are made.
+func TestRetry_ExhaustedAttempts(t *testing.T) {
+	var calls atomic.Int32
+
+	setupRetryServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusTooManyRequests)
+	})
+
+	c := New(logging.NewNopLogger())
+	_, err := c.GetByISBN(context.Background(), "9780618640157")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "429")
+	assert.Equal(
+		t, int32(maxAttempts), calls.Load(),
+		"should make exactly maxAttempts requests before giving up",
+	)
+}
+
+// netTimeoutError is a sentinel error that reports itself as a network timeout,
+// without being context.DeadlineExceeded, so that the url.Error.Timeout()
+// branch of isTransientErr can be exercised independently.
+type netTimeoutError struct{}
+
+func (netTimeoutError) Error() string { return "net: timeout" }
+func (netTimeoutError) Timeout() bool { return true }
+
+// TestIsTransientErr exercises every branch of the transport-error classifier.
+func TestIsTransientErr(t *testing.T) {
+	// Context cancellation is never retryable.
+	assert.False(t, isTransientErr(context.Canceled))
+
+	// DeadlineExceeded (e.g. from http.Client.Timeout) is retryable.
+	assert.True(t, isTransientErr(context.DeadlineExceeded))
+
+	// url.Error wrapping a net-level timeout is retryable via Timeout().
+	urlTimeoutErr := &url.Error{
+		Op:  "Get",
+		URL: "http://example.com",
+		Err: netTimeoutError{},
+	}
+	assert.True(t, isTransientErr(urlTimeoutErr))
+
+	// url.Error wrapping a plain (non-timeout) error is not retryable.
+	urlNonTimeoutErr := &url.Error{
+		Op:  "Get",
+		URL: "http://example.com",
+		Err: errors.New("connection refused"),
+	}
+	assert.False(t, isTransientErr(urlNonTimeoutErr))
+}
+
+// TestBackoffDelay verifies the exponential progression and the cap.
+func TestBackoffDelay(t *testing.T) {
+	orig := backoffBase
+	backoffBase = 100 * time.Millisecond
+	t.Cleanup(func() { backoffBase = orig })
+
+	assert.Equal(t, 100*time.Millisecond, backoffDelay(0))
+	assert.Equal(t, 200*time.Millisecond, backoffDelay(1))
+	assert.Equal(t, 400*time.Millisecond, backoffDelay(2))
+	// A large attempt index (100ms * 2^10 = 102.4s) exceeds backoffCap.
+	assert.Equal(t, backoffCap, backoffDelay(10))
+}
+
+// TestRetry_ContextCancelledDuringBackoff verifies that cancelling the context
+// during a retry sleep stops the loop promptly and returns a context error.
+func TestRetry_ContextCancelledDuringBackoff(t *testing.T) {
+	// Use a longer base so the cancel fires reliably inside the sleep window.
+	origBase := backoffBase
+	backoffBase = 100 * time.Millisecond
+	t.Cleanup(func() { backoffBase = origBase })
+
+	setupRetryServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	})
+
+	// Cancel the context after 20 ms — well inside the 100 ms backoff window.
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	c := New(logging.NewNopLogger())
+	_, err := c.GetByISBN(ctx, "9780618640157")
+	require.Error(t, err)
+	assert.True(
+		t,
+		strings.Contains(err.Error(), "context") ||
+			errors.Is(err, context.Canceled) ||
+			errors.Is(err, context.DeadlineExceeded),
+		"expected context error, got: %v", err,
 	)
 }
