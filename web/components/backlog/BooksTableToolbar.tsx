@@ -11,6 +11,8 @@ export interface LibraryFilters {
   ownership: Set<string>
   /** Format strings from UserBook.formats: 'pdf' | 'epub'. */
   format: Set<string>
+  /** Kobo sync tag: 'kobo-sync'. */
+  kobo: Set<string>
 }
 
 interface BooksTableToolbarProps {
@@ -20,6 +22,7 @@ interface BooksTableToolbarProps {
   filters: LibraryFilters
   onToggleOwnership: (tag: string) => void
   onToggleFormat: (fmt: string) => void
+  onToggleKobo: (tag: string) => void
   onClearFilters: () => void
 }
 
@@ -30,9 +33,10 @@ export default function BooksTableToolbar({
   filters,
   onToggleOwnership,
   onToggleFormat,
+  onToggleKobo,
   onClearFilters
 }: BooksTableToolbarProps) {
-  const activeFilterCount = filters.ownership.size + filters.format.size
+  const activeFilterCount = filters.ownership.size + filters.format.size + filters.kobo.size
   const toggleableColumns = columns.filter((c) => !c.alwaysVisible)
 
   return (
@@ -113,6 +117,19 @@ export default function BooksTableToolbar({
                 label="EPUB"
                 checked={filters.format.has('epub')}
                 onChange={() => onToggleFormat('epub')}
+              />
+            </div>
+          </div>
+
+          {/* Kobo group */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Kobo</p>
+            <div className="flex flex-col gap-1">
+              <Checkbox
+                id="filter-kobo-sync"
+                label="Synced to Kobo"
+                checked={filters.kobo.has('kobo-sync')}
+                onChange={() => onToggleKobo('kobo-sync')}
               />
             </div>
           </div>

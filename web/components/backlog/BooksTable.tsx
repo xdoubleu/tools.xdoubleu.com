@@ -39,6 +39,10 @@ function applyFilters(books: UserBook[], filters: LibraryFilters): UserBook[] {
     if (filters.format.size > 0 && ![...filters.format].some((fmt) => ub.formats.includes(fmt))) {
       return false
     }
+    // Kobo: book must have the kobo-sync tag.
+    if (filters.kobo.size > 0 && !ub.tags.includes('kobo-sync')) {
+      return false
+    }
     return true
   })
 }
@@ -70,12 +74,17 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
     'backlog:library:filter:format',
     []
   )
+  const [koboFilterKeys, setKoboFilterKeys] = useLocalStorage<string[]>(
+    'backlog:library:filter:kobo',
+    []
+  )
   const filters: LibraryFilters = useMemo(
     () => ({
       ownership: new Set(ownershipFilterKeys),
-      format: new Set(formatFilterKeys)
+      format: new Set(formatFilterKeys),
+      kobo: new Set(koboFilterKeys)
     }),
-    [ownershipFilterKeys, formatFilterKeys]
+    [ownershipFilterKeys, formatFilterKeys, koboFilterKeys]
   )
 
   function handleSort(key: SortKey) {
@@ -122,9 +131,21 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
     setPage(1)
   }
 
+  function handleToggleKobo(tag: string) {
+    const next = new Set(filters.kobo)
+    if (next.has(tag)) {
+      next.delete(tag)
+    } else {
+      next.add(tag)
+    }
+    setKoboFilterKeys(Array.from(next))
+    setPage(1)
+  }
+
   function handleClearFilters() {
     setOwnershipFilterKeys([])
     setFormatFilterKeys([])
+    setKoboFilterKeys([])
     setPage(1)
   }
 
@@ -151,6 +172,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
         filters={filters}
         onToggleOwnership={handleToggleOwnership}
         onToggleFormat={handleToggleFormat}
+        onToggleKobo={handleToggleKobo}
         onClearFilters={handleClearFilters}
       />
 
