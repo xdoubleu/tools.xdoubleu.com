@@ -48,7 +48,7 @@ export default function BookOwnershipToggles({ userBook, onSaved }: BookOwnershi
   const handleToggle = async (current: boolean) => {
     setOwnPhysical(!current)
     try {
-      await toggleTag(userBook.id, 'own-physical')
+      await toggleTag(userBook.bookId, 'own-physical')
       mutate('/backlog/books')
       onSaved?.()
     } catch {

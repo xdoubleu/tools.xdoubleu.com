@@ -39,7 +39,7 @@ export default function BookShelfPopover({
     setError(null)
     try {
       await updateBookStatus({
-        bookId: userBook.id,
+        bookId: userBook.bookId,
         status: newStatus,
         favourite: userBook.tags.includes('favourite'),
         rating: String(userBook.rating)
@@ -62,7 +62,7 @@ export default function BookShelfPopover({
     setShelfInput('')
     setError(null)
     try {
-      await toggleTag(userBook.id, trimmed)
+      await toggleTag(userBook.bookId, trimmed)
       mutate('/backlog/books')
       onSaved?.()
     } catch {
@@ -75,7 +75,7 @@ export default function BookShelfPopover({
     setShelves((prev) => prev.filter((s) => s !== name))
     setError(null)
     try {
-      await toggleTag(userBook.id, name)
+      await toggleTag(userBook.bookId, name)
       mutate('/backlog/books')
       onSaved?.()
     } catch {
