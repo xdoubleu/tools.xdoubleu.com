@@ -17,6 +17,11 @@ export interface Shelf {
   count: number
 }
 
+export interface TagEntry {
+  name: string
+  count: number
+}
+
 export function buildShelves(library: LibraryResponse): Shelf[] {
   const fixed: Shelf[] = [
     {
@@ -40,29 +45,33 @@ export function buildShelves(library: LibraryResponse): Shelf[] {
   return [...fixed, ...dynamic]
 }
 
-export function buildTags(library: LibraryResponse): string[] {
+export function buildTags(library: LibraryResponse): TagEntry[] {
   const all = [
     ...library.reading,
     ...library.wishlist,
     ...library.finished,
     ...library.shelves.flatMap((s) => s.books)
   ]
-  const seen = new Set<string>()
+  const counts = new Map<string, number>()
   for (const ub of all) {
     for (const t of ub.tags) {
-      if (!SPECIAL_TAGS.has(t)) seen.add(t)
+      if (!SPECIAL_TAGS.has(t)) {
+        counts.set(t, (counts.get(t) ?? 0) + 1)
+      }
     }
   }
-  return Array.from(seen).sort()
+  return Array.from(counts.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, count]) => ({ name, count }))
 }
 
 interface LibrarySidebarProps {
   shelves: Shelf[]
-  allTags: string[]
-  selectedShelf: ShelfId
-  selectedTags: Set<string>
+  allTags: TagEntry[]
+  selectedShelfId: ShelfId | null
+  selectedTag: string | null
   onSelectShelf: (id: ShelfId) => void
-  onToggleTag: (tag: string) => void
+  onSelectTag: (tag: string) => void
   onManage: () => void
 }
 
@@ -97,10 +106,10 @@ function NavItem({
 export default function LibrarySidebar({
   shelves,
   allTags,
-  selectedShelf,
-  selectedTags,
+  selectedShelfId,
+  selectedTag,
   onSelectShelf,
-  onToggleTag,
+  onSelectTag,
   onManage
 }: LibrarySidebarProps) {
   return (
@@ -116,7 +125,7 @@ export default function LibrarySidebar({
         {shelves.map((shelf) => (
           <NavItem
             key={shelf.id}
-            active={selectedShelf === shelf.id}
+            active={selectedShelfId === shelf.id}
             onClick={() => onSelectShelf(shelf.id)}
             label={shelf.label}
             count={shelf.count}
@@ -131,10 +140,11 @@ export default function LibrarySidebar({
             </p>
             {allTags.map((tag) => (
               <NavItem
-                key={tag}
-                active={selectedTags.has(tag)}
-                onClick={() => onToggleTag(tag)}
-                label={tag}
+                key={tag.name}
+                active={selectedTag === tag.name}
+                onClick={() => onSelectTag(tag.name)}
+                label={tag.name}
+                count={tag.count}
               />
             ))}
           </>
@@ -161,11 +171,11 @@ export default function LibrarySidebar({
             <button
               key={shelf.id}
               role="tab"
-              aria-selected={selectedShelf === shelf.id}
+              aria-selected={selectedShelfId === shelf.id}
               onClick={() => onSelectShelf(shelf.id)}
               className={cn(
                 'flex items-center gap-1 shrink-0 px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors',
-                selectedShelf === shelf.id
+                selectedShelfId === shelf.id
                   ? 'bg-accent/10 text-accent font-medium'
                   : 'bg-surface text-subtle hover:text-foreground'
               )}
@@ -179,16 +189,17 @@ export default function LibrarySidebar({
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {allTags.map((tag) => (
               <button
-                key={tag}
-                onClick={() => onToggleTag(tag)}
+                key={tag.name}
+                onClick={() => onSelectTag(tag.name)}
                 className={cn(
-                  'shrink-0 px-2 py-1 rounded-full text-xs whitespace-nowrap transition-colors border',
-                  selectedTags.has(tag)
+                  'flex items-center gap-1 shrink-0 px-2 py-1 rounded-full text-xs whitespace-nowrap transition-colors border',
+                  selectedTag === tag.name
                     ? 'bg-accent/10 text-accent border-accent/30 font-medium'
                     : 'bg-surface text-subtle border-border hover:text-foreground'
                 )}
               >
-                {tag}
+                {tag.name}
+                <span className="opacity-60">{tag.count}</span>
               </button>
             ))}
           </div>

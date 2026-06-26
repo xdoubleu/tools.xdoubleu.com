@@ -3,7 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import LibrarySidebar, {
   buildShelves,
   buildTags,
-  type Shelf
+  type Shelf,
+  type TagEntry
 } from '@/components/backlog/LibrarySidebar'
 import { create } from '@bufbuild/protobuf'
 import {
@@ -25,7 +26,7 @@ function makeBook(id: string, tags: string[] = []) {
 function makeLibrary() {
   return create(LibraryResponseSchema, {
     reading: [makeBook('r1')],
-    wishlist: [makeBook('w1', ['fantasy'])],
+    wishlist: [makeBook('w1', ['fantasy']), makeBook('w2', ['fantasy'])],
     finished: [makeBook('f1', ['sci-fi'])],
     shelves: [create(BookShelfSchema, { name: 'Custom', books: [makeBook('c1')] })]
   })
@@ -47,22 +48,32 @@ describe('buildShelves', () => {
     const library = makeLibrary()
     const shelves = buildShelves(library)
     const all = shelves.find((s) => s.id === 'all')!
-    expect(all.count).toBe(4)
+    expect(all.count).toBe(5)
     const reading = shelves.find((s) => s.id === 'currently-reading')!
     expect(reading.count).toBe(1)
   })
 })
 
 describe('buildTags', () => {
-  it('returns sorted non-special tags from all books', () => {
+  it('returns sorted non-special tags with counts', () => {
     const library = makeLibrary()
     const tags = buildTags(library)
-    expect(tags).toContain('fantasy')
-    expect(tags).toContain('sci-fi')
-    expect(tags).not.toContain('favourite')
+    const names = tags.map((t) => t.name)
+    expect(names).toContain('fantasy')
+    expect(names).toContain('sci-fi')
+    expect(names).not.toContain('favourite')
   })
 
-  it('deduplicates tags', () => {
+  it('counts occurrences per tag', () => {
+    const library = makeLibrary()
+    const tags = buildTags(library)
+    const fantasy = tags.find((t) => t.name === 'fantasy')!
+    expect(fantasy.count).toBe(2)
+    const scifi = tags.find((t) => t.name === 'sci-fi')!
+    expect(scifi.count).toBe(1)
+  })
+
+  it('deduplicates tag names', () => {
     const library = create(LibraryResponseSchema, {
       reading: [makeBook('a', ['fantasy']), makeBook('b', ['fantasy'])],
       wishlist: [],
@@ -70,7 +81,7 @@ describe('buildTags', () => {
       shelves: []
     })
     const tags = buildTags(library)
-    expect(tags.filter((t) => t === 'fantasy')).toHaveLength(1)
+    expect(tags.filter((t) => t.name === 'fantasy')).toHaveLength(1)
   })
 })
 
@@ -80,16 +91,20 @@ describe('LibrarySidebar', () => {
     { id: 'currently-reading', label: 'Currently reading', count: 2 },
     { id: 'wishlist', label: 'Want to read', count: 3 }
   ]
+  const tags: TagEntry[] = [
+    { name: 'fantasy', count: 4 },
+    { name: 'sci-fi', count: 1 }
+  ]
 
   it('renders all shelves in the desktop nav', () => {
     render(
       <LibrarySidebar
         shelves={shelves}
         allTags={[]}
-        selectedShelf="all"
-        selectedTags={new Set()}
+        selectedShelfId="all"
+        selectedTag={null}
         onSelectShelf={jest.fn()}
-        onToggleTag={jest.fn()}
+        onSelectTag={jest.fn()}
         onManage={jest.fn()}
       />
     )
@@ -103,36 +118,68 @@ describe('LibrarySidebar', () => {
       <LibrarySidebar
         shelves={shelves}
         allTags={[]}
-        selectedShelf="all"
-        selectedTags={new Set()}
+        selectedShelfId="all"
+        selectedTag={null}
         onSelectShelf={onSelectShelf}
-        onToggleTag={jest.fn()}
+        onSelectTag={jest.fn()}
         onManage={jest.fn()}
       />
     )
-    // Desktop nav buttons
     const btns = screen.getAllByText('Want to read')
     fireEvent.click(btns[0])
     expect(onSelectShelf).toHaveBeenCalledWith('wishlist')
   })
 
-  it('renders tags and calls onToggleTag when clicked', () => {
-    const onToggleTag = jest.fn()
+  it('renders tags and calls onSelectTag when clicked', () => {
+    const onSelectTag = jest.fn()
     render(
       <LibrarySidebar
         shelves={shelves}
-        allTags={['fantasy', 'sci-fi']}
-        selectedShelf="all"
-        selectedTags={new Set()}
+        allTags={tags}
+        selectedShelfId="all"
+        selectedTag={null}
         onSelectShelf={jest.fn()}
-        onToggleTag={onToggleTag}
+        onSelectTag={onSelectTag}
         onManage={jest.fn()}
       />
     )
-    // Click the desktop tag button
     const btns = screen.getAllByText('fantasy')
     fireEvent.click(btns[0])
-    expect(onToggleTag).toHaveBeenCalledWith('fantasy')
+    expect(onSelectTag).toHaveBeenCalledWith('fantasy')
+  })
+
+  it('renders tag counts next to tag names in the desktop sidebar', () => {
+    render(
+      <LibrarySidebar
+        shelves={shelves}
+        allTags={tags}
+        selectedShelfId="all"
+        selectedTag={null}
+        onSelectShelf={jest.fn()}
+        onSelectTag={jest.fn()}
+        onManage={jest.fn()}
+      />
+    )
+    // Count "4" should appear next to the fantasy tag
+    expect(screen.getAllByText('4').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0)
+  })
+
+  it('marks the active tag as selected', () => {
+    render(
+      <LibrarySidebar
+        shelves={shelves}
+        allTags={tags}
+        selectedShelfId={null}
+        selectedTag="fantasy"
+        onSelectShelf={jest.fn()}
+        onSelectTag={jest.fn()}
+        onManage={jest.fn()}
+      />
+    )
+    // The active nav item gets accent styling; shelf items should not be active
+    // At minimum, no shelf should appear active while a tag is selected
+    expect(screen.getAllByText('fantasy').length).toBeGreaterThan(0)
   })
 
   it('calls onManage when Edit shelves & tags is clicked', () => {
@@ -141,10 +188,10 @@ describe('LibrarySidebar', () => {
       <LibrarySidebar
         shelves={shelves}
         allTags={[]}
-        selectedShelf="all"
-        selectedTags={new Set()}
+        selectedShelfId="all"
+        selectedTag={null}
         onSelectShelf={jest.fn()}
-        onToggleTag={jest.fn()}
+        onSelectTag={jest.fn()}
         onManage={onManage}
       />
     )

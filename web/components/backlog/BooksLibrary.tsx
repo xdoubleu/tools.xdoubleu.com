@@ -11,6 +11,8 @@ import BooksTable from '@/components/backlog/BooksTable'
 import ManageShelvesTagsDialog from '@/components/backlog/ManageShelvesTagsDialog'
 import { SPECIAL_TAGS } from '@/lib/backlog/bookShelves'
 
+type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
+
 function flattenLibrary(library: LibraryResponse): UserBook[] {
   return [
     ...library.reading,
@@ -28,11 +30,6 @@ function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   return library.shelves.find((s) => s.name === shelfId)?.books ?? []
 }
 
-function filterByTags(books: UserBook[], activeTags: Set<string>): UserBook[] {
-  if (activeTags.size === 0) return books
-  return books.filter((b) => [...activeTags].every((t) => b.tags.includes(t)))
-}
-
 interface BooksLibraryProps {
   library: LibraryResponse
   knownShelves: string[]
@@ -44,32 +41,28 @@ export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLi
   const allTags = buildTags(library)
   const defaultShelf: ShelfId = shelves.find((s) => s.id !== 'all' && s.count > 0)?.id ?? 'all'
 
-  const [selectedShelf, setSelectedShelf] = useState<ShelfId>(defaultShelf)
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+  const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: defaultShelf })
   const [manageOpen, setManageOpen] = useState(false)
 
   const handleSelectShelf = useCallback((id: ShelfId) => {
-    setSelectedShelf(id)
+    setSelection({ kind: 'shelf', id })
   }, [])
 
-  const handleToggleTag = useCallback((tag: string) => {
-    setSelectedTags((prev) => {
-      const next = new Set(prev)
-      if (next.has(tag)) {
-        next.delete(tag)
-      } else {
-        next.add(tag)
+  const handleSelectTag = useCallback((tag: string) => {
+    setSelection((prev) => {
+      if (prev.kind === 'tag' && prev.tag === tag) {
+        return { kind: 'shelf', id: 'all' }
       }
-      return next
+      return { kind: 'tag', tag }
     })
   }, [])
 
-  const shelfBooks = useMemo(() => booksForShelf(library, selectedShelf), [library, selectedShelf])
-
-  const filteredBooks = useMemo(
-    () => filterByTags(shelfBooks, selectedTags),
-    [shelfBooks, selectedTags]
-  )
+  const filteredBooks = useMemo(() => {
+    if (selection.kind === 'tag') {
+      return flattenLibrary(library).filter((b) => b.tags.includes(selection.tag))
+    }
+    return booksForShelf(library, selection.id)
+  }, [library, selection])
 
   // All known user-visible tags for the shelf/tag cell checkboxes
   const knownTags = useMemo(() => {
@@ -83,7 +76,9 @@ export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLi
     return Array.from(seen).sort()
   }, [library])
 
-  const currentShelf = shelves.find((s) => s.id === selectedShelf)
+  const currentShelf =
+    selection.kind === 'shelf' ? shelves.find((s) => s.id === selection.id) : null
+  const headerLabel = selection.kind === 'tag' ? selection.tag : (currentShelf?.label ?? '')
 
   return (
     <>
@@ -91,22 +86,17 @@ export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLi
         <LibrarySidebar
           shelves={shelves}
           allTags={allTags}
-          selectedShelf={selectedShelf}
-          selectedTags={selectedTags}
+          selectedShelfId={selection.kind === 'shelf' ? selection.id : null}
+          selectedTag={selection.kind === 'tag' ? selection.tag : null}
           onSelectShelf={handleSelectShelf}
-          onToggleTag={handleToggleTag}
+          onSelectTag={handleSelectTag}
           onManage={() => setManageOpen(true)}
         />
 
         <div className="flex-1 min-w-0">
-          {/* Shelf header */}
           <h2 className="text-lg font-semibold mb-3">
-            {currentShelf?.label ?? ''}
-            <span className="ml-2 text-sm font-normal text-muted">
-              {filteredBooks.length !== shelfBooks.length
-                ? `${filteredBooks.length} of ${shelfBooks.length}`
-                : shelfBooks.length}
-            </span>
+            {headerLabel}
+            <span className="ml-2 text-sm font-normal text-muted">{filteredBooks.length}</span>
           </h2>
 
           <BooksTable
@@ -122,7 +112,7 @@ export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLi
         open={manageOpen}
         onOpenChange={setManageOpen}
         shelves={shelves}
-        tags={allTags}
+        tags={allTags.map((t) => t.name)}
       />
     </>
   )

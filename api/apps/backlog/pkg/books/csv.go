@@ -188,7 +188,7 @@ func parseShelvesWithPositions(raw, exclusiveShelf string) ([]string, map[string
 		}
 
 		if name != exclusiveShelf {
-			tags = append(tags, name)
+			tags = append(tags, normaliseFavouriteTag(name))
 		}
 	}
 
@@ -216,6 +216,16 @@ func parseShelfEntry(s string) (string, int) {
 	}
 
 	return name, pos
+}
+
+// normaliseFavouriteTag maps legacy Goodreads favourite spellings to the
+// canonical tag so the heart column reflects imported data correctly.
+func normaliseFavouriteTag(tag string) string {
+	switch strings.ToLower(tag) {
+	case "favorites", "favorite", "favourites":
+		return models.TagFavourite
+	}
+	return tag
 }
 
 func shelfToStatus(shelf string) string {
