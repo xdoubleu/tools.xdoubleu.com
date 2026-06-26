@@ -23,6 +23,7 @@ const mockMutateFn = jest.mocked(mockMutate)
 function makeUserBook(overrides = {}) {
   return create(UserBookSchema, {
     id: 'ub-1',
+    bookId: 'book-1',
     status: 'to-read',
     rating: 0,
     tags: [],
@@ -100,7 +101,7 @@ describe('BookShelfTagCell', () => {
     fireEvent.click(screen.getByLabelText('Read'))
     await waitFor(() =>
       expect(mockUpdateBookStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ bookId: 'ub-1', status: 'read' })
+        expect.objectContaining({ bookId: 'book-1', status: 'read' })
       )
     )
     await waitFor(() => expect(mockMutateFn).toHaveBeenCalledWith('/backlog/books'))
@@ -111,7 +112,7 @@ describe('BookShelfTagCell', () => {
     render(<BookShelfTagCell userBook={ub} knownShelves={[]} knownTags={['fantasy']} />)
     openPopover()
     fireEvent.click(screen.getByLabelText('fantasy'))
-    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('ub-1', 'fantasy'))
+    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
     await waitFor(() => expect(mockMutateFn).toHaveBeenCalledWith('/backlog/books'))
   })
 

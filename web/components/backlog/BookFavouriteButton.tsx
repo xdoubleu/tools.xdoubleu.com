@@ -21,7 +21,7 @@ export default function BookFavouriteButton({ userBook, onSaved }: BookFavourite
     setFavourite(newFavourite)
     try {
       await updateBookStatus({
-        bookId: userBook.id,
+        bookId: userBook.bookId,
         status: userBook.status,
         favourite: newFavourite,
         rating: String(userBook.rating)

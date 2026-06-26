@@ -22,6 +22,7 @@ import BookShelfPopover from '@/components/backlog/BookShelfPopover'
 function makeBook(tags: string[] = [], status = 'to-read') {
   return create(UserBookSchema, {
     id: 'ub-1',
+    bookId: 'book-1',
     status,
     rating: 3,
     tags,
@@ -89,7 +90,7 @@ describe('BookShelfPopover', () => {
 
     await waitFor(() => {
       expect(mockUpdateBookStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'read', bookId: 'ub-1' })
+        expect.objectContaining({ status: 'read', bookId: 'book-1' })
       )
     })
     expect(mockMutate).toHaveBeenCalledWith('/backlog/books')
@@ -104,7 +105,7 @@ describe('BookShelfPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => {
-      expect(mockToggleTag).toHaveBeenCalledWith('ub-1', 'fantasy')
+      expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy')
     })
   })
 
@@ -115,7 +116,7 @@ describe('BookShelfPopover', () => {
     fireEvent.click(screen.getByLabelText('Remove sci-fi'))
 
     await waitFor(() => {
-      expect(mockToggleTag).toHaveBeenCalledWith('ub-1', 'sci-fi')
+      expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'sci-fi')
     })
   })
 

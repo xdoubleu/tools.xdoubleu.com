@@ -52,7 +52,7 @@ export default function BookShelfTagCell({
     setError(null)
     try {
       await updateBookStatus({
-        bookId: userBook.id,
+        bookId: userBook.bookId,
         status: newStatus,
         favourite: userBook.tags.includes('favourite'),
         rating: String(userBook.rating)
@@ -70,7 +70,7 @@ export default function BookShelfTagCell({
     setTags(checked ? [...tags, tag] : tags.filter((t) => t !== tag))
     setError(null)
     try {
-      await toggleTag(userBook.id, tag)
+      await toggleTag(userBook.bookId, tag)
       mutate('/backlog/books')
       onSaved?.()
     } catch {

@@ -20,6 +20,7 @@ import BookOwnershipToggles from '@/components/backlog/BookOwnershipToggles'
 function makeBook(tags: string[] = [], formats: string[] = []) {
   return create(UserBookSchema, {
     id: 'ub-1',
+    bookId: 'book-1',
     status: 'to-read',
     tags,
     formats,
@@ -50,7 +51,7 @@ describe('BookOwnershipToggles', () => {
     fireEvent.click(screen.getByRole('button', { name: /physical/i }))
 
     await waitFor(() => {
-      expect(mockToggleTag).toHaveBeenCalledWith('ub-1', 'own-physical')
+      expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'own-physical')
     })
     expect(mockMutate).toHaveBeenCalledWith('/backlog/books')
   })

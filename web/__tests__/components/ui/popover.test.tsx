@@ -77,4 +77,14 @@ describe('Popover', () => {
     fireEvent.click(screen.getByLabelText('Open menu'))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
+
+  it('panel is portaled to document.body (not inside the trigger container)', () => {
+    const { container } = render(<BasicPopover />)
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    const panel = screen.getByRole('dialog')
+    // The panel must be a direct child of document.body, not nested inside
+    // the component's container div — this confirms it escaped overflow clipping.
+    expect(document.body).toContainElement(panel)
+    expect(container).not.toContainElement(panel)
+  })
 })

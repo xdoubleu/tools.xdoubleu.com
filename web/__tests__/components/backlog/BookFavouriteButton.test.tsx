@@ -20,6 +20,7 @@ import BookFavouriteButton from '@/components/backlog/BookFavouriteButton'
 function makeBook(tags: string[] = [], rating = 3, status = 'to-read') {
   return create(UserBookSchema, {
     id: 'ub-1',
+    bookId: 'book-1',
     status,
     rating,
     tags,
@@ -57,7 +58,7 @@ describe('BookFavouriteButton', () => {
 
     await waitFor(() => {
       expect(mockUpdateBookStatus).toHaveBeenCalledWith({
-        bookId: 'ub-1',
+        bookId: 'book-1',
         status: 'to-read',
         favourite: true,
         rating: '3'
