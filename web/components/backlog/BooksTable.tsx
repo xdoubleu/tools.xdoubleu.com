@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
 import type { UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import {
   Table,
@@ -13,74 +12,34 @@ import {
   type SortDir
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import BookCover from '@/components/backlog/BookCover'
-import BookRatingStars from '@/components/backlog/BookRatingStars'
-import BookFavouriteButton from '@/components/backlog/BookFavouriteButton'
-import BookOwnershipToggles from '@/components/backlog/BookOwnershipToggles'
-import BookShelfTagCell from '@/components/backlog/BookShelfTagCell'
-import { statusLabel, displayTags } from '@/lib/backlog/bookShelves'
+import BooksTableToolbar, { type LibraryFilters } from '@/components/backlog/BooksTableToolbar'
+import {
+  ALL_COLUMNS,
+  DEFAULT_VISIBLE_COLUMNS,
+  sortBooks,
+  nextDir,
+  type ColumnKey,
+  type SortKey,
+  type SortState
+} from '@/components/backlog/booksTableColumns'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 const PAGE_SIZE = 20
 
-type SortKey = 'title' | 'author' | 'pages' | 'rating' | 'favourite' | 'shelf' | 'added' | 'read'
-
-interface SortState {
-  key: SortKey
-  dir: SortDir
-}
-
-function nextDir(current: SortDir): SortDir {
-  if (current === null) return 'asc'
-  if (current === 'asc') return 'desc'
-  return null
-}
-
-function formatShortDate(iso: string | undefined): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-function latestFinishedAt(ub: UserBook): string {
-  if (!ub.finishedAt.length) return ''
-  return [...ub.finishedAt].sort().at(-1) ?? ''
-}
-
-function sortBooks(books: UserBook[], sort: SortState): UserBook[] {
-  if (!sort.dir) return books
-  const factor = sort.dir === 'asc' ? 1 : -1
-  return [...books].sort((a, b) => {
-    let cmp = 0
-    switch (sort.key) {
-      case 'title':
-        cmp = (a.book?.title ?? '').localeCompare(b.book?.title ?? '')
-        break
-      case 'author':
-        cmp = (a.book?.authors[0] ?? '').localeCompare(b.book?.authors[0] ?? '')
-        break
-      case 'pages':
-        cmp = (a.book?.pageCount ?? 0) - (b.book?.pageCount ?? 0)
-        break
-      case 'rating':
-        cmp = (a.rating ?? 0) - (b.rating ?? 0)
-        break
-      case 'favourite':
-        cmp = (a.tags.includes('favourite') ? 1 : 0) - (b.tags.includes('favourite') ? 1 : 0)
-        break
-      case 'shelf':
-        cmp = a.status.localeCompare(b.status)
-        break
-      case 'added':
-        cmp = (a.addedAt ?? '').localeCompare(b.addedAt ?? '')
-        break
-      case 'read':
-        cmp = latestFinishedAt(a).localeCompare(latestFinishedAt(b))
-        break
+function applyFilters(books: UserBook[], filters: LibraryFilters): UserBook[] {
+  return books.filter((ub) => {
+    // Ownership: book must have at least one of the selected ownership tags.
+    if (
+      filters.ownership.size > 0 &&
+      ![...filters.ownership].some((tag) => ub.tags.includes(tag))
+    ) {
+      return false
     }
-    return cmp * factor
+    // Format: book must have at least one of the selected formats.
+    if (filters.format.size > 0 && ![...filters.format].some((fmt) => ub.formats.includes(fmt))) {
+      return false
+    }
+    return true
   })
 }
 
@@ -95,10 +54,29 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
   const [sort, setSort] = useState<SortState>({ key: 'added', dir: null })
   const [page, setPage] = useState(1)
 
-  const sorted = useMemo(() => sortBooks(books, sort), [books, sort])
-  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const safePage = Math.min(page, pageCount)
-  const pageBooks = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  // Persisted column visibility — stored as an array for JSON serialisation.
+  const [visibleColumnKeys, setVisibleColumnKeys] = useLocalStorage<ColumnKey[]>(
+    'backlog:library:columns',
+    DEFAULT_VISIBLE_COLUMNS
+  )
+  const visibleColumns = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys])
+
+  // Persisted filter selections.
+  const [ownershipFilterKeys, setOwnershipFilterKeys] = useLocalStorage<string[]>(
+    'backlog:library:filter:ownership',
+    []
+  )
+  const [formatFilterKeys, setFormatFilterKeys] = useLocalStorage<string[]>(
+    'backlog:library:filter:format',
+    []
+  )
+  const filters: LibraryFilters = useMemo(
+    () => ({
+      ownership: new Set(ownershipFilterKeys),
+      format: new Set(formatFilterKeys)
+    }),
+    [ownershipFilterKeys, formatFilterKeys]
+  )
 
   function handleSort(key: SortKey) {
     setSort((prev) => ({
@@ -112,171 +90,109 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
     return sort.key === key ? sort.dir : null
   }
 
+  function handleToggleColumn(key: ColumnKey) {
+    const next = new Set(visibleColumns)
+    if (next.has(key)) {
+      next.delete(key)
+    } else {
+      next.add(key)
+    }
+    setVisibleColumnKeys(Array.from(next))
+  }
+
+  function handleToggleOwnership(tag: string) {
+    const next = new Set(filters.ownership)
+    if (next.has(tag)) {
+      next.delete(tag)
+    } else {
+      next.add(tag)
+    }
+    setOwnershipFilterKeys(Array.from(next))
+    setPage(1)
+  }
+
+  function handleToggleFormat(fmt: string) {
+    const next = new Set(filters.format)
+    if (next.has(fmt)) {
+      next.delete(fmt)
+    } else {
+      next.add(fmt)
+    }
+    setFormatFilterKeys(Array.from(next))
+    setPage(1)
+  }
+
+  function handleClearFilters() {
+    setOwnershipFilterKeys([])
+    setFormatFilterKeys([])
+    setPage(1)
+  }
+
+  // Only render columns that are explicitly visible (alwaysVisible bypasses the set).
+  const activeColumns = useMemo(
+    () => ALL_COLUMNS.filter((col) => col.alwaysVisible || visibleColumns.has(col.key)),
+    [visibleColumns]
+  )
+
+  const filtered = useMemo(() => applyFilters(books, filters), [books, filters])
+  const sorted = useMemo(() => sortBooks(filtered, sort), [filtered, sort])
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount)
+  const pageBooks = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const ctx = { knownShelves, knownTags, onSaved }
+
   return (
     <div className="space-y-3">
+      <BooksTableToolbar
+        columns={ALL_COLUMNS}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
+        filters={filters}
+        onToggleOwnership={handleToggleOwnership}
+        onToggleFormat={handleToggleFormat}
+        onClearFilters={handleClearFilters}
+      />
+
       <Table>
         <TableHeader>
           <TableRow>
-            <SortableHeader dir={null} onSort={() => {}} className="w-12">
-              Cover
-            </SortableHeader>
-            <SortableHeader dir={sortDir('title')} onSort={() => handleSort('title')}>
-              Title
-            </SortableHeader>
-            <SortableHeader
-              dir={sortDir('author')}
-              onSort={() => handleSort('author')}
-              className="hidden sm:table-cell"
-            >
-              Author
-            </SortableHeader>
-            <SortableHeader
-              dir={sortDir('pages')}
-              onSort={() => handleSort('pages')}
-              className="hidden lg:table-cell"
-            >
-              Pages
-            </SortableHeader>
-            <SortableHeader dir={null} onSort={() => {}} className="hidden lg:table-cell">
-              ISBN
-            </SortableHeader>
-            <SortableHeader dir={sortDir('rating')} onSort={() => handleSort('rating')}>
-              Rating
-            </SortableHeader>
-            <SortableHeader dir={sortDir('favourite')} onSort={() => handleSort('favourite')}>
-              Fav
-            </SortableHeader>
-            <SortableHeader dir={null} onSort={() => {}} className="hidden md:table-cell">
-              Owned
-            </SortableHeader>
-            <SortableHeader
-              dir={sortDir('shelf')}
-              onSort={() => handleSort('shelf')}
-              className="hidden md:table-cell"
-            >
-              Shelf & tags
-            </SortableHeader>
-            <SortableHeader
-              dir={sortDir('added')}
-              onSort={() => handleSort('added')}
-              className="hidden lg:table-cell"
-            >
-              Date added
-            </SortableHeader>
-            <SortableHeader
-              dir={sortDir('read')}
-              onSort={() => handleSort('read')}
-              className="hidden lg:table-cell"
-            >
-              Date read
-            </SortableHeader>
+            {activeColumns.map((col) => (
+              <SortableHeader
+                key={col.key}
+                dir={col.sortKey ? sortDir(col.sortKey) : null}
+                onSort={col.sortKey ? () => handleSort(col.sortKey!) : () => {}}
+                className={col.headClassName}
+              >
+                {col.label}
+              </SortableHeader>
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
           {pageBooks.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={11} className="py-8 text-center text-muted text-sm">
+              <TableCell
+                colSpan={activeColumns.length}
+                className="py-8 text-center text-muted text-sm"
+              >
                 No books match the current filters.
               </TableCell>
             </TableRow>
           ) : (
-            pageBooks.map((ub) => {
-              const book = ub.book
-              const coverUrl = book?.coverUrl ?? ''
-              const title = book?.title ?? ''
-              const authors = book?.authors ?? []
-
-              return (
-                <TableRow key={ub.id}>
-                  {/* Cover */}
-                  <TableCell className="w-12 pr-0">
-                    <Link href={`/backlog/books/${ub.id}`} tabIndex={-1}>
-                      <BookCover coverUrl={coverUrl} title={title} size="sm" />
-                    </Link>
+            pageBooks.map((ub) => (
+              <TableRow key={ub.id}>
+                {activeColumns.map((col) => (
+                  <TableCell key={col.key} className={col.cellClassName}>
+                    {col.renderCell(ub, ctx)}
                   </TableCell>
-
-                  {/* Title */}
-                  <TableCell className="max-w-48">
-                    <Link
-                      href={`/backlog/books/${ub.id}`}
-                      className="text-sm font-medium hover:text-accent transition-colors line-clamp-2"
-                    >
-                      {title}
-                    </Link>
-                  </TableCell>
-
-                  {/* Author */}
-                  <TableCell className="hidden sm:table-cell max-w-36">
-                    <div className="flex flex-col gap-0.5">
-                      {authors.map((author) => (
-                        <Link
-                          key={author}
-                          href={`/backlog/books/author/${encodeURIComponent(author)}`}
-                          className="text-sm text-subtle hover:text-accent transition-colors truncate"
-                        >
-                          {author}
-                        </Link>
-                      ))}
-                    </div>
-                  </TableCell>
-
-                  {/* Page count */}
-                  <TableCell className="hidden lg:table-cell text-sm text-muted w-16 text-right">
-                    {book?.pageCount ?? ''}
-                  </TableCell>
-
-                  {/* ISBN */}
-                  <TableCell className="hidden lg:table-cell text-xs text-muted whitespace-nowrap">
-                    {book?.isbn13 ?? ''}
-                  </TableCell>
-
-                  {/* Rating */}
-                  <TableCell className="w-28">
-                    <BookRatingStars userBook={ub} size="sm" onSaved={onSaved} />
-                  </TableCell>
-
-                  {/* Favourite */}
-                  <TableCell className="w-10">
-                    <BookFavouriteButton userBook={ub} onSaved={onSaved} />
-                  </TableCell>
-
-                  {/* Owned */}
-                  <TableCell className="hidden md:table-cell">
-                    <BookOwnershipToggles userBook={ub} onSaved={onSaved} />
-                  </TableCell>
-
-                  {/* Shelf & tags */}
-                  <TableCell className="hidden md:table-cell max-w-44">
-                    <BookShelfTagCell
-                      userBook={ub}
-                      knownShelves={knownShelves}
-                      knownTags={knownTags}
-                      onSaved={onSaved}
-                    />
-                    {displayTags(ub.tags).length > 0 && (
-                      <div className="mt-0.5 text-xs text-muted truncate">
-                        {displayTags(ub.tags).join(', ')}
-                      </div>
-                    )}
-                  </TableCell>
-
-                  {/* Date added */}
-                  <TableCell className="hidden lg:table-cell text-xs text-muted whitespace-nowrap">
-                    {formatShortDate(ub.addedAt)}
-                  </TableCell>
-
-                  {/* Date read */}
-                  <TableCell className="hidden lg:table-cell text-xs text-muted whitespace-nowrap">
-                    {formatShortDate(latestFinishedAt(ub))}
-                  </TableCell>
-                </TableRow>
-              )
-            })
+                ))}
+              </TableRow>
+            ))
           )}
         </TableBody>
       </Table>
 
-      {/* Pagination */}
       {pageCount > 1 && (
         <div className="flex items-center justify-center gap-3">
           <Button
@@ -303,5 +219,3 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
     </div>
   )
 }
-
-export { statusLabel }

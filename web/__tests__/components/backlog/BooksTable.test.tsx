@@ -53,6 +53,10 @@ function makeBook(id: string, title: string, author = 'Author', overrides = {}) 
   })
 }
 
+beforeEach(() => {
+  localStorage.clear()
+})
+
 describe('BooksTable', () => {
   it('renders a table with all column headers', () => {
     render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
@@ -254,5 +258,143 @@ describe('BooksTable', () => {
     fireEvent.click(btn) // null — back to default
     // No sort indicator visible (no ^ or v text beside Author)
     expect(btn.textContent).toBe('Author')
+  })
+
+  describe('column visibility', () => {
+    it('hides a column when toggled off via Columns popover', () => {
+      render(<BooksTable books={[makeBook('1', 'Dune')]} knownShelves={[]} knownTags={[]} />)
+
+      // Open Columns popover
+      fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
+
+      // ISBN is visible by default — uncheck it
+      const isbnCheckbox = screen.getByRole('checkbox', { name: 'ISBN' })
+      expect(isbnCheckbox).toBeChecked()
+      fireEvent.click(isbnCheckbox)
+
+      // ISBN header should be gone
+      expect(screen.queryByRole('button', { name: 'ISBN' })).not.toBeInTheDocument()
+    })
+
+    it('shows a hidden column when toggled on', () => {
+      // Start with ISBN hidden
+      localStorage.setItem(
+        'backlog:library:columns',
+        JSON.stringify([
+          'cover',
+          'title',
+          'author',
+          'pages',
+          'rating',
+          'favourite',
+          'owned',
+          'shelf',
+          'added',
+          'read'
+        ])
+      )
+      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
+      const isbnCheckbox = screen.getByRole('checkbox', { name: 'ISBN' })
+      expect(isbnCheckbox).not.toBeChecked()
+      fireEvent.click(isbnCheckbox)
+
+      expect(screen.getByRole('button', { name: 'ISBN' })).toBeInTheDocument()
+    })
+
+    it('cover and title columns are always visible and not in the toggle list', () => {
+      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
+      // alwaysVisible columns are not in the toggleable list
+      expect(screen.queryByRole('checkbox', { name: 'Cover' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('checkbox', { name: 'Title' })).not.toBeInTheDocument()
+    })
+
+    it('empty-state colSpan matches visible column count', () => {
+      // Hide all optional columns — only cover + title remain (2)
+      localStorage.setItem('backlog:library:columns', JSON.stringify([]))
+      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+      const emptyCell = screen.getByText('No books match the current filters.').closest('td')
+      expect(emptyCell).toHaveAttribute('colspan', '2')
+    })
+  })
+
+  describe('ownership / format filters', () => {
+    it('filters to books with own-physical tag when Physical is selected', () => {
+      const books = [
+        makeBook('1', 'Physical Book', 'A', { tags: ['own-physical'] }),
+        makeBook('2', 'No Physical', 'B', { tags: [] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
+
+      expect(screen.getByText('Physical Book')).toBeInTheDocument()
+      expect(screen.queryByText('No Physical')).not.toBeInTheDocument()
+    })
+
+    it('filters to books with epub format when EPUB is selected', () => {
+      const books = [
+        makeBook('1', 'Epub Book', 'A', { formats: ['epub'] }),
+        makeBook('2', 'PDF Only', 'B', { formats: ['pdf'] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'EPUB' }))
+
+      expect(screen.getByText('Epub Book')).toBeInTheDocument()
+      expect(screen.queryByText('PDF Only')).not.toBeInTheDocument()
+    })
+
+    it('shows all books when Clear filters is clicked', () => {
+      const books = [
+        makeBook('1', 'Physical Book', 'A', { tags: ['own-physical'] }),
+        makeBook('2', 'No Physical', 'B', { tags: [] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
+
+      // Filtered: only Physical Book visible
+      expect(screen.queryByText('No Physical')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+      // All books visible again
+      expect(screen.getByText('Physical Book')).toBeInTheDocument()
+      expect(screen.getByText('No Physical')).toBeInTheDocument()
+    })
+
+    it('shows active filter count badge on Filters button', () => {
+      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'PDF' }))
+
+      // Badge shows count of 2
+      expect(screen.getByText('2')).toBeInTheDocument()
+    })
+
+    it('applies ownership and format filters together (AND between groups)', () => {
+      const books = [
+        makeBook('1', 'Both', 'A', { tags: ['own-physical'], formats: ['epub'] }),
+        makeBook('2', 'Physical no epub', 'B', { tags: ['own-physical'], formats: ['pdf'] }),
+        makeBook('3', 'Epub no physical', 'C', { tags: [], formats: ['epub'] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'EPUB' }))
+
+      expect(screen.getByText('Both')).toBeInTheDocument()
+      expect(screen.queryByText('Physical no epub')).not.toBeInTheDocument()
+      expect(screen.queryByText('Epub no physical')).not.toBeInTheDocument()
+    })
   })
 })
