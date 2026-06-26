@@ -24,6 +24,8 @@ function flattenLibrary(library: LibraryResponse): UserBook[] {
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'all') return flattenLibrary(library)
+  if (shelfId === 'favourite')
+    return flattenLibrary(library).filter((b) => b.tags.includes('favourite'))
   if (shelfId === 'currently-reading') return library.reading
   if (shelfId === 'wishlist') return library.wishlist
   if (shelfId === 'finished') return library.finished
@@ -39,7 +41,8 @@ interface BooksLibraryProps {
 export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLibraryProps) {
   const shelves = buildShelves(library)
   const allTags = buildTags(library)
-  const defaultShelf: ShelfId = shelves.find((s) => s.id !== 'all' && s.count > 0)?.id ?? 'all'
+  const defaultShelf: ShelfId =
+    shelves.find((s) => s.id !== 'all' && s.id !== 'favourite' && s.count > 0)?.id ?? 'all'
 
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: defaultShelf })
   const [manageOpen, setManageOpen] = useState(false)

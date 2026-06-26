@@ -52,6 +52,20 @@ describe('buildShelves', () => {
     const reading = shelves.find((s) => s.id === 'currently-reading')!
     expect(reading.count).toBe(1)
   })
+
+  it('includes a Favourites shelf with correct count', () => {
+    const library = create(LibraryResponseSchema, {
+      reading: [makeBook('r1', ['favourite']), makeBook('r2')],
+      wishlist: [makeBook('w1', ['favourite'])],
+      finished: [makeBook('f1')],
+      shelves: []
+    })
+    const shelves = buildShelves(library)
+    const favShelf = shelves.find((s) => s.id === 'favourite')
+    expect(favShelf).toBeDefined()
+    expect(favShelf!.label).toBe('Favourites')
+    expect(favShelf!.count).toBe(2)
+  })
 })
 
 describe('buildTags', () => {
