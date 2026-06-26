@@ -129,7 +129,48 @@ describe('BooksLibrary', () => {
     expect(screen.getByTestId('manage-dialog')).toBeInTheDocument()
   })
 
-  it('filters by tag when a tag is clicked in the sidebar', () => {
+  it('filters by tag when a tag is clicked, showing books from all shelves with that tag', () => {
+    const taggedReading = makeUserBook('t1', 'Tagged Reading', {
+      status: 'currently-reading',
+      tags: ['fantasy']
+    })
+    const taggedFinished = makeUserBook('t2', 'Tagged Finished', {
+      status: 'read',
+      tags: ['fantasy']
+    })
+    const untagged = makeUserBook('t3', 'Untagged', { status: 'currently-reading' })
+    const library = makeLibrary({ reading: [taggedReading, untagged], finished: [taggedFinished] })
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
+
+    fireEvent.click(screen.getAllByText('fantasy')[0])
+    expect(screen.getByText('Tagged Reading')).toBeInTheDocument()
+    expect(screen.getByText('Tagged Finished')).toBeInTheDocument()
+    expect(screen.queryByText('Untagged')).not.toBeInTheDocument()
+  })
+
+  it('selecting a tag clears any shelf filter (exclusive selection)', () => {
+    const taggedBook = makeUserBook('t1', 'Tagged', {
+      status: 'currently-reading',
+      tags: ['fantasy']
+    })
+    const wishlistTagged = makeUserBook('t2', 'Wishlist Tagged', {
+      status: 'to-read',
+      tags: ['fantasy']
+    })
+    const library = makeLibrary({ reading: [taggedBook], wishlist: [wishlistTagged] })
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
+
+    // Select a shelf first
+    fireEvent.click(screen.getAllByText('Currently reading')[0])
+    expect(screen.queryByText('Wishlist Tagged')).not.toBeInTheDocument()
+
+    // Selecting a tag should show books from ALL shelves matching the tag
+    fireEvent.click(screen.getAllByText('fantasy')[0])
+    expect(screen.getByText('Tagged')).toBeInTheDocument()
+    expect(screen.getByText('Wishlist Tagged')).toBeInTheDocument()
+  })
+
+  it('re-clicking the active tag returns to All books', () => {
     const taggedBook = makeUserBook('t1', 'Tagged', {
       status: 'currently-reading',
       tags: ['fantasy']
@@ -138,11 +179,13 @@ describe('BooksLibrary', () => {
     const library = makeLibrary({ reading: [taggedBook, untagged] })
     render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
 
-    // The sidebar renders 'fantasy' in both desktop nav and mobile chip row;
-    // click the first occurrence (desktop nav button).
-    fireEvent.click(screen.getAllByText('fantasy')[0])
-    expect(screen.getByText('Tagged')).toBeInTheDocument()
+    const fantasyBtns = screen.getAllByText('fantasy')
+    fireEvent.click(fantasyBtns[0]) // activate tag
     expect(screen.queryByText('Untagged')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByText('fantasy')[0]) // deactivate → back to all
+    expect(screen.getByText('Tagged')).toBeInTheDocument()
+    expect(screen.getByText('Untagged')).toBeInTheDocument()
   })
 
   it('shows empty message when library has no books', () => {

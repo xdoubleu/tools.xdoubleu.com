@@ -137,6 +137,9 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
             >
               Pages
             </SortableHeader>
+            <SortableHeader dir={null} onSort={() => {}} className="hidden lg:table-cell">
+              ISBN
+            </SortableHeader>
             <SortableHeader dir={sortDir('rating')} onSort={() => handleSort('rating')}>
               Rating
             </SortableHeader>
@@ -172,7 +175,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
         <TableBody>
           {pageBooks.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="py-8 text-center text-muted text-sm">
+              <TableCell colSpan={11} className="py-8 text-center text-muted text-sm">
                 No books match the current filters.
               </TableCell>
             </TableRow>
@@ -220,6 +223,11 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
                   {/* Page count */}
                   <TableCell className="hidden lg:table-cell text-sm text-muted w-16 text-right">
                     {book?.pageCount ?? ''}
+                  </TableCell>
+
+                  {/* ISBN */}
+                  <TableCell className="hidden lg:table-cell text-xs text-muted whitespace-nowrap">
+                    {book?.isbn13 ?? ''}
                   </TableCell>
 
                   {/* Rating */}

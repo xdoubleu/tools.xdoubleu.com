@@ -97,3 +97,22 @@ func TestParseCSV_SkipsInvalidBookID(t *testing.T) {
 	assert.Len(t, entries, 1)
 	assert.Equal(t, "Good Book", entries[0].Book.Title)
 }
+
+func TestParseCSV_CanonicalisesFavouriteTag(t *testing.T) {
+	// "favorites" and "favourites" (Goodreads variants) should both map to "favourite".
+	rows := "11111,Book A,Author,,,0,to-read,\"to-read (#1), favorites\",\n" +
+		"22222,Book B,Author,,,0,to-read,\"to-read (#2), favourites\",\n" +
+		"33333,Book C,Author,,,0,to-read,\"to-read (#3), favorite\",\n" +
+		"44444,Book D,Author,,,0,to-read,\"to-read (#4), favourite\","
+	entries, err := books.ParseCSV(strings.NewReader(csvHeader + "\n" + rows + "\n"))
+	require.NoError(t, err)
+	require.Len(t, entries, 4)
+
+	for _, e := range entries {
+		assert.Contains(t, e.UserBook.Tags, models.TagFavourite,
+			"expected canonical 'favourite' tag for book %s", e.Book.Title)
+		assert.NotContains(t, e.UserBook.Tags, "favorites")
+		assert.NotContains(t, e.UserBook.Tags, "favourites")
+		assert.NotContains(t, e.UserBook.Tags, "favorite")
+	}
+}

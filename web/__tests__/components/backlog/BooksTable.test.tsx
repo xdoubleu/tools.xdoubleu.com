@@ -60,8 +60,27 @@ describe('BooksTable', () => {
     expect(screen.getByRole('button', { name: 'Title' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Author' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pages' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ISBN' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Rating' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Owned' })).toBeInTheDocument()
+  })
+
+  it('renders isbn13 value in the ISBN column', () => {
+    const book = create(UserBookSchema, {
+      id: '1',
+      status: 'to-read',
+      tags: [],
+      formats: [],
+      addedAt: '2024-01-01T00:00:00Z',
+      book: create(BookSchema, {
+        title: 'Dune',
+        authors: ['Frank Herbert'],
+        pageCount: 300,
+        isbn13: '9780441013593'
+      })
+    })
+    render(<BooksTable books={[book]} knownShelves={[]} knownTags={[]} />)
+    expect(screen.getByText('9780441013593')).toBeInTheDocument()
   })
 
   it('renders ownership toggles for each book row', () => {
