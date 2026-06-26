@@ -188,6 +188,72 @@ describe('BooksLibrary', () => {
     expect(screen.getByText('Untagged')).toBeInTheDocument()
   })
 
+  it('shows only favourite books when Favourites shelf is selected', () => {
+    const favReading = makeUserBook('fav1', 'Fav Reading', {
+      status: 'currently-reading',
+      tags: ['favourite']
+    })
+    const favFinished = makeUserBook('fav2', 'Fav Finished', {
+      status: 'read',
+      tags: ['favourite']
+    })
+    const notFav = makeUserBook('nf1', 'Not Fav', { status: 'currently-reading' })
+    const library = makeLibrary({ reading: [favReading, notFav], finished: [favFinished] })
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
+
+    fireEvent.click(screen.getAllByText('Favourites')[0])
+    expect(screen.getByText('Fav Reading')).toBeInTheDocument()
+    expect(screen.getByText('Fav Finished')).toBeInTheDocument()
+    expect(screen.queryByText('Not Fav')).not.toBeInTheDocument()
+  })
+
+  it('Favourites shelf cross-cuts all reading statuses', () => {
+    const favWishlist = makeUserBook('fav3', 'Fav Wishlist', {
+      status: 'to-read',
+      tags: ['favourite']
+    })
+    const library = makeLibrary({ wishlist: [favWishlist] })
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
+
+    fireEvent.click(screen.getAllByText('Favourites')[0])
+    expect(screen.getByText('Fav Wishlist')).toBeInTheDocument()
+  })
+
+  it('Favourites shelf is mutually exclusive with tag selection', () => {
+    const favTagged = makeUserBook('ft1', 'Fav Tagged', {
+      status: 'currently-reading',
+      tags: ['favourite', 'fantasy']
+    })
+    const taggedOnly = makeUserBook('t1', 'Tagged Only', {
+      status: 'currently-reading',
+      tags: ['fantasy']
+    })
+    const library = makeLibrary({ reading: [favTagged, taggedOnly] })
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
+
+    // Select favourites shelf
+    fireEvent.click(screen.getAllByText('Favourites')[0])
+    expect(screen.getByText('Fav Tagged')).toBeInTheDocument()
+    expect(screen.queryByText('Tagged Only')).not.toBeInTheDocument()
+
+    // Selecting a tag clears the shelf and shows all books with that tag
+    fireEvent.click(screen.getAllByText('fantasy')[0])
+    expect(screen.getByText('Fav Tagged')).toBeInTheDocument()
+    expect(screen.getByText('Tagged Only')).toBeInTheDocument()
+  })
+
+  it('does not default to Favourites shelf on initial render', () => {
+    const favBook = makeUserBook('fav1', 'Fav Book', {
+      status: 'currently-reading',
+      tags: ['favourite']
+    })
+    const library = makeLibrary({ reading: [favBook] })
+    render(<BooksLibrary library={library} knownShelves={[]} onSaved={jest.fn()} />)
+    // Should default to currently-reading (not favourites)
+    const header = screen.getByRole('heading')
+    expect(header.textContent).not.toMatch(/Favourites/)
+  })
+
   it('shows empty message when library has no books', () => {
     const emptyLib = makeLibrary({ reading: [], wishlist: [], finished: [], shelves: [] })
     render(<BooksLibrary library={emptyLib} knownShelves={[]} onSaved={jest.fn()} />)

@@ -6,6 +6,7 @@ import { SPECIAL_TAGS } from '@/lib/backlog/bookShelves'
 
 export type ShelfId =
   | 'all'
+  | 'favourite'
   | 'currently-reading'
   | 'wishlist'
   | 'finished'
@@ -23,19 +24,26 @@ export interface TagEntry {
 }
 
 export function buildShelves(library: LibraryResponse): Shelf[] {
+  const allBooks = [
+    ...library.reading,
+    ...library.wishlist,
+    ...library.finished,
+    ...library.shelves.flatMap((s) => s.books)
+  ]
   const fixed: Shelf[] = [
     {
       id: 'all',
       label: 'All books',
-      count:
-        library.reading.length +
-        library.wishlist.length +
-        library.finished.length +
-        library.shelves.reduce((s, sh) => s + sh.books.length, 0)
+      count: allBooks.length
     },
     { id: 'currently-reading', label: 'Currently reading', count: library.reading.length },
     { id: 'wishlist', label: 'Want to read', count: library.wishlist.length },
-    { id: 'finished', label: 'Read', count: library.finished.length }
+    { id: 'finished', label: 'Read', count: library.finished.length },
+    {
+      id: 'favourite',
+      label: 'Favourites',
+      count: allBooks.filter((b) => b.tags.includes('favourite')).length
+    }
   ]
   const dynamic: Shelf[] = library.shelves.map((s) => ({
     id: s.name,
