@@ -569,6 +569,8 @@ func (s *BookService) MergeBooks(
 	userID string,
 	winnerBookID uuid.UUID,
 	loserBookIDs []uuid.UUID,
+	resolvedMetadata *models.Book,
+	resolvedCoverSourceBookID *uuid.UUID,
 ) (uint32, error) {
 	if len(loserBookIDs) == 0 {
 		return 0, nil
@@ -719,5 +721,82 @@ func (s *BookService) MergeBooks(
 		}
 	}
 
+	// --- 6. Clean up orphaned loser catalog rows, then apply resolved metadata ---
+	for _, loserID := range loserBookIDs {
+		if delErr := s.books.DeleteOrphanedBook(ctx, loserID); delErr != nil {
+			return totalDeletedFiles, fmt.Errorf(
+				"delete orphaned book for loser %s: %w", loserID, delErr,
+			)
+		}
+	}
+
+	if resolvedMetadata != nil {
+		resolvedMetadata.ID = winnerBookID
+		if updateErr := s.books.UpdateBookByID(ctx, *resolvedMetadata); updateErr != nil {
+			return totalDeletedFiles, fmt.Errorf(
+				"apply resolved metadata: %w",
+				updateErr,
+			)
+		}
+	}
+
+	if resolvedCoverSourceBookID != nil &&
+		*resolvedCoverSourceBookID != winnerBookID {
+		if coverErr := s.applyCoverSource(
+			ctx, winnerBookID, *resolvedCoverSourceBookID,
+		); coverErr != nil {
+			return totalDeletedFiles, fmt.Errorf("apply resolved cover: %w", coverErr)
+		}
+	}
+
 	return totalDeletedFiles, nil
+}
+
+// applyCoverSource copies the source book's cover_url onto the winner catalog
+// row and clears the winner's R2 cover cache so the next request re-fetches
+// the image from the new URL.
+func (s *BookService) applyCoverSource(
+	ctx context.Context,
+	winnerBookID uuid.UUID,
+	sourceBookID uuid.UUID,
+) error {
+	source, err := s.books.GetBookByID(ctx, sourceBookID)
+	if err != nil {
+		return fmt.Errorf("load cover source book: %w", err)
+	}
+
+	winner, err := s.books.GetBookByID(ctx, winnerBookID)
+	if err != nil {
+		return fmt.Errorf("load winner book for cover update: %w", err)
+	}
+
+	winner.CoverURL = source.CoverURL
+	if updateErr := s.books.UpdateBookByID(ctx, *winner); updateErr != nil {
+		return fmt.Errorf("write cover_url to winner: %w", updateErr)
+	}
+
+	// Clear cached cover images so the next proxy request re-fetches.
+	for _, key := range []string{
+		bookCoverKey(winnerBookID),
+		bookCoverMissingKey(winnerBookID),
+	} {
+		if exists, checkErr := s.objectStore.Exists(ctx, key); checkErr != nil {
+			s.logger.Warn(
+				"failed to check cover cache key",
+				"key",
+				key,
+				"err",
+				checkErr,
+			)
+		} else if exists {
+			if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
+				s.logger.Warn(
+					"failed to clear cover cache key",
+					"key", key, "err", delErr,
+				)
+			}
+		}
+	}
+
+	return nil
 }

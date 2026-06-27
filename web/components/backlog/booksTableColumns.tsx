@@ -170,7 +170,9 @@ export const ALL_COLUMNS: BookColumn[] = [
     key: 'isbn',
     label: 'ISBN',
     renderCell: (ub) => (
-      <span className="text-xs text-muted whitespace-nowrap">{ub.book?.isbn13 ?? ''}</span>
+      <span className="text-xs text-muted whitespace-nowrap">
+        {ub.book?.isbn13 ? `ISBN ${ub.book.isbn13}` : ''}
+      </span>
     )
   },
   {

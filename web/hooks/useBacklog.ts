@@ -20,7 +20,8 @@ import type {
   GetBookFileResponse,
   ListKoboDevicesResponse,
   FindDuplicatesResponse,
-  ListCatalogBooksResponse
+  ListCatalogBooksResponse,
+  Book
 } from '@/lib/gen/backlog/v1/books_pb'
 
 export type AddBookInput = MessageInitShape<typeof AddBookRequestSchema>
@@ -257,10 +258,20 @@ export function useFindDuplicates() {
   )
 }
 
+export interface MergeBooksOptions {
+  resolvedMetadata?: Book
+  resolvedCoverSourceBookId?: string
+}
+
 export function useMergeBooks() {
   const client = createServiceClient(BooksService)
-  return (winnerBookId: string, loserBookIds: string[]) =>
-    client.mergeBooks({ winnerBookId, loserBookIds })
+  return (winnerBookId: string, loserBookIds: string[], options?: MergeBooksOptions) =>
+    client.mergeBooks({
+      winnerBookId,
+      loserBookIds,
+      resolvedMetadata: options?.resolvedMetadata,
+      resolvedCoverSourceBookId: options?.resolvedCoverSourceBookId
+    })
 }
 
 export function useCatalogBooks() {

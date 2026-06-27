@@ -114,6 +114,7 @@ func TestMergeBooks_UnionsTagsAndFinishedAt(t *testing.T) {
 
 	_, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -173,6 +174,7 @@ func TestMergeBooks_PicksMostProgressedStatus(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -217,6 +219,7 @@ func TestMergeBooks_RepointsBookFiles(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -271,6 +274,7 @@ func TestMergeBooks_DeduplicatesIdenticalFiles(t *testing.T) {
 
 	deletedFiles, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, uint32(1), deletedFiles, "duplicate file row must be deleted")
@@ -311,6 +315,7 @@ func TestMergeBooks_ConsolidatesReadingState(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -348,7 +353,7 @@ func TestMergeBooks_NoLosers_IsNoop(t *testing.T) {
 	)
 
 	deleted, err := testApp.Services.Books.MergeBooks(
-		context.Background(), mergeTestUser, winner.BookID, nil,
+		context.Background(), mergeTestUser, winner.BookID, nil, nil, nil,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, uint32(0), deleted)
@@ -384,6 +389,7 @@ func TestMergeBooks_FallsBackToLoserRating(t *testing.T) {
 
 	_, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -425,6 +431,7 @@ func TestMergeBooks_WinnerReadingStateNotOverridden(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -436,6 +443,116 @@ func TestMergeBooks_WinnerReadingStateNotOverridden(t *testing.T) {
 	).Scan(&percent)
 	require.NoError(t, err)
 	assert.Equal(t, 75, percent, "winner reading state must not be overridden by loser")
+}
+
+// --- resolved metadata tests ---
+
+func TestMergeBooks_AppliesResolvedMetadata(t *testing.T) {
+	cleanupMergeUser(t)
+
+	isbn1 := "9780011111111"
+	isbn2 := "9780011111112"
+	winner := addMergeBook(t, "MetaWinnerA", isbn1, models.StatusToRead, []string{})
+	loser := addMergeBook(t, "MetaLoserB", isbn2, models.StatusToRead, []string{})
+
+	// Use the loser's title and description as the resolved values.
+	loserDesc := "A much better description from loser"
+	resolvedTitle := "Resolved Final Title"
+	//nolint:exhaustruct // catalog fields only; ID is set by the service
+	resolved := &models.Book{
+		Title:       resolvedTitle,
+		Authors:     []string{"Resolved Author"},
+		Description: &loserDesc,
+	}
+
+	_, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		resolved, nil,
+	)
+	require.NoError(t, err)
+
+	var gotTitle, gotDesc string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT title, COALESCE(description, '') FROM backlog.books WHERE id = $1`,
+		winner.BookID,
+	).Scan(&gotTitle, &gotDesc)
+	require.NoError(t, err)
+	assert.Equal(t, resolvedTitle, gotTitle, "winner book title must be overwritten")
+	assert.Equal(t, loserDesc, gotDesc, "winner book description must be overwritten")
+}
+
+func TestMergeBooks_NilResolvedMetadataPreservesBook(t *testing.T) {
+	cleanupMergeUser(t)
+
+	isbn1 := "9780012121211"
+	isbn2 := "9780012121212"
+	winner := addMergeBook(t, "PreservedTitle", isbn1, models.StatusToRead, []string{})
+	loser := addMergeBook(t, "LoserTitle", isbn2, models.StatusToRead, []string{})
+
+	var originalTitle string
+	err := testDB.QueryRow(context.Background(),
+		`SELECT title FROM backlog.books WHERE id = $1`, winner.BookID,
+	).Scan(&originalTitle)
+	require.NoError(t, err)
+
+	_, err = testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil,
+	)
+	require.NoError(t, err)
+
+	var gotTitle string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT title FROM backlog.books WHERE id = $1`, winner.BookID,
+	).Scan(&gotTitle)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		originalTitle,
+		gotTitle,
+		"winner book must not change when no resolved metadata",
+	)
+}
+
+func TestMergeBooks_OrphanedLoserBookDeleted(t *testing.T) {
+	cleanupMergeUser(t)
+
+	isbn1 := "9780013131311"
+	isbn2 := "9780013131312"
+	winner := addMergeBook(t, "OrphanWinner", isbn1, models.StatusToRead, []string{})
+	loser := addMergeBook(t, "OrphanLoser", isbn2, models.StatusToRead, []string{})
+	loserBookID := loser.BookID
+
+	_, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
+		nil, nil,
+	)
+	require.NoError(t, err)
+
+	// Loser catalog book row must be gone (no other user references it).
+	var count int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.books WHERE id = $1`, loserBookID,
+	).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "orphaned loser catalog book must be deleted")
+}
+
+func TestConnectMergeBooks_InvalidCoverSourceID(t *testing.T) {
+	client := newAdminBooksTestClient(t)
+	bad := "not-a-uuid"
+	req := connect.NewRequest(&backlogv1.MergeBooksRequest{
+		WinnerBookId:              uuid.NewString(),
+		LoserBookIds:              []string{},
+		ResolvedCoverSourceBookId: &bad,
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.MergeBooks(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
 }
 
 // --- connect handler tests ---

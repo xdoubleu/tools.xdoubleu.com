@@ -244,6 +244,15 @@ message MergeBooksRequest {
   string winner_book_id = 1;
   // book_ids of UserBook entries to merge into the winner, then delete.
   repeated string loser_book_ids = 2;
+  // When set, these field values overwrite the winner's catalog Book row after
+  // the merge. cover_url is excluded — control cover resolution via
+  // resolved_cover_source_book_id instead.
+  // Omit to keep the winner's existing metadata unchanged (current behavior).
+  optional Book resolved_metadata = 3;
+  // book_id whose cover should be used for the merged winner. The backend
+  // copies that entry's raw cover URL and clears the winner's cover cache.
+  // Omit to keep the winner's existing cover unchanged.
+  optional string resolved_cover_source_book_id = 4;
 }
 message MergeBooksResponse {
   // Always 1 — one group merged per call.

@@ -6,6 +6,13 @@ import { useFindDuplicates, useMergeBooks } from '@/hooks/useBacklog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import DuplicateBookSummary from '@/components/backlog/DuplicateBookSummary'
+import ConflictFieldPicker from '@/components/backlog/ConflictFieldPicker'
+import {
+  detectConflicts,
+  buildResolvedMetadata,
+  ALL_CONFLICT_FIELDS,
+  type BookConflictField
+} from '@/components/backlog/duplicateConflicts'
 import type { DuplicateGroup } from '@/lib/gen/backlog/v1/books_pb'
 
 // ---------------------------------------------------------------------------
@@ -35,6 +42,9 @@ interface DuplicateGroupCardProps {
   onWinnerChange: (id: string) => void
   onMerge: () => Promise<void>
   merging: boolean
+  fieldChoices: Partial<Record<BookConflictField, string>>
+  onFieldChoiceChange: (field: BookConflictField, bookId: string) => void
+  groupKey: string
 }
 
 function DuplicateGroupCard({
@@ -42,8 +52,13 @@ function DuplicateGroupCard({
   winnerId,
   onWinnerChange,
   onMerge,
-  merging
+  merging,
+  fieldChoices,
+  onFieldChoiceChange,
+  groupKey
 }: DuplicateGroupCardProps) {
+  const conflicts = detectConflicts(group)
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -76,6 +91,14 @@ function DuplicateGroupCard({
           </label>
         ))}
       </div>
+
+      <ConflictFieldPicker
+        group={group}
+        conflicts={conflicts}
+        fieldChoices={fieldChoices}
+        onChoiceChange={onFieldChoiceChange}
+        groupKey={groupKey}
+      />
     </div>
   )
 }
@@ -98,6 +121,10 @@ export default function ManageDuplicatesDialog({
 
   // winnerIds[groupKey] = selected winner bookId for that group.
   const [winnerIds, setWinnerIds] = useState<Record<string, string>>({})
+  // fieldChoices[groupKey][field] = bookId of the chosen entry for that field.
+  const [fieldChoices, setFieldChoices] = useState<
+    Record<string, Partial<Record<BookConflictField, string>>>
+  >({})
   // mergingKey tracks which group (by key) is currently merging.
   const [mergingKey, setMergingKey] = useState<string | null>(null)
   const [mergeAllBusy, setMergeAllBusy] = useState(false)
@@ -114,10 +141,33 @@ export default function ManageDuplicatesDialog({
     return winnerIds[groupKey(g)] ?? g.entries[0]?.bookId ?? ''
   }
 
+  function getFieldChoices(g: DuplicateGroup): Partial<Record<BookConflictField, string>> {
+    const key = groupKey(g)
+    const winner = getWinnerId(g)
+    const stored = fieldChoices[key] ?? {}
+
+    // Default each conflicting field to the current winner's bookId.
+    const defaults: Partial<Record<BookConflictField, string>> = {}
+    for (const { field } of detectConflicts(g)) {
+      defaults[field] = stored[field] ?? winner
+    }
+
+    return { ...defaults, ...stored }
+  }
+
   async function mergeGroup(g: DuplicateGroup): Promise<void> {
     const winner = getWinnerId(g)
     const losers = g.entries.map((e) => e.bookId).filter((id) => id !== winner)
-    await mergeBooks(winner, losers)
+    const choices = getFieldChoices(g)
+
+    const resolvedMetadata = buildResolvedMetadata(g, choices)
+    const coverChoice = choices['cover']
+
+    await mergeBooks(winner, losers, {
+      resolvedMetadata,
+      resolvedCoverSourceBookId: coverChoice && coverChoice !== winner ? coverChoice : undefined
+    })
+
     await mutate('/backlog/books')
     await mutateDupes()
   }
@@ -149,6 +199,28 @@ export default function ManageDuplicatesDialog({
     }
   }
 
+  function handleWinnerChange(g: DuplicateGroup, id: string) {
+    const key = groupKey(g)
+    setWinnerIds((prev) => ({ ...prev, [key]: id }))
+    // Re-default all field choices to the new winner (user can override).
+    setFieldChoices((prev) => {
+      const existing = prev[key] ?? {}
+      const reset: Partial<Record<BookConflictField, string>> = {}
+      for (const field of ALL_CONFLICT_FIELDS) {
+        if (field in existing) reset[field] = id
+      }
+      return { ...prev, [key]: reset }
+    })
+  }
+
+  function handleFieldChoiceChange(g: DuplicateGroup, field: BookConflictField, bookId: string) {
+    const key = groupKey(g)
+    setFieldChoices((prev) => ({
+      ...prev,
+      [key]: { ...(prev[key] ?? {}), [field]: bookId }
+    }))
+  }
+
   const busy = mergeAllBusy || mergingKey !== null
 
   return (
@@ -172,9 +244,12 @@ export default function ManageDuplicatesDialog({
                 key={key}
                 group={g}
                 winnerId={getWinnerId(g)}
-                onWinnerChange={(id) => setWinnerIds((prev) => ({ ...prev, [key]: id }))}
+                onWinnerChange={(id) => handleWinnerChange(g, id)}
                 onMerge={() => handleMergeOne(g)}
                 merging={mergingKey === key}
+                fieldChoices={getFieldChoices(g)}
+                onFieldChoiceChange={(field, bookId) => handleFieldChoiceChange(g, field, bookId)}
+                groupKey={key}
               />
             )
           })}

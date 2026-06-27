@@ -84,7 +84,7 @@ describe('BooksTable', () => {
       })
     })
     render(<BooksTable books={[book]} knownShelves={[]} knownTags={[]} />)
-    expect(screen.getByText('9780441013593')).toBeInTheDocument()
+    expect(screen.getByText('ISBN 9780441013593')).toBeInTheDocument()
   })
 
   it('renders ownership toggles for each book row', () => {

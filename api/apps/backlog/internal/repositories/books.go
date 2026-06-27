@@ -101,6 +101,67 @@ func (repo *BooksRepository) GetBookByID(
 	return book, nil
 }
 
+// UpdateBookByID overwrites the catalog fields of an existing book row, matched
+// strictly by its primary key. Unlike UpsertBook this never matches on the
+// isbn13 unique index, so it is safe to use when the resolved ISBN differs from
+// the current winner's ISBN.
+func (repo *BooksRepository) UpdateBookByID(
+	ctx context.Context,
+	book models.Book,
+) error {
+	externalRefsJSON, err := json.Marshal(book.ExternalRefs)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE backlog.books
+		SET
+		    title         = $2,
+		    authors       = $3,
+		    isbn13        = $4,
+		    isbn10        = $5,
+		    cover_url     = $6,
+		    description   = $7,
+		    page_count    = $8,
+		    external_refs = $9,
+		    updated_at    = now()
+		WHERE id = $1
+	`
+
+	_, err = repo.db.Exec(ctx, query,
+		book.ID,
+		book.Title,
+		book.Authors,
+		book.ISBN13,
+		book.ISBN10,
+		book.CoverURL,
+		book.Description,
+		book.PageCount,
+		string(externalRefsJSON),
+	)
+
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// DeleteOrphanedBook deletes a catalog book row only when no user_books row
+// still references it. Returns nil (not an error) when other references exist.
+func (repo *BooksRepository) DeleteOrphanedBook(
+	ctx context.Context,
+	bookID uuid.UUID,
+) error {
+	query := `
+		DELETE FROM backlog.books
+		WHERE id = $1
+		  AND NOT EXISTS (
+		      SELECT 1 FROM backlog.user_books WHERE book_id = $1
+		  )
+	`
+
+	_, err := repo.db.Exec(ctx, query, bookID)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 func (repo *BooksRepository) UpsertUserBook(
 	ctx context.Context,
 	ub models.UserBook,
