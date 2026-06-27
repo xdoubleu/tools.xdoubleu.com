@@ -122,6 +122,8 @@ func TestResyncBooks_NonAdmin_PermissionDenied(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestListCatalogBooks_Admin_ReturnsBooks(t *testing.T) {
+	addTestBook(t, "Catalog Test Book")
+
 	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&backlogv1.ListCatalogBooksRequest{})
 	req.Header().Set("Cookie", accessToken.String())
@@ -129,7 +131,7 @@ func TestListCatalogBooks_Admin_ReturnsBooks(t *testing.T) {
 	resp, err := client.ListCatalogBooks(context.Background(), req)
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.NotNil(t, resp.Msg.Books)
+	assert.NotEmpty(t, resp.Msg.Books)
 }
 
 // ---------------------------------------------------------------------------
