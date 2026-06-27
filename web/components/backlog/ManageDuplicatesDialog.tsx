@@ -5,9 +5,8 @@ import { mutate } from 'swr'
 import { useFindDuplicates, useMergeBooks } from '@/hooks/useBacklog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import BookCover from '@/components/backlog/BookCover'
-import type { DuplicateGroup, UserBook } from '@/lib/gen/backlog/v1/books_pb'
+import DuplicateBookSummary from '@/components/backlog/DuplicateBookSummary'
+import type { DuplicateGroup } from '@/lib/gen/backlog/v1/books_pb'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -24,33 +23,6 @@ function reasonLabel(reason: string): string {
     default:
       return reason
   }
-}
-
-function BookSummary({ ub }: { ub: UserBook }) {
-  const book = ub.book
-  if (!book) return null
-  const hasPdf = ub.formats.includes('pdf')
-  const hasEpub = ub.formats.includes('epub')
-  const hasPhysical = ub.tags.includes('own-physical')
-  const hasDigital = ub.tags.includes('own-digital')
-  return (
-    <div className="flex items-start gap-3">
-      <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium leading-tight">{book.title}</p>
-        <p className="text-xs text-muted truncate">{book.authors.join(', ')}</p>
-        <div className="flex flex-wrap gap-1 mt-1">
-          <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle capitalize">
-            {ub.status}
-          </span>
-          {hasPhysical && <Badge variant="secondary">Physical</Badge>}
-          {hasDigital && <Badge variant="secondary">Digital</Badge>}
-          {hasPdf && <Badge variant="default">PDF</Badge>}
-          {hasEpub && <Badge variant="default">EPUB</Badge>}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // ---------------------------------------------------------------------------
@@ -96,7 +68,7 @@ function DuplicateGroupCard({
               className="mt-1 shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <BookSummary ub={ub} />
+              <DuplicateBookSummary ub={ub} />
               {winnerId === ub.bookId && (
                 <p className="text-xs text-success mt-1">Keep this entry</p>
               )}

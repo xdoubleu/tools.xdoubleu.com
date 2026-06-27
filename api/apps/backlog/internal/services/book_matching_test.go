@@ -493,6 +493,128 @@ func TestFindDuplicateGroups_FormatsDoNotAffectWinner(t *testing.T) {
 	assert.Equal(t, noFormats.BookID, groups[0].Entries[0].BookID)
 }
 
+// --- FindDuplicateGroups group ordering ---
+
+// makeDupGroup is a convenience builder: returns two UserBooks sharing isbn13
+// so they form a duplicate group with the given title (used as sort key).
+func makeDupGroup(
+	title, isbn13val, isbn10val string,
+	reason string,
+) (models.UserBook, models.UserBook) {
+	var i13, i10 *string
+	if isbn13val != "" {
+		i13 = isbn13Ptr(isbn13val)
+	}
+	if isbn10val != "" {
+		i10 = isbn10Ptr(isbn10val)
+	}
+	a := makeUBWithISBN(title, []string{"Author"}, i13, i10, models.StatusToRead)
+	b := makeUBWithISBN(
+		title+" (2nd ed.)",
+		[]string{"Author"},
+		i13,
+		i10,
+		models.StatusToRead,
+	)
+	_ = reason
+	return a, b
+}
+
+func TestFindDuplicateGroups_GroupOrderIsDeterministic(t *testing.T) {
+	// Build a library with three distinct duplicate groups:
+	//   group A — isbn13 match, title "Alpha"
+	//   group B — isbn13 match, title "Beta"
+	//   group C — isbn10-only match, title "Gamma"
+	//
+	// Expected sort: signal strength desc (A, B before C), then title asc (A
+	// before B). So stable order is [A, B, C].
+
+	a1, a2 := makeDupGroup("Alpha", "9780000000001", "", "isbn13")
+	b1, b2 := makeDupGroup("Beta", "9780000000002", "", "isbn13")
+	c1, c2 := makeDupGroup("Gamma", "", "0000000003", "isbn10")
+
+	lib := []models.UserBook{c1, b1, a2, c2, a1, b2} // intentionally shuffled
+
+	// Call FindDuplicateGroups multiple times and verify the order is identical.
+	first := FindDuplicateGroups(lib)
+	if len(first) != 3 {
+		t.Fatalf("expected 3 groups, got %d", len(first))
+	}
+
+	for range 10 {
+		got := FindDuplicateGroups(lib)
+		assert.Len(t, got, 3)
+		for i, g := range got {
+			assert.Equal(t, first[i].Reason, g.Reason,
+				"group %d reason changed between calls", i)
+			assert.Equal(
+				t,
+				first[i].Entries[0].BookID,
+				g.Entries[0].BookID,
+				"group %d winner changed between calls", i,
+			)
+		}
+	}
+
+	// Verify the documented order: isbn13 groups first, then title asc within tier.
+	assert.Equal(t, "isbn13", first[0].Reason)
+	assert.Equal(t, "isbn13", first[1].Reason)
+	assert.Equal(t, "isbn10", first[2].Reason)
+
+	// Within the isbn13 tier: "Alpha" < "Beta" alphabetically.
+	title0 := first[0].Entries[0].Book.Title
+	title1 := first[1].Entries[0].Book.Title
+	assert.Less(t, title0, title1, "isbn13 groups should be sorted by winner title")
+}
+
+func TestFindDuplicateGroups_GroupOrderStableOnShuffledInput(t *testing.T) {
+	// Groups should come back in the same order regardless of input slice order.
+	a1, a2 := makeDupGroup("Zeta", "9780000000010", "", "isbn13")
+	b1, b2 := makeDupGroup("Aardvark", "9780000000011", "", "isbn13")
+
+	orderA := FindDuplicateGroups([]models.UserBook{a1, a2, b1, b2})
+	orderB := FindDuplicateGroups([]models.UserBook{b2, a2, b1, a1})
+	orderC := FindDuplicateGroups([]models.UserBook{b1, b2, a1, a2})
+
+	if len(orderA) != 2 {
+		t.Fatalf("expected 2 groups, got %d", len(orderA))
+	}
+	assert.Len(t, orderB, 2)
+	assert.Len(t, orderC, 2)
+
+	for i := range 2 {
+		assert.Equal(
+			t,
+			orderA[i].Entries[0].BookID,
+			orderB[i].Entries[0].BookID,
+			"group %d winner differs between orderA and orderB", i,
+		)
+		assert.Equal(
+			t,
+			orderA[i].Entries[0].BookID,
+			orderC[i].Entries[0].BookID,
+			"group %d winner differs between orderA and orderC", i,
+		)
+	}
+
+	// "Aardvark" < "Zeta" — the Aardvark group must come first.
+	// We check that some entry in group[0] is titled "Aardvark" rather than
+	// asserting Entries[0] specifically, because the within-group winner is
+	// decided by UUID tiebreak and is non-deterministic across runs.
+	firstGroupTitles := make([]string, 0, len(orderA[0].Entries))
+	for _, e := range orderA[0].Entries {
+		if e.Book != nil {
+			firstGroupTitles = append(firstGroupTitles, e.Book.Title)
+		}
+	}
+	assert.Contains(
+		t,
+		firstGroupTitles,
+		"Aardvark",
+		"groups not sorted by title within same signal tier",
+	)
+}
+
 func TestMetadataCompleteness_NilBook(t *testing.T) {
 	assert.Equal(t, 0, metadataCompleteness(nil))
 }

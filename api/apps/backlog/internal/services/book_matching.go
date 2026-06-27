@@ -178,6 +178,21 @@ func richness(ub models.UserBook) int {
 	return score
 }
 
+// signalStrengthFor returns the numeric strength of a duplicate-matching
+// reason string. Higher is more confident. Unknown reasons return 0.
+func signalStrengthFor(reason string) int {
+	switch reason {
+	case "isbn13":
+		return signalISBN13
+	case "isbn10":
+		return signalISBN10
+	case "title+author":
+		return signalTitleAuthor
+	default:
+		return 0
+	}
+}
+
 // FindDuplicateGroups returns groups of UserBook entries judged to be the same
 // book. Two entries are considered duplicates when they share a non-empty
 // ISBN13, a non-empty ISBN10, or a normalised title together with at least one
@@ -185,7 +200,11 @@ func richness(ub models.UserBook) int {
 //
 // Groups of size < 2 are not returned. Within each group Entries[0] is the
 // suggested winner (most complete metadata; ties broken by status, then tags,
-// then age, then BookID to ensure a deterministic order).
+// then age, then BookID to ensure a deterministic order). The returned group
+// list itself is sorted by matching-signal strength descending (isbn13 first,
+// then isbn10, then title+author), then by the winner's title ascending, then
+// by the winner's BookID as a final unique tiebreak — so the order is stable
+// across repeated calls regardless of the input slice ordering.
 //
 //nolint:funlen,gocognit,gocyclo,cyclop // union-find + buckets + winner; cannot split
 func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
@@ -210,24 +229,18 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 		return parent[x]
 	}
 
-	signalStrength := map[string]int{
-		"isbn13":       signalISBN13,
-		"isbn10":       signalISBN10,
-		"title+author": signalTitleAuthor,
-	}
-
 	union := func(a, b int, sig string) {
 		ra, rb := find(a), find(b)
 		if ra == rb {
 			// already connected — upgrade reason if stronger signal
-			if signalStrength[sig] > signalStrength[reason[ra]] {
+			if signalStrengthFor(sig) > signalStrengthFor(reason[ra]) {
 				reason[ra] = sig
 			}
 			return
 		}
 		// merge rb into ra
 		parent[rb] = ra
-		if signalStrength[sig] > signalStrength[reason[ra]] {
+		if signalStrengthFor(sig) > signalStrengthFor(reason[ra]) {
 			reason[ra] = sig
 		}
 	}
@@ -347,6 +360,48 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 	if len(result) == 0 {
 		return nil
 	}
+
+	// Sort the group list so repeated calls return a stable order:
+	// 1. Matching-signal strength descending (isbn13 > isbn10 > title+author).
+	// 2. Winner book title ascending (case-insensitive).
+	// 3. Winner BookID string as final tiebreak (unique).
+	slices.SortFunc(result, func(a, b DuplicateGroup) int {
+		sa := signalStrengthFor(a.Reason)
+		sb := signalStrengthFor(b.Reason)
+		if sa != sb {
+			return sb - sa // descending
+		}
+		titleA := ""
+		if len(a.Entries) > 0 && a.Entries[0].Book != nil {
+			titleA = strings.ToLower(a.Entries[0].Book.Title)
+		}
+		titleB := ""
+		if len(b.Entries) > 0 && b.Entries[0].Book != nil {
+			titleB = strings.ToLower(b.Entries[0].Book.Title)
+		}
+		if titleA != titleB {
+			if titleA < titleB {
+				return -1
+			}
+			return 1
+		}
+		idA := ""
+		if len(a.Entries) > 0 {
+			idA = a.Entries[0].BookID.String()
+		}
+		idB := ""
+		if len(b.Entries) > 0 {
+			idB = b.Entries[0].BookID.String()
+		}
+		if idA < idB {
+			return -1
+		}
+		if idA > idB {
+			return 1
+		}
+		return 0
+	})
+
 	return result
 }
 

@@ -828,13 +828,15 @@ func protoBook(book *models.Book, coverBaseURL string) *backlogv1.Book {
 	}
 
 	return &backlogv1.Book{
-		Id:          book.ID.String(),
-		Title:       book.Title,
-		Authors:     book.Authors,
-		Isbn13:      stringPtr(book.ISBN13),
-		CoverUrl:    proxyURL,
-		Description: stringPtr(book.Description),
-		PageCount:   int32FromIntPtr(book.PageCount),
+		Id:           book.ID.String(),
+		Title:        book.Title,
+		Authors:      book.Authors,
+		Isbn13:       stringPtr(book.ISBN13),
+		Isbn10:       stringPtr(book.ISBN10),
+		CoverUrl:     proxyURL,
+		Description:  stringPtr(book.Description),
+		PageCount:    int32FromIntPtr(book.PageCount),
+		ExternalRefs: book.ExternalRefs,
 	}
 }
 
