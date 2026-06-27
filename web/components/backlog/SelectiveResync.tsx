@@ -29,7 +29,9 @@ function matchesFilter(book: CatalogBookStatus, filter: FilterKey): boolean {
     case 'not_in_ol':
       return book.openlibraryStatus === 'not_found'
     case 'not_in_gb':
-      return book.googlebooksStatus === 'not_found'
+      // Only flag when Open Library also did not find it — a book found in OL
+      // already has its metadata sourced, so GB absence is not actionable.
+      return book.googlebooksStatus === 'not_found' && book.openlibraryStatus !== 'found'
   }
 }
 

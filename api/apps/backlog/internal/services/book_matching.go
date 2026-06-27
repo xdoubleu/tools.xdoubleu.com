@@ -14,7 +14,9 @@ import (
 )
 
 // DuplicateGroup holds a set of library entries judged to be the same book.
-// Entries[0] is the suggested winner (the richest entry to keep).
+// Entries[0] is the suggested winner — the entry with the most complete book
+// metadata (cover, description, page count, ISBNs), since that is the one
+// attribute MergeBooks does not consolidate.
 type DuplicateGroup struct {
 	Entries []models.UserBook
 	// Reason is the strongest matching signal: "isbn13" | "isbn10" | "title+author"
@@ -85,11 +87,15 @@ const (
 
 // Richness weight constants — bucket sizes ensure that a higher-weight field
 // can never be outweighed by any combination of lower-weight fields.
+//
+// Priority order: metadata completeness > reading status > tags > age.
+// Formats are intentionally excluded: MergeBooks repoints all file formats
+// onto the winner regardless, so format count should not drive winner selection.
 const (
-	richnessStatusWeight   = 1_000_000
-	richnessFormatsWeight  = 10_000
-	richnessTagsWeight     = 100
-	richnessSecondsPerHour = 3600
+	richnessCompletenessWeight = 100_000_000
+	richnessStatusWeight       = 1_000_000
+	richnessTagsWeight         = 100
+	richnessSecondsPerHour     = 3600
 	// richnessMaxAgeHours caps the age penalty so it never overflows into the
 	// tags bucket; 65 535 hours ≈ 7.5 years.
 	richnessMaxAgeHours = 65535
@@ -120,11 +126,48 @@ func statusRank(status string) int {
 	}
 }
 
+// metadataCompleteness counts how many catalog Book fields are populated.
+// It is the dominant factor in richness so that the entry carrying the most
+// complete metadata is suggested as the merge winner — metadata is the one
+// attribute MergeBooks does not consolidate across duplicates.
+// Returns 0 when book is nil.
+func metadataCompleteness(book *models.Book) int {
+	if book == nil {
+		return 0
+	}
+	score := 0
+	if len(book.Authors) > 0 {
+		score++
+	}
+	if book.ISBN13 != nil && *book.ISBN13 != "" {
+		score++
+	}
+	if book.ISBN10 != nil && *book.ISBN10 != "" {
+		score++
+	}
+	if book.CoverURL != nil && *book.CoverURL != "" {
+		score++
+	}
+	if book.Description != nil && *book.Description != "" {
+		score++
+	}
+	if book.PageCount != nil && *book.PageCount > 0 {
+		score++
+	}
+	if len(book.ExternalRefs) > 0 {
+		score++
+	}
+	return score
+}
+
 // richness scores a UserBook for winner selection: higher is better. The
 // composite avoids the need for nested sort keys.
+//
+// Priority: metadata completeness > reading status > tags > age.
+// Formats are excluded — MergeBooks repoints all file formats onto the winner.
 func richness(ub models.UserBook) int {
-	score := statusRank(ub.Status) * richnessStatusWeight
-	score += len(ub.Formats) * richnessFormatsWeight
+	score := metadataCompleteness(ub.Book) * richnessCompletenessWeight
+	score += statusRank(ub.Status) * richnessStatusWeight
 	score += len(ub.Tags) * richnessTagsWeight
 	// Earlier added_at is better (more history); invert by negating unix seconds
 	// clamped so it never flips higher-weight buckets.
@@ -141,8 +184,8 @@ func richness(ub models.UserBook) int {
 // shared normalised author last name.
 //
 // Groups of size < 2 are not returned. Within each group Entries[0] is the
-// suggested winner (highest richness score; ties broken by BookID to ensure a
-// deterministic order).
+// suggested winner (most complete metadata; ties broken by status, then tags,
+// then age, then BookID to ensure a deterministic order).
 //
 //nolint:funlen,gocognit,gocyclo,cyclop // union-find + buckets + winner; cannot split
 func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {

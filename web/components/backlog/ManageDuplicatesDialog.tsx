@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
-import Image from 'next/image'
 import { useFindDuplicates, useMergeBooks } from '@/hooks/useBacklog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import BookCover from '@/components/backlog/BookCover'
 import type { DuplicateGroup, UserBook } from '@/lib/gen/backlog/v1/books_pb'
 
 // ---------------------------------------------------------------------------
@@ -35,17 +35,7 @@ function BookSummary({ ub }: { ub: UserBook }) {
   const hasDigital = ub.tags.includes('own-digital')
   return (
     <div className="flex items-start gap-3">
-      {book.coverUrl ? (
-        <Image
-          src={book.coverUrl}
-          alt={book.title}
-          width={32}
-          height={48}
-          className="object-cover rounded shrink-0"
-        />
-      ) : (
-        <div className="w-8 h-12 rounded bg-surface shrink-0" />
-      )}
+      <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-tight">{book.title}</p>
         <p className="text-xs text-muted truncate">{book.authors.join(', ')}</p>

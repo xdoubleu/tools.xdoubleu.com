@@ -44,8 +44,10 @@ const sampleBooks = [
     lastResyncAt: '2026-01-01T00:00:00Z'
   },
   {
+    // Found in OL but NOT in GB — should NOT appear under the "not_in_gb" filter
+    // because OL already sourced the metadata.
     id: 'book-2',
-    title: 'Book Not In Google Books',
+    title: 'Book Found Only In Open Library',
     authors: ['Author B'],
     isbn13: '9780140449112',
     hasCover: true,
@@ -65,6 +67,19 @@ const sampleBooks = [
     hasPageCount: true,
     openlibraryStatus: 'found',
     googlebooksStatus: 'found',
+    lastResyncAt: '2026-01-01T00:00:00Z'
+  },
+  {
+    // Not found in either provider — should appear under "not_in_gb".
+    id: 'book-4',
+    title: 'Book Not Found Anywhere',
+    authors: ['Author D'],
+    isbn13: '9780000000000',
+    hasCover: false,
+    hasDescription: false,
+    hasPageCount: false,
+    openlibraryStatus: 'not_found',
+    googlebooksStatus: 'not_found',
     lastResyncAt: '2026-01-01T00:00:00Z'
   }
 ]
@@ -87,8 +102,9 @@ describe('SelectiveResync', () => {
   it('renders all catalog books by default', () => {
     render(<SelectiveResync />)
     expect(screen.getByText('Book Without ISBN')).toBeInTheDocument()
-    expect(screen.getByText('Book Not In Google Books')).toBeInTheDocument()
+    expect(screen.getByText('Book Found Only In Open Library')).toBeInTheDocument()
     expect(screen.getByText('Complete Book')).toBeInTheDocument()
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
   })
 
   it('shows a loading indicator while fetching', () => {
@@ -117,18 +133,37 @@ describe('SelectiveResync', () => {
   it('filters to Not in Google Books books when that chip is active', () => {
     render(<SelectiveResync />)
     fireEvent.click(screen.getByRole('button', { name: 'Not in Google Books' }))
-    expect(screen.getByText('Book Not In Google Books')).toBeInTheDocument()
+    // Only book-4 (not found in OL or GB) should appear.
+    // book-2 (found in OL, not in GB) must NOT appear — OL already sourced it.
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
+    expect(screen.queryByText('Book Found Only In Open Library')).not.toBeInTheDocument()
     expect(screen.queryByText('Book Without ISBN')).not.toBeInTheDocument()
     expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
+  })
+
+  it('includes OL-found books in Not in Google Books filter when OL also failed', () => {
+    // book-4: openlibraryStatus=not_found, googlebooksStatus=not_found → must show
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Not in Google Books' }))
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
+  })
+
+  it('excludes OL-found books from Not in Google Books filter', () => {
+    // book-2: openlibraryStatus=found, googlebooksStatus=not_found → must NOT show
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Not in Google Books' }))
+    expect(screen.queryByText('Book Found Only In Open Library')).not.toBeInTheDocument()
   })
 
   it('combines filters with OR logic (shows books matching any active filter)', () => {
     render(<SelectiveResync />)
     fireEvent.click(screen.getByRole('button', { name: 'Missing ISBN' }))
     fireEvent.click(screen.getByRole('button', { name: 'Not in Google Books' }))
-    // book-1 matches Missing ISBN; book-2 matches Not in Google Books
+    // book-1 matches Missing ISBN; book-4 matches Not in Google Books (OL also not found)
+    // book-2 (OL found, GB not found) does NOT match Not in Google Books
     expect(screen.getByText('Book Without ISBN')).toBeInTheDocument()
-    expect(screen.getByText('Book Not In Google Books')).toBeInTheDocument()
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
+    expect(screen.queryByText('Book Found Only In Open Library')).not.toBeInTheDocument()
     expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
   })
 
@@ -183,8 +218,8 @@ describe('SelectiveResync', () => {
   it('selects all visible books when Select all is checked', () => {
     render(<SelectiveResync />)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }))
-    // All 3 books selected
-    const btn = screen.getByRole('button', { name: /resync 3 selected/i })
+    // All 4 books selected
+    const btn = screen.getByRole('button', { name: /resync 4 selected/i })
     expect(btn).not.toBeDisabled()
   })
 
