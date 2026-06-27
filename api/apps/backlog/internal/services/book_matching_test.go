@@ -403,6 +403,114 @@ func TestFindDuplicateGroups_WinnerPrefersMostProgressed(t *testing.T) {
 	lib := []models.UserBook{toRead, reading} // toRead first in slice
 	groups := FindDuplicateGroups(lib)
 	assert.Len(t, groups, 1)
-	// reading has higher status rank → should be winner (entries[0])
+	// Equal metadata completeness; reading has higher status rank → winner.
 	assert.Equal(t, models.StatusReading, groups[0].Entries[0].Status)
+}
+
+// makeUBWithBook constructs a UserBook with the given Book, status, and
+// formats so tests can exercise completeness-sensitive winner selection.
+func makeUBWithBook(
+	book models.Book,
+	status string,
+	formats []string,
+) models.UserBook {
+	//nolint:exhaustruct // only fields needed for richness / duplicate detection
+	return models.UserBook{
+		ID:      uuid.New(),
+		BookID:  uuid.New(),
+		Status:  status,
+		Formats: formats,
+		Book:    &book,
+	}
+}
+
+func TestFindDuplicateGroups_WinnerPrefersCompleteMetadata(t *testing.T) {
+	isbn := isbn13Ptr("9780441013593")
+	coverURL := "https://example.com/cover.jpg"
+	desc := "A sci-fi epic."
+
+	// rich: complete metadata, lower status
+	rich := makeUBWithBook(
+		models.Book{ //nolint:exhaustruct // only fields needed for matching
+			Title:       "Dune",
+			Authors:     []string{"Herbert"},
+			ISBN13:      isbn,
+			CoverURL:    strPtr(coverURL),
+			Description: strPtr(desc),
+			PageCount:   intPtr(412),
+		},
+		models.StatusToRead,
+		nil, // no formats
+	)
+	// sparse: no metadata, higher status and many formats
+	sparse := makeUBWithBook(
+		models.Book{ //nolint:exhaustruct // only fields needed for matching
+			Title:   "Dune",
+			Authors: []string{"Herbert"},
+			ISBN13:  isbn,
+			// no cover, description, or page count
+		},
+		models.StatusRead, // higher status than rich — completeness must still win
+		[]string{"epub", "pdf", "mobi"},
+	)
+
+	lib := []models.UserBook{sparse, rich} // sparse first in slice
+	groups := FindDuplicateGroups(lib)
+	assert.Len(t, groups, 1)
+	// rich has cover + description + page count → wins despite lower status and no formats
+	assert.Equal(t, rich.BookID, groups[0].Entries[0].BookID)
+}
+
+func TestFindDuplicateGroups_FormatsDoNotAffectWinner(t *testing.T) {
+	isbn := isbn13Ptr("9780141439518")
+
+	noFormats := makeUBWithBook(
+		models.Book{ //nolint:exhaustruct // only fields needed for matching
+			Title:       "Pride and Prejudice",
+			Authors:     []string{"Austen"},
+			ISBN13:      isbn,
+			CoverURL:    strPtr("https://example.com/cover.jpg"),
+			Description: strPtr("A classic novel."),
+			PageCount:   intPtr(279),
+		},
+		models.StatusToRead,
+		nil,
+	)
+	manyFormats := makeUBWithBook(
+		models.Book{ //nolint:exhaustruct // only fields needed for matching
+			Title:   "Pride and Prejudice",
+			Authors: []string{"Austen"},
+			ISBN13:  isbn,
+		},
+		models.StatusToRead,
+		[]string{"epub", "pdf", "mobi", "azw3"},
+	)
+
+	lib := []models.UserBook{manyFormats, noFormats}
+	groups := FindDuplicateGroups(lib)
+	assert.Len(t, groups, 1)
+	// Metadata completeness dominates — manyFormats must NOT win.
+	assert.Equal(t, noFormats.BookID, groups[0].Entries[0].BookID)
+}
+
+func TestMetadataCompleteness_NilBook(t *testing.T) {
+	assert.Equal(t, 0, metadataCompleteness(nil))
+}
+
+func TestMetadataCompleteness_Empty(t *testing.T) {
+	b := &models.Book{} //nolint:exhaustruct // all fields intentionally zero for test
+	assert.Equal(t, 0, metadataCompleteness(b))
+}
+
+func TestMetadataCompleteness_Full(t *testing.T) {
+	b := &models.Book{ //nolint:exhaustruct // only metadata fields are needed here
+		Authors:      []string{"Author"},
+		ISBN13:       strPtr("9780441013593"),
+		ISBN10:       strPtr("0441013597"),
+		CoverURL:     strPtr("https://example.com/cover.jpg"),
+		Description:  strPtr("A description."),
+		PageCount:    intPtr(300),
+		ExternalRefs: map[string]string{"ol": "OL123"},
+	}
+	assert.Equal(t, 7, metadataCompleteness(b))
 }

@@ -192,6 +192,18 @@ describe('ManageDuplicatesDialog', () => {
     expect(screen.getByRole('button', { name: /Merge all/ })).toBeInTheDocument()
   })
 
+  it('renders title-initials placeholder when an entry has no cover URL', () => {
+    // makeEntry sets coverUrl to '' — BookCover should fall back to initials.
+    const entry1 = makeEntry('book-nc', 'Dark Matter')
+    const entry2 = makeEntry('book-nc2', 'Dark Matter (Alt)')
+    mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
+
+    renderDialog()
+
+    // BookCover renders initials("Dark Matter") → "DM"
+    expect(screen.getAllByText('DM').length).toBeGreaterThan(0)
+  })
+
   it('does not show Merge all button for a single group', () => {
     const g1 = makeGroup([makeEntry('s1', 'SingleA'), makeEntry('s2', 'SingleB')])
     mockFindDuplicatesData.data = { groups: [g1] }
