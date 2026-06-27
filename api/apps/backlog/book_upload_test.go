@@ -601,6 +601,7 @@ func TestUploadFile_EPUB_OpenLibraryFallback(t *testing.T) {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return nil },
 			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
+			GoogleBooks:      nil,
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -945,6 +946,7 @@ func noExternalMatchApp(t *testing.T, isolatedUser string) *backlog.Backlog {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return nil },
 			OpenLibrary:      mocks.NewMockEmptyOpenLibraryClient(),
+			GoogleBooks:      nil,
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",

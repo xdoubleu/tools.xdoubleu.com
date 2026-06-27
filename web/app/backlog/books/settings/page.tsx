@@ -98,10 +98,12 @@ export default function BacklogBooksSettingsPage() {
 
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Resync with Open Library
+          Resync metadata
         </h2>
         <p className="mb-3 text-xs text-muted">
-          Re-fetch cover images and metadata (description, page count) for all books with an ISBN.
+          Re-fetch covers, descriptions, and page counts for all books missing metadata. Books with
+          an ISBN are looked up via Open Library then Google Books. ISBN-less books are matched by
+          title and author — a confident match also fills in the ISBN so future resyncs are faster.
           Existing cached covers are cleared so updated images download on next view.
         </p>
         <Button
@@ -111,7 +113,7 @@ export default function BacklogBooksSettingsPage() {
           onClick={refresh}
           data-testid="resync-openlibrary-btn"
         >
-          {isRefreshing ? 'Resyncing…' : 'Resync with Open Library'}
+          {isRefreshing ? 'Resyncing…' : 'Resync metadata'}
         </Button>
         {isRefreshing && (
           <div className="mt-3" data-testid="resync-openlibrary-progress">

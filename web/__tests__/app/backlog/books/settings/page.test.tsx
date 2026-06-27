@@ -111,9 +111,9 @@ describe('BacklogBooksSettingsPage', () => {
     expect(screen.getByTestId('clear-library-btn')).toBeInTheDocument()
   })
 
-  it('renders the Resync with Open Library section and button', () => {
+  it('renders the Resync metadata section and button', () => {
     render(<BacklogBooksSettingsPage />)
-    expect(screen.getAllByText('Resync with Open Library').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Resync metadata').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByTestId('resync-openlibrary-btn')).toBeInTheDocument()
   })
 

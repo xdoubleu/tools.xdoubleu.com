@@ -131,7 +131,7 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 
 ### Apps
 
-- **backlog** — Goals/backlog tracker with external sync (Steam, Open Library/Goodreads). Has background jobs (2 workers) and WebSocket live updates. Uses `backlog` DB schema.
+- **backlog** — Goals/backlog tracker with external sync (Steam, Open Library/Goodreads, Google Books). Book metadata enrichment uses Open Library then Google Books as fallback (set `GOOGLE_BOOKS_API_KEY` for higher rate limits); ISBN-less books are matched by title+author. External client packages live in `pkg/openlibrary/`, `pkg/googlebooks/`, `pkg/steam/`. Has background jobs (2 workers) and WebSocket live updates. Uses `backlog` DB schema.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no background jobs.
 - **icsproxy** — ICS calendar feed filtering and proxying. Uses `icsproxy` DB schema.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (`recipebook_access`, view-only or edit). Uses `recipes` DB schema.

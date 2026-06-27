@@ -62,6 +62,7 @@ func TestMain(m *testing.M) {
 			return mocks.NewMockSteamClient()
 		},
 		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
+		GoogleBooks:      nil,
 		ObjectStore:      fakeStore,
 		KoboStoreBaseURL: "",
 		PublicAPIBaseURL: "",
@@ -108,6 +109,7 @@ func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 			return mocks.NewMockSteamClient()
 		},
 		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
+		GoogleBooks:      nil,
 		ObjectStore:      objectstore.NewFake(),
 		KoboStoreBaseURL: upstreamURL,
 		PublicAPIBaseURL: "",

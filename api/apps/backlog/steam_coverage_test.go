@@ -242,6 +242,7 @@ func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 				return mockEmptyAchievementsSteamClient{}
 			},
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",

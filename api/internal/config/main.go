@@ -8,24 +8,25 @@ import (
 )
 
 type Config struct {
-	Env             string
-	Port            int
-	Throttle        bool
-	WebURL          string
-	APIURL          string
-	SentryDsn       string
-	SampleRate      float64
-	AccessExpiry    string
-	RefreshExpiry   string
-	DBDsn           string
-	Release         string
-	SupabaseProjRef string
-	SupabaseAPIKey  string
-	SteamAPIKey     string
-	R2AccountID     string
-	R2AccessKeyID   string
-	R2SecretKey     string
-	R2Bucket        string
+	Env               string
+	Port              int
+	Throttle          bool
+	WebURL            string
+	APIURL            string
+	SentryDsn         string
+	SampleRate        float64
+	AccessExpiry      string
+	RefreshExpiry     string
+	DBDsn             string
+	Release           string
+	SupabaseProjRef   string
+	SupabaseAPIKey    string
+	SteamAPIKey       string
+	GoogleBooksAPIKey string
+	R2AccountID       string
+	R2AccessKeyID     string
+	R2SecretKey       string
+	R2Bucket          string
 }
 
 func New(logger *slog.Logger) Config {
@@ -49,6 +50,7 @@ func New(logger *slog.Logger) Config {
 	cfg.SupabaseAPIKey = parser.EnvStr("SUPABASE_API_KEY", "")
 
 	cfg.SteamAPIKey = parser.EnvStr("STEAM_API_KEY", "")
+	cfg.GoogleBooksAPIKey = parser.EnvStr("GOOGLE_BOOKS_API_KEY", "")
 
 	cfg.R2AccountID = parser.EnvStr("R2_ACCOUNT_ID", "")
 	cfg.R2AccessKeyID = parser.EnvStr("R2_ACCESS_KEY_ID", "")

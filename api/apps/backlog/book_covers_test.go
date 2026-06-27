@@ -36,6 +36,7 @@ func buildCoverApp(
 			return mocks.NewMockSteamClient()
 		},
 		OpenLibrary:      ol,
+		GoogleBooks:      nil,
 		ObjectStore:      store,
 		KoboStoreBaseURL: "",
 		PublicAPIBaseURL: "http://api.test",
