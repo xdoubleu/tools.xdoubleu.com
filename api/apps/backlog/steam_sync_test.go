@@ -91,6 +91,7 @@ func newSyncTestApp(
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return client },
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -490,6 +491,7 @@ func TestSyncGame_UnconfiguredCreds(t *testing.T) {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return nil },
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",

@@ -51,6 +51,7 @@ func TestStart_RegistersJobs(t *testing.T) {
 				return nil
 			},
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -292,6 +293,7 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 				return twoAchievementsMock{}
 			},
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -352,6 +354,7 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return twoAchievementsMock{} },
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -507,6 +510,7 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 		backlog.Clients{
 			SteamFactory:     func(_ string) steam.Client { return fourAchievementsMock{} },
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -573,6 +577,7 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 				}
 			},
 			OpenLibrary:      nil,
+			GoogleBooks:      nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",

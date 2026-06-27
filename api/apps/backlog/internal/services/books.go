@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/pkg/books"
+	"tools.xdoubleu.com/apps/backlog/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 )
@@ -26,6 +27,7 @@ type BookService struct {
 	objectStore  objectstore.Client
 	readingState *repositories.BookReadingStateRepository
 	external     openlibrary.Client
+	googleBooks  googlebooks.Client
 	// booksResync overrides s.books for the resync path in unit tests.
 	// Nil in production — resyncRepo() falls back to s.books.
 	booksResync booksResyncSource

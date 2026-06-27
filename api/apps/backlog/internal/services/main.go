@@ -7,6 +7,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
+	"tools.xdoubleu.com/apps/backlog/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
@@ -33,6 +34,7 @@ func New(
 	repositories *repositories.Repositories,
 	steamFactory func(apiKey string) steam.Client,
 	external openlibrary.Client,
+	googleBooks googlebooks.Client,
 	objectStore objectstore.Client,
 	authService auth.Service,
 ) *Services {
@@ -47,6 +49,7 @@ func New(
 		objectStore:  objectStore,
 		readingState: repositories.ReadingState,
 		external:     external,
+		googleBooks:  googleBooks,
 		booksResync:  nil, // nil → resyncRepo() falls back to books
 	}
 	steamSvc := &SteamService{

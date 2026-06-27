@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/jobs"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
 	"tools.xdoubleu.com/apps/backlog/internal/services"
+	"tools.xdoubleu.com/apps/backlog/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
@@ -55,6 +56,13 @@ func New(
 		)
 	}
 
+	if cfg.GoogleBooksAPIKey == "" {
+		logger.Warn(
+			"GOOGLE_BOOKS_API_KEY is not set — Google Books will use the " +
+				"unauthenticated tier (lower rate limit)",
+		)
+	}
+
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
 
 	clients := Clients{
@@ -62,6 +70,7 @@ func New(
 			return steam.New(logger, apiKey)
 		},
 		OpenLibrary: openlibrary.New(logger),
+		GoogleBooks: googlebooks.New(logger, cfg.GoogleBooksAPIKey),
 		ObjectStore: objectstore.NewR2(
 			endpoint,
 			cfg.R2AccessKeyID,
@@ -119,6 +128,7 @@ func (app *Backlog) setDB(
 		app.Repositories,
 		app.clients.SteamFactory,
 		app.clients.OpenLibrary,
+		app.clients.GoogleBooks,
 		app.clients.ObjectStore,
 		authService,
 	)

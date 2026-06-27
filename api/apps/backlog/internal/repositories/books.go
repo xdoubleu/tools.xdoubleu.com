@@ -640,7 +640,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 }
 
 // ListBooksWithISBN13 returns all catalog books that have a non-null ISBN13.
-// Used by the Open Library resync job to re-fetch metadata and covers.
+// Kept for backward compatibility; prefer ListBooksMissingMetadata for resync.
 func (repo *BooksRepository) ListBooksWithISBN13(
 	ctx context.Context,
 ) ([]models.Book, error) {
@@ -670,25 +670,76 @@ func (repo *BooksRepository) ListBooksWithISBN13(
 	return books, nil
 }
 
-// RefreshBookExternalData backfills a book's Open Library-sourced fields.
-// All three columns use COALESCE so a nil argument never erases an existing
-// value — callers pass nil for fields they do not want to touch.
+// ListBooksMissingMetadata returns all catalog books that are missing at least
+// one of cover_url, description, or page_count. Unlike ListBooksWithISBN13 it
+// includes ISBN-less books so that a title+author lookup can backfill them.
+func (repo *BooksRepository) ListBooksMissingMetadata(
+	ctx context.Context,
+) ([]models.Book, error) {
+	query := `
+		SELECT ` + bookColumns + `
+		FROM backlog.books
+		WHERE cover_url IS NULL OR description IS NULL OR page_count IS NULL
+	`
+
+	rows, err := repo.db.Query(ctx, query)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var books []models.Book
+	for rows.Next() {
+		b, scanErr := scanBook(rows)
+		if scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		books = append(books, *b)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return books, nil
+}
+
+// RefreshBookExternalData backfills a book's externally-sourced fields.
+// All columns use COALESCE so a nil argument never erases an existing value —
+// callers pass nil for fields they do not want to touch.
+//
+// The isbn13 update is guarded by a NOT EXISTS subquery: if another book in
+// the catalog already has that ISBN the write is silently skipped, preventing
+// a unique-constraint error from a fuzzy title/author match attaching the
+// wrong ISBN.
 func (repo *BooksRepository) RefreshBookExternalData(
 	ctx context.Context,
 	bookID uuid.UUID,
 	coverURL *string,
 	description *string,
 	pageCount *int,
+	isbn13 *string,
 ) error {
 	query := `
 		UPDATE backlog.books
 		SET cover_url   = COALESCE($2, cover_url),
 		    description = COALESCE($3, description),
 		    page_count  = COALESCE($4, page_count),
+		    isbn13      = COALESCE(
+		                    CASE
+		                      WHEN $5::text IS NOT NULL
+		                        AND NOT EXISTS (
+		                          SELECT 1 FROM backlog.books
+		                          WHERE isbn13 = $5 AND id <> $1
+		                        )
+		                      THEN $5::text
+		                    END,
+		                    isbn13
+		                  ),
 		    updated_at  = now()
 		WHERE id = $1
 	`
-	_, err := repo.db.Exec(ctx, query, bookID, coverURL, description, pageCount)
+	_, err := repo.db.Exec(
+		ctx, query, bookID, coverURL, description, pageCount, isbn13,
+	)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
