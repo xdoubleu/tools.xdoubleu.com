@@ -990,11 +990,30 @@ func (h *booksConnectHandler) MergeBooks(
 		loserIDs = append(loserIDs, id)
 	}
 
+	var resolvedCoverSourceBookID *uuid.UUID
+
+	if raw := req.Msg.ResolvedCoverSourceBookId; raw != nil && *raw != "" {
+		coverSourceID, parseErr := uuid.Parse(*raw)
+		if parseErr != nil {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				fmt.Errorf(
+					"invalid resolved_cover_source_book_id: %w",
+					parseErr,
+				),
+			)
+		}
+
+		resolvedCoverSourceBookID = &coverSourceID
+	}
+
 	deletedFiles, err := h.app.Services.Books.MergeBooks(
 		ctx,
 		user.ID,
 		winnerID,
 		loserIDs,
+		protoBookToModel(req.Msg.ResolvedMetadata),
+		resolvedCoverSourceBookID,
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -1207,6 +1226,40 @@ func stringPtr(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// protoBookToModel converts a proto Book message to a models.Book, carrying
+// only the catalog metadata fields. The ID field is intentionally left as the
+// zero UUID; callers must set it to the correct book ID before persisting.
+func protoBookToModel(pb *backlogv1.Book) *models.Book {
+	if pb == nil {
+		return nil
+	}
+
+	m := &models.Book{ //nolint:exhaustruct // only catalog fields; ID set by caller
+		Title:        pb.Title,
+		Authors:      pb.Authors,
+		ExternalRefs: pb.ExternalRefs,
+	}
+
+	if pb.Isbn13 != "" {
+		m.ISBN13 = &pb.Isbn13
+	}
+	if pb.Isbn10 != "" {
+		m.ISBN10 = &pb.Isbn10
+	}
+	if pb.CoverUrl != "" {
+		m.CoverURL = &pb.CoverUrl
+	}
+	if pb.Description != "" {
+		m.Description = &pb.Description
+	}
+	if pb.PageCount != 0 {
+		pc := int(pb.PageCount)
+		m.PageCount = &pc
+	}
+
+	return m
 }
 
 func int32PtrFromInt16(i *int16) int32 {

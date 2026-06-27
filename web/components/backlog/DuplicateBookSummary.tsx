@@ -30,8 +30,8 @@ export interface DupUserBook {
 // ---------------------------------------------------------------------------
 
 function isbnDisplay(isbn13: string, isbn10: string): string {
-  if (isbn13) return isbn13
-  if (isbn10) return isbn10
+  if (isbn13) return `ISBN ${isbn13}`
+  if (isbn10) return `ISBN ${isbn10}`
   return 'No ISBN'
 }
 
@@ -52,12 +52,31 @@ interface DuplicateBookSummaryProps {
  * Shows every field that the winner-selection algorithm weighs so the admin
  * can see at a glance why one entry was auto-picked and which to keep.
  */
+// ---------------------------------------------------------------------------
+// Metadata quality helpers (mirrors metadataCompleteness in book_matching.go)
+// ---------------------------------------------------------------------------
+
+interface MetadataField {
+  label: string
+  present: boolean
+}
+
+function metadataFields(book: DupBook): MetadataField[] {
+  return [
+    { label: 'Authors', present: book.authors.length > 0 },
+    { label: 'ISBN-13', present: Boolean(book.isbn13) },
+    { label: 'ISBN-10', present: Boolean(book.isbn10) },
+    { label: 'Cover', present: Boolean(book.coverUrl) },
+    { label: 'Description', present: Boolean(book.description) },
+    { label: 'Page count', present: book.pageCount > 0 },
+    { label: 'Ext. refs', present: Object.keys(book.externalRefs).length > 0 }
+  ]
+}
+
 export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) {
   const book = ub.book
   if (!book) return null
 
-  const hasCover = Boolean(book.coverUrl)
-  const hasDesc = Boolean(book.description)
   const hasPhysical = ub.tags.includes('own-physical')
   const hasDigital = ub.tags.includes('own-digital')
   const hasPdf = ub.formats.includes('pdf')
@@ -66,12 +85,12 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
 
   const isbn = isbnDisplay(book.isbn13, book.isbn10)
   const olId = openLibraryId(book.externalRefs)
+  const fields = metadataFields(book)
+  const score = fields.filter((f) => f.present).length
 
-  // Build dot-separated metadata tokens.
+  // Identity/value tokens: ISBN, page count, OpenLibrary id.
   const metaTokens: string[] = [isbn]
   if (book.pageCount > 0) metaTokens.push(`${book.pageCount}p`)
-  if (hasCover) metaTokens.push('Cover +')
-  if (hasDesc) metaTokens.push('Desc +')
   if (olId) metaTokens.push(`OL ${olId}`)
 
   return (
@@ -81,10 +100,22 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
         <p className="text-sm font-medium leading-tight">{book.title}</p>
         <p className="text-xs text-muted truncate">{book.authors.join(', ')}</p>
 
-        {/* Metadata line */}
+        {/* Identity metadata line */}
         <p className="text-xs text-subtle mt-0.5">{metaTokens.join(' · ')}</p>
 
-        {/* Badges */}
+        {/* Metadata quality breakdown */}
+        <div className="flex flex-wrap gap-1 mt-1">
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle">
+            Metadata {score}/7
+          </span>
+          {fields.map((f) => (
+            <Badge key={f.label} variant={f.present ? 'default' : 'secondary'}>
+              {f.present ? f.label : `No ${f.label.toLowerCase()}`}
+            </Badge>
+          ))}
+        </div>
+
+        {/* Ownership / format badges */}
         <div className="flex flex-wrap gap-1 mt-1">
           <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle capitalize">
             {ub.status}

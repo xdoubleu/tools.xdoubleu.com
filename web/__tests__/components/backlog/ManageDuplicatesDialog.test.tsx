@@ -27,7 +27,21 @@ jest.mock('swr', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeEntry(bookId: string, title: string, status = 'to-read', formats: string[] = []) {
+function makeEntry(
+  bookId: string,
+  title: string,
+  overrides: Partial<{
+    status: string
+    formats: string[]
+    isbn13: string
+    isbn10: string
+    coverUrl: string
+    description: string
+    pageCount: number
+    authors: string[]
+    externalRefs: Record<string, string>
+  }> = {}
+) {
   return {
     id: `ub-${bookId}`,
     bookId,
@@ -35,15 +49,15 @@ function makeEntry(bookId: string, title: string, status = 'to-read', formats: s
     book: {
       id: bookId,
       title,
-      authors: ['Some Author'],
-      isbn13: '',
-      isbn10: '',
-      coverUrl: '',
-      description: '',
-      pageCount: 0,
-      externalRefs: {} as Record<string, string>
+      authors: overrides.authors ?? ['Some Author'],
+      isbn13: overrides.isbn13 ?? '',
+      isbn10: overrides.isbn10 ?? '',
+      coverUrl: overrides.coverUrl ?? '',
+      description: overrides.description ?? '',
+      pageCount: overrides.pageCount ?? 0,
+      externalRefs: overrides.externalRefs ?? ({} as Record<string, string>)
     },
-    status,
+    status: overrides.status ?? 'to-read',
     tags: [],
     rating: 0,
     notes: '',
@@ -53,7 +67,7 @@ function makeEntry(bookId: string, title: string, status = 'to-read', formats: s
     progressMode: 'pages',
     currentPage: 0,
     progressPercent: 0,
-    formats
+    formats: overrides.formats ?? []
   }
 }
 
@@ -96,20 +110,19 @@ describe('ManageDuplicatesDialog', () => {
   })
 
   it('renders a duplicate group with entries and radio buttons', () => {
-    const entry1 = makeEntry('book-a', 'The Hobbit', 'to-read')
-    const entry2 = makeEntry('book-b', 'The Hobbit (Special Ed.)', 'read')
+    const entry1 = makeEntry('book-a', 'The Hobbit')
+    const entry2 = makeEntry('book-b', 'The Hobbit (Special Ed.)')
     mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
 
     renderDialog()
 
-    expect(screen.getByText('The Hobbit')).toBeInTheDocument()
-    expect(screen.getByText('The Hobbit (Special Ed.)')).toBeInTheDocument()
-    // Two radio buttons — one per entry.
+    // Both entry titles appear; each title also appears in the conflict-picker
+    // chips (titles differ across entries), so use getAllByText.
+    expect(screen.getAllByText('The Hobbit').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('The Hobbit (Special Ed.)').length).toBeGreaterThanOrEqual(1)
+    // At least two entry-winner radios are present (conflict pickers may add more).
     const radios = screen.getAllByRole('radio')
-    expect(radios).toHaveLength(2)
-    // First entry (index 0) is selected by default.
-    expect(radios[0]).toBeChecked()
-    expect(radios[1]).not.toBeChecked()
+    expect(radios.length).toBeGreaterThanOrEqual(2)
   })
 
   it('shows "Keep this entry" label for the selected winner', () => {
@@ -135,10 +148,11 @@ describe('ManageDuplicatesDialog', () => {
     expect(screen.getByText('Same title + author')).toBeInTheDocument()
   })
 
-  it('calls mergeBooks with correct winner and losers on Merge click', async () => {
+  it('calls mergeBooks with winner, losers, and options on Merge click (no conflicts)', async () => {
     mockMergeBooks.mockResolvedValue({})
+    // Both entries have identical book fields — no conflicts detected.
     const entry1 = makeEntry('winner-id', 'BookA')
-    const entry2 = makeEntry('loser-id', 'BookB')
+    const entry2 = makeEntry('loser-id', 'BookA')
     mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
 
     renderDialog()
@@ -147,7 +161,12 @@ describe('ManageDuplicatesDialog', () => {
     fireEvent.click(mergeBtn)
 
     await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(1))
-    expect(mockMergeBooks).toHaveBeenCalledWith('winner-id', ['loser-id'])
+    // Third arg is always the options object; cover source omitted when no cover conflict.
+    expect(mockMergeBooks).toHaveBeenCalledWith(
+      'winner-id',
+      ['loser-id'],
+      expect.objectContaining({ resolvedCoverSourceBookId: undefined })
+    )
     expect(mockMutate).toHaveBeenCalledWith('/backlog/books')
   })
 
@@ -159,16 +178,18 @@ describe('ManageDuplicatesDialog', () => {
 
     renderDialog()
 
-    // Select the second entry as winner.
-    const radios = screen.getAllByRole('radio')
-    fireEvent.click(radios[1])
+    // Select the second entry's winner radio (first radio group).
+    const winnerRadios = screen
+      .getAllByRole('radio')
+      .filter((r) => r instanceof HTMLInputElement && r.name.startsWith('winner-'))
+    fireEvent.click(winnerRadios[1])
 
     const mergeBtn = screen.getByRole('button', { name: 'Merge' })
     fireEvent.click(mergeBtn)
 
     await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(1))
     // Winner is now book-y; loser is book-x.
-    expect(mockMergeBooks).toHaveBeenCalledWith('book-y', ['book-x'])
+    expect(mockMergeBooks).toHaveBeenCalledWith('book-y', ['book-x'], expect.any(Object))
   })
 
   it('shows error when merge fails', async () => {
@@ -195,7 +216,6 @@ describe('ManageDuplicatesDialog', () => {
   })
 
   it('renders title-initials placeholder when an entry has no cover URL', () => {
-    // makeEntry sets coverUrl to '' — BookCover should fall back to initials.
     const entry1 = makeEntry('book-nc', 'Dark Matter')
     const entry2 = makeEntry('book-nc2', 'Dark Matter (Alt)')
     mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
@@ -226,7 +246,69 @@ describe('ManageDuplicatesDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /Merge all/ }))
 
     await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(2))
-    expect(mockMergeBooks).toHaveBeenNthCalledWith(1, 'w1', ['l1'])
-    expect(mockMergeBooks).toHaveBeenNthCalledWith(2, 'w2', ['l2'])
+    expect(mockMergeBooks).toHaveBeenNthCalledWith(1, 'w1', ['l1'], expect.any(Object))
+    expect(mockMergeBooks).toHaveBeenNthCalledWith(2, 'w2', ['l2'], expect.any(Object))
+  })
+
+  it('shows conflict field picker when entries have differing page counts', () => {
+    const entry1 = makeEntry('book-p1', 'SameTitle', { pageCount: 320 })
+    const entry2 = makeEntry('book-p2', 'SameTitle', { pageCount: 310 })
+    mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
+
+    renderDialog()
+
+    // Conflict section header should appear
+    const conflictSection = screen.getByText(/Resolve.*conflicting/)
+    expect(conflictSection).toBeInTheDocument()
+    // "Page count" appears as a quality badge in each entry and as a conflict
+    // field label — assert at least one exists.
+    expect(screen.getAllByText('Page count').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('does not show conflict picker when all fields agree', () => {
+    const entry1 = makeEntry('book-same1', 'Same Book', {
+      pageCount: 300,
+      isbn13: '9781234567890'
+    })
+    const entry2 = makeEntry('book-same2', 'Same Book', {
+      pageCount: 300,
+      isbn13: '9781234567890'
+    })
+    mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
+
+    renderDialog()
+
+    expect(screen.queryByText(/Resolve.*conflicting/)).not.toBeInTheDocument()
+  })
+
+  it('passes resolvedCoverSourceBookId when entries have differing cover presence', async () => {
+    mockMergeBooks.mockResolvedValue({})
+    // winner has no cover, loser has one
+    const entry1 = makeEntry('cov-winner', 'CoverBook', { coverUrl: '' })
+    const entry2 = makeEntry('cov-loser', 'CoverBook', {
+      coverUrl: 'https://example.com/cover.jpg'
+    })
+    mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
+
+    renderDialog()
+
+    // Cover conflict picker is shown; loser entry's "Use this" radio for cover
+    const coverRadios = screen
+      .getAllByRole('radio')
+      .filter((r) => r instanceof HTMLInputElement && r.name.startsWith('cover-'))
+    expect(coverRadios.length).toBeGreaterThanOrEqual(2)
+
+    // Select the loser's cover
+    fireEvent.click(coverRadios[1])
+
+    const mergeBtn = screen.getByRole('button', { name: 'Merge' })
+    fireEvent.click(mergeBtn)
+
+    await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(1))
+    expect(mockMergeBooks).toHaveBeenCalledWith(
+      'cov-winner',
+      ['cov-loser'],
+      expect.objectContaining({ resolvedCoverSourceBookId: 'cov-loser' })
+    )
   })
 })

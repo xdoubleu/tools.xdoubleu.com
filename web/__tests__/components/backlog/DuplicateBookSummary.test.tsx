@@ -18,13 +18,14 @@ function makeUB(
     formats?: string[]
     tags?: string[]
     status?: string
+    authors?: string[]
   } = {}
 ): DupUserBook {
   return {
     book: {
       id: 'book-1',
       title: 'Test Book',
-      authors: ['Test Author'],
+      authors: overrides.authors ?? ['Test Author'],
       isbn13: overrides.isbn13 ?? '',
       isbn10: overrides.isbn10 ?? '',
       coverUrl: overrides.coverUrl ?? '',
@@ -49,14 +50,16 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText('Test Author')).toBeInTheDocument()
   })
 
-  it('shows ISBN-13 when present', () => {
+  // --- ISBN prefix (Part A) ---
+
+  it('shows "ISBN <number>" when ISBN-13 is present', () => {
     render(<DuplicateBookSummary ub={makeUB({ isbn13: '9780261102217' })} />)
-    expect(screen.getByText(/9780261102217/)).toBeInTheDocument()
+    expect(screen.getByText(/ISBN 9780261102217/)).toBeInTheDocument()
   })
 
-  it('shows ISBN-10 when isbn13 is absent', () => {
+  it('shows "ISBN <number>" for ISBN-10 when isbn13 is absent', () => {
     render(<DuplicateBookSummary ub={makeUB({ isbn10: '0261102214' })} />)
-    expect(screen.getByText(/0261102214/)).toBeInTheDocument()
+    expect(screen.getByText(/ISBN 0261102214/)).toBeInTheDocument()
   })
 
   it('shows "No ISBN" when both are absent', () => {
@@ -64,10 +67,10 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText(/No ISBN/)).toBeInTheDocument()
   })
 
-  it('prefers ISBN-13 over ISBN-10', () => {
+  it('prefers ISBN-13 over ISBN-10 and shows prefix', () => {
     render(<DuplicateBookSummary ub={makeUB({ isbn13: '9780261102217', isbn10: '0261102214' })} />)
-    expect(screen.getByText(/9780261102217/)).toBeInTheDocument()
-    expect(screen.queryByText(/0261102214/)).not.toBeInTheDocument()
+    expect(screen.getByText(/ISBN 9780261102217/)).toBeInTheDocument()
+    expect(screen.queryByText(/ISBN 0261102214/)).not.toBeInTheDocument()
   })
 
   it('shows page count when present', () => {
@@ -77,22 +80,7 @@ describe('DuplicateBookSummary', () => {
 
   it('does not show page count when zero', () => {
     render(<DuplicateBookSummary ub={makeUB({ pageCount: 0 })} />)
-    expect(screen.queryByText(/p$/)).not.toBeInTheDocument()
-  })
-
-  it('shows Cover + when cover URL is set', () => {
-    render(<DuplicateBookSummary ub={makeUB({ coverUrl: 'https://example.com/cover.jpg' })} />)
-    expect(screen.getByText(/Cover \+/)).toBeInTheDocument()
-  })
-
-  it('does not show Cover + when cover URL is empty', () => {
-    render(<DuplicateBookSummary ub={makeUB({ coverUrl: '' })} />)
-    expect(screen.queryByText(/Cover \+/)).not.toBeInTheDocument()
-  })
-
-  it('shows Desc + when description is set', () => {
-    render(<DuplicateBookSummary ub={makeUB({ description: 'A great book.' })} />)
-    expect(screen.getByText(/Desc \+/)).toBeInTheDocument()
+    expect(screen.queryByText(/\dp$/)).not.toBeInTheDocument()
   })
 
   it('shows Open Library ID from externalRefs', () => {
@@ -104,6 +92,61 @@ describe('DuplicateBookSummary', () => {
     render(<DuplicateBookSummary ub={makeUB({ externalRefs: {} })} />)
     expect(screen.queryByText(/OL /)).not.toBeInTheDocument()
   })
+
+  // --- Metadata quality breakdown (Part B) ---
+
+  it('shows Metadata score as X/7', () => {
+    render(
+      <DuplicateBookSummary
+        ub={makeUB({
+          isbn13: '9780261102217',
+          pageCount: 300,
+          coverUrl: 'https://example.com/c.jpg',
+          description: 'A great book.',
+          externalRefs: { openlibrary: 'OL1M' }
+        })}
+      />
+    )
+    // authors + isbn13 + cover + desc + pageCount + externalRefs = 6/7 (isbn10 missing)
+    expect(screen.getByText('Metadata 6/7')).toBeInTheDocument()
+  })
+
+  it('shows Metadata 0/7 when no fields are populated', () => {
+    render(<DuplicateBookSummary ub={makeUB({ authors: [] })} />)
+    expect(screen.getByText('Metadata 0/7')).toBeInTheDocument()
+  })
+
+  it('shows Cover badge when coverUrl is set', () => {
+    render(<DuplicateBookSummary ub={makeUB({ coverUrl: 'https://example.com/c.jpg' })} />)
+    expect(screen.getByText('Cover')).toBeInTheDocument()
+  })
+
+  it('shows "No cover" badge when coverUrl is empty', () => {
+    render(<DuplicateBookSummary ub={makeUB({ coverUrl: '' })} />)
+    expect(screen.getByText('No cover')).toBeInTheDocument()
+  })
+
+  it('shows Description badge when description is set', () => {
+    render(<DuplicateBookSummary ub={makeUB({ description: 'Epic.' })} />)
+    expect(screen.getByText('Description')).toBeInTheDocument()
+  })
+
+  it('shows "No description" badge when description is empty', () => {
+    render(<DuplicateBookSummary ub={makeUB({ description: '' })} />)
+    expect(screen.getByText('No description')).toBeInTheDocument()
+  })
+
+  it('shows Authors badge when authors are present', () => {
+    render(<DuplicateBookSummary ub={makeUB({ authors: ['J.R.R. Tolkien'] })} />)
+    expect(screen.getByText('Authors')).toBeInTheDocument()
+  })
+
+  it('shows "No authors" badge when authors array is empty', () => {
+    render(<DuplicateBookSummary ub={makeUB({ authors: [] })} />)
+    expect(screen.getByText('No authors')).toBeInTheDocument()
+  })
+
+  // --- Format / ownership badges ---
 
   it('renders PDF badge', () => {
     render(<DuplicateBookSummary ub={makeUB({ formats: ['pdf'] })} />)
@@ -135,12 +178,11 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText('currently-reading')).toBeInTheDocument()
   })
 
-  it('renders all metadata fields together', () => {
+  it('renders all present fields in a fully-populated entry', () => {
     render(
       <DuplicateBookSummary
         ub={makeUB({
           isbn13: '9780261102217',
-          isbn10: '0261102214',
           pageCount: 310,
           coverUrl: 'https://example.com/c.jpg',
           description: 'Epic fantasy.',
@@ -151,14 +193,16 @@ describe('DuplicateBookSummary', () => {
         })}
       />
     )
-    expect(screen.getByText(/9780261102217/)).toBeInTheDocument()
+    expect(screen.getByText(/ISBN 9780261102217/)).toBeInTheDocument()
     expect(screen.getByText(/310p/)).toBeInTheDocument()
-    expect(screen.getByText(/Cover \+/)).toBeInTheDocument()
-    expect(screen.getByText(/Desc \+/)).toBeInTheDocument()
     expect(screen.getByText(/OL OL27448W/)).toBeInTheDocument()
     expect(screen.getByText('EPUB')).toBeInTheDocument()
     expect(screen.getByText('KEPUB')).toBeInTheDocument()
     expect(screen.getByText('Physical')).toBeInTheDocument()
     expect(screen.getByText('read')).toBeInTheDocument()
+    // Quality badges
+    expect(screen.getByText('Cover')).toBeInTheDocument()
+    expect(screen.getByText('Description')).toBeInTheDocument()
+    expect(screen.getByText('Authors')).toBeInTheDocument()
   })
 })
