@@ -23,8 +23,28 @@ export default function BacklogBooksAdminPage() {
       />
       <h1 className="mb-6 text-xl font-semibold text-fg">Books admin tools</h1>
 
-      {/* Resync all */}
+      {/* Find duplicates */}
       <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+          Find duplicates
+        </h2>
+        <p className="mb-3 text-xs text-muted">
+          Detect duplicate library entries and merge them. Matching is based on ISBN or normalised
+          title and author. Files, tags, and reading progress are consolidated onto the entry you
+          choose to keep.
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setDuplicatesDialogOpen(true)}
+          data-testid="find-duplicates-btn"
+        >
+          Find duplicates
+        </Button>
+      </section>
+
+      {/* Resync all */}
+      <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
           Resync all metadata
         </h2>
@@ -86,26 +106,6 @@ export default function BacklogBooksAdminPage() {
           provider data.
         </p>
         <SelectiveResync />
-      </section>
-
-      {/* Find duplicates */}
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Find duplicates
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Detect duplicate library entries and merge them. Matching is based on ISBN or normalised
-          title and author. Files, tags, and reading progress are consolidated onto the entry you
-          choose to keep.
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setDuplicatesDialogOpen(true)}
-          data-testid="find-duplicates-btn"
-        >
-          Find duplicates
-        </Button>
       </section>
 
       <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />

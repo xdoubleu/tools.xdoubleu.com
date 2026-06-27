@@ -2,6 +2,7 @@
 package services
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -284,6 +285,104 @@ func TestFindDuplicateGroups_NoGroupDifferentBooks(t *testing.T) {
 	b := makeUserBook("Dune", []string{"Frank Herbert"})
 	lib := []models.UserBook{a, b}
 	assert.Nil(t, FindDuplicateGroups(lib))
+}
+
+func TestFindDuplicateGroups_ReasonUpgradedToStrongest(t *testing.T) {
+	// Two books share both an ISBN10 and a matching title+author.
+	// The group reason must be "isbn10" (stronger signal).
+	isbn := isbn10Ptr("0261102214")
+	a := makeUBWithISBN(
+		"The Hobbit",
+		[]string{"J.R.R. Tolkien"},
+		nil,
+		isbn,
+		models.StatusToRead,
+	)
+	b := makeUBWithISBN(
+		"The Hobbit: There and Back Again",
+		[]string{"Tolkien, J.R.R."},
+		nil,
+		isbn,
+		models.StatusToRead,
+	)
+	lib := []models.UserBook{a, b}
+	groups := FindDuplicateGroups(lib)
+	assert.Len(t, groups, 1)
+	assert.Equal(t, "isbn10", groups[0].Reason)
+}
+
+func TestFindDuplicateGroups_NilBookSkipped(t *testing.T) {
+	// An entry with a nil Book pointer must not panic and must be excluded from
+	// all groups.
+	realBook := makeUserBook("Dune", []string{"Frank Herbert"})
+	nilBook := models.UserBook{ //nolint:exhaustruct // only testing nil-Book guard
+		ID:     uuid.New(),
+		BookID: uuid.New(),
+		Book:   nil,
+	}
+	lib := []models.UserBook{realBook, nilBook}
+	// Only one real book — no group possible.
+	assert.Nil(t, FindDuplicateGroups(lib))
+}
+
+func TestFindDuplicateGroups_LargeLibrary(t *testing.T) {
+	// Build a synthetic library of 5 000 books with 50 planted ISBN13 duplicate
+	// pairs and 50 planted title+author duplicate pairs. Verify all 100 expected
+	// groups are returned and that no spurious groups appear.
+	//
+	// This test also acts as a regression guard: the pre-refactor O(n²) algorithm
+	// timed out on libraries of this size; the bucketed O(n) implementation must
+	// complete well within a test timeout.
+	const (
+		uniqueBooks    = 4900
+		isbn13Pairs    = 50
+		titleAuthPairs = 50
+	)
+
+	lib := make([]models.UserBook, 0, uniqueBooks+isbn13Pairs*2+titleAuthPairs*2)
+
+	// Unique, non-duplicate books.
+	for i := range uniqueBooks {
+		lib = append(lib, makeUserBook(
+			"Unique Book "+fmt.Sprint(i),
+			[]string{"Author" + fmt.Sprint(i)},
+		))
+	}
+
+	// Planted ISBN13 duplicates: two entries sharing the same ISBN13.
+	for i := range isbn13Pairs {
+		isbn := isbn13Ptr(fmt.Sprintf("978000000%04d", i))
+		a := makeUBWithISBN(
+			fmt.Sprintf("ISBN Book %d edition 1", i),
+			[]string{"Writer One"},
+			isbn, nil, models.StatusToRead,
+		)
+		b := makeUBWithISBN(
+			fmt.Sprintf("ISBN Book %d edition 2", i),
+			[]string{"Writer One"},
+			isbn, nil, models.StatusRead,
+		)
+		lib = append(lib, a, b)
+	}
+
+	// Planted title+author duplicates: same normalised title and author, no ISBN.
+	for i := range titleAuthPairs {
+		title := fmt.Sprintf("Duplicate Title %d", i)
+		author := fmt.Sprintf("Shared Author %d", i)
+		a := makeUserBook(title, []string{author})
+		b := makeUserBook(title+": A Subtitle", []string{author})
+		lib = append(lib, a, b)
+	}
+
+	groups := FindDuplicateGroups(lib)
+
+	// Total expected groups = isbn13Pairs + titleAuthPairs.
+	assert.Len(t, groups, isbn13Pairs+titleAuthPairs)
+
+	// Every returned group must have exactly 2 entries.
+	for _, g := range groups {
+		assert.Len(t, g.Entries, 2)
+	}
 }
 
 func TestFindDuplicateGroups_WinnerPrefersMostProgressed(t *testing.T) {
