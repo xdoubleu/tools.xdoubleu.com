@@ -37,9 +37,11 @@ function makeEntry(bookId: string, title: string, status = 'to-read', formats: s
       title,
       authors: ['Some Author'],
       isbn13: '',
+      isbn10: '',
       coverUrl: '',
       description: '',
-      pageCount: 0
+      pageCount: 0,
+      externalRefs: {} as Record<string, string>
     },
     status,
     tags: [],
