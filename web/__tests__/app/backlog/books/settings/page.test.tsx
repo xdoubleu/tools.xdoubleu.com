@@ -1,29 +1,15 @@
 import React from 'react'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 
 const mockImportBooks = jest.fn()
-const mockRefresh = jest.fn()
-
-// Default resync state: idle, no last-refresh time.
-let mockResyncState = {
-  connected: true,
-  isRefreshing: false,
-  lastRefresh: null as Date | null,
-  processed: null as number | null,
-  total: null as number | null,
-  refresh: mockRefresh
-}
 
 jest.mock('@/hooks/useBacklog', () => ({
   useImportBooks: () => mockImportBooks,
-  useClearLibrary: () => jest.fn(),
-  useResyncOpenLibrary: () => jest.fn(),
-  useFindDuplicates: () => ({ data: undefined, isLoading: false, mutate: jest.fn() }),
-  useMergeBooks: () => jest.fn()
+  useClearLibrary: () => jest.fn()
 }))
 
-jest.mock('@/lib/backlog/resyncRefresh', () => ({
-  useResyncRefresh: () => mockResyncState
+jest.mock('@/hooks/useAuth', () => ({
+  useCurrentUser: jest.fn()
 }))
 
 jest.mock('@/components/backlog/BulkBookUploader', () => ({
@@ -48,19 +34,29 @@ jest.mock('@/components/backlog/ClearLibraryDialog', () => ({
 
 jest.mock('swr', () => ({ __esModule: true, mutate: jest.fn(), default: jest.fn() }))
 
+import { useCurrentUser } from '@/hooks/useAuth'
 import BacklogBooksSettingsPage from '@/app/backlog/books/settings/page'
+
+const mockUseCurrentUser = jest.mocked(useCurrentUser)
+
+function renderAsAdmin() {
+  // @ts-expect-error -- partial mock
+  mockUseCurrentUser.mockReturnValue({ data: { role: 'admin' }, isLoading: false })
+  return render(<BacklogBooksSettingsPage />)
+}
+
+function renderAsUser() {
+  // @ts-expect-error -- partial mock
+  mockUseCurrentUser.mockReturnValue({ data: { role: 'user' }, isLoading: false })
+  return render(<BacklogBooksSettingsPage />)
+}
 
 describe('BacklogBooksSettingsPage', () => {
   beforeEach(() => {
-    mockResyncState = {
-      connected: true,
-      isRefreshing: false,
-      lastRefresh: null,
-      processed: null,
-      total: null,
-      refresh: mockRefresh
-    }
-    mockRefresh.mockClear()
+    jest.clearAllMocks()
+    // Default: non-admin user
+    // @ts-expect-error -- partial mock
+    mockUseCurrentUser.mockReturnValue({ data: { role: 'user' }, isLoading: false })
   })
 
   it('renders the Books Settings heading', () => {
@@ -111,52 +107,24 @@ describe('BacklogBooksSettingsPage', () => {
     expect(screen.getByTestId('clear-library-btn')).toBeInTheDocument()
   })
 
-  it('renders the Resync metadata section and button', () => {
+  it('does not show resync or find-duplicates on the settings page', () => {
     render(<BacklogBooksSettingsPage />)
-    expect(screen.getAllByText('Resync metadata').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByTestId('resync-openlibrary-btn')).toBeInTheDocument()
+    expect(screen.queryByTestId('resync-openlibrary-btn')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('find-duplicates-btn')).not.toBeInTheDocument()
   })
 
-  it('calls refresh when the resync button is clicked', () => {
-    render(<BacklogBooksSettingsPage />)
-    fireEvent.click(screen.getByTestId('resync-openlibrary-btn'))
-    expect(mockRefresh).toHaveBeenCalledTimes(1)
+  it('shows Admin tools section with link for admin users', () => {
+    renderAsAdmin()
+    expect(screen.getByText('Admin tools')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open admin tools' })).toHaveAttribute(
+      'href',
+      '/backlog/books/admin'
+    )
   })
 
-  it('disables the button and shows Resyncing… while isRefreshing', () => {
-    mockResyncState = { ...mockResyncState, isRefreshing: true }
-    render(<BacklogBooksSettingsPage />)
-    const btn = screen.getByTestId('resync-openlibrary-btn')
-    expect(btn).toBeDisabled()
-    expect(btn.textContent).toBe('Resyncing…')
-  })
-
-  it('shows indeterminate progress text before total arrives', () => {
-    mockResyncState = { ...mockResyncState, isRefreshing: true, processed: null, total: null }
-    render(<BacklogBooksSettingsPage />)
-    const progress = screen.getByTestId('resync-openlibrary-progress')
-    expect(progress).toBeInTheDocument()
-    expect(within(progress).getByText('Resyncing…')).toBeInTheDocument()
-  })
-
-  it('shows X / N count and progress bar when total is known', () => {
-    mockResyncState = { ...mockResyncState, isRefreshing: true, processed: 37, total: 210 }
-    render(<BacklogBooksSettingsPage />)
-    expect(screen.getByTestId('resync-openlibrary-progress')).toBeInTheDocument()
-    expect(screen.getByText('37 / 210')).toBeInTheDocument()
-  })
-
-  it('shows last-synced time after a completed run', () => {
-    const ts = new Date('2026-06-24T12:00:00Z')
-    mockResyncState = { ...mockResyncState, isRefreshing: false, lastRefresh: ts }
-    render(<BacklogBooksSettingsPage />)
-    expect(screen.getByTestId('resync-openlibrary-status')).toBeInTheDocument()
-    expect(screen.getByTestId('resync-openlibrary-status').textContent).toContain('Last synced')
-  })
-
-  it('hides progress and last-synced when idle with no prior run', () => {
-    render(<BacklogBooksSettingsPage />)
-    expect(screen.queryByTestId('resync-openlibrary-progress')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('resync-openlibrary-status')).not.toBeInTheDocument()
+  it('hides Admin tools section for non-admin users', () => {
+    renderAsUser()
+    expect(screen.queryByText('Admin tools')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Open admin tools' })).not.toBeInTheDocument()
   })
 })

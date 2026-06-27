@@ -253,6 +253,34 @@ message MergeBooksResponse {
 message ResyncOpenLibraryRequest {}
 message ResyncOpenLibraryResponse {}
 
+// CatalogBookStatus is a lightweight view of a catalog book used by the admin
+// selective-resync tool. The *_status strings follow the convention:
+//   "" = never attempted, "found" = provider returned a record,
+//   "not_found" = provider was queried but returned nothing.
+message CatalogBookStatus {
+  string id = 1;
+  string title = 2;
+  repeated string authors = 3;
+  string isbn13 = 4;
+  bool has_cover = 5;
+  bool has_description = 6;
+  bool has_page_count = 7;
+  string openlibrary_status = 8;
+  string googlebooks_status = 9;
+  string last_resync_at = 10;
+}
+
+message ListCatalogBooksRequest {}
+message ListCatalogBooksResponse {
+  repeated CatalogBookStatus books = 1;
+}
+
+message ResyncBooksRequest {
+  repeated string book_ids = 1;
+  bool force = 2;
+}
+message ResyncBooksResponse {}
+
 message RenameShelfRequest { string old_name = 1; string new_name = 2; }
 message RenameShelfResponse { uint32 moved = 1; }
 // Reassign every book on `name` to `target_name`, after which `name` no longer exists.
@@ -290,6 +318,8 @@ service BooksService {
   rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
   rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
   rpc ResyncOpenLibrary(ResyncOpenLibraryRequest) returns (ResyncOpenLibraryResponse);
+  rpc ListCatalogBooks(ListCatalogBooksRequest) returns (ListCatalogBooksResponse);
+  rpc ResyncBooks(ResyncBooksRequest) returns (ResyncBooksResponse);
   rpc RenameShelf(RenameShelfRequest) returns (RenameShelfResponse);
   rpc DeleteShelf(DeleteShelfRequest) returns (DeleteShelfResponse);
   rpc RenameTag(RenameTagRequest) returns (RenameTagResponse);

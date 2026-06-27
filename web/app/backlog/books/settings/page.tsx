@@ -1,28 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useImportBooks } from '@/hooks/useBacklog'
-import { useResyncRefresh } from '@/lib/backlog/resyncRefresh'
+import { useCurrentUser } from '@/hooks/useAuth'
 import BulkBookUploader from '@/components/backlog/BulkBookUploader'
 import KoboSetup from '@/components/backlog/KoboSetup'
 import KoboDevices from '@/components/backlog/KoboDevices'
 import ClearLibraryDialog from '@/components/backlog/ClearLibraryDialog'
-import ManageDuplicatesDialog from '@/components/backlog/ManageDuplicatesDialog'
 import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 
 export default function BacklogBooksSettingsPage() {
   const importBooks = useImportBooks()
-
-  const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
-    () => void mutate('/backlog/books')
-  )
+  const { data: currentUser } = useCurrentUser()
+  const isAdmin = currentUser?.role === 'admin'
 
   const [importStatus, setImportStatus] = useState('')
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearStatus, setClearStatus] = useState('')
-  const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -96,74 +93,19 @@ export default function BacklogBooksSettingsPage() {
         </div>
       </section>
 
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Resync metadata
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Re-fetch covers, descriptions, and page counts for all books missing metadata. Books with
-          an ISBN are looked up via Open Library then Google Books. ISBN-less books are matched by
-          title and author — a confident match also fills in the ISBN so future resyncs are faster.
-          Existing cached covers are cleared so updated images download on next view.
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={isRefreshing}
-          onClick={refresh}
-          data-testid="resync-openlibrary-btn"
-        >
-          {isRefreshing ? 'Resyncing…' : 'Resync metadata'}
-        </Button>
-        {isRefreshing && (
-          <div className="mt-3" data-testid="resync-openlibrary-progress">
-            {total !== null ? (
-              <>
-                <div className="mb-1 flex justify-between text-xs text-muted">
-                  <span>Resyncing books…</span>
-                  <span>
-                    {processed ?? 0} / {total}
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-border">
-                  <div
-                    className="h-full rounded-full bg-fg transition-all duration-300"
-                    style={{
-                      width: `${total > 0 ? (((processed ?? 0) / total) * 100).toFixed(1) : 0}%`
-                    }}
-                  />
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-muted">Resyncing…</p>
-            )}
-          </div>
-        )}
-        {!isRefreshing && lastRefresh && (
-          <p className="mt-2 text-xs text-muted" data-testid="resync-openlibrary-status">
-            Last synced {lastRefresh.toLocaleString()}
+      {isAdmin && (
+        <section className="mt-10 border-t border-border pt-8">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+            Admin tools
+          </h2>
+          <p className="mb-3 text-xs text-muted">
+            Resync metadata, selectively re-fetch individual books, and merge duplicates.
           </p>
-        )}
-      </section>
-
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Find duplicates
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Detect duplicate library entries and merge them. Matching is based on ISBN or normalised
-          title and author. Files, tags, and reading progress are consolidated onto the entry you
-          choose to keep.
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setDuplicatesDialogOpen(true)}
-          data-testid="find-duplicates-btn"
-        >
-          Find duplicates
-        </Button>
-      </section>
+          <Button asChild variant="secondary">
+            <Link href="/backlog/books/admin">Open admin tools</Link>
+          </Button>
+        </section>
+      )}
 
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
@@ -196,8 +138,6 @@ export default function BacklogBooksSettingsPage() {
         onOpenChange={setClearDialogOpen}
         onCleared={() => setClearStatus('Library cleared successfully.')}
       />
-
-      <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />
     </main>
   )
 }

@@ -12,7 +12,8 @@ import (
 // bookColumns is the standalone column list for backlog.books selects. The order
 // must match scanBook.
 const bookColumns = `id, title, authors, isbn13, isbn10, cover_url, description,
-	page_count, external_refs, created_at, updated_at`
+	page_count, external_refs, created_at, updated_at,
+	openlibrary_found, googlebooks_found, last_resync_at`
 
 // userBookColumns is the joined column list for user_book selects. The order must
 // match scanUserBookWithBook (user_book columns first, then the joined book).
@@ -45,6 +46,9 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 		&refsJSON,
 		&book.CreatedAt,
 		&book.UpdatedAt,
+		&book.OpenLibraryFound,
+		&book.GoogleBooksFound,
+		&book.LastResyncAt,
 	)
 	if err != nil {
 		return nil, err

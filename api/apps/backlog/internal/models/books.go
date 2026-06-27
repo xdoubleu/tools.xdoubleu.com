@@ -47,6 +47,12 @@ type Book struct {
 	ExternalRefs map[string]string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+
+	// Resync status — populated during ResyncAllFromOpenLibrary / ResyncBooks.
+	// Nil means the book has never been processed by a resync run.
+	OpenLibraryFound *bool
+	GoogleBooksFound *bool
+	LastResyncAt     *time.Time
 }
 
 // HasTag reports whether the user_book has the given tag.
