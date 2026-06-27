@@ -597,11 +597,20 @@ func TestFindDuplicateGroups_GroupOrderStableOnShuffledInput(t *testing.T) {
 		)
 	}
 
-	// "Aardvark" < "Zeta" — Aardvark group must come first.
-	assert.Equal(
+	// "Aardvark" < "Zeta" — the Aardvark group must come first.
+	// We check that some entry in group[0] is titled "Aardvark" rather than
+	// asserting Entries[0] specifically, because the within-group winner is
+	// decided by UUID tiebreak and is non-deterministic across runs.
+	firstGroupTitles := make([]string, 0, len(orderA[0].Entries))
+	for _, e := range orderA[0].Entries {
+		if e.Book != nil {
+			firstGroupTitles = append(firstGroupTitles, e.Book.Title)
+		}
+	}
+	assert.Contains(
 		t,
+		firstGroupTitles,
 		"Aardvark",
-		orderA[0].Entries[0].Book.Title,
 		"groups not sorted by title within same signal tier",
 	)
 }
