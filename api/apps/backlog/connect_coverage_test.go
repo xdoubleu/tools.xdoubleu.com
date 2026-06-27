@@ -662,7 +662,7 @@ func TestConnectGetLibrary_FormatsPopulated(t *testing.T) {
 // TestConnectResyncOpenLibrary_Success verifies that an authenticated user can
 // trigger the resync endpoint and get a 200 response.
 func TestConnectResyncOpenLibrary_Success(t *testing.T) {
-	client := newBooksTestClient(t)
+	client := newAdminBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

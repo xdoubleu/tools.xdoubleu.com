@@ -441,7 +441,7 @@ func TestMergeBooks_WinnerReadingStateNotOverridden(t *testing.T) {
 // --- connect handler tests ---
 
 func TestConnectFindDuplicates_OK(t *testing.T) {
-	client := newBooksTestClient(t)
+	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&backlogv1.FindDuplicatesRequest{})
 	req.Header().Set("Cookie", accessToken.String())
 
@@ -452,7 +452,7 @@ func TestConnectFindDuplicates_OK(t *testing.T) {
 }
 
 func TestConnectMergeBooks_InvalidWinnerID(t *testing.T) {
-	client := newBooksTestClient(t)
+	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&backlogv1.MergeBooksRequest{
 		WinnerBookId: "not-a-uuid",
 		LoserBookIds: []string{},
@@ -467,7 +467,7 @@ func TestConnectMergeBooks_InvalidWinnerID(t *testing.T) {
 }
 
 func TestConnectMergeBooks_InvalidLoserID(t *testing.T) {
-	client := newBooksTestClient(t)
+	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&backlogv1.MergeBooksRequest{
 		WinnerBookId: uuid.NewString(),
 		LoserBookIds: []string{"not-a-uuid"},

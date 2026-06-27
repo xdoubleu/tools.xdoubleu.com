@@ -27,6 +27,26 @@ type booksConnectHandler struct {
 	app *Backlog
 }
 
+// requireAdmin returns an authenticated admin user or a PermissionDenied error.
+func (h *booksConnectHandler) requireAdmin(
+	ctx context.Context,
+) (*sharedmodels.User, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	if user.Role != sharedmodels.RoleAdmin {
+		return nil, connect.NewError(
+			connect.CodePermissionDenied,
+			errors.New("admin access required"),
+		)
+	}
+	return user, nil
+}
+
 func (h *booksConnectHandler) GetSummary(
 	ctx context.Context,
 	_ *connect.Request[backlogv1.GetSummaryRequest],
@@ -911,12 +931,9 @@ func (h *booksConnectHandler) FindDuplicates(
 	ctx context.Context,
 	_ *connect.Request[backlogv1.FindDuplicatesRequest],
 ) (*connect.Response[backlogv1.FindDuplicatesResponse], error) {
-	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
-		)
+	user, err := h.requireAdmin(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	groups, err := h.app.Services.Books.FindDuplicates(ctx, user.ID)
@@ -946,12 +963,9 @@ func (h *booksConnectHandler) MergeBooks(
 	ctx context.Context,
 	req *connect.Request[backlogv1.MergeBooksRequest],
 ) (*connect.Response[backlogv1.MergeBooksResponse], error) {
-	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
-		)
+	user, err := h.requireAdmin(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	winnerID, err := uuid.Parse(req.Msg.WinnerBookId)
@@ -998,18 +1012,69 @@ func (h *booksConnectHandler) ResyncOpenLibrary(
 	ctx context.Context,
 	_ *connect.Request[backlogv1.ResyncOpenLibraryRequest],
 ) (*connect.Response[backlogv1.ResyncOpenLibraryResponse], error) {
-	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
-		)
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
 	}
 
 	h.app.resyncBooksJob.Arm()
 	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
 
 	return connect.NewResponse(&backlogv1.ResyncOpenLibraryResponse{}), nil
+}
+
+func (h *booksConnectHandler) ListCatalogBooks(
+	ctx context.Context,
+	_ *connect.Request[backlogv1.ListCatalogBooksRequest],
+) (*connect.Response[backlogv1.ListCatalogBooksResponse], error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	books, err := h.app.Services.Books.ListCatalogBooks(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	result := make([]*backlogv1.CatalogBookStatus, len(books))
+	for i, b := range books {
+		result[i] = protoCatalogBookStatus(b)
+	}
+
+	return connect.NewResponse(&backlogv1.ListCatalogBooksResponse{
+		Books: result,
+	}), nil
+}
+
+func (h *booksConnectHandler) ResyncBooks(
+	ctx context.Context,
+	req *connect.Request[backlogv1.ResyncBooksRequest],
+) (*connect.Response[backlogv1.ResyncBooksResponse], error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	ids := make([]uuid.UUID, 0, len(req.Msg.BookIds))
+	for _, raw := range req.Msg.BookIds {
+		id, parseErr := uuid.Parse(raw)
+		if parseErr != nil {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				fmt.Errorf("invalid book_id %q: %w", raw, parseErr),
+			)
+		}
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("book_ids must not be empty"),
+		)
+	}
+
+	h.app.resyncBooksJob.ArmFor(ids, req.Msg.Force)
+	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
+
+	return connect.NewResponse(&backlogv1.ResyncBooksResponse{}), nil
 }
 
 func (h *booksConnectHandler) RenameShelf(
@@ -1088,6 +1153,51 @@ func (h *booksConnectHandler) DeleteTag(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return connect.NewResponse(&backlogv1.DeleteTagResponse{Affected: affected}), nil
+}
+
+// protoCatalogBookStatus maps a catalog book model to the admin-facing proto
+// view used by ListCatalogBooks / SelectiveResync.
+func protoCatalogBookStatus(b models.Book) *backlogv1.CatalogBookStatus {
+	const (
+		statusFound    = "found"
+		statusNotFound = "not_found"
+	)
+
+	olStatus := ""
+	if b.OpenLibraryFound != nil {
+		if *b.OpenLibraryFound {
+			olStatus = statusFound
+		} else {
+			olStatus = statusNotFound
+		}
+	}
+
+	gbStatus := ""
+	if b.GoogleBooksFound != nil {
+		if *b.GoogleBooksFound {
+			gbStatus = statusFound
+		} else {
+			gbStatus = statusNotFound
+		}
+	}
+
+	lastResyncAt := ""
+	if b.LastResyncAt != nil {
+		lastResyncAt = b.LastResyncAt.UTC().Format(time.RFC3339)
+	}
+
+	return &backlogv1.CatalogBookStatus{
+		Id:                b.ID.String(),
+		Title:             b.Title,
+		Authors:           b.Authors,
+		Isbn13:            stringPtr(b.ISBN13),
+		HasCover:          b.CoverURL != nil && *b.CoverURL != "",
+		HasDescription:    b.Description != nil && *b.Description != "",
+		HasPageCount:      b.PageCount != nil,
+		OpenlibraryStatus: olStatus,
+		GooglebooksStatus: gbStatus,
+		LastResyncAt:      lastResyncAt,
+	}
 }
 
 func stringPtr(s *string) string {

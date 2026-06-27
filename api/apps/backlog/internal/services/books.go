@@ -529,6 +529,14 @@ func (s *BookService) ClearLibrary(
 	return uint32(bookCount), uint32(fileCount), nil
 }
 
+// ListCatalogBooks returns all catalog books ordered by title. Used by the
+// admin selective-resync tool.
+func (s *BookService) ListCatalogBooks(
+	ctx context.Context,
+) ([]models.Book, error) {
+	return s.books.ListCatalogBooks(ctx)
+}
+
 // FindDuplicates returns groups of library entries judged to be duplicates of
 // the same book. It loads the user's full library and delegates to the pure
 // FindDuplicateGroups helper.

@@ -743,6 +743,93 @@ func (repo *BooksRepository) RefreshBookExternalData(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// SetResyncStatus records per-provider lookup outcomes and the time of the
+// last resync attempt for a single catalog book.
+func (repo *BooksRepository) SetResyncStatus(
+	ctx context.Context,
+	bookID uuid.UUID,
+	olFound bool,
+	gbFound bool,
+) error {
+	query := `
+		UPDATE backlog.books
+		SET openlibrary_found = $2,
+		    googlebooks_found = $3,
+		    last_resync_at    = now(),
+		    updated_at        = now()
+		WHERE id = $1
+	`
+	_, err := repo.db.Exec(ctx, query, bookID, olFound, gbFound)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// ListCatalogBooks returns all catalog books ordered by title. Used by the
+// admin selective-resync tool.
+func (repo *BooksRepository) ListCatalogBooks(
+	ctx context.Context,
+) ([]models.Book, error) {
+	query := `
+		SELECT ` + bookColumns + `
+		FROM backlog.books
+		ORDER BY title
+	`
+
+	rows, err := repo.db.Query(ctx, query)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var books []models.Book
+	for rows.Next() {
+		b, scanErr := scanBook(rows)
+		if scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		books = append(books, *b)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return books, nil
+}
+
+// GetBooksByIDs returns the catalog books whose IDs are in the given slice.
+// Missing IDs are silently ignored.
+func (repo *BooksRepository) GetBooksByIDs(
+	ctx context.Context,
+	ids []uuid.UUID,
+) ([]models.Book, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT ` + bookColumns + `
+		FROM backlog.books
+		WHERE id = ANY($1)
+	`
+
+	rows, err := repo.db.Query(ctx, query, ids)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var books []models.Book
+	for rows.Next() {
+		b, scanErr := scanBook(rows)
+		if scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		books = append(books, *b)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return books, nil
+}
+
 // RenameShelf updates the status of every user_book with status == oldName to
 // newName. Returns the number of rows affected.
 // The caller is responsible for rejecting built-in status values.

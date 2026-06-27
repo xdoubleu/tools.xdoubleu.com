@@ -19,7 +19,8 @@ import type {
   GetKEPUBStatusResponse,
   GetBookFileResponse,
   ListKoboDevicesResponse,
-  FindDuplicatesResponse
+  FindDuplicatesResponse,
+  ListCatalogBooksResponse
 } from '@/lib/gen/backlog/v1/books_pb'
 
 export type AddBookInput = MessageInitShape<typeof AddBookRequestSchema>
@@ -260,6 +261,18 @@ export function useMergeBooks() {
   const client = createServiceClient(BooksService)
   return (winnerBookId: string, loserBookIds: string[]) =>
     client.mergeBooks({ winnerBookId, loserBookIds })
+}
+
+export function useCatalogBooks() {
+  const client = createServiceClient(BooksService)
+  return useSWR<ListCatalogBooksResponse, Error>('/backlog/books/catalog', () =>
+    client.listCatalogBooks({})
+  )
+}
+
+export function useResyncBooks() {
+  const client = createServiceClient(BooksService)
+  return (bookIds: string[], force: boolean) => client.resyncBooks({ bookIds, force })
 }
 
 export function useKEPUBStatus(bookId: string | null) {

@@ -20,6 +20,7 @@ import (
 // path. Defined as an interface so tests can stub it without a real DB.
 type booksResyncSource interface {
 	ListBooksMissingMetadata(ctx context.Context) ([]models.Book, error)
+	GetBooksByIDs(ctx context.Context, ids []uuid.UUID) ([]models.Book, error)
 	RefreshBookExternalData(
 		ctx context.Context,
 		bookID uuid.UUID,
@@ -27,6 +28,12 @@ type booksResyncSource interface {
 		description *string,
 		pageCount *int,
 		isbn13 *string,
+	) error
+	SetResyncStatus(
+		ctx context.Context,
+		bookID uuid.UUID,
+		olFound bool,
+		gbFound bool,
 	) error
 }
 
@@ -70,7 +77,39 @@ func (s *BookService) ResyncAllFromOpenLibrary(
 	if err != nil {
 		return 0, err
 	}
+	return s.resyncBooks(ctx, logger, books, false, onProgress)
+}
 
+// ResyncBooks re-fetches metadata for the given catalog book IDs. When force
+// is true every field is re-queried and existing metadata is overwritten with
+// whatever the provider returns; when false only missing fields are filled
+// (same behaviour as ResyncAllFromOpenLibrary). Resync status (provider
+// found/not-found) is recorded regardless of the force flag.
+//
+// onProgress semantics are the same as ResyncAllFromOpenLibrary.
+func (s *BookService) ResyncBooks(
+	ctx context.Context,
+	logger *slog.Logger,
+	ids []uuid.UUID,
+	force bool,
+	onProgress func(processed, total int),
+) (int, error) {
+	books, err := s.resyncRepo().GetBooksByIDs(ctx, ids)
+	if err != nil {
+		return 0, err
+	}
+	return s.resyncBooks(ctx, logger, books, force, onProgress)
+}
+
+// resyncBooks is the shared bounded-concurrency loop used by both
+// ResyncAllFromOpenLibrary and ResyncBooks.
+func (s *BookService) resyncBooks(
+	ctx context.Context,
+	logger *slog.Logger,
+	books []models.Book,
+	force bool,
+	onProgress func(processed, total int),
+) (int, error) {
 	total := len(books)
 	if onProgress != nil {
 		onProgress(0, total)
@@ -94,7 +133,7 @@ func (s *BookService) ResyncAllFromOpenLibrary(
 	for _, book := range books {
 		b := book
 		eg.Go(func() error {
-			bookErr := s.resyncBook(egCtx, logger, b)
+			bookErr := s.resyncBook(egCtx, logger, b, force)
 			if bookErr != nil {
 				isbn := "<none>"
 				if b.ISBN13 != nil {
@@ -129,24 +168,47 @@ func (s *BookService) resyncBook(
 	ctx context.Context,
 	logger *slog.Logger,
 	book models.Book,
+	force bool,
 ) error {
-	needCover := book.CoverURL == nil || *book.CoverURL == ""
-	needDesc := book.Description == nil || *book.Description == ""
-	needPages := book.PageCount == nil
+	needCover := force || book.CoverURL == nil || *book.CoverURL == ""
+	needDesc := force || book.Description == nil || *book.Description == ""
+	needPages := force || book.PageCount == nil
 
-	// Nothing to backfill — skip all network calls.
+	// Nothing to backfill and not forced — skip all network calls.
 	if !needCover && !needDesc && !needPages {
 		return nil
 	}
 
+	var olFound, gbFound bool
+	var resyncErr error
+
 	if book.ISBN13 != nil && *book.ISBN13 != "" {
-		return s.resyncBookByISBN(ctx, logger, book, needCover, needDesc, needPages)
+		olFound, gbFound, resyncErr = s.resyncBookByISBN(
+			ctx, logger, book, needCover, needDesc, needPages,
+		)
+	} else {
+		olFound, gbFound, resyncErr = s.resyncBookByTitleAuthor(
+			ctx, logger, book, needCover, needDesc, needPages,
+		)
 	}
-	return s.resyncBookByTitleAuthor(ctx, logger, book, needCover, needDesc, needPages)
+
+	// Record provider outcomes regardless of whether metadata was written.
+	if statusErr := s.resyncRepo().SetResyncStatus(
+		ctx, book.ID, olFound, gbFound,
+	); statusErr != nil {
+		logger.WarnContext(ctx, "failed to record resync status",
+			slog.String("bookID", book.ID.String()),
+			slog.Any("error", statusErr),
+		)
+	}
+
+	return resyncErr
 }
 
 // resyncBookByISBN enriches a book that already has an ISBN13.
 // It tries Open Library first, then Google Books for any fields still missing.
+// Returns (olFound, gbFound, err) where the found flags indicate whether each
+// provider returned a record for this ISBN.
 //
 //nolint:gocognit,nestif // multi-provider per-field fallback is inherently branchy
 func (s *BookService) resyncBookByISBN(
@@ -154,17 +216,19 @@ func (s *BookService) resyncBookByISBN(
 	logger *slog.Logger,
 	book models.Book,
 	needCover, needDesc, needPages bool,
-) error {
+) (bool, bool, error) {
+	var olFound, gbFound bool
 	var coverURL, description *string
 	var pageCount *int
 
 	// --- Open Library ---
-	olDetail, err := s.external.GetByISBN(ctx, *book.ISBN13)
-	olNotFound := errors.Is(err, openlibrary.ErrNotFound)
-	if err != nil && !olNotFound {
-		return err
+	olDetail, olErr := s.external.GetByISBN(ctx, *book.ISBN13)
+	olNotFound := errors.Is(olErr, openlibrary.ErrNotFound)
+	if olErr != nil && !olNotFound {
+		return false, false, olErr
 	}
-	if olDetail != nil {
+	olFound = olDetail != nil
+	if olFound {
 		// Use the explicit OL cover URL only — NOT the ISBN fallback URL yet.
 		// The ISBN fallback (covers.openlibrary.org/b/isbn/…) may 404 for some
 		// books; we give Google Books a chance first and only fall back to the
@@ -193,7 +257,8 @@ func (s *BookService) resyncBookByISBN(
 				slog.Any("error", gbErr),
 			)
 		}
-		if gbDetail != nil {
+		gbFound = gbDetail != nil
+		if gbFound {
 			if stillNeedCover && gbDetail.CoverURL != nil {
 				coverURL = gbDetail.CoverURL
 				stillNeedCover = false
@@ -218,15 +283,18 @@ func (s *BookService) resyncBookByISBN(
 
 	// Nothing useful from either provider — skip the DB write.
 	if coverURL == nil && description == nil && pageCount == nil {
-		return nil
+		return olFound, gbFound, nil
 	}
 
-	return s.writeResyncResult(ctx, logger, book, coverURL, description, pageCount, nil)
+	return olFound, gbFound,
+		s.writeResyncResult(ctx, logger, book, coverURL, description, pageCount, nil)
 }
 
 // resyncBookByTitleAuthor enriches an ISBN-less book by searching for it by
 // title+author. It tries Open Library first, then Google Books. On a confident
 // match it backfills metadata and writes the discovered ISBN13.
+// Returns (olFound, gbFound, err) where the found flags indicate whether each
+// provider returned a confident title+author match.
 //
 //nolint:gocognit,gocyclo,cyclop,nestif // OL+GB search chains with per-field fallback
 func (s *BookService) resyncBookByTitleAuthor(
@@ -234,10 +302,11 @@ func (s *BookService) resyncBookByTitleAuthor(
 	logger *slog.Logger,
 	book models.Book,
 	needCover, needDesc, needPages bool,
-) error {
+) (bool, bool, error) {
+	var olFound, gbFound bool
 	if book.Title == "" || len(book.Authors) == 0 {
 		// Cannot do a meaningful title/author search without both.
-		return nil
+		return false, false, nil
 	}
 
 	query := buildSearchQuery(book.Title, book.Authors)
@@ -260,6 +329,7 @@ func (s *BookService) resyncBookByTitleAuthor(
 			continue
 		}
 		// Confident OL match found.
+		olFound = true
 		if needCover && r.CoverURL != nil {
 			coverURL = r.CoverURL
 		}
@@ -295,6 +365,7 @@ func (s *BookService) resyncBookByTitleAuthor(
 				continue
 			}
 			// Confident GB match found — fill any remaining gaps.
+			gbFound = true
 			if needCover && coverURL == nil && r.CoverURL != nil {
 				coverURL = r.CoverURL
 			}
@@ -314,10 +385,10 @@ func (s *BookService) resyncBookByTitleAuthor(
 	if coverURL == nil && description == nil && pageCount == nil &&
 		matchedISBN13 == nil {
 		// Neither provider found anything useful — nothing to write.
-		return nil
+		return olFound, gbFound, nil
 	}
 
-	return s.writeResyncResult(
+	return olFound, gbFound, s.writeResyncResult(
 		ctx, logger, book, coverURL, description, pageCount, matchedISBN13,
 	)
 }
@@ -333,8 +404,6 @@ func (s *BookService) writeResyncResult(
 	pageCount *int,
 	isbn13 *string,
 ) error {
-	needCover := book.CoverURL == nil || *book.CoverURL == ""
-
 	if dbErr := s.resyncRepo().RefreshBookExternalData(
 		ctx,
 		book.ID,
@@ -346,10 +415,11 @@ func (s *BookService) writeResyncResult(
 		return dbErr
 	}
 
-	// Bust the R2 cover cache only when we actually resolved a fresh cover URL.
-	// Leaving the cache intact when no cover was found preserves any previously
-	// downloaded cover image.
-	if needCover && coverURL != nil {
+	// Bust the R2 cover cache whenever we resolved a fresh cover URL so that
+	// the next request downloads the updated image. This covers both the
+	// additive path (book had no cover) and the force-refresh path (book had
+	// a cover but we replaced it).
+	if coverURL != nil {
 		s.bustCoverCache(ctx, logger, book.ID)
 	}
 
