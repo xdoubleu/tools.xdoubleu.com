@@ -144,7 +144,7 @@ func richness(ub models.UserBook) int {
 // suggested winner (highest richness score; ties broken by BookID to ensure a
 // deterministic order).
 //
-//nolint:cyclop,funlen,gocognit,gocyclo // union-find + winner; cannot split further
+//nolint:funlen,gocognit,gocyclo,cyclop // union-find + buckets + winner; cannot split
 func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 	n := len(lib)
 	if n < minDuplicateGroupSize {
@@ -189,56 +189,76 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 		}
 	}
 
-	// Pairwise duplicate checks — O(n²) which is fine for typical library sizes.
-	for i := 0; i < n; i++ {
-		bi := lib[i].Book
-		if bi == nil {
+	// Precompute normalised fields once per book — O(n).
+	type bookNorm struct {
+		isbn13  string
+		isbn10  string
+		title   string
+		authors []string // normalised last names
+	}
+	norms := make([]bookNorm, n)
+	for i, ub := range lib {
+		b := ub.Book
+		if b == nil {
 			continue
 		}
-		normTitleI := normalizeTitle(bi.Title)
-		authorsI := make(map[string]struct{}, len(bi.Authors))
-		for _, a := range bi.Authors {
+		var bn bookNorm
+		if b.ISBN13 != nil {
+			bn.isbn13 = *b.ISBN13
+		}
+		if b.ISBN10 != nil {
+			bn.isbn10 = *b.ISBN10
+		}
+		bn.title = normalizeTitle(b.Title)
+		bn.authors = make([]string, 0, len(b.Authors))
+		for _, a := range b.Authors {
 			if na := normalizeAuthor(a); na != "" {
-				authorsI[na] = struct{}{}
+				bn.authors = append(bn.authors, na)
 			}
 		}
+		norms[i] = bn
+	}
 
-		for j := i + 1; j < n; j++ {
-			bj := lib[j].Book
-			if bj == nil {
-				continue
-			}
+	// Build key→index buckets and union within each bucket — O(n) overall.
+	// ISBN buckets: one entry per non-empty ISBN value.
+	// Title+author bucket: one entry per (normTitle, normLastName) pair so that
+	// two books match when they share a normalised title AND at least one author
+	// last name — identical semantics to the original pairwise check.
+	isbn13Bucket := make(map[string][]int, n)
+	isbn10Bucket := make(map[string][]int, n)
+	titleAuthorBucket := make(map[string][]int, n)
 
-			// ISBN13 match (strongest).
-			if bi.ISBN13 != nil && bj.ISBN13 != nil &&
-				*bi.ISBN13 != "" && *bi.ISBN13 == *bj.ISBN13 {
-				union(i, j, "isbn13")
-				continue
+	for i, bn := range norms {
+		if lib[i].Book == nil {
+			continue
+		}
+		if bn.isbn13 != "" {
+			isbn13Bucket[bn.isbn13] = append(isbn13Bucket[bn.isbn13], i)
+		}
+		if bn.isbn10 != "" {
+			isbn10Bucket[bn.isbn10] = append(isbn10Bucket[bn.isbn10], i)
+		}
+		if bn.title != "" {
+			for _, a := range bn.authors {
+				key := bn.title + "\x00" + a
+				titleAuthorBucket[key] = append(titleAuthorBucket[key], i)
 			}
+		}
+	}
 
-			// ISBN10 match.
-			if bi.ISBN10 != nil && bj.ISBN10 != nil &&
-				*bi.ISBN10 != "" && *bi.ISBN10 == *bj.ISBN10 {
-				union(i, j, "isbn10")
-				continue
-			}
-
-			// Normalised title + shared author last name.
-			if normTitleI == "" {
-				continue
-			}
-			normTitleJ := normalizeTitle(bj.Title)
-			if normTitleI != normTitleJ {
-				continue
-			}
-			for _, a := range bj.Authors {
-				if na := normalizeAuthor(a); na != "" {
-					if _, ok := authorsI[na]; ok {
-						union(i, j, "title+author")
-						break
-					}
-				}
-			}
+	for _, members := range isbn13Bucket {
+		for k := 1; k < len(members); k++ {
+			union(members[0], members[k], "isbn13")
+		}
+	}
+	for _, members := range isbn10Bucket {
+		for k := 1; k < len(members); k++ {
+			union(members[0], members[k], "isbn10")
+		}
+	}
+	for _, members := range titleAuthorBucket {
+		for k := 1; k < len(members); k++ {
+			union(members[0], members[k], "title+author")
 		}
 	}
 
