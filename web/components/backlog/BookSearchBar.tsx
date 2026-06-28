@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchLibrary, useSearchExternal } from '@/hooks/useBacklog'
 import type { ExternalBookResult } from '@/lib/gen/backlog/v1/books_pb'
@@ -8,60 +8,127 @@ import BookModal from '@/components/backlog/BookModal'
 import { Input } from '@/components/ui/input'
 import { MenuItem } from '@/components/ui/menu-item'
 
-type SearchResults =
-  | { kind: 'library'; books: { id: string; book?: { title: string; authors: string[] } | null }[] }
-  | { kind: 'external'; results: ExternalBookResult[] }
-
+// Two usage modes:
+//
+//  1. Standalone mode (BooksDashboard): omit query/onChange/hasLibraryResults.
+//     The bar manages its own query state, searches the library, navigates on
+//     a hit, and falls back to Open Library when the library has no results.
+//
+//  2. Controlled mode (BooksSection / library page): supply query, onChange,
+//     and hasLibraryResults.  The bar is a controlled input; it does NOT search
+//     the library itself (BooksLibrary does that via client-side filtering).
+//     When hasLibraryResults is false it searches Open Library as a fallback.
 interface BookSearchBarProps {
   onAdded: () => void
+  // Controlled-mode props (all required together, all omitted for standalone).
+  query?: string
+  onChange?: (value: string) => void
+  hasLibraryResults?: boolean
 }
 
-export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
+export default function BookSearchBar({
+  onAdded,
+  query: controlledQuery,
+  onChange,
+  hasLibraryResults
+}: BookSearchBarProps) {
+  const isControlled = controlledQuery !== undefined
+
   const router = useRouter()
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResults | null>(null)
+  const searchLibrary = useSearchLibrary()
+  const searchExternal = useSearchExternal()
+
+  // Standalone mode owns its own query state.
+  const [standaloneQuery, setStandaloneQuery] = useState('')
+  const query = isControlled ? controlledQuery : standaloneQuery
+
+  type LibraryHit = { id: string; book?: { title: string; authors: string[] } | null }
+  const [libraryHits, setLibraryHits] = useState<LibraryHit[]>([])
+  const [externalResults, setExternalResults] = useState<ExternalBookResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [selectedBook, setSelectedBook] = useState<ExternalBookResult | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const searchLibrary = useSearchLibrary()
-  const searchExternal = useSearchExternal()
+  // ---- Standalone mode: debounce → searchLibrary → navigate or OL fallback ----
+  useEffect(() => {
+    if (isControlled) return
 
-  const handleQueryChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      setQuery(value)
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    if (!standaloneQuery.trim()) {
+      setLibraryHits([])
+      setExternalResults([])
+      setIsSearching(false)
+      return
+    }
 
-      if (debounceTimer.current) clearTimeout(debounceTimer.current)
-
-      if (!value.trim()) {
-        setResults(null)
-        return
-      }
-
-      debounceTimer.current = setTimeout(async () => {
-        setIsSearching(true)
-        try {
-          const libraryResponse = await searchLibrary(value.trim())
-          if (libraryResponse.books.length > 0) {
-            setResults({ kind: 'library', books: libraryResponse.books })
-          } else {
-            const externalResponse = await searchExternal(value.trim())
-            setResults({ kind: 'external', results: externalResponse.results })
-          }
-        } catch {
-          setResults(null)
-        } finally {
-          setIsSearching(false)
+    debounceTimer.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const libResp = await searchLibrary(standaloneQuery.trim())
+        if (libResp.books.length > 0) {
+          setLibraryHits(libResp.books)
+          setExternalResults([])
+        } else {
+          setLibraryHits([])
+          const extResp = await searchExternal(standaloneQuery.trim())
+          setExternalResults(extResp.results)
         }
-      }, 300)
-    },
-    [searchLibrary, searchExternal]
-  )
+      } catch {
+        setLibraryHits([])
+        setExternalResults([])
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
 
-  const hasResults =
-    results !== null &&
-    (results.kind === 'library' ? results.books.length > 0 : results.results.length > 0)
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
+  }, [standaloneQuery, isControlled, searchLibrary, searchExternal])
+
+  // ---- Controlled mode: OL fallback when library filter has no results ----
+  useEffect(() => {
+    if (!isControlled) return
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+
+    if (!controlledQuery?.trim() || hasLibraryResults) {
+      setExternalResults([])
+      setIsSearching(false)
+      return
+    }
+
+    debounceTimer.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const resp = await searchExternal(controlledQuery.trim())
+        setExternalResults(resp.results)
+      } catch {
+        setExternalResults([])
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
+  }, [controlledQuery, hasLibraryResults, isControlled, searchExternal])
+
+  const showLibraryDropdown = !isControlled && libraryHits.length > 0
+  const showExternalDropdown =
+    externalResults.length > 0 &&
+    (isControlled ? !hasLibraryResults && (controlledQuery?.trim() ?? '') !== '' : true)
+
+  function handleInputChange(value: string) {
+    if (isControlled) {
+      onChange?.(value)
+    } else {
+      setStandaloneQuery(value)
+      setLibraryHits([])
+      setExternalResults([])
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -69,7 +136,7 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
         <Input
           type="text"
           value={query}
-          onChange={handleQueryChange}
+          onChange={(e) => handleInputChange(e.target.value)}
           placeholder="Search books..."
         />
         {isSearching && (
@@ -77,37 +144,38 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
             Searching...
           </span>
         )}
-        {hasResults && (
-          <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-64 overflow-y-auto">
-            {results!.kind === 'library'
-              ? results!.books.map((ub) => (
+
+        {(showLibraryDropdown || showExternalDropdown) && (
+          <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-border bg-card shadow-elevated">
+            {showLibraryDropdown
+              ? libraryHits.map((ub) => (
                   <li key={ub.id}>
                     <MenuItem
                       onClick={() => {
                         router.push(`/backlog/books/${ub.id}`)
-                        setResults(null)
-                        setQuery('')
+                        setLibraryHits([])
+                        setStandaloneQuery('')
                       }}
                     >
                       <span className="font-medium">{ub.book?.title}</span>
                       {ub.book && ub.book.authors.length > 0 && (
-                        <span className="text-muted ml-2">— {ub.book.authors.join(', ')}</span>
+                        <span className="ml-2 text-muted">— {ub.book.authors.join(', ')}</span>
                       )}
                     </MenuItem>
                   </li>
                 ))
-              : results!.results.map((book) => (
+              : externalResults.map((book) => (
                   <li key={`${book.provider}-${book.providerId}`}>
                     <MenuItem
                       onClick={() => {
                         setSelectedBook(book)
-                        setResults(null)
-                        setQuery('')
+                        setExternalResults([])
+                        if (!isControlled) setStandaloneQuery('')
                       }}
                     >
                       <span className="font-medium">{book.title}</span>
                       {book.authors.length > 0 && (
-                        <span className="text-muted ml-2">— {book.authors.join(', ')}</span>
+                        <span className="ml-2 text-muted">— {book.authors.join(', ')}</span>
                       )}
                     </MenuItem>
                   </li>
@@ -117,7 +185,14 @@ export default function BookSearchBar({ onAdded }: BookSearchBarProps) {
       </div>
 
       {selectedBook && (
-        <BookModal book={selectedBook} onClose={() => setSelectedBook(null)} onAdded={onAdded} />
+        <BookModal
+          book={selectedBook}
+          onClose={() => setSelectedBook(null)}
+          onAdded={() => {
+            setSelectedBook(null)
+            onAdded()
+          }}
+        />
       )}
     </div>
   )

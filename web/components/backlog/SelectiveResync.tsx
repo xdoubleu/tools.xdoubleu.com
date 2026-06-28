@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import { useCatalogBooks, useResyncBooks, useResyncOpenLibrary } from '@/hooks/useBacklog'
 import { useProgressSocket } from '@/lib/backlog/progressSocket'
-import { isbnLessGroupKey } from '@/lib/backlog/normalizeBook'
+import { normalizeTitle, normalizeAuthor } from '@/lib/backlog/normalizeBook'
 import { Button } from '@/components/ui/button'
 import type { CatalogBookStatus } from '@/lib/gen/backlog/v1/books_pb'
 
@@ -51,26 +51,75 @@ function metaScore(b: CatalogBookStatus): number {
   return (b.hasCover ? 1 : 0) + (b.hasDescription ? 1 : 0) + (b.hasPageCount ? 1 : 0)
 }
 
+// groupBooks collapses catalog rows that represent the same book.
+//
+// Rows with an ISBN-13 are keyed by ISBN (Postgres already deduplicates them at
+// the catalog level, so each ISBN produces exactly one row in practice).
+//
+// ISBN-less rows are grouped via union-find: two rows are the same book when
+// they share a normalised title AND at least one normalised author last name.
+// This mirrors the backend FindDuplicateGroups heuristic so the display matches
+// the duplicate-detection logic.  Rows with no normalisable title or no authors
+// fall back to a singleton `id:` key and are never collapsed.
 function groupBooks(books: CatalogBookStatus[]): CatalogGroup[] {
-  const buckets = new Map<string, CatalogBookStatus[]>()
+  // --- phase 1: assign an initial bucket key to each row ---
+  // ISBN rows get a stable isbn: key.
+  // ISBN-less rows are bucketed under every (normTitle, normAuthorLastName) pair
+  // they produce; if they produce none, they get a singleton id: key.
+  const parent: number[] = books.map((_, i) => i)
 
-  for (const book of books) {
-    let key: string
-    if (book.isbn13) {
-      // ISBN books deduplicate naturally at the DB level — always one group.
-      key = `isbn:${book.isbn13}`
-    } else {
-      const nk = isbnLessGroupKey(book.title, book.authors)
-      // Fall back to the row's own ID so un-matchable rows still appear.
-      key = nk != null ? `noisbn:${nk}` : `id:${book.id}`
+  function find(x: number): number {
+    while (parent[x] !== x) {
+      parent[x] = parent[parent[x]] // path compression
+      x = parent[x]
     }
-    const arr = buckets.get(key)
-    if (arr) arr.push(book)
-    else buckets.set(key, [book])
+    return x
   }
 
+  function union(a: number, b: number): void {
+    const ra = find(a)
+    const rb = find(b)
+    if (ra !== rb) parent[rb] = ra
+  }
+
+  // isbn: rows union by ISBN key.
+  const isbnFirst = new Map<string, number>()
+  // noisbn: rows union by title+author bucket key.
+  const titleAuthorFirst = new Map<string, number>()
+
+  for (let i = 0; i < books.length; i++) {
+    const b = books[i]
+    if (b.isbn13) {
+      const key = `isbn:${b.isbn13}`
+      const first = isbnFirst.get(key)
+      if (first === undefined) isbnFirst.set(key, i)
+      else union(first, i)
+    } else {
+      const nt = normalizeTitle(b.title)
+      if (!nt) continue // no usable title → singleton
+      for (const a of b.authors) {
+        const na = normalizeAuthor(a)
+        if (!na) continue
+        const key = `${nt}\x00${na}`
+        const first = titleAuthorFirst.get(key)
+        if (first === undefined) titleAuthorFirst.set(key, i)
+        else union(first, i)
+      }
+    }
+  }
+
+  // --- phase 2: collect groups by root ---
+  const rootMembers = new Map<number, CatalogBookStatus[]>()
+  for (let i = 0; i < books.length; i++) {
+    const r = find(i)
+    const arr = rootMembers.get(r)
+    if (arr) arr.push(books[i])
+    else rootMembers.set(r, [books[i]])
+  }
+
+  // --- phase 3: build CatalogGroup for each root ---
   const groups: CatalogGroup[] = []
-  for (const [key, members] of buckets) {
+  for (const [root, members] of rootMembers) {
     // Representative: the member with the most metadata fields populated.
     const rep = members.reduce((best, m) => (metaScore(m) >= metaScore(best) ? m : best))
 
@@ -80,8 +129,17 @@ function groupBooks(books: CatalogBookStatus[]): CatalogGroup[] {
       .sort((a, b) => (a.lastResyncAt > b.lastResyncAt ? 1 : -1))
     const statusSource = resynced.at(-1) ?? rep
 
+    // Derive a stable group key.
+    const groupKey = rep.isbn13
+      ? `isbn:${rep.isbn13}`
+      : (() => {
+          const nt = normalizeTitle(rep.title)
+          const firstAuthor = rep.authors[0] ? normalizeAuthor(rep.authors[0]) : ''
+          return nt && firstAuthor ? `noisbn:${nt}\x00${firstAuthor}` : `id:${root}`
+        })()
+
     groups.push({
-      key,
+      key: groupKey,
       ids: members.map((m) => m.id),
       title: rep.title,
       authors: [...rep.authors],

@@ -781,13 +781,20 @@ func (repo *BooksRepository) GetBooksByIDs(
 		return nil, nil
 	}
 
+	// pgx has no encode plan for []uuid.UUID; convert to []string and cast in
+	// SQL so Postgres knows the element type.
+	strIDs := make([]string, len(ids))
+	for i, id := range ids {
+		strIDs[i] = id.String()
+	}
+
 	query := `
 		SELECT ` + bookColumns + `
 		FROM backlog.books
-		WHERE id = ANY($1)
+		WHERE id = ANY($1::uuid[])
 	`
 
-	rows, err := repo.db.Query(ctx, query, ids)
+	rows, err := repo.db.Query(ctx, query, strIDs)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
