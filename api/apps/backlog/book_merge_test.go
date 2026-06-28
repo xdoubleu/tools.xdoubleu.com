@@ -114,7 +114,7 @@ func TestMergeBooks_UnionsTagsAndFinishedAt(t *testing.T) {
 
 	_, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -174,7 +174,7 @@ func TestMergeBooks_PicksMostProgressedStatus(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -219,7 +219,7 @@ func TestMergeBooks_RepointsBookFiles(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -274,7 +274,7 @@ func TestMergeBooks_DeduplicatesIdenticalFiles(t *testing.T) {
 
 	deletedFiles, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, uint32(1), deletedFiles, "duplicate file row must be deleted")
@@ -315,7 +315,7 @@ func TestMergeBooks_ConsolidatesReadingState(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -353,7 +353,7 @@ func TestMergeBooks_NoLosers_IsNoop(t *testing.T) {
 	)
 
 	deleted, err := testApp.Services.Books.MergeBooks(
-		context.Background(), mergeTestUser, winner.BookID, nil, nil, nil,
+		context.Background(), mergeTestUser, winner.BookID, nil, nil, nil, nil,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, uint32(0), deleted)
@@ -389,7 +389,7 @@ func TestMergeBooks_FallsBackToLoserRating(t *testing.T) {
 
 	_, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -431,7 +431,7 @@ func TestMergeBooks_WinnerReadingStateNotOverridden(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -467,7 +467,7 @@ func TestMergeBooks_AppliesResolvedMetadata(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		resolved, nil,
+		resolved, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -497,7 +497,7 @@ func TestMergeBooks_NilResolvedMetadataPreservesBook(t *testing.T) {
 
 	_, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -525,7 +525,7 @@ func TestMergeBooks_OrphanedLoserBookDeleted(t *testing.T) {
 
 	_, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
-		nil, nil,
+		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
@@ -596,4 +596,160 @@ func TestConnectMergeBooks_InvalidLoserID(t *testing.T) {
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
 	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+}
+
+// --- shelf / status merge tests ---
+
+func TestMergeBooks_CustomShelfBeatsBuiltInStatus(t *testing.T) {
+	cleanupMergeUser(t)
+
+	isbn1 := "9780020202021"
+	isbn2 := "9780020202022"
+	// winner is on a custom shelf; loser has a higher built-in reading status.
+	winner := addMergeBook(t, "ShelfWinA", isbn1, "sci-fi", []string{})
+	loser := addMergeBook(t, "ShelfWinB", isbn2, models.StatusRead, []string{})
+
+	_, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err)
+
+	var status string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT status FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser, winner.BookID,
+	).Scan(&status)
+	require.NoError(t, err)
+	assert.Equal(t, "sci-fi", status,
+		"custom shelf must win over built-in read status")
+}
+
+func TestMergeBooks_CustomShelfBeatsBuiltInStatus_LoserOnShelf(t *testing.T) {
+	cleanupMergeUser(t)
+
+	isbn1 := "9780020202031"
+	isbn2 := "9780020202032"
+	// winner has a built-in reading status; loser is on a custom shelf.
+	winner := addMergeBook(t, "ShelfLoserA", isbn1, models.StatusRead, []string{})
+	loser := addMergeBook(t, "ShelfLoserB", isbn2, "favourites", []string{})
+
+	_, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err)
+
+	var status string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT status FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser, winner.BookID,
+	).Scan(&status)
+	require.NoError(t, err)
+	assert.Equal(t, "favourites", status,
+		"loser's custom shelf must win over winner's built-in read status")
+}
+
+func TestMergeBooks_WinnerShelfKeptWhenBothOnCustomShelves(t *testing.T) {
+	cleanupMergeUser(t)
+
+	isbn1 := "9780020202041"
+	isbn2 := "9780020202042"
+	winner := addMergeBook(t, "TwoShelvesA", isbn1, "sci-fi", []string{})
+	loser := addMergeBook(t, "TwoShelvesB", isbn2, "fantasy", []string{})
+
+	_, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err)
+
+	var status string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT status FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser, winner.BookID,
+	).Scan(&status)
+	require.NoError(t, err)
+	assert.Equal(t, "sci-fi", status,
+		"when both entries are on custom shelves the winner's shelf must be kept")
+}
+
+func TestMergeBooks_ResolvedStatusOverridesAutoConsolidation(t *testing.T) {
+	cleanupMergeUser(t)
+
+	isbn1 := "9780020202051"
+	isbn2 := "9780020202052"
+	winner := addMergeBook(t, "ResolvedStatusA", isbn1, models.StatusToRead, []string{})
+	loser := addMergeBook(t, "ResolvedStatusB", isbn2, models.StatusToRead, []string{})
+
+	forced := "my-custom-shelf"
+	_, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil, &forced,
+	)
+	require.NoError(t, err)
+
+	var status string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT status FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser, winner.BookID,
+	).Scan(&status)
+	require.NoError(t, err)
+	assert.Equal(t, forced, status,
+		"resolved_status must override auto-consolidated status")
+}
+
+func TestConnectMergeBooks_ResolvedStatusApplied(t *testing.T) {
+	// Books created via the service are owned by userID (the mocked auth identity).
+	isbn1 := "9780020202061"
+	isbn2 := "9780020202062"
+	cover := "https://example.com/cover.jpg"
+
+	addBook := func(title string, isbn string) *models.UserBook {
+		t.Helper()
+		ext := openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
+			Provider:   "manual",
+			ProviderID: fmt.Sprintf("conn-shelf-%s", uuid.NewString()),
+			Title:      title,
+			Authors:    []string{"Shelf Author"},
+			ISBN13:     &isbn,
+			CoverURL:   &cover,
+		}
+		ub, addErr := testApp.Services.Books.AddToLibrary(
+			context.Background(), userID, ext, models.StatusToRead, []string{},
+		)
+		require.NoError(t, addErr)
+		return ub
+	}
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			`DELETE FROM backlog.user_books WHERE user_id = $1 AND status = 'connect-shelf'`,
+			userID,
+		)
+	})
+
+	winner := addBook("ConnectShelfA", isbn1)
+	loser := addBook("ConnectShelfB", isbn2)
+
+	client := newAdminBooksTestClient(t)
+	forced := "connect-shelf"
+	req := connect.NewRequest(&backlogv1.MergeBooksRequest{
+		WinnerBookId:   winner.BookID.String(),
+		LoserBookIds:   []string{loser.BookID.String()},
+		ResolvedStatus: &forced,
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.MergeBooks(context.Background(), req)
+	require.NoError(t, err)
+
+	var status string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT status FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		userID, winner.BookID,
+	).Scan(&status)
+	require.NoError(t, err)
+	assert.Equal(t, forced, status,
+		"connect handler must forward resolved_status to the service")
 }

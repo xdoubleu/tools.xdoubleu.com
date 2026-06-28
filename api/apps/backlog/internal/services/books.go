@@ -550,12 +550,16 @@ func (s *BookService) FindDuplicates(
 }
 
 // MergeBooks consolidates loserBookIDs into winnerBookID:
-//  1. Union tags, finished_at, shelf_positions; prefer the most-progressed
-//     status; keep winner's rating, fall back to a loser's if unset.
+//  1. Union tags, finished_at, shelf_positions; prefer the highest-ranked
+//     status (custom shelf > read > currently-reading > to-read > dropped);
+//     keep winner's rating, fall back to a loser's if unset.
 //  2. Repoint book_files from each loser to the winner (dedupe by format+checksum).
 //  3. Consolidate book_reading_state: if the winner has no state, copy the best
 //     loser state onto it, then delete all loser states.
 //  4. Delete the loser user_books rows.
+//
+// resolvedStatus, when non-nil and non-empty, overrides the auto-consolidated
+// status after the consolidation loop runs.
 //
 // R2 objects are only deleted when no other row still references them (same
 // discipline as ClearLibrary). Errors at individual merge steps are returned
@@ -569,6 +573,7 @@ func (s *BookService) MergeBooks(
 	loserBookIDs []uuid.UUID,
 	resolvedMetadata *models.Book,
 	resolvedCoverSourceBookID *uuid.UUID,
+	resolvedStatus *string,
 ) (uint32, error) {
 	if len(loserBookIDs) == 0 {
 		return 0, nil
@@ -633,6 +638,11 @@ func (s *BookService) MergeBooks(
 		if loser.ProgressPercent > winner.ProgressPercent {
 			winner.ProgressPercent = loser.ProgressPercent
 		}
+	}
+
+	// Apply the caller's explicit status override (after auto-consolidation).
+	if resolvedStatus != nil && *resolvedStatus != "" {
+		winner.Status = *resolvedStatus
 	}
 
 	// Persist consolidated winner.

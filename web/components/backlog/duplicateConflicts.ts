@@ -28,6 +28,7 @@ interface DupBook {
 
 interface DupEntry {
   bookId: string
+  status: string
   book?: DupBook | null
 }
 
@@ -47,6 +48,7 @@ export type BookConflictField =
   | 'description'
   | 'pageCount'
   | 'cover'
+  | 'status'
 
 export interface FieldChoice {
   /** bookId of the UserBook entry whose value wins for this field. */
@@ -70,44 +72,51 @@ function authorsKey(authors: string[]): string {
   return [...authors].sort().join('\x00')
 }
 
-function fieldValue(book: DupBook, field: BookConflictField): string {
+function fieldValue(entry: DupEntry, field: BookConflictField): string {
+  const book = entry.book
   switch (field) {
     case 'title':
-      return book.title
+      return book?.title ?? ''
     case 'authors':
-      return authorsKey(book.authors)
+      return book ? authorsKey(book.authors) : ''
     case 'isbn13':
-      return book.isbn13
+      return book?.isbn13 ?? ''
     case 'description':
-      return book.description
+      return book?.description ?? ''
     case 'pageCount':
-      return book.pageCount > 0 ? String(book.pageCount) : ''
+      return book && book.pageCount > 0 ? String(book.pageCount) : ''
     case 'cover':
       // Compare by presence only — proxy URLs differ by bookId.
-      return book.coverUrl ? 'present' : ''
+      return book?.coverUrl ? 'present' : ''
+    case 'status':
+      return entry.status
   }
 }
 
-function displayValue(book: DupBook, field: BookConflictField): string {
+function displayValue(entry: DupEntry, field: BookConflictField): string {
+  const book = entry.book
   switch (field) {
     case 'title':
-      return book.title || '(empty)'
+      return book?.title || '(empty)'
     case 'authors':
-      return book.authors.length > 0 ? book.authors.join(', ') : '(none)'
+      return book && book.authors.length > 0 ? book.authors.join(', ') : '(none)'
     case 'isbn13':
-      return book.isbn13 ? `ISBN ${book.isbn13}` : '(none)'
+      return book?.isbn13 ? `ISBN ${book.isbn13}` : '(none)'
     case 'description':
-      return book.description
+      return book?.description
         ? book.description.slice(0, 80) + (book.description.length > 80 ? '…' : '')
         : '(none)'
     case 'pageCount':
-      return book.pageCount > 0 ? `${book.pageCount}p` : '(unknown)'
+      return book && book.pageCount > 0 ? `${book.pageCount}p` : '(unknown)'
     case 'cover':
-      return book.coverUrl ? 'Has cover' : 'No cover'
+      return book?.coverUrl ? 'Has cover' : 'No cover'
+    case 'status':
+      return entry.status || '(none)'
   }
 }
 
 export const ALL_CONFLICT_FIELDS: BookConflictField[] = [
+  'status',
   'title',
   'authors',
   'isbn13',
@@ -115,6 +124,56 @@ export const ALL_CONFLICT_FIELDS: BookConflictField[] = [
   'description',
   'pageCount'
 ]
+
+// ---------------------------------------------------------------------------
+// Status ranking (mirrors statusRank in book_matching.go)
+// ---------------------------------------------------------------------------
+
+const BUILT_IN_STATUSES = new Set(['to-read', 'currently-reading', 'read', 'dropped'])
+
+// Built-in rank map — lower is worse.
+const BUILTIN_RANK: Record<string, number> = {
+  read: 3,
+  'currently-reading': 2,
+  'to-read': 1,
+  dropped: 0
+}
+
+function statusRank(status: string): number {
+  if (!status) return -1
+  if (!BUILT_IN_STATUSES.has(status)) return 4 // custom shelf wins
+  return BUILTIN_RANK[status] ?? 0
+}
+
+/**
+ * Returns the bookId of the entry whose status would win under the same
+ * auto-consolidation rule as the backend (custom shelf > read > currently-reading
+ * > to-read > dropped).  Falls back to entries[0] on a tie.
+ */
+export function pickAutoStatusBookId(group: DupGroup): string {
+  let best = group.entries[0]
+  for (const e of group.entries) {
+    if (statusRank(e.status) > statusRank(best?.status ?? '')) {
+      best = e
+    }
+  }
+  return best?.bookId ?? ''
+}
+
+/**
+ * Given the per-field choices map, returns the resolved status string to send
+ * to the backend.  Returns undefined when the status field has no choice set
+ * (auto-consolidation handles it).
+ */
+export function resolveStatusChoice(
+  group: DupGroup,
+  fieldChoices: Partial<Record<BookConflictField, string>>
+): string | undefined {
+  const chosenBookId = fieldChoices['status']
+  if (!chosenBookId) return undefined
+  const entry = group.entries.find((e) => e.bookId === chosenBookId)
+  return entry?.status
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -132,13 +191,11 @@ export function detectConflicts(group: DupGroup): FieldConflict[] {
     const seen = new Set<string>()
 
     for (const ub of group.entries) {
-      const book = ub.book
-      if (!book) continue
-      const key = fieldValue(book, field)
+      const key = fieldValue(ub, field)
       seen.add(key)
       choices.push({
         bookId: ub.bookId,
-        displayValue: displayValue(book, field),
+        displayValue: displayValue(ub, field),
         hasValue: key !== ''
       })
     }
@@ -153,7 +210,8 @@ export function detectConflicts(group: DupGroup): FieldConflict[] {
 
 /**
  * Builds the resolved Book metadata object from the per-field choices map.
- * coverUrl is intentionally excluded — pass resolvedCoverSourceBookId separately.
+ * coverUrl and status are intentionally excluded — pass resolvedCoverSourceBookId
+ * and resolvedStatus separately.
  */
 export function buildResolvedMetadata(
   group: DupGroup,
@@ -165,8 +223,8 @@ export function buildResolvedMetadata(
   const winner = group.entries[0]?.book
   if (!winner) return create(BookSchema)
 
-  // coverUrl is intentionally excluded — cover is controlled via
-  // resolvedCoverSourceBookId on the MergeBooksRequest.
+  // coverUrl and status are intentionally excluded — cover is controlled via
+  // resolvedCoverSourceBookId, status via resolvedStatus on MergeBooksRequest.
   const resolved = create(BookSchema, {
     title: winner.title,
     authors: winner.authors,
@@ -175,7 +233,7 @@ export function buildResolvedMetadata(
     pageCount: winner.pageCount
   })
 
-  const fields: Array<Exclude<BookConflictField, 'cover'>> = [
+  const fields: Array<Exclude<BookConflictField, 'cover' | 'status'>> = [
     'title',
     'authors',
     'isbn13',

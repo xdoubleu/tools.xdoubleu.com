@@ -261,6 +261,7 @@ export function useFindDuplicates() {
 export interface MergeBooksOptions {
   resolvedMetadata?: Book
   resolvedCoverSourceBookId?: string
+  resolvedStatus?: string
 }
 
 export function useMergeBooks() {
@@ -270,7 +271,8 @@ export function useMergeBooks() {
       winnerBookId,
       loserBookIds,
       resolvedMetadata: options?.resolvedMetadata,
-      resolvedCoverSourceBookId: options?.resolvedCoverSourceBookId
+      resolvedCoverSourceBookId: options?.resolvedCoverSourceBookId,
+      resolvedStatus: options?.resolvedStatus
     })
 }
 

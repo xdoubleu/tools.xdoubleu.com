@@ -78,11 +78,16 @@ func normalizeString(s string) string {
 	return b.String()
 }
 
-// Status rank constants for winner selection (higher = more progressed).
+// Status rank constants for merge-time consolidation (higher wins).
+// A custom shelf outranks every built-in status because the user deliberately
+// organised the book there.  dropped is ranked lowest so it never overrides any
+// other placement.
 const (
+	statusRankShelf   = 4
 	statusRankRead    = 3
 	statusRankReading = 2
 	statusRankToRead  = 1
+	statusRankDropped = 0
 )
 
 // Richness weight constants — bucket sizes ensure that a higher-weight field
@@ -110,8 +115,11 @@ const (
 // minDuplicateGroupSize is the minimum group size returned by FindDuplicateGroups.
 const minDuplicateGroupSize = 2
 
-// statusRank returns a numeric rank for a UserBook status (higher = more
-// progressed). Used to pick the best winner when merging duplicates.
+// statusRank returns a numeric rank for a UserBook status used during merge
+// consolidation (higher wins).  Custom shelves (any non-built-in, non-empty
+// status) outrank every built-in status so intentional shelf placement is
+// preserved.  An empty string returns 0 so a missing status never beats a real
+// one.
 func statusRank(status string) int {
 	switch status {
 	case models.StatusRead:
@@ -120,8 +128,13 @@ func statusRank(status string) int {
 		return statusRankReading
 	case models.StatusToRead:
 		return statusRankToRead
-	default:
+	case models.StatusDropped:
+		return statusRankDropped
+	case "":
 		return 0
+	default:
+		// Any non-empty, non-built-in status is a custom shelf.
+		return statusRankShelf
 	}
 }
 
