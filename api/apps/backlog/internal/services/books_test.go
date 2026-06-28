@@ -70,10 +70,8 @@ func TestCountDatesOn_Empty(t *testing.T) {
 
 func TestExternalToBook(t *testing.T) {
 	isbn13 := "9780140449112"
-	isbn10 := "0140449116"
 	cover := "https://example.com/cover.jpg"
 	desc := "A classic."
-
 	pages := 496
 
 	ext := openlibrary.ExternalBook{
@@ -82,7 +80,6 @@ func TestExternalToBook(t *testing.T) {
 		Title:       "The Odyssey",
 		Authors:     []string{"Homer"},
 		ISBN13:      &isbn13,
-		ISBN10:      &isbn10,
 		CoverURL:    &cover,
 		Description: &desc,
 		PageCount:   &pages,
@@ -93,11 +90,9 @@ func TestExternalToBook(t *testing.T) {
 	assert.Equal(t, "The Odyssey", book.Title)
 	assert.Equal(t, []string{"Homer"}, book.Authors)
 	assert.Equal(t, &isbn13, book.ISBN13)
-	assert.Equal(t, &isbn10, book.ISBN10)
 	assert.Equal(t, &cover, book.CoverURL)
 	assert.Equal(t, &desc, book.Description)
 	assert.Equal(t, &pages, book.PageCount)
-	assert.Equal(t, "OL42W", book.ExternalRefs["openlibrary"])
 }
 
 func TestExternalToBook_FallsBackToOpenLibraryCover(t *testing.T) {
@@ -204,8 +199,6 @@ func TestExternalToBook_NilFields(t *testing.T) {
 
 	assert.Equal(t, "Untitled", book.Title)
 	assert.Nil(t, book.ISBN13)
-	assert.Nil(t, book.ISBN10)
 	assert.Nil(t, book.CoverURL)
 	assert.Nil(t, book.Description)
-	assert.Equal(t, "1", book.ExternalRefs["manual"])
 }

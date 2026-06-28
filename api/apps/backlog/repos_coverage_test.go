@@ -12,7 +12,6 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
-	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
 	backlogv1 "tools.xdoubleu.com/gen/backlog/v1"
 	backlogv1connect "tools.xdoubleu.com/gen/backlog/v1/backlogv1connect"
@@ -45,45 +44,6 @@ func TestFindBookByTitleAndAuthor_Found(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, book)
 	assert.Equal(t, "FindByTitleBook", book.Title)
-}
-
-// TestFindByExternalRef_NotFound exercises FindByExternalRef when the ref is absent.
-func TestFindByExternalRef_NotFound(t *testing.T) {
-	book, err := testApp.Repositories.Books.FindByExternalRef(
-		context.Background(),
-		"manual",
-		"nonexistent-provider-id-xyz",
-	)
-	require.Error(t, err)
-	assert.Nil(t, book)
-}
-
-// TestFindByExternalRef_Found adds a book via AddToLibrary (which stores an
-// external_ref) then retrieves it via FindByExternalRef.
-func TestFindByExternalRef_Found(t *testing.T) {
-	isbn := "9780000001234"
-	providerID := "extref-coverage-test-id"
-	cover := "https://example.com/cover.jpg"
-	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields not needed
-		Provider:   "manual",
-		ProviderID: providerID,
-		Title:      "FindByExternalRefBook",
-		Authors:    []string{"External Author"},
-		ISBN13:     &isbn,
-		CoverURL:   &cover,
-	}
-	_, err := testApp.Services.Books.AddToLibrary(
-		context.Background(), userID, ext, "to-read", []string{},
-	)
-	require.NoError(t, err)
-
-	book, err := testApp.Repositories.Books.FindByExternalRef(
-		context.Background(),
-		"manual",
-		providerID,
-	)
-	require.NoError(t, err)
-	assert.NotNil(t, book)
 }
 
 // TestIntegrationsExists_False covers Exists when no record is stored for user.

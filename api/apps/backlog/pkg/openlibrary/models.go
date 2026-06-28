@@ -8,7 +8,6 @@ type ExternalBook struct {
 	Title       string
 	Authors     []string
 	ISBN13      *string
-	ISBN10      *string
 	CoverURL    *string
 	Description *string
 	PageCount   *int

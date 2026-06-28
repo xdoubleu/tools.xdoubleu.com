@@ -31,8 +31,6 @@ func TestParseCSV_HappyPath(t *testing.T) {
 	assert.Equal(t, "The Odyssey", e0.Book.Title)
 	assert.Equal(t, []string{"Homer"}, e0.Book.Authors)
 	assert.Equal(t, "9780140449112", *e0.Book.ISBN13)
-	assert.Equal(t, "0140449116", *e0.Book.ISBN10)
-	assert.Equal(t, "12345", e0.Book.ExternalRefs["goodreads"])
 	// ISBN13 present → OpenLibrary cover URL populated
 	assert.Equal(
 		t,
@@ -61,8 +59,7 @@ func TestParseCSV_HappyPath(t *testing.T) {
 	e2 := entries[2]
 	assert.Equal(t, "Foundation", e2.Book.Title)
 	assert.Equal(t, models.StatusReading, e2.UserBook.Status)
-	assert.Nil(t, e2.Book.ISBN13) // empty ISBN
-	assert.Nil(t, e2.Book.ISBN10)
+	assert.Nil(t, e2.Book.ISBN13)   // empty ISBN
 	assert.Nil(t, e2.Book.CoverURL) // no ISBN → no cover
 	assert.EqualValues(t, 3, *e2.UserBook.Rating)
 }
@@ -85,7 +82,6 @@ func TestParseCSV_EmptyDateRead(t *testing.T) {
 	require.Len(t, entries, 1)
 	assert.Empty(t, entries[0].UserBook.FinishedAt)
 	assert.Nil(t, entries[0].Book.ISBN13)
-	assert.Nil(t, entries[0].Book.ISBN10)
 	assert.Nil(t, entries[0].Book.CoverURL) // no ISBN → no cover
 }
 

@@ -44,7 +44,6 @@ const (
 	maxAttempts = 4
 
 	isbn13Type = "ISBN_13"
-	isbn10Type = "ISBN_10"
 
 	// volumeInfoFields is the fields mask used in both Search and GetByISBN to
 	// limit the response payload to only what ExternalBook needs.
@@ -133,19 +132,11 @@ func (c client) addKey(params url.Values) {
 }
 
 func volumeToExternalBook(vi volumeInfo) ExternalBook {
-	var isbn13, isbn10 *string
+	var isbn13 *string
 	for _, id := range vi.IndustryIdentifiers {
-		switch id.Type {
-		case isbn13Type:
-			if isbn13 == nil {
-				v := id.Identifier
-				isbn13 = &v
-			}
-		case isbn10Type:
-			if isbn10 == nil {
-				v := id.Identifier
-				isbn10 = &v
-			}
+		if id.Type == isbn13Type && isbn13 == nil {
+			v := id.Identifier
+			isbn13 = &v
 		}
 	}
 
@@ -181,7 +172,6 @@ func volumeToExternalBook(vi volumeInfo) ExternalBook {
 		Title:       vi.Title,
 		Authors:     authors,
 		ISBN13:      isbn13,
-		ISBN10:      isbn10,
 		CoverURL:    coverURL,
 		Description: desc,
 		PageCount:   pageCount,

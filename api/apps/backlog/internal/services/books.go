@@ -334,14 +334,12 @@ func externalToBook(ext openlibrary.ExternalBook) models.Book {
 	}
 
 	return models.Book{ //nolint:exhaustruct //optional fields
-		Title:        ext.Title,
-		Authors:      ext.Authors,
-		ISBN13:       ext.ISBN13,
-		ISBN10:       ext.ISBN10,
-		CoverURL:     coverURL,
-		Description:  ext.Description,
-		PageCount:    ext.PageCount,
-		ExternalRefs: map[string]string{ext.Provider: ext.ProviderID},
+		Title:       ext.Title,
+		Authors:     ext.Authors,
+		ISBN13:      ext.ISBN13,
+		CoverURL:    coverURL,
+		Description: ext.Description,
+		PageCount:   ext.PageCount,
 	}
 }
 

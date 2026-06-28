@@ -39,7 +39,6 @@ func gbOdysseyBook() googlebooks.ExternalBook {
 		Title:       "The Odyssey",
 		Authors:     []string{"Homer"},
 		ISBN13:      &isbn,
-		ISBN10:      nil,
 		CoverURL:    &cover,
 		Description: &desc,
 		PageCount:   &pages,

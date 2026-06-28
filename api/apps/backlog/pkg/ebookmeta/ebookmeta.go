@@ -31,7 +31,6 @@ type Metadata struct {
 	Title    string
 	Authors  []string
 	ISBN13   *string
-	ISBN10   *string
 	Language *string
 }
 
@@ -176,12 +175,9 @@ func opfToMetadata(meta opfMetadata) Metadata {
 		}
 	}
 	for _, id := range meta.Identifiers {
-		i13, i10 := classifyISBN(id.Scheme, id.Value)
+		i13, _ := classifyISBN(id.Scheme, id.Value)
 		if i13 != nil && m.ISBN13 == nil {
 			m.ISBN13 = i13
-		}
-		if i10 != nil && m.ISBN10 == nil {
-			m.ISBN10 = i10
 		}
 	}
 	return m

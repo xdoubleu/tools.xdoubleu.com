@@ -20,9 +20,8 @@ func addUniqueBook(t *testing.T) *models.Book {
 	book, err := testApp.Repositories.Books.UpsertBook(
 		context.Background(),
 		models.Book{ //nolint:exhaustruct //only required fields; no ISBN to avoid sharing
-			Title:        fmt.Sprintf("unique-book-%s", uuid.NewString()),
-			Authors:      []string{"Test Author"},
-			ExternalRefs: map[string]string{},
+			Title:   fmt.Sprintf("unique-book-%s", uuid.NewString()),
+			Authors: []string{"Test Author"},
 		},
 	)
 	require.NoError(t, err)

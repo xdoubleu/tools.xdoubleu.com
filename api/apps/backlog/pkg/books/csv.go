@@ -15,7 +15,6 @@ import (
 const (
 	goodreadsDateFormat = "2006/01/02"
 	isbn13Len           = 13
-	isbn10Len           = 10
 )
 
 // ParsedEntry holds the extracted data from one row of a Goodreads CSV export.
@@ -71,7 +70,6 @@ func buildIndex(header []string) map[string]int {
 	return idx
 }
 
-//nolint:gocognit // many optional CSV fields with independent nil guards
 func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 	goodreadsID := get(row, idx, "Book Id")
 	if goodreadsID == "" {
@@ -89,17 +87,11 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 	title := get(row, idx, "Title")
 	author := get(row, idx, "Author")
 
-	var isbn13, isbn10 *string
+	var isbn13 *string
 	if v := get(row, idx, "ISBN13"); v != "" && v != `=""` {
 		clean := strings.Trim(v, `="`)
 		if len(clean) == isbn13Len {
 			isbn13 = &clean
-		}
-	}
-	if v := get(row, idx, "ISBN"); v != "" && v != `=""` {
-		clean := strings.Trim(v, `="`)
-		if len(clean) == isbn10Len {
-			isbn10 = &clean
 		}
 	}
 
@@ -141,11 +133,7 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 		Title:    title,
 		Authors:  []string{author},
 		ISBN13:   isbn13,
-		ISBN10:   isbn10,
 		CoverURL: coverURL,
-		ExternalRefs: map[string]string{
-			"goodreads": goodreadsID,
-		},
 	}
 
 	userBook := models.UserBook{ //nolint:exhaustruct //IDs assigned later

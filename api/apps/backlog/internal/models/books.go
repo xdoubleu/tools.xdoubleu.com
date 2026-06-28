@@ -36,17 +36,15 @@ func IsSpecialTag(t string) bool {
 }
 
 type Book struct {
-	ID           uuid.UUID
-	Title        string
-	Authors      []string
-	ISBN13       *string
-	ISBN10       *string
-	CoverURL     *string
-	Description  *string
-	PageCount    *int
-	ExternalRefs map[string]string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID          uuid.UUID
+	Title       string
+	Authors     []string
+	ISBN13      *string
+	CoverURL    *string
+	Description *string
+	PageCount   *int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 
 	// Resync status — populated during ResyncAllFromOpenLibrary / ResyncBooks.
 	// Nil means the book has never been processed by a resync run.
