@@ -136,6 +136,28 @@ const goodreadsCSVForImport = `Book Id,Title,Author,ISBN,ISBN13,My Rating,Exclus
 99001,Import Test Book,Import Author,"=""0140449116""","=""9780140449112""",4,read,"read (#1)",2023/05/20
 `
 
+// addTestBookNoISBN adds a book without an ISBN so each call creates a distinct
+// catalog entry (ISBN is the dedup key; without it each ProviderID gets its own row).
+func addTestBookNoISBN(t *testing.T, title string) *models.UserBook {
+	t.Helper()
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //ISBN intentionally absent
+		Provider:   "manual",
+		ProviderID: fmt.Sprintf("noisbn-%s", title),
+		Title:      title,
+		Authors:    []string{"Test Author"},
+	}
+	ub, err := testApp.Services.Books.AddToLibrary(
+		context.Background(),
+		userID,
+		ext,
+		models.StatusToRead,
+		[]string{},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, ub)
+	return ub
+}
+
 func addTestBook(t *testing.T, title string) *models.UserBook {
 	t.Helper()
 	isbn := "9780140449112"

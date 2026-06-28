@@ -375,6 +375,88 @@ describe('SelectiveResync', () => {
     expect(screen.getAllByRole('button', { name: 'Resync' })).toHaveLength(2)
   })
 
+  it('collapses ISBN-less books with same title and author in different order', () => {
+    // Author list order should not prevent grouping — any shared author last-name
+    // is enough to union the two rows.
+    const books = [
+      {
+        id: 'order-1',
+        title: 'Collaborative Work',
+        authors: ['Alice Smith', 'Bob Jones'],
+        isbn13: '',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      },
+      {
+        id: 'order-2',
+        title: 'Collaborative Work',
+        authors: ['Bob Jones', 'Alice Smith'],
+        isbn13: '',
+        hasCover: true,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: 'found',
+        googlebooksStatus: '',
+        lastResyncAt: '2026-01-01T00:00:00Z'
+      }
+    ]
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+
+    expect(screen.getAllByText('Collaborative Work')).toHaveLength(1)
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Resync' })).toHaveLength(1)
+  })
+
+  it('collapses ISBN-less books where one has a subset author list', () => {
+    // Row A has one author; row B has the same author plus a co-author.
+    // They share the same author last-name so must be unioned.
+    const books = [
+      {
+        id: 'subset-1',
+        title: 'Shared Title',
+        authors: ['Jane Doe'],
+        isbn13: '',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      },
+      {
+        id: 'subset-2',
+        title: 'Shared Title',
+        authors: ['Jane Doe', 'John Smith'],
+        isbn13: '',
+        hasCover: true,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: 'found',
+        googlebooksStatus: '',
+        lastResyncAt: '2026-01-01T00:00:00Z'
+      }
+    ]
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+
+    expect(screen.getAllByText('Shared Title')).toHaveLength(1)
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Resync' })).toHaveLength(1)
+  })
+
   // ---------------------------------------------------------------------------
   // Filters (Points from existing suite, now operating on groups)
   // ---------------------------------------------------------------------------

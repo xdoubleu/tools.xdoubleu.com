@@ -6,11 +6,28 @@ jest.mock('@/hooks/useBacklog', () => ({
 }))
 
 jest.mock('@/components/backlog/BookSearchBar', () => {
-  return function MockBookSearchBar({ onAdded }: { onAdded: () => void }) {
+  return function MockBookSearchBar({
+    query,
+    onChange,
+    onAdded
+  }: {
+    query: string
+    onChange: (v: string) => void
+    onAdded: () => void
+    hasLibraryResults: boolean
+  }) {
     return (
-      <button data-testid="book-search-bar" onClick={onAdded}>
-        search
-      </button>
+      <div>
+        <input
+          data-testid="book-search-bar"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Search books..."
+        />
+        <button data-testid="trigger-added" onClick={onAdded}>
+          added
+        </button>
+      </div>
     )
   }
 })
@@ -18,13 +35,26 @@ jest.mock('@/components/backlog/BookSearchBar', () => {
 jest.mock('@/components/backlog/BooksLibrary', () => {
   return function MockBooksLibrary({
     library,
+    searchQuery,
+    onSearchResultsChange,
     onSaved
   }: {
     library: { reading: unknown[] }
+    searchQuery: string
+    onSearchResultsChange: (v: boolean) => void
     onSaved: () => void
   }) {
+    // Simulate: no results when query is "notfound"
+    React.useEffect(() => {
+      onSearchResultsChange(searchQuery !== 'notfound')
+    }, [searchQuery, onSearchResultsChange])
+
     return (
-      <div data-testid="books-library" data-reading-count={library.reading.length}>
+      <div
+        data-testid="books-library"
+        data-reading-count={library.reading.length}
+        data-search-query={searchQuery}
+      >
         <button data-testid="trigger-saved" onClick={onSaved}>
           save
         </button>
@@ -113,7 +143,7 @@ describe('BooksSection', () => {
   it('calls mutate when search bar triggers onAdded', () => {
     mockLibrary()
     render(<BooksSection />)
-    fireEvent.click(screen.getByTestId('book-search-bar'))
+    fireEvent.click(screen.getByTestId('trigger-added'))
     expect(mutate).toHaveBeenCalledWith('/backlog/books')
   })
 
@@ -122,5 +152,14 @@ describe('BooksSection', () => {
     render(<BooksSection />)
     fireEvent.click(screen.getByTestId('trigger-saved'))
     expect(mutate).toHaveBeenCalledWith('/backlog/books')
+  })
+
+  it('passes searchQuery down to BooksLibrary as user types', () => {
+    mockLibrary()
+    render(<BooksSection />)
+    fireEvent.change(screen.getByPlaceholderText('Search books...'), {
+      target: { value: 'dune' }
+    })
+    expect(screen.getByTestId('books-library')).toHaveAttribute('data-search-query', 'dune')
   })
 })

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -242,4 +243,39 @@ func TestListCatalogBooks_ReturnsAllBooks(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "newly added book must appear in ListCatalogBooks")
+}
+
+// TestGetBooksByIDs_ReturnsMatchingBooks is a regression test for the pgx
+// UUID-array encoding bug: passing []uuid.UUID directly to ANY($1) produced
+// "cannot find encode plan" because pgx has no registered encoder for that type.
+// The fix converts IDs to []string and casts with ANY($1::uuid[]).
+func TestGetBooksByIDs_ReturnsMatchingBooks(t *testing.T) {
+	// Use ISBN-less books so each call creates a distinct catalog entry.
+	ub1 := addTestBookNoISBN(t, "GetBooksByIDs_Book1")
+	ub2 := addTestBookNoISBN(t, "GetBooksByIDs_Book2")
+
+	ctx := context.Background()
+
+	// Requesting both IDs must return exactly those two books without an encode error.
+	books, err := testApp.Repositories.Books.GetBooksByIDs(
+		ctx,
+		[]uuid.UUID{ub1.BookID, ub2.BookID},
+	)
+	require.NoError(t, err)
+
+	ids := make([]uuid.UUID, len(books))
+	for i, b := range books {
+		ids[i] = b.ID
+	}
+	assert.ElementsMatch(
+		t,
+		[]uuid.UUID{ub1.BookID, ub2.BookID},
+		ids,
+		"GetBooksByIDs must return exactly the requested books",
+	)
+
+	// Empty slice must return nil without error.
+	none, err := testApp.Repositories.Books.GetBooksByIDs(ctx, nil)
+	require.NoError(t, err)
+	assert.Nil(t, none)
 }

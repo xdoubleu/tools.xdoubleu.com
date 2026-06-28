@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import type { LibraryResponse, UserBook } from '@/lib/gen/backlog/v1/books_pb'
 import LibrarySidebar, {
   buildShelves,
@@ -35,10 +35,23 @@ function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
 interface BooksLibraryProps {
   library: LibraryResponse
   knownShelves: string[]
+  /** Free-text query from the search bar. Empty string means no filter. */
+  searchQuery: string
+  /**
+   * Notifies the parent whether the current search query matches any library
+   * entries.  Used by BookSearchBar to decide when to show the OL fallback.
+   */
+  onSearchResultsChange: (hasResults: boolean) => void
   onSaved: () => void
 }
 
-export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLibraryProps) {
+export default function BooksLibrary({
+  library,
+  knownShelves,
+  searchQuery,
+  onSearchResultsChange,
+  onSaved
+}: BooksLibraryProps) {
   const shelves = buildShelves(library)
   const allTags = buildTags(library)
   const defaultShelf: ShelfId =
@@ -60,12 +73,32 @@ export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLi
     })
   }, [])
 
-  const filteredBooks = useMemo(() => {
+  const shelfBooks = useMemo(() => {
     if (selection.kind === 'tag') {
       return flattenLibrary(library).filter((b) => b.tags.includes(selection.tag))
     }
     return booksForShelf(library, selection.id)
   }, [library, selection])
+
+  // When a search query is active, filter across the whole library; otherwise
+  // respect the shelf/tag selection.
+  const filteredBooks = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return shelfBooks
+
+    return flattenLibrary(library).filter((ub) => {
+      const book = ub.book
+      if (!book) return false
+      if (book.title.toLowerCase().includes(q)) return true
+      return book.authors.some((a) => a.toLowerCase().includes(q))
+    })
+  }, [library, shelfBooks, searchQuery])
+
+  // Notify the parent so BookSearchBar knows whether to show the OL fallback.
+  useEffect(() => {
+    const q = searchQuery.trim()
+    onSearchResultsChange(q === '' || filteredBooks.length > 0)
+  }, [searchQuery, filteredBooks.length, onSearchResultsChange])
 
   // All known user-visible tags for the shelf/tag cell checkboxes
   const knownTags = useMemo(() => {
@@ -81,7 +114,11 @@ export default function BooksLibrary({ library, knownShelves, onSaved }: BooksLi
 
   const currentShelf =
     selection.kind === 'shelf' ? shelves.find((s) => s.id === selection.id) : null
-  const headerLabel = selection.kind === 'tag' ? selection.tag : (currentShelf?.label ?? '')
+  const headerLabel = searchQuery.trim()
+    ? 'Search results'
+    : selection.kind === 'tag'
+      ? selection.tag
+      : (currentShelf?.label ?? '')
 
   return (
     <>
