@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -1094,6 +1095,63 @@ func (h *booksConnectHandler) ResyncBooks(
 	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
 
 	return connect.NewResponse(&backlogv1.ResyncBooksResponse{}), nil
+}
+
+const isbn13Length = 13
+
+func (h *booksConnectHandler) SetBookISBN(
+	ctx context.Context,
+	req *connect.Request[backlogv1.SetBookISBNRequest],
+) (*connect.Response[backlogv1.SetBookISBNResponse], error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid book_id: %w", err),
+		)
+	}
+
+	// Normalize: strip spaces, hyphens, then validate exactly 13 digits.
+	normalized := strings.Map(func(r rune) rune {
+		if r == '-' || r == ' ' {
+			return -1
+		}
+		return r
+	}, req.Msg.Isbn13)
+	if len(normalized) != isbn13Length {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("isbn13 must be exactly 13 digits"),
+		)
+	}
+	for _, r := range normalized {
+		if r < '0' || r > '9' {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				errors.New("isbn13 must contain only digits"),
+			)
+		}
+	}
+
+	err = h.app.Services.Books.SetBookISBN(ctx, bookID, normalized)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("book not found"))
+	}
+	if errors.Is(err, database.ErrResourceConflict) {
+		return nil, connect.NewError(
+			connect.CodeAlreadyExists,
+			errors.New("ISBN is already assigned to another book"),
+		)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&backlogv1.SetBookISBNResponse{}), nil
 }
 
 func (h *booksConnectHandler) RenameShelf(

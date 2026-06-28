@@ -50,6 +50,32 @@ func (s *BookService) SearchExternal(
 	return s.external.Search(ctx, query)
 }
 
+// SetBookISBN sets the isbn13 of the given catalog book.
+// Returns database.ErrResourceNotFound when the book doesn't exist, or
+// database.ErrResourceConflict when another catalog row already holds the ISBN.
+func (s *BookService) SetBookISBN(
+	ctx context.Context,
+	bookID uuid.UUID,
+	isbn13 string,
+) error {
+	book, err := s.books.GetBookByID(ctx, bookID)
+	if err != nil {
+		return err
+	}
+
+	// Pre-check: reject if the ISBN is already assigned to a different row.
+	existing, err := s.books.GetCatalogBookByISBN13(ctx, isbn13)
+	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
+		return err
+	}
+	if existing != nil && existing.ID != book.ID {
+		return database.ErrResourceConflict
+	}
+
+	book.ISBN13 = &isbn13
+	return s.books.UpdateBookByID(ctx, *book)
+}
+
 func (s *BookService) AddToLibrary(
 	ctx context.Context,
 	userID string,

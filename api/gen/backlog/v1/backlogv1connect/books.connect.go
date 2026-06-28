@@ -112,6 +112,9 @@ const (
 	// BooksServiceResyncBooksProcedure is the fully-qualified name of the BooksService's ResyncBooks
 	// RPC.
 	BooksServiceResyncBooksProcedure = "/backlog.v1.BooksService/ResyncBooks"
+	// BooksServiceSetBookISBNProcedure is the fully-qualified name of the BooksService's SetBookISBN
+	// RPC.
+	BooksServiceSetBookISBNProcedure = "/backlog.v1.BooksService/SetBookISBN"
 	// BooksServiceRenameShelfProcedure is the fully-qualified name of the BooksService's RenameShelf
 	// RPC.
 	BooksServiceRenameShelfProcedure = "/backlog.v1.BooksService/RenameShelf"
@@ -154,6 +157,7 @@ type BooksServiceClient interface {
 	ResyncOpenLibrary(context.Context, *connect.Request[v1.ResyncOpenLibraryRequest]) (*connect.Response[v1.ResyncOpenLibraryResponse], error)
 	ListCatalogBooks(context.Context, *connect.Request[v1.ListCatalogBooksRequest]) (*connect.Response[v1.ListCatalogBooksResponse], error)
 	ResyncBooks(context.Context, *connect.Request[v1.ResyncBooksRequest]) (*connect.Response[v1.ResyncBooksResponse], error)
+	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
 	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
 	RenameTag(context.Context, *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error)
@@ -339,6 +343,12 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(booksServiceMethods.ByName("ResyncBooks")),
 			connect.WithClientOptions(opts...),
 		),
+		setBookISBN: connect.NewClient[v1.SetBookISBNRequest, v1.SetBookISBNResponse](
+			httpClient,
+			baseURL+BooksServiceSetBookISBNProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("SetBookISBN")),
+			connect.WithClientOptions(opts...),
+		),
 		renameShelf: connect.NewClient[v1.RenameShelfRequest, v1.RenameShelfResponse](
 			httpClient,
 			baseURL+BooksServiceRenameShelfProcedure,
@@ -396,6 +406,7 @@ type booksServiceClient struct {
 	resyncOpenLibrary      *connect.Client[v1.ResyncOpenLibraryRequest, v1.ResyncOpenLibraryResponse]
 	listCatalogBooks       *connect.Client[v1.ListCatalogBooksRequest, v1.ListCatalogBooksResponse]
 	resyncBooks            *connect.Client[v1.ResyncBooksRequest, v1.ResyncBooksResponse]
+	setBookISBN            *connect.Client[v1.SetBookISBNRequest, v1.SetBookISBNResponse]
 	renameShelf            *connect.Client[v1.RenameShelfRequest, v1.RenameShelfResponse]
 	deleteShelf            *connect.Client[v1.DeleteShelfRequest, v1.DeleteShelfResponse]
 	renameTag              *connect.Client[v1.RenameTagRequest, v1.RenameTagResponse]
@@ -542,6 +553,11 @@ func (c *booksServiceClient) ResyncBooks(ctx context.Context, req *connect.Reque
 	return c.resyncBooks.CallUnary(ctx, req)
 }
 
+// SetBookISBN calls backlog.v1.BooksService.SetBookISBN.
+func (c *booksServiceClient) SetBookISBN(ctx context.Context, req *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error) {
+	return c.setBookISBN.CallUnary(ctx, req)
+}
+
 // RenameShelf calls backlog.v1.BooksService.RenameShelf.
 func (c *booksServiceClient) RenameShelf(ctx context.Context, req *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error) {
 	return c.renameShelf.CallUnary(ctx, req)
@@ -592,6 +608,7 @@ type BooksServiceHandler interface {
 	ResyncOpenLibrary(context.Context, *connect.Request[v1.ResyncOpenLibraryRequest]) (*connect.Response[v1.ResyncOpenLibraryResponse], error)
 	ListCatalogBooks(context.Context, *connect.Request[v1.ListCatalogBooksRequest]) (*connect.Response[v1.ListCatalogBooksResponse], error)
 	ResyncBooks(context.Context, *connect.Request[v1.ResyncBooksRequest]) (*connect.Response[v1.ResyncBooksResponse], error)
+	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
 	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
 	RenameTag(context.Context, *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error)
@@ -773,6 +790,12 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(booksServiceMethods.ByName("ResyncBooks")),
 		connect.WithHandlerOptions(opts...),
 	)
+	booksServiceSetBookISBNHandler := connect.NewUnaryHandler(
+		BooksServiceSetBookISBNProcedure,
+		svc.SetBookISBN,
+		connect.WithSchema(booksServiceMethods.ByName("SetBookISBN")),
+		connect.WithHandlerOptions(opts...),
+	)
 	booksServiceRenameShelfHandler := connect.NewUnaryHandler(
 		BooksServiceRenameShelfProcedure,
 		svc.RenameShelf,
@@ -855,6 +878,8 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 			booksServiceListCatalogBooksHandler.ServeHTTP(w, r)
 		case BooksServiceResyncBooksProcedure:
 			booksServiceResyncBooksHandler.ServeHTTP(w, r)
+		case BooksServiceSetBookISBNProcedure:
+			booksServiceSetBookISBNHandler.ServeHTTP(w, r)
 		case BooksServiceRenameShelfProcedure:
 			booksServiceRenameShelfHandler.ServeHTTP(w, r)
 		case BooksServiceDeleteShelfProcedure:
@@ -982,6 +1007,10 @@ func (UnimplementedBooksServiceHandler) ListCatalogBooks(context.Context, *conne
 
 func (UnimplementedBooksServiceHandler) ResyncBooks(context.Context, *connect.Request[v1.ResyncBooksRequest]) (*connect.Response[v1.ResyncBooksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.ResyncBooks is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.SetBookISBN is not implemented"))
 }
 
 func (UnimplementedBooksServiceHandler) RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error) {

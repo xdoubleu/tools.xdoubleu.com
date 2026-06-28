@@ -25,7 +25,10 @@ jest.mock('@/lib/client', () => ({
     registerKoboDevice: jest.fn().mockResolvedValue({ device: { id: 'd1' }, rawToken: 'abc123' }),
     listKoboDevices: jest.fn().mockResolvedValue({ devices: [] }),
     disconnectKoboDevice: jest.fn().mockResolvedValue({}),
-    getBookFile: jest.fn().mockResolvedValue({ url: 'https://r2.example.com/file.pdf' })
+    getBookFile: jest.fn().mockResolvedValue({ url: 'https://r2.example.com/file.pdf' }),
+    searchLibrary: jest.fn().mockResolvedValue({ books: [] }),
+    searchExternal: jest.fn().mockResolvedValue({ results: [] }),
+    setBookISBN: jest.fn().mockResolvedValue({})
   }))
 }))
 jest.mock('@/lib/gen/backlog/v1/books_pb', () => ({ BooksService: {} }))
@@ -42,6 +45,7 @@ import {
   useSteamProgress,
   useRecentlyActiveGames,
   useRefreshSteam,
+  useSearchLibrary,
   useSearchExternal,
   useAddBook,
   useImportBooks,
@@ -54,7 +58,8 @@ import {
   useGetBookFile,
   useRegisterKoboDevice,
   useListKoboDevices,
-  useDisconnectKoboDevice
+  useDisconnectKoboDevice,
+  useSetBookISBN
 } from '@/hooks/useBacklog'
 import { createServiceClient } from '@/lib/client'
 
@@ -203,10 +208,61 @@ describe('useRefreshSteam', () => {
   })
 })
 
+describe('useSearchLibrary', () => {
+  it('returns a function', () => {
+    const { result } = renderHook(() => useSearchLibrary())
+    expect(typeof result.current).toBe('function')
+  })
+
+  it('returns a stable function reference across re-renders', () => {
+    // Regression test: before the fix, useSearchLibrary returned a new function
+    // every render, causing an infinite effect loop in BookSearchBar that
+    // swallowed Next.js <Link> navigation until the user typed something.
+    const { result, rerender } = renderHook(() => useSearchLibrary())
+    const first = result.current
+    rerender()
+    const second = result.current
+    expect(Object.is(first, second)).toBe(true)
+  })
+})
+
 describe('useSearchExternal', () => {
   it('returns a function', () => {
     const { result } = renderHook(() => useSearchExternal())
     expect(typeof result.current).toBe('function')
+  })
+
+  it('returns a stable function reference across re-renders', () => {
+    // Same regression as useSearchLibrary — both hooks were unstable before the fix.
+    const { result, rerender } = renderHook(() => useSearchExternal())
+    const first = result.current
+    rerender()
+    const second = result.current
+    expect(Object.is(first, second)).toBe(true)
+  })
+})
+
+describe('useSetBookISBN', () => {
+  it('returns a function', () => {
+    const { result } = renderHook(() => useSetBookISBN())
+    expect(typeof result.current).toBe('function')
+  })
+
+  it('returns a stable function reference across re-renders', () => {
+    const { result, rerender } = renderHook(() => useSetBookISBN())
+    const first = result.current
+    rerender()
+    const second = result.current
+    expect(Object.is(first, second)).toBe(true)
+  })
+
+  it('calls client.setBookISBN with bookId and isbn13', async () => {
+    const mockSet = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ setBookISBN: mockSet })
+    const { result } = renderHook(() => useSetBookISBN())
+    await result.current('book-1', '9780140449112')
+    expect(mockSet).toHaveBeenCalledWith({ bookId: 'book-1', isbn13: '9780140449112' })
   })
 })
 
