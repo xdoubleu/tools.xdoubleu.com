@@ -2,10 +2,16 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
-import { useCatalogBooks, useResyncBooks, useResyncOpenLibrary } from '@/hooks/useBacklog'
+import {
+  useCatalogBooks,
+  useResyncBooks,
+  useResyncOpenLibrary,
+  useSetBookISBN
+} from '@/hooks/useBacklog'
 import { useProgressSocket } from '@/lib/backlog/progressSocket'
 import { normalizeTitle, normalizeAuthor } from '@/lib/backlog/normalizeBook'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import type { CatalogBookStatus } from '@/lib/gen/backlog/v1/books_pb'
 
 // ---------------------------------------------------------------------------
@@ -34,7 +40,10 @@ const FILTER_LABELS: Record<FilterKey, string> = {
 
 interface CatalogGroup {
   key: string
+  /** All catalog row IDs in this display group. */
   ids: string[]
+  /** The catalog row ID with the most metadata — used for ISBN assignment. */
+  representativeId: string
   title: string
   authors: string[]
   isbn13: string
@@ -141,6 +150,7 @@ function groupBooks(books: CatalogBookStatus[]): CatalogGroup[] {
     groups.push({
       key: groupKey,
       ids: members.map((m) => m.id),
+      representativeId: rep.id,
       title: rep.title,
       authors: [...rep.authors],
       isbn13: rep.isbn13,
@@ -221,11 +231,15 @@ export default function SelectiveResync() {
   const { data, isLoading } = useCatalogBooks()
   const triggerResync = useResyncOpenLibrary()
   const resyncBooks = useResyncBooks()
+  const setBookISBN = useSetBookISBN()
 
   const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set())
   const [force, setForce] = useState(false)
   const [resyncingKey, setResyncingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Per-group ISBN input values and per-group saving state.
+  const [isbnInputs, setIsbnInputs] = useState<Record<string, string>>({})
+  const [savingIsbnKey, setSavingIsbnKey] = useState<string | null>(null)
 
   const { isRefreshing, processed, total } = useProgressSocket(
     'resync-openlibrary',
@@ -256,6 +270,26 @@ export default function SelectiveResync() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Resync failed.')
       setResyncingKey(null)
+    }
+  }
+
+  async function handleSetISBN(group: CatalogGroup) {
+    const raw = isbnInputs[group.key] ?? ''
+    const normalized = raw.replace(/[\s-]/g, '')
+    if (!/^\d{13}$/.test(normalized)) {
+      setError('ISBN must be exactly 13 digits.')
+      return
+    }
+    setError(null)
+    setSavingIsbnKey(group.key)
+    try {
+      await setBookISBN(group.representativeId, normalized)
+      setIsbnInputs((prev) => ({ ...prev, [group.key]: '' }))
+      void mutate('/backlog/books/catalog')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to set ISBN.')
+    } finally {
+      setSavingIsbnKey(null)
     }
   }
 
@@ -334,6 +368,31 @@ export default function SelectiveResync() {
                       <span className="text-xs text-muted">No page count</span>
                     )}
                   </div>
+                  {/* Inline ISBN setter — only shown for books missing an ISBN */}
+                  {!group.isbn13 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="ISBN-13"
+                        value={isbnInputs[group.key] ?? ''}
+                        onChange={(e) =>
+                          setIsbnInputs((prev) => ({ ...prev, [group.key]: e.target.value }))
+                        }
+                        className="h-7 w-36 text-xs"
+                        aria-label={`ISBN-13 for ${group.title}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={savingIsbnKey === group.key}
+                        onClick={() => void handleSetISBN(group)}
+                      >
+                        {savingIsbnKey === group.key ? 'Saving…' : 'Set ISBN'}
+                      </Button>
+                    </div>
+                  )}
                   {group.lastResyncAt && (
                     <div className="mt-1 flex flex-wrap gap-x-4">
                       <span className="text-xs text-muted">

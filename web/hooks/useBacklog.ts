@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { ConnectError, Code } from '@connectrpc/connect'
@@ -93,13 +94,19 @@ export function useRefreshSteam() {
 }
 
 export function useSearchLibrary() {
-  const client = createServiceClient(BooksService)
-  return (query: string) => client.searchLibrary({ query }).then((r: SearchLibraryResponse) => r)
+  const client = useMemo(() => createServiceClient(BooksService), [])
+  return useCallback(
+    (query: string) => client.searchLibrary({ query }).then((r: SearchLibraryResponse) => r),
+    [client]
+  )
 }
 
 export function useSearchExternal() {
-  const client = createServiceClient(BooksService)
-  return (query: string) => client.searchExternal({ query }).then((r: SearchExternalResponse) => r)
+  const client = useMemo(() => createServiceClient(BooksService), [])
+  return useCallback(
+    (query: string) => client.searchExternal({ query }).then((r: SearchExternalResponse) => r),
+    [client]
+  )
 }
 
 export function useAddBook() {
@@ -284,8 +291,19 @@ export function useCatalogBooks() {
 }
 
 export function useResyncBooks() {
-  const client = createServiceClient(BooksService)
-  return (bookIds: string[], force: boolean) => client.resyncBooks({ bookIds, force })
+  const client = useMemo(() => createServiceClient(BooksService), [])
+  return useCallback(
+    (bookIds: string[], force: boolean) => client.resyncBooks({ bookIds, force }),
+    [client]
+  )
+}
+
+export function useSetBookISBN() {
+  const client = useMemo(() => createServiceClient(BooksService), [])
+  return useCallback(
+    (bookId: string, isbn13: string) => client.setBookISBN({ bookId, isbn13 }),
+    [client]
+  )
 }
 
 export function useKEPUBStatus(bookId: string | null) {

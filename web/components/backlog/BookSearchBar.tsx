@@ -55,9 +55,9 @@ export default function BookSearchBar({
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
     if (!standaloneQuery.trim()) {
-      setLibraryHits([])
-      setExternalResults([])
-      setIsSearching(false)
+      if (libraryHits.length) setLibraryHits([])
+      if (externalResults.length) setExternalResults([])
+      if (isSearching) setIsSearching(false)
       return
     }
 
@@ -93,8 +93,8 @@ export default function BookSearchBar({
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
 
     if (!controlledQuery?.trim() || hasLibraryResults) {
-      setExternalResults([])
-      setIsSearching(false)
+      if (externalResults.length) setExternalResults([])
+      if (isSearching) setIsSearching(false)
       return
     }
 

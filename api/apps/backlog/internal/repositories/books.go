@@ -91,6 +91,27 @@ func (repo *BooksRepository) GetBookByID(
 	return book, nil
 }
 
+// GetCatalogBookByISBN13 returns the catalog book with the given ISBN-13.
+// Returns database.ErrResourceNotFound when no book matches.
+func (repo *BooksRepository) GetCatalogBookByISBN13(
+	ctx context.Context,
+	isbn13 string,
+) (*models.Book, error) {
+	query := `
+		SELECT ` + bookColumns + `
+		FROM backlog.books
+		WHERE isbn13 = $1
+	`
+
+	row := repo.db.QueryRow(ctx, query, isbn13)
+	book, err := scanBook(row)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return book, nil
+}
+
 // UpdateBookByID overwrites the catalog fields of an existing book row, matched
 // strictly by its primary key. Unlike UpsertBook this never matches on the
 // isbn13 unique index, so it is safe to use when the resolved ISBN differs from

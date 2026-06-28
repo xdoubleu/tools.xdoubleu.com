@@ -5,11 +5,13 @@ import { ListCatalogBooksResponseSchema } from '@/lib/gen/backlog/v1/books_pb'
 
 const mockResyncBooks = jest.fn()
 const mockResyncOpenLibrary = jest.fn()
+const mockSetBookISBN = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useCatalogBooks: jest.fn(),
   useResyncBooks: () => mockResyncBooks,
-  useResyncOpenLibrary: () => mockResyncOpenLibrary
+  useResyncOpenLibrary: () => mockResyncOpenLibrary,
+  useSetBookISBN: () => mockSetBookISBN
 }))
 
 jest.mock('@/lib/backlog/progressSocket', () => ({
@@ -108,6 +110,7 @@ describe('SelectiveResync', () => {
       total: null,
       refresh: jest.fn()
     })
+    mockSetBookISBN.mockResolvedValue({})
   })
 
   // ---------------------------------------------------------------------------
@@ -510,5 +513,86 @@ describe('SelectiveResync', () => {
     expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(screen.getByText('Complete Book')).toBeInTheDocument()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Set ISBN inline control
+  // ---------------------------------------------------------------------------
+
+  it('shows Set ISBN control only for books missing an ISBN', () => {
+    render(<SelectiveResync />)
+    // Missing-ISBN row has the input and button.
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    expect(within(missingRow).getByPlaceholderText('ISBN-13')).toBeInTheDocument()
+    expect(within(missingRow).getByRole('button', { name: 'Set ISBN' })).toBeInTheDocument()
+
+    // Rows with an ISBN must NOT have them.
+    const completeRow = screen.getByText('Complete Book').closest('li')!
+    expect(within(completeRow).queryByPlaceholderText('ISBN-13')).not.toBeInTheDocument()
+    expect(within(completeRow).queryByRole('button', { name: 'Set ISBN' })).not.toBeInTheDocument()
+  })
+
+  it('calls setBookISBN with the representative id and normalised isbn on submit', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    // book-1 is the representative (only member).
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449130' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(mockSetBookISBN).toHaveBeenCalledWith('book-1', '9780140449130')
+    })
+  })
+
+  it('strips hyphens before calling setBookISBN', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '978-0-14-044913-0' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(mockSetBookISBN).toHaveBeenCalledWith('book-1', '9780140449130')
+    })
+  })
+
+  it('shows an error and does not call setBookISBN for an invalid ISBN', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '123' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(screen.getByText('ISBN must be exactly 13 digits.')).toBeInTheDocument()
+    })
+    expect(mockSetBookISBN).not.toHaveBeenCalled()
+  })
+
+  it('shows an error message when setBookISBN rejects', async () => {
+    mockSetBookISBN.mockRejectedValue(new Error('ISBN is already assigned to another book'))
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449130' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(screen.getByText('ISBN is already assigned to another book')).toBeInTheDocument()
+    })
+  })
+
+  it('revalidates the catalog after a successful ISBN save', async () => {
+    const { mutate } = await import('swr')
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449130' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalledWith('/backlog/books/catalog')
+    })
   })
 })

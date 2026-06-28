@@ -296,6 +296,12 @@ message ResyncBooksRequest {
 }
 message ResyncBooksResponse {}
 
+message SetBookISBNRequest {
+  string book_id = 1;
+  string isbn13 = 2;
+}
+message SetBookISBNResponse {}
+
 message RenameShelfRequest { string old_name = 1; string new_name = 2; }
 message RenameShelfResponse { uint32 moved = 1; }
 // Reassign every book on `name` to `target_name`, after which `name` no longer exists.
@@ -335,6 +341,7 @@ service BooksService {
   rpc ResyncOpenLibrary(ResyncOpenLibraryRequest) returns (ResyncOpenLibraryResponse);
   rpc ListCatalogBooks(ListCatalogBooksRequest) returns (ListCatalogBooksResponse);
   rpc ResyncBooks(ResyncBooksRequest) returns (ResyncBooksResponse);
+  rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);
   rpc RenameShelf(RenameShelfRequest) returns (RenameShelfResponse);
   rpc DeleteShelf(DeleteShelfRequest) returns (DeleteShelfResponse);
   rpc RenameTag(RenameTagRequest) returns (RenameTagResponse);
