@@ -1086,6 +1086,63 @@ func TestResyncBook_Force_OverwritesExistingFields(t *testing.T) {
 	assert.Equal(t, newPages, *rc.pageCount, "force must pass new page count to repo")
 }
 
+// TestResyncBook_ISBNNotFound_FallsBackToTitleAuthor verifies that a book with
+// an ISBN that neither OL nor GB can find by ISBN falls back to a title+author
+// search and fills metadata from the search result.
+func TestResyncBook_ISBNNotFound_FallsBackToTitleAuthor(t *testing.T) {
+	isbn := "9780999999999" // ISBN not found in OL or GB by ISBN lookup
+	book := models.Book{    //nolint:exhaustruct // only tested fields needed
+		ID:      uuid.New(),
+		Title:   "Obscure Book",
+		Authors: []string{"Unknown Author"},
+		ISBN13:  &isbn,
+	}
+
+	// OL: ISBN lookup fails, but title/author search succeeds.
+	olCover := "https://covers.openlibrary.org/obscure.jpg"
+	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct // only relevant fields
+		getErr: openlibrary.ErrNotFound,
+		searchResults: []openlibrary.ExternalBook{
+			{ //nolint:exhaustruct // only fields relevant to match
+				Provider:   "openlibrary",
+				ProviderID: "OL999W",
+				Title:      "Obscure Book",
+				Authors:    []string{"Unknown Author"},
+				CoverURL:   &olCover,
+			},
+		},
+	}
+
+	// GB: ISBN lookup also fails, no search results.
+	gbFake := &fakeGBClient{} //nolint:exhaustruct // byISBN nil → ErrNotFound
+
+	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
+	store := objectstore.NewFake()
+	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    olFake,
+		googleBooks: gbFake,
+		objectStore: store,
+	}
+
+	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1,
+		"metadata from OL title/author search must be written when ISBN lookup fails")
+	require.NotNil(t, repo.refreshCalls[0].coverURL)
+	assert.Equal(t, olCover, *repo.refreshCalls[0].coverURL)
+
+	// olFound must be true because OL matched via title/author search.
+	require.Len(t, repo.statusCalls, 1)
+	assert.True(
+		t,
+		repo.statusCalls[0].olFound,
+		"olFound must be true when OL matched by title/author even if ISBN lookup failed",
+	)
+}
+
 // TestResyncBooks_ProcessesGivenIDs verifies that ResyncBooks loads only the
 // requested IDs and processes them using the existing resync loop.
 func TestResyncBooks_ProcessesGivenIDs(t *testing.T) {
