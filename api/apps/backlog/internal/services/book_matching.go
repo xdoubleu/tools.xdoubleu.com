@@ -19,7 +19,7 @@ import (
 // attribute MergeBooks does not consolidate.
 type DuplicateGroup struct {
 	Entries []models.UserBook
-	// Reason is the strongest matching signal: "isbn13" | "isbn10" | "title+author"
+	// Reason is the strongest matching signal: "isbn13" | "title+author"
 	Reason string
 }
 
@@ -103,8 +103,7 @@ const (
 
 // Signal strength for duplicate matching (higher = more confident).
 const (
-	signalISBN13      = 3
-	signalISBN10      = 2
+	signalISBN13      = 2
 	signalTitleAuthor = 1
 )
 
@@ -142,9 +141,6 @@ func metadataCompleteness(book *models.Book) int {
 	if book.ISBN13 != nil && *book.ISBN13 != "" {
 		score++
 	}
-	if book.ISBN10 != nil && *book.ISBN10 != "" {
-		score++
-	}
 	if book.CoverURL != nil && *book.CoverURL != "" {
 		score++
 	}
@@ -152,9 +148,6 @@ func metadataCompleteness(book *models.Book) int {
 		score++
 	}
 	if book.PageCount != nil && *book.PageCount > 0 {
-		score++
-	}
-	if len(book.ExternalRefs) > 0 {
 		score++
 	}
 	return score
@@ -184,8 +177,6 @@ func signalStrengthFor(reason string) int {
 	switch reason {
 	case "isbn13":
 		return signalISBN13
-	case "isbn10":
-		return signalISBN10
 	case "title+author":
 		return signalTitleAuthor
 	default:
@@ -195,16 +186,16 @@ func signalStrengthFor(reason string) int {
 
 // FindDuplicateGroups returns groups of UserBook entries judged to be the same
 // book. Two entries are considered duplicates when they share a non-empty
-// ISBN13, a non-empty ISBN10, or a normalised title together with at least one
-// shared normalised author last name.
+// ISBN13, or a normalised title together with at least one shared normalised
+// author last name.
 //
 // Groups of size < 2 are not returned. Within each group Entries[0] is the
 // suggested winner (most complete metadata; ties broken by status, then tags,
 // then age, then BookID to ensure a deterministic order). The returned group
 // list itself is sorted by matching-signal strength descending (isbn13 first,
-// then isbn10, then title+author), then by the winner's title ascending, then
-// by the winner's BookID as a final unique tiebreak — so the order is stable
-// across repeated calls regardless of the input slice ordering.
+// then title+author), then by the winner's title ascending, then by the
+// winner's BookID as a final unique tiebreak — so the order is stable across
+// repeated calls regardless of the input slice ordering.
 //
 //nolint:funlen,gocognit,gocyclo,cyclop // union-find + buckets + winner; cannot split
 func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
@@ -248,7 +239,6 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 	// Precompute normalised fields once per book — O(n).
 	type bookNorm struct {
 		isbn13  string
-		isbn10  string
 		title   string
 		authors []string // normalised last names
 	}
@@ -262,9 +252,6 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 		if b.ISBN13 != nil {
 			bn.isbn13 = *b.ISBN13
 		}
-		if b.ISBN10 != nil {
-			bn.isbn10 = *b.ISBN10
-		}
 		bn.title = normalizeTitle(b.Title)
 		bn.authors = make([]string, 0, len(b.Authors))
 		for _, a := range b.Authors {
@@ -276,12 +263,11 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 	}
 
 	// Build key→index buckets and union within each bucket — O(n) overall.
-	// ISBN buckets: one entry per non-empty ISBN value.
+	// ISBN13 bucket: one entry per non-empty ISBN-13 value.
 	// Title+author bucket: one entry per (normTitle, normLastName) pair so that
 	// two books match when they share a normalised title AND at least one author
 	// last name — identical semantics to the original pairwise check.
 	isbn13Bucket := make(map[string][]int, n)
-	isbn10Bucket := make(map[string][]int, n)
 	titleAuthorBucket := make(map[string][]int, n)
 
 	for i, bn := range norms {
@@ -290,9 +276,6 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 		}
 		if bn.isbn13 != "" {
 			isbn13Bucket[bn.isbn13] = append(isbn13Bucket[bn.isbn13], i)
-		}
-		if bn.isbn10 != "" {
-			isbn10Bucket[bn.isbn10] = append(isbn10Bucket[bn.isbn10], i)
 		}
 		if bn.title != "" {
 			for _, a := range bn.authors {
@@ -305,11 +288,6 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 	for _, members := range isbn13Bucket {
 		for k := 1; k < len(members); k++ {
 			union(members[0], members[k], "isbn13")
-		}
-	}
-	for _, members := range isbn10Bucket {
-		for k := 1; k < len(members); k++ {
-			union(members[0], members[k], "isbn10")
 		}
 	}
 	for _, members := range titleAuthorBucket {

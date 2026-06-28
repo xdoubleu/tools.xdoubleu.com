@@ -11,8 +11,8 @@ import (
 
 // bookColumns is the standalone column list for backlog.books selects. The order
 // must match scanBook.
-const bookColumns = `id, title, authors, isbn13, isbn10, cover_url, description,
-	page_count, external_refs, created_at, updated_at,
+const bookColumns = `id, title, authors, isbn13, cover_url, description,
+	page_count, created_at, updated_at,
 	openlibrary_found, googlebooks_found, last_resync_at`
 
 // userBookColumns is the joined column list for user_book selects. The order must
@@ -20,8 +20,8 @@ const bookColumns = `id, title, authors, isbn13, isbn10, cover_url, description,
 const userBookColumns = `ub.id, ub.user_id, ub.book_id, ub.status, ub.tags,
 	ub.shelf_positions, ub.rating, ub.finished_at, ub.progress_mode,
 	ub.current_page, ub.progress_percent, ub.added_at, ub.updated_at,
-	b.id, b.title, b.authors, b.isbn13, b.isbn10, b.cover_url, b.description,
-	b.page_count, b.external_refs, b.created_at, b.updated_at`
+	b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
+	b.page_count, b.created_at, b.updated_at`
 
 func nullTime(t time.Time) *time.Time {
 	if t.IsZero() {
@@ -32,18 +32,15 @@ func nullTime(t time.Time) *time.Time {
 
 func scanBook(row pgx.Row) (*models.Book, error) {
 	var book models.Book
-	var refsJSON []byte
 
 	err := row.Scan(
 		&book.ID,
 		&book.Title,
 		&book.Authors,
 		&book.ISBN13,
-		&book.ISBN10,
 		&book.CoverURL,
 		&book.Description,
 		&book.PageCount,
-		&refsJSON,
 		&book.CreatedAt,
 		&book.UpdatedAt,
 		&book.OpenLibraryFound,
@@ -54,20 +51,13 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 		return nil, err
 	}
 
-	book.ExternalRefs = map[string]string{}
-	if len(refsJSON) > 0 {
-		if jsonErr := json.Unmarshal(refsJSON, &book.ExternalRefs); jsonErr != nil {
-			return nil, jsonErr
-		}
-	}
-
 	return &book, nil
 }
 
 func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 	var ub models.UserBook
 	var book models.Book
-	var refsJSON, posJSON []byte
+	var posJSON []byte
 
 	err := rows.Scan(
 		&ub.ID,
@@ -87,23 +77,14 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&book.Title,
 		&book.Authors,
 		&book.ISBN13,
-		&book.ISBN10,
 		&book.CoverURL,
 		&book.Description,
 		&book.PageCount,
-		&refsJSON,
 		&book.CreatedAt,
 		&book.UpdatedAt,
 	)
 	if err != nil {
 		return models.UserBook{}, err
-	}
-
-	book.ExternalRefs = map[string]string{}
-	if len(refsJSON) > 0 {
-		if jsonErr := json.Unmarshal(refsJSON, &book.ExternalRefs); jsonErr != nil {
-			return models.UserBook{}, jsonErr
-		}
 	}
 
 	ub.ShelfPositions = map[string]int{}

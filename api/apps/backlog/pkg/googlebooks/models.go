@@ -6,7 +6,6 @@ type ExternalBook struct {
 	Title    string
 	Authors  []string
 	ISBN13   *string
-	ISBN10   *string
 	CoverURL *string
 	// Description may be HTML — callers should strip tags if plain text is needed.
 	Description *string

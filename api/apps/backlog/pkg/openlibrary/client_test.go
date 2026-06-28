@@ -102,8 +102,6 @@ func TestSearch_ReturnsMappedBooks(t *testing.T) {
 	assert.Equal(t, []string{"J.R.R. Tolkien"}, book.Authors)
 	require.NotNil(t, book.ISBN13)
 	assert.Equal(t, "9780618640157", *book.ISBN13)
-	require.NotNil(t, book.ISBN10)
-	assert.Equal(t, "059035342X", *book.ISBN10)
 	require.NotNil(t, book.CoverURL)
 	assert.Equal(t, CoverURLByID(258027), *book.CoverURL)
 	require.NotNil(t, book.PageCount)

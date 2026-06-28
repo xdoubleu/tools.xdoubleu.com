@@ -22,26 +22,18 @@ func (repo *BooksRepository) UpsertBook(
 	ctx context.Context,
 	book models.Book,
 ) (*models.Book, error) {
-	externalRefsJSON, err := json.Marshal(book.ExternalRefs)
-	if err != nil {
-		return nil, err
-	}
-
 	// Try match by ISBN13 first, then fall back to title+first author.
 	query := `
 		INSERT INTO backlog.books
-		    (title, authors, isbn13, isbn10, cover_url, description,
-		     page_count, external_refs)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		    (title, authors, isbn13, cover_url, description, page_count)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
 		    authors       = EXCLUDED.authors,
-		    isbn10        = COALESCE(EXCLUDED.isbn10, backlog.books.isbn10),
 		    cover_url     = COALESCE(EXCLUDED.cover_url, backlog.books.cover_url),
 		    description   = COALESCE(EXCLUDED.description, backlog.books.description),
 		    page_count    = COALESCE(EXCLUDED.page_count, backlog.books.page_count),
-		    external_refs = backlog.books.external_refs || EXCLUDED.external_refs,
 		    updated_at    = now()
 		RETURNING ` + bookColumns
 
@@ -49,11 +41,9 @@ func (repo *BooksRepository) UpsertBook(
 		book.Title,
 		book.Authors,
 		book.ISBN13,
-		book.ISBN10,
 		book.CoverURL,
 		book.Description,
 		book.PageCount,
-		string(externalRefsJSON),
 	)
 
 	return scanBook(row)
@@ -109,36 +99,27 @@ func (repo *BooksRepository) UpdateBookByID(
 	ctx context.Context,
 	book models.Book,
 ) error {
-	externalRefsJSON, err := json.Marshal(book.ExternalRefs)
-	if err != nil {
-		return err
-	}
-
 	query := `
 		UPDATE backlog.books
 		SET
 		    title         = $2,
 		    authors       = $3,
 		    isbn13        = $4,
-		    isbn10        = $5,
-		    cover_url     = $6,
-		    description   = $7,
-		    page_count    = $8,
-		    external_refs = $9,
+		    cover_url     = $5,
+		    description   = $6,
+		    page_count    = $7,
 		    updated_at    = now()
 		WHERE id = $1
 	`
 
-	_, err = repo.db.Exec(ctx, query,
+	_, err := repo.db.Exec(ctx, query,
 		book.ID,
 		book.Title,
 		book.Authors,
 		book.ISBN13,
-		book.ISBN10,
 		book.CoverURL,
 		book.Description,
 		book.PageCount,
-		string(externalRefsJSON),
 	)
 
 	return postgres.PgxErrorToHTTPError(err)
@@ -311,9 +292,8 @@ func (repo *BooksRepository) BatchUpsert(
 	// ---------------------------
 	upsertBookQuery := `
 		INSERT INTO backlog.books
-		    (title, authors, isbn13, isbn10, cover_url, description,
-		     page_count, external_refs)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		    (title, authors, isbn13, cover_url, description, page_count)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
@@ -321,8 +301,6 @@ func (repo *BooksRepository) BatchUpsert(
 		    cover_url     = COALESCE(EXCLUDED.cover_url, backlog.books.cover_url),
 		    description   = COALESCE(EXCLUDED.description, backlog.books.description),
 		    page_count    = COALESCE(EXCLUDED.page_count, backlog.books.page_count),
-		    external_refs = backlog.books.external_refs
-		              || COALESCE(EXCLUDED.external_refs, '{}'),
 		    updated_at    = now()
 		RETURNING id
 	`
@@ -332,21 +310,14 @@ func (repo *BooksRepository) BatchUpsert(
 	batch := &pgx.Batch{} //nolint:exhaustruct //QueuedQueries populated via Queue()
 
 	for _, book := range books {
-		refsJSON, err := json.Marshal(book.ExternalRefs)
-		if err != nil {
-			return fmt.Errorf("marshal external refs: %w", err)
-		}
-
 		batch.Queue(
 			upsertBookQuery,
 			book.Title,
 			book.Authors,
 			book.ISBN13,
-			book.ISBN10,
 			book.CoverURL,
 			book.Description,
 			book.PageCount,
-			string(refsJSON),
 		)
 	}
 
@@ -422,28 +393,6 @@ func (repo *BooksRepository) BatchUpsert(
 	return nil
 }
 
-// FindByExternalRef returns a book by provider and provider ID stored in external_refs.
-func (repo *BooksRepository) FindByExternalRef(
-	ctx context.Context,
-	provider string,
-	providerID string,
-) (*models.Book, error) {
-	query := `
-		SELECT ` + bookColumns + `
-		FROM backlog.books
-		WHERE external_refs->>$1 = $2
-		LIMIT 1
-	`
-
-	row := repo.db.QueryRow(ctx, query, provider, providerID)
-	book, err := scanBook(row)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return book, nil
-}
-
 // GetUserBook fetches a single user_book by user and book ID.
 func (repo *BooksRepository) GetUserBook(
 	ctx context.Context,
@@ -513,39 +462,6 @@ func (repo *BooksRepository) FindUserBookByISBN13(
 	`
 
 	rows, err := repo.db.Query(ctx, query, userID, isbn13)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	if !rows.Next() {
-		return nil, database.ErrResourceNotFound
-	}
-
-	ub, err := scanUserBookWithBook(rows)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return &ub, nil
-}
-
-// FindUserBookByISBN10 finds the user's library entry for a book with the
-// given ISBN10.
-func (repo *BooksRepository) FindUserBookByISBN10(
-	ctx context.Context,
-	userID string,
-	isbn10 string,
-) (*models.UserBook, error) {
-	query := `
-		SELECT ` + userBookColumns + `
-		FROM backlog.user_books ub
-		JOIN backlog.books b ON b.id = ub.book_id
-		WHERE ub.user_id = $1 AND b.isbn10 = $2
-		LIMIT 1
-	`
-
-	rows, err := repo.db.Query(ctx, query, userID, isbn10)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}

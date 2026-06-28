@@ -23,8 +23,6 @@ function reasonLabel(reason: string): string {
   switch (reason) {
     case 'isbn13':
       return 'Same ISBN-13'
-    case 'isbn10':
-      return 'Same ISBN-10'
     case 'title+author':
       return 'Same title + author'
     default:

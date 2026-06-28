@@ -34,12 +34,10 @@ function makeEntry(
     status: string
     formats: string[]
     isbn13: string
-    isbn10: string
     coverUrl: string
     description: string
     pageCount: number
     authors: string[]
-    externalRefs: Record<string, string>
   }> = {}
 ) {
   return {
@@ -51,11 +49,9 @@ function makeEntry(
       title,
       authors: overrides.authors ?? ['Some Author'],
       isbn13: overrides.isbn13 ?? '',
-      isbn10: overrides.isbn10 ?? '',
       coverUrl: overrides.coverUrl ?? '',
       description: overrides.description ?? '',
-      pageCount: overrides.pageCount ?? 0,
-      externalRefs: overrides.externalRefs ?? ({} as Record<string, string>)
+      pageCount: overrides.pageCount ?? 0
     },
     status: overrides.status ?? 'to-read',
     tags: [],

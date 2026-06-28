@@ -221,7 +221,6 @@ func TestExtract_EPUB(t *testing.T) {
 				Title:    "Go Programming",
 				Authors:  []string{"Alan Donovan"},
 				ISBN13:   nil,
-				ISBN10:   nil,
 				Language: nil,
 			},
 		},
@@ -235,7 +234,6 @@ func TestExtract_EPUB(t *testing.T) {
 				Title:    "The Pragmatic Programmer",
 				Authors:  []string{"David Thomas", "Andrew Hunt"},
 				ISBN13:   nil,
-				ISBN10:   nil,
 				Language: nil,
 			},
 		},
@@ -249,12 +247,11 @@ func TestExtract_EPUB(t *testing.T) {
 				Title:    "Clean Code",
 				Authors:  []string{"Robert Martin"},
 				ISBN13:   ptr("9780132350884"),
-				ISBN10:   nil,
 				Language: ptr("en"),
 			},
 		},
 		{
-			name:     "isbn10",
+			name:     "isbn10 not stored",
 			title:    "SICP",
 			authors:  []string{"Harold Abelson"},
 			isbn:     "0-262-51087-1",
@@ -263,7 +260,6 @@ func TestExtract_EPUB(t *testing.T) {
 				Title:    "SICP",
 				Authors:  []string{"Harold Abelson"},
 				ISBN13:   nil,
-				ISBN10:   ptr("0262510871"),
 				Language: nil,
 			},
 		},
@@ -277,7 +273,6 @@ func TestExtract_EPUB(t *testing.T) {
 				Title:    "Das Schloss",
 				Authors:  []string{"Franz Kafka"},
 				ISBN13:   nil,
-				ISBN10:   nil,
 				Language: ptr("de"),
 			},
 		},
@@ -299,7 +294,6 @@ func TestExtract_EPUB(t *testing.T) {
 			assert.Equal(t, tt.want.Title, got.Title)
 			assert.Equal(t, tt.want.Authors, got.Authors)
 			assert.Equal(t, tt.want.ISBN13, got.ISBN13)
-			assert.Equal(t, tt.want.ISBN10, got.ISBN10)
 			assert.Equal(t, tt.want.Language, got.Language)
 		})
 	}
@@ -380,7 +374,6 @@ func TestExtract_PDF(t *testing.T) {
 				Title:    "Structure and Interpretation",
 				Authors:  []string{"Abelson"},
 				ISBN13:   nil,
-				ISBN10:   nil,
 				Language: nil,
 			},
 		},
@@ -392,7 +385,6 @@ func TestExtract_PDF(t *testing.T) {
 				Title:    "",
 				Authors:  nil,
 				ISBN13:   nil,
-				ISBN10:   nil,
 				Language: nil,
 			},
 		},

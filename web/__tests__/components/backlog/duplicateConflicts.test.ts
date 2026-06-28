@@ -14,11 +14,9 @@ function makeBook(
     title: string
     authors: string[]
     isbn13: string
-    isbn10: string
     coverUrl: string
     description: string
     pageCount: number
-    externalRefs: Record<string, string>
   }> = {}
 ) {
   return {
@@ -26,11 +24,9 @@ function makeBook(
     title: overrides.title ?? 'Some Title',
     authors: overrides.authors ?? ['Author'],
     isbn13: overrides.isbn13 ?? '',
-    isbn10: overrides.isbn10 ?? '',
     coverUrl: overrides.coverUrl ?? '',
     description: overrides.description ?? '',
-    pageCount: overrides.pageCount ?? 0,
-    externalRefs: overrides.externalRefs ?? {}
+    pageCount: overrides.pageCount ?? 0
   }
 }
 
@@ -145,11 +141,9 @@ describe('buildResolvedMetadata', () => {
       title: 'w',
       authors: 'w',
       isbn13: 'w',
-      isbn10: 'w',
       cover: 'w',
       description: 'w',
-      pageCount: 'w',
-      externalRefs: 'w'
+      pageCount: 'w'
     }
     const result = buildResolvedMetadata(g, choices)
     expect(result.title).toBe('Winner Title')
@@ -164,11 +158,9 @@ describe('buildResolvedMetadata', () => {
       title: 'w',
       authors: 'w',
       isbn13: 'w',
-      isbn10: 'w',
       cover: 'w',
       description: 'w',
-      pageCount: 'l', // pick loser's page count
-      externalRefs: 'w'
+      pageCount: 'l' // pick loser's page count
     }
     const result = buildResolvedMetadata(g, choices)
     expect(result.title).toBe('Winner Title')
@@ -183,11 +175,9 @@ describe('buildResolvedMetadata', () => {
       title: 'w',
       authors: 'w',
       isbn13: 'w',
-      isbn10: 'w',
       cover: 'l',
       description: 'w',
-      pageCount: 'w',
-      externalRefs: 'w'
+      pageCount: 'w'
     }
     const result = buildResolvedMetadata(g, choices)
     // coverUrl must be empty in resolved metadata (proto object always has the

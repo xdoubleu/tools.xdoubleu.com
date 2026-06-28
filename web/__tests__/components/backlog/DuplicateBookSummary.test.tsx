@@ -10,11 +10,9 @@ import type { DupUserBook } from '@/components/backlog/DuplicateBookSummary'
 function makeUB(
   overrides: {
     isbn13?: string
-    isbn10?: string
     coverUrl?: string
     description?: string
     pageCount?: number
-    externalRefs?: Record<string, string>
     formats?: string[]
     tags?: string[]
     status?: string
@@ -27,11 +25,9 @@ function makeUB(
       title: 'Test Book',
       authors: overrides.authors ?? ['Test Author'],
       isbn13: overrides.isbn13 ?? '',
-      isbn10: overrides.isbn10 ?? '',
       coverUrl: overrides.coverUrl ?? '',
       description: overrides.description ?? '',
-      pageCount: overrides.pageCount ?? 0,
-      externalRefs: overrides.externalRefs ?? {}
+      pageCount: overrides.pageCount ?? 0
     },
     status: overrides.status ?? 'to-read',
     tags: overrides.tags ?? [],
@@ -57,20 +53,9 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText(/ISBN 9780261102217/)).toBeInTheDocument()
   })
 
-  it('shows "ISBN <number>" for ISBN-10 when isbn13 is absent', () => {
-    render(<DuplicateBookSummary ub={makeUB({ isbn10: '0261102214' })} />)
-    expect(screen.getByText(/ISBN 0261102214/)).toBeInTheDocument()
-  })
-
-  it('shows "No ISBN" when both are absent', () => {
+  it('shows "No ISBN" when isbn13 is absent', () => {
     render(<DuplicateBookSummary ub={makeUB()} />)
     expect(screen.getByText(/No ISBN/)).toBeInTheDocument()
-  })
-
-  it('prefers ISBN-13 over ISBN-10 and shows prefix', () => {
-    render(<DuplicateBookSummary ub={makeUB({ isbn13: '9780261102217', isbn10: '0261102214' })} />)
-    expect(screen.getByText(/ISBN 9780261102217/)).toBeInTheDocument()
-    expect(screen.queryByText(/ISBN 0261102214/)).not.toBeInTheDocument()
   })
 
   it('shows page count when present', () => {
@@ -83,37 +68,26 @@ describe('DuplicateBookSummary', () => {
     expect(screen.queryByText(/\dp$/)).not.toBeInTheDocument()
   })
 
-  it('shows Open Library ID from externalRefs', () => {
-    render(<DuplicateBookSummary ub={makeUB({ externalRefs: { openlibrary: 'OL12345M' } })} />)
-    expect(screen.getByText(/OL OL12345M/)).toBeInTheDocument()
-  })
-
-  it('does not show OL indicator when externalRefs is empty', () => {
-    render(<DuplicateBookSummary ub={makeUB({ externalRefs: {} })} />)
-    expect(screen.queryByText(/OL /)).not.toBeInTheDocument()
-  })
-
   // --- Metadata quality breakdown (Part B) ---
 
-  it('shows Metadata score as X/7', () => {
+  it('shows Metadata score as X/5', () => {
     render(
       <DuplicateBookSummary
         ub={makeUB({
           isbn13: '9780261102217',
           pageCount: 300,
           coverUrl: 'https://example.com/c.jpg',
-          description: 'A great book.',
-          externalRefs: { openlibrary: 'OL1M' }
+          description: 'A great book.'
         })}
       />
     )
-    // authors + isbn13 + cover + desc + pageCount + externalRefs = 6/7 (isbn10 missing)
-    expect(screen.getByText('Metadata 6/7')).toBeInTheDocument()
+    // authors + isbn13 + cover + desc + pageCount = 5/5
+    expect(screen.getByText('Metadata 5/5')).toBeInTheDocument()
   })
 
-  it('shows Metadata 0/7 when no fields are populated', () => {
+  it('shows Metadata 0/5 when no fields are populated', () => {
     render(<DuplicateBookSummary ub={makeUB({ authors: [] })} />)
-    expect(screen.getByText('Metadata 0/7')).toBeInTheDocument()
+    expect(screen.getByText('Metadata 0/5')).toBeInTheDocument()
   })
 
   it('shows Cover badge when coverUrl is set', () => {
@@ -186,7 +160,6 @@ describe('DuplicateBookSummary', () => {
           pageCount: 310,
           coverUrl: 'https://example.com/c.jpg',
           description: 'Epic fantasy.',
-          externalRefs: { openlibrary: 'OL27448W' },
           formats: ['epub', 'kepub'],
           tags: ['own-physical'],
           status: 'read'
@@ -195,7 +168,6 @@ describe('DuplicateBookSummary', () => {
     )
     expect(screen.getByText(/ISBN 9780261102217/)).toBeInTheDocument()
     expect(screen.getByText(/310p/)).toBeInTheDocument()
-    expect(screen.getByText(/OL OL27448W/)).toBeInTheDocument()
     expect(screen.getByText('EPUB')).toBeInTheDocument()
     expect(screen.getByText('KEPUB')).toBeInTheDocument()
     expect(screen.getByText('Physical')).toBeInTheDocument()

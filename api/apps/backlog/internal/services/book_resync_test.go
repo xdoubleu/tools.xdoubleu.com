@@ -169,7 +169,6 @@ func gbResultToExternal(r gbResult) googlebooks.ExternalBook {
 		Title:       r.title,
 		Authors:     r.authors,
 		ISBN13:      r.isbn13,
-		ISBN10:      nil,
 		CoverURL:    r.coverURL,
 		Description: r.desc,
 		PageCount:   r.pages,

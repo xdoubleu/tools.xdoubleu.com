@@ -12,11 +12,9 @@ const FIELD_LABELS: Record<BookConflictField, string> = {
   title: 'Title',
   authors: 'Authors',
   isbn13: 'ISBN-13',
-  isbn10: 'ISBN-10',
   cover: 'Cover',
   description: 'Description',
-  pageCount: 'Page count',
-  externalRefs: 'External refs'
+  pageCount: 'Page count'
 }
 
 // ---------------------------------------------------------------------------

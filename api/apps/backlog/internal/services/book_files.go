@@ -470,11 +470,10 @@ func extForFormat(format string) string {
 // recognizeBook matches meta to an existing user_book or creates a new one.
 // Matching is attempted in order from most to least precise:
 //  1. ISBN13 exact match
-//  2. ISBN10 exact match
-//  3. Exact case-insensitive title + first author
-//  4. Normalized title + author last-name overlap (strips subtitles, folds
+//  2. Exact case-insensitive title + first author
+//  3. Normalized title + author last-name overlap (strips subtitles, folds
 //     diacritics, handles "Last, First" vs "First Last" formatting)
-//  5. Open Library search (creates a new library entry, matchedExisting=false)
+//  4. Open Library search (creates a new library entry, matchedExisting=false)
 func (s *BookService) recognizeBook(
 	ctx context.Context,
 	userID string,
@@ -491,18 +490,7 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// 2. Match by ISBN10.
-	if meta.ISBN10 != nil {
-		ub, err := s.books.FindUserBookByISBN10(ctx, userID, *meta.ISBN10)
-		if err == nil {
-			return ub, true, nil
-		}
-		if !errors.Is(err, database.ErrResourceNotFound) {
-			return nil, false, err
-		}
-	}
-
-	// 3. Exact case-insensitive title + first author.
+	// 2. Exact case-insensitive title + first author.
 	if meta.Title != "" && len(meta.Authors) > 0 {
 		ub, err := s.books.FindUserBookByTitleAndAuthor(
 			ctx, userID, meta.Title, meta.Authors[0],
@@ -515,7 +503,7 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// 4. Normalized title + author last-name overlap.
+	// 3. Normalized title + author last-name overlap.
 	// Fetches the full library once; the list is small relative to the
 	// cost of an Open Library HTTP round-trip that would otherwise follow.
 	lib, err := s.books.GetLibrary(ctx, userID)
@@ -526,7 +514,7 @@ func (s *BookService) recognizeBook(
 		return ub, true, nil
 	}
 
-	// 5. Try Open Library when a title is available.
+	// 4. Try Open Library when a title is available.
 	if ub := s.tryExternalLookup(ctx, userID, meta); ub != nil {
 		return ub, false, nil
 	}

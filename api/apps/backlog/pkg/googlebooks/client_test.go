@@ -42,7 +42,6 @@ func TestGetByISBN_Found(t *testing.T) {
 		PageCount:   221,
 		Thumbnail:   "https://books.google.com/cover.jpg",
 		ISBN13:      "9780451457998",
-		ISBN10:      "0451457994",
 	}})
 
 	cleanup := buildServer(jsonHandler(body))
@@ -270,7 +269,6 @@ type volumeInfoFixture struct {
 	PageCount   int
 	Thumbnail   string
 	ISBN13      string
-	ISBN10      string
 }
 
 func volumesResponse(t *testing.T, items []volumeInfoFixture) json.RawMessage {
@@ -314,12 +312,6 @@ func volumesResponse(t *testing.T, items []volumeInfoFixture) json.RawMessage {
 			v.IndustryIdentifiers = append(
 				v.IndustryIdentifiers,
 				ii{Type: "ISBN_13", Identifier: f.ISBN13},
-			)
-		}
-		if f.ISBN10 != "" {
-			v.IndustryIdentifiers = append(
-				v.IndustryIdentifiers,
-				ii{Type: "ISBN_10", Identifier: f.ISBN10},
 			)
 		}
 		vols = append(vols, vol{VolumeInfo: v})

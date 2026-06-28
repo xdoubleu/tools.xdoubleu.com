@@ -234,7 +234,6 @@ func (h *booksConnectHandler) AddBook(
 		Title:       req.Msg.Title,
 		Authors:     []string{req.Msg.Author},
 		ISBN13:      isbn13,
-		ISBN10:      nil,
 		CoverURL:    coverURL,
 		Description: desc,
 		PageCount:   nil,
@@ -828,15 +827,13 @@ func protoBook(book *models.Book, coverBaseURL string) *backlogv1.Book {
 	}
 
 	return &backlogv1.Book{
-		Id:           book.ID.String(),
-		Title:        book.Title,
-		Authors:      book.Authors,
-		Isbn13:       stringPtr(book.ISBN13),
-		Isbn10:       stringPtr(book.ISBN10),
-		CoverUrl:     proxyURL,
-		Description:  stringPtr(book.Description),
-		PageCount:    int32FromIntPtr(book.PageCount),
-		ExternalRefs: book.ExternalRefs,
+		Id:          book.ID.String(),
+		Title:       book.Title,
+		Authors:     book.Authors,
+		Isbn13:      stringPtr(book.ISBN13),
+		CoverUrl:    proxyURL,
+		Description: stringPtr(book.Description),
+		PageCount:   int32FromIntPtr(book.PageCount),
 	}
 }
 
@@ -1237,16 +1234,12 @@ func protoBookToModel(pb *backlogv1.Book) *models.Book {
 	}
 
 	m := &models.Book{ //nolint:exhaustruct // only catalog fields; ID set by caller
-		Title:        pb.Title,
-		Authors:      pb.Authors,
-		ExternalRefs: pb.ExternalRefs,
+		Title:   pb.Title,
+		Authors: pb.Authors,
 	}
 
 	if pb.Isbn13 != "" {
 		m.ISBN13 = &pb.Isbn13
-	}
-	if pb.Isbn10 != "" {
-		m.ISBN10 = &pb.Isbn10
 	}
 	if pb.CoverUrl != "" {
 		m.CoverURL = &pb.CoverUrl

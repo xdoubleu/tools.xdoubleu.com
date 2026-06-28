@@ -11,11 +11,9 @@ interface DupBook {
   title: string
   authors: string[]
   isbn13: string
-  isbn10: string
   coverUrl: string
   description: string
   pageCount: number
-  externalRefs: Record<string, string>
 }
 
 export interface DupUserBook {
@@ -29,14 +27,9 @@ export interface DupUserBook {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isbnDisplay(isbn13: string, isbn10: string): string {
+function isbnDisplay(isbn13: string): string {
   if (isbn13) return `ISBN ${isbn13}`
-  if (isbn10) return `ISBN ${isbn10}`
   return 'No ISBN'
-}
-
-function openLibraryId(externalRefs: Record<string, string>): string {
-  return externalRefs['openlibrary'] ?? ''
 }
 
 // ---------------------------------------------------------------------------
@@ -65,11 +58,9 @@ function metadataFields(book: DupBook): MetadataField[] {
   return [
     { label: 'Authors', present: book.authors.length > 0 },
     { label: 'ISBN-13', present: Boolean(book.isbn13) },
-    { label: 'ISBN-10', present: Boolean(book.isbn10) },
     { label: 'Cover', present: Boolean(book.coverUrl) },
     { label: 'Description', present: Boolean(book.description) },
-    { label: 'Page count', present: book.pageCount > 0 },
-    { label: 'Ext. refs', present: Object.keys(book.externalRefs).length > 0 }
+    { label: 'Page count', present: book.pageCount > 0 }
   ]
 }
 
@@ -83,15 +74,13 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
   const hasEpub = ub.formats.includes('epub')
   const hasKepub = ub.formats.includes('kepub')
 
-  const isbn = isbnDisplay(book.isbn13, book.isbn10)
-  const olId = openLibraryId(book.externalRefs)
+  const isbn = isbnDisplay(book.isbn13)
   const fields = metadataFields(book)
   const score = fields.filter((f) => f.present).length
 
-  // Identity/value tokens: ISBN, page count, OpenLibrary id.
+  // Identity/value tokens: ISBN and page count.
   const metaTokens: string[] = [isbn]
   if (book.pageCount > 0) metaTokens.push(`${book.pageCount}p`)
-  if (olId) metaTokens.push(`OL ${olId}`)
 
   return (
     <div className="flex items-start gap-3">
@@ -106,7 +95,7 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
         {/* Metadata quality breakdown */}
         <div className="flex flex-wrap gap-1 mt-1">
           <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle">
-            Metadata {score}/7
+            Metadata {score}/5
           </span>
           {fields.map((f) => (
             <Badge key={f.label} variant={f.present ? 'default' : 'secondary'}>

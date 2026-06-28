@@ -32,7 +32,6 @@ const apiTimeout = 15 * time.Second
 
 const (
 	isbn13Len = 13
-	isbn10Len = 10
 	// searchLimit caps the number of search results requested from Open Library.
 	searchLimit = 20
 	// searchFields whitelists the document fields Open Library returns, keeping
@@ -347,7 +346,7 @@ func docToExternalBook(doc searchDoc) ExternalBook {
 		}
 	}
 
-	isbn13, isbn10 := pickISBNs(doc.ISBN)
+	isbn13 := pickISBN13(doc.ISBN)
 
 	var coverURL *string
 	if doc.CoverID != nil {
@@ -363,7 +362,6 @@ func docToExternalBook(doc searchDoc) ExternalBook {
 		Title:       doc.Title,
 		Authors:     authors,
 		ISBN13:      isbn13,
-		ISBN10:      isbn10,
 		CoverURL:    coverURL,
 		Description: nil,
 		PageCount:   doc.NumberOfPagesMedian,
@@ -371,14 +369,10 @@ func docToExternalBook(doc searchDoc) ExternalBook {
 }
 
 func detailsToExternalBook(isbn string, d bookDetails) ExternalBook {
-	isbn13, isbn10 := pickISBNs(append(append([]string{}, d.ISBN13...), d.ISBN10...))
+	isbn13 := pickISBN13(d.ISBN13)
 	if isbn13 == nil && len(isbn) == isbn13Len {
 		v := isbn
 		isbn13 = &v
-	}
-	if isbn10 == nil && len(isbn) == isbn10Len {
-		v := isbn
-		isbn10 = &v
 	}
 
 	var coverURL *string
@@ -401,30 +395,21 @@ func detailsToExternalBook(isbn string, d bookDetails) ExternalBook {
 		Title:       d.Title,
 		Authors:     nil,
 		ISBN13:      isbn13,
-		ISBN10:      isbn10,
 		CoverURL:    coverURL,
 		Description: desc,
 		PageCount:   d.NumberOfPages,
 	}
 }
 
-// pickISBNs returns the first 13- and 10-digit ISBNs found in the list.
-func pickISBNs(isbns []string) (*string, *string) {
-	var isbn13, isbn10 *string
+// pickISBN13 returns the first 13-digit ISBN found in the list, or nil.
+func pickISBN13(isbns []string) *string {
 	for _, raw := range isbns {
 		v := raw
-		switch len(v) {
-		case isbn13Len:
-			if isbn13 == nil {
-				isbn13 = &v
-			}
-		case isbn10Len:
-			if isbn10 == nil {
-				isbn10 = &v
-			}
+		if len(v) == isbn13Len {
+			return &v
 		}
 	}
-	return isbn13, isbn10
+	return nil
 }
 
 // CoverURLByISBN returns an Open Library cover URL for the given ISBN13, or an

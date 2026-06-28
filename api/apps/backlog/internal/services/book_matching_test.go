@@ -185,12 +185,11 @@ func TestMatchLibraryByMetadata_EmptyLibrary(t *testing.T) {
 // --- FindDuplicateGroups ---
 
 func isbn13Ptr(s string) *string { return &s }
-func isbn10Ptr(s string) *string { return &s }
 
 func makeUBWithISBN(
 	title string,
 	authors []string,
-	isbn13, isbn10 *string,
+	isbn13 *string,
 	status string,
 ) models.UserBook {
 	//nolint:exhaustruct // only fields needed for duplicate detection
@@ -202,7 +201,6 @@ func makeUBWithISBN(
 			Title:   title,
 			Authors: authors,
 			ISBN13:  isbn13,
-			ISBN10:  isbn10,
 		},
 	}
 }
@@ -222,14 +220,12 @@ func TestFindDuplicateGroups_GroupsByISBN13(t *testing.T) {
 		"The Hobbit",
 		[]string{"Tolkien"},
 		isbn,
-		nil,
 		models.StatusToRead,
 	)
 	b := makeUBWithISBN(
 		"The Hobbit (2nd ed.)",
 		[]string{"J.R.R. Tolkien"},
 		isbn,
-		nil,
 		models.StatusRead,
 	)
 	lib := []models.UserBook{a, b}
@@ -241,26 +237,13 @@ func TestFindDuplicateGroups_GroupsByISBN13(t *testing.T) {
 	assert.Equal(t, models.StatusRead, groups[0].Entries[0].Status)
 }
 
-func TestFindDuplicateGroups_GroupsByISBN10(t *testing.T) {
-	isbn := isbn10Ptr("0261102214")
-	a := makeUBWithISBN(
-		"The Hobbit",
-		[]string{"Tolkien"},
-		nil,
-		isbn,
-		models.StatusToRead,
-	)
-	b := makeUBWithISBN(
-		"The Hobbit (pocket)",
-		[]string{"J.R.R. Tolkien"},
-		nil,
-		isbn,
-		models.StatusToRead,
-	)
+func TestFindDuplicateGroups_DoesNotGroupByISBN10Only(t *testing.T) {
+	// ISBN-10 is no longer a matching signal — two entries sharing only an
+	// ISBN-10 (and different titles/authors) must NOT be grouped.
+	a := makeUserBook("The Hobbit", []string{"Tolkien"})
+	b := makeUserBook("The Hobbit (pocket)", []string{"Herbert"})
 	lib := []models.UserBook{a, b}
-	groups := FindDuplicateGroups(lib)
-	assert.Len(t, groups, 1)
-	assert.Equal(t, "isbn10", groups[0].Reason)
+	assert.Nil(t, FindDuplicateGroups(lib))
 }
 
 func TestFindDuplicateGroups_GroupsByTitleAndAuthor(t *testing.T) {
@@ -288,27 +271,25 @@ func TestFindDuplicateGroups_NoGroupDifferentBooks(t *testing.T) {
 }
 
 func TestFindDuplicateGroups_ReasonUpgradedToStrongest(t *testing.T) {
-	// Two books share both an ISBN10 and a matching title+author.
-	// The group reason must be "isbn10" (stronger signal).
-	isbn := isbn10Ptr("0261102214")
+	// Two books share both an ISBN-13 and a matching title+author.
+	// The group reason must be "isbn13" (stronger signal).
+	isbn := isbn13Ptr("9780261102217")
 	a := makeUBWithISBN(
 		"The Hobbit",
 		[]string{"J.R.R. Tolkien"},
-		nil,
 		isbn,
 		models.StatusToRead,
 	)
 	b := makeUBWithISBN(
 		"The Hobbit: There and Back Again",
 		[]string{"Tolkien, J.R.R."},
-		nil,
 		isbn,
 		models.StatusToRead,
 	)
 	lib := []models.UserBook{a, b}
 	groups := FindDuplicateGroups(lib)
 	assert.Len(t, groups, 1)
-	assert.Equal(t, "isbn10", groups[0].Reason)
+	assert.Equal(t, "isbn13", groups[0].Reason)
 }
 
 func TestFindDuplicateGroups_NilBookSkipped(t *testing.T) {
@@ -355,12 +336,12 @@ func TestFindDuplicateGroups_LargeLibrary(t *testing.T) {
 		a := makeUBWithISBN(
 			fmt.Sprintf("ISBN Book %d edition 1", i),
 			[]string{"Writer One"},
-			isbn, nil, models.StatusToRead,
+			isbn, models.StatusToRead,
 		)
 		b := makeUBWithISBN(
 			fmt.Sprintf("ISBN Book %d edition 2", i),
 			[]string{"Writer One"},
-			isbn, nil, models.StatusRead,
+			isbn, models.StatusRead,
 		)
 		lib = append(lib, a, b)
 	}
@@ -390,14 +371,12 @@ func TestFindDuplicateGroups_WinnerPrefersMostProgressed(t *testing.T) {
 		"Dune",
 		[]string{"Herbert"},
 		isbn13Ptr("9780441013593"),
-		nil,
 		models.StatusReading,
 	)
 	toRead := makeUBWithISBN(
 		"Dune",
 		[]string{"Herbert"},
 		isbn13Ptr("9780441013593"),
-		nil,
 		models.StatusToRead,
 	)
 	lib := []models.UserBook{toRead, reading} // toRead first in slice
@@ -498,25 +477,19 @@ func TestFindDuplicateGroups_FormatsDoNotAffectWinner(t *testing.T) {
 // makeDupGroup is a convenience builder: returns two UserBooks sharing isbn13
 // so they form a duplicate group with the given title (used as sort key).
 func makeDupGroup(
-	title, isbn13val, isbn10val string,
-	reason string,
+	title, isbn13val string,
 ) (models.UserBook, models.UserBook) {
-	var i13, i10 *string
+	var i13 *string
 	if isbn13val != "" {
 		i13 = isbn13Ptr(isbn13val)
 	}
-	if isbn10val != "" {
-		i10 = isbn10Ptr(isbn10val)
-	}
-	a := makeUBWithISBN(title, []string{"Author"}, i13, i10, models.StatusToRead)
+	a := makeUBWithISBN(title, []string{"Author"}, i13, models.StatusToRead)
 	b := makeUBWithISBN(
 		title+" (2nd ed.)",
 		[]string{"Author"},
 		i13,
-		i10,
 		models.StatusToRead,
 	)
-	_ = reason
 	return a, b
 }
 
@@ -524,14 +497,16 @@ func TestFindDuplicateGroups_GroupOrderIsDeterministic(t *testing.T) {
 	// Build a library with three distinct duplicate groups:
 	//   group A — isbn13 match, title "Alpha"
 	//   group B — isbn13 match, title "Beta"
-	//   group C — isbn10-only match, title "Gamma"
+	//   group C — title+author match, title "Gamma"
 	//
 	// Expected sort: signal strength desc (A, B before C), then title asc (A
 	// before B). So stable order is [A, B, C].
 
-	a1, a2 := makeDupGroup("Alpha", "9780000000001", "", "isbn13")
-	b1, b2 := makeDupGroup("Beta", "9780000000002", "", "isbn13")
-	c1, c2 := makeDupGroup("Gamma", "", "0000000003", "isbn10")
+	a1, a2 := makeDupGroup("Alpha", "9780000000001")
+	b1, b2 := makeDupGroup("Beta", "9780000000002")
+	// title+author group — no ISBN, matched by shared normalised title+author
+	c1 := makeUserBook("Gamma", []string{"AuthorC"})
+	c2 := makeUserBook("Gamma: A Subtitle", []string{"AuthorC"})
 
 	lib := []models.UserBook{c1, b1, a2, c2, a1, b2} // intentionally shuffled
 
@@ -556,10 +531,10 @@ func TestFindDuplicateGroups_GroupOrderIsDeterministic(t *testing.T) {
 		}
 	}
 
-	// Verify the documented order: isbn13 groups first, then title asc within tier.
+	// Verify the documented order: isbn13 groups first, then title+author.
 	assert.Equal(t, "isbn13", first[0].Reason)
 	assert.Equal(t, "isbn13", first[1].Reason)
-	assert.Equal(t, "isbn10", first[2].Reason)
+	assert.Equal(t, "title+author", first[2].Reason)
 
 	// Within the isbn13 tier: "Alpha" < "Beta" alphabetically.
 	title0 := first[0].Entries[0].Book.Title
@@ -569,8 +544,8 @@ func TestFindDuplicateGroups_GroupOrderIsDeterministic(t *testing.T) {
 
 func TestFindDuplicateGroups_GroupOrderStableOnShuffledInput(t *testing.T) {
 	// Groups should come back in the same order regardless of input slice order.
-	a1, a2 := makeDupGroup("Zeta", "9780000000010", "", "isbn13")
-	b1, b2 := makeDupGroup("Aardvark", "9780000000011", "", "isbn13")
+	a1, a2 := makeDupGroup("Zeta", "9780000000010")
+	b1, b2 := makeDupGroup("Aardvark", "9780000000011")
 
 	orderA := FindDuplicateGroups([]models.UserBook{a1, a2, b1, b2})
 	orderB := FindDuplicateGroups([]models.UserBook{b2, a2, b1, a1})
@@ -626,13 +601,11 @@ func TestMetadataCompleteness_Empty(t *testing.T) {
 
 func TestMetadataCompleteness_Full(t *testing.T) {
 	b := &models.Book{ //nolint:exhaustruct // only metadata fields are needed here
-		Authors:      []string{"Author"},
-		ISBN13:       strPtr("9780441013593"),
-		ISBN10:       strPtr("0441013597"),
-		CoverURL:     strPtr("https://example.com/cover.jpg"),
-		Description:  strPtr("A description."),
-		PageCount:    intPtr(300),
-		ExternalRefs: map[string]string{"ol": "OL123"},
+		Authors:     []string{"Author"},
+		ISBN13:      strPtr("9780441013593"),
+		CoverURL:    strPtr("https://example.com/cover.jpg"),
+		Description: strPtr("A description."),
+		PageCount:   intPtr(300),
 	}
-	assert.Equal(t, 7, metadataCompleteness(b))
+	assert.Equal(t, 5, metadataCompleteness(b))
 }
