@@ -46,6 +46,20 @@ func (s *BookService) resyncRepo() booksResyncSource {
 	return s.books
 }
 
+// resyncResolution collects the metadata resolved for a single book across one
+// or more provider lookups. It is pure data — no DB writes happen until
+// resyncBook calls writeResyncResult.
+type resyncResolution struct {
+	coverURL    *string
+	description *string
+	pageCount   *int
+	// isbn13 is set only when a new ISBN was discovered (title/author search
+	// path for ISBN-less books). Never set when the book already has an ISBN.
+	isbn13  *string
+	olFound bool
+	gbFound bool
+}
+
 // ResyncAllFromOpenLibrary backfills metadata for every catalog book that is
 // missing at least one of cover_url, description, or page_count. It is
 // additive-only: fields that already have a value are never overwritten. Books
@@ -54,7 +68,9 @@ func (s *BookService) resyncRepo() booksResyncSource {
 //
 // Enrichment strategy per book:
 //   - Has ISBN13: try Open Library GetByISBN first; fall back to Google Books
-//     GetByISBN for any fields still missing.
+//     GetByISBN for any fields still missing. If neither ISBN lookup resolves
+//     all gaps AND the book has a title+authors, a title+author search on both
+//     providers is used as a final redundancy pass.
 //   - No ISBN13: search Open Library then Google Books by title+author. A
 //     confident match (normalised title + author-surname overlap) backfills
 //     metadata and writes the discovered ISBN13 so future resyncs use the
@@ -164,6 +180,24 @@ func (s *BookService) resyncBooks(
 	return int(refreshed.Load()), errors.Join(errs...)
 }
 
+// resyncBook orchestrates the full enrichment pipeline for a single catalog
+// book:
+//
+//  1. Determine which fields need filling (cover, description, page count).
+//     If nothing is needed and force is false, return immediately.
+//
+//  2. If the book has an ISBN, call resolveByISBN to attempt a lookup against
+//     Open Library then Google Books using the ISBN.
+//
+//  3. If gaps remain after the ISBN path (or the book has no ISBN at all), and
+//     the book has a usable title+authors, call resolveByTitleAuthor as a
+//     fallback. Results are merged — only empty slots are filled.
+//
+//  4. Record provider outcomes (olFound/gbFound) via SetResyncStatus.
+//
+//  5. If any metadata was resolved, write it via writeResyncResult (one DB call).
+//
+//nolint:cyclop,gocognit,gocyclo // two-phase resolve with merge
 func (s *BookService) resyncBook(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -179,22 +213,64 @@ func (s *BookService) resyncBook(
 		return nil
 	}
 
-	var olFound, gbFound bool
-	var resyncErr error
+	var res resyncResolution
+	hasISBN := book.ISBN13 != nil && *book.ISBN13 != ""
 
-	if book.ISBN13 != nil && *book.ISBN13 != "" {
-		olFound, gbFound, resyncErr = s.resyncBookByISBN(
-			ctx, logger, book, needCover, needDesc, needPages,
+	// --- Phase 1: ISBN lookup (OL then GB) ---
+	if hasISBN {
+		isbnRes, err := s.resolveByISBN(
+			ctx,
+			logger,
+			book,
+			needCover,
+			needDesc,
+			needPages,
 		)
-	} else {
-		olFound, gbFound, resyncErr = s.resyncBookByTitleAuthor(
-			ctx, logger, book, needCover, needDesc, needPages,
+		if err != nil {
+			// Hard provider error (not ErrNotFound) — propagate without writing.
+			return err
+		}
+		res = isbnRes
+	}
+
+	// --- Phase 2: title+author fallback ---
+	// Trigger when: the book has no ISBN at all, OR the ISBN phase left metadata
+	// gaps AND the book has searchable title+authors.
+	stillNeedCover := needCover && res.coverURL == nil
+	stillNeedDesc := needDesc && res.description == nil
+	stillNeedPages := needPages && res.pageCount == nil
+	needsISBN := !hasISBN // ISBN-less books always need the search path
+	hasTitleAuthors := book.Title != "" && len(book.Authors) > 0
+
+	if hasTitleAuthors &&
+		(needsISBN || stillNeedCover || stillNeedDesc || stillNeedPages) {
+		taRes := s.resolveByTitleAuthor(
+			ctx, logger, book,
+			stillNeedCover, stillNeedDesc, stillNeedPages,
 		)
+
+		// Merge: fill only empty slots.
+		if res.coverURL == nil {
+			res.coverURL = taRes.coverURL
+		}
+		if res.description == nil {
+			res.description = taRes.description
+		}
+		if res.pageCount == nil {
+			res.pageCount = taRes.pageCount
+		}
+		// Discovered ISBN is only relevant for books that had no ISBN13 — books
+		// that already have an ISBN must not have it silently replaced.
+		if !hasISBN && res.isbn13 == nil {
+			res.isbn13 = taRes.isbn13
+		}
+		res.olFound = res.olFound || taRes.olFound
+		res.gbFound = res.gbFound || taRes.gbFound
 	}
 
 	// Record provider outcomes regardless of whether metadata was written.
 	if statusErr := s.resyncRepo().SetResyncStatus(
-		ctx, book.ID, olFound, gbFound,
+		ctx, book.ID, res.olFound, res.gbFound,
 	); statusErr != nil {
 		logger.WarnContext(ctx, "failed to record resync status",
 			slog.String("bookID", book.ID.String()),
@@ -202,52 +278,58 @@ func (s *BookService) resyncBook(
 		)
 	}
 
-	return resyncErr
+	// Nothing useful from either provider — skip the DB write.
+	if res.coverURL == nil && res.description == nil &&
+		res.pageCount == nil && res.isbn13 == nil {
+		return nil
+	}
+
+	return s.writeResyncResult(
+		ctx, logger, book,
+		res.coverURL, res.description, res.pageCount, res.isbn13,
+	)
 }
 
-// resyncBookByISBN enriches a book that already has an ISBN13.
-// It tries Open Library first, then Google Books for any fields still missing.
-// Returns (olFound, gbFound, err) where the found flags indicate whether each
-// provider returned a record for this ISBN.
+// resolveByISBN enriches a book that already has an ISBN13 by querying Open
+// Library and, when fields are still missing, Google Books. It returns a
+// resyncResolution without writing anything to the database.
 //
 //nolint:gocognit,nestif // multi-provider per-field fallback is inherently branchy
-func (s *BookService) resyncBookByISBN(
+func (s *BookService) resolveByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
 	book models.Book,
 	needCover, needDesc, needPages bool,
-) (bool, bool, error) {
-	var olFound, gbFound bool
-	var coverURL, description *string
-	var pageCount *int
+) (resyncResolution, error) {
+	var res resyncResolution
 
 	// --- Open Library ---
 	olDetail, olErr := s.external.GetByISBN(ctx, *book.ISBN13)
 	olNotFound := errors.Is(olErr, openlibrary.ErrNotFound)
 	if olErr != nil && !olNotFound {
-		return false, false, olErr
+		return resyncResolution{}, olErr
 	}
-	olFound = olDetail != nil
-	if olFound {
+	res.olFound = olDetail != nil
+	if res.olFound {
 		// Use the explicit OL cover URL only — NOT the ISBN fallback URL yet.
 		// The ISBN fallback (covers.openlibrary.org/b/isbn/…) may 404 for some
 		// books; we give Google Books a chance first and only fall back to the
 		// OL ISBN URL as a last resort below.
 		if needCover && olDetail.CoverURL != nil {
-			coverURL = olDetail.CoverURL
+			res.coverURL = olDetail.CoverURL
 		}
 		if needDesc {
-			description = olDetail.Description
+			res.description = olDetail.Description
 		}
 		if needPages {
-			pageCount = olDetail.PageCount
+			res.pageCount = olDetail.PageCount
 		}
 	}
 
 	// --- Google Books fallback for anything still missing ---
-	stillNeedCover := needCover && coverURL == nil
-	stillNeedDesc := needDesc && description == nil
-	stillNeedPages := needPages && pageCount == nil
+	stillNeedCover := needCover && res.coverURL == nil
+	stillNeedDesc := needDesc && res.description == nil
+	stillNeedPages := needPages && res.pageCount == nil
 	if (stillNeedCover || stillNeedDesc || stillNeedPages) && s.googleBooks != nil {
 		gbDetail, gbErr := s.googleBooks.GetByISBN(ctx, *book.ISBN13)
 		if gbErr != nil && !errors.Is(gbErr, googlebooks.ErrNotFound) {
@@ -257,17 +339,16 @@ func (s *BookService) resyncBookByISBN(
 				slog.Any("error", gbErr),
 			)
 		}
-		gbFound = gbDetail != nil
-		if gbFound {
+		res.gbFound = gbDetail != nil
+		if res.gbFound {
 			if stillNeedCover && gbDetail.CoverURL != nil {
-				coverURL = gbDetail.CoverURL
-				stillNeedCover = false
+				res.coverURL = gbDetail.CoverURL
 			}
 			if stillNeedDesc && gbDetail.Description != nil {
-				description = gbDetail.Description
+				res.description = gbDetail.Description
 			}
 			if stillNeedPages && gbDetail.PageCount != nil {
-				pageCount = gbDetail.PageCount
+				res.pageCount = gbDetail.PageCount
 			}
 		}
 	}
@@ -275,38 +356,36 @@ func (s *BookService) resyncBookByISBN(
 	// Last-resort cover: OL ISBN-keyed URL. Only attempted when OL actually
 	// returned a record (not ErrNotFound) — the covers CDN is unlikely to have
 	// anything for an ISBN that the books API doesn't know either.
-	if stillNeedCover && !olNotFound {
+	if needCover && res.coverURL == nil && !olNotFound {
 		if fallback := openlibrary.CoverURLByISBN(book.ISBN13); fallback != "" {
-			coverURL = &fallback
+			res.coverURL = &fallback
 		}
 	}
 
-	// Nothing useful from either provider — skip the DB write.
-	if coverURL == nil && description == nil && pageCount == nil {
-		return olFound, gbFound, nil
-	}
-
-	return olFound, gbFound,
-		s.writeResyncResult(ctx, logger, book, coverURL, description, pageCount, nil)
+	return res, nil
 }
 
-// resyncBookByTitleAuthor enriches an ISBN-less book by searching for it by
-// title+author. It tries Open Library first, then Google Books. On a confident
-// match it backfills metadata and writes the discovered ISBN13.
-// Returns (olFound, gbFound, err) where the found flags indicate whether each
-// provider returned a confident title+author match.
+// resolveByTitleAuthor enriches a book by searching for it by title+author on
+// Open Library then Google Books. On a confident match it returns metadata and
+// the discovered ISBN13 (for ISBN-less books). It returns a resyncResolution
+// without writing anything to the database.
+//
+// Provider errors are logged and suppressed — the function always returns
+// whatever it could gather; the caller decides whether to proceed with partial
+// data.
 //
 //nolint:gocognit,gocyclo,cyclop,nestif // OL+GB search chains with per-field fallback
-func (s *BookService) resyncBookByTitleAuthor(
+func (s *BookService) resolveByTitleAuthor(
 	ctx context.Context,
 	logger *slog.Logger,
 	book models.Book,
 	needCover, needDesc, needPages bool,
-) (bool, bool, error) {
-	var olFound, gbFound bool
+) resyncResolution {
+	var res resyncResolution
+
 	if book.Title == "" || len(book.Authors) == 0 {
 		// Cannot do a meaningful title/author search without both.
-		return false, false, nil
+		return res
 	}
 
 	query := buildSearchQuery(book.Title, book.Authors)
@@ -320,36 +399,32 @@ func (s *BookService) resyncBookByTitleAuthor(
 		)
 	}
 
-	var matchedISBN13 *string
-	var coverURL, description *string
-	var pageCount *int
-
 	for _, r := range olResults {
 		if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
 			continue
 		}
 		// Confident OL match found.
-		olFound = true
+		res.olFound = true
 		if needCover && r.CoverURL != nil {
-			coverURL = r.CoverURL
+			res.coverURL = r.CoverURL
 		}
 		if needDesc && r.Description != nil {
-			description = r.Description
+			res.description = r.Description
 		}
 		if needPages && r.PageCount != nil {
-			pageCount = r.PageCount
+			res.pageCount = r.PageCount
 		}
 		if r.ISBN13 != nil {
-			matchedISBN13 = r.ISBN13
+			res.isbn13 = r.ISBN13
 		}
 		break
 	}
 
 	// --- Google Books search (for anything still missing OR if OL had no match) ---
-	stillNeed := (needCover && coverURL == nil) ||
-		(needDesc && description == nil) ||
-		(needPages && pageCount == nil) ||
-		matchedISBN13 == nil
+	stillNeed := (needCover && res.coverURL == nil) ||
+		(needDesc && res.description == nil) ||
+		(needPages && res.pageCount == nil) ||
+		res.isbn13 == nil
 
 	if stillNeed && s.googleBooks != nil {
 		gbResults, gbErr := s.googleBooks.Search(ctx, query)
@@ -365,32 +440,24 @@ func (s *BookService) resyncBookByTitleAuthor(
 				continue
 			}
 			// Confident GB match found — fill any remaining gaps.
-			gbFound = true
-			if needCover && coverURL == nil && r.CoverURL != nil {
-				coverURL = r.CoverURL
+			res.gbFound = true
+			if needCover && res.coverURL == nil && r.CoverURL != nil {
+				res.coverURL = r.CoverURL
 			}
-			if needDesc && description == nil && r.Description != nil {
-				description = r.Description
+			if needDesc && res.description == nil && r.Description != nil {
+				res.description = r.Description
 			}
-			if needPages && pageCount == nil && r.PageCount != nil {
-				pageCount = r.PageCount
+			if needPages && res.pageCount == nil && r.PageCount != nil {
+				res.pageCount = r.PageCount
 			}
-			if matchedISBN13 == nil && r.ISBN13 != nil {
-				matchedISBN13 = r.ISBN13
+			if res.isbn13 == nil && r.ISBN13 != nil {
+				res.isbn13 = r.ISBN13
 			}
 			break
 		}
 	}
 
-	if coverURL == nil && description == nil && pageCount == nil &&
-		matchedISBN13 == nil {
-		// Neither provider found anything useful — nothing to write.
-		return olFound, gbFound, nil
-	}
-
-	return olFound, gbFound, s.writeResyncResult(
-		ctx, logger, book, coverURL, description, pageCount, matchedISBN13,
-	)
+	return res
 }
 
 // writeResyncResult persists the enriched fields and busts the cover cache
