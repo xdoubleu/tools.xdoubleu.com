@@ -10,6 +10,8 @@ import ConflictFieldPicker from '@/components/backlog/ConflictFieldPicker'
 import {
   detectConflicts,
   buildResolvedMetadata,
+  pickAutoStatusBookId,
+  resolveStatusChoice,
   ALL_CONFLICT_FIELDS,
   type BookConflictField
 } from '@/components/backlog/duplicateConflicts'
@@ -144,10 +146,17 @@ export default function ManageDuplicatesDialog({
     const winner = getWinnerId(g)
     const stored = fieldChoices[key] ?? {}
 
-    // Default each conflicting field to the current winner's bookId.
+    // Default each conflicting field to the current winner's bookId, except
+    // 'status' which defaults to the auto-consolidation winner (custom shelf
+    // beats built-in statuses, mirroring the backend rule).
+    const autoStatusBookId = pickAutoStatusBookId(g)
     const defaults: Partial<Record<BookConflictField, string>> = {}
     for (const { field } of detectConflicts(g)) {
-      defaults[field] = stored[field] ?? winner
+      if (field === 'status') {
+        defaults[field] = stored[field] ?? autoStatusBookId
+      } else {
+        defaults[field] = stored[field] ?? winner
+      }
     }
 
     return { ...defaults, ...stored }
@@ -160,10 +169,12 @@ export default function ManageDuplicatesDialog({
 
     const resolvedMetadata = buildResolvedMetadata(g, choices)
     const coverChoice = choices['cover']
+    const resolvedStatus = resolveStatusChoice(g, choices)
 
     await mergeBooks(winner, losers, {
       resolvedMetadata,
-      resolvedCoverSourceBookId: coverChoice && coverChoice !== winner ? coverChoice : undefined
+      resolvedCoverSourceBookId: coverChoice && coverChoice !== winner ? coverChoice : undefined,
+      resolvedStatus
     })
 
     await mutate('/backlog/books')
@@ -200,12 +211,17 @@ export default function ManageDuplicatesDialog({
   function handleWinnerChange(g: DuplicateGroup, id: string) {
     const key = groupKey(g)
     setWinnerIds((prev) => ({ ...prev, [key]: id }))
-    // Re-default all field choices to the new winner (user can override).
+    // Re-default catalog field choices to the new winner (user can override).
+    // The 'status' field stays at pickAutoStatusBookId — it is independent of
+    // which entry is kept as the winner.
+    const autoStatusBookId = pickAutoStatusBookId(g)
     setFieldChoices((prev) => {
       const existing = prev[key] ?? {}
       const reset: Partial<Record<BookConflictField, string>> = {}
       for (const field of ALL_CONFLICT_FIELDS) {
-        if (field in existing) reset[field] = id
+        if (field in existing) {
+          reset[field] = field === 'status' ? autoStatusBookId : id
+        }
       }
       return { ...prev, [key]: reset }
     })

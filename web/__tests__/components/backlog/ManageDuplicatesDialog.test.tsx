@@ -277,6 +277,67 @@ describe('ManageDuplicatesDialog', () => {
     expect(screen.queryByText(/Resolve.*conflicting/)).not.toBeInTheDocument()
   })
 
+  it('detects a status conflict and shows Shelf / status picker', () => {
+    // Both entries have the same book fields but different statuses.
+    const entry1 = makeEntry('status-a', 'SharedTitle', { status: 'sci-fi' })
+    const entry2 = makeEntry('status-b', 'SharedTitle', { status: 'read' })
+    mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
+
+    renderDialog()
+
+    expect(screen.getByText('Shelf / status')).toBeInTheDocument()
+    expect(screen.getAllByText('sci-fi').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('read').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('sends resolvedStatus when entries differ in status', async () => {
+    mockMergeBooks.mockResolvedValue({})
+    // winner (entries[0]) is on 'to-read'; loser is on a custom shelf 'sci-fi'
+    const entry1 = makeEntry('winner-s', 'SameTitle', { status: 'to-read' })
+    const entry2 = makeEntry('loser-s', 'SameTitle', { status: 'sci-fi' })
+    mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
+
+    renderDialog()
+
+    // The auto-status default should have pre-selected sci-fi (loser-s) since
+    // custom shelf outranks to-read. Click Merge without changing the picker.
+    const mergeBtn = screen.getByRole('button', { name: 'Merge' })
+    fireEvent.click(mergeBtn)
+
+    await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(1))
+    expect(mockMergeBooks).toHaveBeenCalledWith(
+      'winner-s',
+      ['loser-s'],
+      expect.objectContaining({ resolvedStatus: 'sci-fi' })
+    )
+  })
+
+  it('overrides resolvedStatus when user picks a different entry from status picker', async () => {
+    mockMergeBooks.mockResolvedValue({})
+    const entry1 = makeEntry('w-ov', 'SameTitle', { status: 'sci-fi' })
+    const entry2 = makeEntry('l-ov', 'SameTitle', { status: 'fantasy' })
+    mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
+
+    renderDialog()
+
+    // Both are custom shelves — auto picks entries[0] ('sci-fi').
+    // User explicitly picks entries[1] ('fantasy') via the status radio.
+    const statusRadios = screen
+      .getAllByRole('radio')
+      .filter((r) => r instanceof HTMLInputElement && r.name.startsWith('status-'))
+    // statusRadios[1] corresponds to the second entry (l-ov / fantasy)
+    fireEvent.click(statusRadios[1])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Merge' }))
+
+    await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(1))
+    expect(mockMergeBooks).toHaveBeenCalledWith(
+      'w-ov',
+      ['l-ov'],
+      expect.objectContaining({ resolvedStatus: 'fantasy' })
+    )
+  })
+
   it('passes resolvedCoverSourceBookId when entries have differing cover presence', async () => {
     mockMergeBooks.mockResolvedValue({})
     // winner has no cover, loser has one

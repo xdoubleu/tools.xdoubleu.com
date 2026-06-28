@@ -3157,8 +3157,12 @@ type MergeBooksRequest struct {
 	// copies that entry's raw cover URL and clears the winner's cover cache.
 	// Omit to keep the winner's existing cover unchanged.
 	ResolvedCoverSourceBookId *string `protobuf:"bytes,4,opt,name=resolved_cover_source_book_id,json=resolvedCoverSourceBookId,proto3,oneof" json:"resolved_cover_source_book_id,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	// When set, overrides the auto-consolidated status/shelf of the merged winner.
+	// Omit to use the automatic rule: a custom shelf wins over built-in statuses
+	// (custom-shelf > read > currently-reading > to-read > dropped).
+	ResolvedStatus *string `protobuf:"bytes,5,opt,name=resolved_status,json=resolvedStatus,proto3,oneof" json:"resolved_status,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MergeBooksRequest) Reset() {
@@ -3215,6 +3219,13 @@ func (x *MergeBooksRequest) GetResolvedMetadata() *Book {
 func (x *MergeBooksRequest) GetResolvedCoverSourceBookId() string {
 	if x != nil && x.ResolvedCoverSourceBookId != nil {
 		return *x.ResolvedCoverSourceBookId
+	}
+	return ""
+}
+
+func (x *MergeBooksRequest) GetResolvedStatus() string {
+	if x != nil && x.ResolvedStatus != nil {
+		return *x.ResolvedStatus
 	}
 	return ""
 }
@@ -4220,14 +4231,16 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x17\n" +
 	"\x15FindDuplicatesRequest\"L\n" +
 	"\x16FindDuplicatesResponse\x122\n" +
-	"\x06groups\x18\x01 \x03(\v2\x1a.backlog.v1.DuplicateGroupR\x06groups\"\xa2\x02\n" +
+	"\x06groups\x18\x01 \x03(\v2\x1a.backlog.v1.DuplicateGroupR\x06groups\"\xe4\x02\n" +
 	"\x11MergeBooksRequest\x12$\n" +
 	"\x0ewinner_book_id\x18\x01 \x01(\tR\fwinnerBookId\x12$\n" +
 	"\x0eloser_book_ids\x18\x02 \x03(\tR\floserBookIds\x12B\n" +
 	"\x11resolved_metadata\x18\x03 \x01(\v2\x10.backlog.v1.BookH\x00R\x10resolvedMetadata\x88\x01\x01\x12E\n" +
-	"\x1dresolved_cover_source_book_id\x18\x04 \x01(\tH\x01R\x19resolvedCoverSourceBookId\x88\x01\x01B\x14\n" +
+	"\x1dresolved_cover_source_book_id\x18\x04 \x01(\tH\x01R\x19resolvedCoverSourceBookId\x88\x01\x01\x12,\n" +
+	"\x0fresolved_status\x18\x05 \x01(\tH\x02R\x0eresolvedStatus\x88\x01\x01B\x14\n" +
 	"\x12_resolved_metadataB \n" +
-	"\x1e_resolved_cover_source_book_id\"^\n" +
+	"\x1e_resolved_cover_source_book_idB\x12\n" +
+	"\x10_resolved_status\"^\n" +
 	"\x12MergeBooksResponse\x12#\n" +
 	"\rmerged_groups\x18\x01 \x01(\rR\fmergedGroups\x12#\n" +
 	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles\"\x1a\n" +

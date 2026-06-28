@@ -9,6 +9,7 @@ import BookCover from '@/components/backlog/BookCover'
 // ---------------------------------------------------------------------------
 
 const FIELD_LABELS: Record<BookConflictField, string> = {
+  status: 'Shelf / status',
   title: 'Title',
   authors: 'Authors',
   isbn13: 'ISBN-13',

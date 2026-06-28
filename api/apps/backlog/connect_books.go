@@ -1011,6 +1011,7 @@ func (h *booksConnectHandler) MergeBooks(
 		loserIDs,
 		protoBookToModel(req.Msg.ResolvedMetadata),
 		resolvedCoverSourceBookID,
+		req.Msg.ResolvedStatus,
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

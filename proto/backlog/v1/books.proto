@@ -253,6 +253,10 @@ message MergeBooksRequest {
   // copies that entry's raw cover URL and clears the winner's cover cache.
   // Omit to keep the winner's existing cover unchanged.
   optional string resolved_cover_source_book_id = 4;
+  // When set, overrides the auto-consolidated status/shelf of the merged winner.
+  // Omit to use the automatic rule: a custom shelf wins over built-in statuses
+  // (custom-shelf > read > currently-reading > to-read > dropped).
+  optional string resolved_status = 5;
 }
 message MergeBooksResponse {
   // Always 1 — one group merged per call.
