@@ -1387,7 +1387,7 @@ func TestResyncBook_NoISBN_UniCatAuthorSearch(t *testing.T) {
 
 	// OL and GB return no results.
 	olFake := &fakeOLClientWithSearch{} //nolint:exhaustruct // nil searchResults
-	gbFake := &fakeGBClient{}          //nolint:exhaustruct // nil searchResults
+	gbFake := &fakeGBClient{}           //nolint:exhaustruct // nil searchResults
 
 	ucISBN := "9789061684671"
 	ucDesc := "Een treurspel."
@@ -1587,7 +1587,7 @@ func TestResyncBook_TitleOnly_UniCatFallback(t *testing.T) {
 
 	// OL and GB return no results.
 	olFake := &fakeOLClientWithSearch{} //nolint:exhaustruct // nil searchResults
-	gbFake := &fakeGBClient{}          //nolint:exhaustruct // nil searchResults
+	gbFake := &fakeGBClient{}           //nolint:exhaustruct // nil searchResults
 
 	ucISBN := "9789061684671"
 	ucDesc := "Een treurspel."
