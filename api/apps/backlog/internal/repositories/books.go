@@ -715,7 +715,17 @@ func (repo *BooksRepository) RefreshBookExternalData(
 	description *string,
 	pageCount *int,
 	isbn13 *string,
+	title *string,
+	authors []string,
 ) error {
+	// authors is passed as a Go nil slice when the caller has nothing to write;
+	// convert to a typed nil so COALESCE sees a true SQL NULL rather than an
+	// empty array, which would overwrite the existing value.
+	var authorsArg *[]string
+	if len(authors) > 0 {
+		authorsArg = &authors
+	}
+
 	query := `
 		UPDATE backlog.books
 		SET cover_url   = COALESCE($2, cover_url),
@@ -732,11 +742,15 @@ func (repo *BooksRepository) RefreshBookExternalData(
 		                    END,
 		                    isbn13
 		                  ),
+		    title       = COALESCE($6, title),
+		    authors     = COALESCE($7, authors),
 		    updated_at  = now()
 		WHERE id = $1
 	`
 	_, err := repo.db.Exec(
-		ctx, query, bookID, coverURL, description, pageCount, isbn13,
+		ctx, query,
+		bookID, coverURL, description, pageCount, isbn13,
+		title, authorsArg,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }
@@ -790,6 +804,42 @@ func (repo *BooksRepository) ListCatalogBooks(
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	return books, nil
+}
+
+// GetCatalogWithUserOverlay returns all catalog books as UserBook entries.
+// Books that the given user has added to their library carry their real
+// user_book values; books not in the library have empty status/tags/etc.
+// This is used by catalog-wide duplicate detection (FindDuplicates).
+func (repo *BooksRepository) GetCatalogWithUserOverlay(
+	ctx context.Context,
+	userID string,
+) ([]models.UserBook, error) {
+	// Column order and types must match scanUserBookWithBook. COALESCE provides
+	// zero-like defaults for ub columns that are NULL when the user has not
+	// added a catalog book to their library.
+	query := `
+		SELECT
+		    COALESCE(ub.id, '00000000-0000-0000-0000-000000000000'::uuid),
+		    COALESCE(ub.user_id, ''),
+		    b.id,
+		    COALESCE(ub.status, ''),
+		    ub.tags,
+		    ub.shelf_positions,
+		    ub.rating,
+		    ub.finished_at,
+		    COALESCE(ub.progress_mode, ''),
+		    COALESCE(ub.current_page, 0),
+		    COALESCE(ub.progress_percent, 0),
+		    COALESCE(ub.added_at, b.created_at),
+		    COALESCE(ub.updated_at, b.updated_at),
+		    b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
+		    b.page_count, b.created_at, b.updated_at
+		FROM backlog.books b
+		LEFT JOIN backlog.user_books ub
+		    ON ub.book_id = b.id AND ub.user_id = $1
+		ORDER BY b.title
+	`
+	return repo.queryUserBooks(ctx, query, userID)
 }
 
 // GetBooksByIDs returns the catalog books whose IDs are in the given slice.

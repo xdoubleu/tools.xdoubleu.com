@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
+	"tools.xdoubleu.com/apps/backlog/pkg/unicat"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 )
@@ -35,6 +36,7 @@ func New(
 	steamFactory func(apiKey string) steam.Client,
 	external openlibrary.Client,
 	googleBooks googlebooks.Client,
+	uniCat unicat.Client,
 	objectStore objectstore.Client,
 	authService auth.Service,
 ) *Services {
@@ -50,6 +52,7 @@ func New(
 		readingState: repositories.ReadingState,
 		external:     external,
 		googleBooks:  googleBooks,
+		uniCat:       uniCat,
 		booksResync:  nil, // nil → resyncRepo() falls back to books
 	}
 	steamSvc := &SteamService{

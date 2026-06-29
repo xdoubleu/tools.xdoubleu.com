@@ -243,6 +243,7 @@ func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 			},
 			OpenLibrary:      nil,
 			GoogleBooks:      nil,
+			UniCat:           nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",

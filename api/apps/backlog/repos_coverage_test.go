@@ -169,6 +169,7 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 				SteamFactory:     factory,
 				OpenLibrary:      nil,
 				GoogleBooks:      nil,
+				UniCat:           nil,
 				ObjectStore:      objectstore.NewFake(),
 				KoboStoreBaseURL: "",
 				PublicAPIBaseURL: "",

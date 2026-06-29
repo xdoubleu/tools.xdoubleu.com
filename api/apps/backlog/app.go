@@ -17,6 +17,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/backlog/pkg/steam"
+	"tools.xdoubleu.com/apps/backlog/pkg/unicat"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -71,6 +72,7 @@ func New(
 		},
 		OpenLibrary: openlibrary.New(logger),
 		GoogleBooks: googlebooks.New(logger, cfg.GoogleBooksAPIKey),
+		UniCat:      unicat.New(logger),
 		ObjectStore: objectstore.NewR2(
 			endpoint,
 			cfg.R2AccessKeyID,
@@ -129,6 +131,7 @@ func (app *Backlog) setDB(
 		app.clients.SteamFactory,
 		app.clients.OpenLibrary,
 		app.clients.GoogleBooks,
+		app.clients.UniCat,
 		app.clients.ObjectStore,
 		authService,
 	)

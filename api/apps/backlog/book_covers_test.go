@@ -37,6 +37,7 @@ func buildCoverApp(
 		},
 		OpenLibrary:      ol,
 		GoogleBooks:      nil,
+		UniCat:           nil,
 		ObjectStore:      store,
 		KoboStoreBaseURL: "",
 		PublicAPIBaseURL: "http://api.test",
