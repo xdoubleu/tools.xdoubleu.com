@@ -585,57 +585,58 @@ func (s *BookService) FindDuplicates(
 	return FindDuplicateGroups(lib), nil
 }
 
-// MergeBooks consolidates loserBookIDs into winnerBookID:
-//  1. Union tags, finished_at, shelf_positions; prefer the highest-ranked
-//     status (custom shelf > read > currently-reading > to-read > dropped);
-//     keep winner's rating, fall back to a loser's if unset.
-//  2. Repoint book_files from each loser to the winner (dedupe by format+checksum).
-//  3. Consolidate book_reading_state: if the winner has no state, copy the best
-//     loser state onto it, then delete all loser states.
-//  4. Delete the loser user_books rows.
+// consolidateUserBookData merges all loserBookIDs into the winner for a single
+// user. It is ownership-tolerant: if the user doesn't own the winner a new
+// user_books row is created for them; if they don't own a particular loser that
+// loser is silently skipped for this user.
 //
-// resolvedStatus, when non-nil and non-empty, overrides the auto-consolidated
-// status after the consolidation loop runs.
+// Returns the storage_keys of any duplicate book_files that were deleted so the
+// caller can do a global refcount-safe R2 cleanup after all users are processed.
 //
-// R2 objects are only deleted when no other row still references them (same
-// discipline as ClearLibrary). Errors at individual merge steps are returned
-// immediately; partial progress can be cleaned up by retrying.
-//
-//nolint:cyclop,funlen,gocognit,gocyclo // multi-entity merge; cannot split further
-func (s *BookService) MergeBooks(
+//nolint:cyclop,funlen,gocognit,gocyclo // per-user merge; cannot split further
+func (s *BookService) consolidateUserBookData(
 	ctx context.Context,
 	userID string,
 	winnerBookID uuid.UUID,
 	loserBookIDs []uuid.UUID,
-	resolvedMetadata *models.Book,
-	resolvedCoverSourceBookID *uuid.UUID,
-	resolvedStatus *string,
-) (uint32, error) {
-	if len(loserBookIDs) == 0 {
-		return 0, nil
-	}
-
-	// --- 1. Load winner ---
+	statusOverride *string,
+) ([]string, error) {
+	// Load winner row; seed a zero entry if this user doesn't own it yet.
 	winner, err := s.books.GetUserBook(ctx, userID, winnerBookID)
+	winnerOwned := true
 	if err != nil {
-		return 0, fmt.Errorf("load winner: %w", err)
+		if !errors.Is(err, database.ErrResourceNotFound) {
+			return nil, fmt.Errorf("load winner for user %s: %w", userID, err)
+		}
+		winnerOwned = false
+		winner = &models.UserBook{ //nolint:exhaustruct // zero-value seed for unowned winner
+			UserID:         userID,
+			BookID:         winnerBookID,
+			Tags:           []string{},
+			FinishedAt:     []time.Time{},
+			ShelfPositions: make(map[string]int),
+		}
 	}
 
-	// --- 2. Load losers and consolidate winner fields ---
+	// Load each loser; union data into winner, collect owned loser IDs.
+	var ownedLosers []uuid.UUID
 	for _, loserID := range loserBookIDs {
 		loser, loserErr := s.books.GetUserBook(ctx, userID, loserID)
-		if loserErr != nil {
-			return 0, fmt.Errorf("load loser %s: %w", loserID, loserErr)
+		if errors.Is(loserErr, database.ErrResourceNotFound) {
+			continue // user doesn't own this loser — skip
 		}
+		if loserErr != nil {
+			return nil, fmt.Errorf(
+				"load loser %s for user %s: %w", loserID, userID, loserErr,
+			)
+		}
+		ownedLosers = append(ownedLosers, loserID)
 
-		// Union tags (deduplicate).
-		for _, t := range loser.Tags {
-			if !slices.Contains(winner.Tags, t) {
-				winner.Tags = append(winner.Tags, t)
+		for _, tag := range loser.Tags {
+			if !slices.Contains(winner.Tags, tag) {
+				winner.Tags = append(winner.Tags, tag)
 			}
 		}
-
-		// Union finished_at timestamps (deduplicate by truncating to day).
 		for _, ft := range loser.FinishedAt {
 			found := false
 			for _, wft := range winner.FinishedAt {
@@ -648,25 +649,17 @@ func (s *BookService) MergeBooks(
 				winner.FinishedAt = append(winner.FinishedAt, ft)
 			}
 		}
-
-		// Merge shelf_positions: winner's positions take precedence.
 		for shelf, pos := range loser.ShelfPositions {
 			if _, ok := winner.ShelfPositions[shelf]; !ok {
 				winner.ShelfPositions[shelf] = pos
 			}
 		}
-
-		// Pick the more-progressed status.
 		if statusRank(loser.Status) > statusRank(winner.Status) {
 			winner.Status = loser.Status
 		}
-
-		// Keep winner's rating, fall back to loser if winner has none.
 		if winner.Rating == nil && loser.Rating != nil {
 			winner.Rating = loser.Rating
 		}
-
-		// Keep the higher progress values.
 		if loser.CurrentPage > winner.CurrentPage {
 			winner.CurrentPage = loser.CurrentPage
 			winner.ProgressMode = loser.ProgressMode
@@ -676,124 +669,199 @@ func (s *BookService) MergeBooks(
 		}
 	}
 
-	// Apply the caller's explicit status override (after auto-consolidation).
-	if resolvedStatus != nil && *resolvedStatus != "" {
-		winner.Status = *resolvedStatus
+	// Nothing to do if this user has no ownership stake at all.
+	if !winnerOwned && len(ownedLosers) == 0 {
+		return nil, nil
 	}
 
-	// Persist consolidated winner.
+	if statusOverride != nil && *statusOverride != "" {
+		winner.Status = *statusOverride
+	}
+
 	if err = s.books.UpsertUserBook(ctx, *winner); err != nil {
-		return 0, fmt.Errorf("update winner: %w", err)
+		return nil, fmt.Errorf("upsert winner for user %s: %w", userID, err)
 	}
 
-	// --- 3. Repoint / dedup book_files and clean up orphaned blobs ---
-	var totalDeletedFiles uint32
-	for _, loserID := range loserBookIDs {
+	// Repoint / dedup book_files from each owned loser.
+	var deletedKeys []string
+	for _, loserID := range ownedLosers {
 		keys, repointErr := s.bookFiles.RepointAndDedup(
 			ctx, userID, loserID, winnerBookID,
 		)
 		if repointErr != nil {
-			return totalDeletedFiles, fmt.Errorf(
-				"repoint files for loser %s: %w", loserID, repointErr,
+			return deletedKeys, fmt.Errorf(
+				"repoint files loser %s user %s: %w", loserID, userID, repointErr,
 			)
 		}
-
-		for _, key := range keys {
-			if key == "" {
-				continue
-			}
-
-			totalDeletedFiles++
-			remaining, countErr := s.bookFiles.CountByStorageKey(ctx, key)
-			if countErr != nil {
-				s.logger.Warn("failed to count references for book file",
-					"key", key, "err", countErr)
-				continue
-			}
-			if remaining > 0 {
-				continue
-			}
-			if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
-				s.logger.Warn("failed to delete book file from object store",
-					"key", key, "err", delErr)
-			}
-		}
+		deletedKeys = append(deletedKeys, keys...)
 	}
 
-	// --- 4. Consolidate reading state ---
+	// Consolidate reading state.
 	winnerState, err := s.readingState.Get(ctx, userID, winnerBookID)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
-		return totalDeletedFiles, fmt.Errorf("get winner reading state: %w", err)
+		return deletedKeys, fmt.Errorf(
+			"get winner reading state user %s: %w", userID, err,
+		)
 	}
-
-	for _, loserID := range loserBookIDs {
+	for _, loserID := range ownedLosers {
 		loserState, loserErr := s.readingState.Get(ctx, userID, loserID)
 		if errors.Is(loserErr, database.ErrResourceNotFound) {
 			continue
 		}
 		if loserErr != nil {
-			return totalDeletedFiles, fmt.Errorf(
-				"get reading state for loser %s: %w", loserID, loserErr,
+			return deletedKeys, fmt.Errorf(
+				"get reading state loser %s user %s: %w", loserID, userID, loserErr,
 			)
 		}
-
-		// Only copy if winner currently has no state.
 		if winnerState == nil {
 			copied := *loserState
 			copied.BookID = winnerBookID
 			if upsertErr := s.readingState.Upsert(ctx, copied); upsertErr != nil {
-				return totalDeletedFiles, fmt.Errorf(
-					"upsert reading state from loser %s: %w", loserID, upsertErr,
+				return deletedKeys, fmt.Errorf(
+					"upsert reading state loser %s user %s: %w",
+					loserID, userID, upsertErr,
 				)
 			}
 			winnerState = &copied
 		}
-
 		if delErr := s.readingState.DeleteByBook(ctx, userID, loserID); delErr != nil {
-			return totalDeletedFiles, fmt.Errorf(
-				"delete reading state for loser %s: %w", loserID, delErr,
+			return deletedKeys, fmt.Errorf(
+				"delete reading state loser %s user %s: %w", loserID, userID, delErr,
 			)
 		}
 	}
 
-	// --- 5. Delete loser user_books rows ---
-	for _, loserID := range loserBookIDs {
+	// Delete loser user_books rows.
+	for _, loserID := range ownedLosers {
 		if delErr := s.books.DeleteUserBook(ctx, userID, loserID); delErr != nil {
-			return totalDeletedFiles, fmt.Errorf(
-				"delete user_book for loser %s: %w", loserID, delErr,
+			return deletedKeys, fmt.Errorf(
+				"delete user_book loser %s user %s: %w", loserID, userID, delErr,
 			)
 		}
 	}
 
-	// --- 6. Clean up orphaned loser catalog rows, then apply resolved metadata ---
+	return deletedKeys, nil
+}
+
+// MergeBooks is a global admin merge: it consolidates loserBookIDs into
+// winnerBookID for every user who owns any of the involved books, then deletes
+// the now-orphaned loser catalog rows.
+//
+// For each affected user:
+//  1. Union tags, finished_at, shelf_positions; prefer the highest-ranked
+//     status; keep winner's rating / progress, fall back to loser's if unset.
+//  2. Repoint book_files from each owned loser to the winner.
+//  3. Consolidate reading state.
+//  4. Delete loser user_books rows.
+//
+// After all users: delete orphaned loser catalog rows, apply resolvedMetadata
+// and resolvedCoverSourceBookID. resolvedStatus applies only to the caller's
+// winner entry.
+//
+// Returns (deletedFiles, affectedUserIDs, error). R2 objects are only deleted
+// when no other row still references them.
+//
+//nolint:gocognit // global multi-entity merge; cannot split further
+func (s *BookService) MergeBooks(
+	ctx context.Context,
+	callerID string,
+	winnerBookID uuid.UUID,
+	loserBookIDs []uuid.UUID,
+	resolvedMetadata *models.Book,
+	resolvedCoverSourceBookID *uuid.UUID,
+	resolvedStatus *string,
+) (uint32, []string, error) {
+	if len(loserBookIDs) == 0 {
+		return 0, nil, nil
+	}
+
+	// Collect all users who own any of the involved catalog books.
+	allIDs := append([]uuid.UUID{winnerBookID}, loserBookIDs...)
+	affectedUsers, err := s.books.ListUserBookOwners(ctx, allIDs)
+	if err != nil {
+		return 0, nil, fmt.Errorf("list affected users: %w", err)
+	}
+	callerIncluded := false
+	for _, uid := range affectedUsers {
+		if uid == callerID {
+			callerIncluded = true
+			break
+		}
+	}
+	if !callerIncluded {
+		affectedUsers = append(affectedUsers, callerID)
+	}
+
+	// Per-user consolidation.
+	var allDeletedKeys []string
+	for _, uid := range affectedUsers {
+		var override *string
+		if uid == callerID {
+			override = resolvedStatus
+		}
+		keys, consolidateErr := s.consolidateUserBookData(
+			ctx, uid, winnerBookID, loserBookIDs, override,
+		)
+		if consolidateErr != nil {
+			return 0, affectedUsers, consolidateErr
+		}
+		allDeletedKeys = append(allDeletedKeys, keys...)
+	}
+
+	// Refcount-safe R2 cleanup (global — after all users' files are repointed).
+	var totalDeletedFiles uint32
+	seen := make(map[string]bool, len(allDeletedKeys))
+	for _, key := range allDeletedKeys {
+		if key == "" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		totalDeletedFiles++
+		remaining, countErr := s.bookFiles.CountByStorageKey(ctx, key)
+		if countErr != nil {
+			s.logger.Warn("failed to count references for book file",
+				"key", key, "err", countErr)
+			continue
+		}
+		if remaining > 0 {
+			continue
+		}
+		if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
+			s.logger.Warn("failed to delete book file from object store",
+				"key", key, "err", delErr)
+		}
+	}
+
+	// Delete now-orphaned loser catalog rows.
 	for _, loserID := range loserBookIDs {
 		if delErr := s.books.DeleteOrphanedBook(ctx, loserID); delErr != nil {
-			return totalDeletedFiles, fmt.Errorf(
+			return totalDeletedFiles, affectedUsers, fmt.Errorf(
 				"delete orphaned book for loser %s: %w", loserID, delErr,
 			)
 		}
 	}
 
+	// Apply catalog-level overrides.
 	if resolvedMetadata != nil {
 		resolvedMetadata.ID = winnerBookID
 		if updateErr := s.books.UpdateBookByID(ctx, *resolvedMetadata); updateErr != nil {
-			return totalDeletedFiles, fmt.Errorf(
-				"apply resolved metadata: %w",
-				updateErr,
+			return totalDeletedFiles, affectedUsers, fmt.Errorf(
+				"apply resolved metadata: %w", updateErr,
 			)
 		}
 	}
-
 	if resolvedCoverSourceBookID != nil &&
 		*resolvedCoverSourceBookID != winnerBookID {
 		if coverErr := s.applyCoverSource(
 			ctx, winnerBookID, *resolvedCoverSourceBookID,
 		); coverErr != nil {
-			return totalDeletedFiles, fmt.Errorf("apply resolved cover: %w", coverErr)
+			return totalDeletedFiles, affectedUsers, fmt.Errorf(
+				"apply resolved cover: %w", coverErr,
+			)
 		}
 	}
 
-	return totalDeletedFiles, nil
+	return totalDeletedFiles, affectedUsers, nil
 }
 
 // applyCoverSource copies the source book's cover_url onto the winner catalog
