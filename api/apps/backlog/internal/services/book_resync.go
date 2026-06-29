@@ -241,20 +241,22 @@ func (s *BookService) resyncBook(
 		res = isbnRes
 	}
 
-	// --- Phase 2: title+author fallback ---
+	// --- Phase 2: title+author / title-only fallback ---
 	// Trigger when: the book has no ISBN at all, OR the ISBN phase left metadata
-	// gaps AND the book has searchable title+authors.
+	// gaps AND the book has a usable title. Authors are optional — books with
+	// missing or unreliable author data are handled by a title-only sub-pass
+	// inside resolveByTitleAuthor.
 	stillNeedCover := needCover && res.coverURL == nil
 	stillNeedDesc := needDesc && res.description == nil
 	stillNeedPages := needPages && res.pageCount == nil
 	needsISBN := !hasISBN // ISBN-less books always need the search path
-	hasTitleAuthors := book.Title != "" && len(book.Authors) > 0
+	hasTitle := book.Title != ""
 
-	if hasTitleAuthors &&
+	if hasTitle &&
 		(needsISBN || stillNeedCover || stillNeedDesc || stillNeedPages) {
 		taRes := s.resolveByTitleAuthor(
 			ctx, logger, book,
-			stillNeedCover, stillNeedDesc, stillNeedPages,
+			needsISBN, stillNeedCover, stillNeedDesc, stillNeedPages,
 		)
 
 		// Merge: fill only empty slots.
@@ -427,17 +429,200 @@ func (s *BookService) resolveByISBN(
 	return res, nil
 }
 
-// resolveByTitleAuthor enriches a book by searching for it by title+author on
-// Open Library then Google Books. On a confident match it returns metadata and
-// the discovered ISBN13 (for ISBN-less books). It returns a resyncResolution
-// without writing anything to the database.
+// resolveByTitleAuthor enriches a book using free-text search. It runs two
+// sub-passes in order:
+//
+//  1. Title+author pass (only when book.Authors is non-empty): queries each
+//     provider with intitle+inauthor and accepts results via titleAuthorMatch.
+//     This is the highest-confidence path.
+//
+//  2. Title-only fallback: triggered when the first pass left gaps or was
+//     skipped (missing/unreliable authors). Uses selectTitleOnlyMatch with an
+//     ambiguity guard so that titles shared by genuinely different books are
+//     never silently mismatched.
 //
 // Provider errors are logged and suppressed — the function always returns
 // whatever it could gather; the caller decides whether to proceed with partial
 // data.
 //
-//nolint:gocognit,gocyclo,cyclop,nestif,funlen // 3-provider search fallback
+//nolint:gocognit,gocyclo,cyclop,nestif,funlen // two-pass search with merge
 func (s *BookService) resolveByTitleAuthor(
+	ctx context.Context,
+	logger *slog.Logger,
+	book models.Book,
+	needISBN, needCover, needDesc, needPages bool,
+) resyncResolution {
+	var res resyncResolution
+
+	if book.Title == "" {
+		// Cannot search without a title.
+		return res
+	}
+
+	// --- Pass 1: title+author search (highest confidence) ---
+	if len(book.Authors) > 0 {
+		query := buildSearchQuery(book.Title, book.Authors)
+
+		// Open Library
+		olResults, olErr := s.external.Search(ctx, query)
+		if olErr != nil {
+			logger.WarnContext(ctx, "open library title/author search failed",
+				slog.String("title", book.Title),
+				slog.Any("error", olErr),
+			)
+		}
+
+		for _, r := range olResults {
+			if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
+				continue
+			}
+			res.olFound = true
+			if needCover && r.CoverURL != nil {
+				res.coverURL = r.CoverURL
+			}
+			if needDesc && r.Description != nil {
+				res.description = r.Description
+			}
+			if needPages && r.PageCount != nil {
+				res.pageCount = r.PageCount
+			}
+			if r.ISBN13 != nil {
+				normalized := normalizeISBN(*r.ISBN13)
+				res.isbn13 = &normalized
+			}
+			if r.Title != "" {
+				res.title = &r.Title
+			}
+			if len(r.Authors) > 0 {
+				res.authors = r.Authors
+			}
+			break
+		}
+
+		// Google Books (anything still missing OR OL had no match)
+		stillNeedGB := (needCover && res.coverURL == nil) ||
+			(needDesc && res.description == nil) ||
+			(needPages && res.pageCount == nil) ||
+			res.isbn13 == nil
+
+		if stillNeedGB && s.googleBooks != nil {
+			gbResults, gbErr := s.googleBooks.Search(ctx, query)
+			if gbErr != nil {
+				logger.WarnContext(ctx, "google books title/author search failed",
+					slog.String("title", book.Title),
+					slog.Any("error", gbErr),
+				)
+			}
+
+			for _, r := range gbResults {
+				if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
+					continue
+				}
+				res.gbFound = true
+				if needCover && res.coverURL == nil && r.CoverURL != nil {
+					res.coverURL = r.CoverURL
+				}
+				if needDesc && res.description == nil && r.Description != nil {
+					res.description = r.Description
+				}
+				if needPages && res.pageCount == nil && r.PageCount != nil {
+					res.pageCount = r.PageCount
+				}
+				if res.isbn13 == nil && r.ISBN13 != nil {
+					normalized := normalizeISBN(*r.ISBN13)
+					res.isbn13 = &normalized
+				}
+				if res.title == nil && r.Title != "" {
+					res.title = &r.Title
+				}
+				if len(res.authors) == 0 && len(r.Authors) > 0 {
+					res.authors = r.Authors
+				}
+				break
+			}
+		}
+
+		// UniCat (Dutch/Flemish books)
+		stillNeedUC := (needDesc && res.description == nil) ||
+			(needPages && res.pageCount == nil) ||
+			res.isbn13 == nil
+
+		if stillNeedUC && s.uniCat != nil {
+			ucResults, ucErr := s.uniCat.Search(ctx, query)
+			if ucErr != nil {
+				logger.WarnContext(ctx, "unicat title/author search failed",
+					slog.String("title", book.Title),
+					slog.Any("error", ucErr),
+				)
+			}
+
+			for _, r := range ucResults {
+				if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
+					continue
+				}
+				if needDesc && res.description == nil && r.Description != nil {
+					res.description = r.Description
+				}
+				if needPages && res.pageCount == nil && r.PageCount != nil {
+					res.pageCount = r.PageCount
+				}
+				if res.isbn13 == nil && r.ISBN13 != nil {
+					normalized := normalizeISBN(*r.ISBN13)
+					res.isbn13 = &normalized
+				}
+				if res.title == nil && r.Title != "" {
+					res.title = &r.Title
+				}
+				if len(res.authors) == 0 && len(r.Authors) > 0 {
+					res.authors = r.Authors
+				}
+				break
+			}
+		}
+	}
+
+	// --- Pass 2: title-only fallback ---
+	// Runs when Pass 1 was skipped (no authors) OR left gaps that still matter.
+	stillNeedTO := (needISBN && res.isbn13 == nil) ||
+		(needCover && res.coverURL == nil) ||
+		(needDesc && res.description == nil) ||
+		(needPages && res.pageCount == nil)
+
+	if stillNeedTO {
+		toRes := s.resolveByTitleOnly(ctx, logger, book, needCover, needDesc, needPages)
+		if res.coverURL == nil {
+			res.coverURL = toRes.coverURL
+		}
+		if res.description == nil {
+			res.description = toRes.description
+		}
+		if res.pageCount == nil {
+			res.pageCount = toRes.pageCount
+		}
+		if res.isbn13 == nil {
+			res.isbn13 = toRes.isbn13
+		}
+		if res.title == nil {
+			res.title = toRes.title
+		}
+		if len(res.authors) == 0 {
+			res.authors = toRes.authors
+		}
+		res.olFound = res.olFound || toRes.olFound
+		res.gbFound = res.gbFound || toRes.gbFound
+	}
+
+	return res
+}
+
+// resolveByTitleOnly queries each provider with a title-only search
+// (intitle:"...") and returns the first result accepted by selectTitleOnlyMatch.
+// It is the inner engine for Pass 2 of resolveByTitleAuthor.
+//
+// Provider errors are logged and suppressed.
+//
+//nolint:gocognit,gocyclo,cyclop,nestif,funlen // 3-provider title-only fallback
+func (s *BookService) resolveByTitleOnly(
 	ctx context.Context,
 	logger *slog.Logger,
 	book models.Book,
@@ -445,95 +630,100 @@ func (s *BookService) resolveByTitleAuthor(
 ) resyncResolution {
 	var res resyncResolution
 
-	if book.Title == "" || len(book.Authors) == 0 {
-		// Cannot do a meaningful title/author search without both.
-		return res
-	}
+	query := buildSearchQuery(book.Title, nil) // intitle:"..." only
 
-	query := buildSearchQuery(book.Title, book.Authors)
-
-	// --- Open Library search ---
+	// --- Open Library title-only search ---
 	olResults, olErr := s.external.Search(ctx, query)
 	if olErr != nil {
-		logger.WarnContext(ctx, "open library title/author search failed",
+		logger.WarnContext(ctx, "open library title-only search failed",
 			slog.String("title", book.Title),
 			slog.Any("error", olErr),
 		)
 	}
 
-	for _, r := range olResults {
-		if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
-			continue
+	if len(olResults) > 0 {
+		cands := make([]titleOnlyCandidate, len(olResults))
+		for i, r := range olResults {
+			cands[i] = titleOnlyCandidate{
+				title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
+				coverURL: r.CoverURL, description: r.Description,
+				pageCount: r.PageCount,
+			}
 		}
-		// Confident OL match found.
-		res.olFound = true
-		if needCover && r.CoverURL != nil {
-			res.coverURL = r.CoverURL
+		if m, ok := selectTitleOnlyMatch(book.Title, cands); ok {
+			res.olFound = true
+			if needCover && m.coverURL != nil {
+				res.coverURL = m.coverURL
+			}
+			if needDesc && m.description != nil {
+				res.description = m.description
+			}
+			if needPages && m.pageCount != nil {
+				res.pageCount = m.pageCount
+			}
+			if m.isbn13 != nil {
+				normalized := normalizeISBN(*m.isbn13)
+				res.isbn13 = &normalized
+			}
+			if m.title != "" {
+				res.title = &m.title
+			}
+			if len(m.authors) > 0 {
+				res.authors = m.authors
+			}
 		}
-		if needDesc && r.Description != nil {
-			res.description = r.Description
-		}
-		if needPages && r.PageCount != nil {
-			res.pageCount = r.PageCount
-		}
-		if r.ISBN13 != nil {
-			normalized := normalizeISBN(*r.ISBN13)
-			res.isbn13 = &normalized
-		}
-		if r.Title != "" {
-			res.title = &r.Title
-		}
-		if len(r.Authors) > 0 {
-			res.authors = r.Authors
-		}
-		break
 	}
 
-	// --- Google Books search (for anything still missing OR if OL had no match) ---
-	stillNeed := (needCover && res.coverURL == nil) ||
+	// --- Google Books title-only search ---
+	stillNeedGB := (needCover && res.coverURL == nil) ||
 		(needDesc && res.description == nil) ||
 		(needPages && res.pageCount == nil) ||
 		res.isbn13 == nil
 
-	if stillNeed && s.googleBooks != nil {
+	if stillNeedGB && s.googleBooks != nil {
 		gbResults, gbErr := s.googleBooks.Search(ctx, query)
 		if gbErr != nil {
-			logger.WarnContext(ctx, "google books title/author search failed",
+			logger.WarnContext(ctx, "google books title-only search failed",
 				slog.String("title", book.Title),
 				slog.Any("error", gbErr),
 			)
 		}
 
-		for _, r := range gbResults {
-			if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
-				continue
+		if len(gbResults) > 0 {
+			cands := make([]titleOnlyCandidate, len(gbResults))
+			for i, r := range gbResults {
+				cands[i] = titleOnlyCandidate{
+					title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
+					coverURL: r.CoverURL, description: r.Description,
+					pageCount: r.PageCount,
+				}
 			}
-			// Confident GB match found — fill any remaining gaps.
-			res.gbFound = true
-			if needCover && res.coverURL == nil && r.CoverURL != nil {
-				res.coverURL = r.CoverURL
+			if m, ok := selectTitleOnlyMatch(book.Title, cands); ok {
+				res.gbFound = true
+				if needCover && res.coverURL == nil && m.coverURL != nil {
+					res.coverURL = m.coverURL
+				}
+				if needDesc && res.description == nil && m.description != nil {
+					res.description = m.description
+				}
+				if needPages && res.pageCount == nil && m.pageCount != nil {
+					res.pageCount = m.pageCount
+				}
+				if res.isbn13 == nil && m.isbn13 != nil {
+					normalized := normalizeISBN(*m.isbn13)
+					res.isbn13 = &normalized
+				}
+				if res.title == nil && m.title != "" {
+					res.title = &m.title
+				}
+				if len(res.authors) == 0 && len(m.authors) > 0 {
+					res.authors = m.authors
+				}
 			}
-			if needDesc && res.description == nil && r.Description != nil {
-				res.description = r.Description
-			}
-			if needPages && res.pageCount == nil && r.PageCount != nil {
-				res.pageCount = r.PageCount
-			}
-			if res.isbn13 == nil && r.ISBN13 != nil {
-				normalized := normalizeISBN(*r.ISBN13)
-				res.isbn13 = &normalized
-			}
-			if res.title == nil && r.Title != "" {
-				res.title = &r.Title
-			}
-			if len(res.authors) == 0 && len(r.Authors) > 0 {
-				res.authors = r.Authors
-			}
-			break
 		}
 	}
 
-	// --- UniCat fallback (Dutch/Flemish books) ---
+	// --- UniCat title-only search (Dutch/Flemish books; no cover images) ---
 	stillNeedUC := (needDesc && res.description == nil) ||
 		(needPages && res.pageCount == nil) ||
 		res.isbn13 == nil
@@ -541,37 +731,129 @@ func (s *BookService) resolveByTitleAuthor(
 	if stillNeedUC && s.uniCat != nil {
 		ucResults, ucErr := s.uniCat.Search(ctx, query)
 		if ucErr != nil {
-			logger.WarnContext(ctx, "unicat title/author search failed",
+			logger.WarnContext(ctx, "unicat title-only search failed",
 				slog.String("title", book.Title),
 				slog.Any("error", ucErr),
 			)
 		}
 
-		for _, r := range ucResults {
-			if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
-				continue
+		if len(ucResults) > 0 {
+			cands := make([]titleOnlyCandidate, len(ucResults))
+			for i, r := range ucResults {
+				cands[i] = titleOnlyCandidate{ //nolint:exhaustruct // no cover in UniCat
+					title:       r.Title,
+					authors:     r.Authors,
+					isbn13:      r.ISBN13,
+					description: r.Description,
+					pageCount:   r.PageCount,
+				}
 			}
-			if needDesc && res.description == nil && r.Description != nil {
-				res.description = r.Description
+			if m, ok := selectTitleOnlyMatch(book.Title, cands); ok {
+				if needDesc && res.description == nil && m.description != nil {
+					res.description = m.description
+				}
+				if needPages && res.pageCount == nil && m.pageCount != nil {
+					res.pageCount = m.pageCount
+				}
+				if res.isbn13 == nil && m.isbn13 != nil {
+					normalized := normalizeISBN(*m.isbn13)
+					res.isbn13 = &normalized
+				}
+				if res.title == nil && m.title != "" {
+					res.title = &m.title
+				}
+				if len(res.authors) == 0 && len(m.authors) > 0 {
+					res.authors = m.authors
+				}
 			}
-			if needPages && res.pageCount == nil && r.PageCount != nil {
-				res.pageCount = r.PageCount
-			}
-			if res.isbn13 == nil && r.ISBN13 != nil {
-				normalized := normalizeISBN(*r.ISBN13)
-				res.isbn13 = &normalized
-			}
-			if res.title == nil && r.Title != "" {
-				res.title = &r.Title
-			}
-			if len(res.authors) == 0 && len(r.Authors) > 0 {
-				res.authors = r.Authors
-			}
-			break
 		}
 	}
 
 	return res
+}
+
+// titleOnlyCandidate holds the metadata fields from a provider search result
+// used by selectTitleOnlyMatch. All three external providers expose the same
+// set of fields; this common type avoids duplicating the helper per provider.
+type titleOnlyCandidate struct {
+	title       string
+	authors     []string
+	isbn13      *string
+	coverURL    *string
+	description *string
+	pageCount   *int
+}
+
+// selectTitleOnlyMatch filters candidates to those whose normalised title
+// equals bookTitle, then applies an ambiguity guard: if two or more
+// title-matching candidates have non-empty, fully-disjoint normalised author
+// sets (indicating genuinely different books that share a title), the function
+// returns (zero, false) so that no metadata is written. When exactly one title
+// match exists, or all title-matching candidates share at least one common
+// author (same book in different editions), the first match is returned as
+// (match, true).
+//
+//nolint:gocognit // pairwise disjoint-author check; split would not reduce complexity
+func selectTitleOnlyMatch(
+	bookTitle string,
+	candidates []titleOnlyCandidate,
+) (titleOnlyCandidate, bool) {
+	normBook := normalizeTitle(bookTitle)
+	if normBook == "" {
+		return titleOnlyCandidate{}, false //nolint:exhaustruct // zero value intended
+	}
+
+	var matching []titleOnlyCandidate
+	for _, c := range candidates {
+		if normalizeTitle(c.title) == normBook {
+			matching = append(matching, c)
+		}
+	}
+
+	switch len(matching) {
+	case 0:
+		return titleOnlyCandidate{}, false //nolint:exhaustruct // zero value intended
+	case 1:
+		return matching[0], true
+	}
+
+	// Ambiguity guard: build per-candidate normalised author sets and check
+	// for any fully-disjoint pair — a pair with no common author name is
+	// strong evidence that the same title belongs to two different books.
+	authorSets := make([]map[string]struct{}, len(matching))
+	for i, m := range matching {
+		s := make(map[string]struct{}, len(m.authors))
+		for _, a := range m.authors {
+			if n := normalizeAuthor(a); n != "" {
+				s[n] = struct{}{}
+			}
+		}
+		authorSets[i] = s
+	}
+
+	for i := 0; i < len(authorSets); i++ {
+		if len(authorSets[i]) == 0 {
+			continue // no authors → cannot determine conflict
+		}
+		for j := i + 1; j < len(authorSets); j++ {
+			if len(authorSets[j]) == 0 {
+				continue
+			}
+			overlap := false
+			for a := range authorSets[i] {
+				if _, ok := authorSets[j][a]; ok {
+					overlap = true
+					break
+				}
+			}
+			if !overlap {
+				// Disjoint authors for the same title — ambiguous.
+				return titleOnlyCandidate{}, false //nolint:exhaustruct // zero value
+			}
+		}
+	}
+
+	return matching[0], true
 }
 
 // writeResyncResult persists the enriched fields and busts the cover cache
