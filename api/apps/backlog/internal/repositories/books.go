@@ -842,6 +842,49 @@ func (repo *BooksRepository) GetCatalogWithUserOverlay(
 	return repo.queryUserBooks(ctx, query, userID)
 }
 
+// ListUserBookOwners returns the distinct user_ids that have a user_books row
+// for any of the given book IDs. Used by the global merge to discover all
+// affected users before iterating.
+func (repo *BooksRepository) ListUserBookOwners(
+	ctx context.Context,
+	bookIDs []uuid.UUID,
+) ([]string, error) {
+	if len(bookIDs) == 0 {
+		return nil, nil
+	}
+
+	strIDs := make([]string, len(bookIDs))
+	for i, id := range bookIDs {
+		strIDs[i] = id.String()
+	}
+
+	query := `
+		SELECT DISTINCT user_id
+		FROM backlog.user_books
+		WHERE book_id = ANY($1::uuid[])
+	`
+
+	rows, err := repo.db.Query(ctx, query, strIDs)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var owners []string
+	for rows.Next() {
+		var uid string
+		if scanErr := rows.Scan(&uid); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		owners = append(owners, uid)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return owners, nil
+}
+
 // GetBooksByIDs returns the catalog books whose IDs are in the given slice.
 // Missing IDs are silently ignored.
 func (repo *BooksRepository) GetBooksByIDs(

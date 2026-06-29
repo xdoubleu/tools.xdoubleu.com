@@ -112,7 +112,7 @@ func TestMergeBooks_UnionsTagsAndFinishedAt(t *testing.T) {
 		[]time.Time{finB}, mergeTestUser, loser.BookID)
 	require.NoError(t, err)
 
-	_, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -172,7 +172,7 @@ func TestMergeBooks_PicksMostProgressedStatus(t *testing.T) {
 		[]string{},
 	)
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -217,7 +217,7 @@ func TestMergeBooks_RepointsBookFiles(t *testing.T) {
 		"abc123",
 	)
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -272,7 +272,7 @@ func TestMergeBooks_DeduplicatesIdenticalFiles(t *testing.T) {
 		"dupchk",
 	)
 
-	deletedFiles, err := testApp.Services.Books.MergeBooks(
+	deletedFiles, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -313,7 +313,7 @@ func TestMergeBooks_ConsolidatesReadingState(t *testing.T) {
 	// Only loser has reading state.
 	insertReadingState(t, mergeTestUser, loser.BookID, 42)
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -352,7 +352,7 @@ func TestMergeBooks_NoLosers_IsNoop(t *testing.T) {
 		[]string{},
 	)
 
-	deleted, err := testApp.Services.Books.MergeBooks(
+	deleted, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, nil, nil, nil, nil,
 	)
 	require.NoError(t, err)
@@ -387,7 +387,7 @@ func TestMergeBooks_FallsBackToLoserRating(t *testing.T) {
 		rating, mergeTestUser, loser.BookID)
 	require.NoError(t, err)
 
-	_, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -429,7 +429,7 @@ func TestMergeBooks_WinnerReadingStateNotOverridden(t *testing.T) {
 	insertReadingState(t, mergeTestUser, winner.BookID, 75)
 	insertReadingState(t, mergeTestUser, loser.BookID, 90)
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -465,7 +465,7 @@ func TestMergeBooks_AppliesResolvedMetadata(t *testing.T) {
 		Description: &loserDesc,
 	}
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		resolved, nil, nil,
 	)
@@ -495,7 +495,7 @@ func TestMergeBooks_NilResolvedMetadataPreservesBook(t *testing.T) {
 	).Scan(&originalTitle)
 	require.NoError(t, err)
 
-	_, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -523,7 +523,7 @@ func TestMergeBooks_OrphanedLoserBookDeleted(t *testing.T) {
 	loser := addMergeBook(t, "OrphanLoser", isbn2, models.StatusToRead, []string{})
 	loserBookID := loser.BookID
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
 		nil, nil, nil,
 	)
@@ -609,7 +609,7 @@ func TestMergeBooks_CustomShelfBeatsBuiltInStatus(t *testing.T) {
 	winner := addMergeBook(t, "ShelfWinA", isbn1, "sci-fi", []string{})
 	loser := addMergeBook(t, "ShelfWinB", isbn2, models.StatusRead, []string{})
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -634,7 +634,7 @@ func TestMergeBooks_CustomShelfBeatsBuiltInStatus_LoserOnShelf(t *testing.T) {
 	winner := addMergeBook(t, "ShelfLoserA", isbn1, models.StatusRead, []string{})
 	loser := addMergeBook(t, "ShelfLoserB", isbn2, "favourites", []string{})
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -658,7 +658,7 @@ func TestMergeBooks_WinnerShelfKeptWhenBothOnCustomShelves(t *testing.T) {
 	winner := addMergeBook(t, "TwoShelvesA", isbn1, "sci-fi", []string{})
 	loser := addMergeBook(t, "TwoShelvesB", isbn2, "fantasy", []string{})
 
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -683,7 +683,7 @@ func TestMergeBooks_ResolvedStatusOverridesAutoConsolidation(t *testing.T) {
 	loser := addMergeBook(t, "ResolvedStatusB", isbn2, models.StatusToRead, []string{})
 
 	forced := "my-custom-shelf"
-	_, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, &forced,
 	)
@@ -752,4 +752,280 @@ func TestConnectMergeBooks_ResolvedStatusApplied(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, forced, status,
 		"connect handler must forward resolved_status to the service")
+}
+
+// --- global (cross-user) merge tests ---
+
+const mergeTestUser2 = "merge-books-test-user-2"
+
+func cleanupMergeUser2(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() {
+		ctx := context.Background()
+		_, _ = testDB.Exec(ctx,
+			`DELETE FROM backlog.user_books WHERE user_id = $1`, mergeTestUser2)
+		_, _ = testDB.Exec(ctx,
+			`DELETE FROM backlog.book_files WHERE user_id = $1`, mergeTestUser2)
+		_, _ = testDB.Exec(ctx,
+			`DELETE FROM backlog.book_reading_state WHERE user_id = $1`, mergeTestUser2)
+	})
+}
+
+func addMergeBookForUser2(
+	t *testing.T,
+	title, isbn, status string,
+	tags []string,
+) *models.UserBook {
+	t.Helper()
+	cover := "https://example.com/cover.jpg"
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
+		Provider:   "manual",
+		ProviderID: fmt.Sprintf("merge-%s-%s", title, uuid.NewString()),
+		Title:      title,
+		Authors:    []string{"Merge Author"},
+		ISBN13:     &isbn,
+		CoverURL:   &cover,
+	}
+	ub, err := testApp.Services.Books.AddToLibrary(
+		context.Background(), mergeTestUser2, ext, status, tags,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, ub)
+	return ub
+}
+
+// TestMergeBooks_UnownedLoser_GlobalCatalogDeleted is the direct regression for
+// the "load loser <uuid>: resource not found" 500. The admin owns the winner but
+// the loser is only in another user's library — not the admin's.
+func TestMergeBooks_UnownedLoser_GlobalCatalogDeleted(t *testing.T) {
+	cleanupMergeUser(t)
+	cleanupMergeUser2(t)
+
+	isbn1 := "9780030303031"
+	isbn2 := "9780030303032"
+
+	winner := addMergeBook(t, "UnownedWinner", isbn1, models.StatusToRead, []string{})
+	loser := addMergeBookForUser2(
+		t, "UnownedLoser", isbn2, models.StatusToRead, []string{},
+	)
+	loserBookID := loser.BookID
+
+	// Admin merges: loser is not in their library.
+	// This used to fail with "load loser <uuid>: resource not found".
+	_, _, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err)
+
+	// Loser catalog row must be gone (no remaining references from any user).
+	var catCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.books WHERE id = $1`, loserBookID,
+	).Scan(&catCount)
+	require.NoError(t, err)
+	assert.Equal(t, 0, catCount, "orphaned loser catalog book must be deleted globally")
+
+	// mergeTestUser2 must now own the winner (entry repointed from loser).
+	var winnerCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser2, winner.BookID,
+	).Scan(&winnerCount)
+	require.NoError(t, err)
+	assert.Equal(t, 1, winnerCount,
+		"other user's loser entry must be repointed to winner")
+}
+
+// TestMergeBooks_CrossUserConsolidation verifies that when two users each own
+// both the winner and the loser, all four rows are handled: both loser rows are
+// deleted, both winner rows are updated with the union of their loser's data, and
+// the loser catalog row is deleted.
+func TestMergeBooks_CrossUserConsolidation(t *testing.T) {
+	cleanupMergeUser(t)
+	cleanupMergeUser2(t)
+
+	isbn1 := "9780030303041"
+	isbn2 := "9780030303042"
+
+	// Admin owns both winner and loser.
+	winner := addMergeBook(
+		t, "CrossWinA", isbn1, models.StatusToRead, []string{"admin-tag"},
+	)
+	loser := addMergeBook(
+		t, "CrossLosA", isbn2, models.StatusRead, []string{"admin-loser-tag"},
+	)
+
+	// User2 owns both (same catalog book IDs — same ISBN13).
+	addMergeBookForUser2(
+		t,
+		"CrossWinB",
+		isbn1,
+		models.StatusToRead,
+		[]string{"user2-tag"},
+	)
+	addMergeBookForUser2(
+		t,
+		"CrossLosB",
+		isbn2,
+		models.StatusRead,
+		[]string{"user2-loser-tag"},
+	)
+
+	_, _, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err)
+
+	// Both users' loser user_books rows must be gone.
+	for _, uid := range []string{mergeTestUser, mergeTestUser2} {
+		var n int
+		err = testDB.QueryRow(
+			context.Background(),
+			`SELECT COUNT(*) FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+			uid,
+			loser.BookID,
+		).Scan(&n)
+		require.NoError(t, err)
+		assert.Equal(t, 0, n, "loser user_book must be deleted for user %s", uid)
+	}
+
+	// Loser catalog row deleted (now orphaned).
+	var catCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.books WHERE id = $1`, loser.BookID,
+	).Scan(&catCount)
+	require.NoError(t, err)
+	assert.Equal(t, 0, catCount, "orphaned loser catalog book must be deleted")
+
+	// Admin's winner must have the union of their own loser's tags.
+	var winnerTags []string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT tags FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser, winner.BookID,
+	).Scan(&winnerTags)
+	require.NoError(t, err)
+	assert.ElementsMatch(t,
+		[]string{"admin-tag", "admin-loser-tag"},
+		winnerTags,
+		"admin winner tags must include unioned loser tags",
+	)
+}
+
+// TestMergeBooks_RepointsOtherUsersLoserEntry verifies that when user2 owns only
+// the loser (not the winner), after the merge user2's entry is repointed to the
+// winner with the loser's data carried over.
+func TestMergeBooks_RepointsOtherUsersLoserEntry(t *testing.T) {
+	cleanupMergeUser(t)
+	cleanupMergeUser2(t)
+
+	isbn1 := "9780030303051"
+	isbn2 := "9780030303052"
+
+	// Admin owns only the winner.
+	winner := addMergeBook(t, "RepointWin", isbn1, models.StatusToRead, []string{})
+	// User2 owns only the loser (not the winner).
+	loser := addMergeBookForUser2(
+		t,
+		"RepointLos",
+		isbn2,
+		models.StatusRead,
+		[]string{"carried-tag"},
+	)
+
+	_, _, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err)
+
+	// User2's loser row must be gone.
+	var loserCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser2, loser.BookID,
+	).Scan(&loserCount)
+	require.NoError(t, err)
+	assert.Equal(t, 0, loserCount, "user2's loser user_book must be deleted")
+
+	// User2 must now own the winner.
+	var winnerCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser2, winner.BookID,
+	).Scan(&winnerCount)
+	require.NoError(t, err)
+	assert.Equal(t, 1, winnerCount, "user2 must own the winner after repoint")
+
+	// User2's winner entry must carry the loser's tags.
+	var tags []string
+	err = testDB.QueryRow(context.Background(),
+		`SELECT tags FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser2, winner.BookID,
+	).Scan(&tags)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"carried-tag"}, tags,
+		"loser's tags must be carried to the new winner entry for user2")
+
+	// Loser catalog row must be deleted.
+	var catCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.books WHERE id = $1`, loser.BookID,
+	).Scan(&catCount)
+	require.NoError(t, err)
+	assert.Equal(t, 0, catCount, "orphaned loser catalog book must be deleted")
+}
+
+// TestMergeBooks_CallerOwnsNeither exercises the !callerIncluded path in
+// MergeBooks and the early-return path in consolidateUserBookData (caller has
+// no ownership stake at all).
+func TestMergeBooks_CallerOwnsNeither(t *testing.T) {
+	cleanupMergeUser(t)
+	cleanupMergeUser2(t)
+
+	isbn1 := "9780030303061"
+	isbn2 := "9780030303062"
+
+	// Only user2 owns these books — the admin (mergeTestUser) owns neither.
+	winner := addMergeBookForUser2(
+		t, "NeitherWin", isbn1, models.StatusToRead, []string{},
+	)
+	loser := addMergeBookForUser2(
+		t, "NeitherLos", isbn2, models.StatusRead, []string{"carried"},
+	)
+	loserBookID := loser.BookID
+
+	// Admin merges without owning either book.
+	_, _, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err)
+
+	// User2's loser row must be gone.
+	var loserCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser2, loserBookID,
+	).Scan(&loserCount)
+	require.NoError(t, err)
+	assert.Equal(t, 0, loserCount, "user2 loser entry must be deleted")
+
+	// User2 must now own the winner.
+	var winnerCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.user_books WHERE user_id = $1 AND book_id = $2`,
+		mergeTestUser2, winner.BookID,
+	).Scan(&winnerCount)
+	require.NoError(t, err)
+	assert.Equal(t, 1, winnerCount, "user2 must own the winner after merge")
+
+	// Loser catalog row must be deleted.
+	var catCount int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM backlog.books WHERE id = $1`, loserBookID,
+	).Scan(&catCount)
+	require.NoError(t, err)
+	assert.Equal(t, 0, catCount, "orphaned loser catalog book must be deleted")
 }

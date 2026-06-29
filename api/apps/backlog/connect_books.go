@@ -1005,7 +1005,7 @@ func (h *booksConnectHandler) MergeBooks(
 		resolvedCoverSourceBookID = &coverSourceID
 	}
 
-	deletedFiles, err := h.app.Services.Books.MergeBooks(
+	deletedFiles, affectedUsers, err := h.app.Services.Books.MergeBooks(
 		ctx,
 		user.ID,
 		winnerID,
@@ -1018,8 +1018,10 @@ func (h *booksConnectHandler) MergeBooks(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+	for _, uid := range affectedUsers {
+		if rebuildErr := h.app.rebuildReadProgress(ctx, uid); rebuildErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+		}
 	}
 
 	return connect.NewResponse(&backlogv1.MergeBooksResponse{
