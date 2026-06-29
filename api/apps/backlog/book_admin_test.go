@@ -57,6 +57,7 @@ func newAdminBooksTestClient(t *testing.T) backlogv1connect.BooksServiceClient {
 			SteamFactory:     func(_ string) steam.Client { return nil },
 			OpenLibrary:      nil,
 			GoogleBooks:      nil,
+			UniCat:           nil,
 			ObjectStore:      objectstore.NewFake(),
 			PublicAPIBaseURL: "",
 			KoboStoreBaseURL: "",
