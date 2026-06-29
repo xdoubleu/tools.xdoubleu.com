@@ -18,6 +18,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/backlog/pkg/unicat"
 )
 
 type BookService struct {
@@ -28,6 +29,7 @@ type BookService struct {
 	readingState *repositories.BookReadingStateRepository
 	external     openlibrary.Client
 	googleBooks  googlebooks.Client
+	uniCat       unicat.Client
 	// booksResync overrides s.books for the resync path in unit tests.
 	// Nil in production — resyncRepo() falls back to s.books.
 	booksResync booksResyncSource
@@ -58,6 +60,11 @@ func (s *BookService) SetBookISBN(
 	bookID uuid.UUID,
 	isbn13 string,
 ) error {
+	// Normalize before the pre-check and write so that hyphenated input
+	// ("978-94-6310-738-9") matches the same unique index entry as the
+	// plain form ("9789463107389") that providers store.
+	isbn13 = normalizeISBN(isbn13)
+
 	book, err := s.books.GetBookByID(ctx, bookID)
 	if err != nil {
 		return err
@@ -561,14 +568,17 @@ func (s *BookService) ListCatalogBooks(
 	return s.books.ListCatalogBooks(ctx)
 }
 
-// FindDuplicates returns groups of library entries judged to be duplicates of
-// the same book. It loads the user's full library and delegates to the pure
-// FindDuplicateGroups helper.
+// FindDuplicates returns groups of catalog entries judged to be duplicates of
+// the same book. It scans the entire catalog (not just the caller's library)
+// with the caller's user_book data overlaid, so catalog-level duplicates are
+// visible even when the user has only one (or none) of them in their library.
+// Callers that need to act on a match can pass the returned BookIDs to
+// MergeBooks regardless of whether the entry is in their own library.
 func (s *BookService) FindDuplicates(
 	ctx context.Context,
 	userID string,
 ) ([]DuplicateGroup, error) {
-	lib, err := s.books.GetLibrary(ctx, userID)
+	lib, err := s.books.GetCatalogWithUserOverlay(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/backlog/pkg/unicat"
 )
 
 // booksResyncSource is the narrow subset of BooksRepository used by the resync
@@ -28,6 +29,8 @@ type booksResyncSource interface {
 		description *string,
 		pageCount *int,
 		isbn13 *string,
+		title *string,
+		authors []string,
 	) error
 	SetResyncStatus(
 		ctx context.Context,
@@ -55,7 +58,12 @@ type resyncResolution struct {
 	pageCount   *int
 	// isbn13 is set only when a new ISBN was discovered (title/author search
 	// path for ISBN-less books). Never set when the book already has an ISBN.
-	isbn13  *string
+	isbn13 *string
+	// title and authors are always overwritten when a provider returns a
+	// non-empty value. They are set independently of the needCover/needDesc/
+	// needPages gates so the catalog stays accurate even for fully-enriched books.
+	title   *string
+	authors []string
 	olFound bool
 	gbFound bool
 }
@@ -197,7 +205,7 @@ func (s *BookService) resyncBooks(
 //
 //  5. If any metadata was resolved, write it via writeResyncResult (one DB call).
 //
-//nolint:cyclop,gocognit,gocyclo // two-phase resolve with merge
+//nolint:cyclop,gocognit,gocyclo,nestif // two-phase resolve with merge
 func (s *BookService) resyncBook(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -264,6 +272,15 @@ func (s *BookService) resyncBook(
 		if !hasISBN && res.isbn13 == nil {
 			res.isbn13 = taRes.isbn13
 		}
+		// Title/authors from the title+author phase only fill in if the ISBN
+		// phase didn't already provide them (both phases prefer the first
+		// provider that returns a non-empty value).
+		if res.title == nil {
+			res.title = taRes.title
+		}
+		if len(res.authors) == 0 {
+			res.authors = taRes.authors
+		}
 		res.olFound = res.olFound || taRes.olFound
 		res.gbFound = res.gbFound || taRes.gbFound
 	}
@@ -280,13 +297,15 @@ func (s *BookService) resyncBook(
 
 	// Nothing useful from either provider — skip the DB write.
 	if res.coverURL == nil && res.description == nil &&
-		res.pageCount == nil && res.isbn13 == nil {
+		res.pageCount == nil && res.isbn13 == nil &&
+		res.title == nil && len(res.authors) == 0 {
 		return nil
 	}
 
 	return s.writeResyncResult(
 		ctx, logger, book,
 		res.coverURL, res.description, res.pageCount, res.isbn13,
+		res.title, res.authors,
 	)
 }
 
@@ -294,7 +313,7 @@ func (s *BookService) resyncBook(
 // Library and, when fields are still missing, Google Books. It returns a
 // resyncResolution without writing anything to the database.
 //
-//nolint:gocognit,nestif // multi-provider per-field fallback is inherently branchy
+//nolint:gocognit,gocyclo,cyclop,nestif,funlen // multi-provider fallback
 func (s *BookService) resolveByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -324,6 +343,12 @@ func (s *BookService) resolveByISBN(
 		if needPages {
 			res.pageCount = olDetail.PageCount
 		}
+		if olDetail.Title != "" {
+			res.title = &olDetail.Title
+		}
+		if len(olDetail.Authors) > 0 {
+			res.authors = olDetail.Authors
+		}
 	}
 
 	// --- Google Books fallback for anything still missing ---
@@ -350,8 +375,45 @@ func (s *BookService) resolveByISBN(
 			if stillNeedPages && gbDetail.PageCount != nil {
 				res.pageCount = gbDetail.PageCount
 			}
+			// Fill title/authors from GB if OL didn't provide them.
+			if res.title == nil && gbDetail.Title != "" {
+				res.title = &gbDetail.Title
+			}
+			if len(res.authors) == 0 && len(gbDetail.Authors) > 0 {
+				res.authors = gbDetail.Authors
+			}
 		}
 	}
+
+	// --- UniCat fallback for anything still missing (Dutch/Flemish books) ---
+	stillNeedCover2 := needCover && res.coverURL == nil
+	stillNeedDesc2 := needDesc && res.description == nil
+	stillNeedPages2 := needPages && res.pageCount == nil
+	if (stillNeedDesc2 || stillNeedPages2 || res.title == nil) &&
+		s.uniCat != nil {
+		ucDetail, ucErr := s.uniCat.GetByISBN(ctx, *book.ISBN13)
+		if ucErr != nil && !errors.Is(ucErr, unicat.ErrNotFound) {
+			logger.WarnContext(ctx, "unicat ISBN lookup failed",
+				slog.String("isbn13", *book.ISBN13),
+				slog.Any("error", ucErr),
+			)
+		}
+		if ucDetail != nil {
+			if stillNeedDesc2 && ucDetail.Description != nil {
+				res.description = ucDetail.Description
+			}
+			if stillNeedPages2 && ucDetail.PageCount != nil {
+				res.pageCount = ucDetail.PageCount
+			}
+			if res.title == nil && ucDetail.Title != "" {
+				res.title = &ucDetail.Title
+			}
+			if len(res.authors) == 0 && len(ucDetail.Authors) > 0 {
+				res.authors = ucDetail.Authors
+			}
+		}
+	}
+	_ = stillNeedCover2 // UniCat has no cover images; kept for symmetry
 
 	// Last-resort cover: OL ISBN-keyed URL. Only attempted when OL actually
 	// returned a record (not ErrNotFound) — the covers CDN is unlikely to have
@@ -374,7 +436,7 @@ func (s *BookService) resolveByISBN(
 // whatever it could gather; the caller decides whether to proceed with partial
 // data.
 //
-//nolint:gocognit,gocyclo,cyclop,nestif // OL+GB search chains with per-field fallback
+//nolint:gocognit,gocyclo,cyclop,nestif,funlen // 3-provider search fallback
 func (s *BookService) resolveByTitleAuthor(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -415,7 +477,14 @@ func (s *BookService) resolveByTitleAuthor(
 			res.pageCount = r.PageCount
 		}
 		if r.ISBN13 != nil {
-			res.isbn13 = r.ISBN13
+			normalized := normalizeISBN(*r.ISBN13)
+			res.isbn13 = &normalized
+		}
+		if r.Title != "" {
+			res.title = &r.Title
+		}
+		if len(r.Authors) > 0 {
+			res.authors = r.Authors
 		}
 		break
 	}
@@ -451,7 +520,52 @@ func (s *BookService) resolveByTitleAuthor(
 				res.pageCount = r.PageCount
 			}
 			if res.isbn13 == nil && r.ISBN13 != nil {
-				res.isbn13 = r.ISBN13
+				normalized := normalizeISBN(*r.ISBN13)
+				res.isbn13 = &normalized
+			}
+			if res.title == nil && r.Title != "" {
+				res.title = &r.Title
+			}
+			if len(res.authors) == 0 && len(r.Authors) > 0 {
+				res.authors = r.Authors
+			}
+			break
+		}
+	}
+
+	// --- UniCat fallback (Dutch/Flemish books) ---
+	stillNeedUC := (needDesc && res.description == nil) ||
+		(needPages && res.pageCount == nil) ||
+		res.isbn13 == nil
+
+	if stillNeedUC && s.uniCat != nil {
+		ucResults, ucErr := s.uniCat.Search(ctx, query)
+		if ucErr != nil {
+			logger.WarnContext(ctx, "unicat title/author search failed",
+				slog.String("title", book.Title),
+				slog.Any("error", ucErr),
+			)
+		}
+
+		for _, r := range ucResults {
+			if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
+				continue
+			}
+			if needDesc && res.description == nil && r.Description != nil {
+				res.description = r.Description
+			}
+			if needPages && res.pageCount == nil && r.PageCount != nil {
+				res.pageCount = r.PageCount
+			}
+			if res.isbn13 == nil && r.ISBN13 != nil {
+				normalized := normalizeISBN(*r.ISBN13)
+				res.isbn13 = &normalized
+			}
+			if res.title == nil && r.Title != "" {
+				res.title = &r.Title
+			}
+			if len(res.authors) == 0 && len(r.Authors) > 0 {
+				res.authors = r.Authors
 			}
 			break
 		}
@@ -461,7 +575,8 @@ func (s *BookService) resolveByTitleAuthor(
 }
 
 // writeResyncResult persists the enriched fields and busts the cover cache
-// when a new cover URL was resolved.
+// when a new cover URL was resolved. title and authors are written when
+// non-empty — pass nil/nil to leave them unchanged.
 func (s *BookService) writeResyncResult(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -470,6 +585,8 @@ func (s *BookService) writeResyncResult(
 	description *string,
 	pageCount *int,
 	isbn13 *string,
+	title *string,
+	authors []string,
 ) error {
 	if dbErr := s.resyncRepo().RefreshBookExternalData(
 		ctx,
@@ -478,6 +595,8 @@ func (s *BookService) writeResyncResult(
 		description,
 		pageCount,
 		isbn13,
+		title,
+		authors,
 	); dbErr != nil {
 		return dbErr
 	}

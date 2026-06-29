@@ -58,6 +58,19 @@ func normalizeAuthor(s string) string {
 	return normalizeString(s)
 }
 
+// normalizeISBN strips all non-digit characters from s so that formatted
+// ("978-94-6310-738-9") and plain ("9789463107389") representations of the
+// same ISBN compare equal. Returns "" when s contains no digits.
+func normalizeISBN(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // normalizeString lower-cases s, folds diacritics (NFD → strip non-spacing
 // marks → NFC), and removes all non-alphanumeric runes.
 func normalizeString(s string) string {
@@ -263,7 +276,7 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 		}
 		var bn bookNorm
 		if b.ISBN13 != nil {
-			bn.isbn13 = *b.ISBN13
+			bn.isbn13 = normalizeISBN(*b.ISBN13)
 		}
 		bn.title = normalizeTitle(b.Title)
 		bn.authors = make([]string, 0, len(b.Authors))

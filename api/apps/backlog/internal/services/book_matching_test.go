@@ -609,3 +609,60 @@ func TestMetadataCompleteness_Full(t *testing.T) {
 	}
 	assert.Equal(t, 5, metadataCompleteness(b))
 }
+
+// --- normalizeISBN ---
+
+func TestNormalizeISBN_PlainPassthrough(t *testing.T) {
+	assert.Equal(t, "9789463107389", normalizeISBN("9789463107389"))
+}
+
+func TestNormalizeISBN_HyphenatedStripped(t *testing.T) {
+	assert.Equal(t, "9789463107389", normalizeISBN("978-94-6310-738-9"))
+}
+
+func TestNormalizeISBN_EmptyString(t *testing.T) {
+	assert.Equal(t, "", normalizeISBN(""))
+}
+
+func TestNormalizeISBN_SpacesStripped(t *testing.T) {
+	assert.Equal(t, "9780140449112", normalizeISBN("978 0 14 044911 2"))
+}
+
+// --- FindDuplicateGroups: ISBN normalization ---
+
+func TestFindDuplicateGroups_HyphenatedISBNGroupsWithPlain(t *testing.T) {
+	hyphenated := "978-94-6310-738-9"
+	plain := "9789463107389"
+	idA, idB := uuid.New(), uuid.New()
+
+	lib := []models.UserBook{
+		{ //nolint:exhaustruct //only Book needed
+			BookID: idA,
+			Book: &models.Book{ //nolint:exhaustruct //only matching fields
+				ID:      idA,
+				Title:   "Franke Vragen",
+				Authors: []string{"Vandenbroucke"},
+				ISBN13:  &hyphenated,
+			},
+		},
+		{ //nolint:exhaustruct //only Book needed
+			BookID: idB,
+			Book: &models.Book{ //nolint:exhaustruct //only matching fields
+				ID:      idB,
+				Title:   "Franke Vragen",
+				Authors: []string{"Vandenbroucke"},
+				ISBN13:  &plain,
+			},
+		},
+	}
+
+	groups := FindDuplicateGroups(lib)
+	assert.Len(
+		t,
+		groups,
+		1,
+		"hyphenated and plain ISBN should be grouped as duplicates",
+	)
+	assert.Equal(t, "isbn13", groups[0].Reason)
+	assert.Len(t, groups[0].Entries, 2)
+}

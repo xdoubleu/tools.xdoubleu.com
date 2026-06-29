@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/backlog/pkg/objectstore"
 	"tools.xdoubleu.com/apps/backlog/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/backlog/pkg/unicat"
 )
 
 // refreshCall records a single call to fakeBooksResync.RefreshBookExternalData
@@ -29,6 +30,8 @@ type refreshCall struct {
 	description *string
 	pageCount   *int
 	isbn13      *string
+	title       *string
+	authors     []string
 }
 
 // statusCall records a single call to fakeBooksResync.SetResyncStatus.
@@ -83,6 +86,8 @@ func (f *fakeBooksResync) RefreshBookExternalData(
 	description *string,
 	pageCount *int,
 	isbn13 *string,
+	title *string,
+	authors []string,
 ) error {
 	f.refreshMu.Lock()
 	f.refreshCalls = append(f.refreshCalls, refreshCall{
@@ -91,6 +96,8 @@ func (f *fakeBooksResync) RefreshBookExternalData(
 		description: description,
 		pageCount:   pageCount,
 		isbn13:      isbn13,
+		title:       title,
+		authors:     authors,
 	})
 	f.refreshMu.Unlock()
 	return f.refreshErr
@@ -735,6 +742,66 @@ func newResyncSvc(
 	}
 }
 
+// fakeUCClient is a configurable unicat.Client stub.
+type fakeUCClient struct {
+	byISBN *ucResult
+	err    error
+	mu     sync.Mutex
+	calls  int
+}
+
+type ucResult struct {
+	title   string
+	authors []string
+	isbn13  *string
+	desc    *string
+	pages   *int
+}
+
+func (f *fakeUCClient) GetByISBN(
+	_ context.Context,
+	_ string,
+) (*unicat.ExternalBook, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.byISBN == nil {
+		return nil, unicat.ErrNotFound
+	}
+	b := ucResultToExternal(*f.byISBN)
+	return &b, nil
+}
+
+func (f *fakeUCClient) Search(
+	_ context.Context,
+	_ string,
+) ([]unicat.ExternalBook, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.byISBN == nil {
+		return nil, nil
+	}
+	b := ucResultToExternal(*f.byISBN)
+	return []unicat.ExternalBook{b}, nil
+}
+
+func ucResultToExternal(r ucResult) unicat.ExternalBook {
+	return unicat.ExternalBook{
+		Title:       r.title,
+		Authors:     r.authors,
+		ISBN13:      r.isbn13,
+		Description: r.desc,
+		PageCount:   r.pages,
+	}
+}
+
 // TestResyncAllFromOpenLibrary_EmptyLibrary verifies that with no books
 // the function returns (0, nil) and emits exactly one onProgress(0, 0) call.
 func TestResyncAllFromOpenLibrary_EmptyLibrary(t *testing.T) {
@@ -1202,4 +1269,107 @@ func TestResyncBooks_ProcessesGivenIDs(t *testing.T) {
 	)
 	require.NoError(t, err2)
 	assert.Equal(t, 0, n2, "unknown book ID must return 0 processed books")
+}
+
+// TestResyncBook_TitleAuthorsWrittenFromProvider verifies that when a provider
+// returns a non-empty title and authors they are carried through resyncResolution
+// and written to the DB via RefreshBookExternalData.
+func TestResyncBook_TitleAuthorsWrittenFromProvider(t *testing.T) {
+	isbn := "9789463107389"
+	desc := "A description."
+	pages := 127
+	book := models.Book{ //nolint:exhaustruct //only tested fields needed
+		ID:     uuid.New(),
+		ISBN13: &isbn,
+	}
+
+	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //minimal detail
+		Provider:    "openlibrary",
+		ProviderID:  "OL1W",
+		Title:       "Correct Title From Provider",
+		Authors:     []string{"Vandenbroucke, Frank"},
+		Description: &desc,
+		PageCount:   &pages,
+	}
+	ol := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
+	repo := &fakeBooksResync{}          //nolint:exhaustruct //zero values fine
+
+	svc := newResyncSvc(repo, ol)
+
+	err := svc.resyncBook(
+		context.Background(),
+		logging.NewNopLogger(),
+		book,
+		false,
+	)
+	require.NoError(t, err)
+
+	repo.refreshMu.Lock()
+	calls := repo.refreshCalls
+	repo.refreshMu.Unlock()
+	require.Len(t, calls, 1)
+
+	c := calls[0]
+	require.NotNil(t, c.title, "title should be written")
+	assert.Equal(t, "Correct Title From Provider", *c.title)
+	assert.Equal(t, []string{"Vandenbroucke, Frank"}, c.authors)
+}
+
+// TestResyncBook_UniCatFallback verifies that when OL and GB both return
+// ErrNotFound the UniCat provider is tried and its metadata is written.
+func TestResyncBook_UniCatFallback(t *testing.T) {
+	isbn := "9789463107389"
+	book := models.Book{ //nolint:exhaustruct //only tested fields needed
+		ID:     uuid.New(),
+		ISBN13: &isbn,
+	}
+
+	ol := &fakeOLClient{ //nolint:exhaustruct //err nil, nil detail → ErrNotFound path
+		err: openlibrary.ErrNotFound,
+	}
+	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
+
+	ucDesc := "Een beschrijving."
+	ucPages := 127
+	ucISBN := "9789463107389"
+	uc := &fakeUCClient{ //nolint:exhaustruct //zero values fine for err, mu, calls
+		byISBN: &ucResult{
+			title:   "10 franke vragen aan Frank",
+			authors: []string{"Vandenbroucke, Frank"},
+			isbn13:  &ucISBN,
+			desc:    &ucDesc,
+			pages:   &ucPages,
+		},
+	}
+
+	svc := &BookService{ //nolint:exhaustruct //only resync fields needed
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    ol,
+		uniCat:      uc,
+		objectStore: objectstore.NewFake(),
+	}
+
+	err := svc.resyncBook(
+		context.Background(),
+		logging.NewNopLogger(),
+		book,
+		false,
+	)
+	require.NoError(t, err)
+
+	repo.refreshMu.Lock()
+	calls := repo.refreshCalls
+	repo.refreshMu.Unlock()
+	require.Len(t, calls, 1, "UniCat metadata should trigger a DB write")
+
+	c := calls[0]
+	require.NotNil(t, c.description)
+	assert.Equal(t, "Een beschrijving.", *c.description)
+	require.NotNil(t, c.pageCount)
+	assert.Equal(t, 127, *c.pageCount)
+	require.NotNil(t, c.title)
+	assert.Equal(t, "10 franke vragen aan Frank", *c.title)
+	assert.Equal(t, []string{"Vandenbroucke, Frank"}, c.authors)
+	assert.Equal(t, 1, uc.calls, "UniCat should be called once (ISBN path)")
 }
