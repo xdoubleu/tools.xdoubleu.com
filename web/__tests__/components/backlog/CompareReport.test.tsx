@@ -9,7 +9,7 @@ import {
 } from '@/lib/gen/backlog/v1/books_pb'
 import type { BookMismatch, CompareCSVResponse } from '@/lib/gen/backlog/v1/books_pb'
 
-function makeResult(overrides: Partial<CompareCSVResponse> = {}): CompareCSVResponse {
+function makeResult(overrides = {}): CompareCSVResponse {
   return create(CompareCSVResponseSchema, overrides)
 }
 
