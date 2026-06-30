@@ -762,16 +762,18 @@ func (repo *BooksRepository) SetResyncStatus(
 	bookID uuid.UUID,
 	olFound bool,
 	gbFound bool,
+	ucFound bool,
 ) error {
 	query := `
 		UPDATE backlog.books
 		SET openlibrary_found = $2,
 		    googlebooks_found = $3,
+		    unicat_found      = $4,
 		    last_resync_at    = now(),
 		    updated_at        = now()
 		WHERE id = $1
 	`
-	_, err := repo.db.Exec(ctx, query, bookID, olFound, gbFound)
+	_, err := repo.db.Exec(ctx, query, bookID, olFound, gbFound, ucFound)
 	return postgres.PgxErrorToHTTPError(err)
 }
 

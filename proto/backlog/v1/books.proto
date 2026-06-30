@@ -283,6 +283,7 @@ message CatalogBookStatus {
   string openlibrary_status = 8;
   string googlebooks_status = 9;
   string last_resync_at = 10;
+  string unicat_status = 11;
 }
 
 message ListCatalogBooksRequest {}

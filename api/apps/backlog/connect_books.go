@@ -1260,6 +1260,15 @@ func protoCatalogBookStatus(b models.Book) *backlogv1.CatalogBookStatus {
 		}
 	}
 
+	ucStatus := ""
+	if b.UniCatFound != nil {
+		if *b.UniCatFound {
+			ucStatus = statusFound
+		} else {
+			ucStatus = statusNotFound
+		}
+	}
+
 	lastResyncAt := ""
 	if b.LastResyncAt != nil {
 		lastResyncAt = b.LastResyncAt.UTC().Format(time.RFC3339)
@@ -1275,6 +1284,7 @@ func protoCatalogBookStatus(b models.Book) *backlogv1.CatalogBookStatus {
 		HasPageCount:      b.PageCount != nil,
 		OpenlibraryStatus: olStatus,
 		GooglebooksStatus: gbStatus,
+		UnicatStatus:      ucStatus,
 		LastResyncAt:      lastResyncAt,
 	}
 }

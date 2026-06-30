@@ -217,7 +217,7 @@ func TestSetResyncStatus_UpdatesColumns(t *testing.T) {
 	require.NotNil(t, ub)
 
 	ctx := context.Background()
-	err := testApp.Repositories.Books.SetResyncStatus(ctx, ub.BookID, true, false)
+	err := testApp.Repositories.Books.SetResyncStatus(ctx, ub.BookID, true, false, true)
 	require.NoError(t, err)
 
 	// Verify by reading back via the repo.
@@ -227,6 +227,7 @@ func TestSetResyncStatus_UpdatesColumns(t *testing.T) {
 	var found *struct {
 		olFound *bool
 		gbFound *bool
+		ucFound *bool
 		resync  bool
 	}
 	for _, b := range books {
@@ -234,10 +235,12 @@ func TestSetResyncStatus_UpdatesColumns(t *testing.T) {
 			found = &struct {
 				olFound *bool
 				gbFound *bool
+				ucFound *bool
 				resync  bool
 			}{
 				olFound: b.OpenLibraryFound,
 				gbFound: b.GoogleBooksFound,
+				ucFound: b.UniCatFound,
 				resync:  b.LastResyncAt != nil,
 			}
 			break
@@ -249,6 +252,8 @@ func TestSetResyncStatus_UpdatesColumns(t *testing.T) {
 	assert.True(t, *found.olFound, "openlibrary_found must be true")
 	require.NotNil(t, found.gbFound)
 	assert.False(t, *found.gbFound, "googlebooks_found must be false")
+	require.NotNil(t, found.ucFound)
+	assert.True(t, *found.ucFound, "unicat_found must be true")
 	assert.True(t, found.resync, "last_resync_at must be set")
 }
 

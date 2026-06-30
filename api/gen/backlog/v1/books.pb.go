@@ -3373,6 +3373,7 @@ type CatalogBookStatus struct {
 	OpenlibraryStatus string                 `protobuf:"bytes,8,opt,name=openlibrary_status,json=openlibraryStatus,proto3" json:"openlibrary_status,omitempty"`
 	GooglebooksStatus string                 `protobuf:"bytes,9,opt,name=googlebooks_status,json=googlebooksStatus,proto3" json:"googlebooks_status,omitempty"`
 	LastResyncAt      string                 `protobuf:"bytes,10,opt,name=last_resync_at,json=lastResyncAt,proto3" json:"last_resync_at,omitempty"`
+	UnicatStatus      string                 `protobuf:"bytes,11,opt,name=unicat_status,json=unicatStatus,proto3" json:"unicat_status,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -3473,6 +3474,13 @@ func (x *CatalogBookStatus) GetGooglebooksStatus() string {
 func (x *CatalogBookStatus) GetLastResyncAt() string {
 	if x != nil {
 		return x.LastResyncAt
+	}
+	return ""
+}
+
+func (x *CatalogBookStatus) GetUnicatStatus() string {
+	if x != nil {
+		return x.UnicatStatus
 	}
 	return ""
 }
@@ -4333,7 +4341,7 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\rmerged_groups\x18\x01 \x01(\rR\fmergedGroups\x12#\n" +
 	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles\"\x1a\n" +
 	"\x18ResyncOpenLibraryRequest\"\x1b\n" +
-	"\x19ResyncOpenLibraryResponse\"\xdb\x02\n" +
+	"\x19ResyncOpenLibraryResponse\"\x80\x03\n" +
 	"\x11CatalogBookStatus\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -4345,7 +4353,8 @@ const file_backlog_v1_books_proto_rawDesc = "" +
 	"\x12openlibrary_status\x18\b \x01(\tR\x11openlibraryStatus\x12-\n" +
 	"\x12googlebooks_status\x18\t \x01(\tR\x11googlebooksStatus\x12$\n" +
 	"\x0elast_resync_at\x18\n" +
-	" \x01(\tR\flastResyncAt\"\x19\n" +
+	" \x01(\tR\flastResyncAt\x12#\n" +
+	"\runicat_status\x18\v \x01(\tR\funicatStatus\"\x19\n" +
 	"\x17ListCatalogBooksRequest\"O\n" +
 	"\x18ListCatalogBooksResponse\x123\n" +
 	"\x05books\x18\x01 \x03(\v2\x1d.backlog.v1.CatalogBookStatusR\x05books\"E\n" +

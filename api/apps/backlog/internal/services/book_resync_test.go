@@ -39,6 +39,7 @@ type statusCall struct {
 	bookID  uuid.UUID
 	olFound bool
 	gbFound bool
+	ucFound bool
 }
 
 // fakeBooksResync is a test stub for booksResyncSource.
@@ -108,12 +109,14 @@ func (f *fakeBooksResync) SetResyncStatus(
 	bookID uuid.UUID,
 	olFound bool,
 	gbFound bool,
+	ucFound bool,
 ) error {
 	f.statusMu.Lock()
 	f.statusCalls = append(f.statusCalls, statusCall{
 		bookID:  bookID,
 		olFound: olFound,
 		gbFound: gbFound,
+		ucFound: ucFound,
 	})
 	f.statusMu.Unlock()
 	return f.statusErr
@@ -1679,4 +1682,113 @@ func TestResyncBook_TitleOnly_MultipleMatchesSameAuthor_Accepted(t *testing.T) {
 	assert.Equal(t, isbn1, *rc.isbn13, "first result's ISBN must be used")
 	require.NotNil(t, rc.coverURL)
 	assert.Equal(t, cover1, *rc.coverURL)
+}
+
+// TestResyncBook_FullyPopulatedISBNLess_DiscoverISBN verifies that an ISBN-less
+// book with cover, description, and page count already set is NOT skipped —
+// the resync must still run a title+author search to discover and persist the
+// book's ISBN (Part 2 fix: needISBN is included in the early-skip guard).
+func TestResyncBook_FullyPopulatedISBNLess_DiscoverISBN(t *testing.T) {
+	cover := "https://example.com/cover.jpg"
+	desc := "An existing description."
+	pages := 300
+	book := models.Book{ //nolint:exhaustruct //only tested fields needed
+		ID:          uuid.New(),
+		Title:       "De Ontdekking van de Hemel",
+		Authors:     []string{"Harry Mulisch"},
+		CoverURL:    &cover,
+		Description: &desc,
+		PageCount:   &pages,
+		// ISBN13 is nil — this is the ISBN-less book that must be enriched.
+	}
+
+	discoveredISBN := "9789023443988"
+	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only searchResults
+		searchResults: []openlibrary.ExternalBook{
+			{ //nolint:exhaustruct //only relevant fields
+				Title:   "De Ontdekking van de Hemel",
+				Authors: []string{"Harry Mulisch"},
+				ISBN13:  &discoveredISBN,
+			},
+		},
+	}
+
+	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
+	store := objectstore.NewFake()
+	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    olFake,
+		objectStore: store,
+	}
+
+	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1,
+		"ISBN must be written even when cover/desc/pages are already populated")
+	rc := repo.refreshCalls[0]
+	require.NotNil(t, rc.isbn13)
+	assert.Equal(t, discoveredISBN, *rc.isbn13)
+
+	require.Len(t, repo.statusCalls, 1)
+	assert.True(t, repo.statusCalls[0].olFound)
+}
+
+// TestResyncBook_UniCatISBN_DiscoveredAndTracked verifies that when OL and GB
+// have no record of an ISBN-less book but UniCat does, the UniCat ISBN is
+// written and ucFound is recorded in the resync status (Part 3 changes).
+func TestResyncBook_UniCatISBN_DiscoveredAndTracked(t *testing.T) {
+	book := models.Book{ //nolint:exhaustruct //only tested fields needed
+		ID:      uuid.New(),
+		Title:   "Het Diner",
+		Authors: []string{"Herman Koch"},
+		// No ISBN, no cover, no description, no page count.
+	}
+
+	ucISBN := "9789041712646"
+	ucDesc := "Een beschrijving."
+	ucFake := &fakeUCClient{ //nolint:exhaustruct //only byISBN needed
+		byISBN: &ucResult{ //nolint:exhaustruct //pages not relevant here
+			title:   "Het Diner",
+			authors: []string{"Herman Koch"},
+			isbn13:  &ucISBN,
+			desc:    &ucDesc,
+		},
+	}
+
+	// OL and GB return nothing.
+	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //all zero — nothing found
+		searchResults: nil,
+	}
+	gbFake := &fakeGBClient{ //nolint:exhaustruct //byISBN nil => ErrNotFound
+		byISBN: nil,
+	}
+
+	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
+	store := objectstore.NewFake()
+	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    olFake,
+		googleBooks: gbFake,
+		uniCat:      ucFake,
+		objectStore: store,
+	}
+
+	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1, "UniCat ISBN must be persisted")
+	rc := repo.refreshCalls[0]
+	require.NotNil(t, rc.isbn13)
+	assert.Equal(t, ucISBN, *rc.isbn13)
+	require.NotNil(t, rc.description)
+	assert.Equal(t, ucDesc, *rc.description)
+
+	require.Len(t, repo.statusCalls, 1)
+	sc := repo.statusCalls[0]
+	assert.False(t, sc.olFound, "OL should be not-found")
+	assert.False(t, sc.gbFound, "GB should be not-found")
+	assert.True(t, sc.ucFound, "UniCat must be recorded as found")
 }
