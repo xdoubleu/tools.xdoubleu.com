@@ -13,13 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
-          cache: 'yarn'
+          cache: 'npm'
           node-version-file: './web/package.json'
-          cache-dependency-path: './web/yarn.lock'
-      - run: yarn install
+          cache-dependency-path: './web/package-lock.json'
+      - run: npm ci
         working-directory: './web'
-      - run: yarn lint
+      - run: npm run lint
         working-directory: './web'

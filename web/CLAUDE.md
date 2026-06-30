@@ -1,6 +1,6 @@
 # web/ — Frontend
 
-Next.js 16 App Router application served as a static export (`output: 'export'`). Run all `yarn` commands from this directory.
+Next.js 16 App Router application served as a static export (`output: 'export'`). Run all `npm` commands from this directory.
 
 ## Stack
 
@@ -25,13 +25,13 @@ Next.js 16 App Router application served as a static export (`output: 'export'`)
 ## Common Commands
 
 ```bash
-yarn build                                # Production build
-yarn lint                                 # ESLint + Prettier + tsc + knip
-yarn test                                 # Run all tests
-yarn test:cov                             # With coverage report
-yarn test:single MealPlanCalendar         # By filename
-yarn test:single -t "renders correctly"   # By test name
-yarn generate                             # Regenerate lib/gen/ from proto definitions
+npm run build                             # Production build
+npm run lint                              # ESLint + Prettier + tsc + knip
+npm test                                  # Run all tests
+npm run test:cov                          # With coverage report
+npm run test:single MealPlanCalendar      # By filename
+npm run test:single -- -t "renders correctly"  # By test name
+npm run generate                          # Regenerate lib/gen/ from proto definitions
                                           # (pair with `make proto/generate` in api/)
 ```
 
@@ -56,4 +56,4 @@ TypeScript/TSX files over ~300 lines need a split before adding more code:
 
 ## Testing
 
-Jest + React Testing Library. Run `yarn test:cov` for coverage. Target ≥80% on `components/`, `lib/`, `hooks/` (excludes `lib/gen/`).
+Jest + React Testing Library. Run `npm run test:cov` for coverage. Target ≥80% on `components/`, `lib/`, `hooks/` (excludes `lib/gen/`).

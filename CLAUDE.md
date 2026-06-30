@@ -5,7 +5,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 This file holds only cross-cutting context. Area-specific guidance lives in:
 
 - [`api/CLAUDE.md`](api/CLAUDE.md) — Go backend, Postgres, ConnectRPC, `make` commands.
-- [`web/CLAUDE.md`](web/CLAUDE.md) — Next.js frontend, UI standards, `yarn` commands.
+- [`web/CLAUDE.md`](web/CLAUDE.md) — Next.js frontend, UI standards, `npm` commands.
 
 Claude Code auto-loads the `CLAUDE.md` of the current working directory, so the area files only load when you are working in that area.
 
@@ -43,7 +43,7 @@ When a `.proto` file changes, **both** generators must run — a change without 
 make proto/generate     # regenerates api/gen/ Go stubs
 
 # From web/
-yarn generate           # regenerates web/lib/gen/ TypeScript clients
+npm run generate        # regenerates web/lib/gen/ TypeScript clients
 ```
 
 Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed; CI regenerates them automatically via `build.yml`.
@@ -71,7 +71,7 @@ After every code change, always run **both** of the following before reporting t
    cd api && make lint/fix
 
    # web changes
-   cd web && yarn lint
+   cd web && npm run lint
    ```
 
 2. **Coverage** — target ≥ 80% on the changed code. Run the coverage report and confirm the diff is covered:
@@ -81,7 +81,7 @@ After every code change, always run **both** of the following before reporting t
    cd api && docker-compose up -d && make test/cov/report && docker-compose down
 
    # web
-   cd web && yarn test:cov
+   cd web && npm run test:cov
    ```
 
    Always start the DB with `docker-compose up -d` (from `api/`) before running api tests and stop it with `docker-compose down` afterwards. Do not silently skip this step.
@@ -93,10 +93,10 @@ These two steps are **not optional**. Do not mark any task complete without runn
 See `.github/workflows/` for the pipeline. `main.yml` orchestrates reusable workflows: `proto-check`, `build-api`, `build-web`, `api-lint`, `api-test`, `web-lint`, `web-test`, gated by a `changes` path filter.
 
 - **On pull requests** (and `workflow_dispatch`): the full suite runs. Lint and test run in parallel with the builds (they compile independently — they do not wait on `build-*`). The `ci-pass` job aggregates them and is the required status check. It also waits for Codecov to post its commit statuses (`codecov/project`, `codecov/patch`) and fails if Codecov reports a failure — so coverage gating flows through `ci-pass` without it recomputing coverage itself. The wait is skipped when neither test job ran (no upload, so no Codecov status to wait for).
-- **On push to `main`**: lint, build, and proto-check do **not** re-run — the PR's green checks are trusted. `changes → docker → deploy` is the deploy path; Docker's own multi-stage build is the build gate (a failed `go build`/`yarn build` stops the push and deploy). `docker.yml` uses GitHub Actions layer caching (`type=gha`, scoped per image) so unchanged dependency layers are reused. `deploy` then triggers the DigitalOcean deployment. The `api-test`/`web-test` jobs **do** re-run on push (gated by the `changes` filter), but only to refresh Codecov's default-branch baseline — they run in parallel and `docker`/`deploy` do **not** depend on them, so deployment is never gated by tests. `ci-pass` stays PR-only.
+- **On push to `main`**: lint, build, and proto-check do **not** re-run — the PR's green checks are trusted. `changes → docker → deploy` is the deploy path; Docker's own multi-stage build is the build gate (a failed `go build`/`npm run build` stops the push and deploy). `docker.yml` uses GitHub Actions layer caching (`type=gha`, scoped per image) so unchanged dependency layers are reused. `deploy` then triggers the DigitalOcean deployment. The `api-test`/`web-test` jobs **do** re-run on push (gated by the `changes` filter), but only to refresh Codecov's default-branch baseline — they run in parallel and `docker`/`deploy` do **not** depend on them, so deployment is never gated by tests. `ci-pass` stays PR-only.
 
 Because `main` is deployed without re-testing, protect `main` from direct pushes and merge only PRs whose CI passed.
 
 ## Docs Impact
 
-When a change touches project structure, packages, Make/yarn targets, shared services, or architecture conventions, update the relevant `CLAUDE.md` (root / `api/` / `web/`) and `README.md` in the same change.
+When a change touches project structure, packages, Make/npm targets, shared services, or architecture conventions, update the relevant `CLAUDE.md` (root / `api/` / `web/`) and `README.md` in the same change.

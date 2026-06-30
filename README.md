@@ -25,19 +25,19 @@ cd api && docker-compose up -d
 cd api && make run
 
 # Run development server (Web)
-cd web && yarn dev
+cd web && npm run dev
 
 # Run tests (API)
 cd api && make test
 
 # Run tests (Web)
-cd web && yarn test
+cd web && npm test
 
 # Build the API binary
 cd api && make build
 
 # Build the web frontend
-cd web && yarn build
+cd web && npm run build
 
 # Stop the database
 cd api && docker-compose down
@@ -58,13 +58,13 @@ cd api && docker-compose down
 
 | Command | Purpose |
 | --- | --- |
-| `yarn dev` | Start development server |
-| `yarn build` | Build static export |
-| `yarn test` | Run tests |
-| `yarn test:cov` | Run tests with coverage |
-| `yarn lint` | Run ESLint + Prettier |
-| `yarn generate` | Regenerate TypeScript ConnectRPC clients from proto definitions (output: `web/lib/gen/`, committed) |
-| `yarn lint:fix` | Auto-fix ESLint issues and reformat with Prettier |
+| `npm run dev` | Start development server |
+| `npm run build` | Build static export |
+| `npm test` | Run tests |
+| `npm run test:cov` | Run tests with coverage |
+| `npm run lint` | Run ESLint + Prettier |
+| `npm run generate` | Regenerate TypeScript ConnectRPC clients from proto definitions (output: `web/lib/gen/`, committed) |
+| `npm run lint:fix` | Auto-fix ESLint issues and reformat with Prettier |
 
 ## Architecture
 

@@ -4,11 +4,9 @@ ARG RELEASE=dev
 
 WORKDIR /app
 
-RUN corepack enable
+COPY web/package.json web/package-lock.json ./
 
-COPY web/package.json web/yarn.lock web/.yarnrc.yml ./
-
-RUN yarn install --immutable
+RUN npm ci
 
 COPY web/app app
 COPY web/components components
@@ -20,7 +18,7 @@ COPY web/next.config.ts web/tsconfig.json web/postcss.config.js \
      web/next-env.d.ts ./
 
 ENV RELEASE=${RELEASE}
-RUN yarn build
+RUN npm run build
 
 FROM node:24-alpine AS server
 
