@@ -6,12 +6,14 @@ import { ListCatalogBooksResponseSchema } from '@/lib/gen/backlog/v1/books_pb'
 const mockResyncBooks = jest.fn()
 const mockResyncOpenLibrary = jest.fn()
 const mockSetBookISBN = jest.fn()
+const mockMergeBooks = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useCatalogBooks: jest.fn(),
   useResyncBooks: () => mockResyncBooks,
   useResyncOpenLibrary: () => mockResyncOpenLibrary,
-  useSetBookISBN: () => mockSetBookISBN
+  useSetBookISBN: () => mockSetBookISBN,
+  useMergeBooks: () => mockMergeBooks
 }))
 
 jest.mock('@/lib/backlog/progressSocket', () => ({
@@ -45,6 +47,7 @@ const sampleBooks = [
     hasPageCount: false,
     openlibraryStatus: 'not_found',
     googlebooksStatus: '',
+    unicatStatus: '',
     lastResyncAt: '2026-01-01T00:00:00Z'
   },
   {
@@ -59,6 +62,7 @@ const sampleBooks = [
     hasPageCount: true,
     openlibraryStatus: 'found',
     googlebooksStatus: 'not_found',
+    unicatStatus: 'not_found',
     lastResyncAt: '2026-01-01T00:00:00Z'
   },
   {
@@ -71,6 +75,7 @@ const sampleBooks = [
     hasPageCount: true,
     openlibraryStatus: 'found',
     googlebooksStatus: 'found',
+    unicatStatus: '',
     lastResyncAt: '2026-01-01T00:00:00Z'
   },
   {
@@ -84,6 +89,7 @@ const sampleBooks = [
     hasPageCount: false,
     openlibraryStatus: 'not_found',
     googlebooksStatus: 'not_found',
+    unicatStatus: 'not_found',
     lastResyncAt: '2026-01-01T00:00:00Z'
   }
 ]
@@ -111,6 +117,7 @@ describe('SelectiveResync', () => {
       refresh: jest.fn()
     })
     mockSetBookISBN.mockResolvedValue({})
+    mockMergeBooks.mockResolvedValue({})
   })
 
   // ---------------------------------------------------------------------------
@@ -592,6 +599,42 @@ describe('SelectiveResync', () => {
     })
     fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
     await waitFor(() => {
+      expect(mutate).toHaveBeenCalledWith('/backlog/books/catalog')
+    })
+  })
+
+  it('opens the merge dialog when the entered ISBN belongs to another catalog entry', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    // book-2 already has ISBN 9780140449112 — entering it for book-1 triggers collision.
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449112' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(
+        screen.getByText('ISBN already assigned — merge entries?')
+      ).toBeInTheDocument()
+    })
+    // setBookISBN must NOT have been called — we go via merge instead.
+    expect(mockSetBookISBN).not.toHaveBeenCalled()
+  })
+
+  it('calls mergeBooks with winner=existing and losers=group.ids on confirm', async () => {
+    const { mutate } = await import('swr')
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449112' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(screen.getByText('ISBN already assigned — merge entries?')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Merge entries' }))
+    await waitFor(() => {
+      // winner = book-2 (existing ISBN holder), loser = ['book-1']
+      expect(mockMergeBooks).toHaveBeenCalledWith('book-2', ['book-1'])
       expect(mutate).toHaveBeenCalledWith('/backlog/books/catalog')
     })
   })

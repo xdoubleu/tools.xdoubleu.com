@@ -12,20 +12,24 @@ import { useProgressSocket } from '@/lib/backlog/progressSocket'
 import { normalizeTitle, normalizeAuthor } from '@/lib/backlog/normalizeBook'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import ConfirmIsbnMergeDialog, {
+  type IsbnMergeTarget
+} from '@/components/backlog/ConfirmIsbnMergeDialog'
 import type { CatalogBookStatus } from '@/lib/gen/backlog/v1/books_pb'
 
 // ---------------------------------------------------------------------------
 // Filter chip types
 // ---------------------------------------------------------------------------
 
-type FilterKey = 'missing_isbn' | 'not_in_ol' | 'not_in_gb'
+type FilterKey = 'missing_isbn' | 'not_in_ol' | 'not_in_gb' | 'not_in_uc'
 
-const FILTER_KEYS: FilterKey[] = ['missing_isbn', 'not_in_ol', 'not_in_gb']
+const FILTER_KEYS: FilterKey[] = ['missing_isbn', 'not_in_ol', 'not_in_gb', 'not_in_uc']
 
 const FILTER_LABELS: Record<FilterKey, string> = {
   missing_isbn: 'Missing ISBN',
   not_in_ol: 'Not in Open Library',
-  not_in_gb: 'Not in Google Books'
+  not_in_gb: 'Not in Google Books',
+  not_in_uc: 'Not in UniCat'
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +56,7 @@ interface CatalogGroup {
   hasPageCount: boolean
   openlibraryStatus: string
   googlebooksStatus: string
+  unicatStatus: string
   lastResyncAt: string
   count: number
 }
@@ -159,6 +164,7 @@ function groupBooks(books: CatalogBookStatus[]): CatalogGroup[] {
       hasPageCount: members.some((m) => m.hasPageCount),
       openlibraryStatus: statusSource.openlibraryStatus,
       googlebooksStatus: statusSource.googlebooksStatus,
+      unicatStatus: statusSource.unicatStatus,
       lastResyncAt: statusSource.lastResyncAt,
       count: members.length
     })
@@ -181,6 +187,15 @@ function matchesFilter(group: CatalogGroup, filter: FilterKey): boolean {
       // Only flag when Open Library also did not find it — a group already
       // sourced from OL has its metadata covered, so GB absence is not actionable.
       return group.googlebooksStatus === 'not_found' && group.openlibraryStatus !== 'found'
+    case 'not_in_uc':
+      // Only flag when neither OL nor GB found it — UniCat is a last-resort
+      // fallback for Dutch/Flemish books, so its absence is only actionable
+      // when the other providers also came up empty.
+      return (
+        group.unicatStatus === 'not_found' &&
+        group.openlibraryStatus !== 'found' &&
+        group.googlebooksStatus !== 'found'
+      )
   }
 }
 
@@ -240,6 +255,8 @@ export default function SelectiveResync() {
   // Per-group ISBN input values and per-group saving state.
   const [isbnInputs, setIsbnInputs] = useState<Record<string, string>>({})
   const [savingIsbnKey, setSavingIsbnKey] = useState<string | null>(null)
+  // Merge-on-collision state: set when the entered ISBN belongs to another entry.
+  const [mergeTarget, setMergeTarget] = useState<IsbnMergeTarget | null>(null)
 
   const { isRefreshing, processed, total } = useProgressSocket(
     'resync-openlibrary',
@@ -281,6 +298,24 @@ export default function SelectiveResync() {
       return
     }
     setError(null)
+
+    // Check whether the entered ISBN already belongs to a different catalog entry.
+    const allBooks = data?.books ?? []
+    const groupIdSet = new Set(group.ids)
+    const existing = allBooks.find((b) => b.isbn13 === normalized && !groupIdSet.has(b.id))
+    if (existing) {
+      // ISBN collision: prompt to merge instead of setting directly.
+      setMergeTarget({
+        winnerId: existing.id,
+        winnerTitle: existing.title,
+        winnerAuthors: [...existing.authors],
+        loserIds: group.ids,
+        loserTitle: group.title,
+        loserAuthors: [...group.authors]
+      })
+      return
+    }
+
     setSavingIsbnKey(group.key)
     try {
       await setBookISBN(group.representativeId, normalized)
@@ -407,6 +442,16 @@ export default function SelectiveResync() {
                           GB: <ResyncStatusBadge status={group.googlebooksStatus} />
                         </span>
                       )}
+                      {/* Only surface UniCat when neither OL nor GB found it, or
+                          when UniCat did find it (positive signal). */}
+                      {group.unicatStatus &&
+                        (group.unicatStatus === 'found' ||
+                          (group.openlibraryStatus !== 'found' &&
+                            group.googlebooksStatus !== 'found')) && (
+                          <span className="text-xs text-muted">
+                            UC: <ResyncStatusBadge status={group.unicatStatus} />
+                          </span>
+                        )}
                     </div>
                   )}
                 </div>
@@ -446,6 +491,8 @@ export default function SelectiveResync() {
       )}
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+
+      <ConfirmIsbnMergeDialog target={mergeTarget} onClose={() => setMergeTarget(null)} />
     </div>
   )
 }

@@ -37,6 +37,7 @@ type booksResyncSource interface {
 		bookID uuid.UUID,
 		olFound bool,
 		gbFound bool,
+		ucFound bool,
 	) error
 }
 
@@ -66,6 +67,7 @@ type resyncResolution struct {
 	authors []string
 	olFound bool
 	gbFound bool
+	ucFound bool
 }
 
 // ResyncAllFromOpenLibrary backfills metadata for every catalog book that is
@@ -215,14 +217,17 @@ func (s *BookService) resyncBook(
 	needCover := force || book.CoverURL == nil || *book.CoverURL == ""
 	needDesc := force || book.Description == nil || *book.Description == ""
 	needPages := force || book.PageCount == nil
+	hasISBN := book.ISBN13 != nil && *book.ISBN13 != ""
+	needISBN := !hasISBN
 
 	// Nothing to backfill and not forced — skip all network calls.
-	if !needCover && !needDesc && !needPages {
+	// needISBN is included: an ISBN-less book with otherwise-complete metadata
+	// still deserves a title/author search to discover and persist its ISBN.
+	if !needCover && !needDesc && !needPages && !needISBN {
 		return nil
 	}
 
 	var res resyncResolution
-	hasISBN := book.ISBN13 != nil && *book.ISBN13 != ""
 
 	// --- Phase 1: ISBN lookup (OL then GB) ---
 	if hasISBN {
@@ -249,14 +254,13 @@ func (s *BookService) resyncBook(
 	stillNeedCover := needCover && res.coverURL == nil
 	stillNeedDesc := needDesc && res.description == nil
 	stillNeedPages := needPages && res.pageCount == nil
-	needsISBN := !hasISBN // ISBN-less books always need the search path
 	hasTitle := book.Title != ""
 
 	if hasTitle &&
-		(needsISBN || stillNeedCover || stillNeedDesc || stillNeedPages) {
+		(needISBN || stillNeedCover || stillNeedDesc || stillNeedPages) {
 		taRes := s.resolveByTitleAuthor(
 			ctx, logger, book,
-			needsISBN, stillNeedCover, stillNeedDesc, stillNeedPages,
+			needISBN, stillNeedCover, stillNeedDesc, stillNeedPages,
 		)
 
 		// Merge: fill only empty slots.
@@ -285,11 +289,12 @@ func (s *BookService) resyncBook(
 		}
 		res.olFound = res.olFound || taRes.olFound
 		res.gbFound = res.gbFound || taRes.gbFound
+		res.ucFound = res.ucFound || taRes.ucFound
 	}
 
 	// Record provider outcomes regardless of whether metadata was written.
 	if statusErr := s.resyncRepo().SetResyncStatus(
-		ctx, book.ID, res.olFound, res.gbFound,
+		ctx, book.ID, res.olFound, res.gbFound, res.ucFound,
 	); statusErr != nil {
 		logger.WarnContext(ctx, "failed to record resync status",
 			slog.String("bookID", book.ID.String()),
@@ -401,6 +406,7 @@ func (s *BookService) resolveByISBN(
 			)
 		}
 		if ucDetail != nil {
+			res.ucFound = true
 			if stillNeedDesc2 && ucDetail.Description != nil {
 				res.description = ucDetail.Description
 			}
@@ -560,6 +566,7 @@ func (s *BookService) resolveByTitleAuthor(
 				if !titleAuthorMatch(book.Title, book.Authors, r.Title, r.Authors) {
 					continue
 				}
+				res.ucFound = true
 				if needDesc && res.description == nil && r.Description != nil {
 					res.description = r.Description
 				}
@@ -610,6 +617,7 @@ func (s *BookService) resolveByTitleAuthor(
 		}
 		res.olFound = res.olFound || toRes.olFound
 		res.gbFound = res.gbFound || toRes.gbFound
+		res.ucFound = res.ucFound || toRes.ucFound
 	}
 
 	return res
@@ -749,6 +757,7 @@ func (s *BookService) resolveByTitleOnly(
 				}
 			}
 			if m, ok := selectTitleOnlyMatch(book.Title, cands); ok {
+				res.ucFound = true
 				if needDesc && res.description == nil && m.description != nil {
 					res.description = m.description
 				}

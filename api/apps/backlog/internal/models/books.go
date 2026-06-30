@@ -50,6 +50,7 @@ type Book struct {
 	// Nil means the book has never been processed by a resync run.
 	OpenLibraryFound *bool
 	GoogleBooksFound *bool
+	UniCatFound      *bool
 	LastResyncAt     *time.Time
 }
 
