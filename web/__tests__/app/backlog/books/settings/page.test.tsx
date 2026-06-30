@@ -5,6 +5,7 @@ const mockImportBooks = jest.fn()
 
 jest.mock('@/hooks/useBacklog', () => ({
   useImportBooks: () => mockImportBooks,
+  useCompareCSV: () => jest.fn(),
   useClearLibrary: () => jest.fn()
 }))
 
@@ -30,6 +31,11 @@ jest.mock('@/components/backlog/KoboDevices', () => ({
 jest.mock('@/components/backlog/ClearLibraryDialog', () => ({
   __esModule: true,
   default: ({ open }: { open: boolean }) => (open ? <div data-testid="clear-dialog" /> : null)
+}))
+
+jest.mock('@/components/backlog/CompareReport', () => ({
+  __esModule: true,
+  default: () => <div data-testid="compare-report" />
 }))
 
 jest.mock('swr', () => ({ __esModule: true, mutate: jest.fn(), default: jest.fn() }))

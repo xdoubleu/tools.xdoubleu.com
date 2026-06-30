@@ -1344,3 +1344,53 @@ func int32FromIntPtr(i *int) int32 {
 	}
 	return int32FromInt(*i)
 }
+
+func (h *booksConnectHandler) CompareCSV(
+	ctx context.Context,
+	req *connect.Request[backlogv1.CompareCSVRequest],
+) (*connect.Response[backlogv1.CompareCSVResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	result, err := h.app.Services.Books.CompareCSV(
+		ctx,
+		user.ID,
+		bytes.NewReader(req.Msg.CsvData),
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	mismatches := make([]*backlogv1.BookMismatch, len(result.Mismatches))
+	for i, m := range result.Mismatches {
+		mismatches[i] = &backlogv1.BookMismatch{
+			Csv:         protoCompareRef(m.CSV),
+			Library:     protoCompareRef(m.Library),
+			Differences: m.Differences,
+		}
+	}
+
+	//nolint:gosec // safe for domain counts
+	return connect.NewResponse(&backlogv1.CompareCSVResponse{
+		CsvCount:     int32(result.CSVCount),
+		LibraryCount: int32(result.LibraryCount),
+		MatchedCount: int32(result.MatchedCount),
+		Mismatches:   mismatches,
+	}), nil
+}
+
+func protoCompareRef(r *services.CompareRef) *backlogv1.BookRef {
+	if r == nil {
+		return nil
+	}
+	return &backlogv1.BookRef{
+		Title:   r.Title,
+		Authors: r.Authors,
+		Isbn13:  r.ISBN13,
+		Status:  r.Status,
+	}
+}

@@ -125,6 +125,8 @@ const (
 	BooksServiceRenameTagProcedure = "/backlog.v1.BooksService/RenameTag"
 	// BooksServiceDeleteTagProcedure is the fully-qualified name of the BooksService's DeleteTag RPC.
 	BooksServiceDeleteTagProcedure = "/backlog.v1.BooksService/DeleteTag"
+	// BooksServiceCompareCSVProcedure is the fully-qualified name of the BooksService's CompareCSV RPC.
+	BooksServiceCompareCSVProcedure = "/backlog.v1.BooksService/CompareCSV"
 )
 
 // BooksServiceClient is a client for the backlog.v1.BooksService service.
@@ -162,6 +164,7 @@ type BooksServiceClient interface {
 	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
 	RenameTag(context.Context, *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error)
 	DeleteTag(context.Context, *connect.Request[v1.DeleteTagRequest]) (*connect.Response[v1.DeleteTagResponse], error)
+	CompareCSV(context.Context, *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error)
 }
 
 // NewBooksServiceClient constructs a client for the backlog.v1.BooksService service. By default, it
@@ -373,6 +376,12 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(booksServiceMethods.ByName("DeleteTag")),
 			connect.WithClientOptions(opts...),
 		),
+		compareCSV: connect.NewClient[v1.CompareCSVRequest, v1.CompareCSVResponse](
+			httpClient,
+			baseURL+BooksServiceCompareCSVProcedure,
+			connect.WithSchema(booksServiceMethods.ByName("CompareCSV")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -411,6 +420,7 @@ type booksServiceClient struct {
 	deleteShelf            *connect.Client[v1.DeleteShelfRequest, v1.DeleteShelfResponse]
 	renameTag              *connect.Client[v1.RenameTagRequest, v1.RenameTagResponse]
 	deleteTag              *connect.Client[v1.DeleteTagRequest, v1.DeleteTagResponse]
+	compareCSV             *connect.Client[v1.CompareCSVRequest, v1.CompareCSVResponse]
 }
 
 // GetSummary calls backlog.v1.BooksService.GetSummary.
@@ -578,6 +588,11 @@ func (c *booksServiceClient) DeleteTag(ctx context.Context, req *connect.Request
 	return c.deleteTag.CallUnary(ctx, req)
 }
 
+// CompareCSV calls backlog.v1.BooksService.CompareCSV.
+func (c *booksServiceClient) CompareCSV(ctx context.Context, req *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error) {
+	return c.compareCSV.CallUnary(ctx, req)
+}
+
 // BooksServiceHandler is an implementation of the backlog.v1.BooksService service.
 type BooksServiceHandler interface {
 	GetSummary(context.Context, *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error)
@@ -613,6 +628,7 @@ type BooksServiceHandler interface {
 	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
 	RenameTag(context.Context, *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error)
 	DeleteTag(context.Context, *connect.Request[v1.DeleteTagRequest]) (*connect.Response[v1.DeleteTagResponse], error)
+	CompareCSV(context.Context, *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error)
 }
 
 // NewBooksServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -820,6 +836,12 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(booksServiceMethods.ByName("DeleteTag")),
 		connect.WithHandlerOptions(opts...),
 	)
+	booksServiceCompareCSVHandler := connect.NewUnaryHandler(
+		BooksServiceCompareCSVProcedure,
+		svc.CompareCSV,
+		connect.WithSchema(booksServiceMethods.ByName("CompareCSV")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/backlog.v1.BooksService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BooksServiceGetSummaryProcedure:
@@ -888,6 +910,8 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 			booksServiceRenameTagHandler.ServeHTTP(w, r)
 		case BooksServiceDeleteTagProcedure:
 			booksServiceDeleteTagHandler.ServeHTTP(w, r)
+		case BooksServiceCompareCSVProcedure:
+			booksServiceCompareCSVHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1027,4 +1051,8 @@ func (UnimplementedBooksServiceHandler) RenameTag(context.Context, *connect.Requ
 
 func (UnimplementedBooksServiceHandler) DeleteTag(context.Context, *connect.Request[v1.DeleteTagRequest]) (*connect.Response[v1.DeleteTagResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.DeleteTag is not implemented"))
+}
+
+func (UnimplementedBooksServiceHandler) CompareCSV(context.Context, *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.CompareCSV is not implemented"))
 }

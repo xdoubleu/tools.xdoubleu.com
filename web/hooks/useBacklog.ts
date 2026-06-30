@@ -122,6 +122,14 @@ export function useImportBooks() {
   }
 }
 
+export function useCompareCSV() {
+  const client = createServiceClient(BooksService)
+  return (csvData: string) => {
+    const encoder = new TextEncoder()
+    return client.compareCSV({ csvData: encoder.encode(csvData) })
+  }
+}
+
 export function useUpdateBookStatus() {
   const client = createServiceClient(BooksService)
   return (req: UpdateBookStatusInput) => client.updateBookStatus(req)
