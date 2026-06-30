@@ -28,9 +28,7 @@ function MismatchRow({ m, tag }: { m: BookMismatch; tag: string }) {
     return (
       <li className="py-1 text-sm">
         <span className="font-medium">{bookLabel(m, 'csv')}</span>
-        {m.csv?.isbn13 && (
-          <span className="ml-2 text-xs text-muted">{m.csv.isbn13}</span>
-        )}
+        {m.csv?.isbn13 && <span className="ml-2 text-xs text-muted">{m.csv.isbn13}</span>}
       </li>
     )
   }
@@ -38,9 +36,7 @@ function MismatchRow({ m, tag }: { m: BookMismatch; tag: string }) {
     return (
       <li className="py-1 text-sm">
         <span className="font-medium">{bookLabel(m, 'library')}</span>
-        {m.library?.isbn13 && (
-          <span className="ml-2 text-xs text-muted">{m.library.isbn13}</span>
-        )}
+        {m.library?.isbn13 && <span className="ml-2 text-xs text-muted">{m.library.isbn13}</span>}
       </li>
     )
   }
@@ -50,8 +46,8 @@ function MismatchRow({ m, tag }: { m: BookMismatch; tag: string }) {
       <span className="font-medium">{bookLabel(m, 'csv')}</span>
       {tag === 'status' && (
         <span className="ml-2 text-xs text-muted">
-          CSV: <Badge variant="secondary">{m.csv?.status || 'none'}</Badge>
-          {' '}Library: <Badge variant="secondary">{m.library?.status || 'none'}</Badge>
+          CSV: <Badge variant="secondary">{m.csv?.status || 'none'}</Badge> Library:{' '}
+          <Badge variant="secondary">{m.library?.status || 'none'}</Badge>
         </span>
       )}
       {tag === 'isbn' && (
@@ -60,9 +56,7 @@ function MismatchRow({ m, tag }: { m: BookMismatch; tag: string }) {
         </span>
       )}
       {tag === 'title' && (
-        <span className="ml-2 text-xs text-muted">
-          Library title: {m.library?.title}
-        </span>
+        <span className="ml-2 text-xs text-muted">Library title: {m.library?.title}</span>
       )}
     </li>
   )
@@ -101,28 +95,28 @@ export default function CompareReport({ result }: Props) {
     {
       label: 'Only in CSV (not in library)',
       tag: 'missing-in-library',
-      items: result.mismatches.filter((m) => m.differences.includes('missing-in-library')),
+      items: result.mismatches.filter((m) => m.differences.includes('missing-in-library'))
     },
     {
       label: 'Only in library (not in CSV)',
       tag: 'missing-in-csv',
-      items: result.mismatches.filter((m) => m.differences.includes('missing-in-csv')),
+      items: result.mismatches.filter((m) => m.differences.includes('missing-in-csv'))
     },
     {
       label: 'Reading state differs',
       tag: 'status',
-      items: result.mismatches.filter((m) => m.differences.includes('status')),
+      items: result.mismatches.filter((m) => m.differences.includes('status'))
     },
     {
       label: 'ISBN differs',
       tag: 'isbn',
-      items: result.mismatches.filter((m) => m.differences.includes('isbn')),
+      items: result.mismatches.filter((m) => m.differences.includes('isbn'))
     },
     {
       label: 'Title differs',
       tag: 'title',
-      items: result.mismatches.filter((m) => m.differences.includes('title')),
-    },
+      items: result.mismatches.filter((m) => m.differences.includes('title'))
+    }
   ]
 
   const allMatch = result.mismatches.length === 0
@@ -130,10 +124,18 @@ export default function CompareReport({ result }: Props) {
   return (
     <Card className="mt-4 rounded-2xl p-4">
       <div className="mb-3 flex gap-4 text-sm text-muted">
-        <span>CSV: <strong className="text-fg">{result.csvCount}</strong></span>
-        <span>Library: <strong className="text-fg">{result.libraryCount}</strong></span>
-        <span>Matched: <strong className="text-fg">{result.matchedCount}</strong></span>
-        <span>Mismatches: <strong className="text-fg">{result.mismatches.length}</strong></span>
+        <span>
+          CSV: <strong className="text-fg">{result.csvCount}</strong>
+        </span>
+        <span>
+          Library: <strong className="text-fg">{result.libraryCount}</strong>
+        </span>
+        <span>
+          Matched: <strong className="text-fg">{result.matchedCount}</strong>
+        </span>
+        <span>
+          Mismatches: <strong className="text-fg">{result.mismatches.length}</strong>
+        </span>
       </div>
       {allMatch ? (
         <p className="text-sm text-success">CSV matches library exactly.</p>

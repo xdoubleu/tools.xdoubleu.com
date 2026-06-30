@@ -96,8 +96,8 @@ export default function BacklogBooksSettingsPage() {
           Compare with Goodreads CSV
         </h2>
         <p className="mb-3 text-xs text-muted">
-          Upload a Goodreads export to see what differs from your library — presence,
-          reading state, ISBNs, and titles. Nothing is changed.
+          Upload a Goodreads export to see what differs from your library — presence, reading state,
+          ISBNs, and titles. Nothing is changed.
         </p>
         <div className="flex items-center gap-2">
           <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover">

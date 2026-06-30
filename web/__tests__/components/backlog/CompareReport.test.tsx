@@ -5,7 +5,7 @@ import CompareReport from '@/components/backlog/CompareReport'
 import {
   BookMismatchSchema,
   BookRefSchema,
-  CompareCSVResponseSchema,
+  CompareCSVResponseSchema
 } from '@/lib/gen/backlog/v1/books_pb'
 import type { BookMismatch, CompareCSVResponse } from '@/lib/gen/backlog/v1/books_pb'
 
@@ -26,7 +26,7 @@ function makeMismatch(
           title: csvTitle,
           authors: ['Author A'],
           isbn13: '9780000000001',
-          status: 'read',
+          status: 'read'
         }),
     library: differences.includes('missing-in-library')
       ? undefined
@@ -34,8 +34,8 @@ function makeMismatch(
           title: libTitle,
           authors: ['Author A'],
           isbn13: '9780000000001',
-          status: 'to-read',
-        }),
+          status: 'to-read'
+        })
   })
 }
 
@@ -50,7 +50,7 @@ describe('CompareReport', () => {
       csvCount: 10,
       libraryCount: 8,
       matchedCount: 6,
-      mismatches: [makeMismatch(['missing-in-library'])],
+      mismatches: [makeMismatch(['missing-in-library'])]
     })
     render(<CompareReport result={result} />)
     expect(screen.getByText('10')).toBeInTheDocument()
@@ -60,7 +60,7 @@ describe('CompareReport', () => {
 
   it('shows missing-in-library group with CSV title', () => {
     const result = makeResult({
-      mismatches: [makeMismatch(['missing-in-library'], 'Gone Book')],
+      mismatches: [makeMismatch(['missing-in-library'], 'Gone Book')]
     })
     render(<CompareReport result={result} />)
     expect(screen.getByText(/Only in CSV/i)).toBeInTheDocument()
@@ -69,7 +69,7 @@ describe('CompareReport', () => {
 
   it('shows missing-in-csv group with library title', () => {
     const result = makeResult({
-      mismatches: [makeMismatch(['missing-in-csv'], '', 'Orphan Book')],
+      mismatches: [makeMismatch(['missing-in-csv'], '', 'Orphan Book')]
     })
     render(<CompareReport result={result} />)
     expect(screen.getByText(/Only in library/i)).toBeInTheDocument()
@@ -78,7 +78,7 @@ describe('CompareReport', () => {
 
   it('shows status diff group', () => {
     const result = makeResult({
-      mismatches: [makeMismatch(['status'])],
+      mismatches: [makeMismatch(['status'])]
     })
     render(<CompareReport result={result} />)
     expect(screen.getByText(/Reading state differs/i)).toBeInTheDocument()
@@ -86,7 +86,7 @@ describe('CompareReport', () => {
 
   it('shows isbn diff group', () => {
     const result = makeResult({
-      mismatches: [makeMismatch(['isbn'])],
+      mismatches: [makeMismatch(['isbn'])]
     })
     render(<CompareReport result={result} />)
     expect(screen.getByText(/ISBN differs/i)).toBeInTheDocument()
@@ -94,7 +94,7 @@ describe('CompareReport', () => {
 
   it('shows title diff group', () => {
     const result = makeResult({
-      mismatches: [makeMismatch(['title'])],
+      mismatches: [makeMismatch(['title'])]
     })
     render(<CompareReport result={result} />)
     expect(screen.getByText(/Title differs/i)).toBeInTheDocument()
@@ -102,7 +102,7 @@ describe('CompareReport', () => {
 
   it('does not render empty groups', () => {
     const result = makeResult({
-      mismatches: [makeMismatch(['missing-in-library'])],
+      mismatches: [makeMismatch(['missing-in-library'])]
     })
     render(<CompareReport result={result} />)
     // Only the CSV-only group has items; library-only and others should not render

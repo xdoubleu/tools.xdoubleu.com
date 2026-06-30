@@ -862,4 +862,3 @@ func TestConnectCompareCSV(t *testing.T) {
 	assert.GreaterOrEqual(t, resp.Msg.CsvCount, int32(0))
 	assert.GreaterOrEqual(t, resp.Msg.LibraryCount, int32(0))
 }
-
