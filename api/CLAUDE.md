@@ -27,7 +27,7 @@ make lint                   # Run all linters (Go + SQL)
 make lint/fix               # Auto-fix issues
 make lint/pkg PKG=apps/recipes  # Lint a single package
 
-# Proto code generation (also run `yarn generate` from web/ — they're paired)
+# Proto code generation (also run `npm run generate` from web/ — they're paired)
 make proto/generate
 ```
 

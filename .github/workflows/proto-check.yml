@@ -38,7 +38,7 @@ jobs:
       - name: Fail if proto stubs are stale
         run: |
           git diff --exit-code api/gen/ web/lib/gen/ || \
-            (echo "Proto stubs are out of date. Run 'make proto/generate' in api/ and 'yarn generate' in web/ then commit the results." && exit 1)
+            (echo "Proto stubs are out of date. Run 'make proto/generate' in api/ and 'npm run generate' in web/ then commit the results." && exit 1)
       - name: Lint proto files
         run: buf lint
         working-directory: './proto'
