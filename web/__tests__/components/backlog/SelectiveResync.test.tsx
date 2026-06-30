@@ -612,9 +612,7 @@ describe('SelectiveResync', () => {
     })
     fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
     await waitFor(() => {
-      expect(
-        screen.getByText('ISBN already assigned — merge entries?')
-      ).toBeInTheDocument()
+      expect(screen.getByText('ISBN already assigned — merge entries?')).toBeInTheDocument()
     })
     // setBookISBN must NOT have been called — we go via merge instead.
     expect(mockSetBookISBN).not.toHaveBeenCalled()
