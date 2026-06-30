@@ -313,6 +313,34 @@ message RenameTagResponse { uint32 affected = 1; }
 message DeleteTagRequest { string name = 1; }
 message DeleteTagResponse { uint32 affected = 1; }
 
+// BookRef is a lightweight snapshot of one book used in CSV comparison results.
+message BookRef {
+  string title = 1;
+  repeated string authors = 2;
+  string isbn13 = 3;
+  // status is the reading shelf/state (e.g. "read", "to-read", custom shelf).
+  string status = 4;
+}
+
+// BookMismatch describes one pair of entries that differ between the CSV and
+// the library. csv or library may be empty (zero-value) when the book only
+// exists on one side. differences lists the active tags from the set:
+//   "missing-in-library", "missing-in-csv", "status", "isbn", "title"
+message BookMismatch {
+  BookRef csv = 1;
+  BookRef library = 2;
+  repeated string differences = 3;
+}
+
+message CompareCSVRequest { bytes csv_data = 1; }
+message CompareCSVResponse {
+  int32 csv_count = 1;
+  int32 library_count = 2;
+  int32 matched_count = 3;
+  // mismatches contains only books that differ in some way.
+  repeated BookMismatch mismatches = 4;
+}
+
 service BooksService {
   rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
   rpc GetUserSummary(GetUserSummaryRequest) returns (GetUserSummaryResponse);
@@ -347,4 +375,5 @@ service BooksService {
   rpc DeleteShelf(DeleteShelfRequest) returns (DeleteShelfResponse);
   rpc RenameTag(RenameTagRequest) returns (RenameTagResponse);
   rpc DeleteTag(DeleteTagRequest) returns (DeleteTagResponse);
+  rpc CompareCSV(CompareCSVRequest) returns (CompareCSVResponse);
 }

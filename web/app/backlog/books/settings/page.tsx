@@ -2,24 +2,50 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useImportBooks } from '@/hooks/useBacklog'
+import { useImportBooks, useCompareCSV } from '@/hooks/useBacklog'
 import { useCurrentUser } from '@/hooks/useAuth'
 import BulkBookUploader from '@/components/backlog/BulkBookUploader'
+import CompareReport from '@/components/backlog/CompareReport'
 import KoboSetup from '@/components/backlog/KoboSetup'
 import KoboDevices from '@/components/backlog/KoboDevices'
 import ClearLibraryDialog from '@/components/backlog/ClearLibraryDialog'
 import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import type { CompareCSVResponse } from '@/lib/gen/backlog/v1/books_pb'
 
 export default function BacklogBooksSettingsPage() {
   const importBooks = useImportBooks()
+  const compareCSV = useCompareCSV()
   const { data: currentUser } = useCurrentUser()
   const isAdmin = currentUser?.role === 'admin'
 
   const [importStatus, setImportStatus] = useState('')
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearStatus, setClearStatus] = useState('')
+  const [compareStatus, setCompareStatus] = useState('')
+  const [compareResult, setCompareResult] = useState<CompareCSVResponse | null>(null)
+
+  function handleCompare(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCompareStatus('Comparing…')
+    setCompareResult(null)
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const csvData = ev.target?.result
+      if (typeof csvData !== 'string') return
+      try {
+        const res = await compareCSV(csvData)
+        setCompareResult(res)
+        setCompareStatus('')
+      } catch {
+        setCompareStatus('Compare failed.')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -63,6 +89,24 @@ export default function BacklogBooksSettingsPage() {
           </label>
           {importStatus && <span className="text-sm text-muted">{importStatus}</span>}
         </div>
+      </section>
+
+      <section className="mt-10 border-t border-border pt-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+          Compare with Goodreads CSV
+        </h2>
+        <p className="mb-3 text-xs text-muted">
+          Upload a Goodreads export to see what differs from your library — presence, reading state,
+          ISBNs, and titles. Nothing is changed.
+        </p>
+        <div className="flex items-center gap-2">
+          <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover">
+            Compare CSV
+            <input type="file" accept=".csv" onChange={handleCompare} className="hidden" />
+          </label>
+          {compareStatus && <span className="text-sm text-muted">{compareStatus}</span>}
+        </div>
+        {compareResult && <CompareReport result={compareResult} />}
       </section>
 
       <section className="mt-10 border-t border-border pt-8">
