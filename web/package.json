@@ -29,7 +29,7 @@
     "react-reader": "2.0.15",
     "recharts": "3.8.1",
     "remark-gfm": "4.0.1",
-    "swr": "2.4.1",
+    "swr": "2.4.2",
     "tailwind-merge": "3.6.0",
     "typescript": "6.0.3"
   },
