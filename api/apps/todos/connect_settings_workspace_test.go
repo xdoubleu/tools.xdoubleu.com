@@ -14,9 +14,9 @@ import (
 func getDefaultWorkspaceID(t *testing.T) string {
 	t.Helper()
 	client := newSettingsClient(t)
-	_, err := client.AddWorkspace(
+	_, err := client.CreateWorkspace(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddWorkspaceRequest{Name: "ws-for-coverage"}),
+		connect.NewRequest(&todosv1.CreateWorkspaceRequest{Name: "ws-for-coverage"}),
 	)
 	require.NoError(t, err)
 	resp, err := client.GetSettings(
@@ -41,8 +41,8 @@ func TestWorkspaceScopedSettings_Lifecycle(t *testing.T) {
 	client := newSettingsClient(t)
 	ctx := t.Context()
 
-	_, err := client.AddWorkspace(
-		ctx, connect.NewRequest(&todosv1.AddWorkspaceRequest{Name: "ws-lifecycle"}),
+	_, err := client.CreateWorkspace(
+		ctx, connect.NewRequest(&todosv1.CreateWorkspaceRequest{Name: "ws-lifecycle"}),
 	)
 	require.NoError(t, err)
 
@@ -58,27 +58,27 @@ func TestWorkspaceScopedSettings_Lifecycle(t *testing.T) {
 	}
 	require.NotEmpty(t, wsID)
 
-	_, err = client.AddLabelPreset(ctx, connect.NewRequest(
-		&todosv1.AddLabelPresetRequest{
+	_, err = client.CreateLabelPreset(ctx, connect.NewRequest(
+		&todosv1.CreateLabelPresetRequest{
 			Category: "label", Value: "ws-lifecycle-label", WorkspaceId: wsID,
 		},
 	))
 	require.NoError(t, err)
 
-	_, err = client.AddSection(ctx, connect.NewRequest(
-		&todosv1.AddSectionRequest{Name: "ws-lifecycle-section", WorkspaceId: wsID},
+	_, err = client.CreateSection(ctx, connect.NewRequest(
+		&todosv1.CreateSectionRequest{Name: "ws-lifecycle-section", WorkspaceId: wsID},
 	))
 	require.NoError(t, err)
 
-	_, err = client.AddPolicy(ctx, connect.NewRequest(
-		&todosv1.AddPolicyRequest{
+	_, err = client.CreatePolicy(ctx, connect.NewRequest(
+		&todosv1.CreatePolicyRequest{
 			Text: "ws-lifecycle-policy", ReappearAfterHours: 24, WorkspaceId: wsID,
 		},
 	))
 	require.NoError(t, err)
 
-	_, err = client.AddURLPattern(ctx, connect.NewRequest(
-		&todosv1.AddURLPatternRequest{
+	_, err = client.CreateURLPattern(ctx, connect.NewRequest(
+		&todosv1.CreateURLPatternRequest{
 			UrlPrefix:    "https://ws-lifecycle.example.com",
 			PlatformName: "example",
 			Label:        "ex",
@@ -140,8 +140,8 @@ func TestWorkspaceScopedSettings_Lifecycle(t *testing.T) {
 	}
 	assert.True(t, patternPresent, "URL pattern should be visible")
 
-	_, err = client.RemoveLabelPreset(ctx, connect.NewRequest(
-		&todosv1.RemoveLabelPresetRequest{
+	_, err = client.DeleteLabelPreset(ctx, connect.NewRequest(
+		&todosv1.DeleteLabelPresetRequest{
 			Category: "label", Value: "ws-lifecycle-label", WorkspaceId: wsID,
 		},
 	))

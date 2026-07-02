@@ -79,7 +79,7 @@ export default function ShoppingPage() {
     setAdding(true)
     try {
       const client = createServiceClient(ShoppingListService)
-      await client.addShoppingItem({
+      await client.createShoppingItem({
         amount: newAmount || '0',
         unit: newUnit.trim(),
         name,

@@ -120,10 +120,10 @@ func (h *shoppingConnectHandler) GetCustomList(
 	return connect.NewResponse(&shoppinglistv1.GetCustomListResponse{Items: pb}), nil
 }
 
-func (h *shoppingConnectHandler) AddShoppingItem(
+func (h *shoppingConnectHandler) CreateShoppingItem(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.AddShoppingItemRequest],
-) (*connect.Response[shoppinglistv1.AddShoppingItemResponse], error) {
+	req *connect.Request[shoppinglistv1.CreateShoppingItemRequest],
+) (*connect.Response[shoppinglistv1.CreateShoppingItemResponse], error) {
 	if req.Msg.Name == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
@@ -151,7 +151,7 @@ func (h *shoppingConnectHandler) AddShoppingItem(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&shoppinglistv1.AddShoppingItemResponse{
+	return connect.NewResponse(&shoppinglistv1.CreateShoppingItemResponse{
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,

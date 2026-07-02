@@ -33,7 +33,7 @@ type ReorderSubtasksDto struct {
 	ParentSubtaskID string   `json:"parent_subtask_id"`
 }
 
-type AddLabelPresetDto struct {
+type CreateLabelPresetDto struct {
 	Category string `schema:"category"`
 	Value    string `schema:"value"`
 }
@@ -42,7 +42,7 @@ type UpdateLabelColorDto struct {
 	Color string `schema:"color"`
 }
 
-type AddURLPatternDto struct {
+type CreateURLPatternDto struct {
 	URLPrefix    string `schema:"url_prefix"`
 	PlatformName string `schema:"platform_name"`
 	Label        string `schema:"label"`
@@ -53,7 +53,7 @@ type UpdateArchiveDto struct {
 	ArchiveAfterHours int `schema:"archive_after_hours"`
 }
 
-type AddSubtaskDto struct {
+type CreateSubtaskDto struct {
 	Input           string `schema:"input"`
 	Description     string `schema:"description"`
 	Source          string `schema:"source"`
@@ -69,11 +69,11 @@ type UpdateSubtaskDto struct {
 	Deadline    string `schema:"deadline"`
 }
 
-type AddSectionDto struct {
+type CreateSectionDto struct {
 	Name string `schema:"name"`
 }
 
-type AddPolicyDto struct {
+type CreatePolicyDto struct {
 	Text               string `schema:"text"`
 	ReappearAfterHours int    `schema:"reappear_after_hours"`
 }

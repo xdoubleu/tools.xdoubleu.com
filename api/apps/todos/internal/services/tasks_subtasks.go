@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 )
 
-func (s *TaskService) AddSubtask(
+func (s *TaskService) CreateSubtask(
 	ctx context.Context,
 	taskID uuid.UUID,
 	userID string,
@@ -53,7 +53,7 @@ func (s *TaskService) AddSubtask(
 		}
 	}
 
-	return s.tasks.AddSubtask(
+	return s.tasks.CreateSubtask(
 		ctx, taskID, userID,
 		title, strings.TrimSpace(description),
 		dto.Priority, labels,

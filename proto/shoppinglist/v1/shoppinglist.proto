@@ -19,13 +19,13 @@ message ShoppingItem {
 message GetCustomListRequest  { string owner_user_id = 1; }
 message GetCustomListResponse { repeated ShoppingItem items = 1; }
 
-message AddShoppingItemRequest {
+message CreateShoppingItemRequest {
   string name   = 1;
   string amount = 2;
   string unit   = 3;
   string owner_user_id = 4;
 }
-message AddShoppingItemResponse { ShoppingItem item = 1; }
+message CreateShoppingItemResponse { ShoppingItem item = 1; }
 
 message UpdateShoppingItemRequest {
   string item_id = 1;
@@ -199,7 +199,7 @@ message ListAccessibleListsResponse { repeated ListOwner owners = 1; }
 
 service ShoppingListService {
   rpc GetCustomList             (GetCustomListRequest)             returns (GetCustomListResponse);
-  rpc AddShoppingItem           (AddShoppingItemRequest)           returns (AddShoppingItemResponse);
+  rpc CreateShoppingItem           (CreateShoppingItemRequest)           returns (CreateShoppingItemResponse);
   rpc UpdateShoppingItem        (UpdateShoppingItemRequest)        returns (UpdateShoppingItemResponse);
   rpc DeleteShoppingItem        (DeleteShoppingItemRequest)        returns (DeleteShoppingItemResponse);
   rpc GetMealPlanExportItems    (GetMealPlanExportItemsRequest)    returns (GetMealPlanExportItemsResponse);

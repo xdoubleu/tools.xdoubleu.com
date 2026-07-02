@@ -26,7 +26,7 @@ export function SettingsURLPatterns({ data, mutate }: Props) {
     e.preventDefault()
     if (!form.urlPrefix.trim() || !form.platformName.trim()) return
     const client = createServiceClient(SettingsService)
-    await client.addURLPattern({
+    await client.createURLPattern({
       urlPrefix: form.urlPrefix.trim(),
       platformName: form.platformName.trim(),
       label: form.label.trim(),
@@ -40,7 +40,7 @@ export function SettingsURLPatterns({ data, mutate }: Props) {
 
   async function handleDelete(id: string) {
     const client = createServiceClient(SettingsService)
-    await client.removeURLPattern({ id })
+    await client.deleteURLPattern({ id })
     mutate()
   }
 

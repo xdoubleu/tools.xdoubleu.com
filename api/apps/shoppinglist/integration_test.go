@@ -62,13 +62,13 @@ func TestGetCustomList_Empty(t *testing.T) {
 	assert.Empty(t, resp.Msg.Items)
 }
 
-// ── AddShoppingItem ───────────────────────────────────────────────────────────
+// ── CreateShoppingItem ───────────────────────────────────────────────────────────
 
 func TestAddShoppingItem_Success(t *testing.T) {
 	client := newShoppingClient(t)
-	resp, err := client.AddShoppingItem(
+	resp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Milk",
 			Amount: "2",
 			Unit:   "L",
@@ -82,9 +82,9 @@ func TestAddShoppingItem_Success(t *testing.T) {
 
 func TestAddShoppingItem_EmptyName(t *testing.T) {
 	client := newShoppingClient(t)
-	_, err := client.AddShoppingItem(
+	_, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "",
 			Amount: "1",
 			Unit:   "kg",
@@ -98,9 +98,9 @@ func TestAddShoppingItem_EmptyName(t *testing.T) {
 
 func TestAddShoppingItem_InvalidAmount(t *testing.T) {
 	client := newShoppingClient(t)
-	_, err := client.AddShoppingItem(
+	_, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Eggs",
 			Amount: "not-a-number",
 			Unit:   "pcs",
@@ -117,9 +117,9 @@ func TestAddShoppingItem_InvalidAmount(t *testing.T) {
 func TestUpdateShoppingItem_Success(t *testing.T) {
 	client := newShoppingClient(t)
 
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Milk",
 			Amount: "2",
 			Unit:   "L",
@@ -146,9 +146,9 @@ func TestUpdateShoppingItem_Success(t *testing.T) {
 func TestUpdateShoppingItem_EmptyName(t *testing.T) {
 	client := newShoppingClient(t)
 
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Bread",
 			Amount: "1",
 			Unit:   "loaf",
@@ -174,9 +174,9 @@ func TestUpdateShoppingItem_EmptyName(t *testing.T) {
 func TestUpdateShoppingItem_InvalidAmount(t *testing.T) {
 	client := newShoppingClient(t)
 
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Eggs",
 			Amount: "6",
 			Unit:   "pcs",
@@ -238,9 +238,9 @@ func TestUpdateShoppingItem_InvalidID(t *testing.T) {
 func TestDeleteShoppingItem_Success(t *testing.T) {
 	client := newShoppingClient(t)
 
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Butter",
 			Amount: "1",
 			Unit:   "block",
@@ -290,9 +290,9 @@ func TestDeleteShoppingItem_InvalidID(t *testing.T) {
 func TestGetCustomList_WithItems(t *testing.T) {
 	client := newShoppingClient(t)
 
-	_, err := client.AddShoppingItem(
+	_, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Cheese",
 			Amount: "200",
 			Unit:   "g",
@@ -365,9 +365,9 @@ func TestGetMealPlanExportItems_ExcludesCustomItems(t *testing.T) {
 	client := newShoppingClient(t)
 
 	// Add a custom shopping list item for the user.
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Olive Oil",
 			Amount: "1",
 			Unit:   "bottle",

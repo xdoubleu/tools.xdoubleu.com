@@ -33,7 +33,7 @@ export default function MealPlanCalendar({
   const [swappingMeal, setSwappingMeal] = useState<PlanMeal | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
 
-  const addMeal = useAddMeal()
+  const createMeal = useAddMeal()
   const deleteMeal = useDeleteMeal()
   const moveMeal = useMoveMeal()
 
@@ -81,7 +81,7 @@ export default function MealPlanCalendar({
         servings,
         excludeFromShoppingList
       }
-      await addMeal(req)
+      await createMeal(req)
       setSelectedSlot(null)
       setSelectedDate(null)
       onMutate?.()
@@ -185,7 +185,7 @@ export default function MealPlanCalendar({
         servings,
         excludeFromShoppingList
       }
-      await addMeal(req)
+      await createMeal(req)
       setEditingMeal(null)
       onMutate?.()
     } catch (err) {

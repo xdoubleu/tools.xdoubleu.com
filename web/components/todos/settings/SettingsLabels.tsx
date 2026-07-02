@@ -24,7 +24,11 @@ export function SettingsLabels({ data, mutate }: Props) {
     e.preventDefault()
     if (!value.trim()) return
     const client = createServiceClient(SettingsService)
-    await client.addLabelPreset({ category: LABEL_CATEGORY, value: value.trim(), workspaceId: '' })
+    await client.createLabelPreset({
+      category: LABEL_CATEGORY,
+      value: value.trim(),
+      workspaceId: ''
+    })
     await client.updateLabelColor({
       category: LABEL_CATEGORY,
       value: value.trim(),
@@ -38,7 +42,7 @@ export function SettingsLabels({ data, mutate }: Props) {
 
   async function handleRemove(labelValue: string) {
     const client = createServiceClient(SettingsService)
-    await client.removeLabelPreset({ category: LABEL_CATEGORY, value: labelValue, workspaceId: '' })
+    await client.deleteLabelPreset({ category: LABEL_CATEGORY, value: labelValue, workspaceId: '' })
     mutate()
   }
 

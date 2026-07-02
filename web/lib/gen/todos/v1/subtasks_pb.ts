@@ -12,12 +12,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file todos/v1/subtasks.proto.
  */
 export const file_todos_v1_subtasks: GenFile = /*@__PURE__*/
-  fileDesc("Chd0b2Rvcy92MS9zdWJ0YXNrcy5wcm90bxIIdG9kb3MudjEiYwoRQWRkU3VidGFza1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRINCgVpbnB1dBgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIZChFwYXJlbnRfc3VidGFza19pZBgEIAEoCSI4ChJBZGRTdWJ0YXNrUmVzcG9uc2USIgoHc3VidGFzaxgBIAEoCzIRLnRvZG9zLnYxLlN1YnRhc2siOwoUVG9nZ2xlU3VidGFza1JlcXVlc3QSEgoKc3VidGFza19pZBgBIAEoCRIPCgd0YXNrX2lkGAIgASgJIjsKFVRvZ2dsZVN1YnRhc2tSZXNwb25zZRIiCgdzdWJ0YXNrGAEgASgLMhEudG9kb3MudjEuU3VidGFzayI7ChREZWxldGVTdWJ0YXNrUmVxdWVzdBISCgpzdWJ0YXNrX2lkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkiFwoVRGVsZXRlU3VidGFza1Jlc3BvbnNlIlEKFlJlb3JkZXJTdWJ0YXNrc1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRILCgNpZHMYAiADKAkSGQoRcGFyZW50X3N1YnRhc2tfaWQYAyABKAkiGQoXUmVvcmRlclN1YnRhc2tzUmVzcG9uc2UipAEKFFVwZGF0ZVN1YnRhc2tSZXF1ZXN0Eg8KB3Rhc2tfaWQYASABKAkSEgoKc3VidGFza19pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghwcmlvcml0eRgFIAEoBRINCgVsYWJlbBgGIAEoCRIQCghkdWVfZGF0ZRgHIAEoCRIQCghkZWFkbGluZRgIIAEoCSI7ChVVcGRhdGVTdWJ0YXNrUmVzcG9uc2USIgoHc3VidGFzaxgBIAEoCzIRLnRvZG9zLnYxLlN1YnRhc2sypwMKDlN1YnRhc2tTZXJ2aWNlEkcKCkFkZFN1YnRhc2sSGy50b2Rvcy52MS5BZGRTdWJ0YXNrUmVxdWVzdBocLnRvZG9zLnYxLkFkZFN1YnRhc2tSZXNwb25zZRJQCg1Ub2dnbGVTdWJ0YXNrEh4udG9kb3MudjEuVG9nZ2xlU3VidGFza1JlcXVlc3QaHy50b2Rvcy52MS5Ub2dnbGVTdWJ0YXNrUmVzcG9uc2USUAoNRGVsZXRlU3VidGFzaxIeLnRvZG9zLnYxLkRlbGV0ZVN1YnRhc2tSZXF1ZXN0Gh8udG9kb3MudjEuRGVsZXRlU3VidGFza1Jlc3BvbnNlElYKD1Jlb3JkZXJTdWJ0YXNrcxIgLnRvZG9zLnYxLlJlb3JkZXJTdWJ0YXNrc1JlcXVlc3QaIS50b2Rvcy52MS5SZW9yZGVyU3VidGFza3NSZXNwb25zZRJQCg1VcGRhdGVTdWJ0YXNrEh4udG9kb3MudjEuVXBkYXRlU3VidGFza1JlcXVlc3QaHy50b2Rvcy52MS5VcGRhdGVTdWJ0YXNrUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi90b2Rvcy92MTt0b2Rvc3YxYgZwcm90bzM", [file_todos_v1_tasks]);
+  fileDesc("Chd0b2Rvcy92MS9zdWJ0YXNrcy5wcm90bxIIdG9kb3MudjEiZgoUQ3JlYXRlU3VidGFza1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRINCgVpbnB1dBgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIZChFwYXJlbnRfc3VidGFza19pZBgEIAEoCSI7ChVDcmVhdGVTdWJ0YXNrUmVzcG9uc2USIgoHc3VidGFzaxgBIAEoCzIRLnRvZG9zLnYxLlN1YnRhc2siOwoUVG9nZ2xlU3VidGFza1JlcXVlc3QSEgoKc3VidGFza19pZBgBIAEoCRIPCgd0YXNrX2lkGAIgASgJIjsKFVRvZ2dsZVN1YnRhc2tSZXNwb25zZRIiCgdzdWJ0YXNrGAEgASgLMhEudG9kb3MudjEuU3VidGFzayI7ChREZWxldGVTdWJ0YXNrUmVxdWVzdBISCgpzdWJ0YXNrX2lkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkiFwoVRGVsZXRlU3VidGFza1Jlc3BvbnNlIlEKFlJlb3JkZXJTdWJ0YXNrc1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRILCgNpZHMYAiADKAkSGQoRcGFyZW50X3N1YnRhc2tfaWQYAyABKAkiGQoXUmVvcmRlclN1YnRhc2tzUmVzcG9uc2UipAEKFFVwZGF0ZVN1YnRhc2tSZXF1ZXN0Eg8KB3Rhc2tfaWQYASABKAkSEgoKc3VidGFza19pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghwcmlvcml0eRgFIAEoBRINCgVsYWJlbBgGIAEoCRIQCghkdWVfZGF0ZRgHIAEoCRIQCghkZWFkbGluZRgIIAEoCSI7ChVVcGRhdGVTdWJ0YXNrUmVzcG9uc2USIgoHc3VidGFzaxgBIAEoCzIRLnRvZG9zLnYxLlN1YnRhc2sysAMKDlN1YnRhc2tTZXJ2aWNlElAKDUNyZWF0ZVN1YnRhc2sSHi50b2Rvcy52MS5DcmVhdGVTdWJ0YXNrUmVxdWVzdBofLnRvZG9zLnYxLkNyZWF0ZVN1YnRhc2tSZXNwb25zZRJQCg1Ub2dnbGVTdWJ0YXNrEh4udG9kb3MudjEuVG9nZ2xlU3VidGFza1JlcXVlc3QaHy50b2Rvcy52MS5Ub2dnbGVTdWJ0YXNrUmVzcG9uc2USUAoNRGVsZXRlU3VidGFzaxIeLnRvZG9zLnYxLkRlbGV0ZVN1YnRhc2tSZXF1ZXN0Gh8udG9kb3MudjEuRGVsZXRlU3VidGFza1Jlc3BvbnNlElYKD1Jlb3JkZXJTdWJ0YXNrcxIgLnRvZG9zLnYxLlJlb3JkZXJTdWJ0YXNrc1JlcXVlc3QaIS50b2Rvcy52MS5SZW9yZGVyU3VidGFza3NSZXNwb25zZRJQCg1VcGRhdGVTdWJ0YXNrEh4udG9kb3MudjEuVXBkYXRlU3VidGFza1JlcXVlc3QaHy50b2Rvcy52MS5VcGRhdGVTdWJ0YXNrUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi90b2Rvcy92MTt0b2Rvc3YxYgZwcm90bzM", [file_todos_v1_tasks]);
 
 /**
- * @generated from message todos.v1.AddSubtaskRequest
+ * @generated from message todos.v1.CreateSubtaskRequest
  */
-export type AddSubtaskRequest = Message<"todos.v1.AddSubtaskRequest"> & {
+export type CreateSubtaskRequest = Message<"todos.v1.CreateSubtaskRequest"> & {
   /**
    * @generated from field: string task_id = 1;
    */
@@ -40,16 +40,16 @@ export type AddSubtaskRequest = Message<"todos.v1.AddSubtaskRequest"> & {
 };
 
 /**
- * Describes the message todos.v1.AddSubtaskRequest.
- * Use `create(AddSubtaskRequestSchema)` to create a new message.
+ * Describes the message todos.v1.CreateSubtaskRequest.
+ * Use `create(CreateSubtaskRequestSchema)` to create a new message.
  */
-export const AddSubtaskRequestSchema: GenMessage<AddSubtaskRequest> = /*@__PURE__*/
+export const CreateSubtaskRequestSchema: GenMessage<CreateSubtaskRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_subtasks, 0);
 
 /**
- * @generated from message todos.v1.AddSubtaskResponse
+ * @generated from message todos.v1.CreateSubtaskResponse
  */
-export type AddSubtaskResponse = Message<"todos.v1.AddSubtaskResponse"> & {
+export type CreateSubtaskResponse = Message<"todos.v1.CreateSubtaskResponse"> & {
   /**
    * @generated from field: todos.v1.Subtask subtask = 1;
    */
@@ -57,10 +57,10 @@ export type AddSubtaskResponse = Message<"todos.v1.AddSubtaskResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.AddSubtaskResponse.
- * Use `create(AddSubtaskResponseSchema)` to create a new message.
+ * Describes the message todos.v1.CreateSubtaskResponse.
+ * Use `create(CreateSubtaskResponseSchema)` to create a new message.
  */
-export const AddSubtaskResponseSchema: GenMessage<AddSubtaskResponse> = /*@__PURE__*/
+export const CreateSubtaskResponseSchema: GenMessage<CreateSubtaskResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_subtasks, 1);
 
 /**
@@ -251,12 +251,12 @@ export const UpdateSubtaskResponseSchema: GenMessage<UpdateSubtaskResponse> = /*
  */
 export const SubtaskService: GenService<{
   /**
-   * @generated from rpc todos.v1.SubtaskService.AddSubtask
+   * @generated from rpc todos.v1.SubtaskService.CreateSubtask
    */
-  addSubtask: {
+  createSubtask: {
     methodKind: "unary";
-    input: typeof AddSubtaskRequestSchema;
-    output: typeof AddSubtaskResponseSchema;
+    input: typeof CreateSubtaskRequestSchema;
+    output: typeof CreateSubtaskResponseSchema;
   },
   /**
    * @generated from rpc todos.v1.SubtaskService.ToggleSubtask

@@ -660,7 +660,7 @@ func (*UpdatePlanResponse) Descriptor() ([]byte, []int) {
 	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{8}
 }
 
-type AddMealRequest struct {
+type CreateMealRequest struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	PlanId                  string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
 	MealDate                string                 `protobuf:"bytes,2,opt,name=meal_date,json=mealDate,proto3" json:"meal_date,omitempty"`
@@ -673,20 +673,20 @@ type AddMealRequest struct {
 	sizeCache               protoimpl.SizeCache
 }
 
-func (x *AddMealRequest) Reset() {
-	*x = AddMealRequest{}
+func (x *CreateMealRequest) Reset() {
+	*x = CreateMealRequest{}
 	mi := &file_mealplans_v1_mealplans_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddMealRequest) String() string {
+func (x *CreateMealRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddMealRequest) ProtoMessage() {}
+func (*CreateMealRequest) ProtoMessage() {}
 
-func (x *AddMealRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateMealRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_mealplans_v1_mealplans_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -698,80 +698,80 @@ func (x *AddMealRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddMealRequest.ProtoReflect.Descriptor instead.
-func (*AddMealRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateMealRequest.ProtoReflect.Descriptor instead.
+func (*CreateMealRequest) Descriptor() ([]byte, []int) {
 	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *AddMealRequest) GetPlanId() string {
+func (x *CreateMealRequest) GetPlanId() string {
 	if x != nil {
 		return x.PlanId
 	}
 	return ""
 }
 
-func (x *AddMealRequest) GetMealDate() string {
+func (x *CreateMealRequest) GetMealDate() string {
 	if x != nil {
 		return x.MealDate
 	}
 	return ""
 }
 
-func (x *AddMealRequest) GetMealSlot() string {
+func (x *CreateMealRequest) GetMealSlot() string {
 	if x != nil {
 		return x.MealSlot
 	}
 	return ""
 }
 
-func (x *AddMealRequest) GetRecipeId() string {
+func (x *CreateMealRequest) GetRecipeId() string {
 	if x != nil {
 		return x.RecipeId
 	}
 	return ""
 }
 
-func (x *AddMealRequest) GetCustomName() string {
+func (x *CreateMealRequest) GetCustomName() string {
 	if x != nil {
 		return x.CustomName
 	}
 	return ""
 }
 
-func (x *AddMealRequest) GetServings() int32 {
+func (x *CreateMealRequest) GetServings() int32 {
 	if x != nil {
 		return x.Servings
 	}
 	return 0
 }
 
-func (x *AddMealRequest) GetExcludeFromShoppingList() bool {
+func (x *CreateMealRequest) GetExcludeFromShoppingList() bool {
 	if x != nil {
 		return x.ExcludeFromShoppingList
 	}
 	return false
 }
 
-type AddMealResponse struct {
+type CreateMealResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddMealResponse) Reset() {
-	*x = AddMealResponse{}
+func (x *CreateMealResponse) Reset() {
+	*x = CreateMealResponse{}
 	mi := &file_mealplans_v1_mealplans_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddMealResponse) String() string {
+func (x *CreateMealResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddMealResponse) ProtoMessage() {}
+func (*CreateMealResponse) ProtoMessage() {}
 
-func (x *AddMealResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateMealResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_mealplans_v1_mealplans_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -783,8 +783,8 @@ func (x *AddMealResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddMealResponse.ProtoReflect.Descriptor instead.
-func (*AddMealResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateMealResponse.ProtoReflect.Descriptor instead.
+func (*CreateMealResponse) Descriptor() ([]byte, []int) {
 	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{10}
 }
 
@@ -1330,8 +1330,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
 	"\x0fical_hide_slots\x18\x03 \x03(\tR\ricalHideSlots\x12$\n" +
 	"\x0eical_hide_past\x18\x04 \x01(\bR\ficalHidePast\"\x14\n" +
-	"\x12UpdatePlanResponse\"\xfa\x01\n" +
-	"\x0eAddMealRequest\x12\x17\n" +
+	"\x12UpdatePlanResponse\"\xfd\x01\n" +
+	"\x11CreateMealRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
 	"\tmeal_date\x18\x02 \x01(\tR\bmealDate\x12\x1b\n" +
 	"\tmeal_slot\x18\x03 \x01(\tR\bmealSlot\x12\x1b\n" +
@@ -1339,8 +1339,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\vcustom_name\x18\x05 \x01(\tR\n" +
 	"customName\x12\x1a\n" +
 	"\bservings\x18\x06 \x01(\x05R\bservings\x12;\n" +
-	"\x1aexclude_from_shopping_list\x18\a \x01(\bR\x17excludeFromShoppingList\"\x11\n" +
-	"\x0fAddMealResponse\"E\n" +
+	"\x1aexclude_from_shopping_list\x18\a \x01(\bR\x17excludeFromShoppingList\"\x14\n" +
+	"\x12CreateMealResponse\"E\n" +
 	"\x11DeleteMealRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\ameal_id\x18\x02 \x01(\tR\x06mealId\"\x14\n" +
@@ -1366,13 +1366,14 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\tmeal_slot\x18\x03 \x01(\tR\bmealSlot\"7\n" +
 	"\x16SuggestRecipesResponse\x12\x1d\n" +
 	"\n" +
-	"recipe_ids\x18\x01 \x03(\tR\trecipeIds2\xdc\x05\n" +
+	"recipe_ids\x18\x01 \x03(\tR\trecipeIds2\xe5\x05\n" +
 	"\x10MealPlansService\x12L\n" +
 	"\tListPlans\x12\x1e.mealplans.v1.ListPlansRequest\x1a\x1f.mealplans.v1.ListPlansResponse\x12F\n" +
 	"\aGetPlan\x12\x1c.mealplans.v1.GetPlanRequest\x1a\x1d.mealplans.v1.GetPlanResponse\x12O\n" +
 	"\n" +
-	"UpdatePlan\x12\x1f.mealplans.v1.UpdatePlanRequest\x1a .mealplans.v1.UpdatePlanResponse\x12F\n" +
-	"\aAddMeal\x12\x1c.mealplans.v1.AddMealRequest\x1a\x1d.mealplans.v1.AddMealResponse\x12O\n" +
+	"UpdatePlan\x12\x1f.mealplans.v1.UpdatePlanRequest\x1a .mealplans.v1.UpdatePlanResponse\x12O\n" +
+	"\n" +
+	"CreateMeal\x12\x1f.mealplans.v1.CreateMealRequest\x1a .mealplans.v1.CreateMealResponse\x12O\n" +
 	"\n" +
 	"DeleteMeal\x12\x1f.mealplans.v1.DeleteMealRequest\x1a .mealplans.v1.DeleteMealResponse\x12I\n" +
 	"\bMoveMeal\x12\x1d.mealplans.v1.MoveMealRequest\x1a\x1e.mealplans.v1.MoveMealResponse\x12L\n" +
@@ -1403,8 +1404,8 @@ var file_mealplans_v1_mealplans_proto_goTypes = []any{
 	(*GetPlanResponse)(nil),        // 6: mealplans.v1.GetPlanResponse
 	(*UpdatePlanRequest)(nil),      // 7: mealplans.v1.UpdatePlanRequest
 	(*UpdatePlanResponse)(nil),     // 8: mealplans.v1.UpdatePlanResponse
-	(*AddMealRequest)(nil),         // 9: mealplans.v1.AddMealRequest
-	(*AddMealResponse)(nil),        // 10: mealplans.v1.AddMealResponse
+	(*CreateMealRequest)(nil),      // 9: mealplans.v1.CreateMealRequest
+	(*CreateMealResponse)(nil),     // 10: mealplans.v1.CreateMealResponse
 	(*DeleteMealRequest)(nil),      // 11: mealplans.v1.DeleteMealRequest
 	(*DeleteMealResponse)(nil),     // 12: mealplans.v1.DeleteMealResponse
 	(*MoveMealRequest)(nil),        // 13: mealplans.v1.MoveMealRequest
@@ -1427,7 +1428,7 @@ var file_mealplans_v1_mealplans_proto_depIdxs = []int32{
 	3,  // 6: mealplans.v1.MealPlansService.ListPlans:input_type -> mealplans.v1.ListPlansRequest
 	5,  // 7: mealplans.v1.MealPlansService.GetPlan:input_type -> mealplans.v1.GetPlanRequest
 	7,  // 8: mealplans.v1.MealPlansService.UpdatePlan:input_type -> mealplans.v1.UpdatePlanRequest
-	9,  // 9: mealplans.v1.MealPlansService.AddMeal:input_type -> mealplans.v1.AddMealRequest
+	9,  // 9: mealplans.v1.MealPlansService.CreateMeal:input_type -> mealplans.v1.CreateMealRequest
 	11, // 10: mealplans.v1.MealPlansService.DeleteMeal:input_type -> mealplans.v1.DeleteMealRequest
 	13, // 11: mealplans.v1.MealPlansService.MoveMeal:input_type -> mealplans.v1.MoveMealRequest
 	15, // 12: mealplans.v1.MealPlansService.SharePlan:input_type -> mealplans.v1.SharePlanRequest
@@ -1436,7 +1437,7 @@ var file_mealplans_v1_mealplans_proto_depIdxs = []int32{
 	4,  // 15: mealplans.v1.MealPlansService.ListPlans:output_type -> mealplans.v1.ListPlansResponse
 	6,  // 16: mealplans.v1.MealPlansService.GetPlan:output_type -> mealplans.v1.GetPlanResponse
 	8,  // 17: mealplans.v1.MealPlansService.UpdatePlan:output_type -> mealplans.v1.UpdatePlanResponse
-	10, // 18: mealplans.v1.MealPlansService.AddMeal:output_type -> mealplans.v1.AddMealResponse
+	10, // 18: mealplans.v1.MealPlansService.CreateMeal:output_type -> mealplans.v1.CreateMealResponse
 	12, // 19: mealplans.v1.MealPlansService.DeleteMeal:output_type -> mealplans.v1.DeleteMealResponse
 	14, // 20: mealplans.v1.MealPlansService.MoveMeal:output_type -> mealplans.v1.MoveMealResponse
 	16, // 21: mealplans.v1.MealPlansService.SharePlan:output_type -> mealplans.v1.SharePlanResponse

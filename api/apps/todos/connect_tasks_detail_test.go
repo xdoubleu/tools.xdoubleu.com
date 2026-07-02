@@ -38,9 +38,9 @@ func TestListTasks_FiltersBySectionID(t *testing.T) {
 	wsID := getDefaultWorkspaceID(t)
 	client := newSettingsClient(t)
 
-	_, err := client.AddSection(
+	_, err := client.CreateSection(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSectionRequest{
+		connect.NewRequest(&todosv1.CreateSectionRequest{
 			Name: "filter-section", WorkspaceId: wsID,
 		}),
 	)
@@ -123,18 +123,18 @@ func TestAddSubtask_Nested(t *testing.T) {
 	taskID := createTask(t, "nested subtask task")
 	client := newSubtaskClient(t)
 
-	parentResp, err := client.AddSubtask(
+	parentResp, err := client.CreateSubtask(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{
 			TaskId: taskID, Input: "parent sub",
 		}),
 	)
 	require.NoError(t, err)
 	parentSubID := parentResp.Msg.Subtask.Id
 
-	childResp, err := client.AddSubtask(
+	childResp, err := client.CreateSubtask(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{
 			TaskId:          taskID,
 			Input:           "child sub",
 			ParentSubtaskId: parentSubID,

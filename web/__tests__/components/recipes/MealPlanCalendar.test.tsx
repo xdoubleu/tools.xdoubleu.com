@@ -228,7 +228,7 @@ describe('MealPlanCalendar', () => {
     expect(mockAddMeal.mock.calls[0][0].customName).toBe('Olive oil\t2')
   })
 
-  it('sends custom servings value in AddMealRequest', async () => {
+  it('sends custom servings value in CreateMealRequest', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
@@ -544,7 +544,7 @@ describe('MealPlanCalendar', () => {
     expect(input.value).toBe('Eggs')
   })
 
-  it('save edit calls addMeal with same date/slot and new values, then onMutate', async () => {
+  it('save edit calls createMeal with same date/slot and new values, then onMutate', async () => {
     const onMutate = jest.fn()
     const planWithMeal = {
       ...basePlan,
@@ -746,7 +746,7 @@ describe('MealPlanCalendar', () => {
     expect(screen.getAllByText(/Rice/)[0]).toBeInTheDocument()
   })
 
-  it('sends a single addMeal request when adding a custom item (no double add)', async () => {
+  it('sends a single createMeal request when adding a custom item (no double add)', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialogCustom()
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {

@@ -22,7 +22,7 @@ export function SettingsSections({ data, mutate }: Props) {
     e.preventDefault()
     if (!name.trim()) return
     const client = createServiceClient(SettingsService)
-    await client.addSection({ name: name.trim(), workspaceId })
+    await client.createSection({ name: name.trim(), workspaceId })
     setName('')
     setAdding(false)
     mutate()
@@ -30,7 +30,7 @@ export function SettingsSections({ data, mutate }: Props) {
 
   async function handleDelete(id: string) {
     const client = createServiceClient(SettingsService)
-    await client.removeSection({ id })
+    await client.deleteSection({ id })
     mutate()
   }
 

@@ -81,9 +81,9 @@ func TestSubtaskRPCs_InvalidIDs(t *testing.T) {
 	someID := uuid.New().String()
 
 	cases := map[string]func(ctx context.Context) error{
-		"AddSubtask/badTask": func(ctx context.Context) error {
-			_, err := client.AddSubtask(ctx, connect.NewRequest(
-				&todosv1.AddSubtaskRequest{TaskId: badID, Input: "sub"},
+		"CreateSubtask/badTask": func(ctx context.Context) error {
+			_, err := client.CreateSubtask(ctx, connect.NewRequest(
+				&todosv1.CreateSubtaskRequest{TaskId: badID, Input: "sub"},
 			))
 			return err
 		},
@@ -147,15 +147,15 @@ func TestSettingsRPCs_InvalidID(t *testing.T) {
 	const badID = "not-a-uuid"
 
 	cases := map[string]func(ctx context.Context) error{
-		"RemoveURLPattern": func(ctx context.Context) error {
-			_, err := client.RemoveURLPattern(ctx, connect.NewRequest(
-				&todosv1.RemoveURLPatternRequest{Id: badID},
+		"DeleteURLPattern": func(ctx context.Context) error {
+			_, err := client.DeleteURLPattern(ctx, connect.NewRequest(
+				&todosv1.DeleteURLPatternRequest{Id: badID},
 			))
 			return err
 		},
-		"RemoveSection": func(ctx context.Context) error {
-			_, err := client.RemoveSection(ctx, connect.NewRequest(
-				&todosv1.RemoveSectionRequest{Id: badID},
+		"DeleteSection": func(ctx context.Context) error {
+			_, err := client.DeleteSection(ctx, connect.NewRequest(
+				&todosv1.DeleteSectionRequest{Id: badID},
 			))
 			return err
 		},
@@ -165,9 +165,9 @@ func TestSettingsRPCs_InvalidID(t *testing.T) {
 			))
 			return err
 		},
-		"RemovePolicy": func(ctx context.Context) error {
-			_, err := client.RemovePolicy(ctx, connect.NewRequest(
-				&todosv1.RemovePolicyRequest{Id: badID},
+		"DeletePolicy": func(ctx context.Context) error {
+			_, err := client.DeletePolicy(ctx, connect.NewRequest(
+				&todosv1.DeletePolicyRequest{Id: badID},
 			))
 			return err
 		},

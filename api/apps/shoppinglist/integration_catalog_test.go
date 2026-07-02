@@ -438,9 +438,9 @@ func TestListItemNames_IncludesCustomItemsWithAssignment(t *testing.T) {
 	cat := createCategory(t, client, "Frozen-"+uuid.NewString())
 
 	itemName := "icecream-" + uuid.NewString()
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   itemName,
 			Amount: "1",
 			Unit:   "tub",
@@ -594,9 +594,9 @@ func TestListItemNames_ActiveSourceWinsOverExcluded(t *testing.T) {
 
 	name := "paprika-" + uuid.NewString()
 	client := newShoppingClient(t)
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name: name, Amount: "1", Unit: "jar",
 		}),
 	)
@@ -678,9 +678,9 @@ func TestSetItemExcluded_FlipsMealPlanFlagBothWays(t *testing.T) {
 func TestSetItemExcluded_DeletesCustomItem(t *testing.T) {
 	name := "twine-" + uuid.NewString()
 	client := newShoppingClient(t)
-	addResp, err := client.AddShoppingItem(
+	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name: name, Amount: "1", Unit: "roll",
 		}),
 	)

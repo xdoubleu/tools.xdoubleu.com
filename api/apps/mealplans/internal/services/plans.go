@@ -134,7 +134,7 @@ func (s *PlanService) Delete(
 	return s.repo.Delete(ctx, id, userID)
 }
 
-func (s *PlanService) AddMeal(
+func (s *PlanService) CreateMeal(
 	ctx context.Context,
 	planID uuid.UUID,
 	userID string,
@@ -151,7 +151,7 @@ func (s *PlanService) AddMeal(
 		}
 	}
 	meal.PlanID = planID
-	_, err = s.repo.AddMeal(ctx, meal)
+	_, err = s.repo.CreateMeal(ctx, meal)
 	return err
 }
 

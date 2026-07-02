@@ -10,7 +10,7 @@ import (
 	"tools.xdoubleu.com/apps/todos/internal/models"
 )
 
-func (r *TasksRepository) AddSubtask(
+func (r *TasksRepository) CreateSubtask(
 	ctx context.Context,
 	taskID uuid.UUID,
 	userID string,

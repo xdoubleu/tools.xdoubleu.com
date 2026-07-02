@@ -4,13 +4,13 @@ option go_package = "tools.xdoubleu.com/gen/todos/v1;todosv1";
 
 import "todos/v1/tasks.proto";
 
-message AddSubtaskRequest {
+message CreateSubtaskRequest {
   string task_id = 1;
   string input = 2;
   string description = 3;
   string parent_subtask_id = 4;
 }
-message AddSubtaskResponse { Subtask subtask = 1; }
+message CreateSubtaskResponse { Subtask subtask = 1; }
 
 message ToggleSubtaskRequest { string subtask_id = 1; string task_id = 2; }
 message ToggleSubtaskResponse { Subtask subtask = 1; }
@@ -32,7 +32,7 @@ message UpdateSubtaskRequest {
 message UpdateSubtaskResponse { Subtask subtask = 1; }
 
 service SubtaskService {
-  rpc AddSubtask(AddSubtaskRequest) returns (AddSubtaskResponse);
+  rpc CreateSubtask(CreateSubtaskRequest) returns (CreateSubtaskResponse);
   rpc ToggleSubtask(ToggleSubtaskRequest) returns (ToggleSubtaskResponse);
   rpc DeleteSubtask(DeleteSubtaskRequest) returns (DeleteSubtaskResponse);
   rpc ReorderSubtasks(ReorderSubtasksRequest) returns (ReorderSubtasksResponse);

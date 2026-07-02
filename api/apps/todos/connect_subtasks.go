@@ -10,10 +10,10 @@ import (
 	todosv1 "tools.xdoubleu.com/gen/todos/v1"
 )
 
-func (h *subtaskConnectHandler) AddSubtask(
+func (h *subtaskConnectHandler) CreateSubtask(
 	ctx context.Context,
-	req *connect.Request[todosv1.AddSubtaskRequest],
-) (*connect.Response[todosv1.AddSubtaskResponse], error) {
+	req *connect.Request[todosv1.CreateSubtaskRequest],
+) (*connect.Response[todosv1.CreateSubtaskResponse], error) {
 	userID := h.userID(ctx)
 	taskID, err := uuid.Parse(req.Msg.TaskId)
 	if err != nil {
@@ -29,14 +29,14 @@ func (h *subtaskConnectHandler) AddSubtask(
 			parentID = &pid
 		}
 	}
-	subtask, err := h.app.services.Tasks.AddSubtask(
+	subtask, err := h.app.services.Tasks.CreateSubtask(
 		ctx, taskID, userID, wsCtx.Settings.ActiveWorkspaceID,
 		req.Msg.Input, req.Msg.Description, parentID,
 	)
 	if err != nil {
 		return nil, connectErr(err)
 	}
-	return connect.NewResponse(&todosv1.AddSubtaskResponse{
+	return connect.NewResponse(&todosv1.CreateSubtaskResponse{
 		Subtask: protoSubtask(*subtask),
 	}), nil
 }

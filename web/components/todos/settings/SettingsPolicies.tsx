@@ -30,7 +30,7 @@ export function SettingsPolicies({ data, mutate }: Props) {
     e.preventDefault()
     if (!addText.trim()) return
     const client = createServiceClient(SettingsService)
-    await client.addPolicy({
+    await client.createPolicy({
       text: addText.trim(),
       reappearAfterHours: addHours,
       workspaceId: addWorkspaceId
@@ -66,7 +66,7 @@ export function SettingsPolicies({ data, mutate }: Props) {
 
   async function handleDelete(id: string) {
     const client = createServiceClient(SettingsService)
-    await client.removePolicy({ id })
+    await client.deletePolicy({ id })
     mutate()
   }
 

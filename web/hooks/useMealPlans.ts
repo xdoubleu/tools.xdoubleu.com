@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/client'
 import {
   MealPlansService,
   UpdatePlanRequestSchema,
-  AddMealRequestSchema,
+  CreateMealRequestSchema,
   DeleteMealRequestSchema,
   MoveMealRequestSchema,
   SharePlanRequestSchema,
@@ -17,7 +17,7 @@ import type {
 } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
 export type UpdatePlanInput = MessageInitShape<typeof UpdatePlanRequestSchema>
-export type AddMealInput = MessageInitShape<typeof AddMealRequestSchema>
+export type AddMealInput = MessageInitShape<typeof CreateMealRequestSchema>
 export type DeleteMealInput = MessageInitShape<typeof DeleteMealRequestSchema>
 export type MoveMealInput = MessageInitShape<typeof MoveMealRequestSchema>
 export type SharePlanInput = MessageInitShape<typeof SharePlanRequestSchema>
@@ -55,7 +55,7 @@ export function useUpdatePlan() {
 
 export function useAddMeal() {
   const client = createServiceClient(MealPlansService)
-  return (req: AddMealInput) => client.addMeal(req)
+  return (req: AddMealInput) => client.createMeal(req)
 }
 
 export function useDeleteMeal() {

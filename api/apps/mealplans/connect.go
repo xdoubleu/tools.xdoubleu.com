@@ -267,10 +267,10 @@ func (h *mealplansConnectHandler) UpdatePlan(
 	return connect.NewResponse(&mealplansv1.UpdatePlanResponse{}), nil
 }
 
-func (h *mealplansConnectHandler) AddMeal(
+func (h *mealplansConnectHandler) CreateMeal(
 	ctx context.Context,
-	req *connect.Request[mealplansv1.AddMealRequest],
-) (*connect.Response[mealplansv1.AddMealResponse], error) {
+	req *connect.Request[mealplansv1.CreateMealRequest],
+) (*connect.Response[mealplansv1.CreateMealResponse], error) {
 	user := getUser(ctx)
 	if user == nil {
 		return nil, connect.NewError(
@@ -329,11 +329,11 @@ func (h *mealplansConnectHandler) AddMeal(
 		ExcludeFromShoppingList: req.Msg.ExcludeFromShoppingList,
 	}
 
-	if err = h.app.services.Plans.AddMeal(ctx, planID, user.ID, meal); err != nil {
+	if err = h.app.services.Plans.CreateMeal(ctx, planID, user.ID, meal); err != nil {
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&mealplansv1.AddMealResponse{}), nil
+	return connect.NewResponse(&mealplansv1.CreateMealResponse{}), nil
 }
 
 func (h *mealplansConnectHandler) DeleteMeal(

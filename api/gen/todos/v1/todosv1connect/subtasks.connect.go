@@ -33,9 +33,9 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// SubtaskServiceAddSubtaskProcedure is the fully-qualified name of the SubtaskService's AddSubtask
-	// RPC.
-	SubtaskServiceAddSubtaskProcedure = "/todos.v1.SubtaskService/AddSubtask"
+	// SubtaskServiceCreateSubtaskProcedure is the fully-qualified name of the SubtaskService's
+	// CreateSubtask RPC.
+	SubtaskServiceCreateSubtaskProcedure = "/todos.v1.SubtaskService/CreateSubtask"
 	// SubtaskServiceToggleSubtaskProcedure is the fully-qualified name of the SubtaskService's
 	// ToggleSubtask RPC.
 	SubtaskServiceToggleSubtaskProcedure = "/todos.v1.SubtaskService/ToggleSubtask"
@@ -52,7 +52,7 @@ const (
 
 // SubtaskServiceClient is a client for the todos.v1.SubtaskService service.
 type SubtaskServiceClient interface {
-	AddSubtask(context.Context, *connect.Request[v1.AddSubtaskRequest]) (*connect.Response[v1.AddSubtaskResponse], error)
+	CreateSubtask(context.Context, *connect.Request[v1.CreateSubtaskRequest]) (*connect.Response[v1.CreateSubtaskResponse], error)
 	ToggleSubtask(context.Context, *connect.Request[v1.ToggleSubtaskRequest]) (*connect.Response[v1.ToggleSubtaskResponse], error)
 	DeleteSubtask(context.Context, *connect.Request[v1.DeleteSubtaskRequest]) (*connect.Response[v1.DeleteSubtaskResponse], error)
 	ReorderSubtasks(context.Context, *connect.Request[v1.ReorderSubtasksRequest]) (*connect.Response[v1.ReorderSubtasksResponse], error)
@@ -70,10 +70,10 @@ func NewSubtaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 	baseURL = strings.TrimRight(baseURL, "/")
 	subtaskServiceMethods := v1.File_todos_v1_subtasks_proto.Services().ByName("SubtaskService").Methods()
 	return &subtaskServiceClient{
-		addSubtask: connect.NewClient[v1.AddSubtaskRequest, v1.AddSubtaskResponse](
+		createSubtask: connect.NewClient[v1.CreateSubtaskRequest, v1.CreateSubtaskResponse](
 			httpClient,
-			baseURL+SubtaskServiceAddSubtaskProcedure,
-			connect.WithSchema(subtaskServiceMethods.ByName("AddSubtask")),
+			baseURL+SubtaskServiceCreateSubtaskProcedure,
+			connect.WithSchema(subtaskServiceMethods.ByName("CreateSubtask")),
 			connect.WithClientOptions(opts...),
 		),
 		toggleSubtask: connect.NewClient[v1.ToggleSubtaskRequest, v1.ToggleSubtaskResponse](
@@ -105,16 +105,16 @@ func NewSubtaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // subtaskServiceClient implements SubtaskServiceClient.
 type subtaskServiceClient struct {
-	addSubtask      *connect.Client[v1.AddSubtaskRequest, v1.AddSubtaskResponse]
+	createSubtask   *connect.Client[v1.CreateSubtaskRequest, v1.CreateSubtaskResponse]
 	toggleSubtask   *connect.Client[v1.ToggleSubtaskRequest, v1.ToggleSubtaskResponse]
 	deleteSubtask   *connect.Client[v1.DeleteSubtaskRequest, v1.DeleteSubtaskResponse]
 	reorderSubtasks *connect.Client[v1.ReorderSubtasksRequest, v1.ReorderSubtasksResponse]
 	updateSubtask   *connect.Client[v1.UpdateSubtaskRequest, v1.UpdateSubtaskResponse]
 }
 
-// AddSubtask calls todos.v1.SubtaskService.AddSubtask.
-func (c *subtaskServiceClient) AddSubtask(ctx context.Context, req *connect.Request[v1.AddSubtaskRequest]) (*connect.Response[v1.AddSubtaskResponse], error) {
-	return c.addSubtask.CallUnary(ctx, req)
+// CreateSubtask calls todos.v1.SubtaskService.CreateSubtask.
+func (c *subtaskServiceClient) CreateSubtask(ctx context.Context, req *connect.Request[v1.CreateSubtaskRequest]) (*connect.Response[v1.CreateSubtaskResponse], error) {
+	return c.createSubtask.CallUnary(ctx, req)
 }
 
 // ToggleSubtask calls todos.v1.SubtaskService.ToggleSubtask.
@@ -139,7 +139,7 @@ func (c *subtaskServiceClient) UpdateSubtask(ctx context.Context, req *connect.R
 
 // SubtaskServiceHandler is an implementation of the todos.v1.SubtaskService service.
 type SubtaskServiceHandler interface {
-	AddSubtask(context.Context, *connect.Request[v1.AddSubtaskRequest]) (*connect.Response[v1.AddSubtaskResponse], error)
+	CreateSubtask(context.Context, *connect.Request[v1.CreateSubtaskRequest]) (*connect.Response[v1.CreateSubtaskResponse], error)
 	ToggleSubtask(context.Context, *connect.Request[v1.ToggleSubtaskRequest]) (*connect.Response[v1.ToggleSubtaskResponse], error)
 	DeleteSubtask(context.Context, *connect.Request[v1.DeleteSubtaskRequest]) (*connect.Response[v1.DeleteSubtaskResponse], error)
 	ReorderSubtasks(context.Context, *connect.Request[v1.ReorderSubtasksRequest]) (*connect.Response[v1.ReorderSubtasksResponse], error)
@@ -153,10 +153,10 @@ type SubtaskServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewSubtaskServiceHandler(svc SubtaskServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	subtaskServiceMethods := v1.File_todos_v1_subtasks_proto.Services().ByName("SubtaskService").Methods()
-	subtaskServiceAddSubtaskHandler := connect.NewUnaryHandler(
-		SubtaskServiceAddSubtaskProcedure,
-		svc.AddSubtask,
-		connect.WithSchema(subtaskServiceMethods.ByName("AddSubtask")),
+	subtaskServiceCreateSubtaskHandler := connect.NewUnaryHandler(
+		SubtaskServiceCreateSubtaskProcedure,
+		svc.CreateSubtask,
+		connect.WithSchema(subtaskServiceMethods.ByName("CreateSubtask")),
 		connect.WithHandlerOptions(opts...),
 	)
 	subtaskServiceToggleSubtaskHandler := connect.NewUnaryHandler(
@@ -185,8 +185,8 @@ func NewSubtaskServiceHandler(svc SubtaskServiceHandler, opts ...connect.Handler
 	)
 	return "/todos.v1.SubtaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case SubtaskServiceAddSubtaskProcedure:
-			subtaskServiceAddSubtaskHandler.ServeHTTP(w, r)
+		case SubtaskServiceCreateSubtaskProcedure:
+			subtaskServiceCreateSubtaskHandler.ServeHTTP(w, r)
 		case SubtaskServiceToggleSubtaskProcedure:
 			subtaskServiceToggleSubtaskHandler.ServeHTTP(w, r)
 		case SubtaskServiceDeleteSubtaskProcedure:
@@ -204,8 +204,8 @@ func NewSubtaskServiceHandler(svc SubtaskServiceHandler, opts ...connect.Handler
 // UnimplementedSubtaskServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedSubtaskServiceHandler struct{}
 
-func (UnimplementedSubtaskServiceHandler) AddSubtask(context.Context, *connect.Request[v1.AddSubtaskRequest]) (*connect.Response[v1.AddSubtaskResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SubtaskService.AddSubtask is not implemented"))
+func (UnimplementedSubtaskServiceHandler) CreateSubtask(context.Context, *connect.Request[v1.CreateSubtaskRequest]) (*connect.Response[v1.CreateSubtaskResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SubtaskService.CreateSubtask is not implemented"))
 }
 
 func (UnimplementedSubtaskServiceHandler) ToggleSubtask(context.Context, *connect.Request[v1.ToggleSubtaskRequest]) (*connect.Response[v1.ToggleSubtaskResponse], error) {
