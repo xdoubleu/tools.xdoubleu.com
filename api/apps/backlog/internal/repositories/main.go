@@ -25,6 +25,7 @@ type Repositories struct {
 	Steam        *SteamRepository
 	Progress     *ProgressRepository
 	Integrations *IntegrationsRepository
+	KoboDevices  *KoboDevicesRepository
 }
 
 func New(db postgres.DB) *Repositories {
@@ -35,5 +36,6 @@ func New(db postgres.DB) *Repositories {
 		Steam:        &SteamRepository{db: db},
 		Progress:     &ProgressRepository{db: db},
 		Integrations: &IntegrationsRepository{db: db},
+		KoboDevices:  &KoboDevicesRepository{db: db},
 	}
 }

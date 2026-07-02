@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/backlog/pkg/unicat"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/progressws"
 )
 
 type Services struct {
@@ -23,7 +24,8 @@ type Services struct {
 	Conversion   *ConversionService
 	Progress     *ProgressService
 	Integrations *IntegrationsService
-	WebSocket    *WebSocketService
+	Kobo         *KoboService
+	WebSocket    *progressws.Service
 }
 
 func New(
@@ -41,6 +43,9 @@ func New(
 ) *Services {
 	integrations := &IntegrationsService{
 		repo: repositories.Integrations,
+	}
+	kobo := &KoboService{
+		repo: repositories.KoboDevices,
 	}
 
 	booksSvc := &BookService{
@@ -62,10 +67,7 @@ func New(
 		progress:      repositories.Progress,
 		integrations:  integrations,
 	}
-	progressSvc := &ProgressService{
-		progress: repositories.Progress,
-		steam:    steamSvc,
-	}
+	progressSvc := NewProgressService(repositories.Progress, steamSvc)
 
 	conversionSvc := NewConversionService(
 		logger,
@@ -82,7 +84,8 @@ func New(
 		Conversion:   conversionSvc,
 		Progress:     progressSvc,
 		Integrations: integrations,
-		WebSocket: NewWebSocketService(
+		Kobo:         kobo,
+		WebSocket: progressws.NewService(
 			ctx,
 			logger,
 			[]string{config.WebURL},

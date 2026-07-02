@@ -21,7 +21,7 @@ import (
 // token to authenticate (embedded in the URL path, not a Bearer header).
 func registerTestDevice(t *testing.T, ownerID string) string {
 	t.Helper()
-	_, rawToken, err := testApp.Services.Integrations.RegisterKoboDevice(
+	_, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
 		context.Background(), ownerID, "Test Kobo", "",
 	)
 	require.NoError(t, err)

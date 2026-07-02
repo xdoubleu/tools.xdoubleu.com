@@ -324,7 +324,7 @@ func TestCreateKoboDevice_AndLookup(t *testing.T) {
 	})
 
 	hash := tokenHash("some-raw-token-value")
-	device, err := testApp.Repositories.Integrations.CreateKoboDevice(
+	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "My Kobo", "SN123", hash,
 	)
 	require.NoError(t, err)
@@ -334,7 +334,7 @@ func TestCreateKoboDevice_AndLookup(t *testing.T) {
 	assert.Equal(t, "SN123", device.Serial)
 	assert.Nil(t, device.LastSeenAt)
 
-	gotUserID, err := testApp.Repositories.Integrations.GetUserIDByKoboTokenHash(
+	gotUserID, err := testApp.Repositories.KoboDevices.GetUserIDByKoboTokenHash(
 		ctx,
 		hash,
 	)
@@ -344,7 +344,7 @@ func TestCreateKoboDevice_AndLookup(t *testing.T) {
 
 func TestGetUserIDByKoboTokenHash_NotFound(t *testing.T) {
 	ctx := context.Background()
-	_, err := testApp.Repositories.Integrations.GetUserIDByKoboTokenHash(
+	_, err := testApp.Repositories.KoboDevices.GetUserIDByKoboTokenHash(
 		ctx, "nonexistent-hash-xyz",
 	)
 	require.Error(t, err)
@@ -360,13 +360,13 @@ func TestListKoboDevices_ReturnedInCreatedOrder(t *testing.T) {
 	})
 
 	for i, name := range []string{"Device A", "Device B"} {
-		_, err := testApp.Repositories.Integrations.CreateKoboDevice(
+		_, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
 			ctx, ownerID, name, "", tokenHash("tok"+string(rune('a'+i))),
 		)
 		require.NoError(t, err)
 	}
 
-	devices, err := testApp.Repositories.Integrations.ListKoboDevices(ctx, ownerID)
+	devices, err := testApp.Repositories.KoboDevices.ListKoboDevices(ctx, ownerID)
 	require.NoError(t, err)
 	require.Len(t, devices, 2)
 	assert.Equal(t, "Device A", devices[0].Name)
@@ -382,13 +382,13 @@ func TestDeleteKoboDevice_RevokesToken(t *testing.T) {
 	})
 
 	hash := tokenHash("raw-token-to-revoke")
-	device, err := testApp.Repositories.Integrations.CreateKoboDevice(
+	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "Revoke Me", "", hash,
 	)
 	require.NoError(t, err)
 
 	// Token must be valid before deletion.
-	gotUID, err := testApp.Repositories.Integrations.GetUserIDByKoboTokenHash(ctx, hash)
+	gotUID, err := testApp.Repositories.KoboDevices.GetUserIDByKoboTokenHash(ctx, hash)
 	require.NoError(t, err)
 	assert.Equal(t, ownerID, gotUID)
 
@@ -396,12 +396,12 @@ func TestDeleteKoboDevice_RevokesToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(
 		t,
-		testApp.Repositories.Integrations.DeleteKoboDevice(ctx, ownerID, deviceID),
+		testApp.Repositories.KoboDevices.DeleteKoboDevice(ctx, ownerID, deviceID),
 	)
 
 	// Token must be invalid (not found) after deletion — TDD: this fails before
 	// DeleteKoboDevice is implemented correctly.
-	_, err = testApp.Repositories.Integrations.GetUserIDByKoboTokenHash(ctx, hash)
+	_, err = testApp.Repositories.KoboDevices.GetUserIDByKoboTokenHash(ctx, hash)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound),
 		"token must be invalidated after device deletion")
 }
@@ -414,7 +414,7 @@ func TestDeleteKoboDevice_WrongUser_NotFound(t *testing.T) {
 			`DELETE FROM backlog.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	device, err := testApp.Repositories.Integrations.CreateKoboDevice(
+	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "My Kobo", "", tokenHash("tok-xyz"),
 	)
 	require.NoError(t, err)
@@ -423,7 +423,7 @@ func TestDeleteKoboDevice_WrongUser_NotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	// Different user tries to delete the device.
-	err = testApp.Repositories.Integrations.DeleteKoboDevice(
+	err = testApp.Repositories.KoboDevices.DeleteKoboDevice(
 		ctx, "someone-else-"+uuid.NewString(), deviceID,
 	)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound))
@@ -438,17 +438,17 @@ func TestGetUserIDByKoboTokenHash_UpdatesLastSeenAt(t *testing.T) {
 	})
 
 	hash := tokenHash("tok-lastseen")
-	device, err := testApp.Repositories.Integrations.CreateKoboDevice(
+	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "Check LastSeen", "", hash,
 	)
 	require.NoError(t, err)
 	assert.Nil(t, device.LastSeenAt, "last_seen_at must be nil before first auth")
 
 	// Authenticate — should touch last_seen_at.
-	_, err = testApp.Repositories.Integrations.GetUserIDByKoboTokenHash(ctx, hash)
+	_, err = testApp.Repositories.KoboDevices.GetUserIDByKoboTokenHash(ctx, hash)
 	require.NoError(t, err)
 
-	devices, err := testApp.Repositories.Integrations.ListKoboDevices(ctx, ownerID)
+	devices, err := testApp.Repositories.KoboDevices.ListKoboDevices(ctx, ownerID)
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
 	assert.NotNil(t, devices[0].LastSeenAt, "last_seen_at must be set after first auth")
@@ -464,7 +464,7 @@ func TestRegisterKoboDevice_RawTokenNeverStoredAndLookupWorks(t *testing.T) {
 			`DELETE FROM backlog.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	device, rawToken, err := testApp.Services.Integrations.RegisterKoboDevice(
+	device, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
 		ctx, ownerID, "My Kobo", "SN9999",
 	)
 	require.NoError(t, err)
@@ -482,7 +482,7 @@ func TestRegisterKoboDevice_RawTokenNeverStoredAndLookupWorks(t *testing.T) {
 	assert.Zero(t, count, "raw token must not be stored in the database")
 
 	// Hash of the raw token must resolve to the user.
-	gotUserID, err := testApp.Services.Integrations.GetUserIDByKoboTokenHash(
+	gotUserID, err := testApp.Services.Kobo.GetUserIDByKoboTokenHash(
 		ctx, tokenHash(rawToken),
 	)
 	require.NoError(t, err)
@@ -497,14 +497,14 @@ func TestRegisterKoboDevice_MultipleDevicesIndependent(t *testing.T) {
 			`DELETE FROM backlog.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	_, rawA, err := testApp.Services.Integrations.RegisterKoboDevice(
+	_, rawA, err := testApp.Services.Kobo.RegisterKoboDevice(
 		ctx,
 		ownerID,
 		"Kobo A",
 		"",
 	)
 	require.NoError(t, err)
-	_, rawB, err := testApp.Services.Integrations.RegisterKoboDevice(
+	_, rawB, err := testApp.Services.Kobo.RegisterKoboDevice(
 		ctx,
 		ownerID,
 		"Kobo B",
@@ -513,14 +513,14 @@ func TestRegisterKoboDevice_MultipleDevicesIndependent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Both tokens must independently resolve to the same user.
-	gotA, err := testApp.Services.Integrations.GetUserIDByKoboTokenHash(
+	gotA, err := testApp.Services.Kobo.GetUserIDByKoboTokenHash(
 		ctx,
 		tokenHash(rawA),
 	)
 	require.NoError(t, err)
 	assert.Equal(t, ownerID, gotA)
 
-	gotB, err := testApp.Services.Integrations.GetUserIDByKoboTokenHash(
+	gotB, err := testApp.Services.Kobo.GetUserIDByKoboTokenHash(
 		ctx,
 		tokenHash(rawB),
 	)
@@ -542,7 +542,7 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 			`DELETE FROM backlog.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	device, rawToken, err := testApp.Services.Integrations.RegisterKoboDevice(
+	device, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
 		ctx, ownerID, "Revoke E2E", "",
 	)
 	require.NoError(t, err)
@@ -564,7 +564,7 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(
 		t,
-		testApp.Services.Integrations.DisconnectKoboDevice(ctx, ownerID, deviceID),
+		testApp.Services.Kobo.DisconnectKoboDevice(ctx, ownerID, deviceID),
 	)
 
 	// Token must be rejected after disconnect.
@@ -617,7 +617,7 @@ func TestConnectRegisterKoboDevice_TokenLookupAfterRegister(t *testing.T) {
 
 	// The returned token must resolve to the correct user.
 	hash := tokenHash(resp.Msg.RawToken)
-	gotUserID, err := testApp.Repositories.Integrations.GetUserIDByKoboTokenHash(
+	gotUserID, err := testApp.Repositories.KoboDevices.GetUserIDByKoboTokenHash(
 		ctx, hash,
 	)
 	require.NoError(t, err)
@@ -667,7 +667,7 @@ func TestConnectDisconnectKoboDevice_RemovesDevice(t *testing.T) {
 
 	// Token must now be invalid.
 	hash := tokenHash(regResp.Msg.RawToken)
-	_, err = testApp.Repositories.Integrations.GetUserIDByKoboTokenHash(ctx, hash)
+	_, err = testApp.Repositories.KoboDevices.GetUserIDByKoboTokenHash(ctx, hash)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound),
 		"token must be revoked after disconnect")
 }

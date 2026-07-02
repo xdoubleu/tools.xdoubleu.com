@@ -71,7 +71,7 @@ func (app *Backlog) koboAuth(w http.ResponseWriter, r *http.Request) (string, bo
 	h := sha256.Sum256([]byte(raw))
 	hash := hex.EncodeToString(h[:])
 
-	userID, err := app.Services.Integrations.GetUserIDByKoboTokenHash(r.Context(), hash)
+	userID, err := app.Services.Kobo.GetUserIDByKoboTokenHash(r.Context(), hash)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)

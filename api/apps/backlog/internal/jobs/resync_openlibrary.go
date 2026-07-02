@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/backlog/internal/services"
+	"tools.xdoubleu.com/internal/progressws"
 )
 
 // ResyncOpenLibraryJob re-fetches Open Library metadata and clears cached
@@ -22,11 +23,11 @@ import (
 // force-mode overwrites existing metadata. When armed via Arm() (or
 // ArmFor(nil, false)), all books missing metadata are processed additively.
 //
-// The job holds a reference to WebSocketService so it can emit per-book
-// progress events (X of N) over the /backlog/api/progress WebSocket.
+// The job holds a reference to the progress WebSocket service so it can emit
+// per-book progress events (X of N) over the /backlog/api/progress WebSocket.
 type ResyncOpenLibraryJob struct {
 	books *services.BookService
-	ws    *services.WebSocketService
+	ws    *progressws.Service
 
 	mu           sync.Mutex
 	pendingIDs   []uuid.UUID
@@ -38,7 +39,7 @@ type ResyncOpenLibraryJob struct {
 
 func NewResyncOpenLibraryJob(
 	books *services.BookService,
-	ws *services.WebSocketService,
+	ws *progressws.Service,
 ) *ResyncOpenLibraryJob {
 	//nolint:exhaustruct //armed + running are atomic.Bool; zero value = false
 	return &ResyncOpenLibraryJob{books: books, ws: ws}

@@ -12,11 +12,73 @@ import (
 
 	"tools.xdoubleu.com/apps/backlog/internal/models"
 	"tools.xdoubleu.com/apps/backlog/internal/repositories"
+	"tools.xdoubleu.com/internal/progresshistory"
 )
 
+// progressRepoAdapter adapts ProgressRepository to the storage interface of
+// the shared progresshistory service (non-transactional writes).
+type progressRepoAdapter struct {
+	repo *repositories.ProgressRepository
+}
+
+func (a progressRepoAdapter) Upsert(
+	ctx context.Context,
+	typeID string,
+	userID string,
+	dates []string,
+	values []string,
+) error {
+	return a.repo.Upsert(ctx, nil, typeID, userID, dates, values)
+}
+
+func (a progressRepoAdapter) GetByTypeIDAndDates(
+	ctx context.Context,
+	typeID string,
+	userID string,
+	dateStart time.Time,
+	dateEnd time.Time,
+) ([]progresshistory.Record, error) {
+	progresses, err := a.repo.GetByTypeIDAndDates(
+		ctx, typeID, userID, dateStart, dateEnd,
+	)
+	if err != nil {
+		return nil, err
+	}
+	records := make([]progresshistory.Record, len(progresses))
+	for i, p := range progresses {
+		records[i] = progresshistory.Record{
+			TypeID: p.TypeID,
+			Date:   p.Date,
+			Value:  p.Value,
+		}
+	}
+	return records, nil
+}
+
+func (a progressRepoAdapter) GetLastValueBefore(
+	ctx context.Context,
+	typeID string,
+	userID string,
+	date time.Time,
+) (string, error) {
+	return a.repo.GetLastValueBefore(ctx, typeID, userID, date)
+}
+
 type ProgressService struct {
+	history  *progresshistory.Service
 	progress *repositories.ProgressRepository
 	steam    *SteamService
+}
+
+func NewProgressService(
+	progress *repositories.ProgressRepository,
+	steam *SteamService,
+) *ProgressService {
+	return &ProgressService{
+		history:  progresshistory.NewService(progressRepoAdapter{repo: progress}),
+		progress: progress,
+		steam:    steam,
+	}
 }
 
 func (s *ProgressService) Save(
@@ -26,7 +88,7 @@ func (s *ProgressService) Save(
 	dates []string,
 	values []string,
 ) error {
-	return s.progress.Upsert(ctx, nil, typeID, userID, dates, values)
+	return s.history.Save(ctx, typeID, userID, dates, values)
 }
 
 func (s *ProgressService) GetByTypeIDAndDates(
@@ -36,51 +98,7 @@ func (s *ProgressService) GetByTypeIDAndDates(
 	dateStart time.Time,
 	dateEnd time.Time,
 ) ([]string, []string, error) {
-	// Carry-forward baseline: last cumulative value recorded before the window.
-	baseline, err := s.progress.GetLastValueBefore(ctx, typeID, userID, dateStart)
-	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
-		return nil, nil, err
-	}
-
-	progresses, err := s.progress.GetByTypeIDAndDates(
-		ctx, typeID, userID, dateStart, dateEnd,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if baseline == "" && len(progresses) == 0 {
-		return nil, nil, nil
-	}
-
-	// Index stored records by date string.
-	byDate := make(map[string]string, len(progresses))
-	for _, p := range progresses {
-		byDate[p.Date.Format(models.ProgressDateFormat)] = p.Value
-	}
-
-	// Fill every calendar day from dateStart to today (or dateEnd), seeding
-	// with the carry-forward baseline so the graph never resets mid-window.
-	const day = 24 * time.Hour
-	start := dateStart.UTC().Truncate(day)
-	end := dateEnd.UTC().Truncate(day)
-	if today := time.Now().UTC().Truncate(day); today.Before(end) {
-		end = today
-	}
-
-	labels := make([]string, 0, int(end.Sub(start)/day)+1)
-	values := make([]string, 0, len(labels))
-	lastValue := baseline
-	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
-		ds := d.Format(models.ProgressDateFormat)
-		if v, ok := byDate[ds]; ok {
-			lastValue = v
-		}
-		labels = append(labels, ds)
-		values = append(values, lastValue)
-	}
-
-	return labels, values, nil
+	return s.history.GetByTypeIDAndDates(ctx, typeID, userID, dateStart, dateEnd)
 }
 
 func (s *ProgressService) GetCurrentSteamCompletionRate(
