@@ -46,39 +46,6 @@ func TestFindBookByTitleAndAuthor_Found(t *testing.T) {
 	assert.Equal(t, "FindByTitleBook", book.Title)
 }
 
-// TestIntegrationsExists_False covers Exists when no record is stored for user.
-func TestIntegrationsExists_False(t *testing.T) {
-	exists, err := testApp.Repositories.Integrations.Exists(
-		context.Background(),
-		"integrations-exists-no-record-user",
-	)
-	require.NoError(t, err)
-	assert.False(t, exists)
-}
-
-// TestIntegrationsExists_True saves integrations then checks Exists returns true.
-func TestIntegrationsExists_True(t *testing.T) {
-	const isolatedUser = "integrations-exists-true-user"
-	err := testApp.SaveIntegrations(
-		context.Background(),
-		isolatedUser,
-		backlog.Integrations{}, //nolint:exhaustruct //fields default to ""
-	)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_, _ = testDB.Exec(context.Background(),
-			`DELETE FROM backlog.user_integrations WHERE user_id = $1`, isolatedUser)
-	})
-
-	exists, err := testApp.Repositories.Integrations.Exists(
-		context.Background(),
-		isolatedUser,
-	)
-	require.NoError(t, err)
-	assert.True(t, exists)
-}
-
 // zeroAchievementsSteamClient returns a game with one unachieved achievement so
 // the game lands in GetBacklog (completion_rate = 0, achievements exist).
 type zeroAchievementsSteamClient struct{}

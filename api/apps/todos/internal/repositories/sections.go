@@ -20,7 +20,7 @@ func (r *SectionsRepository) ListByUser(
 	workspaceID *uuid.UUID,
 ) ([]models.Section, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, owner_user_id, name, sort_order, created_at
+		SELECT id, owner_user_id, name, sort_order, created_at, workspace_id
 		FROM todos.sections
 		WHERE owner_user_id = $1 AND workspace_id IS NOT DISTINCT FROM $2
 		ORDER BY sort_order, created_at`,
@@ -72,6 +72,7 @@ func scanSections(rows pgx.Rows) ([]models.Section, error) {
 		var s models.Section
 		if err := rows.Scan(
 			&s.ID, &s.OwnerUserID, &s.Name, &s.SortOrder, &s.CreatedAt,
+			&s.WorkspaceID,
 		); err != nil {
 			return nil, err
 		}

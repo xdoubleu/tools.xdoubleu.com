@@ -22,7 +22,6 @@ type Services struct {
 	Books        *BookService
 	Conversion   *ConversionService
 	Progress     *ProgressService
-	Backlog      *BacklogService
 	Integrations *IntegrationsService
 	WebSocket    *WebSocketService
 }
@@ -67,10 +66,6 @@ func New(
 		progress: repositories.Progress,
 		steam:    steamSvc,
 	}
-	backlogSvc := &BacklogService{
-		steam: steamSvc,
-		books: booksSvc,
-	}
 
 	conversionSvc := NewConversionService(
 		logger,
@@ -86,7 +81,6 @@ func New(
 		Books:        booksSvc,
 		Conversion:   conversionSvc,
 		Progress:     progressSvc,
-		Backlog:      backlogSvc,
 		Integrations: integrations,
 		WebSocket: NewWebSocketService(
 			ctx,

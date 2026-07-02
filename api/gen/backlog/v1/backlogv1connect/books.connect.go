@@ -33,11 +33,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BooksServiceGetSummaryProcedure is the fully-qualified name of the BooksService's GetSummary RPC.
-	BooksServiceGetSummaryProcedure = "/backlog.v1.BooksService/GetSummary"
-	// BooksServiceGetUserSummaryProcedure is the fully-qualified name of the BooksService's
-	// GetUserSummary RPC.
-	BooksServiceGetUserSummaryProcedure = "/backlog.v1.BooksService/GetUserSummary"
 	// BooksServiceGetLibraryProcedure is the fully-qualified name of the BooksService's GetLibrary RPC.
 	BooksServiceGetLibraryProcedure = "/backlog.v1.BooksService/GetLibrary"
 	// BooksServiceGetBooksProgressProcedure is the fully-qualified name of the BooksService's
@@ -131,8 +126,6 @@ const (
 
 // BooksServiceClient is a client for the backlog.v1.BooksService service.
 type BooksServiceClient interface {
-	GetSummary(context.Context, *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error)
-	GetUserSummary(context.Context, *connect.Request[v1.GetUserSummaryRequest]) (*connect.Response[v1.GetUserSummaryResponse], error)
 	GetLibrary(context.Context, *connect.Request[v1.GetLibraryRequest]) (*connect.Response[v1.GetLibraryResponse], error)
 	GetBooksProgress(context.Context, *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error)
 	SearchLibrary(context.Context, *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error)
@@ -178,18 +171,6 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 	baseURL = strings.TrimRight(baseURL, "/")
 	booksServiceMethods := v1.File_backlog_v1_books_proto.Services().ByName("BooksService").Methods()
 	return &booksServiceClient{
-		getSummary: connect.NewClient[v1.GetSummaryRequest, v1.GetSummaryResponse](
-			httpClient,
-			baseURL+BooksServiceGetSummaryProcedure,
-			connect.WithSchema(booksServiceMethods.ByName("GetSummary")),
-			connect.WithClientOptions(opts...),
-		),
-		getUserSummary: connect.NewClient[v1.GetUserSummaryRequest, v1.GetUserSummaryResponse](
-			httpClient,
-			baseURL+BooksServiceGetUserSummaryProcedure,
-			connect.WithSchema(booksServiceMethods.ByName("GetUserSummary")),
-			connect.WithClientOptions(opts...),
-		),
 		getLibrary: connect.NewClient[v1.GetLibraryRequest, v1.GetLibraryResponse](
 			httpClient,
 			baseURL+BooksServiceGetLibraryProcedure,
@@ -387,8 +368,6 @@ func NewBooksServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // booksServiceClient implements BooksServiceClient.
 type booksServiceClient struct {
-	getSummary             *connect.Client[v1.GetSummaryRequest, v1.GetSummaryResponse]
-	getUserSummary         *connect.Client[v1.GetUserSummaryRequest, v1.GetUserSummaryResponse]
 	getLibrary             *connect.Client[v1.GetLibraryRequest, v1.GetLibraryResponse]
 	getBooksProgress       *connect.Client[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse]
 	searchLibrary          *connect.Client[v1.SearchLibraryRequest, v1.SearchLibraryResponse]
@@ -421,16 +400,6 @@ type booksServiceClient struct {
 	renameTag              *connect.Client[v1.RenameTagRequest, v1.RenameTagResponse]
 	deleteTag              *connect.Client[v1.DeleteTagRequest, v1.DeleteTagResponse]
 	compareCSV             *connect.Client[v1.CompareCSVRequest, v1.CompareCSVResponse]
-}
-
-// GetSummary calls backlog.v1.BooksService.GetSummary.
-func (c *booksServiceClient) GetSummary(ctx context.Context, req *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error) {
-	return c.getSummary.CallUnary(ctx, req)
-}
-
-// GetUserSummary calls backlog.v1.BooksService.GetUserSummary.
-func (c *booksServiceClient) GetUserSummary(ctx context.Context, req *connect.Request[v1.GetUserSummaryRequest]) (*connect.Response[v1.GetUserSummaryResponse], error) {
-	return c.getUserSummary.CallUnary(ctx, req)
 }
 
 // GetLibrary calls backlog.v1.BooksService.GetLibrary.
@@ -595,8 +564,6 @@ func (c *booksServiceClient) CompareCSV(ctx context.Context, req *connect.Reques
 
 // BooksServiceHandler is an implementation of the backlog.v1.BooksService service.
 type BooksServiceHandler interface {
-	GetSummary(context.Context, *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error)
-	GetUserSummary(context.Context, *connect.Request[v1.GetUserSummaryRequest]) (*connect.Response[v1.GetUserSummaryResponse], error)
 	GetLibrary(context.Context, *connect.Request[v1.GetLibraryRequest]) (*connect.Response[v1.GetLibraryResponse], error)
 	GetBooksProgress(context.Context, *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error)
 	SearchLibrary(context.Context, *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error)
@@ -638,18 +605,6 @@ type BooksServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	booksServiceMethods := v1.File_backlog_v1_books_proto.Services().ByName("BooksService").Methods()
-	booksServiceGetSummaryHandler := connect.NewUnaryHandler(
-		BooksServiceGetSummaryProcedure,
-		svc.GetSummary,
-		connect.WithSchema(booksServiceMethods.ByName("GetSummary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	booksServiceGetUserSummaryHandler := connect.NewUnaryHandler(
-		BooksServiceGetUserSummaryProcedure,
-		svc.GetUserSummary,
-		connect.WithSchema(booksServiceMethods.ByName("GetUserSummary")),
-		connect.WithHandlerOptions(opts...),
-	)
 	booksServiceGetLibraryHandler := connect.NewUnaryHandler(
 		BooksServiceGetLibraryProcedure,
 		svc.GetLibrary,
@@ -844,10 +799,6 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 	)
 	return "/backlog.v1.BooksService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case BooksServiceGetSummaryProcedure:
-			booksServiceGetSummaryHandler.ServeHTTP(w, r)
-		case BooksServiceGetUserSummaryProcedure:
-			booksServiceGetUserSummaryHandler.ServeHTTP(w, r)
 		case BooksServiceGetLibraryProcedure:
 			booksServiceGetLibraryHandler.ServeHTTP(w, r)
 		case BooksServiceGetBooksProgressProcedure:
@@ -920,14 +871,6 @@ func NewBooksServiceHandler(svc BooksServiceHandler, opts ...connect.HandlerOpti
 
 // UnimplementedBooksServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBooksServiceHandler struct{}
-
-func (UnimplementedBooksServiceHandler) GetSummary(context.Context, *connect.Request[v1.GetSummaryRequest]) (*connect.Response[v1.GetSummaryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.GetSummary is not implemented"))
-}
-
-func (UnimplementedBooksServiceHandler) GetUserSummary(context.Context, *connect.Request[v1.GetUserSummaryRequest]) (*connect.Response[v1.GetUserSummaryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.GetUserSummary is not implemented"))
-}
 
 func (UnimplementedBooksServiceHandler) GetLibrary(context.Context, *connect.Request[v1.GetLibraryRequest]) (*connect.Response[v1.GetLibraryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("backlog.v1.BooksService.GetLibrary is not implemented"))

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"slices"
 	"strings"
@@ -211,17 +210,9 @@ func (s *BookService) finalizeDuplicate(
 		return nil, lookupErr
 	}
 
-	// Ensure the blob lives under this book's per-book folder. If the existing
-	// row was written with a flat (legacy) key, copy it into the folder-based
-	// key first. The copy is idempotent — objectStore.Copy overwrites.
-	destKey := bookFileKey(existing.BookID, checksum, extForFormat(existing.Format))
-	if destKey != existing.StorageKey {
-		bgCtx := context.WithoutCancel(ctx)
-		copyErr := s.objectStore.Copy(bgCtx, existing.StorageKey, destKey)
-		if copyErr != nil {
-			return nil, fmt.Errorf("copy to book folder: %w", copyErr)
-		}
-	}
+	// Reuse the existing blob: rows always use the per-book folder scheme, so
+	// the new row can point at the same key.
+	destKey := existing.StorageKey
 
 	// Insert a new row pointing at the per-book folder key.
 	bf, insertErr := s.bookFiles.Insert(
@@ -729,53 +720,4 @@ func (s *BookService) FormatsByUser(
 	userID string,
 ) (map[uuid.UUID][]string, error) {
 	return s.bookFiles.FormatsByUser(ctx, userID)
-}
-
-// RelocateFlatKeyFiles migrates book_files rows that still use the legacy flat
-// storage scheme (books/<checksum><ext>) to the per-book folder scheme
-// (books/<bookID>/<checksum><ext>). Returns the number of rows migrated.
-// Safe to call concurrently; it skips rows that already use the new scheme.
-func (s *BookService) RelocateFlatKeyFiles(
-	ctx context.Context,
-	logger *slog.Logger,
-) (int, error) {
-	files, err := s.bookFiles.ListWithFlatStorageKey(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	migrated := 0
-	for i := range files {
-		f := &files[i]
-		if f.Checksum == nil {
-			continue
-		}
-		newKey := bookFileKey(f.BookID, *f.Checksum, extForFormat(f.Format))
-		if newKey == f.StorageKey {
-			continue // already migrated
-		}
-
-		bgCtx := context.WithoutCancel(ctx)
-		if copyErr := s.objectStore.Copy(bgCtx, f.StorageKey, newKey); copyErr != nil {
-			logger.WarnContext(ctx, "failed to copy file to per-book folder",
-				slog.String("id", f.ID.String()),
-				slog.String("src", f.StorageKey),
-				slog.String("dst", newKey),
-				slog.Any("error", copyErr),
-			)
-			continue
-		}
-
-		if updateErr := s.bookFiles.UpdateStorageKey(ctx, f.ID, newKey); updateErr != nil {
-			logger.WarnContext(ctx, "failed to update storage_key after copy",
-				slog.String("id", f.ID.String()),
-				slog.Any("error", updateErr),
-			)
-			continue
-		}
-
-		migrated++
-	}
-
-	return migrated, nil
 }

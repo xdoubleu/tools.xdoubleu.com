@@ -42,17 +42,6 @@ func (r *IntegrationsRepository) Get(
 	return i, err
 }
 
-func (r *IntegrationsRepository) Exists(
-	ctx context.Context,
-	userID string,
-) (bool, error) {
-	var exists bool
-	err := r.db.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM backlog.user_integrations WHERE user_id = $1)
-	`, userID).Scan(&exists)
-	return exists, err
-}
-
 // CreateKoboDevice inserts a new device record and returns the persisted model.
 func (r *IntegrationsRepository) CreateKoboDevice(
 	ctx context.Context,

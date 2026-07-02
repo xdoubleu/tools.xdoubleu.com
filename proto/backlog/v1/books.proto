@@ -44,11 +44,6 @@ message LibraryResponse {
   repeated BookShelf shelves = 4;
 }
 
-message BacklogSummary {
-  int32 steam_count = 1;
-  int32 books_count = 2;
-}
-
 message BooksProgressResponse {
   repeated string labels = 1;
   repeated string values = 2;
@@ -65,11 +60,6 @@ message ExternalBookResult {
   string cover_url = 6;
   string description = 7;
 }
-
-message GetSummaryRequest {}
-message GetSummaryResponse { BacklogSummary summary = 1; }
-message GetUserSummaryRequest { string user_id = 1; }
-message GetUserSummaryResponse { BacklogSummary summary = 1; }
 
 message GetLibraryRequest {}
 message GetLibraryResponse { LibraryResponse library = 1; }
@@ -342,8 +332,6 @@ message CompareCSVResponse {
 }
 
 service BooksService {
-  rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
-  rpc GetUserSummary(GetUserSummaryRequest) returns (GetUserSummaryResponse);
   rpc GetLibrary(GetLibraryRequest) returns (GetLibraryResponse);
   rpc GetBooksProgress(GetBooksProgressRequest) returns (GetBooksProgressResponse);
   rpc SearchLibrary(SearchLibraryRequest) returns (SearchLibraryResponse);

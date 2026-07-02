@@ -48,49 +48,6 @@ func (h *booksConnectHandler) requireAdmin(
 	return user, nil
 }
 
-func (h *booksConnectHandler) GetSummary(
-	ctx context.Context,
-	_ *connect.Request[backlogv1.GetSummaryRequest],
-) (*connect.Response[backlogv1.GetSummaryResponse], error) {
-	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
-		)
-	}
-	summary, err := h.app.Services.Backlog.GetSummary(ctx, user.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(&backlogv1.GetSummaryResponse{
-		Summary: &backlogv1.BacklogSummary{
-			//nolint:gosec // safe for domain counts
-			SteamCount: int32(summary.SteamCount),
-			//nolint:gosec // safe for domain counts
-			BooksCount: int32(summary.BooksCount),
-		},
-	}), nil
-}
-
-func (h *booksConnectHandler) GetUserSummary(
-	ctx context.Context,
-	req *connect.Request[backlogv1.GetUserSummaryRequest],
-) (*connect.Response[backlogv1.GetUserSummaryResponse], error) {
-	summary, err := h.app.Services.Backlog.GetSummary(ctx, req.Msg.UserId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(&backlogv1.GetUserSummaryResponse{
-		Summary: &backlogv1.BacklogSummary{
-			//nolint:gosec // safe for domain counts
-			SteamCount: int32(summary.SteamCount),
-			//nolint:gosec // safe for domain counts
-			BooksCount: int32(summary.BooksCount),
-		},
-	}), nil
-}
-
 func (h *booksConnectHandler) GetLibrary(
 	ctx context.Context,
 	_ *connect.Request[backlogv1.GetLibraryRequest],

@@ -38,39 +38,6 @@ func newGamesTestClient(t *testing.T) backlogv1connect.GamesServiceClient {
 	)
 }
 
-func TestConnectGetSummary(t *testing.T) {
-	client := newBooksTestClient(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	req := connect.NewRequest(&backlogv1.GetSummaryRequest{})
-	req.Header().Set("Cookie", accessToken.String())
-
-	resp, err := client.GetSummary(ctx, req)
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.NotNil(t, resp.Msg.Summary)
-	assert.GreaterOrEqual(t, resp.Msg.Summary.BooksCount, int32(0))
-	assert.GreaterOrEqual(t, resp.Msg.Summary.SteamCount, int32(0))
-}
-
-func TestConnectGetUserSummary(t *testing.T) {
-	client := newBooksTestClient(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	req := connect.NewRequest(&backlogv1.GetUserSummaryRequest{
-		UserId: userID,
-	})
-
-	resp, err := client.GetUserSummary(ctx, req)
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.NotNil(t, resp.Msg.Summary)
-	assert.GreaterOrEqual(t, resp.Msg.Summary.BooksCount, int32(0))
-	assert.GreaterOrEqual(t, resp.Msg.Summary.SteamCount, int32(0))
-}
-
 func TestConnectGetLibrary(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
