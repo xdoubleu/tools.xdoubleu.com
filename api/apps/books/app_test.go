@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
@@ -47,9 +46,7 @@ var fakeStore *objectstore.FakeClient //nolint:gochecknoglobals //needed for tes
 func TestMain(m *testing.M) {
 	var err error
 
-	testCfg = config.New(logging.NewNopLogger())
-	testCfg.Env = configtools.TestEnv
-	testCfg.Throttle = false
+	testCfg = testhelper.NewTestConfig()
 
 	postgresDB := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = postgresDB

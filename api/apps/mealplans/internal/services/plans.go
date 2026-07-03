@@ -8,14 +8,57 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
-	"tools.xdoubleu.com/apps/mealplans/internal/repositories"
 	"tools.xdoubleu.com/internal/app"
 )
 
 const errNoEditAccess = "You do not have edit access to this plan"
 
+// plansStore is the storage surface PlanService needs. It is satisfied by
+// repositories.PlansRepository and by fakes in unit tests, so the ownership
+// and edit-access rules can be tested without a database.
+type plansStore interface {
+	ListForUser(ctx context.Context, userID string) ([]models.Plan, error)
+	GetByID(ctx context.Context, id uuid.UUID, userID string) (*models.Plan, error)
+	GetSharedWith(
+		ctx context.Context,
+		id uuid.UUID,
+		userID string,
+	) ([]models.PlanSharedUser, error)
+	GetMealsInWindow(
+		ctx context.Context,
+		planID uuid.UUID,
+		start, end time.Time,
+	) ([]models.PlanMeal, error)
+	SuggestRecipes(
+		ctx context.Context,
+		planID uuid.UUID,
+		mealDate time.Time,
+		slot string,
+		limit int,
+	) ([]uuid.UUID, error)
+	GetByICalToken(ctx context.Context, token uuid.UUID) (*models.Plan, error)
+	Create(ctx context.Context, plan models.Plan) (*models.Plan, error)
+	Update(ctx context.Context, plan models.Plan) error
+	Delete(ctx context.Context, id uuid.UUID, userID string) error
+	CreateMeal(ctx context.Context, meal models.PlanMeal) (*models.PlanMeal, error)
+	DeleteMeal(ctx context.Context, mealID, planID uuid.UUID) error
+	MoveMeal(
+		ctx context.Context,
+		mealID, planID uuid.UUID,
+		newDate time.Time,
+		newSlot string,
+	) error
+	UnshareUser(ctx context.Context, planID uuid.UUID, targetUserID string) error
+	SharePlan(
+		ctx context.Context,
+		planID uuid.UUID,
+		contactUserID string,
+		canEdit bool,
+	) error
+}
+
 type PlanService struct {
-	repo *repositories.PlansRepository
+	repo plansStore
 }
 
 func (s *PlanService) List(

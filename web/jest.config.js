@@ -16,10 +16,13 @@ const customJestConfig = {
     'components/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
     'hooks/**/*.{ts,tsx}',
-    'app/global-error.tsx',
-    'app/backlog/books/[id]/BookDetailClient.tsx',
+    'app/**/*.{ts,tsx}',
     'instrumentation-client.ts',
     '!lib/gen/**',
+    '!app/**/apple-icon.tsx',
+    '!app/**/icon.tsx',
+    '!app/manifest.ts',
+    '!app/layout.tsx',
     '!**/*.d.ts'
   ],
   coverageReporters: ['text', 'lcov']
