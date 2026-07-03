@@ -120,14 +120,14 @@ func TestSteamCompletionRate_WithRecord(t *testing.T) {
 	today := time.Now().UTC().Format(models.ProgressDateFormat)
 
 	err := testApp.Services.Progress.Save(
-		ctx, models.SteamTypeID, isolatedUser, []string{today}, []string{"55.00"},
+		ctx, isolatedUser, []string{today}, []string{"55.00"},
 	)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(ctx,
-			`DELETE FROM games.progress WHERE user_id = $1 AND type_id = $2`,
-			isolatedUser, models.SteamTypeID,
+			`DELETE FROM games.progress WHERE user_id = $1`,
+			isolatedUser,
 		)
 	})
 

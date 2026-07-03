@@ -1,7 +1,7 @@
 // Package progresshistory implements generic cumulative-progress storage with
-// carry-forward semantics: values are recorded per (type, user, date) and
-// reads fill every calendar day in the window, seeding from the last value
-// recorded before the window so graphs never reset mid-window.
+// carry-forward semantics: values are recorded per (user, date) and reads
+// fill every calendar day in the window, seeding from the last value recorded
+// before the window so graphs never reset mid-window.
 package progresshistory
 
 import (
@@ -17,9 +17,8 @@ const DateFormat = "2006-01-02"
 
 // Record is a single stored progress value.
 type Record struct {
-	TypeID string
-	Date   time.Time
-	Value  string
+	Date  time.Time
+	Value string
 }
 
 // Repository is the storage interface required by Service. Implementations
@@ -27,21 +26,18 @@ type Record struct {
 type Repository interface {
 	Upsert(
 		ctx context.Context,
-		typeID string,
 		userID string,
 		dates []string,
 		values []string,
 	) error
-	GetByTypeIDAndDates(
+	GetByDates(
 		ctx context.Context,
-		typeID string,
 		userID string,
 		dateStart time.Time,
 		dateEnd time.Time,
 	) ([]Record, error)
 	GetLastValueBefore(
 		ctx context.Context,
-		typeID string,
 		userID string,
 		date time.Time,
 	) (string, error)
@@ -57,32 +53,28 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) Save(
 	ctx context.Context,
-	typeID string,
 	userID string,
 	dates []string,
 	values []string,
 ) error {
-	return s.repo.Upsert(ctx, typeID, userID, dates, values)
+	return s.repo.Upsert(ctx, userID, dates, values)
 }
 
-// GetByTypeIDAndDates returns per-day labels and values for the window,
-// carrying the last known value forward across days without records.
-func (s *Service) GetByTypeIDAndDates(
+// GetByDates returns per-day labels and values for the window, carrying the
+// last known value forward across days without records.
+func (s *Service) GetByDates(
 	ctx context.Context,
-	typeID string,
 	userID string,
 	dateStart time.Time,
 	dateEnd time.Time,
 ) ([]string, []string, error) {
 	// Carry-forward baseline: last cumulative value recorded before the window.
-	baseline, err := s.repo.GetLastValueBefore(ctx, typeID, userID, dateStart)
+	baseline, err := s.repo.GetLastValueBefore(ctx, userID, dateStart)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, nil, err
 	}
 
-	progresses, err := s.repo.GetByTypeIDAndDates(
-		ctx, typeID, userID, dateStart, dateEnd,
-	)
+	progresses, err := s.repo.GetByDates(ctx, userID, dateStart, dateEnd)
 	if err != nil {
 		return nil, nil, err
 	}

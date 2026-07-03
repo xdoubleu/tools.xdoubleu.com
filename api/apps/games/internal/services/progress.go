@@ -15,55 +15,6 @@ import (
 	"tools.xdoubleu.com/internal/progresshistory"
 )
 
-// progressRepoAdapter adapts ProgressRepository to the storage interface of
-// the shared progresshistory service (non-transactional writes).
-type progressRepoAdapter struct {
-	repo *repositories.ProgressRepository
-}
-
-func (a progressRepoAdapter) Upsert(
-	ctx context.Context,
-	typeID string,
-	userID string,
-	dates []string,
-	values []string,
-) error {
-	return a.repo.Upsert(ctx, nil, typeID, userID, dates, values)
-}
-
-func (a progressRepoAdapter) GetByTypeIDAndDates(
-	ctx context.Context,
-	typeID string,
-	userID string,
-	dateStart time.Time,
-	dateEnd time.Time,
-) ([]progresshistory.Record, error) {
-	progresses, err := a.repo.GetByTypeIDAndDates(
-		ctx, typeID, userID, dateStart, dateEnd,
-	)
-	if err != nil {
-		return nil, err
-	}
-	records := make([]progresshistory.Record, len(progresses))
-	for i, p := range progresses {
-		records[i] = progresshistory.Record{
-			TypeID: p.TypeID,
-			Date:   p.Date,
-			Value:  p.Value,
-		}
-	}
-	return records, nil
-}
-
-func (a progressRepoAdapter) GetLastValueBefore(
-	ctx context.Context,
-	typeID string,
-	userID string,
-	date time.Time,
-) (string, error) {
-	return a.repo.GetLastValueBefore(ctx, typeID, userID, date)
-}
-
 type ProgressService struct {
 	history  *progresshistory.Service
 	progress *repositories.ProgressRepository
@@ -75,7 +26,7 @@ func NewProgressService(
 	steam *SteamService,
 ) *ProgressService {
 	return &ProgressService{
-		history:  progresshistory.NewService(progressRepoAdapter{repo: progress}),
+		history:  progresshistory.NewService(progress),
 		progress: progress,
 		steam:    steam,
 	}
@@ -83,29 +34,27 @@ func NewProgressService(
 
 func (s *ProgressService) Save(
 	ctx context.Context,
-	typeID string,
 	userID string,
 	dates []string,
 	values []string,
 ) error {
-	return s.history.Save(ctx, typeID, userID, dates, values)
+	return s.history.Save(ctx, userID, dates, values)
 }
 
-func (s *ProgressService) GetByTypeIDAndDates(
+func (s *ProgressService) GetByDates(
 	ctx context.Context,
-	typeID string,
 	userID string,
 	dateStart time.Time,
 	dateEnd time.Time,
 ) ([]string, []string, error) {
-	return s.history.GetByTypeIDAndDates(ctx, typeID, userID, dateStart, dateEnd)
+	return s.history.GetByDates(ctx, userID, dateStart, dateEnd)
 }
 
 func (s *ProgressService) GetCurrentSteamCompletionRate(
 	ctx context.Context,
 	userID string,
 ) (string, error) {
-	value, err := s.progress.GetLatestByTypeID(ctx, models.SteamTypeID, userID)
+	value, err := s.progress.GetLatest(ctx, userID)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			return "0.00", nil

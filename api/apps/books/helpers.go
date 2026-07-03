@@ -100,7 +100,7 @@ func (app *Books) rebuildReadProgress(ctx context.Context, userID string) error 
 	if err != nil {
 		return err
 	}
-	return app.Services.Progress.Save(ctx, models.BooksTypeID, userID, labels, values)
+	return app.Services.Progress.Save(ctx, userID, labels, values)
 }
 
 func buildFinishedAt(existing *models.UserBook, newStatus string) []time.Time {

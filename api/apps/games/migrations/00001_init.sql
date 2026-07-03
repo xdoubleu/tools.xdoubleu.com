@@ -50,15 +50,10 @@ END $$;
 
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS games.progress (
-    type_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     date DATE NOT NULL,
     value VARCHAR NOT NULL,
-    PRIMARY KEY (type_id, user_id, date)
-);
-
-CREATE INDEX IF NOT EXISTS idx_progress_user_date ON games.progress (
-    user_id, date
+    PRIMARY KEY (user_id, date)
 );
 
 CREATE TABLE IF NOT EXISTS games.user_integrations (
@@ -89,8 +84,8 @@ BEGIN
         SELECT 1 FROM information_schema.tables
         WHERE table_schema = 'backlog' AND table_name = 'progress'
     ) THEN
-        INSERT INTO games.progress (type_id, user_id, date, value)
-        SELECT type_id, user_id, date, value
+        INSERT INTO games.progress (user_id, date, value)
+        SELECT user_id, date, value
         FROM backlog.progress
         WHERE type_id = '0'
         ON CONFLICT DO NOTHING;

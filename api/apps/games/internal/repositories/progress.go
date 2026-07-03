@@ -8,67 +8,65 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
+	"tools.xdoubleu.com/internal/progresshistory"
 )
 
 type ProgressRepository struct {
 	db postgres.DB
 }
 
-func (repo *ProgressRepository) GetByTypeIDAndDates(
+func (repo *ProgressRepository) GetByDates(
 	ctx context.Context,
-	typeID string,
 	userID string,
 	dateStart time.Time,
 	dateEnd time.Time,
-) ([]models.Progress, error) {
+) ([]progresshistory.Record, error) {
 	query := `
 		SELECT value, date
 		FROM games.progress
-		WHERE type_id = $1 AND user_id = $2 AND date >= $3 AND date <= $4
+		WHERE user_id = $1 AND date >= $2 AND date <= $3
 		ORDER BY date ASC
 	`
 
-	rows, err := repo.db.Query(ctx, query, typeID, userID, dateStart, dateEnd)
+	rows, err := repo.db.Query(ctx, query, userID, dateStart, dateEnd)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	defer rows.Close()
 
-	progresses := []models.Progress{}
+	records := []progresshistory.Record{}
 	for rows.Next() {
-		//nolint:exhaustruct //other fields are assigned below
-		progress := models.Progress{TypeID: typeID}
+		var record progresshistory.Record
 
-		err = rows.Scan(&progress.Value, &progress.Date)
+		err = rows.Scan(&record.Value, &record.Date)
 		if err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
 
-		progresses = append(progresses, progress)
+		records = append(records, record)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 
-	return progresses, nil
+	return records, nil
 }
 
-func (repo *ProgressRepository) GetLatestByTypeID(
+func (repo *ProgressRepository) GetLatest(
 	ctx context.Context,
-	typeID string,
 	userID string,
 ) (string, error) {
 	query := `
 		SELECT value
 		FROM games.progress
-		WHERE type_id = $1 AND user_id = $2
+		WHERE user_id = $1
 		ORDER BY date DESC
 		LIMIT 1
 	`
 
 	var value string
-	err := repo.db.QueryRow(ctx, query, typeID, userID).Scan(&value)
+	err := repo.db.QueryRow(ctx, query, userID).Scan(&value)
 	if err != nil {
 		return "", postgres.PgxErrorToHTTPError(err)
 	}
@@ -77,20 +75,19 @@ func (repo *ProgressRepository) GetLatestByTypeID(
 
 func (repo *ProgressRepository) GetLastValueBefore(
 	ctx context.Context,
-	typeID string,
 	userID string,
 	date time.Time,
 ) (string, error) {
 	query := `
 		SELECT value
 		FROM games.progress
-		WHERE type_id = $1 AND user_id = $2 AND date < $3::date
+		WHERE user_id = $1 AND date < $2::date
 		ORDER BY date DESC
 		LIMIT 1
 	`
 
 	var value string
-	err := repo.db.QueryRow(ctx, query, typeID, userID, date).Scan(&value)
+	err := repo.db.QueryRow(ctx, query, userID, date).Scan(&value)
 	if err != nil {
 		return "", postgres.PgxErrorToHTTPError(err)
 	}
@@ -98,10 +95,11 @@ func (repo *ProgressRepository) GetLastValueBefore(
 	return value, nil
 }
 
-func (repo *ProgressRepository) Upsert(
+// UpsertTx writes progress rows, optionally inside a transaction; pass a nil
+// Querier to use the repository's own connection.
+func (repo *ProgressRepository) UpsertTx(
 	ctx context.Context,
 	q Querier,
-	typeID string,
 	userID string,
 	dates []string,
 	values []string,
@@ -111,17 +109,17 @@ func (repo *ProgressRepository) Upsert(
 	}
 
 	query := `
-		INSERT INTO games.progress (type_id, user_id, date, value)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (type_id, user_id, date)
-		DO UPDATE SET value = $4
+		INSERT INTO games.progress (user_id, date, value)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (user_id, date)
+		DO UPDATE SET value = $3
 	`
 
 	//nolint:exhaustruct //fields are optional
 	b := &pgx.Batch{}
 	for i := range dates {
 		date, _ := time.Parse(models.ProgressDateFormat, dates[i])
-		b.Queue(query, typeID, userID, date, values[i])
+		b.Queue(query, userID, date, values[i])
 	}
 
 	err := q.SendBatch(ctx, b).Close()
@@ -130,4 +128,14 @@ func (repo *ProgressRepository) Upsert(
 	}
 
 	return nil
+}
+
+// Upsert satisfies the progresshistory storage interface (no transaction).
+func (repo *ProgressRepository) Upsert(
+	ctx context.Context,
+	userID string,
+	dates []string,
+	values []string,
+) error {
+	return repo.UpsertTx(ctx, nil, userID, dates, values)
 }

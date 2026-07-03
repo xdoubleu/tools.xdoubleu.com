@@ -55,8 +55,8 @@ func (h *booksConnectHandler) GetBooksProgress(
 		)
 	}
 	dateStart, dateEnd := parseDateRangeFromStrings(req.Msg.DateStart, req.Msg.DateEnd)
-	labels, values, err := h.app.Services.Progress.GetByTypeIDAndDates(
-		ctx, models.BooksTypeID, user.ID, dateStart, dateEnd,
+	labels, values, err := h.app.Services.Progress.GetByDates(
+		ctx, user.ID, dateStart, dateEnd,
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

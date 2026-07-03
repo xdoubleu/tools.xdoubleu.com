@@ -85,9 +85,7 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 				return errIn
 			}
 		}
-		return service.progress.Upsert(
-			ctx, tx, models.SteamTypeID, userID, labels, values,
-		)
+		return service.progress.UpsertTx(ctx, tx, userID, labels, values)
 	})
 }
 

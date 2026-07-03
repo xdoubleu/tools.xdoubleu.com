@@ -159,15 +159,10 @@ FOR EACH ROW EXECUTE FUNCTION books.set_updated_at();
 
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS books.progress (
-    type_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     date DATE NOT NULL,
     value VARCHAR NOT NULL,
-    PRIMARY KEY (type_id, user_id, date)
-);
-
-CREATE INDEX IF NOT EXISTS idx_books_progress_user_date ON books.progress (
-    user_id, date
+    PRIMARY KEY (user_id, date)
 );
 -- +goose StatementEnd
 
@@ -179,8 +174,8 @@ BEGIN
         SELECT 1 FROM information_schema.tables
         WHERE table_schema = 'backlog' AND table_name = 'progress'
     ) THEN
-        INSERT INTO books.progress (type_id, user_id, date, value)
-        SELECT type_id, user_id, date, value
+        INSERT INTO books.progress (user_id, date, value)
+        SELECT user_id, date, value
         FROM backlog.progress
         WHERE type_id = '1'
         ON CONFLICT DO NOTHING;
