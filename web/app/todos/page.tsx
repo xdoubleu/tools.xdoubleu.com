@@ -2,33 +2,18 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { useTodos } from '@/hooks/useTodos'
 import { useTodoSettings } from '@/hooks/useTodoSettings'
 import { TaskCard } from '@/components/todos/TaskCard'
 import { PoliciesBanner } from '@/components/todos/PoliciesBanner'
 import QuickAddBar, { type QuickAddBarHandle } from '@/components/todos/QuickAddBar'
+import ShortcutHints from '@/components/todos/ShortcutHints'
+import TodosSidebar from '@/components/todos/TodosSidebar'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import SettingsIcon from '@/components/SettingsIcon'
-import { cn } from '@/lib/cn'
 import { createServiceClient } from '@/lib/client'
-
-const navButtonClass = (active: boolean) =>
-  cn(
-    'h-auto w-full justify-start rounded-lg px-2 py-2 text-sm font-normal',
-    active ? 'bg-accent/10 font-medium text-accent hover:bg-accent/10' : 'text-subtle'
-  )
 import { SettingsService } from '@/lib/gen/todos/v1/settings_pb'
 
 type Tab = 'active' | 'done' | 'archive'
-
-const SHORTCUTS = [
-  { key: '/', desc: 'new task' },
-  { key: '↑↓', desc: 'navigate tasks' },
-  { key: 's', desc: 'jump to sections' },
-  { key: 'Esc / →', desc: 'exit sections' }
-]
 
 export default function TodosPage() {
   const router = useRouter()
@@ -194,117 +179,18 @@ export default function TodosPage() {
       {policies.length > 0 && <PoliciesBanner policies={policies} />}
 
       {/* Shortcut hints */}
-      {!hideShortcutHints && (
-        <div className="flex items-center gap-4 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-muted">
-          {SHORTCUTS.map(({ key, desc }) => (
-            <span key={key}>
-              <kbd className="rounded-lg border border-border bg-card px-1 py-0.5 font-mono text-xs">
-                {key}
-              </kbd>{' '}
-              {desc}
-            </span>
-          ))}
-          <Button
-            type="button"
-            variant="ghost"
-            size="iconSm"
-            onClick={dismissShortcutHints}
-            className="ml-auto h-5 w-5 text-muted hover:bg-transparent hover:text-subtle"
-            aria-label="Dismiss shortcut hints"
-          >
-            ✕
-          </Button>
-        </div>
-      )}
+      {!hideShortcutHints && <ShortcutHints onDismiss={dismissShortcutHints} />}
 
       <div className="flex gap-6">
-        {/* Left sidebar */}
-        <aside className="w-48 shrink-0">
-          {/* Workspaces */}
-          {workspaces.length > 0 && (
-            <section className="mb-4">
-              <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                Workspaces
-              </h2>
-              <ul>
-                <li>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => selectWorkspace(undefined)}
-                    className={navButtonClass(selectedWorkspaceId === undefined)}
-                  >
-                    All workspaces
-                  </Button>
-                </li>
-                {workspaces.map((ws) => (
-                  <li key={ws.id}>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => selectWorkspace(ws.id)}
-                      className={navButtonClass(selectedWorkspaceId === ws.id)}
-                    >
-                      {ws.name}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Sections */}
-          {sections.length > 0 && (
-            <section>
-              <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                Sections
-              </h2>
-              <ul>
-                <li>
-                  <Button
-                    ref={(el) => {
-                      sectionRefs.current[0] = el
-                    }}
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setSelectedSectionId(undefined)}
-                    className={navButtonClass(selectedSectionId === undefined)}
-                  >
-                    All sections
-                  </Button>
-                </li>
-                {sections.map((sec, i) => (
-                  <li key={sec.id}>
-                    <Button
-                      ref={(el) => {
-                        sectionRefs.current[i + 1] = el
-                      }}
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setSelectedSectionId(sec.id)}
-                      className={navButtonClass(selectedSectionId === sec.id)}
-                    >
-                      {sec.name}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {/* Settings link */}
-          <div className="mt-6 border-t border-border pt-4">
-            <Button
-              asChild
-              variant="ghost"
-              className="h-auto w-full justify-start gap-2 rounded-lg px-2 py-2 text-sm font-normal text-subtle hover:text-fg"
-            >
-              <Link href="/todos/settings">
-                <SettingsIcon />
-                Settings
-              </Link>
-            </Button>
-          </div>
-        </aside>
+        <TodosSidebar
+          workspaces={workspaces}
+          sections={sections}
+          selectedWorkspaceId={selectedWorkspaceId}
+          selectedSectionId={selectedSectionId}
+          onSelectWorkspace={selectWorkspace}
+          onSelectSection={setSelectedSectionId}
+          sectionRefs={sectionRefs}
+        />
 
         {/* Main content */}
         <div className="min-w-0 flex-1">
