@@ -114,9 +114,9 @@ func (f *fakePlansStore) SharePlan(
 	return nil
 }
 
-func newPlanFixture(owner string, canEdit bool) *models.Plan {
+func newPlanFixture(canEdit bool) *models.Plan {
 	//nolint:exhaustruct //only fields relevant to permissions
-	return &models.Plan{ID: uuid.New(), OwnerUserID: owner, CanEdit: canEdit}
+	return &models.Plan{ID: uuid.New(), OwnerUserID: "owner", CanEdit: canEdit}
 }
 
 func planHTTPStatus(t *testing.T, err error) int {
@@ -127,7 +127,8 @@ func planHTTPStatus(t *testing.T, err error) int {
 }
 
 func TestPlanUpdate_NonOwnerForbidden(t *testing.T) {
-	store := &fakePlansStore{plan: newPlanFixture("owner", true)}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true)}
 	svc := &PlanService{repo: store}
 
 	err := svc.Update(t.Context(), "editor", *store.plan)
@@ -136,7 +137,8 @@ func TestPlanUpdate_NonOwnerForbidden(t *testing.T) {
 }
 
 func TestPlanDelete_NonOwnerForbidden(t *testing.T) {
-	store := &fakePlansStore{plan: newPlanFixture("owner", true)}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true)}
 	svc := &PlanService{repo: store}
 
 	err := svc.Delete(t.Context(), uuid.New(), "editor")
@@ -145,7 +147,8 @@ func TestPlanDelete_NonOwnerForbidden(t *testing.T) {
 }
 
 func TestPlanMealMutations_RequireEditAccess(t *testing.T) {
-	store := &fakePlansStore{plan: newPlanFixture("owner", false)}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(false)}
 	svc := &PlanService{repo: store}
 	viewer := "view-only-user"
 
@@ -168,7 +171,8 @@ func TestPlanMealMutations_RequireEditAccess(t *testing.T) {
 }
 
 func TestPlanMealMutations_AllowedWithEditAccess(t *testing.T) {
-	store := &fakePlansStore{plan: newPlanFixture("owner", true)}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true)}
 	svc := &PlanService{repo: store}
 
 	require.NoError(t, svc.CreateMeal(
@@ -185,7 +189,8 @@ func TestPlanMealMutations_AllowedWithEditAccess(t *testing.T) {
 }
 
 func TestPlanSharing_OwnerOnly(t *testing.T) {
-	store := &fakePlansStore{plan: newPlanFixture("owner", true)}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true)}
 	svc := &PlanService{repo: store}
 
 	err := svc.Share(t.Context(), store.plan.ID, "editor", "friend", false)

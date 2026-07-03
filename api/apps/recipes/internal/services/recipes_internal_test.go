@@ -91,9 +91,9 @@ func (f *fakeRecipesStore) ListBookShares(
 	return nil, nil
 }
 
-func newRecipeFixture(owner string) *models.Recipe {
+func newRecipeFixture() *models.Recipe {
 	//nolint:exhaustruct //only fields relevant to permissions
-	return &models.Recipe{ID: uuid.New(), UserID: owner}
+	return &models.Recipe{ID: uuid.New(), UserID: "owner"}
 }
 
 func httpStatus(t *testing.T, err error) int {
@@ -104,7 +104,8 @@ func httpStatus(t *testing.T, err error) int {
 }
 
 func TestRecipeGet_OwnerCanEdit(t *testing.T) {
-	store := &fakeRecipesStore{recipe: newRecipeFixture("owner")}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
 	svc := &RecipeService{repo: store}
 
 	_, canEdit, err := svc.Get(t.Context(), uuid.New(), "owner")
@@ -113,8 +114,9 @@ func TestRecipeGet_OwnerCanEdit(t *testing.T) {
 }
 
 func TestRecipeGet_ViewOnlyShareCannotEdit(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{
-		recipe:        newRecipeFixture("owner"),
+		recipe:        newRecipeFixture(),
 		accessOK:      true,
 		accessCanEdit: false,
 	}
@@ -126,7 +128,8 @@ func TestRecipeGet_ViewOnlyShareCannotEdit(t *testing.T) {
 }
 
 func TestRecipeGet_NoAccessForbidden(t *testing.T) {
-	store := &fakeRecipesStore{recipe: newRecipeFixture("owner"), accessOK: false}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture(), accessOK: false}
 	svc := &RecipeService{repo: store}
 
 	_, _, err := svc.Get(t.Context(), uuid.New(), "stranger")
@@ -134,8 +137,9 @@ func TestRecipeGet_NoAccessForbidden(t *testing.T) {
 }
 
 func TestRecipeUpdate_EditShareKeepsOriginalOwner(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{
-		recipe:        newRecipeFixture("owner"),
+		recipe:        newRecipeFixture(),
 		accessOK:      true,
 		accessCanEdit: true,
 	}
@@ -150,8 +154,9 @@ func TestRecipeUpdate_EditShareKeepsOriginalOwner(t *testing.T) {
 }
 
 func TestRecipeUpdate_ViewOnlyShareForbidden(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{
-		recipe:        newRecipeFixture("owner"),
+		recipe:        newRecipeFixture(),
 		accessOK:      true,
 		accessCanEdit: false,
 	}
@@ -163,7 +168,8 @@ func TestRecipeUpdate_ViewOnlyShareForbidden(t *testing.T) {
 }
 
 func TestRecipeDelete_NonOwnerForbidden(t *testing.T) {
-	store := &fakeRecipesStore{recipe: newRecipeFixture("owner")}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
 	svc := &RecipeService{repo: store}
 
 	err := svc.Delete(t.Context(), uuid.New(), "someone-else")
@@ -172,6 +178,7 @@ func TestRecipeDelete_NonOwnerForbidden(t *testing.T) {
 }
 
 func TestRecipeShareBook_RejectsEmptyAndSelf(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{}
 	svc := &RecipeService{repo: store}
 
