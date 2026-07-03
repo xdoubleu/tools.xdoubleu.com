@@ -151,6 +151,27 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 - `updated_at` columns are managed via PostgreSQL triggers
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking
 
+### Cross-Schema Reads
+
+Apps share one binary and one database, so downstream apps may **read** an
+upstream app's schema directly in SQL instead of going through an internal API.
+The allowed dependency direction is acyclic:
+
+```
+recipes ← mealplans ← shoppinglist
+```
+
+- `mealplans` joins `recipes.recipes` (meals reference recipes); its proto
+  embeds `recipes.v1.Recipe`.
+- `shoppinglist` is by design a read-side aggregator: its export and item-name
+  catalog features join `mealplans.plan_meals`/`plans`/`plan_access` and
+  `recipes.recipes`/`ingredients`.
+
+Rules: reads only (never write another app's schema), never add a dependency
+in the reverse direction, and each app's migrations touch only its own schema.
+Upstream schema changes (recipes, mealplans) must grep downstream repositories
+for affected columns.
+
 ## Linting
 
 Strict linting is enforced via `golangci-lint` (40+ linters). Key constraints:
