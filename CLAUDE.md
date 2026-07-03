@@ -13,7 +13,7 @@ Claude Code auto-loads the `CLAUDE.md` of the current working directory, so the 
 
 Go 1.26 backend (`api/`) serving multiple apps from a single binary, paired with a Next.js 16 static-export frontend (`web/`). Apps share a single HTTP mux and expose ConnectRPC endpoints. Each app owns its own PostgreSQL schema; shared proto definitions live in `proto/`.
 
-Apps: **backlog**, **watchparty**, **icsproxy**, **recipes**, **todos**. See [`api/CLAUDE.md`](api/CLAUDE.md) for per-app details.
+Apps: **games**, **books**, **watchparty**, **icsproxy**, **recipes**, **mealplans**, **shoppinglist**, **todos**. See [`api/CLAUDE.md`](api/CLAUDE.md) for per-app details.
 
 ## Code Navigation (ast-grep)
 

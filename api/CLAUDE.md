@@ -20,7 +20,7 @@ make test/cov/report        # Coverage report (HTML, excludes mocks)
 make test/cov/per-pkg       # Per-package coverage with merged report
 
 # Single test
-go test ./apps/backlog/... -run TestFunctionName
+go test ./apps/books/... -run TestFunctionName
 
 # Linting
 make lint                   # Run all linters (Go + SQL)
@@ -34,7 +34,7 @@ make proto/generate
 ## Docker Image
 
 The api image uses `debian:12-slim` (not distroless) as the final stage because the
-**backlog book-conversion feature** shells out to Calibre's `ebook-convert` binary to
+**books conversion feature** shells out to Calibre's `ebook-convert` binary to
 convert PDFs to EPUB before kepubification. Calibre requires Qt and Python shared
 libraries that distroless cannot provide.
 
@@ -65,7 +65,7 @@ re-applying the rule — it is not stored in this repo.
 
 ## Architecture
 
-A Go monorepo that serves multiple web apps from a single binary. All apps are registered in `cmd/api/apps.go` and share a single HTTP mux routed by URL prefix. Apps expose ConnectRPC endpoints consumed by the Next.js frontend in `web/`.
+A Go monorepo that serves multiple web apps from a single binary. All apps are registered in `cmd/api/apps.go` and share a single HTTP mux routed by URL prefix; `main.go` wraps the shared pgx pool in `postgres.NewSpanDB` once so every app's queries emit tracing spans (migrations use the raw pool). Registration order matters for migrations: `books` registers before `games` because games' final migration drops the leftover `backlog` schema after both apps have adopted their tables. Apps expose ConnectRPC endpoints consumed by the Next.js frontend in `web/`.
 
 ### App Structure
 
@@ -102,7 +102,7 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 
 ### Shared Internal Packages (`internal/`)
 
-- **`app.Base`** — Embedded struct providing logger, config, templates, and auth service to every app
+- **`app.Base`** — Embedded struct providing logger, config, and auth service to every app
 - **`app.HTTPError`** — Shared HTTP error type (`Status int`, `Message string`); import as `iapp "tools.xdoubleu.com/internal/app"` in handler files to avoid collision with the app struct
 - **`auth/`** — Supabase GoTrue authentication (`gotrue-go`)
 - **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v4`
@@ -111,7 +111,8 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 - **`crypto/`** — Encryption utilities
 - **`models/`** — Shared domain models
 - **`repositories/`** — Shared DB repositories
-- **`templates/`** — Shared utility functions (date formatting, fraction parsing, etc.)
+- **`progressws/`** — WebSocket service broadcasting background-job progress (start/stop state, live "X of N" counts) keyed by job-ID topics
+- **`progresshistory/`** — Generic cumulative-progress storage with carry-forward reads (used by games and books progress graphs)
 - **`mocks/`** — Shared mock implementations
 - **`testhelper/`** — Test utilities: `ConnectTestDB(dsn)` wraps `postgres.Connect` for integration tests; `BuildMux(Routable)` constructs a test `http.Handler` from any app that implements `Routes`/`GetName`
 
@@ -131,16 +132,18 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 
 ### Apps
 
-- **backlog** — Goals/backlog tracker with external sync (Steam, Open Library/Goodreads, Google Books). Book metadata enrichment uses Open Library then Google Books as fallback (set `GOOGLE_BOOKS_API_KEY` for higher rate limits); ISBN-less books are matched by title+author. External client packages live in `pkg/openlibrary/`, `pkg/googlebooks/`, `pkg/steam/`. Has background jobs (2 workers) and WebSocket live updates. Uses `backlog` DB schema.
+- **games** — Steam backlog tracker: library sync, achievements, completion rate progress/distribution, and the user's Steam integration settings. External client package lives in `pkg/steam/`. Has a background sync job (1 worker) and WebSocket live updates. Uses `games` DB schema (adopted from the former `backlog` schema).
+- **books** — Book library and e-reader companion. Book metadata enrichment uses Open Library then Google Books as fallback (set `GOOGLE_BOOKS_API_KEY` for higher rate limits); ISBN-less books are matched by title+author. External client packages live in `pkg/openlibrary/`, `pkg/googlebooks/`, `pkg/unicat/`. Serves the raw Kobo sync protocol under `/books/kobo/{token}/…` and a public cover proxy. Has background jobs (2 workers) and WebSocket live updates. Uses `books` DB schema (adopted from the former `backlog` schema).
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no background jobs.
 - **icsproxy** — ICS calendar feed filtering and proxying. Uses `icsproxy` DB schema.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (`recipebook_access`, view-only or edit). Uses `recipes` DB schema.
 - **shoppinglist** — Custom items plus meal-plan ingredient aggregation, with user-defined categories, a name→category catalog, and per-store category ordering that drives a store-ordered (Apple Notes) export. The whole list is shareable with contacts (`shoppinglist_access`, view-only or edit); data RPCs accept an `owner_user_id` so a recipient can act on a shared owner's list. Uses `shoppinglist` DB schema.
+- **mealplans** — Weekly meal planning with per-plan iCal feeds and plan sharing with contacts. Uses `mealplans` DB schema (its `plans` tables were adopted from the `recipes` schema — the same `ALTER TABLE … SET SCHEMA` pattern later used for the games/books split).
 - **todos** — Task management with sections, workspaces, subtasks, policies, archive, search, and background archive jobs. Uses `todos` DB schema.
 
 ### Database Conventions
 
-- Each app uses its own PostgreSQL schema (e.g., `backlog`, `icsproxy`)
+- Each app uses its own PostgreSQL schema (e.g., `books`, `icsproxy`)
 - Migrations live in `apps/<name>/migrations/` and follow Goose SQL format
 - `updated_at` columns are managed via PostgreSQL triggers
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking

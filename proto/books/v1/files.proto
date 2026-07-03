@@ -1,0 +1,63 @@
+syntax = "proto3";
+package books.v1;
+option go_package = "tools.xdoubleu.com/gen/books/v1;booksv1";
+
+message CreateBookUploadRequest {
+  string filename = 1;
+  string content_type = 2;
+  int64 size = 3;
+  // SHA-256 hex digest of the file content, computed by the client.
+  // When the content already exists in the store the server sets
+  // already_exists=true in the response and the client skips the PUT.
+  string checksum = 4;
+}
+message CreateBookUploadResponse {
+  string upload_id = 1;
+  string url = 2;
+  // True when the file content is already stored. The client must skip the
+  // PUT to url and call FinalizeBookUpload directly with the upload_id empty.
+  bool already_exists = 3;
+}
+
+message FinalizeBookUploadRequest {
+  string upload_id = 1;
+  string filename = 2;
+  string content_type = 3;
+  // SHA-256 hex digest matching what was sent in CreateBookUploadRequest.
+  string checksum = 4;
+}
+message FinalizeBookUploadResponse {
+  string book_id = 1;
+  string file_id = 2;
+  string recognized_title = 3;
+  bool matched_existing = 4;
+  string format = 5;
+}
+
+message GetBookFileRequest {
+  string book_id = 1;
+  string format = 2;
+}
+message GetBookFileResponse {
+  string url = 1;
+  string expires_at = 2;
+  string format = 3;
+}
+
+message RequestKEPUBConversionRequest { string book_id = 1; }
+message RequestKEPUBConversionResponse { string kepub_status = 1; }
+
+message GetKEPUBStatusRequest { string book_id = 1; }
+message GetKEPUBStatusResponse {
+  bool has_epub = 1;
+  string kepub_status = 2;
+  bool has_pdf = 3;
+}
+
+service BookFilesService {
+  rpc CreateBookUpload(CreateBookUploadRequest) returns (CreateBookUploadResponse);
+  rpc FinalizeBookUpload(FinalizeBookUploadRequest) returns (FinalizeBookUploadResponse);
+  rpc GetBookFile(GetBookFileRequest) returns (GetBookFileResponse);
+  rpc RequestKEPUBConversion(RequestKEPUBConversionRequest) returns (RequestKEPUBConversionResponse);
+  rpc GetKEPUBStatus(GetKEPUBStatusRequest) returns (GetKEPUBStatusResponse);
+}

@@ -11,7 +11,6 @@ import (
 	"tools.xdoubleu.com/gen/admin/v1/adminv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
-	"tools.xdoubleu.com/gen/settings/v1/settingsv1connect"
 	"tools.xdoubleu.com/internal/constants"
 )
 
@@ -27,14 +26,6 @@ func (app *Application) Routes() http.Handler {
 		&adminConnectHandler{app: app},
 	)
 	mux.Handle("POST "+adminPath, app.services.Auth.Access(adminHandler.ServeHTTP))
-
-	settingsPath, settingsHandler := settingsv1connect.NewSettingsServiceHandler(
-		&settingsConnectHandler{app: app},
-	)
-	mux.Handle(
-		"POST "+settingsPath,
-		app.services.Auth.Access(settingsHandler.ServeHTTP),
-	)
 
 	contactsPath, contactsHandler := contactsv1connect.NewContactsServiceHandler(
 		&contactsConnectHandler{app: app},

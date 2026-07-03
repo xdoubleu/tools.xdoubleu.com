@@ -8,7 +8,8 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 
 ## Tools
 
-- **backlog** — Goals/backlog tracker with external sync (Steam, Open Library/Goodreads), background jobs, and WebSocket live updates.
+- **games** — Steam backlog tracker: library sync, achievements, completion-rate progress and distribution, with background sync jobs and WebSocket live updates.
+- **books** — Book library and e-reader companion: external metadata sync (Open Library, Google Books, UniCat), EPUB/PDF uploads with KEPUB conversion, Kobo device sync, and reading progress. Kobo devices sync against `/books/kobo/<token>/…`; devices configured before the games/books split (old `/backlog/kobo/…` URLs) must re-run the setup flow.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).

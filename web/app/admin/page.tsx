@@ -7,7 +7,16 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { PageContainer } from '@/components/ui/page-container'
 
-const APP_NAMES = ['backlog', 'icsproxy', 'recipes', 'todos', 'watchparty']
+const APP_NAMES = [
+  'games',
+  'books',
+  'icsproxy',
+  'mealplans',
+  'recipes',
+  'shoppinglist',
+  'todos',
+  'watchparty'
+]
 
 function UserRow({ user }: { user: AppUser }) {
   const setRole = useSetRole()

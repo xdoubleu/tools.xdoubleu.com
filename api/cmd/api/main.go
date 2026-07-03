@@ -20,7 +20,6 @@ import (
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
 
-	"tools.xdoubleu.com/apps/backlog"
 	"tools.xdoubleu.com/cmd/api/internal/services"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
@@ -40,7 +39,6 @@ type Application struct {
 	services     *services.Services
 	contacts     contacts.Service
 	apps         *Apps
-	backlog      *backlog.Backlog
 	appUsersRepo *repositories.AppUsersRepository
 }
 
@@ -134,8 +132,6 @@ func NewApplication(
 	}
 	contactsSvc := contacts.New(contactsRepo, svc.Auth)
 
-	bl := backlog.New(ctx, svc.Auth, logger, config, db)
-
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
 		ctx:          ctx,
@@ -143,13 +139,12 @@ func NewApplication(
 		config:       config,
 		services:     svc,
 		contacts:     contactsSvc,
-		backlog:      bl,
 		appUsersRepo: appUsersRepo,
 	}
 
-	app.apps = NewApps(
-		app.ctx, app.services.Auth, logger, config, db, bl,
-	)
+	// One tracing wrapper for every app's queries; migrations keep the raw pool.
+	spanDB := postgres.NewSpanDB(db)
+	app.apps = NewApps(app.services.Auth, logger, config, spanDB)
 
 	err = app.ApplyMigrations(db)
 	if err != nil {

@@ -9,7 +9,17 @@ interface UsersTableProps {
   onUpdated?: () => void
 }
 
-const APPS = ['backlog', 'todos', 'recipes', 'contacts', 'watchparty', 'icsproxy']
+const APPS = [
+  'games',
+  'books',
+  'todos',
+  'recipes',
+  'mealplans',
+  'shoppinglist',
+  'contacts',
+  'watchparty',
+  'icsproxy'
+]
 
 export default function UsersTable({ users, onUpdated }: UsersTableProps) {
   const setRole = useSetRole()
