@@ -74,6 +74,9 @@ Each app lives in `apps/<name>/` and follows a consistent layout:
 ```
 apps/<name>/
 ├── app.go              # App struct embedding app.Base, implements App interface
+│                       # Apps whose integration tests seed data through the
+│                       # service layer (games, books, watchparty) export a
+│                       # Services field; the rest keep services private
 ├── routes.go           # HTTP route registration
 ├── handlers.go         # HTTP handlers (shared middleware/error helpers)
 │                       # Large apps split handler code across focused files,
