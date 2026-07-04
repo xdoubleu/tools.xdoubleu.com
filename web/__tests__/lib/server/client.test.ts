@@ -3,7 +3,10 @@ import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
 
 jest.mock('next/headers', () => ({
   cookies: jest.fn(async () => ({
-    toString: () => 'accessToken=abc; refreshToken=def'
+    getAll: () => [
+      { name: 'accessToken', value: 'abc' },
+      { name: 'refreshToken', value: 'def' }
+    ]
   }))
 }))
 

@@ -78,7 +78,9 @@ export default function HomeClient() {
   const signIn = useSignIn()
   const mFAChallenge = useMFAChallenge()
 
-  const [authState, setAuthState] = useState<AuthState>('loading')
+  // Server-provided fallback (SWRProvider) makes `data` available on the
+  // very first render, so the authenticated view server-renders directly.
+  const [authState, setAuthState] = useState<AuthState>(data ? 'authenticated' : 'loading')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)

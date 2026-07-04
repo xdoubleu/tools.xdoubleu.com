@@ -23,7 +23,17 @@ export function serverFetch(cookieHeader: string): typeof fetch {
 // cache() memoizes per RSC render pass, so parallel fetches in one request
 // share a single transport (and a single cookies() read).
 const getTransport = cache(async () => {
-  const cookieHeader = (await cookies()).toString()
+  const store = await cookies()
+  // The refresh token is deliberately NOT forwarded: a server component
+  // cannot persist rotated cookies, so a server-triggered refresh (e.g. via
+  // GetCurrentUser) would invalidate the refresh token the browser still
+  // holds. Expired sessions therefore 401 here and recover through the
+  // client-side SWR fetch, which refreshes in the browser.
+  const cookieHeader = store
+    .getAll()
+    .filter((c) => c.name !== 'refreshToken')
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ')
   return createConnectTransport({
     baseUrl: getApiUrl(),
     useBinaryFormat: true,
