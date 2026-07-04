@@ -6,12 +6,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/watchparty"
-	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -22,9 +21,7 @@ func TestMain(m *testing.M) {
 }
 
 func newTestApp() (*watchparty.WatchParty, http.Handler) {
-	cfg := config.New(logging.NewNopLogger())
-	cfg.Env = configtools.TestEnv
-	cfg.Throttle = false
+	cfg := testhelper.NewTestConfig()
 
 	app := watchparty.New(
 		sharedmocks.NewMockedAuthService(userID),

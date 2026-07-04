@@ -16,6 +16,8 @@ import (
 
 type WatchParty struct {
 	app.Base
+	// Services is exported so integration tests can seed rooms through the
+	// real service layer (same convention as the games and books apps).
 	Services *services.Services
 }
 

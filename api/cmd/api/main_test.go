@@ -7,12 +7,11 @@ import (
 	"testing"
 	"time"
 
-	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
-	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 var testApp *Application //nolint:gochecknoglobals //needed for tests
@@ -26,9 +25,7 @@ var accessToken = http.Cookie{
 func TestMain(m *testing.M) {
 	var err error
 
-	cfg := config.New(logging.NewNopLogger())
-	cfg.Env = configtools.TestEnv
-	cfg.Throttle = false
+	cfg := testhelper.NewTestConfig()
 
 	postgresDB, err := postgres.Connect(
 		logging.NewNopLogger(),

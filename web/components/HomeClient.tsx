@@ -14,16 +14,14 @@ const ALL_APPS: AppLink[] = [
   {
     name: 'games',
     label: 'Games',
-    href: '/backlog/games',
-    description: 'Steam backlog, progress and distribution.',
-    accessKey: 'backlog'
+    href: '/games',
+    description: 'Steam backlog, progress and distribution.'
   },
   {
     name: 'books',
     label: 'Books',
-    href: '/backlog/books',
-    description: 'Search, library and reading progress.',
-    accessKey: 'backlog'
+    href: '/books',
+    description: 'Search, library and reading progress.'
   },
   { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' },
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },

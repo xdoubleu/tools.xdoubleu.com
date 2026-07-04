@@ -25,10 +25,10 @@ func (s *SettingsService) GetLabelPresets(
 	return s.settings.GetLabelPresets(ctx, userID, workspaceID)
 }
 
-func (s *SettingsService) AddLabelPreset(
+func (s *SettingsService) CreateLabelPreset(
 	ctx context.Context,
 	userID string,
-	dto dtos.AddLabelPresetDto,
+	dto dtos.CreateLabelPresetDto,
 	workspaceID *uuid.UUID,
 ) error {
 	if dto.Value == "" {
@@ -43,17 +43,23 @@ func (s *SettingsService) AddLabelPreset(
 			Message: "Invalid label category",
 		}
 	}
-	return s.settings.AddLabelPreset(ctx, userID, dto.Category, dto.Value, workspaceID)
+	return s.settings.CreateLabelPreset(
+		ctx,
+		userID,
+		dto.Category,
+		dto.Value,
+		workspaceID,
+	)
 }
 
-func (s *SettingsService) RemoveLabelPreset(
+func (s *SettingsService) DeleteLabelPreset(
 	ctx context.Context,
 	userID string,
 	category string,
 	value string,
 	workspaceID *uuid.UUID,
 ) error {
-	return s.settings.RemoveLabelPreset(ctx, userID, category, value, workspaceID)
+	return s.settings.DeleteLabelPreset(ctx, userID, category, value, workspaceID)
 }
 
 func (s *SettingsService) GetURLPatterns(
@@ -64,10 +70,10 @@ func (s *SettingsService) GetURLPatterns(
 	return s.settings.GetURLPatterns(ctx, userID, workspaceID)
 }
 
-func (s *SettingsService) AddURLPattern(
+func (s *SettingsService) CreateURLPattern(
 	ctx context.Context,
 	userID string,
-	dto dtos.AddURLPatternDto,
+	dto dtos.CreateURLPatternDto,
 	workspaceID *uuid.UUID,
 ) error {
 	if dto.URLPrefix == "" || dto.PlatformName == "" {
@@ -77,7 +83,7 @@ func (s *SettingsService) AddURLPattern(
 		}
 	}
 	//nolint:exhaustruct // ID and SortOrder set by DB
-	return s.settings.AddURLPattern(ctx, models.URLPattern{
+	return s.settings.CreateURLPattern(ctx, models.URLPattern{
 		UserID:       userID,
 		URLPrefix:    dto.URLPrefix,
 		PlatformName: dto.PlatformName,
@@ -87,12 +93,12 @@ func (s *SettingsService) AddURLPattern(
 	})
 }
 
-func (s *SettingsService) RemoveURLPattern(
+func (s *SettingsService) DeleteURLPattern(
 	ctx context.Context,
 	id uuid.UUID,
 	userID string,
 ) error {
-	return s.settings.RemoveURLPattern(ctx, id, userID)
+	return s.settings.DeleteURLPattern(ctx, id, userID)
 }
 
 func (s *SettingsService) GetArchiveSettings(

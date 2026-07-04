@@ -67,7 +67,7 @@ func (r *SettingsRepository) UpdateLabelPresetColor(
 	return err
 }
 
-func (r *SettingsRepository) AddLabelPreset(
+func (r *SettingsRepository) CreateLabelPreset(
 	ctx context.Context,
 	userID string,
 	category string,
@@ -89,7 +89,7 @@ func (r *SettingsRepository) AddLabelPreset(
 	return err
 }
 
-func (r *SettingsRepository) RemoveLabelPreset(
+func (r *SettingsRepository) DeleteLabelPreset(
 	ctx context.Context,
 	userID string,
 	category string,
@@ -125,7 +125,7 @@ func (r *SettingsRepository) GetURLPatterns(
 	return scanURLPatterns(rows)
 }
 
-func (r *SettingsRepository) AddURLPattern(
+func (r *SettingsRepository) CreateURLPattern(
 	ctx context.Context,
 	p models.URLPattern,
 ) error {
@@ -145,7 +145,7 @@ func (r *SettingsRepository) AddURLPattern(
 	return err
 }
 
-func (r *SettingsRepository) RemoveURLPattern(
+func (r *SettingsRepository) DeleteURLPattern(
 	ctx context.Context,
 	id uuid.UUID,
 	userID string,

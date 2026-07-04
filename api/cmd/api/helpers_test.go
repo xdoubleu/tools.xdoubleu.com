@@ -23,6 +23,36 @@ func connectServer(t *testing.T) *httptest.Server {
 	return ts
 }
 
+// doInProcess executes a request directly against the handler using
+// httptest.NewRecorder so that it hits the 192.0.2.1 rate-limit bucket
+// (not the 127.0.0.1 bucket consumed by httptest.NewServer-based tests).
+func doInProcess(
+	t *testing.T,
+	method, target string,
+	body string,
+	contentType string,
+	cookies ...*http.Cookie,
+) *httptest.ResponseRecorder {
+	t.Helper()
+
+	var reqBody strings.Reader
+	if body != "" {
+		reqBody = *strings.NewReader(body)
+	}
+
+	req := httptest.NewRequest(method, target, &reqBody)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+
+	rr := httptest.NewRecorder()
+	testApp.Routes().ServeHTTP(rr, req)
+	return rr
+}
+
 func setCookieOnRequest[T any](req *connect.Request[T], cookies ...http.Cookie) {
 	var parts []string
 	for _, c := range cookies {

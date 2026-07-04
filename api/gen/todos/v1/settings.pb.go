@@ -729,7 +729,7 @@ func (*UpdateArchiveSettingsResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{10}
 }
 
-type AddLabelPresetRequest struct {
+type CreateLabelPresetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Category      string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
 	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
@@ -738,20 +738,20 @@ type AddLabelPresetRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddLabelPresetRequest) Reset() {
-	*x = AddLabelPresetRequest{}
+func (x *CreateLabelPresetRequest) Reset() {
+	*x = CreateLabelPresetRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddLabelPresetRequest) String() string {
+func (x *CreateLabelPresetRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddLabelPresetRequest) ProtoMessage() {}
+func (*CreateLabelPresetRequest) ProtoMessage() {}
 
-func (x *AddLabelPresetRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateLabelPresetRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -763,52 +763,52 @@ func (x *AddLabelPresetRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddLabelPresetRequest.ProtoReflect.Descriptor instead.
-func (*AddLabelPresetRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateLabelPresetRequest.ProtoReflect.Descriptor instead.
+func (*CreateLabelPresetRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *AddLabelPresetRequest) GetCategory() string {
+func (x *CreateLabelPresetRequest) GetCategory() string {
 	if x != nil {
 		return x.Category
 	}
 	return ""
 }
 
-func (x *AddLabelPresetRequest) GetValue() string {
+func (x *CreateLabelPresetRequest) GetValue() string {
 	if x != nil {
 		return x.Value
 	}
 	return ""
 }
 
-func (x *AddLabelPresetRequest) GetWorkspaceId() string {
+func (x *CreateLabelPresetRequest) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-type AddLabelPresetResponse struct {
+type CreateLabelPresetResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddLabelPresetResponse) Reset() {
-	*x = AddLabelPresetResponse{}
+func (x *CreateLabelPresetResponse) Reset() {
+	*x = CreateLabelPresetResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddLabelPresetResponse) String() string {
+func (x *CreateLabelPresetResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddLabelPresetResponse) ProtoMessage() {}
+func (*CreateLabelPresetResponse) ProtoMessage() {}
 
-func (x *AddLabelPresetResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateLabelPresetResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -820,12 +820,12 @@ func (x *AddLabelPresetResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddLabelPresetResponse.ProtoReflect.Descriptor instead.
-func (*AddLabelPresetResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateLabelPresetResponse.ProtoReflect.Descriptor instead.
+func (*CreateLabelPresetResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{12}
 }
 
-type RemoveLabelPresetRequest struct {
+type DeleteLabelPresetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Category      string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
 	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
@@ -834,20 +834,20 @@ type RemoveLabelPresetRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemoveLabelPresetRequest) Reset() {
-	*x = RemoveLabelPresetRequest{}
+func (x *DeleteLabelPresetRequest) Reset() {
+	*x = DeleteLabelPresetRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemoveLabelPresetRequest) String() string {
+func (x *DeleteLabelPresetRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemoveLabelPresetRequest) ProtoMessage() {}
+func (*DeleteLabelPresetRequest) ProtoMessage() {}
 
-func (x *RemoveLabelPresetRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteLabelPresetRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -859,52 +859,52 @@ func (x *RemoveLabelPresetRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveLabelPresetRequest.ProtoReflect.Descriptor instead.
-func (*RemoveLabelPresetRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteLabelPresetRequest.ProtoReflect.Descriptor instead.
+func (*DeleteLabelPresetRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *RemoveLabelPresetRequest) GetCategory() string {
+func (x *DeleteLabelPresetRequest) GetCategory() string {
 	if x != nil {
 		return x.Category
 	}
 	return ""
 }
 
-func (x *RemoveLabelPresetRequest) GetValue() string {
+func (x *DeleteLabelPresetRequest) GetValue() string {
 	if x != nil {
 		return x.Value
 	}
 	return ""
 }
 
-func (x *RemoveLabelPresetRequest) GetWorkspaceId() string {
+func (x *DeleteLabelPresetRequest) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-type RemoveLabelPresetResponse struct {
+type DeleteLabelPresetResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemoveLabelPresetResponse) Reset() {
-	*x = RemoveLabelPresetResponse{}
+func (x *DeleteLabelPresetResponse) Reset() {
+	*x = DeleteLabelPresetResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemoveLabelPresetResponse) String() string {
+func (x *DeleteLabelPresetResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemoveLabelPresetResponse) ProtoMessage() {}
+func (*DeleteLabelPresetResponse) ProtoMessage() {}
 
-func (x *RemoveLabelPresetResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteLabelPresetResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -916,8 +916,8 @@ func (x *RemoveLabelPresetResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveLabelPresetResponse.ProtoReflect.Descriptor instead.
-func (*RemoveLabelPresetResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteLabelPresetResponse.ProtoReflect.Descriptor instead.
+func (*DeleteLabelPresetResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{14}
 }
 
@@ -1025,7 +1025,7 @@ func (*UpdateLabelColorResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{16}
 }
 
-type AddURLPatternRequest struct {
+type CreateURLPatternRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UrlPrefix     string                 `protobuf:"bytes,1,opt,name=url_prefix,json=urlPrefix,proto3" json:"url_prefix,omitempty"`
 	PlatformName  string                 `protobuf:"bytes,2,opt,name=platform_name,json=platformName,proto3" json:"platform_name,omitempty"`
@@ -1036,20 +1036,20 @@ type AddURLPatternRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddURLPatternRequest) Reset() {
-	*x = AddURLPatternRequest{}
+func (x *CreateURLPatternRequest) Reset() {
+	*x = CreateURLPatternRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddURLPatternRequest) String() string {
+func (x *CreateURLPatternRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddURLPatternRequest) ProtoMessage() {}
+func (*CreateURLPatternRequest) ProtoMessage() {}
 
-func (x *AddURLPatternRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateURLPatternRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1061,66 +1061,66 @@ func (x *AddURLPatternRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddURLPatternRequest.ProtoReflect.Descriptor instead.
-func (*AddURLPatternRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateURLPatternRequest.ProtoReflect.Descriptor instead.
+func (*CreateURLPatternRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *AddURLPatternRequest) GetUrlPrefix() string {
+func (x *CreateURLPatternRequest) GetUrlPrefix() string {
 	if x != nil {
 		return x.UrlPrefix
 	}
 	return ""
 }
 
-func (x *AddURLPatternRequest) GetPlatformName() string {
+func (x *CreateURLPatternRequest) GetPlatformName() string {
 	if x != nil {
 		return x.PlatformName
 	}
 	return ""
 }
 
-func (x *AddURLPatternRequest) GetLabel() string {
+func (x *CreateURLPatternRequest) GetLabel() string {
 	if x != nil {
 		return x.Label
 	}
 	return ""
 }
 
-func (x *AddURLPatternRequest) GetShortcut() string {
+func (x *CreateURLPatternRequest) GetShortcut() string {
 	if x != nil {
 		return x.Shortcut
 	}
 	return ""
 }
 
-func (x *AddURLPatternRequest) GetWorkspaceId() string {
+func (x *CreateURLPatternRequest) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-type AddURLPatternResponse struct {
+type CreateURLPatternResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddURLPatternResponse) Reset() {
-	*x = AddURLPatternResponse{}
+func (x *CreateURLPatternResponse) Reset() {
+	*x = CreateURLPatternResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddURLPatternResponse) String() string {
+func (x *CreateURLPatternResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddURLPatternResponse) ProtoMessage() {}
+func (*CreateURLPatternResponse) ProtoMessage() {}
 
-func (x *AddURLPatternResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateURLPatternResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1132,32 +1132,32 @@ func (x *AddURLPatternResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddURLPatternResponse.ProtoReflect.Descriptor instead.
-func (*AddURLPatternResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateURLPatternResponse.ProtoReflect.Descriptor instead.
+func (*CreateURLPatternResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{18}
 }
 
-type RemoveURLPatternRequest struct {
+type DeleteURLPatternRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemoveURLPatternRequest) Reset() {
-	*x = RemoveURLPatternRequest{}
+func (x *DeleteURLPatternRequest) Reset() {
+	*x = DeleteURLPatternRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemoveURLPatternRequest) String() string {
+func (x *DeleteURLPatternRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemoveURLPatternRequest) ProtoMessage() {}
+func (*DeleteURLPatternRequest) ProtoMessage() {}
 
-func (x *RemoveURLPatternRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteURLPatternRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1169,38 +1169,38 @@ func (x *RemoveURLPatternRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveURLPatternRequest.ProtoReflect.Descriptor instead.
-func (*RemoveURLPatternRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteURLPatternRequest.ProtoReflect.Descriptor instead.
+func (*DeleteURLPatternRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{19}
 }
 
-func (x *RemoveURLPatternRequest) GetId() string {
+func (x *DeleteURLPatternRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-type RemoveURLPatternResponse struct {
+type DeleteURLPatternResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemoveURLPatternResponse) Reset() {
-	*x = RemoveURLPatternResponse{}
+func (x *DeleteURLPatternResponse) Reset() {
+	*x = DeleteURLPatternResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemoveURLPatternResponse) String() string {
+func (x *DeleteURLPatternResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemoveURLPatternResponse) ProtoMessage() {}
+func (*DeleteURLPatternResponse) ProtoMessage() {}
 
-func (x *RemoveURLPatternResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteURLPatternResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1212,12 +1212,12 @@ func (x *RemoveURLPatternResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveURLPatternResponse.ProtoReflect.Descriptor instead.
-func (*RemoveURLPatternResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteURLPatternResponse.ProtoReflect.Descriptor instead.
+func (*DeleteURLPatternResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{20}
 }
 
-type AddSectionRequest struct {
+type CreateSectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	WorkspaceId   string                 `protobuf:"bytes,2,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
@@ -1225,20 +1225,20 @@ type AddSectionRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddSectionRequest) Reset() {
-	*x = AddSectionRequest{}
+func (x *CreateSectionRequest) Reset() {
+	*x = CreateSectionRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddSectionRequest) String() string {
+func (x *CreateSectionRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddSectionRequest) ProtoMessage() {}
+func (*CreateSectionRequest) ProtoMessage() {}
 
-func (x *AddSectionRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateSectionRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1250,45 +1250,45 @@ func (x *AddSectionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddSectionRequest.ProtoReflect.Descriptor instead.
-func (*AddSectionRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateSectionRequest.ProtoReflect.Descriptor instead.
+func (*CreateSectionRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{21}
 }
 
-func (x *AddSectionRequest) GetName() string {
+func (x *CreateSectionRequest) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *AddSectionRequest) GetWorkspaceId() string {
+func (x *CreateSectionRequest) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-type AddSectionResponse struct {
+type CreateSectionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddSectionResponse) Reset() {
-	*x = AddSectionResponse{}
+func (x *CreateSectionResponse) Reset() {
+	*x = CreateSectionResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddSectionResponse) String() string {
+func (x *CreateSectionResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddSectionResponse) ProtoMessage() {}
+func (*CreateSectionResponse) ProtoMessage() {}
 
-func (x *AddSectionResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateSectionResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1300,32 +1300,32 @@ func (x *AddSectionResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddSectionResponse.ProtoReflect.Descriptor instead.
-func (*AddSectionResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateSectionResponse.ProtoReflect.Descriptor instead.
+func (*CreateSectionResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{22}
 }
 
-type RemoveSectionRequest struct {
+type DeleteSectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemoveSectionRequest) Reset() {
-	*x = RemoveSectionRequest{}
+func (x *DeleteSectionRequest) Reset() {
+	*x = DeleteSectionRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemoveSectionRequest) String() string {
+func (x *DeleteSectionRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemoveSectionRequest) ProtoMessage() {}
+func (*DeleteSectionRequest) ProtoMessage() {}
 
-func (x *RemoveSectionRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteSectionRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1337,38 +1337,38 @@ func (x *RemoveSectionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveSectionRequest.ProtoReflect.Descriptor instead.
-func (*RemoveSectionRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteSectionRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSectionRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{23}
 }
 
-func (x *RemoveSectionRequest) GetId() string {
+func (x *DeleteSectionRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-type RemoveSectionResponse struct {
+type DeleteSectionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemoveSectionResponse) Reset() {
-	*x = RemoveSectionResponse{}
+func (x *DeleteSectionResponse) Reset() {
+	*x = DeleteSectionResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemoveSectionResponse) String() string {
+func (x *DeleteSectionResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemoveSectionResponse) ProtoMessage() {}
+func (*DeleteSectionResponse) ProtoMessage() {}
 
-func (x *RemoveSectionResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteSectionResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1380,12 +1380,12 @@ func (x *RemoveSectionResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveSectionResponse.ProtoReflect.Descriptor instead.
-func (*RemoveSectionResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteSectionResponse.ProtoReflect.Descriptor instead.
+func (*DeleteSectionResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{24}
 }
 
-type AddPolicyRequest struct {
+type CreatePolicyRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Text               string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
 	ReappearAfterHours int32                  `protobuf:"varint,2,opt,name=reappear_after_hours,json=reappearAfterHours,proto3" json:"reappear_after_hours,omitempty"`
@@ -1394,20 +1394,20 @@ type AddPolicyRequest struct {
 	sizeCache          protoimpl.SizeCache
 }
 
-func (x *AddPolicyRequest) Reset() {
-	*x = AddPolicyRequest{}
+func (x *CreatePolicyRequest) Reset() {
+	*x = CreatePolicyRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddPolicyRequest) String() string {
+func (x *CreatePolicyRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddPolicyRequest) ProtoMessage() {}
+func (*CreatePolicyRequest) ProtoMessage() {}
 
-func (x *AddPolicyRequest) ProtoReflect() protoreflect.Message {
+func (x *CreatePolicyRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1419,52 +1419,52 @@ func (x *AddPolicyRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddPolicyRequest.ProtoReflect.Descriptor instead.
-func (*AddPolicyRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreatePolicyRequest.ProtoReflect.Descriptor instead.
+func (*CreatePolicyRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{25}
 }
 
-func (x *AddPolicyRequest) GetText() string {
+func (x *CreatePolicyRequest) GetText() string {
 	if x != nil {
 		return x.Text
 	}
 	return ""
 }
 
-func (x *AddPolicyRequest) GetReappearAfterHours() int32 {
+func (x *CreatePolicyRequest) GetReappearAfterHours() int32 {
 	if x != nil {
 		return x.ReappearAfterHours
 	}
 	return 0
 }
 
-func (x *AddPolicyRequest) GetWorkspaceId() string {
+func (x *CreatePolicyRequest) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
 	}
 	return ""
 }
 
-type AddPolicyResponse struct {
+type CreatePolicyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddPolicyResponse) Reset() {
-	*x = AddPolicyResponse{}
+func (x *CreatePolicyResponse) Reset() {
+	*x = CreatePolicyResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddPolicyResponse) String() string {
+func (x *CreatePolicyResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddPolicyResponse) ProtoMessage() {}
+func (*CreatePolicyResponse) ProtoMessage() {}
 
-func (x *AddPolicyResponse) ProtoReflect() protoreflect.Message {
+func (x *CreatePolicyResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1476,8 +1476,8 @@ func (x *AddPolicyResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddPolicyResponse.ProtoReflect.Descriptor instead.
-func (*AddPolicyResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreatePolicyResponse.ProtoReflect.Descriptor instead.
+func (*CreatePolicyResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{26}
 }
 
@@ -1577,27 +1577,27 @@ func (*UpdatePolicyResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{28}
 }
 
-type RemovePolicyRequest struct {
+type DeletePolicyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemovePolicyRequest) Reset() {
-	*x = RemovePolicyRequest{}
+func (x *DeletePolicyRequest) Reset() {
+	*x = DeletePolicyRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemovePolicyRequest) String() string {
+func (x *DeletePolicyRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemovePolicyRequest) ProtoMessage() {}
+func (*DeletePolicyRequest) ProtoMessage() {}
 
-func (x *RemovePolicyRequest) ProtoReflect() protoreflect.Message {
+func (x *DeletePolicyRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1609,38 +1609,38 @@ func (x *RemovePolicyRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemovePolicyRequest.ProtoReflect.Descriptor instead.
-func (*RemovePolicyRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeletePolicyRequest.ProtoReflect.Descriptor instead.
+func (*DeletePolicyRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{29}
 }
 
-func (x *RemovePolicyRequest) GetId() string {
+func (x *DeletePolicyRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-type RemovePolicyResponse struct {
+type DeletePolicyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RemovePolicyResponse) Reset() {
-	*x = RemovePolicyResponse{}
+func (x *DeletePolicyResponse) Reset() {
+	*x = DeletePolicyResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RemovePolicyResponse) String() string {
+func (x *DeletePolicyResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RemovePolicyResponse) ProtoMessage() {}
+func (*DeletePolicyResponse) ProtoMessage() {}
 
-func (x *RemovePolicyResponse) ProtoReflect() protoreflect.Message {
+func (x *DeletePolicyResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1652,32 +1652,32 @@ func (x *RemovePolicyResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemovePolicyResponse.ProtoReflect.Descriptor instead.
-func (*RemovePolicyResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeletePolicyResponse.ProtoReflect.Descriptor instead.
+func (*DeletePolicyResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{30}
 }
 
-type AddWorkspaceRequest struct {
+type CreateWorkspaceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddWorkspaceRequest) Reset() {
-	*x = AddWorkspaceRequest{}
+func (x *CreateWorkspaceRequest) Reset() {
+	*x = CreateWorkspaceRequest{}
 	mi := &file_todos_v1_settings_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddWorkspaceRequest) String() string {
+func (x *CreateWorkspaceRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddWorkspaceRequest) ProtoMessage() {}
+func (*CreateWorkspaceRequest) ProtoMessage() {}
 
-func (x *AddWorkspaceRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateWorkspaceRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1689,38 +1689,38 @@ func (x *AddWorkspaceRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddWorkspaceRequest.ProtoReflect.Descriptor instead.
-func (*AddWorkspaceRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateWorkspaceRequest.ProtoReflect.Descriptor instead.
+func (*CreateWorkspaceRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{31}
 }
 
-func (x *AddWorkspaceRequest) GetName() string {
+func (x *CreateWorkspaceRequest) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-type AddWorkspaceResponse struct {
+type CreateWorkspaceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddWorkspaceResponse) Reset() {
-	*x = AddWorkspaceResponse{}
+func (x *CreateWorkspaceResponse) Reset() {
+	*x = CreateWorkspaceResponse{}
 	mi := &file_todos_v1_settings_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddWorkspaceResponse) String() string {
+func (x *CreateWorkspaceResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddWorkspaceResponse) ProtoMessage() {}
+func (*CreateWorkspaceResponse) ProtoMessage() {}
 
-func (x *AddWorkspaceResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateWorkspaceResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_settings_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1732,8 +1732,8 @@ func (x *AddWorkspaceResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddWorkspaceResponse.ProtoReflect.Descriptor instead.
-func (*AddWorkspaceResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateWorkspaceResponse.ProtoReflect.Descriptor instead.
+func (*CreateWorkspaceResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_settings_proto_rawDescGZIP(), []int{32}
 }
 
@@ -2041,57 +2041,57 @@ const file_todos_v1_settings_proto_rawDesc = "" +
 	"\ruser_settings\x18\a \x01(\v2\x16.todos.v1.UserSettingsR\fuserSettings\"N\n" +
 	"\x1cUpdateArchiveSettingsRequest\x12.\n" +
 	"\x13archive_after_hours\x18\x01 \x01(\x05R\x11archiveAfterHours\"\x1f\n" +
-	"\x1dUpdateArchiveSettingsResponse\"l\n" +
-	"\x15AddLabelPresetRequest\x12\x1a\n" +
-	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\x12!\n" +
-	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\"\x18\n" +
-	"\x16AddLabelPresetResponse\"o\n" +
-	"\x18RemoveLabelPresetRequest\x12\x1a\n" +
+	"\x1dUpdateArchiveSettingsResponse\"o\n" +
+	"\x18CreateLabelPresetRequest\x12\x1a\n" +
 	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x12!\n" +
 	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\"\x1b\n" +
-	"\x19RemoveLabelPresetResponse\"\x84\x01\n" +
+	"\x19CreateLabelPresetResponse\"o\n" +
+	"\x18DeleteLabelPresetRequest\x12\x1a\n" +
+	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\"\x1b\n" +
+	"\x19DeleteLabelPresetResponse\"\x84\x01\n" +
 	"\x17UpdateLabelColorRequest\x12\x1a\n" +
 	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x12\x14\n" +
 	"\x05color\x18\x03 \x01(\tR\x05color\x12!\n" +
 	"\fworkspace_id\x18\x04 \x01(\tR\vworkspaceId\"\x1a\n" +
-	"\x18UpdateLabelColorResponse\"\xaf\x01\n" +
-	"\x14AddURLPatternRequest\x12\x1d\n" +
+	"\x18UpdateLabelColorResponse\"\xb2\x01\n" +
+	"\x17CreateURLPatternRequest\x12\x1d\n" +
 	"\n" +
 	"url_prefix\x18\x01 \x01(\tR\turlPrefix\x12#\n" +
 	"\rplatform_name\x18\x02 \x01(\tR\fplatformName\x12\x14\n" +
 	"\x05label\x18\x03 \x01(\tR\x05label\x12\x1a\n" +
 	"\bshortcut\x18\x04 \x01(\tR\bshortcut\x12!\n" +
-	"\fworkspace_id\x18\x05 \x01(\tR\vworkspaceId\"\x17\n" +
-	"\x15AddURLPatternResponse\")\n" +
-	"\x17RemoveURLPatternRequest\x12\x0e\n" +
+	"\fworkspace_id\x18\x05 \x01(\tR\vworkspaceId\"\x1a\n" +
+	"\x18CreateURLPatternResponse\")\n" +
+	"\x17DeleteURLPatternRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1a\n" +
-	"\x18RemoveURLPatternResponse\"J\n" +
-	"\x11AddSectionRequest\x12\x12\n" +
+	"\x18DeleteURLPatternResponse\"M\n" +
+	"\x14CreateSectionRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
-	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\"\x14\n" +
-	"\x12AddSectionResponse\"&\n" +
-	"\x14RemoveSectionRequest\x12\x0e\n" +
+	"\fworkspace_id\x18\x02 \x01(\tR\vworkspaceId\"\x17\n" +
+	"\x15CreateSectionResponse\"&\n" +
+	"\x14DeleteSectionRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
-	"\x15RemoveSectionResponse\"{\n" +
-	"\x10AddPolicyRequest\x12\x12\n" +
+	"\x15DeleteSectionResponse\"~\n" +
+	"\x13CreatePolicyRequest\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x120\n" +
 	"\x14reappear_after_hours\x18\x02 \x01(\x05R\x12reappearAfterHours\x12!\n" +
-	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\"\x13\n" +
-	"\x11AddPolicyResponse\"k\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\"\x16\n" +
+	"\x14CreatePolicyResponse\"k\n" +
 	"\x13UpdatePolicyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04text\x18\x02 \x01(\tR\x04text\x120\n" +
 	"\x14reappear_after_hours\x18\x03 \x01(\x05R\x12reappearAfterHours\"\x16\n" +
 	"\x14UpdatePolicyResponse\"%\n" +
-	"\x13RemovePolicyRequest\x12\x0e\n" +
+	"\x13DeletePolicyRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x16\n" +
-	"\x14RemovePolicyResponse\")\n" +
-	"\x13AddWorkspaceRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\x16\n" +
-	"\x14AddWorkspaceResponse\"(\n" +
+	"\x14DeletePolicyResponse\",\n" +
+	"\x16CreateWorkspaceRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x19\n" +
+	"\x17CreateWorkspaceResponse\"(\n" +
 	"\x16DeleteWorkspaceRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x19\n" +
 	"\x17DeleteWorkspaceResponse\"4\n" +
@@ -2100,23 +2100,21 @@ const file_todos_v1_settings_proto_rawDesc = "" +
 	"\x1fUpdateHideShortcutHintsResponse\">\n" +
 	"\x19SetActiveWorkspaceRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\"\x1c\n" +
-	"\x1aSetActiveWorkspaceResponse2\xf9\n" +
-	"\n" +
+	"\x1aSetActiveWorkspaceResponse2\xa6\v\n" +
 	"\x0fSettingsService\x12J\n" +
 	"\vGetSettings\x12\x1c.todos.v1.GetSettingsRequest\x1a\x1d.todos.v1.GetSettingsResponse\x12h\n" +
-	"\x15UpdateArchiveSettings\x12&.todos.v1.UpdateArchiveSettingsRequest\x1a'.todos.v1.UpdateArchiveSettingsResponse\x12S\n" +
-	"\x0eAddLabelPreset\x12\x1f.todos.v1.AddLabelPresetRequest\x1a .todos.v1.AddLabelPresetResponse\x12\\\n" +
-	"\x11RemoveLabelPreset\x12\".todos.v1.RemoveLabelPresetRequest\x1a#.todos.v1.RemoveLabelPresetResponse\x12Y\n" +
-	"\x10UpdateLabelColor\x12!.todos.v1.UpdateLabelColorRequest\x1a\".todos.v1.UpdateLabelColorResponse\x12P\n" +
-	"\rAddURLPattern\x12\x1e.todos.v1.AddURLPatternRequest\x1a\x1f.todos.v1.AddURLPatternResponse\x12Y\n" +
-	"\x10RemoveURLPattern\x12!.todos.v1.RemoveURLPatternRequest\x1a\".todos.v1.RemoveURLPatternResponse\x12G\n" +
-	"\n" +
-	"AddSection\x12\x1b.todos.v1.AddSectionRequest\x1a\x1c.todos.v1.AddSectionResponse\x12P\n" +
-	"\rRemoveSection\x12\x1e.todos.v1.RemoveSectionRequest\x1a\x1f.todos.v1.RemoveSectionResponse\x12D\n" +
-	"\tAddPolicy\x12\x1a.todos.v1.AddPolicyRequest\x1a\x1b.todos.v1.AddPolicyResponse\x12M\n" +
+	"\x15UpdateArchiveSettings\x12&.todos.v1.UpdateArchiveSettingsRequest\x1a'.todos.v1.UpdateArchiveSettingsResponse\x12\\\n" +
+	"\x11CreateLabelPreset\x12\".todos.v1.CreateLabelPresetRequest\x1a#.todos.v1.CreateLabelPresetResponse\x12\\\n" +
+	"\x11DeleteLabelPreset\x12\".todos.v1.DeleteLabelPresetRequest\x1a#.todos.v1.DeleteLabelPresetResponse\x12Y\n" +
+	"\x10UpdateLabelColor\x12!.todos.v1.UpdateLabelColorRequest\x1a\".todos.v1.UpdateLabelColorResponse\x12Y\n" +
+	"\x10CreateURLPattern\x12!.todos.v1.CreateURLPatternRequest\x1a\".todos.v1.CreateURLPatternResponse\x12Y\n" +
+	"\x10DeleteURLPattern\x12!.todos.v1.DeleteURLPatternRequest\x1a\".todos.v1.DeleteURLPatternResponse\x12P\n" +
+	"\rCreateSection\x12\x1e.todos.v1.CreateSectionRequest\x1a\x1f.todos.v1.CreateSectionResponse\x12P\n" +
+	"\rDeleteSection\x12\x1e.todos.v1.DeleteSectionRequest\x1a\x1f.todos.v1.DeleteSectionResponse\x12M\n" +
+	"\fCreatePolicy\x12\x1d.todos.v1.CreatePolicyRequest\x1a\x1e.todos.v1.CreatePolicyResponse\x12M\n" +
 	"\fUpdatePolicy\x12\x1d.todos.v1.UpdatePolicyRequest\x1a\x1e.todos.v1.UpdatePolicyResponse\x12M\n" +
-	"\fRemovePolicy\x12\x1d.todos.v1.RemovePolicyRequest\x1a\x1e.todos.v1.RemovePolicyResponse\x12M\n" +
-	"\fAddWorkspace\x12\x1d.todos.v1.AddWorkspaceRequest\x1a\x1e.todos.v1.AddWorkspaceResponse\x12V\n" +
+	"\fDeletePolicy\x12\x1d.todos.v1.DeletePolicyRequest\x1a\x1e.todos.v1.DeletePolicyResponse\x12V\n" +
+	"\x0fCreateWorkspace\x12 .todos.v1.CreateWorkspaceRequest\x1a!.todos.v1.CreateWorkspaceResponse\x12V\n" +
 	"\x0fDeleteWorkspace\x12 .todos.v1.DeleteWorkspaceRequest\x1a!.todos.v1.DeleteWorkspaceResponse\x12n\n" +
 	"\x17UpdateHideShortcutHints\x12(.todos.v1.UpdateHideShortcutHintsRequest\x1a).todos.v1.UpdateHideShortcutHintsResponse\x12_\n" +
 	"\x12SetActiveWorkspace\x12#.todos.v1.SetActiveWorkspaceRequest\x1a$.todos.v1.SetActiveWorkspaceResponseB)Z'tools.xdoubleu.com/gen/todos/v1;todosv1b\x06proto3"
@@ -2146,28 +2144,28 @@ var file_todos_v1_settings_proto_goTypes = []any{
 	(*GetSettingsResponse)(nil),             // 8: todos.v1.GetSettingsResponse
 	(*UpdateArchiveSettingsRequest)(nil),    // 9: todos.v1.UpdateArchiveSettingsRequest
 	(*UpdateArchiveSettingsResponse)(nil),   // 10: todos.v1.UpdateArchiveSettingsResponse
-	(*AddLabelPresetRequest)(nil),           // 11: todos.v1.AddLabelPresetRequest
-	(*AddLabelPresetResponse)(nil),          // 12: todos.v1.AddLabelPresetResponse
-	(*RemoveLabelPresetRequest)(nil),        // 13: todos.v1.RemoveLabelPresetRequest
-	(*RemoveLabelPresetResponse)(nil),       // 14: todos.v1.RemoveLabelPresetResponse
+	(*CreateLabelPresetRequest)(nil),        // 11: todos.v1.CreateLabelPresetRequest
+	(*CreateLabelPresetResponse)(nil),       // 12: todos.v1.CreateLabelPresetResponse
+	(*DeleteLabelPresetRequest)(nil),        // 13: todos.v1.DeleteLabelPresetRequest
+	(*DeleteLabelPresetResponse)(nil),       // 14: todos.v1.DeleteLabelPresetResponse
 	(*UpdateLabelColorRequest)(nil),         // 15: todos.v1.UpdateLabelColorRequest
 	(*UpdateLabelColorResponse)(nil),        // 16: todos.v1.UpdateLabelColorResponse
-	(*AddURLPatternRequest)(nil),            // 17: todos.v1.AddURLPatternRequest
-	(*AddURLPatternResponse)(nil),           // 18: todos.v1.AddURLPatternResponse
-	(*RemoveURLPatternRequest)(nil),         // 19: todos.v1.RemoveURLPatternRequest
-	(*RemoveURLPatternResponse)(nil),        // 20: todos.v1.RemoveURLPatternResponse
-	(*AddSectionRequest)(nil),               // 21: todos.v1.AddSectionRequest
-	(*AddSectionResponse)(nil),              // 22: todos.v1.AddSectionResponse
-	(*RemoveSectionRequest)(nil),            // 23: todos.v1.RemoveSectionRequest
-	(*RemoveSectionResponse)(nil),           // 24: todos.v1.RemoveSectionResponse
-	(*AddPolicyRequest)(nil),                // 25: todos.v1.AddPolicyRequest
-	(*AddPolicyResponse)(nil),               // 26: todos.v1.AddPolicyResponse
+	(*CreateURLPatternRequest)(nil),         // 17: todos.v1.CreateURLPatternRequest
+	(*CreateURLPatternResponse)(nil),        // 18: todos.v1.CreateURLPatternResponse
+	(*DeleteURLPatternRequest)(nil),         // 19: todos.v1.DeleteURLPatternRequest
+	(*DeleteURLPatternResponse)(nil),        // 20: todos.v1.DeleteURLPatternResponse
+	(*CreateSectionRequest)(nil),            // 21: todos.v1.CreateSectionRequest
+	(*CreateSectionResponse)(nil),           // 22: todos.v1.CreateSectionResponse
+	(*DeleteSectionRequest)(nil),            // 23: todos.v1.DeleteSectionRequest
+	(*DeleteSectionResponse)(nil),           // 24: todos.v1.DeleteSectionResponse
+	(*CreatePolicyRequest)(nil),             // 25: todos.v1.CreatePolicyRequest
+	(*CreatePolicyResponse)(nil),            // 26: todos.v1.CreatePolicyResponse
 	(*UpdatePolicyRequest)(nil),             // 27: todos.v1.UpdatePolicyRequest
 	(*UpdatePolicyResponse)(nil),            // 28: todos.v1.UpdatePolicyResponse
-	(*RemovePolicyRequest)(nil),             // 29: todos.v1.RemovePolicyRequest
-	(*RemovePolicyResponse)(nil),            // 30: todos.v1.RemovePolicyResponse
-	(*AddWorkspaceRequest)(nil),             // 31: todos.v1.AddWorkspaceRequest
-	(*AddWorkspaceResponse)(nil),            // 32: todos.v1.AddWorkspaceResponse
+	(*DeletePolicyRequest)(nil),             // 29: todos.v1.DeletePolicyRequest
+	(*DeletePolicyResponse)(nil),            // 30: todos.v1.DeletePolicyResponse
+	(*CreateWorkspaceRequest)(nil),          // 31: todos.v1.CreateWorkspaceRequest
+	(*CreateWorkspaceResponse)(nil),         // 32: todos.v1.CreateWorkspaceResponse
 	(*DeleteWorkspaceRequest)(nil),          // 33: todos.v1.DeleteWorkspaceRequest
 	(*DeleteWorkspaceResponse)(nil),         // 34: todos.v1.DeleteWorkspaceResponse
 	(*UpdateHideShortcutHintsRequest)(nil),  // 35: todos.v1.UpdateHideShortcutHintsRequest
@@ -2185,33 +2183,33 @@ var file_todos_v1_settings_proto_depIdxs = []int32{
 	6,  // 6: todos.v1.GetSettingsResponse.user_settings:type_name -> todos.v1.UserSettings
 	7,  // 7: todos.v1.SettingsService.GetSettings:input_type -> todos.v1.GetSettingsRequest
 	9,  // 8: todos.v1.SettingsService.UpdateArchiveSettings:input_type -> todos.v1.UpdateArchiveSettingsRequest
-	11, // 9: todos.v1.SettingsService.AddLabelPreset:input_type -> todos.v1.AddLabelPresetRequest
-	13, // 10: todos.v1.SettingsService.RemoveLabelPreset:input_type -> todos.v1.RemoveLabelPresetRequest
+	11, // 9: todos.v1.SettingsService.CreateLabelPreset:input_type -> todos.v1.CreateLabelPresetRequest
+	13, // 10: todos.v1.SettingsService.DeleteLabelPreset:input_type -> todos.v1.DeleteLabelPresetRequest
 	15, // 11: todos.v1.SettingsService.UpdateLabelColor:input_type -> todos.v1.UpdateLabelColorRequest
-	17, // 12: todos.v1.SettingsService.AddURLPattern:input_type -> todos.v1.AddURLPatternRequest
-	19, // 13: todos.v1.SettingsService.RemoveURLPattern:input_type -> todos.v1.RemoveURLPatternRequest
-	21, // 14: todos.v1.SettingsService.AddSection:input_type -> todos.v1.AddSectionRequest
-	23, // 15: todos.v1.SettingsService.RemoveSection:input_type -> todos.v1.RemoveSectionRequest
-	25, // 16: todos.v1.SettingsService.AddPolicy:input_type -> todos.v1.AddPolicyRequest
+	17, // 12: todos.v1.SettingsService.CreateURLPattern:input_type -> todos.v1.CreateURLPatternRequest
+	19, // 13: todos.v1.SettingsService.DeleteURLPattern:input_type -> todos.v1.DeleteURLPatternRequest
+	21, // 14: todos.v1.SettingsService.CreateSection:input_type -> todos.v1.CreateSectionRequest
+	23, // 15: todos.v1.SettingsService.DeleteSection:input_type -> todos.v1.DeleteSectionRequest
+	25, // 16: todos.v1.SettingsService.CreatePolicy:input_type -> todos.v1.CreatePolicyRequest
 	27, // 17: todos.v1.SettingsService.UpdatePolicy:input_type -> todos.v1.UpdatePolicyRequest
-	29, // 18: todos.v1.SettingsService.RemovePolicy:input_type -> todos.v1.RemovePolicyRequest
-	31, // 19: todos.v1.SettingsService.AddWorkspace:input_type -> todos.v1.AddWorkspaceRequest
+	29, // 18: todos.v1.SettingsService.DeletePolicy:input_type -> todos.v1.DeletePolicyRequest
+	31, // 19: todos.v1.SettingsService.CreateWorkspace:input_type -> todos.v1.CreateWorkspaceRequest
 	33, // 20: todos.v1.SettingsService.DeleteWorkspace:input_type -> todos.v1.DeleteWorkspaceRequest
 	35, // 21: todos.v1.SettingsService.UpdateHideShortcutHints:input_type -> todos.v1.UpdateHideShortcutHintsRequest
 	37, // 22: todos.v1.SettingsService.SetActiveWorkspace:input_type -> todos.v1.SetActiveWorkspaceRequest
 	8,  // 23: todos.v1.SettingsService.GetSettings:output_type -> todos.v1.GetSettingsResponse
 	10, // 24: todos.v1.SettingsService.UpdateArchiveSettings:output_type -> todos.v1.UpdateArchiveSettingsResponse
-	12, // 25: todos.v1.SettingsService.AddLabelPreset:output_type -> todos.v1.AddLabelPresetResponse
-	14, // 26: todos.v1.SettingsService.RemoveLabelPreset:output_type -> todos.v1.RemoveLabelPresetResponse
+	12, // 25: todos.v1.SettingsService.CreateLabelPreset:output_type -> todos.v1.CreateLabelPresetResponse
+	14, // 26: todos.v1.SettingsService.DeleteLabelPreset:output_type -> todos.v1.DeleteLabelPresetResponse
 	16, // 27: todos.v1.SettingsService.UpdateLabelColor:output_type -> todos.v1.UpdateLabelColorResponse
-	18, // 28: todos.v1.SettingsService.AddURLPattern:output_type -> todos.v1.AddURLPatternResponse
-	20, // 29: todos.v1.SettingsService.RemoveURLPattern:output_type -> todos.v1.RemoveURLPatternResponse
-	22, // 30: todos.v1.SettingsService.AddSection:output_type -> todos.v1.AddSectionResponse
-	24, // 31: todos.v1.SettingsService.RemoveSection:output_type -> todos.v1.RemoveSectionResponse
-	26, // 32: todos.v1.SettingsService.AddPolicy:output_type -> todos.v1.AddPolicyResponse
+	18, // 28: todos.v1.SettingsService.CreateURLPattern:output_type -> todos.v1.CreateURLPatternResponse
+	20, // 29: todos.v1.SettingsService.DeleteURLPattern:output_type -> todos.v1.DeleteURLPatternResponse
+	22, // 30: todos.v1.SettingsService.CreateSection:output_type -> todos.v1.CreateSectionResponse
+	24, // 31: todos.v1.SettingsService.DeleteSection:output_type -> todos.v1.DeleteSectionResponse
+	26, // 32: todos.v1.SettingsService.CreatePolicy:output_type -> todos.v1.CreatePolicyResponse
 	28, // 33: todos.v1.SettingsService.UpdatePolicy:output_type -> todos.v1.UpdatePolicyResponse
-	30, // 34: todos.v1.SettingsService.RemovePolicy:output_type -> todos.v1.RemovePolicyResponse
-	32, // 35: todos.v1.SettingsService.AddWorkspace:output_type -> todos.v1.AddWorkspaceResponse
+	30, // 34: todos.v1.SettingsService.DeletePolicy:output_type -> todos.v1.DeletePolicyResponse
+	32, // 35: todos.v1.SettingsService.CreateWorkspace:output_type -> todos.v1.CreateWorkspaceResponse
 	34, // 36: todos.v1.SettingsService.DeleteWorkspace:output_type -> todos.v1.DeleteWorkspaceResponse
 	36, // 37: todos.v1.SettingsService.UpdateHideShortcutHints:output_type -> todos.v1.UpdateHideShortcutHintsResponse
 	38, // 38: todos.v1.SettingsService.SetActiveWorkspace:output_type -> todos.v1.SetActiveWorkspaceResponse

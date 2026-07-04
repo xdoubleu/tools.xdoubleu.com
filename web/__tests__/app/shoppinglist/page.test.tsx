@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-const addShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
+const createShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
 const setItemCategory = jest.fn().mockResolvedValue({})
 const createCategory = jest.fn().mockResolvedValue({ category: { id: 'cat-new' } })
 const deleteShoppingItem = jest.fn().mockResolvedValue({})
@@ -27,7 +27,7 @@ jest.mock('@/hooks/useShoppingList', () => ({
 
 jest.mock('@/lib/client', () => ({
   createServiceClient: () => ({
-    addShoppingItem,
+    createShoppingItem,
     setItemCategory,
     createCategory,
     deleteShoppingItem,
@@ -48,7 +48,7 @@ describe('ShoppingPage add form', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() =>
-      expect(addShoppingItem).toHaveBeenCalledWith({
+      expect(createShoppingItem).toHaveBeenCalledWith({
         name: 'Apples',
         amount: '0',
         unit: '',
@@ -68,7 +68,7 @@ describe('ShoppingPage add form', () => {
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Bread' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-    await waitFor(() => expect(addShoppingItem).toHaveBeenCalled())
+    await waitFor(() => expect(createShoppingItem).toHaveBeenCalled())
     expect(setItemCategory).not.toHaveBeenCalled()
   })
 

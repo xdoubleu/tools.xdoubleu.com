@@ -1,0 +1,44 @@
+package books_test
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/apps/books"
+	"tools.xdoubleu.com/apps/books/pkg/objectstore"
+	sharedmocks "tools.xdoubleu.com/internal/mocks"
+)
+
+// TestNew_ReturnsApp covers the production New constructor that wires real
+// Open Library / Google Books / R2 clients.
+func TestNew_ReturnsApp(t *testing.T) {
+	bl := books.New(
+		sharedmocks.NewMockedAuthService(userID),
+		testApp.Logger,
+		testCfg,
+		testDB,
+	)
+	require.NotNil(t, bl)
+}
+
+// TestStart_RegistersJobs covers Start registering the resync job and topics.
+func TestStart_RegistersJobs(t *testing.T) {
+	bl := books.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		testApp.Logger,
+		testCfg,
+		testDB,
+		books.Clients{
+			OpenLibrary:      nil,
+			GoogleBooks:      nil,
+			UniCat:           nil,
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
+		},
+	)
+	require.NotNil(t, bl)
+	err := bl.Start()
+	require.NoError(t, err)
+}

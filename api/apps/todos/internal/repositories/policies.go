@@ -20,7 +20,8 @@ func (r *PoliciesRepository) ListByUser(
 	workspaceID *uuid.UUID,
 ) ([]models.Policy, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, owner_user_id, text, reappear_after_hours, sort_order, created_at
+		SELECT id, owner_user_id, text, reappear_after_hours, sort_order,
+		       created_at, workspace_id
 		FROM todos.policies
 		WHERE owner_user_id = $1 AND workspace_id IS NOT DISTINCT FROM $2
 		ORDER BY sort_order, created_at`,
@@ -99,6 +100,7 @@ func scanPolicies(rows pgx.Rows) ([]models.Policy, error) {
 		if err := rows.Scan(
 			&p.ID, &p.OwnerUserID, &p.Text,
 			&p.ReappearAfterHours, &p.SortOrder, &p.CreatedAt,
+			&p.WorkspaceID,
 		); err != nil {
 			return nil, err
 		}

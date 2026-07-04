@@ -3,36 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { buildWsUrl } from '@/lib/watchparty/roomUtils'
 import { getApiUrl } from '@/lib/env'
-import type { ConnectionStatus, TrackType, WsMessage } from '@/lib/watchparty/types'
-
-function isWsMessage(value: unknown): value is WsMessage {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    'type' in value &&
-    'payload' in value &&
-    'trackType' in value &&
-    (value.type === 'offer' || value.type === 'answer' || value.type === 'candidate')
-  )
-}
-
-function isRTCSDP(
-  payload: RTCSessionDescriptionInit | RTCIceCandidateInit
-): payload is RTCSessionDescriptionInit {
-  return (
-    'type' in payload &&
-    (payload.type === 'offer' ||
-      payload.type === 'answer' ||
-      payload.type === 'pranswer' ||
-      payload.type === 'rollback')
-  )
-}
-
-function isRTCCandidate(
-  payload: RTCSessionDescriptionInit | RTCIceCandidateInit
-): payload is RTCIceCandidateInit {
-  return !isRTCSDP(payload)
-}
+import { createMediaController } from '@/lib/watchparty/rtcMedia'
+import type { RTCRefs } from '@/lib/watchparty/rtcMedia'
+import { createSignalHandler } from '@/lib/watchparty/rtcSignaling'
+import type { ConnectionStatus, TrackType } from '@/lib/watchparty/types'
 
 export interface ScreenControls {
   start: () => Promise<void>
@@ -60,6 +34,10 @@ interface UseWatchPartyRTCResult {
   toggleSelfCam: () => void
 }
 
+// useWatchPartyRTC wires the browser side of a watch-party room: media and
+// peer-connection management lives in lib/watchparty/rtcMedia, WebSocket
+// signalling in lib/watchparty/rtcSignaling; this hook owns the React state,
+// the mutable session refs, and the socket lifecycle (connect + reconnect).
 export function useWatchPartyRTC({
   id,
   role,
@@ -93,6 +71,18 @@ export function useWatchPartyRTC({
   useEffect(() => {
     const apiUrl = getApiUrl()
 
+    const refs: RTCRefs = {
+      ws: wsRef,
+      pcCam: pcCamRef,
+      pcInCam: pcInCamRef,
+      pcScreen: pcScreenRef,
+      localCam: localCamRef,
+      localScreen: localScreenRef,
+      remoteCamStream: remoteCamStreamRef,
+      isSharingScreen: isSharingScreenRef,
+      pendingCandidates
+    }
+
     function send(type: string, payload: unknown, trackType: TrackType, direction?: string) {
       const msg = JSON.stringify({ type, payload, trackType, direction })
       const ws = wsRef.current
@@ -103,177 +93,21 @@ export function useWatchPartyRTC({
       }
     }
 
-    function stopScreenUI() {
-      isSharingScreenRef.current = false
-      onSharingChange?.(false)
-      const mainEl = mainVideoRef.current
-      const remoteEl = remoteCamRef.current
-      if (remoteCamStreamRef.current && mainEl) mainEl.srcObject = remoteCamStreamRef.current
-      if (remoteEl) remoteEl.style.display = 'none'
-    }
+    const media = createMediaController({
+      refs,
+      role,
+      send,
+      mainVideoRef,
+      selfCamRef,
+      remoteCamRef,
+      onSharingChange,
+      setError
+    })
 
-    function createPC(
-      trackType: TrackType,
-      direction: 'send' | 'recv' = 'recv'
-    ): RTCPeerConnection {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      })
-
-      pc.onicecandidate = (e) => {
-        if (e.candidate) send('candidate', e.candidate, trackType, direction)
-      }
-
-      if (direction === 'recv') {
-        pc.ontrack = (e) => {
-          const mainEl = mainVideoRef.current
-          const remoteEl = remoteCamRef.current
-          if (trackType === 'cam') {
-            remoteCamStreamRef.current = e.streams[0]
-            if (isSharingScreenRef.current) {
-              if (remoteEl) {
-                remoteEl.srcObject = remoteCamStreamRef.current
-                remoteEl.style.display = 'block'
-              }
-            } else {
-              if (mainEl) mainEl.srcObject = remoteCamStreamRef.current
-              if (remoteEl) remoteEl.style.display = 'none'
-            }
-          }
-          if (trackType === 'screen') {
-            isSharingScreenRef.current = true
-            if (role === 'presenter') onSharingChange?.(true)
-            if (mainEl) mainEl.srcObject = e.streams[0]
-            if (remoteEl) {
-              remoteEl.srcObject = remoteCamStreamRef.current
-              remoteEl.style.display = remoteCamStreamRef.current ? 'block' : 'none'
-            }
-          }
-        }
-      }
-
-      pc.onconnectionstatechange = () => {
-        if (trackType === 'cam' && direction === 'recv') {
-          if (pc.connectionState === 'failed') {
-            pcInCamRef.current = null
-            pendingCandidates.current.camIn = []
-          }
-        }
-        if (trackType === 'cam' && direction === 'send') {
-          if (pc.connectionState === 'failed') {
-            pcCamRef.current = null
-            pendingCandidates.current.camOut = []
-            void (async () => {
-              const localCam = localCamRef.current
-              if (localCam) {
-                const newPc = createPC('cam', 'send')
-                pcCamRef.current = newPc
-                localCam.getTracks().forEach((t) => newPc.addTrack(t, localCam))
-                const offer = await newPc.createOffer()
-                await newPc.setLocalDescription(offer)
-                send('offer', offer, 'cam')
-              }
-            })()
-          }
-        }
-        if (
-          trackType === 'screen' &&
-          (pc.connectionState === 'disconnected' || pc.connectionState === 'failed')
-        ) {
-          if (role === 'presenter') {
-            stopScreenUI()
-          } else {
-            isSharingScreenRef.current = false
-            pcScreenRef.current = null
-            pendingCandidates.current.screen = []
-            const mainEl = mainVideoRef.current
-            const remoteEl = remoteCamRef.current
-            if (remoteCamStreamRef.current && mainEl) mainEl.srcObject = remoteCamStreamRef.current
-            if (remoteEl) remoteEl.style.display = 'none'
-          }
-        }
-      }
-
-      return pc
-    }
-
-    async function renegotiateAll() {
-      const oldCam = pcCamRef.current
-      if (oldCam) {
-        oldCam.close()
-        pcCamRef.current = null
-        pendingCandidates.current.camOut = []
-      }
-      const localCam = localCamRef.current
-      if (localCam) {
-        const pc = createPC('cam', 'send')
-        pcCamRef.current = pc
-        localCam.getTracks().forEach((t) => pc.addTrack(t, localCam))
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        send('offer', offer, 'cam')
-      }
-
-      if (role === 'presenter') {
-        const oldScreen = pcScreenRef.current
-        if (oldScreen) {
-          oldScreen.close()
-          pcScreenRef.current = null
-          pendingCandidates.current.screen = []
-        }
-        const localScreen = localScreenRef.current
-        if (isSharingScreenRef.current && localScreen) {
-          const pc = createPC('screen', 'send')
-          pcScreenRef.current = pc
-          localScreen.getTracks().forEach((t) => pc.addTrack(t, localScreen))
-          const offer = await pc.createOffer()
-          await pc.setLocalDescription(offer)
-          send('offer', offer, 'screen')
-        }
-      }
-    }
-
-    // Presenter-only: screen sharing
-    async function startScreen() {
-      setError(null)
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-        localScreenRef.current = stream
-        isSharingScreenRef.current = true
-        onSharingChange?.(true)
-
-        if (mainVideoRef.current) mainVideoRef.current.srcObject = stream
-        const remoteEl = remoteCamRef.current
-        if (remoteEl) {
-          remoteEl.srcObject = remoteCamStreamRef.current
-          remoteEl.style.display = remoteCamStreamRef.current ? 'block' : 'none'
-        }
-
-        const pc = createPC('screen', 'send')
-        pcScreenRef.current = pc
-        stream.getTracks().forEach((t) => pc.addTrack(t, stream))
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        send('offer', offer, 'screen')
-
-        stream.getVideoTracks()[0].onended = stopScreen
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to share screen')
-      }
-    }
-
-    function stopScreen() {
-      localScreenRef.current?.getTracks().forEach((t) => t.stop())
-      localScreenRef.current = null
-      if (pcScreenRef.current) {
-        pcScreenRef.current.close()
-        pcScreenRef.current = null
-      }
-      stopScreenUI()
-    }
+    const onSignal = createSignalHandler({ refs, role, send, createPC: media.createPC })
 
     if (screenControls) {
-      screenControls.current = { start: startScreen, stop: stopScreen }
+      screenControls.current = { start: media.startScreen, stop: media.stopScreen }
     }
 
     function initWS() {
@@ -284,137 +118,18 @@ export function useWatchPartyRTC({
       ws.onopen = () => {
         setStatus('connected')
         ws.send(JSON.stringify({ roomCode: id, role }))
-        void renegotiateAll()
+        void media.renegotiateAll()
       }
       ws.onclose = () => {
         setStatus('disconnected')
         reconnectTimer.current = setTimeout(initWS, 1500)
       }
       ws.onerror = () => ws.close()
-
-      ws.onmessage = async (event: MessageEvent<string>) => {
-        const parsed: unknown = JSON.parse(event.data)
-        if (!isWsMessage(parsed)) return
-        const msg = parsed
-        const tt = msg.trackType
-
-        if (msg.type === 'offer') {
-          if (!isRTCSDP(msg.payload)) return
-          if (tt === 'cam') {
-            if (pcInCamRef.current) pcInCamRef.current.close()
-            pendingCandidates.current.camIn = []
-            const pc = createPC('cam', 'recv')
-            pcInCamRef.current = pc
-
-            await pc.setRemoteDescription(msg.payload)
-            if (pcInCamRef.current !== pc) return
-            for (const c of pendingCandidates.current.camIn.splice(0)) await pc.addIceCandidate(c)
-            if (pcInCamRef.current !== pc) return
-            const answer = await pc.createAnswer()
-            if (pcInCamRef.current !== pc) return
-            await pc.setLocalDescription(answer)
-            if (pcInCamRef.current !== pc) return
-            send('answer', answer, tt)
-          } else {
-            if (pcScreenRef.current) pcScreenRef.current.close()
-            pendingCandidates.current.screen = []
-            const pcScreen = createPC(tt, 'recv')
-            pcScreenRef.current = pcScreen
-
-            await pcScreen.setRemoteDescription(msg.payload)
-            if (pcScreenRef.current !== pcScreen) return
-            for (const c of pendingCandidates.current[tt].splice(0))
-              await pcScreen.addIceCandidate(c)
-            if (pcScreenRef.current !== pcScreen) return
-            const answer = await pcScreen.createAnswer()
-            if (pcScreenRef.current !== pcScreen) return
-            await pcScreen.setLocalDescription(answer)
-            if (pcScreenRef.current !== pcScreen) return
-            send('answer', answer, tt)
-          }
-        }
-
-        if (msg.type === 'answer') {
-          if (!isRTCSDP(msg.payload)) return
-          if (tt === 'cam') {
-            const pc = pcCamRef.current
-            if (pc && pc.signalingState === 'have-local-offer') {
-              await pc.setRemoteDescription(msg.payload)
-              for (const c of pendingCandidates.current.camOut.splice(0))
-                await pc.addIceCandidate(c)
-            }
-          } else {
-            const pc = pcScreenRef.current
-            if (pc && pc.signalingState === 'have-local-offer') {
-              await pc.setRemoteDescription(msg.payload)
-              for (const c of pendingCandidates.current[tt].splice(0)) await pc.addIceCandidate(c)
-            } else if (
-              role === 'presenter' &&
-              isSharingScreenRef.current &&
-              localScreenRef.current
-            ) {
-              if (pcScreenRef.current) {
-                pcScreenRef.current.close()
-                pcScreenRef.current = null
-              }
-              pendingCandidates.current.screen = []
-              const newPc = createPC('screen', 'send')
-              pcScreenRef.current = newPc
-              localScreenRef.current
-                .getTracks()
-                .forEach((t) => newPc.addTrack(t, localScreenRef.current!))
-              const offer = await newPc.createOffer()
-              await newPc.setLocalDescription(offer)
-              send('offer', offer, 'screen')
-            }
-          }
-        }
-
-        if (msg.type === 'candidate') {
-          if (!isRTCCandidate(msg.payload)) return
-          if (tt === 'cam') {
-            if (msg.direction === 'send') {
-              const inCam = pcInCamRef.current
-              if (inCam && inCam.remoteDescription) {
-                await inCam.addIceCandidate(msg.payload)
-              } else {
-                pendingCandidates.current.camIn.push(msg.payload)
-              }
-            } else {
-              const outCam = pcCamRef.current
-              if (outCam && outCam.remoteDescription) {
-                await outCam.addIceCandidate(msg.payload)
-              } else {
-                pendingCandidates.current.camOut.push(msg.payload)
-              }
-            }
-          } else {
-            const pc = pcScreenRef.current
-            if (pc && pc.remoteDescription) {
-              await pc.addIceCandidate(msg.payload)
-            } else if (pc) {
-              pendingCandidates.current[tt].push(msg.payload)
-            }
-          }
-        }
-      }
-    }
-
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        localCamRef.current = stream
-        if (selfCamRef.current) selfCamRef.current.srcObject = stream
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          void renegotiateAll()
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to start camera')
-      }
+      ws.onmessage = onSignal
     }
 
     initWS()
-    void startCamera()
+    void media.startCamera()
 
     return () => {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)

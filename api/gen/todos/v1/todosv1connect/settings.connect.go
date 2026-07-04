@@ -39,39 +39,39 @@ const (
 	// SettingsServiceUpdateArchiveSettingsProcedure is the fully-qualified name of the
 	// SettingsService's UpdateArchiveSettings RPC.
 	SettingsServiceUpdateArchiveSettingsProcedure = "/todos.v1.SettingsService/UpdateArchiveSettings"
-	// SettingsServiceAddLabelPresetProcedure is the fully-qualified name of the SettingsService's
-	// AddLabelPreset RPC.
-	SettingsServiceAddLabelPresetProcedure = "/todos.v1.SettingsService/AddLabelPreset"
-	// SettingsServiceRemoveLabelPresetProcedure is the fully-qualified name of the SettingsService's
-	// RemoveLabelPreset RPC.
-	SettingsServiceRemoveLabelPresetProcedure = "/todos.v1.SettingsService/RemoveLabelPreset"
+	// SettingsServiceCreateLabelPresetProcedure is the fully-qualified name of the SettingsService's
+	// CreateLabelPreset RPC.
+	SettingsServiceCreateLabelPresetProcedure = "/todos.v1.SettingsService/CreateLabelPreset"
+	// SettingsServiceDeleteLabelPresetProcedure is the fully-qualified name of the SettingsService's
+	// DeleteLabelPreset RPC.
+	SettingsServiceDeleteLabelPresetProcedure = "/todos.v1.SettingsService/DeleteLabelPreset"
 	// SettingsServiceUpdateLabelColorProcedure is the fully-qualified name of the SettingsService's
 	// UpdateLabelColor RPC.
 	SettingsServiceUpdateLabelColorProcedure = "/todos.v1.SettingsService/UpdateLabelColor"
-	// SettingsServiceAddURLPatternProcedure is the fully-qualified name of the SettingsService's
-	// AddURLPattern RPC.
-	SettingsServiceAddURLPatternProcedure = "/todos.v1.SettingsService/AddURLPattern"
-	// SettingsServiceRemoveURLPatternProcedure is the fully-qualified name of the SettingsService's
-	// RemoveURLPattern RPC.
-	SettingsServiceRemoveURLPatternProcedure = "/todos.v1.SettingsService/RemoveURLPattern"
-	// SettingsServiceAddSectionProcedure is the fully-qualified name of the SettingsService's
-	// AddSection RPC.
-	SettingsServiceAddSectionProcedure = "/todos.v1.SettingsService/AddSection"
-	// SettingsServiceRemoveSectionProcedure is the fully-qualified name of the SettingsService's
-	// RemoveSection RPC.
-	SettingsServiceRemoveSectionProcedure = "/todos.v1.SettingsService/RemoveSection"
-	// SettingsServiceAddPolicyProcedure is the fully-qualified name of the SettingsService's AddPolicy
-	// RPC.
-	SettingsServiceAddPolicyProcedure = "/todos.v1.SettingsService/AddPolicy"
+	// SettingsServiceCreateURLPatternProcedure is the fully-qualified name of the SettingsService's
+	// CreateURLPattern RPC.
+	SettingsServiceCreateURLPatternProcedure = "/todos.v1.SettingsService/CreateURLPattern"
+	// SettingsServiceDeleteURLPatternProcedure is the fully-qualified name of the SettingsService's
+	// DeleteURLPattern RPC.
+	SettingsServiceDeleteURLPatternProcedure = "/todos.v1.SettingsService/DeleteURLPattern"
+	// SettingsServiceCreateSectionProcedure is the fully-qualified name of the SettingsService's
+	// CreateSection RPC.
+	SettingsServiceCreateSectionProcedure = "/todos.v1.SettingsService/CreateSection"
+	// SettingsServiceDeleteSectionProcedure is the fully-qualified name of the SettingsService's
+	// DeleteSection RPC.
+	SettingsServiceDeleteSectionProcedure = "/todos.v1.SettingsService/DeleteSection"
+	// SettingsServiceCreatePolicyProcedure is the fully-qualified name of the SettingsService's
+	// CreatePolicy RPC.
+	SettingsServiceCreatePolicyProcedure = "/todos.v1.SettingsService/CreatePolicy"
 	// SettingsServiceUpdatePolicyProcedure is the fully-qualified name of the SettingsService's
 	// UpdatePolicy RPC.
 	SettingsServiceUpdatePolicyProcedure = "/todos.v1.SettingsService/UpdatePolicy"
-	// SettingsServiceRemovePolicyProcedure is the fully-qualified name of the SettingsService's
-	// RemovePolicy RPC.
-	SettingsServiceRemovePolicyProcedure = "/todos.v1.SettingsService/RemovePolicy"
-	// SettingsServiceAddWorkspaceProcedure is the fully-qualified name of the SettingsService's
-	// AddWorkspace RPC.
-	SettingsServiceAddWorkspaceProcedure = "/todos.v1.SettingsService/AddWorkspace"
+	// SettingsServiceDeletePolicyProcedure is the fully-qualified name of the SettingsService's
+	// DeletePolicy RPC.
+	SettingsServiceDeletePolicyProcedure = "/todos.v1.SettingsService/DeletePolicy"
+	// SettingsServiceCreateWorkspaceProcedure is the fully-qualified name of the SettingsService's
+	// CreateWorkspace RPC.
+	SettingsServiceCreateWorkspaceProcedure = "/todos.v1.SettingsService/CreateWorkspace"
 	// SettingsServiceDeleteWorkspaceProcedure is the fully-qualified name of the SettingsService's
 	// DeleteWorkspace RPC.
 	SettingsServiceDeleteWorkspaceProcedure = "/todos.v1.SettingsService/DeleteWorkspace"
@@ -87,17 +87,17 @@ const (
 type SettingsServiceClient interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
 	UpdateArchiveSettings(context.Context, *connect.Request[v1.UpdateArchiveSettingsRequest]) (*connect.Response[v1.UpdateArchiveSettingsResponse], error)
-	AddLabelPreset(context.Context, *connect.Request[v1.AddLabelPresetRequest]) (*connect.Response[v1.AddLabelPresetResponse], error)
-	RemoveLabelPreset(context.Context, *connect.Request[v1.RemoveLabelPresetRequest]) (*connect.Response[v1.RemoveLabelPresetResponse], error)
+	CreateLabelPreset(context.Context, *connect.Request[v1.CreateLabelPresetRequest]) (*connect.Response[v1.CreateLabelPresetResponse], error)
+	DeleteLabelPreset(context.Context, *connect.Request[v1.DeleteLabelPresetRequest]) (*connect.Response[v1.DeleteLabelPresetResponse], error)
 	UpdateLabelColor(context.Context, *connect.Request[v1.UpdateLabelColorRequest]) (*connect.Response[v1.UpdateLabelColorResponse], error)
-	AddURLPattern(context.Context, *connect.Request[v1.AddURLPatternRequest]) (*connect.Response[v1.AddURLPatternResponse], error)
-	RemoveURLPattern(context.Context, *connect.Request[v1.RemoveURLPatternRequest]) (*connect.Response[v1.RemoveURLPatternResponse], error)
-	AddSection(context.Context, *connect.Request[v1.AddSectionRequest]) (*connect.Response[v1.AddSectionResponse], error)
-	RemoveSection(context.Context, *connect.Request[v1.RemoveSectionRequest]) (*connect.Response[v1.RemoveSectionResponse], error)
-	AddPolicy(context.Context, *connect.Request[v1.AddPolicyRequest]) (*connect.Response[v1.AddPolicyResponse], error)
+	CreateURLPattern(context.Context, *connect.Request[v1.CreateURLPatternRequest]) (*connect.Response[v1.CreateURLPatternResponse], error)
+	DeleteURLPattern(context.Context, *connect.Request[v1.DeleteURLPatternRequest]) (*connect.Response[v1.DeleteURLPatternResponse], error)
+	CreateSection(context.Context, *connect.Request[v1.CreateSectionRequest]) (*connect.Response[v1.CreateSectionResponse], error)
+	DeleteSection(context.Context, *connect.Request[v1.DeleteSectionRequest]) (*connect.Response[v1.DeleteSectionResponse], error)
+	CreatePolicy(context.Context, *connect.Request[v1.CreatePolicyRequest]) (*connect.Response[v1.CreatePolicyResponse], error)
 	UpdatePolicy(context.Context, *connect.Request[v1.UpdatePolicyRequest]) (*connect.Response[v1.UpdatePolicyResponse], error)
-	RemovePolicy(context.Context, *connect.Request[v1.RemovePolicyRequest]) (*connect.Response[v1.RemovePolicyResponse], error)
-	AddWorkspace(context.Context, *connect.Request[v1.AddWorkspaceRequest]) (*connect.Response[v1.AddWorkspaceResponse], error)
+	DeletePolicy(context.Context, *connect.Request[v1.DeletePolicyRequest]) (*connect.Response[v1.DeletePolicyResponse], error)
+	CreateWorkspace(context.Context, *connect.Request[v1.CreateWorkspaceRequest]) (*connect.Response[v1.CreateWorkspaceResponse], error)
 	DeleteWorkspace(context.Context, *connect.Request[v1.DeleteWorkspaceRequest]) (*connect.Response[v1.DeleteWorkspaceResponse], error)
 	UpdateHideShortcutHints(context.Context, *connect.Request[v1.UpdateHideShortcutHintsRequest]) (*connect.Response[v1.UpdateHideShortcutHintsResponse], error)
 	SetActiveWorkspace(context.Context, *connect.Request[v1.SetActiveWorkspaceRequest]) (*connect.Response[v1.SetActiveWorkspaceResponse], error)
@@ -126,16 +126,16 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("UpdateArchiveSettings")),
 			connect.WithClientOptions(opts...),
 		),
-		addLabelPreset: connect.NewClient[v1.AddLabelPresetRequest, v1.AddLabelPresetResponse](
+		createLabelPreset: connect.NewClient[v1.CreateLabelPresetRequest, v1.CreateLabelPresetResponse](
 			httpClient,
-			baseURL+SettingsServiceAddLabelPresetProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("AddLabelPreset")),
+			baseURL+SettingsServiceCreateLabelPresetProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("CreateLabelPreset")),
 			connect.WithClientOptions(opts...),
 		),
-		removeLabelPreset: connect.NewClient[v1.RemoveLabelPresetRequest, v1.RemoveLabelPresetResponse](
+		deleteLabelPreset: connect.NewClient[v1.DeleteLabelPresetRequest, v1.DeleteLabelPresetResponse](
 			httpClient,
-			baseURL+SettingsServiceRemoveLabelPresetProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("RemoveLabelPreset")),
+			baseURL+SettingsServiceDeleteLabelPresetProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("DeleteLabelPreset")),
 			connect.WithClientOptions(opts...),
 		),
 		updateLabelColor: connect.NewClient[v1.UpdateLabelColorRequest, v1.UpdateLabelColorResponse](
@@ -144,34 +144,34 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("UpdateLabelColor")),
 			connect.WithClientOptions(opts...),
 		),
-		addURLPattern: connect.NewClient[v1.AddURLPatternRequest, v1.AddURLPatternResponse](
+		createURLPattern: connect.NewClient[v1.CreateURLPatternRequest, v1.CreateURLPatternResponse](
 			httpClient,
-			baseURL+SettingsServiceAddURLPatternProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("AddURLPattern")),
+			baseURL+SettingsServiceCreateURLPatternProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("CreateURLPattern")),
 			connect.WithClientOptions(opts...),
 		),
-		removeURLPattern: connect.NewClient[v1.RemoveURLPatternRequest, v1.RemoveURLPatternResponse](
+		deleteURLPattern: connect.NewClient[v1.DeleteURLPatternRequest, v1.DeleteURLPatternResponse](
 			httpClient,
-			baseURL+SettingsServiceRemoveURLPatternProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("RemoveURLPattern")),
+			baseURL+SettingsServiceDeleteURLPatternProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("DeleteURLPattern")),
 			connect.WithClientOptions(opts...),
 		),
-		addSection: connect.NewClient[v1.AddSectionRequest, v1.AddSectionResponse](
+		createSection: connect.NewClient[v1.CreateSectionRequest, v1.CreateSectionResponse](
 			httpClient,
-			baseURL+SettingsServiceAddSectionProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("AddSection")),
+			baseURL+SettingsServiceCreateSectionProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("CreateSection")),
 			connect.WithClientOptions(opts...),
 		),
-		removeSection: connect.NewClient[v1.RemoveSectionRequest, v1.RemoveSectionResponse](
+		deleteSection: connect.NewClient[v1.DeleteSectionRequest, v1.DeleteSectionResponse](
 			httpClient,
-			baseURL+SettingsServiceRemoveSectionProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("RemoveSection")),
+			baseURL+SettingsServiceDeleteSectionProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("DeleteSection")),
 			connect.WithClientOptions(opts...),
 		),
-		addPolicy: connect.NewClient[v1.AddPolicyRequest, v1.AddPolicyResponse](
+		createPolicy: connect.NewClient[v1.CreatePolicyRequest, v1.CreatePolicyResponse](
 			httpClient,
-			baseURL+SettingsServiceAddPolicyProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("AddPolicy")),
+			baseURL+SettingsServiceCreatePolicyProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("CreatePolicy")),
 			connect.WithClientOptions(opts...),
 		),
 		updatePolicy: connect.NewClient[v1.UpdatePolicyRequest, v1.UpdatePolicyResponse](
@@ -180,16 +180,16 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("UpdatePolicy")),
 			connect.WithClientOptions(opts...),
 		),
-		removePolicy: connect.NewClient[v1.RemovePolicyRequest, v1.RemovePolicyResponse](
+		deletePolicy: connect.NewClient[v1.DeletePolicyRequest, v1.DeletePolicyResponse](
 			httpClient,
-			baseURL+SettingsServiceRemovePolicyProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("RemovePolicy")),
+			baseURL+SettingsServiceDeletePolicyProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("DeletePolicy")),
 			connect.WithClientOptions(opts...),
 		),
-		addWorkspace: connect.NewClient[v1.AddWorkspaceRequest, v1.AddWorkspaceResponse](
+		createWorkspace: connect.NewClient[v1.CreateWorkspaceRequest, v1.CreateWorkspaceResponse](
 			httpClient,
-			baseURL+SettingsServiceAddWorkspaceProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("AddWorkspace")),
+			baseURL+SettingsServiceCreateWorkspaceProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("CreateWorkspace")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteWorkspace: connect.NewClient[v1.DeleteWorkspaceRequest, v1.DeleteWorkspaceResponse](
@@ -217,17 +217,17 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 type settingsServiceClient struct {
 	getSettings             *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
 	updateArchiveSettings   *connect.Client[v1.UpdateArchiveSettingsRequest, v1.UpdateArchiveSettingsResponse]
-	addLabelPreset          *connect.Client[v1.AddLabelPresetRequest, v1.AddLabelPresetResponse]
-	removeLabelPreset       *connect.Client[v1.RemoveLabelPresetRequest, v1.RemoveLabelPresetResponse]
+	createLabelPreset       *connect.Client[v1.CreateLabelPresetRequest, v1.CreateLabelPresetResponse]
+	deleteLabelPreset       *connect.Client[v1.DeleteLabelPresetRequest, v1.DeleteLabelPresetResponse]
 	updateLabelColor        *connect.Client[v1.UpdateLabelColorRequest, v1.UpdateLabelColorResponse]
-	addURLPattern           *connect.Client[v1.AddURLPatternRequest, v1.AddURLPatternResponse]
-	removeURLPattern        *connect.Client[v1.RemoveURLPatternRequest, v1.RemoveURLPatternResponse]
-	addSection              *connect.Client[v1.AddSectionRequest, v1.AddSectionResponse]
-	removeSection           *connect.Client[v1.RemoveSectionRequest, v1.RemoveSectionResponse]
-	addPolicy               *connect.Client[v1.AddPolicyRequest, v1.AddPolicyResponse]
+	createURLPattern        *connect.Client[v1.CreateURLPatternRequest, v1.CreateURLPatternResponse]
+	deleteURLPattern        *connect.Client[v1.DeleteURLPatternRequest, v1.DeleteURLPatternResponse]
+	createSection           *connect.Client[v1.CreateSectionRequest, v1.CreateSectionResponse]
+	deleteSection           *connect.Client[v1.DeleteSectionRequest, v1.DeleteSectionResponse]
+	createPolicy            *connect.Client[v1.CreatePolicyRequest, v1.CreatePolicyResponse]
 	updatePolicy            *connect.Client[v1.UpdatePolicyRequest, v1.UpdatePolicyResponse]
-	removePolicy            *connect.Client[v1.RemovePolicyRequest, v1.RemovePolicyResponse]
-	addWorkspace            *connect.Client[v1.AddWorkspaceRequest, v1.AddWorkspaceResponse]
+	deletePolicy            *connect.Client[v1.DeletePolicyRequest, v1.DeletePolicyResponse]
+	createWorkspace         *connect.Client[v1.CreateWorkspaceRequest, v1.CreateWorkspaceResponse]
 	deleteWorkspace         *connect.Client[v1.DeleteWorkspaceRequest, v1.DeleteWorkspaceResponse]
 	updateHideShortcutHints *connect.Client[v1.UpdateHideShortcutHintsRequest, v1.UpdateHideShortcutHintsResponse]
 	setActiveWorkspace      *connect.Client[v1.SetActiveWorkspaceRequest, v1.SetActiveWorkspaceResponse]
@@ -243,14 +243,14 @@ func (c *settingsServiceClient) UpdateArchiveSettings(ctx context.Context, req *
 	return c.updateArchiveSettings.CallUnary(ctx, req)
 }
 
-// AddLabelPreset calls todos.v1.SettingsService.AddLabelPreset.
-func (c *settingsServiceClient) AddLabelPreset(ctx context.Context, req *connect.Request[v1.AddLabelPresetRequest]) (*connect.Response[v1.AddLabelPresetResponse], error) {
-	return c.addLabelPreset.CallUnary(ctx, req)
+// CreateLabelPreset calls todos.v1.SettingsService.CreateLabelPreset.
+func (c *settingsServiceClient) CreateLabelPreset(ctx context.Context, req *connect.Request[v1.CreateLabelPresetRequest]) (*connect.Response[v1.CreateLabelPresetResponse], error) {
+	return c.createLabelPreset.CallUnary(ctx, req)
 }
 
-// RemoveLabelPreset calls todos.v1.SettingsService.RemoveLabelPreset.
-func (c *settingsServiceClient) RemoveLabelPreset(ctx context.Context, req *connect.Request[v1.RemoveLabelPresetRequest]) (*connect.Response[v1.RemoveLabelPresetResponse], error) {
-	return c.removeLabelPreset.CallUnary(ctx, req)
+// DeleteLabelPreset calls todos.v1.SettingsService.DeleteLabelPreset.
+func (c *settingsServiceClient) DeleteLabelPreset(ctx context.Context, req *connect.Request[v1.DeleteLabelPresetRequest]) (*connect.Response[v1.DeleteLabelPresetResponse], error) {
+	return c.deleteLabelPreset.CallUnary(ctx, req)
 }
 
 // UpdateLabelColor calls todos.v1.SettingsService.UpdateLabelColor.
@@ -258,29 +258,29 @@ func (c *settingsServiceClient) UpdateLabelColor(ctx context.Context, req *conne
 	return c.updateLabelColor.CallUnary(ctx, req)
 }
 
-// AddURLPattern calls todos.v1.SettingsService.AddURLPattern.
-func (c *settingsServiceClient) AddURLPattern(ctx context.Context, req *connect.Request[v1.AddURLPatternRequest]) (*connect.Response[v1.AddURLPatternResponse], error) {
-	return c.addURLPattern.CallUnary(ctx, req)
+// CreateURLPattern calls todos.v1.SettingsService.CreateURLPattern.
+func (c *settingsServiceClient) CreateURLPattern(ctx context.Context, req *connect.Request[v1.CreateURLPatternRequest]) (*connect.Response[v1.CreateURLPatternResponse], error) {
+	return c.createURLPattern.CallUnary(ctx, req)
 }
 
-// RemoveURLPattern calls todos.v1.SettingsService.RemoveURLPattern.
-func (c *settingsServiceClient) RemoveURLPattern(ctx context.Context, req *connect.Request[v1.RemoveURLPatternRequest]) (*connect.Response[v1.RemoveURLPatternResponse], error) {
-	return c.removeURLPattern.CallUnary(ctx, req)
+// DeleteURLPattern calls todos.v1.SettingsService.DeleteURLPattern.
+func (c *settingsServiceClient) DeleteURLPattern(ctx context.Context, req *connect.Request[v1.DeleteURLPatternRequest]) (*connect.Response[v1.DeleteURLPatternResponse], error) {
+	return c.deleteURLPattern.CallUnary(ctx, req)
 }
 
-// AddSection calls todos.v1.SettingsService.AddSection.
-func (c *settingsServiceClient) AddSection(ctx context.Context, req *connect.Request[v1.AddSectionRequest]) (*connect.Response[v1.AddSectionResponse], error) {
-	return c.addSection.CallUnary(ctx, req)
+// CreateSection calls todos.v1.SettingsService.CreateSection.
+func (c *settingsServiceClient) CreateSection(ctx context.Context, req *connect.Request[v1.CreateSectionRequest]) (*connect.Response[v1.CreateSectionResponse], error) {
+	return c.createSection.CallUnary(ctx, req)
 }
 
-// RemoveSection calls todos.v1.SettingsService.RemoveSection.
-func (c *settingsServiceClient) RemoveSection(ctx context.Context, req *connect.Request[v1.RemoveSectionRequest]) (*connect.Response[v1.RemoveSectionResponse], error) {
-	return c.removeSection.CallUnary(ctx, req)
+// DeleteSection calls todos.v1.SettingsService.DeleteSection.
+func (c *settingsServiceClient) DeleteSection(ctx context.Context, req *connect.Request[v1.DeleteSectionRequest]) (*connect.Response[v1.DeleteSectionResponse], error) {
+	return c.deleteSection.CallUnary(ctx, req)
 }
 
-// AddPolicy calls todos.v1.SettingsService.AddPolicy.
-func (c *settingsServiceClient) AddPolicy(ctx context.Context, req *connect.Request[v1.AddPolicyRequest]) (*connect.Response[v1.AddPolicyResponse], error) {
-	return c.addPolicy.CallUnary(ctx, req)
+// CreatePolicy calls todos.v1.SettingsService.CreatePolicy.
+func (c *settingsServiceClient) CreatePolicy(ctx context.Context, req *connect.Request[v1.CreatePolicyRequest]) (*connect.Response[v1.CreatePolicyResponse], error) {
+	return c.createPolicy.CallUnary(ctx, req)
 }
 
 // UpdatePolicy calls todos.v1.SettingsService.UpdatePolicy.
@@ -288,14 +288,14 @@ func (c *settingsServiceClient) UpdatePolicy(ctx context.Context, req *connect.R
 	return c.updatePolicy.CallUnary(ctx, req)
 }
 
-// RemovePolicy calls todos.v1.SettingsService.RemovePolicy.
-func (c *settingsServiceClient) RemovePolicy(ctx context.Context, req *connect.Request[v1.RemovePolicyRequest]) (*connect.Response[v1.RemovePolicyResponse], error) {
-	return c.removePolicy.CallUnary(ctx, req)
+// DeletePolicy calls todos.v1.SettingsService.DeletePolicy.
+func (c *settingsServiceClient) DeletePolicy(ctx context.Context, req *connect.Request[v1.DeletePolicyRequest]) (*connect.Response[v1.DeletePolicyResponse], error) {
+	return c.deletePolicy.CallUnary(ctx, req)
 }
 
-// AddWorkspace calls todos.v1.SettingsService.AddWorkspace.
-func (c *settingsServiceClient) AddWorkspace(ctx context.Context, req *connect.Request[v1.AddWorkspaceRequest]) (*connect.Response[v1.AddWorkspaceResponse], error) {
-	return c.addWorkspace.CallUnary(ctx, req)
+// CreateWorkspace calls todos.v1.SettingsService.CreateWorkspace.
+func (c *settingsServiceClient) CreateWorkspace(ctx context.Context, req *connect.Request[v1.CreateWorkspaceRequest]) (*connect.Response[v1.CreateWorkspaceResponse], error) {
+	return c.createWorkspace.CallUnary(ctx, req)
 }
 
 // DeleteWorkspace calls todos.v1.SettingsService.DeleteWorkspace.
@@ -317,17 +317,17 @@ func (c *settingsServiceClient) SetActiveWorkspace(ctx context.Context, req *con
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
 	UpdateArchiveSettings(context.Context, *connect.Request[v1.UpdateArchiveSettingsRequest]) (*connect.Response[v1.UpdateArchiveSettingsResponse], error)
-	AddLabelPreset(context.Context, *connect.Request[v1.AddLabelPresetRequest]) (*connect.Response[v1.AddLabelPresetResponse], error)
-	RemoveLabelPreset(context.Context, *connect.Request[v1.RemoveLabelPresetRequest]) (*connect.Response[v1.RemoveLabelPresetResponse], error)
+	CreateLabelPreset(context.Context, *connect.Request[v1.CreateLabelPresetRequest]) (*connect.Response[v1.CreateLabelPresetResponse], error)
+	DeleteLabelPreset(context.Context, *connect.Request[v1.DeleteLabelPresetRequest]) (*connect.Response[v1.DeleteLabelPresetResponse], error)
 	UpdateLabelColor(context.Context, *connect.Request[v1.UpdateLabelColorRequest]) (*connect.Response[v1.UpdateLabelColorResponse], error)
-	AddURLPattern(context.Context, *connect.Request[v1.AddURLPatternRequest]) (*connect.Response[v1.AddURLPatternResponse], error)
-	RemoveURLPattern(context.Context, *connect.Request[v1.RemoveURLPatternRequest]) (*connect.Response[v1.RemoveURLPatternResponse], error)
-	AddSection(context.Context, *connect.Request[v1.AddSectionRequest]) (*connect.Response[v1.AddSectionResponse], error)
-	RemoveSection(context.Context, *connect.Request[v1.RemoveSectionRequest]) (*connect.Response[v1.RemoveSectionResponse], error)
-	AddPolicy(context.Context, *connect.Request[v1.AddPolicyRequest]) (*connect.Response[v1.AddPolicyResponse], error)
+	CreateURLPattern(context.Context, *connect.Request[v1.CreateURLPatternRequest]) (*connect.Response[v1.CreateURLPatternResponse], error)
+	DeleteURLPattern(context.Context, *connect.Request[v1.DeleteURLPatternRequest]) (*connect.Response[v1.DeleteURLPatternResponse], error)
+	CreateSection(context.Context, *connect.Request[v1.CreateSectionRequest]) (*connect.Response[v1.CreateSectionResponse], error)
+	DeleteSection(context.Context, *connect.Request[v1.DeleteSectionRequest]) (*connect.Response[v1.DeleteSectionResponse], error)
+	CreatePolicy(context.Context, *connect.Request[v1.CreatePolicyRequest]) (*connect.Response[v1.CreatePolicyResponse], error)
 	UpdatePolicy(context.Context, *connect.Request[v1.UpdatePolicyRequest]) (*connect.Response[v1.UpdatePolicyResponse], error)
-	RemovePolicy(context.Context, *connect.Request[v1.RemovePolicyRequest]) (*connect.Response[v1.RemovePolicyResponse], error)
-	AddWorkspace(context.Context, *connect.Request[v1.AddWorkspaceRequest]) (*connect.Response[v1.AddWorkspaceResponse], error)
+	DeletePolicy(context.Context, *connect.Request[v1.DeletePolicyRequest]) (*connect.Response[v1.DeletePolicyResponse], error)
+	CreateWorkspace(context.Context, *connect.Request[v1.CreateWorkspaceRequest]) (*connect.Response[v1.CreateWorkspaceResponse], error)
 	DeleteWorkspace(context.Context, *connect.Request[v1.DeleteWorkspaceRequest]) (*connect.Response[v1.DeleteWorkspaceResponse], error)
 	UpdateHideShortcutHints(context.Context, *connect.Request[v1.UpdateHideShortcutHintsRequest]) (*connect.Response[v1.UpdateHideShortcutHintsResponse], error)
 	SetActiveWorkspace(context.Context, *connect.Request[v1.SetActiveWorkspaceRequest]) (*connect.Response[v1.SetActiveWorkspaceResponse], error)
@@ -352,16 +352,16 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("UpdateArchiveSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceAddLabelPresetHandler := connect.NewUnaryHandler(
-		SettingsServiceAddLabelPresetProcedure,
-		svc.AddLabelPreset,
-		connect.WithSchema(settingsServiceMethods.ByName("AddLabelPreset")),
+	settingsServiceCreateLabelPresetHandler := connect.NewUnaryHandler(
+		SettingsServiceCreateLabelPresetProcedure,
+		svc.CreateLabelPreset,
+		connect.WithSchema(settingsServiceMethods.ByName("CreateLabelPreset")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceRemoveLabelPresetHandler := connect.NewUnaryHandler(
-		SettingsServiceRemoveLabelPresetProcedure,
-		svc.RemoveLabelPreset,
-		connect.WithSchema(settingsServiceMethods.ByName("RemoveLabelPreset")),
+	settingsServiceDeleteLabelPresetHandler := connect.NewUnaryHandler(
+		SettingsServiceDeleteLabelPresetProcedure,
+		svc.DeleteLabelPreset,
+		connect.WithSchema(settingsServiceMethods.ByName("DeleteLabelPreset")),
 		connect.WithHandlerOptions(opts...),
 	)
 	settingsServiceUpdateLabelColorHandler := connect.NewUnaryHandler(
@@ -370,34 +370,34 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("UpdateLabelColor")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceAddURLPatternHandler := connect.NewUnaryHandler(
-		SettingsServiceAddURLPatternProcedure,
-		svc.AddURLPattern,
-		connect.WithSchema(settingsServiceMethods.ByName("AddURLPattern")),
+	settingsServiceCreateURLPatternHandler := connect.NewUnaryHandler(
+		SettingsServiceCreateURLPatternProcedure,
+		svc.CreateURLPattern,
+		connect.WithSchema(settingsServiceMethods.ByName("CreateURLPattern")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceRemoveURLPatternHandler := connect.NewUnaryHandler(
-		SettingsServiceRemoveURLPatternProcedure,
-		svc.RemoveURLPattern,
-		connect.WithSchema(settingsServiceMethods.ByName("RemoveURLPattern")),
+	settingsServiceDeleteURLPatternHandler := connect.NewUnaryHandler(
+		SettingsServiceDeleteURLPatternProcedure,
+		svc.DeleteURLPattern,
+		connect.WithSchema(settingsServiceMethods.ByName("DeleteURLPattern")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceAddSectionHandler := connect.NewUnaryHandler(
-		SettingsServiceAddSectionProcedure,
-		svc.AddSection,
-		connect.WithSchema(settingsServiceMethods.ByName("AddSection")),
+	settingsServiceCreateSectionHandler := connect.NewUnaryHandler(
+		SettingsServiceCreateSectionProcedure,
+		svc.CreateSection,
+		connect.WithSchema(settingsServiceMethods.ByName("CreateSection")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceRemoveSectionHandler := connect.NewUnaryHandler(
-		SettingsServiceRemoveSectionProcedure,
-		svc.RemoveSection,
-		connect.WithSchema(settingsServiceMethods.ByName("RemoveSection")),
+	settingsServiceDeleteSectionHandler := connect.NewUnaryHandler(
+		SettingsServiceDeleteSectionProcedure,
+		svc.DeleteSection,
+		connect.WithSchema(settingsServiceMethods.ByName("DeleteSection")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceAddPolicyHandler := connect.NewUnaryHandler(
-		SettingsServiceAddPolicyProcedure,
-		svc.AddPolicy,
-		connect.WithSchema(settingsServiceMethods.ByName("AddPolicy")),
+	settingsServiceCreatePolicyHandler := connect.NewUnaryHandler(
+		SettingsServiceCreatePolicyProcedure,
+		svc.CreatePolicy,
+		connect.WithSchema(settingsServiceMethods.ByName("CreatePolicy")),
 		connect.WithHandlerOptions(opts...),
 	)
 	settingsServiceUpdatePolicyHandler := connect.NewUnaryHandler(
@@ -406,16 +406,16 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("UpdatePolicy")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceRemovePolicyHandler := connect.NewUnaryHandler(
-		SettingsServiceRemovePolicyProcedure,
-		svc.RemovePolicy,
-		connect.WithSchema(settingsServiceMethods.ByName("RemovePolicy")),
+	settingsServiceDeletePolicyHandler := connect.NewUnaryHandler(
+		SettingsServiceDeletePolicyProcedure,
+		svc.DeletePolicy,
+		connect.WithSchema(settingsServiceMethods.ByName("DeletePolicy")),
 		connect.WithHandlerOptions(opts...),
 	)
-	settingsServiceAddWorkspaceHandler := connect.NewUnaryHandler(
-		SettingsServiceAddWorkspaceProcedure,
-		svc.AddWorkspace,
-		connect.WithSchema(settingsServiceMethods.ByName("AddWorkspace")),
+	settingsServiceCreateWorkspaceHandler := connect.NewUnaryHandler(
+		SettingsServiceCreateWorkspaceProcedure,
+		svc.CreateWorkspace,
+		connect.WithSchema(settingsServiceMethods.ByName("CreateWorkspace")),
 		connect.WithHandlerOptions(opts...),
 	)
 	settingsServiceDeleteWorkspaceHandler := connect.NewUnaryHandler(
@@ -442,28 +442,28 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceGetSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceUpdateArchiveSettingsProcedure:
 			settingsServiceUpdateArchiveSettingsHandler.ServeHTTP(w, r)
-		case SettingsServiceAddLabelPresetProcedure:
-			settingsServiceAddLabelPresetHandler.ServeHTTP(w, r)
-		case SettingsServiceRemoveLabelPresetProcedure:
-			settingsServiceRemoveLabelPresetHandler.ServeHTTP(w, r)
+		case SettingsServiceCreateLabelPresetProcedure:
+			settingsServiceCreateLabelPresetHandler.ServeHTTP(w, r)
+		case SettingsServiceDeleteLabelPresetProcedure:
+			settingsServiceDeleteLabelPresetHandler.ServeHTTP(w, r)
 		case SettingsServiceUpdateLabelColorProcedure:
 			settingsServiceUpdateLabelColorHandler.ServeHTTP(w, r)
-		case SettingsServiceAddURLPatternProcedure:
-			settingsServiceAddURLPatternHandler.ServeHTTP(w, r)
-		case SettingsServiceRemoveURLPatternProcedure:
-			settingsServiceRemoveURLPatternHandler.ServeHTTP(w, r)
-		case SettingsServiceAddSectionProcedure:
-			settingsServiceAddSectionHandler.ServeHTTP(w, r)
-		case SettingsServiceRemoveSectionProcedure:
-			settingsServiceRemoveSectionHandler.ServeHTTP(w, r)
-		case SettingsServiceAddPolicyProcedure:
-			settingsServiceAddPolicyHandler.ServeHTTP(w, r)
+		case SettingsServiceCreateURLPatternProcedure:
+			settingsServiceCreateURLPatternHandler.ServeHTTP(w, r)
+		case SettingsServiceDeleteURLPatternProcedure:
+			settingsServiceDeleteURLPatternHandler.ServeHTTP(w, r)
+		case SettingsServiceCreateSectionProcedure:
+			settingsServiceCreateSectionHandler.ServeHTTP(w, r)
+		case SettingsServiceDeleteSectionProcedure:
+			settingsServiceDeleteSectionHandler.ServeHTTP(w, r)
+		case SettingsServiceCreatePolicyProcedure:
+			settingsServiceCreatePolicyHandler.ServeHTTP(w, r)
 		case SettingsServiceUpdatePolicyProcedure:
 			settingsServiceUpdatePolicyHandler.ServeHTTP(w, r)
-		case SettingsServiceRemovePolicyProcedure:
-			settingsServiceRemovePolicyHandler.ServeHTTP(w, r)
-		case SettingsServiceAddWorkspaceProcedure:
-			settingsServiceAddWorkspaceHandler.ServeHTTP(w, r)
+		case SettingsServiceDeletePolicyProcedure:
+			settingsServiceDeletePolicyHandler.ServeHTTP(w, r)
+		case SettingsServiceCreateWorkspaceProcedure:
+			settingsServiceCreateWorkspaceHandler.ServeHTTP(w, r)
 		case SettingsServiceDeleteWorkspaceProcedure:
 			settingsServiceDeleteWorkspaceHandler.ServeHTTP(w, r)
 		case SettingsServiceUpdateHideShortcutHintsProcedure:
@@ -487,48 +487,48 @@ func (UnimplementedSettingsServiceHandler) UpdateArchiveSettings(context.Context
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.UpdateArchiveSettings is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) AddLabelPreset(context.Context, *connect.Request[v1.AddLabelPresetRequest]) (*connect.Response[v1.AddLabelPresetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.AddLabelPreset is not implemented"))
+func (UnimplementedSettingsServiceHandler) CreateLabelPreset(context.Context, *connect.Request[v1.CreateLabelPresetRequest]) (*connect.Response[v1.CreateLabelPresetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.CreateLabelPreset is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) RemoveLabelPreset(context.Context, *connect.Request[v1.RemoveLabelPresetRequest]) (*connect.Response[v1.RemoveLabelPresetResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.RemoveLabelPreset is not implemented"))
+func (UnimplementedSettingsServiceHandler) DeleteLabelPreset(context.Context, *connect.Request[v1.DeleteLabelPresetRequest]) (*connect.Response[v1.DeleteLabelPresetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.DeleteLabelPreset is not implemented"))
 }
 
 func (UnimplementedSettingsServiceHandler) UpdateLabelColor(context.Context, *connect.Request[v1.UpdateLabelColorRequest]) (*connect.Response[v1.UpdateLabelColorResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.UpdateLabelColor is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) AddURLPattern(context.Context, *connect.Request[v1.AddURLPatternRequest]) (*connect.Response[v1.AddURLPatternResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.AddURLPattern is not implemented"))
+func (UnimplementedSettingsServiceHandler) CreateURLPattern(context.Context, *connect.Request[v1.CreateURLPatternRequest]) (*connect.Response[v1.CreateURLPatternResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.CreateURLPattern is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) RemoveURLPattern(context.Context, *connect.Request[v1.RemoveURLPatternRequest]) (*connect.Response[v1.RemoveURLPatternResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.RemoveURLPattern is not implemented"))
+func (UnimplementedSettingsServiceHandler) DeleteURLPattern(context.Context, *connect.Request[v1.DeleteURLPatternRequest]) (*connect.Response[v1.DeleteURLPatternResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.DeleteURLPattern is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) AddSection(context.Context, *connect.Request[v1.AddSectionRequest]) (*connect.Response[v1.AddSectionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.AddSection is not implemented"))
+func (UnimplementedSettingsServiceHandler) CreateSection(context.Context, *connect.Request[v1.CreateSectionRequest]) (*connect.Response[v1.CreateSectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.CreateSection is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) RemoveSection(context.Context, *connect.Request[v1.RemoveSectionRequest]) (*connect.Response[v1.RemoveSectionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.RemoveSection is not implemented"))
+func (UnimplementedSettingsServiceHandler) DeleteSection(context.Context, *connect.Request[v1.DeleteSectionRequest]) (*connect.Response[v1.DeleteSectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.DeleteSection is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) AddPolicy(context.Context, *connect.Request[v1.AddPolicyRequest]) (*connect.Response[v1.AddPolicyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.AddPolicy is not implemented"))
+func (UnimplementedSettingsServiceHandler) CreatePolicy(context.Context, *connect.Request[v1.CreatePolicyRequest]) (*connect.Response[v1.CreatePolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.CreatePolicy is not implemented"))
 }
 
 func (UnimplementedSettingsServiceHandler) UpdatePolicy(context.Context, *connect.Request[v1.UpdatePolicyRequest]) (*connect.Response[v1.UpdatePolicyResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.UpdatePolicy is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) RemovePolicy(context.Context, *connect.Request[v1.RemovePolicyRequest]) (*connect.Response[v1.RemovePolicyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.RemovePolicy is not implemented"))
+func (UnimplementedSettingsServiceHandler) DeletePolicy(context.Context, *connect.Request[v1.DeletePolicyRequest]) (*connect.Response[v1.DeletePolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.DeletePolicy is not implemented"))
 }
 
-func (UnimplementedSettingsServiceHandler) AddWorkspace(context.Context, *connect.Request[v1.AddWorkspaceRequest]) (*connect.Response[v1.AddWorkspaceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.AddWorkspace is not implemented"))
+func (UnimplementedSettingsServiceHandler) CreateWorkspace(context.Context, *connect.Request[v1.CreateWorkspaceRequest]) (*connect.Response[v1.CreateWorkspaceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("todos.v1.SettingsService.CreateWorkspace is not implemented"))
 }
 
 func (UnimplementedSettingsServiceHandler) DeleteWorkspace(context.Context, *connect.Request[v1.DeleteWorkspaceRequest]) (*connect.Response[v1.DeleteWorkspaceResponse], error) {

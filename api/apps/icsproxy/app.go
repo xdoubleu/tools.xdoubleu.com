@@ -40,7 +40,7 @@ func New(
 	}
 	proxy.services = services.New(
 		logger,
-		repositories.New(postgres.NewSpanDB(db)),
+		repositories.New(db),
 		authService,
 	)
 

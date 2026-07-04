@@ -1,0 +1,36 @@
+syntax = "proto3";
+package books.v1;
+option go_package = "tools.xdoubleu.com/gen/books/v1;booksv1";
+
+message KoboDevice {
+  string id = 1;
+  string name = 2;
+  string serial = 3;
+  string created_at = 4;
+  string last_seen_at = 5;
+}
+
+message EnableKoboSyncRequest { string book_id = 1; }
+message EnableKoboSyncResponse { string kepub_status = 1; }
+
+message RegisterKoboDeviceRequest {
+  string name = 1;
+  string serial = 2;
+}
+message RegisterKoboDeviceResponse {
+  KoboDevice device = 1;
+  string raw_token = 2;
+}
+
+message ListKoboDevicesRequest {}
+message ListKoboDevicesResponse { repeated KoboDevice devices = 1; }
+
+message DisconnectKoboDeviceRequest { string id = 1; }
+message DisconnectKoboDeviceResponse {}
+
+service KoboService {
+  rpc EnableKoboSync(EnableKoboSyncRequest) returns (EnableKoboSyncResponse);
+  rpc RegisterKoboDevice(RegisterKoboDeviceRequest) returns (RegisterKoboDeviceResponse);
+  rpc ListKoboDevices(ListKoboDevicesRequest) returns (ListKoboDevicesResponse);
+  rpc DisconnectKoboDevice(DisconnectKoboDeviceRequest) returns (DisconnectKoboDeviceResponse);
+}

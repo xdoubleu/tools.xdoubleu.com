@@ -236,12 +236,12 @@ func TestQuickUpdateTask(t *testing.T) {
 // ── Subtasks ──────────────────────────────────────────────────────────────────
 
 func TestAddSubtask(t *testing.T) {
-	taskID := createTask(t, "AddSubtask parent")
+	taskID := createTask(t, "CreateSubtask parent")
 	client := newSubtaskClient(t)
 
-	resp, err := client.AddSubtask(
+	resp, err := client.CreateSubtask(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{
 			TaskId: taskID,
 			Input:  "subtask 1",
 		}),
@@ -254,9 +254,9 @@ func TestUpdateSubtask(t *testing.T) {
 	taskID := createTask(t, "UpdateSubtask parent")
 	client := newSubtaskClient(t)
 
-	addResp, err := client.AddSubtask(
+	addResp, err := client.CreateSubtask(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{
 			TaskId: taskID,
 			Input:  "original subtask",
 		}),
@@ -280,9 +280,9 @@ func TestToggleSubtask(t *testing.T) {
 	taskID := createTask(t, "ToggleSubtask parent")
 	client := newSubtaskClient(t)
 
-	addResp, err := client.AddSubtask(
+	addResp, err := client.CreateSubtask(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{
 			TaskId: taskID,
 			Input:  "toggle me",
 		}),
@@ -303,9 +303,9 @@ func TestDeleteSubtask(t *testing.T) {
 	taskID := createTask(t, "DeleteSubtask parent")
 	client := newSubtaskClient(t)
 
-	addResp, err := client.AddSubtask(
+	addResp, err := client.CreateSubtask(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{
 			TaskId: taskID,
 			Input:  "delete me",
 		}),
@@ -326,11 +326,11 @@ func TestReorderSubtasks(t *testing.T) {
 	taskID := createTask(t, "ReorderSubtasks parent")
 	client := newSubtaskClient(t)
 
-	r1, err := client.AddSubtask(t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{TaskId: taskID, Input: "s1"}))
+	r1, err := client.CreateSubtask(t.Context(),
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{TaskId: taskID, Input: "s1"}))
 	require.NoError(t, err)
-	r2, err := client.AddSubtask(t.Context(),
-		connect.NewRequest(&todosv1.AddSubtaskRequest{TaskId: taskID, Input: "s2"}))
+	r2, err := client.CreateSubtask(t.Context(),
+		connect.NewRequest(&todosv1.CreateSubtaskRequest{TaskId: taskID, Input: "s2"}))
 	require.NoError(t, err)
 
 	_, err = client.ReorderSubtasks(
@@ -387,9 +387,9 @@ func TestUpdateArchiveSettings(t *testing.T) {
 func TestAddSection_RemoveSection(t *testing.T) {
 	client := newSettingsClient(t)
 
-	addResp, err := client.AddSection(
+	addResp, err := client.CreateSection(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddSectionRequest{Name: "Test Section"}),
+		connect.NewRequest(&todosv1.CreateSectionRequest{Name: "Test Section"}),
 	)
 	require.NoError(t, err)
 	_ = addResp
@@ -408,9 +408,9 @@ func TestAddSection_RemoveSection(t *testing.T) {
 	}
 	require.NotEmpty(t, sectionID)
 
-	_, err = client.RemoveSection(
+	_, err = client.DeleteSection(
 		t.Context(),
-		connect.NewRequest(&todosv1.RemoveSectionRequest{Id: sectionID}),
+		connect.NewRequest(&todosv1.DeleteSectionRequest{Id: sectionID}),
 	)
 	require.NoError(t, err)
 }
@@ -418,9 +418,9 @@ func TestAddSection_RemoveSection(t *testing.T) {
 func TestAddWorkspace_DeleteWorkspace(t *testing.T) {
 	client := newSettingsClient(t)
 
-	_, err := client.AddWorkspace(
+	_, err := client.CreateWorkspace(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddWorkspaceRequest{Name: "Test WS"}),
+		connect.NewRequest(&todosv1.CreateWorkspaceRequest{Name: "Test WS"}),
 	)
 	require.NoError(t, err)
 
@@ -448,9 +448,9 @@ func TestAddWorkspace_DeleteWorkspace(t *testing.T) {
 func TestAddPolicy_UpdatePolicy_RemovePolicy(t *testing.T) {
 	client := newSettingsClient(t)
 
-	_, err := client.AddPolicy(
+	_, err := client.CreatePolicy(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddPolicyRequest{
+		connect.NewRequest(&todosv1.CreatePolicyRequest{
 			Text:               "Test policy",
 			ReappearAfterHours: 24,
 		}),
@@ -481,9 +481,9 @@ func TestAddPolicy_UpdatePolicy_RemovePolicy(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = client.RemovePolicy(
+	_, err = client.DeletePolicy(
 		t.Context(),
-		connect.NewRequest(&todosv1.RemovePolicyRequest{Id: policyID}),
+		connect.NewRequest(&todosv1.DeletePolicyRequest{Id: policyID}),
 	)
 	require.NoError(t, err)
 }
@@ -511,18 +511,18 @@ func TestSetActiveWorkspace(t *testing.T) {
 func TestAddLabelPreset_RemoveLabelPreset(t *testing.T) {
 	client := newSettingsClient(t)
 
-	_, err := client.AddLabelPreset(
+	_, err := client.CreateLabelPreset(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddLabelPresetRequest{
+		connect.NewRequest(&todosv1.CreateLabelPresetRequest{
 			Category: "label",
 			Value:    "integration-test-label",
 		}),
 	)
 	require.NoError(t, err)
 
-	_, err = client.RemoveLabelPreset(
+	_, err = client.DeleteLabelPreset(
 		t.Context(),
-		connect.NewRequest(&todosv1.RemoveLabelPresetRequest{
+		connect.NewRequest(&todosv1.DeleteLabelPresetRequest{
 			Category: "label",
 			Value:    "integration-test-label",
 		}),
@@ -533,9 +533,9 @@ func TestAddLabelPreset_RemoveLabelPreset(t *testing.T) {
 func TestUpdateLabelColor(t *testing.T) {
 	client := newSettingsClient(t)
 
-	_, err := client.AddLabelPreset(
+	_, err := client.CreateLabelPreset(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddLabelPresetRequest{
+		connect.NewRequest(&todosv1.CreateLabelPresetRequest{
 			Category: "label",
 			Value:    "color-test-label",
 		}),
@@ -552,9 +552,9 @@ func TestUpdateLabelColor(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = client.RemoveLabelPreset(
+	_, err = client.DeleteLabelPreset(
 		t.Context(),
-		connect.NewRequest(&todosv1.RemoveLabelPresetRequest{
+		connect.NewRequest(&todosv1.DeleteLabelPresetRequest{
 			Category: "label",
 			Value:    "color-test-label",
 		}),
@@ -567,9 +567,9 @@ func TestUpdateLabelColor(t *testing.T) {
 func TestAddURLPattern_RemoveURLPattern(t *testing.T) {
 	client := newSettingsClient(t)
 
-	_, err := client.AddURLPattern(
+	_, err := client.CreateURLPattern(
 		t.Context(),
-		connect.NewRequest(&todosv1.AddURLPatternRequest{
+		connect.NewRequest(&todosv1.CreateURLPatternRequest{
 			UrlPrefix:    "https://jira.example.com/browse/",
 			PlatformName: "Jira",
 			Shortcut:     "TEST",
@@ -591,9 +591,9 @@ func TestAddURLPattern_RemoveURLPattern(t *testing.T) {
 	}
 	require.NotEmpty(t, patternID)
 
-	_, err = client.RemoveURLPattern(
+	_, err = client.DeleteURLPattern(
 		t.Context(),
-		connect.NewRequest(&todosv1.RemoveURLPatternRequest{Id: patternID}),
+		connect.NewRequest(&todosv1.DeleteURLPatternRequest{Id: patternID}),
 	)
 	require.NoError(t, err)
 }

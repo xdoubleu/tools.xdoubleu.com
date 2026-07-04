@@ -163,9 +163,9 @@ func TestResolveOwner_SharedViewCanReadButNotWrite(t *testing.T) {
 	assert.Contains(t, names, "Shared Apples")
 
 	// Write is denied for a view-only grant.
-	_, err = client.AddShoppingItem(
+	_, err = client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name: "Nope", Amount: "1", Unit: "", OwnerUserId: owner,
 		}),
 	)
@@ -178,9 +178,9 @@ func TestResolveOwner_SharedEditCanWrite(t *testing.T) {
 	grantListAccess(t, owner, true)
 
 	client := newShoppingClient(t)
-	resp, err := client.AddShoppingItem(
+	resp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.AddShoppingItemRequest{
+		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
 			Name: "Edit Allowed", Amount: "1", Unit: "pc", OwnerUserId: owner,
 		}),
 	)

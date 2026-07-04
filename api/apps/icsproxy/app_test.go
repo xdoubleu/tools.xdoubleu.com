@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
@@ -51,8 +50,7 @@ func calendarServer(t *testing.T) *httptest.Server {
 }
 
 func TestMain(m *testing.M) {
-	testCfg = config.New(logging.NewNopLogger())
-	testCfg.Env = configtools.TestEnv
+	testCfg = testhelper.NewTestConfig()
 
 	postgresDB := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = postgresDB

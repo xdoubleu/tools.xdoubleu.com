@@ -15,14 +15,14 @@ describe('Breadcrumb', () => {
       <Breadcrumb
         items={[
           { label: 'Backlog', href: '/backlog' },
-          { label: 'Games', href: '/backlog/games' },
+          { label: 'Games', href: '/games' },
           { label: 'The Witcher 3' }
         ]}
       />
     )
 
     expect(screen.getByRole('link', { name: 'Backlog' })).toHaveAttribute('href', '/backlog')
-    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/backlog/games')
+    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/games')
 
     const current = screen.getByText('The Witcher 3')
     expect(current.tagName).toBe('SPAN')

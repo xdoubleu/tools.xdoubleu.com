@@ -236,7 +236,7 @@ func (s *TaskService) normalizeAndAddLabels(
 				}
 			}
 		}
-		_ = s.settings.AddLabelPreset(
+		_ = s.settings.CreateLabelPreset(
 			ctx,
 			userID,
 			models.LabelCategory,

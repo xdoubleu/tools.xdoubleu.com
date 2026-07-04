@@ -27,7 +27,7 @@ func (s *SectionsService) List(
 func (s *SectionsService) Create(
 	ctx context.Context,
 	userID string,
-	dto dtos.AddSectionDto,
+	dto dtos.CreateSectionDto,
 	workspaceID *uuid.UUID,
 ) (*models.Section, error) {
 	if dto.Name == "" {

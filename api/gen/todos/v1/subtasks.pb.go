@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type AddSubtaskRequest struct {
+type CreateSubtaskRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	TaskId          string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	Input           string                 `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
@@ -31,20 +31,20 @@ type AddSubtaskRequest struct {
 	sizeCache       protoimpl.SizeCache
 }
 
-func (x *AddSubtaskRequest) Reset() {
-	*x = AddSubtaskRequest{}
+func (x *CreateSubtaskRequest) Reset() {
+	*x = CreateSubtaskRequest{}
 	mi := &file_todos_v1_subtasks_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddSubtaskRequest) String() string {
+func (x *CreateSubtaskRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddSubtaskRequest) ProtoMessage() {}
+func (*CreateSubtaskRequest) ProtoMessage() {}
 
-func (x *AddSubtaskRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateSubtaskRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_subtasks_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -56,60 +56,60 @@ func (x *AddSubtaskRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddSubtaskRequest.ProtoReflect.Descriptor instead.
-func (*AddSubtaskRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateSubtaskRequest.ProtoReflect.Descriptor instead.
+func (*CreateSubtaskRequest) Descriptor() ([]byte, []int) {
 	return file_todos_v1_subtasks_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *AddSubtaskRequest) GetTaskId() string {
+func (x *CreateSubtaskRequest) GetTaskId() string {
 	if x != nil {
 		return x.TaskId
 	}
 	return ""
 }
 
-func (x *AddSubtaskRequest) GetInput() string {
+func (x *CreateSubtaskRequest) GetInput() string {
 	if x != nil {
 		return x.Input
 	}
 	return ""
 }
 
-func (x *AddSubtaskRequest) GetDescription() string {
+func (x *CreateSubtaskRequest) GetDescription() string {
 	if x != nil {
 		return x.Description
 	}
 	return ""
 }
 
-func (x *AddSubtaskRequest) GetParentSubtaskId() string {
+func (x *CreateSubtaskRequest) GetParentSubtaskId() string {
 	if x != nil {
 		return x.ParentSubtaskId
 	}
 	return ""
 }
 
-type AddSubtaskResponse struct {
+type CreateSubtaskResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Subtask       *Subtask               `protobuf:"bytes,1,opt,name=subtask,proto3" json:"subtask,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddSubtaskResponse) Reset() {
-	*x = AddSubtaskResponse{}
+func (x *CreateSubtaskResponse) Reset() {
+	*x = CreateSubtaskResponse{}
 	mi := &file_todos_v1_subtasks_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddSubtaskResponse) String() string {
+func (x *CreateSubtaskResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddSubtaskResponse) ProtoMessage() {}
+func (*CreateSubtaskResponse) ProtoMessage() {}
 
-func (x *AddSubtaskResponse) ProtoReflect() protoreflect.Message {
+func (x *CreateSubtaskResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_todos_v1_subtasks_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -121,12 +121,12 @@ func (x *AddSubtaskResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddSubtaskResponse.ProtoReflect.Descriptor instead.
-func (*AddSubtaskResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateSubtaskResponse.ProtoReflect.Descriptor instead.
+func (*CreateSubtaskResponse) Descriptor() ([]byte, []int) {
 	return file_todos_v1_subtasks_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *AddSubtaskResponse) GetSubtask() *Subtask {
+func (x *CreateSubtaskResponse) GetSubtask() *Subtask {
 	if x != nil {
 		return x.Subtask
 	}
@@ -561,13 +561,13 @@ var File_todos_v1_subtasks_proto protoreflect.FileDescriptor
 
 const file_todos_v1_subtasks_proto_rawDesc = "" +
 	"\n" +
-	"\x17todos/v1/subtasks.proto\x12\btodos.v1\x1a\x14todos/v1/tasks.proto\"\x90\x01\n" +
-	"\x11AddSubtaskRequest\x12\x17\n" +
+	"\x17todos/v1/subtasks.proto\x12\btodos.v1\x1a\x14todos/v1/tasks.proto\"\x93\x01\n" +
+	"\x14CreateSubtaskRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x14\n" +
 	"\x05input\x18\x02 \x01(\tR\x05input\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12*\n" +
-	"\x11parent_subtask_id\x18\x04 \x01(\tR\x0fparentSubtaskId\"A\n" +
-	"\x12AddSubtaskResponse\x12+\n" +
+	"\x11parent_subtask_id\x18\x04 \x01(\tR\x0fparentSubtaskId\"D\n" +
+	"\x15CreateSubtaskResponse\x12+\n" +
 	"\asubtask\x18\x01 \x01(\v2\x11.todos.v1.SubtaskR\asubtask\"N\n" +
 	"\x14ToggleSubtaskRequest\x12\x1d\n" +
 	"\n" +
@@ -596,10 +596,9 @@ const file_todos_v1_subtasks_proto_rawDesc = "" +
 	"\bdue_date\x18\a \x01(\tR\adueDate\x12\x1a\n" +
 	"\bdeadline\x18\b \x01(\tR\bdeadline\"D\n" +
 	"\x15UpdateSubtaskResponse\x12+\n" +
-	"\asubtask\x18\x01 \x01(\v2\x11.todos.v1.SubtaskR\asubtask2\xa7\x03\n" +
-	"\x0eSubtaskService\x12G\n" +
-	"\n" +
-	"AddSubtask\x12\x1b.todos.v1.AddSubtaskRequest\x1a\x1c.todos.v1.AddSubtaskResponse\x12P\n" +
+	"\asubtask\x18\x01 \x01(\v2\x11.todos.v1.SubtaskR\asubtask2\xb0\x03\n" +
+	"\x0eSubtaskService\x12P\n" +
+	"\rCreateSubtask\x12\x1e.todos.v1.CreateSubtaskRequest\x1a\x1f.todos.v1.CreateSubtaskResponse\x12P\n" +
 	"\rToggleSubtask\x12\x1e.todos.v1.ToggleSubtaskRequest\x1a\x1f.todos.v1.ToggleSubtaskResponse\x12P\n" +
 	"\rDeleteSubtask\x12\x1e.todos.v1.DeleteSubtaskRequest\x1a\x1f.todos.v1.DeleteSubtaskResponse\x12V\n" +
 	"\x0fReorderSubtasks\x12 .todos.v1.ReorderSubtasksRequest\x1a!.todos.v1.ReorderSubtasksResponse\x12P\n" +
@@ -619,8 +618,8 @@ func file_todos_v1_subtasks_proto_rawDescGZIP() []byte {
 
 var file_todos_v1_subtasks_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_todos_v1_subtasks_proto_goTypes = []any{
-	(*AddSubtaskRequest)(nil),       // 0: todos.v1.AddSubtaskRequest
-	(*AddSubtaskResponse)(nil),      // 1: todos.v1.AddSubtaskResponse
+	(*CreateSubtaskRequest)(nil),    // 0: todos.v1.CreateSubtaskRequest
+	(*CreateSubtaskResponse)(nil),   // 1: todos.v1.CreateSubtaskResponse
 	(*ToggleSubtaskRequest)(nil),    // 2: todos.v1.ToggleSubtaskRequest
 	(*ToggleSubtaskResponse)(nil),   // 3: todos.v1.ToggleSubtaskResponse
 	(*DeleteSubtaskRequest)(nil),    // 4: todos.v1.DeleteSubtaskRequest
@@ -632,15 +631,15 @@ var file_todos_v1_subtasks_proto_goTypes = []any{
 	(*Subtask)(nil),                 // 10: todos.v1.Subtask
 }
 var file_todos_v1_subtasks_proto_depIdxs = []int32{
-	10, // 0: todos.v1.AddSubtaskResponse.subtask:type_name -> todos.v1.Subtask
+	10, // 0: todos.v1.CreateSubtaskResponse.subtask:type_name -> todos.v1.Subtask
 	10, // 1: todos.v1.ToggleSubtaskResponse.subtask:type_name -> todos.v1.Subtask
 	10, // 2: todos.v1.UpdateSubtaskResponse.subtask:type_name -> todos.v1.Subtask
-	0,  // 3: todos.v1.SubtaskService.AddSubtask:input_type -> todos.v1.AddSubtaskRequest
+	0,  // 3: todos.v1.SubtaskService.CreateSubtask:input_type -> todos.v1.CreateSubtaskRequest
 	2,  // 4: todos.v1.SubtaskService.ToggleSubtask:input_type -> todos.v1.ToggleSubtaskRequest
 	4,  // 5: todos.v1.SubtaskService.DeleteSubtask:input_type -> todos.v1.DeleteSubtaskRequest
 	6,  // 6: todos.v1.SubtaskService.ReorderSubtasks:input_type -> todos.v1.ReorderSubtasksRequest
 	8,  // 7: todos.v1.SubtaskService.UpdateSubtask:input_type -> todos.v1.UpdateSubtaskRequest
-	1,  // 8: todos.v1.SubtaskService.AddSubtask:output_type -> todos.v1.AddSubtaskResponse
+	1,  // 8: todos.v1.SubtaskService.CreateSubtask:output_type -> todos.v1.CreateSubtaskResponse
 	3,  // 9: todos.v1.SubtaskService.ToggleSubtask:output_type -> todos.v1.ToggleSubtaskResponse
 	5,  // 10: todos.v1.SubtaskService.DeleteSubtask:output_type -> todos.v1.DeleteSubtaskResponse
 	7,  // 11: todos.v1.SubtaskService.ReorderSubtasks:output_type -> todos.v1.ReorderSubtasksResponse

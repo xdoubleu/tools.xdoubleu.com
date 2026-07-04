@@ -3,13 +3,11 @@ package recipes
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
@@ -26,8 +24,6 @@ type recipesConnectHandler struct {
 }
 
 var _ recipesv1connect.RecipesServiceHandler = (*recipesConnectHandler)(nil)
-
-// ── Shared Helpers ────────────────────────────────────────────────────────
 
 func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](
@@ -72,8 +68,6 @@ func mapError(err error) error {
 	}
 	return connect.NewError(connect.CodeInternal, err)
 }
-
-// ── Proto conversion helpers ───────────────────────────────────────────────
 
 func protoRecipe(r *models.Recipe) *recipesv1.Recipe {
 	if r == nil {
@@ -198,271 +192,4 @@ func dtoToRecipe(
 		})
 	}
 	return recipe, ingredients
-}
-
-// ── Recipe RPCs ────────────────────────────────────────────────────────────
-
-func (h *recipesConnectHandler) ListRecipes(
-	ctx context.Context,
-	_ *connect.Request[recipesv1.ListRecipesRequest],
-) (*connect.Response[recipesv1.ListRecipesResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	list, err := h.app.services.Recipes.List(ctx, user.ID)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&recipesv1.ListRecipesResponse{
-		Recipes: protoRecipes(list),
-	}), nil
-}
-
-func (h *recipesConnectHandler) GetRecipe(
-	ctx context.Context,
-	req *connect.Request[recipesv1.GetRecipeRequest],
-) (*connect.Response[recipesv1.GetRecipeResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	id, err := uuid.Parse(req.Msg.Id)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid recipe ID"),
-		)
-	}
-
-	recipe, canEdit, err := h.app.services.Recipes.Get(ctx, id, user.ID)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	servings := recipe.BaseServings
-	if req.Msg.Servings > 0 {
-		servings = int(req.Msg.Servings)
-	}
-
-	scaled := make([]*recipesv1.ScaledIngredient, len(recipe.Ingredients))
-	for i, ing := range recipe.Ingredients {
-		ratio := float64(servings) / float64(recipe.BaseServings)
-		scaled[i] = protoScaledIngredient(ing.Name, ing.Amount*ratio, ing.Unit)
-	}
-
-	return connect.NewResponse(&recipesv1.GetRecipeResponse{
-		Recipe: protoRecipe(recipe),
-		Servings: int32( //nolint:gosec // int32 safe for domain values
-			servings,
-		),
-		IsOwner:           recipe.UserID == user.ID,
-		ScaledIngredients: scaled,
-		CanEdit:           canEdit,
-	}), nil
-}
-
-func (h *recipesConnectHandler) CreateRecipe(
-	ctx context.Context,
-	req *connect.Request[recipesv1.CreateRecipeRequest],
-) (*connect.Response[recipesv1.CreateRecipeResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	recipe, ingredients := dtoToRecipe(
-		req.Msg.Name,
-		req.Msg.Steps,
-		req.Msg.BaseServings,
-		req.Msg.IngredientNames,
-		req.Msg.IngredientAmounts,
-		req.Msg.IngredientUnits,
-		req.Msg.IngredientGroupNames,
-	)
-	recipe.Ingredients = ingredients
-	if req.Msg.BatchServings != nil {
-		v := int(*req.Msg.BatchServings)
-		recipe.BatchServings = &v
-	}
-
-	created, err := h.app.services.Recipes.Create(ctx, user.ID, recipe)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&recipesv1.CreateRecipeResponse{
-		Recipe: protoRecipe(created),
-	}), nil
-}
-
-func (h *recipesConnectHandler) UpdateRecipe(
-	ctx context.Context,
-	req *connect.Request[recipesv1.UpdateRecipeRequest],
-) (*connect.Response[recipesv1.UpdateRecipeResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	id, err := uuid.Parse(req.Msg.Id)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid recipe ID"),
-		)
-	}
-
-	recipe, ingredients := dtoToRecipe(
-		req.Msg.Name,
-		req.Msg.Steps,
-		req.Msg.BaseServings,
-		req.Msg.IngredientNames,
-		req.Msg.IngredientAmounts,
-		req.Msg.IngredientUnits,
-		req.Msg.IngredientGroupNames,
-	)
-	recipe.ID = id
-	recipe.Ingredients = ingredients
-	if req.Msg.BatchServings != nil {
-		v := int(*req.Msg.BatchServings)
-		recipe.BatchServings = &v
-	}
-
-	err = h.app.services.Recipes.Update(ctx, user.ID, recipe)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&recipesv1.UpdateRecipeResponse{}), nil
-}
-
-func (h *recipesConnectHandler) DeleteRecipe(
-	ctx context.Context,
-	req *connect.Request[recipesv1.DeleteRecipeRequest],
-) (*connect.Response[recipesv1.DeleteRecipeResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	id, err := uuid.Parse(req.Msg.Id)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid recipe ID"),
-		)
-	}
-
-	err = h.app.services.Recipes.Delete(ctx, id, user.ID)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&recipesv1.DeleteRecipeResponse{}), nil
-}
-
-func (h *recipesConnectHandler) ShareRecipeBook(
-	ctx context.Context,
-	req *connect.Request[recipesv1.ShareRecipeBookRequest],
-) (*connect.Response[recipesv1.ShareRecipeBookResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	if req.Msg.ContactUserId == "" {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("contact user ID is required"),
-		)
-	}
-
-	err := h.app.services.Recipes.ShareBook(
-		ctx, user.ID, req.Msg.ContactUserId, req.Msg.CanEdit,
-	)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&recipesv1.ShareRecipeBookResponse{}), nil
-}
-
-func (h *recipesConnectHandler) UnshareRecipeBook(
-	ctx context.Context,
-	req *connect.Request[recipesv1.UnshareRecipeBookRequest],
-) (*connect.Response[recipesv1.UnshareRecipeBookResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	if req.Msg.TargetUserId == "" {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("target user ID is required"),
-		)
-	}
-
-	err := h.app.services.Recipes.UnshareBook(ctx, user.ID, req.Msg.TargetUserId)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&recipesv1.UnshareRecipeBookResponse{}), nil
-}
-
-func (h *recipesConnectHandler) ListRecipeBookShares(
-	ctx context.Context,
-	_ *connect.Request[recipesv1.ListRecipeBookSharesRequest],
-) (*connect.Response[recipesv1.ListRecipeBookSharesResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	shares, err := h.app.services.Recipes.ListBookShares(ctx, user.ID)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
-	pbShares := make([]*recipesv1.RecipeBookShare, len(shares))
-	for i, s := range shares {
-		pbShares[i] = &recipesv1.RecipeBookShare{
-			UserId:      s.UserID,
-			CanEdit:     s.CanEdit,
-			DisplayName: s.DisplayName,
-		}
-	}
-
-	return connect.NewResponse(&recipesv1.ListRecipeBookSharesResponse{
-		Shares: pbShares,
-	}), nil
 }

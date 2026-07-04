@@ -1,0 +1,639 @@
+import React from 'react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { create } from '@bufbuild/protobuf'
+import { ListCatalogBooksResponseSchema } from '@/lib/gen/books/v1/catalog_pb'
+
+const mockResyncBooks = jest.fn()
+const mockResyncOpenLibrary = jest.fn()
+const mockSetBookISBN = jest.fn()
+const mockMergeBooks = jest.fn()
+
+jest.mock('@/hooks/useBooks', () => ({
+  useCatalogBooks: jest.fn(),
+  useResyncBooks: () => mockResyncBooks,
+  useResyncOpenLibrary: () => mockResyncOpenLibrary,
+  useSetBookISBN: () => mockSetBookISBN,
+  useMergeBooks: () => mockMergeBooks
+}))
+
+jest.mock('@/lib/progressSocket', () => ({
+  useProgressSocket: jest.fn(() => ({
+    connected: true,
+    isRefreshing: false,
+    lastRefresh: null,
+    processed: null,
+    total: null,
+    refresh: jest.fn()
+  }))
+}))
+
+jest.mock('swr', () => ({ __esModule: true, mutate: jest.fn(), default: jest.fn() }))
+
+import { useCatalogBooks } from '@/hooks/useBooks'
+import { useProgressSocket } from '@/lib/progressSocket'
+import SelectiveResync from '@/components/books/SelectiveResync'
+
+const mockUseCatalogBooks = jest.mocked(useCatalogBooks)
+const mockUseProgressSocket = jest.mocked(useProgressSocket)
+
+const sampleBooks = [
+  {
+    id: 'book-1',
+    title: 'Book Without ISBN',
+    authors: ['Author A'],
+    isbn13: '',
+    hasCover: false,
+    hasDescription: false,
+    hasPageCount: false,
+    openlibraryStatus: 'not_found',
+    googlebooksStatus: '',
+    unicatStatus: '',
+    lastResyncAt: '2026-01-01T00:00:00Z'
+  },
+  {
+    // Found in OL but NOT in GB — should NOT appear under the "not_in_gb" filter
+    // because OL already sourced the metadata.
+    id: 'book-2',
+    title: 'Book Found Only In Open Library',
+    authors: ['Author B'],
+    isbn13: '9780140449112',
+    hasCover: true,
+    hasDescription: true,
+    hasPageCount: true,
+    openlibraryStatus: 'found',
+    googlebooksStatus: 'not_found',
+    unicatStatus: 'not_found',
+    lastResyncAt: '2026-01-01T00:00:00Z'
+  },
+  {
+    id: 'book-3',
+    title: 'Complete Book',
+    authors: ['Author C'],
+    isbn13: '9780062316097',
+    hasCover: true,
+    hasDescription: true,
+    hasPageCount: true,
+    openlibraryStatus: 'found',
+    googlebooksStatus: 'found',
+    unicatStatus: '',
+    lastResyncAt: '2026-01-01T00:00:00Z'
+  },
+  {
+    // Not found in either provider — should appear under "not_in_gb".
+    id: 'book-4',
+    title: 'Book Not Found Anywhere',
+    authors: ['Author D'],
+    isbn13: '9780000000000',
+    hasCover: false,
+    hasDescription: false,
+    hasPageCount: false,
+    openlibraryStatus: 'not_found',
+    googlebooksStatus: 'not_found',
+    unicatStatus: 'not_found',
+    lastResyncAt: '2026-01-01T00:00:00Z'
+  }
+]
+
+function mockCatalog(books = sampleBooks) {
+  // @ts-expect-error -- partial mock
+  mockUseCatalogBooks.mockReturnValue({
+    data: create(ListCatalogBooksResponseSchema, { books }),
+    isLoading: false,
+    error: undefined
+  })
+}
+
+describe('SelectiveResync', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockCatalog()
+    // Reset progress socket to idle state
+    mockUseProgressSocket.mockReturnValue({
+      connected: true,
+      isRefreshing: false,
+      lastRefresh: null,
+      processed: null,
+      total: null,
+      refresh: jest.fn()
+    })
+    mockSetBookISBN.mockResolvedValue({})
+    mockMergeBooks.mockResolvedValue({})
+  })
+
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+
+  it('renders all catalog books by default', () => {
+    render(<SelectiveResync />)
+    expect(screen.getByText('Book Without ISBN')).toBeInTheDocument()
+    expect(screen.getByText('Book Found Only In Open Library')).toBeInTheDocument()
+    expect(screen.getByText('Complete Book')).toBeInTheDocument()
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
+  })
+
+  it('shows a loading indicator while fetching', () => {
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({ data: undefined, isLoading: true })
+    render(<SelectiveResync />)
+    expect(screen.getByText('Loading catalog…')).toBeInTheDocument()
+  })
+
+  it('renders one Resync button per visible book', () => {
+    render(<SelectiveResync />)
+    const resyncBtns = screen.getAllByRole('button', { name: 'Resync' })
+    expect(resyncBtns).toHaveLength(sampleBooks.length)
+  })
+
+  it('shows empty state when no books match the active filter', () => {
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books: [] }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+    expect(screen.getByText('No books in the catalog.')).toBeInTheDocument()
+  })
+
+  it('shows filter empty state when active filter matches nothing', () => {
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Missing ISBN' }))
+    // Deactivate filter chips so we can test the "no filter match" message
+    // by providing a catalog where no book is ISBN-less.
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, {
+        books: [
+          {
+            id: 'x',
+            title: 'A Book',
+            authors: ['Auth'],
+            isbn13: '9780000000001',
+            hasCover: true,
+            hasDescription: true,
+            hasPageCount: true,
+            openlibraryStatus: 'found',
+            googlebooksStatus: 'found',
+            lastResyncAt: '2026-01-01T00:00:00Z'
+          }
+        ]
+      }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+    // The second render uses the new catalog; click Missing ISBN
+    const chips = screen.getAllByRole('button', { name: 'Missing ISBN' })
+    fireEvent.click(chips[chips.length - 1])
+    expect(screen.getByText('No books match the active filters.')).toBeInTheDocument()
+  })
+
+  // ---------------------------------------------------------------------------
+  // GB badge visibility (Point 2)
+  // ---------------------------------------------------------------------------
+
+  it('does not show GB badge when OL found the book and GB did not', () => {
+    render(<SelectiveResync />)
+    // book-2: openlibraryStatus=found, googlebooksStatus=not_found
+    // The OL badge should be shown; GB badge should not appear.
+    const item = screen.getByText('Book Found Only In Open Library').closest('li')!
+    expect(within(item).getByText(/OL:/)).toBeInTheDocument()
+    expect(within(item).queryByText(/GB:/)).not.toBeInTheDocument()
+  })
+
+  it('shows GB badge when both OL and GB failed to find the book', () => {
+    render(<SelectiveResync />)
+    // book-4: openlibraryStatus=not_found, googlebooksStatus=not_found
+    const item = screen.getByText('Book Not Found Anywhere').closest('li')!
+    expect(within(item).getByText(/OL:/)).toBeInTheDocument()
+    expect(within(item).getByText(/GB:/)).toBeInTheDocument()
+  })
+
+  it('shows GB badge when GB found the book (even if OL also found it)', () => {
+    render(<SelectiveResync />)
+    // book-3: both found
+    const item = screen.getByText('Complete Book').closest('li')!
+    expect(within(item).getByText(/OL:/)).toBeInTheDocument()
+    expect(within(item).getByText(/GB:/)).toBeInTheDocument()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Per-row Resync buttons (Point 3)
+  // ---------------------------------------------------------------------------
+
+  it('calls resyncBooks with the book ID when its Resync button is clicked', async () => {
+    mockResyncBooks.mockResolvedValue({})
+    render(<SelectiveResync />)
+    // Use the specific row for "Book Without ISBN" to avoid index-order assumptions.
+    const row = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Resync' }))
+    await waitFor(() => {
+      expect(mockResyncBooks).toHaveBeenCalledWith(['book-1'], false)
+    })
+  })
+
+  it('passes force=true when Force re-fetch is checked', async () => {
+    mockResyncBooks.mockResolvedValue({})
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Force re-fetch' }))
+    const row = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Resync' }))
+    await waitFor(() => {
+      expect(mockResyncBooks).toHaveBeenCalledWith(['book-1'], true)
+    })
+  })
+
+  it('disables all Resync buttons while the job is running', () => {
+    mockUseProgressSocket.mockReturnValue({
+      connected: true,
+      isRefreshing: true,
+      lastRefresh: null,
+      processed: 1,
+      total: 4,
+      refresh: jest.fn()
+    })
+    render(<SelectiveResync />)
+    const resyncBtns = screen.getAllByRole('button', { name: 'Resync' })
+    resyncBtns.forEach((btn) => expect(btn).toBeDisabled())
+  })
+
+  // ---------------------------------------------------------------------------
+  // ISBN-less duplicate grouping (Point 1)
+  // ---------------------------------------------------------------------------
+
+  it('collapses ISBN-less books with the same title+author into one row', () => {
+    const duplicateBooks = [
+      {
+        id: 'dup-1',
+        title: 'My Great Novel',
+        authors: ['Jane Doe'],
+        isbn13: '',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      },
+      {
+        id: 'dup-2',
+        title: 'My Great Novel',
+        authors: ['Jane Doe'],
+        isbn13: '',
+        hasCover: true,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: 'found',
+        googlebooksStatus: '',
+        lastResyncAt: '2026-01-01T00:00:00Z'
+      }
+    ]
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books: duplicateBooks }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+
+    // Only one row for "My Great Novel"
+    expect(screen.getAllByText('My Great Novel')).toHaveLength(1)
+    // Count badge shows x2
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    // Only one Resync button for the whole group
+    expect(screen.getAllByRole('button', { name: 'Resync' })).toHaveLength(1)
+  })
+
+  it('resyncs all collapsed IDs when the group Resync button is clicked', async () => {
+    mockResyncBooks.mockResolvedValue({})
+    const duplicateBooks = [
+      {
+        id: 'dup-1',
+        title: 'My Great Novel',
+        authors: ['Jane Doe'],
+        isbn13: '',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      },
+      {
+        id: 'dup-2',
+        title: 'My Great Novel',
+        authors: ['Jane Doe'],
+        isbn13: '',
+        hasCover: true,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: 'found',
+        googlebooksStatus: '',
+        lastResyncAt: '2026-01-01T00:00:00Z'
+      }
+    ]
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books: duplicateBooks }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Resync' }))
+    await waitFor(() => {
+      expect(mockResyncBooks).toHaveBeenCalledWith(
+        expect.arrayContaining(['dup-1', 'dup-2']),
+        false
+      )
+    })
+  })
+
+  it('does not collapse books that have different ISBNs', () => {
+    const books = [
+      {
+        id: 'a',
+        title: 'Same Title',
+        authors: ['Same Author'],
+        isbn13: '9780000000001',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      },
+      {
+        id: 'b',
+        title: 'Same Title',
+        authors: ['Same Author'],
+        isbn13: '9780000000002',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      }
+    ]
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+
+    // Two separate rows (same title shown twice), two Resync buttons.
+    expect(screen.getAllByText('Same Title')).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'Resync' })).toHaveLength(2)
+  })
+
+  it('collapses ISBN-less books with same title and author in different order', () => {
+    // Author list order should not prevent grouping — any shared author last-name
+    // is enough to union the two rows.
+    const books = [
+      {
+        id: 'order-1',
+        title: 'Collaborative Work',
+        authors: ['Alice Smith', 'Bob Jones'],
+        isbn13: '',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      },
+      {
+        id: 'order-2',
+        title: 'Collaborative Work',
+        authors: ['Bob Jones', 'Alice Smith'],
+        isbn13: '',
+        hasCover: true,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: 'found',
+        googlebooksStatus: '',
+        lastResyncAt: '2026-01-01T00:00:00Z'
+      }
+    ]
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+
+    expect(screen.getAllByText('Collaborative Work')).toHaveLength(1)
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Resync' })).toHaveLength(1)
+  })
+
+  it('collapses ISBN-less books where one has a subset author list', () => {
+    // Row A has one author; row B has the same author plus a co-author.
+    // They share the same author last-name so must be unioned.
+    const books = [
+      {
+        id: 'subset-1',
+        title: 'Shared Title',
+        authors: ['Jane Doe'],
+        isbn13: '',
+        hasCover: false,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: '',
+        googlebooksStatus: '',
+        lastResyncAt: ''
+      },
+      {
+        id: 'subset-2',
+        title: 'Shared Title',
+        authors: ['Jane Doe', 'John Smith'],
+        isbn13: '',
+        hasCover: true,
+        hasDescription: false,
+        hasPageCount: false,
+        openlibraryStatus: 'found',
+        googlebooksStatus: '',
+        lastResyncAt: '2026-01-01T00:00:00Z'
+      }
+    ]
+    // @ts-expect-error -- partial mock
+    mockUseCatalogBooks.mockReturnValue({
+      data: create(ListCatalogBooksResponseSchema, { books }),
+      isLoading: false
+    })
+    render(<SelectiveResync />)
+
+    expect(screen.getAllByText('Shared Title')).toHaveLength(1)
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Resync' })).toHaveLength(1)
+  })
+
+  // ---------------------------------------------------------------------------
+  // Filters (Points from existing suite, now operating on groups)
+  // ---------------------------------------------------------------------------
+
+  it('filters to Missing ISBN books when that chip is active', () => {
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Missing ISBN' }))
+    expect(screen.getByText('Book Without ISBN')).toBeInTheDocument()
+    expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
+    expect(screen.queryByText('Book Found Only In Open Library')).not.toBeInTheDocument()
+  })
+
+  it('filters to Not in Open Library books when that chip is active', () => {
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Not in Open Library' }))
+    expect(screen.getByText('Book Without ISBN')).toBeInTheDocument()
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
+    expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
+  })
+
+  it('filters to Not in Google Books books when that chip is active', () => {
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Not in Google Books' }))
+    // Only book-4 (not found in OL or GB) should appear.
+    // book-2 (found in OL, not in GB) must NOT appear — OL already sourced it.
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
+    expect(screen.queryByText('Book Found Only In Open Library')).not.toBeInTheDocument()
+    expect(screen.queryByText('Book Without ISBN')).not.toBeInTheDocument()
+    expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
+  })
+
+  it('excludes OL-found books from the Not in Google Books filter', () => {
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Not in Google Books' }))
+    expect(screen.queryByText('Book Found Only In Open Library')).not.toBeInTheDocument()
+  })
+
+  it('combines filters with OR logic', () => {
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Missing ISBN' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Not in Google Books' }))
+    expect(screen.getByText('Book Without ISBN')).toBeInTheDocument()
+    expect(screen.getByText('Book Not Found Anywhere')).toBeInTheDocument()
+    expect(screen.queryByText('Book Found Only In Open Library')).not.toBeInTheDocument()
+    expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
+  })
+
+  it('clears filters when Clear filters button is clicked', () => {
+    render(<SelectiveResync />)
+    fireEvent.click(screen.getByRole('button', { name: 'Missing ISBN' }))
+    expect(screen.queryByText('Complete Book')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(screen.getByText('Complete Book')).toBeInTheDocument()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Set ISBN inline control
+  // ---------------------------------------------------------------------------
+
+  it('shows Set ISBN control only for books missing an ISBN', () => {
+    render(<SelectiveResync />)
+    // Missing-ISBN row has the input and button.
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    expect(within(missingRow).getByPlaceholderText('ISBN-13')).toBeInTheDocument()
+    expect(within(missingRow).getByRole('button', { name: 'Set ISBN' })).toBeInTheDocument()
+
+    // Rows with an ISBN must NOT have them.
+    const completeRow = screen.getByText('Complete Book').closest('li')!
+    expect(within(completeRow).queryByPlaceholderText('ISBN-13')).not.toBeInTheDocument()
+    expect(within(completeRow).queryByRole('button', { name: 'Set ISBN' })).not.toBeInTheDocument()
+  })
+
+  it('calls setBookISBN with the representative id and normalised isbn on submit', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    // book-1 is the representative (only member).
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449130' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(mockSetBookISBN).toHaveBeenCalledWith('book-1', '9780140449130')
+    })
+  })
+
+  it('strips hyphens before calling setBookISBN', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '978-0-14-044913-0' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(mockSetBookISBN).toHaveBeenCalledWith('book-1', '9780140449130')
+    })
+  })
+
+  it('shows an error and does not call setBookISBN for an invalid ISBN', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '123' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(screen.getByText('ISBN must be exactly 13 digits.')).toBeInTheDocument()
+    })
+    expect(mockSetBookISBN).not.toHaveBeenCalled()
+  })
+
+  it('shows an error message when setBookISBN rejects', async () => {
+    mockSetBookISBN.mockRejectedValue(new Error('ISBN is already assigned to another book'))
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449130' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(screen.getByText('ISBN is already assigned to another book')).toBeInTheDocument()
+    })
+  })
+
+  it('revalidates the catalog after a successful ISBN save', async () => {
+    const { mutate } = await import('swr')
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449130' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalledWith('/books/catalog')
+    })
+  })
+
+  it('opens the merge dialog when the entered ISBN belongs to another catalog entry', async () => {
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    // book-2 already has ISBN 9780140449112 — entering it for book-1 triggers collision.
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449112' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(screen.getByText('ISBN already assigned — merge entries?')).toBeInTheDocument()
+    })
+    // setBookISBN must NOT have been called — we go via merge instead.
+    expect(mockSetBookISBN).not.toHaveBeenCalled()
+  })
+
+  it('calls mergeBooks with winner=existing and losers=group.ids on confirm', async () => {
+    const { mutate } = await import('swr')
+    render(<SelectiveResync />)
+    const missingRow = screen.getByText('Book Without ISBN').closest('li')!
+    fireEvent.change(within(missingRow).getByPlaceholderText('ISBN-13'), {
+      target: { value: '9780140449112' }
+    })
+    fireEvent.click(within(missingRow).getByRole('button', { name: 'Set ISBN' }))
+    await waitFor(() => {
+      expect(screen.getByText('ISBN already assigned — merge entries?')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Merge entries' }))
+    await waitFor(() => {
+      // winner = book-2 (existing ISBN holder), loser = ['book-1']
+      expect(mockMergeBooks).toHaveBeenCalledWith('book-2', ['book-1'])
+      expect(mutate).toHaveBeenCalledWith('/books/catalog')
+    })
+  })
+})

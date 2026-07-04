@@ -1,0 +1,153 @@
+package games_test
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"connectrpc.com/connect"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/apps/games"
+	"tools.xdoubleu.com/apps/games/pkg/steam"
+	gamesv1 "tools.xdoubleu.com/gen/games/v1"
+	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
+	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/testhelper"
+)
+
+// zeroAchievementsSteamClient returns a game with one unachieved achievement so
+// the game lands in GetBacklog (completion_rate = 0, achievements exist).
+type zeroAchievementsSteamClient struct{}
+
+func (zeroAchievementsSteamClient) GetOwnedGames(
+	_ context.Context,
+	_ string,
+) (*steam.OwnedGamesResponse, error) {
+	return &steam.OwnedGamesResponse{
+		Response: steam.OwnedGamesResponseData{
+			GameCount: 1,
+			Games: []steam.Game{
+				{ //nolint:exhaustruct //only required fields
+					AppID:                    8001,
+					Name:                     "zero-completion game",
+					HasCommunityVisibleStats: true,
+				},
+			},
+		},
+	}, nil
+}
+
+func (zeroAchievementsSteamClient) GetPlayerAchievements(
+	_ context.Context,
+	steamID string,
+	_ int,
+) (*steam.AchievementsResponse, error) {
+	return &steam.AchievementsResponse{
+		PlayerStats: steam.PlayerStats{
+			Success:  true,
+			SteamID:  steamID,
+			GameName: "zero-completion game",
+			Achievements: []steam.Achievement{
+				{
+					APIName:     "ZERO_ACH",
+					Achieved:    0,
+					UnlockTime:  0,
+					Name:        "Unearned",
+					Description: "",
+				},
+			},
+		},
+	}, nil
+}
+
+func (zeroAchievementsSteamClient) GetSchemaForGame(
+	_ context.Context,
+	_ int,
+) (*steam.GetSchemaForGameResponse, error) {
+	//nolint:exhaustruct //skip
+	return &steam.GetSchemaForGameResponse{}, nil
+}
+
+func (zeroAchievementsSteamClient) GetGlobalAchievementPercentagesForApp(
+	_ context.Context,
+	_ int,
+) (*steam.GlobalAchievementPercentagesResponse, error) {
+	//nolint:exhaustruct //anonymous inner struct via field assignment
+	resp := steam.GlobalAchievementPercentagesResponse{}
+	resp.AchievementPercentages.Achievements = []steam.GlobalAchievementPercent{
+		{Name: "ZERO_ACH", Percent: "50.0"},
+	}
+	return &resp, nil
+}
+
+// TestConnectGetSteam_WithBacklogAndInProgress covers the GetBacklog and
+// GetInProgress row-loop bodies by seeding two isolated users: one whose game
+// has 0% completion (GetBacklog) and one with 50% (GetInProgress via
+// twoAchievementsMock).
+func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	const backlogUser = "steam-getbacklog-coverage-user"
+	const inProgressUser = "steam-getinprogress-coverage-user"
+
+	setupSteamUser := func(
+		isolatedUser string,
+		factory func(string) steam.Client,
+	) *games.Games {
+		app2 := games.NewInner(
+			sharedmocks.NewMockedAuthService(isolatedUser),
+			testApp.Logger,
+			testCfg,
+			testDB,
+			factory,
+		)
+		err := app2.SaveIntegrations(
+			ctx,
+			isolatedUser,
+			games.Integrations{
+				SteamUserID: "76561197960287930",
+			},
+		)
+		require.NoError(t, err)
+		err = app2.Services.Steam.SyncUser(ctx, isolatedUser)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, _ = testDB.Exec(context.Background(),
+				`DELETE FROM games.steam_games WHERE user_id = $1`, isolatedUser)
+			_, _ = testDB.Exec(
+				context.Background(),
+				`DELETE FROM games.user_integrations WHERE user_id = $1`,
+				isolatedUser,
+			)
+		})
+		return app2
+	}
+
+	backlogApp := setupSteamUser(backlogUser, func(_ string) steam.Client {
+		return zeroAchievementsSteamClient{}
+	})
+	inProgressApp := setupSteamUser(inProgressUser, func(_ string) steam.Client {
+		return twoAchievementsMock{}
+	})
+
+	for _, app2 := range []*games.Games{backlogApp, inProgressApp} {
+		ts := httptest.NewServer(testhelper.BuildMux(app2))
+		t.Cleanup(ts.Close)
+		client := gamesv1connect.NewGamesServiceClient(
+			http.DefaultClient,
+			ts.URL,
+			connect.WithHTTPGet(),
+		)
+
+		req := connect.NewRequest(&gamesv1.GetSteamRequest{})
+		req.Header().Set("Cookie", accessToken.String())
+
+		resp, err := client.GetSteam(ctx, req)
+		require.NoError(t, err)
+		assert.NotNil(t, resp.Msg.Steam)
+	}
+}

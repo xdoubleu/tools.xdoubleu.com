@@ -7,12 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/todos"
-	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -27,8 +25,7 @@ var testDB postgres.DB
 var userID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 
 func TestMain(m *testing.M) {
-	cfg := config.New(logging.NewNopLogger())
-	cfg.Env = configtools.TestEnv
+	cfg := testhelper.NewTestConfig()
 
 	postgresDB := testhelper.ConnectTestDB(cfg.DBDsn)
 	testDB = postgresDB

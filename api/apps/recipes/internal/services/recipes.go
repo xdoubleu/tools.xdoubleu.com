@@ -7,14 +7,40 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
-	"tools.xdoubleu.com/apps/recipes/internal/repositories"
 	"tools.xdoubleu.com/internal/app"
 )
 
 const errNotRecipeOwner = "You do not own this recipe"
 
+// recipesStore is the storage surface RecipeService needs. It is satisfied by
+// repositories.RecipesRepository and by fakes in unit tests, so the ownership
+// and sharing rules can be tested without a database.
+type recipesStore interface {
+	ListForUser(ctx context.Context, userID string) ([]models.Recipe, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*models.Recipe, error)
+	GetBookAccess(
+		ctx context.Context,
+		ownerUserID, userID string,
+	) (canEdit bool, ok bool, err error)
+	GetIngredients(ctx context.Context, id uuid.UUID) ([]models.Ingredient, error)
+	Create(ctx context.Context, recipe models.Recipe) (*models.Recipe, error)
+	ReplaceIngredients(
+		ctx context.Context,
+		id uuid.UUID,
+		ingredients []models.Ingredient,
+	) error
+	Update(ctx context.Context, recipe models.Recipe) error
+	Delete(ctx context.Context, id uuid.UUID, userID string) error
+	ShareBook(ctx context.Context, ownerID, targetUserID string, canEdit bool) error
+	UnshareBook(ctx context.Context, ownerID, targetUserID string) error
+	ListBookShares(
+		ctx context.Context,
+		ownerID string,
+	) ([]models.RecipeBookShare, error)
+}
+
 type RecipeService struct {
-	repo *repositories.RecipesRepository
+	repo recipesStore
 }
 
 func (s *RecipeService) List(

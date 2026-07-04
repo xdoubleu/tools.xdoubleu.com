@@ -1,0 +1,129 @@
+syntax = "proto3";
+package books.v1;
+option go_package = "tools.xdoubleu.com/gen/books/v1;booksv1";
+
+import "books/v1/library.proto";
+
+message ImportBooksRequest { bytes csv_data = 1; }
+message ImportBooksResponse { int32 imported_count = 1; }
+
+message ClearLibraryRequest {}
+message ClearLibraryResponse {
+  uint32 deleted_books = 1;
+  uint32 deleted_files = 2;
+}
+
+message DuplicateGroup {
+  // Library entries judged to be the same book. entries[0] is the suggested
+  // winner (the entry to keep); the rest are the suggested losers.
+  repeated UserBook entries = 1;
+  // Strongest matching signal: "isbn13" | "isbn10" | "title+author"
+  string reason = 2;
+}
+
+message FindDuplicatesRequest {}
+message FindDuplicatesResponse { repeated DuplicateGroup groups = 1; }
+
+message MergeBooksRequest {
+  // book_id of the UserBook entry to keep.
+  string winner_book_id = 1;
+  // book_ids of UserBook entries to merge into the winner, then delete.
+  repeated string loser_book_ids = 2;
+  // When set, these field values overwrite the winner's catalog Book row after
+  // the merge. cover_url is excluded — control cover resolution via
+  // resolved_cover_source_book_id instead.
+  // Omit to keep the winner's existing metadata unchanged (current behavior).
+  optional Book resolved_metadata = 3;
+  // book_id whose cover should be used for the merged winner. The backend
+  // copies that entry's raw cover URL and clears the winner's cover cache.
+  // Omit to keep the winner's existing cover unchanged.
+  optional string resolved_cover_source_book_id = 4;
+  // When set, overrides the auto-consolidated status/shelf of the merged winner.
+  // Omit to use the automatic rule: a custom shelf wins over built-in statuses
+  // (custom-shelf > read > currently-reading > to-read > dropped).
+  optional string resolved_status = 5;
+}
+message MergeBooksResponse {
+  // Always 1 — one group merged per call.
+  uint32 merged_groups = 1;
+  // Duplicate file rows removed (after format+checksum dedup).
+  uint32 deleted_files = 2;
+}
+
+message ResyncOpenLibraryRequest {}
+message ResyncOpenLibraryResponse {}
+
+// CatalogBookStatus is a lightweight view of a catalog book used by the admin
+// selective-resync tool. The *_status strings follow the convention:
+//   "" = never attempted, "found" = provider returned a record,
+//   "not_found" = provider was queried but returned nothing.
+message CatalogBookStatus {
+  string id = 1;
+  string title = 2;
+  repeated string authors = 3;
+  string isbn13 = 4;
+  bool has_cover = 5;
+  bool has_description = 6;
+  bool has_page_count = 7;
+  string openlibrary_status = 8;
+  string googlebooks_status = 9;
+  string last_resync_at = 10;
+  string unicat_status = 11;
+}
+
+message ListCatalogBooksRequest {}
+message ListCatalogBooksResponse {
+  repeated CatalogBookStatus books = 1;
+}
+
+message ResyncBooksRequest {
+  repeated string book_ids = 1;
+  bool force = 2;
+}
+message ResyncBooksResponse {}
+
+message SetBookISBNRequest {
+  string book_id = 1;
+  string isbn13 = 2;
+}
+message SetBookISBNResponse {}
+
+// BookRef is a lightweight snapshot of one book used in CSV comparison results.
+message BookRef {
+  string title = 1;
+  repeated string authors = 2;
+  string isbn13 = 3;
+  // status is the reading shelf/state (e.g. "read", "to-read", custom shelf).
+  string status = 4;
+}
+
+// BookMismatch describes one pair of entries that differ between the CSV and
+// the library. csv or library may be empty (zero-value) when the book only
+// exists on one side. differences lists the active tags from the set:
+//   "missing-in-library", "missing-in-csv", "status", "isbn", "title"
+message BookMismatch {
+  BookRef csv = 1;
+  BookRef library = 2;
+  repeated string differences = 3;
+}
+
+message CompareCSVRequest { bytes csv_data = 1; }
+message CompareCSVResponse {
+  int32 csv_count = 1;
+  int32 library_count = 2;
+  int32 matched_count = 3;
+  // mismatches contains only books that differ in some way.
+  repeated BookMismatch mismatches = 4;
+}
+
+service CatalogService {
+  rpc ImportBooks(ImportBooksRequest) returns (ImportBooksResponse);
+  rpc CompareCSV(CompareCSVRequest) returns (CompareCSVResponse);
+  rpc ClearLibrary(ClearLibraryRequest) returns (ClearLibraryResponse);
+  rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
+  rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
+  rpc ResyncOpenLibrary(ResyncOpenLibraryRequest) returns (ResyncOpenLibraryResponse);
+  rpc ListCatalogBooks(ListCatalogBooksRequest) returns (ListCatalogBooksResponse);
+  rpc ResyncBooks(ResyncBooksRequest) returns (ResyncBooksResponse);
+  rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);
+}

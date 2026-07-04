@@ -63,8 +63,8 @@ describe('HomeClient', () => {
       expect(screen.getByText('Contacts')).toBeInTheDocument()
     })
 
-    expect(screen.getByRole('link', { name: /Games/ })).toHaveAttribute('href', '/backlog/games')
-    expect(screen.getByRole('link', { name: /Books/ })).toHaveAttribute('href', '/backlog/books')
+    expect(screen.getByRole('link', { name: /Games/ })).toHaveAttribute('href', '/games')
+    expect(screen.getByRole('link', { name: /Books/ })).toHaveAttribute('href', '/books')
     expect(screen.getByRole('link', { name: /Watch Party/ })).toHaveAttribute('href', '/watchparty')
     expect(screen.getByRole('link', { name: /ICS Proxy/ })).toHaveAttribute('href', '/icsproxy')
     expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/list')
@@ -271,7 +271,10 @@ describe('HomeClient', () => {
   it('renders only granted apps plus always-visible apps for non-admin user', async () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: ['backlog', 'todos'] }),
+      data: create(GetCurrentUserResponseSchema, {
+        role: 'user',
+        appAccess: ['games', 'books', 'todos']
+      }),
       isLoading: false,
       error: undefined
     })

@@ -20,7 +20,7 @@ export function SettingsWorkspaces({ data, mutate }: Props) {
     e.preventDefault()
     if (!name.trim()) return
     const client = createServiceClient(SettingsService)
-    await client.addWorkspace({ name: name.trim() })
+    await client.createWorkspace({ name: name.trim() })
     setName('')
     setAdding(false)
     mutate()

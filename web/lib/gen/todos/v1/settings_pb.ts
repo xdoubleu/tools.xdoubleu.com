@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file todos/v1/settings.proto.
  */
 export const file_todos_v1_settings: GenFile = /*@__PURE__*/
-  fileDesc("Chd0b2Rvcy92MS9zZXR0aW5ncy5wcm90bxIIdG9kb3MudjEieAoHU2VjdGlvbhIKCgJpZBgBIAEoCRIVCg1vd25lcl91c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSEgoKc29ydF9vcmRlchgEIAEoBRISCgpjcmVhdGVkX2F0GAUgASgJEhQKDHdvcmtzcGFjZV9pZBgGIAEoCSIrCgtMYWJlbFByZXNldBINCgV2YWx1ZRgBIAEoCRINCgVjb2xvchgCIAEoCSKJAQoKVVJMUGF0dGVybhIKCgJpZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEhIKCnVybF9wcmVmaXgYAyABKAkSFQoNcGxhdGZvcm1fbmFtZRgEIAEoCRINCgVsYWJlbBgFIAEoCRIQCghzaG9ydGN1dBgGIAEoCRISCgpzb3J0X29yZGVyGAcgASgFIj8KD0FyY2hpdmVTZXR0aW5ncxIPCgd1c2VyX2lkGAEgASgJEhsKE2FyY2hpdmVfYWZ0ZXJfaG91cnMYAiABKAUilQEKBlBvbGljeRIKCgJpZBgBIAEoCRIVCg1vd25lcl91c2VyX2lkGAIgASgJEgwKBHRleHQYAyABKAkSHAoUcmVhcHBlYXJfYWZ0ZXJfaG91cnMYBCABKAUSEgoKc29ydF9vcmRlchgFIAEoBRISCgpjcmVhdGVkX2F0GAYgASgJEhQKDHdvcmtzcGFjZV9pZBgHIAEoCSJQCglXb3Jrc3BhY2USCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkiWQoMVXNlclNldHRpbmdzEg8KB3VzZXJfaWQYASABKAkSGwoTYWN0aXZlX3dvcmtzcGFjZV9pZBgCIAEoCRIbChNoaWRlX3Nob3J0Y3V0X2hpbnRzGAMgASgIIhQKEkdldFNldHRpbmdzUmVxdWVzdCK8AgoTR2V0U2V0dGluZ3NSZXNwb25zZRIsCg1sYWJlbF9wcmVzZXRzGAEgAygLMhUudG9kb3MudjEuTGFiZWxQcmVzZXQSKgoMdXJsX3BhdHRlcm5zGAIgAygLMhQudG9kb3MudjEuVVJMUGF0dGVybhIqCgdhcmNoaXZlGAMgASgLMhkudG9kb3MudjEuQXJjaGl2ZVNldHRpbmdzEiMKCHNlY3Rpb25zGAQgAygLMhEudG9kb3MudjEuU2VjdGlvbhIiCghwb2xpY2llcxgFIAMoCzIQLnRvZG9zLnYxLlBvbGljeRInCgp3b3Jrc3BhY2VzGAYgAygLMhMudG9kb3MudjEuV29ya3NwYWNlEi0KDXVzZXJfc2V0dGluZ3MYByABKAsyFi50b2Rvcy52MS5Vc2VyU2V0dGluZ3MiOwocVXBkYXRlQXJjaGl2ZVNldHRpbmdzUmVxdWVzdBIbChNhcmNoaXZlX2FmdGVyX2hvdXJzGAEgASgFIh8KHVVwZGF0ZUFyY2hpdmVTZXR0aW5nc1Jlc3BvbnNlIk4KFUFkZExhYmVsUHJlc2V0UmVxdWVzdBIQCghjYXRlZ29yeRgBIAEoCRINCgV2YWx1ZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkiGAoWQWRkTGFiZWxQcmVzZXRSZXNwb25zZSJRChhSZW1vdmVMYWJlbFByZXNldFJlcXVlc3QSEAoIY2F0ZWdvcnkYASABKAkSDQoFdmFsdWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJIhsKGVJlbW92ZUxhYmVsUHJlc2V0UmVzcG9uc2UiXwoXVXBkYXRlTGFiZWxDb2xvclJlcXVlc3QSEAoIY2F0ZWdvcnkYASABKAkSDQoFdmFsdWUYAiABKAkSDQoFY29sb3IYAyABKAkSFAoMd29ya3NwYWNlX2lkGAQgASgJIhoKGFVwZGF0ZUxhYmVsQ29sb3JSZXNwb25zZSJ4ChRBZGRVUkxQYXR0ZXJuUmVxdWVzdBISCgp1cmxfcHJlZml4GAEgASgJEhUKDXBsYXRmb3JtX25hbWUYAiABKAkSDQoFbGFiZWwYAyABKAkSEAoIc2hvcnRjdXQYBCABKAkSFAoMd29ya3NwYWNlX2lkGAUgASgJIhcKFUFkZFVSTFBhdHRlcm5SZXNwb25zZSIlChdSZW1vdmVVUkxQYXR0ZXJuUmVxdWVzdBIKCgJpZBgBIAEoCSIaChhSZW1vdmVVUkxQYXR0ZXJuUmVzcG9uc2UiNwoRQWRkU2VjdGlvblJlcXVlc3QSDAoEbmFtZRgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkiFAoSQWRkU2VjdGlvblJlc3BvbnNlIiIKFFJlbW92ZVNlY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIhcKFVJlbW92ZVNlY3Rpb25SZXNwb25zZSJUChBBZGRQb2xpY3lSZXF1ZXN0EgwKBHRleHQYASABKAkSHAoUcmVhcHBlYXJfYWZ0ZXJfaG91cnMYAiABKAUSFAoMd29ya3NwYWNlX2lkGAMgASgJIhMKEUFkZFBvbGljeVJlc3BvbnNlIk0KE1VwZGF0ZVBvbGljeVJlcXVlc3QSCgoCaWQYASABKAkSDAoEdGV4dBgCIAEoCRIcChRyZWFwcGVhcl9hZnRlcl9ob3VycxgDIAEoBSIWChRVcGRhdGVQb2xpY3lSZXNwb25zZSIhChNSZW1vdmVQb2xpY3lSZXF1ZXN0EgoKAmlkGAEgASgJIhYKFFJlbW92ZVBvbGljeVJlc3BvbnNlIiMKE0FkZFdvcmtzcGFjZVJlcXVlc3QSDAoEbmFtZRgBIAEoCSIWChRBZGRXb3Jrc3BhY2VSZXNwb25zZSIkChZEZWxldGVXb3Jrc3BhY2VSZXF1ZXN0EgoKAmlkGAEgASgJIhkKF0RlbGV0ZVdvcmtzcGFjZVJlc3BvbnNlIi4KHlVwZGF0ZUhpZGVTaG9ydGN1dEhpbnRzUmVxdWVzdBIMCgRoaWRlGAEgASgIIiEKH1VwZGF0ZUhpZGVTaG9ydGN1dEhpbnRzUmVzcG9uc2UiMQoZU2V0QWN0aXZlV29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkiHAoaU2V0QWN0aXZlV29ya3NwYWNlUmVzcG9uc2Uy+QoKD1NldHRpbmdzU2VydmljZRJKCgtHZXRTZXR0aW5ncxIcLnRvZG9zLnYxLkdldFNldHRpbmdzUmVxdWVzdBodLnRvZG9zLnYxLkdldFNldHRpbmdzUmVzcG9uc2USaAoVVXBkYXRlQXJjaGl2ZVNldHRpbmdzEiYudG9kb3MudjEuVXBkYXRlQXJjaGl2ZVNldHRpbmdzUmVxdWVzdBonLnRvZG9zLnYxLlVwZGF0ZUFyY2hpdmVTZXR0aW5nc1Jlc3BvbnNlElMKDkFkZExhYmVsUHJlc2V0Eh8udG9kb3MudjEuQWRkTGFiZWxQcmVzZXRSZXF1ZXN0GiAudG9kb3MudjEuQWRkTGFiZWxQcmVzZXRSZXNwb25zZRJcChFSZW1vdmVMYWJlbFByZXNldBIiLnRvZG9zLnYxLlJlbW92ZUxhYmVsUHJlc2V0UmVxdWVzdBojLnRvZG9zLnYxLlJlbW92ZUxhYmVsUHJlc2V0UmVzcG9uc2USWQoQVXBkYXRlTGFiZWxDb2xvchIhLnRvZG9zLnYxLlVwZGF0ZUxhYmVsQ29sb3JSZXF1ZXN0GiIudG9kb3MudjEuVXBkYXRlTGFiZWxDb2xvclJlc3BvbnNlElAKDUFkZFVSTFBhdHRlcm4SHi50b2Rvcy52MS5BZGRVUkxQYXR0ZXJuUmVxdWVzdBofLnRvZG9zLnYxLkFkZFVSTFBhdHRlcm5SZXNwb25zZRJZChBSZW1vdmVVUkxQYXR0ZXJuEiEudG9kb3MudjEuUmVtb3ZlVVJMUGF0dGVyblJlcXVlc3QaIi50b2Rvcy52MS5SZW1vdmVVUkxQYXR0ZXJuUmVzcG9uc2USRwoKQWRkU2VjdGlvbhIbLnRvZG9zLnYxLkFkZFNlY3Rpb25SZXF1ZXN0GhwudG9kb3MudjEuQWRkU2VjdGlvblJlc3BvbnNlElAKDVJlbW92ZVNlY3Rpb24SHi50b2Rvcy52MS5SZW1vdmVTZWN0aW9uUmVxdWVzdBofLnRvZG9zLnYxLlJlbW92ZVNlY3Rpb25SZXNwb25zZRJECglBZGRQb2xpY3kSGi50b2Rvcy52MS5BZGRQb2xpY3lSZXF1ZXN0GhsudG9kb3MudjEuQWRkUG9saWN5UmVzcG9uc2USTQoMVXBkYXRlUG9saWN5Eh0udG9kb3MudjEuVXBkYXRlUG9saWN5UmVxdWVzdBoeLnRvZG9zLnYxLlVwZGF0ZVBvbGljeVJlc3BvbnNlEk0KDFJlbW92ZVBvbGljeRIdLnRvZG9zLnYxLlJlbW92ZVBvbGljeVJlcXVlc3QaHi50b2Rvcy52MS5SZW1vdmVQb2xpY3lSZXNwb25zZRJNCgxBZGRXb3Jrc3BhY2USHS50b2Rvcy52MS5BZGRXb3Jrc3BhY2VSZXF1ZXN0Gh4udG9kb3MudjEuQWRkV29ya3NwYWNlUmVzcG9uc2USVgoPRGVsZXRlV29ya3NwYWNlEiAudG9kb3MudjEuRGVsZXRlV29ya3NwYWNlUmVxdWVzdBohLnRvZG9zLnYxLkRlbGV0ZVdvcmtzcGFjZVJlc3BvbnNlEm4KF1VwZGF0ZUhpZGVTaG9ydGN1dEhpbnRzEigudG9kb3MudjEuVXBkYXRlSGlkZVNob3J0Y3V0SGludHNSZXF1ZXN0GikudG9kb3MudjEuVXBkYXRlSGlkZVNob3J0Y3V0SGludHNSZXNwb25zZRJfChJTZXRBY3RpdmVXb3Jrc3BhY2USIy50b2Rvcy52MS5TZXRBY3RpdmVXb3Jrc3BhY2VSZXF1ZXN0GiQudG9kb3MudjEuU2V0QWN0aXZlV29ya3NwYWNlUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi90b2Rvcy92MTt0b2Rvc3YxYgZwcm90bzM");
+  fileDesc("Chd0b2Rvcy92MS9zZXR0aW5ncy5wcm90bxIIdG9kb3MudjEieAoHU2VjdGlvbhIKCgJpZBgBIAEoCRIVCg1vd25lcl91c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSEgoKc29ydF9vcmRlchgEIAEoBRISCgpjcmVhdGVkX2F0GAUgASgJEhQKDHdvcmtzcGFjZV9pZBgGIAEoCSIrCgtMYWJlbFByZXNldBINCgV2YWx1ZRgBIAEoCRINCgVjb2xvchgCIAEoCSKJAQoKVVJMUGF0dGVybhIKCgJpZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEhIKCnVybF9wcmVmaXgYAyABKAkSFQoNcGxhdGZvcm1fbmFtZRgEIAEoCRINCgVsYWJlbBgFIAEoCRIQCghzaG9ydGN1dBgGIAEoCRISCgpzb3J0X29yZGVyGAcgASgFIj8KD0FyY2hpdmVTZXR0aW5ncxIPCgd1c2VyX2lkGAEgASgJEhsKE2FyY2hpdmVfYWZ0ZXJfaG91cnMYAiABKAUilQEKBlBvbGljeRIKCgJpZBgBIAEoCRIVCg1vd25lcl91c2VyX2lkGAIgASgJEgwKBHRleHQYAyABKAkSHAoUcmVhcHBlYXJfYWZ0ZXJfaG91cnMYBCABKAUSEgoKc29ydF9vcmRlchgFIAEoBRISCgpjcmVhdGVkX2F0GAYgASgJEhQKDHdvcmtzcGFjZV9pZBgHIAEoCSJQCglXb3Jrc3BhY2USCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkiWQoMVXNlclNldHRpbmdzEg8KB3VzZXJfaWQYASABKAkSGwoTYWN0aXZlX3dvcmtzcGFjZV9pZBgCIAEoCRIbChNoaWRlX3Nob3J0Y3V0X2hpbnRzGAMgASgIIhQKEkdldFNldHRpbmdzUmVxdWVzdCK8AgoTR2V0U2V0dGluZ3NSZXNwb25zZRIsCg1sYWJlbF9wcmVzZXRzGAEgAygLMhUudG9kb3MudjEuTGFiZWxQcmVzZXQSKgoMdXJsX3BhdHRlcm5zGAIgAygLMhQudG9kb3MudjEuVVJMUGF0dGVybhIqCgdhcmNoaXZlGAMgASgLMhkudG9kb3MudjEuQXJjaGl2ZVNldHRpbmdzEiMKCHNlY3Rpb25zGAQgAygLMhEudG9kb3MudjEuU2VjdGlvbhIiCghwb2xpY2llcxgFIAMoCzIQLnRvZG9zLnYxLlBvbGljeRInCgp3b3Jrc3BhY2VzGAYgAygLMhMudG9kb3MudjEuV29ya3NwYWNlEi0KDXVzZXJfc2V0dGluZ3MYByABKAsyFi50b2Rvcy52MS5Vc2VyU2V0dGluZ3MiOwocVXBkYXRlQXJjaGl2ZVNldHRpbmdzUmVxdWVzdBIbChNhcmNoaXZlX2FmdGVyX2hvdXJzGAEgASgFIh8KHVVwZGF0ZUFyY2hpdmVTZXR0aW5nc1Jlc3BvbnNlIlEKGENyZWF0ZUxhYmVsUHJlc2V0UmVxdWVzdBIQCghjYXRlZ29yeRgBIAEoCRINCgV2YWx1ZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkiGwoZQ3JlYXRlTGFiZWxQcmVzZXRSZXNwb25zZSJRChhEZWxldGVMYWJlbFByZXNldFJlcXVlc3QSEAoIY2F0ZWdvcnkYASABKAkSDQoFdmFsdWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJIhsKGURlbGV0ZUxhYmVsUHJlc2V0UmVzcG9uc2UiXwoXVXBkYXRlTGFiZWxDb2xvclJlcXVlc3QSEAoIY2F0ZWdvcnkYASABKAkSDQoFdmFsdWUYAiABKAkSDQoFY29sb3IYAyABKAkSFAoMd29ya3NwYWNlX2lkGAQgASgJIhoKGFVwZGF0ZUxhYmVsQ29sb3JSZXNwb25zZSJ7ChdDcmVhdGVVUkxQYXR0ZXJuUmVxdWVzdBISCgp1cmxfcHJlZml4GAEgASgJEhUKDXBsYXRmb3JtX25hbWUYAiABKAkSDQoFbGFiZWwYAyABKAkSEAoIc2hvcnRjdXQYBCABKAkSFAoMd29ya3NwYWNlX2lkGAUgASgJIhoKGENyZWF0ZVVSTFBhdHRlcm5SZXNwb25zZSIlChdEZWxldGVVUkxQYXR0ZXJuUmVxdWVzdBIKCgJpZBgBIAEoCSIaChhEZWxldGVVUkxQYXR0ZXJuUmVzcG9uc2UiOgoUQ3JlYXRlU2VjdGlvblJlcXVlc3QSDAoEbmFtZRgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkiFwoVQ3JlYXRlU2VjdGlvblJlc3BvbnNlIiIKFERlbGV0ZVNlY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIhcKFURlbGV0ZVNlY3Rpb25SZXNwb25zZSJXChNDcmVhdGVQb2xpY3lSZXF1ZXN0EgwKBHRleHQYASABKAkSHAoUcmVhcHBlYXJfYWZ0ZXJfaG91cnMYAiABKAUSFAoMd29ya3NwYWNlX2lkGAMgASgJIhYKFENyZWF0ZVBvbGljeVJlc3BvbnNlIk0KE1VwZGF0ZVBvbGljeVJlcXVlc3QSCgoCaWQYASABKAkSDAoEdGV4dBgCIAEoCRIcChRyZWFwcGVhcl9hZnRlcl9ob3VycxgDIAEoBSIWChRVcGRhdGVQb2xpY3lSZXNwb25zZSIhChNEZWxldGVQb2xpY3lSZXF1ZXN0EgoKAmlkGAEgASgJIhYKFERlbGV0ZVBvbGljeVJlc3BvbnNlIiYKFkNyZWF0ZVdvcmtzcGFjZVJlcXVlc3QSDAoEbmFtZRgBIAEoCSIZChdDcmVhdGVXb3Jrc3BhY2VSZXNwb25zZSIkChZEZWxldGVXb3Jrc3BhY2VSZXF1ZXN0EgoKAmlkGAEgASgJIhkKF0RlbGV0ZVdvcmtzcGFjZVJlc3BvbnNlIi4KHlVwZGF0ZUhpZGVTaG9ydGN1dEhpbnRzUmVxdWVzdBIMCgRoaWRlGAEgASgIIiEKH1VwZGF0ZUhpZGVTaG9ydGN1dEhpbnRzUmVzcG9uc2UiMQoZU2V0QWN0aXZlV29ya3NwYWNlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkiHAoaU2V0QWN0aXZlV29ya3NwYWNlUmVzcG9uc2UypgsKD1NldHRpbmdzU2VydmljZRJKCgtHZXRTZXR0aW5ncxIcLnRvZG9zLnYxLkdldFNldHRpbmdzUmVxdWVzdBodLnRvZG9zLnYxLkdldFNldHRpbmdzUmVzcG9uc2USaAoVVXBkYXRlQXJjaGl2ZVNldHRpbmdzEiYudG9kb3MudjEuVXBkYXRlQXJjaGl2ZVNldHRpbmdzUmVxdWVzdBonLnRvZG9zLnYxLlVwZGF0ZUFyY2hpdmVTZXR0aW5nc1Jlc3BvbnNlElwKEUNyZWF0ZUxhYmVsUHJlc2V0EiIudG9kb3MudjEuQ3JlYXRlTGFiZWxQcmVzZXRSZXF1ZXN0GiMudG9kb3MudjEuQ3JlYXRlTGFiZWxQcmVzZXRSZXNwb25zZRJcChFEZWxldGVMYWJlbFByZXNldBIiLnRvZG9zLnYxLkRlbGV0ZUxhYmVsUHJlc2V0UmVxdWVzdBojLnRvZG9zLnYxLkRlbGV0ZUxhYmVsUHJlc2V0UmVzcG9uc2USWQoQVXBkYXRlTGFiZWxDb2xvchIhLnRvZG9zLnYxLlVwZGF0ZUxhYmVsQ29sb3JSZXF1ZXN0GiIudG9kb3MudjEuVXBkYXRlTGFiZWxDb2xvclJlc3BvbnNlElkKEENyZWF0ZVVSTFBhdHRlcm4SIS50b2Rvcy52MS5DcmVhdGVVUkxQYXR0ZXJuUmVxdWVzdBoiLnRvZG9zLnYxLkNyZWF0ZVVSTFBhdHRlcm5SZXNwb25zZRJZChBEZWxldGVVUkxQYXR0ZXJuEiEudG9kb3MudjEuRGVsZXRlVVJMUGF0dGVyblJlcXVlc3QaIi50b2Rvcy52MS5EZWxldGVVUkxQYXR0ZXJuUmVzcG9uc2USUAoNQ3JlYXRlU2VjdGlvbhIeLnRvZG9zLnYxLkNyZWF0ZVNlY3Rpb25SZXF1ZXN0Gh8udG9kb3MudjEuQ3JlYXRlU2VjdGlvblJlc3BvbnNlElAKDURlbGV0ZVNlY3Rpb24SHi50b2Rvcy52MS5EZWxldGVTZWN0aW9uUmVxdWVzdBofLnRvZG9zLnYxLkRlbGV0ZVNlY3Rpb25SZXNwb25zZRJNCgxDcmVhdGVQb2xpY3kSHS50b2Rvcy52MS5DcmVhdGVQb2xpY3lSZXF1ZXN0Gh4udG9kb3MudjEuQ3JlYXRlUG9saWN5UmVzcG9uc2USTQoMVXBkYXRlUG9saWN5Eh0udG9kb3MudjEuVXBkYXRlUG9saWN5UmVxdWVzdBoeLnRvZG9zLnYxLlVwZGF0ZVBvbGljeVJlc3BvbnNlEk0KDERlbGV0ZVBvbGljeRIdLnRvZG9zLnYxLkRlbGV0ZVBvbGljeVJlcXVlc3QaHi50b2Rvcy52MS5EZWxldGVQb2xpY3lSZXNwb25zZRJWCg9DcmVhdGVXb3Jrc3BhY2USIC50b2Rvcy52MS5DcmVhdGVXb3Jrc3BhY2VSZXF1ZXN0GiEudG9kb3MudjEuQ3JlYXRlV29ya3NwYWNlUmVzcG9uc2USVgoPRGVsZXRlV29ya3NwYWNlEiAudG9kb3MudjEuRGVsZXRlV29ya3NwYWNlUmVxdWVzdBohLnRvZG9zLnYxLkRlbGV0ZVdvcmtzcGFjZVJlc3BvbnNlEm4KF1VwZGF0ZUhpZGVTaG9ydGN1dEhpbnRzEigudG9kb3MudjEuVXBkYXRlSGlkZVNob3J0Y3V0SGludHNSZXF1ZXN0GikudG9kb3MudjEuVXBkYXRlSGlkZVNob3J0Y3V0SGludHNSZXNwb25zZRJfChJTZXRBY3RpdmVXb3Jrc3BhY2USIy50b2Rvcy52MS5TZXRBY3RpdmVXb3Jrc3BhY2VSZXF1ZXN0GiQudG9kb3MudjEuU2V0QWN0aXZlV29ya3NwYWNlUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi90b2Rvcy92MTt0b2Rvc3YxYgZwcm90bzM");
 
 /**
  * @generated from message todos.v1.Section
@@ -342,9 +342,9 @@ export const UpdateArchiveSettingsResponseSchema: GenMessage<UpdateArchiveSettin
   messageDesc(file_todos_v1_settings, 10);
 
 /**
- * @generated from message todos.v1.AddLabelPresetRequest
+ * @generated from message todos.v1.CreateLabelPresetRequest
  */
-export type AddLabelPresetRequest = Message<"todos.v1.AddLabelPresetRequest"> & {
+export type CreateLabelPresetRequest = Message<"todos.v1.CreateLabelPresetRequest"> & {
   /**
    * @generated from field: string category = 1;
    */
@@ -362,29 +362,29 @@ export type AddLabelPresetRequest = Message<"todos.v1.AddLabelPresetRequest"> & 
 };
 
 /**
- * Describes the message todos.v1.AddLabelPresetRequest.
- * Use `create(AddLabelPresetRequestSchema)` to create a new message.
+ * Describes the message todos.v1.CreateLabelPresetRequest.
+ * Use `create(CreateLabelPresetRequestSchema)` to create a new message.
  */
-export const AddLabelPresetRequestSchema: GenMessage<AddLabelPresetRequest> = /*@__PURE__*/
+export const CreateLabelPresetRequestSchema: GenMessage<CreateLabelPresetRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 11);
 
 /**
- * @generated from message todos.v1.AddLabelPresetResponse
+ * @generated from message todos.v1.CreateLabelPresetResponse
  */
-export type AddLabelPresetResponse = Message<"todos.v1.AddLabelPresetResponse"> & {
+export type CreateLabelPresetResponse = Message<"todos.v1.CreateLabelPresetResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.AddLabelPresetResponse.
- * Use `create(AddLabelPresetResponseSchema)` to create a new message.
+ * Describes the message todos.v1.CreateLabelPresetResponse.
+ * Use `create(CreateLabelPresetResponseSchema)` to create a new message.
  */
-export const AddLabelPresetResponseSchema: GenMessage<AddLabelPresetResponse> = /*@__PURE__*/
+export const CreateLabelPresetResponseSchema: GenMessage<CreateLabelPresetResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 12);
 
 /**
- * @generated from message todos.v1.RemoveLabelPresetRequest
+ * @generated from message todos.v1.DeleteLabelPresetRequest
  */
-export type RemoveLabelPresetRequest = Message<"todos.v1.RemoveLabelPresetRequest"> & {
+export type DeleteLabelPresetRequest = Message<"todos.v1.DeleteLabelPresetRequest"> & {
   /**
    * @generated from field: string category = 1;
    */
@@ -402,23 +402,23 @@ export type RemoveLabelPresetRequest = Message<"todos.v1.RemoveLabelPresetReques
 };
 
 /**
- * Describes the message todos.v1.RemoveLabelPresetRequest.
- * Use `create(RemoveLabelPresetRequestSchema)` to create a new message.
+ * Describes the message todos.v1.DeleteLabelPresetRequest.
+ * Use `create(DeleteLabelPresetRequestSchema)` to create a new message.
  */
-export const RemoveLabelPresetRequestSchema: GenMessage<RemoveLabelPresetRequest> = /*@__PURE__*/
+export const DeleteLabelPresetRequestSchema: GenMessage<DeleteLabelPresetRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 13);
 
 /**
- * @generated from message todos.v1.RemoveLabelPresetResponse
+ * @generated from message todos.v1.DeleteLabelPresetResponse
  */
-export type RemoveLabelPresetResponse = Message<"todos.v1.RemoveLabelPresetResponse"> & {
+export type DeleteLabelPresetResponse = Message<"todos.v1.DeleteLabelPresetResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.RemoveLabelPresetResponse.
- * Use `create(RemoveLabelPresetResponseSchema)` to create a new message.
+ * Describes the message todos.v1.DeleteLabelPresetResponse.
+ * Use `create(DeleteLabelPresetResponseSchema)` to create a new message.
  */
-export const RemoveLabelPresetResponseSchema: GenMessage<RemoveLabelPresetResponse> = /*@__PURE__*/
+export const DeleteLabelPresetResponseSchema: GenMessage<DeleteLabelPresetResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 14);
 
 /**
@@ -467,9 +467,9 @@ export const UpdateLabelColorResponseSchema: GenMessage<UpdateLabelColorResponse
   messageDesc(file_todos_v1_settings, 16);
 
 /**
- * @generated from message todos.v1.AddURLPatternRequest
+ * @generated from message todos.v1.CreateURLPatternRequest
  */
-export type AddURLPatternRequest = Message<"todos.v1.AddURLPatternRequest"> & {
+export type CreateURLPatternRequest = Message<"todos.v1.CreateURLPatternRequest"> & {
   /**
    * @generated from field: string url_prefix = 1;
    */
@@ -497,29 +497,29 @@ export type AddURLPatternRequest = Message<"todos.v1.AddURLPatternRequest"> & {
 };
 
 /**
- * Describes the message todos.v1.AddURLPatternRequest.
- * Use `create(AddURLPatternRequestSchema)` to create a new message.
+ * Describes the message todos.v1.CreateURLPatternRequest.
+ * Use `create(CreateURLPatternRequestSchema)` to create a new message.
  */
-export const AddURLPatternRequestSchema: GenMessage<AddURLPatternRequest> = /*@__PURE__*/
+export const CreateURLPatternRequestSchema: GenMessage<CreateURLPatternRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 17);
 
 /**
- * @generated from message todos.v1.AddURLPatternResponse
+ * @generated from message todos.v1.CreateURLPatternResponse
  */
-export type AddURLPatternResponse = Message<"todos.v1.AddURLPatternResponse"> & {
+export type CreateURLPatternResponse = Message<"todos.v1.CreateURLPatternResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.AddURLPatternResponse.
- * Use `create(AddURLPatternResponseSchema)` to create a new message.
+ * Describes the message todos.v1.CreateURLPatternResponse.
+ * Use `create(CreateURLPatternResponseSchema)` to create a new message.
  */
-export const AddURLPatternResponseSchema: GenMessage<AddURLPatternResponse> = /*@__PURE__*/
+export const CreateURLPatternResponseSchema: GenMessage<CreateURLPatternResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 18);
 
 /**
- * @generated from message todos.v1.RemoveURLPatternRequest
+ * @generated from message todos.v1.DeleteURLPatternRequest
  */
-export type RemoveURLPatternRequest = Message<"todos.v1.RemoveURLPatternRequest"> & {
+export type DeleteURLPatternRequest = Message<"todos.v1.DeleteURLPatternRequest"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -527,29 +527,29 @@ export type RemoveURLPatternRequest = Message<"todos.v1.RemoveURLPatternRequest"
 };
 
 /**
- * Describes the message todos.v1.RemoveURLPatternRequest.
- * Use `create(RemoveURLPatternRequestSchema)` to create a new message.
+ * Describes the message todos.v1.DeleteURLPatternRequest.
+ * Use `create(DeleteURLPatternRequestSchema)` to create a new message.
  */
-export const RemoveURLPatternRequestSchema: GenMessage<RemoveURLPatternRequest> = /*@__PURE__*/
+export const DeleteURLPatternRequestSchema: GenMessage<DeleteURLPatternRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 19);
 
 /**
- * @generated from message todos.v1.RemoveURLPatternResponse
+ * @generated from message todos.v1.DeleteURLPatternResponse
  */
-export type RemoveURLPatternResponse = Message<"todos.v1.RemoveURLPatternResponse"> & {
+export type DeleteURLPatternResponse = Message<"todos.v1.DeleteURLPatternResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.RemoveURLPatternResponse.
- * Use `create(RemoveURLPatternResponseSchema)` to create a new message.
+ * Describes the message todos.v1.DeleteURLPatternResponse.
+ * Use `create(DeleteURLPatternResponseSchema)` to create a new message.
  */
-export const RemoveURLPatternResponseSchema: GenMessage<RemoveURLPatternResponse> = /*@__PURE__*/
+export const DeleteURLPatternResponseSchema: GenMessage<DeleteURLPatternResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 20);
 
 /**
- * @generated from message todos.v1.AddSectionRequest
+ * @generated from message todos.v1.CreateSectionRequest
  */
-export type AddSectionRequest = Message<"todos.v1.AddSectionRequest"> & {
+export type CreateSectionRequest = Message<"todos.v1.CreateSectionRequest"> & {
   /**
    * @generated from field: string name = 1;
    */
@@ -562,29 +562,29 @@ export type AddSectionRequest = Message<"todos.v1.AddSectionRequest"> & {
 };
 
 /**
- * Describes the message todos.v1.AddSectionRequest.
- * Use `create(AddSectionRequestSchema)` to create a new message.
+ * Describes the message todos.v1.CreateSectionRequest.
+ * Use `create(CreateSectionRequestSchema)` to create a new message.
  */
-export const AddSectionRequestSchema: GenMessage<AddSectionRequest> = /*@__PURE__*/
+export const CreateSectionRequestSchema: GenMessage<CreateSectionRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 21);
 
 /**
- * @generated from message todos.v1.AddSectionResponse
+ * @generated from message todos.v1.CreateSectionResponse
  */
-export type AddSectionResponse = Message<"todos.v1.AddSectionResponse"> & {
+export type CreateSectionResponse = Message<"todos.v1.CreateSectionResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.AddSectionResponse.
- * Use `create(AddSectionResponseSchema)` to create a new message.
+ * Describes the message todos.v1.CreateSectionResponse.
+ * Use `create(CreateSectionResponseSchema)` to create a new message.
  */
-export const AddSectionResponseSchema: GenMessage<AddSectionResponse> = /*@__PURE__*/
+export const CreateSectionResponseSchema: GenMessage<CreateSectionResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 22);
 
 /**
- * @generated from message todos.v1.RemoveSectionRequest
+ * @generated from message todos.v1.DeleteSectionRequest
  */
-export type RemoveSectionRequest = Message<"todos.v1.RemoveSectionRequest"> & {
+export type DeleteSectionRequest = Message<"todos.v1.DeleteSectionRequest"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -592,29 +592,29 @@ export type RemoveSectionRequest = Message<"todos.v1.RemoveSectionRequest"> & {
 };
 
 /**
- * Describes the message todos.v1.RemoveSectionRequest.
- * Use `create(RemoveSectionRequestSchema)` to create a new message.
+ * Describes the message todos.v1.DeleteSectionRequest.
+ * Use `create(DeleteSectionRequestSchema)` to create a new message.
  */
-export const RemoveSectionRequestSchema: GenMessage<RemoveSectionRequest> = /*@__PURE__*/
+export const DeleteSectionRequestSchema: GenMessage<DeleteSectionRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 23);
 
 /**
- * @generated from message todos.v1.RemoveSectionResponse
+ * @generated from message todos.v1.DeleteSectionResponse
  */
-export type RemoveSectionResponse = Message<"todos.v1.RemoveSectionResponse"> & {
+export type DeleteSectionResponse = Message<"todos.v1.DeleteSectionResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.RemoveSectionResponse.
- * Use `create(RemoveSectionResponseSchema)` to create a new message.
+ * Describes the message todos.v1.DeleteSectionResponse.
+ * Use `create(DeleteSectionResponseSchema)` to create a new message.
  */
-export const RemoveSectionResponseSchema: GenMessage<RemoveSectionResponse> = /*@__PURE__*/
+export const DeleteSectionResponseSchema: GenMessage<DeleteSectionResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 24);
 
 /**
- * @generated from message todos.v1.AddPolicyRequest
+ * @generated from message todos.v1.CreatePolicyRequest
  */
-export type AddPolicyRequest = Message<"todos.v1.AddPolicyRequest"> & {
+export type CreatePolicyRequest = Message<"todos.v1.CreatePolicyRequest"> & {
   /**
    * @generated from field: string text = 1;
    */
@@ -632,23 +632,23 @@ export type AddPolicyRequest = Message<"todos.v1.AddPolicyRequest"> & {
 };
 
 /**
- * Describes the message todos.v1.AddPolicyRequest.
- * Use `create(AddPolicyRequestSchema)` to create a new message.
+ * Describes the message todos.v1.CreatePolicyRequest.
+ * Use `create(CreatePolicyRequestSchema)` to create a new message.
  */
-export const AddPolicyRequestSchema: GenMessage<AddPolicyRequest> = /*@__PURE__*/
+export const CreatePolicyRequestSchema: GenMessage<CreatePolicyRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 25);
 
 /**
- * @generated from message todos.v1.AddPolicyResponse
+ * @generated from message todos.v1.CreatePolicyResponse
  */
-export type AddPolicyResponse = Message<"todos.v1.AddPolicyResponse"> & {
+export type CreatePolicyResponse = Message<"todos.v1.CreatePolicyResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.AddPolicyResponse.
- * Use `create(AddPolicyResponseSchema)` to create a new message.
+ * Describes the message todos.v1.CreatePolicyResponse.
+ * Use `create(CreatePolicyResponseSchema)` to create a new message.
  */
-export const AddPolicyResponseSchema: GenMessage<AddPolicyResponse> = /*@__PURE__*/
+export const CreatePolicyResponseSchema: GenMessage<CreatePolicyResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 26);
 
 /**
@@ -692,9 +692,9 @@ export const UpdatePolicyResponseSchema: GenMessage<UpdatePolicyResponse> = /*@_
   messageDesc(file_todos_v1_settings, 28);
 
 /**
- * @generated from message todos.v1.RemovePolicyRequest
+ * @generated from message todos.v1.DeletePolicyRequest
  */
-export type RemovePolicyRequest = Message<"todos.v1.RemovePolicyRequest"> & {
+export type DeletePolicyRequest = Message<"todos.v1.DeletePolicyRequest"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -702,29 +702,29 @@ export type RemovePolicyRequest = Message<"todos.v1.RemovePolicyRequest"> & {
 };
 
 /**
- * Describes the message todos.v1.RemovePolicyRequest.
- * Use `create(RemovePolicyRequestSchema)` to create a new message.
+ * Describes the message todos.v1.DeletePolicyRequest.
+ * Use `create(DeletePolicyRequestSchema)` to create a new message.
  */
-export const RemovePolicyRequestSchema: GenMessage<RemovePolicyRequest> = /*@__PURE__*/
+export const DeletePolicyRequestSchema: GenMessage<DeletePolicyRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 29);
 
 /**
- * @generated from message todos.v1.RemovePolicyResponse
+ * @generated from message todos.v1.DeletePolicyResponse
  */
-export type RemovePolicyResponse = Message<"todos.v1.RemovePolicyResponse"> & {
+export type DeletePolicyResponse = Message<"todos.v1.DeletePolicyResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.RemovePolicyResponse.
- * Use `create(RemovePolicyResponseSchema)` to create a new message.
+ * Describes the message todos.v1.DeletePolicyResponse.
+ * Use `create(DeletePolicyResponseSchema)` to create a new message.
  */
-export const RemovePolicyResponseSchema: GenMessage<RemovePolicyResponse> = /*@__PURE__*/
+export const DeletePolicyResponseSchema: GenMessage<DeletePolicyResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 30);
 
 /**
- * @generated from message todos.v1.AddWorkspaceRequest
+ * @generated from message todos.v1.CreateWorkspaceRequest
  */
-export type AddWorkspaceRequest = Message<"todos.v1.AddWorkspaceRequest"> & {
+export type CreateWorkspaceRequest = Message<"todos.v1.CreateWorkspaceRequest"> & {
   /**
    * @generated from field: string name = 1;
    */
@@ -732,23 +732,23 @@ export type AddWorkspaceRequest = Message<"todos.v1.AddWorkspaceRequest"> & {
 };
 
 /**
- * Describes the message todos.v1.AddWorkspaceRequest.
- * Use `create(AddWorkspaceRequestSchema)` to create a new message.
+ * Describes the message todos.v1.CreateWorkspaceRequest.
+ * Use `create(CreateWorkspaceRequestSchema)` to create a new message.
  */
-export const AddWorkspaceRequestSchema: GenMessage<AddWorkspaceRequest> = /*@__PURE__*/
+export const CreateWorkspaceRequestSchema: GenMessage<CreateWorkspaceRequest> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 31);
 
 /**
- * @generated from message todos.v1.AddWorkspaceResponse
+ * @generated from message todos.v1.CreateWorkspaceResponse
  */
-export type AddWorkspaceResponse = Message<"todos.v1.AddWorkspaceResponse"> & {
+export type CreateWorkspaceResponse = Message<"todos.v1.CreateWorkspaceResponse"> & {
 };
 
 /**
- * Describes the message todos.v1.AddWorkspaceResponse.
- * Use `create(AddWorkspaceResponseSchema)` to create a new message.
+ * Describes the message todos.v1.CreateWorkspaceResponse.
+ * Use `create(CreateWorkspaceResponseSchema)` to create a new message.
  */
-export const AddWorkspaceResponseSchema: GenMessage<AddWorkspaceResponse> = /*@__PURE__*/
+export const CreateWorkspaceResponseSchema: GenMessage<CreateWorkspaceResponse> = /*@__PURE__*/
   messageDesc(file_todos_v1_settings, 32);
 
 /**
@@ -862,20 +862,20 @@ export const SettingsService: GenService<{
     output: typeof UpdateArchiveSettingsResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.AddLabelPreset
+   * @generated from rpc todos.v1.SettingsService.CreateLabelPreset
    */
-  addLabelPreset: {
+  createLabelPreset: {
     methodKind: "unary";
-    input: typeof AddLabelPresetRequestSchema;
-    output: typeof AddLabelPresetResponseSchema;
+    input: typeof CreateLabelPresetRequestSchema;
+    output: typeof CreateLabelPresetResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.RemoveLabelPreset
+   * @generated from rpc todos.v1.SettingsService.DeleteLabelPreset
    */
-  removeLabelPreset: {
+  deleteLabelPreset: {
     methodKind: "unary";
-    input: typeof RemoveLabelPresetRequestSchema;
-    output: typeof RemoveLabelPresetResponseSchema;
+    input: typeof DeleteLabelPresetRequestSchema;
+    output: typeof DeleteLabelPresetResponseSchema;
   },
   /**
    * @generated from rpc todos.v1.SettingsService.UpdateLabelColor
@@ -886,44 +886,44 @@ export const SettingsService: GenService<{
     output: typeof UpdateLabelColorResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.AddURLPattern
+   * @generated from rpc todos.v1.SettingsService.CreateURLPattern
    */
-  addURLPattern: {
+  createURLPattern: {
     methodKind: "unary";
-    input: typeof AddURLPatternRequestSchema;
-    output: typeof AddURLPatternResponseSchema;
+    input: typeof CreateURLPatternRequestSchema;
+    output: typeof CreateURLPatternResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.RemoveURLPattern
+   * @generated from rpc todos.v1.SettingsService.DeleteURLPattern
    */
-  removeURLPattern: {
+  deleteURLPattern: {
     methodKind: "unary";
-    input: typeof RemoveURLPatternRequestSchema;
-    output: typeof RemoveURLPatternResponseSchema;
+    input: typeof DeleteURLPatternRequestSchema;
+    output: typeof DeleteURLPatternResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.AddSection
+   * @generated from rpc todos.v1.SettingsService.CreateSection
    */
-  addSection: {
+  createSection: {
     methodKind: "unary";
-    input: typeof AddSectionRequestSchema;
-    output: typeof AddSectionResponseSchema;
+    input: typeof CreateSectionRequestSchema;
+    output: typeof CreateSectionResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.RemoveSection
+   * @generated from rpc todos.v1.SettingsService.DeleteSection
    */
-  removeSection: {
+  deleteSection: {
     methodKind: "unary";
-    input: typeof RemoveSectionRequestSchema;
-    output: typeof RemoveSectionResponseSchema;
+    input: typeof DeleteSectionRequestSchema;
+    output: typeof DeleteSectionResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.AddPolicy
+   * @generated from rpc todos.v1.SettingsService.CreatePolicy
    */
-  addPolicy: {
+  createPolicy: {
     methodKind: "unary";
-    input: typeof AddPolicyRequestSchema;
-    output: typeof AddPolicyResponseSchema;
+    input: typeof CreatePolicyRequestSchema;
+    output: typeof CreatePolicyResponseSchema;
   },
   /**
    * @generated from rpc todos.v1.SettingsService.UpdatePolicy
@@ -934,20 +934,20 @@ export const SettingsService: GenService<{
     output: typeof UpdatePolicyResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.RemovePolicy
+   * @generated from rpc todos.v1.SettingsService.DeletePolicy
    */
-  removePolicy: {
+  deletePolicy: {
     methodKind: "unary";
-    input: typeof RemovePolicyRequestSchema;
-    output: typeof RemovePolicyResponseSchema;
+    input: typeof DeletePolicyRequestSchema;
+    output: typeof DeletePolicyResponseSchema;
   },
   /**
-   * @generated from rpc todos.v1.SettingsService.AddWorkspace
+   * @generated from rpc todos.v1.SettingsService.CreateWorkspace
    */
-  addWorkspace: {
+  createWorkspace: {
     methodKind: "unary";
-    input: typeof AddWorkspaceRequestSchema;
-    output: typeof AddWorkspaceResponseSchema;
+    input: typeof CreateWorkspaceRequestSchema;
+    output: typeof CreateWorkspaceResponseSchema;
   },
   /**
    * @generated from rpc todos.v1.SettingsService.DeleteWorkspace

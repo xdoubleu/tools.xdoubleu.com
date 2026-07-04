@@ -187,7 +187,7 @@ func TestAddMeal_WithRecipe(t *testing.T) {
 	recipeID := createRecipeInDB(t, "Chicken")
 	planID := createPlanInDB(t, "Week Plan")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId:   planID,
 		MealDate: time.Now().Format("2006-01-02"),
 		MealSlot: "noon",
@@ -216,7 +216,7 @@ func TestAddMeal_WithCustomName(t *testing.T) {
 
 	planID := createPlanInDB(t, "Custom Meals Plan")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId:     planID,
 		MealDate:   time.Now().Format("2006-01-02"),
 		MealSlot:   "breakfast",
@@ -246,7 +246,7 @@ func TestAddMeal_ExcludedFromShoppingList(t *testing.T) {
 
 	planID := createPlanInDB(t, "Event Plan")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId:                  planID,
 		MealDate:                time.Now().Format("2006-01-02"),
 		MealSlot:                "evening",
@@ -277,7 +277,7 @@ func TestAddMeal_RequiresRecipeOrName(t *testing.T) {
 
 	planID := createPlanInDB(t, "Test Plan")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: time.Now().Format("2006-01-02"),
 		MealSlot: "noon", Servings: 2,
 	}))
@@ -296,7 +296,7 @@ func TestDeleteMeal_Success(t *testing.T) {
 
 	planID := createPlanInDB(t, "Delete Meal Plan")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId:     planID,
 		MealDate:   time.Now().Format("2006-01-02"),
 		MealSlot:   "noon",
@@ -381,7 +381,7 @@ func TestMoveMeal_ToEmptySlot(t *testing.T) {
 	today := time.Now().Format("2006-01-02")
 	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "noon",
 		CustomName: "Pasta", Servings: 2,
 	}))
@@ -420,12 +420,12 @@ func TestAddMeal_MultipleCustomItemsSameSlot(t *testing.T) {
 
 	today := time.Now().Format("2006-01-02")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "noon",
 		CustomName: "Salad", Servings: 1,
 	}))
 	require.NoError(t, err)
-	_, err = client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err = client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "noon",
 		CustomName: "Soup", Servings: 1,
 	}))
@@ -457,7 +457,7 @@ func TestMoveMeal_NoOp(t *testing.T) {
 
 	today := time.Now().Format("2006-01-02")
 
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "evening",
 		CustomName: "Soup", Servings: 2,
 	}))
@@ -621,7 +621,7 @@ func TestAddMeal_InvalidPlanID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId: "not-a-uuid", MealDate: "2026-01-01", MealSlot: "noon", CustomName: "x",
 	}))
 	require.Error(t, err)
@@ -636,7 +636,7 @@ func TestAddMeal_InvalidDate(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId: uuid.New().
 			String(),
 		MealDate: "not-a-date", MealSlot: "noon", CustomName: "x",
@@ -653,7 +653,7 @@ func TestAddMeal_InvalidRecipeID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
 		PlanId:   uuid.New().String(),
 		MealDate: "2026-01-01",
 		MealSlot: "noon",
@@ -756,10 +756,13 @@ func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
 	otherPlanID := createPlanInDB(t, "Suggest Other Plan")
 
 	add := func(plan, date, slot string, recipe uuid.UUID) {
-		_, err := client.AddMeal(ctx, connect.NewRequest(&mealplansv1.AddMealRequest{
-			PlanId: plan, MealDate: date, MealSlot: slot,
-			RecipeId: recipe.String(), Servings: 2,
-		}))
+		_, err := client.CreateMeal(
+			ctx,
+			connect.NewRequest(&mealplansv1.CreateMealRequest{
+				PlanId: plan, MealDate: date, MealSlot: slot,
+				RecipeId: recipe.String(), Servings: 2,
+			}),
+		)
 		require.NoError(t, err)
 	}
 

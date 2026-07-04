@@ -143,7 +143,7 @@ func (r *PlansRepository) Delete(
 	return err
 }
 
-func (r *PlansRepository) AddMeal(
+func (r *PlansRepository) CreateMeal(
 	ctx context.Context,
 	meal models.PlanMeal,
 ) (*models.PlanMeal, error) {
