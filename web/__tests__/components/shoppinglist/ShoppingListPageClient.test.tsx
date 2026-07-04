@@ -35,13 +35,13 @@ jest.mock('@/lib/client', () => ({
   })
 }))
 
-import ShoppingPage from '@/app/shoppinglist/page'
+import ShoppingListPageClient from '@/components/shoppinglist/ShoppingListPageClient'
 
 beforeEach(() => jest.clearAllMocks())
 
 describe('ShoppingPage add form', () => {
   it('assigns the chosen category to the catalog on add', async () => {
-    render(<ShoppingPage />)
+    render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Apples' } })
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-produce' } })
@@ -63,7 +63,7 @@ describe('ShoppingPage add form', () => {
   })
 
   it('skips the catalog write when no category is chosen', async () => {
-    render(<ShoppingPage />)
+    render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Bread' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
@@ -73,7 +73,7 @@ describe('ShoppingPage add form', () => {
   })
 
   it('creates a new category inline and assigns it on add', async () => {
-    render(<ShoppingPage />)
+    render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Kiwi' } })
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
@@ -94,7 +94,7 @@ describe('ShoppingPage add form', () => {
 
 describe('ShoppingPage edit', () => {
   it('updates a custom item and refreshes the list', async () => {
-    render(<ShoppingPage />)
+    render(<ShoppingListPageClient />)
 
     fireEvent.click(screen.getByRole('button', { name: /Edit Milk/ }))
     fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'Oat Milk' } })

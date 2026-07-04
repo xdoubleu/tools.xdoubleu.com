@@ -1,38 +1,17 @@
-'use client'
+import PlansListClient from '@/components/recipes/PlansListClient'
+import SWRFallback from '@/components/SWRFallback'
+import { createServerClient } from '@/lib/server/client'
+import { fetchOrNull } from '@/lib/server/fetchers'
+import { swrKeys } from '@/lib/swrKeys'
+import { MealPlansService } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useMealPlans } from '@/hooks/useMealPlans'
-import { PageContainer } from '@/components/ui/page-container'
-
-export default function PlansPage() {
-  const { data, error, isLoading } = useMealPlans()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (data?.plans && data.plans.length > 0) {
-      router.replace(`/mealplans/${data.plans[0].id}`)
-    }
-  }, [data, router])
+export default async function PlansPage() {
+  const client = await createServerClient(MealPlansService)
+  const plans = await fetchOrNull(() => client.listPlans({}))
 
   return (
-    <PageContainer className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Meal Plan</h1>
-
-      {isLoading && <p>Loading...</p>}
-      {error && <p className="text-danger">Failed to load meal plan.</p>}
-      {data && data.plans.length === 0 && (
-        <div>
-          <p className="text-muted mb-4">You don&apos;t have a meal plan yet.</p>
-          <Link
-            href="/mealplans/new"
-            className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
-          >
-            Create Meal Plan
-          </Link>
-        </div>
-      )}
-    </PageContainer>
+    <SWRFallback fallback={plans ? { [swrKeys.mealPlans]: plans } : {}}>
+      <PlansListClient />
+    </SWRFallback>
   )
 }
