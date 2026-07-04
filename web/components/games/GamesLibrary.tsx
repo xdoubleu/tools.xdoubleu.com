@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
+import { swrKeys } from '@/lib/swrKeys'
 
 function GameCard({ game }: { game: Game }) {
   return (
@@ -55,7 +56,7 @@ export default function GamesLibrary() {
   const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
 
   const onSynced = useCallback(() => {
-    void mutate('/games')
+    void mutate(swrKeys.games)
   }, [])
   const { isRefreshing, lastRefresh, refresh } = useSteamRefresh(onSynced)
 

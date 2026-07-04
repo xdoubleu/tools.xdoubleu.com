@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { mutate } from 'swr'
 import { useEnableKoboSync, useToggleTag, useKEPUBStatus } from '@/hooks/useBooks'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface KoboSyncToggleProps {
   bookId: string
@@ -45,7 +46,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
         await toggleTag(bookId, 'kobo-sync')
       } else {
         await enableKoboSync(bookId)
-        mutate(['/books/kepub-status', bookId])
+        mutate(swrKeys.kepubStatus(bookId))
       }
       onChanged?.()
     } catch (err) {
@@ -69,7 +70,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
         // Remove kobo-format-pdf; re-trigger conversion so the KEPUB is ready.
         await toggleTag(bookId, 'kobo-format-pdf')
         await enableKoboSync(bookId)
-        mutate(['/books/kepub-status', bookId])
+        mutate(swrKeys.kepubStatus(bookId))
       }
       onChanged?.()
     } catch (err) {

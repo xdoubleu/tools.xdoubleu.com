@@ -1,4 +1,5 @@
 import useSWR from 'swr'
+import { swrKeys } from '@/lib/swrKeys'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
 import {
@@ -19,12 +20,12 @@ export type DeleteRecipeInput = MessageInitShape<typeof DeleteRecipeRequestSchem
 
 export function useRecipes() {
   const client = createServiceClient(RecipesService)
-  return useSWR<ListRecipesResponse, Error>('/recipes', () => client.listRecipes({}))
+  return useSWR<ListRecipesResponse, Error>(swrKeys.recipes, () => client.listRecipes({}))
 }
 
 export function useRecipe(id: string, servings?: number) {
   const client = createServiceClient(RecipesService)
-  const key = id ? (servings ? `/recipes/${id}?servings=${servings}` : `/recipes/${id}`) : null
+  const key = id ? swrKeys.recipe(id, servings) : null
   return useSWR<GetRecipeResponse, Error>(
     key,
     () => client.getRecipe({ id, servings: servings ?? 0 }),
@@ -51,7 +52,7 @@ export function useDeleteRecipe() {
 
 export function useRecipeBookShares() {
   const client = createServiceClient(RecipesService)
-  return useSWR<ListRecipeBookSharesResponse, Error>('/recipes/book-shares', () =>
+  return useSWR<ListRecipeBookSharesResponse, Error>(swrKeys.recipeBookShares, () =>
     client.listRecipeBookShares({})
   )
 }

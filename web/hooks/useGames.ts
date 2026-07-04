@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { getApiUrl } from '@/lib/env'
+import { swrKeys } from '@/lib/swrKeys'
 import { GamesService } from '@/lib/gen/games/v1/games_pb'
 import type {
   GetSteamResponse,
@@ -13,33 +14,33 @@ import type {
 
 export function useSteam() {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamResponse, Error>('/games', () => client.getSteam({}))
+  return useSWR<GetSteamResponse, Error>(swrKeys.games, () => client.getSteam({}))
 }
 
 export function useSteamGame(gameId: number) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamGameResponse, Error>(gameId ? `/games/${gameId}` : null, () =>
+  return useSWR<GetSteamGameResponse, Error>(gameId ? swrKeys.game(gameId) : null, () =>
     client.getSteamGame({ gameId })
   )
 }
 
 export function useSteamDistribution(bucket: number) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamDistributionResponse, Error>(`/games/distribution/${bucket}`, () =>
+  return useSWR<GetSteamDistributionResponse, Error>(swrKeys.gamesDistribution(bucket), () =>
     client.getSteamDistribution({ bucket })
   )
 }
 
 export function useSteamProgress(dateStart?: string, dateEnd?: string) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamResponse, Error>(['/games/progress', dateStart, dateEnd], () =>
+  return useSWR<GetSteamResponse, Error>(swrKeys.gamesProgress(dateStart, dateEnd), () =>
     client.getSteam({ dateStart, dateEnd })
   )
 }
 
 export function useRecentlyActiveGames() {
   const client = createServiceClient(GamesService)
-  return useSWR<GetRecentlyActiveGamesResponse, Error>('/games/recent', () =>
+  return useSWR<GetRecentlyActiveGamesResponse, Error>(swrKeys.gamesRecent, () =>
     client.getRecentlyActiveGames({})
   )
 }
@@ -59,7 +60,7 @@ export function useRefreshSteam() {
 export function useIntegrations() {
   const client = createServiceClient(GamesService)
   return useSWR<GetIntegrationsResponse, Error>(
-    '/games/integrations',
+    swrKeys.gamesIntegrations,
     () => client.getIntegrations({}),
     {
       revalidateOnFocus: false,

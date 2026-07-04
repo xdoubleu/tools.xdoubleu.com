@@ -16,6 +16,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageContainer } from '@/components/ui/page-container'
+import { swrKeys } from '@/lib/swrKeys'
 
 function SharesPreview({ shares }: { shares: ShareEntry[] }) {
   if (shares.length === 0) {
@@ -65,7 +66,7 @@ function SharingCard({
 // sharedWith and isOwner regardless of the week offset, so offset 0 suffices.
 function useOwnedPlanShares() {
   const client = createServiceClient(MealPlansService)
-  return useSWR('/sharing/mealplans', async () => {
+  return useSWR(swrKeys.sharedMealPlans, async () => {
     const { plans } = await client.listPlans({})
     const detailed = await Promise.all(plans.map((p) => client.getPlan({ id: p.id, offset: 0 })))
     return detailed

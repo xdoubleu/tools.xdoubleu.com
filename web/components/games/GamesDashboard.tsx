@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Card, interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
+import { swrKeys } from '@/lib/swrKeys'
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -73,8 +74,8 @@ export default function GamesDashboard() {
   const { data: recentData, isLoading: recentLoading } = useRecentlyActiveGames()
 
   const onSynced = useCallback(() => {
-    void mutate('/games')
-    void mutate('/games/recent')
+    void mutate(swrKeys.games)
+    void mutate(swrKeys.gamesRecent)
   }, [])
   const { isRefreshing, lastRefresh, refresh } = useSteamRefresh(onSynced)
 

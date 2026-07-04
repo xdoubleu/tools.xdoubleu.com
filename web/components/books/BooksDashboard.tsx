@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
 import { ytdProgress } from '@/lib/books/ytdProgress'
+import { swrKeys } from '@/lib/swrKeys'
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -68,7 +69,7 @@ export default function BooksDashboard() {
     })) ?? []
 
   const handleRefresh = () => {
-    void mutate('/books')
+    void mutate(swrKeys.books)
   }
 
   return (

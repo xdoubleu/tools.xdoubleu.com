@@ -1,4 +1,5 @@
 import useSWR from 'swr'
+import { swrKeys } from '@/lib/swrKeys'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
 import {
@@ -25,12 +26,12 @@ export type UnsharePlanInput = MessageInitShape<typeof UnsharePlanRequestSchema>
 
 export function useMealPlans() {
   const client = createServiceClient(MealPlansService)
-  return useSWR<ListPlansResponse, Error>('/mealplans', () => client.listPlans({}))
+  return useSWR<ListPlansResponse, Error>(swrKeys.mealPlans, () => client.listPlans({}))
 }
 
 export function useMealPlan(id: string, offset: number = 0) {
   const client = createServiceClient(MealPlansService)
-  return useSWR<GetPlanResponse, Error>(id ? `/mealplans/${id}?offset=${offset}` : null, () =>
+  return useSWR<GetPlanResponse, Error>(id ? swrKeys.mealPlan(id, offset) : null, () =>
     client.getPlan({ id, offset })
   )
 }
@@ -41,9 +42,7 @@ export function useMealPlan(id: string, offset: number = 0) {
 export function useMealSuggestions(planId: string, mealDate: string, mealSlot: string) {
   const client = createServiceClient(MealPlansService)
   return useSWR<SuggestRecipesResponse, Error>(
-    planId && mealDate && mealSlot
-      ? `/mealplans/${planId}/suggest?d=${mealDate}&s=${mealSlot}`
-      : null,
+    planId && mealDate && mealSlot ? swrKeys.mealSuggestions(planId, mealDate, mealSlot) : null,
     () => client.suggestRecipes({ planId, mealDate, mealSlot })
   )
 }

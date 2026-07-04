@@ -7,10 +7,11 @@ import ManageDuplicatesDialog from '@/components/books/ManageDuplicatesDialog'
 import SelectiveResync from '@/components/books/SelectiveResync'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { swrKeys } from '@/lib/swrKeys'
 
 export default function BacklogBooksAdminPage() {
   const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
-    () => void mutate('/books')
+    () => void mutate(swrKeys.books)
   )
 
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)

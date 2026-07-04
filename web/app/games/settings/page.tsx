@@ -7,6 +7,7 @@ import type { Integrations } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { swrKeys } from '@/lib/swrKeys'
 
 export default function BacklogGamesSettingsPage() {
   const { data, isLoading, error } = useIntegrations()
@@ -42,7 +43,7 @@ export default function BacklogGamesSettingsPage() {
         steamUserId
       }
       await saveSettings(integrations)
-      await mutate('/games/integrations')
+      await mutate(swrKeys.gamesIntegrations)
       setSaved(true)
     } catch {
       setSaveError('Failed to save settings.')

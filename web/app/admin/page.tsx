@@ -6,6 +6,7 @@ import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { PageContainer } from '@/components/ui/page-container'
+import { swrKeys } from '@/lib/swrKeys'
 
 const APP_NAMES = [
   'games',
@@ -24,13 +25,13 @@ function UserRow({ user }: { user: AppUser }) {
 
   async function handleRoleChange(role: string) {
     await setRole(user.id, role)
-    await mutate('/admin/users')
+    await mutate(swrKeys.adminUsers)
   }
 
   async function handleAccessToggle(appName: string) {
     const grant = !user.appAccess.includes(appName)
     await setAppAccess(user.id, appName, grant)
-    await mutate('/admin/users')
+    await mutate(swrKeys.adminUsers)
   }
 
   return (

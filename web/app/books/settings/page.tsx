@@ -13,6 +13,7 @@ import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import type { CompareCSVResponse } from '@/lib/gen/books/v1/catalog_pb'
+import { swrKeys } from '@/lib/swrKeys'
 
 export default function BacklogBooksSettingsPage() {
   const importBooks = useImportBooks()
@@ -58,7 +59,7 @@ export default function BacklogBooksSettingsPage() {
       try {
         const res = await importBooks(csvData)
         setImportStatus(`Imported ${res.importedCount} book(s).`)
-        await mutate('/books')
+        await mutate(swrKeys.books)
       } catch {
         setImportStatus('Import failed.')
       }

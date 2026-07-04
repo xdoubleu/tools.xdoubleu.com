@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useContacts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { swrKeys } from '@/lib/swrKeys'
 
 export default function ContactsPage() {
   const { data, isLoading, error } = useContacts()
@@ -39,7 +40,7 @@ export default function ContactsPage() {
     try {
       await createContact(email, email)
       setEmail('')
-      await mutate('/contacts')
+      await mutate(swrKeys.contacts)
     } catch {
       setAddError('Failed to add contact. Check the email and try again.')
     } finally {
@@ -51,7 +52,7 @@ export default function ContactsPage() {
     const displayName = acceptNames[id] ?? incoming.find((c) => c.id === id)?.ownerEmail ?? ''
     try {
       await acceptContact(id, displayName)
-      await mutate('/contacts')
+      await mutate(swrKeys.contacts)
     } catch {
       // ignore
     }
@@ -60,7 +61,7 @@ export default function ContactsPage() {
   async function handleDecline(id: string) {
     try {
       await declineContact(id)
-      await mutate('/contacts')
+      await mutate(swrKeys.contacts)
     } catch {
       // ignore
     }
@@ -69,7 +70,7 @@ export default function ContactsPage() {
   async function handleDelete(id: string) {
     try {
       await deleteContact(id)
-      await mutate('/contacts')
+      await mutate(swrKeys.contacts)
     } catch {
       // ignore
     }
@@ -81,7 +82,7 @@ export default function ContactsPage() {
       await updateContact(id, editName.trim())
       setEditingId('')
       setEditName('')
-      await mutate('/contacts')
+      await mutate(swrKeys.contacts)
     } catch {
       // ignore
     }

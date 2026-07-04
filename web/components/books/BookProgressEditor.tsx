@@ -12,6 +12,7 @@ import {
 import BookProgressBar from '@/components/books/BookProgressBar'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface BookProgressEditorProps {
   userBook: UserBook
@@ -31,7 +32,7 @@ export default function BookProgressEditor({ userBook, onSaved }: BookProgressEd
     setIsSaving(true)
     try {
       await updateProgress({ bookId: userBook.id, progressMode, currentPage, progressPercent })
-      mutate('/books')
+      mutate(swrKeys.books)
       onSaved?.()
       setEditing(false)
     } catch {
