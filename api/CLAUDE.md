@@ -107,6 +107,7 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 
 - **`app.Base`** — Embedded struct providing logger, config, and auth service to every app
 - **`app.HTTPError`** — Shared HTTP error type (`Status int`, `Message string`); import as `iapp "tools.xdoubleu.com/internal/app"` in handler files to avoid collision with the app struct
+- **`app.ScrubInternalErrors(logger)`** — Connect handler option that logs CodeInternal/CodeUnknown errors and replaces the client-facing message with a generic one; every `New*ServiceHandler` call must pass it
 - **`auth/`** — Supabase GoTrue authentication (`gotrue-go`)
 - **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v4`
 - **`constants/`** — Shared constants
