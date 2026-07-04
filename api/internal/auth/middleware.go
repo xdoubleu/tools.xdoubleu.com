@@ -25,7 +25,7 @@ func (service *GoTrueService) Access(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		user, err := service.GetUser(
+		user, err := service.resolveUser(
 			r.Context(),
 			tokenCookie.Value,
 		)
@@ -67,11 +67,59 @@ func (service *GoTrueService) getCurrentUser(r *http.Request) *models.User {
 		return nil
 	}
 
-	user, err := service.GetUser(r.Context(), accessToken.Value)
+	user, err := service.resolveUser(r.Context(), accessToken.Value)
 	if err != nil {
 		return nil
 	}
 
+	return user
+}
+
+// resolveUser returns the DB-enriched user for an access token, consulting
+// the TTL cache first so repeated requests skip the GoTrue round-trip and
+// the enrichment queries.
+func (service *GoTrueService) resolveUser(
+	ctx context.Context,
+	accessToken string,
+) (*models.User, error) {
+	if cached, ok := service.userCache.get(accessToken); ok {
+		return &cached, nil
+	}
+
+	user, err := service.GetUser(ctx, accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	enriched := service.enrichUser(ctx, *user)
+	service.userCache.set(accessToken, enriched)
+	return &enriched, nil
+}
+
+// enrichUser records the user in global.app_users and overlays the DB role
+// and app access; on any failure it falls back to the GoTrue user unchanged.
+func (service *GoTrueService) enrichUser(
+	ctx context.Context,
+	user models.User,
+) models.User {
+	if service.appUsersRepo == nil {
+		return user
+	}
+
+	if err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email); err != nil {
+		slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
+		return user
+	}
+
+	enriched, err := service.appUsersRepo.GetByID(ctx, user.ID)
+	if err != nil {
+		slog.Default().ErrorContext(ctx, "failed to enrich user from db", "error", err)
+		return user
+	}
+
+	if enriched != nil {
+		return *enriched
+	}
 	return user
 }
 
@@ -96,9 +144,17 @@ func (service *GoTrueService) refreshTokens(
 	http.SetCookie(w, accessCookie)
 	http.SetCookie(w, refreshCookie)
 
-	return user
+	if user == nil {
+		return nil
+	}
+
+	enriched := service.enrichUser(r.Context(), *user)
+	service.userCache.set(accessCookie.Value, enriched)
+	return &enriched
 }
 
+// contextSetUser stores an already-resolved user on the request context and
+// tags the Sentry scope; enrichment happens earlier in resolveUser.
 func (service *GoTrueService) contextSetUser(
 	ctx context.Context,
 	user models.User,
@@ -109,28 +165,6 @@ func (service *GoTrueService) contextSetUser(
 			ID:    user.ID,
 			Email: user.Email,
 		})
-	}
-
-	if service.appUsersRepo == nil {
-		return context.WithValue(ctx, constants.UserContextKey, user)
-	}
-
-	err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email)
-
-	if err != nil {
-		slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
-		return context.WithValue(ctx, constants.UserContextKey, user)
-	}
-
-	var enriched *models.User
-	enriched, err = service.appUsersRepo.GetByID(ctx, user.ID)
-	if err != nil {
-		slog.Default().ErrorContext(ctx, "failed to enrich user from db", "error", err)
-		return context.WithValue(ctx, constants.UserContextKey, user)
-	}
-
-	if enriched != nil {
-		user = *enriched
 	}
 
 	return context.WithValue(ctx, constants.UserContextKey, user)

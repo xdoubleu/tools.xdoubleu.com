@@ -14,6 +14,8 @@ func (service *GoTrueService) UnenrollTOTP(
 	accessToken string,
 	factorID uuid.UUID,
 ) error {
+	service.userCache.evict(accessToken)
+
 	_, err := service.client.WithToken(accessToken).UnenrollFactor(
 		types.UnenrollFactorRequest{FactorID: factorID},
 	)
@@ -97,5 +99,9 @@ func (service *GoTrueService) VerifyMFA(
 	if err != nil {
 		return nil, nil, errortools.NewUnauthorizedError(errors.New("invalid MFA code"))
 	}
+
+	// The pre-MFA token is superseded by the aal2 tokens just issued.
+	service.userCache.evict(accessToken)
+
 	return &resp.AccessToken, &resp.RefreshToken, nil
 }

@@ -31,6 +31,7 @@ type GoTrueService struct {
 	accessExpiry     string
 	refreshExpiry    string
 	appUsersRepo     *repositories.AppUsersRepository
+	userCache        *userCache
 	// SignInRenderer is set by cmd/api after construction to avoid a
 	// circular import between this package and package main (which owns the
 	// templ-generated SignInPage component).
@@ -50,8 +51,18 @@ func NewService(
 		accessExpiry:     cfg.AccessExpiry,
 		refreshExpiry:    cfg.RefreshExpiry,
 		appUsersRepo:     appUsersRepo,
-		SignInRenderer:   nil,
+		userCache: newUserCache(
+			time.Duration(cfg.AuthCacheTTL) * time.Second,
+		),
+		SignInRenderer: nil,
 	}
+}
+
+// InvalidateUserCache drops every cached user. Call it after mutations that
+// change a user's role or app access so other sessions don't serve stale
+// permissions for up to the cache TTL.
+func (service *GoTrueService) InvalidateUserCache() {
+	service.userCache.clear()
 }
 
 func (service *GoTrueService) GetAllUsers(
@@ -160,6 +171,8 @@ func (service *GoTrueService) SignOut(
 	accessToken string,
 	secure bool,
 ) (*http.Cookie, *http.Cookie, error) {
+	service.userCache.evict(accessToken)
+
 	err := service.client.WithToken(accessToken).Logout()
 	if err != nil {
 		return nil, nil, err
@@ -243,6 +256,8 @@ func (service *GoTrueService) UpdatePassword(
 	_ context.Context,
 	accessToken, newPassword string,
 ) error {
+	service.userCache.evict(accessToken)
+
 	//nolint:exhaustruct //only updating password field
 	_, err := service.client.WithToken(accessToken).UpdateUser(
 		types.UpdateUserRequest{Password: &newPassword},
