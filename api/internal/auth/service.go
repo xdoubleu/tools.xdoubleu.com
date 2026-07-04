@@ -54,14 +54,17 @@ func NewService(
 	}
 }
 
-func (service *GoTrueService) GetAllUsers() ([]models.User, error) {
+func (service *GoTrueService) GetAllUsers(
+	ctx context.Context,
+) ([]models.User, error) {
 	if service.appUsersRepo != nil {
-		return service.appUsersRepo.GetAll(context.Background())
+		return service.appUsersRepo.GetAll(ctx)
 	}
 	return []models.User{}, nil
 }
 
 func (service *GoTrueService) SignInWithEmail(
+	_ context.Context,
 	email, password string,
 ) (*string, *string, error) {
 	//nolint:exhaustruct //don't need other fields
@@ -79,7 +82,10 @@ func (service *GoTrueService) SignInWithEmail(
 	return &response.AccessToken, &response.RefreshToken, nil
 }
 
-func (service *GoTrueService) GetUser(accessToken string) (*models.User, error) {
+func (service *GoTrueService) GetUser(
+	_ context.Context,
+	accessToken string,
+) (*models.User, error) {
 	response, err := service.client.WithToken(accessToken).GetUser()
 	if err != nil {
 		return nil, err
@@ -94,6 +100,7 @@ func (service *GoTrueService) GetUser(accessToken string) (*models.User, error) 
 }
 
 func (service *GoTrueService) SignInWithRefreshToken(
+	_ context.Context,
 	refreshToken string,
 ) (*string, *string, error) {
 	//nolint:exhaustruct //don't need other fields
@@ -113,9 +120,11 @@ func (service *GoTrueService) SignInWithRefreshToken(
 // with nil error means the tokens rotated but the user lookup failed;
 // callers should still set the cookies and treat the session as absent.
 func (service *GoTrueService) RefreshSession(
+	ctx context.Context,
 	refreshToken string,
 ) (*models.User, *http.Cookie, *http.Cookie, error) {
 	accessToken, newRefreshToken, err := service.SignInWithRefreshToken(
+		ctx,
 		refreshToken,
 	)
 	if err != nil {
@@ -142,11 +151,12 @@ func (service *GoTrueService) RefreshSession(
 		return nil, nil, nil, err
 	}
 
-	user, _ := service.GetUser(*accessToken)
+	user, _ := service.GetUser(ctx, *accessToken)
 	return user, accessCookie, refreshCookie, nil
 }
 
 func (service *GoTrueService) SignOut(
+	_ context.Context,
 	accessToken string,
 	secure bool,
 ) (*http.Cookie, *http.Cookie, error) {
@@ -218,7 +228,10 @@ func (service *GoTrueService) CreateCookie(
 	return &cookie, nil
 }
 
-func (service *GoTrueService) ForgotPassword(email, redirectTo string) error {
+func (service *GoTrueService) ForgotPassword(
+	_ context.Context,
+	email, redirectTo string,
+) error {
 	//nolint:exhaustruct //Security is optional
 	return service.client.Recover(types.RecoverRequest{
 		Email:      email,
@@ -227,6 +240,7 @@ func (service *GoTrueService) ForgotPassword(email, redirectTo string) error {
 }
 
 func (service *GoTrueService) UpdatePassword(
+	_ context.Context,
 	accessToken, newPassword string,
 ) error {
 	//nolint:exhaustruct //only updating password field

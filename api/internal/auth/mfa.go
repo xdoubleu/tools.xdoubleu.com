@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
@@ -9,6 +10,7 @@ import (
 )
 
 func (service *GoTrueService) UnenrollTOTP(
+	_ context.Context,
 	accessToken string,
 	factorID uuid.UUID,
 ) error {
@@ -21,6 +23,7 @@ func (service *GoTrueService) UnenrollTOTP(
 // HasVerifiedTOTP returns the factor ID of the first verified TOTP factor, or
 // (zero, false) when the user has not enrolled MFA yet.
 func (service *GoTrueService) HasVerifiedTOTP(
+	_ context.Context,
 	accessToken string,
 ) (uuid.UUID, bool) {
 	resp, err := service.client.WithToken(accessToken).GetUser()
@@ -40,6 +43,7 @@ func (service *GoTrueService) HasVerifiedTOTP(
 // Any pre-existing unverified TOTP factor is unenrolled first to avoid the
 // friendly-name conflict error Supabase returns on repeated enrollment attempts.
 func (service *GoTrueService) EnrollTOTP(
+	_ context.Context,
 	accessToken string,
 ) (*types.EnrollFactorResponse, error) {
 	authedClient := service.client.WithToken(accessToken)
@@ -65,6 +69,7 @@ func (service *GoTrueService) EnrollTOTP(
 
 // ChallengeMFA creates a challenge for the given factor and returns its ID.
 func (service *GoTrueService) ChallengeMFA(
+	_ context.Context,
 	accessToken string,
 	factorID uuid.UUID,
 ) (*types.ChallengeFactorResponse, error) {
@@ -76,6 +81,7 @@ func (service *GoTrueService) ChallengeMFA(
 
 // VerifyMFA completes the MFA challenge and returns new aal2 access and refresh tokens.
 func (service *GoTrueService) VerifyMFA(
+	_ context.Context,
 	accessToken string,
 	factorID uuid.UUID,
 	challengeID uuid.UUID,

@@ -71,7 +71,7 @@ func (h *contactsConnectHandler) ListContacts(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	emails, err := h.emailsByUserID()
+	emails, err := h.emailsByUserID(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -85,8 +85,10 @@ func (h *contactsConnectHandler) ListContacts(
 
 // emailsByUserID resolves user IDs to their email addresses so contacts,
 // which are stored by user ID, can be displayed by email.
-func (h *contactsConnectHandler) emailsByUserID() (map[string]string, error) {
-	users, err := h.app.auth.GetAllUsers()
+func (h *contactsConnectHandler) emailsByUserID(
+	ctx context.Context,
+) (map[string]string, error) {
+	users, err := h.app.auth.GetAllUsers(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -26,6 +26,7 @@ func (service *GoTrueService) Access(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		user, err := service.GetUser(
+			r.Context(),
 			tokenCookie.Value,
 		)
 		if err != nil {
@@ -66,7 +67,7 @@ func (service *GoTrueService) getCurrentUser(r *http.Request) *models.User {
 		return nil
 	}
 
-	user, err := service.GetUser(accessToken.Value)
+	user, err := service.GetUser(r.Context(), accessToken.Value)
 	if err != nil {
 		return nil
 	}
@@ -85,6 +86,7 @@ func (service *GoTrueService) refreshTokens(
 	}
 
 	user, accessCookie, refreshCookie, err := service.RefreshSession(
+		r.Context(),
 		tokenCookie.Value,
 	)
 	if err != nil {

@@ -16,7 +16,7 @@ func isRelativeURL(url string) bool {
 }
 
 func (h *authConnectHandler) SignIn(
-	_ context.Context,
+	ctx context.Context,
 	req *connect.Request[authv1.SignInRequest],
 ) (*connect.Response[authv1.SignInResponse], error) {
 	if req.Msg.Email == "" {
@@ -39,6 +39,7 @@ func (h *authConnectHandler) SignIn(
 	}
 
 	accessToken, refreshToken, err := h.app.auth.SignInWithEmail(
+		ctx,
 		req.Msg.Email,
 		req.Msg.Password,
 	)
@@ -46,7 +47,7 @@ func (h *authConnectHandler) SignIn(
 		return nil, connect.NewError(connect.CodeUnauthenticated, err)
 	}
 
-	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(*accessToken)
+	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, *accessToken)
 	if !hasMFA {
 		resp := connect.NewResponse(&authv1.SignInResponse{})
 		if err = h.completeMFA(
@@ -79,7 +80,7 @@ func (h *authConnectHandler) SignIn(
 }
 
 func (h *authConnectHandler) ForgotPassword(
-	_ context.Context,
+	ctx context.Context,
 	req *connect.Request[authv1.ForgotPasswordRequest],
 ) (*connect.Response[authv1.ForgotPasswordResponse], error) {
 	if req.Msg.Email == "" {
@@ -89,6 +90,7 @@ func (h *authConnectHandler) ForgotPassword(
 		)
 	}
 	_ = h.app.auth.ForgotPassword(
+		ctx,
 		req.Msg.Email,
 		h.app.config.WebURL+"/auth/reset-password",
 	)
@@ -96,7 +98,7 @@ func (h *authConnectHandler) ForgotPassword(
 }
 
 func (h *authConnectHandler) ExchangeToken(
-	_ context.Context,
+	ctx context.Context,
 	req *connect.Request[authv1.ExchangeTokenRequest],
 ) (*connect.Response[authv1.ExchangeTokenResponse], error) {
 	if req.Msg.AccessToken == "" {
@@ -112,7 +114,7 @@ func (h *authConnectHandler) ExchangeToken(
 		)
 	}
 
-	if _, err := h.app.auth.GetUser(req.Msg.AccessToken); err != nil {
+	if _, err := h.app.auth.GetUser(ctx, req.Msg.AccessToken); err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
 			errors.New("invalid or expired token"),
@@ -129,7 +131,7 @@ func (h *authConnectHandler) ExchangeToken(
 }
 
 func (h *authConnectHandler) UpdatePassword(
-	_ context.Context,
+	ctx context.Context,
 	req *connect.Request[authv1.UpdatePasswordRequest],
 ) (*connect.Response[authv1.UpdatePasswordResponse], error) {
 	if req.Msg.NewPassword == "" {
@@ -148,7 +150,7 @@ func (h *authConnectHandler) UpdatePassword(
 	}
 
 	if err = h.app.auth.UpdatePassword(
-		accessToken.Value, req.Msg.NewPassword,
+		ctx, accessToken.Value, req.Msg.NewPassword,
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -157,7 +159,7 @@ func (h *authConnectHandler) UpdatePassword(
 }
 
 func (h *authConnectHandler) SignOut(
-	_ context.Context,
+	ctx context.Context,
 	req *connect.Request[authv1.SignOutRequest],
 ) (*connect.Response[authv1.SignOutResponse], error) {
 	accessToken, err := h.parseCookie(req.Header(), "accessToken")
@@ -169,7 +171,7 @@ func (h *authConnectHandler) SignOut(
 	}
 
 	deleteAccess, deleteRefresh, err := h.app.auth.SignOut(
-		accessToken.Value, h.secure(),
+		ctx, accessToken.Value, h.secure(),
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -189,11 +191,11 @@ func (h *authConnectHandler) GetCurrentUser(
 
 	var user *models.User
 	if cookie, err := h.parseCookie(req.Header(), "accessToken"); err == nil {
-		user, _ = h.app.auth.GetUser(cookie.Value)
+		user, _ = h.app.auth.GetUser(ctx, cookie.Value)
 	}
 
 	if user == nil {
-		user = h.tryRefreshToken(req.Header(), resp.Header())
+		user = h.tryRefreshToken(ctx, req.Header(), resp.Header())
 		if user == nil {
 			return nil, connect.NewError(
 				connect.CodeUnauthenticated,
@@ -219,6 +221,7 @@ func (h *authConnectHandler) GetCurrentUser(
 // tryRefreshToken rotates the session via the shared RefreshSession path and
 // adds the new cookies to the response; nil means the session is gone.
 func (h *authConnectHandler) tryRefreshToken(
+	ctx context.Context,
 	reqHeader, respHeader http.Header,
 ) *models.User {
 	refreshCookie, err := h.parseCookie(reqHeader, "refreshToken")
@@ -227,6 +230,7 @@ func (h *authConnectHandler) tryRefreshToken(
 	}
 
 	user, accessCookie, refreshTokenCookie, err := h.app.auth.RefreshSession(
+		ctx,
 		refreshCookie.Value,
 	)
 	if err != nil {
