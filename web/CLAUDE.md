@@ -1,6 +1,6 @@
 # web/ — Frontend
 
-Next.js 16 App Router application served as a static export (`output: 'export'`). Run all `npm` commands from this directory.
+Next.js 16 App Router application built as a standalone Node server (`output: 'standalone'`, run via `node server.js` in Docker). Run all `npm` commands from this directory.
 
 ## Stack
 

@@ -11,24 +11,29 @@ import (
 	"tools.xdoubleu.com/gen/admin/v1/adminv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
 )
 
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
+	scrub := iapp.ScrubInternalErrors(app.logger)
 
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(
 		&authConnectHandler{app: app},
+		scrub,
 	)
 	mux.Handle("POST "+authPath, authHandler)
 
 	adminPath, adminHandler := adminv1connect.NewAdminServiceHandler(
 		&adminConnectHandler{app: app},
+		scrub,
 	)
 	mux.Handle("POST "+adminPath, app.services.Auth.Access(adminHandler.ServeHTTP))
 
 	contactsPath, contactsHandler := contactsv1connect.NewContactsServiceHandler(
 		&contactsConnectHandler{app: app},
+		scrub,
 	)
 	mux.Handle(
 		"POST "+contactsPath,
@@ -36,6 +41,7 @@ func (app *Application) Routes() http.Handler {
 	)
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)
+	mux.HandleFunc("GET /health", app.healthHandler)
 
 	app.apps.Routes(mux)
 

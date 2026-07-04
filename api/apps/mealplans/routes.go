@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"tools.xdoubleu.com/gen/mealplans/v1/mealplansv1connect"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (a *MealPlans) Routes(prefix string, mux *http.ServeMux) {
@@ -18,6 +19,7 @@ func (a *MealPlans) Routes(prefix string, mux *http.ServeMux) {
 
 	mealplansPath, mealplansHandler := mealplansv1connect.NewMealPlansServiceHandler(
 		&mealplansConnectHandler{app: a},
+		iapp.ScrubInternalErrors(a.Logger),
 	)
 	mux.Handle(
 		"POST "+mealplansPath,

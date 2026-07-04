@@ -90,12 +90,18 @@ test/cov/per-pkg:
 	go test ./apps/todos/internal/... \
 		-coverpkg=./apps/todos,./apps/todos/internal/... \
 		-covermode=set -count=1 -coverprofile=cov_todos_internal.out
-	go test ./apps/backlog \
-		-coverpkg=./apps/backlog,./apps/backlog/internal/... \
-		-covermode=set -count=1 -coverprofile=cov_backlog_pkg.out
-	go test ./apps/backlog/internal/... \
-		-coverpkg=./apps/backlog,./apps/backlog/internal/... \
-		-covermode=set -count=1 -coverprofile=cov_backlog_internal.out
+	go test ./apps/games \
+		-coverpkg=./apps/games,./apps/games/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_games_pkg.out
+	go test ./apps/games/internal/... \
+		-coverpkg=./apps/games,./apps/games/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_games_internal.out
+	go test ./apps/books \
+		-coverpkg=./apps/books,./apps/books/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_books_pkg.out
+	go test ./apps/books/internal/... \
+		-coverpkg=./apps/books,./apps/books/internal/... \
+		-covermode=set -count=1 -coverprofile=cov_books_internal.out
 	go test ./apps/icsproxy \
 		-coverpkg=./apps/icsproxy,./apps/icsproxy/internal/... \
 		-covermode=set -count=1 -coverprofile=cov_icsproxy_pkg.out
@@ -140,7 +146,8 @@ test/cov/per-pkg:
 		-covermode=set -count=1 -coverprofile=cov_internal_format.out
 	python3 tools/merge_coverage.py \
 		cov_todos_pkg.out cov_todos_internal.out \
-		cov_backlog_pkg.out cov_backlog_internal.out \
+		cov_games_pkg.out cov_games_internal.out \
+		cov_books_pkg.out cov_books_internal.out \
 		cov_icsproxy_pkg.out cov_icsproxy_svc.out cov_icsproxy_dtos.out \
 		cov_recipes_pkg.out \
 		cov_mealplans_pkg.out \

@@ -36,6 +36,7 @@ type Application struct {
 	ctx          context.Context
 	logger       *slog.Logger
 	config       config.Config
+	db           *pgxpool.Pool
 	services     *services.Services
 	contacts     contacts.Service
 	apps         *Apps
@@ -56,6 +57,9 @@ const (
 	dbHealthCheck    = 5 * time.Minute
 	httpReadTimeout  = 5 * time.Second
 	httpWriteTimeout = 10 * time.Second
+	// migrationLockKey identifies the advisory lock that serializes
+	// migration runs across concurrently starting replicas.
+	migrationLockKey = 20260101
 )
 
 func main() {
@@ -137,6 +141,7 @@ func NewApplication(
 		ctx:          ctx,
 		logger:       logger,
 		config:       config,
+		db:           db,
 		services:     svc,
 		contacts:     contactsSvc,
 		appUsersRepo: appUsersRepo,
@@ -162,7 +167,26 @@ func NewApplication(
 }
 
 func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
-	if err := app.applyGlobalMigrations(db); err != nil {
+	// Session-level advisory lock held on a dedicated connection, so two
+	// replicas rolling out at the same time never run migrations concurrently.
+	lockConn, err := db.Acquire(app.ctx)
+	if err != nil {
+		return err
+	}
+	defer lockConn.Release()
+
+	if _, err = lockConn.Exec(
+		app.ctx, "SELECT pg_advisory_lock($1)", migrationLockKey,
+	); err != nil {
+		return err
+	}
+	defer func() {
+		_, _ = lockConn.Exec(
+			app.ctx, "SELECT pg_advisory_unlock($1)", migrationLockKey,
+		)
+	}()
+
+	if err = app.applyGlobalMigrations(db); err != nil {
 		return err
 	}
 	return app.apps.ApplyMigrations(app.ctx, db)

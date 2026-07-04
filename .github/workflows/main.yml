@@ -205,9 +205,40 @@ jobs:
     name: Deploy to Digital Ocean
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Digital Ocean deployment
+      - name: Trigger Digital Ocean deployment and wait for it to finish
+        env:
+          DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+          DO_APP_ID: ${{ secrets.DO_APP_ID }}
         run: |
-          curl -sf -X POST \
-            -H "Authorization: Bearer ${{ secrets.DO_ACCESS_TOKEN }}" \
+          deployment=$(curl -sf -X POST \
+            -H "Authorization: Bearer $DO_ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
-            "https://api.digitalocean.com/v2/apps/${{ secrets.DO_APP_ID }}/deployments"
+            "https://api.digitalocean.com/v2/apps/$DO_APP_ID/deployments")
+          deployment_id=$(echo "$deployment" | jq -r '.deployment.id')
+          echo "Triggered deployment $deployment_id"
+
+          # Poll until the deployment reaches a terminal phase so a failed
+          # rollout fails this job instead of only firing a DO alert.
+          deadline=$(( $(date +%s) + 1200 ))
+          while true; do
+            phase=$(curl -sf \
+              -H "Authorization: Bearer $DO_ACCESS_TOKEN" \
+              "https://api.digitalocean.com/v2/apps/$DO_APP_ID/deployments/$deployment_id" \
+              | jq -r '.deployment.phase')
+            echo "Deployment phase: $phase"
+            case "$phase" in
+              ACTIVE|SUPERSEDED)
+                echo "Deployment finished."
+                exit 0
+                ;;
+              ERROR|CANCELED)
+                echo "Deployment failed with phase $phase."
+                exit 1
+                ;;
+            esac
+            if [[ $(date +%s) -ge $deadline ]]; then
+              echo "Timed out waiting for deployment to finish."
+              exit 1
+            fi
+            sleep 15
+          done
