@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 )
 
-func (service *AuthService) UnenrollTOTP(
+func (service *GoTrueService) UnenrollTOTP(
 	accessToken string,
 	factorID uuid.UUID,
 ) error {
@@ -20,7 +20,7 @@ func (service *AuthService) UnenrollTOTP(
 
 // HasVerifiedTOTP returns the factor ID of the first verified TOTP factor, or
 // (zero, false) when the user has not enrolled MFA yet.
-func (service *AuthService) HasVerifiedTOTP(
+func (service *GoTrueService) HasVerifiedTOTP(
 	accessToken string,
 ) (uuid.UUID, bool) {
 	resp, err := service.client.WithToken(accessToken).GetUser()
@@ -39,7 +39,7 @@ func (service *AuthService) HasVerifiedTOTP(
 // QR code SVG, fallback secret, and factor ID.
 // Any pre-existing unverified TOTP factor is unenrolled first to avoid the
 // friendly-name conflict error Supabase returns on repeated enrollment attempts.
-func (service *AuthService) EnrollTOTP(
+func (service *GoTrueService) EnrollTOTP(
 	accessToken string,
 ) (*types.EnrollFactorResponse, error) {
 	authedClient := service.client.WithToken(accessToken)
@@ -64,7 +64,7 @@ func (service *AuthService) EnrollTOTP(
 }
 
 // ChallengeMFA creates a challenge for the given factor and returns its ID.
-func (service *AuthService) ChallengeMFA(
+func (service *GoTrueService) ChallengeMFA(
 	accessToken string,
 	factorID uuid.UUID,
 ) (*types.ChallengeFactorResponse, error) {
@@ -75,7 +75,7 @@ func (service *AuthService) ChallengeMFA(
 }
 
 // VerifyMFA completes the MFA challenge and returns new aal2 access and refresh tokens.
-func (service *AuthService) VerifyMFA(
+func (service *GoTrueService) VerifyMFA(
 	accessToken string,
 	factorID uuid.UUID,
 	challengeID uuid.UUID,

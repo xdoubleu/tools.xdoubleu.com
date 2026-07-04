@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-func (service *AuthService) Access(next http.HandlerFunc) http.HandlerFunc {
+func (service *GoTrueService) Access(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenCookie, err := r.Cookie("accessToken")
 
@@ -38,7 +38,9 @@ func (service *AuthService) Access(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-func (service *AuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFunc {
+func (service *GoTrueService) TemplateAccess(
+	next http.HandlerFunc,
+) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := service.getCurrentUser(r)
 
@@ -58,7 +60,7 @@ func (service *AuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFu
 	})
 }
 
-func (service *AuthService) getCurrentUser(r *http.Request) *models.User {
+func (service *GoTrueService) getCurrentUser(r *http.Request) *models.User {
 	accessToken, err := r.Cookie("accessToken")
 	if err != nil {
 		return nil
@@ -72,7 +74,7 @@ func (service *AuthService) getCurrentUser(r *http.Request) *models.User {
 	return user
 }
 
-func (service *AuthService) refreshTokens(
+func (service *GoTrueService) refreshTokens(
 	w http.ResponseWriter,
 	r *http.Request,
 ) *models.User {
@@ -82,43 +84,20 @@ func (service *AuthService) refreshTokens(
 		return nil
 	}
 
-	accessToken, refreshToken, err := service.SignInWithRefreshToken(
+	user, accessCookie, refreshCookie, err := service.RefreshSession(
 		tokenCookie.Value,
 	)
 	if err != nil {
 		return nil
 	}
 
-	accessTokenCookie, err := service.CreateCookie(
-		models.AccessScope,
-		*accessToken,
-		service.accessExpiry,
-		service.useSecureCookies,
-	)
-	if err != nil {
-		return nil
-	}
+	http.SetCookie(w, accessCookie)
+	http.SetCookie(w, refreshCookie)
 
-	http.SetCookie(w, accessTokenCookie)
-
-	var refreshTokenCookie *http.Cookie
-	refreshTokenCookie, err = service.CreateCookie(
-		models.RefreshScope,
-		*refreshToken,
-		service.refreshExpiry,
-		service.useSecureCookies,
-	)
-	if err != nil {
-		return nil
-	}
-
-	http.SetCookie(w, refreshTokenCookie)
-
-	user, _ := service.GetUser(accessTokenCookie.Value)
 	return user
 }
 
-func (service *AuthService) contextSetUser(
+func (service *GoTrueService) contextSetUser(
 	ctx context.Context,
 	user models.User,
 ) context.Context {
@@ -155,7 +134,7 @@ func (service *AuthService) contextSetUser(
 	return context.WithValue(ctx, constants.UserContextKey, user)
 }
 
-func (service *AuthService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
+func (service *GoTrueService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
 	return service.TemplateAccess(func(w http.ResponseWriter, r *http.Request) {
 		user, ok := r.Context().Value(constants.UserContextKey).(models.User)
 		if !ok || user.Role != models.RoleAdmin {
@@ -166,7 +145,7 @@ func (service *AuthService) AdminAccess(next http.HandlerFunc) http.HandlerFunc 
 	})
 }
 
-func (service *AuthService) AppAccess(
+func (service *GoTrueService) AppAccess(
 	appName string,
 	next http.HandlerFunc,
 ) http.HandlerFunc {

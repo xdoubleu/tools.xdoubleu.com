@@ -29,7 +29,7 @@ func (app *Application) Routes() http.Handler {
 		&adminConnectHandler{app: app},
 		scrub,
 	)
-	mux.Handle("POST "+adminPath, app.services.Auth.Access(adminHandler.ServeHTTP))
+	mux.Handle("POST "+adminPath, app.auth.Access(adminHandler.ServeHTTP))
 
 	contactsPath, contactsHandler := contactsv1connect.NewContactsServiceHandler(
 		&contactsConnectHandler{app: app},
@@ -37,7 +37,7 @@ func (app *Application) Routes() http.Handler {
 	)
 	mux.Handle(
 		"POST "+contactsPath,
-		app.services.Auth.Access(contactsHandler.ServeHTTP),
+		app.auth.Access(contactsHandler.ServeHTTP),
 	)
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)

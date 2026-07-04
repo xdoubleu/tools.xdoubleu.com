@@ -86,7 +86,7 @@ func (h *contactsConnectHandler) ListContacts(
 // emailsByUserID resolves user IDs to their email addresses so contacts,
 // which are stored by user ID, can be displayed by email.
 func (h *contactsConnectHandler) emailsByUserID() (map[string]string, error) {
-	users, err := h.app.services.Auth.GetAllUsers()
+	users, err := h.app.auth.GetAllUsers()
 	if err != nil {
 		return nil, err
 	}

@@ -14,13 +14,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	auth "github.com/supabase-community/auth-go"
+	gotrue "github.com/supabase-community/auth-go"
 	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
 
-	"tools.xdoubleu.com/cmd/api/internal/services"
+	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/repositories"
@@ -37,7 +37,7 @@ type Application struct {
 	logger       *slog.Logger
 	config       config.Config
 	db           *pgxpool.Pool
-	services     *services.Services
+	auth         *auth.GoTrueService
 	contacts     contacts.Service
 	apps         *Apps
 	appUsersRepo *repositories.AppUsersRepository
@@ -83,7 +83,7 @@ func main() {
 	}
 	defer db.Close()
 
-	supabase := auth.New(
+	supabase := gotrue.New(
 		cfg.SupabaseProjRef,
 		cfg.SupabaseAPIKey,
 	)
@@ -106,7 +106,7 @@ func NewApplication(
 	logger *slog.Logger,
 	config config.Config,
 	db *pgxpool.Pool,
-	supabaseClient auth.Client,
+	supabaseClient gotrue.Client,
 ) *Application {
 	ctx := context.Background()
 
@@ -128,13 +128,13 @@ func NewApplication(
 
 	appUsersRepo := repositories.NewAppUsersRepository(db)
 	contactsRepo := repositories.NewContactsRepository(db)
-	svc := services.New(config, supabaseClient, appUsersRepo)
-	svc.Auth.SignInRenderer = func(
+	authSvc := auth.NewService(config, supabaseClient, appUsersRepo)
+	authSvc.SignInRenderer = func(
 		w http.ResponseWriter, _ *http.Request, _ string,
 	) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
-	contactsSvc := contacts.New(contactsRepo, svc.Auth)
+	contactsSvc := contacts.New(contactsRepo, authSvc)
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
@@ -142,14 +142,14 @@ func NewApplication(
 		logger:       logger,
 		config:       config,
 		db:           db,
-		services:     svc,
+		auth:         authSvc,
 		contacts:     contactsSvc,
 		appUsersRepo: appUsersRepo,
 	}
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
 	spanDB := postgres.NewSpanDB(db)
-	app.apps = NewApps(app.services.Auth, logger, config, spanDB)
+	app.apps = NewApps(app.auth, logger, config, spanDB)
 
 	err = app.ApplyMigrations(db)
 	if err != nil {
