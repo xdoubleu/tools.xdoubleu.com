@@ -16,7 +16,11 @@ import {
 } from 'recharts'
 import { useSteam, useSteamProgress, useRecentlyActiveGames } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
-import type { RecentGame } from '@/lib/gen/games/v1/games_pb'
+import type {
+  GetRecentlyActiveGamesResponse,
+  GetSteamResponse,
+  RecentGame
+} from '@/lib/gen/games/v1/games_pb'
 import GamesSearch from '@/components/games/GamesSearch'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import { Button } from '@/components/ui/button'
@@ -59,19 +63,25 @@ function RecentGameCard({ game }: { game: RecentGame }) {
   )
 }
 
-export default function GamesDashboard() {
+export default function GamesDashboard({
+  initialSteam,
+  initialRecent
+}: {
+  initialSteam?: GetSteamResponse
+  initialRecent?: GetRecentlyActiveGamesResponse
+}) {
   const router = useRouter()
 
   const [progressStart, setProgressStart] = useState(oneYearAgo())
   const [progressEnd, setProgressEnd] = useState(today())
   const [view, setView] = useState<'progress' | 'distribution'>('distribution')
 
-  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
+  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam(initialSteam)
   const { data: progressData, isLoading: progressLoading } = useSteamProgress(
     progressStart,
     progressEnd
   )
-  const { data: recentData, isLoading: recentLoading } = useRecentlyActiveGames()
+  const { data: recentData, isLoading: recentLoading } = useRecentlyActiveGames(initialRecent)
 
   const onSynced = useCallback(() => {
     void mutate(swrKeys.games)

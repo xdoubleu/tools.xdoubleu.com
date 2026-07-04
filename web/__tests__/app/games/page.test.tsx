@@ -9,22 +9,30 @@ jest.mock('next/link', () => {
 
 jest.mock('@/components/games/GamesDashboard', () => () => <div data-testid="games-dashboard" />)
 
+jest.mock('@/lib/server/client', () => ({
+  createServerClient: jest.fn(async () => ({}))
+}))
+
+jest.mock('@/lib/server/fetchers', () => ({
+  fetchOrNull: jest.fn(async () => null)
+}))
+
 import BacklogGamesPage from '@/app/games/page'
 
 describe('BacklogGamesPage', () => {
-  it('renders the Games heading', () => {
-    render(<BacklogGamesPage />)
+  it('renders the Games heading', async () => {
+    render(await BacklogGamesPage())
     expect(screen.getByRole('heading', { name: 'Games' })).toBeInTheDocument()
   })
 
-  it('renders a settings link pointing to /backlog/settings', () => {
-    render(<BacklogGamesPage />)
+  it('renders a settings link pointing to /backlog/settings', async () => {
+    render(await BacklogGamesPage())
     const link = screen.getByRole('link', { name: /settings/i })
     expect(link).toHaveAttribute('href', '/games/settings')
   })
 
-  it('renders the GamesDashboard', () => {
-    render(<BacklogGamesPage />)
+  it('renders the GamesDashboard', async () => {
+    render(await BacklogGamesPage())
     expect(screen.getByTestId('games-dashboard')).toBeInTheDocument()
   })
 })
