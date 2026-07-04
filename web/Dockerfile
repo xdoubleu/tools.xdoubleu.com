@@ -15,7 +15,7 @@ COPY web/components components
 COPY web/hooks hooks
 COPY web/lib lib
 COPY web/next.config.ts web/tsconfig.json web/postcss.config.js \
-     web/tailwind.config.ts web/instrumentation-client.ts \
+     web/instrumentation-client.ts \
      web/sentry.edge.config.ts web/sentry.server.config.ts \
      web/next-env.d.ts ./
 

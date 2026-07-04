@@ -128,7 +128,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
                         type="checkbox"
                         checked={hideEventUids.has(event.uid)}
                         onChange={() => toggleSet(setHideEventUids, event.uid)}
-                        className="accent-[rgb(var(--color-accent))]"
+                        className="accent-accent"
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -136,7 +136,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
                         type="checkbox"
                         checked={holidayUids.has(event.uid)}
                         onChange={() => toggleSet(setHolidayUids, event.uid)}
-                        className="accent-[rgb(var(--color-accent))]"
+                        className="accent-accent"
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -145,7 +145,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
                           type="checkbox"
                           checked={hideSeries.has(event.seriesKey)}
                           onChange={() => toggleSet(setHideSeries, event.seriesKey)}
-                          className="accent-[rgb(var(--color-accent))]"
+                          className="accent-accent"
                         />
                       ) : (
                         <span className="text-muted">—</span>

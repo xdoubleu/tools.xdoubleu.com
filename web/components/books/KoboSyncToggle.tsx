@@ -90,7 +90,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
           checked={enabledState}
           disabled={(!canEnable && !enabledState) || toggling}
           onChange={handleToggle}
-          className="rounded accent-[rgb(var(--color-accent))]"
+          className="rounded accent-accent"
           data-testid="kobo-sync-checkbox"
         />
         <label htmlFor="kobo-sync-toggle" className="text-sm text-subtle cursor-pointer">
@@ -113,7 +113,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
                 checked={!wantsPDF}
                 disabled={toggling}
                 onChange={() => wantsPDF && handleFormatChange(false)}
-                className="accent-[rgb(var(--color-accent))]"
+                className="accent-accent"
                 data-testid="kobo-format-kepub"
               />
               EPUB (converted)
@@ -125,7 +125,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
                 checked={wantsPDF}
                 disabled={toggling}
                 onChange={() => !wantsPDF && handleFormatChange(true)}
-                className="accent-[rgb(var(--color-accent))]"
+                className="accent-accent"
                 data-testid="kobo-format-pdf"
               />
               PDF (as-is)

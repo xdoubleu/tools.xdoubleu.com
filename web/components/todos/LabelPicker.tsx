@@ -57,7 +57,7 @@ export function LabelPicker({
                   type="checkbox"
                   checked={value.includes(label)}
                   onChange={() => toggleLabel(label)}
-                  className="accent-[rgb(var(--color-accent))]"
+                  className="accent-accent"
                 />
                 {label}
               </label>

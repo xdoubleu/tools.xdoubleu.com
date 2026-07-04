@@ -202,18 +202,18 @@ export default function GamesDashboard() {
                       <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                       <YAxis />
                       <Tooltip
-                        cursor={{ stroke: 'rgb(var(--color-border))' }}
+                        cursor={{ stroke: 'var(--color-border)' }}
                         contentStyle={{
-                          backgroundColor: 'rgb(var(--color-surface))',
-                          border: '1px solid rgb(var(--color-border))',
+                          backgroundColor: 'var(--color-surface)',
+                          border: '1px solid var(--color-border)',
                           borderRadius: '0.75rem',
-                          color: 'rgb(var(--color-fg))'
+                          color: 'var(--color-fg)'
                         }}
                       />
                       <Line
                         type="monotone"
                         dataKey="value"
-                        stroke="rgb(var(--color-accent))"
+                        stroke="var(--color-accent)"
                         strokeWidth={2}
                         dot={false}
                       />

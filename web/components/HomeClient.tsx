@@ -249,7 +249,7 @@ export default function HomeClient() {
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-input-border accent-[rgb(var(--color-accent))]"
+              className="h-4 w-4 rounded border-input-border accent-accent"
             />
             <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
               Remember me

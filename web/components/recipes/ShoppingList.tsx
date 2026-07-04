@@ -128,7 +128,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => toggleItem(key)}
-                  className="h-4 w-4 rounded accent-[rgb(var(--color-accent))]"
+                  className="h-4 w-4 rounded accent-accent"
                 />
                 <span
                   className={`flex-1 text-sm ${isChecked ? 'line-through text-muted' : 'text-fg'}`}
