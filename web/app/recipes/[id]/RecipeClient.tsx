@@ -81,7 +81,7 @@ export default function RecipeClient({ id }: { id: string }) {
         items={[{ label: 'Recipes', href: '/recipes/list' }, { label: recipe?.name ?? 'Recipe' }]}
       />
 
-      {isLoading && !recipe && <p>Loading recipe...</p>}
+      {isLoading && !recipe && <p className="text-muted">Loading recipe…</p>}
       {error && <p className="text-danger">Failed to load recipe.</p>}
       {recipe && (
         <>

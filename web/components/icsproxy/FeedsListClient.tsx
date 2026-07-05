@@ -55,7 +55,7 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
         {deleteConfirm ? (
           <div className="flex gap-2 items-center">
             <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Confirm delete'}
+              {isDeleting ? 'Deleting…' : 'Confirm delete'}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
               Cancel
@@ -88,7 +88,7 @@ export default function FeedsListClient() {
         </Button>
       </div>
 
-      {isLoading && <p>Loading feeds...</p>}
+      {isLoading && <p className="text-muted">Loading feeds…</p>}
       {error && <p className="text-danger">Failed to load feeds.</p>}
       {data && data.configs.length === 0 && <p className="text-muted">No filter configs yet.</p>}
       {data && data.configs.length > 0 && (

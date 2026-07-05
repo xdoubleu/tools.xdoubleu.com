@@ -30,7 +30,7 @@ describe('HomeClient', () => {
     })
 
     render(<HomeClient />)
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
@@ -239,7 +239,7 @@ describe('HomeClient', () => {
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(submitButton).toHaveTextContent('Signing in...')
+      expect(submitButton).toHaveTextContent('Signing in…')
       expect(submitButton).toBeDisabled()
     })
 

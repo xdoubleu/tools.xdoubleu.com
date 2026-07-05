@@ -93,7 +93,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
         </div>
       </div>
 
-      {previewLoading && <p className="text-sm text-muted">Loading events...</p>}
+      {previewLoading && <p className="text-sm text-muted">Loading events…</p>}
       {previewError && (
         <p className="text-sm text-danger">Failed to load events: {previewError.message}</p>
       )}
@@ -163,7 +163,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isSubmitting} className="flex-1">
-          {isSubmitting ? 'Saving...' : 'Save Filter'}
+          {isSubmitting ? 'Saving…' : 'Save Filter'}
         </Button>
         <Button
           type="button"

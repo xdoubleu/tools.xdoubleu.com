@@ -93,7 +93,7 @@ const QuickAddBar = forwardRef<QuickAddBarHandle, QuickAddBarProps>(
             type="text"
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
-            placeholder="Add task... use @label #section p1-3 !date"
+            placeholder="Add task… use @label #section p1-3 !date"
             maxLength={MAX}
             autoFocus
           />

@@ -62,7 +62,7 @@ beforeEach(() => {
 describe('GamesSearch', () => {
   it('renders the search input', () => {
     render(<GamesSearch />)
-    expect(screen.getByPlaceholderText('Search games...')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search games…')).toBeInTheDocument()
   })
 
   it('shows no dropdown when query is empty', () => {
@@ -75,7 +75,7 @@ describe('GamesSearch', () => {
     mockSteam()
     render(<GamesSearch />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'ha' }
     })
 
@@ -89,7 +89,7 @@ describe('GamesSearch', () => {
     mockSteam()
     render(<GamesSearch />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'a' }
     })
 
@@ -103,7 +103,7 @@ describe('GamesSearch', () => {
     mockSteam()
     render(<GamesSearch />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'HADES' }
     })
 
@@ -114,7 +114,7 @@ describe('GamesSearch', () => {
     mockSteam()
     render(<GamesSearch />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'zzznomatch' }
     })
 
@@ -125,7 +125,7 @@ describe('GamesSearch', () => {
     mockSteam()
     render(<GamesSearch />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'hades' }
     })
 
@@ -137,7 +137,7 @@ describe('GamesSearch', () => {
     mockSteam()
     render(<GamesSearch />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'hades' }
     })
     expect(screen.getByText('Hades')).toBeInTheDocument()
@@ -162,7 +162,7 @@ describe('GamesSearch', () => {
 
     render(<GamesSearch />)
 
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'game' }
     })
 

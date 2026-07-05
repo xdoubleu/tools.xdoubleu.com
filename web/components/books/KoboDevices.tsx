@@ -65,7 +65,7 @@ function DisconnectDialog({ open, deviceName, onCancel, onConfirm }: DisconnectD
             onClick={handleConfirm}
             data-testid="disconnect-confirm-btn"
           >
-            {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+            {disconnecting ? 'Disconnecting…' : 'Disconnect'}
           </Button>
         </div>
       </DialogContent>
@@ -92,7 +92,7 @@ export default function KoboDevices() {
   if (isLoading) {
     return (
       <p className="text-xs text-muted" data-testid="kobo-devices-loading">
-        Loading devices...
+        Loading devices…
       </p>
     )
   }

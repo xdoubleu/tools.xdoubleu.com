@@ -9,7 +9,7 @@ export interface WsMessage {
 }
 
 export const STATUS_LABEL: Record<ConnectionStatus, string> = {
-  connecting: 'Connecting...',
+  connecting: 'Connecting…',
   connected: 'Connected',
   disconnected: 'Disconnected'
 }

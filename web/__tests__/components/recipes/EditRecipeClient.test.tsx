@@ -46,7 +46,7 @@ describe('EditRecipeClient', () => {
     })
 
     render(<EditRecipeClient id="recipe-1" />)
-    expect(screen.getByText('Loading recipe...')).toBeInTheDocument()
+    expect(screen.getByText('Loading recipe…')).toBeInTheDocument()
   })
 
   it('shows error state when error is present', () => {

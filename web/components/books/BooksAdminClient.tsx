@@ -8,6 +8,7 @@ import SelectiveResync from '@/components/books/SelectiveResync'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { swrKeys } from '@/lib/swrKeys'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function BooksAdminClient() {
   const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
@@ -17,12 +18,12 @@ export default function BooksAdminClient() {
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
+    <PageContainer className="max-w-2xl p-6">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Books', href: '/books' }, { label: 'Admin tools' }]}
       />
-      <h1 className="mb-6 text-xl font-semibold text-fg">Books admin tools</h1>
+      <h1 className="mb-6 text-3xl font-bold">Books admin tools</h1>
 
       {/* Find duplicates */}
       <section>
@@ -110,6 +111,6 @@ export default function BooksAdminClient() {
       </section>
 
       <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />
-    </main>
+    </PageContainer>
   )
 }

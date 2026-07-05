@@ -33,7 +33,7 @@ export default function TodosSidebar({
   sectionRefs
 }: TodosSidebarProps) {
   return (
-    <aside className="w-48 shrink-0">
+    <aside className="w-full shrink-0 md:w-48">
       {/* Workspaces */}
       {workspaces.length > 0 && (
         <section className="mb-4">

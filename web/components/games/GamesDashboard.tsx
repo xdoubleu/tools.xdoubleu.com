@@ -107,14 +107,14 @@ export default function GamesDashboard({
           <span className="text-xs text-muted">Last: {lastRefresh.toLocaleString('en-GB')}</span>
         )}
         <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          {isRefreshing ? 'Refreshing…' : 'Refresh'}
         </Button>
         <Button asChild variant="secondary">
           <Link href="/games/library">Browse full library</Link>
         </Button>
       </div>
 
-      {steamLoading && <p>Loading dashboard...</p>}
+      {steamLoading && <p className="text-muted">Loading dashboard…</p>}
       {steamError && <p className="text-danger">Failed to load Steam data.</p>}
 
       {steam && (
@@ -129,7 +129,7 @@ export default function GamesDashboard({
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="flex min-h-0 flex-col">
           <h2 className="mb-2 text-base font-semibold">Recently active</h2>
-          {recentLoading && <p className="text-muted">Loading recent activity...</p>}
+          {recentLoading && <p className="text-muted">Loading recent activity…</p>}
           {!recentLoading && recentGames.length === 0 && (
             <p className="text-muted text-sm">No recent achievement activity.</p>
           )}
@@ -200,7 +200,7 @@ export default function GamesDashboard({
 
           {view === 'progress' && (
             <>
-              {progressLoading && <p className="text-muted">Loading progress...</p>}
+              {progressLoading && <p className="text-muted">Loading progress…</p>}
               {!progressLoading && progressChartData.length === 0 && (
                 <p className="text-muted">No progress data for this range.</p>
               )}
@@ -236,7 +236,7 @@ export default function GamesDashboard({
 
           {view === 'distribution' && (
             <>
-              {steamLoading && <p>Loading distribution...</p>}
+              {steamLoading && <p className="text-muted">Loading distribution…</p>}
               {steam && (
                 <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
                   <SteamDistributionChart

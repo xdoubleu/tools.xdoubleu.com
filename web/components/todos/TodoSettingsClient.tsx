@@ -28,7 +28,7 @@ export default function TodoSettingsClient() {
           className="mb-3"
           items={[{ label: 'Todos', href: '/todos' }, { label: 'Settings' }]}
         />
-        <h1 className="text-xl font-semibold text-fg">Settings</h1>
+        <h1 className="text-3xl font-bold">Settings</h1>
       </div>
       <SettingsGeneral data={data} mutate={mutate} />
       <SettingsWorkspaces data={data} mutate={mutate} />

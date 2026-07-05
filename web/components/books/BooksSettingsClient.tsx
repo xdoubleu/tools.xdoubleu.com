@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import type { CompareCSVResponse } from '@/lib/gen/books/v1/catalog_pb'
 import { swrKeys } from '@/lib/swrKeys'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function BooksSettingsClient() {
   const importBooks = useImportBooks()
@@ -69,12 +70,12 @@ export default function BooksSettingsClient() {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-10">
+    <PageContainer size="narrow" className="p-6">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Books', href: '/books' }, { label: 'Settings' }]}
       />
-      <h1 className="mb-6 text-xl font-semibold text-fg">Books Settings</h1>
+      <h1 className="mb-6 text-3xl font-bold">Books Settings</h1>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
@@ -183,6 +184,6 @@ export default function BooksSettingsClient() {
         onOpenChange={setClearDialogOpen}
         onCleared={() => setClearStatus('Library cleared successfully.')}
       />
-    </main>
+    </PageContainer>
   )
 }

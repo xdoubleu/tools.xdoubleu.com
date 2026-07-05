@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { swrKeys } from '@/lib/swrKeys'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function ContactsPageClient() {
   const { data, isLoading, error } = useContacts()
@@ -97,8 +98,8 @@ export default function ContactsPageClient() {
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 py-10">
-      <h1 className="mb-6 text-xl font-semibold text-fg">Contacts</h1>
+    <PageContainer className="max-w-lg p-6">
+      <h1 className="mb-6 text-3xl font-bold">Contacts</h1>
 
       <div className="mb-6 rounded-2xl border border-border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold text-subtle">Add contact</h2>
@@ -239,6 +240,6 @@ export default function ContactsPageClient() {
           </ul>
         </section>
       )}
-    </main>
+    </PageContainer>
   )
 }

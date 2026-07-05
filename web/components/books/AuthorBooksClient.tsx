@@ -58,14 +58,14 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
   const handleSaved = () => void mutate(swrKeys.books)
 
   return (
-    <PageContainer className="space-y-4">
+    <PageContainer className="p-6 space-y-4">
       <Breadcrumb items={breadcrumbItems} />
-      <h1 className="text-2xl font-bold">{name}</h1>
+      <h1 className="text-3xl font-bold">{name}</h1>
       <p className="text-muted text-sm">
         {authorBooks.length} book{authorBooks.length !== 1 ? 's' : ''} in your library
       </p>
 
-      {isLoading && <p className="text-muted text-sm">Loading...</p>}
+      {isLoading && <p className="text-muted text-sm">Loading…</p>}
       {error && <p className="text-danger text-sm">Failed to load library.</p>}
 
       {!isLoading && !error && (

@@ -78,7 +78,7 @@ export default function BookPreviewDialog({
             <p className="text-sm text-danger p-4">Conversion failed. Cannot preview EPUB.</p>
           )}
           {isKepub && !kepubFailed && !kepubReady && (
-            <p className="text-sm text-muted p-4">Converting... this may take a moment.</p>
+            <p className="text-sm text-muted p-4">Converting… this may take a moment.</p>
           )}
 
           {/* Generic fetch error (pdf/epub paths) */}
@@ -86,7 +86,7 @@ export default function BookPreviewDialog({
 
           {/* Loading state for pdf/epub while URL is being fetched */}
           {!isKepub && !data && !error && (
-            <p className="text-sm text-muted p-4">Loading preview...</p>
+            <p className="text-sm text-muted p-4">Loading preview…</p>
           )}
 
           {/* KEPUB fetch error once ready */}

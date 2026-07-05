@@ -46,7 +46,7 @@ describe('RecipeClient', () => {
       mutate: jest.fn()
     })
     render(<RecipeClient id="r1" />)
-    expect(screen.getByText('Loading recipe...')).toBeInTheDocument()
+    expect(screen.getByText('Loading recipe…')).toBeInTheDocument()
   })
 
   it('shows error state', () => {

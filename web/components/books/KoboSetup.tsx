@@ -180,19 +180,19 @@ export default function KoboSetup() {
 
       {state === 'detecting' && (
         <Button type="button" disabled data-testid="kobo-detect-btn">
-          Selecting...
+          Selecting…
         </Button>
       )}
 
       {state === 'configuring' && (
         <Button type="button" disabled data-testid="kobo-configure-btn">
-          Configuring...
+          Configuring…
         </Button>
       )}
 
       {state === 'reverting' && (
         <Button type="button" disabled data-testid="kobo-revert-btn">
-          Reverting...
+          Reverting…
         </Button>
       )}
 

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import PlanForm from '@/components/recipes/PlanForm'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function EditPlanClient({ id }: { id: string }) {
   const { data, isLoading, error } = useMealPlan(id)
@@ -11,7 +12,7 @@ export default function EditPlanClient({ id }: { id: string }) {
   const plan = data?.plan
 
   return (
-    <main className="max-w-2xl mx-auto p-6">
+    <PageContainer className="max-w-2xl p-6">
       <Breadcrumb
         className="mb-4"
         items={[
@@ -22,7 +23,7 @@ export default function EditPlanClient({ id }: { id: string }) {
       />
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
-      {isLoading && <p>Loading plan...</p>}
+      {isLoading && <p className="text-muted">Loading plan…</p>}
       {error && <p className="text-danger">Failed to load plan.</p>}
       {plan && (
         <PlanForm
@@ -31,6 +32,6 @@ export default function EditPlanClient({ id }: { id: string }) {
           onCancel={() => router.push(`/mealplans/${id}`)}
         />
       )}
-    </main>
+    </PageContainer>
   )
 }

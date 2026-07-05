@@ -78,8 +78,8 @@ export default function AdminUsersClient() {
   }
 
   return (
-    <PageContainer className="px-4 py-10">
-      <h1 className="mb-6 text-xl font-semibold text-fg">User Management</h1>
+    <PageContainer className="p-6">
+      <h1 className="mb-6 text-3xl font-bold">User Management</h1>
 
       <div className="overflow-x-auto rounded-2xl border border-border">
         <table className="w-full text-left">
