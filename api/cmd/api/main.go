@@ -69,6 +69,9 @@ func main() {
 
 	logger := slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))
+	// Code that can't receive the injected logger falls back to
+	// slog.Default(); route it through the Sentry handler too.
+	slog.SetDefault(logger)
 	db, err := postgres.Connect(
 		logger,
 		cfg.DBDsn,
