@@ -118,7 +118,7 @@ export default function SteamGameClient({ id }: { id: string }) {
     <PageContainer className="p-6">
       <Breadcrumb items={breadcrumbItems} />
 
-      {isLoading && <p className="mt-6 text-muted">Loading game...</p>}
+      {isLoading && <p className="mt-6 text-muted">Loading game…</p>}
       {error && <p className="mt-6 text-danger">Failed to load game.</p>}
 
       {game && (
@@ -141,7 +141,7 @@ export default function SteamGameClient({ id }: { id: string }) {
               onClick={() => void refetch()}
               disabled={isRefetching}
             >
-              {isRefetching ? 'Refreshing...' : 'Refresh'}
+              {isRefetching ? 'Refreshing…' : 'Refresh'}
             </Button>
             <Button
               variant={highPollMode ? 'default' : 'secondary'}

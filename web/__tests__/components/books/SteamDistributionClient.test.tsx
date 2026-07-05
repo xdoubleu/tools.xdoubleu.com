@@ -60,7 +60,7 @@ describe('SteamDistributionClient', () => {
     })
 
     render(<SteamDistributionClient bucket="8" />)
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
   it('shows error state when error is present', () => {

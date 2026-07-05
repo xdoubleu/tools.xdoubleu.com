@@ -150,7 +150,7 @@ export default function HomeClient() {
   }
 
   if (authState === 'loading') {
-    return <p className="text-muted">Loading...</p>
+    return <p className="text-muted">Loading…</p>
   }
 
   if (authState === 'authenticated' && data) {
@@ -196,7 +196,7 @@ export default function HomeClient() {
               </p>
             )}
             <Button onClick={handleMfaChallenge} disabled={mfaSubmitting} className="w-full">
-              {mfaSubmitting ? 'Verifying...' : 'Verify'}
+              {mfaSubmitting ? 'Verifying…' : 'Verify'}
             </Button>
           </div>
         </div>
@@ -263,7 +263,7 @@ export default function HomeClient() {
           )}
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Signing in...' : 'Sign in'}
+            {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
       </div>

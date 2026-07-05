@@ -22,7 +22,7 @@ export default function EditPlanClient({ id }: { id: string }) {
       />
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
-      {isLoading && <p>Loading plan...</p>}
+      {isLoading && <p>Loading plan…</p>}
       {error && <p className="text-danger">Failed to load plan.</p>}
       {plan && (
         <PlanForm

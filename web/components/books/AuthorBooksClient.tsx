@@ -64,7 +64,7 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
         {authorBooks.length} book{authorBooks.length !== 1 ? 's' : ''} in your library
       </p>
 
-      {isLoading && <p className="text-muted text-sm">Loading...</p>}
+      {isLoading && <p className="text-muted text-sm">Loading…</p>}
       {error && <p className="text-danger text-sm">Failed to load library.</p>}
 
       {!isLoading && !error && (

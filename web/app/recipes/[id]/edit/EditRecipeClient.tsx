@@ -21,7 +21,7 @@ export default function EditRecipeClient({ id }: { id: string }) {
         ]}
       />
       <h1 className="text-3xl font-bold mb-6">Edit Recipe</h1>
-      {isLoading && <p>Loading recipe...</p>}
+      {isLoading && <p>Loading recipe…</p>}
       {error && <p className="text-danger">Failed to load recipe.</p>}
       {recipe && (
         <RecipeForm

@@ -32,7 +32,7 @@ export default function GamesSearch({ className }: GamesSearchProps) {
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search games..."
+        placeholder="Search games…"
       />
       {results.length > 0 && (
         <ul className="absolute z-10 mt-1 w-full overflow-y-auto rounded-2xl border border-border bg-card shadow-elevated max-h-48">

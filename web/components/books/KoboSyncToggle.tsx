@@ -12,7 +12,7 @@ interface KoboSyncToggleProps {
 }
 
 function kepubStatusLabel(status: string): string {
-  if (status === 'converting') return 'Preparing for Kobo...'
+  if (status === 'converting') return 'Preparing for Kobo…'
   if (status === 'ready') return 'Ready to sync'
   if (status === 'failed') return 'Conversion failed'
   return ''

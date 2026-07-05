@@ -97,7 +97,7 @@ describe('FeedForm', () => {
   it('shows loading state from preview hook', () => {
     mockPreviewData = { data: null, isLoading: true, error: null }
     render(<FeedForm />)
-    expect(screen.getByText('Loading events...')).toBeInTheDocument()
+    expect(screen.getByText('Loading events…')).toBeInTheDocument()
   })
 
   it('shows preview error from hook', () => {

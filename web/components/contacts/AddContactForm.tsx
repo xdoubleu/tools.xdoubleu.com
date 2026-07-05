@@ -61,7 +61,7 @@ export default function AddContactForm({ onSuccess }: AddContactFormProps) {
       {error && <p className="text-sm text-danger">{error}</p>}
 
       <Button type="submit" disabled={submitting} className="w-full">
-        {submitting ? 'Adding...' : 'Add Contact'}
+        {submitting ? 'Adding…' : 'Add Contact'}
       </Button>
     </form>
   )

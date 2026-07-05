@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMealPlans } from '@/hooks/useMealPlans'
+import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 
 export default function PlansPage() {
@@ -20,17 +21,14 @@ export default function PlansPage() {
     <PageContainer className="p-6">
       <h1 className="text-3xl font-bold mb-6">Meal Plan</h1>
 
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <p>Loading…</p>}
       {error && <p className="text-danger">Failed to load meal plan.</p>}
       {data && data.plans.length === 0 && (
         <div>
           <p className="text-muted mb-4">You don&apos;t have a meal plan yet.</p>
-          <Link
-            href="/mealplans/new"
-            className="rounded-xl bg-accent px-4 py-2 text-sm text-white hover:bg-accent-hover"
-          >
-            Create Meal Plan
-          </Link>
+          <Button asChild>
+            <Link href="/mealplans/new">Create Meal Plan</Link>
+          </Button>
         </div>
       )}
     </PageContainer>

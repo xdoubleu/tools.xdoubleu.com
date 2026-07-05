@@ -11,10 +11,6 @@ import ShareModal from '@/components/recipes/ShareModal'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 
-// Matches <Button variant="secondary" size="sm"> for use on a Next <Link>.
-const secondaryLinkClass =
-  'inline-flex h-8 items-center rounded-xl border border-border bg-surface px-3 text-xs font-medium text-fg transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border'
-
 export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
   const { data, error, isLoading, mutate } = useMealPlan(id, offset)
@@ -54,7 +50,7 @@ export default function MealPlanClient({ id }: { id: string }) {
 
   return (
     <PageContainer className="p-6">
-      {isLoading && <p>Loading meal plan...</p>}
+      {isLoading && <p>Loading meal plan…</p>}
       {error && <p className="text-danger">Failed to load meal plan.</p>}
 
       {plan && (
@@ -72,9 +68,9 @@ export default function MealPlanClient({ id }: { id: string }) {
                   <Button variant="secondary" size="sm" onClick={() => setShowShareModal(true)}>
                     Share
                   </Button>
-                  <Link href={`/mealplans/${plan.id}/edit`} className={secondaryLinkClass}>
-                    Settings
-                  </Link>
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href={`/mealplans/${plan.id}/edit`}>Settings</Link>
+                  </Button>
                 </>
               )}
             </div>

@@ -84,7 +84,7 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
 
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={isSubmitting} className="flex-1">
-              {isSubmitting ? 'Adding...' : 'Add Book'}
+              {isSubmitting ? 'Adding…' : 'Add Book'}
             </Button>
             <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
               Cancel

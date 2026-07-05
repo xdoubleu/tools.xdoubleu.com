@@ -137,11 +137,11 @@ export default function BookSearchBar({
           type="text"
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
-          placeholder="Search books..."
+          placeholder="Search books…"
         />
         {isSearching && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">
-            Searching...
+            Searching…
           </span>
         )}
 

@@ -82,7 +82,7 @@ export default function BooksDashboard() {
         </Button>
       </div>
 
-      {libLoading && <p>Loading dashboard...</p>}
+      {libLoading && <p>Loading dashboard…</p>}
       {libError && <p className="text-danger">Failed to load books.</p>}
 
       {library && (

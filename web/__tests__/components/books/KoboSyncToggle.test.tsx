@@ -93,10 +93,10 @@ describe('KoboSyncToggle', () => {
     expect(onChanged).toHaveBeenCalled()
   })
 
-  it('shows "Preparing for Kobo..." when kepub_status is converting', () => {
+  it('shows "Preparing for Kobo…" when kepub_status is converting', () => {
     setupSWR({ hasEpub: true, kepubStatus: 'converting' })
     render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} tags={[]} />)
-    expect(screen.getByTestId('kepub-status')).toHaveTextContent('Preparing for Kobo...')
+    expect(screen.getByTestId('kepub-status')).toHaveTextContent('Preparing for Kobo…')
   })
 
   it('shows "Ready to sync" when kepub_status is ready', () => {

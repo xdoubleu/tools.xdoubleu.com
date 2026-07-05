@@ -107,7 +107,7 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    expect(screen.getByText('Loading game...')).toBeInTheDocument()
+    expect(screen.getByText('Loading game…')).toBeInTheDocument()
   })
 
   it('shows error state when error is present', () => {

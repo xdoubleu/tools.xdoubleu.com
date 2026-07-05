@@ -74,7 +74,7 @@ export default function BookDetailClient({ id }: { id: string }) {
     <PageContainer className="p-6">
       <Breadcrumb items={breadcrumbItems} />
 
-      {isLoading && <p className="mt-6 text-muted">Loading book...</p>}
+      {isLoading && <p className="mt-6 text-muted">Loading book…</p>}
       {error && <p className="mt-6 text-danger">Failed to load book.</p>}
       {!isLoading && !error && !userBook && <p className="mt-6 text-muted">Book not found.</p>}
 

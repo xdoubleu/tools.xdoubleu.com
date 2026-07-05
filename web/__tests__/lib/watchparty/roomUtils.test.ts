@@ -202,7 +202,7 @@ describe('attachDraggable', () => {
 
 describe('STATUS_LABEL and STATUS_COLOR constants', () => {
   it('STATUS_LABEL has entries for all statuses', () => {
-    expect(STATUS_LABEL.connecting).toBe('Connecting...')
+    expect(STATUS_LABEL.connecting).toBe('Connecting…')
     expect(STATUS_LABEL.connected).toBe('Connected')
     expect(STATUS_LABEL.disconnected).toBe('Disconnected')
   })

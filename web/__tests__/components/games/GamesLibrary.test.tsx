@@ -94,7 +94,7 @@ describe('GamesLibrary', () => {
   it('filters games by the search input', () => {
     mockSteam()
     render(<GamesLibrary />)
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'hades' }
     })
     expect(screen.getByText('Hades')).toBeInTheDocument()
@@ -104,7 +104,7 @@ describe('GamesLibrary', () => {
   it('shows a no-match message when the search excludes every game', () => {
     mockSteam()
     render(<GamesLibrary />)
-    fireEvent.change(screen.getByPlaceholderText('Search games...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'nonexistent' }
     })
     expect(screen.getByText('No games match your search.')).toBeInTheDocument()
@@ -121,7 +121,7 @@ describe('GamesLibrary', () => {
     mockSteam()
     mockRefreshState({ isRefreshing: true })
     render(<GamesLibrary />)
-    expect(screen.getByRole('button', { name: 'Refreshing...' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
   })
 
   it('shows the last refresh time when not refreshing', () => {
@@ -156,7 +156,7 @@ describe('GamesLibrary', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBacklogSteam.mockReturnValue({ data: undefined, error: undefined, isLoading: true })
     render(<GamesLibrary />)
-    expect(screen.getByText('Loading Steam library...')).toBeInTheDocument()
+    expect(screen.getByText('Loading Steam library…')).toBeInTheDocument()
   })
 
   it('shows an error state', () => {

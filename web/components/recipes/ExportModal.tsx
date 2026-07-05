@@ -245,7 +245,7 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
                 Export preview
               </h3>
-              {exportLoading && <p className="text-sm text-muted">Loading...</p>}
+              {exportLoading && <p className="text-sm text-muted">Loading…</p>}
               {!exportLoading && (
                 <ul className="space-y-1">
                   {prepareForExport(customItems, mealItems).map((item, i) => (

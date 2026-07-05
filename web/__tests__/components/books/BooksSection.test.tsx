@@ -22,7 +22,7 @@ jest.mock('@/components/books/BookSearchBar', () => {
           data-testid="book-search-bar"
           value={query}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Search books..."
+          placeholder="Search books…"
         />
         <button data-testid="trigger-added" onClick={onAdded}>
           added
@@ -124,7 +124,7 @@ describe('BooksSection', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBacklogLibrary.mockReturnValue({ data: undefined, error: undefined, isLoading: true })
     render(<BooksSection />)
-    expect(screen.getByText('Loading books...')).toBeInTheDocument()
+    expect(screen.getByText('Loading books…')).toBeInTheDocument()
     expect(screen.queryByTestId('books-library')).not.toBeInTheDocument()
   })
 
@@ -157,7 +157,7 @@ describe('BooksSection', () => {
   it('passes searchQuery down to BooksLibrary as user types', () => {
     mockLibrary()
     render(<BooksSection />)
-    fireEvent.change(screen.getByPlaceholderText('Search books...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search books…'), {
       target: { value: 'dune' }
     })
     expect(screen.getByTestId('books-library')).toHaveAttribute('data-search-query', 'dune')

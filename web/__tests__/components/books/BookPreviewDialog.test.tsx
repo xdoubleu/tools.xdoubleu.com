@@ -87,7 +87,7 @@ describe('BookPreviewDialog', () => {
         onOpenChange={jest.fn()}
       />
     )
-    expect(screen.getByText('Loading preview...')).toBeInTheDocument()
+    expect(screen.getByText('Loading preview…')).toBeInTheDocument()
   })
 
   it('shows error state when fetch fails', () => {
@@ -196,7 +196,7 @@ describe('BookPreviewDialog', () => {
           onOpenChange={jest.fn()}
         />
       )
-      expect(screen.getByText('Converting... this may take a moment.')).toBeInTheDocument()
+      expect(screen.getByText('Converting… this may take a moment.')).toBeInTheDocument()
     })
 
     it('shows failed state when conversion fails', () => {

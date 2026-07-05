@@ -38,7 +38,7 @@ export default function RecipeCombobox({
       onChange={handleChange}
       onSelect={handleSelect}
       suggestions={recipes.map((r) => r.name)}
-      placeholder="Recipe name or custom meal..."
+      placeholder="Recipe name or custom meal…"
       autoFocus={autoFocus}
       onEnter={onEnter}
     />

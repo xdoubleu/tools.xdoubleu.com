@@ -285,7 +285,7 @@ describe('GamesDashboard', () => {
     mockRecent()
     mockNoProgress()
     render(<GamesDashboard />)
-    expect(screen.getByText('Loading dashboard...')).toBeInTheDocument()
+    expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
   })
 
   it('shows an error state', () => {

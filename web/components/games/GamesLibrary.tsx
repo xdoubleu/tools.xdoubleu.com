@@ -78,12 +78,12 @@ export default function GamesLibrary() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search games..."
+          placeholder="Search games…"
           className="flex-1"
         />
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            {isRefreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
           {lastRefresh && !isRefreshing && (
             <span className="text-xs text-muted">Last: {lastRefresh.toLocaleString('en-GB')}</span>
@@ -91,7 +91,7 @@ export default function GamesLibrary() {
         </div>
       </div>
 
-      {steamLoading && <p>Loading Steam library...</p>}
+      {steamLoading && <p>Loading Steam library…</p>}
       {steamError && <p className="text-danger">Failed to load Steam data.</p>}
       {steam && (
         <>

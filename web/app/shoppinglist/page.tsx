@@ -124,7 +124,7 @@ export default function ShoppingPage() {
         />
       )}
 
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <p>Loading…</p>}
       {!isLoading && (
         <ShoppingList
           items={items}

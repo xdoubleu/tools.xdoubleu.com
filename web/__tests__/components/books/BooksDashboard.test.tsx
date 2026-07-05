@@ -139,7 +139,7 @@ describe('BooksDashboard', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBooksProgress.mockReturnValue({ data: undefined })
     render(<BooksDashboard />)
-    expect(screen.getByText('Loading dashboard...')).toBeInTheDocument()
+    expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
   })
 
   it('shows an error state', () => {

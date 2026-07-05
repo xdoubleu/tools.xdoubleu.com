@@ -137,7 +137,7 @@ describe('BookDetailClient', () => {
       error: undefined
     })
     render(<BookDetailClient id="ub-1" />)
-    expect(screen.getByText('Loading book...')).toBeInTheDocument()
+    expect(screen.getByText('Loading book…')).toBeInTheDocument()
   })
 
   it('shows error state', () => {

@@ -50,7 +50,7 @@ export default function WatchpartyPage() {
 
       <div className="mb-8">
         <Button size="lg" className="w-full" onClick={handleCreate} disabled={loading}>
-          {loading ? 'Creating...' : 'Create Room'}
+          {loading ? 'Creating…' : 'Create Room'}
         </Button>
       </div>
 

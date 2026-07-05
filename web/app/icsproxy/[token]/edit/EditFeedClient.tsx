@@ -12,7 +12,7 @@ interface EditFeedClientProps {
 export default function EditFeedClient({ token }: EditFeedClientProps) {
   const { data, error, isLoading } = useICSConfig(token)
 
-  if (isLoading) return <p>Loading...</p>
+  if (isLoading) return <p>Loading…</p>
   if (error) return <p className="text-danger">Failed to load feed config.</p>
 
   return (
