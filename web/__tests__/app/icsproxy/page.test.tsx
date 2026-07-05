@@ -16,14 +16,14 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-jest.mock('@/components/contacts/ContactsPageClient', () => ({
+jest.mock('@/components/icsproxy/FeedsListClient', () => ({
   __esModule: true,
   default: () => <div data-testid="client" />
 }))
 
-import Page from '@/app/contacts/page'
+import Page from '@/app/icsproxy/page'
 
-describe('ContactsPage', () => {
+describe('ICSProxyPage', () => {
   it('renders with server-fetched data', async () => {
     fetchOrNull.mockResolvedValue({})
     render(await Page())

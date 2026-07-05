@@ -16,14 +16,22 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-jest.mock('@/components/contacts/ContactsPageClient', () => ({
+jest.mock('@/components/recipes/CategoryManager', () => ({
   __esModule: true,
   default: () => <div data-testid="client" />
 }))
+jest.mock('@/components/recipes/ItemCatalog', () => ({
+  __esModule: true,
+  default: () => <div data-testid="item-catalog" />
+}))
+jest.mock('@/components/recipes/StoreManager', () => ({
+  __esModule: true,
+  default: () => <div data-testid="store-manager" />
+}))
 
-import Page from '@/app/contacts/page'
+import Page from '@/app/shoppinglist/settings/page'
 
-describe('ContactsPage', () => {
+describe('ShoppingListSettingsPage', () => {
   it('renders with server-fetched data', async () => {
     fetchOrNull.mockResolvedValue({})
     render(await Page())

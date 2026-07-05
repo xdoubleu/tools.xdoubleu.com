@@ -16,23 +16,23 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-jest.mock('@/components/contacts/ContactsPageClient', () => ({
+jest.mock('@/app/mealplans/[id]/edit/EditPlanClient', () => ({
   __esModule: true,
   default: () => <div data-testid="client" />
 }))
 
-import Page from '@/app/contacts/page'
+import Page from '@/app/mealplans/[id]/edit/page'
 
-describe('ContactsPage', () => {
+describe('EditPlanPage', () => {
   it('renders with server-fetched data', async () => {
     fetchOrNull.mockResolvedValue({})
-    render(await Page())
+    render(await Page({ params: Promise.resolve({ id: 'p1' }) }))
     expect(screen.getByTestId('client')).toBeInTheDocument()
   })
 
   it('renders when the server fetch returns null', async () => {
     fetchOrNull.mockResolvedValue(null)
-    render(await Page())
+    render(await Page({ params: Promise.resolve({ id: 'p1' }) }))
     expect(screen.getByTestId('client')).toBeInTheDocument()
   })
 })
