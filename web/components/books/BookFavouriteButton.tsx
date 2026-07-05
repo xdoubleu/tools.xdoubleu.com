@@ -5,6 +5,7 @@ import { mutate } from 'swr'
 import { useUpdateBookStatus } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { cn } from '@/lib/cn'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface BookFavouriteButtonProps {
   userBook: UserBook
@@ -26,7 +27,7 @@ export default function BookFavouriteButton({ userBook, onSaved }: BookFavourite
         favourite: newFavourite,
         rating: String(userBook.rating)
       })
-      mutate('/books')
+      mutate(swrKeys.books)
       onSaved?.()
     } catch {
       setFavourite(prev)

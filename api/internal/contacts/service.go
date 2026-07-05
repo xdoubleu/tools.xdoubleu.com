@@ -56,7 +56,7 @@ func (s *contactsService) AddByEmail(
 	ctx context.Context,
 	ownerUserID, email, displayName string,
 ) error {
-	users, err := s.auth.GetAllUsers()
+	users, err := s.auth.GetAllUsers(ctx)
 	if err != nil {
 		return err
 	}

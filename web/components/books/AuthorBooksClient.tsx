@@ -8,6 +8,7 @@ import BooksTable from '@/components/books/BooksTable'
 import { SPECIAL_TAGS } from '@/lib/books/bookShelves'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { PageContainer } from '@/components/ui/page-container'
+import { swrKeys } from '@/lib/swrKeys'
 
 function flattenLibrary(
   library: NonNullable<ReturnType<typeof useLibrary>['data']>['library']
@@ -54,7 +55,7 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
     { label: name }
   ]
 
-  const handleSaved = () => void mutate('/books')
+  const handleSaved = () => void mutate(swrKeys.books)
 
   return (
     <PageContainer className="space-y-4">

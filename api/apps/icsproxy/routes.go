@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	icsproxyv1connect "tools.xdoubleu.com/gen/icsproxy/v1/icsproxyv1connect"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (app *ICSProxy) Routes(prefix string, mux *http.ServeMux) {
@@ -13,6 +14,7 @@ func (app *ICSProxy) Routes(prefix string, mux *http.ServeMux) {
 
 	path, handler := icsproxyv1connect.NewICSProxyServiceHandler(
 		&icsProxyConnectHandler{app: app},
+		iapp.ScrubInternalErrors(app.Logger),
 	)
 	mux.Handle(
 		"POST "+path,

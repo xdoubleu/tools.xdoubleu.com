@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { swrKeys } from '@/lib/swrKeys'
 import { mutate } from 'swr'
 import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
@@ -53,7 +54,7 @@ export default function BookShelfTagFields({
         favourite: userBook.tags.includes('favourite'),
         rating: String(userBook.rating)
       })
-      mutate('/books')
+      mutate(swrKeys.books)
       onSaved?.()
     } catch {
       setStatus(prev)
@@ -67,7 +68,7 @@ export default function BookShelfTagFields({
     setError(null)
     try {
       await toggleTag(userBook.bookId, tag)
-      mutate('/books')
+      mutate(swrKeys.books)
       onSaved?.()
     } catch {
       setTags(prev)

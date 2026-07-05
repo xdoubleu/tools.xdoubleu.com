@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { swrKeys } from '@/lib/swrKeys'
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { ConnectError, Code } from '@connectrpc/connect'
@@ -33,12 +34,12 @@ export type UpdateProgressInput = MessageInitShape<typeof UpdateProgressRequestS
 
 export function useLibrary() {
   const client = createServiceClient(LibraryService)
-  return useSWR<GetLibraryResponse, Error>('/books', () => client.getLibrary({}))
+  return useSWR<GetLibraryResponse, Error>(swrKeys.books, () => client.getLibrary({}))
 }
 
 export function useBooksProgress(dateStart?: string, dateEnd?: string) {
   const client = createServiceClient(LibraryService)
-  const key = dateStart || dateEnd ? ['/books/progress', dateStart, dateEnd] : null
+  const key = dateStart || dateEnd ? swrKeys.booksProgress(dateStart, dateEnd) : null
   return useSWR<GetBooksProgressResponse, Error>(key, () =>
     client.getBooksProgress({ dateStart, dateEnd })
   )
@@ -197,7 +198,7 @@ export function useRegisterKoboDevice() {
 
 export function useListKoboDevices() {
   const client = createServiceClient(KoboService)
-  return useSWR<ListKoboDevicesResponse, Error>('/books/kobo/devices', () =>
+  return useSWR<ListKoboDevicesResponse, Error>(swrKeys.koboDevices, () =>
     client.listKoboDevices({})
   )
 }
@@ -219,7 +220,9 @@ export function useResyncOpenLibrary() {
 
 export function useFindDuplicates() {
   const client = createServiceClient(CatalogService)
-  return useSWR<FindDuplicatesResponse, Error>('/books/duplicates', () => client.findDuplicates({}))
+  return useSWR<FindDuplicatesResponse, Error>(swrKeys.bookDuplicates, () =>
+    client.findDuplicates({})
+  )
 }
 
 export interface MergeBooksOptions {
@@ -242,7 +245,7 @@ export function useMergeBooks() {
 
 export function useCatalogBooks() {
   const client = createServiceClient(CatalogService)
-  return useSWR<ListCatalogBooksResponse, Error>('/books/catalog', () =>
+  return useSWR<ListCatalogBooksResponse, Error>(swrKeys.bookCatalog, () =>
     client.listCatalogBooks({})
   )
 }
@@ -266,7 +269,7 @@ export function useSetBookISBN() {
 export function useKEPUBStatus(bookId: string | null) {
   const client = createServiceClient(BookFilesService)
   return useSWR<GetKEPUBStatusResponse, Error>(
-    bookId ? ['/books/kepub-status', bookId] : null,
+    bookId ? swrKeys.kepubStatus(bookId) : null,
     () => client.getKEPUBStatus({ bookId: bookId! }),
     { refreshInterval: (data) => (data?.kepubStatus === 'converting' ? 2000 : 0) }
   )
@@ -275,7 +278,7 @@ export function useKEPUBStatus(bookId: string | null) {
 export function useGetBookFile(bookId: string | null, format: string | null) {
   const client = createServiceClient(BookFilesService)
   return useSWR<GetBookFileResponse, Error>(
-    bookId && format ? ['/books/file', bookId, format] : null,
+    bookId && format ? swrKeys.bookFile(bookId, format) : null,
     () => client.getBookFile({ bookId: bookId!, format: format! })
   )
 }

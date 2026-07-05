@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { BUILT_IN_STATUSES, BOOK_STATUSES } from '@/lib/books/bookShelves'
 import type { Shelf } from '@/components/books/LibrarySidebar'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface ManageShelvesTagsDialogProps {
   open: boolean
@@ -56,7 +57,7 @@ export default function ManageShelvesTagsDialog({
       } else {
         await renameTag(renaming.name, renaming.newName.trim())
       }
-      mutate('/books')
+      mutate(swrKeys.books)
       setRenaming(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Rename failed.')
@@ -71,7 +72,7 @@ export default function ManageShelvesTagsDialog({
     setError(null)
     try {
       await deleteShelf(deletingShelf.name, deletingShelf.targetName)
-      mutate('/books')
+      mutate(swrKeys.books)
       setDeletingShelf(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delete failed.')
@@ -85,7 +86,7 @@ export default function ManageShelvesTagsDialog({
     setError(null)
     try {
       await deleteTag(name)
-      mutate('/books')
+      mutate(swrKeys.books)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delete failed.')
     } finally {

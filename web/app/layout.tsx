@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import './globals.css'
 import Footer from '@/components/Footer'
 import Navbar from '@/components/Navbar'
+import SWRProvider from '@/components/SWRProvider'
+import { createServerClient } from '@/lib/server/client'
+import { fetchOrNull } from '@/lib/server/fetchers'
+import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +19,11 @@ export const metadata: Metadata = {
   }
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const currentUser = await fetchOrNull(async () =>
+    (await createServerClient(AuthService)).getCurrentUser({})
+  )
+
   return (
     <html lang="en">
       <head>
@@ -38,11 +46,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex min-h-screen flex-col bg-bg text-fg">
-        <Navbar />
-        <main className="flex-1 px-4 py-6 sm:px-6">
-          <div className="mx-auto max-w-7xl">{children}</div>
-        </main>
-        <Footer />
+        <SWRProvider currentUser={currentUser}>
+          <Navbar />
+          <main className="flex-1 px-4 py-6 sm:px-6">
+            <div className="mx-auto max-w-7xl">{children}</div>
+          </main>
+          <Footer />
+        </SWRProvider>
       </body>
     </html>
   )

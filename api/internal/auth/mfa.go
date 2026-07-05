@@ -1,6 +1,7 @@
-package services
+package auth
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
@@ -8,10 +9,13 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 )
 
-func (service *AuthService) UnenrollTOTP(
+func (service *GoTrueService) UnenrollTOTP(
+	_ context.Context,
 	accessToken string,
 	factorID uuid.UUID,
 ) error {
+	service.userCache.evict(accessToken)
+
 	_, err := service.client.WithToken(accessToken).UnenrollFactor(
 		types.UnenrollFactorRequest{FactorID: factorID},
 	)
@@ -20,7 +24,8 @@ func (service *AuthService) UnenrollTOTP(
 
 // HasVerifiedTOTP returns the factor ID of the first verified TOTP factor, or
 // (zero, false) when the user has not enrolled MFA yet.
-func (service *AuthService) HasVerifiedTOTP(
+func (service *GoTrueService) HasVerifiedTOTP(
+	_ context.Context,
 	accessToken string,
 ) (uuid.UUID, bool) {
 	resp, err := service.client.WithToken(accessToken).GetUser()
@@ -39,7 +44,8 @@ func (service *AuthService) HasVerifiedTOTP(
 // QR code SVG, fallback secret, and factor ID.
 // Any pre-existing unverified TOTP factor is unenrolled first to avoid the
 // friendly-name conflict error Supabase returns on repeated enrollment attempts.
-func (service *AuthService) EnrollTOTP(
+func (service *GoTrueService) EnrollTOTP(
+	_ context.Context,
 	accessToken string,
 ) (*types.EnrollFactorResponse, error) {
 	authedClient := service.client.WithToken(accessToken)
@@ -64,7 +70,8 @@ func (service *AuthService) EnrollTOTP(
 }
 
 // ChallengeMFA creates a challenge for the given factor and returns its ID.
-func (service *AuthService) ChallengeMFA(
+func (service *GoTrueService) ChallengeMFA(
+	_ context.Context,
 	accessToken string,
 	factorID uuid.UUID,
 ) (*types.ChallengeFactorResponse, error) {
@@ -75,7 +82,8 @@ func (service *AuthService) ChallengeMFA(
 }
 
 // VerifyMFA completes the MFA challenge and returns new aal2 access and refresh tokens.
-func (service *AuthService) VerifyMFA(
+func (service *GoTrueService) VerifyMFA(
+	_ context.Context,
 	accessToken string,
 	factorID uuid.UUID,
 	challengeID uuid.UUID,
@@ -91,5 +99,9 @@ func (service *AuthService) VerifyMFA(
 	if err != nil {
 		return nil, nil, errortools.NewUnauthorizedError(errors.New("invalid MFA code"))
 	}
+
+	// The pre-MFA token is superseded by the aal2 tokens just issued.
+	service.userCache.evict(accessToken)
+
 	return &resp.AccessToken, &resp.RefreshToken, nil
 }

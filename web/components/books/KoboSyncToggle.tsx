@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { mutate } from 'swr'
 import { useEnableKoboSync, useToggleTag, useKEPUBStatus } from '@/hooks/useBooks'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface KoboSyncToggleProps {
   bookId: string
@@ -45,7 +46,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
         await toggleTag(bookId, 'kobo-sync')
       } else {
         await enableKoboSync(bookId)
-        mutate(['/books/kepub-status', bookId])
+        mutate(swrKeys.kepubStatus(bookId))
       }
       onChanged?.()
     } catch (err) {
@@ -69,7 +70,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
         // Remove kobo-format-pdf; re-trigger conversion so the KEPUB is ready.
         await toggleTag(bookId, 'kobo-format-pdf')
         await enableKoboSync(bookId)
-        mutate(['/books/kepub-status', bookId])
+        mutate(swrKeys.kepubStatus(bookId))
       }
       onChanged?.()
     } catch (err) {
@@ -89,7 +90,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
           checked={enabledState}
           disabled={(!canEnable && !enabledState) || toggling}
           onChange={handleToggle}
-          className="rounded accent-[rgb(var(--color-accent))]"
+          className="rounded accent-accent"
           data-testid="kobo-sync-checkbox"
         />
         <label htmlFor="kobo-sync-toggle" className="text-sm text-subtle cursor-pointer">
@@ -112,7 +113,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
                 checked={!wantsPDF}
                 disabled={toggling}
                 onChange={() => wantsPDF && handleFormatChange(false)}
-                className="accent-[rgb(var(--color-accent))]"
+                className="accent-accent"
                 data-testid="kobo-format-kepub"
               />
               EPUB (converted)
@@ -124,7 +125,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
                 checked={wantsPDF}
                 disabled={toggling}
                 onChange={() => !wantsPDF && handleFormatChange(true)}
-                className="accent-[rgb(var(--color-accent))]"
+                className="accent-accent"
                 data-testid="kobo-format-pdf"
               />
               PDF (as-is)

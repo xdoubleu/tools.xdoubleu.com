@@ -33,11 +33,14 @@ func (m *noUsersAuthService) AppAccess(
 	return next
 }
 
-func (m *noUsersAuthService) GetAllUsers() ([]internalmodels.User, error) {
+func (m *noUsersAuthService) GetAllUsers(
+	_ context.Context,
+) ([]internalmodels.User, error) {
 	return []internalmodels.User{}, nil
 }
 
 func (m *noUsersAuthService) SignOut(
+	_ context.Context,
 	_ string,
 	_ bool,
 ) (*http.Cookie, *http.Cookie, error) {

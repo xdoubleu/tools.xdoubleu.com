@@ -292,7 +292,7 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="456" />)
-    expect(useSteamGame).toHaveBeenCalledWith(456)
+    expect(useSteamGame).toHaveBeenCalledWith(456, undefined)
   })
 
   it('renders games link', () => {

@@ -37,7 +37,10 @@ func TestSignIn_Success(t *testing.T) {
 func TestSignIn_WithMFA(t *testing.T) {
 	// "mfa-access" is the mock token that has a verified TOTP factor.
 	// HasVerifiedTOTP("mfa-access") returns true per the mock.
-	factorID, hasMFA := testApp.services.Auth.HasVerifiedTOTP("mfa-access")
+	factorID, hasMFA := testApp.auth.HasVerifiedTOTP(
+		context.Background(),
+		"mfa-access",
+	)
 	assert.True(t, hasMFA)
 	assert.Equal(t, mocks.MockedFactorID, factorID)
 }

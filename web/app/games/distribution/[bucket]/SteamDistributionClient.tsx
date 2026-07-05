@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSteamDistribution } from '@/hooks/useGames'
-import type { Game } from '@/lib/gen/games/v1/games_pb'
+import type { Game, GetSteamDistributionResponse } from '@/lib/gen/games/v1/games_pb'
 import { cn } from '@/lib/cn'
 import { interactiveCardClass } from '@/components/ui/card'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
@@ -31,9 +31,15 @@ function GameCard({ game, bucket, label }: { game: Game; bucket: number; label: 
   )
 }
 
-export default function SteamDistributionClient({ bucket }: { bucket: string }) {
+export default function SteamDistributionClient({
+  bucket,
+  initialData
+}: {
+  bucket: string
+  initialData?: GetSteamDistributionResponse
+}) {
   const bucketNum = Number(bucket)
-  const { data, error, isLoading } = useSteamDistribution(bucketNum)
+  const { data, error, isLoading } = useSteamDistribution(bucketNum, initialData)
 
   const label = data?.data?.label ?? `${bucket}% range`
   const games = data?.data?.games ?? []

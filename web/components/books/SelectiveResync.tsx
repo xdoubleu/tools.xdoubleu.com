@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { swrKeys } from '@/lib/swrKeys'
 import { mutate } from 'swr'
 import {
   useCatalogBooks,
@@ -82,7 +83,7 @@ export default function SelectiveResync() {
     'resync-openlibrary',
     triggerResync,
     () => {
-      void mutate('/books/catalog')
+      void mutate(swrKeys.bookCatalog)
       setResyncingKey(null)
     }
   )
@@ -140,7 +141,7 @@ export default function SelectiveResync() {
     try {
       await setBookISBN(group.representativeId, normalized)
       setIsbnInputs((prev) => ({ ...prev, [group.key]: '' }))
-      void mutate('/books/catalog')
+      void mutate(swrKeys.bookCatalog)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to set ISBN.')
     } finally {

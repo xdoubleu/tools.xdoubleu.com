@@ -51,7 +51,7 @@ export function SettingsGeneral({ data, mutate }: Props) {
             type="checkbox"
             checked={!hideShortcutHints}
             onChange={handleToggleHints}
-            className="h-4 w-4 rounded accent-[rgb(var(--color-accent))]"
+            className="h-4 w-4 rounded accent-accent"
           />
           <span className="text-sm text-subtle">Show keyboard shortcut hints</span>
         </label>

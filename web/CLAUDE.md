@@ -1,13 +1,13 @@
 # web/ — Frontend
 
-Next.js 16 App Router application served as a static export (`output: 'export'`). Run all `npm` commands from this directory.
+Next.js 16 App Router application built as a standalone Node server (`output: 'standalone'`, run via `node server.js` in Docker). Run all `npm` commands from this directory.
 
 ## Stack
 
 | Concern        | Library                                                   |
 | -------------- | --------------------------------------------------------- |
 | Framework      | Next.js 16, React 19, TypeScript strict                   |
-| Styling        | Tailwind CSS + shadcn/ui                                  |
+| Styling        | Tailwind CSS v4 (CSS-first theme via `@theme` in `app/globals.css`; no `tailwind.config.ts`) + shadcn/ui |
 | API client     | ConnectRPC (`@connectrpc/connect-web`)                    |
 | Data fetching  | SWR                                                       |
 | Error tracking | Sentry (`@sentry/nextjs`)                                 |
@@ -19,8 +19,25 @@ Next.js 16 App Router application served as a static export (`output: 'export'`)
 - `app/` — App Router pages and layouts
 - `components/` — Reusable React components (shadcn/ui primitives in `components/ui/`)
 - `lib/` — Utilities and ConnectRPC client setup
+- `lib/swrKeys.ts` — **The** registry of SWR cache keys. Query hooks and `mutate()` invalidations must both use it; never write a key literal inline (drifted keys silently split the cache).
+- `lib/server/` — Server-side ConnectRPC client for React Server Components (`createServerClient` forwards the request's cookies — except the refresh token — and `fetchOrNull` makes prefetching best-effort)
 - `lib/gen/` — Generated TypeScript ConnectRPC clients from buf (committed; only regenerate after editing `.proto` files). **Do not read `lib/gen/`** to discover RPC types or method signatures — read the `.proto` source in `proto/` instead.
 - `hooks/` — SWR data-fetching hooks
+
+## Data Flow (RSC + SWR)
+
+Every route's initial data is fetched in an **async server component** and injected into the SWR cache; the client components keep using their SWR hooks unchanged:
+
+1. The page calls `createServerClient(Service)` (`lib/server/client.ts`) and wraps fetches in `fetchOrNull` (`lib/server/fetchers.ts`). Any `ConnectError` yields `null` — the page still renders and the client-side SWR fetch takes over.
+2. Results are passed to `<SWRFallback fallback={{ [swrKeys.x]: data }}>` (`components/SWRFallback.tsx`), which merges into the parent SWRConfig fallback. Non-string keys (tuples/objects) go in its `keyed` prop and must mirror the client hook's initial key **exactly**.
+3. The root layout server-fetches the current user once per request and provides it via `components/SWRProvider.tsx` for every `swrKeys.currentUser` consumer (Navbar, HomeClient, settings).
+4. SWR still revalidates on mount — mutations, live polling, and websockets behave exactly as before.
+
+**Never forward the refresh token server-side** (already enforced in `lib/server/client.ts`): RSCs cannot persist rotated cookies, so a server-triggered refresh would invalidate the browser's session. Expired access tokens 401 on the server and recover through the browser's SWR fetch.
+
+`getApiUrl()` (`lib/env.ts`) resolves `window.__ENV__.API_URL` in the browser and `process.env.API_URL` on the server — the server URL is used by `lib/server/client.ts`.
+
+Client-side, `createServiceClient` (`lib/client.ts`) memoizes one client per service descriptor; call it freely in render.
 
 ## Common Commands
 

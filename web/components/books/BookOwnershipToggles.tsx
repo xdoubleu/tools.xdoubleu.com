@@ -6,6 +6,7 @@ import { useToggleTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/cn'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface BookOwnershipTogglesProps {
   userBook: UserBook
@@ -49,7 +50,7 @@ export default function BookOwnershipToggles({ userBook, onSaved }: BookOwnershi
     setOwnPhysical(!current)
     try {
       await toggleTag(userBook.bookId, 'own-physical')
-      mutate('/books')
+      mutate(swrKeys.books)
       onSaved?.()
     } catch {
       setOwnPhysical(current)

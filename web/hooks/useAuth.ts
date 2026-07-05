@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
+import { swrKeys } from '@/lib/swrKeys'
 
 export function useSignIn() {
   const client = createServiceClient(AuthService)
@@ -51,7 +52,7 @@ export function useMFAUnenroll() {
 
 export function useCurrentUser() {
   const client = createServiceClient(AuthService)
-  return useSWR('/auth/current-user', () => client.getCurrentUser({}), {
+  return useSWR(swrKeys.currentUser, () => client.getCurrentUser({}), {
     revalidateOnFocus: false,
     revalidateOnReconnect: false
   })

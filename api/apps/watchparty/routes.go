@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	watchpartyv1connect "tools.xdoubleu.com/gen/watchparty/v1/watchpartyv1connect"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (app *WatchParty) Routes(prefix string, mux *http.ServeMux) {
@@ -15,6 +16,7 @@ func (app *WatchParty) Routes(prefix string, mux *http.ServeMux) {
 	// ConnectRPC routes
 	path, handler := watchpartyv1connect.NewRoomServiceHandler(
 		&roomConnectHandler{app: app},
+		iapp.ScrubInternalErrors(app.Logger),
 	)
 	mux.Handle(
 		"POST "+path,

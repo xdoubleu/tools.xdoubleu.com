@@ -1,77 +1,111 @@
 @import 'tailwindcss';
-@config "../tailwind.config.ts";
 @plugin "@tailwindcss/typography";
 
+/*
+ * Semantic colors are defined as raw RGB triples (--*-rgb) that swap for
+ * dark mode via the media query below, then exposed to Tailwind through
+ * `@theme inline` so utilities (bg-bg, text-fg, ...) and opacity modifiers
+ * (border-border/60) track the active scheme at runtime.
+ */
 :root {
   /* Base surfaces */
-  --color-bg: 242 242 247;
-  --color-surface: 255 255 255;
-  --color-card: 255 255 255;
+  --bg-rgb: 242 242 247;
+  --surface-rgb: 255 255 255;
+  --card-rgb: 255 255 255;
   /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
-  --color-hover: 229 229 234;
+  --hover-rgb: 229 229 234;
 
   /* Text */
-  --color-fg: 0 0 0;
-  --color-muted: 99 99 102;
-  --color-subtle: 60 60 67;
+  --fg-rgb: 0 0 0;
+  --muted-rgb: 99 99 102;
+  --subtle-rgb: 60 60 67;
 
   /* Borders */
-  --color-border: 209 209 214;
+  --border-rgb: 209 209 214;
 
   /* Inputs */
-  --color-input: 255 255 255;
-  --color-input-border: 174 174 178;
-  --color-input-text: 0 0 0;
+  --input-rgb: 255 255 255;
+  --input-border-rgb: 174 174 178;
+  --input-text-rgb: 0 0 0;
 
   /* Accent — Apple system blue */
-  --color-accent: 0 122 255;
-  --color-accent-hover: 0 102 214;
+  --accent-rgb: 0 122 255;
+  --accent-hover-rgb: 0 102 214;
 
   /* Semantic */
-  --color-success: 52 199 89;
-  --color-warn: 255 149 0;
-  --color-danger: 255 59 48;
+  --success-rgb: 52 199 89;
+  --warn-rgb: 255 149 0;
+  --danger-rgb: 255 59 48;
 
   /* Glass shell — translucent for sticky navbar/footer */
-  --color-glass: 255 255 255;
+  --glass-rgb: 255 255 255;
   --glass-opacity: 0.72;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     /* Base surfaces */
-    --color-bg: 0 0 0;
-    --color-surface: 28 28 30;
-    --color-card: 28 28 30;
+    --bg-rgb: 0 0 0;
+    --surface-rgb: 28 28 30;
+    --card-rgb: 28 28 30;
     /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
-    --color-hover: 44 44 46;
+    --hover-rgb: 44 44 46;
 
     /* Text */
-    --color-fg: 255 255 255;
-    --color-muted: 152 152 157;
-    --color-subtle: 174 174 178;
+    --fg-rgb: 255 255 255;
+    --muted-rgb: 152 152 157;
+    --subtle-rgb: 174 174 178;
 
     /* Borders */
-    --color-border: 58 58 60;
+    --border-rgb: 58 58 60;
 
     /* Inputs */
-    --color-input: 44 44 46;
-    --color-input-border: 72 72 74;
-    --color-input-text: 255 255 255;
+    --input-rgb: 44 44 46;
+    --input-border-rgb: 72 72 74;
+    --input-text-rgb: 255 255 255;
 
     /* Accent — Apple system blue dark */
-    --color-accent: 10 132 255;
-    --color-accent-hover: 64 156 255;
+    --accent-rgb: 10 132 255;
+    --accent-hover-rgb: 64 156 255;
 
     /* Semantic */
-    --color-success: 48 209 88;
-    --color-warn: 255 159 10;
-    --color-danger: 255 69 58;
+    --success-rgb: 48 209 88;
+    --warn-rgb: 255 159 10;
+    --danger-rgb: 255 69 58;
 
     /* Glass shell — dark translucent */
-    --color-glass: 28 28 30;
+    --glass-rgb: 28 28 30;
     --glass-opacity: 0.8;
   }
+}
+
+@theme inline {
+  --color-bg: rgb(var(--bg-rgb));
+  --color-surface: rgb(var(--surface-rgb));
+  --color-card: rgb(var(--card-rgb));
+  --color-hover: rgb(var(--hover-rgb));
+  --color-fg: rgb(var(--fg-rgb));
+  --color-muted: rgb(var(--muted-rgb));
+  --color-subtle: rgb(var(--subtle-rgb));
+  --color-border: rgb(var(--border-rgb));
+  --color-input: rgb(var(--input-rgb));
+  --color-input-border: rgb(var(--input-border-rgb));
+  --color-input-text: rgb(var(--input-text-rgb));
+  --color-accent: rgb(var(--accent-rgb));
+  --color-accent-hover: rgb(var(--accent-hover-rgb));
+  --color-success: rgb(var(--success-rgb));
+  --color-warn: rgb(var(--warn-rgb));
+  --color-danger: rgb(var(--danger-rgb));
+  --color-glass: rgb(var(--glass-rgb) / var(--glass-opacity));
+}
+
+@theme {
+  --shadow-glass: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-elevated:
+    0 4px 16px 0 rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+  --radius-xl2: 1rem;
+  --radius-xl3: 1.5rem;
 }
 
 /* Smooth scroll & antialiasing */

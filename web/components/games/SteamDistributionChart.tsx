@@ -26,10 +26,10 @@ const BUCKET_LABELS = [
 ]
 
 const tooltipContentStyle = {
-  backgroundColor: 'rgb(var(--color-surface))',
-  border: '1px solid rgb(var(--color-border))',
+  backgroundColor: 'var(--color-surface)',
+  border: '1px solid var(--color-border)',
   borderRadius: '0.75rem',
-  color: 'rgb(var(--color-fg))'
+  color: 'var(--color-fg)'
 }
 
 interface SteamDistributionChartProps {
@@ -60,10 +60,10 @@ export default function SteamDistributionChart({
           <YAxis allowDecimals={false} />
           <Tooltip
             formatter={(value) => [value, 'Games']}
-            cursor={{ fill: 'rgb(var(--color-hover) / 0.5)' }}
+            cursor={{ fill: 'rgb(var(--hover-rgb) / 0.5)' }}
             contentStyle={tooltipContentStyle}
-            labelStyle={{ color: 'rgb(var(--color-fg))' }}
-            itemStyle={{ color: 'rgb(var(--color-fg))' }}
+            labelStyle={{ color: 'var(--color-fg)' }}
+            itemStyle={{ color: 'var(--color-fg)' }}
           />
           <Bar
             dataKey="count"

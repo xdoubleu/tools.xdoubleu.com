@@ -14,19 +14,18 @@ import type {
   ListAccessibleListsResponse
 } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { MealPlansService } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import { swrKeys } from '@/lib/swrKeys'
 
 export function useCustomList(ownerUserId = '') {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<GetCustomListResponse, Error>(`/shoppinglist?owner=${ownerUserId}`, () =>
+  return useSWR<GetCustomListResponse, Error>(swrKeys.shoppingList(ownerUserId), () =>
     client.getCustomList({ ownerUserId })
   )
 }
 
 export function useMealPlanExportItems(planId: string, excludedGroups: string[] = []) {
   const client = createServiceClient(ShoppingListService)
-  const key = planId
-    ? `/shoppinglist/export/${planId}?excluded=${excludedGroups.sort().join(',')}`
-    : null
+  const key = planId ? swrKeys.shoppingListExport(planId, excludedGroups) : null
   return useSWR<GetMealPlanExportItemsResponse, Error>(key, () =>
     client.getMealPlanExportItems({ planId, excludedGroups })
   )
@@ -35,29 +34,28 @@ export function useMealPlanExportItems(planId: string, excludedGroups: string[] 
 export function usePlanIngredientGroups(planId: string) {
   const client = createServiceClient(ShoppingListService)
   return useSWR<GetPlanIngredientGroupsResponse, Error>(
-    planId ? `/shoppinglist/groups/${planId}` : null,
+    planId ? swrKeys.planIngredientGroups(planId) : null,
     () => client.getPlanIngredientGroups({ planId })
   )
 }
 
 export function useCategories(ownerUserId = '') {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<ListCategoriesResponse, Error>(
-    `/shoppinglist/categories?owner=${ownerUserId}`,
-    () => client.listCategories({ ownerUserId })
+  return useSWR<ListCategoriesResponse, Error>(swrKeys.shoppingCategories(ownerUserId), () =>
+    client.listCategories({ ownerUserId })
   )
 }
 
 export function useAccessibleLists() {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<ListAccessibleListsResponse, Error>('/shoppinglist/accessible', () =>
+  return useSWR<ListAccessibleListsResponse, Error>(swrKeys.accessibleShoppingLists, () =>
     client.listAccessibleLists({})
   )
 }
 
 export function useShoppingListShares() {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<ListShoppingListSharesResponse, Error>('/shoppinglist/shares', () =>
+  return useSWR<ListShoppingListSharesResponse, Error>(swrKeys.shoppingListShares, () =>
     client.listShoppingListShares({})
   )
 }
@@ -75,27 +73,25 @@ export function useUnshareShoppingList() {
 
 export function useStores() {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<ListStoresResponse, Error>('/shoppinglist/stores', () => client.listStores({}))
+  return useSWR<ListStoresResponse, Error>(swrKeys.stores, () => client.listStores({}))
 }
 
 export function useStoreCategories(storeId: string) {
   const client = createServiceClient(ShoppingListService)
   return useSWR<GetStoreCategoriesResponse, Error>(
-    storeId ? `/shoppinglist/stores/${storeId}/categories` : null,
+    storeId ? swrKeys.storeCategories(storeId) : null,
     () => client.getStoreCategories({ storeId })
   )
 }
 
 export function useItemNames() {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<ListItemNamesResponse, Error>('/shoppinglist/item-names', () =>
-    client.listItemNames({})
-  )
+  return useSWR<ListItemNamesResponse, Error>(swrKeys.itemNames, () => client.listItemNames({}))
 }
 
 export function useItemCategories() {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<ListItemCategoriesResponse, Error>('/shoppinglist/item-categories', () =>
+  return useSWR<ListItemCategoriesResponse, Error>(swrKeys.itemCategories, () =>
     client.listItemCategories({})
   )
 }
@@ -116,7 +112,7 @@ export interface AllIngredientGroup {
 export function useAllMealPlanExportItems(excludedGroups: string[] = []) {
   const mealPlansClient = createServiceClient(MealPlansService)
   const shoppingClient = createServiceClient(ShoppingListService)
-  const key = `/shoppinglist/export/all?excluded=${[...excludedGroups].sort().join(',')}`
+  const key = swrKeys.shoppingListExportAll(excludedGroups)
   return useSWR<{ items: AllExportItem[] }, Error>(key, async () => {
     const plansResp = await mealPlansClient.listPlans({})
     const planIds = plansResp.plans.map((p) => p.id)
@@ -131,23 +127,26 @@ export function useAllMealPlanExportItems(excludedGroups: string[] = []) {
 export function useAllPlanIngredientGroups() {
   const mealPlansClient = createServiceClient(MealPlansService)
   const shoppingClient = createServiceClient(ShoppingListService)
-  return useSWR<{ groups: AllIngredientGroup[] }, Error>('/shoppinglist/groups/all', async () => {
-    const plansResp = await mealPlansClient.listPlans({})
-    const planIds = plansResp.plans.map((p) => p.id)
-    if (planIds.length === 0) return { groups: [] }
-    const responses = await Promise.all(
-      planIds.map((planId) => shoppingClient.getPlanIngredientGroups({ planId }))
-    )
-    const seen = new Set<string>()
-    const groups: AllIngredientGroup[] = []
-    for (const resp of responses) {
-      for (const group of resp.groups) {
-        if (!seen.has(group.groupName)) {
-          seen.add(group.groupName)
-          groups.push({ recipeName: group.recipeName, groupName: group.groupName })
+  return useSWR<{ groups: AllIngredientGroup[] }, Error>(
+    swrKeys.planIngredientGroupsAll,
+    async () => {
+      const plansResp = await mealPlansClient.listPlans({})
+      const planIds = plansResp.plans.map((p) => p.id)
+      if (planIds.length === 0) return { groups: [] }
+      const responses = await Promise.all(
+        planIds.map((planId) => shoppingClient.getPlanIngredientGroups({ planId }))
+      )
+      const seen = new Set<string>()
+      const groups: AllIngredientGroup[] = []
+      for (const resp of responses) {
+        for (const group of resp.groups) {
+          if (!seen.has(group.groupName)) {
+            seen.add(group.groupName)
+            groups.push({ recipeName: group.recipeName, groupName: group.groupName })
+          }
         }
       }
+      return { groups }
     }
-    return { groups }
-  })
+  )
 }

@@ -69,7 +69,7 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
                 type="checkbox"
                 checked={hiddenSlots.includes(slot)}
                 onChange={() => toggleSlot(slot)}
-                className="h-4 w-4 rounded accent-[rgb(var(--color-accent))]"
+                className="h-4 w-4 rounded accent-accent"
               />
               {slot.charAt(0).toUpperCase() + slot.slice(1)}
             </label>
@@ -86,7 +86,7 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
           type="checkbox"
           checked={hidePast}
           onChange={(e) => setHidePast(e.target.checked)}
-          className="h-4 w-4 rounded accent-[rgb(var(--color-accent))]"
+          className="h-4 w-4 rounded accent-accent"
         />
         <span className="font-medium">iCal — Hide past events</span>
       </label>

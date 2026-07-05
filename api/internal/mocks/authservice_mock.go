@@ -79,11 +79,14 @@ func (m *MockedAuthService) AppAccess(
 	}
 }
 
-func (m *MockedAuthService) GetAllUsers() ([]models.User, error) {
+func (m *MockedAuthService) GetAllUsers(
+	_ context.Context,
+) ([]models.User, error) {
 	return []models.User{m.mockUser()}, nil
 }
 
 func (m *MockedAuthService) SignOut(
+	_ context.Context,
 	_ string,
 	_ bool,
 ) (*http.Cookie, *http.Cookie, error) {

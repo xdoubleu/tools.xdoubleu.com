@@ -2,10 +2,11 @@ import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { ContactsService } from '@/lib/gen/contacts/v1/contacts_pb'
 import type { ListContactsResponse } from '@/lib/gen/contacts/v1/contacts_pb'
+import { swrKeys } from '@/lib/swrKeys'
 
 export function useContacts() {
   const client = createServiceClient(ContactsService)
-  return useSWR<ListContactsResponse, Error>('/contacts', () => client.listContacts({}))
+  return useSWR<ListContactsResponse, Error>(swrKeys.contacts, () => client.listContacts({}))
 }
 
 export function useCreateContact() {

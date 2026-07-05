@@ -14,5 +14,8 @@ func NewTestConfig() config.Config {
 	cfg := config.New(logging.NewNopLogger())
 	cfg.Env = configtools.TestEnv
 	cfg.Throttle = false
+	// Disable the per-token auth cache so tests that mutate roles or app
+	// access mid-run always observe fresh DB state.
+	cfg.AuthCacheTTL = 0
 	return cfg
 }

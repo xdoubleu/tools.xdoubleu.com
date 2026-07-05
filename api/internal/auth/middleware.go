@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-func (service *AuthService) Access(next http.HandlerFunc) http.HandlerFunc {
+func (service *GoTrueService) Access(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenCookie, err := r.Cookie("accessToken")
 
@@ -25,7 +25,8 @@ func (service *AuthService) Access(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		user, err := service.GetUser(
+		user, err := service.resolveUser(
+			r.Context(),
 			tokenCookie.Value,
 		)
 		if err != nil {
@@ -38,7 +39,9 @@ func (service *AuthService) Access(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-func (service *AuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFunc {
+func (service *GoTrueService) TemplateAccess(
+	next http.HandlerFunc,
+) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := service.getCurrentUser(r)
 
@@ -58,13 +61,13 @@ func (service *AuthService) TemplateAccess(next http.HandlerFunc) http.HandlerFu
 	})
 }
 
-func (service *AuthService) getCurrentUser(r *http.Request) *models.User {
+func (service *GoTrueService) getCurrentUser(r *http.Request) *models.User {
 	accessToken, err := r.Cookie("accessToken")
 	if err != nil {
 		return nil
 	}
 
-	user, err := service.GetUser(accessToken.Value)
+	user, err := service.resolveUser(r.Context(), accessToken.Value)
 	if err != nil {
 		return nil
 	}
@@ -72,7 +75,55 @@ func (service *AuthService) getCurrentUser(r *http.Request) *models.User {
 	return user
 }
 
-func (service *AuthService) refreshTokens(
+// resolveUser returns the DB-enriched user for an access token, consulting
+// the TTL cache first so repeated requests skip the GoTrue round-trip and
+// the enrichment queries.
+func (service *GoTrueService) resolveUser(
+	ctx context.Context,
+	accessToken string,
+) (*models.User, error) {
+	if cached, ok := service.userCache.get(accessToken); ok {
+		return &cached, nil
+	}
+
+	user, err := service.GetUser(ctx, accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	enriched := service.enrichUser(ctx, *user)
+	service.userCache.set(accessToken, enriched)
+	return &enriched, nil
+}
+
+// enrichUser records the user in global.app_users and overlays the DB role
+// and app access; on any failure it falls back to the GoTrue user unchanged.
+func (service *GoTrueService) enrichUser(
+	ctx context.Context,
+	user models.User,
+) models.User {
+	if service.appUsersRepo == nil {
+		return user
+	}
+
+	if err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email); err != nil {
+		slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
+		return user
+	}
+
+	enriched, err := service.appUsersRepo.GetByID(ctx, user.ID)
+	if err != nil {
+		slog.Default().ErrorContext(ctx, "failed to enrich user from db", "error", err)
+		return user
+	}
+
+	if enriched != nil {
+		return *enriched
+	}
+	return user
+}
+
+func (service *GoTrueService) refreshTokens(
 	w http.ResponseWriter,
 	r *http.Request,
 ) *models.User {
@@ -82,43 +133,29 @@ func (service *AuthService) refreshTokens(
 		return nil
 	}
 
-	accessToken, refreshToken, err := service.SignInWithRefreshToken(
+	user, accessCookie, refreshCookie, err := service.RefreshSession(
+		r.Context(),
 		tokenCookie.Value,
 	)
 	if err != nil {
 		return nil
 	}
 
-	accessTokenCookie, err := service.CreateCookie(
-		models.AccessScope,
-		*accessToken,
-		service.accessExpiry,
-		service.useSecureCookies,
-	)
-	if err != nil {
+	http.SetCookie(w, accessCookie)
+	http.SetCookie(w, refreshCookie)
+
+	if user == nil {
 		return nil
 	}
 
-	http.SetCookie(w, accessTokenCookie)
-
-	var refreshTokenCookie *http.Cookie
-	refreshTokenCookie, err = service.CreateCookie(
-		models.RefreshScope,
-		*refreshToken,
-		service.refreshExpiry,
-		service.useSecureCookies,
-	)
-	if err != nil {
-		return nil
-	}
-
-	http.SetCookie(w, refreshTokenCookie)
-
-	user, _ := service.GetUser(accessTokenCookie.Value)
-	return user
+	enriched := service.enrichUser(r.Context(), *user)
+	service.userCache.set(accessCookie.Value, enriched)
+	return &enriched
 }
 
-func (service *AuthService) contextSetUser(
+// contextSetUser stores an already-resolved user on the request context and
+// tags the Sentry scope; enrichment happens earlier in resolveUser.
+func (service *GoTrueService) contextSetUser(
 	ctx context.Context,
 	user models.User,
 ) context.Context {
@@ -130,32 +167,10 @@ func (service *AuthService) contextSetUser(
 		})
 	}
 
-	if service.appUsersRepo == nil {
-		return context.WithValue(ctx, constants.UserContextKey, user)
-	}
-
-	err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email)
-
-	if err != nil {
-		slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
-		return context.WithValue(ctx, constants.UserContextKey, user)
-	}
-
-	var enriched *models.User
-	enriched, err = service.appUsersRepo.GetByID(ctx, user.ID)
-	if err != nil {
-		slog.Default().ErrorContext(ctx, "failed to enrich user from db", "error", err)
-		return context.WithValue(ctx, constants.UserContextKey, user)
-	}
-
-	if enriched != nil {
-		user = *enriched
-	}
-
 	return context.WithValue(ctx, constants.UserContextKey, user)
 }
 
-func (service *AuthService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
+func (service *GoTrueService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
 	return service.TemplateAccess(func(w http.ResponseWriter, r *http.Request) {
 		user, ok := r.Context().Value(constants.UserContextKey).(models.User)
 		if !ok || user.Role != models.RoleAdmin {
@@ -166,7 +181,7 @@ func (service *AuthService) AdminAccess(next http.HandlerFunc) http.HandlerFunc 
 	})
 }
 
-func (service *AuthService) AppAccess(
+func (service *GoTrueService) AppAccess(
 	appName string,
 	next http.HandlerFunc,
 ) http.HandlerFunc {

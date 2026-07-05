@@ -78,7 +78,9 @@ export default function HomeClient() {
   const signIn = useSignIn()
   const mFAChallenge = useMFAChallenge()
 
-  const [authState, setAuthState] = useState<AuthState>('loading')
+  // Server-provided fallback (SWRProvider) makes `data` available on the
+  // very first render, so the authenticated view server-renders directly.
+  const [authState, setAuthState] = useState<AuthState>(data ? 'authenticated' : 'loading')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
@@ -249,7 +251,7 @@ export default function HomeClient() {
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-input-border accent-[rgb(var(--color-accent))]"
+              className="h-4 w-4 rounded border-input-border accent-accent"
             />
             <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
               Remember me
