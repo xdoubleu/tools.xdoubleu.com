@@ -69,12 +69,12 @@ export default function BacklogBooksSettingsPage() {
   }
 
   return (
-    <PageContainer size="narrow" className="px-4 py-10">
+    <PageContainer size="narrow" className="p-6">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Books', href: '/books' }, { label: 'Settings' }]}
       />
-      <h1 className="mb-6 text-xl font-semibold text-fg">Books Settings</h1>
+      <h1 className="mb-6 text-3xl font-bold">Books Settings</h1>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">

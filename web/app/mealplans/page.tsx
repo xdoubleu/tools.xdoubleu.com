@@ -21,7 +21,7 @@ export default function PlansPage() {
     <PageContainer className="p-6">
       <h1 className="text-3xl font-bold mb-6">Meal Plan</h1>
 
-      {isLoading && <p>Loading…</p>}
+      {isLoading && <p className="text-muted">Loading…</p>}
       {error && <p className="text-danger">Failed to load meal plan.</p>}
       {data && data.plans.length === 0 && (
         <div>

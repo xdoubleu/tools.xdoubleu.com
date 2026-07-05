@@ -103,7 +103,7 @@ export default function GamesDashboard() {
         </Button>
       </div>
 
-      {steamLoading && <p>Loading dashboard…</p>}
+      {steamLoading && <p className="text-muted">Loading dashboard…</p>}
       {steamError && <p className="text-danger">Failed to load Steam data.</p>}
 
       {steam && (
@@ -225,7 +225,7 @@ export default function GamesDashboard() {
 
           {view === 'distribution' && (
             <>
-              {steamLoading && <p>Loading distribution…</p>}
+              {steamLoading && <p className="text-muted">Loading distribution…</p>}
               {steam && (
                 <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
                   <SteamDistributionChart

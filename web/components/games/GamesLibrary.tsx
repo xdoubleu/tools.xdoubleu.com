@@ -91,7 +91,7 @@ export default function GamesLibrary() {
         </div>
       </div>
 
-      {steamLoading && <p>Loading Steam library…</p>}
+      {steamLoading && <p className="text-muted">Loading Steam library…</p>}
       {steamError && <p className="text-danger">Failed to load Steam data.</p>}
       {steam && (
         <>

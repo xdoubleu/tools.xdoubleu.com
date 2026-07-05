@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function TodosLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col flex-1">
-      <PageContainer className="flex-1 px-4 py-6">{children}</PageContainer>
+      <PageContainer className="flex-1 p-6">{children}</PageContainer>
     </div>
   )
 }

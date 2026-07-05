@@ -88,7 +88,7 @@ export default function ICSProxyPage() {
         </Button>
       </div>
 
-      {isLoading && <p>Loading feeds…</p>}
+      {isLoading && <p className="text-muted">Loading feeds…</p>}
       {error && <p className="text-danger">Failed to load feeds.</p>}
       {data && data.configs.length === 0 && <p className="text-muted">No filter configs yet.</p>}
       {data && data.configs.length > 0 && (

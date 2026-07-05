@@ -17,12 +17,12 @@ export default function BacklogBooksAdminPage() {
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
   return (
-    <PageContainer className="max-w-2xl px-4 py-10">
+    <PageContainer className="max-w-2xl p-6">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Books', href: '/books' }, { label: 'Admin tools' }]}
       />
-      <h1 className="mb-6 text-xl font-semibold text-fg">Books admin tools</h1>
+      <h1 className="mb-6 text-3xl font-bold">Books admin tools</h1>
 
       {/* Find duplicates */}
       <section>

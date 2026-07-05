@@ -55,7 +55,7 @@ export default function RecipesListPage() {
         </div>
       </div>
 
-      {isLoading && <p>Loading recipes…</p>}
+      {isLoading && <p className="text-muted">Loading recipes…</p>}
       {error && <p className="text-danger">Failed to load recipes.</p>}
       {data && data.recipes.length === 0 && (
         <p className="text-muted">No recipes yet. Create your first one!</p>

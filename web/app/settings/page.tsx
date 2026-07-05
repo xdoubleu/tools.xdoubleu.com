@@ -132,8 +132,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <PageContainer size="narrow" className="px-4 py-10 space-y-10">
-      <h1 className="text-xl font-semibold text-fg">Account Settings</h1>
+    <PageContainer size="narrow" className="p-6 space-y-10">
+      <h1 className="text-3xl font-bold">Account Settings</h1>
 
       {/* Password */}
       <section>

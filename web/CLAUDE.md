@@ -45,6 +45,9 @@ npm run generate                          # Regenerate lib/gen/ from proto defin
 - **Clickable cards**: navigable cards (Links or `onClick` divs that look like cards) share one hover treatment via `interactiveCardClass` from `components/ui/card.tsx` — `cn(interactiveCardClass, 'block p-4')`. Do not hand-roll per-card `hover:shadow`/`hover:bg` variants.
 - **Class overrides**: merge classes with `cn()` from `lib/cn.ts` (clsx + tailwind-merge) so a `className` prop reliably overrides a primitive's defaults (e.g. `<Input className="w-16" />` beats the default `w-full`). All `components/ui/` primitives already use `cn`.
 - **Links that look like buttons**: use `<Button asChild><Link …/></Button>` rather than re-styling the `<Link>`.
+- **Page shell**: every page wraps its content in `PageContainer` (never a raw `<main>` — the root layout already renders `<main>`). Standard padding is `p-6`; width via `size="narrow"` or a `max-w-*` override in `className`.
+- **Page titles**: `<h1 className="text-3xl font-bold">` (add `mb-6` when the title stands alone, `leading-tight` for long content titles). No per-app title styles.
+- **Async states**: page-level loading is `<p className="text-muted">Loading…</p>`; page-level errors are `<p className="text-danger">Failed to load X.</p>`. Inside cards/lists use the `py-16 text-center text-sm text-muted` pattern. Always the typographic ellipsis `…`, never `...`.
 
 ## File Size & Splits
 

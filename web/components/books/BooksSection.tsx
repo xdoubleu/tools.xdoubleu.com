@@ -29,7 +29,7 @@ export default function BooksSection() {
         />
       </div>
 
-      {libLoading && <p>Loading books…</p>}
+      {libLoading && <p className="text-muted">Loading books…</p>}
       {libError && <p className="text-danger">Failed to load books.</p>}
       {library && (
         <BooksLibrary

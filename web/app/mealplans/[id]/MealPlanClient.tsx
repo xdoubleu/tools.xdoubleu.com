@@ -50,7 +50,7 @@ export default function MealPlanClient({ id }: { id: string }) {
 
   return (
     <PageContainer className="p-6">
-      {isLoading && <p>Loading meal plan…</p>}
+      {isLoading && <p className="text-muted">Loading meal plan…</p>}
       {error && <p className="text-danger">Failed to load meal plan.</p>}
 
       {plan && (
