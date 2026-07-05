@@ -60,7 +60,7 @@ cd api && docker-compose down
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Start development server |
-| `npm run build` | Build static export |
+| `npm run build` | Build the standalone production server |
 | `npm test` | Run tests |
 | `npm run test:cov` | Run tests with coverage |
 | `npm run lint` | Run ESLint + Prettier |

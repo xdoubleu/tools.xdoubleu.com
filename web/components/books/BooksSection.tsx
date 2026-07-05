@@ -5,6 +5,7 @@ import { mutate } from 'swr'
 import { useLibrary } from '@/hooks/useBooks'
 import BookSearchBar from '@/components/books/BookSearchBar'
 import BooksLibrary from '@/components/books/BooksLibrary'
+import { swrKeys } from '@/lib/swrKeys'
 
 export default function BooksSection() {
   const { data: libraryData, error: libError, isLoading: libLoading } = useLibrary()
@@ -15,7 +16,7 @@ export default function BooksSection() {
   const knownShelves = library?.shelves.map((s) => s.name) ?? []
 
   const handleLibraryRefresh = () => {
-    void mutate('/books')
+    void mutate(swrKeys.books)
   }
 
   return (

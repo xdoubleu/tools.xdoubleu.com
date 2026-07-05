@@ -16,6 +16,7 @@ import {
   type BookConflictField
 } from '@/components/books/duplicateConflicts'
 import type { DuplicateGroup } from '@/lib/gen/books/v1/catalog_pb'
+import { swrKeys } from '@/lib/swrKeys'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -177,7 +178,7 @@ export default function ManageDuplicatesDialog({
       resolvedStatus
     })
 
-    await mutate('/books')
+    await mutate(swrKeys.books)
     await mutateDupes()
   }
 

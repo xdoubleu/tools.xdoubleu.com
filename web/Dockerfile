@@ -1,6 +1,8 @@
 FROM node:24-alpine AS builder
 
 ARG RELEASE=dev
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
 
 WORKDIR /app
 
@@ -13,12 +15,17 @@ COPY web/components components
 COPY web/hooks hooks
 COPY web/lib lib
 COPY web/next.config.ts web/tsconfig.json web/postcss.config.js \
-     web/tailwind.config.ts web/instrumentation-client.ts \
+     web/instrumentation-client.ts \
      web/sentry.edge.config.ts web/sentry.server.config.ts \
      web/next-env.d.ts ./
 
-ENV RELEASE=${RELEASE}
-RUN npm run build
+ENV RELEASE=${RELEASE} \
+    SENTRY_ORG=${SENTRY_ORG} \
+    SENTRY_PROJECT=${SENTRY_PROJECT}
+# The auth token is a secret mount (not an ARG) so it never ends up in image
+# layers; without it the Sentry plugin skips the source-map upload.
+RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
+    npm run build
 
 FROM node:24-alpine AS server
 

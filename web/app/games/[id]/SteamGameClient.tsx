@@ -7,6 +7,7 @@ import { create } from '@bufbuild/protobuf'
 import { useSteamGame, useRefreshSteamGame } from '@/hooks/useGames'
 import type { Achievement } from '@/lib/gen/games/v1/games_pb'
 import { GetSteamGameResponseSchema } from '@/lib/gen/games/v1/games_pb'
+import type { GetSteamGameResponse } from '@/lib/gen/games/v1/games_pb'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -56,10 +57,16 @@ function AchievementCard({ achievement }: AchievementCardProps) {
 
 const REFRESH_INTERVAL_MS = 60_000
 
-export default function SteamGameClient({ id }: { id: string }) {
+export default function SteamGameClient({
+  id,
+  initialData
+}: {
+  id: string
+  initialData?: GetSteamGameResponse
+}) {
   const gameId = Number(id)
   const searchParams = useSearchParams()
-  const { data, error, isLoading, mutate } = useSteamGame(gameId)
+  const { data, error, isLoading, mutate } = useSteamGame(gameId, initialData)
   const refreshGame = useRefreshSteamGame()
   const game = data?.data?.game
   const achievements = data?.data?.achievements ?? []

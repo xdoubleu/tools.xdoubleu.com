@@ -16,7 +16,11 @@ import {
 } from 'recharts'
 import { useSteam, useSteamProgress, useRecentlyActiveGames } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
-import type { RecentGame } from '@/lib/gen/games/v1/games_pb'
+import type {
+  GetRecentlyActiveGamesResponse,
+  GetSteamResponse,
+  RecentGame
+} from '@/lib/gen/games/v1/games_pb'
 import GamesSearch from '@/components/games/GamesSearch'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import { Button } from '@/components/ui/button'
@@ -24,6 +28,7 @@ import { Input } from '@/components/ui/input'
 import { Card, interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
+import { swrKeys } from '@/lib/swrKeys'
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -58,23 +63,29 @@ function RecentGameCard({ game }: { game: RecentGame }) {
   )
 }
 
-export default function GamesDashboard() {
+export default function GamesDashboard({
+  initialSteam,
+  initialRecent
+}: {
+  initialSteam?: GetSteamResponse
+  initialRecent?: GetRecentlyActiveGamesResponse
+}) {
   const router = useRouter()
 
   const [progressStart, setProgressStart] = useState(oneYearAgo())
   const [progressEnd, setProgressEnd] = useState(today())
   const [view, setView] = useState<'progress' | 'distribution'>('distribution')
 
-  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
+  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam(initialSteam)
   const { data: progressData, isLoading: progressLoading } = useSteamProgress(
     progressStart,
     progressEnd
   )
-  const { data: recentData, isLoading: recentLoading } = useRecentlyActiveGames()
+  const { data: recentData, isLoading: recentLoading } = useRecentlyActiveGames(initialRecent)
 
   const onSynced = useCallback(() => {
-    void mutate('/games')
-    void mutate('/games/recent')
+    void mutate(swrKeys.games)
+    void mutate(swrKeys.gamesRecent)
   }, [])
   const { isRefreshing, lastRefresh, refresh } = useSteamRefresh(onSynced)
 
@@ -201,18 +212,18 @@ export default function GamesDashboard() {
                       <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                       <YAxis />
                       <Tooltip
-                        cursor={{ stroke: 'rgb(var(--color-border))' }}
+                        cursor={{ stroke: 'var(--color-border)' }}
                         contentStyle={{
-                          backgroundColor: 'rgb(var(--color-surface))',
-                          border: '1px solid rgb(var(--color-border))',
+                          backgroundColor: 'var(--color-surface)',
+                          border: '1px solid var(--color-border)',
                           borderRadius: '0.75rem',
-                          color: 'rgb(var(--color-fg))'
+                          color: 'var(--color-fg)'
                         }}
                       />
                       <Line
                         type="monotone"
                         dataKey="value"
-                        stroke="rgb(var(--color-accent))"
+                        stroke="var(--color-accent)"
                         strokeWidth={2}
                         dot={false}
                       />

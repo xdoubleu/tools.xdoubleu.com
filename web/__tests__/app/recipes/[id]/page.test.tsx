@@ -1,3 +1,17 @@
+import React from 'react'
+jest.mock('@/lib/server/client', () => ({
+  createServerClient: jest.fn(async () => ({}))
+}))
+
+jest.mock('@/lib/server/fetchers', () => ({
+  fetchOrNull: jest.fn(async () => null)
+}))
+
+jest.mock('@/components/SWRFallback', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
+}))
+
 import { render } from '@testing-library/react'
 
 jest.mock('@/app/recipes/[id]/RecipeClient', () => ({

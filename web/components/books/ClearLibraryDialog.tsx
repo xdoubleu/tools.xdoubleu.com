@@ -6,6 +6,7 @@ import { useClearLibrary } from '@/hooks/useBooks'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface ClearLibraryDialogProps {
   open: boolean
@@ -38,7 +39,7 @@ export default function ClearLibraryDialog({
     setError('')
     try {
       await clearLibrary()
-      await mutate('/books')
+      await mutate(swrKeys.books)
       setTyped('')
       onOpenChange(false)
       onCleared?.()

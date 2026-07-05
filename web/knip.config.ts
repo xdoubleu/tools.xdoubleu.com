@@ -13,8 +13,9 @@ const config: KnipConfig = {
     '@bufbuild/protoc-gen-es',
     'eslint-config-next',
     '@next/eslint-plugin-next',
-    // Used via CSS @plugin directive in app/globals.css — knip cannot trace CSS imports
-    '@tailwindcss/typography'
+    // Used via CSS @import/@plugin directives in app/globals.css — knip cannot trace CSS imports
+    '@tailwindcss/typography',
+    'tailwindcss'
   ],
   ignoreBinaries: ['buf']
 }

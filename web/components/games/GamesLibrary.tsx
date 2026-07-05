@@ -6,11 +6,12 @@ import Image from 'next/image'
 import { mutate } from 'swr'
 import { useSteam } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
-import type { Game } from '@/lib/gen/games/v1/games_pb'
+import type { Game, GetSteamResponse } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
+import { swrKeys } from '@/lib/swrKeys'
 
 function GameCard({ game }: { game: Game }) {
   return (
@@ -49,13 +50,13 @@ function GameGroup({ title, games }: { title: string; games: Game[] }) {
   )
 }
 
-export default function GamesLibrary() {
+export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteamResponse }) {
   const [search, setSearch] = useState('')
 
-  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
+  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam(initialSteam)
 
   const onSynced = useCallback(() => {
-    void mutate('/games')
+    void mutate(swrKeys.games)
   }, [])
   const { isRefreshing, lastRefresh, refresh } = useSteamRefresh(onSynced)
 

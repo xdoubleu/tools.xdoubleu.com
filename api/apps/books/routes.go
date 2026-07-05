@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
@@ -17,26 +18,36 @@ func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 	)
 
 	handler := &booksConnectHandler{app: a}
+	scrub := iapp.ScrubInternalErrors(a.Logger)
 
-	libraryPath, libraryHandler := booksv1connect.NewLibraryServiceHandler(handler)
+	libraryPath, libraryHandler := booksv1connect.NewLibraryServiceHandler(
+		handler,
+		scrub,
+	)
 	mux.Handle(
 		"POST "+libraryPath,
 		a.Services.Auth.AppAccess(prefix, libraryHandler.ServeHTTP),
 	)
 
-	filesPath, filesHandler := booksv1connect.NewBookFilesServiceHandler(handler)
+	filesPath, filesHandler := booksv1connect.NewBookFilesServiceHandler(
+		handler,
+		scrub,
+	)
 	mux.Handle(
 		"POST "+filesPath,
 		a.Services.Auth.AppAccess(prefix, filesHandler.ServeHTTP),
 	)
 
-	koboPath, koboHandler := booksv1connect.NewKoboServiceHandler(handler)
+	koboPath, koboHandler := booksv1connect.NewKoboServiceHandler(handler, scrub)
 	mux.Handle(
 		"POST "+koboPath,
 		a.Services.Auth.AppAccess(prefix, koboHandler.ServeHTTP),
 	)
 
-	catalogPath, catalogHandler := booksv1connect.NewCatalogServiceHandler(handler)
+	catalogPath, catalogHandler := booksv1connect.NewCatalogServiceHandler(
+		handler,
+		scrub,
+	)
 	mux.Handle(
 		"POST "+catalogPath,
 		a.Services.Auth.AppAccess(prefix, catalogHandler.ServeHTTP),

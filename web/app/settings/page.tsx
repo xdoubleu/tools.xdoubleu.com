@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 
 type MFAEnrollState = 'idle' | 'qr' | 'done'
@@ -101,7 +102,7 @@ export default function SettingsPage() {
     setMfaMfaError('')
     try {
       await mfaEnrollVerify(mfaFactorId, mfaCode)
-      await mutate('/auth/current-user')
+      await mutate(swrKeys.currentUser)
       setMfaState('done')
     } catch (err) {
       if (err instanceof ConnectError) {
@@ -119,7 +120,7 @@ export default function SettingsPage() {
     setMfaMfaError('')
     try {
       await mfaUnenroll()
-      await mutate('/auth/current-user')
+      await mutate(swrKeys.currentUser)
     } catch (err) {
       if (err instanceof ConnectError) {
         setMfaMfaError(err.message)

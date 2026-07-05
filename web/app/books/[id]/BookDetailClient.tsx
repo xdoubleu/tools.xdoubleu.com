@@ -18,6 +18,7 @@ import BookPreviewDialog from '@/components/books/BookPreviewDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { swrKeys } from '@/lib/swrKeys'
 
 function flattenLibrary(
   library: NonNullable<ReturnType<typeof useLibrary>['data']>['library']
@@ -67,7 +68,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   ]
 
   const handleSaved = () => {
-    void mutate('/books')
+    void mutate(swrKeys.books)
   }
 
   return (

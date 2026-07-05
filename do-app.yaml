@@ -35,6 +35,11 @@ services:
       repository: xdoubleu/tools.xdoubleu.com/api
       tag: latest
     http_port: 8000
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      period_seconds: 10
+      failure_threshold: 3
     envs:
       - key: ENV
         scope: RUN_TIME

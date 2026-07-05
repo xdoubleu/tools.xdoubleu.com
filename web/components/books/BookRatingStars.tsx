@@ -5,6 +5,7 @@ import { mutate } from 'swr'
 import { useUpdateBookStatus } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { cn } from '@/lib/cn'
+import { swrKeys } from '@/lib/swrKeys'
 
 interface BookRatingStarsProps {
   userBook: UserBook
@@ -38,7 +39,7 @@ export default function BookRatingStars({
         favourite: userBook.tags.includes('favourite'),
         rating: String(newRating)
       })
-      mutate('/books')
+      mutate(swrKeys.books)
       onSaved?.()
     } catch {
       setRating(prev)

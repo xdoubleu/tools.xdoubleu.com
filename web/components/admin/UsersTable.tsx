@@ -76,7 +76,7 @@ export default function UsersTable({ users, onUpdated }: UsersTableProps) {
                     type="checkbox"
                     checked={(user.appAccess || []).includes(app)}
                     onChange={(e) => handleAppAccessChange(user.id, app, e.target.checked)}
-                    className="h-4 w-4 accent-[rgb(var(--color-accent))]"
+                    className="h-4 w-4 accent-accent"
                   />
                 </td>
               ))}

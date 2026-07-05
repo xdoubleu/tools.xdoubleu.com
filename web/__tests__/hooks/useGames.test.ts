@@ -40,14 +40,18 @@ beforeEach(() => {
 describe('useSteam', () => {
   it('uses /games as key', () => {
     renderHook(() => useSteam())
-    expect(mockUseSWR).toHaveBeenCalledWith('/games', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/games', expect.any(Function), expect.any(Object))
   })
 })
 
 describe('useRecentlyActiveGames', () => {
   it('uses /games/recent as key', () => {
     renderHook(() => useRecentlyActiveGames())
-    expect(mockUseSWR).toHaveBeenCalledWith('/games/recent', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/games/recent',
+      expect.any(Function),
+      expect.any(Object)
+    )
   })
 
   it('fetcher calls client.getRecentlyActiveGames', async () => {
@@ -64,12 +68,16 @@ describe('useRecentlyActiveGames', () => {
 describe('useSteamGame', () => {
   it('uses correct key when gameId is provided', () => {
     renderHook(() => useSteamGame(12345))
-    expect(mockUseSWR).toHaveBeenCalledWith('/games/12345', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/games/12345',
+      expect.any(Function),
+      expect.any(Object)
+    )
   })
 
   it('passes null as key when gameId is 0', () => {
     renderHook(() => useSteamGame(0))
-    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function), expect.any(Object))
   })
 
   it('fetcher calls client.getSteamGame', async () => {
@@ -86,7 +94,11 @@ describe('useSteamGame', () => {
 describe('useSteamDistribution', () => {
   it('uses /games/distribution/${bucket} as key', () => {
     renderHook(() => useSteamDistribution(10))
-    expect(mockUseSWR).toHaveBeenCalledWith('/games/distribution/10', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/games/distribution/10',
+      expect.any(Function),
+      expect.any(Object)
+    )
   })
 
   it('fetcher calls client.getSteamDistribution', async () => {

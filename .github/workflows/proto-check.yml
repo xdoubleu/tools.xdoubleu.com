@@ -19,16 +19,13 @@ jobs:
         with:
           node-version-file: './web/package.json'
       - name: Install buf
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { data: release } = await github.rest.repos.getLatestRelease({
-              owner: 'bufbuild',
-              repo: 'buf'
-            });
-            await exec.exec('sh', ['-c',
-              `curl -sSL https://github.com/bufbuild/buf/releases/download/${release.tag_name}/buf-Linux-x86_64 -o /usr/local/bin/buf && chmod +x /usr/local/bin/buf`
-            ]);
+        env:
+          # renovate: datasource=github-releases depName=bufbuild/buf
+          version: v1.69.0
+        run: |
+          curl -sSL "https://github.com/bufbuild/buf/releases/download/${version}/buf-Linux-x86_64" \
+            -o /usr/local/bin/buf
+          chmod +x /usr/local/bin/buf
       - name: Generate Go proto stubs
         run: buf generate
         working-directory: './api'

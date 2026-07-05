@@ -25,7 +25,17 @@ const customJestConfig = {
     '!app/layout.tsx',
     '!**/*.d.ts'
   ],
-  coverageReporters: ['text', 'lcov']
+  coverageReporters: ['text', 'lcov'],
+  // Ratchet: set just below current global coverage so drops fail the build.
+  // Raise these as coverage improves (docs target ≥80% on changed code).
+  coverageThreshold: {
+    global: {
+      statements: 77,
+      branches: 69,
+      functions: 70,
+      lines: 77
+    }
+  }
 }
 
 module.exports = createJestConfig(customJestConfig)

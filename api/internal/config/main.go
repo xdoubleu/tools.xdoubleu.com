@@ -17,6 +17,7 @@ type Config struct {
 	SampleRate        float64
 	AccessExpiry      string
 	RefreshExpiry     string
+	AuthCacheTTL      int // seconds; 0 disables the per-token user cache
 	DBDsn             string
 	Release           string
 	SupabaseProjRef   string
@@ -43,6 +44,7 @@ func New(logger *slog.Logger) Config {
 	cfg.SampleRate = parser.EnvFloat("SAMPLE_RATE", 1.0)
 	cfg.AccessExpiry = parser.EnvStr("ACCESS_EXPIRY", "1h")
 	cfg.RefreshExpiry = parser.EnvStr("REFRESH_EXPIRY", "7d")
+	cfg.AuthCacheTTL = parser.EnvInt("AUTH_CACHE_TTL", 60)
 	cfg.DBDsn = parser.EnvStr("DB_DSN", "postgres://postgres@localhost/postgres")
 	cfg.Release = parser.EnvStr("RELEASE", config.DevEnv)
 

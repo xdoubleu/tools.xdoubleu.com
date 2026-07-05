@@ -1,6 +1,18 @@
 import EditRecipeClient from './EditRecipeClient'
+import SWRFallback from '@/components/SWRFallback'
+import { createServerClient } from '@/lib/server/client'
+import { fetchOrNull } from '@/lib/server/fetchers'
+import { swrKeys } from '@/lib/swrKeys'
+import { RecipesService } from '@/lib/gen/recipes/v1/recipes_pb'
 
 export default async function EditRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  return <EditRecipeClient id={id} />
+  const client = await createServerClient(RecipesService)
+  const recipe = await fetchOrNull(() => client.getRecipe({ id, servings: 0 }))
+
+  return (
+    <SWRFallback fallback={recipe ? { [swrKeys.recipe(id)]: recipe } : {}}>
+      <EditRecipeClient id={id} />
+    </SWRFallback>
+  )
 }

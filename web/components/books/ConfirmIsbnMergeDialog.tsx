@@ -5,6 +5,7 @@ import { mutate } from 'swr'
 import { useMergeBooks } from '@/hooks/useBooks'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { swrKeys } from '@/lib/swrKeys'
 
 export interface IsbnMergeTarget {
   /** The book that already holds the ISBN — this will be the winner. */
@@ -33,7 +34,7 @@ export default function ConfirmIsbnMergeDialog({ target, onClose }: Props) {
     setMerging(true)
     try {
       await mergeBooks(target.winnerId, target.loserIds)
-      void mutate('/books/catalog')
+      void mutate(swrKeys.bookCatalog)
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Merge failed.')

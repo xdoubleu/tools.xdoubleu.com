@@ -28,21 +28,21 @@ export default function BooksProgressChart({ data }: BooksProgressChartProps) {
     <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" />
-          <XAxis dataKey="label" width={80} tick={{ fill: 'rgb(var(--color-muted))' }} />
-          <YAxis tick={{ fill: 'rgb(var(--color-muted))' }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+          <XAxis dataKey="label" width={80} tick={{ fill: 'var(--color-muted)' }} />
+          <YAxis tick={{ fill: 'var(--color-muted)' }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgb(var(--color-card))',
-              borderColor: 'rgb(var(--color-border))',
+              backgroundColor: 'var(--color-card)',
+              borderColor: 'var(--color-border)',
               borderRadius: '0.75rem',
-              color: 'rgb(var(--color-fg))'
+              color: 'var(--color-fg)'
             }}
           />
           <Line
             type="monotone"
             dataKey="value"
-            stroke="rgb(var(--color-accent))"
+            stroke="var(--color-accent)"
             strokeWidth={2}
             dot={false}
           />

@@ -130,7 +130,7 @@ func (h *authConnectHandler) completeMFA(
 ) error {
 	secure := h.secure()
 
-	accessCookie, err := h.app.services.Auth.CreateCookie(
+	accessCookie, err := h.app.auth.CreateCookie(
 		models.AccessScope, accessToken, h.app.config.AccessExpiry, secure,
 	)
 	if err != nil {
@@ -140,7 +140,7 @@ func (h *authConnectHandler) completeMFA(
 
 	if rememberMe {
 		var refreshCookie *http.Cookie
-		refreshCookie, err = h.app.services.Auth.CreateCookie(
+		refreshCookie, err = h.app.auth.CreateCookie(
 			models.RefreshScope, refreshToken, h.app.config.RefreshExpiry, secure,
 		)
 		if err != nil {

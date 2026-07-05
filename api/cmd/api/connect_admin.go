@@ -83,6 +83,7 @@ func (h *adminConnectHandler) SetRole(
 	if err := h.app.appUsersRepo.SetRole(ctx, req.Msg.UserId, role); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	h.app.auth.InvalidateUserCache()
 
 	user, err := h.app.appUsersRepo.GetByID(ctx, req.Msg.UserId)
 	if err != nil {
@@ -105,6 +106,7 @@ func (h *adminConnectHandler) SetAppAccess(
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	h.app.auth.InvalidateUserCache()
 
 	user, err := h.app.appUsersRepo.GetByID(ctx, req.Msg.UserId)
 	if err != nil {

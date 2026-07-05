@@ -9,12 +9,13 @@ import { formatRelativeDate, isOverdue } from '@/lib/todos/dateUtils'
 import { getApiUrl } from '@/lib/env'
 import type { Subtask } from '@/lib/gen/todos/v1/tasks_pb'
 import { Button } from '@/components/ui/button'
+import { swrKeys } from '@/lib/swrKeys'
 
 export default function TaskClient({ id }: { id: string }) {
   const router = useRouter()
   const client = createServiceClient(TaskService)
 
-  const { data, isLoading, error } = useSWR(id ? `/todos/tasks/${id}` : null, () =>
+  const { data, isLoading, error } = useSWR(id ? swrKeys.todoTask(id) : null, () =>
     client.getTask({ id })
   )
 

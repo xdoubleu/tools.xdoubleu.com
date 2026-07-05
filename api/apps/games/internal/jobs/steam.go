@@ -36,7 +36,7 @@ func (j SteamJob) RunEvery() time.Duration {
 }
 
 func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
-	users, err := j.authService.GetAllUsers()
+	users, err := j.authService.GetAllUsers(ctx)
 	if err != nil {
 		return err
 	}

@@ -98,16 +98,26 @@ apps/<name>/
 
 The `GetCurrentUser` handler (in `cmd/api/connect_auth_handlers.go`) uses a two-layer role resolution pattern:
 
-1. Call `h.app.services.Auth.GetUser(token)` to validate the session and get the GoTrue user (including its `Role` field).
+1. Call `h.app.auth.GetUser(ctx, token)` to validate the session and get the GoTrue user (including its `Role` field).
 2. Call `h.app.appUsersRepo.GetByID(ctx, user.ID)` to retrieve the DB-enriched user record. If found, prefer the DB role over the GoTrue role. If not found, fall back to the GoTrue role.
 
 Any Connect handler that needs DB-enriched user attributes must follow this same fallback pattern rather than relying solely on the GoTrue response.
+
+### Auth (`internal/auth`)
+
+The `Service` interface and its `GoTrueService` implementation (Supabase, via `supabase-community/auth-go`) live together in `internal/auth`. Conventions:
+
+- Every auth method doing I/O takes a `context.Context` first. auth-go v1.5.0 has no context support, so propagation stops at the GoTrue boundary; the DB enrichment queries and the cache do consume it.
+- The middleware (`Access`/`TemplateAccess`/…) resolves users through a **per-token TTL cache** (`AUTH_CACHE_TTL` seconds, default 60, `0` disables — tests use 0 via `testhelper.NewTestConfig`). A cache hit skips the GoTrue round-trip and both enrichment queries, so role/app-access changes and the `last_seen` upsert can lag by up to the TTL.
+- Tokens are evicted on SignOut, UpdatePassword, VerifyMFA, and UnenrollTOTP. Anything that mutates roles or app access for *other* sessions (admin `SetRole`/`SetAppAccess`) must call `InvalidateUserCache()` (clear-all) afterwards.
+- `SignInRenderer` is injected post-construction from `cmd/api` (the templ sign-in page lives there).
 
 ### Shared Internal Packages (`internal/`)
 
 - **`app.Base`** — Embedded struct providing logger, config, and auth service to every app
 - **`app.HTTPError`** — Shared HTTP error type (`Status int`, `Message string`); import as `iapp "tools.xdoubleu.com/internal/app"` in handler files to avoid collision with the app struct
-- **`auth/`** — Supabase GoTrue authentication (`gotrue-go`)
+- **`app.ScrubInternalErrors(logger)`** — Connect handler option that logs CodeInternal/CodeUnknown errors and replaces the client-facing message with a generic one; every `New*ServiceHandler` call must pass it
+- **`auth/`** — Auth interface + `GoTrueService` implementation, middleware, and per-token user cache (see "Auth" above)
 - **`config/`** — Centralized config loaded from `.env` via `xdoubleu/essentia/v4`
 - **`constants/`** — Shared constants
 - **`contacts/`** — Contact management service with editable display names (used by recipes, shopping list, and meal-plan sharing)
@@ -126,7 +136,7 @@ Any Connect handler that needs DB-enriched user attributes must follow this same
 | HTTP | `net/http` + `justinas/alice` (middleware chaining) |
 | RPC | `connectrpc.com/connect` — HTTP/1.1 RPC framework |
 | Database | `jackc/pgx/v5` + `pressly/goose/v3` (migrations) |
-| Auth | `supabase-community/gotrue-go` |
+| Auth | `supabase-community/auth-go` |
 | WebSocket | `coder/websocket` |
 | Error tracking | `getsentry/sentry-go` |
 | Job queue | `xdoubleu/essentia/v4` threading.JobQueue |

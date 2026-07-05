@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (a *Games) Routes(prefix string, mux *http.ServeMux) {
@@ -18,6 +19,7 @@ func (a *Games) Routes(prefix string, mux *http.ServeMux) {
 
 	gamesPath, gamesHandler := gamesv1connect.NewGamesServiceHandler(
 		&gamesConnectHandler{app: a},
+		iapp.ScrubInternalErrors(a.Logger),
 	)
 	mux.Handle(
 		"POST "+gamesPath,
