@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/client'
 import { RoomService } from '@/lib/gen/watchparty/v1/rooms_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function WatchpartyPage() {
   const [roomCode, setRoomCode] = useState('')
@@ -45,7 +46,7 @@ export default function WatchpartyPage() {
   }
 
   return (
-    <main className="max-w-md mx-auto p-6 mt-16">
+    <PageContainer className="max-w-md p-6 mt-16">
       <h1 className="text-3xl font-bold mb-8 text-center">Watch Party</h1>
 
       <div className="mb-8">
@@ -77,6 +78,6 @@ export default function WatchpartyPage() {
       </form>
 
       {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
-    </main>
+    </PageContainer>
   )
 }

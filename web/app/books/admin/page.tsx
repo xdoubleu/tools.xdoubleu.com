@@ -7,6 +7,7 @@ import ManageDuplicatesDialog from '@/components/books/ManageDuplicatesDialog'
 import SelectiveResync from '@/components/books/SelectiveResync'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function BacklogBooksAdminPage() {
   const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
@@ -16,7 +17,7 @@ export default function BacklogBooksAdminPage() {
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
+    <PageContainer className="max-w-2xl px-4 py-10">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Books', href: '/books' }, { label: 'Admin tools' }]}
@@ -109,6 +110,6 @@ export default function BacklogBooksAdminPage() {
       </section>
 
       <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />
-    </main>
+    </PageContainer>
   )
 }

@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PageContainer } from '@/components/ui/page-container'
 
 type MFAEnrollState = 'idle' | 'qr' | 'done'
 
@@ -131,7 +132,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-10 space-y-10">
+    <PageContainer size="narrow" className="px-4 py-10 space-y-10">
       <h1 className="text-xl font-semibold text-fg">Account Settings</h1>
 
       {/* Password */}
@@ -261,6 +262,6 @@ export default function SettingsPage() {
           </div>
         ) : null}
       </section>
-    </main>
+    </PageContainer>
   )
 }

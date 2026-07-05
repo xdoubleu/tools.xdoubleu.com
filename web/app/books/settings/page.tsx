@@ -13,6 +13,7 @@ import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import type { CompareCSVResponse } from '@/lib/gen/books/v1/catalog_pb'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function BacklogBooksSettingsPage() {
   const importBooks = useImportBooks()
@@ -68,7 +69,7 @@ export default function BacklogBooksSettingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-10">
+    <PageContainer size="narrow" className="px-4 py-10">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Books', href: '/books' }, { label: 'Settings' }]}
@@ -182,6 +183,6 @@ export default function BacklogBooksSettingsPage() {
         onOpenChange={setClearDialogOpen}
         onCleared={() => setClearStatus('Library cleared successfully.')}
       />
-    </main>
+    </PageContainer>
   )
 }

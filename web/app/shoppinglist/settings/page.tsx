@@ -5,10 +5,11 @@ import ItemCatalog from '@/components/recipes/ItemCatalog'
 import StoreManager from '@/components/recipes/StoreManager'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function ShoppingListSettingsPage() {
   return (
-    <main className="mx-auto max-w-3xl p-6">
+    <PageContainer className="max-w-3xl p-6">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}
@@ -53,6 +54,6 @@ export default function ShoppingListSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </main>
+    </PageContainer>
   )
 }

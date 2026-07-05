@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useContacts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function ContactsPage() {
   const { data, isLoading, error } = useContacts()
@@ -96,7 +97,7 @@ export default function ContactsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 py-10">
+    <PageContainer className="max-w-lg px-4 py-10">
       <h1 className="mb-6 text-xl font-semibold text-fg">Contacts</h1>
 
       <div className="mb-6 rounded-2xl border border-border bg-card p-4">
@@ -238,6 +239,6 @@ export default function ContactsPage() {
           </ul>
         </section>
       )}
-    </main>
+    </PageContainer>
   )
 }

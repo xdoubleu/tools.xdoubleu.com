@@ -7,6 +7,7 @@ import type { Integrations } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function BacklogGamesSettingsPage() {
   const { data, isLoading, error } = useIntegrations()
@@ -52,7 +53,7 @@ export default function BacklogGamesSettingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-10">
+    <PageContainer size="narrow" className="px-4 py-10">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Games', href: '/games' }, { label: 'Settings' }]}
@@ -90,6 +91,6 @@ export default function BacklogGamesSettingsPage() {
           {saving ? 'Saving…' : 'Save'}
         </Button>
       </form>
-    </main>
+    </PageContainer>
   )
 }

@@ -181,7 +181,7 @@ export default function TodosPage() {
       {/* Shortcut hints */}
       {!hideShortcutHints && <ShortcutHints onDismiss={dismissShortcutHints} />}
 
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-6 md:flex-row">
         <TodosSidebar
           workspaces={workspaces}
           sections={sections}

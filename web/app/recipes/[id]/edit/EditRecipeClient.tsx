@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useRecipe } from '@/hooks/useRecipes'
 import RecipeForm from '@/components/recipes/RecipeForm'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageContainer } from '@/components/ui/page-container'
 
 export default function EditRecipeClient({ id }: { id: string }) {
   const { data, isLoading, error } = useRecipe(id)
@@ -11,7 +12,7 @@ export default function EditRecipeClient({ id }: { id: string }) {
   const recipe = data?.recipe
 
   return (
-    <main className="max-w-2xl mx-auto p-6">
+    <PageContainer className="max-w-2xl p-6">
       <Breadcrumb
         className="mb-4"
         items={[
@@ -30,6 +31,6 @@ export default function EditRecipeClient({ id }: { id: string }) {
           onCancel={() => router.push(`/recipes/${id}`)}
         />
       )}
-    </main>
+    </PageContainer>
   )
 }
