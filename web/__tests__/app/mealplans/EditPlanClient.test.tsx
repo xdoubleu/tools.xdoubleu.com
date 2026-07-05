@@ -53,7 +53,9 @@ describe('EditPlanClient', () => {
 
   it('renders the plan form once loaded', () => {
     mockPlan({
-      data: create(GetPlanResponseSchema, { plan: create(PlanSchema, { id: 'plan-1', name: 'My Plan' }) }),
+      data: create(GetPlanResponseSchema, {
+        plan: create(PlanSchema, { id: 'plan-1', name: 'My Plan' })
+      }),
       isLoading: false
     })
     render(<EditPlanClient id="plan-1" />)

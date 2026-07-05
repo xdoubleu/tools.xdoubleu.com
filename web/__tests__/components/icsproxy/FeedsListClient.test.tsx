@@ -17,10 +17,7 @@ jest.mock('next/link', () => {
 import FeedsListClient from '@/components/icsproxy/FeedsListClient'
 import { useICSFeeds } from '@/hooks/useICSProxy'
 import { create } from '@bufbuild/protobuf'
-import {
-  FilterConfigSchema,
-  ListConfigsResponseSchema
-} from '@/lib/gen/icsproxy/v1/proxy_pb'
+import { FilterConfigSchema, ListConfigsResponseSchema } from '@/lib/gen/icsproxy/v1/proxy_pb'
 import type { ListConfigsResponse } from '@/lib/gen/icsproxy/v1/proxy_pb'
 
 function mockFeeds(value: { data?: ListConfigsResponse; error?: Error; isLoading: boolean }) {
@@ -57,7 +54,9 @@ describe('FeedsListClient', () => {
   it('renders a card per config', () => {
     mockFeeds({
       data: create(ListConfigsResponseSchema, {
-        configs: [create(FilterConfigSchema, { token: 't1', sourceUrl: 'https://cal.example/a.ics' })]
+        configs: [
+          create(FilterConfigSchema, { token: 't1', sourceUrl: 'https://cal.example/a.ics' })
+        ]
       }),
       isLoading: false
     })
