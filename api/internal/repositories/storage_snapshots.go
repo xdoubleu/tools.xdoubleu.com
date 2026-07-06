@@ -30,7 +30,9 @@ func (r *StorageSnapshotsRepository) Insert(
 	if err != nil {
 		return err
 	}
-
+	// Bind as string, not []byte: under the simple query protocol (used by the
+	// production connection pooler) a []byte is encoded as bytea hex, which a
+	// JSONB column rejects with "invalid input syntax for type json".
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO global.storage_snapshots (
 			scanned_at, total_size_bytes, object_count,
@@ -40,7 +42,7 @@ func (r *StorageSnapshotsRepository) Insert(
 	`,
 		snap.ScannedAt, snap.TotalSizeBytes, snap.ObjectCount,
 		snap.OrphanSizeBytes, snap.OrphanCount,
-		snap.StaleUploadSizeBytes, snap.StaleUploadCount, breakdown,
+		snap.StaleUploadSizeBytes, snap.StaleUploadCount, string(breakdown),
 	)
 	if err != nil {
 		return err
