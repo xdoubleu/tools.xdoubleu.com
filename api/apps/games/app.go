@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/observability"
 )
 
 //go:embed migrations/*.sql
@@ -83,7 +84,10 @@ func NewInner(
 
 func (a *Games) Start() error {
 	if err := a.jobQueue.AddJob(
-		jobs.NewSteamJob(a.Services.Auth, a.Services.Steam),
+		observability.NewTrackedJob(
+			jobs.NewSteamJob(a.Services.Auth, a.Services.Steam),
+			a.db,
+		),
 		a.Services.WebSocket.UpdateState,
 	); err != nil {
 		return err

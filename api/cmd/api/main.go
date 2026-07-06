@@ -23,6 +23,7 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
+	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/repositories"
 )
 
@@ -41,6 +42,11 @@ type Application struct {
 	contacts     contacts.Service
 	apps         *Apps
 	appUsersRepo *repositories.AppUsersRepository
+	usage        *observability.UsageRecorder
+	jobRunsRepo  *repositories.JobRunsRepository
+	usageRepo    *repositories.UsageRepository
+	storageRepo  *repositories.StorageSnapshotsRepository
+	dbStatsRepo  *repositories.DBStatsRepository
 }
 
 //	@title			tools
@@ -60,6 +66,9 @@ const (
 	// migrationLockKey identifies the advisory lock that serializes
 	// migration runs across concurrently starting replicas.
 	migrationLockKey = 20260101
+	// usageFlushInterval is how often accumulated request counts are
+	// written to global.usage_daily.
+	usageFlushInterval = time.Minute
 )
 
 func main() {
@@ -69,6 +78,9 @@ func main() {
 
 	logger := slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))
+	// Code that can't receive the injected logger falls back to
+	// slog.Default(); route it through the Sentry handler too.
+	slog.SetDefault(logger)
 	db, err := postgres.Connect(
 		logger,
 		cfg.DBDsn,
@@ -145,6 +157,11 @@ func NewApplication(
 		auth:         authSvc,
 		contacts:     contactsSvc,
 		appUsersRepo: appUsersRepo,
+		usage:        observability.NewUsageRecorder(logger, db),
+		jobRunsRepo:  repositories.NewJobRunsRepository(db),
+		usageRepo:    repositories.NewUsageRepository(db),
+		storageRepo:  repositories.NewStorageSnapshotsRepository(db),
+		dbStatsRepo:  repositories.NewDBStatsRepository(db),
 	}
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
@@ -155,6 +172,10 @@ func NewApplication(
 	if err != nil {
 		panic(err)
 	}
+
+	// Flush accumulated request counts to global.usage_daily periodically;
+	// the loop lives for the process lifetime (ctx is context.Background).
+	app.usage.Start(ctx, usageFlushInterval)
 
 	for _, a := range *app.apps {
 		err = a.Start()

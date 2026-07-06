@@ -8,6 +8,10 @@
 export const swrKeys = {
   currentUser: '/auth/current-user',
   adminUsers: '/admin/users',
+  adminJobStats: (windowDays: number) => ['/admin/job-stats', windowDays] as const,
+  adminUsageStats: (windowDays: number) => ['/admin/usage-stats', windowDays] as const,
+  adminStorageStats: '/admin/storage-stats',
+  adminDatabaseStats: '/admin/database-stats',
   contacts: '/contacts',
   sharedMealPlans: '/sharing/mealplans',
 

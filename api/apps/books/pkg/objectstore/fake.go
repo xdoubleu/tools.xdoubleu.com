@@ -5,13 +5,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 )
 
 type fakeObject struct {
-	data        []byte
-	contentType string
+	data         []byte
+	contentType  string
+	lastModified time.Time
 }
 
 // FakeClient is an in-memory Client for use in tests.
@@ -38,7 +40,11 @@ func (f *FakeClient) Put(
 		return fmt.Errorf("fake put read: %w", err)
 	}
 	f.mu.Lock()
-	f.objects[key] = fakeObject{data: data, contentType: contentType}
+	f.objects[key] = fakeObject{
+		data:         data,
+		contentType:  contentType,
+		lastModified: time.Now(),
+	}
 	f.mu.Unlock()
 	return nil
 }
@@ -99,8 +105,30 @@ func (f *FakeClient) Copy(_ context.Context, srcKey, dstKey string) error {
 	if !ok {
 		return fmt.Errorf("fake copy: src key %q not found", srcKey)
 	}
-	f.objects[dstKey] = fakeObject{data: obj.data, contentType: obj.contentType}
+	f.objects[dstKey] = fakeObject{
+		data:         obj.data,
+		contentType:  obj.contentType,
+		lastModified: time.Now(),
+	}
 	return nil
+}
+
+func (f *FakeClient) List(_ context.Context, prefix string) ([]ObjectInfo, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	var objects []ObjectInfo
+	for key, obj := range f.objects {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		objects = append(objects, ObjectInfo{
+			Key:          key,
+			Size:         int64(len(obj.data)),
+			LastModified: obj.lastModified,
+		})
+	}
+	return objects, nil
 }
 
 // GetContent returns the raw bytes stored at key, for test assertions.
@@ -109,4 +137,16 @@ func (f *FakeClient) GetContent(key string) ([]byte, bool) {
 	obj, ok := f.objects[key]
 	f.mu.RUnlock()
 	return obj.data, ok
+}
+
+// PutAt stores an object with an explicit last-modified time, so tests can
+// simulate stale uploads.
+func (f *FakeClient) PutAt(key string, data []byte, lastModified time.Time) {
+	f.mu.Lock()
+	f.objects[key] = fakeObject{
+		data:         data,
+		contentType:  "application/octet-stream",
+		lastModified: lastModified,
+	}
+	f.mu.Unlock()
 }

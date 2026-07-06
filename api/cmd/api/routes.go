@@ -73,7 +73,10 @@ func (app *Application) Routes() http.Handler {
 	}
 
 	handlers = append(handlers, securityHeadersMiddleware)
-	standard := alice.New(append(handlers, app.domainMiddleware)...)
+	// usageMiddleware runs after domainMiddleware so custom-domain requests
+	// are already rewritten to /<app>/… before their labels are derived.
+	handlers = append(handlers, app.domainMiddleware, app.usageMiddleware)
+	standard := alice.New(handlers...)
 	return standard.Then(mux)
 }
 

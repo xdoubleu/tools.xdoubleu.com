@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { mutate } from 'swr'
 import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
 import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
@@ -79,7 +80,12 @@ export default function AdminUsersClient() {
 
   return (
     <PageContainer className="p-6">
-      <h1 className="mb-6 text-3xl font-bold">User Management</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-bold">User Management</h1>
+        <Button asChild variant="secondary">
+          <Link href="/admin/observability">Observability</Link>
+        </Button>
+      </div>
 
       <div className="overflow-x-auto rounded-2xl border border-border">
         <table className="w-full text-left">

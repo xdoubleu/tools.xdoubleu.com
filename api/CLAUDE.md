@@ -123,7 +123,8 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 - **`contacts/`** — Contact management service with editable display names (used by recipes, shopping list, and meal-plan sharing)
 - **`crypto/`** — Encryption utilities
 - **`models/`** — Shared domain models
-- **`repositories/`** — Shared DB repositories
+- **`repositories/`** — Shared DB repositories over the `global` schema (users, contacts, and the observability tables: `JobRunsRepository`, `UsageRepository`, `StorageSnapshotsRepository`, `DBStatsRepository`)
+- **`observability/`** — Cross-cutting instrumentation. `TrackedJob` decorates any `threading.Job` so every run is timed and recorded in `global.job_runs`, panics are recovered, and failures log at Error level (so they reach Sentry); wrap jobs at registration (see `apps/{todos,games,books}/app.go`). `UsageRecorder` counts requests per `(day, app, endpoint)` in memory and flushes to `global.usage_daily`; the counting `usageMiddleware` sits in the `cmd/api` alice chain after `domainMiddleware`.
 - **`progressws/`** — WebSocket service broadcasting background-job progress (start/stop state, live "X of N" counts) keyed by job-ID topics
 - **`progresshistory/`** — Generic cumulative-progress storage with carry-forward reads (used by games and books progress graphs)
 - **`mocks/`** — Shared mock implementations
@@ -146,7 +147,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 ### Apps
 
 - **games** — Steam backlog tracker: library sync, achievements, completion rate progress/distribution, and the user's Steam integration settings. External client package lives in `pkg/steam/`. Has a background sync job (1 worker) and WebSocket live updates. Uses `games` DB schema (adopted from the former `backlog` schema).
-- **books** — Book library and e-reader companion. Book metadata enrichment uses Open Library then Google Books as fallback (set `GOOGLE_BOOKS_API_KEY` for higher rate limits); ISBN-less books are matched by title+author. External client packages live in `pkg/openlibrary/`, `pkg/googlebooks/`, `pkg/unicat/`. Serves the raw Kobo sync protocol under `/books/kobo/{token}/…` and a public cover proxy. Has background jobs (2 workers) and WebSocket live updates. Uses `books` DB schema (adopted from the former `backlog` schema).
+- **books** — Book library and e-reader companion. Book metadata enrichment uses Open Library then Google Books as fallback (set `GOOGLE_BOOKS_API_KEY` for higher rate limits); ISBN-less books are matched by title+author. External client packages live in `pkg/openlibrary/`, `pkg/googlebooks/`, `pkg/unicat/`. Serves the raw Kobo sync protocol under `/books/kobo/{token}/…` and a public cover proxy. Has background jobs (2 workers) and WebSocket live updates, including a daily R2 bucket scan (`books-storage-scan`) that writes a `global.storage_snapshots` row for the admin dashboard. The object-store `Client` (`pkg/objectstore/`) exposes a paginated `List` used by that scan. Uses `books` DB schema (adopted from the former `backlog` schema).
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no background jobs.
 - **icsproxy** — ICS calendar feed filtering and proxying. Uses `icsproxy` DB schema.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (`recipebook_access`, view-only or edit). Uses `recipes` DB schema.
@@ -157,6 +158,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 ### Database Conventions
 
 - Each app uses its own PostgreSQL schema (e.g., `books`, `icsproxy`)
+- Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The admin observability RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_admin_stats.go`) read these plus live `pg_*` size queries.
 - Migrations live in `apps/<name>/migrations/` and follow Goose SQL format
 - `updated_at` columns are managed via PostgreSQL triggers
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking

@@ -245,9 +245,25 @@ func (rs *RoomService) startCleanup(
 		defer ticker.Stop()
 
 		for range ticker.C {
-			rs.cleanupOldRooms(ctx, maxAge)
+			rs.runCleanupTick(ctx, maxAge)
 		}
 	}()
+}
+
+// runCleanupTick recovers panics so one bad tick cannot silently kill the
+// cleanup goroutine for the lifetime of the process.
+func (rs *RoomService) runCleanupTick(ctx context.Context, maxAge time.Duration) {
+	defer func() {
+		if r := recover(); r != nil {
+			rs.logger.ErrorContext(
+				ctx,
+				"room cleanup panicked",
+				slog.Any("panic", r),
+			)
+		}
+	}()
+
+	rs.cleanupOldRooms(ctx, maxAge)
 }
 
 func (rs *RoomService) cleanupOldRooms(ctx context.Context, maxAge time.Duration) {

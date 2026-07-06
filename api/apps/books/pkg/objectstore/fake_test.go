@@ -190,3 +190,41 @@ func TestFake_GetContent(t *testing.T) {
 	_, ok = f.GetContent("nonexistent")
 	assert.False(t, ok)
 }
+
+func TestFake_List(t *testing.T) {
+	t.Parallel()
+
+	f := objectstore.NewFake()
+	ctx := context.Background()
+
+	r := strings.NewReader("hello")
+	require.NoError(t, f.Put(ctx, "books/1/abc.epub", r, int64(r.Len()), "epub"))
+	r2 := strings.NewReader("hi")
+	require.NoError(
+		t,
+		f.Put(ctx, "users/u1/uploads/tmp.epub", r2, int64(r2.Len()), "epub"),
+	)
+
+	all, err := f.List(ctx, "")
+	require.NoError(t, err)
+	assert.Len(t, all, 2)
+
+	booksOnly, err := f.List(ctx, "books/")
+	require.NoError(t, err)
+	require.Len(t, booksOnly, 1)
+	assert.Equal(t, "books/1/abc.epub", booksOnly[0].Key)
+	assert.Equal(t, int64(5), booksOnly[0].Size)
+}
+
+func TestFake_PutAt(t *testing.T) {
+	t.Parallel()
+
+	f := objectstore.NewFake()
+	old := time.Now().Add(-30 * 24 * time.Hour)
+	f.PutAt("users/u1/uploads/stale.epub", []byte("data"), old)
+
+	objs, err := f.List(context.Background(), "users/")
+	require.NoError(t, err)
+	require.Len(t, objs, 1)
+	assert.WithinDuration(t, old, objs[0].LastModified, time.Second)
+}

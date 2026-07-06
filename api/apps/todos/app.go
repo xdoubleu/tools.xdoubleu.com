@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/observability"
 )
 
 //go:embed migrations/*.sql
@@ -23,9 +24,10 @@ var embedMigrations embed.FS
 
 type Todos struct {
 	app.Base
-	services *services.Services
-	repos    *repositories.Repositories
-	jobQueue *threading.JobQueue
+	services   *services.Services
+	repos      *repositories.Repositories
+	jobQueue   *threading.JobQueue
+	archiveJob *observability.TrackedJob
 }
 
 func New(
@@ -50,6 +52,10 @@ func New(
 
 	a.repos = repositories.New(db)
 	a.services = services.New(a.Logger, a.repos, authService)
+	a.archiveJob = observability.NewTrackedJob(
+		jobs.NewArchiveJob(a.repos.Tasks),
+		db,
+	)
 
 	return a
 }
@@ -60,7 +66,7 @@ func (a *Todos) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 
 func (a *Todos) Start() error {
 	noop := func(_ string, _ bool, _ *time.Time) {}
-	return a.jobQueue.AddJob(jobs.NewArchiveJob(a.repos.Tasks), noop)
+	return a.jobQueue.AddJob(a.archiveJob, noop)
 }
 
 func (a *Todos) GetName() string {
