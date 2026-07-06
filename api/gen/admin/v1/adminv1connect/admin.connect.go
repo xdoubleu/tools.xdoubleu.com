@@ -40,6 +40,18 @@ const (
 	// AdminServiceSetAppAccessProcedure is the fully-qualified name of the AdminService's SetAppAccess
 	// RPC.
 	AdminServiceSetAppAccessProcedure = "/admin.v1.AdminService/SetAppAccess"
+	// AdminServiceGetJobStatsProcedure is the fully-qualified name of the AdminService's GetJobStats
+	// RPC.
+	AdminServiceGetJobStatsProcedure = "/admin.v1.AdminService/GetJobStats"
+	// AdminServiceGetUsageStatsProcedure is the fully-qualified name of the AdminService's
+	// GetUsageStats RPC.
+	AdminServiceGetUsageStatsProcedure = "/admin.v1.AdminService/GetUsageStats"
+	// AdminServiceGetStorageStatsProcedure is the fully-qualified name of the AdminService's
+	// GetStorageStats RPC.
+	AdminServiceGetStorageStatsProcedure = "/admin.v1.AdminService/GetStorageStats"
+	// AdminServiceGetDatabaseStatsProcedure is the fully-qualified name of the AdminService's
+	// GetDatabaseStats RPC.
+	AdminServiceGetDatabaseStatsProcedure = "/admin.v1.AdminService/GetDatabaseStats"
 )
 
 // AdminServiceClient is a client for the admin.v1.AdminService service.
@@ -47,6 +59,10 @@ type AdminServiceClient interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
 	SetRole(context.Context, *connect.Request[v1.SetRoleRequest]) (*connect.Response[v1.SetRoleResponse], error)
 	SetAppAccess(context.Context, *connect.Request[v1.SetAppAccessRequest]) (*connect.Response[v1.SetAppAccessResponse], error)
+	GetJobStats(context.Context, *connect.Request[v1.GetJobStatsRequest]) (*connect.Response[v1.GetJobStatsResponse], error)
+	GetUsageStats(context.Context, *connect.Request[v1.GetUsageStatsRequest]) (*connect.Response[v1.GetUsageStatsResponse], error)
+	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
+	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the admin.v1.AdminService service. By default, it
@@ -78,14 +94,42 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(adminServiceMethods.ByName("SetAppAccess")),
 			connect.WithClientOptions(opts...),
 		),
+		getJobStats: connect.NewClient[v1.GetJobStatsRequest, v1.GetJobStatsResponse](
+			httpClient,
+			baseURL+AdminServiceGetJobStatsProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetJobStats")),
+			connect.WithClientOptions(opts...),
+		),
+		getUsageStats: connect.NewClient[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse](
+			httpClient,
+			baseURL+AdminServiceGetUsageStatsProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetUsageStats")),
+			connect.WithClientOptions(opts...),
+		),
+		getStorageStats: connect.NewClient[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse](
+			httpClient,
+			baseURL+AdminServiceGetStorageStatsProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetStorageStats")),
+			connect.WithClientOptions(opts...),
+		),
+		getDatabaseStats: connect.NewClient[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse](
+			httpClient,
+			baseURL+AdminServiceGetDatabaseStatsProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetDatabaseStats")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // adminServiceClient implements AdminServiceClient.
 type adminServiceClient struct {
-	listUsers    *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
-	setRole      *connect.Client[v1.SetRoleRequest, v1.SetRoleResponse]
-	setAppAccess *connect.Client[v1.SetAppAccessRequest, v1.SetAppAccessResponse]
+	listUsers        *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
+	setRole          *connect.Client[v1.SetRoleRequest, v1.SetRoleResponse]
+	setAppAccess     *connect.Client[v1.SetAppAccessRequest, v1.SetAppAccessResponse]
+	getJobStats      *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
+	getUsageStats    *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
+	getStorageStats  *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
+	getDatabaseStats *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
 }
 
 // ListUsers calls admin.v1.AdminService.ListUsers.
@@ -103,11 +147,35 @@ func (c *adminServiceClient) SetAppAccess(ctx context.Context, req *connect.Requ
 	return c.setAppAccess.CallUnary(ctx, req)
 }
 
+// GetJobStats calls admin.v1.AdminService.GetJobStats.
+func (c *adminServiceClient) GetJobStats(ctx context.Context, req *connect.Request[v1.GetJobStatsRequest]) (*connect.Response[v1.GetJobStatsResponse], error) {
+	return c.getJobStats.CallUnary(ctx, req)
+}
+
+// GetUsageStats calls admin.v1.AdminService.GetUsageStats.
+func (c *adminServiceClient) GetUsageStats(ctx context.Context, req *connect.Request[v1.GetUsageStatsRequest]) (*connect.Response[v1.GetUsageStatsResponse], error) {
+	return c.getUsageStats.CallUnary(ctx, req)
+}
+
+// GetStorageStats calls admin.v1.AdminService.GetStorageStats.
+func (c *adminServiceClient) GetStorageStats(ctx context.Context, req *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error) {
+	return c.getStorageStats.CallUnary(ctx, req)
+}
+
+// GetDatabaseStats calls admin.v1.AdminService.GetDatabaseStats.
+func (c *adminServiceClient) GetDatabaseStats(ctx context.Context, req *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error) {
+	return c.getDatabaseStats.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the admin.v1.AdminService service.
 type AdminServiceHandler interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
 	SetRole(context.Context, *connect.Request[v1.SetRoleRequest]) (*connect.Response[v1.SetRoleResponse], error)
 	SetAppAccess(context.Context, *connect.Request[v1.SetAppAccessRequest]) (*connect.Response[v1.SetAppAccessResponse], error)
+	GetJobStats(context.Context, *connect.Request[v1.GetJobStatsRequest]) (*connect.Response[v1.GetJobStatsResponse], error)
+	GetUsageStats(context.Context, *connect.Request[v1.GetUsageStatsRequest]) (*connect.Response[v1.GetUsageStatsResponse], error)
+	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
+	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -135,6 +203,30 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(adminServiceMethods.ByName("SetAppAccess")),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceGetJobStatsHandler := connect.NewUnaryHandler(
+		AdminServiceGetJobStatsProcedure,
+		svc.GetJobStats,
+		connect.WithSchema(adminServiceMethods.ByName("GetJobStats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceGetUsageStatsHandler := connect.NewUnaryHandler(
+		AdminServiceGetUsageStatsProcedure,
+		svc.GetUsageStats,
+		connect.WithSchema(adminServiceMethods.ByName("GetUsageStats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceGetStorageStatsHandler := connect.NewUnaryHandler(
+		AdminServiceGetStorageStatsProcedure,
+		svc.GetStorageStats,
+		connect.WithSchema(adminServiceMethods.ByName("GetStorageStats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceGetDatabaseStatsHandler := connect.NewUnaryHandler(
+		AdminServiceGetDatabaseStatsProcedure,
+		svc.GetDatabaseStats,
+		connect.WithSchema(adminServiceMethods.ByName("GetDatabaseStats")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/admin.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServiceListUsersProcedure:
@@ -143,6 +235,14 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceSetRoleHandler.ServeHTTP(w, r)
 		case AdminServiceSetAppAccessProcedure:
 			adminServiceSetAppAccessHandler.ServeHTTP(w, r)
+		case AdminServiceGetJobStatsProcedure:
+			adminServiceGetJobStatsHandler.ServeHTTP(w, r)
+		case AdminServiceGetUsageStatsProcedure:
+			adminServiceGetUsageStatsHandler.ServeHTTP(w, r)
+		case AdminServiceGetStorageStatsProcedure:
+			adminServiceGetStorageStatsHandler.ServeHTTP(w, r)
+		case AdminServiceGetDatabaseStatsProcedure:
+			adminServiceGetDatabaseStatsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -162,4 +262,20 @@ func (UnimplementedAdminServiceHandler) SetRole(context.Context, *connect.Reques
 
 func (UnimplementedAdminServiceHandler) SetAppAccess(context.Context, *connect.Request[v1.SetAppAccessRequest]) (*connect.Response[v1.SetAppAccessResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("admin.v1.AdminService.SetAppAccess is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetJobStats(context.Context, *connect.Request[v1.GetJobStatsRequest]) (*connect.Response[v1.GetJobStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("admin.v1.AdminService.GetJobStats is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetUsageStats(context.Context, *connect.Request[v1.GetUsageStatsRequest]) (*connect.Response[v1.GetUsageStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("admin.v1.AdminService.GetUsageStats is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("admin.v1.AdminService.GetStorageStats is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("admin.v1.AdminService.GetDatabaseStats is not implemented"))
 }

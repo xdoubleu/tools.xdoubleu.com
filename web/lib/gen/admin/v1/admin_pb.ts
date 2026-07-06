@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file admin/v1/admin.proto.
  */
 export const file_admin_v1_admin: GenFile = /*@__PURE__*/
-  fileDesc("ChRhZG1pbi92MS9hZG1pbi5wcm90bxIIYWRtaW4udjEiRgoHQXBwVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJEhIKCmFwcF9hY2Nlc3MYBCADKAkiEgoQTGlzdFVzZXJzUmVxdWVzdCI1ChFMaXN0VXNlcnNSZXNwb25zZRIgCgV1c2VycxgBIAMoCzIRLmFkbWluLnYxLkFwcFVzZXIiLwoOU2V0Um9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjIKD1NldFJvbGVSZXNwb25zZRIfCgR1c2VyGAEgASgLMhEuYWRtaW4udjEuQXBwVXNlciJHChNTZXRBcHBBY2Nlc3NSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSEAoIYXBwX25hbWUYAiABKAkSDQoFZ3JhbnQYAyABKAgiNwoUU2V0QXBwQWNjZXNzUmVzcG9uc2USHwoEdXNlchgBIAEoCzIRLmFkbWluLnYxLkFwcFVzZXIy4wEKDEFkbWluU2VydmljZRJECglMaXN0VXNlcnMSGi5hZG1pbi52MS5MaXN0VXNlcnNSZXF1ZXN0GhsuYWRtaW4udjEuTGlzdFVzZXJzUmVzcG9uc2USPgoHU2V0Um9sZRIYLmFkbWluLnYxLlNldFJvbGVSZXF1ZXN0GhkuYWRtaW4udjEuU2V0Um9sZVJlc3BvbnNlEk0KDFNldEFwcEFjY2VzcxIdLmFkbWluLnYxLlNldEFwcEFjY2Vzc1JlcXVlc3QaHi5hZG1pbi52MS5TZXRBcHBBY2Nlc3NSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2FkbWluL3YxO2FkbWludjFiBnByb3RvMw");
+  fileDesc("ChRhZG1pbi92MS9hZG1pbi5wcm90bxIIYWRtaW4udjEiRgoHQXBwVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJEhIKCmFwcF9hY2Nlc3MYBCADKAkiEgoQTGlzdFVzZXJzUmVxdWVzdCI1ChFMaXN0VXNlcnNSZXNwb25zZRIgCgV1c2VycxgBIAMoCzIRLmFkbWluLnYxLkFwcFVzZXIiLwoOU2V0Um9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjIKD1NldFJvbGVSZXNwb25zZRIfCgR1c2VyGAEgASgLMhEuYWRtaW4udjEuQXBwVXNlciJHChNTZXRBcHBBY2Nlc3NSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSEAoIYXBwX25hbWUYAiABKAkSDQoFZ3JhbnQYAyABKAgiNwoUU2V0QXBwQWNjZXNzUmVzcG9uc2USHwoEdXNlchgBIAEoCzIRLmFkbWluLnYxLkFwcFVzZXIicAoHSm9iU3RhdBIOCgZqb2JfaWQYASABKAkSEgoKdG90YWxfcnVucxgCIAEoAxITCgtmYWlsZWRfcnVucxgDIAEoAxIXCg9hdmdfZHVyYXRpb25fbXMYBCABKAMSEwoLbGFzdF9ydW5fYXQYBSABKAkiYQoGSm9iUnVuEg4KBmpvYl9pZBgBIAEoCRISCgpzdGFydGVkX2F0GAIgASgJEhMKC2R1cmF0aW9uX21zGAMgASgDEg8KB3N1Y2Nlc3MYBCABKAgSDQoFZXJyb3IYBSABKAkiKQoSR2V0Sm9iU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIl4KE0dldEpvYlN0YXRzUmVzcG9uc2USIAoFc3RhdHMYASADKAsyES5hZG1pbi52MS5Kb2JTdGF0EiUKC3JlY2VudF9ydW5zGAIgAygLMhAuYWRtaW4udjEuSm9iUnVuIkUKCFVzYWdlRGF5EgsKA2RheRgBIAEoCRILCgNhcHAYAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSDQoFY291bnQYBCABKAMiKwoUR2V0VXNhZ2VTdGF0c1JlcXVlc3QSEwoLd2luZG93X2RheXMYASABKAUiPAoVR2V0VXNhZ2VTdGF0c1Jlc3BvbnNlEiMKB2VudHJpZXMYASADKAsyEi5hZG1pbi52MS5Vc2FnZURheSI/CgpQcmVmaXhTdGF0Eg4KBnByZWZpeBgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEg0KBWNvdW50GAMgASgDIvMBCg9TdG9yYWdlU25hcHNob3QSEgoKc2Nhbm5lZF9hdBgBIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAIgASgDEhQKDG9iamVjdF9jb3VudBgDIAEoAxIZChFvcnBoYW5fc2l6ZV9ieXRlcxgEIAEoAxIUCgxvcnBoYW5fY291bnQYBSABKAMSHwoXc3RhbGVfdXBsb2FkX3NpemVfYnl0ZXMYBiABKAMSGgoSc3RhbGVfdXBsb2FkX2NvdW50GAcgASgDEi4KEHByZWZpeF9icmVha2Rvd24YCCADKAsyFC5hZG1pbi52MS5QcmVmaXhTdGF0IhgKFkdldFN0b3JhZ2VTdGF0c1JlcXVlc3QicAoXR2V0U3RvcmFnZVN0YXRzUmVzcG9uc2USKQoGbGF0ZXN0GAEgASgLMhkuYWRtaW4udjEuU3RvcmFnZVNuYXBzaG90EioKB2hpc3RvcnkYAiADKAsyGS5hZG1pbi52MS5TdG9yYWdlU25hcHNob3QiQwoKU2NoZW1hU3RhdBIMCgRuYW1lGAEgASgJEhIKCnNpemVfYnl0ZXMYAiABKAMSEwoLdGFibGVfY291bnQYAyABKAMiGQoXR2V0RGF0YWJhc2VTdGF0c1JlcXVlc3QiWwoYR2V0RGF0YWJhc2VTdGF0c1Jlc3BvbnNlEhgKEHRvdGFsX3NpemVfYnl0ZXMYASABKAMSJQoHc2NoZW1hcxgCIAMoCzIULmFkbWluLnYxLlNjaGVtYVN0YXQytAQKDEFkbWluU2VydmljZRJECglMaXN0VXNlcnMSGi5hZG1pbi52MS5MaXN0VXNlcnNSZXF1ZXN0GhsuYWRtaW4udjEuTGlzdFVzZXJzUmVzcG9uc2USPgoHU2V0Um9sZRIYLmFkbWluLnYxLlNldFJvbGVSZXF1ZXN0GhkuYWRtaW4udjEuU2V0Um9sZVJlc3BvbnNlEk0KDFNldEFwcEFjY2VzcxIdLmFkbWluLnYxLlNldEFwcEFjY2Vzc1JlcXVlc3QaHi5hZG1pbi52MS5TZXRBcHBBY2Nlc3NSZXNwb25zZRJKCgtHZXRKb2JTdGF0cxIcLmFkbWluLnYxLkdldEpvYlN0YXRzUmVxdWVzdBodLmFkbWluLnYxLkdldEpvYlN0YXRzUmVzcG9uc2USUAoNR2V0VXNhZ2VTdGF0cxIeLmFkbWluLnYxLkdldFVzYWdlU3RhdHNSZXF1ZXN0Gh8uYWRtaW4udjEuR2V0VXNhZ2VTdGF0c1Jlc3BvbnNlElYKD0dldFN0b3JhZ2VTdGF0cxIgLmFkbWluLnYxLkdldFN0b3JhZ2VTdGF0c1JlcXVlc3QaIS5hZG1pbi52MS5HZXRTdG9yYWdlU3RhdHNSZXNwb25zZRJZChBHZXREYXRhYmFzZVN0YXRzEiEuYWRtaW4udjEuR2V0RGF0YWJhc2VTdGF0c1JlcXVlc3QaIi5hZG1pbi52MS5HZXREYXRhYmFzZVN0YXRzUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9hZG1pbi92MTthZG1pbnYxYgZwcm90bzM");
 
 /**
  * @generated from message admin.v1.AppUser
@@ -158,6 +158,369 @@ export const SetAppAccessResponseSchema: GenMessage<SetAppAccessResponse> = /*@_
   messageDesc(file_admin_v1_admin, 6);
 
 /**
+ * @generated from message admin.v1.JobStat
+ */
+export type JobStat = Message<"admin.v1.JobStat"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+
+  /**
+   * @generated from field: int64 total_runs = 2;
+   */
+  totalRuns: bigint;
+
+  /**
+   * @generated from field: int64 failed_runs = 3;
+   */
+  failedRuns: bigint;
+
+  /**
+   * @generated from field: int64 avg_duration_ms = 4;
+   */
+  avgDurationMs: bigint;
+
+  /**
+   * RFC3339
+   *
+   * @generated from field: string last_run_at = 5;
+   */
+  lastRunAt: string;
+};
+
+/**
+ * Describes the message admin.v1.JobStat.
+ * Use `create(JobStatSchema)` to create a new message.
+ */
+export const JobStatSchema: GenMessage<JobStat> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 7);
+
+/**
+ * @generated from message admin.v1.JobRun
+ */
+export type JobRun = Message<"admin.v1.JobRun"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+
+  /**
+   * RFC3339
+   *
+   * @generated from field: string started_at = 2;
+   */
+  startedAt: string;
+
+  /**
+   * @generated from field: int64 duration_ms = 3;
+   */
+  durationMs: bigint;
+
+  /**
+   * @generated from field: bool success = 4;
+   */
+  success: boolean;
+
+  /**
+   * @generated from field: string error = 5;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message admin.v1.JobRun.
+ * Use `create(JobRunSchema)` to create a new message.
+ */
+export const JobRunSchema: GenMessage<JobRun> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 8);
+
+/**
+ * @generated from message admin.v1.GetJobStatsRequest
+ */
+export type GetJobStatsRequest = Message<"admin.v1.GetJobStatsRequest"> & {
+  /**
+   * @generated from field: int32 window_days = 1;
+   */
+  windowDays: number;
+};
+
+/**
+ * Describes the message admin.v1.GetJobStatsRequest.
+ * Use `create(GetJobStatsRequestSchema)` to create a new message.
+ */
+export const GetJobStatsRequestSchema: GenMessage<GetJobStatsRequest> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 9);
+
+/**
+ * @generated from message admin.v1.GetJobStatsResponse
+ */
+export type GetJobStatsResponse = Message<"admin.v1.GetJobStatsResponse"> & {
+  /**
+   * @generated from field: repeated admin.v1.JobStat stats = 1;
+   */
+  stats: JobStat[];
+
+  /**
+   * @generated from field: repeated admin.v1.JobRun recent_runs = 2;
+   */
+  recentRuns: JobRun[];
+};
+
+/**
+ * Describes the message admin.v1.GetJobStatsResponse.
+ * Use `create(GetJobStatsResponseSchema)` to create a new message.
+ */
+export const GetJobStatsResponseSchema: GenMessage<GetJobStatsResponse> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 10);
+
+/**
+ * @generated from message admin.v1.UsageDay
+ */
+export type UsageDay = Message<"admin.v1.UsageDay"> & {
+  /**
+   * YYYY-MM-DD
+   *
+   * @generated from field: string day = 1;
+   */
+  day: string;
+
+  /**
+   * @generated from field: string app = 2;
+   */
+  app: string;
+
+  /**
+   * @generated from field: string endpoint = 3;
+   */
+  endpoint: string;
+
+  /**
+   * @generated from field: int64 count = 4;
+   */
+  count: bigint;
+};
+
+/**
+ * Describes the message admin.v1.UsageDay.
+ * Use `create(UsageDaySchema)` to create a new message.
+ */
+export const UsageDaySchema: GenMessage<UsageDay> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 11);
+
+/**
+ * @generated from message admin.v1.GetUsageStatsRequest
+ */
+export type GetUsageStatsRequest = Message<"admin.v1.GetUsageStatsRequest"> & {
+  /**
+   * @generated from field: int32 window_days = 1;
+   */
+  windowDays: number;
+};
+
+/**
+ * Describes the message admin.v1.GetUsageStatsRequest.
+ * Use `create(GetUsageStatsRequestSchema)` to create a new message.
+ */
+export const GetUsageStatsRequestSchema: GenMessage<GetUsageStatsRequest> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 12);
+
+/**
+ * @generated from message admin.v1.GetUsageStatsResponse
+ */
+export type GetUsageStatsResponse = Message<"admin.v1.GetUsageStatsResponse"> & {
+  /**
+   * @generated from field: repeated admin.v1.UsageDay entries = 1;
+   */
+  entries: UsageDay[];
+};
+
+/**
+ * Describes the message admin.v1.GetUsageStatsResponse.
+ * Use `create(GetUsageStatsResponseSchema)` to create a new message.
+ */
+export const GetUsageStatsResponseSchema: GenMessage<GetUsageStatsResponse> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 13);
+
+/**
+ * @generated from message admin.v1.PrefixStat
+ */
+export type PrefixStat = Message<"admin.v1.PrefixStat"> & {
+  /**
+   * @generated from field: string prefix = 1;
+   */
+  prefix: string;
+
+  /**
+   * @generated from field: int64 size_bytes = 2;
+   */
+  sizeBytes: bigint;
+
+  /**
+   * @generated from field: int64 count = 3;
+   */
+  count: bigint;
+};
+
+/**
+ * Describes the message admin.v1.PrefixStat.
+ * Use `create(PrefixStatSchema)` to create a new message.
+ */
+export const PrefixStatSchema: GenMessage<PrefixStat> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 14);
+
+/**
+ * @generated from message admin.v1.StorageSnapshot
+ */
+export type StorageSnapshot = Message<"admin.v1.StorageSnapshot"> & {
+  /**
+   * RFC3339
+   *
+   * @generated from field: string scanned_at = 1;
+   */
+  scannedAt: string;
+
+  /**
+   * @generated from field: int64 total_size_bytes = 2;
+   */
+  totalSizeBytes: bigint;
+
+  /**
+   * @generated from field: int64 object_count = 3;
+   */
+  objectCount: bigint;
+
+  /**
+   * @generated from field: int64 orphan_size_bytes = 4;
+   */
+  orphanSizeBytes: bigint;
+
+  /**
+   * @generated from field: int64 orphan_count = 5;
+   */
+  orphanCount: bigint;
+
+  /**
+   * @generated from field: int64 stale_upload_size_bytes = 6;
+   */
+  staleUploadSizeBytes: bigint;
+
+  /**
+   * @generated from field: int64 stale_upload_count = 7;
+   */
+  staleUploadCount: bigint;
+
+  /**
+   * @generated from field: repeated admin.v1.PrefixStat prefix_breakdown = 8;
+   */
+  prefixBreakdown: PrefixStat[];
+};
+
+/**
+ * Describes the message admin.v1.StorageSnapshot.
+ * Use `create(StorageSnapshotSchema)` to create a new message.
+ */
+export const StorageSnapshotSchema: GenMessage<StorageSnapshot> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 15);
+
+/**
+ * @generated from message admin.v1.GetStorageStatsRequest
+ */
+export type GetStorageStatsRequest = Message<"admin.v1.GetStorageStatsRequest"> & {
+};
+
+/**
+ * Describes the message admin.v1.GetStorageStatsRequest.
+ * Use `create(GetStorageStatsRequestSchema)` to create a new message.
+ */
+export const GetStorageStatsRequestSchema: GenMessage<GetStorageStatsRequest> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 16);
+
+/**
+ * @generated from message admin.v1.GetStorageStatsResponse
+ */
+export type GetStorageStatsResponse = Message<"admin.v1.GetStorageStatsResponse"> & {
+  /**
+   * @generated from field: admin.v1.StorageSnapshot latest = 1;
+   */
+  latest?: StorageSnapshot | undefined;
+
+  /**
+   * @generated from field: repeated admin.v1.StorageSnapshot history = 2;
+   */
+  history: StorageSnapshot[];
+};
+
+/**
+ * Describes the message admin.v1.GetStorageStatsResponse.
+ * Use `create(GetStorageStatsResponseSchema)` to create a new message.
+ */
+export const GetStorageStatsResponseSchema: GenMessage<GetStorageStatsResponse> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 17);
+
+/**
+ * @generated from message admin.v1.SchemaStat
+ */
+export type SchemaStat = Message<"admin.v1.SchemaStat"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: int64 size_bytes = 2;
+   */
+  sizeBytes: bigint;
+
+  /**
+   * @generated from field: int64 table_count = 3;
+   */
+  tableCount: bigint;
+};
+
+/**
+ * Describes the message admin.v1.SchemaStat.
+ * Use `create(SchemaStatSchema)` to create a new message.
+ */
+export const SchemaStatSchema: GenMessage<SchemaStat> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 18);
+
+/**
+ * @generated from message admin.v1.GetDatabaseStatsRequest
+ */
+export type GetDatabaseStatsRequest = Message<"admin.v1.GetDatabaseStatsRequest"> & {
+};
+
+/**
+ * Describes the message admin.v1.GetDatabaseStatsRequest.
+ * Use `create(GetDatabaseStatsRequestSchema)` to create a new message.
+ */
+export const GetDatabaseStatsRequestSchema: GenMessage<GetDatabaseStatsRequest> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 19);
+
+/**
+ * @generated from message admin.v1.GetDatabaseStatsResponse
+ */
+export type GetDatabaseStatsResponse = Message<"admin.v1.GetDatabaseStatsResponse"> & {
+  /**
+   * @generated from field: int64 total_size_bytes = 1;
+   */
+  totalSizeBytes: bigint;
+
+  /**
+   * @generated from field: repeated admin.v1.SchemaStat schemas = 2;
+   */
+  schemas: SchemaStat[];
+};
+
+/**
+ * Describes the message admin.v1.GetDatabaseStatsResponse.
+ * Use `create(GetDatabaseStatsResponseSchema)` to create a new message.
+ */
+export const GetDatabaseStatsResponseSchema: GenMessage<GetDatabaseStatsResponse> = /*@__PURE__*/
+  messageDesc(file_admin_v1_admin, 20);
+
+/**
  * @generated from service admin.v1.AdminService
  */
 export const AdminService: GenService<{
@@ -184,6 +547,38 @@ export const AdminService: GenService<{
     methodKind: "unary";
     input: typeof SetAppAccessRequestSchema;
     output: typeof SetAppAccessResponseSchema;
+  },
+  /**
+   * @generated from rpc admin.v1.AdminService.GetJobStats
+   */
+  getJobStats: {
+    methodKind: "unary";
+    input: typeof GetJobStatsRequestSchema;
+    output: typeof GetJobStatsResponseSchema;
+  },
+  /**
+   * @generated from rpc admin.v1.AdminService.GetUsageStats
+   */
+  getUsageStats: {
+    methodKind: "unary";
+    input: typeof GetUsageStatsRequestSchema;
+    output: typeof GetUsageStatsResponseSchema;
+  },
+  /**
+   * @generated from rpc admin.v1.AdminService.GetStorageStats
+   */
+  getStorageStats: {
+    methodKind: "unary";
+    input: typeof GetStorageStatsRequestSchema;
+    output: typeof GetStorageStatsResponseSchema;
+  },
+  /**
+   * @generated from rpc admin.v1.AdminService.GetDatabaseStats
+   */
+  getDatabaseStats: {
+    methodKind: "unary";
+    input: typeof GetDatabaseStatsRequestSchema;
+    output: typeof GetDatabaseStatsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_admin_v1_admin, 0);
