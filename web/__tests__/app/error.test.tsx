@@ -1,5 +1,17 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+
+jest.mock('@sentry/nextjs', () => ({
+  captureException: jest.fn()
+}))
+
+import * as Sentry from '@sentry/nextjs'
 import ErrorBoundary from '@/app/error'
+
+const mockCaptureException = jest.mocked(Sentry.captureException)
+
+beforeEach(() => {
+  jest.clearAllMocks()
+})
 
 describe('ErrorBoundary', () => {
   it('renders the digest when present and resets on click', () => {
@@ -17,5 +29,15 @@ describe('ErrorBoundary', () => {
   it('renders a generic message without a digest', () => {
     render(<ErrorBoundary error={new Error('boom')} reset={jest.fn()} />)
     expect(screen.getByText('An unexpected error occurred.')).toBeInTheDocument()
+  })
+
+  it('reports the error to Sentry on mount', async () => {
+    const error = new Error('boom')
+    render(<ErrorBoundary error={error} reset={jest.fn()} />)
+
+    await waitFor(() => {
+      expect(mockCaptureException).toHaveBeenCalledTimes(1)
+      expect(mockCaptureException).toHaveBeenCalledWith(error)
+    })
   })
 })
