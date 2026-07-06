@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/observability"
 )
 
 //go:embed migrations/*.sql
@@ -117,7 +118,7 @@ func NewInner(
 
 func (a *Books) Start() error {
 	if err := a.jobQueue.AddJob(
-		a.resyncBooksJob,
+		observability.NewTrackedJob(a.resyncBooksJob, a.db),
 		a.Services.WebSocket.UpdateState,
 	); err != nil {
 		return err

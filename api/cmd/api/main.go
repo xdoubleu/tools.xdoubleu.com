@@ -23,6 +23,7 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
+	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/repositories"
 )
 
@@ -41,6 +42,7 @@ type Application struct {
 	contacts     contacts.Service
 	apps         *Apps
 	appUsersRepo *repositories.AppUsersRepository
+	usage        *observability.UsageRecorder
 }
 
 //	@title			tools
@@ -60,6 +62,9 @@ const (
 	// migrationLockKey identifies the advisory lock that serializes
 	// migration runs across concurrently starting replicas.
 	migrationLockKey = 20260101
+	// usageFlushInterval is how often accumulated request counts are
+	// written to global.usage_daily.
+	usageFlushInterval = time.Minute
 )
 
 func main() {
@@ -148,6 +153,7 @@ func NewApplication(
 		auth:         authSvc,
 		contacts:     contactsSvc,
 		appUsersRepo: appUsersRepo,
+		usage:        observability.NewUsageRecorder(logger, db),
 	}
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
@@ -158,6 +164,10 @@ func NewApplication(
 	if err != nil {
 		panic(err)
 	}
+
+	// Flush accumulated request counts to global.usage_daily periodically;
+	// the loop lives for the process lifetime (ctx is context.Background).
+	app.usage.Start(ctx, usageFlushInterval)
 
 	for _, a := range *app.apps {
 		err = a.Start()
