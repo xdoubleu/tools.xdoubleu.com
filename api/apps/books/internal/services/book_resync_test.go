@@ -733,6 +733,13 @@ func (s failDeleteObjectStore) Copy(
 	return s.inner.Copy(ctx, srcKey, dstKey)
 }
 
+func (s failDeleteObjectStore) List(
+	ctx context.Context,
+	prefix string,
+) ([]objectstore.ObjectInfo, error) {
+	return s.inner.List(ctx, prefix)
+}
+
 func newResyncSvc(
 	repo *fakeBooksResync,
 	ol *fakeOLClient,

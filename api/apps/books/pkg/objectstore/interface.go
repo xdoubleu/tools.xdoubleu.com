@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+// ObjectInfo describes a single object returned by List.
+type ObjectInfo struct {
+	Key          string
+	Size         int64
+	LastModified time.Time
+}
+
 type Client interface {
 	Put(
 		ctx context.Context,
@@ -27,4 +34,7 @@ type Client interface {
 	// Copy duplicates the object at srcKey to dstKey within the same bucket.
 	// If dstKey already exists it is silently overwritten (idempotent).
 	Copy(ctx context.Context, srcKey, dstKey string) error
+	// List returns every object whose key starts with prefix (pass "" for the
+	// whole bucket), following pagination to completion.
+	List(ctx context.Context, prefix string) ([]ObjectInfo, error)
 }

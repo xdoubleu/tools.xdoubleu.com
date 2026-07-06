@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
@@ -20,6 +21,7 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/observability"
+	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 
 //go:embed migrations/*.sql
@@ -35,6 +37,7 @@ type Books struct {
 	Repositories   *repositories.Repositories
 	jobQueue       *threading.JobQueue
 	resyncBooksJob *jobs.ResyncOpenLibraryJob
+	storageScanJob *jobs.StorageScanJob
 }
 
 func New(
@@ -112,6 +115,11 @@ func NewInner(
 		a.Services.Books,
 		a.Services.WebSocket,
 	)
+	a.storageScanJob = jobs.NewStorageScanJob(
+		clients.ObjectStore,
+		a.Repositories.BookFiles,
+		sharedrepos.NewStorageSnapshotsRepository(db),
+	)
 
 	return a
 }
@@ -120,6 +128,14 @@ func (a *Books) Start() error {
 	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.resyncBooksJob, a.db),
 		a.Services.WebSocket.UpdateState,
+	); err != nil {
+		return err
+	}
+
+	noop := func(_ string, _ bool, _ *time.Time) {}
+	if err := a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.storageScanJob, a.db),
+		noop,
 	); err != nil {
 		return err
 	}

@@ -179,6 +179,36 @@ func (r *BookFilesRepository) StorageKeysByUser(
 	return keys, nil
 }
 
+// AllStorageKeys returns every distinct storage key referenced by a book
+// file, across all users — the set of R2 objects that are NOT orphaned.
+func (r *BookFilesRepository) AllStorageKeys(
+	ctx context.Context,
+) ([]string, error) {
+	rows, err := r.db.Query(
+		ctx,
+		`SELECT DISTINCT storage_key FROM books.book_files`,
+	)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var keys []string
+	for rows.Next() {
+		var key string
+		if scanErr := rows.Scan(&key); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		keys = append(keys, key)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	return keys, nil
+}
+
 func (r *BookFilesRepository) DeleteByUser(
 	ctx context.Context,
 	userID string,

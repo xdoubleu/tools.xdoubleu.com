@@ -136,6 +136,36 @@ func (c *r2Client) Copy(ctx context.Context, srcKey, dstKey string) error {
 	return err
 }
 
+func (c *r2Client) List(
+	ctx context.Context,
+	prefix string,
+) ([]ObjectInfo, error) {
+	//nolint:exhaustruct //s3.ListObjectsV2Input has many optional fields
+	input := &s3.ListObjectsV2Input{
+		Bucket: aws.String(c.bucket),
+		Prefix: aws.String(prefix),
+	}
+
+	var objects []ObjectInfo
+	paginator := s3.NewListObjectsV2Paginator(c.s3, input)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list objects %q: %w", prefix, err)
+		}
+
+		for _, obj := range page.Contents {
+			objects = append(objects, ObjectInfo{
+				Key:          aws.ToString(obj.Key),
+				Size:         aws.ToInt64(obj.Size),
+				LastModified: aws.ToTime(obj.LastModified),
+			})
+		}
+	}
+
+	return objects, nil
+}
+
 func (c *r2Client) Exists(ctx context.Context, key string) (bool, error) {
 	//nolint:exhaustruct //s3.HeadObjectInput has many optional fields
 	_, err := c.s3.HeadObject(ctx, &s3.HeadObjectInput{
