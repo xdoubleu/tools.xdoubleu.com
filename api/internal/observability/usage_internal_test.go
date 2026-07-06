@@ -3,6 +3,7 @@ package observability
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 )
 
 type fakeUsageStore struct {
+	mu       sync.Mutex
 	flushed  []models.UsageEntry
 	flushErr error
 	pruned   int
@@ -23,6 +25,8 @@ func (f *fakeUsageStore) Flush(
 	_ context.Context,
 	entries []models.UsageEntry,
 ) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.flushErr != nil {
 		return f.flushErr
 	}
@@ -31,8 +35,21 @@ func (f *fakeUsageStore) Flush(
 }
 
 func (f *fakeUsageStore) PruneOlderThan(_ context.Context, _ time.Time) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.pruned++
 	return nil
+}
+
+func (f *fakeUsageStore) flushedLen() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.flushed)
+}
+
+func newFakeUsageStore() *fakeUsageStore {
+	//nolint:exhaustruct //mu and slice/err start zero-valued on purpose
+	return &fakeUsageStore{}
 }
 
 func newTestRecorder(store usageStore) *UsageRecorder {
@@ -45,7 +62,7 @@ func newTestRecorder(store usageStore) *UsageRecorder {
 }
 
 func TestUsageRecorderAccumulatesAndFlushes(t *testing.T) {
-	store := &fakeUsageStore{flushed: nil, flushErr: nil, pruned: 0}
+	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
 
 	rec.Record("books", "LibraryService/ListBooks")
@@ -64,7 +81,7 @@ func TestUsageRecorderAccumulatesAndFlushes(t *testing.T) {
 }
 
 func TestUsageRecorderFlushClearsCounts(t *testing.T) {
-	store := &fakeUsageStore{flushed: nil, flushErr: nil, pruned: 0}
+	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
 
 	rec.Record("todos", "root")
@@ -78,11 +95,8 @@ func TestUsageRecorderFlushClearsCounts(t *testing.T) {
 }
 
 func TestUsageRecorderRestoresBatchOnFlushError(t *testing.T) {
-	store := &fakeUsageStore{
-		flushed:  nil,
-		flushErr: errors.New("db down"),
-		pruned:   0,
-	}
+	store := newFakeUsageStore()
+	store.flushErr = errors.New("db down")
 	rec := newTestRecorder(store)
 
 	rec.Record("books", "root")
@@ -96,7 +110,7 @@ func TestUsageRecorderRestoresBatchOnFlushError(t *testing.T) {
 }
 
 func TestUsageRecorderPrunesOncePerInterval(t *testing.T) {
-	store := &fakeUsageStore{flushed: nil, flushErr: nil, pruned: 0}
+	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
 
 	require.NoError(t, rec.Flush(t.Context()))
@@ -104,4 +118,33 @@ func TestUsageRecorderPrunesOncePerInterval(t *testing.T) {
 
 	// Two flushes back-to-back should prune only once.
 	assert.Equal(t, 1, store.pruned)
+}
+
+func TestUsageRecorderFlushTickLogsErrorAndSurvives(t *testing.T) {
+	store := newFakeUsageStore()
+	store.flushErr = errors.New("db down")
+	rec := newTestRecorder(store)
+
+	rec.Record("books", "root")
+	// flushTick must swallow the flush error (logged, not panicked).
+	rec.flushTick(t.Context())
+
+	// The count is restored for a later retry.
+	store.flushErr = nil
+	require.NoError(t, rec.Flush(t.Context()))
+	assert.Equal(t, 1, store.flushedLen())
+}
+
+func TestUsageRecorderStartFlushesOnContextCancel(t *testing.T) {
+	store := newFakeUsageStore()
+	rec := newTestRecorder(store)
+	rec.Record("books", "root")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	rec.Start(ctx, time.Hour)
+	cancel()
+
+	require.Eventually(t, func() bool {
+		return store.flushedLen() == 1
+	}, time.Second, 5*time.Millisecond)
 }
