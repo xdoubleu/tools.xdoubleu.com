@@ -12,9 +12,9 @@ jest.mock('@/lib/books/resyncRefresh', () => ({
   })
 }))
 
-jest.mock('@/components/books/SelectiveResync', () => ({
+jest.mock('@/components/books/ResyncWizard', () => ({
   __esModule: true,
-  default: () => <div data-testid="selective-resync" />
+  default: () => <div data-testid="resync-wizard" />
 }))
 
 jest.mock('@/components/books/ManageDuplicatesDialog', () => ({
@@ -37,16 +37,18 @@ describe('BooksAdminClient', () => {
     expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books')
   })
 
-  it('renders the Resync all metadata section with button', () => {
+  it('renders the scan section with a start button', () => {
     render(<BooksAdminClient />)
-    expect(screen.getByRole('heading', { name: /resync all metadata/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /scan for metadata differences/i })
+    ).toBeInTheDocument()
     expect(screen.getByTestId('resync-openlibrary-btn')).toBeInTheDocument()
   })
 
-  it('renders the Selective resync section with the SelectiveResync component', () => {
+  it('renders the wizard section with the ResyncWizard component', () => {
     render(<BooksAdminClient />)
-    expect(screen.getByRole('heading', { name: /selective resync/i })).toBeInTheDocument()
-    expect(screen.getByTestId('selective-resync')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /review flagged books/i })).toBeInTheDocument()
+    expect(screen.getByTestId('resync-wizard')).toBeInTheDocument()
   })
 
   it('renders the Find duplicates section with button', () => {

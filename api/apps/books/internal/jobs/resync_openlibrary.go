@@ -3,35 +3,27 @@ package jobs
 import (
 	"context"
 	"log/slog"
-	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/internal/progressws"
 )
 
-// ResyncOpenLibraryJob re-fetches Open Library metadata and clears cached
-// covers for books in the catalog that are missing metadata. It is on-demand
-// only: it must be armed via Arm() or ArmFor() before Run() does any work, so
-// the unavoidable startup run (added by JobQueue.AddJob) and the daily
-// scheduler tick are no-ops.
+// ResyncOpenLibraryJob scans the whole catalog for metadata differences
+// against Open Library, Google Books, and UniCat, and stores what it finds
+// for the admin resync wizard to review. It is on-demand only: it must be
+// armed via Arm() before Run() does any work, so the unavoidable startup run
+// (added by JobQueue.AddJob) and the daily scheduler tick are no-ops.
 //
-// When armed via ArmFor(ids, force), only the given book IDs are processed and
-// force-mode overwrites existing metadata. When armed via Arm() (or
-// ArmFor(nil, false)), all books missing metadata are processed additively.
+// It never writes to a book itself — that only happens when an admin resolves
+// a proposal via BookService.ApplyResyncChoice.
 //
 // The job holds a reference to the progress WebSocket service so it can emit
 // per-book progress events (X of N) over the /books/api/progress WebSocket.
 type ResyncOpenLibraryJob struct {
 	books *services.BookService
 	ws    *progressws.Service
-
-	mu           sync.Mutex
-	pendingIDs   []uuid.UUID
-	pendingForce bool
 
 	armed   atomic.Bool
 	running atomic.Bool
@@ -54,20 +46,8 @@ func (j *ResyncOpenLibraryJob) RunEvery() time.Duration {
 	return hoursInDay * time.Hour
 }
 
-// Arm marks the job to resync all books missing metadata on the next Run call.
-// Equivalent to ArmFor(nil, false).
+// Arm marks the job to scan the whole catalog on the next Run call.
 func (j *ResyncOpenLibraryJob) Arm() {
-	j.ArmFor(nil, false)
-}
-
-// ArmFor marks the job to resync only the given book IDs on the next Run call.
-// When force is true, existing metadata is overwritten with whatever the
-// providers return. Pass nil ids to resync all books missing metadata.
-func (j *ResyncOpenLibraryJob) ArmFor(ids []uuid.UUID, force bool) {
-	j.mu.Lock()
-	j.pendingIDs = ids
-	j.pendingForce = force
-	j.mu.Unlock()
 	j.armed.Store(true)
 }
 
@@ -81,13 +61,6 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 	}
 	defer j.running.Store(false)
 
-	j.mu.Lock()
-	ids := j.pendingIDs
-	force := j.pendingForce
-	j.pendingIDs = nil
-	j.pendingForce = false
-	j.mu.Unlock()
-
 	var onProgress func(int, int)
 	if j.ws != nil {
 		id := j.ID()
@@ -96,21 +69,10 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 		}
 	}
 
-	var (
-		n   int
-		err error
-	)
-
-	if len(ids) == 0 {
-		n, err = j.books.ResyncAllFromOpenLibrary(ctx, logger, onProgress)
-	} else {
-		n, err = j.books.ResyncBooks(ctx, logger, ids, force, onProgress)
-	}
-
+	n, err := j.books.BuildResyncProposals(ctx, logger, onProgress)
 	if n > 0 {
-		logger.InfoContext(ctx, "resynced books from open library",
+		logger.InfoContext(ctx, "flagged books with resync differences",
 			slog.Int("count", n),
-			slog.Bool("force", force),
 		)
 	}
 	return err

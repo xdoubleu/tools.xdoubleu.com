@@ -1,8 +1,6 @@
 package books
 
 import (
-	"time"
-
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
@@ -10,58 +8,31 @@ import (
 
 const isbn13Length = 13
 
-// protoCatalogBookStatus maps a catalog book model to the admin-facing proto
-// view used by ListCatalogBooks / SelectiveResync.
-func protoCatalogBookStatus(b models.Book) *booksv1.CatalogBookStatus {
-	const (
-		statusFound    = "found"
-		statusNotFound = "not_found"
-	)
-
-	olStatus := ""
-	if b.OpenLibraryFound != nil {
-		if *b.OpenLibraryFound {
-			olStatus = statusFound
-		} else {
-			olStatus = statusNotFound
-		}
+// protoSourceProposal maps a services.SourceProposal to its proto view.
+func protoSourceProposal(p services.SourceProposal) *booksv1.SourceBook {
+	return &booksv1.SourceBook{
+		Source:      p.Source,
+		CoverUrl:    p.CoverURL,
+		Description: p.Description,
+		PageCount:   int32FromInt(p.PageCount),
+		Isbn13:      p.ISBN13,
+		Title:       p.Title,
+		Authors:     p.Authors,
+		Differs:     p.Differs,
 	}
+}
 
-	gbStatus := ""
-	if b.GoogleBooksFound != nil {
-		if *b.GoogleBooksFound {
-			gbStatus = statusFound
-		} else {
-			gbStatus = statusNotFound
-		}
+// protoResyncProposal maps a services.ResyncProposal to the admin-facing
+// proto view used by the resync wizard.
+func protoResyncProposal(p services.ResyncProposal) *booksv1.ResyncProposal {
+	sources := make([]*booksv1.SourceBook, len(p.Sources))
+	for i, sp := range p.Sources {
+		sources[i] = protoSourceProposal(sp)
 	}
-
-	ucStatus := ""
-	if b.UniCatFound != nil {
-		if *b.UniCatFound {
-			ucStatus = statusFound
-		} else {
-			ucStatus = statusNotFound
-		}
-	}
-
-	lastResyncAt := ""
-	if b.LastResyncAt != nil {
-		lastResyncAt = b.LastResyncAt.UTC().Format(time.RFC3339)
-	}
-
-	return &booksv1.CatalogBookStatus{
-		Id:                b.ID.String(),
-		Title:             b.Title,
-		Authors:           b.Authors,
-		Isbn13:            stringPtr(b.ISBN13),
-		HasCover:          b.CoverURL != nil && *b.CoverURL != "",
-		HasDescription:    b.Description != nil && *b.Description != "",
-		HasPageCount:      b.PageCount != nil,
-		OpenlibraryStatus: olStatus,
-		GooglebooksStatus: gbStatus,
-		UnicatStatus:      ucStatus,
-		LastResyncAt:      lastResyncAt,
+	return &booksv1.ResyncProposal{
+		BookId:  p.BookID,
+		Library: protoSourceProposal(p.Library),
+		Sources: sources,
 	}
 }
 

@@ -50,37 +50,46 @@ message MergeBooksResponse {
   uint32 deleted_files = 2;
 }
 
-message ResyncOpenLibraryRequest {}
-message ResyncOpenLibraryResponse {}
+message StartResyncRequest {}
+message StartResyncResponse {}
 
-// CatalogBookStatus is a lightweight view of a catalog book used by the admin
-// selective-resync tool. The *_status strings follow the convention:
-//   "" = never attempted, "found" = provider returned a record,
-//   "not_found" = provider was queried but returned nothing.
-message CatalogBookStatus {
-  string id = 1;
-  string title = 2;
-  repeated string authors = 3;
-  string isbn13 = 4;
-  bool has_cover = 5;
-  bool has_description = 6;
-  bool has_page_count = 7;
-  string openlibrary_status = 8;
-  string googlebooks_status = 9;
-  string last_resync_at = 10;
-  string unicat_status = 11;
+// SourceBook is one candidate set of metadata for a catalog book — either the
+// current library values (source = "") or one external provider's proposal
+// (source = "openlibrary" | "googlebooks" | "unicat").
+message SourceBook {
+  string source = 1;
+  string cover_url = 2;
+  string description = 3;
+  int32 page_count = 4;
+  string isbn13 = 5;
+  string title = 6;
+  repeated string authors = 7;
+  // differs lists which fields differ from the library row. Empty for the
+  // library SourceBook itself.
+  repeated string differs = 8;
 }
 
-message ListCatalogBooksRequest {}
-message ListCatalogBooksResponse {
-  repeated CatalogBookStatus books = 1;
+// ResyncProposal describes one catalog book that differs from at least one
+// external source, for the admin resync wizard to step through.
+message ResyncProposal {
+  string book_id = 1;
+  SourceBook library = 2;
+  repeated SourceBook sources = 3;
 }
 
-message ResyncBooksRequest {
-  repeated string book_ids = 1;
-  bool force = 2;
+message ListResyncProposalsRequest {}
+message ListResyncProposalsResponse {
+  repeated ResyncProposal proposals = 1;
 }
-message ResyncBooksResponse {}
+
+message ApplyResyncChoiceRequest {
+  string book_id = 1;
+  // source selects which SourceBook wins: "" keeps the library row unchanged
+  // (and simply dismisses the proposal), or one of
+  // "openlibrary" | "googlebooks" | "unicat".
+  string source = 2;
+}
+message ApplyResyncChoiceResponse {}
 
 message SetBookISBNRequest {
   string book_id = 1;
@@ -139,8 +148,8 @@ service CatalogService {
   rpc ClearLibrary(ClearLibraryRequest) returns (ClearLibraryResponse);
   rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
   rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
-  rpc ResyncOpenLibrary(ResyncOpenLibraryRequest) returns (ResyncOpenLibraryResponse);
-  rpc ListCatalogBooks(ListCatalogBooksRequest) returns (ListCatalogBooksResponse);
-  rpc ResyncBooks(ResyncBooksRequest) returns (ResyncBooksResponse);
+  rpc StartResync(StartResyncRequest) returns (StartResyncResponse);
+  rpc ListResyncProposals(ListResyncProposalsRequest) returns (ListResyncProposalsResponse);
+  rpc ApplyResyncChoice(ApplyResyncChoiceRequest) returns (ApplyResyncChoiceResponse);
   rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);
 }

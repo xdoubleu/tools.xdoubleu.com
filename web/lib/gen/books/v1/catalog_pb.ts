@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file books/v1/catalog.proto.
  */
 export const file_books_v1_catalog: GenFile = /*@__PURE__*/
-  fileDesc("ChZib29rcy92MS9jYXRhbG9nLnByb3RvEghib29rcy52MSImChJJbXBvcnRCb29rc1JlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwiLQoTSW1wb3J0Qm9va3NSZXNwb25zZRIWCg5pbXBvcnRlZF9jb3VudBgBIAEoBSIVChNDbGVhckxpYnJhcnlSZXF1ZXN0IkQKFENsZWFyTGlicmFyeVJlc3BvbnNlEhUKDWRlbGV0ZWRfYm9va3MYASABKA0SFQoNZGVsZXRlZF9maWxlcxgCIAEoDSJFCg5EdXBsaWNhdGVHcm91cBIjCgdlbnRyaWVzGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSDgoGcmVhc29uGAIgASgJIhcKFUZpbmREdXBsaWNhdGVzUmVxdWVzdCJCChZGaW5kRHVwbGljYXRlc1Jlc3BvbnNlEigKBmdyb3VwcxgBIAMoCzIYLmJvb2tzLnYxLkR1cGxpY2F0ZUdyb3VwIokCChFNZXJnZUJvb2tzUmVxdWVzdBIWCg53aW5uZXJfYm9va19pZBgBIAEoCRIWCg5sb3Nlcl9ib29rX2lkcxgCIAMoCRIuChFyZXNvbHZlZF9tZXRhZGF0YRgDIAEoCzIOLmJvb2tzLnYxLkJvb2tIAIgBARIqCh1yZXNvbHZlZF9jb3Zlcl9zb3VyY2VfYm9va19pZBgEIAEoCUgBiAEBEhwKD3Jlc29sdmVkX3N0YXR1cxgFIAEoCUgCiAEBQhQKEl9yZXNvbHZlZF9tZXRhZGF0YUIgCh5fcmVzb2x2ZWRfY292ZXJfc291cmNlX2Jvb2tfaWRCEgoQX3Jlc29sdmVkX3N0YXR1cyJCChJNZXJnZUJvb2tzUmVzcG9uc2USFQoNbWVyZ2VkX2dyb3VwcxgBIAEoDRIVCg1kZWxldGVkX2ZpbGVzGAIgASgNIhoKGFJlc3luY09wZW5MaWJyYXJ5UmVxdWVzdCIbChlSZXN5bmNPcGVuTGlicmFyeVJlc3BvbnNlIvoBChFDYXRhbG9nQm9va1N0YXR1cxIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIPCgdhdXRob3JzGAMgAygJEg4KBmlzYm4xMxgEIAEoCRIRCgloYXNfY292ZXIYBSABKAgSFwoPaGFzX2Rlc2NyaXB0aW9uGAYgASgIEhYKDmhhc19wYWdlX2NvdW50GAcgASgIEhoKEm9wZW5saWJyYXJ5X3N0YXR1cxgIIAEoCRIaChJnb29nbGVib29rc19zdGF0dXMYCSABKAkSFgoObGFzdF9yZXN5bmNfYXQYCiABKAkSFQoNdW5pY2F0X3N0YXR1cxgLIAEoCSIZChdMaXN0Q2F0YWxvZ0Jvb2tzUmVxdWVzdCJGChhMaXN0Q2F0YWxvZ0Jvb2tzUmVzcG9uc2USKgoFYm9va3MYASADKAsyGy5ib29rcy52MS5DYXRhbG9nQm9va1N0YXR1cyI1ChJSZXN5bmNCb29rc1JlcXVlc3QSEAoIYm9va19pZHMYASADKAkSDQoFZm9yY2UYAiABKAgiFQoTUmVzeW5jQm9va3NSZXNwb25zZSI1ChJTZXRCb29rSVNCTlJlcXVlc3QSDwoHYm9va19pZBgBIAEoCRIOCgZpc2JuMTMYAiABKAkiFQoTU2V0Qm9va0lTQk5SZXNwb25zZSJXCgdCb29rUmVmEg0KBXRpdGxlGAEgASgJEg8KB2F1dGhvcnMYAiADKAkSDgoGaXNibjEzGAMgASgJEg4KBnN0YXR1cxgEIAEoCRIMCgR0YWdzGAUgAygJInMKDEJvb2tNaXNtYXRjaBIeCgNjc3YYASABKAsyES5ib29rcy52MS5Cb29rUmVmEiIKB2xpYnJhcnkYAiABKAsyES5ib29rcy52MS5Cb29rUmVmEhMKC2RpZmZlcmVuY2VzGAMgAygJEgoKAmlkGAQgASgJIiUKEUNvbXBhcmVDU1ZSZXF1ZXN0EhAKCGNzdl9kYXRhGAEgASgMIoEBChJDb21wYXJlQ1NWUmVzcG9uc2USEQoJY3N2X2NvdW50GAEgASgFEhUKDWxpYnJhcnlfY291bnQYAiABKAUSFQoNbWF0Y2hlZF9jb3VudBgDIAEoBRIqCgptaXNtYXRjaGVzGAQgAygLMhYuYm9va3MudjEuQm9va01pc21hdGNoIk8KEkFwcGx5Q1NWRml4UmVxdWVzdBIQCghjc3ZfZGF0YRgBIAEoDBITCgttaXNtYXRjaF9pZBgCIAEoCRISCgpkaWZmZXJlbmNlGAMgASgJIhUKE0FwcGx5Q1NWRml4UmVzcG9uc2UyrwYKDkNhdGFsb2dTZXJ2aWNlEkoKC0ltcG9ydEJvb2tzEhwuYm9va3MudjEuSW1wb3J0Qm9va3NSZXF1ZXN0Gh0uYm9va3MudjEuSW1wb3J0Qm9va3NSZXNwb25zZRJHCgpDb21wYXJlQ1NWEhsuYm9va3MudjEuQ29tcGFyZUNTVlJlcXVlc3QaHC5ib29rcy52MS5Db21wYXJlQ1NWUmVzcG9uc2USSgoLQXBwbHlDU1ZGaXgSHC5ib29rcy52MS5BcHBseUNTVkZpeFJlcXVlc3QaHS5ib29rcy52MS5BcHBseUNTVkZpeFJlc3BvbnNlEk0KDENsZWFyTGlicmFyeRIdLmJvb2tzLnYxLkNsZWFyTGlicmFyeVJlcXVlc3QaHi5ib29rcy52MS5DbGVhckxpYnJhcnlSZXNwb25zZRJTCg5GaW5kRHVwbGljYXRlcxIfLmJvb2tzLnYxLkZpbmREdXBsaWNhdGVzUmVxdWVzdBogLmJvb2tzLnYxLkZpbmREdXBsaWNhdGVzUmVzcG9uc2USRwoKTWVyZ2VCb29rcxIbLmJvb2tzLnYxLk1lcmdlQm9va3NSZXF1ZXN0GhwuYm9va3MudjEuTWVyZ2VCb29rc1Jlc3BvbnNlElwKEVJlc3luY09wZW5MaWJyYXJ5EiIuYm9va3MudjEuUmVzeW5jT3BlbkxpYnJhcnlSZXF1ZXN0GiMuYm9va3MudjEuUmVzeW5jT3BlbkxpYnJhcnlSZXNwb25zZRJZChBMaXN0Q2F0YWxvZ0Jvb2tzEiEuYm9va3MudjEuTGlzdENhdGFsb2dCb29rc1JlcXVlc3QaIi5ib29rcy52MS5MaXN0Q2F0YWxvZ0Jvb2tzUmVzcG9uc2USSgoLUmVzeW5jQm9va3MSHC5ib29rcy52MS5SZXN5bmNCb29rc1JlcXVlc3QaHS5ib29rcy52MS5SZXN5bmNCb29rc1Jlc3BvbnNlEkoKC1NldEJvb2tJU0JOEhwuYm9va3MudjEuU2V0Qm9va0lTQk5SZXF1ZXN0Gh0uYm9va3MudjEuU2V0Qm9va0lTQk5SZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2Jvb2tzL3YxO2Jvb2tzdjFiBnByb3RvMw", [file_books_v1_library]);
+  fileDesc("ChZib29rcy92MS9jYXRhbG9nLnByb3RvEghib29rcy52MSImChJJbXBvcnRCb29rc1JlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwiLQoTSW1wb3J0Qm9va3NSZXNwb25zZRIWCg5pbXBvcnRlZF9jb3VudBgBIAEoBSIVChNDbGVhckxpYnJhcnlSZXF1ZXN0IkQKFENsZWFyTGlicmFyeVJlc3BvbnNlEhUKDWRlbGV0ZWRfYm9va3MYASABKA0SFQoNZGVsZXRlZF9maWxlcxgCIAEoDSJFCg5EdXBsaWNhdGVHcm91cBIjCgdlbnRyaWVzGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSDgoGcmVhc29uGAIgASgJIhcKFUZpbmREdXBsaWNhdGVzUmVxdWVzdCJCChZGaW5kRHVwbGljYXRlc1Jlc3BvbnNlEigKBmdyb3VwcxgBIAMoCzIYLmJvb2tzLnYxLkR1cGxpY2F0ZUdyb3VwIokCChFNZXJnZUJvb2tzUmVxdWVzdBIWCg53aW5uZXJfYm9va19pZBgBIAEoCRIWCg5sb3Nlcl9ib29rX2lkcxgCIAMoCRIuChFyZXNvbHZlZF9tZXRhZGF0YRgDIAEoCzIOLmJvb2tzLnYxLkJvb2tIAIgBARIqCh1yZXNvbHZlZF9jb3Zlcl9zb3VyY2VfYm9va19pZBgEIAEoCUgBiAEBEhwKD3Jlc29sdmVkX3N0YXR1cxgFIAEoCUgCiAEBQhQKEl9yZXNvbHZlZF9tZXRhZGF0YUIgCh5fcmVzb2x2ZWRfY292ZXJfc291cmNlX2Jvb2tfaWRCEgoQX3Jlc29sdmVkX3N0YXR1cyJCChJNZXJnZUJvb2tzUmVzcG9uc2USFQoNbWVyZ2VkX2dyb3VwcxgBIAEoDRIVCg1kZWxldGVkX2ZpbGVzGAIgASgNIhQKElN0YXJ0UmVzeW5jUmVxdWVzdCIVChNTdGFydFJlc3luY1Jlc3BvbnNlIpkBCgpTb3VyY2VCb29rEg4KBnNvdXJjZRgBIAEoCRIRCgljb3Zlcl91cmwYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEgoKcGFnZV9jb3VudBgEIAEoBRIOCgZpc2JuMTMYBSABKAkSDQoFdGl0bGUYBiABKAkSDwoHYXV0aG9ycxgHIAMoCRIPCgdkaWZmZXJzGAggAygJIm8KDlJlc3luY1Byb3Bvc2FsEg8KB2Jvb2tfaWQYASABKAkSJQoHbGlicmFyeRgCIAEoCzIULmJvb2tzLnYxLlNvdXJjZUJvb2sSJQoHc291cmNlcxgDIAMoCzIULmJvb2tzLnYxLlNvdXJjZUJvb2siHAoaTGlzdFJlc3luY1Byb3Bvc2Fsc1JlcXVlc3QiSgobTGlzdFJlc3luY1Byb3Bvc2Fsc1Jlc3BvbnNlEisKCXByb3Bvc2FscxgBIAMoCzIYLmJvb2tzLnYxLlJlc3luY1Byb3Bvc2FsIjsKGEFwcGx5UmVzeW5jQ2hvaWNlUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEg4KBnNvdXJjZRgCIAEoCSIbChlBcHBseVJlc3luY0Nob2ljZVJlc3BvbnNlIjUKElNldEJvb2tJU0JOUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEg4KBmlzYm4xMxgCIAEoCSIVChNTZXRCb29rSVNCTlJlc3BvbnNlIlcKB0Jvb2tSZWYSDQoFdGl0bGUYASABKAkSDwoHYXV0aG9ycxgCIAMoCRIOCgZpc2JuMTMYAyABKAkSDgoGc3RhdHVzGAQgASgJEgwKBHRhZ3MYBSADKAkicwoMQm9va01pc21hdGNoEh4KA2NzdhgBIAEoCzIRLmJvb2tzLnYxLkJvb2tSZWYSIgoHbGlicmFyeRgCIAEoCzIRLmJvb2tzLnYxLkJvb2tSZWYSEwoLZGlmZmVyZW5jZXMYAyADKAkSCgoCaWQYBCABKAkiJQoRQ29tcGFyZUNTVlJlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwigQEKEkNvbXBhcmVDU1ZSZXNwb25zZRIRCgljc3ZfY291bnQYASABKAUSFQoNbGlicmFyeV9jb3VudBgCIAEoBRIVCg1tYXRjaGVkX2NvdW50GAMgASgFEioKCm1pc21hdGNoZXMYBCADKAsyFi5ib29rcy52MS5Cb29rTWlzbWF0Y2giTwoSQXBwbHlDU1ZGaXhSZXF1ZXN0EhAKCGNzdl9kYXRhGAEgASgMEhMKC21pc21hdGNoX2lkGAIgASgJEhIKCmRpZmZlcmVuY2UYAyABKAkiFQoTQXBwbHlDU1ZGaXhSZXNwb25zZTK4BgoOQ2F0YWxvZ1NlcnZpY2USSgoLSW1wb3J0Qm9va3MSHC5ib29rcy52MS5JbXBvcnRCb29rc1JlcXVlc3QaHS5ib29rcy52MS5JbXBvcnRCb29rc1Jlc3BvbnNlEkcKCkNvbXBhcmVDU1YSGy5ib29rcy52MS5Db21wYXJlQ1NWUmVxdWVzdBocLmJvb2tzLnYxLkNvbXBhcmVDU1ZSZXNwb25zZRJKCgtBcHBseUNTVkZpeBIcLmJvb2tzLnYxLkFwcGx5Q1NWRml4UmVxdWVzdBodLmJvb2tzLnYxLkFwcGx5Q1NWRml4UmVzcG9uc2USTQoMQ2xlYXJMaWJyYXJ5Eh0uYm9va3MudjEuQ2xlYXJMaWJyYXJ5UmVxdWVzdBoeLmJvb2tzLnYxLkNsZWFyTGlicmFyeVJlc3BvbnNlElMKDkZpbmREdXBsaWNhdGVzEh8uYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXF1ZXN0GiAuYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXNwb25zZRJHCgpNZXJnZUJvb2tzEhsuYm9va3MudjEuTWVyZ2VCb29rc1JlcXVlc3QaHC5ib29rcy52MS5NZXJnZUJvb2tzUmVzcG9uc2USSgoLU3RhcnRSZXN5bmMSHC5ib29rcy52MS5TdGFydFJlc3luY1JlcXVlc3QaHS5ib29rcy52MS5TdGFydFJlc3luY1Jlc3BvbnNlEmIKE0xpc3RSZXN5bmNQcm9wb3NhbHMSJC5ib29rcy52MS5MaXN0UmVzeW5jUHJvcG9zYWxzUmVxdWVzdBolLmJvb2tzLnYxLkxpc3RSZXN5bmNQcm9wb3NhbHNSZXNwb25zZRJcChFBcHBseVJlc3luY0Nob2ljZRIiLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVxdWVzdBojLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVzcG9uc2USSgoLU2V0Qm9va0lTQk4SHC5ib29rcy52MS5TZXRCb29rSVNCTlJlcXVlc3QaHS5ib29rcy52MS5TZXRCb29rSVNCTlJlc3BvbnNlQilaJ3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vYm9va3MvdjE7Ym9va3N2MWIGcHJvdG8z", [file_books_v1_library]);
 
 /**
  * @generated from message books.v1.ImportBooksRequest
@@ -221,167 +221,188 @@ export const MergeBooksResponseSchema: GenMessage<MergeBooksResponse> = /*@__PUR
   messageDesc(file_books_v1_catalog, 8);
 
 /**
- * @generated from message books.v1.ResyncOpenLibraryRequest
+ * @generated from message books.v1.StartResyncRequest
  */
-export type ResyncOpenLibraryRequest = Message<"books.v1.ResyncOpenLibraryRequest"> & {
+export type StartResyncRequest = Message<"books.v1.StartResyncRequest"> & {
 };
 
 /**
- * Describes the message books.v1.ResyncOpenLibraryRequest.
- * Use `create(ResyncOpenLibraryRequestSchema)` to create a new message.
+ * Describes the message books.v1.StartResyncRequest.
+ * Use `create(StartResyncRequestSchema)` to create a new message.
  */
-export const ResyncOpenLibraryRequestSchema: GenMessage<ResyncOpenLibraryRequest> = /*@__PURE__*/
+export const StartResyncRequestSchema: GenMessage<StartResyncRequest> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 9);
 
 /**
- * @generated from message books.v1.ResyncOpenLibraryResponse
+ * @generated from message books.v1.StartResyncResponse
  */
-export type ResyncOpenLibraryResponse = Message<"books.v1.ResyncOpenLibraryResponse"> & {
+export type StartResyncResponse = Message<"books.v1.StartResyncResponse"> & {
 };
 
 /**
- * Describes the message books.v1.ResyncOpenLibraryResponse.
- * Use `create(ResyncOpenLibraryResponseSchema)` to create a new message.
+ * Describes the message books.v1.StartResyncResponse.
+ * Use `create(StartResyncResponseSchema)` to create a new message.
  */
-export const ResyncOpenLibraryResponseSchema: GenMessage<ResyncOpenLibraryResponse> = /*@__PURE__*/
+export const StartResyncResponseSchema: GenMessage<StartResyncResponse> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 10);
 
 /**
- * CatalogBookStatus is a lightweight view of a catalog book used by the admin
- * selective-resync tool. The *_status strings follow the convention:
- *   "" = never attempted, "found" = provider returned a record,
- *   "not_found" = provider was queried but returned nothing.
+ * SourceBook is one candidate set of metadata for a catalog book — either the
+ * current library values (source = "") or one external provider's proposal
+ * (source = "openlibrary" | "googlebooks" | "unicat").
  *
- * @generated from message books.v1.CatalogBookStatus
+ * @generated from message books.v1.SourceBook
  */
-export type CatalogBookStatus = Message<"books.v1.CatalogBookStatus"> & {
+export type SourceBook = Message<"books.v1.SourceBook"> & {
   /**
-   * @generated from field: string id = 1;
+   * @generated from field: string source = 1;
    */
-  id: string;
+  source: string;
 
   /**
-   * @generated from field: string title = 2;
+   * @generated from field: string cover_url = 2;
    */
-  title: string;
+  coverUrl: string;
 
   /**
-   * @generated from field: repeated string authors = 3;
+   * @generated from field: string description = 3;
    */
-  authors: string[];
+  description: string;
 
   /**
-   * @generated from field: string isbn13 = 4;
+   * @generated from field: int32 page_count = 4;
+   */
+  pageCount: number;
+
+  /**
+   * @generated from field: string isbn13 = 5;
    */
   isbn13: string;
 
   /**
-   * @generated from field: bool has_cover = 5;
+   * @generated from field: string title = 6;
    */
-  hasCover: boolean;
+  title: string;
 
   /**
-   * @generated from field: bool has_description = 6;
+   * @generated from field: repeated string authors = 7;
    */
-  hasDescription: boolean;
+  authors: string[];
 
   /**
-   * @generated from field: bool has_page_count = 7;
+   * differs lists which fields differ from the library row. Empty for the
+   * library SourceBook itself.
+   *
+   * @generated from field: repeated string differs = 8;
    */
-  hasPageCount: boolean;
-
-  /**
-   * @generated from field: string openlibrary_status = 8;
-   */
-  openlibraryStatus: string;
-
-  /**
-   * @generated from field: string googlebooks_status = 9;
-   */
-  googlebooksStatus: string;
-
-  /**
-   * @generated from field: string last_resync_at = 10;
-   */
-  lastResyncAt: string;
-
-  /**
-   * @generated from field: string unicat_status = 11;
-   */
-  unicatStatus: string;
+  differs: string[];
 };
 
 /**
- * Describes the message books.v1.CatalogBookStatus.
- * Use `create(CatalogBookStatusSchema)` to create a new message.
+ * Describes the message books.v1.SourceBook.
+ * Use `create(SourceBookSchema)` to create a new message.
  */
-export const CatalogBookStatusSchema: GenMessage<CatalogBookStatus> = /*@__PURE__*/
+export const SourceBookSchema: GenMessage<SourceBook> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 11);
 
 /**
- * @generated from message books.v1.ListCatalogBooksRequest
+ * ResyncProposal describes one catalog book that differs from at least one
+ * external source, for the admin resync wizard to step through.
+ *
+ * @generated from message books.v1.ResyncProposal
  */
-export type ListCatalogBooksRequest = Message<"books.v1.ListCatalogBooksRequest"> & {
+export type ResyncProposal = Message<"books.v1.ResyncProposal"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+
+  /**
+   * @generated from field: books.v1.SourceBook library = 2;
+   */
+  library?: SourceBook | undefined;
+
+  /**
+   * @generated from field: repeated books.v1.SourceBook sources = 3;
+   */
+  sources: SourceBook[];
 };
 
 /**
- * Describes the message books.v1.ListCatalogBooksRequest.
- * Use `create(ListCatalogBooksRequestSchema)` to create a new message.
+ * Describes the message books.v1.ResyncProposal.
+ * Use `create(ResyncProposalSchema)` to create a new message.
  */
-export const ListCatalogBooksRequestSchema: GenMessage<ListCatalogBooksRequest> = /*@__PURE__*/
+export const ResyncProposalSchema: GenMessage<ResyncProposal> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 12);
 
 /**
- * @generated from message books.v1.ListCatalogBooksResponse
+ * @generated from message books.v1.ListResyncProposalsRequest
  */
-export type ListCatalogBooksResponse = Message<"books.v1.ListCatalogBooksResponse"> & {
-  /**
-   * @generated from field: repeated books.v1.CatalogBookStatus books = 1;
-   */
-  books: CatalogBookStatus[];
+export type ListResyncProposalsRequest = Message<"books.v1.ListResyncProposalsRequest"> & {
 };
 
 /**
- * Describes the message books.v1.ListCatalogBooksResponse.
- * Use `create(ListCatalogBooksResponseSchema)` to create a new message.
+ * Describes the message books.v1.ListResyncProposalsRequest.
+ * Use `create(ListResyncProposalsRequestSchema)` to create a new message.
  */
-export const ListCatalogBooksResponseSchema: GenMessage<ListCatalogBooksResponse> = /*@__PURE__*/
+export const ListResyncProposalsRequestSchema: GenMessage<ListResyncProposalsRequest> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 13);
 
 /**
- * @generated from message books.v1.ResyncBooksRequest
+ * @generated from message books.v1.ListResyncProposalsResponse
  */
-export type ResyncBooksRequest = Message<"books.v1.ResyncBooksRequest"> & {
+export type ListResyncProposalsResponse = Message<"books.v1.ListResyncProposalsResponse"> & {
   /**
-   * @generated from field: repeated string book_ids = 1;
+   * @generated from field: repeated books.v1.ResyncProposal proposals = 1;
    */
-  bookIds: string[];
-
-  /**
-   * @generated from field: bool force = 2;
-   */
-  force: boolean;
+  proposals: ResyncProposal[];
 };
 
 /**
- * Describes the message books.v1.ResyncBooksRequest.
- * Use `create(ResyncBooksRequestSchema)` to create a new message.
+ * Describes the message books.v1.ListResyncProposalsResponse.
+ * Use `create(ListResyncProposalsResponseSchema)` to create a new message.
  */
-export const ResyncBooksRequestSchema: GenMessage<ResyncBooksRequest> = /*@__PURE__*/
+export const ListResyncProposalsResponseSchema: GenMessage<ListResyncProposalsResponse> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 14);
 
 /**
- * @generated from message books.v1.ResyncBooksResponse
+ * @generated from message books.v1.ApplyResyncChoiceRequest
  */
-export type ResyncBooksResponse = Message<"books.v1.ResyncBooksResponse"> & {
+export type ApplyResyncChoiceRequest = Message<"books.v1.ApplyResyncChoiceRequest"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+
+  /**
+   * source selects which SourceBook wins: "" keeps the library row unchanged
+   * (and simply dismisses the proposal), or one of
+   * "openlibrary" | "googlebooks" | "unicat".
+   *
+   * @generated from field: string source = 2;
+   */
+  source: string;
 };
 
 /**
- * Describes the message books.v1.ResyncBooksResponse.
- * Use `create(ResyncBooksResponseSchema)` to create a new message.
+ * Describes the message books.v1.ApplyResyncChoiceRequest.
+ * Use `create(ApplyResyncChoiceRequestSchema)` to create a new message.
  */
-export const ResyncBooksResponseSchema: GenMessage<ResyncBooksResponse> = /*@__PURE__*/
+export const ApplyResyncChoiceRequestSchema: GenMessage<ApplyResyncChoiceRequest> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 15);
+
+/**
+ * @generated from message books.v1.ApplyResyncChoiceResponse
+ */
+export type ApplyResyncChoiceResponse = Message<"books.v1.ApplyResyncChoiceResponse"> & {
+};
+
+/**
+ * Describes the message books.v1.ApplyResyncChoiceResponse.
+ * Use `create(ApplyResyncChoiceResponseSchema)` to create a new message.
+ */
+export const ApplyResyncChoiceResponseSchema: GenMessage<ApplyResyncChoiceResponse> = /*@__PURE__*/
+  messageDesc(file_books_v1_catalog, 16);
 
 /**
  * @generated from message books.v1.SetBookISBNRequest
@@ -403,7 +424,7 @@ export type SetBookISBNRequest = Message<"books.v1.SetBookISBNRequest"> & {
  * Use `create(SetBookISBNRequestSchema)` to create a new message.
  */
 export const SetBookISBNRequestSchema: GenMessage<SetBookISBNRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 16);
+  messageDesc(file_books_v1_catalog, 17);
 
 /**
  * @generated from message books.v1.SetBookISBNResponse
@@ -416,7 +437,7 @@ export type SetBookISBNResponse = Message<"books.v1.SetBookISBNResponse"> & {
  * Use `create(SetBookISBNResponseSchema)` to create a new message.
  */
 export const SetBookISBNResponseSchema: GenMessage<SetBookISBNResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 17);
+  messageDesc(file_books_v1_catalog, 18);
 
 /**
  * BookRef is a lightweight snapshot of one book used in CSV comparison results.
@@ -460,7 +481,7 @@ export type BookRef = Message<"books.v1.BookRef"> & {
  * Use `create(BookRefSchema)` to create a new message.
  */
 export const BookRefSchema: GenMessage<BookRef> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 18);
+  messageDesc(file_books_v1_catalog, 19);
 
 /**
  * BookMismatch describes one pair of entries that differ between the CSV and
@@ -501,7 +522,7 @@ export type BookMismatch = Message<"books.v1.BookMismatch"> & {
  * Use `create(BookMismatchSchema)` to create a new message.
  */
 export const BookMismatchSchema: GenMessage<BookMismatch> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 19);
+  messageDesc(file_books_v1_catalog, 20);
 
 /**
  * @generated from message books.v1.CompareCSVRequest
@@ -518,7 +539,7 @@ export type CompareCSVRequest = Message<"books.v1.CompareCSVRequest"> & {
  * Use `create(CompareCSVRequestSchema)` to create a new message.
  */
 export const CompareCSVRequestSchema: GenMessage<CompareCSVRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 20);
+  messageDesc(file_books_v1_catalog, 21);
 
 /**
  * @generated from message books.v1.CompareCSVResponse
@@ -552,7 +573,7 @@ export type CompareCSVResponse = Message<"books.v1.CompareCSVResponse"> & {
  * Use `create(CompareCSVResponseSchema)` to create a new message.
  */
 export const CompareCSVResponseSchema: GenMessage<CompareCSVResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 21);
+  messageDesc(file_books_v1_catalog, 22);
 
 /**
  * @generated from message books.v1.ApplyCSVFixRequest
@@ -583,7 +604,7 @@ export type ApplyCSVFixRequest = Message<"books.v1.ApplyCSVFixRequest"> & {
  * Use `create(ApplyCSVFixRequestSchema)` to create a new message.
  */
 export const ApplyCSVFixRequestSchema: GenMessage<ApplyCSVFixRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 22);
+  messageDesc(file_books_v1_catalog, 23);
 
 /**
  * @generated from message books.v1.ApplyCSVFixResponse
@@ -596,7 +617,7 @@ export type ApplyCSVFixResponse = Message<"books.v1.ApplyCSVFixResponse"> & {
  * Use `create(ApplyCSVFixResponseSchema)` to create a new message.
  */
 export const ApplyCSVFixResponseSchema: GenMessage<ApplyCSVFixResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 23);
+  messageDesc(file_books_v1_catalog, 24);
 
 /**
  * @generated from service books.v1.CatalogService
@@ -651,28 +672,28 @@ export const CatalogService: GenService<{
     output: typeof MergeBooksResponseSchema;
   },
   /**
-   * @generated from rpc books.v1.CatalogService.ResyncOpenLibrary
+   * @generated from rpc books.v1.CatalogService.StartResync
    */
-  resyncOpenLibrary: {
+  startResync: {
     methodKind: "unary";
-    input: typeof ResyncOpenLibraryRequestSchema;
-    output: typeof ResyncOpenLibraryResponseSchema;
+    input: typeof StartResyncRequestSchema;
+    output: typeof StartResyncResponseSchema;
   },
   /**
-   * @generated from rpc books.v1.CatalogService.ListCatalogBooks
+   * @generated from rpc books.v1.CatalogService.ListResyncProposals
    */
-  listCatalogBooks: {
+  listResyncProposals: {
     methodKind: "unary";
-    input: typeof ListCatalogBooksRequestSchema;
-    output: typeof ListCatalogBooksResponseSchema;
+    input: typeof ListResyncProposalsRequestSchema;
+    output: typeof ListResyncProposalsResponseSchema;
   },
   /**
-   * @generated from rpc books.v1.CatalogService.ResyncBooks
+   * @generated from rpc books.v1.CatalogService.ApplyResyncChoice
    */
-  resyncBooks: {
+  applyResyncChoice: {
     methodKind: "unary";
-    input: typeof ResyncBooksRequestSchema;
-    output: typeof ResyncBooksResponseSchema;
+    input: typeof ApplyResyncChoiceRequestSchema;
+    output: typeof ApplyResyncChoiceResponseSchema;
   },
   /**
    * @generated from rpc books.v1.CatalogService.SetBookISBN

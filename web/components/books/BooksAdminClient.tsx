@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import { useResyncRefresh } from '@/lib/books/resyncRefresh'
 import ManageDuplicatesDialog from '@/components/books/ManageDuplicatesDialog'
-import SelectiveResync from '@/components/books/SelectiveResync'
+import ResyncWizard from '@/components/books/ResyncWizard'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { swrKeys } from '@/lib/swrKeys'
@@ -12,7 +12,7 @@ import { PageContainer } from '@/components/ui/page-container'
 
 export default function BooksAdminClient() {
   const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
-    () => void mutate(swrKeys.books)
+    () => void mutate(swrKeys.resyncProposals)
   )
 
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
@@ -45,16 +45,15 @@ export default function BooksAdminClient() {
         </Button>
       </section>
 
-      {/* Resync all */}
+      {/* Scan for differences */}
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Resync all metadata
+          Scan for metadata differences
         </h2>
         <p className="mb-3 text-xs text-muted">
-          Re-fetch covers, descriptions, and page counts for all books missing metadata. Books with
-          an ISBN are looked up via Open Library then Google Books. ISBN-less books are matched by
-          title and author — a confident match also fills in the ISBN so future resyncs are faster.
-          Existing cached covers are cleared so updated images download on next view.
+          Fetch Open Library, Google Books, and UniCat for every book and flag any that differ from
+          your library. Nothing is written automatically — review each flagged book below and pick
+          which source (or your existing library value) should win.
         </p>
         <Button
           type="button"
@@ -63,14 +62,14 @@ export default function BooksAdminClient() {
           onClick={refresh}
           data-testid="resync-openlibrary-btn"
         >
-          {isRefreshing ? 'Resyncing…' : 'Resync all metadata'}
+          {isRefreshing ? 'Scanning…' : 'Start resync'}
         </Button>
         {isRefreshing && (
           <div className="mt-3" data-testid="resync-openlibrary-progress">
             {total !== null ? (
               <>
                 <div className="mb-1 flex justify-between text-xs text-muted">
-                  <span>Resyncing books…</span>
+                  <span>Scanning books…</span>
                   <span>
                     {processed ?? 0} / {total}
                   </span>
@@ -85,29 +84,27 @@ export default function BooksAdminClient() {
                 </div>
               </>
             ) : (
-              <p className="text-xs text-muted">Resyncing…</p>
+              <p className="text-xs text-muted">Scanning…</p>
             )}
           </div>
         )}
         {!isRefreshing && lastRefresh && (
           <p className="mt-2 text-xs text-muted" data-testid="resync-openlibrary-status">
-            Last synced {lastRefresh.toLocaleString()}
+            Last scanned {lastRefresh.toLocaleString()}
           </p>
         )}
       </section>
 
-      {/* Selective resync */}
+      {/* Resync wizard */}
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Selective resync
+          Review flagged books
         </h2>
         <p className="mb-4 text-xs text-muted">
-          Pick individual books to resync. Use the filter chips to narrow the list to books with
-          missing ISBNs or books that could not be found in Open Library or Google Books. Enable
-          Force re-fetch to overwrite existing metadata (cover, description, page count) with fresh
-          provider data.
+          Step through books flagged by the last scan. For each one, pick the source you trust — or
+          keep your library value — and apply.
         </p>
-        <SelectiveResync />
+        <ResyncWizard />
       </section>
 
       <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />

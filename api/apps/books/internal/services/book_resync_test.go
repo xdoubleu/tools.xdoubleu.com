@@ -2,8 +2,8 @@
 package services
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"sync"
@@ -13,9 +13,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
@@ -34,50 +36,22 @@ type refreshCall struct {
 	authors     []string
 }
 
-// statusCall records a single call to fakeBooksResync.SetResyncStatus.
-type statusCall struct {
-	bookID  uuid.UUID
-	olFound bool
-	gbFound bool
-	ucFound bool
-}
-
 // fakeBooksResync is a test stub for booksResyncSource.
 type fakeBooksResync struct {
-	books        []models.Book
-	listErr      error
-	refreshMu    sync.Mutex
-	refreshErr   error
+	books   []models.Book
+	listErr error
+
+	mu           sync.Mutex
+	replaced     map[uuid.UUID][]byte
+	replaceErr   error
+	proposalRows map[uuid.UUID]repositories.ResyncProposalRow
+	deletedIDs   []uuid.UUID
 	refreshCalls []refreshCall
-	statusMu     sync.Mutex
-	statusCalls  []statusCall
-	statusErr    error
+	refreshErr   error
 }
 
-func (f *fakeBooksResync) ListBooksMissingMetadata(
-	_ context.Context,
-) ([]models.Book, error) {
+func (f *fakeBooksResync) ListCatalogBooks(_ context.Context) ([]models.Book, error) {
 	return f.books, f.listErr
-}
-
-func (f *fakeBooksResync) GetBooksByIDs(
-	_ context.Context,
-	ids []uuid.UUID,
-) ([]models.Book, error) {
-	if f.listErr != nil {
-		return nil, f.listErr
-	}
-	idSet := make(map[uuid.UUID]struct{}, len(ids))
-	for _, id := range ids {
-		idSet[id] = struct{}{}
-	}
-	var out []models.Book
-	for _, b := range f.books {
-		if _, ok := idSet[b.ID]; ok {
-			out = append(out, b)
-		}
-	}
-	return out, nil
 }
 
 func (f *fakeBooksResync) RefreshBookExternalData(
@@ -90,563 +64,112 @@ func (f *fakeBooksResync) RefreshBookExternalData(
 	title *string,
 	authors []string,
 ) error {
-	f.refreshMu.Lock()
+	f.mu.Lock()
 	f.refreshCalls = append(f.refreshCalls, refreshCall{
-		bookID:      bookID,
-		coverURL:    coverURL,
-		description: description,
-		pageCount:   pageCount,
-		isbn13:      isbn13,
-		title:       title,
-		authors:     authors,
+		bookID: bookID, coverURL: coverURL, description: description,
+		pageCount: pageCount, isbn13: isbn13, title: title, authors: authors,
 	})
-	f.refreshMu.Unlock()
+	f.mu.Unlock()
 	return f.refreshErr
 }
 
-func (f *fakeBooksResync) SetResyncStatus(
+func (f *fakeBooksResync) ReplaceResyncProposals(
+	_ context.Context,
+	entries map[uuid.UUID][]byte,
+) error {
+	f.mu.Lock()
+	f.replaced = entries
+	f.mu.Unlock()
+	return f.replaceErr
+}
+
+func (f *fakeBooksResync) ListResyncProposals(
+	_ context.Context,
+) ([]repositories.ResyncProposalRow, error) {
+	out := make([]repositories.ResyncProposalRow, 0, len(f.proposalRows))
+	for _, row := range f.proposalRows {
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+func (f *fakeBooksResync) GetResyncProposal(
 	_ context.Context,
 	bookID uuid.UUID,
-	olFound bool,
-	gbFound bool,
-	ucFound bool,
+) (*repositories.ResyncProposalRow, error) {
+	row, ok := f.proposalRows[bookID]
+	if !ok {
+		return nil, database.ErrResourceNotFound
+	}
+	return &row, nil
+}
+
+func (f *fakeBooksResync) DeleteResyncProposal(
+	_ context.Context,
+	bookID uuid.UUID,
 ) error {
-	f.statusMu.Lock()
-	f.statusCalls = append(f.statusCalls, statusCall{
-		bookID:  bookID,
-		olFound: olFound,
-		gbFound: gbFound,
-		ucFound: ucFound,
-	})
-	f.statusMu.Unlock()
-	return f.statusErr
+	f.mu.Lock()
+	f.deletedIDs = append(f.deletedIDs, bookID)
+	f.mu.Unlock()
+	return nil
 }
 
 // fakeGBClient is a configurable googlebooks.Client stub.
 type fakeGBClient struct {
-	searchResults []gbResult
-	byISBN        *gbResult
+	searchResults []googlebooks.ExternalBook
+	byISBN        *googlebooks.ExternalBook
 	err           error
-	mu            sync.Mutex
-	calls         int
-}
-
-type gbResult struct {
-	title    string
-	authors  []string
-	isbn13   *string
-	coverURL *string
-	desc     *string
-	pages    *int
 }
 
 func (f *fakeGBClient) Search(
 	_ context.Context,
 	_ string,
 ) ([]googlebooks.ExternalBook, error) {
-	f.mu.Lock()
-	f.calls++
-	f.mu.Unlock()
-	if f.err != nil {
-		return nil, f.err
-	}
-	out := make([]googlebooks.ExternalBook, len(f.searchResults))
-	for i, r := range f.searchResults {
-		out[i] = gbResultToExternal(r)
-	}
-	return out, nil
+	return f.searchResults, f.err
 }
 
 func (f *fakeGBClient) GetByISBN(
 	_ context.Context,
 	_ string,
 ) (*googlebooks.ExternalBook, error) {
-	f.mu.Lock()
-	f.calls++
-	f.mu.Unlock()
 	if f.err != nil {
 		return nil, f.err
 	}
 	if f.byISBN == nil {
 		return nil, googlebooks.ErrNotFound
 	}
-	b := gbResultToExternal(*f.byISBN)
-	return &b, nil
+	return f.byISBN, nil
 }
 
-func gbResultToExternal(r gbResult) googlebooks.ExternalBook {
-	return googlebooks.ExternalBook{
-		Title:       r.title,
-		Authors:     r.authors,
-		ISBN13:      r.isbn13,
-		CoverURL:    r.coverURL,
-		Description: r.desc,
-		PageCount:   r.pages,
-	}
+// fakeUCClient is a configurable unicat.Client stub.
+type fakeUCClient struct {
+	searchResults []unicat.ExternalBook
+	byISBN        *unicat.ExternalBook
+	err           error
 }
 
-// TestResyncBook_ErrNotFound_Skips verifies that when Open Library returns
-// ErrNotFound the book is silently skipped (nil error, no DB or cache calls).
-func TestResyncBook_ErrNotFound_Skips(t *testing.T) {
-	fake := &fakeOLClient{ //nolint:exhaustruct //detail and calls zero-valued
-		err: openlibrary.ErrNotFound,
+func (f *fakeUCClient) GetByISBN(
+	_ context.Context,
+	_ string,
+) (*unicat.ExternalBook, error) {
+	if f.err != nil {
+		return nil, f.err
 	}
-	store := objectstore.NewFake()
-	isbn := "9780140449112"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
+	if f.byISBN == nil {
+		return nil, unicat.ErrNotFound
 	}
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: &fakeBooksResync{}, //nolint:exhaustruct //zero values fine
-		external:    fake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(
-		context.Background(),
-		logging.NewNopLogger(),
-		book,
-		false,
-	)
-	require.NoError(t, err)
-	assert.Equal(t, 1, fake.calls)
+	return f.byISBN, nil
 }
 
-// TestResyncBook_GetByISBNError_Propagates verifies that a non-NotFound error
-// from Open Library is returned and no DB/cache calls are made.
-func TestResyncBook_GetByISBNError_Propagates(t *testing.T) {
-	boom := errors.New("network error")
-	fake := &fakeOLClient{ //nolint:exhaustruct //detail and calls zero-valued
-		err: boom,
-	}
-	store := objectstore.NewFake()
-	isbn := "9780140449112"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-	}
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: &fakeBooksResync{}, //nolint:exhaustruct //zero values fine
-		external:    fake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(
-		context.Background(),
-		logging.NewNopLogger(),
-		book,
-		false,
-	)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, boom)
+func (f *fakeUCClient) Search(
+	_ context.Context,
+	_ string,
+) ([]unicat.ExternalBook, error) {
+	return f.searchResults, f.err
 }
 
-// TestResyncBook_FullyPopulated_Skipped verifies that a book which already has
-// cover_url, description, and page_count is skipped entirely: no Open Library
-// call, no DB write, and the cached cover is left untouched.
-func TestResyncBook_FullyPopulated_Skipped(t *testing.T) {
-	isbn := "9780140449112"
-	cover := "https://covers.openlibrary.org/b/isbn/9780140449112-L.jpg"
-	desc := "An existing description."
-	pages := 300
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:          uuid.New(),
-		ISBN13:      &isbn,
-		CoverURL:    &cover,
-		Description: &desc,
-		PageCount:   &pages,
-	}
-
-	fake := &fakeOLClient{}    //nolint:exhaustruct //zero values — should never be called
-	repo := &fakeBooksResync{} //nolint:exhaustruct //no books list needed
-	store := objectstore.NewFake()
-
-	// Pre-populate the cover cache to verify it is not deleted.
-	coverKey := bookCoverKey(book.ID)
-	err := store.Put(
-		context.Background(), coverKey,
-		bytes.NewReader([]byte("imgdata")), 7, "image/jpeg",
-	)
-	require.NoError(t, err)
-
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    fake,
-		objectStore: store,
-	}
-
-	err = svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	assert.Equal(t, 0, fake.calls, "no OL call expected for fully populated book")
-	assert.Empty(t, repo.refreshCalls, "no DB write expected for fully populated book")
-
-	_, stillCached := store.GetContent(coverKey)
-	assert.True(
-		t,
-		stillCached,
-		"cover cache must not be deleted for fully populated book",
-	)
-}
-
-// TestResyncBook_ExistingCoverNotDeleted is the regression test for the
-// cover-loss bug: a book that already has a cover_url must not have its cached
-// cover deleted during resync, even when Open Library returns no cover.
-func TestResyncBook_ExistingCoverNotDeleted(t *testing.T) {
-	isbn := "9780140449112"
-	cover := "https://existing.example.com/cover.jpg"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:       uuid.New(),
-		ISBN13:   &isbn,
-		CoverURL: &cover,
-		// Description and PageCount are nil — something needs filling so
-		// the OL call is made, but cover must stay untouched.
-	}
-
-	// OL returns a description but no cover.
-	olDesc := "A description from Open Library."
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //only relevant fields
-		Provider:    "openlibrary",
-		ProviderID:  "OL123W",
-		Title:       "Test Book",
-		Authors:     []string{"Author"},
-		Description: &olDesc,
-		CoverURL:    nil,
-	}
-	fake := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
-	repo := &fakeBooksResync{}            //nolint:exhaustruct //no books list needed
-	store := objectstore.NewFake()
-
-	// Pre-populate the cover cache to verify it is preserved.
-	coverKey := bookCoverKey(book.ID)
-	err := store.Put(
-		context.Background(), coverKey,
-		bytes.NewReader([]byte("imgdata")), 7, "image/jpeg",
-	)
-	require.NoError(t, err)
-
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    fake,
-		objectStore: store,
-	}
-
-	err = svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	assert.Nil(
-		t, repo.refreshCalls[0].coverURL,
-		"coverURL passed to DB must be nil when book already has a cover",
-	)
-	assert.Equal(t, &olDesc, repo.refreshCalls[0].description)
-
-	_, stillCached := store.GetContent(coverKey)
-	assert.True(
-		t,
-		stillCached,
-		"cover cache must not be deleted when cover already exists",
-	)
-}
-
-// TestResyncBook_MissingCover_Backfilled verifies that when a book has no cover
-// and Open Library returns one, the cover is written and the cover cache is busted.
-func TestResyncBook_MissingCover_Backfilled(t *testing.T) {
-	isbn := "9780140449112"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-		// no cover, no description, no page count
-	}
-
-	olCover := "https://covers.openlibrary.org/b/isbn/9780140449112-L.jpg"
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //only relevant fields
-		Provider:   "openlibrary",
-		ProviderID: "OL123W",
-		Title:      "Test Book",
-		Authors:    []string{"Author"},
-		CoverURL:   &olCover,
-	}
-	fake := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
-	repo := &fakeBooksResync{}            //nolint:exhaustruct //no books list needed
-	store := objectstore.NewFake()
-
-	// Pre-populate a stale missing-marker to verify it gets cleared.
-	missingKey := bookCoverMissingKey(book.ID)
-	err := store.Put(
-		context.Background(), missingKey,
-		bytes.NewReader([]byte("")), 0, "text/plain",
-	)
-	require.NoError(t, err)
-
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    fake,
-		objectStore: store,
-	}
-
-	err = svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	require.NotNil(t, repo.refreshCalls[0].coverURL)
-	assert.Equal(t, olCover, *repo.refreshCalls[0].coverURL)
-
-	_, missingStillExists := store.GetContent(missingKey)
-	assert.False(
-		t,
-		missingStillExists,
-		"missing-marker must be deleted when a cover was fetched",
-	)
-}
-
-// TestResyncBook_NoCoverAnywhere verifies that when a book has no cover and
-// Open Library also returns no cover (and the ISBN fallback is empty), the cover
-// cache is NOT deleted.
-func TestResyncBook_NoCoverAnywhere(t *testing.T) {
-	isbn := "9780140449112"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-	}
-
-	// OL returns no cover, no description, no page_count.
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //only relevant fields
-		Provider:   "openlibrary",
-		ProviderID: "OL123W",
-		Title:      "Test Book",
-		Authors:    []string{"Author"},
-		CoverURL:   nil,
-	}
-	fake := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
-	repo := &fakeBooksResync{}            //nolint:exhaustruct //no books list needed
-	store := objectstore.NewFake()
-
-	// Pre-populate a missing-marker — it must not be deleted if no cover was found.
-	missingKey := bookCoverMissingKey(book.ID)
-	err := store.Put(
-		context.Background(), missingKey,
-		bytes.NewReader([]byte("")), 0, "text/plain",
-	)
-	require.NoError(t, err)
-
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    fake,
-		objectStore: store,
-	}
-
-	err = svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	if len(repo.refreshCalls) > 0 && repo.refreshCalls[0].coverURL == nil {
-		_, missingStillExists := store.GetContent(missingKey)
-		assert.True(
-			t, missingStillExists,
-			"missing-marker must not be deleted when no cover URL was found",
-		)
-	}
-}
-
-// TestResyncBook_GoogleBooks_FillsMissingCover verifies that when OL has no
-// cover for a book but Google Books does, the GB cover is used.
-func TestResyncBook_GoogleBooks_FillsMissingCover(t *testing.T) {
-	isbn := "9789463107587" // Dutch book — no OL cover
-	book := models.Book{    //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-	}
-
-	// OL returns no cover.
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //only relevant fields
-		CoverURL: nil,
-	}
-	olFake := &fakeOLClient{detail: detail} //nolint:exhaustruct // err nil
-
-	// GB returns a cover.
-	gbCover := "https://books.google.com/covers/dutch-book.jpg"
-	gbFake := &fakeGBClient{ //nolint:exhaustruct // only byISBN needed
-		byISBN: &gbResult{ //nolint:exhaustruct // desc and pages not relevant here
-			title:    "Dutch Book",
-			authors:  []string{"Dutch Author"},
-			isbn13:   &isbn,
-			coverURL: &gbCover,
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		googleBooks: gbFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	require.NotNil(t, repo.refreshCalls[0].coverURL,
-		"GB cover must be written when OL has none")
-	assert.Equal(t, gbCover, *repo.refreshCalls[0].coverURL)
-}
-
-// TestResyncBook_NoISBN_MatchedByTitleAuthor verifies that an ISBN-less book
-// matched by title+author gets cover, description, page_count AND isbn13
-// backfilled from the search result.
-func TestResyncBook_NoISBN_MatchedByTitleAuthor(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:      uuid.New(),
-		Title:   "2001: A Space Odyssey",
-		Authors: []string{"Arthur C. Clarke"},
-		// No ISBN, no cover, no description, no page count.
-	}
-
-	// OL search returns no results.
-	olFake := &fakeOLClient{} //nolint:exhaustruct // Search returns nil,nil
-
-	// GB search returns a confident match.
-	discoveredISBN := "9780451457998"
-	gbCover := "https://books.google.com/covers/odyssey.jpg"
-	gbDesc := "A science fiction novel."
-	gbPages := 221
-	gbFake := &fakeGBClient{ //nolint:exhaustruct // only searchResults needed
-		searchResults: []gbResult{{
-			title:    "2001: A Space Odyssey",
-			authors:  []string{"Arthur C. Clarke"},
-			isbn13:   &discoveredISBN,
-			coverURL: &gbCover,
-			desc:     &gbDesc,
-			pages:    &gbPages,
-		}},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		googleBooks: gbFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.coverURL)
-	assert.Equal(t, gbCover, *rc.coverURL)
-	require.NotNil(t, rc.description)
-	assert.Equal(t, gbDesc, *rc.description)
-	require.NotNil(t, rc.pageCount)
-	assert.Equal(t, gbPages, *rc.pageCount)
-	require.NotNil(t, rc.isbn13, "discovered ISBN13 must be written")
-	assert.Equal(t, discoveredISBN, *rc.isbn13)
-}
-
-// TestResyncBook_NoISBN_LowConfidence_NothingWritten verifies that when a
-// search result title does not match the book's title, no DB write occurs.
-func TestResyncBook_NoISBN_LowConfidence_NothingWritten(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:      uuid.New(),
-		Title:   "2001: A Space Odyssey",
-		Authors: []string{"Arthur C. Clarke"},
-	}
-
-	// Both providers return a result whose title does NOT match.
-	wrongISBN := "9780000000001"
-	wrongCover := "https://books.google.com/wrong.jpg"
-	gbFake := &fakeGBClient{ //nolint:exhaustruct // only searchResults needed
-		searchResults: []gbResult{
-			{ //nolint:exhaustruct // desc and pages not relevant here
-				title:    "Totally Different Book",
-				authors:  []string{"Arthur C. Clarke"},
-				isbn13:   &wrongISBN,
-				coverURL: &wrongCover,
-			},
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    &fakeOLClient{}, //nolint:exhaustruct // zero values fine
-		googleBooks: gbFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-	assert.Empty(t, repo.refreshCalls,
-		"no DB write must occur when no confident title/author match found")
-}
-
-// TestResyncBook_NoISBN_ISBNCollision_OtherFieldsStillWritten verifies that
-// even when the discovered ISBN belongs to another book (RefreshBookExternalData
-// silently skips it via the NOT EXISTS guard), cover/description/page_count
-// are still written.
-//
-// This is tested at the service level by checking that RefreshBookExternalData
-// is called with the isbn13 argument set — the collision guard lives in the
-// repository SQL and is tested in repository integration tests.
-func TestResyncBook_NoISBN_ISBNPassedToRepo(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:      uuid.New(),
-		Title:   "Dune",
-		Authors: []string{"Frank Herbert"},
-	}
-
-	discoveredISBN := "9780441013593"
-	gbCover := "https://books.google.com/dune.jpg"
-	gbFake := &fakeGBClient{ //nolint:exhaustruct // only searchResults needed
-		searchResults: []gbResult{
-			{ //nolint:exhaustruct // desc and pages not relevant here
-				title:    "Dune",
-				authors:  []string{"Frank Herbert"},
-				isbn13:   &discoveredISBN,
-				coverURL: &gbCover,
-			},
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    &fakeOLClient{}, //nolint:exhaustruct // zero values fine
-		googleBooks: gbFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	require.NotNil(t, repo.refreshCalls[0].isbn13,
-		"isbn13 must be passed to RefreshBookExternalData")
-	assert.Equal(t, discoveredISBN, *repo.refreshCalls[0].isbn13)
-}
-
-// fakeOLClientWithSearch wraps fakeOLClient but supports returning configurable
-// Search results so we can exercise the OL-match path in resyncBookByTitleAuthor.
+// fakeOLClientWithSearch wraps fakeOLClient but supports returning
+// configurable Search results so we can exercise the search-match path.
 type fakeOLClientWithSearch struct {
 	searchResults []openlibrary.ExternalBook
 	searchErr     error
@@ -671,6 +194,34 @@ func (f *fakeOLClientWithSearch) GetByISBN(
 func (f *fakeOLClientWithSearch) FetchCover(
 	_ context.Context,
 	_ string,
+) ([]byte, string, error) {
+	return nil, "", errors.New("not implemented")
+}
+
+// multiISBNOLClient returns a canned result per ISBN, used to give two books
+// in the same test different provider responses.
+type multiISBNOLClient struct {
+	results map[string]*openlibrary.ExternalBook
+}
+
+func (f *multiISBNOLClient) Search(
+	_ context.Context, _ string,
+) ([]openlibrary.ExternalBook, error) {
+	return nil, nil
+}
+
+func (f *multiISBNOLClient) GetByISBN(
+	_ context.Context, isbn string,
+) (*openlibrary.ExternalBook, error) {
+	r, ok := f.results[isbn]
+	if !ok {
+		return nil, openlibrary.ErrNotFound
+	}
+	return r, nil
+}
+
+func (f *multiISBNOLClient) FetchCover(
+	_ context.Context, _ string,
 ) ([]byte, string, error) {
 	return nil, "", errors.New("not implemented")
 }
@@ -740,274 +291,541 @@ func (s failDeleteObjectStore) List(
 	return s.inner.List(ctx, prefix)
 }
 
-func newResyncSvc(
-	repo *fakeBooksResync,
-	ol *fakeOLClient,
-) *BookService {
-	return &BookService{ //nolint:exhaustruct //only resync fields needed
+// ---------------------------------------------------------------------------
+// fetchByISBN: sources are kept independent, no gap-filling merge
+// ---------------------------------------------------------------------------
+
+func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
+	isbn := "9780140449112"
+	//nolint:exhaustruct // partial
+	olDetail := &openlibrary.ExternalBook{
+		Title:   "OL Title",
+		Authors: []string{"OL Author"},
+	}
+	gbCover := "https://books.google.com/cover.jpg"
+	gbDetail := &googlebooks.ExternalBook{ //nolint:exhaustruct // partial
+		Title: "GB Title", CoverURL: &gbCover,
+	}
+	ucDetail := &unicat.ExternalBook{Title: "UC Title"} //nolint:exhaustruct // partial
+
+	svc := &BookService{ //nolint:exhaustruct //only resync-path fields needed
 		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    ol,
+		external:    &fakeOLClient{detail: olDetail}, //nolint:exhaustruct // partial
+		googleBooks: &fakeGBClient{byISBN: gbDetail}, //nolint:exhaustruct // partial
+		uniCat:      &fakeUCClient{byISBN: ucDetail}, //nolint:exhaustruct // partial
 		objectStore: objectstore.NewFake(),
 	}
+
+	proposals := svc.fetchByISBN(context.Background(), logging.NewNopLogger(), isbn)
+
+	require.Len(t, proposals, 3, "all three providers returned a record; no merge")
+	assert.Equal(t, "openlibrary", proposals[0].Source)
+	assert.Equal(t, "OL Title", proposals[0].Title)
+	assert.Equal(t, "googlebooks", proposals[1].Source)
+	assert.Equal(t, "GB Title", proposals[1].Title)
+	assert.Equal(t, gbCover, proposals[1].CoverURL)
+	assert.Equal(t, "unicat", proposals[2].Source)
+	assert.Equal(t, "UC Title", proposals[2].Title)
 }
 
-// fakeUCClient is a configurable unicat.Client stub.
-type fakeUCClient struct {
-	byISBN *ucResult
-	err    error
-	mu     sync.Mutex
-	calls  int
-}
-
-type ucResult struct {
-	title   string
-	authors []string
-	isbn13  *string
-	desc    *string
-	pages   *int
-}
-
-func (f *fakeUCClient) GetByISBN(
-	_ context.Context,
-	_ string,
-) (*unicat.ExternalBook, error) {
-	f.mu.Lock()
-	f.calls++
-	f.mu.Unlock()
-	if f.err != nil {
-		return nil, f.err
+func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger: logging.NewNopLogger(),
+		//nolint:exhaustruct // detail unused, err drives the not-found path
+		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		objectStore: objectstore.NewFake(),
 	}
-	if f.byISBN == nil {
-		return nil, unicat.ErrNotFound
-	}
-	b := ucResultToExternal(*f.byISBN)
-	return &b, nil
-}
 
-func (f *fakeUCClient) Search(
-	_ context.Context,
-	_ string,
-) ([]unicat.ExternalBook, error) {
-	f.mu.Lock()
-	f.calls++
-	f.mu.Unlock()
-	if f.err != nil {
-		return nil, f.err
-	}
-	if f.byISBN == nil {
-		return nil, nil
-	}
-	b := ucResultToExternal(*f.byISBN)
-	return []unicat.ExternalBook{b}, nil
-}
-
-func ucResultToExternal(r ucResult) unicat.ExternalBook {
-	return unicat.ExternalBook{
-		Title:       r.title,
-		Authors:     r.authors,
-		ISBN13:      r.isbn13,
-		Description: r.desc,
-		PageCount:   r.pages,
-	}
-}
-
-// TestResyncAllFromOpenLibrary_EmptyLibrary verifies that with no books
-// the function returns (0, nil) and emits exactly one onProgress(0, 0) call.
-func TestResyncAllFromOpenLibrary_EmptyLibrary(t *testing.T) {
-	repo := &fakeBooksResync{}                 //nolint:exhaustruct //no books needed
-	svc := newResyncSvc(repo, &fakeOLClient{}) //nolint:exhaustruct //defaults fine
-
-	var calls [][2]int
-	n, err := svc.ResyncAllFromOpenLibrary(
+	proposals := svc.fetchByISBN(
 		context.Background(),
 		logging.NewNopLogger(),
+		"9780140449112",
+	)
+	assert.Empty(t, proposals)
+}
+
+func TestFetchSourceProposals_DispatchesOnISBNPresence(t *testing.T) {
+	//nolint:exhaustruct // partial
+	svc := &BookService{
+		logger: logging.NewNopLogger(),
+		//nolint:exhaustruct // partial
+		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		objectStore: objectstore.NewFake(),
+	}
+	ctx := context.Background()
+
+	isbn := "9780140449112"
+	withISBN := models.Book{ISBN13: &isbn} //nolint:exhaustruct // partial
+	// Has an ISBN: fetchByISBN's path runs (proves it by observing the OL call
+	// outcome — ErrNotFound yields no proposals, same as a direct call would).
+	assert.Empty(t, svc.fetchSourceProposals(ctx, logging.NewNopLogger(), withISBN))
+
+	// No ISBN and no title: neither lookup path can run.
+	bare := models.Book{} //nolint:exhaustruct // partial
+	assert.Empty(t, svc.fetchSourceProposals(ctx, logging.NewNopLogger(), bare))
+}
+
+// ---------------------------------------------------------------------------
+// fetchBySearch: match guards
+// ---------------------------------------------------------------------------
+
+func TestFetchBySearch_TitleAuthorMatch_Accepted(t *testing.T) {
+	book := models.Book{ //nolint:exhaustruct // partial
+		Title: "Dune", Authors: []string{"Frank Herbert"},
+	}
+	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
+		searchResults: []openlibrary.ExternalBook{
+			//nolint:exhaustruct // title/authors are all this test checks
+			{Title: "Dune", Authors: []string{"Frank Herbert"}},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		external:    olFake,
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposals := svc.fetchBySearch(context.Background(), logging.NewNopLogger(), book)
+	require.Len(t, proposals, 1)
+	assert.Equal(t, "openlibrary", proposals[0].Source)
+}
+
+func TestFetchBySearch_TitleMismatch_Rejected(t *testing.T) {
+	book := models.Book{ //nolint:exhaustruct // partial
+		Title: "Dune", Authors: []string{"Frank Herbert"},
+	}
+	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
+		searchResults: []openlibrary.ExternalBook{
+			{ //nolint:exhaustruct // title/authors are all this test checks
+				Title:   "Totally Different Book",
+				Authors: []string{"Frank Herbert"},
+			},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		external:    olFake,
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposals := svc.fetchBySearch(context.Background(), logging.NewNopLogger(), book)
+	assert.Empty(t, proposals)
+}
+
+func TestFetchBySearch_TitleOnly_AmbiguousDisjointAuthors_Rejected(t *testing.T) {
+	book := models.Book{Title: "Emma"} //nolint:exhaustruct // no authors: title-only path
+	isbn1, isbn2 := "9780141439587", "9780385340069"
+	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only searchResults
+		searchResults: []openlibrary.ExternalBook{
+			{ //nolint:exhaustruct // title/authors/isbn13 are all this test checks
+				Title:   "Emma",
+				Authors: []string{"Jane Austen"},
+				ISBN13:  &isbn1,
+			},
+			{ //nolint:exhaustruct // title/authors/isbn13 are all this test checks
+				Title:   "Emma",
+				Authors: []string{"Someone Else"},
+				ISBN13:  &isbn2,
+			},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		external:    olFake,
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposals := svc.fetchBySearch(context.Background(), logging.NewNopLogger(), book)
+	assert.Empty(t, proposals, "disjoint-author title matches must not be proposed")
+}
+
+func TestFetchBySearch_GoogleBooksAndUniCat_AlsoMatch(t *testing.T) {
+	//nolint:exhaustruct // partial
+	book := models.Book{Title: "Dune", Authors: []string{"Frank Herbert"}}
+	//nolint:exhaustruct // no OL match; proves GB/UC still run
+	olFake := &fakeOLClientWithSearch{}
+	gbFake := &fakeGBClient{ //nolint:exhaustruct // partial
+		searchResults: []googlebooks.ExternalBook{
+			{Title: "Dune", Authors: []string{"Frank Herbert"}}, //nolint:exhaustruct // partial
+		},
+	}
+	ucFake := &fakeUCClient{ //nolint:exhaustruct // partial
+		searchResults: []unicat.ExternalBook{
+			{Title: "Dune", Authors: []string{"Frank Herbert"}}, //nolint:exhaustruct // partial
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		external:    olFake,
+		googleBooks: gbFake,
+		uniCat:      ucFake,
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposals := svc.fetchBySearch(context.Background(), logging.NewNopLogger(), book)
+	require.Len(t, proposals, 2, "both GB and UC matched")
+	assert.Equal(t, "googlebooks", proposals[0].Source)
+	assert.Equal(t, "unicat", proposals[1].Source)
+}
+
+// ---------------------------------------------------------------------------
+// computeDifferences
+// ---------------------------------------------------------------------------
+
+func TestComputeDifferences_Rules(t *testing.T) {
+	existingCover := "https://example.com/cover.jpg"
+	existingISBN := "9780140449112"
+	pages := 100
+	book := models.Book{ //nolint:exhaustruct // partial
+		Title:     "Dune",
+		Authors:   []string{"Frank Herbert"},
+		CoverURL:  &existingCover,
+		ISBN13:    &existingISBN,
+		PageCount: &pages,
+	}
+
+	// A source that agrees on everything it offers: no diff.
+	agree := SourceProposal{ //nolint:exhaustruct // partial
+		Title: "Dune", Authors: []string{"Frank Herbert"}, PageCount: pages,
+	}
+	assert.Empty(t, computeDifferences(book, agree))
+
+	// Title differs.
+	titleDiff := SourceProposal{Title: "Different Title"} //nolint:exhaustruct // partial
+	assert.Contains(t, computeDifferences(book, titleDiff), "title")
+
+	// Page count differs.
+	pageDiff := SourceProposal{PageCount: 999} //nolint:exhaustruct // partial
+	assert.Contains(t, computeDifferences(book, pageDiff), "page_count")
+
+	// Description differs (library has none — any non-empty source value counts).
+	//nolint:exhaustruct // partial
+	descDiff := SourceProposal{Description: "A new description."}
+	assert.Contains(t, computeDifferences(book, descDiff), "description")
+
+	// Cover: never flagged when the library already has one.
+	//nolint:exhaustruct // partial
+	coverDiff := SourceProposal{CoverURL: "https://elsewhere.example.com/x.jpg"}
+	assert.NotContains(t, computeDifferences(book, coverDiff), "cover_url")
+
+	// ISBN: never flagged when the library already has one.
+	isbnDiff := SourceProposal{ISBN13: "9780062316097"} //nolint:exhaustruct // partial
+	assert.NotContains(t, computeDifferences(book, isbnDiff), "isbn13")
+
+	// A book missing cover/ISBN does flag a source that supplies one.
+	//nolint:exhaustruct // partial
+	bareBook := models.Book{Title: "Dune", Authors: []string{"Frank Herbert"}}
+	gapFill := SourceProposal{ //nolint:exhaustruct // partial
+		CoverURL: "https://example.com/new.jpg",
+		ISBN13:   "9780062316097",
+	}
+	diffs := computeDifferences(bareBook, gapFill)
+	assert.Contains(t, diffs, "cover_url")
+	assert.Contains(t, diffs, "isbn13")
+}
+
+// ---------------------------------------------------------------------------
+// BuildResyncProposals
+// ---------------------------------------------------------------------------
+
+func TestBuildResyncProposals_FlagsOnlyDiffering(t *testing.T) {
+	idAgree, idDiffer := uuid.New(), uuid.New()
+	isbnA, isbnB := "9780140449112", "9780062316097"
+	// The library already has a cover, matching the ISBN-keyed fallback OL
+	// falls back to, so the "agree" book truly agrees on every field.
+	coverA := openlibrary.CoverURLByISBN(&isbnA)
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		books: []models.Book{
+			//nolint:exhaustruct // partial
+			{ID: idAgree, Title: "Agreeing Book", ISBN13: &isbnA, CoverURL: &coverA},
+			//nolint:exhaustruct // partial
+			{ID: idDiffer, Title: "Differing Book", ISBN13: &isbnB},
+		},
+	}
+
+	// OL returns the same title for the "agree" book but a different one for
+	// the "differ" book.
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external: &multiISBNOLClient{results: map[string]*openlibrary.ExternalBook{
+			isbnA: {Title: "Agreeing Book"},
+			isbnB: {Title: "A Totally Different Title"},
+		}},
+		objectStore: objectstore.NewFake(),
+	}
+
+	var calls [][2]int
+	n, err := svc.BuildResyncProposals(
+		context.Background(), logging.NewNopLogger(),
 		func(processed, total int) { calls = append(calls, [2]int{processed, total}) },
 	)
+	require.NoError(t, err)
+	assert.Equal(t, 1, n, "only the differing book should be flagged")
+	require.Len(t, calls, 3, "one (0,total) call plus one per book")
+	assert.Equal(t, [2]int{0, 2}, calls[0])
 
+	require.Len(t, repo.replaced, 1)
+	_, ok := repo.replaced[idDiffer]
+	assert.True(t, ok, "the differing book must be in the replacement set")
+	_, agreeStillThere := repo.replaced[idAgree]
+	assert.False(t, agreeStillThere, "the agreeing book must not be flagged")
+}
+
+// TestBuildResyncProposals_FlagsNotFoundAnywhere verifies that a searchable
+// book (has an ISBN) every configured source returns ErrNotFound for is still
+// flagged — with zero stored sources — so the admin wizard can surface
+// coverage gaps, distinct from a book that agrees with every source (which is
+// never flagged at all).
+func TestBuildResyncProposals_FlagsNotFoundAnywhere(t *testing.T) {
+	id := uuid.New()
+	isbn := "9780140449112"
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		books: []models.Book{
+			{ID: id, Title: "Obscure Book", ISBN13: &isbn}, //nolint:exhaustruct // partial
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		//nolint:exhaustruct // partial
+		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		objectStore: objectstore.NewFake(),
+	}
+
+	n, err := svc.BuildResyncProposals(context.Background(), logging.NewNopLogger(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, 1, n, "a book no source could find must still be flagged")
+
+	require.Contains(t, repo.replaced, id)
+	var sources []SourceProposal
+	require.NoError(t, json.Unmarshal(repo.replaced[id], &sources))
+	assert.Empty(t, sources, "no source data to store when nothing was found")
+}
+
+// TestBuildResyncProposals_NeverAttempted_NotFlagged verifies that a book
+// with neither an ISBN nor a title (nothing could be searched) is never
+// flagged — unlike the "not found anywhere" case, no lookup was attempted.
+func TestBuildResyncProposals_NeverAttempted_NotFlagged(t *testing.T) {
+	id := uuid.New()
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		books: []models.Book{{ID: id}}, //nolint:exhaustruct // no ISBN, no title
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		//nolint:exhaustruct // partial
+		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		objectStore: objectstore.NewFake(),
+	}
+
+	n, err := svc.BuildResyncProposals(context.Background(), logging.NewNopLogger(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, 0, n, "a book nothing could be searched for must not be flagged")
+}
+
+func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
+	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
+	svc := &BookService{       //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    &fakeOLClient{}, //nolint:exhaustruct //zero values fine
+		objectStore: objectstore.NewFake(),
+	}
+
+	var calls [][2]int
+	n, err := svc.BuildResyncProposals(
+		context.Background(), logging.NewNopLogger(),
+		func(processed, total int) { calls = append(calls, [2]int{processed, total}) },
+	)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
 	require.Len(t, calls, 1)
 	assert.Equal(t, [2]int{0, 0}, calls[0])
 }
 
-// TestResyncAllFromOpenLibrary_AllSucceed verifies that all books are refreshed,
-// refreshed count equals the book count, and onProgress is called total+1 times.
-func TestResyncAllFromOpenLibrary_AllSucceed(t *testing.T) {
-	isbn1 := "9780140449112"
-	isbn2 := "9780062316097"
-	id1, id2 := uuid.New(), uuid.New()
-
-	repo := &fakeBooksResync{ //nolint:exhaustruct //listErr/refreshErr zero = nil
-		books: []models.Book{
-			{ID: id1, ISBN13: &isbn1}, //nolint:exhaustruct //only ID+ISBN needed
-			{ID: id2, ISBN13: &isbn2}, //nolint:exhaustruct //only ID+ISBN needed
-		},
-	}
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //minimal detail
-		Provider:   "openlibrary",
-		ProviderID: "OL1W",
-		Title:      "Test Book",
-		Authors:    []string{"Author"},
-	}
-	ol := &fakeOLClient{detail: detail} //nolint:exhaustruct //err zero = nil
-
-	svc := newResyncSvc(repo, ol)
-
-	var progressMu sync.Mutex
-	var calls [][2]int
-	n, err := svc.ResyncAllFromOpenLibrary(
-		context.Background(),
-		logging.NewNopLogger(),
-		func(processed, total int) {
-			progressMu.Lock()
-			calls = append(calls, [2]int{processed, total})
-			progressMu.Unlock()
-		},
-	)
-
-	require.NoError(t, err)
-	assert.Equal(t, 2, n)
-	// total+1 calls: (0,2) then (1,2) and (2,2) in any order
-	assert.Len(t, calls, 3)
-	assert.Equal(t, [2]int{0, 2}, calls[0], "first call must be (0, total)")
-
-	repo.refreshMu.Lock()
-	calls2 := repo.refreshCalls
-	repo.refreshMu.Unlock()
-
-	refreshedIDs := make([]uuid.UUID, len(calls2))
-	for i, c := range calls2 {
-		refreshedIDs[i] = c.bookID
-	}
-	assert.ElementsMatch(t, []uuid.UUID{id1, id2}, refreshedIDs)
-}
-
-// TestResyncAllFromOpenLibrary_PartialFailure verifies that a per-book error is
-// collected but does not stop the other books from being refreshed.
-func TestResyncAllFromOpenLibrary_PartialFailure(t *testing.T) {
-	isbn1 := "9780140449112"
-	isbn2 := "9780062316097"
-	id1, id2 := uuid.New(), uuid.New()
-
-	repo := &fakeBooksResync{ //nolint:exhaustruct //listErr zero = nil
-		books: []models.Book{
-			{ID: id1, ISBN13: &isbn1}, //nolint:exhaustruct //only ID+ISBN needed
-			{ID: id2, ISBN13: &isbn2}, //nolint:exhaustruct //only ID+ISBN needed
-		},
-		refreshErr: errors.New("db down"),
-	}
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //minimal detail
-		Provider:   "openlibrary",
-		ProviderID: "OL1W",
-		Title:      "Test Book",
-		Authors:    []string{"Author"},
-	}
-	ol := &fakeOLClient{detail: detail} //nolint:exhaustruct //err zero = nil
-
-	svc := newResyncSvc(repo, ol)
-
-	n, err := svc.ResyncAllFromOpenLibrary(
-		context.Background(),
-		logging.NewNopLogger(),
-		nil,
-	)
-
-	require.Error(t, err)
-	assert.Equal(t, 0, n)
-}
-
-// TestResyncAllFromOpenLibrary_ListError verifies that a list error is returned
-// immediately and no books are processed.
-func TestResyncAllFromOpenLibrary_ListError(t *testing.T) {
+func TestBuildResyncProposals_ListError(t *testing.T) {
 	listErr := errors.New("connection refused")
-	repo := &fakeBooksResync{ //nolint:exhaustruct //only listErr needed
-		listErr: listErr,
+	repo := &fakeBooksResync{listErr: listErr} //nolint:exhaustruct // partial
+	svc := &BookService{                       //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		objectStore: objectstore.NewFake(),
 	}
-	svc := newResyncSvc(repo, &fakeOLClient{}) //nolint:exhaustruct //defaults fine
 
-	n, err := svc.ResyncAllFromOpenLibrary(
+	n, err := svc.BuildResyncProposals(
 		context.Background(),
 		logging.NewNopLogger(),
 		nil,
 	)
-
 	require.ErrorIs(t, err, listErr)
 	assert.Equal(t, 0, n)
 }
 
-// TestResyncBook_NoISBN_EmptyTitle_Skipped verifies that a book with no title
-// and no ISBN is silently skipped with no network or DB calls.
-func TestResyncBook_NoISBN_EmptyTitle_Skipped(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:      uuid.New(),
-		Title:   "",
-		Authors: []string{"Some Author"},
-	}
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    &fakeOLClient{}, //nolint:exhaustruct // zero values fine
-		objectStore: store,
-	}
+// ---------------------------------------------------------------------------
+// ListResyncProposals: Differs recomputed at read time
+// ---------------------------------------------------------------------------
 
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
+func TestListResyncProposals_RecomputesDiffers(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "Dune"} //nolint:exhaustruct // partial
+
+	raw, err := json.Marshal([]SourceProposal{
+		{Source: "openlibrary", Title: "Different Title"}, //nolint:exhaustruct // partial
+	})
 	require.NoError(t, err)
-	assert.Empty(t, repo.refreshCalls, "no DB write expected for title-less book")
-}
 
-// TestResyncBook_OLSearch_MatchFillsMetadata verifies that when OL search
-// returns a confident title/author match, cover and ISBN are backfilled without
-// needing to call Google Books.
-func TestResyncBook_OLSearch_MatchFillsMetadata(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:      uuid.New(),
-		Title:   "Dune",
-		Authors: []string{"Frank Herbert"},
-	}
-
-	olISBN := "9780441013593"
-	olCover := "https://covers.openlibrary.org/b/isbn/9780441013593-L.jpg"
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct // only searchResults needed
-		searchResults: []openlibrary.ExternalBook{
-			{ //nolint:exhaustruct // only fields relevant to match check
-				Provider:   "openlibrary",
-				ProviderID: "OL102749W",
-				Title:      "Dune",
-				Authors:    []string{"Frank Herbert"},
-				ISBN13:     &olISBN,
-				CoverURL:   &olCover,
-			},
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: raw},
 		},
 	}
+	svc := &BookService{booksResync: repo} //nolint:exhaustruct // partial
 
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
+	proposals, err := svc.ListResyncProposals(context.Background())
+	require.NoError(t, err)
+	require.Len(t, proposals, 1)
+	require.Len(t, proposals[0].Sources, 1)
+	assert.Contains(t, proposals[0].Sources[0].Differs, "title")
+	assert.Equal(t, "Dune", proposals[0].Library.Title)
+}
+
+// ---------------------------------------------------------------------------
+// ApplyResyncChoice
+// ---------------------------------------------------------------------------
+
+func TestApplyResyncChoice_KeepLibrary_DismissesWithoutWriting(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "Dune"} //nolint:exhaustruct // partial
+	raw, err := json.Marshal([]SourceProposal{
+		{Source: "openlibrary", Title: "Other Title"}, //nolint:exhaustruct // partial
+	})
+	require.NoError(t, err)
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: raw},
+		},
+	}
+	svc := &BookService{booksResync: repo} //nolint:exhaustruct // partial
+
+	err = svc.ApplyResyncChoice(
+		context.Background(),
+		logging.NewNopLogger(),
+		bookID,
+		"",
+	)
+	require.NoError(t, err)
+	assert.Empty(t, repo.refreshCalls, "keeping the library value must not write")
+	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs)
+}
+
+func TestApplyResyncChoice_ChosenSource_WritesFields(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "Old Title"} //nolint:exhaustruct // partial
+	raw, err := json.Marshal([]SourceProposal{
+		{ //nolint:exhaustruct // partial
+			Source: "openlibrary", Title: "New Title", Description: "New desc",
+			PageCount: 42, CoverURL: "https://example.com/c.jpg",
+		},
+	})
+	require.NoError(t, err)
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: raw},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
 		booksResync: repo,
-		external:    olFake,
-		objectStore: store,
+		objectStore: objectstore.NewFake(),
 	}
 
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
+	err = svc.ApplyResyncChoice(
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
+	)
 	require.NoError(t, err)
 
 	require.Len(t, repo.refreshCalls, 1)
-	require.NotNil(t, repo.refreshCalls[0].coverURL)
-	assert.Equal(t, olCover, *repo.refreshCalls[0].coverURL)
-	require.NotNil(t, repo.refreshCalls[0].isbn13)
-	assert.Equal(t, olISBN, *repo.refreshCalls[0].isbn13)
+	rc := repo.refreshCalls[0]
+	require.NotNil(t, rc.title)
+	assert.Equal(t, "New Title", *rc.title)
+	require.NotNil(t, rc.description)
+	assert.Equal(t, "New desc", *rc.description)
+	require.NotNil(t, rc.pageCount)
+	assert.Equal(t, 42, *rc.pageCount)
+	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs)
 }
 
-// TestBustCoverCache_DeleteErrors verifies that Delete failures in bustCoverCache
-// are non-fatal: the method logs a warning and does not panic.
+func TestApplyResyncChoice_NeverOverwritesExistingISBN(t *testing.T) {
+	bookID := uuid.New()
+	existingISBN := "9780140449112"
+	book := models.Book{ID: bookID, ISBN13: &existingISBN} //nolint:exhaustruct // partial
+	raw, err := json.Marshal([]SourceProposal{
+		{Source: "openlibrary", ISBN13: "9780062316097"}, //nolint:exhaustruct // partial
+	})
+	require.NoError(t, err)
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: raw},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		booksResync: repo,
+		objectStore: objectstore.NewFake(),
+	}
+
+	err = svc.ApplyResyncChoice(
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1)
+	assert.Nil(t, repo.refreshCalls[0].isbn13,
+		"an existing ISBN must never be overwritten by a resync choice")
+}
+
+func TestApplyResyncChoice_UnknownBook_ErrProposalNotFound(t *testing.T) {
+	repo := &fakeBooksResync{}             //nolint:exhaustruct //zero values fine
+	svc := &BookService{booksResync: repo} //nolint:exhaustruct // partial
+
+	err := svc.ApplyResyncChoice(
+		context.Background(), logging.NewNopLogger(), uuid.New(), "openlibrary",
+	)
+	require.ErrorIs(t, err, ErrProposalNotFound)
+}
+
+func TestApplyResyncChoice_UnknownSource_ErrProposalNotFound(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID} //nolint:exhaustruct // partial
+	raw, err := json.Marshal([]SourceProposal{
+		{Source: "openlibrary", Title: "X"}, //nolint:exhaustruct // partial
+	})
+	require.NoError(t, err)
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: raw},
+		},
+	}
+	svc := &BookService{booksResync: repo} //nolint:exhaustruct // partial
+
+	err = svc.ApplyResyncChoice(
+		context.Background(), logging.NewNopLogger(), bookID, "googlebooks",
+	)
+	require.ErrorIs(t, err, ErrProposalNotFound)
+}
+
+// ---------------------------------------------------------------------------
+// bustCoverCache: Delete failures are non-fatal
+// ---------------------------------------------------------------------------
+
 func TestBustCoverCache_DeleteErrors(t *testing.T) {
 	bookID := uuid.New()
 	store := failDeleteObjectStore{inner: objectstore.NewFake()}
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
+	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		objectStore: store,
 	}
@@ -1015,787 +833,4 @@ func TestBustCoverCache_DeleteErrors(t *testing.T) {
 	assert.NotPanics(t, func() {
 		svc.bustCoverCache(context.Background(), logging.NewNopLogger(), bookID)
 	})
-}
-
-// ---------------------------------------------------------------------------
-// SetResyncStatus recording tests
-// ---------------------------------------------------------------------------
-
-// TestResyncBook_RecordsOLFound verifies that when OL returns a record,
-// SetResyncStatus is called with olFound=true.
-func TestResyncBook_RecordsOLFound(t *testing.T) {
-	isbn := "9780140449112"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-	}
-
-	olCover := "https://covers.openlibrary.org/b/isbn/9780140449112-L.jpg"
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //only relevant fields
-		Provider:   "openlibrary",
-		ProviderID: "OL123W",
-		Title:      "Test Book",
-		Authors:    []string{"Author"},
-		CoverURL:   &olCover,
-	}
-	fake := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
-	repo := &fakeBooksResync{}            //nolint:exhaustruct //no books list needed
-
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    fake,
-		objectStore: objectstore.NewFake(),
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	repo.statusMu.Lock()
-	calls := repo.statusCalls
-	repo.statusMu.Unlock()
-
-	require.Len(t, calls, 1, "SetResyncStatus must be called once")
-	assert.Equal(t, book.ID, calls[0].bookID)
-	assert.True(t, calls[0].olFound, "olFound must be true when OL returned a record")
-	assert.False(t, calls[0].gbFound, "gbFound must be false when GB was not queried")
-}
-
-// TestResyncBook_RecordsNotFound verifies that when OL returns ErrNotFound,
-// SetResyncStatus is called with olFound=false.
-func TestResyncBook_RecordsOLNotFound(t *testing.T) {
-	isbn := "9780140449112"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-	}
-
-	fake := &fakeOLClient{ //nolint:exhaustruct //only err needed
-		err: openlibrary.ErrNotFound,
-	}
-	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
-
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    fake,
-		objectStore: objectstore.NewFake(),
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	repo.statusMu.Lock()
-	calls := repo.statusCalls
-	repo.statusMu.Unlock()
-
-	require.Len(t, calls, 1, "SetResyncStatus must be called even on ErrNotFound")
-	assert.False(
-		t,
-		calls[0].olFound,
-		"olFound must be false when OL returned ErrNotFound",
-	)
-}
-
-// TestResyncBook_Force_OverwritesExistingFields verifies that when force=true,
-// all three fields are re-queried and overwritten even when the book already
-// has cover, description, and page_count.
-func TestResyncBook_Force_OverwritesExistingFields(t *testing.T) {
-	isbn := "9780140449112"
-	existingCover := "https://old.example.com/cover.jpg"
-	existingDesc := "Old description."
-	existingPages := 100
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:          uuid.New(),
-		ISBN13:      &isbn,
-		CoverURL:    &existingCover,
-		Description: &existingDesc,
-		PageCount:   &existingPages,
-	}
-
-	newCover := "https://covers.openlibrary.org/b/isbn/9780140449112-L.jpg"
-	newDesc := "New description from OL."
-	newPages := 400
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //only relevant fields
-		Provider:    "openlibrary",
-		ProviderID:  "OL123W",
-		Title:       "Test Book",
-		Authors:     []string{"Author"},
-		CoverURL:    &newCover,
-		Description: &newDesc,
-		PageCount:   &newPages,
-	}
-	fake := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
-	repo := &fakeBooksResync{}            //nolint:exhaustruct //zero values fine
-
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    fake,
-		objectStore: objectstore.NewFake(),
-	}
-
-	// Without force: fully populated book is skipped.
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-	assert.Empty(t, repo.refreshCalls, "additive resync must skip fully-populated book")
-
-	// With force: all fields must be re-queried.
-	err = svc.resyncBook(context.Background(), logging.NewNopLogger(), book, true)
-	require.NoError(t, err)
-
-	repo.refreshMu.Lock()
-	calls := repo.refreshCalls
-	repo.refreshMu.Unlock()
-
-	require.Len(
-		t,
-		calls,
-		1,
-		"RefreshBookExternalData must be called once in force mode",
-	)
-	rc := calls[0]
-	require.NotNil(t, rc.coverURL)
-	assert.Equal(t, newCover, *rc.coverURL, "force must pass new cover to repo")
-	require.NotNil(t, rc.description)
-	assert.Equal(t, newDesc, *rc.description, "force must pass new description to repo")
-	require.NotNil(t, rc.pageCount)
-	assert.Equal(t, newPages, *rc.pageCount, "force must pass new page count to repo")
-}
-
-// TestResyncBook_ISBNNotFound_FallsBackToTitleAuthor verifies that a book with
-// an ISBN that neither OL nor GB can find by ISBN falls back to a title+author
-// search and fills metadata from the search result.
-func TestResyncBook_ISBNNotFound_FallsBackToTitleAuthor(t *testing.T) {
-	isbn := "9780999999999" // ISBN not found in OL or GB by ISBN lookup
-	book := models.Book{    //nolint:exhaustruct // only tested fields needed
-		ID:      uuid.New(),
-		Title:   "Obscure Book",
-		Authors: []string{"Unknown Author"},
-		ISBN13:  &isbn,
-	}
-
-	// OL: ISBN lookup fails, but title/author search succeeds.
-	olCover := "https://covers.openlibrary.org/obscure.jpg"
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct // only relevant fields
-		getErr: openlibrary.ErrNotFound,
-		searchResults: []openlibrary.ExternalBook{
-			{ //nolint:exhaustruct // only fields relevant to match
-				Provider:   "openlibrary",
-				ProviderID: "OL999W",
-				Title:      "Obscure Book",
-				Authors:    []string{"Unknown Author"},
-				CoverURL:   &olCover,
-			},
-		},
-	}
-
-	// GB: ISBN lookup also fails, no search results.
-	gbFake := &fakeGBClient{} //nolint:exhaustruct // byISBN nil → ErrNotFound
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		googleBooks: gbFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1,
-		"metadata from OL title/author search must be written when ISBN lookup fails")
-	require.NotNil(t, repo.refreshCalls[0].coverURL)
-	assert.Equal(t, olCover, *repo.refreshCalls[0].coverURL)
-
-	// olFound must be true because OL matched via title/author search.
-	require.Len(t, repo.statusCalls, 1)
-	assert.True(
-		t,
-		repo.statusCalls[0].olFound,
-		"olFound must be true when OL matched by title/author even if ISBN lookup failed",
-	)
-}
-
-// TestResyncBooks_ProcessesGivenIDs verifies that ResyncBooks loads only the
-// requested IDs and processes them using the existing resync loop.
-func TestResyncBooks_ProcessesGivenIDs(t *testing.T) {
-	isbn1 := "9780140449112"
-	isbn2 := "9780062316097"
-	id1, id2, id3 := uuid.New(), uuid.New(), uuid.New()
-
-	repo := &fakeBooksResync{ //nolint:exhaustruct //listErr zero = nil
-		books: []models.Book{
-			{ID: id1, ISBN13: &isbn1}, //nolint:exhaustruct //only ID+ISBN needed
-			{ID: id2, ISBN13: &isbn2}, //nolint:exhaustruct //only ID+ISBN needed
-			// id3 is NOT in the fake — should not be processed.
-		},
-	}
-
-	olCover := "https://covers.openlibrary.org/b/isbn/cover.jpg"
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //minimal detail
-		Provider:   "openlibrary",
-		ProviderID: "OL1W",
-		Title:      "Test Book",
-		Authors:    []string{"Author"},
-		CoverURL:   &olCover,
-	}
-	ol := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
-
-	svc := newResyncSvc(repo, ol)
-
-	// Request only id1; id2 and id3 must be ignored.
-	n, err := svc.ResyncBooks(
-		context.Background(),
-		logging.NewNopLogger(),
-		[]uuid.UUID{id1},
-		false,
-		nil,
-	)
-
-	require.NoError(t, err)
-	assert.Equal(t, 1, n, "only the requested book must be resynced")
-
-	repo.refreshMu.Lock()
-	calls := repo.refreshCalls
-	repo.refreshMu.Unlock()
-
-	ids := make([]uuid.UUID, len(calls))
-	for i, c := range calls {
-		ids[i] = c.bookID
-	}
-	assert.Equal(t, []uuid.UUID{id1}, ids, "only id1 must be written to the repo")
-
-	// id3 was never in the fake — requesting it should just return 0 processed.
-	n2, err2 := svc.ResyncBooks(
-		context.Background(),
-		logging.NewNopLogger(),
-		[]uuid.UUID{id3},
-		false,
-		nil,
-	)
-	require.NoError(t, err2)
-	assert.Equal(t, 0, n2, "unknown book ID must return 0 processed books")
-}
-
-// TestResyncBook_TitleAuthorsWrittenFromProvider verifies that when a provider
-// returns a non-empty title and authors they are carried through resyncResolution
-// and written to the DB via RefreshBookExternalData.
-func TestResyncBook_TitleAuthorsWrittenFromProvider(t *testing.T) {
-	isbn := "9789463107389"
-	desc := "A description."
-	pages := 127
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-	}
-
-	detail := &openlibrary.ExternalBook{ //nolint:exhaustruct //minimal detail
-		Provider:    "openlibrary",
-		ProviderID:  "OL1W",
-		Title:       "Correct Title From Provider",
-		Authors:     []string{"Vandenbroucke, Frank"},
-		Description: &desc,
-		PageCount:   &pages,
-	}
-	ol := &fakeOLClient{detail: detail} //nolint:exhaustruct //err nil
-	repo := &fakeBooksResync{}          //nolint:exhaustruct //zero values fine
-
-	svc := newResyncSvc(repo, ol)
-
-	err := svc.resyncBook(
-		context.Background(),
-		logging.NewNopLogger(),
-		book,
-		false,
-	)
-	require.NoError(t, err)
-
-	repo.refreshMu.Lock()
-	calls := repo.refreshCalls
-	repo.refreshMu.Unlock()
-	require.Len(t, calls, 1)
-
-	c := calls[0]
-	require.NotNil(t, c.title, "title should be written")
-	assert.Equal(t, "Correct Title From Provider", *c.title)
-	assert.Equal(t, []string{"Vandenbroucke, Frank"}, c.authors)
-}
-
-// TestResyncBook_UniCatFallback verifies that when OL and GB both return
-// ErrNotFound the UniCat provider is tried and its metadata is written.
-func TestResyncBook_UniCatFallback(t *testing.T) {
-	isbn := "9789463107389"
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:     uuid.New(),
-		ISBN13: &isbn,
-	}
-
-	ol := &fakeOLClient{ //nolint:exhaustruct //err nil, nil detail → ErrNotFound path
-		err: openlibrary.ErrNotFound,
-	}
-	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
-
-	ucDesc := "Een beschrijving."
-	ucPages := 127
-	ucISBN := "9789463107389"
-	uc := &fakeUCClient{ //nolint:exhaustruct //zero values fine for err, mu, calls
-		byISBN: &ucResult{
-			title:   "10 franke vragen aan Frank",
-			authors: []string{"Vandenbroucke, Frank"},
-			isbn13:  &ucISBN,
-			desc:    &ucDesc,
-			pages:   &ucPages,
-		},
-	}
-
-	svc := &BookService{ //nolint:exhaustruct //only resync fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    ol,
-		uniCat:      uc,
-		objectStore: objectstore.NewFake(),
-	}
-
-	err := svc.resyncBook(
-		context.Background(),
-		logging.NewNopLogger(),
-		book,
-		false,
-	)
-	require.NoError(t, err)
-
-	repo.refreshMu.Lock()
-	calls := repo.refreshCalls
-	repo.refreshMu.Unlock()
-	require.Len(t, calls, 1, "UniCat metadata should trigger a DB write")
-
-	c := calls[0]
-	require.NotNil(t, c.description)
-	assert.Equal(t, "Een beschrijving.", *c.description)
-	require.NotNil(t, c.pageCount)
-	assert.Equal(t, 127, *c.pageCount)
-	require.NotNil(t, c.title)
-	assert.Equal(t, "10 franke vragen aan Frank", *c.title)
-	assert.Equal(t, []string{"Vandenbroucke, Frank"}, c.authors)
-	assert.Equal(t, 1, uc.calls, "UniCat should be called once (ISBN path)")
-}
-
-// TestResyncBook_NoISBN_UniCatAuthorSearch verifies that when OL and GB return
-// no title+author match, UniCat is tried as a title+author fallback and its
-// result is accepted when titleAuthorMatch passes.
-func TestResyncBook_NoISBN_UniCatAuthorSearch(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:      uuid.New(),
-		Title:   "Gysbreght van Aemstel",
-		Authors: []string{"Vondel, Joost van den"},
-		// No ISBN, no cover/description/page count.
-	}
-
-	// OL and GB return no results.
-	olFake := &fakeOLClientWithSearch{} //nolint:exhaustruct // nil searchResults
-	gbFake := &fakeGBClient{}           //nolint:exhaustruct // nil searchResults
-
-	ucISBN := "9789061684671"
-	ucDesc := "Een treurspel."
-	ucPages := 88
-	uc := &fakeUCClient{ //nolint:exhaustruct // zero values for err/mu/calls
-		byISBN: &ucResult{
-			title:   "Gysbreght van Aemstel",
-			authors: []string{"Vondel, Joost van den"},
-			isbn13:  &ucISBN,
-			desc:    &ucDesc,
-			pages:   &ucPages,
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		googleBooks: gbFake,
-		uniCat:      uc,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.description)
-	assert.Equal(t, ucDesc, *rc.description)
-	require.NotNil(t, rc.pageCount)
-	assert.Equal(t, ucPages, *rc.pageCount)
-	require.NotNil(t, rc.isbn13, "discovered ISBN must be written")
-	assert.Equal(t, ucISBN, *rc.isbn13)
-}
-
-// TestResyncBook_NoISBN_NoAuthor_MatchedByTitleOnly verifies that a book with
-// no ISBN and no authors is still enriched when a provider returns exactly one
-// title-matching result, using the title-only fallback path.
-func TestResyncBook_NoISBN_NoAuthor_MatchedByTitleOnly(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:    uuid.New(),
-		Title: "The Little Prince",
-		// No authors, no ISBN, no cover/description/page count.
-	}
-
-	// OL returns no results.
-	olFake := &fakeOLClientWithSearch{} //nolint:exhaustruct // searchResults nil
-
-	discoveredISBN := "9780156012195"
-	gbCover := "https://books.google.com/covers/littleprince.jpg"
-	gbDesc := "A classic novella."
-	gbPages := 96
-	gbFake := &fakeGBClient{ //nolint:exhaustruct // only searchResults needed
-		searchResults: []gbResult{{
-			title:    "The Little Prince",
-			authors:  []string{"Antoine de Saint-Exupery"},
-			isbn13:   &discoveredISBN,
-			coverURL: &gbCover,
-			desc:     &gbDesc,
-			pages:    &gbPages,
-		}},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		googleBooks: gbFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.coverURL)
-	assert.Equal(t, gbCover, *rc.coverURL)
-	require.NotNil(t, rc.description)
-	assert.Equal(t, gbDesc, *rc.description)
-	require.NotNil(t, rc.pageCount)
-	assert.Equal(t, gbPages, *rc.pageCount)
-	require.NotNil(t, rc.isbn13, "discovered ISBN must be written for ISBN-less book")
-	assert.Equal(t, discoveredISBN, *rc.isbn13)
-}
-
-// TestResyncBook_WrongAuthor_MatchedByTitleOnly verifies that when the book's
-// recorded author does not overlap with any external result (so the
-// title+author pass finds nothing), the title-only fallback still enriches it.
-func TestResyncBook_WrongAuthor_MatchedByTitleOnly(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:      uuid.New(),
-		Title:   "Dune",
-		Authors: []string{"Totally Wrong Author"},
-		// No ISBN, no cover/description/page count.
-	}
-
-	discoveredISBN := "9780441013593"
-	olCover := "https://covers.openlibrary.org/dune.jpg"
-	olDesc := "An epic science fiction novel."
-	olPages := 412
-	// OL returns the real Dune. The title matches but the author does NOT,
-	// so the author-based pass rejects it. The title-only fallback accepts it.
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct // searchResults only
-		searchResults: []openlibrary.ExternalBook{
-			{ //nolint:exhaustruct // only matching fields matter
-				Title:       "Dune",
-				Authors:     []string{"Frank Herbert"},
-				ISBN13:      &discoveredISBN,
-				CoverURL:    &olCover,
-				Description: &olDesc,
-				PageCount:   &olPages,
-			},
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.coverURL)
-	assert.Equal(t, olCover, *rc.coverURL)
-	require.NotNil(t, rc.isbn13, "discovered ISBN must be written for ISBN-less book")
-	assert.Equal(t, discoveredISBN, *rc.isbn13)
-}
-
-// TestResyncBook_TitleOnly_Ambiguous_NothingWritten verifies that the
-// title-only fallback does not write metadata when multiple title-matching
-// results have fully-disjoint author sets (different books sharing a title).
-func TestResyncBook_TitleOnly_Ambiguous_NothingWritten(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:    uuid.New(),
-		Title: "Emma",
-		// No authors, no ISBN, no cover/description/page count.
-	}
-
-	isbn1 := "9780141439587"
-	isbn2 := "9780385340069"
-	cover1 := "https://covers.openlibrary.org/emma-austen.jpg"
-	cover2 := "https://covers.openlibrary.org/emma-mccall.jpg"
-	// Two "Emma" results with disjoint authors — ambiguous.
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct // searchResults only
-		searchResults: []openlibrary.ExternalBook{
-			{ //nolint:exhaustruct // only relevant fields
-				Title:    "Emma",
-				Authors:  []string{"Jane Austen"},
-				ISBN13:   &isbn1,
-				CoverURL: &cover1,
-			},
-			{ //nolint:exhaustruct // only relevant fields
-				Title:    "Emma",
-				Authors:  []string{"Alexander McCall Smith"},
-				ISBN13:   &isbn2,
-				CoverURL: &cover2,
-			},
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-	assert.Empty(t, repo.refreshCalls,
-		"no DB write when title-only match is ambiguous (disjoint authors)")
-}
-
-// TestResyncBook_TitleOnly_UniCatFallback verifies that UniCat is used as a
-// title-only fallback when OL and GB both return no results.
-func TestResyncBook_TitleOnly_UniCatFallback(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:    uuid.New(),
-		Title: "Gysbreght van Aemstel",
-		// No authors, no ISBN, no cover/description/page count.
-	}
-
-	// OL and GB return no results.
-	olFake := &fakeOLClientWithSearch{} //nolint:exhaustruct // nil searchResults
-	gbFake := &fakeGBClient{}           //nolint:exhaustruct // nil searchResults
-
-	ucISBN := "9789061684671"
-	ucDesc := "Een treurspel."
-	ucPages := 88
-	uc := &fakeUCClient{ //nolint:exhaustruct // zero values for err/mu/calls
-		byISBN: &ucResult{
-			title:   "Gysbreght van Aemstel",
-			authors: []string{"Vondel, Joost van den"},
-			isbn13:  &ucISBN,
-			desc:    &ucDesc,
-			pages:   &ucPages,
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		googleBooks: gbFake,
-		uniCat:      uc,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.description)
-	assert.Equal(t, ucDesc, *rc.description)
-	require.NotNil(t, rc.pageCount)
-	assert.Equal(t, ucPages, *rc.pageCount)
-	require.NotNil(t, rc.isbn13, "discovered ISBN must be written")
-	assert.Equal(t, ucISBN, *rc.isbn13)
-}
-
-// TestResyncBook_TitleOnly_MultipleMatchesSameAuthor_Accepted verifies that
-// when multiple title-matching results share at least one author (different
-// editions of the same book), the ambiguity guard does not fire and the first
-// match is accepted.
-func TestResyncBook_TitleOnly_MultipleMatchesSameAuthor_Accepted(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct // only tested fields needed
-		ID:    uuid.New(),
-		Title: "Emma",
-		// No authors, no ISBN, no cover/description/page count.
-	}
-
-	isbn1 := "9780141439587"
-	isbn2 := "9780199535521"
-	cover1 := "https://covers.openlibrary.org/emma-penguin.jpg"
-	cover2 := "https://covers.openlibrary.org/emma-oxford.jpg"
-	// Two "Emma" results both by Jane Austen — different editions, same author.
-	// Ambiguity guard must NOT fire.
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct // searchResults only
-		searchResults: []openlibrary.ExternalBook{
-			{ //nolint:exhaustruct // only relevant fields
-				Title:    "Emma",
-				Authors:  []string{"Jane Austen"},
-				ISBN13:   &isbn1,
-				CoverURL: &cover1,
-			},
-			{ //nolint:exhaustruct // only relevant fields
-				Title:    "Emma",
-				Authors:  []string{"Jane Austen"},
-				ISBN13:   &isbn2,
-				CoverURL: &cover2,
-			},
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct // zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct // only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1,
-		"first matching edition must be accepted when authors overlap")
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.isbn13)
-	assert.Equal(t, isbn1, *rc.isbn13, "first result's ISBN must be used")
-	require.NotNil(t, rc.coverURL)
-	assert.Equal(t, cover1, *rc.coverURL)
-}
-
-// TestResyncBook_FullyPopulatedISBNLess_DiscoverISBN verifies that an ISBN-less
-// book with cover, description, and page count already set is NOT skipped —
-// the resync must still run a title+author search to discover and persist the
-// book's ISBN (Part 2 fix: needISBN is included in the early-skip guard).
-func TestResyncBook_FullyPopulatedISBNLess_DiscoverISBN(t *testing.T) {
-	cover := "https://example.com/cover.jpg"
-	desc := "An existing description."
-	pages := 300
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:          uuid.New(),
-		Title:       "De Ontdekking van de Hemel",
-		Authors:     []string{"Harry Mulisch"},
-		CoverURL:    &cover,
-		Description: &desc,
-		PageCount:   &pages,
-		// ISBN13 is nil — this is the ISBN-less book that must be enriched.
-	}
-
-	discoveredISBN := "9789023443988"
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only searchResults
-		searchResults: []openlibrary.ExternalBook{
-			{ //nolint:exhaustruct //only relevant fields
-				Title:   "De Ontdekking van de Hemel",
-				Authors: []string{"Harry Mulisch"},
-				ISBN13:  &discoveredISBN,
-			},
-		},
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1,
-		"ISBN must be written even when cover/desc/pages are already populated")
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.isbn13)
-	assert.Equal(t, discoveredISBN, *rc.isbn13)
-
-	require.Len(t, repo.statusCalls, 1)
-	assert.True(t, repo.statusCalls[0].olFound)
-}
-
-// TestResyncBook_UniCatISBN_DiscoveredAndTracked verifies that when OL and GB
-// have no record of an ISBN-less book but UniCat does, the UniCat ISBN is
-// written and ucFound is recorded in the resync status (Part 3 changes).
-func TestResyncBook_UniCatISBN_DiscoveredAndTracked(t *testing.T) {
-	book := models.Book{ //nolint:exhaustruct //only tested fields needed
-		ID:      uuid.New(),
-		Title:   "Het Diner",
-		Authors: []string{"Herman Koch"},
-		// No ISBN, no cover, no description, no page count.
-	}
-
-	ucISBN := "9789041712646"
-	ucDesc := "Een beschrijving."
-	ucFake := &fakeUCClient{ //nolint:exhaustruct //only byISBN needed
-		byISBN: &ucResult{ //nolint:exhaustruct //pages not relevant here
-			title:   "Het Diner",
-			authors: []string{"Herman Koch"},
-			isbn13:  &ucISBN,
-			desc:    &ucDesc,
-		},
-	}
-
-	// OL and GB return nothing.
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //all zero — nothing found
-		searchResults: nil,
-	}
-	gbFake := &fakeGBClient{ //nolint:exhaustruct //byISBN nil => ErrNotFound
-		byISBN: nil,
-	}
-
-	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
-	store := objectstore.NewFake()
-	svc := &BookService{ //nolint:exhaustruct //only tested fields needed
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olFake,
-		googleBooks: gbFake,
-		uniCat:      ucFake,
-		objectStore: store,
-	}
-
-	err := svc.resyncBook(context.Background(), logging.NewNopLogger(), book, false)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1, "UniCat ISBN must be persisted")
-	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.isbn13)
-	assert.Equal(t, ucISBN, *rc.isbn13)
-	require.NotNil(t, rc.description)
-	assert.Equal(t, ucDesc, *rc.description)
-
-	require.Len(t, repo.statusCalls, 1)
-	sc := repo.statusCalls[0]
-	assert.False(t, sc.olFound, "OL should be not-found")
-	assert.False(t, sc.gbFound, "GB should be not-found")
-	assert.True(t, sc.ucFound, "UniCat must be recorded as found")
 }

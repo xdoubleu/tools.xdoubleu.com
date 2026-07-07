@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react'
 const mockTrigger = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
-  useResyncOpenLibrary: () => mockTrigger
+  useStartResync: () => mockTrigger
 }))
 
 jest.mock('@/lib/env', () => ({
