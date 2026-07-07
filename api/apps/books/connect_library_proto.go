@@ -17,7 +17,7 @@ func coverProxyURL(bookID fmt.Stringer, coverBaseURL string) string {
 		return ""
 	}
 
-	return coverBaseURL + "/backlog/api/cover/" + bookID.String()
+	return coverBaseURL + "/books/api/cover/" + bookID.String()
 }
 
 func protoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
