@@ -49,7 +49,6 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
   }, [data])
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Backlog', href: '/backlog' },
     { label: 'Books', href: '/books' },
     { label: 'Library', href: '/books/library' },
     { label: name }

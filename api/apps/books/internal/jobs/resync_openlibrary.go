@@ -24,7 +24,7 @@ import (
 // ArmFor(nil, false)), all books missing metadata are processed additively.
 //
 // The job holds a reference to the progress WebSocket service so it can emit
-// per-book progress events (X of N) over the /backlog/api/progress WebSocket.
+// per-book progress events (X of N) over the /books/api/progress WebSocket.
 type ResyncOpenLibraryJob struct {
 	books *services.BookService
 	ws    *progressws.Service

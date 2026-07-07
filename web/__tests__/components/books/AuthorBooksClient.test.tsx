@@ -174,4 +174,9 @@ describe('AuthorBooksClient', () => {
     render(<AuthorBooksClient name="Frank Herbert" />)
     expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute('href', '/books/library')
   })
+
+  it('does not render a dead /backlog breadcrumb link', () => {
+    render(<AuthorBooksClient name="Frank Herbert" />)
+    expect(screen.queryByRole('link', { name: 'Backlog' })).not.toBeInTheDocument()
+  })
 })
