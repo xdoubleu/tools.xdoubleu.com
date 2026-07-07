@@ -24,7 +24,9 @@ jest.mock('@/lib/client', () => ({
     getBookFile: jest.fn().mockResolvedValue({ url: 'https://r2.example.com/file.pdf' }),
     searchLibrary: jest.fn().mockResolvedValue({ books: [] }),
     searchExternal: jest.fn().mockResolvedValue({ results: [] }),
-    setBookISBN: jest.fn().mockResolvedValue({})
+    setBookISBN: jest.fn().mockResolvedValue({}),
+    listResyncProposals: jest.fn().mockResolvedValue({ proposals: [] }),
+    applyResyncChoice: jest.fn().mockResolvedValue({})
   }))
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({
@@ -56,7 +58,9 @@ import {
   useRegisterKoboDevice,
   useListKoboDevices,
   useDisconnectKoboDevice,
-  useSetBookISBN
+  useSetBookISBN,
+  useResyncProposals,
+  useApplyResyncChoice
 } from '@/hooks/useBooks'
 import { createServiceClient } from '@/lib/client'
 
@@ -158,6 +162,39 @@ describe('useSetBookISBN', () => {
     const { result } = renderHook(() => useSetBookISBN())
     await result.current('book-1', '9780140449112')
     expect(mockSet).toHaveBeenCalledWith({ bookId: 'book-1', isbn13: '9780140449112' })
+  })
+})
+
+describe('useResyncProposals', () => {
+  it('uses /books/resync-proposals as SWR key', () => {
+    renderHook(() => useResyncProposals())
+    expect(mockUseSWR).toHaveBeenCalledWith('/books/resync-proposals', expect.any(Function))
+  })
+
+  it('fetcher calls client.listResyncProposals', async () => {
+    const mockList = jest.fn().mockResolvedValue({ proposals: [] })
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ listResyncProposals: mockList })
+    renderHook(() => useResyncProposals())
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockList).toHaveBeenCalledWith({})
+  })
+})
+
+describe('useApplyResyncChoice', () => {
+  it('returns a function', () => {
+    const { result } = renderHook(() => useApplyResyncChoice())
+    expect(typeof result.current).toBe('function')
+  })
+
+  it('calls client.applyResyncChoice with bookId and source', async () => {
+    const mockApply = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ applyResyncChoice: mockApply })
+    const { result } = renderHook(() => useApplyResyncChoice())
+    await result.current('book-1', 'openlibrary')
+    expect(mockApply).toHaveBeenCalledWith({ bookId: 'book-1', source: 'openlibrary' })
   })
 })
 

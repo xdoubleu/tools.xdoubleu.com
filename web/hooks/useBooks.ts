@@ -25,7 +25,7 @@ import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/book
 import type { ListKoboDevicesResponse } from '@/lib/gen/books/v1/kobo_pb'
 import type {
   FindDuplicatesResponse,
-  ListCatalogBooksResponse
+  ListResyncProposalsResponse
 } from '@/lib/gen/books/v1/catalog_pb'
 
 export type CreateBookInput = MessageInitShape<typeof CreateBookRequestSchema>
@@ -225,9 +225,9 @@ export function useClearLibrary() {
   return () => client.clearLibrary({})
 }
 
-export function useResyncOpenLibrary() {
+export function useStartResync() {
   const client = createServiceClient(CatalogService)
-  return () => client.resyncOpenLibrary({})
+  return () => client.startResync({})
 }
 
 export function useFindDuplicates() {
@@ -255,17 +255,17 @@ export function useMergeBooks() {
     })
 }
 
-export function useCatalogBooks() {
+export function useResyncProposals() {
   const client = createServiceClient(CatalogService)
-  return useSWR<ListCatalogBooksResponse, Error>(swrKeys.bookCatalog, () =>
-    client.listCatalogBooks({})
+  return useSWR<ListResyncProposalsResponse, Error>(swrKeys.resyncProposals, () =>
+    client.listResyncProposals({})
   )
 }
 
-export function useResyncBooks() {
+export function useApplyResyncChoice() {
   const client = useMemo(() => createServiceClient(CatalogService), [])
   return useCallback(
-    (bookIds: string[], force: boolean) => client.resyncBooks({ bookIds, force }),
+    (bookId: string, source: string) => client.applyResyncChoice({ bookId, source }),
     [client]
   )
 }

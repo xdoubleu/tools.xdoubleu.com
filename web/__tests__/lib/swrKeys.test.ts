@@ -12,7 +12,7 @@ describe('swrKeys', () => {
     expect(swrKeys.books).toBe('/books')
     expect(swrKeys.koboDevices).toBe('/books/kobo/devices')
     expect(swrKeys.bookDuplicates).toBe('/books/duplicates')
-    expect(swrKeys.bookCatalog).toBe('/books/catalog')
+    expect(swrKeys.resyncProposals).toBe('/books/resync-proposals')
     expect(swrKeys.games).toBe('/games')
     expect(swrKeys.gamesRecent).toBe('/games/recent')
     expect(swrKeys.gamesIntegrations).toBe('/games/integrations')

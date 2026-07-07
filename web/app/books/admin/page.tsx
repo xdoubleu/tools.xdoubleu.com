@@ -7,10 +7,10 @@ import { CatalogService } from '@/lib/gen/books/v1/catalog_pb'
 
 export default async function BacklogBooksAdminPage() {
   const client = await createServerClient(CatalogService)
-  const catalog = await fetchOrNull(() => client.listCatalogBooks({}))
+  const proposals = await fetchOrNull(() => client.listResyncProposals({}))
 
   return (
-    <SWRFallback fallback={catalog ? { [swrKeys.bookCatalog]: catalog } : {}}>
+    <SWRFallback fallback={proposals ? { [swrKeys.resyncProposals]: proposals } : {}}>
       <BooksAdminClient />
     </SWRFallback>
   )

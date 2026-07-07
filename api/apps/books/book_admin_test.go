@@ -94,39 +94,39 @@ func TestMergeBooks_NonAdmin_PermissionDenied(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
-func TestResyncOpenLibrary_NonAdmin_PermissionDenied(t *testing.T) {
+func TestStartResync_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ResyncOpenLibraryRequest{})
+	req := connect.NewRequest(&booksv1.StartResyncRequest{})
 	req.Header().Set("Cookie", accessToken.String())
 
-	_, err := client.ResyncOpenLibrary(context.Background(), req)
+	_, err := client.StartResync(context.Background(), req)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
-func TestListCatalogBooks_NonAdmin_PermissionDenied(t *testing.T) {
+func TestListResyncProposals_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ListCatalogBooksRequest{})
+	req := connect.NewRequest(&booksv1.ListResyncProposalsRequest{})
 	req.Header().Set("Cookie", accessToken.String())
 
-	_, err := client.ListCatalogBooks(context.Background(), req)
+	_, err := client.ListResyncProposals(context.Background(), req)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
-func TestResyncBooks_NonAdmin_PermissionDenied(t *testing.T) {
+func TestApplyResyncChoice_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ResyncBooksRequest{
-		BookIds: []string{"00000000-0000-0000-0000-000000000001"},
-		Force:   false,
+	req := connect.NewRequest(&booksv1.ApplyResyncChoiceRequest{
+		BookId: "00000000-0000-0000-0000-000000000001",
+		Source: "",
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	_, err := client.ResyncBooks(context.Background(), req)
+	_, err := client.ApplyResyncChoice(context.Background(), req)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -134,54 +134,55 @@ func TestResyncBooks_NonAdmin_PermissionDenied(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ListCatalogBooks: admin success
+// ListResyncProposals: admin success (empty when nothing was scanned)
 // ---------------------------------------------------------------------------
 
-func TestListCatalogBooks_Admin_ReturnsBooks(t *testing.T) {
-	addTestBook(t, "Catalog Test Book")
-
+// TestListResyncProposals_Admin_Success verifies the RPC round-trips
+// successfully. It cannot assert on the exact proposal set: the DB and
+// resync_proposals table are shared across this package's tests, so other
+// tests may have already run a scan (see TestBuildResyncProposals_Service).
+func TestListResyncProposals_Admin_Success(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ListCatalogBooksRequest{})
+	req := connect.NewRequest(&booksv1.ListResyncProposalsRequest{})
 	req.Header().Set("Cookie", accessToken.String())
 
-	resp, err := client.ListCatalogBooks(context.Background(), req)
+	resp, err := client.ListResyncProposals(context.Background(), req)
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.NotEmpty(t, resp.Msg.Books)
 }
 
 // ---------------------------------------------------------------------------
-// ResyncBooks: admin success (empty IDs rejected)
+// ApplyResyncChoice: admin, invalid input
 // ---------------------------------------------------------------------------
 
-func TestResyncBooks_Admin_EmptyIDs_InvalidArgument(t *testing.T) {
+func TestApplyResyncChoice_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ResyncBooksRequest{
-		BookIds: []string{},
-		Force:   false,
+	req := connect.NewRequest(&booksv1.ApplyResyncChoiceRequest{
+		BookId: "not-a-uuid",
+		Source: "",
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	_, err := client.ResyncBooks(context.Background(), req)
+	_, err := client.ApplyResyncChoice(context.Background(), req)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
 	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
 }
 
-func TestResyncBooks_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
+func TestApplyResyncChoice_Admin_UnknownBook_NotFound(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ResyncBooksRequest{
-		BookIds: []string{"not-a-uuid"},
-		Force:   false,
+	req := connect.NewRequest(&booksv1.ApplyResyncChoiceRequest{
+		BookId: uuid.New().String(),
+		Source: "",
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	_, err := client.ResyncBooks(context.Background(), req)
+	_, err := client.ApplyResyncChoice(context.Background(), req)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
-	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+	assert.Equal(t, connect.CodeNotFound, connErr.Code())
 }
 
 // ---------------------------------------------------------------------------
@@ -200,53 +201,8 @@ func TestFindDuplicates_Admin_Success(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Repo: SetResyncStatus and ListCatalogBooks
+// Repo: ListCatalogBooks
 // ---------------------------------------------------------------------------
-
-func TestSetResyncStatus_UpdatesColumns(t *testing.T) {
-	ub := addTestBook(t, "ResyncStatusTestBook")
-	require.NotNil(t, ub)
-
-	ctx := context.Background()
-	err := testApp.Repositories.Books.SetResyncStatus(ctx, ub.BookID, true, false, true)
-	require.NoError(t, err)
-
-	// Verify by reading back via the repo.
-	books, err := testApp.Repositories.Books.ListCatalogBooks(ctx)
-	require.NoError(t, err)
-
-	var found *struct {
-		olFound *bool
-		gbFound *bool
-		ucFound *bool
-		resync  bool
-	}
-	for _, b := range books {
-		if b.ID == ub.BookID {
-			found = &struct {
-				olFound *bool
-				gbFound *bool
-				ucFound *bool
-				resync  bool
-			}{
-				olFound: b.OpenLibraryFound,
-				gbFound: b.GoogleBooksFound,
-				ucFound: b.UniCatFound,
-				resync:  b.LastResyncAt != nil,
-			}
-			break
-		}
-	}
-
-	require.NotNil(t, found, "book must appear in catalog")
-	require.NotNil(t, found.olFound)
-	assert.True(t, *found.olFound, "openlibrary_found must be true")
-	require.NotNil(t, found.gbFound)
-	assert.False(t, *found.gbFound, "googlebooks_found must be false")
-	require.NotNil(t, found.ucFound)
-	assert.True(t, *found.ucFound, "unicat_found must be true")
-	assert.True(t, found.resync, "last_resync_at must be set")
-}
 
 func TestListCatalogBooks_ReturnsAllBooks(t *testing.T) {
 	ub := addTestBook(t, "CatalogListTestBook")

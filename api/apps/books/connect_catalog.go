@@ -170,10 +170,10 @@ func (h *booksConnectHandler) MergeBooks(
 	}), nil
 }
 
-func (h *booksConnectHandler) ResyncOpenLibrary(
+func (h *booksConnectHandler) StartResync(
 	ctx context.Context,
-	_ *connect.Request[booksv1.ResyncOpenLibraryRequest],
-) (*connect.Response[booksv1.ResyncOpenLibraryResponse], error) {
+	_ *connect.Request[booksv1.StartResyncRequest],
+) (*connect.Response[booksv1.StartResyncResponse], error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
@@ -181,62 +181,62 @@ func (h *booksConnectHandler) ResyncOpenLibrary(
 	h.app.resyncBooksJob.Arm()
 	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
 
-	return connect.NewResponse(&booksv1.ResyncOpenLibraryResponse{}), nil
+	return connect.NewResponse(&booksv1.StartResyncResponse{}), nil
 }
 
-func (h *booksConnectHandler) ListCatalogBooks(
+func (h *booksConnectHandler) ListResyncProposals(
 	ctx context.Context,
-	_ *connect.Request[booksv1.ListCatalogBooksRequest],
-) (*connect.Response[booksv1.ListCatalogBooksResponse], error) {
+	_ *connect.Request[booksv1.ListResyncProposalsRequest],
+) (*connect.Response[booksv1.ListResyncProposalsResponse], error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	books, err := h.app.Services.Books.ListCatalogBooks(ctx)
+	proposals, err := h.app.Services.Books.ListResyncProposals(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	result := make([]*booksv1.CatalogBookStatus, len(books))
-	for i, b := range books {
-		result[i] = protoCatalogBookStatus(b)
+	result := make([]*booksv1.ResyncProposal, len(proposals))
+	for i, p := range proposals {
+		result[i] = protoResyncProposal(p)
 	}
 
-	return connect.NewResponse(&booksv1.ListCatalogBooksResponse{
-		Books: result,
+	return connect.NewResponse(&booksv1.ListResyncProposalsResponse{
+		Proposals: result,
 	}), nil
 }
 
-func (h *booksConnectHandler) ResyncBooks(
+func (h *booksConnectHandler) ApplyResyncChoice(
 	ctx context.Context,
-	req *connect.Request[booksv1.ResyncBooksRequest],
-) (*connect.Response[booksv1.ResyncBooksResponse], error) {
+	req *connect.Request[booksv1.ApplyResyncChoiceRequest],
+) (*connect.Response[booksv1.ApplyResyncChoiceResponse], error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	ids := make([]uuid.UUID, 0, len(req.Msg.BookIds))
-	for _, raw := range req.Msg.BookIds {
-		id, parseErr := uuid.Parse(raw)
-		if parseErr != nil {
-			return nil, connect.NewError(
-				connect.CodeInvalidArgument,
-				fmt.Errorf("invalid book_id %q: %w", raw, parseErr),
-			)
-		}
-		ids = append(ids, id)
-	}
-	if len(ids) == 0 {
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("book_ids must not be empty"),
+			fmt.Errorf("invalid book_id: %w", err),
 		)
 	}
 
-	h.app.resyncBooksJob.ArmFor(ids, req.Msg.Force)
-	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
+	err = h.app.Services.Books.ApplyResyncChoice(
+		ctx,
+		h.app.Logger,
+		bookID,
+		req.Msg.Source,
+	)
+	if errors.Is(err, services.ErrProposalNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 
-	return connect.NewResponse(&booksv1.ResyncBooksResponse{}), nil
+	return connect.NewResponse(&booksv1.ApplyResyncChoiceResponse{}), nil
 }
 
 func (h *booksConnectHandler) SetBookISBN(
