@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { mutate } from 'swr'
 import type { BookMismatch, CompareCSVResponse } from '@/lib/gen/books/v1/catalog_pb'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select } from '@/components/ui/select'
 import { useApplyCSVFix } from '@/hooks/useBooks'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -23,13 +24,24 @@ type Group = {
 
 // fixableTags lists the differences ApplyCSVFix can resolve. missing-in-csv
 // (a library book absent from the CSV) has no fix — nothing is ever deleted.
-const fixableTags = new Set(['missing-in-library', 'status', 'isbn', 'title'])
+const fixableTags = new Set(['missing-in-library', 'status', 'isbn', 'title', 'tags'])
 
 function bookLabel(m: BookMismatch, side: 'csv' | 'library'): string {
   const ref = side === 'csv' ? m.csv : m.library
   if (!ref) return '(unknown)'
   const author = ref.authors[0] ?? ''
   return author ? `${ref.title} — ${author}` : ref.title
+}
+
+// tagsDelta compares the CSV's and library's tag sets and returns what a
+// "tags" fix would add/remove (CSV is the source of truth).
+function tagsDelta(m: BookMismatch): { added: string[]; removed: string[] } {
+  const libTags = new Set(m.library?.tags ?? [])
+  const csvTags = new Set(m.csv?.tags ?? [])
+  return {
+    added: [...csvTags].filter((t) => !libTags.has(t)),
+    removed: [...libTags].filter((t) => !csvTags.has(t))
+  }
 }
 
 function MismatchRow({
@@ -77,7 +89,7 @@ function MismatchRow({
     body = (
       <>
         <span className="font-medium">{bookLabel(m, 'csv')}</span>
-        {m.csv?.isbn13 && <span className="ml-2 text-xs text-muted">{m.csv.isbn13}</span>}
+        <span className="ml-2 text-xs text-muted">will add to library</span>
       </>
     )
   } else if (tag === 'missing-in-csv') {
@@ -88,23 +100,39 @@ function MismatchRow({
       </>
     )
   } else {
-    // status / isbn / title diff — show both sides
+    // status / isbn / title / tags diff — show the fix as before → after
     body = (
       <>
         <span className="font-medium">{bookLabel(m, 'csv')}</span>
         {tag === 'status' && (
           <span className="ml-2 text-xs text-muted">
-            CSV: <Badge variant="secondary">{m.csv?.status || 'none'}</Badge> Library:{' '}
-            <Badge variant="secondary">{m.library?.status || 'none'}</Badge>
+            <Badge variant="secondary">{m.library?.status || 'none'}</Badge> {'→'}{' '}
+            <Badge variant="secondary">{m.csv?.status || 'none'}</Badge>
           </span>
         )}
         {tag === 'isbn' && (
           <span className="ml-2 text-xs text-muted">
-            CSV: {m.csv?.isbn13 || 'none'} / Library: {m.library?.isbn13 || 'none'}
+            {m.library?.isbn13 || 'none'} {'→'} {m.csv?.isbn13 || 'none'}
           </span>
         )}
         {tag === 'title' && (
-          <span className="ml-2 text-xs text-muted">Library title: {m.library?.title}</span>
+          <span className="ml-2 text-xs text-muted">
+            {m.library?.title} {'→'} {m.csv?.title}
+          </span>
+        )}
+        {tag === 'tags' && (
+          <span className="ml-2 text-xs text-muted">
+            {tagsDelta(m).added.map((t) => (
+              <Badge key={`add-${t}`} variant="secondary" className="ml-1">
+                +{t}
+              </Badge>
+            ))}
+            {tagsDelta(m).removed.map((t) => (
+              <Badge key={`rm-${t}`} variant="secondary" className="ml-1">
+                −{t}
+              </Badge>
+            ))}
+          </span>
         )}
       </>
     )
@@ -158,31 +186,51 @@ function GroupSection({
 }
 
 export default function CompareReport({ result, csvData, onFixed }: Props) {
+  const [shelf, setShelf] = useState('')
+
+  const shelves = useMemo(() => {
+    const set = new Set<string>()
+    for (const m of result.mismatches) {
+      if (m.csv?.status) set.add(m.csv.status)
+      if (m.library?.status) set.add(m.library.status)
+    }
+    return [...set].sort()
+  }, [result.mismatches])
+
+  const mismatches = shelf
+    ? result.mismatches.filter((m) => m.csv?.status === shelf || m.library?.status === shelf)
+    : result.mismatches
+
   const groups: Group[] = [
     {
       label: 'Only in CSV (not in library)',
       tag: 'missing-in-library',
-      items: result.mismatches.filter((m) => m.differences.includes('missing-in-library'))
+      items: mismatches.filter((m) => m.differences.includes('missing-in-library'))
     },
     {
       label: 'Only in library (not in CSV)',
       tag: 'missing-in-csv',
-      items: result.mismatches.filter((m) => m.differences.includes('missing-in-csv'))
+      items: mismatches.filter((m) => m.differences.includes('missing-in-csv'))
     },
     {
       label: 'Reading state differs',
       tag: 'status',
-      items: result.mismatches.filter((m) => m.differences.includes('status'))
+      items: mismatches.filter((m) => m.differences.includes('status'))
     },
     {
       label: 'ISBN differs',
       tag: 'isbn',
-      items: result.mismatches.filter((m) => m.differences.includes('isbn'))
+      items: mismatches.filter((m) => m.differences.includes('isbn'))
     },
     {
       label: 'Title differs',
       tag: 'title',
-      items: result.mismatches.filter((m) => m.differences.includes('title'))
+      items: mismatches.filter((m) => m.differences.includes('title'))
+    },
+    {
+      label: 'Tags differ',
+      tag: 'tags',
+      items: mismatches.filter((m) => m.differences.includes('tags'))
     }
   ]
 
@@ -190,7 +238,7 @@ export default function CompareReport({ result, csvData, onFixed }: Props) {
 
   return (
     <Card className="mt-4 rounded-2xl p-4">
-      <div className="mb-3 flex gap-4 text-sm text-muted">
+      <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-muted">
         <span>
           CSV: <strong className="text-fg">{result.csvCount}</strong>
         </span>
@@ -203,6 +251,21 @@ export default function CompareReport({ result, csvData, onFixed }: Props) {
         <span>
           Mismatches: <strong className="text-fg">{result.mismatches.length}</strong>
         </span>
+        {shelves.length > 0 && (
+          <Select
+            value={shelf}
+            onChange={(e) => setShelf(e.target.value)}
+            className="ml-auto h-8 w-auto text-xs"
+            aria-label="Filter by shelf"
+          >
+            <option value="">All shelves</option>
+            {shelves.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+        )}
       </div>
       {allMatch ? (
         <p className="text-sm text-success">CSV matches library exactly.</p>

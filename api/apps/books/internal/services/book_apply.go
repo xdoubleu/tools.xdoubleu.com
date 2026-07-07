@@ -60,6 +60,8 @@ func (s *BookService) ApplyCSVFix(
 		return s.applyISBNFix(ctx, target)
 	case "title":
 		return s.applyTitleFix(ctx, target)
+	case DiffTags:
+		return s.applyTagsFix(ctx, userID, target)
 	default:
 		return fmt.Errorf("unknown difference: %q", difference)
 	}
@@ -112,4 +114,22 @@ func (s *BookService) applyTitleFix(
 		return ErrMismatchNotFound
 	}
 	return s.SetBookTitle(ctx, target.LibBook.BookID, target.CSVEntry.Book.Title)
+}
+
+// applyTagsFix replaces the library book's tags with the CSV's tag set (CSV
+// is the source of truth, matching status/isbn/title). koboSync mirrors
+// ToggleTag's derivation so the kobo-sync tag's side effect isn't lost.
+func (s *BookService) applyTagsFix(
+	ctx context.Context,
+	userID string,
+	target *CompareMismatch,
+) error {
+	if target.LibBook == nil || target.CSVEntry == nil {
+		return ErrMismatchNotFound
+	}
+	tags := target.CSVEntry.UserBook.Tags
+	return s.books.UpdateTags(
+		ctx, userID, target.LibBook.BookID, tags,
+		slices.Contains(tags, models.TagKoboSync),
+	)
 }

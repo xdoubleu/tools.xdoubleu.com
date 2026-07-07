@@ -26,6 +26,19 @@ func csvRow(bookIDNum int, title, author, isbn13, shelf string) string {
 	)
 }
 
+// csvRowWithBookshelves is csvRow plus the "Bookshelves with positions"
+// column, needed to exercise tag parsing (e.g. "read (#1), technical (#2)").
+// bookshelves is quoted since its value contains commas.
+func csvRowWithBookshelves(
+	bookIDNum int,
+	title, author, isbn13, shelf, bookshelves string,
+) string {
+	return fmt.Sprintf(
+		`%d,%s,%s,,"=""%s""",0,%s,"%s",`+"\n",
+		bookIDNum, title, author, isbn13, shelf, bookshelves,
+	)
+}
+
 // findMismatch returns the first mismatch tagged with the given difference,
 // failing the test if none is found.
 func findMismatch(
@@ -296,4 +309,62 @@ func TestConnectApplyCSVFix_TitleFix_UpdatesTitle(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "expected catalog title to be updated to the CSV value")
+}
+
+func TestConnectApplyCSVFix_TagsFix_UpdatesTags(t *testing.T) {
+	client := newBooksTestClient(t)
+	isbn := isbnFromUUID(uuid.New())
+
+	importCSV := goodreadsCSVHeader + csvRowWithBookshelves(
+		90005,
+		"Fix Tags Test",
+		"Fix Tags Author",
+		isbn,
+		"read",
+		"read (#1), technical (#2), own-physical (#3)",
+	)
+	importReq := connect.NewRequest(
+		&booksv1.ImportBooksRequest{CsvData: []byte(importCSV)},
+	)
+	importReq.Header().Set("Cookie", accessToken.String())
+	_, err := client.ImportBooks(context.Background(), importReq)
+	require.NoError(t, err)
+
+	// CSV drops "own-physical" — the fix should replace the library's tags
+	// with just what the CSV has, not merge.
+	compareCSV := goodreadsCSVHeader + csvRowWithBookshelves(
+		90005,
+		"Fix Tags Test",
+		"Fix Tags Author",
+		isbn,
+		"read",
+		"read (#1), technical (#2)",
+	)
+	compareReq := connect.NewRequest(
+		&booksv1.CompareCSVRequest{CsvData: []byte(compareCSV)},
+	)
+	compareReq.Header().Set("Cookie", accessToken.String())
+	compareResp, err := client.CompareCSV(context.Background(), compareReq)
+	require.NoError(t, err)
+	m := findMismatch(t, compareResp.Msg.Mismatches, "tags")
+
+	fixReq := connect.NewRequest(&booksv1.ApplyCSVFixRequest{
+		CsvData:    []byte(compareCSV),
+		MismatchId: m.Id,
+		Difference: "tags",
+	})
+	fixReq.Header().Set("Cookie", accessToken.String())
+	_, err = client.ApplyCSVFix(context.Background(), fixReq)
+	require.NoError(t, err)
+
+	lib, err := testApp.Services.Books.GetLibrary(context.Background(), userID)
+	require.NoError(t, err)
+	found := false
+	for _, ub := range lib {
+		if ub.Book != nil && ub.Book.ISBN13 != nil && *ub.Book.ISBN13 == isbn {
+			found = true
+			assert.Equal(t, []string{"technical"}, ub.Tags)
+		}
+	}
+	assert.True(t, found, "expected library tags to be replaced with the CSV's tags")
 }

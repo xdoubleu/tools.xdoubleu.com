@@ -130,5 +130,6 @@ func protoCompareRef(r *services.CompareRef) *booksv1.BookRef {
 		Authors: r.Authors,
 		Isbn13:  r.ISBN13,
 		Status:  r.Status,
+		Tags:    r.Tags,
 	}
 }

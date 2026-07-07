@@ -30,7 +30,9 @@ function makeMismatch(
   differences: string[],
   csvTitle = 'CSV Book',
   libTitle = 'Lib Book',
-  id = 'mismatch-1'
+  id = 'mismatch-1',
+  tags?: { csv: string[]; library: string[] },
+  status: { csv: string; library: string } = { csv: 'read', library: 'to-read' }
 ): BookMismatch {
   return create(BookMismatchSchema, {
     id,
@@ -41,7 +43,8 @@ function makeMismatch(
           title: csvTitle,
           authors: ['Author A'],
           isbn13: '9780000000001',
-          status: 'read'
+          status: status.csv,
+          tags: tags?.csv ?? []
         }),
     library: differences.includes('missing-in-library')
       ? undefined
@@ -49,7 +52,8 @@ function makeMismatch(
           title: libTitle,
           authors: ['Author A'],
           isbn13: '9780000000001',
-          status: 'to-read'
+          status: status.library,
+          tags: tags?.library ?? []
         })
   })
 }
@@ -129,6 +133,55 @@ describe('CompareReport', () => {
     })
     render(<CompareReport result={result} csvData="csv" onFixed={onFixed} />)
     expect(screen.getByText(/Title differs/i)).toBeInTheDocument()
+  })
+
+  it('shows tags diff group with added/removed badges', () => {
+    const result = makeResult({
+      mismatches: [
+        makeMismatch(['tags'], 'CSV Book', 'Lib Book', 'mismatch-1', {
+          csv: ['technical'],
+          library: ['technical', 'wishlist']
+        })
+      ]
+    })
+    render(<CompareReport result={result} csvData="csv" onFixed={onFixed} />)
+    expect(screen.getByText(/Tags differ/i)).toBeInTheDocument()
+    expect(screen.getByText('−wishlist')).toBeInTheDocument()
+  })
+
+  it('shows before → after for a status fix', () => {
+    const result = makeResult({
+      mismatches: [makeMismatch(['status'])]
+    })
+    render(<CompareReport result={result} csvData="csv" onFixed={onFixed} />)
+    // Scoped to the row: the shelf-filter <select> also renders "read"/"to-read"
+    // as option text, which would collide with a page-wide getByText.
+    const row = screen.getByRole('listitem')
+    expect(row).toHaveTextContent('to-read')
+    expect(row).toHaveTextContent('read')
+  })
+
+  it('filters mismatches by shelf', () => {
+    const result = makeResult({
+      mismatches: [
+        makeMismatch(['title'], 'Read Shelf Book', 'Read Shelf Book', 'm-read', undefined, {
+          csv: 'read',
+          library: 'read'
+        }),
+        makeMismatch(['isbn'], 'Other Book', 'Other Book', 'm-other', undefined, {
+          csv: 'currently-reading',
+          library: 'currently-reading'
+        })
+      ]
+    })
+    render(<CompareReport result={result} csvData="csv" onFixed={onFixed} />)
+
+    fireEvent.change(screen.getByLabelText(/filter by shelf/i), {
+      target: { value: 'read' }
+    })
+
+    expect(screen.getByText(/Title differs/i)).toBeInTheDocument()
+    expect(screen.queryByText(/ISBN differs/i)).not.toBeInTheDocument()
   })
 
   it('does not render empty groups', () => {
