@@ -413,7 +413,9 @@ func TestFetchBySearch_TitleMismatch_Rejected(t *testing.T) {
 }
 
 func TestFetchBySearch_TitleOnly_AmbiguousDisjointAuthors_Rejected(t *testing.T) {
-	book := models.Book{Title: "Emma"} //nolint:exhaustruct // no authors: title-only path
+	book := models.Book{ //nolint:exhaustruct // partial
+		Title: "Emma",
+	}
 	isbn1, isbn2 := "9780141439587", "9780385340069"
 	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only searchResults
 		searchResults: []openlibrary.ExternalBook{
@@ -446,12 +448,18 @@ func TestFetchBySearch_GoogleBooksAndUniCat_AlsoMatch(t *testing.T) {
 	olFake := &fakeOLClientWithSearch{}
 	gbFake := &fakeGBClient{ //nolint:exhaustruct // partial
 		searchResults: []googlebooks.ExternalBook{
-			{Title: "Dune", Authors: []string{"Frank Herbert"}}, //nolint:exhaustruct // partial
+			{ //nolint:exhaustruct // title/authors are all this test checks
+				Title:   "Dune",
+				Authors: []string{"Frank Herbert"},
+			},
 		},
 	}
 	ucFake := &fakeUCClient{ //nolint:exhaustruct // partial
 		searchResults: []unicat.ExternalBook{
-			{Title: "Dune", Authors: []string{"Frank Herbert"}}, //nolint:exhaustruct // partial
+			{ //nolint:exhaustruct // title/authors are all this test checks
+				Title:   "Dune",
+				Authors: []string{"Frank Herbert"},
+			},
 		},
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
@@ -491,7 +499,9 @@ func TestComputeDifferences_Rules(t *testing.T) {
 	assert.Empty(t, computeDifferences(book, agree))
 
 	// Title differs.
-	titleDiff := SourceProposal{Title: "Different Title"} //nolint:exhaustruct // partial
+	titleDiff := SourceProposal{ //nolint:exhaustruct // partial
+		Title: "Different Title",
+	}
 	assert.Contains(t, computeDifferences(book, titleDiff), "title")
 
 	// Page count differs.
@@ -583,7 +593,11 @@ func TestBuildResyncProposals_FlagsNotFoundAnywhere(t *testing.T) {
 	isbn := "9780140449112"
 	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
 		books: []models.Book{
-			{ID: id, Title: "Obscure Book", ISBN13: &isbn}, //nolint:exhaustruct // partial
+			{ //nolint:exhaustruct // partial
+				ID:     id,
+				Title:  "Obscure Book",
+				ISBN13: &isbn,
+			},
 		},
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
@@ -594,7 +608,11 @@ func TestBuildResyncProposals_FlagsNotFoundAnywhere(t *testing.T) {
 		objectStore: objectstore.NewFake(),
 	}
 
-	n, err := svc.BuildResyncProposals(context.Background(), logging.NewNopLogger(), nil)
+	n, err := svc.BuildResyncProposals(
+		context.Background(),
+		logging.NewNopLogger(),
+		nil,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n, "a book no source could find must still be flagged")
 
@@ -620,7 +638,11 @@ func TestBuildResyncProposals_NeverAttempted_NotFlagged(t *testing.T) {
 		objectStore: objectstore.NewFake(),
 	}
 
-	n, err := svc.BuildResyncProposals(context.Background(), logging.NewNopLogger(), nil)
+	n, err := svc.BuildResyncProposals(
+		context.Background(),
+		logging.NewNopLogger(),
+		nil,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n, "a book nothing could be searched for must not be flagged")
 }
@@ -672,7 +694,10 @@ func TestListResyncProposals_RecomputesDiffers(t *testing.T) {
 	book := models.Book{ID: bookID, Title: "Dune"} //nolint:exhaustruct // partial
 
 	raw, err := json.Marshal([]SourceProposal{
-		{Source: "openlibrary", Title: "Different Title"}, //nolint:exhaustruct // partial
+		{ //nolint:exhaustruct // partial
+			Source: "openlibrary",
+			Title:  "Different Title",
+		},
 	})
 	require.NoError(t, err)
 
@@ -761,9 +786,15 @@ func TestApplyResyncChoice_ChosenSource_WritesFields(t *testing.T) {
 func TestApplyResyncChoice_NeverOverwritesExistingISBN(t *testing.T) {
 	bookID := uuid.New()
 	existingISBN := "9780140449112"
-	book := models.Book{ID: bookID, ISBN13: &existingISBN} //nolint:exhaustruct // partial
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID:     bookID,
+		ISBN13: &existingISBN,
+	}
 	raw, err := json.Marshal([]SourceProposal{
-		{Source: "openlibrary", ISBN13: "9780062316097"}, //nolint:exhaustruct // partial
+		{ //nolint:exhaustruct // partial
+			Source: "openlibrary",
+			ISBN13: "9780062316097",
+		},
 	})
 	require.NoError(t, err)
 
