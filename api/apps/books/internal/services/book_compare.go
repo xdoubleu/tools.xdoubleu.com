@@ -2,11 +2,17 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/books"
 )
+
+// DiffMissingInLibrary tags a CSV entry with no match in the library. Shared
+// as a constant (rather than a literal) between book_compare.go and
+// book_apply.go.
+const DiffMissingInLibrary = "missing-in-library"
 
 // CompareRef is a lightweight snapshot of one book used in comparison results.
 type CompareRef struct {
@@ -24,6 +30,16 @@ type CompareMismatch struct {
 	// Differences lists active tags: "missing-in-library" | "missing-in-csv" |
 	// "status" | "isbn" | "title"
 	Differences []string
+	// ID is a stable per-row key for ApplyCSVFix: the library book_id when the
+	// book is matched or library-only, or "csv:<index>" when it only exists in
+	// the CSV.
+	ID string
+	// LibBook is the matched or library-only entry, used by ApplyCSVFix to
+	// know which library row to update. Nil for CSV-only rows.
+	LibBook *models.UserBook
+	// CSVEntry is the parsed CSV row, used by ApplyCSVFix as the source of
+	// truth for the fix. Nil for library-only rows.
+	CSVEntry *books.ParsedEntry
 }
 
 // CompareResult is the output of a CSV-vs-library comparison.
@@ -65,7 +81,11 @@ func (s *BookService) CompareCSV(
 // Unmatched CSV entries get "missing-in-library"; unmatched library entries get
 // "missing-in-csv".
 //
-//nolint:cyclop,gocognit,gocyclo,funlen // matching loop; branches; logic stays together
+// stays together; gosec G602 false-positives on &entries[entryIdx]/&lib[i] —
+// entryIdx/i/libIdx are always range- or bounds-checked indices into the same
+// slice.
+//
+//nolint:cyclop,gocognit,gocyclo,funlen,gosec // matching loop; branches; logic
 func CompareWithCSV(
 	entries []books.ParsedEntry,
 	lib []models.UserBook,
@@ -146,7 +166,8 @@ func CompareWithCSV(
 	var mismatches []CompareMismatch
 	matchedCount := 0
 
-	for _, entry := range entries {
+	for entryIdx := range entries {
+		entry := entries[entryIdx]
 		csvRef := CompareRef{
 			Title:   entry.Book.Title,
 			Authors: entry.Book.Authors,
@@ -199,7 +220,9 @@ func CompareWithCSV(
 				mismatches,
 				CompareMismatch{ //nolint:exhaustruct //Library nil by design
 					CSV:         &ref,
-					Differences: []string{"missing-in-library"},
+					Differences: []string{DiffMissingInLibrary},
+					ID:          fmt.Sprintf("csv:%d", entryIdx),
+					CSVEntry:    &entries[entryIdx],
 				},
 			)
 			continue
@@ -233,6 +256,9 @@ func CompareWithCSV(
 				CSV:         &cr,
 				Library:     &lr,
 				Differences: diffs,
+				ID:          lib[libIdx].BookID.String(),
+				LibBook:     &lib[libIdx],
+				CSVEntry:    &entries[entryIdx],
 			})
 		}
 	}
@@ -246,6 +272,8 @@ func CompareWithCSV(
 				CompareMismatch{ //nolint:exhaustruct //CSV nil by design
 					Library:     &lr,
 					Differences: []string{"missing-in-csv"},
+					ID:          lib[i].BookID.String(),
+					LibBook:     &lib[i],
 				},
 			)
 		}

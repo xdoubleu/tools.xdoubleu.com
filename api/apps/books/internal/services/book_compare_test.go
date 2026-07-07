@@ -64,6 +64,9 @@ func TestCompareWithCSV_MissingInLibrary(t *testing.T) {
 	assert.Equal(t, []string{"missing-in-library"}, result.Mismatches[0].Differences)
 	assert.NotNil(t, result.Mismatches[0].CSV)
 	assert.Nil(t, result.Mismatches[0].Library)
+	assert.Equal(t, "csv:0", result.Mismatches[0].ID)
+	assert.NotNil(t, result.Mismatches[0].CSVEntry)
+	assert.Nil(t, result.Mismatches[0].LibBook)
 }
 
 func TestCompareWithCSV_MissingInCSV(t *testing.T) {
@@ -76,6 +79,9 @@ func TestCompareWithCSV_MissingInCSV(t *testing.T) {
 	assert.Equal(t, []string{"missing-in-csv"}, result.Mismatches[0].Differences)
 	assert.Nil(t, result.Mismatches[0].CSV)
 	assert.NotNil(t, result.Mismatches[0].Library)
+	assert.Equal(t, lib[0].BookID.String(), result.Mismatches[0].ID)
+	assert.NotNil(t, result.Mismatches[0].LibBook)
+	assert.Nil(t, result.Mismatches[0].CSVEntry)
 }
 
 func TestCompareWithCSV_StatusMismatch(t *testing.T) {
@@ -89,6 +95,9 @@ func TestCompareWithCSV_StatusMismatch(t *testing.T) {
 	assert.Contains(t, result.Mismatches[0].Differences, "status")
 	assert.NotContains(t, result.Mismatches[0].Differences, "isbn")
 	assert.NotContains(t, result.Mismatches[0].Differences, "title")
+	assert.Equal(t, lib[0].BookID.String(), result.Mismatches[0].ID)
+	assert.Same(t, &lib[0], result.Mismatches[0].LibBook)
+	assert.NotNil(t, result.Mismatches[0].CSVEntry)
 }
 
 func TestCompareWithCSV_ISBNMismatch(t *testing.T) {
