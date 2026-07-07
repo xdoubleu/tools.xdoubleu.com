@@ -190,6 +190,26 @@ func TestGetByISBN_ReturnsMetadata(t *testing.T) {
 	assert.Equal(t, isbn, *book.ISBN13)
 }
 
+func TestGetByISBN_ReturnsAuthors(t *testing.T) {
+	isbn := "9780618640157"
+	setupTestServer(t, nil, map[string]any{
+		"ISBN:" + isbn: map[string]any{
+			"details": map[string]any{
+				"title": "The Lord of the Rings",
+				"authors": []map[string]any{
+					{"key": "/authors/OL26320A", "name": "J.R.R. Tolkien"},
+				},
+			},
+		},
+	})
+
+	c := New(logging.NewNopLogger())
+	book, err := c.GetByISBN(context.Background(), isbn)
+	require.NoError(t, err)
+	require.NotNil(t, book)
+	assert.Equal(t, []string{"J.R.R. Tolkien"}, book.Authors)
+}
+
 func TestGetByISBN_DescriptionObject(t *testing.T) {
 	isbn := "9780618640157"
 	setupTestServer(t, nil, map[string]any{

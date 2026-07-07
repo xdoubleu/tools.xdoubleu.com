@@ -21,6 +21,7 @@ export const swrKeys = {
   koboDevices: '/books/kobo/devices',
   bookDuplicates: '/books/duplicates',
   resyncProposals: '/books/resync-proposals',
+  bookSources: (bookId: string) => ['/books/sources', bookId] as const,
   kepubStatus: (bookId: string) => ['/books/kepub-status', bookId] as const,
   bookFile: (bookId: string, format: string) => ['/books/file', bookId, format] as const,
 

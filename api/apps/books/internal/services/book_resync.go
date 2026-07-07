@@ -29,6 +29,7 @@ var ErrProposalNotFound = errors.New("resync proposal not found")
 // path. Defined as an interface so tests can stub it without a real DB.
 type booksResyncSource interface {
 	ListCatalogBooks(ctx context.Context) ([]models.Book, error)
+	GetBookByID(ctx context.Context, bookID uuid.UUID) (*models.Book, error)
 	RefreshBookExternalData(
 		ctx context.Context,
 		bookID uuid.UUID,
@@ -552,6 +553,19 @@ func (s *BookService) applyChosenSource(
 		return fmt.Errorf("decode resync proposals for book %s: %w", row.Book.ID, err)
 	}
 
+	return s.applySelectedSource(ctx, logger, row.Book, sources, source)
+}
+
+// applySelectedSource writes the chosen source's fields onto book. Shared by
+// the stored-proposal path (ApplyResyncChoice) and the live per-book path
+// (SyncBookSource). Returns ErrProposalNotFound if source isn't among sources.
+func (s *BookService) applySelectedSource(
+	ctx context.Context,
+	logger *slog.Logger,
+	book models.Book,
+	sources []SourceProposal,
+	source string,
+) error {
 	var chosen *SourceProposal
 	for i := range sources {
 		if sources[i].Source == source {
@@ -578,14 +592,84 @@ func (s *BookService) applyChosenSource(
 		pageCount = &chosen.PageCount
 	}
 	// Never overwrite an existing ISBN — only fill it in when the book has none.
-	if chosen.ISBN13 != "" && (row.Book.ISBN13 == nil || *row.Book.ISBN13 == "") {
+	if chosen.ISBN13 != "" && (book.ISBN13 == nil || *book.ISBN13 == "") {
 		isbn13 = &chosen.ISBN13
 	}
 
 	return s.writeResyncResult(
-		ctx, logger, row.Book,
+		ctx, logger, book,
 		coverURL, description, pageCount, isbn13, title, chosen.Authors,
 	)
+}
+
+// GetBookSources fetches every configured provider's live view of one book
+// for the admin book-page source selector — same fetch logic the wizard's
+// scan uses (fetchSourceProposals), just for a single book on demand instead
+// of the whole catalog.
+func (s *BookService) GetBookSources(
+	ctx context.Context,
+	logger *slog.Logger,
+	bookID uuid.UUID,
+) (ResyncProposal, error) {
+	book, err := s.resyncRepo().GetBookByID(ctx, bookID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return ResyncProposal{}, ErrProposalNotFound
+	}
+	if err != nil {
+		return ResyncProposal{}, err
+	}
+
+	sources := s.fetchSourceProposals(ctx, logger, *book)
+	for i := range sources {
+		sources[i].Differs = computeDifferences(*book, sources[i])
+	}
+
+	return ResyncProposal{
+		BookID:  book.ID.String(),
+		Library: libraryProposal(*book),
+		Sources: sources,
+	}, nil
+}
+
+// SyncBookSource live-fetches one book's sources and applies the chosen one —
+// the book-page equivalent of ApplyResyncChoice, usable on any book without
+// requiring a prior wizard scan to have flagged it. Also clears any pending
+// wizard proposal for the book, since it's now resolved.
+func (s *BookService) SyncBookSource(
+	ctx context.Context,
+	logger *slog.Logger,
+	bookID uuid.UUID,
+	source string,
+) error {
+	book, err := s.resyncRepo().GetBookByID(ctx, bookID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return ErrProposalNotFound
+	}
+	if err != nil {
+		return err
+	}
+
+	// "" keeps the library row unchanged — same as ApplyResyncChoice's dismiss.
+	if source != "" {
+		sources := s.fetchSourceProposals(ctx, logger, *book)
+		if err = s.applySelectedSource(ctx, logger, *book, sources, source); err != nil {
+			return err
+		}
+	}
+
+	// Best-effort: dismiss any pending wizard proposal now that this book has
+	// been resolved live. A missing proposal is not an error here.
+	if err = s.resyncRepo().DeleteResyncProposal(ctx, bookID); err != nil &&
+		!errors.Is(err, database.ErrResourceNotFound) {
+		logger.WarnContext(
+			ctx,
+			"failed to clear pending resync proposal after live sync",
+			slog.String("bookID", bookID.String()),
+			slog.Any("error", err),
+		)
+	}
+
+	return nil
 }
 
 // writeResyncResult persists the chosen fields and busts the cover cache when

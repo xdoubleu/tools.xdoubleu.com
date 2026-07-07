@@ -26,7 +26,9 @@ jest.mock('@/lib/client', () => ({
     searchExternal: jest.fn().mockResolvedValue({ results: [] }),
     setBookISBN: jest.fn().mockResolvedValue({}),
     listResyncProposals: jest.fn().mockResolvedValue({ proposals: [] }),
-    applyResyncChoice: jest.fn().mockResolvedValue({})
+    applyResyncChoice: jest.fn().mockResolvedValue({}),
+    getBookSources: jest.fn().mockResolvedValue({ proposal: undefined }),
+    applyBookSource: jest.fn().mockResolvedValue({})
   }))
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({
@@ -60,7 +62,9 @@ import {
   useDisconnectKoboDevice,
   useSetBookISBN,
   useResyncProposals,
-  useApplyResyncChoice
+  useApplyResyncChoice,
+  useBookSources,
+  useApplyBookSource
 } from '@/hooks/useBooks'
 import { createServiceClient } from '@/lib/client'
 
@@ -193,6 +197,44 @@ describe('useApplyResyncChoice', () => {
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ applyResyncChoice: mockApply })
     const { result } = renderHook(() => useApplyResyncChoice())
+    await result.current('book-1', 'openlibrary')
+    expect(mockApply).toHaveBeenCalledWith({ bookId: 'book-1', source: 'openlibrary' })
+  })
+})
+
+describe('useBookSources', () => {
+  it('uses null key when disabled', () => {
+    renderHook(() => useBookSources('book-1', false))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+  })
+
+  it('uses the bookSources key when enabled', () => {
+    renderHook(() => useBookSources('book-1', true))
+    expect(mockUseSWR).toHaveBeenCalledWith(['/books/sources', 'book-1'], expect.any(Function))
+  })
+
+  it('fetcher calls client.getBookSources', async () => {
+    const mockGet = jest.fn().mockResolvedValue({ proposal: undefined })
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ getBookSources: mockGet })
+    renderHook(() => useBookSources('book-1', true))
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockGet).toHaveBeenCalledWith({ bookId: 'book-1' })
+  })
+})
+
+describe('useApplyBookSource', () => {
+  it('returns a function', () => {
+    const { result } = renderHook(() => useApplyBookSource())
+    expect(typeof result.current).toBe('function')
+  })
+
+  it('calls client.applyBookSource with bookId and source', async () => {
+    const mockApply = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ applyBookSource: mockApply })
+    const { result } = renderHook(() => useApplyBookSource())
     await result.current('book-1', 'openlibrary')
     expect(mockApply).toHaveBeenCalledWith({ bookId: 'book-1', source: 'openlibrary' })
   })

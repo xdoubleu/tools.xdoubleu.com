@@ -63,6 +63,12 @@ const (
 	// CatalogServiceSetBookISBNProcedure is the fully-qualified name of the CatalogService's
 	// SetBookISBN RPC.
 	CatalogServiceSetBookISBNProcedure = "/books.v1.CatalogService/SetBookISBN"
+	// CatalogServiceGetBookSourcesProcedure is the fully-qualified name of the CatalogService's
+	// GetBookSources RPC.
+	CatalogServiceGetBookSourcesProcedure = "/books.v1.CatalogService/GetBookSources"
+	// CatalogServiceApplyBookSourceProcedure is the fully-qualified name of the CatalogService's
+	// ApplyBookSource RPC.
+	CatalogServiceApplyBookSourceProcedure = "/books.v1.CatalogService/ApplyBookSource"
 )
 
 // CatalogServiceClient is a client for the books.v1.CatalogService service.
@@ -77,6 +83,8 @@ type CatalogServiceClient interface {
 	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
 	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
+	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
+	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
 }
 
 // NewCatalogServiceClient constructs a client for the books.v1.CatalogService service. By default,
@@ -150,6 +158,18 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(catalogServiceMethods.ByName("SetBookISBN")),
 			connect.WithClientOptions(opts...),
 		),
+		getBookSources: connect.NewClient[v1.GetBookSourcesRequest, v1.GetBookSourcesResponse](
+			httpClient,
+			baseURL+CatalogServiceGetBookSourcesProcedure,
+			connect.WithSchema(catalogServiceMethods.ByName("GetBookSources")),
+			connect.WithClientOptions(opts...),
+		),
+		applyBookSource: connect.NewClient[v1.ApplyBookSourceRequest, v1.ApplyBookSourceResponse](
+			httpClient,
+			baseURL+CatalogServiceApplyBookSourceProcedure,
+			connect.WithSchema(catalogServiceMethods.ByName("ApplyBookSource")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -165,6 +185,8 @@ type catalogServiceClient struct {
 	listResyncProposals *connect.Client[v1.ListResyncProposalsRequest, v1.ListResyncProposalsResponse]
 	applyResyncChoice   *connect.Client[v1.ApplyResyncChoiceRequest, v1.ApplyResyncChoiceResponse]
 	setBookISBN         *connect.Client[v1.SetBookISBNRequest, v1.SetBookISBNResponse]
+	getBookSources      *connect.Client[v1.GetBookSourcesRequest, v1.GetBookSourcesResponse]
+	applyBookSource     *connect.Client[v1.ApplyBookSourceRequest, v1.ApplyBookSourceResponse]
 }
 
 // ImportBooks calls books.v1.CatalogService.ImportBooks.
@@ -217,6 +239,16 @@ func (c *catalogServiceClient) SetBookISBN(ctx context.Context, req *connect.Req
 	return c.setBookISBN.CallUnary(ctx, req)
 }
 
+// GetBookSources calls books.v1.CatalogService.GetBookSources.
+func (c *catalogServiceClient) GetBookSources(ctx context.Context, req *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error) {
+	return c.getBookSources.CallUnary(ctx, req)
+}
+
+// ApplyBookSource calls books.v1.CatalogService.ApplyBookSource.
+func (c *catalogServiceClient) ApplyBookSource(ctx context.Context, req *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error) {
+	return c.applyBookSource.CallUnary(ctx, req)
+}
+
 // CatalogServiceHandler is an implementation of the books.v1.CatalogService service.
 type CatalogServiceHandler interface {
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
@@ -229,6 +261,8 @@ type CatalogServiceHandler interface {
 	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
 	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
+	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
+	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
 }
 
 // NewCatalogServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -298,6 +332,18 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		connect.WithSchema(catalogServiceMethods.ByName("SetBookISBN")),
 		connect.WithHandlerOptions(opts...),
 	)
+	catalogServiceGetBookSourcesHandler := connect.NewUnaryHandler(
+		CatalogServiceGetBookSourcesProcedure,
+		svc.GetBookSources,
+		connect.WithSchema(catalogServiceMethods.ByName("GetBookSources")),
+		connect.WithHandlerOptions(opts...),
+	)
+	catalogServiceApplyBookSourceHandler := connect.NewUnaryHandler(
+		CatalogServiceApplyBookSourceProcedure,
+		svc.ApplyBookSource,
+		connect.WithSchema(catalogServiceMethods.ByName("ApplyBookSource")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/books.v1.CatalogService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CatalogServiceImportBooksProcedure:
@@ -320,6 +366,10 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 			catalogServiceApplyResyncChoiceHandler.ServeHTTP(w, r)
 		case CatalogServiceSetBookISBNProcedure:
 			catalogServiceSetBookISBNHandler.ServeHTTP(w, r)
+		case CatalogServiceGetBookSourcesProcedure:
+			catalogServiceGetBookSourcesHandler.ServeHTTP(w, r)
+		case CatalogServiceApplyBookSourceProcedure:
+			catalogServiceApplyBookSourceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -367,4 +417,12 @@ func (UnimplementedCatalogServiceHandler) ApplyResyncChoice(context.Context, *co
 
 func (UnimplementedCatalogServiceHandler) SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.SetBookISBN is not implemented"))
+}
+
+func (UnimplementedCatalogServiceHandler) GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.GetBookSources is not implemented"))
+}
+
+func (UnimplementedCatalogServiceHandler) ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ApplyBookSource is not implemented"))
 }

@@ -207,20 +207,32 @@ func (h *booksConnectHandler) ListResyncProposals(
 	}), nil
 }
 
+// requireAdminBookID checks admin access and parses book_id — the common
+// prologue shared by every per-book resync RPC below.
+func (h *booksConnectHandler) requireAdminBookID(
+	ctx context.Context,
+	rawBookID string,
+) (uuid.UUID, error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return uuid.UUID{}, err
+	}
+	bookID, err := uuid.Parse(rawBookID)
+	if err != nil {
+		return uuid.UUID{}, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid book_id: %w", err),
+		)
+	}
+	return bookID, nil
+}
+
 func (h *booksConnectHandler) ApplyResyncChoice(
 	ctx context.Context,
 	req *connect.Request[booksv1.ApplyResyncChoiceRequest],
 ) (*connect.Response[booksv1.ApplyResyncChoiceResponse], error) {
-	if _, err := h.requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
 	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid book_id: %w", err),
-		)
+		return nil, err
 	}
 
 	err = h.app.Services.Books.ApplyResyncChoice(
@@ -239,20 +251,55 @@ func (h *booksConnectHandler) ApplyResyncChoice(
 	return connect.NewResponse(&booksv1.ApplyResyncChoiceResponse{}), nil
 }
 
+func (h *booksConnectHandler) GetBookSources(
+	ctx context.Context,
+	req *connect.Request[booksv1.GetBookSourcesRequest],
+) (*connect.Response[booksv1.GetBookSourcesResponse], error) {
+	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	if err != nil {
+		return nil, err
+	}
+
+	proposal, err := h.app.Services.Books.GetBookSources(ctx, h.app.Logger, bookID)
+	if errors.Is(err, services.ErrProposalNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&booksv1.GetBookSourcesResponse{
+		Proposal: protoResyncProposal(proposal),
+	}), nil
+}
+
+func (h *booksConnectHandler) ApplyBookSource(
+	ctx context.Context,
+	req *connect.Request[booksv1.ApplyBookSourceRequest],
+) (*connect.Response[booksv1.ApplyBookSourceResponse], error) {
+	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = h.app.Services.Books.SyncBookSource(ctx, h.app.Logger, bookID, req.Msg.Source)
+	if errors.Is(err, services.ErrProposalNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&booksv1.ApplyBookSourceResponse{}), nil
+}
+
 func (h *booksConnectHandler) SetBookISBN(
 	ctx context.Context,
 	req *connect.Request[booksv1.SetBookISBNRequest],
 ) (*connect.Response[booksv1.SetBookISBNResponse], error) {
-	if _, err := h.requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
 	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid book_id: %w", err),
-		)
+		return nil, err
 	}
 
 	// Normalize: strip spaces, hyphens, then validate exactly 13 digits.

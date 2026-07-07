@@ -40,13 +40,22 @@ type workRef struct {
 }
 
 type bookDetails struct {
-	Title         string      `json:"title"`
-	Description   description `json:"description"`
-	NumberOfPages *int        `json:"number_of_pages"`
-	Covers        []int       `json:"covers"`
-	ISBN13        []string    `json:"isbn_13"`
-	ISBN10        []string    `json:"isbn_10"`
-	Works         []workRef   `json:"works"`
+	Title         string          `json:"title"`
+	Description   description     `json:"description"`
+	NumberOfPages *int            `json:"number_of_pages"`
+	Covers        []int           `json:"covers"`
+	ISBN13        []string        `json:"isbn_13"`
+	ISBN10        []string        `json:"isbn_10"`
+	Works         []workRef       `json:"works"`
+	Authors       []detailsAuthor `json:"authors"`
+}
+
+// detailsAuthor is an entry in bookDetails.Authors. The jscmd=details response
+// inlines the author's name alongside its key, so no follow-up fetch is
+// needed to resolve it.
+type detailsAuthor struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
 }
 
 // workResponse is the subset of the Open Library Work record
