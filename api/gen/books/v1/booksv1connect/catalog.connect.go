@@ -39,6 +39,9 @@ const (
 	// CatalogServiceCompareCSVProcedure is the fully-qualified name of the CatalogService's CompareCSV
 	// RPC.
 	CatalogServiceCompareCSVProcedure = "/books.v1.CatalogService/CompareCSV"
+	// CatalogServiceApplyCSVFixProcedure is the fully-qualified name of the CatalogService's
+	// ApplyCSVFix RPC.
+	CatalogServiceApplyCSVFixProcedure = "/books.v1.CatalogService/ApplyCSVFix"
 	// CatalogServiceClearLibraryProcedure is the fully-qualified name of the CatalogService's
 	// ClearLibrary RPC.
 	CatalogServiceClearLibraryProcedure = "/books.v1.CatalogService/ClearLibrary"
@@ -66,6 +69,7 @@ const (
 type CatalogServiceClient interface {
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
 	CompareCSV(context.Context, *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error)
+	ApplyCSVFix(context.Context, *connect.Request[v1.ApplyCSVFixRequest]) (*connect.Response[v1.ApplyCSVFixResponse], error)
 	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
@@ -96,6 +100,12 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+CatalogServiceCompareCSVProcedure,
 			connect.WithSchema(catalogServiceMethods.ByName("CompareCSV")),
+			connect.WithClientOptions(opts...),
+		),
+		applyCSVFix: connect.NewClient[v1.ApplyCSVFixRequest, v1.ApplyCSVFixResponse](
+			httpClient,
+			baseURL+CatalogServiceApplyCSVFixProcedure,
+			connect.WithSchema(catalogServiceMethods.ByName("ApplyCSVFix")),
 			connect.WithClientOptions(opts...),
 		),
 		clearLibrary: connect.NewClient[v1.ClearLibraryRequest, v1.ClearLibraryResponse](
@@ -147,6 +157,7 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 type catalogServiceClient struct {
 	importBooks       *connect.Client[v1.ImportBooksRequest, v1.ImportBooksResponse]
 	compareCSV        *connect.Client[v1.CompareCSVRequest, v1.CompareCSVResponse]
+	applyCSVFix       *connect.Client[v1.ApplyCSVFixRequest, v1.ApplyCSVFixResponse]
 	clearLibrary      *connect.Client[v1.ClearLibraryRequest, v1.ClearLibraryResponse]
 	findDuplicates    *connect.Client[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse]
 	mergeBooks        *connect.Client[v1.MergeBooksRequest, v1.MergeBooksResponse]
@@ -164,6 +175,11 @@ func (c *catalogServiceClient) ImportBooks(ctx context.Context, req *connect.Req
 // CompareCSV calls books.v1.CatalogService.CompareCSV.
 func (c *catalogServiceClient) CompareCSV(ctx context.Context, req *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error) {
 	return c.compareCSV.CallUnary(ctx, req)
+}
+
+// ApplyCSVFix calls books.v1.CatalogService.ApplyCSVFix.
+func (c *catalogServiceClient) ApplyCSVFix(ctx context.Context, req *connect.Request[v1.ApplyCSVFixRequest]) (*connect.Response[v1.ApplyCSVFixResponse], error) {
+	return c.applyCSVFix.CallUnary(ctx, req)
 }
 
 // ClearLibrary calls books.v1.CatalogService.ClearLibrary.
@@ -205,6 +221,7 @@ func (c *catalogServiceClient) SetBookISBN(ctx context.Context, req *connect.Req
 type CatalogServiceHandler interface {
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
 	CompareCSV(context.Context, *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error)
+	ApplyCSVFix(context.Context, *connect.Request[v1.ApplyCSVFixRequest]) (*connect.Response[v1.ApplyCSVFixResponse], error)
 	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
@@ -231,6 +248,12 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		CatalogServiceCompareCSVProcedure,
 		svc.CompareCSV,
 		connect.WithSchema(catalogServiceMethods.ByName("CompareCSV")),
+		connect.WithHandlerOptions(opts...),
+	)
+	catalogServiceApplyCSVFixHandler := connect.NewUnaryHandler(
+		CatalogServiceApplyCSVFixProcedure,
+		svc.ApplyCSVFix,
+		connect.WithSchema(catalogServiceMethods.ByName("ApplyCSVFix")),
 		connect.WithHandlerOptions(opts...),
 	)
 	catalogServiceClearLibraryHandler := connect.NewUnaryHandler(
@@ -281,6 +304,8 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 			catalogServiceImportBooksHandler.ServeHTTP(w, r)
 		case CatalogServiceCompareCSVProcedure:
 			catalogServiceCompareCSVHandler.ServeHTTP(w, r)
+		case CatalogServiceApplyCSVFixProcedure:
+			catalogServiceApplyCSVFixHandler.ServeHTTP(w, r)
 		case CatalogServiceClearLibraryProcedure:
 			catalogServiceClearLibraryHandler.ServeHTTP(w, r)
 		case CatalogServiceFindDuplicatesProcedure:
@@ -310,6 +335,10 @@ func (UnimplementedCatalogServiceHandler) ImportBooks(context.Context, *connect.
 
 func (UnimplementedCatalogServiceHandler) CompareCSV(context.Context, *connect.Request[v1.CompareCSVRequest]) (*connect.Response[v1.CompareCSVResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.CompareCSV is not implemented"))
+}
+
+func (UnimplementedCatalogServiceHandler) ApplyCSVFix(context.Context, *connect.Request[v1.ApplyCSVFixRequest]) (*connect.Response[v1.ApplyCSVFixResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ApplyCSVFix is not implemented"))
 }
 
 func (UnimplementedCatalogServiceHandler) ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error) {

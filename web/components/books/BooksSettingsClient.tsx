@@ -27,23 +27,29 @@ export default function BooksSettingsClient() {
   const [clearStatus, setClearStatus] = useState('')
   const [compareStatus, setCompareStatus] = useState('')
   const [compareResult, setCompareResult] = useState<CompareCSVResponse | null>(null)
+  const [compareCSVData, setCompareCSVData] = useState('')
+
+  async function runCompare(csvData: string) {
+    setCompareStatus('Comparing…')
+    try {
+      const res = await compareCSV(csvData)
+      setCompareResult(res)
+      setCompareCSVData(csvData)
+      setCompareStatus('')
+    } catch {
+      setCompareStatus('Compare failed.')
+    }
+  }
 
   function handleCompare(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setCompareStatus('Comparing…')
     setCompareResult(null)
     const reader = new FileReader()
-    reader.onload = async (ev) => {
+    reader.onload = (ev) => {
       const csvData = ev.target?.result
       if (typeof csvData !== 'string') return
-      try {
-        const res = await compareCSV(csvData)
-        setCompareResult(res)
-        setCompareStatus('')
-      } catch {
-        setCompareStatus('Compare failed.')
-      }
+      void runCompare(csvData)
     }
     reader.readAsText(file)
     e.target.value = ''
@@ -99,7 +105,7 @@ export default function BooksSettingsClient() {
         </h2>
         <p className="mb-3 text-xs text-muted">
           Upload a Goodreads export to see what differs from your library — presence, reading state,
-          ISBNs, and titles. Nothing is changed.
+          ISBNs, and titles. Use Fix on a row to apply the CSV value to your library.
         </p>
         <div className="flex items-center gap-2">
           <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover">
@@ -108,7 +114,13 @@ export default function BooksSettingsClient() {
           </label>
           {compareStatus && <span className="text-sm text-muted">{compareStatus}</span>}
         </div>
-        {compareResult && <CompareReport result={compareResult} />}
+        {compareResult && (
+          <CompareReport
+            result={compareResult}
+            csvData={compareCSVData}
+            onFixed={() => runCompare(compareCSVData)}
+          />
+        )}
       </section>
 
       <section className="mt-10 border-t border-border pt-8">

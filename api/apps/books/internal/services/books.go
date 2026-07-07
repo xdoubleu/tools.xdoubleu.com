@@ -83,6 +83,26 @@ func (s *BookService) SetBookISBN(
 	return s.books.UpdateBookByID(ctx, *book)
 }
 
+// SetBookTitle sets the title of the given catalog book.
+// Returns database.ErrResourceNotFound when the book doesn't exist.
+//
+// ponytail: this writes the shared catalog row, so it affects every user's
+// view of the book, not just the caller's library entry — acceptable for the
+// CSV-fix flow since the catalog is the only place title metadata lives.
+func (s *BookService) SetBookTitle(
+	ctx context.Context,
+	bookID uuid.UUID,
+	title string,
+) error {
+	book, err := s.books.GetBookByID(ctx, bookID)
+	if err != nil {
+		return err
+	}
+
+	book.Title = title
+	return s.books.UpdateBookByID(ctx, *book)
+}
+
 func (s *BookService) AddToLibrary(
 	ctx context.Context,
 	userID string,

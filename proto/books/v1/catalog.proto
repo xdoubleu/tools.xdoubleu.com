@@ -105,6 +105,10 @@ message BookMismatch {
   BookRef csv = 1;
   BookRef library = 2;
   repeated string differences = 3;
+  // id is a stable per-row key for ApplyCSVFix: the library book_id when the
+  // book is matched or library-only, or "csv:<index>" when it only exists in
+  // the CSV.
+  string id = 4;
 }
 
 message CompareCSVRequest { bytes csv_data = 1; }
@@ -116,9 +120,19 @@ message CompareCSVResponse {
   repeated BookMismatch mismatches = 4;
 }
 
+message ApplyCSVFixRequest {
+  bytes csv_data = 1;
+  // mismatch_id echoes BookMismatch.id from a prior CompareCSV response.
+  string mismatch_id = 2;
+  // difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title".
+  string difference = 3;
+}
+message ApplyCSVFixResponse {}
+
 service CatalogService {
   rpc ImportBooks(ImportBooksRequest) returns (ImportBooksResponse);
   rpc CompareCSV(CompareCSVRequest) returns (CompareCSVResponse);
+  rpc ApplyCSVFix(ApplyCSVFixRequest) returns (ApplyCSVFixResponse);
   rpc ClearLibrary(ClearLibraryRequest) returns (ClearLibraryResponse);
   rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
   rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);

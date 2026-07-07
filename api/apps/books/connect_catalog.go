@@ -12,6 +12,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -319,6 +320,7 @@ func (h *booksConnectHandler) CompareCSV(
 			Csv:         protoCompareRef(m.CSV),
 			Library:     protoCompareRef(m.Library),
 			Differences: m.Differences,
+			Id:          m.ID,
 		}
 	}
 
@@ -329,4 +331,42 @@ func (h *booksConnectHandler) CompareCSV(
 		MatchedCount: int32(result.MatchedCount),
 		Mismatches:   mismatches,
 	}), nil
+}
+
+func (h *booksConnectHandler) ApplyCSVFix(
+	ctx context.Context,
+	req *connect.Request[booksv1.ApplyCSVFixRequest],
+) (*connect.Response[booksv1.ApplyCSVFixResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+
+	err := h.app.Services.Books.ApplyCSVFix(
+		ctx,
+		user.ID,
+		bytes.NewReader(req.Msg.CsvData),
+		req.Msg.MismatchId,
+		req.Msg.Difference,
+	)
+	if errors.Is(err, services.ErrMismatchNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if errors.Is(err, database.ErrResourceConflict) {
+		return nil, connect.NewError(
+			connect.CodeAlreadyExists,
+			errors.New("ISBN is already assigned to another book"),
+		)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&booksv1.ApplyCSVFixResponse{}), nil
 }
