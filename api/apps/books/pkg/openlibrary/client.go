@@ -369,6 +369,13 @@ func docToExternalBook(doc searchDoc) ExternalBook {
 }
 
 func detailsToExternalBook(isbn string, d bookDetails) ExternalBook {
+	authors := make([]string, 0, len(d.Authors))
+	for _, a := range d.Authors {
+		if a.Name != "" {
+			authors = append(authors, a.Name)
+		}
+	}
+
 	isbn13 := pickISBN13(d.ISBN13)
 	if isbn13 == nil && len(isbn) == isbn13Len {
 		v := isbn
@@ -393,7 +400,7 @@ func detailsToExternalBook(isbn string, d bookDetails) ExternalBook {
 		Provider:    "openlibrary",
 		ProviderID:  "",
 		Title:       d.Title,
-		Authors:     nil,
+		Authors:     authors,
 		ISBN13:      isbn13,
 		CoverURL:    coverURL,
 		Description: desc,

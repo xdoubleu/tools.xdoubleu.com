@@ -97,6 +97,27 @@ message SetBookISBNRequest {
 }
 message SetBookISBNResponse {}
 
+// GetBookSources live-fetches one book's candidates from every configured
+// source, for the admin book-page source selector. Unlike
+// ListResyncProposals, this works on any book on demand — it doesn't require
+// a prior wizard scan to have flagged the book first.
+message GetBookSourcesRequest {
+  string book_id = 1;
+}
+message GetBookSourcesResponse {
+  ResyncProposal proposal = 1;
+}
+
+// ApplyBookSource live-fetches the book's sources and applies the chosen one
+// — the book-page equivalent of ApplyResyncChoice, usable on any book.
+message ApplyBookSourceRequest {
+  string book_id = 1;
+  // source selects which source wins: one of
+  // "openlibrary" | "googlebooks" | "unicat".
+  string source = 2;
+}
+message ApplyBookSourceResponse {}
+
 // BookRef is a lightweight snapshot of one book used in CSV comparison results.
 message BookRef {
   string title = 1;
@@ -152,4 +173,6 @@ service CatalogService {
   rpc ListResyncProposals(ListResyncProposalsRequest) returns (ListResyncProposalsResponse);
   rpc ApplyResyncChoice(ApplyResyncChoiceRequest) returns (ApplyResyncChoiceResponse);
   rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);
+  rpc GetBookSources(GetBookSourcesRequest) returns (GetBookSourcesResponse);
+  rpc ApplyBookSource(ApplyBookSourceRequest) returns (ApplyBookSourceResponse);
 }

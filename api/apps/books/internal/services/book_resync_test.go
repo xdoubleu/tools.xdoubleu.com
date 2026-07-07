@@ -38,8 +38,9 @@ type refreshCall struct {
 
 // fakeBooksResync is a test stub for booksResyncSource.
 type fakeBooksResync struct {
-	books   []models.Book
-	listErr error
+	books      []models.Book
+	listErr    error
+	getBookErr error
 
 	mu           sync.Mutex
 	replaced     map[uuid.UUID][]byte
@@ -52,6 +53,21 @@ type fakeBooksResync struct {
 
 func (f *fakeBooksResync) ListCatalogBooks(_ context.Context) ([]models.Book, error) {
 	return f.books, f.listErr
+}
+
+func (f *fakeBooksResync) GetBookByID(
+	_ context.Context,
+	bookID uuid.UUID,
+) (*models.Book, error) {
+	if f.getBookErr != nil {
+		return nil, f.getBookErr
+	}
+	for i := range f.books {
+		if f.books[i].ID == bookID {
+			return &f.books[i], nil
+		}
+	}
+	return nil, database.ErrResourceNotFound
 }
 
 func (f *fakeBooksResync) RefreshBookExternalData(
@@ -845,6 +861,111 @@ func TestApplyResyncChoice_UnknownSource_ErrProposalNotFound(t *testing.T) {
 
 	err = svc.ApplyResyncChoice(
 		context.Background(), logging.NewNopLogger(), bookID, "googlebooks",
+	)
+	require.ErrorIs(t, err, ErrProposalNotFound)
+}
+
+// ---------------------------------------------------------------------------
+// GetBookSources / SyncBookSource: live per-book fetch, no prior scan needed
+// ---------------------------------------------------------------------------
+
+func TestGetBookSources_ReturnsLiveProposal(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "Dune"} //nolint:exhaustruct // partial
+	//nolint:exhaustruct // partial
+	olDetail := &openlibrary.ExternalBook{
+		Title:   "Dune",
+		Authors: []string{"Frank Herbert"},
+	}
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		books: []models.Book{book},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		booksResync: repo,
+		external: &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
+			searchResults: []openlibrary.ExternalBook{*olDetail},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposal, err := svc.GetBookSources(
+		context.Background(),
+		logging.NewNopLogger(),
+		bookID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, bookID.String(), proposal.BookID)
+	require.Len(t, proposal.Sources, 1)
+	assert.Equal(t, "openlibrary", proposal.Sources[0].Source)
+	assert.Contains(t, proposal.Sources[0].Differs, "authors")
+}
+
+func TestGetBookSources_UnknownBook_ErrProposalNotFound(t *testing.T) {
+	repo := &fakeBooksResync{}             //nolint:exhaustruct //zero values fine
+	svc := &BookService{booksResync: repo} //nolint:exhaustruct // partial
+
+	_, err := svc.GetBookSources(
+		context.Background(),
+		logging.NewNopLogger(),
+		uuid.New(),
+	)
+	require.ErrorIs(t, err, ErrProposalNotFound)
+}
+
+func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
+	bookID := uuid.New()
+	isbn := "9780140449112"
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID:     bookID,
+		Title:  "Old Title",
+		ISBN13: &isbn,
+	}
+	//nolint:exhaustruct // partial
+	olDetail := &openlibrary.ExternalBook{
+		Title:   "New Title",
+		Authors: []string{"Author"},
+	}
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		books: []models.Book{book},
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: []byte("[]")},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		booksResync: repo,
+		external:    &fakeOLClient{detail: olDetail}, //nolint:exhaustruct // partial
+		objectStore: objectstore.NewFake(),
+	}
+
+	err := svc.SyncBookSource(
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1)
+	require.NotNil(t, repo.refreshCalls[0].title)
+	assert.Equal(t, "New Title", *repo.refreshCalls[0].title)
+	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs,
+		"applying live should also clear any pending wizard proposal")
+}
+
+func TestSyncBookSource_UnknownSource_ErrProposalNotFound(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID} //nolint:exhaustruct // partial
+	repo := &fakeBooksResync{       //nolint:exhaustruct //zero values fine
+		books: []models.Book{book},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		booksResync: repo,
+		//nolint:exhaustruct // detail unused, err drives the not-found path
+		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		objectStore: objectstore.NewFake(),
+	}
+
+	err := svc.SyncBookSource(
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }

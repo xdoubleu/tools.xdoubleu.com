@@ -14,6 +14,16 @@ jest.mock('@/hooks/useBooks', () => ({
   useUpdateBookStatus: () => jest.fn().mockResolvedValue({})
 }))
 
+jest.mock('@/hooks/useAuth', () => ({
+  useCurrentUser: jest.fn()
+}))
+
+jest.mock('@/components/books/BookSourceSync', () => {
+  return function MockBookSourceSync() {
+    return <div data-testid="book-source-sync" />
+  }
+})
+
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn() }))
 }))
@@ -80,6 +90,7 @@ jest.mock('swr', () => ({
 
 import BookDetailClient from '@/app/books/[id]/BookDetailClient'
 import { useLibrary } from '@/hooks/useBooks'
+import { useCurrentUser } from '@/hooks/useAuth'
 
 const mockBook = create(BookSchema, {
   id: 'book-1',
@@ -126,6 +137,8 @@ beforeEach(() => {
     isLoading: false,
     error: undefined
   })
+  // @ts-expect-error -- partial mock
+  jest.mocked(useCurrentUser).mockReturnValue({ data: { role: 'user' }, isLoading: false })
 })
 
 describe('BookDetailClient', () => {
@@ -332,5 +345,17 @@ describe('BookDetailClient', () => {
     })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByText('Finished')).toBeInTheDocument()
+  })
+
+  it('hides the metadata source sync control for a non-admin', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByTestId('book-source-sync')).not.toBeInTheDocument()
+  })
+
+  it('shows the metadata source sync control for an admin', () => {
+    // @ts-expect-error -- partial mock
+    jest.mocked(useCurrentUser).mockReturnValue({ data: { role: 'admin' }, isLoading: false })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByTestId('book-source-sync')).toBeInTheDocument()
   })
 })

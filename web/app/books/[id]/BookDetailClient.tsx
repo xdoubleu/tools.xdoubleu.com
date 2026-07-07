@@ -5,8 +5,10 @@ import { mutate } from 'swr'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useLibrary } from '@/hooks/useBooks'
+import { useCurrentUser } from '@/hooks/useAuth'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
+import BookSourceSync from '@/components/books/BookSourceSync'
 import { SPECIAL_TAGS } from '@/lib/books/bookShelves'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 import BookRatingStars from '@/components/books/BookRatingStars'
@@ -39,6 +41,8 @@ function formatDate(iso: string): string {
 
 export default function BookDetailClient({ id }: { id: string }) {
   const { data, error, isLoading } = useLibrary()
+  const { data: currentUser } = useCurrentUser()
+  const isAdmin = currentUser?.role === 'admin'
   const [previewFormat, setPreviewFormat] = useState<'pdf' | 'epub' | 'kepub' | null>(null)
 
   const userBook = useMemo(() => {
@@ -139,6 +143,14 @@ export default function BookDetailClient({ id }: { id: string }) {
               <p className="text-sm text-muted">No description available.</p>
             )}
           </section>
+
+          {/* Admin: live metadata source sync */}
+          {isAdmin && (
+            <section className="mt-8">
+              <h2 className="text-lg font-semibold mb-3">Metadata source</h2>
+              <BookSourceSync bookId={userBook.bookId} />
+            </section>
+          )}
 
           {/* Reading info */}
           <section className="mt-8">

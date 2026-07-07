@@ -25,7 +25,8 @@ import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/book
 import type { ListKoboDevicesResponse } from '@/lib/gen/books/v1/kobo_pb'
 import type {
   FindDuplicatesResponse,
-  ListResyncProposalsResponse
+  ListResyncProposalsResponse,
+  GetBookSourcesResponse
 } from '@/lib/gen/books/v1/catalog_pb'
 
 export type CreateBookInput = MessageInitShape<typeof CreateBookRequestSchema>
@@ -266,6 +267,24 @@ export function useApplyResyncChoice() {
   const client = useMemo(() => createServiceClient(CatalogService), [])
   return useCallback(
     (bookId: string, source: string) => client.applyResyncChoice({ bookId, source }),
+    [client]
+  )
+}
+
+// useBookSources live-fetches one book's candidate sources for the book-page
+// admin sync control. enabled gates the fetch behind a user action (the
+// live fetch hits every configured provider, so it shouldn't run on mount).
+export function useBookSources(bookId: string, enabled: boolean) {
+  const client = createServiceClient(CatalogService)
+  return useSWR<GetBookSourcesResponse, Error>(enabled ? swrKeys.bookSources(bookId) : null, () =>
+    client.getBookSources({ bookId })
+  )
+}
+
+export function useApplyBookSource() {
+  const client = useMemo(() => createServiceClient(CatalogService), [])
+  return useCallback(
+    (bookId: string, source: string) => client.applyBookSource({ bookId, source }),
     [client]
   )
 }
