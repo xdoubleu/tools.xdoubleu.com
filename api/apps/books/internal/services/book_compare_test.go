@@ -23,7 +23,6 @@ func cmpEntry(title, author string, isbn *string, status string) books.ParsedEnt
 	return e
 }
 
-//nolint:unparam // status always "read" in tests; param kept for test clarity
 func cmpLibBook(title, author string, isbn *string, status string) models.UserBook {
 	ub := models.UserBook{} //nolint:exhaustruct //only test-relevant fields set
 	ub.BookID = uuid.New()
@@ -34,6 +33,28 @@ func cmpLibBook(title, author string, isbn *string, status string) models.UserBo
 		Authors: []string{author},
 		ISBN13:  isbn,
 	}
+	return ub
+}
+
+func cmpEntryTags(
+	title, author string,
+	isbn *string,
+	status string,
+	tags []string,
+) books.ParsedEntry {
+	e := cmpEntry(title, author, isbn, status)
+	e.UserBook.Tags = tags
+	return e
+}
+
+func cmpLibBookTags(
+	title, author string,
+	isbn *string,
+	status string,
+	tags []string,
+) models.UserBook {
+	ub := cmpLibBook(title, author, isbn, status)
+	ub.Tags = tags
 	return ub
 }
 
@@ -172,4 +193,51 @@ func TestCompareWithCSV_Counts(t *testing.T) {
 	assert.Equal(t, 3, result.CSVCount)
 	assert.Equal(t, 2, result.LibraryCount)
 	assert.Equal(t, 1, result.MatchedCount) // only Book A matched
+}
+
+func TestCompareWithCSV_TagsMismatch(t *testing.T) {
+	isbn := strPtr("9780000000012")
+	entries := []books.ParsedEntry{
+		cmpEntryTags(
+			"Dune",
+			"Frank Herbert",
+			isbn,
+			"read",
+			[]string{"technical", "own-physical"},
+		),
+	}
+	lib := []models.UserBook{
+		cmpLibBookTags("Dune", "Frank Herbert", isbn, "read", []string{"technical"}),
+	}
+
+	result := CompareWithCSV(entries, lib)
+
+	require.Len(t, result.Mismatches, 1)
+	assert.Contains(t, result.Mismatches[0].Differences, "tags")
+}
+
+func TestCompareWithCSV_TagsSameSetDifferentOrder_NoDiff(t *testing.T) {
+	isbn := strPtr("9780000000013")
+	entries := []books.ParsedEntry{
+		cmpEntryTags(
+			"Dune",
+			"Frank Herbert",
+			isbn,
+			"read",
+			[]string{"own-physical", "technical"},
+		),
+	}
+	lib := []models.UserBook{
+		cmpLibBookTags(
+			"Dune",
+			"Frank Herbert",
+			isbn,
+			"read",
+			[]string{"technical", "own-physical"},
+		),
+	}
+
+	result := CompareWithCSV(entries, lib)
+
+	assert.Empty(t, result.Mismatches)
 }

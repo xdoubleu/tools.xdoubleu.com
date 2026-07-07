@@ -95,12 +95,15 @@ message BookRef {
   string isbn13 = 3;
   // status is the reading shelf/state (e.g. "read", "to-read", custom shelf).
   string status = 4;
+  // tags are the non-exclusive Goodreads bookshelves (distinct from status,
+  // which is the one exclusive shelf).
+  repeated string tags = 5;
 }
 
 // BookMismatch describes one pair of entries that differ between the CSV and
 // the library. csv or library may be empty (zero-value) when the book only
 // exists on one side. differences lists the active tags from the set:
-//   "missing-in-library", "missing-in-csv", "status", "isbn", "title"
+//   "missing-in-library", "missing-in-csv", "status", "isbn", "title", "tags"
 message BookMismatch {
   BookRef csv = 1;
   BookRef library = 2;
@@ -124,7 +127,7 @@ message ApplyCSVFixRequest {
   bytes csv_data = 1;
   // mismatch_id echoes BookMismatch.id from a prior CompareCSV response.
   string mismatch_id = 2;
-  // difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title".
+  // difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title" | "tags".
   string difference = 3;
 }
 message ApplyCSVFixResponse {}

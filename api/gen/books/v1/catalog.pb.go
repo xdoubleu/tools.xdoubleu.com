@@ -938,7 +938,10 @@ type BookRef struct {
 	Authors []string               `protobuf:"bytes,2,rep,name=authors,proto3" json:"authors,omitempty"`
 	Isbn13  string                 `protobuf:"bytes,3,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
 	// status is the reading shelf/state (e.g. "read", "to-read", custom shelf).
-	Status        string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	Status string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	// tags are the non-exclusive Goodreads bookshelves (distinct from status,
+	// which is the one exclusive shelf).
+	Tags          []string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1001,11 +1004,18 @@ func (x *BookRef) GetStatus() string {
 	return ""
 }
 
+func (x *BookRef) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
 // BookMismatch describes one pair of entries that differ between the CSV and
 // the library. csv or library may be empty (zero-value) when the book only
 // exists on one side. differences lists the active tags from the set:
 //
-//	"missing-in-library", "missing-in-csv", "status", "isbn", "title"
+//	"missing-in-library", "missing-in-csv", "status", "isbn", "title", "tags"
 type BookMismatch struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Csv         *BookRef               `protobuf:"bytes,1,opt,name=csv,proto3" json:"csv,omitempty"`
@@ -1195,7 +1205,7 @@ type ApplyCSVFixRequest struct {
 	CsvData []byte                 `protobuf:"bytes,1,opt,name=csv_data,json=csvData,proto3" json:"csv_data,omitempty"`
 	// mismatch_id echoes BookMismatch.id from a prior CompareCSV response.
 	MismatchId string `protobuf:"bytes,2,opt,name=mismatch_id,json=mismatchId,proto3" json:"mismatch_id,omitempty"`
-	// difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title".
+	// difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title" | "tags".
 	Difference    string `protobuf:"bytes,3,opt,name=difference,proto3" json:"difference,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1344,12 +1354,13 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x12SetBookISBNRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
 	"\x06isbn13\x18\x02 \x01(\tR\x06isbn13\"\x15\n" +
-	"\x13SetBookISBNResponse\"i\n" +
+	"\x13SetBookISBNResponse\"}\n" +
 	"\aBookRef\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
 	"\aauthors\x18\x02 \x03(\tR\aauthors\x12\x16\n" +
 	"\x06isbn13\x18\x03 \x01(\tR\x06isbn13\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\tR\x06status\"\x92\x01\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12\x12\n" +
+	"\x04tags\x18\x05 \x03(\tR\x04tags\"\x92\x01\n" +
 	"\fBookMismatch\x12#\n" +
 	"\x03csv\x18\x01 \x01(\v2\x11.books.v1.BookRefR\x03csv\x12+\n" +
 	"\alibrary\x18\x02 \x01(\v2\x11.books.v1.BookRefR\alibrary\x12 \n" +

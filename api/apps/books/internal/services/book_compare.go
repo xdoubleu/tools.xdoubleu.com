@@ -14,12 +14,17 @@ import (
 // book_apply.go.
 const DiffMissingInLibrary = "missing-in-library"
 
+// DiffTags tags a matched pair whose tag sets differ. Shared as a constant
+// between book_compare.go and book_apply.go.
+const DiffTags = "tags"
+
 // CompareRef is a lightweight snapshot of one book used in comparison results.
 type CompareRef struct {
 	Title   string
 	Authors []string
 	ISBN13  string
 	Status  string
+	Tags    []string
 }
 
 // CompareMismatch describes one pair of entries that differ between the CSV
@@ -136,6 +141,7 @@ func CompareWithCSV(
 				return ""
 			}(),
 			Status: ub.Status,
+			Tags:   ub.Tags,
 		}
 		norms[i] = libNorm{
 			isbn:   isbn,
@@ -178,6 +184,7 @@ func CompareWithCSV(
 				return ""
 			}(),
 			Status: entry.UserBook.Status,
+			Tags:   entry.UserBook.Tags,
 		}
 
 		csvISBN := ""
@@ -249,6 +256,10 @@ func CompareWithCSV(
 			diffs = append(diffs, "title")
 		}
 
+		if !sameTagSet(csvRef.Tags, libRef.Tags) {
+			diffs = append(diffs, DiffTags)
+		}
+
 		if len(diffs) > 0 {
 			cr := csvRef
 			lr := *libRef
@@ -285,4 +296,20 @@ func CompareWithCSV(
 		MatchedCount: matchedCount,
 		Mismatches:   mismatches,
 	}
+}
+
+// sameTagSet reports whether two tag lists contain the same set of tags,
+// ignoring order and duplicates.
+func sameTagSet(a, b []string) bool {
+	set := make(map[string]struct{}, len(a))
+	for _, t := range a {
+		set[t] = struct{}{}
+	}
+	for _, t := range b {
+		if _, ok := set[t]; !ok {
+			return false
+		}
+		delete(set, t)
+	}
+	return len(set) == 0
 }
