@@ -226,6 +226,33 @@ func (h *booksConnectHandler) UpdateBookStatus(
 	return connect.NewResponse(&booksv1.UpdateBookStatusResponse{}), nil
 }
 
+func (h *booksConnectHandler) RemoveBook(
+	ctx context.Context,
+	req *connect.Request[booksv1.RemoveBookRequest],
+) (*connect.Response[booksv1.RemoveBookResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	if err = h.app.Services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+	}
+	return connect.NewResponse(&booksv1.RemoveBookResponse{}), nil
+}
+
 func (h *booksConnectHandler) UpdateProgress(
 	ctx context.Context,
 	req *connect.Request[booksv1.UpdateProgressRequest],

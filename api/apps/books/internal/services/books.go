@@ -580,6 +580,70 @@ func (s *BookService) ClearLibrary(
 	return uint32(bookCount), uint32(fileCount), nil
 }
 
+// RemoveFromLibrary removes a single book from the caller's own library:
+// their uploaded files (DB rows + R2 objects, refcount-safe), reading state,
+// and user_books entry. If the book is no longer referenced by any user's
+// library afterwards, the shared catalog row and its R2 objects (files and
+// cover) are deleted too. R2 deletes are best-effort — a failed object delete
+// is logged and skipped; the daily storage scan sweeps any leftovers.
+func (s *BookService) RemoveFromLibrary(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) error {
+	files, err := s.bookFiles.ListByBook(ctx, userID, bookID)
+	if err != nil {
+		return err
+	}
+
+	if _, err = s.bookFiles.DeleteByUserBook(ctx, userID, bookID); err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		if f.StorageKey == "" {
+			continue
+		}
+		// Only delete the R2 object when no other row still references it.
+		remaining, countErr := s.bookFiles.CountByStorageKey(ctx, f.StorageKey)
+		if countErr != nil {
+			s.logger.Warn("failed to count references for book file",
+				"key", f.StorageKey, "err", countErr)
+			continue
+		}
+		if remaining > 0 {
+			continue
+		}
+		if delErr := s.objectStore.Delete(ctx, f.StorageKey); delErr != nil {
+			s.logger.Warn("failed to delete book file from object store",
+				"key", f.StorageKey, "err", delErr)
+		}
+	}
+
+	if err = s.readingState.DeleteByBook(ctx, userID, bookID); err != nil {
+		return err
+	}
+
+	if err = s.books.DeleteUserBook(ctx, userID, bookID); err != nil {
+		return err
+	}
+
+	deleted, err := s.books.DeleteOrphanedBook(ctx, bookID)
+	if err != nil {
+		return err
+	}
+	if deleted {
+		for _, key := range []string{bookCoverKey(bookID), bookCoverMissingKey(bookID)} {
+			if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
+				s.logger.Warn("failed to delete book cover from object store",
+					"key", key, "err", delErr)
+			}
+		}
+	}
+
+	return nil
+}
+
 // ListCatalogBooks returns all catalog books ordered by title. Used by the
 // admin selective-resync tool.
 func (s *BookService) ListCatalogBooks(
@@ -854,7 +918,7 @@ func (s *BookService) MergeBooks(
 
 	// Delete now-orphaned loser catalog rows.
 	for _, loserID := range loserBookIDs {
-		if delErr := s.books.DeleteOrphanedBook(ctx, loserID); delErr != nil {
+		if _, delErr := s.books.DeleteOrphanedBook(ctx, loserID); delErr != nil {
 			return totalDeletedFiles, affectedUsers, fmt.Errorf(
 				"delete orphaned book for loser %s: %w", loserID, delErr,
 			)

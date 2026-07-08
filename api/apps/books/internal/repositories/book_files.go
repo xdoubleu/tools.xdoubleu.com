@@ -221,6 +221,20 @@ func (r *BookFilesRepository) DeleteByUser(
 	return tag.RowsAffected(), nil
 }
 
+// DeleteByUserBook removes a user's files for a single book.
+func (r *BookFilesRepository) DeleteByUserBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (int64, error) {
+	query := `DELETE FROM books.book_files WHERE user_id = $1 AND book_id = $2`
+	tag, err := r.db.Exec(ctx, query, userID, bookID)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	return tag.RowsAffected(), nil
+}
+
 func (r *BookFilesRepository) UpdateAfterConversion(
 	ctx context.Context,
 	id uuid.UUID,
