@@ -147,11 +147,12 @@ func (repo *BooksRepository) UpdateBookByID(
 }
 
 // DeleteOrphanedBook deletes a catalog book row only when no user_books row
-// still references it. Returns nil (not an error) when other references exist.
+// still references it. The returned bool reports whether a row was actually
+// deleted, so callers know whether to also clean up the book's R2 objects.
 func (repo *BooksRepository) DeleteOrphanedBook(
 	ctx context.Context,
 	bookID uuid.UUID,
-) error {
+) (bool, error) {
 	query := `
 		DELETE FROM books.books
 		WHERE id = $1
@@ -160,8 +161,11 @@ func (repo *BooksRepository) DeleteOrphanedBook(
 		  )
 	`
 
-	_, err := repo.db.Exec(ctx, query, bookID)
-	return postgres.PgxErrorToHTTPError(err)
+	tag, err := repo.db.Exec(ctx, query, bookID)
+	if err != nil {
+		return false, postgres.PgxErrorToHTTPError(err)
+	}
+	return tag.RowsAffected() > 0, nil
 }
 
 func (repo *BooksRepository) UpsertUserBook(

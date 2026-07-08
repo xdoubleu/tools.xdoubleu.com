@@ -110,6 +110,11 @@ export function useUpdateProgress() {
   return (req: UpdateProgressInput) => client.updateProgress(req)
 }
 
+export function useRemoveBook() {
+  const client = createServiceClient(LibraryService)
+  return (bookId: string) => client.removeBook({ bookId })
+}
+
 export type UploadBookFileResult = {
   matchedExisting: boolean
   recognizedTitle: string

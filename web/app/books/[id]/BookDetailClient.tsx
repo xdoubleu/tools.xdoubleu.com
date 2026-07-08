@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { mutate } from 'swr'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -17,6 +18,7 @@ import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
 import BookShelfPopover from '@/components/books/BookShelfPopover'
 import KoboSyncToggle from '@/components/books/KoboSyncToggle'
 import BookPreviewDialog from '@/components/books/BookPreviewDialog'
+import RemoveBookDialog from '@/components/books/RemoveBookDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -44,6 +46,8 @@ export default function BookDetailClient({ id }: { id: string }) {
   const { data: currentUser } = useCurrentUser()
   const isAdmin = currentUser?.role === 'admin'
   const [previewFormat, setPreviewFormat] = useState<'pdf' | 'epub' | 'kepub' | null>(null)
+  const [removeOpen, setRemoveOpen] = useState(false)
+  const router = useRouter()
 
   const userBook = useMemo(() => {
     if (!data?.library) return null
@@ -237,6 +241,18 @@ export default function BookDetailClient({ id }: { id: string }) {
               {userBook.addedAt && (
                 <p className="text-xs text-muted">Added {formatDate(userBook.addedAt)}</p>
               )}
+
+              <div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setRemoveOpen(true)}
+                >
+                  Remove from library
+                </Button>
+              </div>
             </div>
           </section>
         </>
@@ -249,6 +265,16 @@ export default function BookDetailClient({ id }: { id: string }) {
           title={book?.title ?? 'Book Preview'}
           open={!!previewFormat}
           onOpenChange={(open) => !open && setPreviewFormat(null)}
+        />
+      )}
+
+      {userBook && (
+        <RemoveBookDialog
+          bookId={userBook.bookId}
+          title={book?.title ?? 'this book'}
+          open={removeOpen}
+          onOpenChange={setRemoveOpen}
+          onRemoved={() => router.push('/books/library')}
         />
       )}
     </PageContainer>

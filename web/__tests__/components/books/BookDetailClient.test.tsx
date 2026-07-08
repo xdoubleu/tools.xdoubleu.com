@@ -14,6 +14,8 @@ jest.mock('@/hooks/useBooks', () => ({
   useUpdateBookStatus: () => jest.fn().mockResolvedValue({})
 }))
 
+const mockRouterPush = jest.fn()
+
 jest.mock('@/hooks/useAuth', () => ({
   useCurrentUser: jest.fn()
 }))
@@ -25,7 +27,7 @@ jest.mock('@/components/books/BookSourceSync', () => {
 })
 
 jest.mock('next/navigation', () => ({
-  useRouter: jest.fn(() => ({ push: jest.fn() }))
+  useRouter: jest.fn(() => ({ push: mockRouterPush }))
 }))
 
 jest.mock('next/link', () => {
@@ -81,6 +83,25 @@ jest.mock('@/components/books/KoboSyncToggle', () => {
 jest.mock('@/components/books/BookPreviewDialog', () => {
   return function MockBookPreviewDialog() {
     return <div data-testid="book-preview-dialog" />
+  }
+})
+
+jest.mock('@/components/books/RemoveBookDialog', () => {
+  return function MockRemoveBookDialog({
+    open,
+    onRemoved
+  }: {
+    open: boolean
+    onRemoved: () => void
+  }) {
+    if (!open) return null
+    return (
+      <div data-testid="remove-book-dialog">
+        <button type="button" onClick={onRemoved}>
+          Confirm remove
+        </button>
+      </div>
+    )
   }
 })
 
@@ -357,5 +378,20 @@ describe('BookDetailClient', () => {
     jest.mocked(useCurrentUser).mockReturnValue({ data: { role: 'admin' }, isLoading: false })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('book-source-sync')).toBeInTheDocument()
+  })
+
+  it('opens the remove dialog when Remove from library is clicked', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByTestId('remove-book-dialog')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from library' }))
+    expect(screen.getByTestId('remove-book-dialog')).toBeInTheDocument()
+  })
+
+  it('redirects to the library after a book is removed', () => {
+    mockRouterPush.mockClear()
+    render(<BookDetailClient id="ub-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from library' }))
+    fireEvent.click(screen.getByText('Confirm remove'))
+    expect(mockRouterPush).toHaveBeenCalledWith('/books/library')
   })
 })

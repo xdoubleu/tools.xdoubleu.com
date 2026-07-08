@@ -112,6 +112,12 @@ message ToggleTagRequest {
 }
 message ToggleTagResponse {}
 
+// RemoveBook removes the book from the caller's own library only. If no other
+// user's library still references the book afterwards, the shared catalog row
+// and its R2 objects (uploaded files, cover) are deleted too.
+message RemoveBookRequest { string book_id = 1; }
+message RemoveBookResponse {}
+
 message UpdateProgressRequest {
   string book_id = 1;
   string progress_mode = 2;
@@ -150,6 +156,7 @@ service LibraryService {
   rpc UpdateBookStatus(UpdateBookStatusRequest) returns (UpdateBookStatusResponse);
   rpc UpdateProgress(UpdateProgressRequest) returns (UpdateProgressResponse);
   rpc ToggleTag(ToggleTagRequest) returns (ToggleTagResponse);
+  rpc RemoveBook(RemoveBookRequest) returns (RemoveBookResponse);
   rpc UpdateReadingProgress(UpdateReadingProgressRequest) returns (UpdateReadingProgressResponse);
   rpc GetReadingState(GetReadingStateRequest) returns (GetReadingStateResponse);
   rpc RenameShelf(RenameShelfRequest) returns (RenameShelfResponse);

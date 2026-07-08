@@ -57,6 +57,9 @@ const (
 	// LibraryServiceToggleTagProcedure is the fully-qualified name of the LibraryService's ToggleTag
 	// RPC.
 	LibraryServiceToggleTagProcedure = "/books.v1.LibraryService/ToggleTag"
+	// LibraryServiceRemoveBookProcedure is the fully-qualified name of the LibraryService's RemoveBook
+	// RPC.
+	LibraryServiceRemoveBookProcedure = "/books.v1.LibraryService/RemoveBook"
 	// LibraryServiceUpdateReadingProgressProcedure is the fully-qualified name of the LibraryService's
 	// UpdateReadingProgress RPC.
 	LibraryServiceUpdateReadingProgressProcedure = "/books.v1.LibraryService/UpdateReadingProgress"
@@ -87,6 +90,7 @@ type LibraryServiceClient interface {
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
+	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
@@ -154,6 +158,12 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(libraryServiceMethods.ByName("ToggleTag")),
 			connect.WithClientOptions(opts...),
 		),
+		removeBook: connect.NewClient[v1.RemoveBookRequest, v1.RemoveBookResponse](
+			httpClient,
+			baseURL+LibraryServiceRemoveBookProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("RemoveBook")),
+			connect.WithClientOptions(opts...),
+		),
 		updateReadingProgress: connect.NewClient[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse](
 			httpClient,
 			baseURL+LibraryServiceUpdateReadingProgressProcedure,
@@ -203,6 +213,7 @@ type libraryServiceClient struct {
 	updateBookStatus      *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
 	updateProgress        *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
 	toggleTag             *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
+	removeBook            *connect.Client[v1.RemoveBookRequest, v1.RemoveBookResponse]
 	updateReadingProgress *connect.Client[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse]
 	getReadingState       *connect.Client[v1.GetReadingStateRequest, v1.GetReadingStateResponse]
 	renameShelf           *connect.Client[v1.RenameShelfRequest, v1.RenameShelfResponse]
@@ -251,6 +262,11 @@ func (c *libraryServiceClient) ToggleTag(ctx context.Context, req *connect.Reque
 	return c.toggleTag.CallUnary(ctx, req)
 }
 
+// RemoveBook calls books.v1.LibraryService.RemoveBook.
+func (c *libraryServiceClient) RemoveBook(ctx context.Context, req *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error) {
+	return c.removeBook.CallUnary(ctx, req)
+}
+
 // UpdateReadingProgress calls books.v1.LibraryService.UpdateReadingProgress.
 func (c *libraryServiceClient) UpdateReadingProgress(ctx context.Context, req *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error) {
 	return c.updateReadingProgress.CallUnary(ctx, req)
@@ -291,6 +307,7 @@ type LibraryServiceHandler interface {
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
+	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
@@ -354,6 +371,12 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		connect.WithSchema(libraryServiceMethods.ByName("ToggleTag")),
 		connect.WithHandlerOptions(opts...),
 	)
+	libraryServiceRemoveBookHandler := connect.NewUnaryHandler(
+		LibraryServiceRemoveBookProcedure,
+		svc.RemoveBook,
+		connect.WithSchema(libraryServiceMethods.ByName("RemoveBook")),
+		connect.WithHandlerOptions(opts...),
+	)
 	libraryServiceUpdateReadingProgressHandler := connect.NewUnaryHandler(
 		LibraryServiceUpdateReadingProgressProcedure,
 		svc.UpdateReadingProgress,
@@ -408,6 +431,8 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceUpdateProgressHandler.ServeHTTP(w, r)
 		case LibraryServiceToggleTagProcedure:
 			libraryServiceToggleTagHandler.ServeHTTP(w, r)
+		case LibraryServiceRemoveBookProcedure:
+			libraryServiceRemoveBookHandler.ServeHTTP(w, r)
 		case LibraryServiceUpdateReadingProgressProcedure:
 			libraryServiceUpdateReadingProgressHandler.ServeHTTP(w, r)
 		case LibraryServiceGetReadingStateProcedure:
@@ -459,6 +484,10 @@ func (UnimplementedLibraryServiceHandler) UpdateProgress(context.Context, *conne
 
 func (UnimplementedLibraryServiceHandler) ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.ToggleTag is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.RemoveBook is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error) {
