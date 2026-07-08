@@ -175,6 +175,37 @@ func TestCompareWithCSV_MatchByTitleAuthorWhenNoISBN(t *testing.T) {
 	assert.Empty(t, result.Mismatches)
 }
 
+func TestCompareWithCSV_MatchByFuzzyTitleWhenNoISBN(t *testing.T) {
+	// Same book, no ISBN on either side, title word order differs (common
+	// Goodreads "Title, The" export format vs "The Title" library entry).
+	entries := []books.ParsedEntry{
+		cmpEntry("Fellowship of the Ring, The", "J.R.R. Tolkien", nil, "read"),
+	}
+	lib := []models.UserBook{
+		cmpLibBook("The Fellowship of the Ring", "J.R.R. Tolkien", nil, "read"),
+	}
+
+	result := CompareWithCSV(entries, lib)
+
+	assert.Equal(t, 1, result.MatchedCount)
+}
+
+func TestCompareWithCSV_FuzzyDoesNotMatchDifferentSeriesVolume(t *testing.T) {
+	// Same author, high word overlap, but a different book in the series —
+	// must surface as missing rather than being fuzzy-matched.
+	entries := []books.ParsedEntry{
+		cmpEntry("The Return of the King", "J.R.R. Tolkien", nil, "read"),
+	}
+	lib := []models.UserBook{
+		cmpLibBook("The Fellowship of the Ring", "J.R.R. Tolkien", nil, "read"),
+	}
+
+	result := CompareWithCSV(entries, lib)
+
+	assert.Equal(t, 0, result.MatchedCount)
+	require.Len(t, result.Mismatches, 2) // csv missing-in-library + lib missing-in-csv
+}
+
 func TestCompareWithCSV_Counts(t *testing.T) {
 	isbn1 := strPtr("9780000000010")
 	isbn2 := strPtr("9780000000011")

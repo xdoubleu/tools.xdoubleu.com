@@ -21,8 +21,26 @@ describe('normalizeTitle', () => {
     expect(normalizeTitle('2001: A Space Odyssey')).toBe('2001')
   })
 
-  it('normalizes title without a colon', () => {
-    expect(normalizeTitle('The Hobbit')).toBe('thehobbit')
+  it('drops a leading article', () => {
+    expect(normalizeTitle('The Hobbit')).toBe('hobbit')
+  })
+
+  it('keeps a single-word title equal to an article intact', () => {
+    expect(normalizeTitle('A')).toBe('a')
+  })
+
+  it('strips a parenthetical series annotation', () => {
+    expect(normalizeTitle("Firekeeper's Daughter (Firekeeper's Daughter, #1)")).toBe(
+      normalizeTitle("Firekeeper's Daughter")
+    )
+  })
+
+  it('strips a bracketed annotation', () => {
+    expect(normalizeTitle('Dune [Illustrated]')).toBe(normalizeTitle('Dune'))
+  })
+
+  it('strips a trailing edition marker after " - "', () => {
+    expect(normalizeTitle('Dune - Deluxe Edition')).toBe(normalizeTitle('Dune'))
   })
 })
 

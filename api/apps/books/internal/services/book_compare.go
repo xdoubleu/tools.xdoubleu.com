@@ -99,6 +99,7 @@ func CompareWithCSV(
 	type libNorm struct {
 		isbn   string      // normalizeISBN of book.ISBN13
 		title  string      // normalizeTitle of book.Title
+		tokens []string    // titleTokens of book.Title, for fuzzy fallback
 		lastns []string    // normalizeAuthor last-names
 		ref    *CompareRef // pointer into libRefs (set after slice build)
 		idx    int         // index in lib
@@ -108,12 +109,14 @@ func CompareWithCSV(
 	for i, ub := range lib {
 		isbn := ""
 		title := ""
+		var tokens []string
 		var lastns []string
 		if ub.Book != nil {
 			if ub.Book.ISBN13 != nil {
 				isbn = normalizeISBN(*ub.Book.ISBN13)
 			}
 			title = normalizeTitle(ub.Book.Title)
+			tokens = titleTokens(ub.Book.Title)
 			lastns = make([]string, 0, len(ub.Book.Authors))
 			for _, a := range ub.Book.Authors {
 				if n := normalizeAuthor(a); n != "" {
@@ -146,6 +149,7 @@ func CompareWithCSV(
 		norms[i] = libNorm{
 			isbn:   isbn,
 			title:  title,
+			tokens: tokens,
 			lastns: lastns,
 			ref:    &libRefs[i],
 			idx:    i,
@@ -192,6 +196,7 @@ func CompareWithCSV(
 			csvISBN = normalizeISBN(*entry.Book.ISBN13)
 		}
 		csvTitle := normalizeTitle(entry.Book.Title)
+		csvTokens := titleTokens(entry.Book.Title)
 		csvLastns := make(map[string]struct{}, len(entry.Book.Authors))
 		for _, a := range entry.Book.Authors {
 			if n := normalizeAuthor(a); n != "" {
@@ -199,7 +204,9 @@ func CompareWithCSV(
 			}
 		}
 
-		// Match by ISBN first, then by title+author.
+		// Match by ISBN first, then by exact title+author, then by fuzzy
+		// title (same author, similar-enough title tokens) — mirrors
+		// FindDuplicateGroups.
 		libIdx := -1
 		if csvISBN != "" {
 			if i, ok := isbnIdx[csvISBN]; ok {
@@ -215,6 +222,24 @@ func CompareWithCSV(
 					}
 				}
 				if libIdx != -1 {
+					break
+				}
+			}
+		}
+		if libIdx == -1 && len(csvTokens) > 0 && len(csvLastns) > 0 {
+			for i, n := range norms {
+				if matched[i] {
+					continue
+				}
+				hasSharedAuthor := false
+				for _, ln := range n.lastns {
+					if _, ok := csvLastns[ln]; ok {
+						hasSharedAuthor = true
+						break
+					}
+				}
+				if hasSharedAuthor && titlesFuzzyMatch(csvTokens, n.tokens) {
+					libIdx = i
 					break
 				}
 			}

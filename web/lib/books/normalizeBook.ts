@@ -14,13 +14,23 @@ function normalizeString(s: string): string {
     .replace(/[^a-z0-9]/g, '')
 }
 
+/** Matches a "(...)" or "[...]" segment — series/edition annotations. */
+const PARENTHETICAL_RE = /[([][^)\]]*[)\]]/g
+
+const LEADING_ARTICLE_RE = /^(the|an?)\s+/i
+
 /**
- * Normalize a book title for grouping. Strips the subtitle (everything after
- * the first colon) before normalizing, matching the Go normalizeTitle logic.
+ * Normalize a book title for grouping. Strips subtitle/series/edition noise
+ * (everything after the first ':'/';'/' - ', plus any "(...)"/"[...]"
+ * segment) and a leading article, matching the Go normalizeTitle logic.
  */
 export function normalizeTitle(s: string): string {
-  const beforeColon = s.split(':')[0] ?? s
-  return normalizeString(beforeColon)
+  let stripped = s.split(':')[0] ?? s
+  stripped = stripped.split(';')[0] ?? stripped
+  stripped = stripped.split(' - ')[0] ?? stripped
+  stripped = stripped.replace(PARENTHETICAL_RE, '').trim()
+  stripped = stripped.replace(LEADING_ARTICLE_RE, '')
+  return normalizeString(stripped)
 }
 
 /**
