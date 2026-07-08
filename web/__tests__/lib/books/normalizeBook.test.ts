@@ -42,6 +42,34 @@ describe('normalizeTitle', () => {
   it('strips a trailing edition marker after " - "', () => {
     expect(normalizeTitle('Dune - Deluxe Edition')).toBe(normalizeTitle('Dune'))
   })
+
+  it('distinguishes a volume number after a colon', () => {
+    expect(normalizeTitle('System Design Interview: Volume 1')).not.toBe(
+      normalizeTitle('System Design Interview: Volume 2')
+    )
+  })
+
+  it('distinguishes a volume number after " - "', () => {
+    expect(normalizeTitle('System Design Interview - Volume 1')).not.toBe(
+      normalizeTitle('System Design Interview - Volume 2')
+    )
+  })
+
+  it('distinguishes a volume number in a parenthetical', () => {
+    expect(normalizeTitle('System Design Interview (Volume 1)')).not.toBe(
+      normalizeTitle('System Design Interview (Volume 2)')
+    )
+  })
+
+  it('does not double-count a number already in the retained segment', () => {
+    expect(normalizeTitle('2001: A Space Odyssey')).toBe('2001')
+  })
+
+  it('does not duplicate a volume number that already precedes the colon', () => {
+    expect(normalizeTitle('Mistborn Book 2: Legendary Heroes')).toBe(
+      normalizeTitle('Mistborn Book 2')
+    )
+  })
 })
 
 describe('normalizeAuthor', () => {
@@ -109,5 +137,11 @@ describe('isbnLessGroupKey', () => {
     const key1 = isbnLessGroupKey('Dune', ['Frank Herbert', 'Another Author'])
     const key2 = isbnLessGroupKey('Dune', ['Frank Herbert'])
     expect(key1).toBe(key2)
+  })
+
+  it('treats different volumes by the same author as distinct', () => {
+    const key1 = isbnLessGroupKey('System Design Interview: Volume 1', ['Alex Xu'])
+    const key2 = isbnLessGroupKey('System Design Interview: Volume 2', ['Alex Xu'])
+    expect(key1).not.toBe(key2)
   })
 })

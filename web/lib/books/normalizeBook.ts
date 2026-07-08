@@ -20,15 +20,54 @@ const PARENTHETICAL_RE = /[([][^)\]]*[)\]]/g
 const LEADING_ARTICLE_RE = /^(the|an?)\s+/i
 
 /**
+ * Matches a volume/edition/part marker plus its number, e.g. "Volume 2",
+ * "Vol. 2", "Book 3", "Part 1", "Edition 4" — case-insensitive. Deliberately
+ * narrower than "any number": a Goodreads shelf marker like "(Series, #1)"
+ * has no such keyword and must stay stripped as noise.
+ */
+const VOLUME_NUMBER_RE = /\b(?:volume|vol|book|part|edition|ed)\.?\s*#?\s*(\d+)/gi
+
+/** Returns the volume/edition/part numbers found in s, in order. */
+function volumeNumbers(s: string): string[] {
+  return [...s.matchAll(VOLUME_NUMBER_RE)].map((m) => m[1] ?? '')
+}
+
+/**
+ * Returns the volume/edition/part numbers present in raw but not accounted
+ * for in main (multiset difference), space-joined — i.e. numbers that
+ * annotation-stripping discarded.
+ */
+function lostVolumeNumbers(raw: string, main: string): string {
+  const mainCounts = new Map<string, number>()
+  for (const n of volumeNumbers(main)) mainCounts.set(n, (mainCounts.get(n) ?? 0) + 1)
+  const missing: string[] = []
+  for (const n of volumeNumbers(raw)) {
+    const count = mainCounts.get(n) ?? 0
+    if (count > 0) {
+      mainCounts.set(n, count - 1)
+      continue
+    }
+    missing.push(n)
+  }
+  return missing.join(' ')
+}
+
+/**
  * Normalize a book title for grouping. Strips subtitle/series/edition noise
  * (everything after the first ':'/';'/' - ', plus any "(...)"/"[...]"
- * segment) and a leading article, matching the Go normalizeTitle logic.
+ * segment) and a leading article, matching the Go normalizeTitle logic. A
+ * volume/edition/part number lost to that stripping (e.g. "Title: Volume 2")
+ * is appended back, so distinct volumes never normalize to the same title.
  */
 export function normalizeTitle(s: string): string {
   let stripped = s.split(':')[0] ?? s
   stripped = stripped.split(';')[0] ?? stripped
   stripped = stripped.split(' - ')[0] ?? stripped
   stripped = stripped.replace(PARENTHETICAL_RE, '').trim()
+
+  const lost = lostVolumeNumbers(s, stripped)
+  if (lost) stripped = `${stripped} ${lost}`.trim()
+
   stripped = stripped.replace(LEADING_ARTICLE_RE, '')
   return normalizeString(stripped)
 }

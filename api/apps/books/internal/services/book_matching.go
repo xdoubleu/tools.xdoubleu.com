@@ -29,20 +29,66 @@ type DuplicateGroup struct {
 // "[Illustrated]".
 var parentheticalRe = regexp.MustCompile(`[(\[][^)\]]*[)\]]`)
 
+// volumeNumberRe matches a volume/edition/part marker plus its number, e.g.
+// "Volume 2", "Vol. 2", "Book 3", "Part 1", "Edition 4" — case-insensitive.
+// Deliberately narrower than "any number": a Goodreads shelf marker like
+// "(Series, #1)" has no such keyword and must stay stripped as noise.
+var volumeNumberRe = regexp.MustCompile(
+	`(?i)\b(?:volume|vol|book|part|edition|ed)\.?\s*#?\s*(\d+)`,
+)
+
+// volumeNumbers returns the volume/edition/part numbers found in s, in order.
+func volumeNumbers(s string) []string {
+	matches := volumeNumberRe.FindAllStringSubmatch(s, -1)
+	nums := make([]string, 0, len(matches))
+	for _, m := range matches {
+		nums = append(nums, m[1])
+	}
+	return nums
+}
+
 // stripAnnotations removes the same subtitle/series/edition noise for both
 // normalizeTitle (exact matching) and titleTokens (fuzzy matching): everything
-// after the first ':' or ';' or " - ", plus any "(...)"/"[...]" segment.
+// after the first ':' or ';' or " - ", plus any "(...)"/"[...]" segment. A
+// volume/edition/part number lost to that stripping (e.g. "Title: Volume 2")
+// is appended back, so distinct volumes never normalize to the same title.
 func stripAnnotations(s string) string {
-	if idx := strings.IndexByte(s, ':'); idx >= 0 {
-		s = s[:idx]
+	raw := s
+	main := s
+	if idx := strings.IndexByte(main, ':'); idx >= 0 {
+		main = main[:idx]
 	}
-	if idx := strings.IndexByte(s, ';'); idx >= 0 {
-		s = s[:idx]
+	if idx := strings.IndexByte(main, ';'); idx >= 0 {
+		main = main[:idx]
 	}
-	if idx := strings.Index(s, " - "); idx >= 0 {
-		s = s[:idx]
+	if idx := strings.Index(main, " - "); idx >= 0 {
+		main = main[:idx]
 	}
-	return strings.TrimSpace(parentheticalRe.ReplaceAllString(s, ""))
+	main = strings.TrimSpace(parentheticalRe.ReplaceAllString(main, ""))
+
+	if lost := lostVolumeNumbers(raw, main); lost != "" {
+		main = strings.TrimSpace(main + " " + lost)
+	}
+	return main
+}
+
+// lostVolumeNumbers returns the volume/edition/part numbers present in raw
+// but not accounted for in main (multiset difference), space-joined — i.e.
+// numbers that annotation-stripping discarded.
+func lostVolumeNumbers(raw, main string) string {
+	mainCounts := map[string]int{}
+	for _, n := range volumeNumbers(main) {
+		mainCounts[n]++
+	}
+	var missing []string
+	for _, n := range volumeNumbers(raw) {
+		if mainCounts[n] > 0 {
+			mainCounts[n]--
+			continue
+		}
+		missing = append(missing, n)
+	}
+	return strings.Join(missing, " ")
 }
 
 // isLeadingArticle reports whether w is "the"/"a"/"an" (case-insensitive) —

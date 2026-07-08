@@ -71,6 +71,46 @@ func TestNormalizeTitle_OnlySubtitle(t *testing.T) {
 	assert.Equal(t, "", normalizeTitle(": A Subtitle Only"))
 }
 
+func TestNormalizeTitle_DistinguishesVolumeAfterColon(t *testing.T) {
+	// A volume number in a colon-separated subtitle must survive stripping —
+	// otherwise "System Design Interview" Volume 1 and Volume 2 collapse to
+	// the same normalized title.
+	assert.NotEqual(t,
+		normalizeTitle("System Design Interview: Volume 1"),
+		normalizeTitle("System Design Interview: Volume 2"),
+	)
+}
+
+func TestNormalizeTitle_DistinguishesVolumeAfterDash(t *testing.T) {
+	assert.NotEqual(t,
+		normalizeTitle("System Design Interview - Volume 1"),
+		normalizeTitle("System Design Interview - Volume 2"),
+	)
+}
+
+func TestNormalizeTitle_DistinguishesVolumeInParenthetical(t *testing.T) {
+	assert.NotEqual(t,
+		normalizeTitle("System Design Interview (Volume 1)"),
+		normalizeTitle("System Design Interview (Volume 2)"),
+	)
+}
+
+func TestNormalizeTitle_StripsParentheticalStillWorksForSeriesMarker(t *testing.T) {
+	// Goodreads-style "(Series, #1)" is a shelf/series position, not a
+	// volume of the book itself — it must remain stripped as noise.
+	assert.Equal(
+		t,
+		normalizeTitle("Firekeeper's Daughter"),
+		normalizeTitle("Firekeeper's Daughter (Firekeeper's Daughter, #1)"),
+	)
+}
+
+func TestNormalizeTitle_NoDoubleCountWhenNumberAlreadyInMainTitle(t *testing.T) {
+	// The year "2001" is already part of the retained segment (before the
+	// colon), so it must not be duplicated.
+	assert.Equal(t, "2001", normalizeTitle("2001: A Space Odyssey"))
+}
+
 func TestNormalizeTitle_StripsPunctuation(t *testing.T) {
 	// Punctuation other than the colon is also stripped.
 	assert.Equal(t, "helloworld", normalizeTitle("Hello, World!"))
@@ -363,6 +403,15 @@ func TestFindDuplicateGroups_FuzzyDoesNotMergeDifferentBooksSameAuthor(t *testin
 	// share several title words ("of", "the") but must stay separate.
 	a := makeUserBook("The Fellowship of the Ring", []string{"J.R.R. Tolkien"})
 	b := makeUserBook("The Return of the King", []string{"J.R.R. Tolkien"})
+	lib := []models.UserBook{a, b}
+	assert.Nil(t, FindDuplicateGroups(lib))
+}
+
+func TestFindDuplicateGroups_DoesNotMergeDifferentVolumes(t *testing.T) {
+	// The reported bug: "System Design Interview: Volume 1" and "…: Volume 2"
+	// are different books by the same author and must never be grouped.
+	a := makeUserBook("System Design Interview: Volume 1", []string{"Alex Xu"})
+	b := makeUserBook("System Design Interview: Volume 2", []string{"Alex Xu"})
 	lib := []models.UserBook{a, b}
 	assert.Nil(t, FindDuplicateGroups(lib))
 }
