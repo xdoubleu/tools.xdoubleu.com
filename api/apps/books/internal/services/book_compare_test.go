@@ -206,6 +206,23 @@ func TestCompareWithCSV_FuzzyDoesNotMatchDifferentSeriesVolume(t *testing.T) {
 	require.Len(t, result.Mismatches, 2) // csv missing-in-library + lib missing-in-csv
 }
 
+func TestCompareWithCSV_DoesNotMatchDifferentVolumeAnnotatedWithColon(t *testing.T) {
+	// The reported bug: "System Design Interview: Volume 1" and "…: Volume 2"
+	// both normalize to "System Design Interview" once the colon-subtitle is
+	// stripped, wrongly matching via the exact title+author path.
+	entries := []books.ParsedEntry{
+		cmpEntry("System Design Interview: Volume 2", "Alex Xu", nil, "read"),
+	}
+	lib := []models.UserBook{
+		cmpLibBook("System Design Interview: Volume 1", "Alex Xu", nil, "read"),
+	}
+
+	result := CompareWithCSV(entries, lib)
+
+	assert.Equal(t, 0, result.MatchedCount)
+	require.Len(t, result.Mismatches, 2) // csv missing-in-library + lib missing-in-csv
+}
+
 func TestCompareWithCSV_Counts(t *testing.T) {
 	isbn1 := strPtr("9780000000010")
 	isbn2 := strPtr("9780000000011")
