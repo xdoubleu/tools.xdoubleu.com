@@ -15,15 +15,46 @@ import (
 // --- normalizeTitle ---
 
 func TestNormalizeTitle_Basic(t *testing.T) {
-	assert.Equal(t, "thehobbit", normalizeTitle("The Hobbit"))
+	// Leading article is dropped so "The Hobbit" and "Hobbit" match.
+	assert.Equal(t, "hobbit", normalizeTitle("The Hobbit"))
 }
 
 func TestNormalizeTitle_StripsSubtitle(t *testing.T) {
-	assert.Equal(t, "thehobbit", normalizeTitle("The Hobbit: An Unexpected Journey"))
+	assert.Equal(t, "hobbit", normalizeTitle("The Hobbit: An Unexpected Journey"))
 }
 
 func TestNormalizeTitle_Lowercase(t *testing.T) {
-	assert.Equal(t, "thehobbit", normalizeTitle("THE HOBBIT"))
+	assert.Equal(t, "hobbit", normalizeTitle("THE HOBBIT"))
+}
+
+func TestNormalizeTitle_StripsParenthetical(t *testing.T) {
+	// Goodreads-style series annotation must not defeat matching.
+	assert.Equal(
+		t,
+		normalizeTitle("Firekeeper's Daughter"),
+		normalizeTitle("Firekeeper's Daughter (Firekeeper's Daughter, #1)"),
+	)
+}
+
+func TestNormalizeTitle_StripsBracketed(t *testing.T) {
+	assert.Equal(
+		t,
+		normalizeTitle("Dune"),
+		normalizeTitle("Dune [Illustrated]"),
+	)
+}
+
+func TestNormalizeTitle_StripsTrailingEditionMarker(t *testing.T) {
+	assert.Equal(
+		t,
+		normalizeTitle("Dune"),
+		normalizeTitle("Dune - Deluxe Edition"),
+	)
+}
+
+func TestNormalizeTitle_KeepsShortArticleTitleIntact(t *testing.T) {
+	// A single-word title equal to an article is not stripped down to "".
+	assert.Equal(t, "a", normalizeTitle("A"))
 }
 
 func TestNormalizeTitle_FoldsDiacritics(t *testing.T) {
@@ -43,6 +74,49 @@ func TestNormalizeTitle_OnlySubtitle(t *testing.T) {
 func TestNormalizeTitle_StripsPunctuation(t *testing.T) {
 	// Punctuation other than the colon is also stripped.
 	assert.Equal(t, "helloworld", normalizeTitle("Hello, World!"))
+}
+
+// --- titleTokens / tokenSimilarity ---
+
+func TestTokenSimilarity_ReorderedWordsMatch(t *testing.T) {
+	a := titleTokens("The Fellowship of the Ring")
+	b := titleTokens("Fellowship of the Ring, The")
+	assert.InDelta(t, 1.0, tokenSimilarity(a, b), 0.001)
+}
+
+func TestTokenSimilarity_DifferentBooksSameSeriesWordsBelowThreshold(t *testing.T) {
+	a := titleTokens("The Fellowship of the Ring")
+	b := titleTokens("The Return of the King")
+	assert.Less(t, tokenSimilarity(a, b), titleSimilarityThreshold)
+}
+
+func TestTokenSimilarity_EmptySide(t *testing.T) {
+	assert.InDelta(t, 0.0, tokenSimilarity(nil, titleTokens("Dune")), 0.001)
+}
+
+func TestTitlesFuzzyMatch_DifferingVolumeNumberNeverMatches(t *testing.T) {
+	// High word overlap but a different volume number — must not fuzzy-match
+	// even though Jaccard similarity alone would clear the threshold.
+	a := titleTokens("Mistborn Saga Legendary Heroes Volume 1")
+	b := titleTokens("Mistborn Saga Legendary Heroes Volume 2")
+	assert.GreaterOrEqual(t, tokenSimilarity(a, b), titleSimilarityThreshold)
+	assert.False(t, titlesFuzzyMatch(a, b))
+}
+
+func TestTitlesFuzzyMatch_SwappedNumbersNeverMatch(t *testing.T) {
+	// Same digit set, different positions — "Book 1 Edition 2" is not
+	// "Book 2 Edition 1". Set-based (as opposed to positional) numeric
+	// comparison would wrongly treat these as identical.
+	a := titleTokens("ISBN Book 1 edition 2")
+	b := titleTokens("ISBN Book 2 edition 1")
+	assert.InDelta(t, 1.0, tokenSimilarity(a, b), 0.001)
+	assert.False(t, titlesFuzzyMatch(a, b))
+}
+
+func TestTitlesFuzzyMatch_SameVolumeNumberCanMatch(t *testing.T) {
+	a := titleTokens("The Fellowship of the Ring")
+	b := titleTokens("Fellowship of the Ring, The")
+	assert.True(t, titlesFuzzyMatch(a, b))
 }
 
 // --- normalizeAuthor ---
@@ -253,6 +327,44 @@ func TestFindDuplicateGroups_GroupsByTitleAndAuthor(t *testing.T) {
 	groups := FindDuplicateGroups(lib)
 	assert.Len(t, groups, 1)
 	assert.Equal(t, "title+author", groups[0].Reason)
+}
+
+func TestFindDuplicateGroups_GroupsBySeriesAnnotation(t *testing.T) {
+	// The reported bug: same book, one entry carries a Goodreads-style series
+	// suffix and no ISBN, the other has an ISBN and a clean title.
+	isbn := isbn13Ptr("9780062983594")
+	a := makeUBWithISBN(
+		"Firekeeper's Daughter",
+		[]string{"Angeline Boulley"},
+		isbn,
+		models.StatusToRead,
+	)
+	b := makeUserBook(
+		"Firekeeper's Daughter (Firekeeper's Daughter, #1)",
+		[]string{"Angeline Boulley"},
+	)
+	lib := []models.UserBook{a, b}
+	groups := FindDuplicateGroups(lib)
+	assert.Len(t, groups, 1)
+	assert.Len(t, groups[0].Entries, 2)
+}
+
+func TestFindDuplicateGroups_FuzzyMatchesReorderedTitle(t *testing.T) {
+	a := makeUserBook("The Fellowship of the Ring", []string{"J.R.R. Tolkien"})
+	b := makeUserBook("Fellowship of the Ring, The", []string{"Tolkien"})
+	lib := []models.UserBook{a, b}
+	groups := FindDuplicateGroups(lib)
+	assert.Len(t, groups, 1)
+	assert.Equal(t, "title+author", groups[0].Reason)
+}
+
+func TestFindDuplicateGroups_FuzzyDoesNotMergeDifferentBooksSameAuthor(t *testing.T) {
+	// False-positive guard: same author, different books in the same series
+	// share several title words ("of", "the") but must stay separate.
+	a := makeUserBook("The Fellowship of the Ring", []string{"J.R.R. Tolkien"})
+	b := makeUserBook("The Return of the King", []string{"J.R.R. Tolkien"})
+	lib := []models.UserBook{a, b}
+	assert.Nil(t, FindDuplicateGroups(lib))
 }
 
 func TestFindDuplicateGroups_NoGroupSameTitleDifferentAuthor(t *testing.T) {

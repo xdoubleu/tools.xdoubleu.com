@@ -1,6 +1,7 @@
 package services
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"unicode"
@@ -23,16 +24,158 @@ type DuplicateGroup struct {
 	Reason string
 }
 
-// normalizeTitle lower-cases s, folds diacritics, drops everything after the
-// first colon (subtitle), and strips all non-alphanumeric runes. Returns ""
-// when the result is empty so callers can skip matching on garbage metadata.
-func normalizeTitle(s string) string {
-	// Strip subtitle — take only the part before the first colon.
+// parentheticalRe matches a "(...)" or "[...]" segment — Goodreads/OpenLibrary
+// series/edition annotations such as "(Firekeeper's Daughter, #1)" or
+// "[Illustrated]".
+var parentheticalRe = regexp.MustCompile(`[(\[][^)\]]*[)\]]`)
+
+// stripAnnotations removes the same subtitle/series/edition noise for both
+// normalizeTitle (exact matching) and titleTokens (fuzzy matching): everything
+// after the first ':' or ';' or " - ", plus any "(...)"/"[...]" segment.
+func stripAnnotations(s string) string {
 	if idx := strings.IndexByte(s, ':'); idx >= 0 {
 		s = s[:idx]
 	}
+	if idx := strings.IndexByte(s, ';'); idx >= 0 {
+		s = s[:idx]
+	}
+	if idx := strings.Index(s, " - "); idx >= 0 {
+		s = s[:idx]
+	}
+	return strings.TrimSpace(parentheticalRe.ReplaceAllString(s, ""))
+}
+
+// isLeadingArticle reports whether w is "the"/"a"/"an" (case-insensitive) —
+// used to drop a leading article so "The Hobbit" matches "Hobbit".
+func isLeadingArticle(w string) bool {
+	return strings.EqualFold(w, "the") || strings.EqualFold(w, "a") ||
+		strings.EqualFold(w, "an")
+}
+
+// stripLeadingArticle removes a leading "the"/"a"/"an " from s, if present.
+func stripLeadingArticle(s string) string {
+	fields := strings.Fields(s)
+	if len(fields) > 1 && isLeadingArticle(fields[0]) {
+		return strings.Join(fields[1:], " ")
+	}
+	return s
+}
+
+// normalizeTitle lower-cases s, folds diacritics, strips subtitle/series/
+// edition annotations (colon, semicolon, " - ", parentheses/brackets) and a
+// leading article, and strips all remaining non-alphanumeric runes. Returns
+// "" when the result is empty so callers can skip matching on garbage
+// metadata.
+func normalizeTitle(s string) string {
+	s = stripAnnotations(s)
+	s = stripLeadingArticle(s)
 	return normalizeString(s)
 }
+
+// titleTokens splits s into normalized word tokens for fuzzy comparison,
+// applying the same annotation/leading-article stripping as normalizeTitle
+// but preserving word boundaries instead of collapsing them into one blob.
+func titleTokens(s string) []string {
+	s = stripAnnotations(s)
+	words := strings.Fields(s)
+	tokens := make([]string, 0, len(words))
+	for i, w := range words {
+		if i == 0 && isLeadingArticle(w) {
+			continue
+		}
+		if nw := normalizeString(w); nw != "" {
+			tokens = append(tokens, nw)
+		}
+	}
+	return tokens
+}
+
+// tokenSimilarity returns the Jaccard similarity (intersection / union) of
+// two token sets, in [0, 1]. Returns 0 when either side is empty.
+func tokenSimilarity(a, b []string) float64 {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	setA := make(map[string]struct{}, len(a))
+	for _, t := range a {
+		setA[t] = struct{}{}
+	}
+	setB := make(map[string]struct{}, len(b))
+	for _, t := range b {
+		setB[t] = struct{}{}
+	}
+	intersection := 0
+	for t := range setA {
+		if _, ok := setB[t]; ok {
+			intersection++
+		}
+	}
+	union := len(setA) + len(setB) - intersection
+	if union == 0 {
+		return 0
+	}
+	return float64(intersection) / float64(union)
+}
+
+// isNumericToken reports whether s consists entirely of digits.
+func isNumericToken(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// numericTokens returns the purely-numeric tokens of s, in order of
+// appearance (duplicates kept — position, not just presence, matters).
+func numericTokens(tokens []string) []string {
+	var nums []string
+	for _, t := range tokens {
+		if isNumericToken(t) {
+			nums = append(nums, t)
+		}
+	}
+	return nums
+}
+
+// numericTokensDiffer reports whether a and b disagree on their sequence of
+// purely-numeric tokens. A volume/edition/part number is the one kind of
+// title word that is meaningful rather than noise — "Mistborn Book 1" and
+// "Mistborn Book 2" must never be treated as fuzzy duplicates just because
+// they share every other word. Comparing the numeric tokens positionally
+// (not as an unordered set) also catches the swapped case: "Book 1 Edition 2"
+// vs "Book 2 Edition 1" share the same digits but are different books.
+func numericTokensDiffer(a, b []string) bool {
+	na, nb := numericTokens(a), numericTokens(b)
+	if len(na) != len(nb) {
+		return true
+	}
+	for i := range na {
+		if na[i] != nb[i] {
+			return true
+		}
+	}
+	return false
+}
+
+// titlesFuzzyMatch reports whether a and b are similar enough to treat as the
+// same book: token-set Jaccard similarity at or above titleSimilarityThreshold,
+// and no disagreement on a volume/edition number.
+func titlesFuzzyMatch(a, b []string) bool {
+	return tokenSimilarity(a, b) >= titleSimilarityThreshold &&
+		!numericTokensDiffer(a, b)
+}
+
+// titleSimilarityThreshold is the minimum Jaccard token similarity for two
+// same-author titles to be treated as a fuzzy duplicate match. Tuned so
+// "The Fellowship of the Ring" ~ "Fellowship of the Ring, The" (1.0) matches
+// while "The Fellowship of the Ring" vs "The Return of the King" (~0.33,
+// sharing only "of"/"the") does not.
+const titleSimilarityThreshold = 0.7
 
 // normalizeAuthor lower-cases s, folds diacritics, and reduces the name to its
 // last-name token. It handles two common formats:
@@ -213,7 +356,9 @@ func signalStrengthFor(reason string) int {
 // FindDuplicateGroups returns groups of UserBook entries judged to be the same
 // book. Two entries are considered duplicates when they share a non-empty
 // ISBN13, or a normalised title together with at least one shared normalised
-// author last name.
+// author last name — exactly, or fuzzily (token similarity ≥
+// titleSimilarityThreshold, e.g. reordered words or a series suffix
+// normalizeTitle didn't strip).
 //
 // Groups of size < 2 are not returned. Within each group Entries[0] is the
 // suggested winner (most complete metadata; ties broken by status, then tags,
@@ -266,6 +411,7 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 	type bookNorm struct {
 		isbn13  string
 		title   string
+		tokens  []string // fuzzy-matching title tokens
 		authors []string // normalised last names
 	}
 	norms := make([]bookNorm, n)
@@ -279,6 +425,7 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 			bn.isbn13 = normalizeISBN(*b.ISBN13)
 		}
 		bn.title = normalizeTitle(b.Title)
+		bn.tokens = titleTokens(b.Title)
 		bn.authors = make([]string, 0, len(b.Authors))
 		for _, a := range b.Authors {
 			if na := normalizeAuthor(a); na != "" {
@@ -319,6 +466,35 @@ func FindDuplicateGroups(lib []models.UserBook) []DuplicateGroup {
 	for _, members := range titleAuthorBucket {
 		for k := 1; k < len(members); k++ {
 			union(members[0], members[k], "title+author")
+		}
+	}
+
+	// Fuzzy pass: within each shared-author bucket, union titles that didn't
+	// match exactly but are similar enough (word-order differences, series
+	// annotations normalizeTitle didn't fully strip, etc).
+	// ponytail: naive per-author pairwise scan; fine at personal-library
+	// scale. Add a blocking index if a library ever reaches tens of
+	// thousands of books.
+	authorBucket := make(map[string][]int, n)
+	for i, bn := range norms {
+		if lib[i].Book == nil {
+			continue
+		}
+		for _, a := range bn.authors {
+			authorBucket[a] = append(authorBucket[a], i)
+		}
+	}
+	for _, members := range authorBucket {
+		for x := 1; x < len(members); x++ {
+			for y := range x {
+				a, b := members[x], members[y]
+				if find(a) == find(b) {
+					continue // already grouped
+				}
+				if titlesFuzzyMatch(norms[a].tokens, norms[b].tokens) {
+					union(a, b, "title+author")
+				}
+			}
 		}
 	}
 
