@@ -13,7 +13,9 @@ export const swrKeys = {
   adminStorageStats: '/admin/storage-stats',
   adminDatabaseStats: '/admin/database-stats',
   contacts: '/contacts',
-  webRelease: '/api/release',
+  // Must stay off the /api prefix: the DO ingress routes /api/* to the Go
+  // api service, so a path under /api never reaches this Next.js route.
+  webRelease: '/release',
   sharedMealPlans: '/sharing/mealplans',
 
   books: '/books',
