@@ -5,6 +5,12 @@ import { useAddMeal, useDeleteMeal, useMoveMeal, useMealSuggestions } from '@/ho
 import type { AddMealInput, DeleteMealInput, MoveMealInput } from '@/hooks/useMealPlans'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
+
+export interface MealSuggestion {
+  recipe: Recipe
+  servings: number
+}
 
 // useMealCalendarState owns the calendar's interaction state machine: adding a
 // meal to an empty slot, swapping two meals, and editing an existing meal. The
@@ -14,18 +20,23 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [swappingMeal, setSwappingMeal] = useState<PlanMeal | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
+  const [fillingDate, setFillingDate] = useState<string | null>(null)
 
   const createMeal = useAddMeal()
   const deleteMeal = useDeleteMeal()
   const moveMeal = useMoveMeal()
 
   // Suggestions only load while adding (selectedDate + selectedSlot set); the
-  // hook's key is null otherwise. Map returned IDs to the recipes we already
-  // have, dropping any that are no longer available.
+  // hook's key is null otherwise. Map returned suggestions onto the recipes
+  // we already have, dropping any that are no longer available, and carrying
+  // along the most-frequently-used servings for that recipe/weekday/slot.
   const { data: suggestData } = useMealSuggestions(plan.id, selectedDate ?? '', selectedSlot ?? '')
-  const suggestedRecipes = (suggestData?.recipeIds ?? [])
-    .map((id) => recipes.find((r) => r.id === id))
-    .filter((r): r is Recipe => r !== undefined)
+  const suggestedRecipes: MealSuggestion[] = (suggestData?.suggestions ?? [])
+    .map((s) => {
+      const recipe = recipes.find((r) => r.id === s.recipeId)
+      return recipe ? { recipe, servings: s.servings } : undefined
+    })
+    .filter((s): s is MealSuggestion => s !== undefined)
 
   // Each slot holds at most one meal; return the first match if present.
   const getMealForSlot = (date: string, slot: string) =>
@@ -36,15 +47,24 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
       if (e.key === 'Escape') {
         if (swappingMeal) setSwappingMeal(null)
         if (editingMeal) setEditingMeal(null)
+        if (fillingDate) setFillingDate(null)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [swappingMeal, editingMeal])
+  }, [swappingMeal, editingMeal, fillingDate])
 
   const startAdd = (date: string, slot: string) => {
     setSelectedSlot(slot)
     setSelectedDate(date)
+  }
+
+  const startFillDay = (date: string) => {
+    setFillingDate(date)
+    setSelectedSlot(null)
+    setSelectedDate(null)
+    setEditingMeal(null)
+    setSwappingMeal(null)
   }
 
   const handleSaveAdd = async (
@@ -175,10 +195,47 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     }
   }
 
+  // Fill every slot of a day with the same entry, replacing whatever is
+  // already there. Slots can hold more than one row (the per-slot UNIQUE
+  // constraint was dropped), so clear all existing meals per slot first.
+  const handleSaveFillDay = async (
+    recipeId: string,
+    customName: string,
+    servings: number,
+    excludeFromShoppingList: boolean
+  ) => {
+    if (!fillingDate) return
+    try {
+      for (const slot of MEAL_SLOTS) {
+        const existing = (plan.meals || []).filter(
+          (m) => m.mealDate === fillingDate && m.mealSlot === slot
+        )
+        for (const meal of existing) {
+          await deleteMeal({ planId: plan.id, mealId: meal.id })
+        }
+        const req: AddMealInput = {
+          planId: plan.id,
+          mealDate: fillingDate,
+          mealSlot: slot,
+          recipeId,
+          customName,
+          servings,
+          excludeFromShoppingList
+        }
+        await createMeal(req)
+      }
+      setFillingDate(null)
+      onMutate?.()
+    } catch (err) {
+      console.error('Failed to fill day:', err)
+    }
+  }
+
   const cancelForm = () => {
     setSelectedSlot(null)
     setSelectedDate(null)
     setEditingMeal(null)
+    setFillingDate(null)
   }
 
   return {
@@ -187,12 +244,15 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     swappingMeal,
     setSwappingMeal,
     editingMeal,
+    fillingDate,
     suggestedRecipes,
     getMealForSlot,
     startAdd,
+    startFillDay,
     cancelForm,
     handleSaveAdd,
     handleSaveEdit,
+    handleSaveFillDay,
     handleDeleteMeal,
     handleStartSwap,
     handleMealClick,

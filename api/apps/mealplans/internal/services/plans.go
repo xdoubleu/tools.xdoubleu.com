@@ -35,7 +35,7 @@ type plansStore interface {
 		mealDate time.Time,
 		slot string,
 		limit int,
-	) ([]uuid.UUID, error)
+	) ([]models.RecipeSuggestion, error)
 	GetByICalToken(ctx context.Context, token uuid.UUID) (*models.Plan, error)
 	Create(ctx context.Context, plan models.Plan) (*models.Plan, error)
 	Update(ctx context.Context, plan models.Plan) error
@@ -107,7 +107,7 @@ func (s *PlanService) SuggestRecipes(
 	userID string,
 	mealDate time.Time,
 	slot string,
-) ([]uuid.UUID, error) {
+) ([]models.RecipeSuggestion, error) {
 	if _, err := s.repo.GetByID(ctx, planID, userID); err != nil {
 		return nil, err
 	}

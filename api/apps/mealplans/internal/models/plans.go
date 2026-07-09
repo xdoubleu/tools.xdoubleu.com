@@ -32,6 +32,11 @@ type Plan struct {
 	SharedWith    []PlanSharedUser
 }
 
+type RecipeSuggestion struct {
+	RecipeID uuid.UUID
+	Servings int
+}
+
 type PlanMeal struct {
 	ID                      uuid.UUID
 	PlanID                  uuid.UUID

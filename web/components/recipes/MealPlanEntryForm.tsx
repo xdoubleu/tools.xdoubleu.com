@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useSWRConfig } from 'swr'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import type { MealSuggestion } from './useMealCalendarState'
 import RecipeCombobox from './RecipeCombobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,7 +27,7 @@ interface MealPlanEntryFormProps {
   open: boolean
   title: string
   recipes: Recipe[]
-  suggestedRecipes?: Recipe[]
+  suggestedRecipes?: MealSuggestion[]
   initialRecipeId?: string
   initialCustomName?: string
   initialServings?: number
@@ -123,8 +124,9 @@ export default function MealPlanEntryForm({
     }
   }
 
-  const selectSuggestion = (recipe: Recipe) => {
-    setRecipeId(recipe.id)
+  const selectSuggestion = (suggestion: MealSuggestion) => {
+    setRecipeId(suggestion.recipe.id)
+    setServings(suggestion.servings)
     setComboboxKey((k) => k + 1)
   }
 
@@ -173,15 +175,15 @@ export default function MealPlanEntryForm({
               <div className="space-y-1.5">
                 <span className="text-xs font-medium text-muted">Suggestions</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {suggestedRecipes.map((recipe) => (
+                  {suggestedRecipes.map((suggestion) => (
                     <Button
-                      key={recipe.id}
-                      variant={recipe.id === recipeId ? 'default' : 'secondary'}
+                      key={suggestion.recipe.id}
+                      variant={suggestion.recipe.id === recipeId ? 'default' : 'secondary'}
                       size="sm"
                       className="rounded-lg"
-                      onClick={() => selectSuggestion(recipe)}
+                      onClick={() => selectSuggestion(suggestion)}
                     >
-                      {recipe.name}
+                      {suggestion.recipe.name}
                     </Button>
                   ))}
                 </div>
@@ -209,36 +211,40 @@ export default function MealPlanEntryForm({
             {customItems.map((item, i) => (
               <div key={i} className="space-y-2 rounded-xl border border-border p-2">
                 <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={item.amount}
-                    onChange={(e) => updateCustomItem(i, { amount: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        if (i === customItems.length - 1) addCustomItem()
-                      }
-                    }}
-                    placeholder="Qty"
-                    aria-label={`Amount for item ${i + 1}`}
-                    className="w-20"
-                  />
-                  <Input
-                    type="text"
-                    value={item.unit ?? ''}
-                    onChange={(e) => updateCustomItem(i, { unit: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        if (i === customItems.length - 1) addCustomItem()
-                      }
-                    }}
-                    placeholder="Unit"
-                    aria-label={`Unit for item ${i + 1}`}
-                    className="w-20"
-                  />
+                  {!excludeFromShoppingList && (
+                    <>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={item.amount}
+                        onChange={(e) => updateCustomItem(i, { amount: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            if (i === customItems.length - 1) addCustomItem()
+                          }
+                        }}
+                        placeholder="Qty"
+                        aria-label={`Amount for item ${i + 1}`}
+                        className="w-20"
+                      />
+                      <Input
+                        type="text"
+                        value={item.unit ?? ''}
+                        onChange={(e) => updateCustomItem(i, { unit: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            if (i === customItems.length - 1) addCustomItem()
+                          }
+                        }}
+                        placeholder="Unit"
+                        aria-label={`Unit for item ${i + 1}`}
+                        className="w-20"
+                      />
+                    </>
+                  )}
                   <Input
                     type="text"
                     value={item.name}

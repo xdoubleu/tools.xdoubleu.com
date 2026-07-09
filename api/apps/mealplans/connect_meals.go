@@ -201,19 +201,22 @@ func (h *mealplansConnectHandler) SuggestRecipes(
 		)
 	}
 
-	ids, err := h.app.services.Plans.SuggestRecipes(
+	suggestions, err := h.app.services.Plans.SuggestRecipes(
 		ctx, planID, user.ID, mealDate, req.Msg.MealSlot,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	recipeIDs := make([]string, len(ids))
-	for i, id := range ids {
-		recipeIDs[i] = id.String()
+	pbSuggestions := make([]*mealplansv1.RecipeSuggestion, len(suggestions))
+	for i, s := range suggestions {
+		pbSuggestions[i] = &mealplansv1.RecipeSuggestion{
+			RecipeId: s.RecipeID.String(),
+			Servings: int32(s.Servings), //nolint:gosec // int32 safe for domain values
+		}
 	}
 
 	return connect.NewResponse(&mealplansv1.SuggestRecipesResponse{
-		RecipeIds: recipeIDs,
+		Suggestions: pbSuggestions,
 	}), nil
 }

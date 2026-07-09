@@ -36,6 +36,12 @@ describe('Combobox', () => {
     expect(screen.queryByText('Banana')).not.toBeInTheDocument()
   })
 
+  it('hides the dropdown once the input exactly matches a suggestion', () => {
+    render(<Harness suggestions={suggestions} />)
+    fireEvent.change(screen.getByLabelText('picker'), { target: { value: 'Apple' } })
+    expect(screen.queryByText('Apple')).not.toBeInTheDocument()
+  })
+
   it('selects a suggestion on click and fills the input', () => {
     const onSelect = jest.fn()
     render(<Harness suggestions={suggestions} onSelect={onSelect} />)

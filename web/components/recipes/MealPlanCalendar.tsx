@@ -32,12 +32,15 @@ export default function MealPlanCalendar({
     swappingMeal,
     setSwappingMeal,
     editingMeal,
+    fillingDate,
     suggestedRecipes,
     getMealForSlot,
     startAdd,
+    startFillDay,
     cancelForm,
     handleSaveAdd,
     handleSaveEdit,
+    handleSaveFillDay,
     handleDeleteMeal,
     handleStartSwap,
     handleMealClick,
@@ -53,11 +56,14 @@ export default function MealPlanCalendar({
 
   const isAdding = !!(selectedSlot && selectedDate)
   const isEditing = !!editingMeal && !selectedSlot
+  const isFilling = !!fillingDate
   const formTitle = isAdding
     ? `Add meal — ${selectedSlot!.charAt(0).toUpperCase() + selectedSlot!.slice(1)}, ${new Date(selectedDate! + 'T00:00:00').toLocaleDateString()}`
     : isEditing
       ? `Edit meal — ${editingMeal!.mealSlot.charAt(0).toUpperCase() + editingMeal!.mealSlot.slice(1)}, ${new Date(editingMeal!.mealDate + 'T00:00:00').toLocaleDateString()}`
-      : ''
+      : isFilling
+        ? `Fill day — ${new Date(fillingDate! + 'T00:00:00').toLocaleDateString()}`
+        : ''
 
   return (
     <div className="space-y-4">
@@ -100,6 +106,7 @@ export default function MealPlanCalendar({
         onEditClick={handleEditClick}
         onDeleteMeal={handleDeleteMeal}
         onAddClick={startAdd}
+        onFillDay={startFillDay}
       />
 
       <MealPlanEntryForm
@@ -108,9 +115,11 @@ export default function MealPlanCalendar({
             ? `add-${selectedDate}-${selectedSlot}`
             : isEditing
               ? `edit-${editingMeal!.id}`
-              : 'closed'
+              : isFilling
+                ? `fill-${fillingDate}`
+                : 'closed'
         }
-        open={isAdding || isEditing}
+        open={isAdding || isEditing || isFilling}
         title={formTitle}
         recipes={recipes}
         suggestedRecipes={isAdding ? suggestedRecipes : []}
@@ -118,8 +127,8 @@ export default function MealPlanCalendar({
         initialCustomName={isEditing ? editingMeal!.customName : ''}
         initialServings={isEditing ? editingMeal!.servings : 1}
         initialExcludeFromShoppingList={isEditing ? editingMeal!.excludeFromShoppingList : false}
-        saveLabel={isAdding ? 'Add' : 'Save'}
-        onSave={isAdding ? handleSaveAdd : handleSaveEdit}
+        saveLabel={isAdding ? 'Add' : isFilling ? 'Fill day' : 'Save'}
+        onSave={isAdding ? handleSaveAdd : isFilling ? handleSaveFillDay : handleSaveEdit}
         onCancel={cancelForm}
       />
     </div>

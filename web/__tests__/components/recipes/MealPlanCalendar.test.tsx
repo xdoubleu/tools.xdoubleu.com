@@ -21,10 +21,14 @@ jest.mock('@/lib/recipes/mealPlanCalendar', () => {
   }
 })
 
-import { useAddMeal, useDeleteMeal, useMoveMeal } from '@/hooks/useMealPlans'
+import { useAddMeal, useDeleteMeal, useMoveMeal, useMealSuggestions } from '@/hooks/useMealPlans'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
 import { create } from '@bufbuild/protobuf'
-import { PlanSchema, PlanMealSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import {
+  PlanSchema,
+  PlanMealSchema,
+  SuggestRecipesResponseSchema
+} from '@/lib/gen/mealplans/v1/mealplans_pb'
 import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockAddMeal = jest.fn()
@@ -179,7 +183,7 @@ describe('MealPlanCalendar', () => {
     openAddDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
-    fireEvent.change(input, { target: { value: 'Pasta' } })
+    fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
@@ -233,7 +237,7 @@ describe('MealPlanCalendar', () => {
     openAddDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
-    fireEvent.change(input, { target: { value: 'Pasta' } })
+    fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
     fireEvent.change(screen.getByPlaceholderText('Servings'), {
       target: { value: '4' }
@@ -264,7 +268,7 @@ describe('MealPlanCalendar', () => {
     openAddDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
-    fireEvent.change(input, { target: { value: 'Pasta' } })
+    fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
     fireEvent.keyDown(input, { key: 'Enter' })
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
@@ -755,6 +759,96 @@ describe('MealPlanCalendar', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
     expect(mockAddMeal).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens the fill-day dialog with a whole-day title when Fill day is clicked', () => {
+    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Fill day' })[0])
+    expect(screen.getByText(/Fill day —/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Fill day$/i })).toBeInTheDocument()
+  })
+
+  it('fills every slot of a day with the same entry', async () => {
+    const onMutate = jest.fn()
+    render(
+      <MealPlanCalendar
+        plan={basePlan}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onMutate={onMutate}
+      />
+    )
+    fireEvent.click(screen.getAllByRole('button', { name: 'Fill day' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.change(screen.getByPlaceholderText('Item 1'), {
+      target: { value: 'Leftovers' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Fill day$/i }))
+    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
+    // The test mock limits MEAL_SLOTS to ['breakfast'], so one call is expected
+    // per slot; verify it targets the clicked date and every mocked slot.
+    for (const call of mockAddMeal.mock.calls) {
+      expect(call[0].mealDate).toBe('2026-05-25')
+      expect(call[0].customName).toBe('Leftovers')
+    }
+    expect(mockAddMeal.mock.calls.map((c) => c[0].mealSlot).sort()).toEqual(['breakfast'])
+    await waitFor(() => expect(onMutate).toHaveBeenCalled())
+  })
+
+  it('deletes existing meals in a slot before filling the day (overwrite)', async () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        })
+      ]
+    }
+
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Fill day' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.change(screen.getByPlaceholderText('Item 1'), {
+      target: { value: 'Leftovers' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Fill day$/i }))
+    await waitFor(() =>
+      expect(mockDeleteMeal).toHaveBeenCalledWith({ planId: 'plan-1', mealId: 'm1' })
+    )
+    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
+  })
+
+  it('prefills servings from a suggestion chip', () => {
+    jest.mocked(useMealSuggestions).mockReturnValue({
+      data: create(SuggestRecipesResponseSchema, {
+        suggestions: [{ recipeId: 'r1', servings: 5 }]
+      }),
+      error: undefined,
+      isLoading: false,
+      isValidating: false,
+      mutate: jest.fn(async () => undefined)
+    })
+    try {
+      render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
+      openAddDialog()
+      fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
+      const servingsInput = screen.getByPlaceholderText('Servings')
+      if (!(servingsInput instanceof HTMLInputElement)) throw new Error('expected input')
+      expect(servingsInput.value).toBe('5')
+    } finally {
+      jest.mocked(useMealSuggestions).mockReturnValue({
+        data: undefined,
+        error: undefined,
+        isLoading: false,
+        isValidating: false,
+        mutate: jest.fn(async () => undefined)
+      })
+    }
   })
 
   it('renders a single chip when a slot somehow holds more than one meal', () => {
