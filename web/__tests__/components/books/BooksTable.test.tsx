@@ -29,12 +29,6 @@ jest.mock('@/components/books/BookFavouriteButton', () => {
   }
 })
 
-jest.mock('@/components/books/BookShelfTagCell', () => {
-  return function MockShelfTagCell() {
-    return <div data-testid="shelf-tag-cell" />
-  }
-})
-
 jest.mock('@/components/books/BookOwnershipToggles', () => {
   return function MockOwnershipToggles() {
     return <div data-testid="ownership-toggles" />

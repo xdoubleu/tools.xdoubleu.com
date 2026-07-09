@@ -105,6 +105,11 @@ export function useToggleTag() {
   return (bookId: string, tag: string) => client.toggleTag({ bookId, tag })
 }
 
+export function useUpdateFinishedAt() {
+  const client = createServiceClient(LibraryService)
+  return (bookId: string, finishedAt: string[]) => client.updateFinishedAt({ bookId, finishedAt })
+}
+
 export function useUpdateProgress() {
   const client = createServiceClient(LibraryService)
   return (req: UpdateProgressInput) => client.updateProgress(req)

@@ -7,18 +7,16 @@ import BookProgressEditor from '@/components/books/BookProgressEditor'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
-import BookShelfPopover from '@/components/books/BookShelfPopover'
 import { interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
+import { displayTags } from '@/lib/books/bookShelves'
 
 interface BookCardProps {
   userBook: UserBook
-  knownShelves: string[]
-  knownTags: string[]
   onSaved: () => void
 }
 
-export default function BookCard({ userBook, knownShelves, knownTags, onSaved }: BookCardProps) {
+export default function BookCard({ userBook, onSaved }: BookCardProps) {
   const book = userBook.book
   if (!book) return null
 
@@ -46,10 +44,10 @@ export default function BookCard({ userBook, knownShelves, knownTags, onSaved }:
             {userBook.status.replace(/-/g, ' ')}
           </span>
 
-          {/* Rating + favourite — only for finished books; lifted above link via z-10 */}
+          {/* Rating (read-only here — edit on the book detail page) + favourite */}
           {isRead && (
             <div className="relative z-10 flex items-center gap-2">
-              <BookRatingStars userBook={userBook} onSaved={onSaved} />
+              <BookRatingStars userBook={userBook} readOnly />
               <BookFavouriteButton userBook={userBook} onSaved={onSaved} />
             </div>
           )}
@@ -68,15 +66,12 @@ export default function BookCard({ userBook, knownShelves, knownTags, onSaved }:
         )}
       </div>
 
-      {/* Status + shelves/tags popover */}
-      <div className="relative z-10 shrink-0">
-        <BookShelfPopover
-          userBook={userBook}
-          knownShelves={knownShelves}
-          knownTags={knownTags}
-          onSaved={onSaved}
-        />
-      </div>
+      {/* Tags — read-only here; edit on the book detail page (status is the pill above) */}
+      {displayTags(userBook.tags).length > 0 && (
+        <div className="shrink-0 text-right text-xs text-muted max-w-24">
+          {displayTags(userBook.tags).join(', ')}
+        </div>
+      )}
     </div>
   )
 }

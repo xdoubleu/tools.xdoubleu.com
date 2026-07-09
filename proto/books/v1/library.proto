@@ -118,6 +118,12 @@ message ToggleTagResponse {}
 message RemoveBookRequest { string book_id = 1; }
 message RemoveBookResponse {}
 
+message UpdateFinishedAtRequest {
+  string book_id = 1;
+  repeated string finished_at = 2;
+}
+message UpdateFinishedAtResponse {}
+
 message UpdateProgressRequest {
   string book_id = 1;
   string progress_mode = 2;
@@ -154,6 +160,7 @@ service LibraryService {
   rpc SearchExternal(SearchExternalRequest) returns (SearchExternalResponse);
   rpc CreateBook(CreateBookRequest) returns (CreateBookResponse);
   rpc UpdateBookStatus(UpdateBookStatusRequest) returns (UpdateBookStatusResponse);
+  rpc UpdateFinishedAt(UpdateFinishedAtRequest) returns (UpdateFinishedAtResponse);
   rpc UpdateProgress(UpdateProgressRequest) returns (UpdateProgressResponse);
   rpc ToggleTag(ToggleTagRequest) returns (ToggleTagResponse);
   rpc RemoveBook(RemoveBookRequest) returns (RemoveBookResponse);

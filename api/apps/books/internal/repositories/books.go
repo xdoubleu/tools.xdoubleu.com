@@ -594,6 +594,25 @@ func (repo *BooksRepository) UpdateTags(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// UpdateFinishedAt overwrites a user_book's finished_at date array. Unlike
+// UpsertUserBook, this always replaces the array (no COALESCE) so removing a
+// date works.
+func (repo *BooksRepository) UpdateFinishedAt(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	finishedAt []time.Time,
+) error {
+	query := `
+		UPDATE books.user_books
+		SET finished_at = $3,
+		    updated_at = now()
+		WHERE user_id = $1 AND book_id = $2
+	`
+	_, err := repo.db.Exec(ctx, query, userID, bookID, finishedAt)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // ListKoboSyncBooks returns all books for a user that have the kobo-sync tag
 // and a ready file to serve to the Kobo device. The file format is chosen
 // per-book: "pdf" when the kobo-format-pdf tag is present, "kepub" otherwise.

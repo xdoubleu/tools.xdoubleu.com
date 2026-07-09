@@ -117,7 +117,7 @@ describe('BookShelfTagFields', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Want to read').checked).toBe(true)
   })
 
-  it('renders known tags as checkboxes', () => {
+  it('renders known tags as clickable chips', () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook()}
@@ -125,8 +125,8 @@ describe('BookShelfTagFields', () => {
         knownTags={['fantasy', 'mystery']}
       />
     )
-    expect(screen.getByLabelText('fantasy')).toBeInTheDocument()
-    expect(screen.getByLabelText('mystery')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'fantasy' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'mystery' })).toBeInTheDocument()
   })
 
   it('shows "No tags yet." when there are no known tags and book has none', () => {
@@ -134,7 +134,7 @@ describe('BookShelfTagFields', () => {
     expect(screen.getByText('No tags yet.')).toBeInTheDocument()
   })
 
-  it('checks the checkbox for tags already on the book', () => {
+  it('marks chips for tags already on the book as active', () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook({ tags: ['fantasy'] })}
@@ -142,20 +142,20 @@ describe('BookShelfTagFields', () => {
         knownTags={['fantasy', 'mystery']}
       />
     )
-    expect(screen.getByLabelText<HTMLInputElement>('fantasy').checked).toBe(true)
-    expect(screen.getByLabelText<HTMLInputElement>('mystery').checked).toBe(false)
+    expect(screen.getByRole('button', { name: 'fantasy' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'mystery' })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('calls toggleTag when a checkbox is checked', async () => {
+  it('calls toggleTag with a single click when an inactive chip is clicked', async () => {
     render(
       <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['fantasy']} />
     )
-    fireEvent.click(screen.getByLabelText('fantasy'))
+    fireEvent.click(screen.getByRole('button', { name: 'fantasy' }))
     await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
     expect(mockMutateFn).toHaveBeenCalledWith('/books')
   })
 
-  it('calls toggleTag when a checked tag is unchecked', async () => {
+  it('calls toggleTag when an active chip is clicked (removes it)', async () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook({ tags: ['fantasy'] })}
@@ -163,19 +163,18 @@ describe('BookShelfTagFields', () => {
         knownTags={['fantasy']}
       />
     )
-    fireEvent.click(screen.getByLabelText('fantasy'))
+    fireEvent.click(screen.getByRole('button', { name: 'fantasy' }))
     await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
   })
 
-  it('reverts tag on toggleTag failure and shows error', async () => {
+  it('reverts chip state on toggleTag failure and shows error', async () => {
     mockToggleTag.mockRejectedValueOnce(new Error('network'))
     render(
       <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['fantasy']} />
     )
-    fireEvent.click(screen.getByLabelText('fantasy'))
+    fireEvent.click(screen.getByRole('button', { name: 'fantasy' }))
     await waitFor(() => expect(screen.getByText('Failed to update tag.')).toBeInTheDocument())
-    // Checkbox reverted to unchecked
-    expect(screen.getByLabelText<HTMLInputElement>('fantasy').checked).toBe(false)
+    expect(screen.getByRole('button', { name: 'fantasy' })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('calls onSaved after a successful status change', async () => {
@@ -202,7 +201,7 @@ describe('BookShelfTagFields', () => {
         onSaved={onSaved}
       />
     )
-    fireEvent.click(screen.getByLabelText('mystery'))
+    fireEvent.click(screen.getByRole('button', { name: 'mystery' }))
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
 
@@ -214,23 +213,11 @@ describe('BookShelfTagFields', () => {
         knownTags={['favourite', 'sci-fi']}
       />
     )
-    expect(screen.queryByLabelText('favourite')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('sci-fi')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'favourite' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'sci-fi' })).toBeInTheDocument()
   })
 
-  it('does not render any add combobox or remove button (select-only)', () => {
-    render(
-      <BookShelfTagFields
-        userBook={makeUserBook({ tags: ['fantasy'] })}
-        knownShelves={['classics']}
-        knownTags={['fantasy']}
-      />
-    )
-    expect(screen.queryByRole('button', { name: /add|set|remove/i })).not.toBeInTheDocument()
-    expect(screen.queryByPlaceholderText(/add|custom shelf/i)).not.toBeInTheDocument()
-  })
-
-  it('renders orphan tags (on book but not in knownTags) as checked checkboxes', () => {
+  it('renders orphan tags (on book but not in knownTags) as active chips', () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook({ tags: ['legacy-tag'] })}
@@ -238,6 +225,43 @@ describe('BookShelfTagFields', () => {
         knownTags={[]}
       />
     )
-    expect(screen.getByLabelText<HTMLInputElement>('legacy-tag').checked).toBe(true)
+    expect(screen.getByRole('button', { name: 'legacy-tag' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+  })
+
+  it('adds a new tag via the combobox on Enter', async () => {
+    render(
+      <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['fantasy']} />
+    )
+    const combobox = screen.getByLabelText('Add a tag')
+    fireEvent.change(combobox, { target: { value: 'fantasy' } })
+    fireEvent.keyDown(combobox, { key: 'Enter' })
+    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
+  })
+
+  it('adds a new tag via clicking a combobox suggestion', async () => {
+    render(
+      <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['mystery']} />
+    )
+    const combobox = screen.getByLabelText('Add a tag')
+    fireEvent.change(combobox, { target: { value: 'mys' } })
+    fireEvent.mouseDown(screen.getByText('mystery', { selector: 'li' }))
+    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'mystery'))
+  })
+
+  it('does not re-add a tag already on the book via the combobox', async () => {
+    render(
+      <BookShelfTagFields
+        userBook={makeUserBook({ tags: ['fantasy'] })}
+        knownShelves={[]}
+        knownTags={['fantasy']}
+      />
+    )
+    // fantasy is already active, so it must not appear in the addable suggestions
+    const combobox = screen.getByLabelText('Add a tag')
+    fireEvent.change(combobox, { target: { value: 'fantasy' } })
+    expect(screen.queryByText('fantasy', { selector: 'li' })).not.toBeInTheDocument()
   })
 })

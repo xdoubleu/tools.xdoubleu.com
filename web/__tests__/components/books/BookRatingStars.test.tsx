@@ -20,6 +20,7 @@ import BookRatingStars from '@/components/books/BookRatingStars'
 function makeBook(rating = 0, tags: string[] = []) {
   return create(UserBookSchema, {
     id: 'ub-1',
+    bookId: 'book-1',
     status: 'to-read',
     rating,
     tags,
@@ -40,7 +41,7 @@ describe('BookRatingStars', () => {
     expect(screen.getAllByRole('button').length).toBe(5)
   })
 
-  it('fires UpdateBookStatus with new rating on click', async () => {
+  it('fires UpdateBookStatus with the book id (not the user_book row id) on click', async () => {
     const ub = makeBook(0, ['favourite'])
     render(<BookRatingStars userBook={ub} />)
 
@@ -48,7 +49,7 @@ describe('BookRatingStars', () => {
 
     await waitFor(() => {
       expect(mockUpdateBookStatus).toHaveBeenCalledWith({
-        bookId: 'ub-1',
+        bookId: 'book-1',
         status: 'to-read',
         favourite: true,
         rating: '4'
