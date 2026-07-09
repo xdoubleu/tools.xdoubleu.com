@@ -223,6 +223,32 @@ func TestCompareWithCSV_DoesNotMatchDifferentVolumeAnnotatedWithColon(t *testing
 	require.Len(t, result.Mismatches, 2) // csv missing-in-library + lib missing-in-csv
 }
 
+func TestCompareWithCSV_DoesNotMatchDifferentRomanNumeralVolume(t *testing.T) {
+	// Sibling of the reported bug: two Oracle study guides differing only by
+	// "Programmer I" vs "Programmer II" must never fuzzy-match.
+	entries := []books.ParsedEntry{
+		cmpEntry(
+			"OCP Java SE 11 Programmer II Study Guide: Exam 1z0-816",
+			"Jeanne Boyarsky",
+			nil,
+			"read",
+		),
+	}
+	lib := []models.UserBook{
+		cmpLibBook(
+			"OCP Java SE 11 Programmer I Study Guide: Exam 1z0-815",
+			"Jeanne Boyarsky",
+			nil,
+			"read",
+		),
+	}
+
+	result := CompareWithCSV(entries, lib)
+
+	assert.Equal(t, 0, result.MatchedCount)
+	require.Len(t, result.Mismatches, 2) // csv missing-in-library + lib missing-in-csv
+}
+
 func TestCompareWithCSV_Counts(t *testing.T) {
 	isbn1 := strPtr("9780000000010")
 	isbn2 := strPtr("9780000000011")
