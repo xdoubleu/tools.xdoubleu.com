@@ -8,6 +8,7 @@ describe('swrKeys', () => {
     expect(swrKeys.currentUser).toBe('/auth/current-user')
     expect(swrKeys.adminUsers).toBe('/admin/users')
     expect(swrKeys.contacts).toBe('/contacts')
+    expect(swrKeys.webRelease).toBe('/release')
     expect(swrKeys.sharedMealPlans).toBe('/sharing/mealplans')
     expect(swrKeys.books).toBe('/books')
     expect(swrKeys.koboDevices).toBe('/books/kobo/devices')
@@ -63,5 +64,9 @@ describe('swrKeys', () => {
     const groups = ['b', 'a']
     swrKeys.shoppingListExport('p1', groups)
     expect(groups).toEqual(['b', 'a'])
+  })
+
+  it('webRelease stays off /api, which the DO ingress routes to the api service', () => {
+    expect(swrKeys.webRelease.startsWith('/api')).toBe(false)
   })
 })
