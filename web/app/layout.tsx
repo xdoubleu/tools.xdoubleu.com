@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import DeployNotification from '@/components/DeployNotification'
 import Footer from '@/components/Footer'
 import Navbar from '@/components/Navbar'
 import SWRProvider from '@/components/SWRProvider'
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className="mx-auto max-w-7xl">{children}</div>
           </main>
           <Footer />
+          <DeployNotification />
         </SWRProvider>
       </body>
     </html>

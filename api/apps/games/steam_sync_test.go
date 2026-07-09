@@ -466,6 +466,55 @@ func TestSyncGame_UpdatesAchievements(t *testing.T) {
 		"SyncGame must update the game's completion rate")
 }
 
+// TestSyncGame_UpdatesTotalCompletionRate verifies that refreshing a single
+// game's achievements also recomputes the library-wide progress graph, so the
+// dashboard's total completion rate reflects the refresh immediately instead
+// of staying stale until the next full SyncUser.
+func TestSyncGame_UpdatesTotalCompletionRate(t *testing.T) {
+	ctx := context.Background()
+	const user = "syncgame-total-rate-user"
+	const gameA = 9101 // refetched via SyncGame
+	const gameB = 9102 // untouched; must keep contributing its stored rate
+
+	gameADef := steam.Game{ //nolint:exhaustruct //only required fields
+		AppID: gameA, Name: "Game A", HasCommunityVisibleStats: true,
+	}
+	gameBDef := steam.Game{ //nolint:exhaustruct //only required fields
+		AppID: gameB, Name: "Game B", HasCommunityVisibleStats: true,
+	}
+
+	// Seed both games: A 1/4 => 25.00, B 4/4 => 100.00. avg => 62.50.
+	app := newSyncTestApp(t, user, syncFakeClient{
+		games: []steam.Game{gameADef, gameBDef},
+		playerAch: map[int][]steam.Achievement{
+			gameA: {ach("A1", 1), ach("A2", 0), ach("A3", 0), ach("A4", 0)},
+			gameB: {ach("B1", 1), ach("B2", 1), ach("B3", 1), ach("B4", 1)},
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+
+	rate, err := app.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	require.Equal(t, "62.50", rate)
+
+	// SyncGame only game A: 2/4 => 50.00. New avg with B still at 100 => 75.00.
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games: []steam.Game{gameADef, gameBDef},
+		playerAch: map[int][]steam.Achievement{
+			gameA: {ach("A1", 1), ach("A2", 1), ach("A3", 0), ach("A4", 0)},
+			gameB: {ach("B1", 1), ach("B2", 1), ach("B3", 1), ach("B4", 1)},
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app2.Services.Steam.SyncGame(ctx, user, gameA))
+
+	rate, err = app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, "75.00", rate,
+		"SyncGame must recompute the total rate, including other games' stored data")
+}
+
 // TestSyncGame_UnconfiguredCreds verifies that SyncGame is a no-op when the
 // user has no Steam credentials configured.
 func TestSyncGame_UnconfiguredCreds(t *testing.T) {

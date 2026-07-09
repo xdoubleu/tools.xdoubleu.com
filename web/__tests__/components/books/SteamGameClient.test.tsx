@@ -2,6 +2,12 @@ import React from 'react'
 import { act, render, screen, fireEvent } from '@testing-library/react'
 
 const mockRefreshSteamGame = jest.fn()
+const mockGlobalMutate = jest.fn()
+
+jest.mock('swr', () => ({
+  ...jest.requireActual('swr'),
+  mutate: (...args: unknown[]) => mockGlobalMutate(...args)
+}))
 
 jest.mock('@/hooks/useGames', () => ({
   useSteamGame: jest.fn(),
@@ -44,6 +50,7 @@ import {
   SteamGameResponseSchema,
   RefreshSteamGameResponseSchema
 } from '@/lib/gen/games/v1/games_pb'
+import { swrKeys } from '@/lib/swrKeys'
 
 const mockGame = create(GameSchema, {
   id: 1,
@@ -505,6 +512,7 @@ describe('SteamGameClient', () => {
       expect.objectContaining({ data: freshRefreshResponse.data }),
       { revalidate: false }
     )
+    expect(mockGlobalMutate).toHaveBeenCalledWith(swrKeys.games)
   })
 
   describe('live polling', () => {

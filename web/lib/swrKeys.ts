@@ -13,6 +13,7 @@ export const swrKeys = {
   adminStorageStats: '/admin/storage-stats',
   adminDatabaseStats: '/admin/database-stats',
   contacts: '/contacts',
+  webRelease: '/api/release',
   sharedMealPlans: '/sharing/mealplans',
 
   books: '/books',
