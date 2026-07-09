@@ -138,6 +138,16 @@ func (s *BookService) UpdateStatus(
 	return s.books.UpsertUserBook(ctx, ub)
 }
 
+// UpdateFinishedAt overwrites the read-date history for a user's book.
+func (s *BookService) UpdateFinishedAt(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	finishedAt []time.Time,
+) error {
+	return s.books.UpdateFinishedAt(ctx, userID, bookID, finishedAt)
+}
+
 // ToggleTag adds or removes a tag from a user_book atomically.
 func (s *BookService) ToggleTag(
 	ctx context.Context,

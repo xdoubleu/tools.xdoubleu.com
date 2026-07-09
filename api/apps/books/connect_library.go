@@ -226,6 +226,51 @@ func (h *booksConnectHandler) UpdateBookStatus(
 	return connect.NewResponse(&booksv1.UpdateBookStatusResponse{}), nil
 }
 
+// UpdateFinishedAt lets a user manually correct their read-date history
+// (e.g. after a resync guesses wrong, or to log a re-read). Dates are
+// date-only (YYYY-MM-DD); blank entries are skipped.
+func (h *booksConnectHandler) UpdateFinishedAt(
+	ctx context.Context,
+	req *connect.Request[booksv1.UpdateFinishedAtRequest],
+) (*connect.Response[booksv1.UpdateFinishedAtResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	finishedAt := make([]time.Time, 0, len(req.Msg.FinishedAt))
+	for _, raw := range req.Msg.FinishedAt {
+		if raw == "" {
+			continue
+		}
+		t, parseErr := time.Parse(time.DateOnly, raw)
+		if parseErr != nil {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				errors.New("invalid finished_at date"),
+			)
+		}
+		finishedAt = append(finishedAt, t)
+	}
+	err = h.app.Services.Books.UpdateFinishedAt(ctx, user.ID, bookID, finishedAt)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+	}
+	return connect.NewResponse(&booksv1.UpdateFinishedAtResponse{}), nil
+}
+
 func (h *booksConnectHandler) RemoveBook(
 	ctx context.Context,
 	req *connect.Request[booksv1.RemoveBookRequest],

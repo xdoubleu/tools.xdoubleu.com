@@ -7,7 +7,8 @@ import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
+import { Combobox } from '@/components/ui/combobox'
 import {
   SPECIAL_TAGS,
   BOOK_STATUSES,
@@ -25,8 +26,9 @@ interface BookShelfTagFieldsProps {
 }
 
 /**
- * Shared select-only body for per-book shelf/tag popovers.
- * Renders a radio group (shelf) and checkboxes (tags) for existing items only.
+ * Inline shelf/tag editor for the book detail page.
+ * Renders a radio group (shelf) and clickable tag chips — one click toggles a
+ * tag, no popover or checkbox list. New tags are added via a combobox.
  * Creating or deleting shelves/tags is handled in the sidebar Manage dialog.
  */
 export default function BookShelfTagFields({
@@ -37,6 +39,7 @@ export default function BookShelfTagFields({
 }: BookShelfTagFieldsProps) {
   const [status, setStatus] = useState(userBook.status)
   const [tags, setTags] = useState<string[]>(displayTags(userBook.tags))
+  const [newTag, setNewTag] = useState('')
   const [error, setError] = useState<string | null>(null)
   const updateBookStatus = useUpdateBookStatus()
   const toggleTag = useToggleTag()
@@ -76,12 +79,19 @@ export default function BookShelfTagFields({
     }
   }
 
+  const handleAddTag = async (tag: string) => {
+    setNewTag('')
+    if (!tag || tags.includes(tag)) return
+    await handleTagToggle(tag, true)
+  }
+
   const visibleKnownTags = knownTags.filter((t) => !SPECIAL_TAGS.has(t))
-  const orphanTags = tags.filter((t) => !knownTags.includes(t) && !SPECIAL_TAGS.has(t))
-  const noTags = visibleKnownTags.length === 0 && tags.length === 0
+  // Tags on this book not in the known list (edge case) plus known ones, deduped.
+  const allTags = [...new Set([...visibleKnownTags, ...tags])]
+  const addableTags = knownTags.filter((t) => !SPECIAL_TAGS.has(t) && !tags.includes(t))
 
   return (
-    <div className="space-y-4 min-w-56 max-w-72">
+    <div className="space-y-4">
       {/* Shelf — single-select via radio group */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Shelf</Label>
@@ -99,34 +109,41 @@ export default function BookShelfTagFields({
         </RadioGroup>
       </div>
 
-      {/* Tags — multi-select via checkboxes */}
+      {/* Tags — clickable chips toggle in place, no popover/checkbox list */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Tags</Label>
-        {noTags ? (
+        {allTags.length === 0 ? (
           <p className="text-xs text-muted">No tags yet.</p>
         ) : (
-          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1">
-            {visibleKnownTags.map((tag) => (
-              <Checkbox
-                key={tag}
-                id={`tag-${userBook.id}-${tag}`}
-                label={tag}
-                checked={tags.includes(tag)}
-                onChange={(e) => void handleTagToggle(tag, e.target.checked)}
-              />
-            ))}
-            {/* Tags on this book not in the known list (edge case) */}
-            {orphanTags.map((tag) => (
-              <Checkbox
-                key={tag}
-                id={`tag-${userBook.id}-${tag}`}
-                label={tag}
-                checked
-                onChange={(e) => void handleTagToggle(tag, e.target.checked)}
-              />
-            ))}
+          <div className="flex flex-wrap gap-1.5">
+            {allTags.map((tag) => {
+              const active = tags.includes(tag)
+              return (
+                <Button
+                  key={tag}
+                  type="button"
+                  size="sm"
+                  variant={active ? 'default' : 'secondary'}
+                  className="h-auto rounded-full px-2.5 py-0.5 text-xs"
+                  aria-pressed={active}
+                  onClick={() => void handleTagToggle(tag, !active)}
+                >
+                  {tag}
+                </Button>
+              )
+            })}
           </div>
         )}
+        <Combobox
+          value={newTag}
+          onChange={setNewTag}
+          onSelect={(tag) => void handleAddTag(tag)}
+          onEnter={() => void handleAddTag(newTag)}
+          suggestions={addableTags}
+          placeholder="Add a tag…"
+          aria-label="Add a tag"
+          className="mt-1 max-w-56"
+        />
       </div>
 
       {error && <p className="text-xs text-danger">{error}</p>}

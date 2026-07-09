@@ -34,7 +34,7 @@ export default function BookRatingStars({
     setRating(newRating)
     try {
       await updateBookStatus({
-        bookId: userBook.id,
+        bookId: userBook.bookId,
         status: userBook.status,
         favourite: userBook.tags.includes('favourite'),
         rating: String(newRating)

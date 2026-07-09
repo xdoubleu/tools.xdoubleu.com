@@ -34,12 +34,6 @@ jest.mock('@/components/books/BookFavouriteButton', () => {
   }
 })
 
-jest.mock('@/components/books/BookShelfTagCell', () => {
-  return function MockShelfTagCell() {
-    return <div data-testid="shelf-tag-cell" />
-  }
-})
-
 jest.mock('@/components/books/ManageShelvesTagsDialog', () => {
   return function MockManageDialog({ open }: { open: boolean }) {
     return open ? <div data-testid="manage-dialog" /> : null

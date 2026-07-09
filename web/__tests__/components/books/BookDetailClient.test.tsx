@@ -11,7 +11,9 @@ import {
 
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
-  useUpdateBookStatus: () => jest.fn().mockResolvedValue({})
+  useUpdateBookStatus: () => jest.fn().mockResolvedValue({}),
+  useToggleTag: () => jest.fn().mockResolvedValue({}),
+  useUpdateFinishedAt: () => jest.fn().mockResolvedValue({})
 }))
 
 const mockRouterPush = jest.fn()
@@ -68,9 +70,9 @@ jest.mock('@/components/books/BookOwnershipToggles', () => {
   }
 })
 
-jest.mock('@/components/books/BookShelfPopover', () => {
-  return function MockShelfPopover() {
-    return <div data-testid="shelf-popover" />
+jest.mock('@/components/books/BookShelfTagFields', () => {
+  return function MockShelfTagFields() {
+    return <div data-testid="shelf-tag-fields" />
   }
 })
 
@@ -270,9 +272,9 @@ describe('BookDetailClient', () => {
     expect(libraryLink).toHaveAttribute('href', '/books/library')
   })
 
-  it('renders shelf popover', () => {
+  it('renders shelf/tag fields', () => {
     render(<BookDetailClient id="ub-1" />)
-    expect(screen.getByTestId('shelf-popover')).toBeInTheDocument()
+    expect(screen.getByTestId('shelf-tag-fields')).toBeInTheDocument()
   })
 
   it('renders favourite button for a read book', () => {

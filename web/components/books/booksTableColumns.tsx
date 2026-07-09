@@ -6,8 +6,7 @@ import BookCover from '@/components/books/BookCover'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
-import BookShelfTagCell from '@/components/books/BookShelfTagCell'
-import { displayTags } from '@/lib/books/bookShelves'
+import { displayTags, statusLabel } from '@/lib/books/bookShelves'
 
 export type ColumnKey =
   | 'cover'
@@ -180,7 +179,7 @@ export const ALL_COLUMNS: BookColumn[] = [
     label: 'Rating',
     sortKey: 'rating',
     cellClassName: 'w-28',
-    renderCell: (ub, ctx) => <BookRatingStars userBook={ub} size="sm" onSaved={ctx.onSaved} />
+    renderCell: (ub) => <BookRatingStars userBook={ub} size="sm" readOnly />
   },
   {
     key: 'favourite',
@@ -199,14 +198,9 @@ export const ALL_COLUMNS: BookColumn[] = [
     label: 'Shelf & tags',
     sortKey: 'shelf',
     cellClassName: 'max-w-44',
-    renderCell: (ub, ctx) => (
+    renderCell: (ub) => (
       <>
-        <BookShelfTagCell
-          userBook={ub}
-          knownShelves={ctx.knownShelves}
-          knownTags={ctx.knownTags}
-          onSaved={ctx.onSaved}
-        />
+        <span className="text-sm">{statusLabel(ub.status)}</span>
         {displayTags(ub.tags).length > 0 && (
           <div className="mt-0.5 text-xs text-muted truncate">
             {displayTags(ub.tags).join(', ')}

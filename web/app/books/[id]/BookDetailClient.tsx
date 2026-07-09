@@ -13,9 +13,10 @@ import BookSourceSync from '@/components/books/BookSourceSync'
 import { SPECIAL_TAGS } from '@/lib/books/bookShelves'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 import BookRatingStars from '@/components/books/BookRatingStars'
+import BookReadDatesEditor from '@/components/books/BookReadDatesEditor'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
-import BookShelfPopover from '@/components/books/BookShelfPopover'
+import BookShelfTagFields from '@/components/books/BookShelfTagFields'
 import KoboSyncToggle from '@/components/books/KoboSyncToggle'
 import BookPreviewDialog from '@/components/books/BookPreviewDialog'
 import RemoveBookDialog from '@/components/books/RemoveBookDialog'
@@ -124,9 +125,9 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
 
-              {/* Status + shelves popover */}
+              {/* Shelf + tags — inline editing, no popover */}
               <div className="mt-4">
-                <BookShelfPopover
+                <BookShelfTagFields
                   userBook={userBook}
                   knownShelves={knownShelves}
                   knownTags={knownTags}
@@ -167,19 +168,8 @@ export default function BookDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              {userBook.finishedAt.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted mb-1">
-                    {userBook.finishedAt.length === 1 ? 'Finished' : 'Read dates'}
-                  </p>
-                  <div className="flex flex-col gap-0.5">
-                    {userBook.finishedAt.map((date) => (
-                      <span key={date} className="text-sm">
-                        {formatDate(date)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              {(userBook.status === 'read' || userBook.finishedAt.length > 0) && (
+                <BookReadDatesEditor userBook={userBook} onSaved={handleSaved} />
               )}
 
               {/* Kobo sync — only shown when the book is owned digitally */}

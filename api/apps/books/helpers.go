@@ -135,7 +135,7 @@ func parseRating(raw string) *int16 {
 		return nil
 	}
 	n, err := strconv.ParseInt(raw, 10, 16)
-	if err != nil || n <= 0 {
+	if err != nil || n <= 0 || n > 5 {
 		return nil
 	}
 	r16 := int16(n)

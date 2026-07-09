@@ -51,6 +51,9 @@ const (
 	// LibraryServiceUpdateBookStatusProcedure is the fully-qualified name of the LibraryService's
 	// UpdateBookStatus RPC.
 	LibraryServiceUpdateBookStatusProcedure = "/books.v1.LibraryService/UpdateBookStatus"
+	// LibraryServiceUpdateFinishedAtProcedure is the fully-qualified name of the LibraryService's
+	// UpdateFinishedAt RPC.
+	LibraryServiceUpdateFinishedAtProcedure = "/books.v1.LibraryService/UpdateFinishedAt"
 	// LibraryServiceUpdateProgressProcedure is the fully-qualified name of the LibraryService's
 	// UpdateProgress RPC.
 	LibraryServiceUpdateProgressProcedure = "/books.v1.LibraryService/UpdateProgress"
@@ -88,6 +91,7 @@ type LibraryServiceClient interface {
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
 	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
+	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
 	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
@@ -144,6 +148,12 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+LibraryServiceUpdateBookStatusProcedure,
 			connect.WithSchema(libraryServiceMethods.ByName("UpdateBookStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		updateFinishedAt: connect.NewClient[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse](
+			httpClient,
+			baseURL+LibraryServiceUpdateFinishedAtProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("UpdateFinishedAt")),
 			connect.WithClientOptions(opts...),
 		),
 		updateProgress: connect.NewClient[v1.UpdateProgressRequest, v1.UpdateProgressResponse](
@@ -211,6 +221,7 @@ type libraryServiceClient struct {
 	searchExternal        *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
 	createBook            *connect.Client[v1.CreateBookRequest, v1.CreateBookResponse]
 	updateBookStatus      *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
+	updateFinishedAt      *connect.Client[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse]
 	updateProgress        *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
 	toggleTag             *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
 	removeBook            *connect.Client[v1.RemoveBookRequest, v1.RemoveBookResponse]
@@ -250,6 +261,11 @@ func (c *libraryServiceClient) CreateBook(ctx context.Context, req *connect.Requ
 // UpdateBookStatus calls books.v1.LibraryService.UpdateBookStatus.
 func (c *libraryServiceClient) UpdateBookStatus(ctx context.Context, req *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error) {
 	return c.updateBookStatus.CallUnary(ctx, req)
+}
+
+// UpdateFinishedAt calls books.v1.LibraryService.UpdateFinishedAt.
+func (c *libraryServiceClient) UpdateFinishedAt(ctx context.Context, req *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error) {
+	return c.updateFinishedAt.CallUnary(ctx, req)
 }
 
 // UpdateProgress calls books.v1.LibraryService.UpdateProgress.
@@ -305,6 +321,7 @@ type LibraryServiceHandler interface {
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
 	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
+	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
 	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
 	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
@@ -357,6 +374,12 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		LibraryServiceUpdateBookStatusProcedure,
 		svc.UpdateBookStatus,
 		connect.WithSchema(libraryServiceMethods.ByName("UpdateBookStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	libraryServiceUpdateFinishedAtHandler := connect.NewUnaryHandler(
+		LibraryServiceUpdateFinishedAtProcedure,
+		svc.UpdateFinishedAt,
+		connect.WithSchema(libraryServiceMethods.ByName("UpdateFinishedAt")),
 		connect.WithHandlerOptions(opts...),
 	)
 	libraryServiceUpdateProgressHandler := connect.NewUnaryHandler(
@@ -427,6 +450,8 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceCreateBookHandler.ServeHTTP(w, r)
 		case LibraryServiceUpdateBookStatusProcedure:
 			libraryServiceUpdateBookStatusHandler.ServeHTTP(w, r)
+		case LibraryServiceUpdateFinishedAtProcedure:
+			libraryServiceUpdateFinishedAtHandler.ServeHTTP(w, r)
 		case LibraryServiceUpdateProgressProcedure:
 			libraryServiceUpdateProgressHandler.ServeHTTP(w, r)
 		case LibraryServiceToggleTagProcedure:
@@ -476,6 +501,10 @@ func (UnimplementedLibraryServiceHandler) CreateBook(context.Context, *connect.R
 
 func (UnimplementedLibraryServiceHandler) UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.UpdateBookStatus is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.UpdateFinishedAt is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error) {

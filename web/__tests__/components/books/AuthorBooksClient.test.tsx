@@ -35,12 +35,6 @@ jest.mock('@/components/books/BookFavouriteButton', () => {
   }
 })
 
-jest.mock('@/components/books/BookShelfTagCell', () => {
-  return function MockShelfTagCell() {
-    return <div data-testid="shelf-tag-cell" />
-  }
-})
-
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
   useToggleTag: () => jest.fn()

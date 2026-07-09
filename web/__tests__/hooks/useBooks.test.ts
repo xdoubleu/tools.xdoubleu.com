@@ -52,6 +52,7 @@ import {
   useImportBooks,
   useUpdateBookStatus,
   useToggleTag,
+  useUpdateFinishedAt,
   useUploadBookFile,
   useEnableKoboSync,
   useRequestKEPUBConversion,
@@ -275,6 +276,31 @@ describe('useToggleTag', () => {
   it('returns a function', () => {
     const { result } = renderHook(() => useToggleTag())
     expect(typeof result.current).toBe('function')
+  })
+
+  it('calls client.toggleTag with bookId and tag', () => {
+    const mockToggle = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ toggleTag: mockToggle })
+    const { result } = renderHook(() => useToggleTag())
+    result.current('book-1', 'sci-fi')
+    expect(mockToggle).toHaveBeenCalledWith({ bookId: 'book-1', tag: 'sci-fi' })
+  })
+})
+
+describe('useUpdateFinishedAt', () => {
+  it('returns a function', () => {
+    const { result } = renderHook(() => useUpdateFinishedAt())
+    expect(typeof result.current).toBe('function')
+  })
+
+  it('calls client.updateFinishedAt with bookId and finishedAt', () => {
+    const mockUpdate = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ updateFinishedAt: mockUpdate })
+    const { result } = renderHook(() => useUpdateFinishedAt())
+    result.current('book-1', ['2024-01-15'])
+    expect(mockUpdate).toHaveBeenCalledWith({ bookId: 'book-1', finishedAt: ['2024-01-15'] })
   })
 })
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -153,6 +154,121 @@ func TestConnectUpdateBookStatus_NegativeRating(t *testing.T) {
 	req.Header().Set("Cookie", accessToken.String())
 	_, err := client.UpdateBookStatus(ctx, req)
 	require.NoError(t, err)
+}
+
+// TestConnectUpdateBookStatus_OutOfRangeRating covers parseRating's n>5 branch.
+// A rating above the DB's chk_user_books_rating bound (1-5) must not reach the
+// database as a non-nil value, or the CHECK violation surfaces as a 500.
+func TestConnectUpdateBookStatus_OutOfRangeRating(t *testing.T) {
+	book := addTestBook(t, "OutOfRangeRatingBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+		BookId:    book.BookID.String(),
+		Status:    models.StatusReading,
+		Favourite: false,
+		Rating:    "6",
+	})
+	req.Header().Set("Cookie", accessToken.String())
+	_, err := client.UpdateBookStatus(ctx, req)
+	require.NoError(t, err)
+}
+
+// assertFinishedAtDates compares finished_at RFC3339 timestamps by calendar
+// date only, since the DB session timezone (not the test's) determines the
+// UTC offset the driver returns.
+func assertFinishedAtDates(t *testing.T, got []string, wantDates ...string) {
+	t.Helper()
+	require.Len(t, got, len(wantDates))
+	for i, raw := range got {
+		parsed, err := time.Parse(time.RFC3339, raw)
+		require.NoError(t, err)
+		assert.Equal(t, wantDates[i], parsed.Format(time.DateOnly))
+	}
+}
+
+// TestConnectUpdateFinishedAt_OverwritesDates covers manually editing a
+// book's read-date history: setting an initial date, then replacing it with
+// a different set (add + remove in one call), and finally clearing it.
+func TestConnectUpdateFinishedAt_OverwritesDates(t *testing.T) {
+	book := addTestBook(t, "FinishedAtEditBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	setReq := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+		BookId:     book.BookID.String(),
+		FinishedAt: []string{"2024-01-15", "2024-06-01"},
+	})
+	setReq.Header().Set("Cookie", accessToken.String())
+	_, err := client.UpdateFinishedAt(ctx, setReq)
+	require.NoError(t, err)
+
+	getReq := connect.NewRequest(
+		&booksv1.SearchLibraryRequest{Query: "FinishedAtEditBook"},
+	)
+	getReq.Header().Set("Cookie", accessToken.String())
+	searchResp, err := client.SearchLibrary(ctx, getReq)
+	require.NoError(t, err)
+	require.Len(t, searchResp.Msg.Books, 1)
+	assertFinishedAtDates(
+		t,
+		searchResp.Msg.Books[0].FinishedAt,
+		"2024-01-15",
+		"2024-06-01",
+	)
+
+	// Replace with a single, different date.
+	replaceReq := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+		BookId:     book.BookID.String(),
+		FinishedAt: []string{"2024-12-25"},
+	})
+	replaceReq.Header().Set("Cookie", accessToken.String())
+	_, err = client.UpdateFinishedAt(ctx, replaceReq)
+	require.NoError(t, err)
+
+	searchResp, err = client.SearchLibrary(ctx, getReq)
+	require.NoError(t, err)
+	require.Len(t, searchResp.Msg.Books, 1)
+	assertFinishedAtDates(t, searchResp.Msg.Books[0].FinishedAt, "2024-12-25")
+
+	// Clear entirely.
+	clearReq := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+		BookId: book.BookID.String(),
+	})
+	clearReq.Header().Set("Cookie", accessToken.String())
+	_, err = client.UpdateFinishedAt(ctx, clearReq)
+	require.NoError(t, err)
+
+	searchResp, err = client.SearchLibrary(ctx, getReq)
+	require.NoError(t, err)
+	require.Len(t, searchResp.Msg.Books, 1)
+	assert.Empty(t, searchResp.Msg.Books[0].FinishedAt)
+}
+
+// TestConnectUpdateFinishedAt_InvalidDate covers the date-parse error path.
+func TestConnectUpdateFinishedAt_InvalidDate(t *testing.T) {
+	book := addTestBook(t, "FinishedAtInvalidDateBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+		BookId:     book.BookID.String(),
+		FinishedAt: []string{"not-a-date"},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+	_, err := client.UpdateFinishedAt(ctx, req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
 // TestConnectGetLibrary_FormatsPopulated asserts that a book with an uploaded
