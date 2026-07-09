@@ -755,38 +755,40 @@ func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
 	planID := createPlanInDB(t, "Suggest Plan")
 	otherPlanID := createPlanInDB(t, "Suggest Other Plan")
 
-	add := func(plan, date, slot string, recipe uuid.UUID) {
+	add := func(plan, date, slot string, recipe uuid.UUID, servings int32) {
 		_, err := client.CreateMeal(
 			ctx,
 			connect.NewRequest(&mealplansv1.CreateMealRequest{
 				PlanId: plan, MealDate: date, MealSlot: slot,
-				RecipeId: recipe.String(), Servings: 2,
+				RecipeId: recipe.String(), Servings: servings,
 			}),
 		)
 		require.NoError(t, err)
 	}
 
-	// Mondays at noon: A twice, B once -> A ranks first.
-	add(planID, "2024-01-01", "noon", recipeA) // Monday
-	add(planID, "2024-01-08", "noon", recipeA) // Monday
-	add(planID, "2024-01-15", "noon", recipeB) // Monday
+	// Mondays at noon: A three times (servings 4, 4, 2 -> mode 4), B once ->
+	// A ranks first with servings 4.
+	add(planID, "2024-01-01", "noon", recipeA, 4) // Monday
+	add(planID, "2024-01-08", "noon", recipeA, 4) // Monday
+	add(planID, "2024-01-15", "noon", recipeA, 2) // Monday
+	add(planID, "2024-01-29", "noon", recipeB, 2) // Monday
 	// Noise that must be excluded:
-	add(planID, "2024-01-02", "noon", recipeB)    // Tuesday
-	add(planID, "2024-01-01", "evening", recipeB) // wrong slot
-	add(otherPlanID, "2024-01-01", "noon", recipeB)
+	add(planID, "2024-01-02", "noon", recipeB, 2)    // Tuesday
+	add(planID, "2024-01-01", "evening", recipeB, 2) // wrong slot
+	add(otherPlanID, "2024-01-01", "noon", recipeB, 2)
 
 	resp, err := client.SuggestRecipes(
 		ctx,
 		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
-			PlanId: planID, MealDate: "2024-01-22", MealSlot: "noon", // a Monday
+			PlanId: planID, MealDate: "2024-02-05", MealSlot: "noon", // a Monday
 		}),
 	)
 	require.NoError(t, err)
-	require.Equal(
-		t,
-		[]string{recipeA.String(), recipeB.String()},
-		resp.Msg.RecipeIds,
-	)
+	require.Len(t, resp.Msg.Suggestions, 2)
+	assert.Equal(t, recipeA.String(), resp.Msg.Suggestions[0].RecipeId)
+	assert.Equal(t, int32(4), resp.Msg.Suggestions[0].Servings)
+	assert.Equal(t, recipeB.String(), resp.Msg.Suggestions[1].RecipeId)
+	assert.Equal(t, int32(2), resp.Msg.Suggestions[1].Servings)
 }
 
 func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
@@ -807,7 +809,7 @@ func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.RecipeIds)
+	assert.Empty(t, resp.Msg.Suggestions)
 }
 
 func TestSuggestRecipes_PlanNotFound(t *testing.T) {

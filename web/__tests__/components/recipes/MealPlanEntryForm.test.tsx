@@ -33,6 +33,10 @@ const onSave = jest.fn()
 const onCancel = jest.fn()
 
 const recipe = (id: string, name: string) => create(RecipeSchema, { id, name })
+const suggestion = (id: string, name: string, servings = 1) => ({
+  recipe: recipe(id, name),
+  servings
+})
 
 function renderForm(initialCustomName: string) {
   return render(
@@ -99,7 +103,7 @@ describe('MealPlanEntryForm category picker', () => {
         open
         title="Add"
         recipes={[recipe('r1', 'Pasta'), recipe('r2', 'Curry')]}
-        suggestedRecipes={[recipe('r1', 'Pasta'), recipe('r2', 'Curry')]}
+        suggestedRecipes={[suggestion('r1', 'Pasta'), suggestion('r2', 'Curry')]}
         onSave={onSave}
         onCancel={onCancel}
       />
@@ -109,21 +113,24 @@ describe('MealPlanEntryForm category picker', () => {
     expect(screen.getByRole('button', { name: 'Curry' })).toBeInTheDocument()
   })
 
-  it('selects a recipe when a suggestion chip is clicked', async () => {
+  it('selects a recipe and pre-fills servings when a suggestion chip is clicked', async () => {
     render(
       <MealPlanEntryForm
         open
         title="Add"
         saveLabel="Add"
         recipes={[recipe('r1', 'Pasta')]}
-        suggestedRecipes={[recipe('r1', 'Pasta')]}
+        suggestedRecipes={[suggestion('r1', 'Pasta', 4)]}
         onSave={onSave}
         onCancel={onCancel}
       />
     )
     fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
+    const servingsInput = screen.getByPlaceholderText('Servings')
+    if (!(servingsInput instanceof HTMLInputElement)) throw new Error('expected input')
+    expect(servingsInput.value).toBe('4')
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith('r1', '', 1, false))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith('r1', '', 4, false))
   })
 
   it('renders no suggestions when none are provided', () => {
@@ -137,7 +144,7 @@ describe('MealPlanEntryForm category picker', () => {
         open
         title="Add"
         recipes={[recipe('r1', 'Pasta')]}
-        suggestedRecipes={[recipe('r1', 'Pasta')]}
+        suggestedRecipes={[suggestion('r1', 'Pasta')]}
         onSave={onSave}
         onCancel={onCancel}
       />
@@ -160,5 +167,28 @@ describe('MealPlanEntryForm category picker', () => {
     expect(screen.getByLabelText('Category for item 1')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('checkbox'))
     expect(screen.queryByLabelText('Category for item 1')).not.toBeInTheDocument()
+  })
+
+  it('hides amount and unit when keep off shopping list is checked', async () => {
+    render(
+      <MealPlanEntryForm
+        open
+        title="Add"
+        recipes={[]}
+        initialCustomName="apple"
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    )
+    expect(screen.getByLabelText('Amount for item 1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Unit for item 1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(screen.queryByLabelText('Amount for item 1')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Unit for item 1')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(screen.getByLabelText('Amount for item 1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Unit for item 1')).toBeInTheDocument()
   })
 })

@@ -54,7 +54,7 @@ func (f *fakePlansStore) GetMealsInWindow(
 
 func (f *fakePlansStore) SuggestRecipes(
 	_ context.Context, _ uuid.UUID, _ time.Time, _ string, _ int,
-) ([]uuid.UUID, error) {
+) ([]models.RecipeSuggestion, error) {
 	return nil, nil
 }
 

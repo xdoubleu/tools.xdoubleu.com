@@ -108,7 +108,11 @@ message SuggestRecipesRequest {
   string meal_date = 2;
   string meal_slot = 3;
 }
-message SuggestRecipesResponse { repeated string recipe_ids = 1; }
+message RecipeSuggestion {
+  string recipe_id = 1;
+  int32 servings = 2;
+}
+message SuggestRecipesResponse { repeated RecipeSuggestion suggestions = 1; }
 
 service MealPlansService {
   rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);

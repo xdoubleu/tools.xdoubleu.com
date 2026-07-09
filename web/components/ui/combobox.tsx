@@ -39,7 +39,10 @@ export function Combobox({
   }, [autoFocus])
 
   const filtered = value
-    ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase()))
+    ? suggestions.filter(
+        (s) =>
+          s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase()
+      )
     : suggestions
 
   const select = (suggestion: string) => {

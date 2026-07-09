@@ -247,9 +247,9 @@ func (r *PlansRepository) SuggestRecipes(
 	mealDate time.Time,
 	slot string,
 	limit int,
-) ([]uuid.UUID, error) {
+) ([]models.RecipeSuggestion, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT recipe_id
+		SELECT recipe_id, mode() WITHIN GROUP (ORDER BY servings) AS servings
 		FROM mealplans.plan_meals
 		WHERE plan_id = $1
 		  AND recipe_id IS NOT NULL
@@ -265,13 +265,13 @@ func (r *PlansRepository) SuggestRecipes(
 	}
 	defer rows.Close()
 
-	var result []uuid.UUID
+	var result []models.RecipeSuggestion
 	for rows.Next() {
-		var id uuid.UUID
-		if err = rows.Scan(&id); err != nil {
+		var s models.RecipeSuggestion
+		if err = rows.Scan(&s.RecipeID, &s.Servings); err != nil {
 			return nil, err
 		}
-		result = append(result, id)
+		result = append(result, s)
 	}
 	return result, rows.Err()
 }

@@ -20,6 +20,7 @@ interface MealPlanWeekGridProps {
   onEditClick: (meal: PlanMeal) => void
   onDeleteMeal: (mealId: string) => void
   onAddClick: (date: string, slot: string) => void
+  onFillDay: (date: string) => void
 }
 
 // MealPlanWeekGrid renders the week as a stacked-by-day list on mobile and a
@@ -34,7 +35,8 @@ export default function MealPlanWeekGrid({
   onStartSwap,
   onEditClick,
   onDeleteMeal,
-  onAddClick
+  onAddClick,
+  onFillDay
 }: MealPlanWeekGridProps) {
   const today = formatMealDate(new Date())
 
@@ -87,11 +89,19 @@ export default function MealPlanWeekGrid({
             const isToday = formattedDate === today
             return (
               <div key={formattedDate} className="rounded-xl border border-border p-2">
-                <div
-                  className={`mb-2 font-semibold text-sm${isToday ? ' text-accent' : ' text-fg'}`}
-                >
-                  {DAY_NAMES[date.getDay()]} {date.getDate()}
-                  {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className={`font-semibold text-sm${isToday ? ' text-accent' : ' text-fg'}`}>
+                    {DAY_NAMES[date.getDay()]} {date.getDate()}
+                    {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-lg text-xs text-muted"
+                    onClick={() => onFillDay(formattedDate)}
+                  >
+                    Fill day
+                  </Button>
                 </div>
                 <div className="space-y-1">
                   {MEAL_SLOTS.map((slot) => (
@@ -118,13 +128,22 @@ export default function MealPlanWeekGrid({
           >
             <div />
             {weekDates.map((date) => {
-              const isToday = formatMealDate(date) === today
+              const formattedDate = formatMealDate(date)
+              const isToday = formattedDate === today
               return (
                 <div
-                  key={formatMealDate(date)}
-                  className={`py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}
+                  key={formattedDate}
+                  className={`flex flex-col items-center gap-0.5 py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}
                 >
                   {DAY_NAMES[date.getDay()]}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto rounded-lg px-1.5 py-0 text-xs font-normal text-muted"
+                    onClick={() => onFillDay(formattedDate)}
+                  >
+                    Fill day
+                  </Button>
                 </div>
               )
             })}
