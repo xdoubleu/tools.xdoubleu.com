@@ -176,27 +176,45 @@ func isNumericToken(s string) bool {
 	return true
 }
 
-// numericTokens returns the purely-numeric tokens of s, in order of
-// appearance (duplicates kept — position, not just presence, matters).
-func numericTokens(tokens []string) []string {
+// romanNumeralRe matches a canonical Roman numeral (i, ii, iv, ix, x, …).
+// Anchored + canonical form so real words made of roman letters ("civil",
+// "did", "iiii") are rejected; the empty-string case is guarded in
+// isEnumeratorToken since RE2 cannot express the leading lookahead a strict
+// "non-empty" match would need.
+var romanNumeralRe = regexp.MustCompile(
+	`(?i)^m{0,3}(?:c[md]|d?c{0,3})(?:x[cl]|l?x{0,3})(?:i[xv]|v?i{0,3})$`,
+)
+
+// isEnumeratorToken reports whether s is a volume/edition/part marker: a
+// plain number or a canonical Roman numeral (e.g. "programmer i" vs
+// "programmer ii" — same pattern as "volume 1" vs "volume 2").
+func isEnumeratorToken(s string) bool {
+	return s != "" && (isNumericToken(s) || romanNumeralRe.MatchString(s))
+}
+
+// enumeratorTokens returns the volume/edition/part tokens of s (numeric or
+// Roman numeral), in order of appearance (duplicates kept — position, not
+// just presence, matters).
+func enumeratorTokens(tokens []string) []string {
 	var nums []string
 	for _, t := range tokens {
-		if isNumericToken(t) {
+		if isEnumeratorToken(t) {
 			nums = append(nums, t)
 		}
 	}
 	return nums
 }
 
-// numericTokensDiffer reports whether a and b disagree on their sequence of
-// purely-numeric tokens. A volume/edition/part number is the one kind of
-// title word that is meaningful rather than noise — "Mistborn Book 1" and
-// "Mistborn Book 2" must never be treated as fuzzy duplicates just because
-// they share every other word. Comparing the numeric tokens positionally
-// (not as an unordered set) also catches the swapped case: "Book 1 Edition 2"
-// vs "Book 2 Edition 1" share the same digits but are different books.
-func numericTokensDiffer(a, b []string) bool {
-	na, nb := numericTokens(a), numericTokens(b)
+// enumeratorTokensDiffer reports whether a and b disagree on their sequence
+// of volume/edition/part tokens. A volume/edition/part marker is the one
+// kind of title word that is meaningful rather than noise — "Mistborn Book 1"
+// and "Mistborn Book 2", or "Programmer I" and "Programmer II", must never be
+// treated as fuzzy duplicates just because they share every other word.
+// Comparing the tokens positionally (not as an unordered set) also catches
+// the swapped case: "Book 1 Edition 2" vs "Book 2 Edition 1" share the same
+// digits but are different books.
+func enumeratorTokensDiffer(a, b []string) bool {
+	na, nb := enumeratorTokens(a), enumeratorTokens(b)
 	if len(na) != len(nb) {
 		return true
 	}
@@ -210,10 +228,11 @@ func numericTokensDiffer(a, b []string) bool {
 
 // titlesFuzzyMatch reports whether a and b are similar enough to treat as the
 // same book: token-set Jaccard similarity at or above titleSimilarityThreshold,
-// and no disagreement on a volume/edition number.
+// and no disagreement on a volume/edition/part marker (numeric or Roman
+// numeral).
 func titlesFuzzyMatch(a, b []string) bool {
 	return tokenSimilarity(a, b) >= titleSimilarityThreshold &&
-		!numericTokensDiffer(a, b)
+		!enumeratorTokensDiffer(a, b)
 }
 
 // titleSimilarityThreshold is the minimum Jaccard token similarity for two

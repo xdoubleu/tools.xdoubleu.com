@@ -159,6 +159,25 @@ func TestTitlesFuzzyMatch_SameVolumeNumberCanMatch(t *testing.T) {
 	assert.True(t, titlesFuzzyMatch(a, b))
 }
 
+func TestTitlesFuzzyMatch_DifferingRomanNumeralNeverMatches(t *testing.T) {
+	// The reported bug: "Programmer I" vs "Programmer II" — high word overlap,
+	// but the Roman numeral distinguishes two different books.
+	a := titleTokens(
+		"OCP Oracle Certified Professional Java SE 11 Programmer I Study Guide",
+	)
+	b := titleTokens(
+		"OCP Oracle Certified Professional Java SE 11 Programmer II Study Guide",
+	)
+	assert.GreaterOrEqual(t, tokenSimilarity(a, b), titleSimilarityThreshold)
+	assert.False(t, titlesFuzzyMatch(a, b))
+}
+
+func TestTitlesFuzzyMatch_SameRomanNumeralCanMatch(t *testing.T) {
+	a := titleTokens("Fellowship of the Ring Part II")
+	b := titleTokens("Fellowship of the Ring, Part II")
+	assert.True(t, titlesFuzzyMatch(a, b))
+}
+
 // --- normalizeAuthor ---
 
 func TestNormalizeAuthor_FirstLast(t *testing.T) {
@@ -412,6 +431,21 @@ func TestFindDuplicateGroups_DoesNotMergeDifferentVolumes(t *testing.T) {
 	// are different books by the same author and must never be grouped.
 	a := makeUserBook("System Design Interview: Volume 1", []string{"Alex Xu"})
 	b := makeUserBook("System Design Interview: Volume 2", []string{"Alex Xu"})
+	lib := []models.UserBook{a, b}
+	assert.Nil(t, FindDuplicateGroups(lib))
+}
+
+func TestFindDuplicateGroups_DoesNotMergeDifferentRomanVolumes(t *testing.T) {
+	// The reported bug: two Oracle certification study guides differing only
+	// by "Programmer I" vs "Programmer II" must never be grouped.
+	a := makeUserBook(
+		"OCP Java SE 11 Programmer I Study Guide: Exam 1z0-815",
+		[]string{"Jeanne Boyarsky"},
+	)
+	b := makeUserBook(
+		"OCP Java SE 11 Programmer II Study Guide: Exam 1z0-816",
+		[]string{"Jeanne Boyarsky"},
+	)
 	lib := []models.UserBook{a, b}
 	assert.Nil(t, FindDuplicateGroups(lib))
 }
