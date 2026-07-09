@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { create } from '@bufbuild/protobuf'
+import { mutate as globalMutate } from 'swr'
 import { useSteamGame, useRefreshSteamGame } from '@/hooks/useGames'
 import type { Achievement } from '@/lib/gen/games/v1/games_pb'
 import { GetSteamGameResponseSchema } from '@/lib/gen/games/v1/games_pb'
 import type { GetSteamGameResponse } from '@/lib/gen/games/v1/games_pb'
+import { swrKeys } from '@/lib/swrKeys'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -78,11 +80,15 @@ export default function SteamGameClient({
     if (!gameId) return Promise.resolve()
     setIsRefetching(true)
     return refreshGame(gameId)
-      .then((fresh) =>
-        mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), {
+      .then((fresh) => {
+        // The single-game refetch also updates the library-wide progress
+        // graph server-side, so the dashboard's total completion rate must
+        // be revalidated too.
+        void globalMutate(swrKeys.games)
+        return mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), {
           revalidate: false
         })
-      )
+      })
       .catch(() => {})
       .finally(() => setIsRefetching(false))
   }, [gameId, mutate, refreshGame])

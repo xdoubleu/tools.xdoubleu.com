@@ -398,9 +398,9 @@ func (service *SteamService) GetCompleted(
 }
 
 // SyncGame refreshes a single game's achievements from Steam and persists the
-// updated rows and completion rate. Unlike SyncUser, it only touches the one
-// game and intentionally does not recompute the library-wide progress graph,
-// which remains owned by the daily SteamJob.
+// updated rows, its completion rate, and the library-wide progress graph
+// (same recompute as SyncUser) so the dashboard's total completion rate stays
+// in sync with this game's refreshed achievements.
 func (service *SteamService) SyncGame(
 	ctx context.Context,
 	userID string,
@@ -441,15 +441,33 @@ func (service *SteamService) SyncGame(
 
 	game.SetCalculatedInfo(rows, len(allGames))
 
+	// Recompute the library-wide progress graph so the dashboard's total
+	// completion rate reflects this game's refreshed achievements (same as
+	// SyncUser). Other games contribute their stored achievements.
+	gamesMap := make(map[int]*models.Game, len(allGames))
+	for i := range allGames {
+		g := allGames[i]
+		gamesMap[g.ID] = &g
+	}
+	fetched := map[int][]models.Achievement{gameID: rows}
+	complete, err := service.completeAchievements(ctx, userID, gamesMap, fetched)
+	if err != nil {
+		return err
+	}
+	labels, values := buildProgress(complete)
+
 	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
 		if errIn := service.steam.ReplaceAchievements(
 			ctx, tx, userID, gameID, rows,
 		); errIn != nil {
 			return errIn
 		}
-		return service.steam.UpsertGames(
+		if errIn := service.steam.UpsertGames(
 			ctx, tx, map[int]*models.Game{gameID: game}, userID,
-		)
+		); errIn != nil {
+			return errIn
+		}
+		return service.progress.UpsertTx(ctx, tx, userID, labels, values)
 	})
 }
 
