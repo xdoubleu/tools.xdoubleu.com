@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { swrKeys } from '@/lib/swrKeys'
 import { getRelease } from '@/lib/env'
 
@@ -30,21 +30,19 @@ export default function DeployNotification() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-xs">
-      <Card>
-        <CardContent className="flex items-center gap-3 p-4 sm:p-4">
-          <p className="flex-1 text-sm text-fg">A new version is available.</p>
-          <Button size="sm" onClick={() => window.location.reload()}>
-            Reload
-          </Button>
-          <Button
-            variant="ghost"
-            size="iconSm"
-            aria-label="Dismiss"
-            onClick={() => setDismissed(true)}
-          >
-            ×
-          </Button>
-        </CardContent>
+      <Card className="flex items-center gap-3 p-4">
+        <p className="flex-1 text-sm text-fg">A new version is available.</p>
+        <Button size="sm" onClick={() => window.location.reload()}>
+          Reload
+        </Button>
+        <Button
+          variant="ghost"
+          size="iconSm"
+          aria-label="Dismiss"
+          onClick={() => setDismissed(true)}
+        >
+          ×
+        </Button>
       </Card>
     </div>
   )
