@@ -114,7 +114,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
                   <th className="px-3 py-2 text-center font-medium">Hide Series</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border bg-card">
                 {events.map((event) => (
                   <tr key={event.uid} className="hover:bg-hover">
                     <td className="px-3 py-2 text-fg">{event.summary || event.uid}</td>

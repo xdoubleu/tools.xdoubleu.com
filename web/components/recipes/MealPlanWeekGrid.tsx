@@ -45,7 +45,7 @@ export default function MealPlanWeekGrid({
     return (
       <div
         key={`${formattedDate}-${slot}`}
-        className={`min-h-14 min-w-0 rounded-xl border p-1.5 ${swappingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
+        className={`min-h-14 min-w-0 rounded-xl border bg-card p-1.5 ${swappingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
         onClick={() => onCellClick(formattedDate, slot)}
       >
         {meal ? (
@@ -88,7 +88,7 @@ export default function MealPlanWeekGrid({
             const formattedDate = formatMealDate(date)
             const isToday = formattedDate === today
             return (
-              <div key={formattedDate} className="rounded-xl border border-border p-2">
+              <div key={formattedDate} className="rounded-xl border border-border bg-card p-2">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className={`font-semibold text-sm${isToday ? ' text-accent' : ' text-fg'}`}>
                     {DAY_NAMES[date.getDay()]} {date.getDate()}

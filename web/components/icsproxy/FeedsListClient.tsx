@@ -28,7 +28,7 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
   }
 
   return (
-    <div className="border border-border rounded-2xl p-4">
+    <div className="border border-border rounded-2xl bg-card p-4">
       <p className="text-sm font-mono text-subtle break-all">{config.sourceUrl}</p>
       <div className="flex items-center gap-3 mt-3 flex-wrap">
         <a
