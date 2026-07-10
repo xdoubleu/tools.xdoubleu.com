@@ -49,7 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="flex min-h-screen flex-col bg-bg text-fg">
         <SWRProvider currentUser={currentUser}>
           <Navbar />
-          <main className="flex-1 px-4 py-6 sm:px-6">
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
             <div className="w-full">{children}</div>
           </main>
           <Footer />
