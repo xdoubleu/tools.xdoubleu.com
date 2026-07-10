@@ -118,54 +118,8 @@ message ApplyBookSourceRequest {
 }
 message ApplyBookSourceResponse {}
 
-// BookRef is a lightweight snapshot of one book used in CSV comparison results.
-message BookRef {
-  string title = 1;
-  repeated string authors = 2;
-  string isbn13 = 3;
-  // status is the reading shelf/state (e.g. "read", "to-read", custom shelf).
-  string status = 4;
-  // tags are the non-exclusive Goodreads bookshelves (distinct from status,
-  // which is the one exclusive shelf).
-  repeated string tags = 5;
-}
-
-// BookMismatch describes one pair of entries that differ between the CSV and
-// the library. csv or library may be empty (zero-value) when the book only
-// exists on one side. differences lists the active tags from the set:
-//   "missing-in-library", "missing-in-csv", "status", "isbn", "title", "tags"
-message BookMismatch {
-  BookRef csv = 1;
-  BookRef library = 2;
-  repeated string differences = 3;
-  // id is a stable per-row key for ApplyCSVFix: the library book_id when the
-  // book is matched or library-only, or "csv:<index>" when it only exists in
-  // the CSV.
-  string id = 4;
-}
-
-message CompareCSVRequest { bytes csv_data = 1; }
-message CompareCSVResponse {
-  int32 csv_count = 1;
-  int32 library_count = 2;
-  int32 matched_count = 3;
-  // mismatches contains only books that differ in some way.
-  repeated BookMismatch mismatches = 4;
-}
-
-message ApplyCSVFixRequest {
-  bytes csv_data = 1;
-  // mismatch_id echoes BookMismatch.id from a prior CompareCSV response.
-  string mismatch_id = 2;
-  // difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title" | "tags".
-  string difference = 3;
-}
-message ApplyCSVFixResponse {}
-
 service CatalogService {
   rpc ImportBooks(ImportBooksRequest) returns (ImportBooksResponse);
-  rpc CompareCSV(CompareCSVRequest) returns (CompareCSVResponse);
-  rpc ApplyCSVFix(ApplyCSVFixRequest) returns (ApplyCSVFixResponse);
   rpc ClearLibrary(ClearLibraryRequest) returns (ClearLibraryResponse);
   rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
   rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
