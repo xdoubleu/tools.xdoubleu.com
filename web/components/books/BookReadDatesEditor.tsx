@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import { useUpdateFinishedAt } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
-import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Button } from '@/components/ui/button'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -43,16 +43,16 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
       <div className="flex flex-col gap-1.5">
         {dates.map((date, i) => (
           <div key={i} className="flex items-center gap-2">
-            <Input
-              type="date"
+            <DateInput
               value={date}
-              onChange={(e) => {
+              onChange={(v) => {
                 const next = [...dates]
-                next[i] = e.target.value
+                next[i] = v
                 setDates(next)
               }}
               onBlur={() => void save(dates)}
-              className="h-9 w-auto"
+              className="h-9 w-40"
+              aria-label={`Read date ${i + 1}`}
             />
             <Button
               type="button"

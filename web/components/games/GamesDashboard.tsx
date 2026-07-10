@@ -24,7 +24,7 @@ import type {
 import GamesSearch from '@/components/games/GamesSearch'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Card, interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
@@ -174,24 +174,22 @@ export default function GamesDashboard({
                   <label htmlFor="dash-from" className="mb-1 block text-xs text-muted">
                     From
                   </label>
-                  <Input
+                  <DateInput
                     id="dash-from"
-                    type="date"
                     value={progressStart}
-                    onChange={(e) => setProgressStart(e.target.value)}
-                    className="h-9 w-auto"
+                    onChange={setProgressStart}
+                    className="h-9 w-40"
                   />
                 </div>
                 <div>
                   <label htmlFor="dash-to" className="mb-1 block text-xs text-muted">
                     To
                   </label>
-                  <Input
+                  <DateInput
                     id="dash-to"
-                    type="date"
                     value={progressEnd}
-                    onChange={(e) => setProgressEnd(e.target.value)}
-                    className="h-9 w-auto"
+                    onChange={setProgressEnd}
+                    className="h-9 w-40"
                   />
                 </div>
               </div>

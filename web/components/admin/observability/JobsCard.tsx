@@ -4,11 +4,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge'
 import type { GetJobStatsResponse } from '@/lib/gen/admin/v1/admin_pb'
 import { formatCount, formatDuration, successRate } from '@/lib/observability'
+import { formatDateTime } from '@/lib/dates'
 
 function formatWhen(rfc3339: string): string {
-  if (!rfc3339) return '—'
-  const d = new Date(rfc3339)
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString()
+  return formatDateTime(rfc3339) || '—'
 }
 
 export default function JobsCard({ data }: { data?: GetJobStatsResponse }) {

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
+import { formatDateTime } from '@/lib/dates'
 
 export default function BooksAdminClient() {
   const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
@@ -90,7 +91,7 @@ export default function BooksAdminClient() {
         )}
         {!isRefreshing && lastRefresh && (
           <p className="mt-2 text-xs text-muted" data-testid="resync-openlibrary-status">
-            Last scanned {lastRefresh.toLocaleString()}
+            Last scanned {formatDateTime(lastRefresh)}
           </p>
         )}
       </section>

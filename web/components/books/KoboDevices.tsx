@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { useListKoboDevices, useDisconnectKoboDevice } from '@/hooks/useBooks'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { formatDate } from '@/lib/dates'
 
 function formatLastSeen(lastSeenAt: string): string {
   if (!lastSeenAt) return 'Never synced'
-  const date = new Date(lastSeenAt)
-  return `Last synced ${date.toLocaleDateString(undefined, { dateStyle: 'medium' })}`
+  return `Last synced ${formatDate(lastSeenAt)}`
 }
 
 interface DisconnectDialogProps {

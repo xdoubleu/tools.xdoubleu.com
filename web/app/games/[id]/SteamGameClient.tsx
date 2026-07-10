@@ -13,6 +13,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { formatDateTime } from '@/lib/dates'
 
 interface AchievementCardProps {
   achievement: Achievement
@@ -165,7 +166,7 @@ export default function SteamGameClient({
             </Button>
             {game.lastSyncedAt && (
               <span className="text-xs text-muted">
-                Last synced: {new Date(game.lastSyncedAt).toLocaleString()}
+                Last synced: {formatDateTime(game.lastSyncedAt)}
               </span>
             )}
           </div>

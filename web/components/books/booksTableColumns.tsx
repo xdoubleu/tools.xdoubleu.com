@@ -7,6 +7,7 @@ import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
 import { displayTags, statusLabel } from '@/lib/books/bookShelves'
+import { formatDate } from '@/lib/dates'
 
 export type ColumnKey =
   | 'cover'
@@ -59,15 +60,6 @@ export function nextDir(current: SortDir): SortDir {
   if (current === null) return 'asc'
   if (current === 'asc') return 'desc'
   return null
-}
-
-export function formatShortDate(iso: string | undefined): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
 }
 
 export function latestFinishedAt(ub: UserBook): string {
@@ -214,7 +206,7 @@ export const ALL_COLUMNS: BookColumn[] = [
     label: 'Date added',
     sortKey: 'added',
     renderCell: (ub) => (
-      <span className="text-xs text-muted whitespace-nowrap">{formatShortDate(ub.addedAt)}</span>
+      <span className="text-xs text-muted whitespace-nowrap">{formatDate(ub.addedAt)}</span>
     )
   },
   {
@@ -223,7 +215,7 @@ export const ALL_COLUMNS: BookColumn[] = [
     sortKey: 'read',
     renderCell: (ub) => (
       <span className="text-xs text-muted whitespace-nowrap">
-        {formatShortDate(latestFinishedAt(ub))}
+        {formatDate(latestFinishedAt(ub))}
       </span>
     )
   }
