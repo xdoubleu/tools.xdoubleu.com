@@ -6,9 +6,8 @@ import { mutate } from 'swr'
 import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
+import TogglePill from '@/components/books/TogglePill'
 import {
   SPECIAL_TAGS,
   BOOK_STATUSES,
@@ -27,9 +26,10 @@ interface BookShelfTagFieldsProps {
 
 /**
  * Inline shelf/tag editor for the book detail page.
- * Renders a radio group (shelf) and clickable tag chips — one click toggles a
- * tag, no popover or checkbox list. New tags are added via a combobox.
- * Creating or deleting shelves/tags is handled in the sidebar Manage dialog.
+ * Renders shelf and tags as the same toggle-pill control (single-select for
+ * shelf, multi-select for tags) — one click toggles, no popover or checkbox
+ * list. New tags are added via a combobox. Creating or deleting shelves/tags
+ * is handled in the sidebar Manage dialog.
  */
 export default function BookShelfTagFields({
   userBook,
@@ -92,21 +92,27 @@ export default function BookShelfTagFields({
 
   return (
     <div className="space-y-4">
-      {/* Shelf — single-select via radio group */}
+      {/* Shelf — single-select toggle pills */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Shelf</Label>
-        <RadioGroup
-          name={`shelf-${userBook.id}`}
-          value={status}
-          onChange={(v) => void handleStatusChange(v)}
-        >
+        <div className="flex flex-wrap gap-1.5">
           {BOOK_STATUSES.map(({ value, label }) => (
-            <RadioGroupItem key={value} value={value} label={label} />
+            <TogglePill
+              key={value}
+              label={label}
+              active={status === value}
+              onClick={() => void handleStatusChange(value)}
+            />
           ))}
           {customShelves.map((s) => (
-            <RadioGroupItem key={s} value={s} label={s} />
+            <TogglePill
+              key={s}
+              label={s}
+              active={status === s}
+              onClick={() => void handleStatusChange(s)}
+            />
           ))}
-        </RadioGroup>
+        </div>
       </div>
 
       {/* Tags — clickable chips toggle in place, no popover/checkbox list */}
@@ -119,17 +125,12 @@ export default function BookShelfTagFields({
             {allTags.map((tag) => {
               const active = tags.includes(tag)
               return (
-                <Button
+                <TogglePill
                   key={tag}
-                  type="button"
-                  size="sm"
-                  variant={active ? 'default' : 'secondary'}
-                  className="h-auto rounded-full px-2.5 py-0.5 text-xs"
-                  aria-pressed={active}
+                  label={tag}
+                  active={active}
                   onClick={() => void handleTagToggle(tag, !active)}
-                >
-                  {tag}
-                </Button>
+                />
               )
             })}
           </div>

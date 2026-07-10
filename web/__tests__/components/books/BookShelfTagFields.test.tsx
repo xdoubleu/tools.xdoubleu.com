@@ -40,16 +40,15 @@ describe('BookShelfTagFields', () => {
     mockToggleTag.mockResolvedValue(undefined)
   })
 
-  it('renders a radio group with built-in shelves', () => {
+  it('renders built-in shelves as toggle pills', () => {
     render(<BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={[]} />)
-    expect(screen.getByRole('radiogroup')).toBeInTheDocument()
-    expect(screen.getByLabelText('Want to read')).toBeInTheDocument()
-    expect(screen.getByLabelText('Currently reading')).toBeInTheDocument()
-    expect(screen.getByLabelText('Read')).toBeInTheDocument()
-    expect(screen.getByLabelText('Dropped')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Want to read' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Currently reading' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Read' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dropped' })).toBeInTheDocument()
   })
 
-  it('renders custom shelves in the radio group', () => {
+  it('renders custom shelves as toggle pills', () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook()}
@@ -57,8 +56,8 @@ describe('BookShelfTagFields', () => {
         knownTags={[]}
       />
     )
-    expect(screen.getByLabelText('classics')).toBeInTheDocument()
-    expect(screen.getByLabelText('sci-fi')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'classics' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'sci-fi' })).toBeInTheDocument()
   })
 
   it('does not show built-in statuses as custom shelves', () => {
@@ -70,11 +69,11 @@ describe('BookShelfTagFields', () => {
       />
     )
     // 'to-read' is built-in — should appear exactly once (from BOOK_STATUSES), not twice
-    expect(screen.getAllByLabelText('Want to read')).toHaveLength(1)
-    expect(screen.getByLabelText('sci-fi')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Want to read' })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'sci-fi' })).toBeInTheDocument()
   })
 
-  it('marks the current shelf as selected', () => {
+  it('marks the current shelf pill as active', () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook({ status: 'read' })}
@@ -82,10 +81,14 @@ describe('BookShelfTagFields', () => {
         knownTags={[]}
       />
     )
-    expect(screen.getByLabelText<HTMLInputElement>('Read').checked).toBe(true)
+    expect(screen.getByRole('button', { name: 'Read' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Want to read' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
   })
 
-  it('calls updateBookStatus when a radio is selected', async () => {
+  it('calls updateBookStatus when a shelf pill is clicked', async () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook({ status: 'to-read' })}
@@ -93,7 +96,7 @@ describe('BookShelfTagFields', () => {
         knownTags={[]}
       />
     )
-    fireEvent.click(screen.getByLabelText('Read'))
+    fireEvent.click(screen.getByRole('button', { name: 'Read' }))
     await waitFor(() =>
       expect(mockUpdateBookStatus).toHaveBeenCalledWith(
         expect.objectContaining({ bookId: 'book-1', status: 'read' })
@@ -111,10 +114,13 @@ describe('BookShelfTagFields', () => {
         knownTags={[]}
       />
     )
-    fireEvent.click(screen.getByLabelText('Read'))
+    fireEvent.click(screen.getByRole('button', { name: 'Read' }))
     await waitFor(() => expect(screen.getByText('Failed to update status.')).toBeInTheDocument())
-    // Should have reverted: 'Want to read' radio should be checked again
-    expect(screen.getByLabelText<HTMLInputElement>('Want to read').checked).toBe(true)
+    // Should have reverted: 'Want to read' pill should be active again
+    expect(screen.getByRole('button', { name: 'Want to read' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
   })
 
   it('renders known tags as clickable chips', () => {
@@ -187,7 +193,7 @@ describe('BookShelfTagFields', () => {
         onSaved={onSaved}
       />
     )
-    fireEvent.click(screen.getByLabelText('Read'))
+    fireEvent.click(screen.getByRole('button', { name: 'Read' }))
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
 

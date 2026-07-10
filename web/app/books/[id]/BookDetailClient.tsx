@@ -94,7 +94,7 @@ export default function BookDetailClient({ id }: { id: string }) {
                 <p className="mt-1 text-lg text-muted">{book.authors.join(', ')}</p>
               )}
 
-              {/* Rating + favourite + page count + status */}
+              {/* Rating + favourite + page count */}
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {userBook.status === 'read' && (
                   <>
@@ -105,26 +105,19 @@ export default function BookDetailClient({ id }: { id: string }) {
                 {book.pageCount > 0 && (
                   <span className="text-sm text-muted">{book.pageCount} pages</span>
                 )}
-                <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-subtle capitalize">
-                  {userBook.status.replace(/-/g, ' ')}
-                </span>
-              </div>
-
-              {/* Ownership toggles */}
-              <div className="mt-2">
-                <BookOwnershipToggles userBook={userBook} onSaved={handleSaved} />
               </div>
 
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
 
-              {/* Shelf + tags — inline editing, no popover */}
-              <div className="mt-4">
+              {/* Shelf, ownership + tags — inline editing, no popover */}
+              <div className="mt-4 space-y-4">
                 <BookShelfTagFields
                   userBook={userBook}
                   knownShelves={knownShelves}
                   knownTags={knownTags}
                   onSaved={handleSaved}
                 />
+                <BookOwnershipToggles userBook={userBook} onSaved={handleSaved} />
               </div>
             </div>
           </div>
