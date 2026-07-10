@@ -97,6 +97,8 @@ See `.github/workflows/` for the pipeline. `main.yml` orchestrates reusable work
 
 Because `main` is deployed without re-testing, protect `main` from direct pushes and merge only PRs whose CI passed.
 
+One cross-cutting nuance: the **kobo-gateway** macOS helper lives under `api/` (`api/cmd/kobo-gateway`, `api/internal/kobogateway`) but ships inside the **web** Docker image (served as a download). The `gateway` path filter in `main.yml` therefore feeds `build-web` and `docker.build_web` — keep it in sync when moving those packages, or gateway changes would silently deploy a stale binary.
+
 ## Docs Impact
 
 When a change touches project structure, packages, Make/npm targets, shared services, or architecture conventions, update the relevant `CLAUDE.md` (root / `api/` / `web/`) and `README.md` in the same change.

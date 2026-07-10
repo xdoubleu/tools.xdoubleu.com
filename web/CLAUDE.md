@@ -23,6 +23,11 @@ Next.js 16 App Router application built as a standalone Node server (`output: 's
 - `lib/server/` — Server-side ConnectRPC client for React Server Components (`createServerClient` forwards the request's cookies — except the refresh token — and `fetchOrNull` makes prefetching best-effort)
 - `lib/gen/` — Generated TypeScript ConnectRPC clients from buf (committed; only regenerate after editing `.proto` files). **Do not read `lib/gen/`** to discover RPC types or method signatures — read the `.proto` source in `proto/` instead.
 - `hooks/` — SWR data-fetching hooks
+- `lib/books/gatewayClient.ts` — Client for the local kobo-gateway (macOS helper at `http://127.0.0.1:41132`; Go source in `api/internal/kobogateway`). `KoboSetup` probes it and prefers the gateway flow (`KoboGatewaySetup`) over the File System Access flow. `REQUIRED_GATEWAY_VERSION` here must track `GatewayVersion` in the Go code — bumping the Go side without this constant means clients never trigger the self-update.
+
+## Static Downloads
+
+`web/public/` does not exist in the repo. The kobo-gateway binary is cross-compiled in `web/Dockerfile` (gateway-builder stage) and copied to `public/downloads/` next to `server.js` — Next standalone only serves `public/` assembled that way, so the download 404s under `npm run dev`. If `web/public/` ever gains committed files, `web/Dockerfile` needs an extra `COPY web/public ./public`.
 
 ## Data Flow (RSC + SWR)
 

@@ -12,8 +12,10 @@ declare global {
   }
 }
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import KoboGatewaySetup from '@/components/books/KoboGatewaySetup'
+import { probeGateway, type GatewayStatus } from '@/lib/books/gatewayClient'
 import { getApiUrl } from '@/lib/env'
 import {
   parseKoboConf,
@@ -61,15 +63,38 @@ export default function KoboSetup() {
   // The device ID returned by RegisterKoboDevice, needed for revert-and-revoke.
   const [deviceId, setDeviceId] = useState<string | null>(null)
 
+  // When the local kobo-gateway responds it takes over the whole flow: it
+  // does the file work natively, so setup also works in Safari/Firefox.
+  const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus | null>(null)
+
   const registerKoboDevice = useRegisterKoboDevice()
   const disconnectKoboDevice = useDisconnectKoboDevice()
   const { data: devices, mutate: mutateDevices } = useListKoboDevices()
 
+  useEffect(() => {
+    let cancelled = false
+    void probeGateway().then((status) => {
+      if (!cancelled && status) setGatewayStatus(status)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function handleGatewayRecheck() {
+    const status = await probeGateway()
+    if (status) setGatewayStatus(status)
+  }
+
   const fsSupported =
     typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function'
 
+  if (gatewayStatus) {
+    return <KoboGatewaySetup initialStatus={gatewayStatus} />
+  }
+
   if (!fsSupported) {
-    return <KoboFallback />
+    return <KoboFallback onGatewayRecheck={handleGatewayRecheck} />
   }
 
   async function handleDetect() {
@@ -240,14 +265,15 @@ export default function KoboSetup() {
   )
 }
 
-function KoboFallback() {
+function KoboFallback({ onGatewayRecheck }: { onGatewayRecheck: () => Promise<void> }) {
   return (
     <div
       className="space-y-2 rounded-xl border border-border bg-surface px-4 py-3"
       data-testid="kobo-setup-fallback"
     >
       <p className="text-sm text-subtle">
-        Your browser does not support automatic Kobo setup. Follow these steps manually:
+        Your browser does not support automatic Kobo setup. On a Mac, download and run the gateway
+        tool below — or follow these steps manually:
       </p>
       <ol className="list-decimal list-inside space-y-1 text-xs text-muted">
         <li>Connect your Kobo via USB so it appears as a drive.</li>
@@ -260,6 +286,14 @@ function KoboFallback() {
         </li>
         <li>Save the file, eject, and reconnect your Kobo to sync.</li>
       </ol>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={onGatewayRecheck}
+        data-testid="kobo-gateway-recheck-btn"
+      >
+        I started the gateway — re-check
+      </Button>
     </div>
   )
 }

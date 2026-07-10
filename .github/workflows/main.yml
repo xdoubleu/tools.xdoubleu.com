@@ -20,6 +20,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       proto: ${{ steps.filter.outputs.proto }}
       workflows: ${{ steps.filter.outputs.workflows }}
+      gateway: ${{ steps.filter.outputs.gateway }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -34,6 +35,13 @@ jobs:
               - 'proto/**'
             workflows:
               - '.github/workflows/**'
+            # The kobo-gateway binary ships inside the WEB image (served as
+            # a download), so gateway code changes must rebuild web too.
+            gateway:
+              - 'api/cmd/kobo-gateway/**'
+              - 'api/internal/kobogateway/**'
+              - 'api/go.mod'
+              - 'api/go.sum'
 
   proto-check:
     needs: changes
@@ -68,6 +76,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.gateway == 'true' ||
       needs.changes.outputs.workflows == 'true') &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped')
     name: Build Web Workflow
@@ -191,7 +200,7 @@ jobs:
     uses: ./.github/workflows/docker.yml
     with:
       build_api: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.workflows == 'true' }}
-      build_web: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.workflows == 'true' }}
+      build_web: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
 
   deploy:
