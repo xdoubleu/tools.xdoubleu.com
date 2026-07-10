@@ -2,7 +2,7 @@ import { type HTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
 const sizes = {
-  default: 'max-w-6xl',
+  default: '',
   narrow: 'max-w-xl'
 } as const
 

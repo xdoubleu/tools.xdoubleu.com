@@ -21,7 +21,7 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-border/60 bg-glass backdrop-blur-xl backdrop-saturate-150 px-4 py-3 text-xs sm:px-6">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 sm:gap-4">
+      <div className="mx-auto flex flex-wrap items-center justify-center gap-3 sm:gap-4">
         <div className="text-muted">
           © {year}{' '}
           <Link href="https://xdoubleu.com" className="underline hover:text-fg transition-colors">
