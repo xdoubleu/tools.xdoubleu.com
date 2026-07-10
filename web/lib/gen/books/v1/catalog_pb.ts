@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file books/v1/catalog.proto.
  */
 export const file_books_v1_catalog: GenFile = /*@__PURE__*/
-  fileDesc("ChZib29rcy92MS9jYXRhbG9nLnByb3RvEghib29rcy52MSImChJJbXBvcnRCb29rc1JlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwiLQoTSW1wb3J0Qm9va3NSZXNwb25zZRIWCg5pbXBvcnRlZF9jb3VudBgBIAEoBSIVChNDbGVhckxpYnJhcnlSZXF1ZXN0IkQKFENsZWFyTGlicmFyeVJlc3BvbnNlEhUKDWRlbGV0ZWRfYm9va3MYASABKA0SFQoNZGVsZXRlZF9maWxlcxgCIAEoDSJFCg5EdXBsaWNhdGVHcm91cBIjCgdlbnRyaWVzGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSDgoGcmVhc29uGAIgASgJIhcKFUZpbmREdXBsaWNhdGVzUmVxdWVzdCJCChZGaW5kRHVwbGljYXRlc1Jlc3BvbnNlEigKBmdyb3VwcxgBIAMoCzIYLmJvb2tzLnYxLkR1cGxpY2F0ZUdyb3VwIokCChFNZXJnZUJvb2tzUmVxdWVzdBIWCg53aW5uZXJfYm9va19pZBgBIAEoCRIWCg5sb3Nlcl9ib29rX2lkcxgCIAMoCRIuChFyZXNvbHZlZF9tZXRhZGF0YRgDIAEoCzIOLmJvb2tzLnYxLkJvb2tIAIgBARIqCh1yZXNvbHZlZF9jb3Zlcl9zb3VyY2VfYm9va19pZBgEIAEoCUgBiAEBEhwKD3Jlc29sdmVkX3N0YXR1cxgFIAEoCUgCiAEBQhQKEl9yZXNvbHZlZF9tZXRhZGF0YUIgCh5fcmVzb2x2ZWRfY292ZXJfc291cmNlX2Jvb2tfaWRCEgoQX3Jlc29sdmVkX3N0YXR1cyJCChJNZXJnZUJvb2tzUmVzcG9uc2USFQoNbWVyZ2VkX2dyb3VwcxgBIAEoDRIVCg1kZWxldGVkX2ZpbGVzGAIgASgNIhQKElN0YXJ0UmVzeW5jUmVxdWVzdCIVChNTdGFydFJlc3luY1Jlc3BvbnNlIpkBCgpTb3VyY2VCb29rEg4KBnNvdXJjZRgBIAEoCRIRCgljb3Zlcl91cmwYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEgoKcGFnZV9jb3VudBgEIAEoBRIOCgZpc2JuMTMYBSABKAkSDQoFdGl0bGUYBiABKAkSDwoHYXV0aG9ycxgHIAMoCRIPCgdkaWZmZXJzGAggAygJIm8KDlJlc3luY1Byb3Bvc2FsEg8KB2Jvb2tfaWQYASABKAkSJQoHbGlicmFyeRgCIAEoCzIULmJvb2tzLnYxLlNvdXJjZUJvb2sSJQoHc291cmNlcxgDIAMoCzIULmJvb2tzLnYxLlNvdXJjZUJvb2siHAoaTGlzdFJlc3luY1Byb3Bvc2Fsc1JlcXVlc3QiSgobTGlzdFJlc3luY1Byb3Bvc2Fsc1Jlc3BvbnNlEisKCXByb3Bvc2FscxgBIAMoCzIYLmJvb2tzLnYxLlJlc3luY1Byb3Bvc2FsIjsKGEFwcGx5UmVzeW5jQ2hvaWNlUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEg4KBnNvdXJjZRgCIAEoCSIbChlBcHBseVJlc3luY0Nob2ljZVJlc3BvbnNlIjUKElNldEJvb2tJU0JOUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEg4KBmlzYm4xMxgCIAEoCSIVChNTZXRCb29rSVNCTlJlc3BvbnNlIigKFUdldEJvb2tTb3VyY2VzUmVxdWVzdBIPCgdib29rX2lkGAEgASgJIkQKFkdldEJvb2tTb3VyY2VzUmVzcG9uc2USKgoIcHJvcG9zYWwYASABKAsyGC5ib29rcy52MS5SZXN5bmNQcm9wb3NhbCI5ChZBcHBseUJvb2tTb3VyY2VSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJIhkKF0FwcGx5Qm9va1NvdXJjZVJlc3BvbnNlIlcKB0Jvb2tSZWYSDQoFdGl0bGUYASABKAkSDwoHYXV0aG9ycxgCIAMoCRIOCgZpc2JuMTMYAyABKAkSDgoGc3RhdHVzGAQgASgJEgwKBHRhZ3MYBSADKAkicwoMQm9va01pc21hdGNoEh4KA2NzdhgBIAEoCzIRLmJvb2tzLnYxLkJvb2tSZWYSIgoHbGlicmFyeRgCIAEoCzIRLmJvb2tzLnYxLkJvb2tSZWYSEwoLZGlmZmVyZW5jZXMYAyADKAkSCgoCaWQYBCABKAkiJQoRQ29tcGFyZUNTVlJlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwigQEKEkNvbXBhcmVDU1ZSZXNwb25zZRIRCgljc3ZfY291bnQYASABKAUSFQoNbGlicmFyeV9jb3VudBgCIAEoBRIVCg1tYXRjaGVkX2NvdW50GAMgASgFEioKCm1pc21hdGNoZXMYBCADKAsyFi5ib29rcy52MS5Cb29rTWlzbWF0Y2giTwoSQXBwbHlDU1ZGaXhSZXF1ZXN0EhAKCGNzdl9kYXRhGAEgASgMEhMKC21pc21hdGNoX2lkGAIgASgJEhIKCmRpZmZlcmVuY2UYAyABKAkiFQoTQXBwbHlDU1ZGaXhSZXNwb25zZTLlBwoOQ2F0YWxvZ1NlcnZpY2USSgoLSW1wb3J0Qm9va3MSHC5ib29rcy52MS5JbXBvcnRCb29rc1JlcXVlc3QaHS5ib29rcy52MS5JbXBvcnRCb29rc1Jlc3BvbnNlEkcKCkNvbXBhcmVDU1YSGy5ib29rcy52MS5Db21wYXJlQ1NWUmVxdWVzdBocLmJvb2tzLnYxLkNvbXBhcmVDU1ZSZXNwb25zZRJKCgtBcHBseUNTVkZpeBIcLmJvb2tzLnYxLkFwcGx5Q1NWRml4UmVxdWVzdBodLmJvb2tzLnYxLkFwcGx5Q1NWRml4UmVzcG9uc2USTQoMQ2xlYXJMaWJyYXJ5Eh0uYm9va3MudjEuQ2xlYXJMaWJyYXJ5UmVxdWVzdBoeLmJvb2tzLnYxLkNsZWFyTGlicmFyeVJlc3BvbnNlElMKDkZpbmREdXBsaWNhdGVzEh8uYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXF1ZXN0GiAuYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXNwb25zZRJHCgpNZXJnZUJvb2tzEhsuYm9va3MudjEuTWVyZ2VCb29rc1JlcXVlc3QaHC5ib29rcy52MS5NZXJnZUJvb2tzUmVzcG9uc2USSgoLU3RhcnRSZXN5bmMSHC5ib29rcy52MS5TdGFydFJlc3luY1JlcXVlc3QaHS5ib29rcy52MS5TdGFydFJlc3luY1Jlc3BvbnNlEmIKE0xpc3RSZXN5bmNQcm9wb3NhbHMSJC5ib29rcy52MS5MaXN0UmVzeW5jUHJvcG9zYWxzUmVxdWVzdBolLmJvb2tzLnYxLkxpc3RSZXN5bmNQcm9wb3NhbHNSZXNwb25zZRJcChFBcHBseVJlc3luY0Nob2ljZRIiLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVxdWVzdBojLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVzcG9uc2USSgoLU2V0Qm9va0lTQk4SHC5ib29rcy52MS5TZXRCb29rSVNCTlJlcXVlc3QaHS5ib29rcy52MS5TZXRCb29rSVNCTlJlc3BvbnNlElMKDkdldEJvb2tTb3VyY2VzEh8uYm9va3MudjEuR2V0Qm9va1NvdXJjZXNSZXF1ZXN0GiAuYm9va3MudjEuR2V0Qm9va1NvdXJjZXNSZXNwb25zZRJWCg9BcHBseUJvb2tTb3VyY2USIC5ib29rcy52MS5BcHBseUJvb2tTb3VyY2VSZXF1ZXN0GiEuYm9va3MudjEuQXBwbHlCb29rU291cmNlUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9ib29rcy92MTtib29rc3YxYgZwcm90bzM", [file_books_v1_library]);
+  fileDesc("ChZib29rcy92MS9jYXRhbG9nLnByb3RvEghib29rcy52MSImChJJbXBvcnRCb29rc1JlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwiLQoTSW1wb3J0Qm9va3NSZXNwb25zZRIWCg5pbXBvcnRlZF9jb3VudBgBIAEoBSIVChNDbGVhckxpYnJhcnlSZXF1ZXN0IkQKFENsZWFyTGlicmFyeVJlc3BvbnNlEhUKDWRlbGV0ZWRfYm9va3MYASABKA0SFQoNZGVsZXRlZF9maWxlcxgCIAEoDSJFCg5EdXBsaWNhdGVHcm91cBIjCgdlbnRyaWVzGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSDgoGcmVhc29uGAIgASgJIhcKFUZpbmREdXBsaWNhdGVzUmVxdWVzdCJCChZGaW5kRHVwbGljYXRlc1Jlc3BvbnNlEigKBmdyb3VwcxgBIAMoCzIYLmJvb2tzLnYxLkR1cGxpY2F0ZUdyb3VwIokCChFNZXJnZUJvb2tzUmVxdWVzdBIWCg53aW5uZXJfYm9va19pZBgBIAEoCRIWCg5sb3Nlcl9ib29rX2lkcxgCIAMoCRIuChFyZXNvbHZlZF9tZXRhZGF0YRgDIAEoCzIOLmJvb2tzLnYxLkJvb2tIAIgBARIqCh1yZXNvbHZlZF9jb3Zlcl9zb3VyY2VfYm9va19pZBgEIAEoCUgBiAEBEhwKD3Jlc29sdmVkX3N0YXR1cxgFIAEoCUgCiAEBQhQKEl9yZXNvbHZlZF9tZXRhZGF0YUIgCh5fcmVzb2x2ZWRfY292ZXJfc291cmNlX2Jvb2tfaWRCEgoQX3Jlc29sdmVkX3N0YXR1cyJCChJNZXJnZUJvb2tzUmVzcG9uc2USFQoNbWVyZ2VkX2dyb3VwcxgBIAEoDRIVCg1kZWxldGVkX2ZpbGVzGAIgASgNIhQKElN0YXJ0UmVzeW5jUmVxdWVzdCIVChNTdGFydFJlc3luY1Jlc3BvbnNlIpkBCgpTb3VyY2VCb29rEg4KBnNvdXJjZRgBIAEoCRIRCgljb3Zlcl91cmwYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEgoKcGFnZV9jb3VudBgEIAEoBRIOCgZpc2JuMTMYBSABKAkSDQoFdGl0bGUYBiABKAkSDwoHYXV0aG9ycxgHIAMoCRIPCgdkaWZmZXJzGAggAygJIm8KDlJlc3luY1Byb3Bvc2FsEg8KB2Jvb2tfaWQYASABKAkSJQoHbGlicmFyeRgCIAEoCzIULmJvb2tzLnYxLlNvdXJjZUJvb2sSJQoHc291cmNlcxgDIAMoCzIULmJvb2tzLnYxLlNvdXJjZUJvb2siHAoaTGlzdFJlc3luY1Byb3Bvc2Fsc1JlcXVlc3QiSgobTGlzdFJlc3luY1Byb3Bvc2Fsc1Jlc3BvbnNlEisKCXByb3Bvc2FscxgBIAMoCzIYLmJvb2tzLnYxLlJlc3luY1Byb3Bvc2FsIjsKGEFwcGx5UmVzeW5jQ2hvaWNlUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEg4KBnNvdXJjZRgCIAEoCSIbChlBcHBseVJlc3luY0Nob2ljZVJlc3BvbnNlIjUKElNldEJvb2tJU0JOUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEg4KBmlzYm4xMxgCIAEoCSIVChNTZXRCb29rSVNCTlJlc3BvbnNlIigKFUdldEJvb2tTb3VyY2VzUmVxdWVzdBIPCgdib29rX2lkGAEgASgJIkQKFkdldEJvb2tTb3VyY2VzUmVzcG9uc2USKgoIcHJvcG9zYWwYASABKAsyGC5ib29rcy52MS5SZXN5bmNQcm9wb3NhbCI5ChZBcHBseUJvb2tTb3VyY2VSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJIhkKF0FwcGx5Qm9va1NvdXJjZVJlc3BvbnNlMtAGCg5DYXRhbG9nU2VydmljZRJKCgtJbXBvcnRCb29rcxIcLmJvb2tzLnYxLkltcG9ydEJvb2tzUmVxdWVzdBodLmJvb2tzLnYxLkltcG9ydEJvb2tzUmVzcG9uc2USTQoMQ2xlYXJMaWJyYXJ5Eh0uYm9va3MudjEuQ2xlYXJMaWJyYXJ5UmVxdWVzdBoeLmJvb2tzLnYxLkNsZWFyTGlicmFyeVJlc3BvbnNlElMKDkZpbmREdXBsaWNhdGVzEh8uYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXF1ZXN0GiAuYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXNwb25zZRJHCgpNZXJnZUJvb2tzEhsuYm9va3MudjEuTWVyZ2VCb29rc1JlcXVlc3QaHC5ib29rcy52MS5NZXJnZUJvb2tzUmVzcG9uc2USSgoLU3RhcnRSZXN5bmMSHC5ib29rcy52MS5TdGFydFJlc3luY1JlcXVlc3QaHS5ib29rcy52MS5TdGFydFJlc3luY1Jlc3BvbnNlEmIKE0xpc3RSZXN5bmNQcm9wb3NhbHMSJC5ib29rcy52MS5MaXN0UmVzeW5jUHJvcG9zYWxzUmVxdWVzdBolLmJvb2tzLnYxLkxpc3RSZXN5bmNQcm9wb3NhbHNSZXNwb25zZRJcChFBcHBseVJlc3luY0Nob2ljZRIiLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVxdWVzdBojLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVzcG9uc2USSgoLU2V0Qm9va0lTQk4SHC5ib29rcy52MS5TZXRCb29rSVNCTlJlcXVlc3QaHS5ib29rcy52MS5TZXRCb29rSVNCTlJlc3BvbnNlElMKDkdldEJvb2tTb3VyY2VzEh8uYm9va3MudjEuR2V0Qm9va1NvdXJjZXNSZXF1ZXN0GiAuYm9va3MudjEuR2V0Qm9va1NvdXJjZXNSZXNwb25zZRJWCg9BcHBseUJvb2tTb3VyY2USIC5ib29rcy52MS5BcHBseUJvb2tTb3VyY2VSZXF1ZXN0GiEuYm9va3MudjEuQXBwbHlCb29rU291cmNlUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9ib29rcy92MTtib29rc3YxYgZwcm90bzM", [file_books_v1_library]);
 
 /**
  * @generated from message books.v1.ImportBooksRequest
@@ -520,186 +520,6 @@ export const ApplyBookSourceResponseSchema: GenMessage<ApplyBookSourceResponse> 
   messageDesc(file_books_v1_catalog, 22);
 
 /**
- * BookRef is a lightweight snapshot of one book used in CSV comparison results.
- *
- * @generated from message books.v1.BookRef
- */
-export type BookRef = Message<"books.v1.BookRef"> & {
-  /**
-   * @generated from field: string title = 1;
-   */
-  title: string;
-
-  /**
-   * @generated from field: repeated string authors = 2;
-   */
-  authors: string[];
-
-  /**
-   * @generated from field: string isbn13 = 3;
-   */
-  isbn13: string;
-
-  /**
-   * status is the reading shelf/state (e.g. "read", "to-read", custom shelf).
-   *
-   * @generated from field: string status = 4;
-   */
-  status: string;
-
-  /**
-   * tags are the non-exclusive Goodreads bookshelves (distinct from status,
-   * which is the one exclusive shelf).
-   *
-   * @generated from field: repeated string tags = 5;
-   */
-  tags: string[];
-};
-
-/**
- * Describes the message books.v1.BookRef.
- * Use `create(BookRefSchema)` to create a new message.
- */
-export const BookRefSchema: GenMessage<BookRef> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 23);
-
-/**
- * BookMismatch describes one pair of entries that differ between the CSV and
- * the library. csv or library may be empty (zero-value) when the book only
- * exists on one side. differences lists the active tags from the set:
- *   "missing-in-library", "missing-in-csv", "status", "isbn", "title", "tags"
- *
- * @generated from message books.v1.BookMismatch
- */
-export type BookMismatch = Message<"books.v1.BookMismatch"> & {
-  /**
-   * @generated from field: books.v1.BookRef csv = 1;
-   */
-  csv?: BookRef | undefined;
-
-  /**
-   * @generated from field: books.v1.BookRef library = 2;
-   */
-  library?: BookRef | undefined;
-
-  /**
-   * @generated from field: repeated string differences = 3;
-   */
-  differences: string[];
-
-  /**
-   * id is a stable per-row key for ApplyCSVFix: the library book_id when the
-   * book is matched or library-only, or "csv:<index>" when it only exists in
-   * the CSV.
-   *
-   * @generated from field: string id = 4;
-   */
-  id: string;
-};
-
-/**
- * Describes the message books.v1.BookMismatch.
- * Use `create(BookMismatchSchema)` to create a new message.
- */
-export const BookMismatchSchema: GenMessage<BookMismatch> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 24);
-
-/**
- * @generated from message books.v1.CompareCSVRequest
- */
-export type CompareCSVRequest = Message<"books.v1.CompareCSVRequest"> & {
-  /**
-   * @generated from field: bytes csv_data = 1;
-   */
-  csvData: Uint8Array;
-};
-
-/**
- * Describes the message books.v1.CompareCSVRequest.
- * Use `create(CompareCSVRequestSchema)` to create a new message.
- */
-export const CompareCSVRequestSchema: GenMessage<CompareCSVRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 25);
-
-/**
- * @generated from message books.v1.CompareCSVResponse
- */
-export type CompareCSVResponse = Message<"books.v1.CompareCSVResponse"> & {
-  /**
-   * @generated from field: int32 csv_count = 1;
-   */
-  csvCount: number;
-
-  /**
-   * @generated from field: int32 library_count = 2;
-   */
-  libraryCount: number;
-
-  /**
-   * @generated from field: int32 matched_count = 3;
-   */
-  matchedCount: number;
-
-  /**
-   * mismatches contains only books that differ in some way.
-   *
-   * @generated from field: repeated books.v1.BookMismatch mismatches = 4;
-   */
-  mismatches: BookMismatch[];
-};
-
-/**
- * Describes the message books.v1.CompareCSVResponse.
- * Use `create(CompareCSVResponseSchema)` to create a new message.
- */
-export const CompareCSVResponseSchema: GenMessage<CompareCSVResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 26);
-
-/**
- * @generated from message books.v1.ApplyCSVFixRequest
- */
-export type ApplyCSVFixRequest = Message<"books.v1.ApplyCSVFixRequest"> & {
-  /**
-   * @generated from field: bytes csv_data = 1;
-   */
-  csvData: Uint8Array;
-
-  /**
-   * mismatch_id echoes BookMismatch.id from a prior CompareCSV response.
-   *
-   * @generated from field: string mismatch_id = 2;
-   */
-  mismatchId: string;
-
-  /**
-   * difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title" | "tags".
-   *
-   * @generated from field: string difference = 3;
-   */
-  difference: string;
-};
-
-/**
- * Describes the message books.v1.ApplyCSVFixRequest.
- * Use `create(ApplyCSVFixRequestSchema)` to create a new message.
- */
-export const ApplyCSVFixRequestSchema: GenMessage<ApplyCSVFixRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 27);
-
-/**
- * @generated from message books.v1.ApplyCSVFixResponse
- */
-export type ApplyCSVFixResponse = Message<"books.v1.ApplyCSVFixResponse"> & {
-};
-
-/**
- * Describes the message books.v1.ApplyCSVFixResponse.
- * Use `create(ApplyCSVFixResponseSchema)` to create a new message.
- */
-export const ApplyCSVFixResponseSchema: GenMessage<ApplyCSVFixResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 28);
-
-/**
  * @generated from service books.v1.CatalogService
  */
 export const CatalogService: GenService<{
@@ -710,22 +530,6 @@ export const CatalogService: GenService<{
     methodKind: "unary";
     input: typeof ImportBooksRequestSchema;
     output: typeof ImportBooksResponseSchema;
-  },
-  /**
-   * @generated from rpc books.v1.CatalogService.CompareCSV
-   */
-  compareCSV: {
-    methodKind: "unary";
-    input: typeof CompareCSVRequestSchema;
-    output: typeof CompareCSVResponseSchema;
-  },
-  /**
-   * @generated from rpc books.v1.CatalogService.ApplyCSVFix
-   */
-  applyCSVFix: {
-    methodKind: "unary";
-    input: typeof ApplyCSVFixRequestSchema;
-    output: typeof ApplyCSVFixResponseSchema;
   },
   /**
    * @generated from rpc books.v1.CatalogService.ClearLibrary

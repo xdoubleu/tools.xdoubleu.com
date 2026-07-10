@@ -87,26 +87,6 @@ export function useImportBooks() {
   }
 }
 
-export function useCompareCSV() {
-  const client = createServiceClient(CatalogService)
-  return (csvData: string) => {
-    const encoder = new TextEncoder()
-    return client.compareCSV({ csvData: encoder.encode(csvData) })
-  }
-}
-
-export function useApplyCSVFix() {
-  const client = createServiceClient(CatalogService)
-  return (csvData: string, mismatchId: string, difference: string) => {
-    const encoder = new TextEncoder()
-    return client.applyCSVFix({
-      csvData: encoder.encode(csvData),
-      mismatchId,
-      difference
-    })
-  }
-}
-
 export function useUpdateBookStatus() {
   const client = createServiceClient(LibraryService)
   return (req: UpdateBookStatusInput) => client.updateBookStatus(req)

@@ -1156,373 +1156,6 @@ func (*ApplyBookSourceResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{22}
 }
 
-// BookRef is a lightweight snapshot of one book used in CSV comparison results.
-type BookRef struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Title   string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Authors []string               `protobuf:"bytes,2,rep,name=authors,proto3" json:"authors,omitempty"`
-	Isbn13  string                 `protobuf:"bytes,3,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
-	// status is the reading shelf/state (e.g. "read", "to-read", custom shelf).
-	Status string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
-	// tags are the non-exclusive Goodreads bookshelves (distinct from status,
-	// which is the one exclusive shelf).
-	Tags          []string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BookRef) Reset() {
-	*x = BookRef{}
-	mi := &file_books_v1_catalog_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BookRef) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BookRef) ProtoMessage() {}
-
-func (x *BookRef) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BookRef.ProtoReflect.Descriptor instead.
-func (*BookRef) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *BookRef) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *BookRef) GetAuthors() []string {
-	if x != nil {
-		return x.Authors
-	}
-	return nil
-}
-
-func (x *BookRef) GetIsbn13() string {
-	if x != nil {
-		return x.Isbn13
-	}
-	return ""
-}
-
-func (x *BookRef) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *BookRef) GetTags() []string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
-}
-
-// BookMismatch describes one pair of entries that differ between the CSV and
-// the library. csv or library may be empty (zero-value) when the book only
-// exists on one side. differences lists the active tags from the set:
-//
-//	"missing-in-library", "missing-in-csv", "status", "isbn", "title", "tags"
-type BookMismatch struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	Csv         *BookRef               `protobuf:"bytes,1,opt,name=csv,proto3" json:"csv,omitempty"`
-	Library     *BookRef               `protobuf:"bytes,2,opt,name=library,proto3" json:"library,omitempty"`
-	Differences []string               `protobuf:"bytes,3,rep,name=differences,proto3" json:"differences,omitempty"`
-	// id is a stable per-row key for ApplyCSVFix: the library book_id when the
-	// book is matched or library-only, or "csv:<index>" when it only exists in
-	// the CSV.
-	Id            string `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BookMismatch) Reset() {
-	*x = BookMismatch{}
-	mi := &file_books_v1_catalog_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BookMismatch) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BookMismatch) ProtoMessage() {}
-
-func (x *BookMismatch) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BookMismatch.ProtoReflect.Descriptor instead.
-func (*BookMismatch) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *BookMismatch) GetCsv() *BookRef {
-	if x != nil {
-		return x.Csv
-	}
-	return nil
-}
-
-func (x *BookMismatch) GetLibrary() *BookRef {
-	if x != nil {
-		return x.Library
-	}
-	return nil
-}
-
-func (x *BookMismatch) GetDifferences() []string {
-	if x != nil {
-		return x.Differences
-	}
-	return nil
-}
-
-func (x *BookMismatch) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type CompareCSVRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CsvData       []byte                 `protobuf:"bytes,1,opt,name=csv_data,json=csvData,proto3" json:"csv_data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CompareCSVRequest) Reset() {
-	*x = CompareCSVRequest{}
-	mi := &file_books_v1_catalog_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CompareCSVRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CompareCSVRequest) ProtoMessage() {}
-
-func (x *CompareCSVRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CompareCSVRequest.ProtoReflect.Descriptor instead.
-func (*CompareCSVRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *CompareCSVRequest) GetCsvData() []byte {
-	if x != nil {
-		return x.CsvData
-	}
-	return nil
-}
-
-type CompareCSVResponse struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	CsvCount     int32                  `protobuf:"varint,1,opt,name=csv_count,json=csvCount,proto3" json:"csv_count,omitempty"`
-	LibraryCount int32                  `protobuf:"varint,2,opt,name=library_count,json=libraryCount,proto3" json:"library_count,omitempty"`
-	MatchedCount int32                  `protobuf:"varint,3,opt,name=matched_count,json=matchedCount,proto3" json:"matched_count,omitempty"`
-	// mismatches contains only books that differ in some way.
-	Mismatches    []*BookMismatch `protobuf:"bytes,4,rep,name=mismatches,proto3" json:"mismatches,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CompareCSVResponse) Reset() {
-	*x = CompareCSVResponse{}
-	mi := &file_books_v1_catalog_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CompareCSVResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CompareCSVResponse) ProtoMessage() {}
-
-func (x *CompareCSVResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CompareCSVResponse.ProtoReflect.Descriptor instead.
-func (*CompareCSVResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *CompareCSVResponse) GetCsvCount() int32 {
-	if x != nil {
-		return x.CsvCount
-	}
-	return 0
-}
-
-func (x *CompareCSVResponse) GetLibraryCount() int32 {
-	if x != nil {
-		return x.LibraryCount
-	}
-	return 0
-}
-
-func (x *CompareCSVResponse) GetMatchedCount() int32 {
-	if x != nil {
-		return x.MatchedCount
-	}
-	return 0
-}
-
-func (x *CompareCSVResponse) GetMismatches() []*BookMismatch {
-	if x != nil {
-		return x.Mismatches
-	}
-	return nil
-}
-
-type ApplyCSVFixRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	CsvData []byte                 `protobuf:"bytes,1,opt,name=csv_data,json=csvData,proto3" json:"csv_data,omitempty"`
-	// mismatch_id echoes BookMismatch.id from a prior CompareCSV response.
-	MismatchId string `protobuf:"bytes,2,opt,name=mismatch_id,json=mismatchId,proto3" json:"mismatch_id,omitempty"`
-	// difference is which tag to fix: "missing-in-library" | "status" | "isbn" | "title" | "tags".
-	Difference    string `protobuf:"bytes,3,opt,name=difference,proto3" json:"difference,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ApplyCSVFixRequest) Reset() {
-	*x = ApplyCSVFixRequest{}
-	mi := &file_books_v1_catalog_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ApplyCSVFixRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ApplyCSVFixRequest) ProtoMessage() {}
-
-func (x *ApplyCSVFixRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ApplyCSVFixRequest.ProtoReflect.Descriptor instead.
-func (*ApplyCSVFixRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{27}
-}
-
-func (x *ApplyCSVFixRequest) GetCsvData() []byte {
-	if x != nil {
-		return x.CsvData
-	}
-	return nil
-}
-
-func (x *ApplyCSVFixRequest) GetMismatchId() string {
-	if x != nil {
-		return x.MismatchId
-	}
-	return ""
-}
-
-func (x *ApplyCSVFixRequest) GetDifference() string {
-	if x != nil {
-		return x.Difference
-	}
-	return ""
-}
-
-type ApplyCSVFixResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ApplyCSVFixResponse) Reset() {
-	*x = ApplyCSVFixResponse{}
-	mi := &file_books_v1_catalog_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ApplyCSVFixResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ApplyCSVFixResponse) ProtoMessage() {}
-
-func (x *ApplyCSVFixResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ApplyCSVFixResponse.ProtoReflect.Descriptor instead.
-func (*ApplyCSVFixResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{28}
-}
-
 var File_books_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_books_v1_catalog_proto_rawDesc = "" +
@@ -1589,40 +1222,9 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x16ApplyBookSourceRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\"\x19\n" +
-	"\x17ApplyBookSourceResponse\"}\n" +
-	"\aBookRef\x12\x14\n" +
-	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
-	"\aauthors\x18\x02 \x03(\tR\aauthors\x12\x16\n" +
-	"\x06isbn13\x18\x03 \x01(\tR\x06isbn13\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\tR\x06status\x12\x12\n" +
-	"\x04tags\x18\x05 \x03(\tR\x04tags\"\x92\x01\n" +
-	"\fBookMismatch\x12#\n" +
-	"\x03csv\x18\x01 \x01(\v2\x11.books.v1.BookRefR\x03csv\x12+\n" +
-	"\alibrary\x18\x02 \x01(\v2\x11.books.v1.BookRefR\alibrary\x12 \n" +
-	"\vdifferences\x18\x03 \x03(\tR\vdifferences\x12\x0e\n" +
-	"\x02id\x18\x04 \x01(\tR\x02id\".\n" +
-	"\x11CompareCSVRequest\x12\x19\n" +
-	"\bcsv_data\x18\x01 \x01(\fR\acsvData\"\xb3\x01\n" +
-	"\x12CompareCSVResponse\x12\x1b\n" +
-	"\tcsv_count\x18\x01 \x01(\x05R\bcsvCount\x12#\n" +
-	"\rlibrary_count\x18\x02 \x01(\x05R\flibraryCount\x12#\n" +
-	"\rmatched_count\x18\x03 \x01(\x05R\fmatchedCount\x126\n" +
-	"\n" +
-	"mismatches\x18\x04 \x03(\v2\x16.books.v1.BookMismatchR\n" +
-	"mismatches\"p\n" +
-	"\x12ApplyCSVFixRequest\x12\x19\n" +
-	"\bcsv_data\x18\x01 \x01(\fR\acsvData\x12\x1f\n" +
-	"\vmismatch_id\x18\x02 \x01(\tR\n" +
-	"mismatchId\x12\x1e\n" +
-	"\n" +
-	"difference\x18\x03 \x01(\tR\n" +
-	"difference\"\x15\n" +
-	"\x13ApplyCSVFixResponse2\xe5\a\n" +
+	"\x17ApplyBookSourceResponse2\xd0\x06\n" +
 	"\x0eCatalogService\x12J\n" +
-	"\vImportBooks\x12\x1c.books.v1.ImportBooksRequest\x1a\x1d.books.v1.ImportBooksResponse\x12G\n" +
-	"\n" +
-	"CompareCSV\x12\x1b.books.v1.CompareCSVRequest\x1a\x1c.books.v1.CompareCSVResponse\x12J\n" +
-	"\vApplyCSVFix\x12\x1c.books.v1.ApplyCSVFixRequest\x1a\x1d.books.v1.ApplyCSVFixResponse\x12M\n" +
+	"\vImportBooks\x12\x1c.books.v1.ImportBooksRequest\x1a\x1d.books.v1.ImportBooksResponse\x12M\n" +
 	"\fClearLibrary\x12\x1d.books.v1.ClearLibraryRequest\x1a\x1e.books.v1.ClearLibraryResponse\x12S\n" +
 	"\x0eFindDuplicates\x12\x1f.books.v1.FindDuplicatesRequest\x1a .books.v1.FindDuplicatesResponse\x12G\n" +
 	"\n" +
@@ -1646,7 +1248,7 @@ func file_books_v1_catalog_proto_rawDescGZIP() []byte {
 	return file_books_v1_catalog_proto_rawDescData
 }
 
-var file_books_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_books_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_books_v1_catalog_proto_goTypes = []any{
 	(*ImportBooksRequest)(nil),          // 0: books.v1.ImportBooksRequest
 	(*ImportBooksResponse)(nil),         // 1: books.v1.ImportBooksResponse
@@ -1671,55 +1273,42 @@ var file_books_v1_catalog_proto_goTypes = []any{
 	(*GetBookSourcesResponse)(nil),      // 20: books.v1.GetBookSourcesResponse
 	(*ApplyBookSourceRequest)(nil),      // 21: books.v1.ApplyBookSourceRequest
 	(*ApplyBookSourceResponse)(nil),     // 22: books.v1.ApplyBookSourceResponse
-	(*BookRef)(nil),                     // 23: books.v1.BookRef
-	(*BookMismatch)(nil),                // 24: books.v1.BookMismatch
-	(*CompareCSVRequest)(nil),           // 25: books.v1.CompareCSVRequest
-	(*CompareCSVResponse)(nil),          // 26: books.v1.CompareCSVResponse
-	(*ApplyCSVFixRequest)(nil),          // 27: books.v1.ApplyCSVFixRequest
-	(*ApplyCSVFixResponse)(nil),         // 28: books.v1.ApplyCSVFixResponse
-	(*UserBook)(nil),                    // 29: books.v1.UserBook
-	(*Book)(nil),                        // 30: books.v1.Book
+	(*UserBook)(nil),                    // 23: books.v1.UserBook
+	(*Book)(nil),                        // 24: books.v1.Book
 }
 var file_books_v1_catalog_proto_depIdxs = []int32{
-	29, // 0: books.v1.DuplicateGroup.entries:type_name -> books.v1.UserBook
+	23, // 0: books.v1.DuplicateGroup.entries:type_name -> books.v1.UserBook
 	4,  // 1: books.v1.FindDuplicatesResponse.groups:type_name -> books.v1.DuplicateGroup
-	30, // 2: books.v1.MergeBooksRequest.resolved_metadata:type_name -> books.v1.Book
+	24, // 2: books.v1.MergeBooksRequest.resolved_metadata:type_name -> books.v1.Book
 	11, // 3: books.v1.ResyncProposal.library:type_name -> books.v1.SourceBook
 	11, // 4: books.v1.ResyncProposal.sources:type_name -> books.v1.SourceBook
 	12, // 5: books.v1.ListResyncProposalsResponse.proposals:type_name -> books.v1.ResyncProposal
 	12, // 6: books.v1.GetBookSourcesResponse.proposal:type_name -> books.v1.ResyncProposal
-	23, // 7: books.v1.BookMismatch.csv:type_name -> books.v1.BookRef
-	23, // 8: books.v1.BookMismatch.library:type_name -> books.v1.BookRef
-	24, // 9: books.v1.CompareCSVResponse.mismatches:type_name -> books.v1.BookMismatch
-	0,  // 10: books.v1.CatalogService.ImportBooks:input_type -> books.v1.ImportBooksRequest
-	25, // 11: books.v1.CatalogService.CompareCSV:input_type -> books.v1.CompareCSVRequest
-	27, // 12: books.v1.CatalogService.ApplyCSVFix:input_type -> books.v1.ApplyCSVFixRequest
-	2,  // 13: books.v1.CatalogService.ClearLibrary:input_type -> books.v1.ClearLibraryRequest
-	5,  // 14: books.v1.CatalogService.FindDuplicates:input_type -> books.v1.FindDuplicatesRequest
-	7,  // 15: books.v1.CatalogService.MergeBooks:input_type -> books.v1.MergeBooksRequest
-	9,  // 16: books.v1.CatalogService.StartResync:input_type -> books.v1.StartResyncRequest
-	13, // 17: books.v1.CatalogService.ListResyncProposals:input_type -> books.v1.ListResyncProposalsRequest
-	15, // 18: books.v1.CatalogService.ApplyResyncChoice:input_type -> books.v1.ApplyResyncChoiceRequest
-	17, // 19: books.v1.CatalogService.SetBookISBN:input_type -> books.v1.SetBookISBNRequest
-	19, // 20: books.v1.CatalogService.GetBookSources:input_type -> books.v1.GetBookSourcesRequest
-	21, // 21: books.v1.CatalogService.ApplyBookSource:input_type -> books.v1.ApplyBookSourceRequest
-	1,  // 22: books.v1.CatalogService.ImportBooks:output_type -> books.v1.ImportBooksResponse
-	26, // 23: books.v1.CatalogService.CompareCSV:output_type -> books.v1.CompareCSVResponse
-	28, // 24: books.v1.CatalogService.ApplyCSVFix:output_type -> books.v1.ApplyCSVFixResponse
-	3,  // 25: books.v1.CatalogService.ClearLibrary:output_type -> books.v1.ClearLibraryResponse
-	6,  // 26: books.v1.CatalogService.FindDuplicates:output_type -> books.v1.FindDuplicatesResponse
-	8,  // 27: books.v1.CatalogService.MergeBooks:output_type -> books.v1.MergeBooksResponse
-	10, // 28: books.v1.CatalogService.StartResync:output_type -> books.v1.StartResyncResponse
-	14, // 29: books.v1.CatalogService.ListResyncProposals:output_type -> books.v1.ListResyncProposalsResponse
-	16, // 30: books.v1.CatalogService.ApplyResyncChoice:output_type -> books.v1.ApplyResyncChoiceResponse
-	18, // 31: books.v1.CatalogService.SetBookISBN:output_type -> books.v1.SetBookISBNResponse
-	20, // 32: books.v1.CatalogService.GetBookSources:output_type -> books.v1.GetBookSourcesResponse
-	22, // 33: books.v1.CatalogService.ApplyBookSource:output_type -> books.v1.ApplyBookSourceResponse
-	22, // [22:34] is the sub-list for method output_type
-	10, // [10:22] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	0,  // 7: books.v1.CatalogService.ImportBooks:input_type -> books.v1.ImportBooksRequest
+	2,  // 8: books.v1.CatalogService.ClearLibrary:input_type -> books.v1.ClearLibraryRequest
+	5,  // 9: books.v1.CatalogService.FindDuplicates:input_type -> books.v1.FindDuplicatesRequest
+	7,  // 10: books.v1.CatalogService.MergeBooks:input_type -> books.v1.MergeBooksRequest
+	9,  // 11: books.v1.CatalogService.StartResync:input_type -> books.v1.StartResyncRequest
+	13, // 12: books.v1.CatalogService.ListResyncProposals:input_type -> books.v1.ListResyncProposalsRequest
+	15, // 13: books.v1.CatalogService.ApplyResyncChoice:input_type -> books.v1.ApplyResyncChoiceRequest
+	17, // 14: books.v1.CatalogService.SetBookISBN:input_type -> books.v1.SetBookISBNRequest
+	19, // 15: books.v1.CatalogService.GetBookSources:input_type -> books.v1.GetBookSourcesRequest
+	21, // 16: books.v1.CatalogService.ApplyBookSource:input_type -> books.v1.ApplyBookSourceRequest
+	1,  // 17: books.v1.CatalogService.ImportBooks:output_type -> books.v1.ImportBooksResponse
+	3,  // 18: books.v1.CatalogService.ClearLibrary:output_type -> books.v1.ClearLibraryResponse
+	6,  // 19: books.v1.CatalogService.FindDuplicates:output_type -> books.v1.FindDuplicatesResponse
+	8,  // 20: books.v1.CatalogService.MergeBooks:output_type -> books.v1.MergeBooksResponse
+	10, // 21: books.v1.CatalogService.StartResync:output_type -> books.v1.StartResyncResponse
+	14, // 22: books.v1.CatalogService.ListResyncProposals:output_type -> books.v1.ListResyncProposalsResponse
+	16, // 23: books.v1.CatalogService.ApplyResyncChoice:output_type -> books.v1.ApplyResyncChoiceResponse
+	18, // 24: books.v1.CatalogService.SetBookISBN:output_type -> books.v1.SetBookISBNResponse
+	20, // 25: books.v1.CatalogService.GetBookSources:output_type -> books.v1.GetBookSourcesResponse
+	22, // 26: books.v1.CatalogService.ApplyBookSource:output_type -> books.v1.ApplyBookSourceResponse
+	17, // [17:27] is the sub-list for method output_type
+	7,  // [7:17] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_books_v1_catalog_proto_init() }
@@ -1735,7 +1324,7 @@ func file_books_v1_catalog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_books_v1_catalog_proto_rawDesc), len(file_books_v1_catalog_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

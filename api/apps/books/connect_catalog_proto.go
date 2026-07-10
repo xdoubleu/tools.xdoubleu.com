@@ -91,16 +91,3 @@ func int32FromIntPtr(i *int) int32 {
 	}
 	return int32FromInt(*i)
 }
-
-func protoCompareRef(r *services.CompareRef) *booksv1.BookRef {
-	if r == nil {
-		return nil
-	}
-	return &booksv1.BookRef{
-		Title:   r.Title,
-		Authors: r.Authors,
-		Isbn13:  r.ISBN13,
-		Status:  r.Status,
-		Tags:    r.Tags,
-	}
-}
