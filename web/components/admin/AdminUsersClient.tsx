@@ -103,7 +103,7 @@ export default function AdminUsersClient() {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-card">
             {users.length === 0 ? (
               <tr>
                 <td

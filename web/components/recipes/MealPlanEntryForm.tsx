@@ -209,7 +209,7 @@ export default function MealPlanEntryForm({
         ) : (
           <div className="space-y-2">
             {customItems.map((item, i) => (
-              <div key={i} className="space-y-2 rounded-xl border border-border p-2">
+              <div key={i} className="space-y-2 rounded-xl border border-border bg-card p-2">
                 <div className="flex gap-2">
                   {!excludeFromShoppingList && (
                     <>
