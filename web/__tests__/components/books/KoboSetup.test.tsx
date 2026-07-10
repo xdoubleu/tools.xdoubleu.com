@@ -10,6 +10,17 @@ jest.mock('@/lib/books/koboConf', () => {
   return actual
 })
 
+// Gateway probe resolves null by default so the classic flows stay active.
+const mockProbeGateway = jest.fn()
+jest.mock('@/lib/books/gatewayClient', () => ({
+  REQUIRED_GATEWAY_VERSION: 1,
+  GATEWAY_DOWNLOAD_PATH: '/downloads/kobo-gateway-darwin-arm64',
+  probeGateway: (...args: unknown[]) => mockProbeGateway(...args),
+  configureGateway: jest.fn(),
+  revertGateway: jest.fn(),
+  updateGateway: jest.fn()
+}))
+
 // Mock koboDevice helpers so tests don't need a real .kobo/version file.
 jest.mock('@/lib/books/koboDevice', () => ({
   readKoboSerial: jest.fn().mockResolvedValue('N418ABCD1234'),
@@ -87,9 +98,11 @@ beforeEach(() => {
   mockRegisterKoboDevice.mockReset()
   mockDisconnectKoboDevice.mockReset()
   mockMutateDevices.mockReset()
+  mockProbeGateway.mockReset()
   mockDevicesData = undefined
   mockRegisterKoboDevice.mockResolvedValue({ device: { id: 'dev-1' }, rawToken: 'my-token' })
   mockDisconnectKoboDevice.mockResolvedValue({})
+  mockProbeGateway.mockResolvedValue(null)
 })
 
 describe('KoboSetup — unsupported browser', () => {
@@ -102,6 +115,46 @@ describe('KoboSetup — unsupported browser', () => {
 
   it('does not render the detect button in fallback', () => {
     render(<KoboSetup />)
+    expect(screen.queryByTestId('kobo-detect-btn')).not.toBeInTheDocument()
+  })
+
+  it('switches to the gateway flow when the re-check finds a gateway', async () => {
+    render(<KoboSetup />)
+
+    mockProbeGateway.mockResolvedValue({ version: 1, release: 'abc', kobos: [] })
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('kobo-gateway-recheck-btn'))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('kobo-gateway-setup')).toBeInTheDocument()
+    })
+  })
+})
+
+describe('KoboSetup — gateway dispatch', () => {
+  it('renders the gateway flow when a gateway responds to the probe', async () => {
+    removeShowDirectoryPicker()
+    mockProbeGateway.mockResolvedValue({ version: 1, release: 'abc', kobos: [] })
+
+    render(<KoboSetup />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('kobo-gateway-setup')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('kobo-setup-fallback')).not.toBeInTheDocument()
+  })
+
+  it('prefers the gateway over the File System Access flow', async () => {
+    defineShowDirectoryPicker(jest.fn())
+    mockProbeGateway.mockResolvedValue({ version: 1, release: 'abc', kobos: [] })
+
+    render(<KoboSetup />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('kobo-gateway-setup')).toBeInTheDocument()
+    })
     expect(screen.queryByTestId('kobo-detect-btn')).not.toBeInTheDocument()
   })
 })

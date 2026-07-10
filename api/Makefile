@@ -54,6 +54,11 @@ RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 build:
 	go build -ldflags="-X main.Release=$(RELEASE)" -o=./bin/api ./cmd/api
 
+build/kobo-gateway:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
+		-ldflags="-w -s -X main.Release=$(RELEASE)" \
+		-o=./bin/kobo-gateway-darwin-arm64 ./cmd/kobo-gateway
+
 run:
 	go run ./cmd/api
 
@@ -73,7 +78,7 @@ test/pprof:
 	go test -p 1 ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
 
 test/cov/report:
-	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
+	go test -p 1 ./... -coverpkg=./cmd/api,./cmd/kobo-gateway,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
 	cat coverage.out.tmp | grep -v "_mock.go" | grep -v "/gen/" > coverage.out
 
 test/cov: test/cov/report
@@ -132,6 +137,12 @@ test/cov/per-pkg:
 	go test ./cmd/api \
 		-coverpkg=./cmd/api,./internal/... \
 		-covermode=set -count=1 -coverprofile=cov_api_pkg.out
+	go test ./cmd/kobo-gateway \
+		-coverpkg=./cmd/kobo-gateway,./internal/kobogateway \
+		-covermode=set -count=1 -coverprofile=cov_kobo_gateway_pkg.out
+	go test ./internal/kobogateway \
+		-coverpkg=./internal/kobogateway \
+		-covermode=set -count=1 -coverprofile=cov_internal_kobogateway.out
 	go test ./internal/app \
 		-coverpkg=./internal/app \
 		-covermode=set -count=1 -coverprofile=cov_internal_app.out
@@ -153,6 +164,7 @@ test/cov/per-pkg:
 		cov_mealplans_pkg.out \
 		cov_shoppinglist_pkg.out cov_shoppinglist_svc.out \
 		cov_watchparty_pkg.out cov_watchparty_internal.out \
-		cov_api_pkg.out \
+		cov_api_pkg.out cov_kobo_gateway_pkg.out \
 		cov_internal_app.out cov_internal_contacts.out \
-		cov_internal_crypto.out cov_internal_format.out
+		cov_internal_crypto.out cov_internal_format.out \
+		cov_internal_kobogateway.out

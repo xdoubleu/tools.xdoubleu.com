@@ -1,3 +1,20 @@
+# Cross-compiles the kobo-gateway macOS helper so the web app can serve it
+# as a download (see api/internal/kobogateway). Build context is the repo
+# root, so api/ is reachable. Runs in parallel with the Node builder.
+FROM golang:1.26-alpine AS gateway-builder
+
+ARG RELEASE=dev
+
+WORKDIR /app
+
+COPY api/go.mod api/go.sum ./
+RUN go mod download
+
+COPY api/ .
+RUN CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
+    go build -ldflags="-w -s -X main.Release=${RELEASE}" \
+    -o ./bin/kobo-gateway-darwin-arm64 ./cmd/kobo-gateway
+
 FROM node:24-alpine AS builder
 
 ARG RELEASE=dev
@@ -36,6 +53,11 @@ WORKDIR /app
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+# Next standalone only serves public/ when it sits next to server.js; the
+# directory is assembled here (web/public does not exist in the repo — if it
+# ever does, add a `COPY web/public ./public` too).
+COPY --from=gateway-builder /app/bin/kobo-gateway-darwin-arm64 \
+     ./public/downloads/kobo-gateway-darwin-arm64
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser

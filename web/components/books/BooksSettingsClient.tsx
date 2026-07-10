@@ -6,6 +6,7 @@ import { useImportBooks } from '@/hooks/useBooks'
 import { useCurrentUser } from '@/hooks/useAuth'
 import BulkBookUploader from '@/components/books/BulkBookUploader'
 import KoboSetup from '@/components/books/KoboSetup'
+import KoboGatewayDownload from '@/components/books/KoboGatewayDownload'
 import KoboDevices from '@/components/books/KoboDevices'
 import ClearLibraryDialog from '@/components/books/ClearLibraryDialog'
 import { mutate } from 'swr'
@@ -86,6 +87,7 @@ export default function BooksSettingsClient() {
           token; disconnecting a device immediately revokes its access.
         </p>
         <KoboSetup />
+        <KoboGatewayDownload />
 
         <div className="mt-6">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
