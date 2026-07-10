@@ -24,6 +24,7 @@ import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { swrKeys } from '@/lib/swrKeys'
+import { formatDate } from '@/lib/dates'
 
 function flattenLibrary(
   library: NonNullable<ReturnType<typeof useLibrary>['data']>['library']
@@ -31,15 +32,6 @@ function flattenLibrary(
   if (!library) return []
   const shelfBooks = library.shelves.flatMap((s) => s.books)
   return [...library.reading, ...library.wishlist, ...library.finished, ...shelfBooks]
-}
-
-function formatDate(iso: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
 }
 
 export default function BookDetailClient({ id }: { id: string }) {

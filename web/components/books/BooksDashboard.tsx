@@ -11,7 +11,7 @@ import BooksProgressChart from '@/components/books/BooksProgressChart'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import { Button } from '@/components/ui/button'
 import { Card, interactiveCardClass } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
 import { ytdProgress } from '@/lib/books/ytdProgress'
@@ -147,24 +147,22 @@ export default function BooksDashboard() {
                   <label htmlFor="books-dash-from" className="mb-1 block text-xs text-muted">
                     From
                   </label>
-                  <Input
+                  <DateInput
                     id="books-dash-from"
-                    type="date"
                     value={progressStart}
-                    onChange={(e) => setProgressStart(e.target.value)}
-                    className="h-9 w-auto"
+                    onChange={setProgressStart}
+                    className="h-9 w-40"
                   />
                 </div>
                 <div>
                   <label htmlFor="books-dash-to" className="mb-1 block text-xs text-muted">
                     To
                   </label>
-                  <Input
+                  <DateInput
                     id="books-dash-to"
-                    type="date"
                     value={progressEnd}
-                    onChange={(e) => setProgressEnd(e.target.value)}
-                    className="h-9 w-auto"
+                    onChange={setProgressEnd}
+                    className="h-9 w-40"
                   />
                 </div>
               </div>

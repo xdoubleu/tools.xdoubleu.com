@@ -8,6 +8,7 @@ import MealPlanWeekGrid from './MealPlanWeekGrid'
 import { useMealCalendarState } from './useMealCalendarState'
 import { Button } from '@/components/ui/button'
 import { formatCustomNameLabel } from '@/lib/customItems'
+import { formatDate } from '@/lib/dates'
 
 interface MealPlanCalendarProps {
   plan: Plan
@@ -58,11 +59,11 @@ export default function MealPlanCalendar({
   const isEditing = !!editingMeal && !selectedSlot
   const isFilling = !!fillingDate
   const formTitle = isAdding
-    ? `Add meal — ${selectedSlot!.charAt(0).toUpperCase() + selectedSlot!.slice(1)}, ${new Date(selectedDate! + 'T00:00:00').toLocaleDateString()}`
+    ? `Add meal — ${selectedSlot!.charAt(0).toUpperCase() + selectedSlot!.slice(1)}, ${formatDate(selectedDate!)}`
     : isEditing
-      ? `Edit meal — ${editingMeal!.mealSlot.charAt(0).toUpperCase() + editingMeal!.mealSlot.slice(1)}, ${new Date(editingMeal!.mealDate + 'T00:00:00').toLocaleDateString()}`
+      ? `Edit meal — ${editingMeal!.mealSlot.charAt(0).toUpperCase() + editingMeal!.mealSlot.slice(1)}, ${formatDate(editingMeal!.mealDate)}`
       : isFilling
-        ? `Fill day — ${new Date(fillingDate! + 'T00:00:00').toLocaleDateString()}`
+        ? `Fill day — ${formatDate(fillingDate!)}`
         : ''
 
   return (

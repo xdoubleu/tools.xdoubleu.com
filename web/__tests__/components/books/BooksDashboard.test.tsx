@@ -129,8 +129,8 @@ describe('BooksDashboard', () => {
     // switch to All time
     fireEvent.click(screen.getByRole('tab', { name: 'All time' }))
     const from = screen.getByLabelText('From')
-    fireEvent.change(from, { target: { value: '2026-01-01' } })
-    expect(from).toHaveValue('2026-01-01')
+    fireEvent.change(from, { target: { value: '01/01/2026' } })
+    expect(from).toHaveValue('01/01/2026')
   })
 
   it('shows a loading state', () => {

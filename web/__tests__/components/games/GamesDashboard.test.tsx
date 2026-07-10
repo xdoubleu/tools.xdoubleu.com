@@ -202,8 +202,8 @@ describe('GamesDashboard', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Progress' }))
     expect(screen.queryByText('No progress data for this range.')).not.toBeInTheDocument()
     const from = screen.getByLabelText('From')
-    fireEvent.change(from, { target: { value: '2026-01-01' } })
-    expect(from).toHaveValue('2026-01-01')
+    fireEvent.change(from, { target: { value: '01/01/2026' } })
+    expect(from).toHaveValue('01/01/2026')
   })
 
   it('navigates to a distribution bucket when a bar is clicked', () => {

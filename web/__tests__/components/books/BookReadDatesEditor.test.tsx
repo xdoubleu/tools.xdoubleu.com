@@ -43,10 +43,10 @@ describe('BookReadDatesEditor', () => {
         userBook={makeUserBook({ finishedAt: ['2024-01-15T00:00:00Z', '2024-06-01T00:00:00Z'] })}
       />
     )
-    const inputs = screen.getAllByDisplayValue(/2024-/) as HTMLInputElement[]
+    const inputs = screen.getAllByPlaceholderText('dd/mm/yyyy') as HTMLInputElement[]
     expect(inputs).toHaveLength(2)
-    expect(inputs[0].value).toBe('2024-01-15')
-    expect(inputs[1].value).toBe('2024-06-01')
+    expect(inputs[0].value).toBe('15/01/2024')
+    expect(inputs[1].value).toBe('01/06/2024')
   })
 
   it('labels a single date "Finished"', () => {
@@ -89,8 +89,8 @@ describe('BookReadDatesEditor', () => {
     render(
       <BookReadDatesEditor userBook={makeUserBook({ finishedAt: ['2024-01-15T00:00:00Z'] })} />
     )
-    const input = screen.getByDisplayValue('2024-01-15')
-    fireEvent.change(input, { target: { value: '2024-02-20' } })
+    const input = screen.getByDisplayValue('15/01/2024')
+    fireEvent.change(input, { target: { value: '20/02/2024' } })
     fireEvent.blur(input)
     await waitFor(() => expect(mockUpdateFinishedAt).toHaveBeenCalledWith('book-1', ['2024-02-20']))
   })
@@ -106,7 +106,7 @@ describe('BookReadDatesEditor', () => {
     await waitFor(() =>
       expect(screen.getByText('Failed to update read dates.')).toBeInTheDocument()
     )
-    expect(screen.getAllByDisplayValue(/2024-/)).toHaveLength(2)
+    expect(screen.getAllByPlaceholderText('dd/mm/yyyy')).toHaveLength(2)
   })
 
   it('calls onSaved after a successful save', async () => {
