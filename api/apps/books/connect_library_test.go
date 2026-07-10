@@ -186,6 +186,40 @@ func TestConnectSearchExternal_WithQuery(t *testing.T) {
 	// Results may be empty depending on mock data
 }
 
+func TestConnectGetExternalBook_Found(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.GetExternalBookRequest{
+		Provider:   "openlibrary",
+		ProviderId: "OL1W",
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.GetExternalBook(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp.Msg.Result)
+	assert.Equal(t, "openlibrary", resp.Msg.Result.Provider)
+	assert.NotEmpty(t, resp.Msg.Result.Title)
+}
+
+func TestConnectGetExternalBook_UnknownProvider(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.GetExternalBookRequest{
+		Provider:   "googlebooks",
+		ProviderId: "anything",
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.GetExternalBook(ctx, req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
 func TestConnectAddBook(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())

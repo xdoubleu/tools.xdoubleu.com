@@ -128,6 +128,33 @@ func (h *booksConnectHandler) SearchExternal(
 	}), nil
 }
 
+func (h *booksConnectHandler) GetExternalBook(
+	ctx context.Context,
+	req *connect.Request[booksv1.GetExternalBookRequest],
+) (*connect.Response[booksv1.GetExternalBookResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	book, err := h.app.Services.Books.GetExternal(
+		ctx,
+		req.Msg.Provider,
+		req.Msg.ProviderId,
+	)
+	if err != nil {
+		if errors.Is(err, openlibrary.ErrNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&booksv1.GetExternalBookResponse{
+		Result: protoExternalBook(*book),
+	}), nil
+}
+
 func (h *booksConnectHandler) CreateBook(
 	ctx context.Context,
 	req *connect.Request[booksv1.CreateBookRequest],

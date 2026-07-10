@@ -200,6 +200,13 @@ func (f *fakeOLClientWithSearch) Search(
 	return f.searchResults, f.searchErr
 }
 
+func (f *fakeOLClientWithSearch) Get(
+	_ context.Context,
+	_ string,
+) (*openlibrary.ExternalBook, error) {
+	return f.detail, f.getErr
+}
+
 func (f *fakeOLClientWithSearch) GetByISBN(
 	_ context.Context,
 	_ string,
@@ -224,6 +231,16 @@ func (f *multiISBNOLClient) Search(
 	_ context.Context, _ string,
 ) ([]openlibrary.ExternalBook, error) {
 	return nil, nil
+}
+
+func (f *multiISBNOLClient) Get(
+	_ context.Context, id string,
+) (*openlibrary.ExternalBook, error) {
+	r, ok := f.results[id]
+	if !ok {
+		return nil, openlibrary.ErrNotFound
+	}
+	return r, nil
 }
 
 func (f *multiISBNOLClient) GetByISBN(

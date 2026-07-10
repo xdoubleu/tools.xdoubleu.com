@@ -26,3 +26,13 @@ export function statusLabel(status: string): string {
 export function displayTags(tags: string[]): string[] {
   return tags.filter((t) => !SPECIAL_TAGS.has(t))
 }
+
+// Display name for an external search-result provider. Falls back to the raw
+// value for providers without a friendly label.
+const PROVIDER_LABELS: Record<string, string> = {
+  openlibrary: 'OpenLibrary'
+}
+
+export function providerLabel(provider: string): string {
+  return PROVIDER_LABELS[provider] ?? provider
+}

@@ -45,6 +45,9 @@ const (
 	// LibraryServiceSearchExternalProcedure is the fully-qualified name of the LibraryService's
 	// SearchExternal RPC.
 	LibraryServiceSearchExternalProcedure = "/books.v1.LibraryService/SearchExternal"
+	// LibraryServiceGetExternalBookProcedure is the fully-qualified name of the LibraryService's
+	// GetExternalBook RPC.
+	LibraryServiceGetExternalBookProcedure = "/books.v1.LibraryService/GetExternalBook"
 	// LibraryServiceCreateBookProcedure is the fully-qualified name of the LibraryService's CreateBook
 	// RPC.
 	LibraryServiceCreateBookProcedure = "/books.v1.LibraryService/CreateBook"
@@ -89,6 +92,7 @@ type LibraryServiceClient interface {
 	GetBooksProgress(context.Context, *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error)
 	SearchLibrary(context.Context, *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error)
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
+	GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error)
 	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
 	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
@@ -136,6 +140,12 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+LibraryServiceSearchExternalProcedure,
 			connect.WithSchema(libraryServiceMethods.ByName("SearchExternal")),
+			connect.WithClientOptions(opts...),
+		),
+		getExternalBook: connect.NewClient[v1.GetExternalBookRequest, v1.GetExternalBookResponse](
+			httpClient,
+			baseURL+LibraryServiceGetExternalBookProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("GetExternalBook")),
 			connect.WithClientOptions(opts...),
 		),
 		createBook: connect.NewClient[v1.CreateBookRequest, v1.CreateBookResponse](
@@ -219,6 +229,7 @@ type libraryServiceClient struct {
 	getBooksProgress      *connect.Client[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse]
 	searchLibrary         *connect.Client[v1.SearchLibraryRequest, v1.SearchLibraryResponse]
 	searchExternal        *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
+	getExternalBook       *connect.Client[v1.GetExternalBookRequest, v1.GetExternalBookResponse]
 	createBook            *connect.Client[v1.CreateBookRequest, v1.CreateBookResponse]
 	updateBookStatus      *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
 	updateFinishedAt      *connect.Client[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse]
@@ -251,6 +262,11 @@ func (c *libraryServiceClient) SearchLibrary(ctx context.Context, req *connect.R
 // SearchExternal calls books.v1.LibraryService.SearchExternal.
 func (c *libraryServiceClient) SearchExternal(ctx context.Context, req *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error) {
 	return c.searchExternal.CallUnary(ctx, req)
+}
+
+// GetExternalBook calls books.v1.LibraryService.GetExternalBook.
+func (c *libraryServiceClient) GetExternalBook(ctx context.Context, req *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error) {
+	return c.getExternalBook.CallUnary(ctx, req)
 }
 
 // CreateBook calls books.v1.LibraryService.CreateBook.
@@ -319,6 +335,7 @@ type LibraryServiceHandler interface {
 	GetBooksProgress(context.Context, *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error)
 	SearchLibrary(context.Context, *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error)
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
+	GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error)
 	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
 	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
@@ -362,6 +379,12 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		LibraryServiceSearchExternalProcedure,
 		svc.SearchExternal,
 		connect.WithSchema(libraryServiceMethods.ByName("SearchExternal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	libraryServiceGetExternalBookHandler := connect.NewUnaryHandler(
+		LibraryServiceGetExternalBookProcedure,
+		svc.GetExternalBook,
+		connect.WithSchema(libraryServiceMethods.ByName("GetExternalBook")),
 		connect.WithHandlerOptions(opts...),
 	)
 	libraryServiceCreateBookHandler := connect.NewUnaryHandler(
@@ -446,6 +469,8 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceSearchLibraryHandler.ServeHTTP(w, r)
 		case LibraryServiceSearchExternalProcedure:
 			libraryServiceSearchExternalHandler.ServeHTTP(w, r)
+		case LibraryServiceGetExternalBookProcedure:
+			libraryServiceGetExternalBookHandler.ServeHTTP(w, r)
 		case LibraryServiceCreateBookProcedure:
 			libraryServiceCreateBookHandler.ServeHTTP(w, r)
 		case LibraryServiceUpdateBookStatusProcedure:
@@ -493,6 +518,10 @@ func (UnimplementedLibraryServiceHandler) SearchLibrary(context.Context, *connec
 
 func (UnimplementedLibraryServiceHandler) SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.SearchExternal is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetExternalBook is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error) {

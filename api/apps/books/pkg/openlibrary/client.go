@@ -88,6 +88,31 @@ func (c client) Search(ctx context.Context, query string) ([]ExternalBook, error
 	return books, nil
 }
 
+// Get fetches a single work by its Open Library work ID via the search
+// endpoint (key:/works/{id}), which — unlike the raw work record — resolves
+// author names inline. The description is filled in separately since search
+// results never carry one.
+func (c client) Get(ctx context.Context, providerID string) (*ExternalBook, error) {
+	params := url.Values{}
+	params.Set("q", "key:/works/"+providerID)
+	params.Set("limit", "1")
+	params.Set("fields", searchFields)
+	endpoint := baseURL + "/search.json?" + params.Encode()
+
+	var resp searchResponse
+	if err := c.get(ctx, endpoint, &resp); err != nil {
+		return nil, err
+	}
+	if len(resp.Docs) == 0 {
+		return nil, ErrNotFound
+	}
+
+	book := docToExternalBook(resp.Docs[0])
+	book.Description = c.fetchWorkDescription(ctx, "/works/"+providerID)
+
+	return &book, nil
+}
+
 func (c client) GetByISBN(ctx context.Context, isbn string) (*ExternalBook, error) {
 	bibkey := "ISBN:" + isbn
 	params := url.Values{}

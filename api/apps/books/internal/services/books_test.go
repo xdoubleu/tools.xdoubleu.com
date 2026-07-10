@@ -33,6 +33,16 @@ func (f *fakeOLClient) Search(
 	return nil, nil
 }
 
+func (f *fakeOLClient) Get(
+	_ context.Context,
+	_ string,
+) (*openlibrary.ExternalBook, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
+	return f.detail, f.err
+}
+
 func (f *fakeOLClient) GetByISBN(
 	_ context.Context,
 	_ string,
@@ -109,6 +119,35 @@ func TestExternalToBook_FallsBackToOpenLibraryCover(t *testing.T) {
 
 	require.NotNil(t, book.CoverURL)
 	assert.Equal(t, openlibrary.CoverURLByISBN(&isbn13), *book.CoverURL)
+}
+
+func TestGetExternal_DelegatesToOpenLibrary(t *testing.T) {
+	book := &openlibrary.ExternalBook{ //nolint:exhaustruct //partial
+		Provider:   "openlibrary",
+		ProviderID: "OL42W",
+		Title:      "The Odyssey",
+	}
+	fake := &fakeOLClient{detail: book} //nolint:exhaustruct //zero values fine
+	svc := &BookService{                //nolint:exhaustruct //only external needed
+		logger:   logging.NewNopLogger(),
+		external: fake,
+	}
+
+	out, err := svc.GetExternal(context.Background(), "openlibrary", "OL42W")
+	require.NoError(t, err)
+	assert.Equal(t, book, out)
+}
+
+func TestGetExternal_UnknownProvider_ReturnsNotFound(t *testing.T) {
+	fake := &fakeOLClient{} //nolint:exhaustruct //zero values fine
+	svc := &BookService{    //nolint:exhaustruct //only external needed
+		logger:   logging.NewNopLogger(),
+		external: fake,
+	}
+
+	_, err := svc.GetExternal(context.Background(), "googlebooks", "anything")
+	require.ErrorIs(t, err, openlibrary.ErrNotFound)
+	assert.Zero(t, fake.calls, "unknown provider should not call the client")
 }
 
 func TestEnrichByISBN_NoISBN13_ReturnsUnchanged(t *testing.T) {

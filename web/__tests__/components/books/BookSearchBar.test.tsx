@@ -113,7 +113,8 @@ describe('BookSearchBar — standalone mode', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Controlled mode (library page — query/onChange/hasLibraryResults provided)
+// Controlled mode (library page — query/onChange provided). No dropdown, no
+// OL fallback here — BooksLibrary owns result rendering (see its own tests).
 // ---------------------------------------------------------------------------
 describe('BookSearchBar — controlled mode', () => {
   const onAdded = jest.fn()
@@ -125,110 +126,23 @@ describe('BookSearchBar — controlled mode', () => {
     onAdded.mockReset()
   })
 
-  afterEach(() => {
-    jest.clearAllTimers()
-  })
-
   it('renders search input with controlled value', () => {
-    render(
-      <BookSearchBar query="dune" onChange={jest.fn()} onAdded={onAdded} hasLibraryResults={true} />
-    )
+    render(<BookSearchBar query="dune" onChange={jest.fn()} onAdded={onAdded} />)
     expect(screen.getByDisplayValue('dune')).toBeInTheDocument()
-  })
-
-  it('does not call searchExternal when library has results', async () => {
-    mockSearchExternal.mockResolvedValue({ results: [EXTERNAL_BOOK] })
-    render(
-      <BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} hasLibraryResults={true} />
-    )
-    await act(async () => {
-      jest.advanceTimersByTime(300)
-    })
-    expect(mockSearchExternal).not.toHaveBeenCalled()
-  })
-
-  it('calls searchExternal and shows dropdown when library has no results', async () => {
-    mockSearchExternal.mockResolvedValue({ results: [EXTERNAL_BOOK] })
-    render(
-      <BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} hasLibraryResults={false} />
-    )
-    await act(async () => {
-      jest.advanceTimersByTime(300)
-    })
-    await waitFor(() => {
-      expect(mockSearchExternal).toHaveBeenCalledWith('Go')
-      expect(screen.getByText('Go Book')).toBeInTheDocument()
-    })
-  })
-
-  it('hides dropdown when hasLibraryResults flips back to true', async () => {
-    mockSearchExternal.mockResolvedValue({ results: [EXTERNAL_BOOK] })
-    const { rerender } = render(
-      <BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} hasLibraryResults={false} />
-    )
-    await act(async () => {
-      jest.advanceTimersByTime(300)
-    })
-    await waitFor(() => screen.getByText('Go Book'))
-
-    rerender(
-      <BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} hasLibraryResults={true} />
-    )
-    await waitFor(() => {
-      expect(screen.queryByText('Go Book')).not.toBeInTheDocument()
-    })
   })
 
   it('calls onChange when user types', () => {
     const onChange = jest.fn()
-    render(
-      <BookSearchBar query="" onChange={onChange} onAdded={onAdded} hasLibraryResults={true} />
-    )
+    render(<BookSearchBar query="" onChange={onChange} onAdded={onAdded} />)
     fireEvent.change(screen.getByPlaceholderText('Search books…'), {
       target: { value: 'dune' }
     })
     expect(onChange).toHaveBeenCalledWith('dune')
   })
 
-  it('opens BookModal when an OL result is clicked', async () => {
-    mockSearchExternal.mockResolvedValue({ results: [{ ...EXTERNAL_BOOK, authors: [] }] })
-    render(
-      <BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} hasLibraryResults={false} />
-    )
-    await act(async () => {
-      jest.advanceTimersByTime(300)
-    })
-    await waitFor(() => screen.getByText('Go Book'))
-    fireEvent.click(screen.getByText('Go Book'))
-    expect(screen.getByRole('button', { name: 'Add Book' })).toBeInTheDocument()
-  })
-
-  it('shows searching indicator while OL search is in flight', async () => {
-    mockSearchExternal.mockReturnValue(new Promise(() => {}))
-    render(
-      <BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} hasLibraryResults={false} />
-    )
-    await act(async () => {
-      jest.advanceTimersByTime(300)
-    })
-    expect(screen.getByText('Searching…')).toBeInTheDocument()
-  })
-
-  it('clears results when OL search fails', async () => {
-    mockSearchExternal.mockRejectedValue(new Error('Network error'))
-    render(
-      <BookSearchBar
-        query="fail"
-        onChange={jest.fn()}
-        onAdded={onAdded}
-        hasLibraryResults={false}
-      />
-    )
-    await act(async () => {
-      jest.advanceTimersByTime(300)
-    })
-    await waitFor(() => {
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
-    })
+  it('never searches the library or Open Library directly', () => {
+    render(<BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} />)
+    expect(mockSearchLibrary).not.toHaveBeenCalled()
+    expect(mockSearchExternal).not.toHaveBeenCalled()
   })
 })

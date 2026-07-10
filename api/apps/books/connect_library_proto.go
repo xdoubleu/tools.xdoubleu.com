@@ -91,20 +91,24 @@ func protoBookshelves(shelves []bookShelf, coverBaseURL string) []*booksv1.BookS
 	return result
 }
 
+func protoExternalBook(b openlibrary.ExternalBook) *booksv1.ExternalBookResult {
+	return &booksv1.ExternalBookResult{
+		Provider:    b.Provider,
+		ProviderId:  b.ProviderID,
+		Title:       b.Title,
+		Authors:     b.Authors,
+		Isbn13:      stringPtr(b.ISBN13),
+		CoverUrl:    stringPtr(b.CoverURL),
+		Description: stringPtr(b.Description),
+	}
+}
+
 func protoExternalBooks(
 	books []openlibrary.ExternalBook,
 ) []*booksv1.ExternalBookResult {
 	result := make([]*booksv1.ExternalBookResult, len(books))
 	for i, b := range books {
-		result[i] = &booksv1.ExternalBookResult{
-			Provider:    b.Provider,
-			ProviderId:  b.ProviderID,
-			Title:       b.Title,
-			Authors:     b.Authors,
-			Isbn13:      stringPtr(b.ISBN13),
-			CoverUrl:    stringPtr(b.CoverURL),
-			Description: stringPtr(b.Description),
-		}
+		result[i] = protoExternalBook(b)
 	}
 	return result
 }

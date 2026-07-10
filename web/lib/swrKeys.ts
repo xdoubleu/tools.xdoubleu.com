@@ -27,6 +27,8 @@ export const swrKeys = {
   bookSources: (bookId: string) => ['/books/sources', bookId] as const,
   kepubStatus: (bookId: string) => ['/books/kepub-status', bookId] as const,
   bookFile: (bookId: string, format: string) => ['/books/file', bookId, format] as const,
+  externalBook: (provider: string, providerId: string) =>
+    ['/books/external', provider, providerId] as const,
 
   games: '/games',
   game: (gameId: number) => `/games/${gameId}`,

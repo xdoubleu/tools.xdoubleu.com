@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import BooksSection from '@/components/books/BooksSection'
 import SWRFallback from '@/components/SWRFallback'
 import { createServerClient } from '@/lib/server/client'
@@ -21,7 +22,9 @@ export default async function BacklogBooksLibraryPage() {
       <h1 className="text-3xl font-bold mb-6">Library</h1>
 
       <SWRFallback fallback={library ? { [swrKeys.books]: library } : {}}>
-        <BooksSection />
+        <Suspense fallback={<p className="text-muted">Loading…</p>}>
+          <BooksSection />
+        </Suspense>
       </SWRFallback>
     </PageContainer>
   )

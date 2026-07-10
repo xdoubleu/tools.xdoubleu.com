@@ -10,27 +10,24 @@ import { MenuItem } from '@/components/ui/menu-item'
 
 // Two usage modes:
 //
-//  1. Standalone mode (BooksDashboard): omit query/onChange/hasLibraryResults.
-//     The bar manages its own query state, searches the library, navigates on
-//     a hit, and falls back to Open Library when the library has no results.
+//  1. Standalone mode (BooksDashboard): omit query/onChange. The bar manages
+//     its own query state, searches the library, navigates on a hit, and
+//     falls back to Open Library when the library has no results.
 //
-//  2. Controlled mode (BooksSection / library page): supply query, onChange,
-//     and hasLibraryResults.  The bar is a controlled input; it does NOT search
-//     the library itself (BooksLibrary does that via client-side filtering).
-//     When hasLibraryResults is false it searches Open Library as a fallback.
+//  2. Controlled mode (BooksSection / library page): supply query and
+//     onChange. The bar is a plain controlled input with no dropdown —
+//     BooksLibrary renders results as cards in the page body instead.
 interface BookSearchBarProps {
   onAdded: () => void
-  // Controlled-mode props (all required together, all omitted for standalone).
+  // Controlled-mode props (both required together, both omitted for standalone).
   query?: string
   onChange?: (value: string) => void
-  hasLibraryResults?: boolean
 }
 
 export default function BookSearchBar({
   onAdded,
   query: controlledQuery,
-  onChange,
-  hasLibraryResults
+  onChange
 }: BookSearchBarProps) {
   const isControlled = controlledQuery !== undefined
 
@@ -86,40 +83,6 @@ export default function BookSearchBar({
     }
   }, [standaloneQuery, isControlled, searchLibrary, searchExternal])
 
-  // ---- Controlled mode: OL fallback when library filter has no results ----
-  useEffect(() => {
-    if (!isControlled) return
-
-    if (debounceTimer.current) clearTimeout(debounceTimer.current)
-
-    if (!controlledQuery?.trim() || hasLibraryResults) {
-      if (externalResults.length) setExternalResults([])
-      if (isSearching) setIsSearching(false)
-      return
-    }
-
-    debounceTimer.current = setTimeout(async () => {
-      setIsSearching(true)
-      try {
-        const resp = await searchExternal(controlledQuery.trim())
-        setExternalResults(resp.results)
-      } catch {
-        setExternalResults([])
-      } finally {
-        setIsSearching(false)
-      }
-    }, 300)
-
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current)
-    }
-  }, [controlledQuery, hasLibraryResults, isControlled, searchExternal])
-
-  const showLibraryDropdown = !isControlled && libraryHits.length > 0
-  const showExternalDropdown =
-    externalResults.length > 0 &&
-    (isControlled ? !hasLibraryResults && (controlledQuery?.trim() ?? '') !== '' : true)
-
   function handleInputChange(value: string) {
     if (isControlled) {
       onChange?.(value)
@@ -129,6 +92,21 @@ export default function BookSearchBar({
       setExternalResults([])
     }
   }
+
+  // Controlled mode: no dropdown, no debounce — BooksLibrary owns filtering.
+  if (isControlled) {
+    return (
+      <Input
+        type="text"
+        value={query}
+        onChange={(e) => handleInputChange(e.target.value)}
+        placeholder="Search books…"
+      />
+    )
+  }
+
+  const showLibraryDropdown = libraryHits.length > 0
+  const showExternalDropdown = externalResults.length > 0
 
   return (
     <div className="space-y-3">
@@ -170,7 +148,7 @@ export default function BookSearchBar({
                       onClick={() => {
                         setSelectedBook(book)
                         setExternalResults([])
-                        if (!isControlled) setStandaloneQuery('')
+                        setStandaloneQuery('')
                       }}
                     >
                       <span className="font-medium">{book.title}</span>

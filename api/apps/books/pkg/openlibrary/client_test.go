@@ -159,6 +159,52 @@ func TestSearch_HTTPError(t *testing.T) {
 	assert.Contains(t, err.Error(), "500")
 }
 
+func TestGet_ReturnsMappedBookWithDescription(t *testing.T) {
+	setupTestServerFull(t,
+		map[string]any{
+			"docs": []map[string]any{
+				{
+					"key":                    "/works/OL27448W",
+					"title":                  "The Lord of the Rings",
+					"author_name":            []string{"J.R.R. Tolkien"},
+					"cover_i":                258027,
+					"isbn":                   []string{"9780618640157"},
+					"number_of_pages_median": 1216,
+				},
+			},
+		},
+		nil,
+		map[string]any{
+			"/works/OL27448W.json": map[string]any{
+				"description": "An epic high-fantasy novel set in Middle-earth.",
+			},
+		},
+	)
+
+	c := New(logging.NewNopLogger())
+	book, err := c.Get(context.Background(), "OL27448W")
+	require.NoError(t, err)
+	require.NotNil(t, book)
+	assert.Equal(t, "openlibrary", book.Provider)
+	assert.Equal(t, "OL27448W", book.ProviderID)
+	assert.Equal(t, "The Lord of the Rings", book.Title)
+	assert.Equal(t, []string{"J.R.R. Tolkien"}, book.Authors)
+	require.NotNil(t, book.Description)
+	assert.Equal(
+		t,
+		"An epic high-fantasy novel set in Middle-earth.",
+		*book.Description,
+	)
+}
+
+func TestGet_NotFound(t *testing.T) {
+	setupTestServer(t, map[string]any{"docs": []any{}}, nil)
+
+	c := New(logging.NewNopLogger())
+	_, err := c.Get(context.Background(), "OL999W")
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
 func TestGetByISBN_ReturnsMetadata(t *testing.T) {
 	isbn := "9780618640157"
 	setupTestServer(t, nil, map[string]any{
