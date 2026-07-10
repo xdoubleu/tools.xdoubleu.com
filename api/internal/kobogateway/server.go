@@ -96,8 +96,8 @@ func (s *Server) secure(next http.Handler) http.Handler {
 			return
 		}
 
-		origin := r.Header.Get("Origin")
-		if !s.originAllowed(origin) {
+		origin, ok := s.matchOrigin(r.Header.Get("Origin"))
+		if !ok {
 			writeError(w, http.StatusForbidden, "origin not allowed")
 
 			return
@@ -140,14 +140,18 @@ func (s *Server) hostAllowed(host string) bool {
 		host == fmt.Sprintf("localhost:%d", s.cfg.Port)
 }
 
-func (s *Server) originAllowed(origin string) bool {
+// matchOrigin looks the request origin up in the allowlist and returns the
+// matched allowlist entry. Callers must use the returned value, never the
+// request header, wherever the origin is acted on (CORS echo, update
+// download URL) — that keeps request data out of outbound requests.
+func (s *Server) matchOrigin(origin string) (string, bool) {
 	for _, allowed := range s.cfg.AllowedOrigins {
 		if origin == allowed {
-			return true
+			return allowed, true
 		}
 	}
 
-	return false
+	return "", false
 }
 
 func (s *Server) statusHandler(w http.ResponseWriter, _ *http.Request) {
@@ -231,10 +235,19 @@ func (s *Server) revertHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, RevertResponse{Serial: kobo.Serial})
 }
 
-// updateHandler downloads the latest binary from the (already validated)
-// requesting origin over the current executable, then signals a restart.
+// updateHandler downloads the latest binary from the requesting origin over
+// the current executable, then signals a restart. The origin is re-matched
+// against the allowlist so the download URL is built from the allowlist
+// entry, not from request data (avoids request forgery).
 func (s *Server) updateHandler(w http.ResponseWriter, r *http.Request) {
-	err := s.updater.SelfUpdate(r.Context(), r.Header.Get("Origin"))
+	origin, ok := s.matchOrigin(r.Header.Get("Origin"))
+	if !ok {
+		writeError(w, http.StatusForbidden, "origin not allowed")
+
+		return
+	}
+
+	err := s.updater.SelfUpdate(r.Context(), origin)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 
