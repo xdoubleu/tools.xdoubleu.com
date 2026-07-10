@@ -14,22 +14,23 @@ import { displayTags } from '@/lib/books/bookShelves'
 interface BookCardProps {
   userBook: UserBook
   onSaved: () => void
+  /** Active search query, if any — carried into the detail link so the breadcrumb can restore it. */
+  query?: string
 }
 
-export default function BookCard({ userBook, onSaved }: BookCardProps) {
+export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
   const book = userBook.book
   if (!book) return null
 
   const isRead = userBook.status === 'read'
+  const href = query
+    ? `/books/${userBook.id}?q=${encodeURIComponent(query)}`
+    : `/books/${userBook.id}`
 
   return (
     <div className={cn(interactiveCardClass, 'relative p-3 flex gap-3 items-start')}>
       {/* Stretched link covers the whole card; interactive controls sit above it via z-10 */}
-      <Link
-        href={`/books/${userBook.id}`}
-        className="absolute inset-0 rounded-2xl"
-        aria-label={book.title}
-      />
+      <Link href={href} className="absolute inset-0 rounded-2xl" aria-label={book.title} />
       {/* Cover sits below the link — clicking it navigates */}
       <div className="shrink-0">
         <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />

@@ -37,7 +37,18 @@ export default function BookSearchBar({
 
   // Standalone mode owns its own query state.
   const [standaloneQuery, setStandaloneQuery] = useState('')
+  // Controlled mode: local input state so typing is instant even though the
+  // committed query lives in the URL (router.replace is too slow to bind the
+  // input directly to it — see controlledDebounceTimer below).
+  const [controlledInput, setControlledInput] = useState(controlledQuery ?? '')
   const query = isControlled ? controlledQuery : standaloneQuery
+  const controlledDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Keep the local input in sync when the URL query changes from elsewhere
+  // (browser Back/Forward).
+  useEffect(() => {
+    if (isControlled) setControlledInput(controlledQuery ?? '')
+  }, [isControlled, controlledQuery])
 
   type LibraryHit = { id: string; book?: { title: string; authors: string[] } | null }
   const [libraryHits, setLibraryHits] = useState<LibraryHit[]>([])
@@ -85,7 +96,12 @@ export default function BookSearchBar({
 
   function handleInputChange(value: string) {
     if (isControlled) {
-      onChange?.(value)
+      // Update the local input immediately so typing feels instant, then
+      // debounce the URL commit — each commit is a router.replace() that
+      // re-runs the RSC, so firing it on every keystroke was the slowdown.
+      setControlledInput(value)
+      if (controlledDebounceTimer.current) clearTimeout(controlledDebounceTimer.current)
+      controlledDebounceTimer.current = setTimeout(() => onChange?.(value), 300)
     } else {
       setStandaloneQuery(value)
       setLibraryHits([])
@@ -93,12 +109,14 @@ export default function BookSearchBar({
     }
   }
 
-  // Controlled mode: no dropdown, no debounce — BooksLibrary owns filtering.
+  // Controlled mode: no dropdown — BooksLibrary owns filtering. The URL
+  // commit (and therefore the actual filter) is debounced; the input itself
+  // is not, so typing stays responsive.
   if (isControlled) {
     return (
       <Input
         type="text"
-        value={query}
+        value={controlledInput}
         onChange={(e) => handleInputChange(e.target.value)}
         placeholder="Search books…"
       />

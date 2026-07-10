@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { mutate } from 'swr'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -41,6 +41,8 @@ export default function BookDetailClient({ id }: { id: string }) {
   const [previewFormat, setPreviewFormat] = useState<'pdf' | 'epub' | 'kepub' | null>(null)
   const [removeOpen, setRemoveOpen] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const query = searchParams.get('q')
 
   const userBook = useMemo(() => {
     if (!data?.library) return null
@@ -64,7 +66,10 @@ export default function BookDetailClient({ id }: { id: string }) {
 
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: 'Books', href: '/books' },
-    { label: 'Library', href: '/books/library' },
+    {
+      label: 'Library',
+      href: query ? `/books/library?q=${encodeURIComponent(query)}` : '/books/library'
+    },
     { label: book?.title ?? 'Book' }
   ]
 

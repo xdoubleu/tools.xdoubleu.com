@@ -166,7 +166,7 @@ export default function BooksLibrary({
           {isSearching ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {filteredBooks.map((ub) => (
-                <BookCard key={ub.id} userBook={ub} onSaved={onSaved} />
+                <BookCard key={ub.id} userBook={ub} onSaved={onSaved} query={searchQuery} />
               ))}
               {externalResults.map((book) => (
                 <ExternalBookCard key={`${book.provider}-${book.providerId}`} book={book} />

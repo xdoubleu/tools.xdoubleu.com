@@ -22,11 +22,13 @@ type booksPageData struct {
 }
 
 func groupByStatus(userBooks []models.UserBook) []bookShelf {
+	// Dropped is intentionally excluded here: unlike the other three statuses
+	// it has no dedicated LibraryResponse field, so it flows through as a
+	// shelf named "dropped" instead of disappearing from the library.
 	standard := map[string]bool{
 		models.StatusToRead:  true,
 		models.StatusReading: true,
 		models.StatusRead:    true,
-		models.StatusDropped: true,
 	}
 	seen := map[string][]models.UserBook{}
 	var order []string

@@ -45,10 +45,23 @@ func TestGroupByStatus_SkipsStandardStatuses(t *testing.T) {
 		{Status: models.StatusToRead},  //nolint:exhaustruct //only Status needed
 		{Status: models.StatusReading}, //nolint:exhaustruct //only Status needed
 		{Status: models.StatusRead},    //nolint:exhaustruct //only Status needed
-		{Status: models.StatusDropped}, //nolint:exhaustruct //only Status needed
 	}
 	shelves := groupByStatus(books)
 	assert.Empty(t, shelves)
+}
+
+// Dropped has no dedicated LibraryResponse field, so unlike the other three
+// built-in statuses it flows through groupByStatus as a shelf named
+// "dropped" rather than disappearing from the library.
+func TestGroupByStatus_DroppedBecomesShelf(t *testing.T) {
+	books := []models.UserBook{
+		{Status: models.StatusDropped}, //nolint:exhaustruct //only Status needed
+		{Status: models.StatusToRead},  //nolint:exhaustruct //only Status needed
+	}
+	shelves := groupByStatus(books)
+	assert.Len(t, shelves, 1)
+	assert.Equal(t, "dropped", shelves[0].Name)
+	assert.Len(t, shelves[0].Books, 1)
 }
 
 func TestGroupByStatus_CustomStatusBecomesShelf(t *testing.T) {

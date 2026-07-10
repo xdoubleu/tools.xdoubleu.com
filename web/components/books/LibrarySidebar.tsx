@@ -30,6 +30,10 @@ export function buildShelves(library: LibraryResponse): Shelf[] {
     ...library.finished,
     ...library.shelves.flatMap((s) => s.books)
   ]
+  // The backend has no dedicated LibraryResponse field for dropped books —
+  // they arrive as a generic shelf named "dropped". Pull it out and render
+  // it as a fixed shelf with a proper label instead of the raw status value.
+  const droppedShelf = library.shelves.find((s) => s.name === 'dropped')
   const fixed: Shelf[] = [
     {
       id: 'all',
@@ -43,13 +47,16 @@ export function buildShelves(library: LibraryResponse): Shelf[] {
       id: 'favourite',
       label: 'Favourites',
       count: allBooks.filter((b) => b.tags.includes('favourite')).length
-    }
+    },
+    ...(droppedShelf ? [{ id: 'dropped', label: 'Dropped', count: droppedShelf.books.length }] : [])
   ]
-  const dynamic: Shelf[] = library.shelves.map((s) => ({
-    id: s.name,
-    label: s.name,
-    count: s.books.length
-  }))
+  const dynamic: Shelf[] = library.shelves
+    .filter((s) => s.name !== 'dropped')
+    .map((s) => ({
+      id: s.name,
+      label: s.name,
+      count: s.books.length
+    }))
   return [...fixed, ...dynamic]
 }
 
