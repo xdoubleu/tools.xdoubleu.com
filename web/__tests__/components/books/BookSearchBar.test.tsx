@@ -131,13 +131,26 @@ describe('BookSearchBar — controlled mode', () => {
     expect(screen.getByDisplayValue('dune')).toBeInTheDocument()
   })
 
-  it('calls onChange when user types', () => {
+  it('updates the input immediately but debounces onChange', () => {
     const onChange = jest.fn()
     render(<BookSearchBar query="" onChange={onChange} onAdded={onAdded} />)
-    fireEvent.change(screen.getByPlaceholderText('Search books…'), {
-      target: { value: 'dune' }
+    const input = screen.getByPlaceholderText('Search books…')
+    fireEvent.change(input, { target: { value: 'dune' } })
+    expect(input).toHaveValue('dune')
+    expect(onChange).not.toHaveBeenCalled()
+    act(() => {
+      jest.advanceTimersByTime(300)
     })
     expect(onChange).toHaveBeenCalledWith('dune')
+  })
+
+  it('syncs the input from the query prop (browser back/forward)', () => {
+    const { rerender } = render(
+      <BookSearchBar query="dune" onChange={jest.fn()} onAdded={onAdded} />
+    )
+    expect(screen.getByDisplayValue('dune')).toBeInTheDocument()
+    rerender(<BookSearchBar query="foundation" onChange={jest.fn()} onAdded={onAdded} />)
+    expect(screen.getByDisplayValue('foundation')).toBeInTheDocument()
   })
 
   it('never searches the library or Open Library directly', () => {

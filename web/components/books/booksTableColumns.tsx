@@ -183,7 +183,7 @@ export const ALL_COLUMNS: BookColumn[] = [
   {
     key: 'owned',
     label: 'Owned',
-    renderCell: (ub, ctx) => <BookOwnershipToggles userBook={ub} onSaved={ctx.onSaved} />
+    renderCell: (ub, ctx) => <BookOwnershipToggles userBook={ub} onSaved={ctx.onSaved} hideLabel />
   },
   {
     key: 'shelf',

@@ -7,6 +7,7 @@ import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Label } from '@/components/ui/label'
 import { Combobox } from '@/components/ui/combobox'
+import { Button } from '@/components/ui/button'
 import TogglePill from '@/components/books/TogglePill'
 import {
   SPECIAL_TAGS,
@@ -28,8 +29,9 @@ interface BookShelfTagFieldsProps {
  * Inline shelf/tag editor for the book detail page.
  * Renders shelf and tags as the same toggle-pill control (single-select for
  * shelf, multi-select for tags) — one click toggles, no popover or checkbox
- * list. New tags are added via a combobox. Creating or deleting shelves/tags
- * is handled in the sidebar Manage dialog.
+ * list. New tags and new shelves are added via a combobox, hidden behind an
+ * "Add" button until needed. Renaming or deleting shelves/tags is handled in
+ * the sidebar Manage dialog.
  */
 export default function BookShelfTagFields({
   userBook,
@@ -40,6 +42,9 @@ export default function BookShelfTagFields({
   const [status, setStatus] = useState(userBook.status)
   const [tags, setTags] = useState<string[]>(displayTags(userBook.tags))
   const [newTag, setNewTag] = useState('')
+  const [newShelf, setNewShelf] = useState('')
+  const [showTagInput, setShowTagInput] = useState(false)
+  const [showShelfInput, setShowShelfInput] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const updateBookStatus = useUpdateBookStatus()
   const toggleTag = useToggleTag()
@@ -85,17 +90,25 @@ export default function BookShelfTagFields({
     await handleTagToggle(tag, true)
   }
 
+  const handleAddShelf = async (shelf: string) => {
+    setNewShelf('')
+    setShowShelfInput(false)
+    if (!shelf || shelf === status) return
+    await handleStatusChange(shelf)
+  }
+
   const visibleKnownTags = knownTags.filter((t) => !SPECIAL_TAGS.has(t))
   // Tags on this book not in the known list (edge case) plus known ones, deduped.
   const allTags = [...new Set([...visibleKnownTags, ...tags])]
   const addableTags = knownTags.filter((t) => !SPECIAL_TAGS.has(t) && !tags.includes(t))
+  const addableShelves = customShelves.filter((s) => s !== status)
 
   return (
     <div className="space-y-4">
       {/* Shelf — single-select toggle pills */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Shelf</Label>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {BOOK_STATUSES.map(({ value, label }) => (
             <TogglePill
               key={value}
@@ -112,7 +125,31 @@ export default function BookShelfTagFields({
               onClick={() => void handleStatusChange(s)}
             />
           ))}
+          {!showShelfInput && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => setShowShelfInput(true)}
+            >
+              + Add shelf
+            </Button>
+          )}
         </div>
+        {showShelfInput && (
+          <Combobox
+            value={newShelf}
+            onChange={setNewShelf}
+            onSelect={(shelf) => void handleAddShelf(shelf)}
+            onEnter={() => void handleAddShelf(newShelf)}
+            suggestions={addableShelves}
+            placeholder="New or existing shelf…"
+            aria-label="Add a shelf"
+            className="mt-1 max-w-56"
+            autoFocus
+          />
+        )}
       </div>
 
       {/* Tags — clickable chips toggle in place, no popover/checkbox list */}
@@ -135,16 +172,29 @@ export default function BookShelfTagFields({
             })}
           </div>
         )}
-        <Combobox
-          value={newTag}
-          onChange={setNewTag}
-          onSelect={(tag) => void handleAddTag(tag)}
-          onEnter={() => void handleAddTag(newTag)}
-          suggestions={addableTags}
-          placeholder="Add a tag…"
-          aria-label="Add a tag"
-          className="mt-1 max-w-56"
-        />
+        {showTagInput ? (
+          <Combobox
+            value={newTag}
+            onChange={setNewTag}
+            onSelect={(tag) => void handleAddTag(tag)}
+            onEnter={() => void handleAddTag(newTag)}
+            suggestions={addableTags}
+            placeholder="Add a tag…"
+            aria-label="Add a tag"
+            className="mt-1 max-w-56"
+            autoFocus
+          />
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+            onClick={() => setShowTagInput(true)}
+          >
+            + Add tag
+          </Button>
+        )}
       </div>
 
       {error && <p className="text-xs text-danger">{error}</p>}

@@ -97,6 +97,12 @@ describe('BookCard', () => {
     expect(link).toHaveAttribute('href', '/books/ub-1')
   })
 
+  it('carries the search query into the detail link when provided', () => {
+    render(<BookCard userBook={makeBook()} onSaved={jest.fn()} query="dune" />)
+    const link = screen.getByRole('link', { name: 'Test Book' })
+    expect(link).toHaveAttribute('href', '/books/ub-1?q=dune')
+  })
+
   it('shows Physical badge when own-physical tag present', () => {
     render(<BookCard userBook={makeBook({ tags: ['own-physical'] })} onSaved={jest.fn()} />)
     expect(screen.getByText('Physical')).toBeInTheDocument()

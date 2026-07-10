@@ -66,6 +66,26 @@ describe('buildShelves', () => {
     expect(favShelf!.label).toBe('Favourites')
     expect(favShelf!.count).toBe(2)
   })
+
+  it('surfaces a raw "dropped" shelf as a fixed Dropped entry, not duplicated in custom shelves', () => {
+    const library = create(LibraryResponseSchema, {
+      reading: [],
+      wishlist: [],
+      finished: [],
+      shelves: [create(BookShelfSchema, { name: 'dropped', books: [makeBook('d1')] })]
+    })
+    const shelves = buildShelves(library)
+    const dropped = shelves.filter((s) => s.id === 'dropped')
+    expect(dropped).toHaveLength(1)
+    expect(dropped[0].label).toBe('Dropped')
+    expect(dropped[0].count).toBe(1)
+  })
+
+  it('omits the Dropped shelf when there are no dropped books', () => {
+    const library = makeLibrary()
+    const shelves = buildShelves(library)
+    expect(shelves.find((s) => s.id === 'dropped')).toBeUndefined()
+  })
 })
 
 describe('buildTags', () => {

@@ -350,6 +350,12 @@ describe('BooksLibrary', () => {
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Search results')
   })
 
+  it('carries the search query into result card links so the breadcrumb can restore it', () => {
+    const { container } = renderLibrary(makeLibrary(), { searchQuery: 'dune' })
+    const link = container.querySelector('a[href^="/books/1"]')
+    expect(link).toHaveAttribute('href', '/books/1?q=dune')
+  })
+
   it('does not fetch external results when the library already has a match', async () => {
     renderLibrary(makeLibrary(), { searchQuery: 'dune' })
     await act(async () => {

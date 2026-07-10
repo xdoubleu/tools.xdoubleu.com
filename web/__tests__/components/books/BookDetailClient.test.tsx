@@ -17,6 +17,7 @@ jest.mock('@/hooks/useBooks', () => ({
 }))
 
 const mockRouterPush = jest.fn()
+const mockUseSearchParams = jest.fn(() => new URLSearchParams())
 
 jest.mock('@/hooks/useAuth', () => ({
   useCurrentUser: jest.fn()
@@ -29,7 +30,8 @@ jest.mock('@/components/books/BookSourceSync', () => {
 })
 
 jest.mock('next/navigation', () => ({
-  useRouter: jest.fn(() => ({ push: mockRouterPush }))
+  useRouter: jest.fn(() => ({ push: mockRouterPush })),
+  useSearchParams: () => mockUseSearchParams()
 }))
 
 jest.mock('next/link', () => {
@@ -270,6 +272,13 @@ describe('BookDetailClient', () => {
     expect(booksLink).toHaveAttribute('href', '/books')
     const libraryLink = screen.getByText('Library').closest('a')
     expect(libraryLink).toHaveAttribute('href', '/books/library')
+  })
+
+  it('carries the search query into the Library breadcrumb link', () => {
+    mockUseSearchParams.mockReturnValueOnce(new URLSearchParams('q=dune'))
+    render(<BookDetailClient id="ub-1" />)
+    const libraryLink = screen.getByText('Library').closest('a')
+    expect(libraryLink).toHaveAttribute('href', '/books/library?q=dune')
   })
 
   it('renders shelf/tag fields', () => {

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import BookDetailClient from './BookDetailClient'
 import SWRFallback from '@/components/SWRFallback'
 import { createServerClient } from '@/lib/server/client'
@@ -11,7 +12,9 @@ export default async function BookDetailPage({ params }: { params: Promise<{ id:
   const library = await fetchOrNull(() => client.getLibrary({}))
   return (
     <SWRFallback fallback={library ? { [swrKeys.books]: library } : {}}>
-      <BookDetailClient id={id} />
+      <Suspense fallback={<p className="p-6 text-muted">Loading…</p>}>
+        <BookDetailClient id={id} />
+      </Suspense>
     </SWRFallback>
   )
 }

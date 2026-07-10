@@ -12,9 +12,15 @@ import TogglePill from '@/components/books/TogglePill'
 interface BookOwnershipTogglesProps {
   userBook: UserBook
   onSaved?: () => void
+  /** Hide the "Ownership" label — used in the library table where the column header already says it. */
+  hideLabel?: boolean
 }
 
-export default function BookOwnershipToggles({ userBook, onSaved }: BookOwnershipTogglesProps) {
+export default function BookOwnershipToggles({
+  userBook,
+  onSaved,
+  hideLabel
+}: BookOwnershipTogglesProps) {
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
   const toggleTag = useToggleTag()
 
@@ -34,7 +40,11 @@ export default function BookOwnershipToggles({ userBook, onSaved }: BookOwnershi
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Ownership</Label>
+      {!hideLabel && (
+        <Label className="text-xs font-semibold text-muted uppercase tracking-wide">
+          Ownership
+        </Label>
+      )}
       <div className="flex items-center gap-1.5 flex-wrap">
         <TogglePill
           label="Physical"

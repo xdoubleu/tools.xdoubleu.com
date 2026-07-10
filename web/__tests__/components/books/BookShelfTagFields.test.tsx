@@ -237,10 +237,20 @@ describe('BookShelfTagFields', () => {
     )
   })
 
+  it('hides the tag input until "+ Add tag" is clicked', () => {
+    render(
+      <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['fantasy']} />
+    )
+    expect(screen.queryByLabelText('Add a tag')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '+ Add tag' }))
+    expect(screen.getByLabelText('Add a tag')).toBeInTheDocument()
+  })
+
   it('adds a new tag via the combobox on Enter', async () => {
     render(
       <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['fantasy']} />
     )
+    fireEvent.click(screen.getByRole('button', { name: '+ Add tag' }))
     const combobox = screen.getByLabelText('Add a tag')
     fireEvent.change(combobox, { target: { value: 'fantasy' } })
     fireEvent.keyDown(combobox, { key: 'Enter' })
@@ -251,6 +261,7 @@ describe('BookShelfTagFields', () => {
     render(
       <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['mystery']} />
     )
+    fireEvent.click(screen.getByRole('button', { name: '+ Add tag' }))
     const combobox = screen.getByLabelText('Add a tag')
     fireEvent.change(combobox, { target: { value: 'mys' } })
     fireEvent.mouseDown(screen.getByText('mystery', { selector: 'li' }))
@@ -265,9 +276,44 @@ describe('BookShelfTagFields', () => {
         knownTags={['fantasy']}
       />
     )
+    fireEvent.click(screen.getByRole('button', { name: '+ Add tag' }))
     // fantasy is already active, so it must not appear in the addable suggestions
     const combobox = screen.getByLabelText('Add a tag')
     fireEvent.change(combobox, { target: { value: 'fantasy' } })
     expect(screen.queryByText('fantasy', { selector: 'li' })).not.toBeInTheDocument()
+  })
+
+  it('hides the shelf input until "+ Add shelf" is clicked', () => {
+    render(<BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={[]} />)
+    expect(screen.queryByLabelText('Add a shelf')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '+ Add shelf' }))
+    expect(screen.getByLabelText('Add a shelf')).toBeInTheDocument()
+  })
+
+  it('creates an ad-hoc shelf by typing a new name and pressing Enter', async () => {
+    render(<BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: '+ Add shelf' }))
+    const combobox = screen.getByLabelText('Add a shelf')
+    fireEvent.change(combobox, { target: { value: 'book club' } })
+    fireEvent.keyDown(combobox, { key: 'Enter' })
+    await waitFor(() =>
+      expect(mockUpdateBookStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ bookId: 'book-1', status: 'book club' })
+      )
+    )
+  })
+
+  it('suggests existing custom shelves not already active in the shelf combobox', () => {
+    render(
+      <BookShelfTagFields
+        userBook={makeUserBook({ status: 'to-read' })}
+        knownShelves={['book club']}
+        knownTags={[]}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: '+ Add shelf' }))
+    const combobox = screen.getByLabelText('Add a shelf')
+    fireEvent.change(combobox, { target: { value: 'book' } })
+    expect(screen.getByText('book club', { selector: 'li' })).toBeInTheDocument()
   })
 })
