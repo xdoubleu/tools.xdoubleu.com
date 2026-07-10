@@ -83,6 +83,9 @@ message SearchLibraryResponse { repeated UserBook books = 1; }
 message SearchExternalRequest { string query = 1; }
 message SearchExternalResponse { repeated ExternalBookResult results = 1; }
 
+message GetExternalBookRequest { string provider = 1; string provider_id = 2; }
+message GetExternalBookResponse { ExternalBookResult result = 1; }
+
 message CreateBookRequest {
   string provider = 1;
   string provider_id = 2;
@@ -158,6 +161,7 @@ service LibraryService {
   rpc GetBooksProgress(GetBooksProgressRequest) returns (GetBooksProgressResponse);
   rpc SearchLibrary(SearchLibraryRequest) returns (SearchLibraryResponse);
   rpc SearchExternal(SearchExternalRequest) returns (SearchExternalResponse);
+  rpc GetExternalBook(GetExternalBookRequest) returns (GetExternalBookResponse);
   rpc CreateBook(CreateBookRequest) returns (CreateBookResponse);
   rpc UpdateBookStatus(UpdateBookStatusRequest) returns (UpdateBookStatusResponse);
   rpc UpdateFinishedAt(UpdateFinishedAtRequest) returns (UpdateFinishedAtResponse);

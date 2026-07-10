@@ -28,7 +28,8 @@ jest.mock('@/lib/client', () => ({
     listResyncProposals: jest.fn().mockResolvedValue({ proposals: [] }),
     applyResyncChoice: jest.fn().mockResolvedValue({}),
     getBookSources: jest.fn().mockResolvedValue({ proposal: undefined }),
-    applyBookSource: jest.fn().mockResolvedValue({})
+    applyBookSource: jest.fn().mockResolvedValue({}),
+    getExternalBook: jest.fn().mockResolvedValue({ result: undefined })
   }))
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({
@@ -65,7 +66,8 @@ import {
   useResyncProposals,
   useApplyResyncChoice,
   useBookSources,
-  useApplyBookSource
+  useApplyBookSource,
+  useExternalBook
 } from '@/hooks/useBooks'
 import { createServiceClient } from '@/lib/client'
 
@@ -222,6 +224,34 @@ describe('useBookSources', () => {
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockGet).toHaveBeenCalledWith({ bookId: 'book-1' })
+  })
+})
+
+describe('useExternalBook', () => {
+  it('uses null key when provider or providerId is missing', () => {
+    renderHook(() => useExternalBook(null, 'OL1W'))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+    mockUseSWR.mockClear()
+    renderHook(() => useExternalBook('openlibrary', null))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+  })
+
+  it('uses the externalBook key when both are provided', () => {
+    renderHook(() => useExternalBook('openlibrary', 'OL1W'))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/books/external', 'openlibrary', 'OL1W'],
+      expect.any(Function)
+    )
+  })
+
+  it('fetcher calls client.getExternalBook', async () => {
+    const mockGet = jest.fn().mockResolvedValue({ result: undefined })
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ getExternalBook: mockGet })
+    renderHook(() => useExternalBook('openlibrary', 'OL1W'))
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockGet).toHaveBeenCalledWith({ provider: 'openlibrary', providerId: 'OL1W' })
   })
 })
 

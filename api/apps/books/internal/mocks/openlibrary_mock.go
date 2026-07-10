@@ -17,6 +17,14 @@ func (m MockOpenLibraryClient) Search(
 	return []openlibrary.ExternalBook{odysseyBook()}, nil
 }
 
+func (m MockOpenLibraryClient) Get(
+	_ context.Context,
+	_ string,
+) (*openlibrary.ExternalBook, error) {
+	book := odysseyBook()
+	return &book, nil
+}
+
 func (m MockOpenLibraryClient) GetByISBN(
 	_ context.Context,
 	_ string,
@@ -60,6 +68,13 @@ func (m MockEmptyOpenLibraryClient) Search(
 	_ string,
 ) ([]openlibrary.ExternalBook, error) {
 	return nil, nil
+}
+
+func (m MockEmptyOpenLibraryClient) Get(
+	_ context.Context,
+	_ string,
+) (*openlibrary.ExternalBook, error) {
+	return nil, openlibrary.ErrNotFound
 }
 
 func (m MockEmptyOpenLibraryClient) GetByISBN(

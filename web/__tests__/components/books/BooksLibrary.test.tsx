@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import BooksLibrary from '@/components/books/BooksLibrary'
 import {
@@ -8,6 +8,15 @@ import {
   BookShelfSchema,
   LibraryResponseSchema
 } from '@/lib/gen/books/v1/library_pb'
+
+const mockSearchExternal = jest.fn()
+
+jest.mock('@/hooks/useBooks', () => ({
+  ...jest.requireActual('@/hooks/useBooks'),
+  useSearchExternal: () => mockSearchExternal
+}))
+
+jest.useFakeTimers()
 
 jest.mock('next/image', () => {
   return function MockImage({ src, alt }: { src: string; alt: string }) {
@@ -82,29 +91,38 @@ function makeLibrary(
   })
 }
 
-// Helper: render BooksLibrary with the required new search props.
+// Helper: render BooksLibrary with the required search prop.
 function renderLibrary(
   library: ReturnType<typeof makeLibrary>,
-  opts: {
-    searchQuery?: string
-    onSearchResultsChange?: (v: boolean) => void
-  } = {}
+  opts: { searchQuery?: string } = {}
 ) {
   return render(
     <BooksLibrary
       library={library}
       knownShelves={[]}
       searchQuery={opts.searchQuery ?? ''}
-      onSearchResultsChange={opts.onSearchResultsChange ?? jest.fn()}
       onSaved={jest.fn()}
     />
   )
 }
 
 describe('BooksLibrary', () => {
-  it('defaults to the first non-empty shelf', () => {
+  beforeEach(() => {
+    mockSearchExternal.mockReset()
+    mockSearchExternal.mockResolvedValue({ results: [] })
+  })
+
+  afterEach(() => {
+    jest.clearAllTimers()
+  })
+
+  it('defaults to the All books shelf', () => {
     renderLibrary(makeLibrary())
+    expect(screen.getByRole('heading')).toHaveTextContent('All books')
     expect(screen.getByText('Dune')).toBeInTheDocument()
+    expect(screen.getByText('Hyperion')).toBeInTheDocument()
+    expect(screen.getByText('Foundation')).toBeInTheDocument()
+    expect(screen.getByText('Neuromancer')).toBeInTheDocument()
   })
 
   it('switches to All books when clicked', () => {
@@ -329,27 +347,54 @@ describe('BooksLibrary', () => {
 
   it('shows header as "Search results" while searchQuery is active', () => {
     renderLibrary(makeLibrary(), { searchQuery: 'dune' })
-    expect(screen.getByRole('heading')).toHaveTextContent('Search results')
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Search results')
   })
 
-  it('calls onSearchResultsChange(true) when query matches books', () => {
-    const onChange = jest.fn()
-    renderLibrary(makeLibrary(), { searchQuery: 'dune', onSearchResultsChange: onChange })
-    expect(onChange).toHaveBeenCalledWith(true)
-  })
-
-  it('calls onSearchResultsChange(false) when query matches nothing', () => {
-    const onChange = jest.fn()
-    renderLibrary(makeLibrary(), {
-      searchQuery: 'xyzzy-not-found',
-      onSearchResultsChange: onChange
+  it('does not fetch external results when the library already has a match', async () => {
+    renderLibrary(makeLibrary(), { searchQuery: 'dune' })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
     })
-    expect(onChange).toHaveBeenCalledWith(false)
+    expect(mockSearchExternal).not.toHaveBeenCalled()
   })
 
-  it('calls onSearchResultsChange(true) when query is empty (no search active)', () => {
-    const onChange = jest.fn()
-    renderLibrary(makeLibrary(), { searchQuery: '', onSearchResultsChange: onChange })
-    expect(onChange).toHaveBeenCalledWith(true)
+  it('shows a not-in-library card with its source when the query has no library match', async () => {
+    mockSearchExternal.mockResolvedValue({
+      results: [
+        {
+          provider: 'openlibrary',
+          providerId: 'OL1W',
+          title: 'Far Away Book',
+          authors: ['Someone Else'],
+          isbn13: '',
+          coverUrl: '',
+          description: ''
+        }
+      ]
+    })
+    renderLibrary(makeLibrary(), { searchQuery: 'not-in-library' })
+
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+    await waitFor(() => {
+      expect(mockSearchExternal).toHaveBeenCalledWith('not-in-library')
+      expect(screen.getByText('Far Away Book')).toBeInTheDocument()
+    })
+    expect(screen.getByText('OpenLibrary')).toBeInTheDocument()
+    expect(screen.getByText('Far Away Book').closest('a')).toHaveAttribute(
+      'href',
+      '/books/external/openlibrary/OL1W'
+    )
+  })
+
+  it('shows "No results." when neither the library nor the external search match', async () => {
+    renderLibrary(makeLibrary(), { searchQuery: 'nothing-matches-anything' })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+    await waitFor(() => {
+      expect(screen.getByText('No results.')).toBeInTheDocument()
+    })
   })
 })

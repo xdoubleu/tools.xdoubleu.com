@@ -19,6 +19,7 @@ import type {
   GetBooksProgressResponse,
   SearchLibraryResponse,
   SearchExternalResponse,
+  GetExternalBookResponse,
   Book
 } from '@/lib/gen/books/v1/library_pb'
 import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/books/v1/files_pb'
@@ -59,6 +60,17 @@ export function useSearchExternal() {
   return useCallback(
     (query: string) => client.searchExternal({ query }).then((r: SearchExternalResponse) => r),
     [client]
+  )
+}
+
+// useExternalBook fetches a single not-in-library book from a provider (e.g.
+// Open Library) for the external book detail page. Null args disable the
+// fetch (route params not resolved yet).
+export function useExternalBook(provider: string | null, providerId: string | null) {
+  const client = createServiceClient(LibraryService)
+  return useSWR<GetExternalBookResponse, Error>(
+    provider && providerId ? swrKeys.externalBook(provider, providerId) : null,
+    () => client.getExternalBook({ provider: provider!, providerId: providerId! })
   )
 }
 

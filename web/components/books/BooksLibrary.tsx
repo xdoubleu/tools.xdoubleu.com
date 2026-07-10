@@ -1,14 +1,17 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import type { LibraryResponse, UserBook, ExternalBookResult } from '@/lib/gen/books/v1/library_pb'
 import LibrarySidebar, {
   buildShelves,
   buildTags,
   type ShelfId
 } from '@/components/books/LibrarySidebar'
 import BooksTable from '@/components/books/BooksTable'
+import BookCard from '@/components/books/BookCard'
+import ExternalBookCard from '@/components/books/ExternalBookCard'
 import ManageShelvesTagsDialog from '@/components/books/ManageShelvesTagsDialog'
+import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS } from '@/lib/books/bookShelves'
 
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
@@ -37,11 +40,6 @@ interface BooksLibraryProps {
   knownShelves: string[]
   /** Free-text query from the search bar. Empty string means no filter. */
   searchQuery: string
-  /**
-   * Notifies the parent whether the current search query matches any library
-   * entries.  Used by BookSearchBar to decide when to show the OL fallback.
-   */
-  onSearchResultsChange: (hasResults: boolean) => void
   onSaved: () => void
 }
 
@@ -49,16 +47,17 @@ export default function BooksLibrary({
   library,
   knownShelves,
   searchQuery,
-  onSearchResultsChange,
   onSaved
 }: BooksLibraryProps) {
   const shelves = buildShelves(library)
   const allTags = buildTags(library)
-  const defaultShelf: ShelfId =
-    shelves.find((s) => s.id !== 'all' && s.id !== 'favourite' && s.count > 0)?.id ?? 'all'
 
-  const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: defaultShelf })
+  const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [manageOpen, setManageOpen] = useState(false)
+  const searchExternal = useSearchExternal()
+  const [externalResults, setExternalResults] = useState<ExternalBookResult[]>([])
+  const [isSearchingExternal, setIsSearchingExternal] = useState(false)
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSelectShelf = useCallback((id: ShelfId) => {
     setSelection({ kind: 'shelf', id })
@@ -94,11 +93,34 @@ export default function BooksLibrary({
     })
   }, [library, shelfBooks, searchQuery])
 
-  // Notify the parent so BookSearchBar knows whether to show the OL fallback.
+  // When the query has no library matches, fall back to an external (Open
+  // Library) search so not-in-library results still show up as cards.
+  // Debounced so typing doesn't fire a request per keystroke.
   useEffect(() => {
     const q = searchQuery.trim()
-    onSearchResultsChange(q === '' || filteredBooks.length > 0)
-  }, [searchQuery, filteredBooks.length, onSearchResultsChange])
+    if (!q || filteredBooks.length > 0) {
+      setExternalResults([])
+      setIsSearchingExternal(false)
+      return
+    }
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(async () => {
+      setIsSearchingExternal(true)
+      try {
+        const resp = await searchExternal(q)
+        setExternalResults(resp.results)
+      } catch {
+        setExternalResults([])
+      } finally {
+        setIsSearchingExternal(false)
+      }
+    }, 300)
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
+  }, [searchQuery, filteredBooks.length, searchExternal])
 
   // All known user-visible tags for the shelf/tag cell checkboxes
   const knownTags = useMemo(() => {
@@ -114,11 +136,13 @@ export default function BooksLibrary({
 
   const currentShelf =
     selection.kind === 'shelf' ? shelves.find((s) => s.id === selection.id) : null
-  const headerLabel = searchQuery.trim()
+  const isSearching = searchQuery.trim() !== ''
+  const headerLabel = isSearching
     ? 'Search results'
     : selection.kind === 'tag'
       ? selection.tag
       : (currentShelf?.label ?? '')
+  const resultCount = filteredBooks.length + externalResults.length
 
   return (
     <>
@@ -136,15 +160,32 @@ export default function BooksLibrary({
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-semibold mb-3">
             {headerLabel}
-            <span className="ml-2 text-sm font-normal text-muted">{filteredBooks.length}</span>
+            <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
           </h2>
 
-          <BooksTable
-            books={filteredBooks}
-            knownShelves={knownShelves}
-            knownTags={knownTags}
-            onSaved={onSaved}
-          />
+          {isSearching ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredBooks.map((ub) => (
+                <BookCard key={ub.id} userBook={ub} onSaved={onSaved} />
+              ))}
+              {externalResults.map((book) => (
+                <ExternalBookCard key={`${book.provider}-${book.providerId}`} book={book} />
+              ))}
+              {!isSearchingExternal && resultCount === 0 && (
+                <p className="col-span-full py-16 text-center text-sm text-muted">No results.</p>
+              )}
+              {isSearchingExternal && (
+                <p className="col-span-full text-sm text-muted">Searching…</p>
+              )}
+            </div>
+          ) : (
+            <BooksTable
+              books={filteredBooks}
+              knownShelves={knownShelves}
+              knownTags={knownTags}
+              onSaved={onSaved}
+            />
+          )}
         </div>
       </div>
 

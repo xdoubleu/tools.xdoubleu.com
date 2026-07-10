@@ -5,6 +5,21 @@ jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn()
 }))
 
+// The query lives in ?q= (see BooksSection), not component state, so the
+// mock tracks it as a module-level URLSearchParams that router.replace
+// mutates — a re-render then picks up the new value, mirroring how Next's
+// real useSearchParams reflects a navigation.
+let currentSearchParams = new URLSearchParams()
+const mockReplace = jest.fn((url: string) => {
+  const qIndex = url.indexOf('?')
+  currentSearchParams = new URLSearchParams(qIndex >= 0 ? url.slice(qIndex + 1) : '')
+})
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+  useSearchParams: () => currentSearchParams
+}))
+
 jest.mock('@/components/books/BookSearchBar', () => {
   return function MockBookSearchBar({
     query,
@@ -14,7 +29,6 @@ jest.mock('@/components/books/BookSearchBar', () => {
     query: string
     onChange: (v: string) => void
     onAdded: () => void
-    hasLibraryResults: boolean
   }) {
     return (
       <div>
@@ -36,19 +50,12 @@ jest.mock('@/components/books/BooksLibrary', () => {
   return function MockBooksLibrary({
     library,
     searchQuery,
-    onSearchResultsChange,
     onSaved
   }: {
     library: { reading: unknown[] }
     searchQuery: string
-    onSearchResultsChange: (v: boolean) => void
     onSaved: () => void
   }) {
-    // Simulate: no results when query is "notfound"
-    React.useEffect(() => {
-      onSearchResultsChange(searchQuery !== 'notfound')
-    }, [searchQuery, onSearchResultsChange])
-
     return (
       <div
         data-testid="books-library"
@@ -104,6 +111,7 @@ function mockLibrary() {
 describe('BooksSection', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    currentSearchParams = new URLSearchParams()
   })
 
   it('renders the search bar', () => {
@@ -156,10 +164,30 @@ describe('BooksSection', () => {
 
   it('passes searchQuery down to BooksLibrary as user types', () => {
     mockLibrary()
+    const { rerender } = render(<BooksSection />)
+    fireEvent.change(screen.getByPlaceholderText('Search books…'), {
+      target: { value: 'dune' }
+    })
+    // The query lives in the URL, not component state — router.replace updated
+    // it, so a re-render is needed to observe it (mirrors real navigation).
+    rerender(<BooksSection />)
+    expect(screen.getByTestId('books-library')).toHaveAttribute('data-search-query', 'dune')
+  })
+
+  it('writes the query into the URL via router.replace', () => {
+    mockLibrary()
     render(<BooksSection />)
     fireEvent.change(screen.getByPlaceholderText('Search books…'), {
       target: { value: 'dune' }
     })
+    expect(mockReplace).toHaveBeenCalledWith('/books/library?q=dune', { scroll: false })
+  })
+
+  it('restores the query from the URL on mount (back-navigation)', () => {
+    currentSearchParams = new URLSearchParams('q=dune')
+    mockLibrary()
+    render(<BooksSection />)
     expect(screen.getByTestId('books-library')).toHaveAttribute('data-search-query', 'dune')
+    expect(screen.getByDisplayValue('dune')).toBeInTheDocument()
   })
 })

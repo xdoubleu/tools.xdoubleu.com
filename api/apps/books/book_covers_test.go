@@ -228,6 +228,13 @@ func (errFetchClient) Search(
 	return nil, errors.New("errFetchClient: Search not implemented")
 }
 
+func (errFetchClient) Get(
+	_ context.Context,
+	_ string,
+) (*openlibrary.ExternalBook, error) {
+	return nil, errors.New("errFetchClient: Get not implemented")
+}
+
 func (errFetchClient) GetByISBN(
 	_ context.Context,
 	_ string,

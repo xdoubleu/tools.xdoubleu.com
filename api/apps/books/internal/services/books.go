@@ -21,6 +21,9 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
+// providerOpenLibrary identifies Open Library as a metadata source/provider.
+const providerOpenLibrary = "openlibrary"
+
 type BookService struct {
 	logger       *slog.Logger
 	books        *repositories.BooksRepository
@@ -50,6 +53,20 @@ func (s *BookService) SearchExternal(
 	query string,
 ) ([]openlibrary.ExternalBook, error) {
 	return s.external.Search(ctx, query)
+}
+
+// GetExternal fetches a single book from an external provider by its
+// provider-scoped ID, for the not-in-library detail page. Only "openlibrary"
+// is supported today; other values return ErrNotFound.
+func (s *BookService) GetExternal(
+	ctx context.Context,
+	provider string,
+	providerID string,
+) (*openlibrary.ExternalBook, error) {
+	if provider != providerOpenLibrary {
+		return nil, openlibrary.ErrNotFound
+	}
+	return s.external.Get(ctx, providerID)
 }
 
 // SetBookISBN sets the isbn13 of the given catalog book.
