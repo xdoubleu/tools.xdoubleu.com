@@ -20,9 +20,7 @@ const mockStatsData: {
 }
 
 const mockUniqueBooksData: {
-  data:
-    | { books: { id: string; title: string; authors: string[]; coverUrl: string }[] }
-    | undefined
+  data: { books: { id: string; title: string; authors: string[]; coverUrl: string }[] } | undefined
   isLoading: boolean
   error: Error | undefined
 } = {
