@@ -138,6 +138,14 @@ message SourceStat {
   // Books found ONLY in this source (found here, nowhere else).
   int32 unique_count = 3;
 }
+// SourceComboStat reports how many books were found by exactly this set of
+// two or three sources (a genuine overlap) — the complement of SourceStat's
+// unique_count, which is the one-source case.
+message SourceComboStat {
+  // "openlibrary" | "googlebooks" | "unicat", 2 or 3 entries.
+  repeated string sources = 1;
+  int32 count = 2;
+}
 message GetSourceStatsResponse {
   repeated SourceStat sources = 1;
   int32 total_books = 2;
@@ -145,6 +153,20 @@ message GetSourceStatsResponse {
   int32 not_found_anywhere = 3;
   // Never processed by a scan (last_resync_at IS NULL).
   int32 never_scanned = 4;
+  // Every 2-source and the 3-source overlap combo, size >= 2 only.
+  repeated SourceComboStat overlaps = 5;
+}
+
+// ListBooksInExactSources lists the catalog books found by exactly the given
+// set of sources — one source is the books behind GetSourceStats'
+// unique_count, two or three is an overlaps combo — for drilling into the
+// source-stats report.
+message ListBooksInExactSourcesRequest {
+  // "openlibrary" | "googlebooks" | "unicat", 1 to 3 entries.
+  repeated string sources = 1;
+}
+message ListBooksInExactSourcesResponse {
+  repeated Book books = 1;
 }
 
 service CatalogService {
@@ -159,4 +181,5 @@ service CatalogService {
   rpc GetBookSources(GetBookSourcesRequest) returns (GetBookSourcesResponse);
   rpc ApplyBookSource(ApplyBookSourceRequest) returns (ApplyBookSourceResponse);
   rpc GetSourceStats(GetSourceStatsRequest) returns (GetSourceStatsResponse);
+  rpc ListBooksInExactSources(ListBooksInExactSourcesRequest) returns (ListBooksInExactSourcesResponse);
 }

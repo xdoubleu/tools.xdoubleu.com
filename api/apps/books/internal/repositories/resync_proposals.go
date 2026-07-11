@@ -144,8 +144,14 @@ func (repo *BooksRepository) GetResyncProposal(
 	return book, nil
 }
 
-// SourceStats aggregates per-source scan coverage and uniqueness over the
-// whole catalog, for the admin source-stats report.
+// SourceStats aggregates per-source scan coverage, uniqueness, and pairwise
+// overlap over the whole catalog, for the admin source-stats report.
+//
+// Uniqueness and overlap only count a source as "absent" when it was
+// actually checked and came back empty (IS FALSE) — a source that's still
+// unknown (NULL: never scanned, skipped, or errored — see
+// UpdateResyncScanStatus) must never be treated as confirmed-absent, or an
+// unresolved source would masquerade as uniqueness/overlap it hasn't earned.
 type SourceStats struct {
 	TotalBooks        int
 	OpenLibraryFound  int
@@ -154,6 +160,10 @@ type SourceStats struct {
 	OpenLibraryUnique int
 	GoogleBooksUnique int
 	UniCatUnique      int
+	OpenLibraryGBOnly int
+	OpenLibraryUCOnly int
+	GoogleBooksUCOnly int
+	AllThree          int
 	NotFoundAnywhere  int
 	NeverScanned      int
 }
@@ -167,15 +177,27 @@ func (repo *BooksRepository) GetSourceStats(
 		    count(*) FILTER (WHERE openlibrary_found),
 		    count(*) FILTER (WHERE googlebooks_found),
 		    count(*) FILTER (WHERE unicat_found),
-		    count(*) FILTER (WHERE openlibrary_found
-		        AND NOT COALESCE(googlebooks_found, false)
-		        AND NOT COALESCE(unicat_found, false)),
-		    count(*) FILTER (WHERE googlebooks_found
-		        AND NOT COALESCE(openlibrary_found, false)
-		        AND NOT COALESCE(unicat_found, false)),
-		    count(*) FILTER (WHERE unicat_found
-		        AND NOT COALESCE(openlibrary_found, false)
-		        AND NOT COALESCE(googlebooks_found, false)),
+		    count(*) FILTER (WHERE openlibrary_found IS TRUE
+		        AND googlebooks_found IS FALSE
+		        AND unicat_found IS FALSE),
+		    count(*) FILTER (WHERE googlebooks_found IS TRUE
+		        AND openlibrary_found IS FALSE
+		        AND unicat_found IS FALSE),
+		    count(*) FILTER (WHERE unicat_found IS TRUE
+		        AND openlibrary_found IS FALSE
+		        AND googlebooks_found IS FALSE),
+		    count(*) FILTER (WHERE openlibrary_found IS TRUE
+		        AND googlebooks_found IS TRUE
+		        AND unicat_found IS FALSE),
+		    count(*) FILTER (WHERE openlibrary_found IS TRUE
+		        AND unicat_found IS TRUE
+		        AND googlebooks_found IS FALSE),
+		    count(*) FILTER (WHERE googlebooks_found IS TRUE
+		        AND unicat_found IS TRUE
+		        AND openlibrary_found IS FALSE),
+		    count(*) FILTER (WHERE openlibrary_found IS TRUE
+		        AND googlebooks_found IS TRUE
+		        AND unicat_found IS TRUE),
 		    count(*) FILTER (WHERE last_resync_at IS NOT NULL
 		        AND NOT COALESCE(openlibrary_found, false)
 		        AND NOT COALESCE(googlebooks_found, false)
@@ -193,6 +215,10 @@ func (repo *BooksRepository) GetSourceStats(
 		&stats.OpenLibraryUnique,
 		&stats.GoogleBooksUnique,
 		&stats.UniCatUnique,
+		&stats.OpenLibraryGBOnly,
+		&stats.OpenLibraryUCOnly,
+		&stats.GoogleBooksUCOnly,
+		&stats.AllThree,
 		&stats.NotFoundAnywhere,
 		&stats.NeverScanned,
 	)

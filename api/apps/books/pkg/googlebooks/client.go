@@ -198,11 +198,15 @@ func (c client) get(ctx context.Context, endpoint string, dst any) error {
 
 		if isRetryableStatus(resp.StatusCode) {
 			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
+			err := fmt.Errorf(
 				"googlebooks API returned %d: %s",
 				resp.StatusCode,
 				string(raw),
 			)
+			if resp.StatusCode == http.StatusTooManyRequests {
+				err = fmt.Errorf("%w: %w", ErrRateLimited, err)
+			}
+			return true, err
 		}
 
 		if resp.StatusCode < http.StatusOK ||

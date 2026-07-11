@@ -37,10 +37,11 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	id := uuid.New()
 	book := addTestBookWithISBN(
 		t,
-		"ResyncTest-"+uuid.New().String()[:8],
-		"9780000099001",
+		"ResyncTest-"+id.String()[:8],
+		isbnFromUUID(id),
 	)
 
 	coverKey := "books/" + book.BookID.String() + "/cover.jpg"
@@ -85,4 +86,45 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	exists, err = fakeStore.Exists(ctx, coverKey)
 	require.NoError(t, err)
 	assert.True(t, exists, "dismissing a proposal must not touch the cover cache")
+}
+
+// TestUpdateResyncScanStatus_NilFlagPreservesPriorValue verifies the
+// COALESCE-preserve write: a nil flag (source not resolved this pass — not
+// configured, skipped, or errored) must never clobber an already-known found
+// value. Regression for a throttled/errored scan silently flipping a known
+// "found" source back to "not found".
+func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
+	ctx := context.Background()
+	book := addTestBookWithISBN(
+		t, "ScanStatusPreserveTest-"+uuid.New().String()[:8], "9780000099099",
+	)
+
+	trueVal := true
+	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
+		ctx, book.BookID, &trueVal, &trueVal, &trueVal,
+	))
+
+	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
+	require.NoError(t, err)
+	require.NotNil(t, scanned.OpenLibraryFound)
+	assert.True(t, *scanned.OpenLibraryFound)
+
+	// A second pass with all-nil flags (every source unresolved this time)
+	// must leave the previously-known true values untouched.
+	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
+		ctx, book.BookID, nil, nil, nil,
+	))
+
+	rescanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
+	require.NoError(t, err)
+	require.NotNil(t, rescanned.OpenLibraryFound)
+	assert.True(
+		t,
+		*rescanned.OpenLibraryFound,
+		"nil must preserve, not overwrite with NULL",
+	)
+	require.NotNil(t, rescanned.GoogleBooksFound)
+	assert.True(t, *rescanned.GoogleBooksFound)
+	require.NotNil(t, rescanned.UniCatFound)
+	assert.True(t, *rescanned.UniCatFound)
 }

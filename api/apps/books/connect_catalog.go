@@ -354,6 +354,14 @@ func (h *booksConnectHandler) SetBookISBN(
 	return connect.NewResponse(&booksv1.SetBookISBNResponse{}), nil
 }
 
+// Source name constants shared across the source-stats and exact-sources
+// RPCs — must match repositories.sourceColumns' keys.
+const (
+	sourceOpenLibrary = "openlibrary"
+	sourceGoogleBooks = "googlebooks"
+	sourceUniCat      = "unicat"
+)
+
 func (h *booksConnectHandler) GetSourceStats(
 	ctx context.Context,
 	_ *connect.Request[booksv1.GetSourceStatsRequest],
@@ -370,17 +378,17 @@ func (h *booksConnectHandler) GetSourceStats(
 	return connect.NewResponse(&booksv1.GetSourceStatsResponse{
 		Sources: []*booksv1.SourceStat{
 			{
-				Source:      "openlibrary",
+				Source:      sourceOpenLibrary,
 				FoundCount:  int32FromInt(stats.OpenLibraryFound),
 				UniqueCount: int32FromInt(stats.OpenLibraryUnique),
 			},
 			{
-				Source:      "googlebooks",
+				Source:      sourceGoogleBooks,
 				FoundCount:  int32FromInt(stats.GoogleBooksFound),
 				UniqueCount: int32FromInt(stats.GoogleBooksUnique),
 			},
 			{
-				Source:      "unicat",
+				Source:      sourceUniCat,
 				FoundCount:  int32FromInt(stats.UniCatFound),
 				UniqueCount: int32FromInt(stats.UniCatUnique),
 			},
@@ -388,5 +396,52 @@ func (h *booksConnectHandler) GetSourceStats(
 		TotalBooks:       int32FromInt(stats.TotalBooks),
 		NotFoundAnywhere: int32FromInt(stats.NotFoundAnywhere),
 		NeverScanned:     int32FromInt(stats.NeverScanned),
+		Overlaps: []*booksv1.SourceComboStat{
+			{
+				Sources: []string{sourceOpenLibrary, sourceGoogleBooks},
+				Count:   int32FromInt(stats.OpenLibraryGBOnly),
+			},
+			{
+				Sources: []string{sourceOpenLibrary, sourceUniCat},
+				Count:   int32FromInt(stats.OpenLibraryUCOnly),
+			},
+			{
+				Sources: []string{sourceGoogleBooks, sourceUniCat},
+				Count:   int32FromInt(stats.GoogleBooksUCOnly),
+			},
+			{
+				Sources: []string{sourceOpenLibrary, sourceGoogleBooks, sourceUniCat},
+				Count:   int32FromInt(stats.AllThree),
+			},
+		},
 	}), nil
+}
+
+func (h *booksConnectHandler) ListBooksInExactSources(
+	ctx context.Context,
+	req *connect.Request[booksv1.ListBooksInExactSourcesRequest],
+) (*connect.Response[booksv1.ListBooksInExactSourcesResponse], error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	books, err := h.app.Services.Books.ListBooksInExactSources(ctx, req.Msg.Sources)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("sources must be 1-3 of openlibrary, googlebooks, unicat"),
+		)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	out := make([]*booksv1.Book, len(books))
+	for i := range books {
+		out[i] = protoBook(&books[i], h.app.clients.PublicAPIBaseURL)
+	}
+
+	return connect.NewResponse(
+		&booksv1.ListBooksInExactSourcesResponse{Books: out},
+	), nil
 }

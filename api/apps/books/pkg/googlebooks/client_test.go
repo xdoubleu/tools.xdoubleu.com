@@ -159,6 +159,24 @@ func TestGetByISBN_TooManyRequests_Retries(t *testing.T) {
 	assert.GreaterOrEqual(t, attempts, 2)
 }
 
+// TestGetByISBN_TooManyRequests_ExhaustsRetries_ReturnsErrRateLimited
+// verifies that when every retry still hits a 429 — the daily quota is truly
+// exhausted, not a transient blip — the final error wraps ErrRateLimited so
+// callers (the resync scan) can back off instead of recording a false miss.
+func TestGetByISBN_TooManyRequests_ExhaustsRetries_ReturnsErrRateLimited(t *testing.T) {
+	cleanup := buildServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusTooManyRequests)
+		}),
+	)
+	defer cleanup()
+
+	c := googlebooks.New(logging.NewNopLogger(), "")
+	_, err := c.GetByISBN(context.Background(), "9780000000003")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, googlebooks.ErrRateLimited)
+}
+
 func TestSearch_ReturnsResults(t *testing.T) {
 	body := volumesResponse(t, []volumeInfoFixture{
 		{ //nolint:exhaustruct // only fields relevant to this test

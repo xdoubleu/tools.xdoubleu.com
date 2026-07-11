@@ -266,3 +266,14 @@ func TestGetSourceStats_Passthrough(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
 }
+
+func TestListBooksInExactSources_Passthrough(t *testing.T) {
+	//nolint:exhaustruct // partial
+	want := []models.Book{{Title: "Unique Book"}}
+	repo := &fakeBooksResync{uniqueBooks: want} //nolint:exhaustruct // partial
+	svc := &BookService{booksResync: repo}      //nolint:exhaustruct // partial
+
+	got, err := svc.ListBooksInExactSources(context.Background(), []string{"unicat"})
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+}
