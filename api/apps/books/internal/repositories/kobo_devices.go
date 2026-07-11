@@ -61,6 +61,27 @@ func (r *KoboDevicesRepository) ListKoboDevices(
 	return devices, rows.Err()
 }
 
+// GetKoboDevice returns a single device by ID, scoped to the owning user.
+// Returns database.ErrResourceNotFound when no matching row exists.
+func (r *KoboDevicesRepository) GetKoboDevice(
+	ctx context.Context,
+	userID string,
+	deviceID uuid.UUID,
+) (models.KoboDevice, error) {
+	var d models.KoboDevice
+	err := r.db.QueryRow(ctx, `
+		SELECT id, user_id, name, COALESCE(serial, ''), created_at, last_seen_at
+		FROM books.kobo_devices
+		WHERE id = $1 AND user_id = $2
+	`, deviceID, userID).Scan(
+		&d.ID, &d.UserID, &d.Name, &d.Serial, &d.CreatedAt, &d.LastSeenAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.KoboDevice{}, database.ErrResourceNotFound
+	}
+	return d, err
+}
+
 // DeleteKoboDevice removes a device by ID, scoped to the owning user.
 func (r *KoboDevicesRepository) DeleteKoboDevice(
 	ctx context.Context,
@@ -79,21 +100,21 @@ func (r *KoboDevicesRepository) DeleteKoboDevice(
 	return nil
 }
 
-// GetUserIDByKoboTokenHash looks up the user by token hash and records the
-// current time as last_seen_at in one atomic statement.
-func (r *KoboDevicesRepository) GetUserIDByKoboTokenHash(
+// GetKoboAuthByTokenHash looks up the owning user and device ID by token hash
+// and records the current time as last_seen_at in one atomic statement.
+func (r *KoboDevicesRepository) GetKoboAuthByTokenHash(
 	ctx context.Context,
 	hash string,
-) (string, error) {
-	var userID string
+) (string, string, error) {
+	var userID, deviceID string
 	err := r.db.QueryRow(ctx, `
 		UPDATE books.kobo_devices
 		SET last_seen_at = now()
 		WHERE token_hash = $1
-		RETURNING user_id
-	`, hash).Scan(&userID)
+		RETURNING user_id, id
+	`, hash).Scan(&userID, &deviceID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", database.ErrResourceNotFound
+		return "", "", database.ErrResourceNotFound
 	}
-	return userID, err
+	return userID, deviceID, err
 }

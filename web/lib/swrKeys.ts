@@ -25,6 +25,7 @@ export const swrKeys = {
   // Local-only key (no server round-trip) for polling the kobo-gateway
   // helper's /status — see lib/books/gatewayClient.ts.
   gatewayStatus: '/books/kobo/gateway-status',
+  koboDeviceLogs: (id: string) => ['/books/kobo/logs', id] as const,
   bookDuplicates: '/books/duplicates',
   resyncProposals: '/books/resync-proposals',
   bookSources: (bookId: string, overrideTitle = '', overrideAuthor = '') =>
