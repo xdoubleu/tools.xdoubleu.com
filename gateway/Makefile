@@ -1,3 +1,10 @@
+# Pinned below go.mod's stated minimum: darwinkit's AppKit bridge SIGABRTs
+# under Go 1.25+ (https://github.com/progrium/darwinkit/issues/286), so this
+# forces the exact toolchain regardless of what `go` is on PATH — a bare
+# go.mod `go` line only sets a minimum and won't downgrade a newer ambient
+# Go. Bump only once that issue is fixed upstream.
+export GOTOOLCHAIN := go1.24.13
+
 RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 
 test:
