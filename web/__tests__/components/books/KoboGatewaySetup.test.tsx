@@ -6,23 +6,26 @@ jest.mock('@/lib/env', () => ({
 }))
 
 jest.mock('@/lib/books/koboDevice', () => ({
-  readKoboSerial: jest.fn(),
   defaultDeviceName: (serial: string) =>
     serial.length >= 4 ? `Kobo (…${serial.slice(-4)})` : 'My Kobo'
 }))
 
-const mockProbeGateway = jest.fn()
 const mockConfigureGateway = jest.fn()
 const mockRevertGateway = jest.fn()
 const mockUpdateGateway = jest.fn()
 
 jest.mock('@/lib/books/gatewayClient', () => ({
   REQUIRED_GATEWAY_VERSION: 1,
-  GATEWAY_DOWNLOAD_PATH: '/downloads/kobo-gateway-darwin-arm64',
-  probeGateway: (...args: unknown[]) => mockProbeGateway(...args),
   configureGateway: (...args: unknown[]) => mockConfigureGateway(...args),
   revertGateway: (...args: unknown[]) => mockRevertGateway(...args),
   updateGateway: (...args: unknown[]) => mockUpdateGateway(...args)
+}))
+
+// The polling hook is driven manually in these tests via mockMutateGatewayStatus,
+// standing in for what SWR's mutate() would return from a fresh /status probe.
+const mockMutateGatewayStatus = jest.fn()
+jest.mock('@/hooks/useKoboGateway', () => ({
+  useGatewayStatus: () => ({ mutate: mockMutateGatewayStatus })
 }))
 
 const mockRegisterKoboDevice = jest.fn()
@@ -55,7 +58,7 @@ function status(kobos: (typeof KOBO_UNMANAGED)[], version = 1) {
 }
 
 beforeEach(() => {
-  mockProbeGateway.mockReset()
+  mockMutateGatewayStatus.mockReset()
   mockConfigureGateway.mockReset()
   mockRevertGateway.mockReset()
   mockUpdateGateway.mockReset()
@@ -72,42 +75,20 @@ beforeEach(() => {
   })
   mockRevertGateway.mockResolvedValue({ serial: 'N418ABCD1234' })
   mockUpdateGateway.mockResolvedValue({ updating: true })
-  mockProbeGateway.mockResolvedValue(status([]))
+  mockMutateGatewayStatus.mockResolvedValue(status([]))
 })
 
 describe('KoboGatewaySetup — no Kobo connected', () => {
-  it('asks to plug in a Kobo and re-checks on demand', async () => {
-    render(<KoboGatewaySetup initialStatus={status([])} />)
+  it('shows a message telling the user to plug in a Kobo', () => {
+    render(<KoboGatewaySetup status={status([])} />)
 
     expect(screen.getByTestId('kobo-gateway-no-kobo')).toBeInTheDocument()
-
-    mockProbeGateway.mockResolvedValue(status([KOBO_UNMANAGED]))
-    await act(async () => {
-      fireEvent.click(screen.getByText('Re-check'))
-    })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('kobo-gateway-configure-btn')).toBeInTheDocument()
-    })
-  })
-
-  it('shows an error when the gateway went away on re-check', async () => {
-    render(<KoboGatewaySetup initialStatus={status([])} />)
-
-    mockProbeGateway.mockResolvedValue(null)
-    await act(async () => {
-      fireEvent.click(screen.getByText('Re-check'))
-    })
-
-    await waitFor(() => {
-      expect(screen.getByTestId('kobo-gateway-error')).toHaveTextContent('no longer reachable')
-    })
   })
 })
 
 describe('KoboGatewaySetup — fresh device', () => {
   it('registers the device and configures via the gateway', async () => {
-    render(<KoboGatewaySetup initialStatus={status([KOBO_UNMANAGED])} />)
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED])} />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('kobo-gateway-configure-btn'))
@@ -126,10 +107,7 @@ describe('KoboGatewaySetup — fresh device', () => {
   })
 
   it('reverts to the original endpoint and revokes the new device', async () => {
-    // The post-revert re-probe still finds the (now unmanaged) Kobo.
-    mockProbeGateway.mockResolvedValue(status([KOBO_UNMANAGED]))
-
-    render(<KoboGatewaySetup initialStatus={status([KOBO_UNMANAGED])} />)
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED])} />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('kobo-gateway-configure-btn'))
@@ -151,10 +129,10 @@ describe('KoboGatewaySetup — fresh device', () => {
     expect(mockDisconnectKoboDevice).toHaveBeenCalledWith('dev-1')
   })
 
-  it('shows the gateway error message when configuring fails', async () => {
+  it('shows the gateway error and can be dismissed when configuring fails', async () => {
     mockConfigureGateway.mockRejectedValue(new Error('could not write Kobo eReader.conf'))
 
-    render(<KoboGatewaySetup initialStatus={status([KOBO_UNMANAGED])} />)
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED])} />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('kobo-gateway-configure-btn'))
@@ -165,6 +143,9 @@ describe('KoboGatewaySetup — fresh device', () => {
         'could not write Kobo eReader.conf'
       )
     })
+
+    fireEvent.click(screen.getByText('Dismiss'))
+    expect(screen.queryByTestId('kobo-gateway-error')).not.toBeInTheDocument()
   })
 })
 
@@ -173,9 +154,8 @@ describe('KoboGatewaySetup — already configured', () => {
     mockDevicesData = {
       devices: [{ id: 'dev-managed', serial: 'N418ABCD1234', name: 'Kobo (…1234)' }]
     }
-    mockProbeGateway.mockResolvedValue(status([KOBO_UNMANAGED]))
 
-    render(<KoboGatewaySetup initialStatus={status([KOBO_MANAGED])} />)
+    render(<KoboGatewaySetup status={status([KOBO_MANAGED])} />)
 
     expect(screen.getByTestId('kobo-gateway-already-configured')).toBeInTheDocument()
 
@@ -184,32 +164,27 @@ describe('KoboGatewaySetup — already configured', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByTestId('kobo-gateway-configure-btn')).toBeInTheDocument()
+      expect(mockRevertGateway).toHaveBeenCalledWith(
+        'https://storeapi.kobo.com',
+        '/Volumes/KOBOeReader'
+      )
     })
-
-    expect(mockRevertGateway).toHaveBeenCalledWith(
-      'https://storeapi.kobo.com',
-      '/Volumes/KOBOeReader'
-    )
     expect(mockDisconnectKoboDevice).toHaveBeenCalledWith('dev-managed')
     expect(mockRegisterKoboDevice).not.toHaveBeenCalled()
   })
 
   it('still reverts when no device matches the serial', async () => {
     mockDevicesData = { devices: [{ id: 'dev-other', serial: 'XXXX', name: 'Other' }] }
-    mockProbeGateway.mockResolvedValue(status([KOBO_UNMANAGED]))
 
-    render(<KoboGatewaySetup initialStatus={status([KOBO_MANAGED])} />)
+    render(<KoboGatewaySetup status={status([KOBO_MANAGED])} />)
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('kobo-gateway-revert-btn'))
     })
 
     await waitFor(() => {
-      expect(screen.getByTestId('kobo-gateway-configure-btn')).toBeInTheDocument()
+      expect(mockRevertGateway).toHaveBeenCalled()
     })
-
-    expect(mockRevertGateway).toHaveBeenCalled()
     expect(mockDisconnectKoboDevice).not.toHaveBeenCalled()
   })
 })
@@ -218,7 +193,7 @@ describe('KoboGatewaySetup — multiple Kobos', () => {
   it('offers a picker and configures the chosen volume', async () => {
     const second = { ...KOBO_UNMANAGED, volumePath: '/Volumes/KOBO2', serial: 'ZZ99' }
 
-    render(<KoboGatewaySetup initialStatus={status([KOBO_UNMANAGED, second])} />)
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED, second])} />)
 
     expect(screen.getByTestId('kobo-gateway-picker')).toBeInTheDocument()
 
@@ -238,23 +213,24 @@ describe('KoboGatewaySetup — multiple Kobos', () => {
 
 describe('KoboGatewaySetup — self-update', () => {
   it('updates an outdated gateway and continues once it is back', async () => {
-    mockProbeGateway.mockResolvedValue(status([KOBO_UNMANAGED]))
+    mockMutateGatewayStatus.mockResolvedValue(status([KOBO_UNMANAGED]))
 
-    render(<KoboGatewaySetup initialStatus={status([KOBO_UNMANAGED], 0)} pollIntervalMs={1} />)
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED], 0)} pollIntervalMs={1} />)
 
     expect(screen.getByTestId('kobo-gateway-updating')).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByTestId('kobo-gateway-configure-btn')).toBeInTheDocument()
+      expect(mockUpdateGateway).toHaveBeenCalled()
     })
-
-    expect(mockUpdateGateway).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(screen.queryByTestId('kobo-gateway-updating')).not.toBeInTheDocument()
+    })
   })
 
   it('shows manual instructions when the update fails', async () => {
     mockUpdateGateway.mockRejectedValue(new Error('update download failed'))
 
-    render(<KoboGatewaySetup initialStatus={status([KOBO_UNMANAGED], 0)} pollIntervalMs={1} />)
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED], 0)} pollIntervalMs={1} />)
 
     await waitFor(() => {
       expect(screen.getByTestId('kobo-gateway-error')).toHaveTextContent('update download failed')
@@ -265,9 +241,9 @@ describe('KoboGatewaySetup — self-update', () => {
   })
 
   it('errors when the gateway never comes back after updating', async () => {
-    mockProbeGateway.mockResolvedValue(null)
+    mockMutateGatewayStatus.mockResolvedValue(null)
 
-    render(<KoboGatewaySetup initialStatus={status([KOBO_UNMANAGED], 0)} pollIntervalMs={1} />)
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED], 0)} pollIntervalMs={1} />)
 
     await waitFor(() => {
       expect(screen.getByTestId('kobo-gateway-error')).toHaveTextContent(

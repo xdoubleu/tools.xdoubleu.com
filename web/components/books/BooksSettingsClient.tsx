@@ -6,7 +6,6 @@ import { useImportBooks } from '@/hooks/useBooks'
 import { useCurrentUser } from '@/hooks/useAuth'
 import BulkBookUploader from '@/components/books/BulkBookUploader'
 import KoboSetup from '@/components/books/KoboSetup'
-import KoboGatewayDownload from '@/components/books/KoboGatewayDownload'
 import KoboDevices from '@/components/books/KoboDevices'
 import ClearLibraryDialog from '@/components/books/ClearLibraryDialog'
 import { mutate } from 'swr'
@@ -82,12 +81,10 @@ export default function BooksSettingsClient() {
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Kobo</h2>
         <p className="mb-3 text-xs text-muted">
-          Connect your Kobo device for wireless sync. Plug it in, click Select my Kobo, and choose
-          the Kobo drive in the picker — the app then configures it. Each device gets its own sync
-          token; disconnecting a device immediately revokes its access.
+          Connect your Kobo device for wireless sync via the kobo-gateway menu-bar app. Each device
+          gets its own sync token; disconnecting a device immediately revokes its access.
         </p>
         <KoboSetup />
-        <KoboGatewayDownload />
 
         <div className="mt-6">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">

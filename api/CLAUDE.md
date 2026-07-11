@@ -11,7 +11,7 @@ docker-compose down         # Stop after tests are done
 
 # Build
 make build                  # Build ./bin/api (main server binary)
-make build/kobo-gateway     # Cross-compile the macOS Kobo gateway (darwin/arm64)
+# The kobo-gateway macOS menu-bar app is a separate Go module — see gateway/CLAUDE.md
 
 # Testing (requires DB running — docker-compose up -d first)
 make test                   # Run all tests
@@ -123,7 +123,6 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 - **`constants/`** — Shared constants
 - **`contacts/`** — Contact management service with editable display names (used by recipes, shopping list, and meal-plan sharing)
 - **`crypto/`** — Encryption utilities
-- **`kobogateway/`** — The local macOS Kobo gateway (binary: `cmd/kobo-gateway`): a loopback-only HTTP server the books page drives to configure a USB-mounted Kobo (Go port of `web/lib/books/koboConf.ts` — its serializer must stay byte-compatible with the TS one). Security = strict Origin allowlist + Host check + CORS/PNA; `POST /update` self-replaces the binary from the requesting origin. Ships inside the **web** Docker image (served at `/downloads/kobo-gateway-darwin-arm64`); its tests are pure fs/httptest and need no DB
 - **`models/`** — Shared domain models
 - **`repositories/`** — Shared DB repositories over the `global` schema (users, contacts, and the observability tables: `JobRunsRepository`, `UsageRepository`, `StorageSnapshotsRepository`, `DBStatsRepository`)
 - **`observability/`** — Cross-cutting instrumentation. `TrackedJob` decorates any `threading.Job` so every run is timed and recorded in `global.job_runs`, panics are recovered, and failures log at Error level (so they reach Sentry); wrap jobs at registration (see `apps/{todos,games,books}/app.go`). `UsageRecorder` counts requests per `(day, app, endpoint)` in memory and flushes to `global.usage_daily`; the counting `usageMiddleware` sits in the `cmd/api` alice chain after `domainMiddleware`.

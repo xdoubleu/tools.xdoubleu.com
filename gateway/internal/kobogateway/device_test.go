@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/kobogateway"
+	"tools.xdoubleu.com/gateway/internal/kobogateway"
 )
 
 // makeKoboVolume creates a fake mounted Kobo under root and returns its

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>KoboGateway</string>
+	<key>CFBundleDisplayName</key>
+	<string>Kobo Gateway</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.xdoubleu.tools.kobo-gateway</string>
+	<key>CFBundleVersion</key>
+	<string>__RELEASE__</string>
+	<key>CFBundleShortVersionString</key>
+	<string>__RELEASE__</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleExecutable</key>
+	<string>kobo-gateway</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<!-- No Dock icon / app switcher entry — the app only shows a menu-bar
+	     status item (see runUI in menubar_darwin.go). -->
+	<key>LSUIElement</key>
+	<true/>
+	<key>LSMinimumSystemVersion</key>
+	<string>12.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+</dict>
+</plist>

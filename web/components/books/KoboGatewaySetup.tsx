@@ -1,19 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { getApiUrl } from '@/lib/env'
 import { KOBO_DEFAULT_ENDPOINT, isManagedEndpoint } from '@/lib/books/koboConf'
 import { defaultDeviceName } from '@/lib/books/koboDevice'
 import {
   REQUIRED_GATEWAY_VERSION,
-  probeGateway,
   configureGateway,
   revertGateway,
   updateGateway,
   type GatewayStatus,
   type GatewayKobo
 } from '@/lib/books/gatewayClient'
+import { useGatewayStatus } from '@/hooks/useKoboGateway'
 import {
   useRegisterKoboDevice,
   useDisconnectKoboDevice,
@@ -29,27 +29,26 @@ function sleep(ms: number) {
 }
 
 interface KoboGatewaySetupProps {
-  initialStatus: GatewayStatus
+  status: GatewayStatus
   /** Delay between /status polls while the gateway restarts after an update. */
   pollIntervalMs?: number
 }
 
 /**
- * Gateway-driven variant of KoboSetup: the local kobo-gateway does the file
- * work while this component keeps making the authenticated API calls.
+ * Gateway-driven Kobo setup: the local kobo-gateway does the file work while
+ * this component keeps making the authenticated API calls. Gateway
+ * reachability and the connected-Kobo list come from useGatewayStatus's
+ * background polling — there's no manual re-check, the UI just updates.
  */
-export default function KoboGatewaySetup({
-  initialStatus,
-  pollIntervalMs = 1500
-}: KoboGatewaySetupProps) {
-  const [status, setStatus] = useState(initialStatus)
-  const [state, setState] = useState<GatewayState>(
-    initialStatus.version < REQUIRED_GATEWAY_VERSION ? 'updating' : 'idle'
-  )
+export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: KoboGatewaySetupProps) {
+  const { mutate: mutateGatewayStatus } = useGatewayStatus()
+  const [state, setState] = useState<GatewayState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [selectedVolume, setSelectedVolume] = useState<string | null>(null)
   const [originalEndpoint, setOriginalEndpoint] = useState<string | null>(null)
   const [deviceId, setDeviceId] = useState<string | null>(null)
+  // Guards against re-triggering the self-update on every poll tick.
+  const updateAttempted = useRef(false)
 
   const registerKoboDevice = useRegisterKoboDevice()
   const disconnectKoboDevice = useDisconnectKoboDevice()
@@ -60,9 +59,8 @@ export default function KoboGatewaySetup({
       await updateGateway()
       for (let attempt = 0; attempt < UPDATE_POLL_ATTEMPTS; attempt++) {
         await sleep(pollIntervalMs)
-        const fresh = await probeGateway()
+        const fresh = await mutateGatewayStatus()
         if (fresh && fresh.version >= REQUIRED_GATEWAY_VERSION) {
-          setStatus(fresh)
           setState('idle')
           return
         }
@@ -74,25 +72,15 @@ export default function KoboGatewaySetup({
       setError(`${msg} Download the latest version manually and start it again.`)
       setState('error')
     }
-  }, [pollIntervalMs])
+  }, [pollIntervalMs, mutateGatewayStatus])
 
   useEffect(() => {
-    if (initialStatus.version < REQUIRED_GATEWAY_VERSION) {
+    if (status.version < REQUIRED_GATEWAY_VERSION && !updateAttempted.current) {
+      updateAttempted.current = true
+      setState('updating')
       void runUpdate()
     }
-  }, [initialStatus.version, runUpdate])
-
-  async function handleRecheck() {
-    setError(null)
-    const fresh = await probeGateway()
-    if (!fresh) {
-      setError('The gateway is no longer reachable. Is it still running?')
-      setState('error')
-      return
-    }
-    setStatus(fresh)
-    setState('idle')
-  }
+  }, [status.version, runUpdate])
 
   async function handleConfigure(kobo: GatewayKobo) {
     setState('configuring')
@@ -109,6 +97,7 @@ export default function KoboGatewaySetup({
       setDeviceId(res.device?.id ?? '')
       setState('success')
       await mutateDevices()
+      await mutateGatewayStatus()
     } catch (err: unknown) {
       setError(err instanceof Error && err.message ? err.message : 'Failed to configure Kobo.')
       setState('error')
@@ -142,10 +131,9 @@ export default function KoboGatewaySetup({
 
       setOriginalEndpoint(null)
       setDeviceId(null)
-      const fresh = await probeGateway()
-      if (fresh) setStatus(fresh)
       setState('idle')
       await mutateDevices()
+      await mutateGatewayStatus()
     } catch (err: unknown) {
       setError(err instanceof Error && err.message ? err.message : 'Failed to revert.')
       setState('error')
@@ -172,14 +160,9 @@ export default function KoboGatewaySetup({
       </p>
 
       {kobos.length === 0 && state !== 'error' && (
-        <div className="space-y-2">
-          <p className="text-sm text-muted" data-testid="kobo-gateway-no-kobo">
-            No Kobo detected. Plug it in via USB, then re-check.
-          </p>
-          <Button type="button" variant="secondary" onClick={handleRecheck}>
-            Re-check
-          </Button>
-        </div>
+        <p className="text-sm text-muted" data-testid="kobo-gateway-no-kobo">
+          No Kobo detected. Plug it in via USB — this updates automatically.
+        </p>
       )}
 
       {kobos.length > 1 && !kobo && (
@@ -260,8 +243,15 @@ export default function KoboGatewaySetup({
           <p className="text-sm text-danger" data-testid="kobo-gateway-error">
             {error}
           </p>
-          <Button type="button" variant="secondary" onClick={handleRecheck}>
-            Re-check
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setError(null)
+              setState('idle')
+            }}
+          >
+            Dismiss
           </Button>
         </div>
       )}

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/kobogateway"
+	"tools.xdoubleu.com/gateway/internal/kobogateway"
 )
 
 const testOrigin = "https://tools.xdoubleu.com"

@@ -6,6 +6,7 @@ This file holds only cross-cutting context. Area-specific guidance lives in:
 
 - [`api/CLAUDE.md`](api/CLAUDE.md) — Go backend, Postgres, ConnectRPC, `make` commands.
 - [`web/CLAUDE.md`](web/CLAUDE.md) — Next.js frontend, UI standards, `npm` commands.
+- [`gateway/CLAUDE.md`](gateway/CLAUDE.md) — kobo-gateway macOS menu-bar app (separate Go module, cgo + AppKit).
 
 Claude Code auto-loads the `CLAUDE.md` of the current working directory, so the area files only load when you are working in that area.
 
@@ -72,6 +73,9 @@ After every code change, always run **both** of the following before reporting t
 
    # web changes
    cd web && npm run lint
+
+   # gateway changes (macOS only — cgo + AppKit)
+   cd gateway && make lint/fix
    ```
 
 2. **Coverage** — target ≥ 80% on the changed code. Run the coverage report and confirm the diff is covered:
@@ -97,7 +101,7 @@ See `.github/workflows/` for the pipeline. `main.yml` orchestrates reusable work
 
 Because `main` is deployed without re-testing, protect `main` from direct pushes and merge only PRs whose CI passed.
 
-One cross-cutting nuance: the **kobo-gateway** macOS helper lives under `api/` (`api/cmd/kobo-gateway`, `api/internal/kobogateway`) but ships inside the **web** Docker image (served as a download). The `gateway` path filter in `main.yml` therefore feeds `build-web` and `docker.build_web` — keep it in sync when moving those packages, or gateway changes would silently deploy a stale binary.
+One cross-cutting nuance: the **kobo-gateway** macOS menu-bar app lives in its own top-level module, `gateway/` (see [`gateway/CLAUDE.md`](gateway/CLAUDE.md)), but ships inside the **web** Docker image (served as a download). It needs cgo + the real AppKit/Xcode SDK for its menu bar, so it can't cross-compile from the Linux runners the rest of CI uses — `build-gateway.yml` builds and packages it on a `macos-14` runner and hands the `.dmg` + raw binary to `docker.yml` as an artifact, which `web/Dockerfile` then `COPY`s in (there is no `gateway-builder` Docker stage). The `gateway` path filter in `main.yml` feeds `build-web`, `build-gateway`, and `docker.build_web` — keep it in sync if `gateway/` moves, or gateway changes would silently deploy a stale binary.
 
 ## Docs Impact
 
