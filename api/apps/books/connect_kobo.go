@@ -94,6 +94,8 @@ func (h *booksConnectHandler) ListKoboDevices(
 		Devices: make([]*booksv1.KoboDevice, len(devices)),
 	}
 	for i, d := range devices {
+		// Debug-logging state lives in memory, not the DB row.
+		d.LoggingEnabled = h.app.Services.KoboLog.IsEnabled(d.ID)
 		resp.Devices[i] = koboDeviceProto(d)
 	}
 	return connect.NewResponse(resp), nil
@@ -136,10 +138,11 @@ func koboDeviceProto(d models.KoboDevice) *booksv1.KoboDevice {
 		lastSeen = d.LastSeenAt.Format(time.RFC3339)
 	}
 	return &booksv1.KoboDevice{
-		Id:         d.ID,
-		Name:       d.Name,
-		Serial:     d.Serial,
-		CreatedAt:  d.CreatedAt.Format(time.RFC3339),
-		LastSeenAt: lastSeen,
+		Id:             d.ID,
+		Name:           d.Name,
+		Serial:         d.Serial,
+		CreatedAt:      d.CreatedAt.Format(time.RFC3339),
+		LastSeenAt:     lastSeen,
+		LoggingEnabled: d.LoggingEnabled,
 	}
 }

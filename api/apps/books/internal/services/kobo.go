@@ -62,11 +62,21 @@ func (s *KoboService) DisconnectKoboDevice(
 	return s.repo.DeleteKoboDevice(ctx, userID, deviceID)
 }
 
-// GetUserIDByKoboTokenHash looks up the user by a pre-hashed token for
-// authenticating Kobo sync requests.
-func (s *KoboService) GetUserIDByKoboTokenHash(
+// GetKoboAuthByTokenHash looks up the owning user and device ID by a pre-hashed
+// token for authenticating Kobo sync requests.
+func (s *KoboService) GetKoboAuthByTokenHash(
 	ctx context.Context,
 	hash string,
-) (string, error) {
-	return s.repo.GetUserIDByKoboTokenHash(ctx, hash)
+) (string, string, error) {
+	return s.repo.GetKoboAuthByTokenHash(ctx, hash)
+}
+
+// GetKoboDevice returns a single device scoped to the owning user, used to
+// verify ownership before per-device debug-logging operations.
+func (s *KoboService) GetKoboDevice(
+	ctx context.Context,
+	userID string,
+	deviceID uuid.UUID,
+) (models.KoboDevice, error) {
+	return s.repo.GetKoboDevice(ctx, userID, deviceID)
 }

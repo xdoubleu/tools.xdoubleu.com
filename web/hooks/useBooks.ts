@@ -23,7 +23,7 @@ import type {
   Book
 } from '@/lib/gen/books/v1/library_pb'
 import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/books/v1/files_pb'
-import type { ListKoboDevicesResponse } from '@/lib/gen/books/v1/kobo_pb'
+import type { ListKoboDevicesResponse, GetKoboDeviceLogsResponse } from '@/lib/gen/books/v1/kobo_pb'
 import type {
   FindDuplicatesResponse,
   ListResyncProposalsResponse,
@@ -221,6 +221,23 @@ export function useListKoboDevices() {
 export function useDisconnectKoboDevice() {
   const client = createServiceClient(KoboService)
   return (id: string) => client.disconnectKoboDevice({ id })
+}
+
+export function useSetKoboDeviceLogging() {
+  const client = createServiceClient(KoboService)
+  return (id: string, enabled: boolean) => client.setKoboDeviceLogging({ id, enabled })
+}
+
+export function useKoboDeviceLogs(id: string, enabled: boolean) {
+  const client = createServiceClient(KoboService)
+  return useSWR<GetKoboDeviceLogsResponse, Error>(enabled ? swrKeys.koboDeviceLogs(id) : null, () =>
+    client.getKoboDeviceLogs({ id })
+  )
+}
+
+export function useClearKoboDeviceLogs() {
+  const client = createServiceClient(KoboService)
+  return (id: string) => client.clearKoboDeviceLogs({ id })
 }
 
 export function useClearLibrary() {

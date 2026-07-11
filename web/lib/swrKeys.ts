@@ -22,6 +22,7 @@ export const swrKeys = {
   booksProgress: (dateStart?: string, dateEnd?: string) =>
     ['/books/progress', dateStart, dateEnd] as const,
   koboDevices: '/books/kobo/devices',
+  koboDeviceLogs: (id: string) => ['/books/kobo/logs', id] as const,
   bookDuplicates: '/books/duplicates',
   resyncProposals: '/books/resync-proposals',
   bookSources: (bookId: string) => ['/books/sources', bookId] as const,

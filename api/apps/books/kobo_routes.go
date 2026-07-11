@@ -30,22 +30,32 @@ import (
 // those continue to work.
 func (app *Books) koboRoutes(prefix string, mux *http.ServeMux) {
 	base := "/" + prefix + "/kobo/{token}"
-	mux.HandleFunc("POST "+base+"/v1/initialization", app.koboInitHandler)
-	mux.HandleFunc("GET "+base+"/v1/library/sync", app.koboLibrarySyncHandler)
 	mux.HandleFunc(
-		"GET "+base+"/v1/library/{revisionId}/file", app.koboFileHandler,
+		"POST "+base+"/v1/initialization", app.koboLogged(app.koboInitHandler),
 	)
 	mux.HandleFunc(
-		"GET "+base+"/v1/library/{revisionId}/metadata", app.koboMetadataHandler,
+		"GET "+base+"/v1/library/sync", app.koboLogged(app.koboLibrarySyncHandler),
 	)
 	mux.HandleFunc(
-		"GET "+base+"/v1/library/{revisionId}/state", app.koboGetStateHandler,
+		"GET "+base+"/v1/library/{revisionId}/file",
+		app.koboLogged(app.koboFileHandler),
 	)
 	mux.HandleFunc(
-		"PUT "+base+"/v1/library/{revisionId}/state", app.koboPutStateHandler,
+		"GET "+base+"/v1/library/{revisionId}/metadata",
+		app.koboLogged(app.koboMetadataHandler),
+	)
+	mux.HandleFunc(
+		"GET "+base+"/v1/library/{revisionId}/state",
+		app.koboLogged(app.koboGetStateHandler),
+	)
+	mux.HandleFunc(
+		"PUT "+base+"/v1/library/{revisionId}/state",
+		app.koboLogged(app.koboPutStateHandler),
 	)
 	// Catch-all: proxy unrecognised paths to the upstream Kobo store.
-	mux.HandleFunc("/"+prefix+"/kobo/{token}/", app.koboProxyHandler)
+	mux.HandleFunc(
+		"/"+prefix+"/kobo/{token}/", app.koboLogged(app.koboProxyHandler),
+	)
 }
 
 // koboAuth validates HTTPS and the token embedded in the request URL path.
@@ -71,7 +81,9 @@ func (app *Books) koboAuth(w http.ResponseWriter, r *http.Request) (string, bool
 	h := sha256.Sum256([]byte(raw))
 	hash := hex.EncodeToString(h[:])
 
-	userID, err := app.Services.Kobo.GetUserIDByKoboTokenHash(r.Context(), hash)
+	userID, deviceID, err := app.Services.Kobo.GetKoboAuthByTokenHash(
+		r.Context(), hash,
+	)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -79,6 +91,14 @@ func (app *Books) koboAuth(w http.ResponseWriter, r *http.Request) (string, bool
 		}
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return "", false
+	}
+
+	// Arm request/response capture for this device when debug logging is on.
+	// koboAuth runs before any handler reads the body or writes a response, so
+	// the capture layer sees the flag in time.
+	if holder := koboLogHolderFrom(r.Context()); holder != nil {
+		holder.deviceID = deviceID
+		holder.enabled = app.Services.KoboLog.IsEnabled(deviceID)
 	}
 	return userID, true
 }
@@ -454,7 +474,6 @@ func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//nolint:gosec // URL comes from internal objectstore presign, not user input
 	http.Redirect(w, r, result.URL, http.StatusFound)
 }
 

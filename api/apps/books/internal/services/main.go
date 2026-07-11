@@ -22,6 +22,7 @@ type Services struct {
 	Conversion *ConversionService
 	Progress   *ProgressService
 	Kobo       *KoboService
+	KoboLog    *KoboLogStore
 	WebSocket  *progressws.Service
 }
 
@@ -40,6 +41,8 @@ func New(
 	kobo := &KoboService{
 		repo: repositories.KoboDevices,
 	}
+
+	koboLog := NewKoboLogStore()
 
 	booksSvc := &BookService{
 		logger:       logger,
@@ -67,6 +70,7 @@ func New(
 		Conversion: conversionSvc,
 		Progress:   NewProgressService(repositories.Progress),
 		Kobo:       kobo,
+		KoboLog:    koboLog,
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,
