@@ -5,8 +5,8 @@ import { SOURCE_LABELS } from '@/components/books/SourceCompare'
 import { Card } from '@/components/ui/card'
 
 // SourceStats reports per-source coverage (how many books the last scan
-// found in each source) and applied provenance (how many books' metadata was
-// last applied from each source — the admin's manual quality verdict).
+// found in each source) and uniqueness (how many books were found ONLY in
+// that source, nowhere else).
 export default function SourceStats() {
   const { data, isLoading, error } = useSourceStats()
 
@@ -20,7 +20,7 @@ export default function SourceStats() {
           <tr className="text-left text-xs uppercase tracking-wide text-muted">
             <th className="pb-2 font-semibold">Source</th>
             <th className="pb-2 text-right font-semibold">Found</th>
-            <th className="pb-2 text-right font-semibold">Applied</th>
+            <th className="pb-2 text-right font-semibold">Unique</th>
           </tr>
         </thead>
         <tbody>
@@ -28,7 +28,7 @@ export default function SourceStats() {
             <tr key={s.source} className="border-t border-border">
               <td className="py-1.5">{SOURCE_LABELS[s.source] ?? s.source}</td>
               <td className="py-1.5 text-right tabular-nums">{s.foundCount}</td>
-              <td className="py-1.5 text-right tabular-nums">{s.appliedCount}</td>
+              <td className="py-1.5 text-right tabular-nums">{s.uniqueCount}</td>
             </tr>
           ))}
         </tbody>

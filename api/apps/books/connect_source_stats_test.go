@@ -51,34 +51,33 @@ func TestGetSourceStats_NonAdmin_PermissionDenied(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
-// TestGetSourceStats_Admin_CountsApplied verifies applied provenance shows up
-// in the stats: applying a source to a book bumps that source's applied count.
+// TestGetSourceStats_Admin_CountsUnique verifies unique-source counting: a
+// book scanned with only OpenLibrary configured is found there and nowhere
+// else, so it bumps OpenLibrary's unique count.
 // Counts are compared before/after because the test DB is shared.
-func TestGetSourceStats_Admin_CountsApplied(t *testing.T) {
+func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 	client := newAdminBooksTestClientWithMockSources(t)
 	before := getSourceStats(t, client)
 
 	id := uuid.New()
-	ub := addTestBookWithISBN(t, "SourceStatsApplyBook", isbnFromUUID(id))
+	addTestBookWithISBN(t, "SourceStatsUniqueBook", isbnFromUUID(id))
 	afterAdd := getSourceStats(t, client)
 	assert.Equal(t, before.TotalBooks+1, afterAdd.TotalBooks)
 	assert.Equal(t, before.NeverScanned+1, afterAdd.NeverScanned,
 		"a freshly added book has never been scanned")
 
-	applyReq := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
-
-		BookId: ub.BookID.String(),
-		Source: "openlibrary",
-	})
-	applyReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.ApplyBookSource(context.Background(), applyReq)
+	_, err := testApp.Services.Books.BuildResyncProposals(
+		context.Background(),
+		testApp.Logger,
+		nil,
+	)
 	require.NoError(t, err)
 
 	after := getSourceStats(t, client)
 	assert.Equal(
 		t,
-		statFor(t, before, "openlibrary").AppliedCount+1,
-		statFor(t, after, "openlibrary").AppliedCount,
+		statFor(t, before, "openlibrary").UniqueCount+1,
+		statFor(t, after, "openlibrary").UniqueCount,
 	)
 	require.Len(t, after.Sources, 3)
 }

@@ -5,7 +5,7 @@ import SourceStats from '@/components/books/SourceStats'
 const mockStatsData: {
   data:
     | {
-        sources: { source: string; foundCount: number; appliedCount: number }[]
+        sources: { source: string; foundCount: number; uniqueCount: number }[]
         totalBooks: number
         notFoundAnywhere: number
         neverScanned: number
@@ -42,12 +42,12 @@ describe('SourceStats', () => {
     expect(screen.getByText(/failed to load source stats/i)).toBeInTheDocument()
   })
 
-  it('renders one row per source with found/applied counts and the totals', () => {
+  it('renders one row per source with found/unique counts and the totals', () => {
     mockStatsData.data = {
       sources: [
-        { source: 'openlibrary', foundCount: 42, appliedCount: 7 },
-        { source: 'googlebooks', foundCount: 30, appliedCount: 2 },
-        { source: 'unicat', foundCount: 5, appliedCount: 1 }
+        { source: 'openlibrary', foundCount: 42, uniqueCount: 7 },
+        { source: 'googlebooks', foundCount: 30, uniqueCount: 2 },
+        { source: 'unicat', foundCount: 5, uniqueCount: 1 }
       ],
       totalBooks: 50,
       notFoundAnywhere: 4,

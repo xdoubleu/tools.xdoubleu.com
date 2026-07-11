@@ -370,19 +370,19 @@ func (h *booksConnectHandler) GetSourceStats(
 	return connect.NewResponse(&booksv1.GetSourceStatsResponse{
 		Sources: []*booksv1.SourceStat{
 			{
-				Source:       "openlibrary",
-				FoundCount:   int32FromInt(stats.OpenLibraryFound),
-				AppliedCount: int32FromInt(stats.OpenLibraryApplied),
+				Source:      "openlibrary",
+				FoundCount:  int32FromInt(stats.OpenLibraryFound),
+				UniqueCount: int32FromInt(stats.OpenLibraryUnique),
 			},
 			{
-				Source:       "googlebooks",
-				FoundCount:   int32FromInt(stats.GoogleBooksFound),
-				AppliedCount: int32FromInt(stats.GoogleBooksApplied),
+				Source:      "googlebooks",
+				FoundCount:  int32FromInt(stats.GoogleBooksFound),
+				UniqueCount: int32FromInt(stats.GoogleBooksUnique),
 			},
 			{
-				Source:       "unicat",
-				FoundCount:   int32FromInt(stats.UniCatFound),
-				AppliedCount: int32FromInt(stats.UniCatApplied),
+				Source:      "unicat",
+				FoundCount:  int32FromInt(stats.UniCatFound),
+				UniqueCount: int32FromInt(stats.UniCatUnique),
 			},
 		},
 		TotalBooks:       int32FromInt(stats.TotalBooks),

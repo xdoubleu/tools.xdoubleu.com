@@ -1193,8 +1193,8 @@ func (*ApplyBookSourceResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{22}
 }
 
-// GetSourceStats reports per-source coverage and applied provenance over the
-// whole catalog, for scoring metadata sources.
+// GetSourceStats reports per-source coverage over the whole catalog, for
+// scoring metadata sources.
 type GetSourceStatsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1237,8 +1237,8 @@ type SourceStat struct {
 	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	// Books the last scan found in this source (coverage).
 	FoundCount int32 `protobuf:"varint,2,opt,name=found_count,json=foundCount,proto3" json:"found_count,omitempty"`
-	// Books whose metadata was last applied from this source (usage).
-	AppliedCount  int32 `protobuf:"varint,3,opt,name=applied_count,json=appliedCount,proto3" json:"applied_count,omitempty"`
+	// Books found ONLY in this source (found here, nowhere else).
+	UniqueCount   int32 `protobuf:"varint,3,opt,name=unique_count,json=uniqueCount,proto3" json:"unique_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1287,9 +1287,9 @@ func (x *SourceStat) GetFoundCount() int32 {
 	return 0
 }
 
-func (x *SourceStat) GetAppliedCount() int32 {
+func (x *SourceStat) GetUniqueCount() int32 {
 	if x != nil {
-		return x.AppliedCount
+		return x.UniqueCount
 	}
 	return 0
 }
@@ -1439,13 +1439,13 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x0f_override_titleB\x12\n" +
 	"\x10_override_author\"\x19\n" +
 	"\x17ApplyBookSourceResponse\"\x17\n" +
-	"\x15GetSourceStatsRequest\"j\n" +
+	"\x15GetSourceStatsRequest\"h\n" +
 	"\n" +
 	"SourceStat\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x1f\n" +
 	"\vfound_count\x18\x02 \x01(\x05R\n" +
-	"foundCount\x12#\n" +
-	"\rapplied_count\x18\x03 \x01(\x05R\fappliedCount\"\xbc\x01\n" +
+	"foundCount\x12!\n" +
+	"\funique_count\x18\x03 \x01(\x05R\vuniqueCount\"\xbc\x01\n" +
 	"\x16GetSourceStatsResponse\x12.\n" +
 	"\asources\x18\x01 \x03(\v2\x14.books.v1.SourceStatR\asources\x12\x1f\n" +
 	"\vtotal_books\x18\x02 \x01(\x05R\n" +

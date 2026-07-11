@@ -144,18 +144,18 @@ func (repo *BooksRepository) GetResyncProposal(
 	return book, nil
 }
 
-// SourceStats aggregates per-source scan coverage and applied provenance over
-// the whole catalog, for the admin source-stats report.
+// SourceStats aggregates per-source scan coverage and uniqueness over the
+// whole catalog, for the admin source-stats report.
 type SourceStats struct {
-	TotalBooks         int
-	OpenLibraryFound   int
-	GoogleBooksFound   int
-	UniCatFound        int
-	OpenLibraryApplied int
-	GoogleBooksApplied int
-	UniCatApplied      int
-	NotFoundAnywhere   int
-	NeverScanned       int
+	TotalBooks        int
+	OpenLibraryFound  int
+	GoogleBooksFound  int
+	UniCatFound       int
+	OpenLibraryUnique int
+	GoogleBooksUnique int
+	UniCatUnique      int
+	NotFoundAnywhere  int
+	NeverScanned      int
 }
 
 // GetSourceStats computes SourceStats in a single aggregate query.
@@ -167,9 +167,15 @@ func (repo *BooksRepository) GetSourceStats(
 		    count(*) FILTER (WHERE openlibrary_found),
 		    count(*) FILTER (WHERE googlebooks_found),
 		    count(*) FILTER (WHERE unicat_found),
-		    count(*) FILTER (WHERE metadata_source = 'openlibrary'),
-		    count(*) FILTER (WHERE metadata_source = 'googlebooks'),
-		    count(*) FILTER (WHERE metadata_source = 'unicat'),
+		    count(*) FILTER (WHERE openlibrary_found
+		        AND NOT COALESCE(googlebooks_found, false)
+		        AND NOT COALESCE(unicat_found, false)),
+		    count(*) FILTER (WHERE googlebooks_found
+		        AND NOT COALESCE(openlibrary_found, false)
+		        AND NOT COALESCE(unicat_found, false)),
+		    count(*) FILTER (WHERE unicat_found
+		        AND NOT COALESCE(openlibrary_found, false)
+		        AND NOT COALESCE(googlebooks_found, false)),
 		    count(*) FILTER (WHERE last_resync_at IS NOT NULL
 		        AND NOT COALESCE(openlibrary_found, false)
 		        AND NOT COALESCE(googlebooks_found, false)
@@ -184,9 +190,9 @@ func (repo *BooksRepository) GetSourceStats(
 		&stats.OpenLibraryFound,
 		&stats.GoogleBooksFound,
 		&stats.UniCatFound,
-		&stats.OpenLibraryApplied,
-		&stats.GoogleBooksApplied,
-		&stats.UniCatApplied,
+		&stats.OpenLibraryUnique,
+		&stats.GoogleBooksUnique,
+		&stats.UniCatUnique,
 		&stats.NotFoundAnywhere,
 		&stats.NeverScanned,
 	)
