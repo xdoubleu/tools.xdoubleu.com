@@ -254,10 +254,10 @@ func TestExternalToBook_MetadataSourceProvenance(t *testing.T) {
 
 func TestGetSourceStats_Passthrough(t *testing.T) {
 	want := &repositories.SourceStats{ //nolint:exhaustruct // partial
-		TotalBooks:         10,
-		OpenLibraryFound:   7,
-		OpenLibraryApplied: 3,
-		NeverScanned:       2,
+		TotalBooks:        10,
+		OpenLibraryFound:  7,
+		OpenLibraryUnique: 3,
+		NeverScanned:      2,
 	}
 	repo := &fakeBooksResync{sourceStats: want} //nolint:exhaustruct // partial
 	svc := &BookService{booksResync: repo}      //nolint:exhaustruct // partial

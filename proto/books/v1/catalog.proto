@@ -127,16 +127,16 @@ message ApplyBookSourceRequest {
 }
 message ApplyBookSourceResponse {}
 
-// GetSourceStats reports per-source coverage and applied provenance over the
-// whole catalog, for scoring metadata sources.
+// GetSourceStats reports per-source coverage over the whole catalog, for
+// scoring metadata sources.
 message GetSourceStatsRequest {}
 message SourceStat {
   // "openlibrary" | "googlebooks" | "unicat"
   string source = 1;
   // Books the last scan found in this source (coverage).
   int32 found_count = 2;
-  // Books whose metadata was last applied from this source (usage).
-  int32 applied_count = 3;
+  // Books found ONLY in this source (found here, nowhere else).
+  int32 unique_count = 3;
 }
 message GetSourceStatsResponse {
   repeated SourceStat sources = 1;
