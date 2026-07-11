@@ -65,5 +65,5 @@ func TestRunServeFailsOnOccupiedPort(t *testing.T) {
 	}, &out)
 
 	assert.Error(t, err)
-	assert.Contains(t, out.String(), "listening on http://127.0.0.1:")
+	assert.Contains(t, out.String(), "listening on https://127.0.0.1:")
 }

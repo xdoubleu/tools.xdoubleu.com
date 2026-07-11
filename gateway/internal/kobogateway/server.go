@@ -14,7 +14,7 @@ const (
 	// GatewayVersion is the protocol version reported by /status. Bump it
 	// whenever the gateway's HTTP API or file handling changes so the web
 	// UI can trigger a self-update; routine releases don't bump it.
-	GatewayVersion = 1
+	GatewayVersion = 2
 
 	// DefaultPort is the fixed port the web UI probes for a running gateway.
 	DefaultPort = 41132

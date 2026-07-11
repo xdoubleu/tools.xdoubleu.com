@@ -1,19 +1,22 @@
 /**
  * Client for the local kobo-gateway: a downloadable macOS helper that
- * exposes a loopback-only HTTP API (see api/internal/kobogateway). The
- * browser keeps making all authenticated API calls itself and hands only
- * the resulting sync URL to the gateway, which patches the USB-mounted
- * Kobo's config file.
+ * exposes a loopback-only HTTPS API (self-signed cert, trusted on first
+ * launch — see gateway/internal/kobogateway/tls.go) that the books page
+ * drives. The browser keeps making all authenticated API calls itself and
+ * hands only the resulting sync URL to the gateway, which patches the
+ * USB-mounted Kobo's config file. HTTPS (not HTTP) is required so Safari,
+ * which blocks HTTPS pages from fetching plain-HTTP loopback URLs, can
+ * reach it too.
  */
 
 const GATEWAY_PORT = 41132
-const GATEWAY_URL = `http://127.0.0.1:${GATEWAY_PORT}`
+const GATEWAY_URL = `https://127.0.0.1:${GATEWAY_PORT}`
 
 /**
  * Minimum gateway protocol version this web app can drive. When a probe
  * reports an older version the UI triggers a self-update via updateGateway.
  */
-export const REQUIRED_GATEWAY_VERSION = 1
+export const REQUIRED_GATEWAY_VERSION = 2
 
 // The .dmg is what the download button offers (drag-to-Applications, menu
 // bar app). The self-updater (updateGateway below) fetches the raw binary

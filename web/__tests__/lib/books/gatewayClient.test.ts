@@ -51,7 +51,7 @@ describe('probeGateway', () => {
 
     expect(status).toEqual(SAMPLE_STATUS)
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://127.0.0.1:41132/status',
+      'https://127.0.0.1:41132/status',
       expect.objectContaining({ signal: expect.anything() })
     )
   })
@@ -81,7 +81,7 @@ describe('configureGateway', () => {
       serial: 'N418ABCD1234',
       originalEndpoint: 'https://storeapi.kobo.com'
     })
-    expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:41132/configure', {
+    expect(mockFetch).toHaveBeenCalledWith('https://127.0.0.1:41132/configure', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ syncUrl: 'https://api.example.com/books/kobo/TOKEN' })
@@ -140,7 +140,7 @@ describe('updateGateway', () => {
 
     expect(res).toEqual({ updating: true })
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://127.0.0.1:41132/update',
+      'https://127.0.0.1:41132/update',
       expect.objectContaining({ method: 'POST' })
     )
   })

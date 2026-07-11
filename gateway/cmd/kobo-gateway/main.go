@@ -5,11 +5,13 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -113,6 +115,18 @@ func update(updater *kobogateway.Updater, origin string, stdout io.Writer) error
 	return nil
 }
 
+// certDir returns where the gateway's self-signed TLS cert/key and trust
+// marker are persisted across runs (~/Library/Application Support/kobo-gateway
+// on macOS).
+func certDir() (string, error) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(base, "kobo-gateway"), nil
+}
+
 // serve runs the gateway and its menu-bar UI on the main thread until it
 // fails, the user quits from the menu, or a successful self-update asks for
 // a restart (in which case it re-execs the freshly replaced binary).
@@ -121,17 +135,36 @@ func serve(
 	cfg kobogateway.Config,
 	stdout io.Writer,
 ) error {
+	certsDir, err := certDir()
+	if err != nil {
+		return fmt.Errorf("resolve cert dir: %w", err)
+	}
+
+	cert, certPath, err := kobogateway.EnsureCert(certsDir)
+	if err != nil {
+		return fmt.Errorf("prepare TLS cert: %w", err)
+	}
+
+	if err = kobogateway.EnsureTrusted(certsDir, certPath, stdout); err != nil {
+		fmt.Fprintf(stdout, "warning: could not trust gateway cert automatically: %v\n", err)
+		fmt.Fprintln(
+			stdout,
+			"open Keychain Access and trust", certPath, "manually if Safari can't reach the gateway",
+		)
+	}
+
 	addr := fmt.Sprintf("127.0.0.1:%d", cfg.Port)
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      gateway.Handler(),
+		TLSConfig:    &tls.Config{Certificates: []tls.Certificate{cert}},
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 	}
 
 	fmt.Fprintf(
 		stdout,
-		"kobo-gateway %s (protocol v%d) listening on http://%s\n",
+		"kobo-gateway %s (protocol v%d) listening on https://%s\n",
 		Release,
 		kobogateway.GatewayVersion,
 		addr,
@@ -139,7 +172,7 @@ func serve(
 	fmt.Fprintln(stdout, "look for the Kobo icon in the menu bar")
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- server.ListenAndServe() }()
+	go func() { errCh <- server.ListenAndServeTLS("", "") }()
 
 	// stop unblocks runUI (Quit menu item, server failure, or self-update).
 	// serveErr/restarting are written here before stop closes and read in

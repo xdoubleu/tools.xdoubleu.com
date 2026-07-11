@@ -19,7 +19,7 @@ gateway/
 └── internal/kobogateway/  # The loopback HTTP server (routes, security, conf file I/O)
 ```
 
-`internal/kobogateway` is a plain-Go, loopback-only HTTP server the books
+`internal/kobogateway` is a plain-Go, loopback-only HTTPS server the books
 page drives to read/write a USB-mounted Kobo's `Kobo eReader.conf`. It has no
 AppKit dependency. Setup is gateway-only now — the browser never reads the
 conf file itself, so `conf.go` is the only place that parses/serializes it
@@ -28,6 +28,16 @@ conf file itself, so `conf.go` is the only place that parses/serializes it
 compatible with). Security = strict Origin allowlist + Host check +
 CORS/PNA. `POST /update` self-replaces the running binary from the
 requesting origin (see "Self-update" below).
+
+HTTPS (not HTTP) is required because Safari blocks a secure page (the books
+page is always `https://`) from fetching a plain-HTTP loopback URL — Chrome
+exempts loopback from that check, but Safari doesn't. `tls.go` generates a
+self-signed cert (`EnsureCert`) on first launch, persisted alongside a trust
+marker in `~/Library/Application Support/kobo-gateway`, and `EnsureTrusted`
+prompts the user once via `security add-trusted-cert` to add it to the login
+keychain (skipped under `testing.Testing()` so `go test`/CI never shells
+out). If Safari still rejects the cert after that prompt, the fallback is
+trusting it to the System keychain instead (needs sudo).
 
 The menu bar (`menubar_darwin.go`) is purely cosmetic — a status item with a
 release-version title and a Quit item — so the running app is visible and
