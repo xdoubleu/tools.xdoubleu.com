@@ -29,7 +29,7 @@ import type {
   ListResyncProposalsResponse,
   GetBookSourcesResponse,
   GetSourceStatsResponse,
-  ListSourceUniqueBooksResponse
+  ListBooksInExactSourcesResponse
 } from '@/lib/gen/books/v1/catalog_pb'
 
 export type CreateBookInput = MessageInitShape<typeof CreateBookRequestSchema>
@@ -319,11 +319,11 @@ export function useSourceStats() {
   )
 }
 
-export function useSourceUniqueBooks(source: string | null) {
+export function useBooksInExactSources(sources: string[] | null) {
   const client = createServiceClient(CatalogService)
-  return useSWR<ListSourceUniqueBooksResponse, Error>(
-    source ? swrKeys.bookSourceUniqueBooks(source) : null,
-    () => client.listSourceUniqueBooks({ source: source! })
+  return useSWR<ListBooksInExactSourcesResponse, Error>(
+    sources && sources.length > 0 ? swrKeys.bookBooksInExactSources(sources) : null,
+    () => client.listBooksInExactSources({ sources: sources! })
   )
 }
 

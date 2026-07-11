@@ -9,6 +9,7 @@ const mockStatsData: {
         totalBooks: number
         notFoundAnywhere: number
         neverScanned: number
+        overlaps: { sources: string[]; count: number }[]
       }
     | undefined
   isLoading: boolean
@@ -19,7 +20,7 @@ const mockStatsData: {
   error: undefined
 }
 
-const mockUniqueBooksData: {
+const mockExactSourcesData: {
   data: { books: { id: string; title: string; authors: string[]; coverUrl: string }[] } | undefined
   isLoading: boolean
   error: Error | undefined
@@ -31,16 +32,16 @@ const mockUniqueBooksData: {
 
 jest.mock('@/hooks/useBooks', () => ({
   useSourceStats: () => mockStatsData,
-  useSourceUniqueBooks: () => mockUniqueBooksData
+  useBooksInExactSources: () => mockExactSourcesData
 }))
 
 beforeEach(() => {
   mockStatsData.data = undefined
   mockStatsData.isLoading = false
   mockStatsData.error = undefined
-  mockUniqueBooksData.data = undefined
-  mockUniqueBooksData.isLoading = false
-  mockUniqueBooksData.error = undefined
+  mockExactSourcesData.data = undefined
+  mockExactSourcesData.isLoading = false
+  mockExactSourcesData.error = undefined
 })
 
 describe('SourceStats', () => {
@@ -65,7 +66,8 @@ describe('SourceStats', () => {
       ],
       totalBooks: 50,
       notFoundAnywhere: 4,
-      neverScanned: 3
+      neverScanned: 3,
+      overlaps: []
     }
     render(<SourceStats />)
 
@@ -84,9 +86,10 @@ describe('SourceStats', () => {
       sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 1 }],
       totalBooks: 50,
       notFoundAnywhere: 4,
-      neverScanned: 3
+      neverScanned: 3,
+      overlaps: []
     }
-    mockUniqueBooksData.data = {
+    mockExactSourcesData.data = {
       books: [{ id: 'b1', title: 'De Kleine Bibliotheek', authors: ['Iemand'], coverUrl: '' }]
     }
     render(<SourceStats />)
@@ -103,10 +106,61 @@ describe('SourceStats', () => {
       sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 0 }],
       totalBooks: 50,
       notFoundAnywhere: 4,
-      neverScanned: 3
+      neverScanned: 3,
+      overlaps: []
     }
     render(<SourceStats />)
 
     expect(screen.queryByRole('button', { name: '0' })).not.toBeInTheDocument()
+  })
+
+  it('renders an overlap section and opens a dialog for a pair combo', () => {
+    mockStatsData.data = {
+      sources: [
+        { source: 'openlibrary', foundCount: 42, uniqueCount: 7 },
+        { source: 'googlebooks', foundCount: 30, uniqueCount: 2 },
+        { source: 'unicat', foundCount: 5, uniqueCount: 1 }
+      ],
+      totalBooks: 50,
+      notFoundAnywhere: 4,
+      neverScanned: 3,
+      overlaps: [
+        { sources: ['openlibrary', 'googlebooks'], count: 12 },
+        { sources: ['openlibrary', 'unicat'], count: 0 },
+        { sources: ['googlebooks', 'unicat'], count: 0 },
+        { sources: ['openlibrary', 'googlebooks', 'unicat'], count: 5 }
+      ]
+    }
+    mockExactSourcesData.data = {
+      books: [{ id: 'b2', title: 'Overlap Book', authors: [], coverUrl: '' }]
+    }
+    render(<SourceStats />)
+
+    expect(screen.getByText('Overlap (2+ sources)')).toBeInTheDocument()
+    expect(screen.getByText('Open Library + Google Books')).toBeInTheDocument()
+    expect(screen.getByText('All three')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('12'))
+
+    expect(screen.getByText('Found in Open Library + Google Books')).toBeInTheDocument()
+    expect(screen.getByText('Overlap Book')).toBeInTheDocument()
+  })
+
+  it('does not render the overlap section when every combo is zero', () => {
+    mockStatsData.data = {
+      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5 }],
+      totalBooks: 5,
+      notFoundAnywhere: 0,
+      neverScanned: 0,
+      overlaps: [
+        { sources: ['openlibrary', 'googlebooks'], count: 0 },
+        { sources: ['openlibrary', 'unicat'], count: 0 },
+        { sources: ['googlebooks', 'unicat'], count: 0 },
+        { sources: ['openlibrary', 'googlebooks', 'unicat'], count: 0 }
+      ]
+    }
+    render(<SourceStats />)
+
+    expect(screen.queryByText('Overlap (2+ sources)')).not.toBeInTheDocument()
   })
 })

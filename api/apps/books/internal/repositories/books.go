@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -756,6 +758,13 @@ func (repo *BooksRepository) RefreshBookExternalData(
 // UpdateResyncScanStatus records one scan pass's per-source found flags and
 // bumps last_resync_at. Nil flags mean "provider not configured" or "book not
 // searchable" and write NULL.
+// UpdateResyncScanStatus records one scan pass's per-source found flags. A
+// nil flag means the source wasn't resolved this pass — not configured, not
+// attempted, skipped because already known, or its call errored (including a
+// throttled Google Books lookup) — and must leave the column unchanged
+// (COALESCE) rather than overwrite a previously-known value with NULL/false.
+// Only a source that was actually queried and answered this pass writes a
+// fresh true/false.
 func (repo *BooksRepository) UpdateResyncScanStatus(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -765,9 +774,9 @@ func (repo *BooksRepository) UpdateResyncScanStatus(
 ) error {
 	query := `
 		UPDATE books.books
-		SET openlibrary_found = $2,
-		    googlebooks_found = $3,
-		    unicat_found      = $4,
+		SET openlibrary_found = COALESCE($2, openlibrary_found),
+		    googlebooks_found = COALESCE($3, googlebooks_found),
+		    unicat_found      = COALESCE($4, unicat_found),
 		    last_resync_at    = now()
 		WHERE id = $1
 	`
@@ -809,36 +818,56 @@ func (repo *BooksRepository) ListCatalogBooks(
 	return books, nil
 }
 
-// uniqueSourcePredicate returns the SQL boolean expression matching books
-// found ONLY by the given source, nowhere else — mirrors the FILTER clauses
-// in GetSourceStats. Never build this from unvalidated input directly; the
-// switch keeps the SQL fixed and rejects unknown sources.
-func uniqueSourcePredicate(source string) (string, error) {
-	switch source {
-	case "openlibrary":
-		return `openlibrary_found
-			AND NOT COALESCE(googlebooks_found, false)
-			AND NOT COALESCE(unicat_found, false)`, nil
-	case "googlebooks":
-		return `googlebooks_found
-			AND NOT COALESCE(openlibrary_found, false)
-			AND NOT COALESCE(unicat_found, false)`, nil
-	case "unicat":
-		return `unicat_found
-			AND NOT COALESCE(openlibrary_found, false)
-			AND NOT COALESCE(googlebooks_found, false)`, nil
-	default:
-		return "", database.ErrResourceNotFound
-	}
+// sourceColumns maps a source name to its found column — the fixed,
+// known set of GetSourceStats sources. Never build SQL from unvalidated
+// input directly; exactSourcesPredicate only emits column names from here.
+//
+//nolint:gochecknoglobals // fixed lookup table, never mutated
+var sourceColumns = map[string]string{
+	"openlibrary": "openlibrary_found",
+	"googlebooks": "googlebooks_found",
+	"unicat":      "unicat_found",
 }
 
-// ListUniqueBooks returns the catalog books found ONLY by the given source
-// (the books behind GetSourceStats' *Unique counts), ordered by title.
-func (repo *BooksRepository) ListUniqueBooks(
+// exactSourcesPredicate returns the SQL boolean expression matching books
+// found by exactly the given set of sources — found (IS TRUE) for each named
+// source, confirmed absent (IS FALSE) for every other known source. A source
+// still unknown (NULL) never satisfies IS FALSE, so an unresolved source
+// correctly excludes a book from any exact-set match (see SourceStats' doc).
+// Rejects an empty set or any name outside sourceColumns.
+func exactSourcesPredicate(sources []string) (string, error) {
+	if len(sources) == 0 {
+		return "", database.ErrResourceNotFound
+	}
+
+	want := make(map[string]bool, len(sources))
+	for _, s := range sources {
+		if _, ok := sourceColumns[s]; !ok {
+			return "", database.ErrResourceNotFound
+		}
+		want[s] = true
+	}
+
+	clauses := make([]string, 0, len(sourceColumns))
+	for source, column := range sourceColumns {
+		if want[source] {
+			clauses = append(clauses, column+" IS TRUE")
+		} else {
+			clauses = append(clauses, column+" IS FALSE")
+		}
+	}
+	sort.Strings(clauses)
+	return strings.Join(clauses, " AND "), nil
+}
+
+// ListBooksInExactSources returns the catalog books found by exactly the
+// given set of sources (a single source is GetSourceStats' *Unique books; two
+// or three sources is an overlap combo), ordered by title.
+func (repo *BooksRepository) ListBooksInExactSources(
 	ctx context.Context,
-	source string,
+	sources []string,
 ) ([]models.Book, error) {
-	predicate, err := uniqueSourcePredicate(source)
+	predicate, err := exactSourcesPredicate(sources)
 	if err != nil {
 		return nil, err
 	}

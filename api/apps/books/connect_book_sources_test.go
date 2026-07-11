@@ -21,8 +21,16 @@ import (
 // newAdminBooksTestClientWithMockSources is like newAdminBooksTestClient but
 // wires the mocked Open Library client (always "The Odyssey" by Homer)
 // instead of nil, so GetBookSources/ApplyBookSource's live fetch has
-// something to find.
-func newAdminBooksTestClientWithMockSources(t *testing.T) booksTestClient {
+// something to find. Google Books and UniCat are wired to empty (not nil)
+// mocks — configured but confirmed-absent — matching production, where all
+// three sources are always configured; a genuinely nil client would leave
+// its found flag NULL (unresolved) forever, and GetSourceStats' IS TRUE/IS
+// FALSE-aware uniqueness never counts an unresolved source as absent. Returns
+// the app too so a test can drive a scan through its own service (with these
+// mocked clients) rather than the shared testApp's (OL-only).
+func newAdminBooksTestClientWithMockSources(
+	t *testing.T,
+) (booksTestClient, *books.Books) {
 	t.Helper()
 	adminApp := books.NewInner(
 		sharedmocks.NewMockedAdminAuthService(userID),
@@ -31,8 +39,8 @@ func newAdminBooksTestClientWithMockSources(t *testing.T) booksTestClient {
 		testDB,
 		books.Clients{
 			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
-			GoogleBooks:      nil,
-			UniCat:           nil,
+			GoogleBooks:      mocks.NewMockEmptyGoogleBooksClient(),
+			UniCat:           mocks.NewMockEmptyUniCatClient(),
 			ObjectStore:      objectstore.NewFake(),
 			PublicAPIBaseURL: "",
 			KoboStoreBaseURL: "",
@@ -40,7 +48,36 @@ func newAdminBooksTestClientWithMockSources(t *testing.T) booksTestClient {
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(adminApp))
 	t.Cleanup(ts.Close)
-	return newBooksClientFor(ts.URL, connect.WithHTTPGet())
+	return newBooksClientFor(ts.URL, connect.WithHTTPGet()), adminApp
+}
+
+// newAdminBooksTestClientWithTwoSources wires the mocked Open Library and
+// Google Books clients (both resolve any ISBN to their own canned book) plus
+// an empty (confirmed-absent, not nil — see newAdminBooksTestClientWithMockSources)
+// UniCat client, so a scanned ISBN'd book is found by exactly OL+GB — used to
+// exercise the source-stats overlap combos. Returns the app too, for driving
+// a scan through its own service.
+func newAdminBooksTestClientWithTwoSources(
+	t *testing.T,
+) (booksTestClient, *books.Books) {
+	t.Helper()
+	adminApp := books.NewInner(
+		sharedmocks.NewMockedAdminAuthService(userID),
+		testApp.Logger,
+		testCfg,
+		testDB,
+		books.Clients{
+			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
+			GoogleBooks:      mocks.NewMockGoogleBooksClient(),
+			UniCat:           mocks.NewMockEmptyUniCatClient(),
+			ObjectStore:      objectstore.NewFake(),
+			PublicAPIBaseURL: "",
+			KoboStoreBaseURL: "",
+		},
+	)
+	ts := httptest.NewServer(testhelper.BuildMux(adminApp))
+	t.Cleanup(ts.Close)
+	return newBooksClientFor(ts.URL, connect.WithHTTPGet()), adminApp
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +165,7 @@ func TestGetBookSources_Admin_Success(t *testing.T) {
 	id := uuid.New()
 	ub := addTestBookWithISBN(t, "GetBookSourcesTestBook", isbnFromUUID(id))
 
-	client := newAdminBooksTestClientWithMockSources(t)
+	client, _ := newAdminBooksTestClientWithMockSources(t)
 	req := connect.NewRequest(
 		&booksv1.GetBookSourcesRequest{BookId: ub.BookID.String()},
 	)
@@ -150,7 +187,7 @@ func TestApplyBookSource_Admin_Success(t *testing.T) {
 	id := uuid.New()
 	ub := addTestBookWithISBN(t, "ApplyBookSourceTestBook", isbnFromUUID(id))
 
-	client := newAdminBooksTestClientWithMockSources(t)
+	client, _ := newAdminBooksTestClientWithMockSources(t)
 	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
 		BookId: ub.BookID.String(),
 		Source: "openlibrary",
@@ -175,7 +212,7 @@ func TestApplyBookSource_Admin_Success(t *testing.T) {
 func TestApplyBookSource_Admin_Override(t *testing.T) {
 	ub := addTestBookNoISBN(t, "Completely Unmatchable Stored Title")
 
-	client := newAdminBooksTestClientWithMockSources(t)
+	client, _ := newAdminBooksTestClientWithMockSources(t)
 
 	// Without an override the guard rejects the mock's "The Odyssey" result.
 	noOverride := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
@@ -213,10 +250,10 @@ func TestApplyBookSource_Admin_Override(t *testing.T) {
 func TestApplyBookSource_Admin_UnknownSource_NotFound(t *testing.T) {
 	ub := addTestBookNoISBN(t, "ApplyBookSourceUnknownSourceBook")
 
-	client := newAdminBooksTestClientWithMockSources(t)
+	client, _ := newAdminBooksTestClientWithMockSources(t)
 	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
 		BookId: ub.BookID.String(),
-		Source: "googlebooks", // not configured in this test app (nil client)
+		Source: "googlebooks", // mock GB is configured but always confirmed-absent
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
