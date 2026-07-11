@@ -38,6 +38,14 @@ done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$ICONSET_PARENT"
 
+# Ad-hoc sign the bundle so Apple Silicon Gatekeeper reports it as
+# "unidentified developer" (right-click -> Open works) instead of "damaged".
+# "-" is the ad-hoc identity: no Apple Developer account/secrets needed. Must
+# run last, after all bundle contents are final — any later edit to Info.plist,
+# the binary, or Resources/ invalidates this seal.
+codesign --force --sign - "$APP"
+codesign --verify --strict "$APP"
+
 # Ship the raw binary too — the in-app self-updater (POST /update) replaces
 # Contents/MacOS/kobo-gateway with this, not the .dmg.
 cp "$BIN" "$DIST/kobo-gateway-darwin-arm64"
