@@ -17,6 +17,17 @@ on:
         value: ${{ jobs.docker-web.outputs.built }}
 
 jobs:
+  # kobo-gateway ships inside the web image but needs cgo + AppKit (can't
+  # build in the Linux docker-web job below) — built separately on macOS and
+  # handed off as an artifact. Always runs when docker-web will, regardless
+  # of whether gateway sources themselves changed, since the web image
+  # always bundles this artifact.
+  build-gateway:
+    if: github.event_name == 'workflow_dispatch' || inputs.build_web
+    name: Build Gateway
+    uses: ./.github/workflows/build-gateway.yml
+    secrets: inherit
+
   docker-api:
     name: Docker Build & Push API
     if: github.event_name == 'workflow_dispatch' || inputs.build_api
@@ -59,7 +70,11 @@ jobs:
 
   docker-web:
     name: Docker Build & Push Web
-    if: github.event_name == 'workflow_dispatch' || inputs.build_web
+    needs: build-gateway
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' || inputs.build_web) &&
+      needs.build-gateway.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -68,6 +83,14 @@ jobs:
       built: ${{ steps.build.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v6
+
+      # kobo-gateway.dmg + the raw binary, built on macOS by build-gateway
+      # above (see gateway/cmd/kobo-gateway/menubar_darwin.go for why). The
+      # Dockerfile COPYs these straight into public/downloads/.
+      - uses: actions/download-artifact@v4
+        with:
+          name: gateway-dist
+          path: web/public/downloads/
 
       - uses: docker/setup-buildx-action@v3
 

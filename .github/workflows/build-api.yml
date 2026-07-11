@@ -20,7 +20,3 @@ jobs:
           cache-dependency-path: './api/go.sum'
       - run: make build
         working-directory: './api'
-      # PR-time compile check for the darwin cross-build; the web Docker
-      # image (which ships this binary) only builds on push to main.
-      - run: make build/kobo-gateway
-        working-directory: './api'

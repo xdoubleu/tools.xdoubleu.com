@@ -1,0 +1,33 @@
+name: Build Gateway Workflow
+
+# kobo-gateway needs cgo + the real AppKit/Xcode SDK for its menu bar (see
+# gateway/cmd/kobo-gateway/menubar_darwin.go), so it can't cross-compile from
+# the Linux runners the rest of CI uses — this workflow runs on macos-14
+# (native Apple Silicon) to both compile-check it on PRs and produce the
+# .dmg plus raw binary the web image bundles on push to main.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-gateway:
+    name: Build kobo-gateway (macOS)
+    runs-on: macos-14
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: './gateway/go.mod'
+          cache-dependency-path: './gateway/go.sum'
+      - run: make dist RELEASE=${{ github.sha }}
+        working-directory: './gateway'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gateway-dist
+          path: gateway/dist/gateway/
+          retention-days: 7

@@ -22,6 +22,9 @@ export const swrKeys = {
   booksProgress: (dateStart?: string, dateEnd?: string) =>
     ['/books/progress', dateStart, dateEnd] as const,
   koboDevices: '/books/kobo/devices',
+  // Local-only key (no server round-trip) for polling the kobo-gateway
+  // helper's /status — see lib/books/gatewayClient.ts.
+  gatewayStatus: '/books/kobo/gateway-status',
   bookDuplicates: '/books/duplicates',
   resyncProposals: '/books/resync-proposals',
   bookSources: (bookId: string, overrideTitle = '', overrideAuthor = '') =>

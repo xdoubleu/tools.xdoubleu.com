@@ -36,12 +36,11 @@ jobs:
             workflows:
               - '.github/workflows/**'
             # The kobo-gateway binary ships inside the WEB image (served as
-            # a download), so gateway code changes must rebuild web too.
+            # a download), so gateway code changes must rebuild web too. It's
+            # its own Go module (gateway/) — cgo + AppKit, built separately
+            # on macOS (see build-gateway.yml), not part of api/.
             gateway:
-              - 'api/cmd/kobo-gateway/**'
-              - 'api/internal/kobogateway/**'
-              - 'api/go.mod'
-              - 'api/go.sum'
+              - 'gateway/**'
 
   proto-check:
     needs: changes
@@ -81,6 +80,23 @@ jobs:
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
+    secrets: inherit
+
+  # Builds/packages the gateway on a macOS runner (cgo + AppKit, can't
+  # cross-compile from Linux — see build-gateway.yml). Runs whenever the web
+  # image would build, since it always bundles this artifact, plus whenever
+  # gateway sources change on their own (PR-time compile/package check).
+  build-gateway:
+    needs: changes
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Build Gateway Workflow
+    uses: ./.github/workflows/build-gateway.yml
     secrets: inherit
 
   api-lint:
@@ -134,7 +150,8 @@ jobs:
     secrets: inherit
 
   ci-pass:
-    needs: [proto-check, build-api, build-web, api-lint, web-lint, api-test, web-test]
+    needs:
+      [proto-check, build-api, build-web, build-gateway, api-lint, web-lint, api-test, web-test]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
     permissions:

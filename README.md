@@ -9,7 +9,7 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 ## Tools
 
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress and distribution, with background sync jobs and WebSocket live updates.
-- **books** — Book library and e-reader companion: external metadata sync (Open Library, Google Books, UniCat), EPUB/PDF uploads with KEPUB conversion, Kobo device sync, and reading progress. Kobo devices sync against `/books/kobo/<token>/…`; devices configured before the games/books split (old `/backlog/kobo/…` URLs) must re-run the setup flow. Setup happens in the browser (Chromium File System Access API) or via **kobo-gateway**, a downloadable macOS helper (`api/cmd/kobo-gateway`) that the books page drives over a loopback-only HTTP API — it is cross-compiled inside the web Docker image and served at `/downloads/kobo-gateway-darwin-arm64`, so gateway code changes rebuild the *web* image (see the `gateway` path filter in `main.yml`).
+- **books** — Book library and e-reader companion: external metadata sync (Open Library, Google Books, UniCat), EPUB/PDF uploads with KEPUB conversion, Kobo device sync, and reading progress. Kobo devices sync against `/books/kobo/<token>/…`; devices configured before the games/books split (old `/backlog/kobo/…` URLs) must re-run the setup flow. Setup is entirely driven by **kobo-gateway** (`gateway/`), a downloadable macOS menu-bar app the books page drives over a loopback-only HTTP API — built on a macOS CI runner (its menu bar needs cgo + AppKit) and served as a `.dmg` at `/downloads/kobo-gateway.dmg`, so gateway code changes rebuild the *web* image too (see the `gateway` path filter in `main.yml`).
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
@@ -53,8 +53,16 @@ cd api && docker-compose down
 | `make test/cov/per-pkg` | Per-package coverage with merged summary |
 | `make lint` | Run all linters (Go + SQL) |
 | `make lint/fix` | Auto-fix linting issues |
-| `make build/kobo-gateway` | Cross-compile the macOS Kobo gateway (darwin/arm64) |
 | `make scaffold NAME=myapp [DB=true] [JOBS=true]` | Generate new app |
+
+## Gateway Commands (`gateway/`, macOS only)
+
+| Command | Purpose |
+| --- | --- |
+| `make build` | Build the kobo-gateway binary (needs cgo + Xcode command line tools) |
+| `make dist` | Package into `dist/gateway/`: `KoboGateway.app` → `.dmg`, plus the raw binary |
+| `make test` | `go test ./...` |
+| `make lint` / `make lint/fix` | `go vet` + `gofmt` |
 
 ## Web Commands (`web/`)
 

@@ -10,11 +10,13 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"syscall"
+	"testing"
 	"time"
 
-	"tools.xdoubleu.com/internal/kobogateway"
+	"tools.xdoubleu.com/gateway/internal/kobogateway"
 )
 
 //nolint:gochecknoglobals //Release is set at build time via -ldflags.
@@ -29,6 +31,9 @@ const (
 )
 
 func main() {
+	// The menu bar's AppKit run loop must run on the main OS thread.
+	runtime.LockOSThread()
+
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -108,8 +113,9 @@ func update(updater *kobogateway.Updater, origin string, stdout io.Writer) error
 	return nil
 }
 
-// serve runs the gateway until it fails or a successful self-update asks
-// for a restart, in which case it re-execs the freshly replaced binary.
+// serve runs the gateway and its menu-bar UI on the main thread until it
+// fails, the user quits from the menu, or a successful self-update asks for
+// a restart (in which case it re-execs the freshly replaced binary).
 func serve(
 	gateway *kobogateway.Server,
 	cfg kobogateway.Config,
@@ -130,33 +136,56 @@ func serve(
 		kobogateway.GatewayVersion,
 		addr,
 	)
-	fmt.Fprintln(
-		stdout,
-		"leave this running, then return to the books page in your browser",
-	)
+	fmt.Fprintln(stdout, "look for the Kobo icon in the menu bar")
 
 	errCh := make(chan error, 1)
 	go func() { errCh <- server.ListenAndServe() }()
 
-	select {
-	case err := <-errCh:
-		return err
-	case <-gateway.Restart():
-		ctx, cancel := context.WithTimeout(
-			context.Background(),
-			shutdownTimeout,
-		)
-		defer cancel()
-		_ = server.Shutdown(ctx)
-
-		executable, err := os.Executable()
-		if err != nil {
-			return fmt.Errorf("could not resolve executable to restart: %w", err)
+	// stop unblocks runUI (Quit menu item, server failure, or self-update).
+	// serveErr/restarting are written here before stop closes and read in
+	// this goroutine only after runUI returns, so the channel close is the
+	// only synchronization needed (happens-before via Go's memory model).
+	stop := make(chan struct{})
+	var serveErr error
+	var restarting bool
+	go func() {
+		select {
+		case serveErr = <-errCh:
+		case <-gateway.Restart():
+			restarting = true
 		}
+		close(stop)
+	}()
 
-		fmt.Fprintln(stdout, "updated, restarting into the new binary…")
-
-		//nolint:gosec //re-execs our own path as reported by os.Executable
-		return syscall.Exec(executable, os.Args, os.Environ())
+	// Never spin up the real AppKit menu bar from a test binary — it has no
+	// window server session and would crash or hang the test run.
+	if testing.Testing() {
+		<-stop
+	} else {
+		runUI(cfg.Release, stop)
 	}
+
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(),
+		shutdownTimeout,
+	)
+	defer cancel()
+	_ = server.Shutdown(shutdownCtx)
+
+	if serveErr != nil {
+		return serveErr
+	}
+	if !restarting {
+		return nil
+	}
+
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("could not resolve executable to restart: %w", err)
+	}
+
+	fmt.Fprintln(stdout, "updated, restarting into the new binary…")
+
+	//nolint:gosec //re-execs our own path as reported by os.Executable
+	return syscall.Exec(executable, os.Args, os.Environ())
 }

@@ -15,7 +15,11 @@ const GATEWAY_URL = `http://127.0.0.1:${GATEWAY_PORT}`
  */
 export const REQUIRED_GATEWAY_VERSION = 1
 
-export const GATEWAY_DOWNLOAD_PATH = '/downloads/kobo-gateway-darwin-arm64'
+// The .dmg is what the download button offers (drag-to-Applications, menu
+// bar app). The self-updater (updateGateway below) fetches the raw binary
+// at /downloads/kobo-gateway-darwin-arm64 instead, to replace the running
+// executable in place — see api/internal/kobogateway/update.go.
+export const GATEWAY_DOWNLOAD_PATH = '/downloads/kobo-gateway.dmg'
 
 export interface GatewayKobo {
   volumePath: string
