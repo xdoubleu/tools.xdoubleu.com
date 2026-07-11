@@ -28,7 +28,8 @@ import type {
   FindDuplicatesResponse,
   ListResyncProposalsResponse,
   GetBookSourcesResponse,
-  GetSourceStatsResponse
+  GetSourceStatsResponse,
+  ListSourceUniqueBooksResponse
 } from '@/lib/gen/books/v1/catalog_pb'
 
 export type CreateBookInput = MessageInitShape<typeof CreateBookRequestSchema>
@@ -315,6 +316,14 @@ export function useSourceStats() {
   const client = createServiceClient(CatalogService)
   return useSWR<GetSourceStatsResponse, Error>(swrKeys.bookSourceStats, () =>
     client.getSourceStats({})
+  )
+}
+
+export function useSourceUniqueBooks(source: string | null) {
+  const client = createServiceClient(CatalogService)
+  return useSWR<ListSourceUniqueBooksResponse, Error>(
+    source ? swrKeys.bookSourceUniqueBooks(source) : null,
+    () => client.listSourceUniqueBooks({ source: source! })
   )
 }
 

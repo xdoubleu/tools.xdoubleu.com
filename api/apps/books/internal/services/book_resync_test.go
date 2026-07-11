@@ -65,6 +65,9 @@ type fakeBooksResync struct {
 
 	sourceStats    *repositories.SourceStats
 	sourceStatsErr error
+
+	uniqueBooks    []models.Book
+	uniqueBooksErr error
 }
 
 func (f *fakeBooksResync) ListCatalogBooks(_ context.Context) ([]models.Book, error) {
@@ -126,6 +129,13 @@ func (f *fakeBooksResync) GetSourceStats(
 	_ context.Context,
 ) (*repositories.SourceStats, error) {
 	return f.sourceStats, f.sourceStatsErr
+}
+
+func (f *fakeBooksResync) ListUniqueBooks(
+	_ context.Context,
+	_ string,
+) ([]models.Book, error) {
+	return f.uniqueBooks, f.uniqueBooksErr
 }
 
 func (f *fakeBooksResync) ReplaceResyncProposals(

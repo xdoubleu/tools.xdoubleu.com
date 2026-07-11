@@ -81,3 +81,74 @@ func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 	)
 	require.Len(t, after.Sources, 3)
 }
+
+func TestListSourceUniqueBooks_NonAdmin_PermissionDenied(t *testing.T) {
+	client := newBooksTestClient(t)
+	req := connect.NewRequest(
+		&booksv1.ListSourceUniqueBooksRequest{Source: "openlibrary"},
+	)
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.ListSourceUniqueBooks(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
+}
+
+func TestListSourceUniqueBooks_UnknownSource_InvalidArgument(t *testing.T) {
+	client := newAdminBooksTestClientWithMockSources(t)
+	req := connect.NewRequest(&booksv1.ListSourceUniqueBooksRequest{Source: "bogus"})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.ListSourceUniqueBooks(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+}
+
+// TestListSourceUniqueBooks_Admin_ReturnsOnlyUniqueBook verifies a book found
+// only by OpenLibrary (the mock source setup) shows up in the OpenLibrary
+// unique list after a scan, and not in another source's list.
+func TestListSourceUniqueBooks_Admin_ReturnsOnlyUniqueBook(t *testing.T) {
+	client := newAdminBooksTestClientWithMockSources(t)
+
+	id := uuid.New()
+	title := "SourceUniqueBooksTestBook"
+	addTestBookWithISBN(t, title, isbnFromUUID(id))
+
+	_, err := testApp.Services.Books.BuildResyncProposals(
+		context.Background(),
+		testApp.Logger,
+		nil,
+	)
+	require.NoError(t, err)
+
+	olReq := connect.NewRequest(
+		&booksv1.ListSourceUniqueBooksRequest{Source: "openlibrary"},
+	)
+	olReq.Header().Set("Cookie", accessToken.String())
+	olResp, err := client.ListSourceUniqueBooks(context.Background(), olReq)
+	require.NoError(t, err)
+	found := false
+	for _, b := range olResp.Msg.Books {
+		if b.Title == title {
+			found = true
+		}
+	}
+	assert.True(t, found, "book unique to openlibrary must appear in its unique list")
+
+	ucReq := connect.NewRequest(&booksv1.ListSourceUniqueBooksRequest{Source: "unicat"})
+	ucReq.Header().Set("Cookie", accessToken.String())
+	ucResp, err := client.ListSourceUniqueBooks(context.Background(), ucReq)
+	require.NoError(t, err)
+	for _, b := range ucResp.Msg.Books {
+		assert.NotEqual(
+			t,
+			title,
+			b.Title,
+			"book unique to openlibrary must not appear under unicat",
+		)
+	}
+}

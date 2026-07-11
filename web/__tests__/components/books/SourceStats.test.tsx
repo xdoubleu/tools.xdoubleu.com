@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import SourceStats from '@/components/books/SourceStats'
 
 const mockStatsData: {
@@ -19,14 +19,30 @@ const mockStatsData: {
   error: undefined
 }
 
+const mockUniqueBooksData: {
+  data:
+    | { books: { id: string; title: string; authors: string[]; coverUrl: string }[] }
+    | undefined
+  isLoading: boolean
+  error: Error | undefined
+} = {
+  data: undefined,
+  isLoading: false,
+  error: undefined
+}
+
 jest.mock('@/hooks/useBooks', () => ({
-  useSourceStats: () => mockStatsData
+  useSourceStats: () => mockStatsData,
+  useSourceUniqueBooks: () => mockUniqueBooksData
 }))
 
 beforeEach(() => {
   mockStatsData.data = undefined
   mockStatsData.isLoading = false
   mockStatsData.error = undefined
+  mockUniqueBooksData.data = undefined
+  mockUniqueBooksData.isLoading = false
+  mockUniqueBooksData.error = undefined
 })
 
 describe('SourceStats', () => {
@@ -63,5 +79,36 @@ describe('SourceStats', () => {
     expect(screen.getByText('50 books in the catalog.')).toBeInTheDocument()
     expect(screen.getByText('4 scanned but not found in any source.')).toBeInTheDocument()
     expect(screen.getByText('3 never scanned.')).toBeInTheDocument()
+  })
+
+  it('opens a dialog listing the unique books when a Unique count is clicked', () => {
+    mockStatsData.data = {
+      sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 1 }],
+      totalBooks: 50,
+      notFoundAnywhere: 4,
+      neverScanned: 3
+    }
+    mockUniqueBooksData.data = {
+      books: [{ id: 'b1', title: 'De Kleine Bibliotheek', authors: ['Iemand'], coverUrl: '' }]
+    }
+    render(<SourceStats />)
+
+    fireEvent.click(screen.getByText('1'))
+
+    expect(screen.getByText('Unique to UniCat')).toBeInTheDocument()
+    expect(screen.getByText('De Kleine Bibliotheek')).toBeInTheDocument()
+    expect(screen.getByText('Iemand')).toBeInTheDocument()
+  })
+
+  it('does not render a click target when a source has zero unique books', () => {
+    mockStatsData.data = {
+      sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 0 }],
+      totalBooks: 50,
+      notFoundAnywhere: 4,
+      neverScanned: 3
+    }
+    render(<SourceStats />)
+
+    expect(screen.queryByRole('button', { name: '0' })).not.toBeInTheDocument()
   })
 })

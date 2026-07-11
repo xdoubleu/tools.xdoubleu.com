@@ -390,3 +390,30 @@ func (h *booksConnectHandler) GetSourceStats(
 		NeverScanned:     int32FromInt(stats.NeverScanned),
 	}), nil
 }
+
+func (h *booksConnectHandler) ListSourceUniqueBooks(
+	ctx context.Context,
+	req *connect.Request[booksv1.ListSourceUniqueBooksRequest],
+) (*connect.Response[booksv1.ListSourceUniqueBooksResponse], error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	books, err := h.app.Services.Books.ListUniqueBooks(ctx, req.Msg.Source)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("unknown source"),
+		)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	out := make([]*booksv1.Book, len(books))
+	for i := range books {
+		out[i] = protoBook(&books[i], h.app.clients.PublicAPIBaseURL)
+	}
+
+	return connect.NewResponse(&booksv1.ListSourceUniqueBooksResponse{Books: out}), nil
+}

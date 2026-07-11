@@ -809,6 +809,67 @@ func (repo *BooksRepository) ListCatalogBooks(
 	return books, nil
 }
 
+// uniqueSourcePredicate returns the SQL boolean expression matching books
+// found ONLY by the given source, nowhere else — mirrors the FILTER clauses
+// in GetSourceStats. Never build this from unvalidated input directly; the
+// switch keeps the SQL fixed and rejects unknown sources.
+func uniqueSourcePredicate(source string) (string, error) {
+	switch source {
+	case "openlibrary":
+		return `openlibrary_found
+			AND NOT COALESCE(googlebooks_found, false)
+			AND NOT COALESCE(unicat_found, false)`, nil
+	case "googlebooks":
+		return `googlebooks_found
+			AND NOT COALESCE(openlibrary_found, false)
+			AND NOT COALESCE(unicat_found, false)`, nil
+	case "unicat":
+		return `unicat_found
+			AND NOT COALESCE(openlibrary_found, false)
+			AND NOT COALESCE(googlebooks_found, false)`, nil
+	default:
+		return "", database.ErrResourceNotFound
+	}
+}
+
+// ListUniqueBooks returns the catalog books found ONLY by the given source
+// (the books behind GetSourceStats' *Unique counts), ordered by title.
+func (repo *BooksRepository) ListUniqueBooks(
+	ctx context.Context,
+	source string,
+) ([]models.Book, error) {
+	predicate, err := uniqueSourcePredicate(source)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+		SELECT ` + bookColumns + `
+		FROM books.books
+		WHERE ` + predicate + `
+		ORDER BY title
+	`
+
+	rows, err := repo.db.Query(ctx, query)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var books []models.Book
+	for rows.Next() {
+		b, scanErr := scanBook(rows)
+		if scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		books = append(books, *b)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return books, nil
+}
+
 // GetCatalogWithUserOverlay returns all catalog books as UserBook entries.
 // Books that the given user has added to their library carry their real
 // user_book values; books not in the library have empty status/tags/etc.

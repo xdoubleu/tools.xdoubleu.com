@@ -49,6 +49,7 @@ type booksResyncSource interface {
 		uniCatFound *bool,
 	) error
 	GetSourceStats(ctx context.Context) (*repositories.SourceStats, error)
+	ListUniqueBooks(ctx context.Context, source string) ([]models.Book, error)
 	ReplaceResyncProposals(ctx context.Context, entries map[uuid.UUID][]byte) error
 	ListResyncProposals(ctx context.Context) ([]repositories.ResyncProposalRow, error)
 	GetResyncProposal(
@@ -823,12 +824,21 @@ func (s *BookService) writeResyncResult(
 	return nil
 }
 
-// GetSourceStats reports per-source scan coverage and applied provenance over
-// the whole catalog, for the admin source-stats report.
+// GetSourceStats reports per-source scan coverage and uniqueness over the
+// whole catalog, for the admin source-stats report.
 func (s *BookService) GetSourceStats(
 	ctx context.Context,
 ) (*repositories.SourceStats, error) {
 	return s.resyncRepo().GetSourceStats(ctx)
+}
+
+// ListUniqueBooks returns the catalog books found ONLY by the given source,
+// for drilling into a GetSourceStats unique_count.
+func (s *BookService) ListUniqueBooks(
+	ctx context.Context,
+	source string,
+) ([]models.Book, error) {
+	return s.resyncRepo().ListUniqueBooks(ctx, source)
 }
 
 // buildSearchQuery builds a search query string for title+first-author searches.
