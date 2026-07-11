@@ -49,6 +49,17 @@ make lint    # go vet + gofmt -l
 make lint/fix
 ```
 
+The Makefile pins `GOTOOLCHAIN=go1.24.13` — darwinkit's AppKit bridge
+`SIGABRT`s on launch under Go 1.25+
+([progrium/darwinkit#286](https://github.com/progrium/darwinkit/issues/286),
+open/unfixed), so `go.mod`'s `go 1.24.13` line alone isn't enough (a bare
+`go` directive only sets a minimum and won't downgrade a newer ambient `go`
+on `PATH`). Every `make` target in this module therefore builds/tests with
+exactly that toolchain regardless of what's installed locally or in CI. Bump
+both once the upstream issue is fixed — do not bump go.mod's `go` line past
+1.24.x on its own, it'll silently reintroduce the crash for anyone with a
+newer Go installed.
+
 `make dist` needs `sips`/`iconutil`/`hdiutil` (all standard macOS tools) to
 build `AppIcon.icns` from `assets/appicon.png` and pack the `.dmg`. Both
 `assets/appicon.png` (app icon) and `assets/menubar-template.png` (status-bar

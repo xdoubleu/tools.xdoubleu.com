@@ -1,6 +1,6 @@
 module tools.xdoubleu.com/gateway
 
-go 1.26.0
+go 1.24.13
 
 require (
 	github.com/progrium/darwinkit v0.5.0
