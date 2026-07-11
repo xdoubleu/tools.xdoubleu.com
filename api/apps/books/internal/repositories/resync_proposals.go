@@ -25,6 +25,7 @@ type ResyncProposalRow struct {
 const resyncProposalColumns = `b.id, b.title, b.authors, b.isbn13, b.cover_url,
 	b.description, b.page_count, b.created_at, b.updated_at,
 	b.openlibrary_found, b.googlebooks_found, b.unicat_found, b.last_resync_at,
+	b.metadata_source,
 	rp.proposals`
 
 func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
@@ -45,6 +46,7 @@ func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
 		&book.GoogleBooksFound,
 		&book.UniCatFound,
 		&book.LastResyncAt,
+		&book.MetadataSource,
 		&out.ProposalsJSON,
 	)
 	if err != nil {
@@ -140,6 +142,58 @@ func (repo *BooksRepository) GetResyncProposal(
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	return book, nil
+}
+
+// SourceStats aggregates per-source scan coverage and applied provenance over
+// the whole catalog, for the admin source-stats report.
+type SourceStats struct {
+	TotalBooks         int
+	OpenLibraryFound   int
+	GoogleBooksFound   int
+	UniCatFound        int
+	OpenLibraryApplied int
+	GoogleBooksApplied int
+	UniCatApplied      int
+	NotFoundAnywhere   int
+	NeverScanned       int
+}
+
+// GetSourceStats computes SourceStats in a single aggregate query.
+func (repo *BooksRepository) GetSourceStats(
+	ctx context.Context,
+) (*SourceStats, error) {
+	query := `
+		SELECT count(*),
+		    count(*) FILTER (WHERE openlibrary_found),
+		    count(*) FILTER (WHERE googlebooks_found),
+		    count(*) FILTER (WHERE unicat_found),
+		    count(*) FILTER (WHERE metadata_source = 'openlibrary'),
+		    count(*) FILTER (WHERE metadata_source = 'googlebooks'),
+		    count(*) FILTER (WHERE metadata_source = 'unicat'),
+		    count(*) FILTER (WHERE last_resync_at IS NOT NULL
+		        AND NOT COALESCE(openlibrary_found, false)
+		        AND NOT COALESCE(googlebooks_found, false)
+		        AND NOT COALESCE(unicat_found, false)),
+		    count(*) FILTER (WHERE last_resync_at IS NULL)
+		FROM books.books
+	`
+
+	var stats SourceStats
+	err := repo.db.QueryRow(ctx, query).Scan(
+		&stats.TotalBooks,
+		&stats.OpenLibraryFound,
+		&stats.GoogleBooksFound,
+		&stats.UniCatFound,
+		&stats.OpenLibraryApplied,
+		&stats.GoogleBooksApplied,
+		&stats.UniCatApplied,
+		&stats.NotFoundAnywhere,
+		&stats.NeverScanned,
+	)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return &stats, nil
 }
 
 // DeleteResyncProposal removes one book's stored proposal, e.g. after the

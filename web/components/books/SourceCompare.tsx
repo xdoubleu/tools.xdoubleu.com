@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { SourceBook, ResyncProposal } from '@/lib/gen/books/v1/catalog_pb'
 import BookCover from '@/components/books/BookCover'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 export const SOURCE_LABELS: Record<string, string> = {
@@ -70,13 +71,61 @@ interface SourceCompareProps {
   proposal: ResyncProposal
   onApply: (source: string) => Promise<void>
   applyLabel: (choice: string) => string
+  // When set, renders editable title/author search fields so the admin can
+  // re-run the live source search with tweaked terms (for books whose stored
+  // title/author is slightly off and matches nothing).
+  onSearch?: (title: string, author: string) => void
+}
+
+// SearchOverrideForm lets the admin steer the source search with hand-tweaked
+// title/author terms.
+function SearchOverrideForm({
+  proposal,
+  onSearch
+}: {
+  proposal: ResyncProposal
+  onSearch: (title: string, author: string) => void
+}) {
+  const [title, setTitle] = useState(proposal.library?.title ?? '')
+  const [author, setAuthor] = useState(proposal.library?.authors[0] ?? '')
+
+  return (
+    <div className="mb-3 flex flex-wrap items-end gap-2">
+      <label className="min-w-0 flex-1 text-xs text-muted">
+        Search title
+        <Input
+          className="mt-1"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Title"
+        />
+      </label>
+      <label className="min-w-0 flex-1 text-xs text-muted">
+        Search author
+        <Input
+          className="mt-1"
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          placeholder="Author"
+        />
+      </label>
+      <Button variant="secondary" size="sm" onClick={() => onSearch(title, author)}>
+        Search with these terms
+      </Button>
+    </div>
+  )
 }
 
 // SourceCompare renders one book's library row alongside its external source
 // candidates, with a radio picker and apply action. Shared by the resync
 // wizard (stepping through flagged books) and the book detail page's
 // on-demand "sync source" control (any single book).
-export default function SourceCompare({ proposal, onApply, applyLabel }: SourceCompareProps) {
+export default function SourceCompare({
+  proposal,
+  onApply,
+  applyLabel,
+  onSearch
+}: SourceCompareProps) {
   const [choice, setChoice] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -104,6 +153,8 @@ export default function SourceCompare({ proposal, onApply, applyLabel }: SourceC
           </span>
         )}
       </p>
+
+      {onSearch && <SearchOverrideForm proposal={proposal} onSearch={onSearch} />}
 
       {proposal.sources.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface p-3 text-sm text-muted">

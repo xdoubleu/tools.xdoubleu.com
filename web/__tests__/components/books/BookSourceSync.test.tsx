@@ -14,8 +14,12 @@ const mockSourcesData: {
 }
 const mockMutate = jest.fn()
 
+const mockUseBookSources: jest.Mock<typeof mockSourcesData, unknown[]> = jest.fn(
+  () => mockSourcesData
+)
+
 jest.mock('@/hooks/useBooks', () => ({
-  useBookSources: () => mockSourcesData,
+  useBookSources: (...args: unknown[]) => mockUseBookSources(...args),
   useApplyBookSource: () => mockApplyBookSource
 }))
 
@@ -25,6 +29,7 @@ jest.mock('swr', () => ({
 
 beforeEach(() => {
   mockApplyBookSource.mockReset().mockResolvedValue({})
+  mockUseBookSources.mockClear()
   mockMutate.mockReset()
   mockSourcesData.data = undefined
   mockSourcesData.isLoading = false
@@ -86,7 +91,43 @@ describe('BookSourceSync', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Open Library' }))
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
 
-    await waitFor(() => expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary'))
+    await waitFor(() =>
+      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary', undefined)
+    )
     expect(mockMutate).toHaveBeenCalledWith('/books')
+  })
+
+  it('re-fetches with tweaked search terms and applies with the override', async () => {
+    mockSourcesData.data = {
+      proposal: {
+        bookId: 'b1',
+        library: {
+          source: '',
+          title: 'Misspelled Titel',
+          authors: ['Author'],
+          coverUrl: '',
+          description: '',
+          pageCount: 0,
+          isbn13: '',
+          differs: []
+        },
+        sources: []
+      }
+    }
+    render(<BookSourceSync bookId="b1" />)
+    fireEvent.click(screen.getByRole('button', { name: /sync metadata source/i }))
+
+    expect(mockUseBookSources).toHaveBeenLastCalledWith('b1', true, undefined)
+
+    fireEvent.change(screen.getByPlaceholderText('Title'), {
+      target: { value: 'Correct Title' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /search with these terms/i }))
+
+    const override = { title: 'Correct Title', author: 'Author' }
+    expect(mockUseBookSources).toHaveBeenLastCalledWith('b1', true, override)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+    await waitFor(() => expect(mockApplyBookSource).toHaveBeenCalledWith('b1', '', override))
   })
 })

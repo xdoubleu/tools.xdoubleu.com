@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
-import { useBookSources, useApplyBookSource } from '@/hooks/useBooks'
+import { useBookSources, useApplyBookSource, type SourceSearchOverride } from '@/hooks/useBooks'
 import SourceCompare from '@/components/books/SourceCompare'
 import { Button } from '@/components/ui/button'
 import { swrKeys } from '@/lib/swrKeys'
@@ -13,13 +13,15 @@ import { swrKeys } from '@/lib/swrKeys'
 // books a prior scan already flagged.
 export default function BookSourceSync({ bookId }: { bookId: string }) {
   const [open, setOpen] = useState(false)
-  const { data, isLoading, error: fetchError } = useBookSources(bookId, open)
+  const [override, setOverride] = useState<SourceSearchOverride | undefined>(undefined)
+  const { data, isLoading, error: fetchError } = useBookSources(bookId, open, override)
   const applySource = useApplyBookSource()
 
   async function handleApply(source: string) {
-    await applySource(bookId, source)
+    await applySource(bookId, source, override)
     await mutate(swrKeys.books)
-    await mutate(swrKeys.bookSources(bookId))
+    await mutate(swrKeys.bookSources(bookId, override?.title ?? '', override?.author ?? ''))
+    await mutate(swrKeys.bookSourceStats)
   }
 
   if (!open) {
@@ -35,7 +37,12 @@ export default function BookSourceSync({ bookId }: { bookId: string }) {
       {isLoading && <p className="text-sm text-muted">Fetching sources…</p>}
       {fetchError && <p className="text-sm text-danger">Failed to fetch sources.</p>}
       {data?.proposal && (
-        <SourceCompare proposal={data.proposal} onApply={handleApply} applyLabel={() => 'Apply'} />
+        <SourceCompare
+          proposal={data.proposal}
+          onApply={handleApply}
+          applyLabel={() => 'Apply'}
+          onSearch={(title, author) => setOverride({ title, author })}
+        />
       )}
     </div>
   )

@@ -25,8 +25,9 @@ func (repo *BooksRepository) UpsertBook(
 	// Try match by ISBN13 first, then fall back to title+first author.
 	query := `
 		INSERT INTO books.books
-		    (title, authors, isbn13, cover_url, description, page_count)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		    (title, authors, isbn13, cover_url, description, page_count,
+		     metadata_source)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
@@ -34,6 +35,9 @@ func (repo *BooksRepository) UpsertBook(
 		    cover_url     = COALESCE(EXCLUDED.cover_url, books.books.cover_url),
 		    description   = COALESCE(EXCLUDED.description, books.books.description),
 		    page_count    = COALESCE(EXCLUDED.page_count, books.books.page_count),
+		    metadata_source = COALESCE(
+		        EXCLUDED.metadata_source, books.books.metadata_source
+		    ),
 		    updated_at    = now()
 		RETURNING ` + bookColumns
 
@@ -44,6 +48,7 @@ func (repo *BooksRepository) UpsertBook(
 		book.CoverURL,
 		book.Description,
 		book.PageCount,
+		book.MetadataSource,
 	)
 
 	return scanBook(row)
@@ -708,6 +713,7 @@ func (repo *BooksRepository) RefreshBookExternalData(
 	isbn13 *string,
 	title *string,
 	authors []string,
+	metadataSource string,
 ) error {
 	// authors is passed as a Go nil slice when the caller has nothing to write;
 	// convert to a typed nil so COALESCE sees a true SQL NULL rather than an
@@ -735,13 +741,39 @@ func (repo *BooksRepository) RefreshBookExternalData(
 		                  ),
 		    title       = COALESCE($6, title),
 		    authors     = COALESCE($7, authors),
+		    metadata_source = NULLIF($8, ''),
 		    updated_at  = now()
 		WHERE id = $1
 	`
 	_, err := repo.db.Exec(
 		ctx, query,
 		bookID, coverURL, description, pageCount, isbn13,
-		title, authorsArg,
+		title, authorsArg, metadataSource,
+	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// UpdateResyncScanStatus records one scan pass's per-source found flags and
+// bumps last_resync_at. Nil flags mean "provider not configured" or "book not
+// searchable" and write NULL.
+func (repo *BooksRepository) UpdateResyncScanStatus(
+	ctx context.Context,
+	bookID uuid.UUID,
+	openLibraryFound *bool,
+	googleBooksFound *bool,
+	uniCatFound *bool,
+) error {
+	query := `
+		UPDATE books.books
+		SET openlibrary_found = $2,
+		    googlebooks_found = $3,
+		    unicat_found      = $4,
+		    last_resync_at    = now()
+		WHERE id = $1
+	`
+	_, err := repo.db.Exec(
+		ctx, query,
+		bookID, openLibraryFound, googleBooksFound, uniCatFound,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }

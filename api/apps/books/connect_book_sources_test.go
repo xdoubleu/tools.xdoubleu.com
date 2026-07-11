@@ -164,6 +164,50 @@ func TestApplyBookSource_Admin_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "The Odyssey", book.Title)
 	assert.Equal(t, []string{"Homer"}, book.Authors)
+	require.NotNil(t, book.MetadataSource,
+		"applying a source must record provenance")
+	assert.Equal(t, "openlibrary", *book.MetadataSource)
+}
+
+// TestApplyBookSource_Admin_Override verifies the manual search override:
+// a book whose stored title would never pass the match guards can still be
+// matched and applied when the admin supplies a corrected title/author.
+func TestApplyBookSource_Admin_Override(t *testing.T) {
+	ub := addTestBookNoISBN(t, "Completely Unmatchable Stored Title")
+
+	client := newAdminBooksTestClientWithMockSources(t)
+
+	// Without an override the guard rejects the mock's "The Odyssey" result.
+	noOverride := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+
+		BookId: ub.BookID.String(),
+		Source: "openlibrary",
+	})
+	noOverride.Header().Set("Cookie", accessToken.String())
+	_, err := client.ApplyBookSource(context.Background(), noOverride)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeNotFound, connErr.Code())
+
+	// With the override the top search result is taken unguarded.
+	title := "The Odyssey"
+	author := "Homer"
+	withOverride := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+		BookId:         ub.BookID.String(),
+		Source:         "openlibrary",
+		OverrideTitle:  &title,
+		OverrideAuthor: &author,
+	})
+	withOverride.Header().Set("Cookie", accessToken.String())
+	_, err = client.ApplyBookSource(context.Background(), withOverride)
+	require.NoError(t, err)
+
+	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	require.NoError(t, err)
+	assert.Equal(t, "The Odyssey", book.Title)
+	require.NotNil(t, book.MetadataSource)
+	assert.Equal(t, "openlibrary", *book.MetadataSource)
 }
 
 func TestApplyBookSource_Admin_UnknownSource_NotFound(t *testing.T) {

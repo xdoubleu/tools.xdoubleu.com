@@ -393,13 +393,22 @@ func externalToBook(ext openlibrary.ExternalBook) models.Book {
 		}
 	}
 
+	// Record provenance only for books whose metadata actually came from a
+	// source — hand-entered books (Provider "manual"/"") stay NULL.
+	var metadataSource *string
+	if ext.Provider == providerOpenLibrary {
+		source := ext.Provider
+		metadataSource = &source
+	}
+
 	return models.Book{ //nolint:exhaustruct //optional fields
-		Title:       ext.Title,
-		Authors:     ext.Authors,
-		ISBN13:      ext.ISBN13,
-		CoverURL:    coverURL,
-		Description: ext.Description,
-		PageCount:   ext.PageCount,
+		Title:          ext.Title,
+		Authors:        ext.Authors,
+		ISBN13:         ext.ISBN13,
+		CoverURL:       coverURL,
+		Description:    ext.Description,
+		PageCount:      ext.PageCount,
+		MetadataSource: metadataSource,
 	}
 }
 

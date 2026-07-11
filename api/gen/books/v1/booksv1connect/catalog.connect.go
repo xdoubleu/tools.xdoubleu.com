@@ -63,6 +63,9 @@ const (
 	// CatalogServiceApplyBookSourceProcedure is the fully-qualified name of the CatalogService's
 	// ApplyBookSource RPC.
 	CatalogServiceApplyBookSourceProcedure = "/books.v1.CatalogService/ApplyBookSource"
+	// CatalogServiceGetSourceStatsProcedure is the fully-qualified name of the CatalogService's
+	// GetSourceStats RPC.
+	CatalogServiceGetSourceStatsProcedure = "/books.v1.CatalogService/GetSourceStats"
 )
 
 // CatalogServiceClient is a client for the books.v1.CatalogService service.
@@ -77,6 +80,7 @@ type CatalogServiceClient interface {
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
 	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
 	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
+	GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error)
 }
 
 // NewCatalogServiceClient constructs a client for the books.v1.CatalogService service. By default,
@@ -150,6 +154,12 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(catalogServiceMethods.ByName("ApplyBookSource")),
 			connect.WithClientOptions(opts...),
 		),
+		getSourceStats: connect.NewClient[v1.GetSourceStatsRequest, v1.GetSourceStatsResponse](
+			httpClient,
+			baseURL+CatalogServiceGetSourceStatsProcedure,
+			connect.WithSchema(catalogServiceMethods.ByName("GetSourceStats")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -165,6 +175,7 @@ type catalogServiceClient struct {
 	setBookISBN         *connect.Client[v1.SetBookISBNRequest, v1.SetBookISBNResponse]
 	getBookSources      *connect.Client[v1.GetBookSourcesRequest, v1.GetBookSourcesResponse]
 	applyBookSource     *connect.Client[v1.ApplyBookSourceRequest, v1.ApplyBookSourceResponse]
+	getSourceStats      *connect.Client[v1.GetSourceStatsRequest, v1.GetSourceStatsResponse]
 }
 
 // ImportBooks calls books.v1.CatalogService.ImportBooks.
@@ -217,6 +228,11 @@ func (c *catalogServiceClient) ApplyBookSource(ctx context.Context, req *connect
 	return c.applyBookSource.CallUnary(ctx, req)
 }
 
+// GetSourceStats calls books.v1.CatalogService.GetSourceStats.
+func (c *catalogServiceClient) GetSourceStats(ctx context.Context, req *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error) {
+	return c.getSourceStats.CallUnary(ctx, req)
+}
+
 // CatalogServiceHandler is an implementation of the books.v1.CatalogService service.
 type CatalogServiceHandler interface {
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
@@ -229,6 +245,7 @@ type CatalogServiceHandler interface {
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
 	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
 	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
+	GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error)
 }
 
 // NewCatalogServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -298,6 +315,12 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		connect.WithSchema(catalogServiceMethods.ByName("ApplyBookSource")),
 		connect.WithHandlerOptions(opts...),
 	)
+	catalogServiceGetSourceStatsHandler := connect.NewUnaryHandler(
+		CatalogServiceGetSourceStatsProcedure,
+		svc.GetSourceStats,
+		connect.WithSchema(catalogServiceMethods.ByName("GetSourceStats")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/books.v1.CatalogService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case CatalogServiceImportBooksProcedure:
@@ -320,6 +343,8 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 			catalogServiceGetBookSourcesHandler.ServeHTTP(w, r)
 		case CatalogServiceApplyBookSourceProcedure:
 			catalogServiceApplyBookSourceHandler.ServeHTTP(w, r)
+		case CatalogServiceGetSourceStatsProcedure:
+			catalogServiceGetSourceStatsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -367,4 +392,8 @@ func (UnimplementedCatalogServiceHandler) GetBookSources(context.Context, *conne
 
 func (UnimplementedCatalogServiceHandler) ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ApplyBookSource is not implemented"))
+}
+
+func (UnimplementedCatalogServiceHandler) GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.GetSourceStats is not implemented"))
 }
