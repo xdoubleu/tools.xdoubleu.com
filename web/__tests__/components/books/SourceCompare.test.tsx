@@ -68,4 +68,33 @@ describe('SourceCompare', () => {
     )
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
   })
+
+  it('renders no search fields without onSearch', () => {
+    render(
+      <SourceCompare proposal={makeProposal()} onApply={jest.fn()} applyLabel={() => 'Apply'} />
+    )
+    expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument()
+  })
+
+  it('prefills the search fields from the library row and submits edited terms', () => {
+    const onSearch = jest.fn()
+    render(
+      <SourceCompare
+        proposal={makeProposal()}
+        onApply={jest.fn()}
+        applyLabel={() => 'Apply'}
+        onSearch={onSearch}
+      />
+    )
+
+    const title = screen.getByPlaceholderText('Title')
+    const author = screen.getByPlaceholderText('Author')
+    expect(title).toHaveValue('Dune')
+    expect(author).toHaveValue('Frank Herbert')
+
+    fireEvent.change(title, { target: { value: 'Dune Messiah' } })
+    fireEvent.click(screen.getByRole('button', { name: /search with these terms/i }))
+
+    expect(onSearch).toHaveBeenCalledWith('Dune Messiah', 'Frank Herbert')
+  })
 })

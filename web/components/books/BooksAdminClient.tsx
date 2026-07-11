@@ -5,6 +5,7 @@ import { mutate } from 'swr'
 import { useResyncRefresh } from '@/lib/books/resyncRefresh'
 import ManageDuplicatesDialog from '@/components/books/ManageDuplicatesDialog'
 import ResyncWizard from '@/components/books/ResyncWizard'
+import SourceStats from '@/components/books/SourceStats'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { swrKeys } from '@/lib/swrKeys'
@@ -12,9 +13,10 @@ import { PageContainer } from '@/components/ui/page-container'
 import { formatDateTime } from '@/lib/dates'
 
 export default function BooksAdminClient() {
-  const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(
-    () => void mutate(swrKeys.resyncProposals)
-  )
+  const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(() => {
+    void mutate(swrKeys.resyncProposals)
+    void mutate(swrKeys.bookSourceStats)
+  })
 
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
@@ -106,6 +108,18 @@ export default function BooksAdminClient() {
           keep your library value — and apply.
         </p>
         <ResyncWizard />
+      </section>
+
+      {/* Source stats */}
+      <section className="mt-10 border-t border-border pt-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+          Source stats
+        </h2>
+        <p className="mb-4 text-xs text-muted">
+          Found counts how many books the last scan located in each source; Applied counts how many
+          books currently use that source&apos;s metadata (recorded whenever you apply one).
+        </p>
+        <SourceStats />
       </section>
 
       <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />

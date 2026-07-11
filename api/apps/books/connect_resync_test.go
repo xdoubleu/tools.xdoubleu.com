@@ -57,6 +57,15 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, exists, "a scan must never touch the cover cache — it only reads")
 
+	// The scan must persist per-source found flags and bump last_resync_at.
+	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
+	require.NoError(t, err)
+	require.NotNil(t, scanned.OpenLibraryFound)
+	assert.True(t, *scanned.OpenLibraryFound, "the mock provider always finds")
+	assert.Nil(t, scanned.GoogleBooksFound, "unconfigured provider stays NULL")
+	assert.Nil(t, scanned.UniCatFound, "unconfigured provider stays NULL")
+	assert.NotNil(t, scanned.LastResyncAt)
+
 	proposals, err := testApp.Services.Books.ListResyncProposals(ctx)
 	require.NoError(t, err)
 	var found bool

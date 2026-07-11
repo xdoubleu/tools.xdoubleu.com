@@ -39,7 +39,16 @@ type booksResyncSource interface {
 		isbn13 *string,
 		title *string,
 		authors []string,
+		metadataSource string,
 	) error
+	UpdateResyncScanStatus(
+		ctx context.Context,
+		bookID uuid.UUID,
+		openLibraryFound *bool,
+		googleBooksFound *bool,
+		uniCatFound *bool,
+	) error
+	GetSourceStats(ctx context.Context) (*repositories.SourceStats, error)
 	ReplaceResyncProposals(ctx context.Context, entries map[uuid.UUID][]byte) error
 	ListResyncProposals(ctx context.Context) ([]repositories.ResyncProposalRow, error)
 	GetResyncProposal(
@@ -139,6 +148,13 @@ func (s *BookService) BuildResyncProposals(
 				}
 				mu.Unlock()
 			}
+			if statusErr := s.recordScanStatus(egCtx, b, proposals); statusErr != nil {
+				mu.Lock()
+				errs = append(errs, fmt.Errorf(
+					"book %s: record scan status: %w", b.ID, statusErr,
+				))
+				mu.Unlock()
+			}
 			if onProgress != nil {
 				onProgress(int(processed.Add(1)), total)
 			}
@@ -152,6 +168,44 @@ func (s *BookService) BuildResyncProposals(
 	}
 
 	return len(entries), errors.Join(errs...)
+}
+
+// recordScanStatus persists one scan pass's per-source found flags on the
+// book. Nil flags mean the provider isn't configured or the book wasn't
+// searchable (no ISBN and no title) — nothing was actually attempted.
+func (s *BookService) recordScanStatus(
+	ctx context.Context,
+	book models.Book,
+	proposals []SourceProposal,
+) error {
+	attempted := (book.ISBN13 != nil && *book.ISBN13 != "") || book.Title != ""
+
+	found := func(source string) *bool {
+		if !attempted {
+			return nil
+		}
+		f := false
+		for _, p := range proposals {
+			if p.Source == source {
+				f = true
+				break
+			}
+		}
+		return &f
+	}
+
+	olFound := found("openlibrary")
+	var gbFound, ucFound *bool
+	if s.googleBooks != nil {
+		gbFound = found("googlebooks")
+	}
+	if s.uniCat != nil {
+		ucFound = found("unicat")
+	}
+
+	return s.resyncRepo().UpdateResyncScanStatus(
+		ctx, book.ID, olFound, gbFound, ucFound,
+	)
 }
 
 // encodeIfFlagged returns the JSON-marshaled proposals and true when the book
@@ -289,21 +343,37 @@ func (s *BookService) fetchBySearch(
 	logger *slog.Logger,
 	book models.Book,
 ) []SourceProposal {
-	query := buildSearchQuery(book.Title, book.Authors)
+	return s.searchProviders(
+		ctx, logger, book.Title, buildSearchQuery(book.Title, book.Authors),
+		func(candidates []titleOnlyCandidate) (titleOnlyCandidate, bool) {
+			return matchSearchResult(book, candidates)
+		},
+	)
+}
+
+// searchProviders queries every configured provider's Search with one query
+// and keeps at most one candidate per provider, selected by pick.
+func (s *BookService) searchProviders(
+	ctx context.Context,
+	logger *slog.Logger,
+	logTitle string,
+	query string,
+	pick func([]titleOnlyCandidate) (titleOnlyCandidate, bool),
+) []SourceProposal {
 	var out []SourceProposal
 
 	if results, err := s.external.Search(ctx, query); err != nil {
 		logger.WarnContext(ctx, "open library search failed",
-			slog.String("title", book.Title), slog.Any("error", err))
-	} else if m, ok := matchSearchResult(book, olCandidates(results)); ok {
+			slog.String("title", logTitle), slog.Any("error", err))
+	} else if m, ok := pick(olCandidates(results)); ok {
 		out = append(out, newSourceProposalFromCandidate("openlibrary", m))
 	}
 
 	if s.googleBooks != nil {
 		if results, err := s.googleBooks.Search(ctx, query); err != nil {
 			logger.WarnContext(ctx, "google books search failed",
-				slog.String("title", book.Title), slog.Any("error", err))
-		} else if m, ok := matchSearchResult(book, gbCandidates(results)); ok {
+				slog.String("title", logTitle), slog.Any("error", err))
+		} else if m, ok := pick(gbCandidates(results)); ok {
 			out = append(out, newSourceProposalFromCandidate("googlebooks", m))
 		}
 	}
@@ -311,13 +381,54 @@ func (s *BookService) fetchBySearch(
 	if s.uniCat != nil {
 		if results, err := s.uniCat.Search(ctx, query); err != nil {
 			logger.WarnContext(ctx, "unicat search failed",
-				slog.String("title", book.Title), slog.Any("error", err))
-		} else if m, ok := matchSearchResult(book, ucCandidates(results)); ok {
+				slog.String("title", logTitle), slog.Any("error", err))
+		} else if m, ok := pick(ucCandidates(results)); ok {
 			out = append(out, newSourceProposalFromCandidate("unicat", m))
 		}
 	}
 
 	return out
+}
+
+// fetchProposals routes between the standard guarded fetch and the override
+// search used when an admin manually steers the query on an unmatched book.
+// An override always uses the search path (even for ISBN'd books — the point
+// is to escape the stored fields) and skips the match guards.
+// ponytail: override takes each provider's top result unguarded — the admin
+// reviews the full candidate before applying; tighten to guards-against-the-
+// override-values if it misfires in practice.
+func (s *BookService) fetchProposals(
+	ctx context.Context,
+	logger *slog.Logger,
+	book models.Book,
+	overrideTitle string,
+	overrideAuthor string,
+) []SourceProposal {
+	if overrideTitle == "" && overrideAuthor == "" {
+		return s.fetchSourceProposals(ctx, logger, book)
+	}
+
+	title := book.Title
+	if overrideTitle != "" {
+		title = overrideTitle
+	}
+	authors := book.Authors
+	if overrideAuthor != "" {
+		authors = []string{overrideAuthor}
+	}
+
+	return s.searchProviders(
+		ctx, logger, title, buildSearchQuery(title, authors), firstCandidate,
+	)
+}
+
+func firstCandidate(
+	candidates []titleOnlyCandidate,
+) (titleOnlyCandidate, bool) {
+	if len(candidates) == 0 {
+		return titleOnlyCandidate{}, false //nolint:exhaustruct // zero value intended
+	}
+	return candidates[0], true
 }
 
 // matchSearchResult picks the best-matching candidate from one provider's
@@ -599,6 +710,7 @@ func (s *BookService) applySelectedSource(
 	return s.writeResyncResult(
 		ctx, logger, book,
 		coverURL, description, pageCount, isbn13, title, chosen.Authors,
+		chosen.Source,
 	)
 }
 
@@ -610,6 +722,8 @@ func (s *BookService) GetBookSources(
 	ctx context.Context,
 	logger *slog.Logger,
 	bookID uuid.UUID,
+	overrideTitle string,
+	overrideAuthor string,
 ) (ResyncProposal, error) {
 	book, err := s.resyncRepo().GetBookByID(ctx, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
@@ -619,7 +733,7 @@ func (s *BookService) GetBookSources(
 		return ResyncProposal{}, err
 	}
 
-	sources := s.fetchSourceProposals(ctx, logger, *book)
+	sources := s.fetchProposals(ctx, logger, *book, overrideTitle, overrideAuthor)
 	for i := range sources {
 		sources[i].Differs = computeDifferences(*book, sources[i])
 	}
@@ -640,6 +754,8 @@ func (s *BookService) SyncBookSource(
 	logger *slog.Logger,
 	bookID uuid.UUID,
 	source string,
+	overrideTitle string,
+	overrideAuthor string,
 ) error {
 	book, err := s.resyncRepo().GetBookByID(ctx, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
@@ -651,7 +767,7 @@ func (s *BookService) SyncBookSource(
 
 	// "" keeps the library row unchanged — same as ApplyResyncChoice's dismiss.
 	if source != "" {
-		sources := s.fetchSourceProposals(ctx, logger, *book)
+		sources := s.fetchProposals(ctx, logger, *book, overrideTitle, overrideAuthor)
 		if err = s.applySelectedSource(ctx, logger, *book, sources, source); err != nil {
 			return err
 		}
@@ -684,6 +800,7 @@ func (s *BookService) writeResyncResult(
 	isbn13 *string,
 	title *string,
 	authors []string,
+	metadataSource string,
 ) error {
 	if dbErr := s.resyncRepo().RefreshBookExternalData(
 		ctx,
@@ -694,6 +811,7 @@ func (s *BookService) writeResyncResult(
 		isbn13,
 		title,
 		authors,
+		metadataSource,
 	); dbErr != nil {
 		return dbErr
 	}
@@ -703,6 +821,14 @@ func (s *BookService) writeResyncResult(
 	}
 
 	return nil
+}
+
+// GetSourceStats reports per-source scan coverage and applied provenance over
+// the whole catalog, for the admin source-stats report.
+func (s *BookService) GetSourceStats(
+	ctx context.Context,
+) (*repositories.SourceStats, error) {
+	return s.resyncRepo().GetSourceStats(ctx)
 }
 
 // buildSearchQuery builds a search query string for title+first-author searches.

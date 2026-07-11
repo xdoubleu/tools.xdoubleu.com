@@ -27,13 +27,23 @@ import (
 // refreshCall records a single call to fakeBooksResync.RefreshBookExternalData
 // so tests can assert which fields were actually written to the DB.
 type refreshCall struct {
-	bookID      uuid.UUID
-	coverURL    *string
-	description *string
-	pageCount   *int
-	isbn13      *string
-	title       *string
-	authors     []string
+	bookID         uuid.UUID
+	coverURL       *string
+	description    *string
+	pageCount      *int
+	isbn13         *string
+	title          *string
+	authors        []string
+	metadataSource string
+}
+
+// scanStatusCall records a single call to
+// fakeBooksResync.UpdateResyncScanStatus.
+type scanStatusCall struct {
+	bookID  uuid.UUID
+	olFound *bool
+	gbFound *bool
+	ucFound *bool
 }
 
 // fakeBooksResync is a test stub for booksResyncSource.
@@ -49,6 +59,12 @@ type fakeBooksResync struct {
 	deletedIDs   []uuid.UUID
 	refreshCalls []refreshCall
 	refreshErr   error
+
+	scanStatusCalls []scanStatusCall
+	scanStatusErr   error
+
+	sourceStats    *repositories.SourceStats
+	sourceStatsErr error
 }
 
 func (f *fakeBooksResync) ListCatalogBooks(_ context.Context) ([]models.Book, error) {
@@ -79,14 +95,37 @@ func (f *fakeBooksResync) RefreshBookExternalData(
 	isbn13 *string,
 	title *string,
 	authors []string,
+	metadataSource string,
 ) error {
 	f.mu.Lock()
 	f.refreshCalls = append(f.refreshCalls, refreshCall{
 		bookID: bookID, coverURL: coverURL, description: description,
 		pageCount: pageCount, isbn13: isbn13, title: title, authors: authors,
+		metadataSource: metadataSource,
 	})
 	f.mu.Unlock()
 	return f.refreshErr
+}
+
+func (f *fakeBooksResync) UpdateResyncScanStatus(
+	_ context.Context,
+	bookID uuid.UUID,
+	olFound *bool,
+	gbFound *bool,
+	ucFound *bool,
+) error {
+	f.mu.Lock()
+	f.scanStatusCalls = append(f.scanStatusCalls, scanStatusCall{
+		bookID: bookID, olFound: olFound, gbFound: gbFound, ucFound: ucFound,
+	})
+	f.mu.Unlock()
+	return f.scanStatusErr
+}
+
+func (f *fakeBooksResync) GetSourceStats(
+	_ context.Context,
+) (*repositories.SourceStats, error) {
+	return f.sourceStats, f.sourceStatsErr
 }
 
 func (f *fakeBooksResync) ReplaceResyncProposals(
@@ -813,6 +852,8 @@ func TestApplyResyncChoice_ChosenSource_WritesFields(t *testing.T) {
 	assert.Equal(t, "New desc", *rc.description)
 	require.NotNil(t, rc.pageCount)
 	assert.Equal(t, 42, *rc.pageCount)
+	assert.Equal(t, "openlibrary", rc.metadataSource,
+		"applying a source must record it as the book's metadata source")
 	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs)
 }
 
@@ -910,6 +951,8 @@ func TestGetBookSources_ReturnsLiveProposal(t *testing.T) {
 		context.Background(),
 		logging.NewNopLogger(),
 		bookID,
+		"",
+		"",
 	)
 	require.NoError(t, err)
 	assert.Equal(t, bookID.String(), proposal.BookID)
@@ -926,6 +969,8 @@ func TestGetBookSources_UnknownBook_ErrProposalNotFound(t *testing.T) {
 		context.Background(),
 		logging.NewNopLogger(),
 		uuid.New(),
+		"",
+		"",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
@@ -957,13 +1002,14 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", "", "",
 	)
 	require.NoError(t, err)
 
 	require.Len(t, repo.refreshCalls, 1)
 	require.NotNil(t, repo.refreshCalls[0].title)
 	assert.Equal(t, "New Title", *repo.refreshCalls[0].title)
+	assert.Equal(t, "openlibrary", repo.refreshCalls[0].metadataSource)
 	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs,
 		"applying live should also clear any pending wizard proposal")
 }
@@ -982,7 +1028,7 @@ func TestSyncBookSource_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", "", "",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }

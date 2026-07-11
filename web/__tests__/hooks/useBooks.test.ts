@@ -67,6 +67,7 @@ import {
   useApplyResyncChoice,
   useBookSources,
   useApplyBookSource,
+  useSourceStats,
   useExternalBook
 } from '@/hooks/useBooks'
 import { createServiceClient } from '@/lib/client'
@@ -213,7 +214,18 @@ describe('useBookSources', () => {
 
   it('uses the bookSources key when enabled', () => {
     renderHook(() => useBookSources('book-1', true))
-    expect(mockUseSWR).toHaveBeenCalledWith(['/books/sources', 'book-1'], expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/books/sources', 'book-1', '', ''],
+      expect.any(Function)
+    )
+  })
+
+  it('includes the override terms in the key', () => {
+    renderHook(() => useBookSources('book-1', true, { title: 'T', author: 'A' }))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/books/sources', 'book-1', 'T', 'A'],
+      expect.any(Function)
+    )
   })
 
   it('fetcher calls client.getBookSources', async () => {
@@ -223,7 +235,25 @@ describe('useBookSources', () => {
     renderHook(() => useBookSources('book-1', true))
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
-    expect(mockGet).toHaveBeenCalledWith({ bookId: 'book-1' })
+    expect(mockGet).toHaveBeenCalledWith({
+      bookId: 'book-1',
+      overrideTitle: undefined,
+      overrideAuthor: undefined
+    })
+  })
+
+  it('fetcher forwards the override terms', async () => {
+    const mockGet = jest.fn().mockResolvedValue({ proposal: undefined })
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ getBookSources: mockGet })
+    renderHook(() => useBookSources('book-1', true, { title: 'T', author: 'A' }))
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockGet).toHaveBeenCalledWith({
+      bookId: 'book-1',
+      overrideTitle: 'T',
+      overrideAuthor: 'A'
+    })
   })
 })
 
@@ -267,7 +297,39 @@ describe('useApplyBookSource', () => {
     mockCreateServiceClient.mockReturnValueOnce({ applyBookSource: mockApply })
     const { result } = renderHook(() => useApplyBookSource())
     await result.current('book-1', 'openlibrary')
-    expect(mockApply).toHaveBeenCalledWith({ bookId: 'book-1', source: 'openlibrary' })
+    expect(mockApply).toHaveBeenCalledWith({
+      bookId: 'book-1',
+      source: 'openlibrary',
+      overrideTitle: undefined,
+      overrideAuthor: undefined
+    })
+  })
+
+  it('forwards the override terms', async () => {
+    const mockApply = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ applyBookSource: mockApply })
+    const { result } = renderHook(() => useApplyBookSource())
+    await result.current('book-1', 'openlibrary', { title: 'T', author: 'A' })
+    expect(mockApply).toHaveBeenCalledWith({
+      bookId: 'book-1',
+      source: 'openlibrary',
+      overrideTitle: 'T',
+      overrideAuthor: 'A'
+    })
+  })
+})
+
+describe('useSourceStats', () => {
+  it('uses the bookSourceStats key and fetches stats', async () => {
+    const mockGet = jest.fn().mockResolvedValue({ sources: [] })
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ getSourceStats: mockGet })
+    renderHook(() => useSourceStats())
+    expect(mockUseSWR).toHaveBeenCalledWith('/books/source-stats', expect.any(Function))
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockGet).toHaveBeenCalledWith({})
   })
 })
 

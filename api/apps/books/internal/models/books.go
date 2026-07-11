@@ -46,12 +46,17 @@ type Book struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
-	// Resync status — populated during ResyncAllFromOpenLibrary / ResyncBooks.
+	// Resync status — populated during BuildResyncProposals scans.
 	// Nil means the book has never been processed by a resync run.
 	OpenLibraryFound *bool
 	GoogleBooksFound *bool
 	UniCatFound      *bool
 	LastResyncAt     *time.Time
+
+	// MetadataSource records which source's metadata was last applied
+	// ("openlibrary" | "googlebooks" | "unicat"). Nil for books whose
+	// metadata never came from a source apply (e.g. plain CSV imports).
+	MetadataSource *string
 }
 
 // HasTag reports whether the user_book has the given tag.

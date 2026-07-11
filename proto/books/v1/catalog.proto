@@ -103,6 +103,11 @@ message SetBookISBNResponse {}
 // a prior wizard scan to have flagged the book first.
 message GetBookSourcesRequest {
   string book_id = 1;
+  // When set, replaces the stored title/author in the live source search,
+  // skips the strict match guards, and forces the search path even when the
+  // book has an ISBN — for manually steering the search on unmatched books.
+  optional string override_title = 2;
+  optional string override_author = 3;
 }
 message GetBookSourcesResponse {
   ResyncProposal proposal = 1;
@@ -115,8 +120,32 @@ message ApplyBookSourceRequest {
   // source selects which source wins: one of
   // "openlibrary" | "googlebooks" | "unicat".
   string source = 2;
+  // Must repeat the override used in GetBookSources so the apply-time
+  // re-fetch finds the same candidates.
+  optional string override_title = 3;
+  optional string override_author = 4;
 }
 message ApplyBookSourceResponse {}
+
+// GetSourceStats reports per-source coverage and applied provenance over the
+// whole catalog, for scoring metadata sources.
+message GetSourceStatsRequest {}
+message SourceStat {
+  // "openlibrary" | "googlebooks" | "unicat"
+  string source = 1;
+  // Books the last scan found in this source (coverage).
+  int32 found_count = 2;
+  // Books whose metadata was last applied from this source (usage).
+  int32 applied_count = 3;
+}
+message GetSourceStatsResponse {
+  repeated SourceStat sources = 1;
+  int32 total_books = 2;
+  // Scanned, but no source found the book.
+  int32 not_found_anywhere = 3;
+  // Never processed by a scan (last_resync_at IS NULL).
+  int32 never_scanned = 4;
+}
 
 service CatalogService {
   rpc ImportBooks(ImportBooksRequest) returns (ImportBooksResponse);
@@ -129,4 +158,5 @@ service CatalogService {
   rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);
   rpc GetBookSources(GetBookSourcesRequest) returns (GetBookSourcesResponse);
   rpc ApplyBookSource(ApplyBookSourceRequest) returns (ApplyBookSourceResponse);
+  rpc GetSourceStats(GetSourceStatsRequest) returns (GetSourceStatsResponse);
 }

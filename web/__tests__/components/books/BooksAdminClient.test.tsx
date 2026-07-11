@@ -17,6 +17,11 @@ jest.mock('@/components/books/ResyncWizard', () => ({
   default: () => <div data-testid="resync-wizard" />
 }))
 
+jest.mock('@/components/books/SourceStats', () => ({
+  __esModule: true,
+  default: () => <div data-testid="source-stats" />
+}))
+
 jest.mock('@/components/books/ManageDuplicatesDialog', () => ({
   __esModule: true,
   default: ({ open }: { open: boolean }) => (open ? <div data-testid="duplicates-dialog" /> : null)

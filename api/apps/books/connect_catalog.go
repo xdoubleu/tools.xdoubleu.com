@@ -260,7 +260,13 @@ func (h *booksConnectHandler) GetBookSources(
 		return nil, err
 	}
 
-	proposal, err := h.app.Services.Books.GetBookSources(ctx, h.app.Logger, bookID)
+	proposal, err := h.app.Services.Books.GetBookSources(
+		ctx,
+		h.app.Logger,
+		bookID,
+		req.Msg.GetOverrideTitle(),
+		req.Msg.GetOverrideAuthor(),
+	)
 	if errors.Is(err, services.ErrProposalNotFound) {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
@@ -282,7 +288,14 @@ func (h *booksConnectHandler) ApplyBookSource(
 		return nil, err
 	}
 
-	err = h.app.Services.Books.SyncBookSource(ctx, h.app.Logger, bookID, req.Msg.Source)
+	err = h.app.Services.Books.SyncBookSource(
+		ctx,
+		h.app.Logger,
+		bookID,
+		req.Msg.Source,
+		req.Msg.GetOverrideTitle(),
+		req.Msg.GetOverrideAuthor(),
+	)
 	if errors.Is(err, services.ErrProposalNotFound) {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
@@ -339,4 +352,41 @@ func (h *booksConnectHandler) SetBookISBN(
 	}
 
 	return connect.NewResponse(&booksv1.SetBookISBNResponse{}), nil
+}
+
+func (h *booksConnectHandler) GetSourceStats(
+	ctx context.Context,
+	_ *connect.Request[booksv1.GetSourceStatsRequest],
+) (*connect.Response[booksv1.GetSourceStatsResponse], error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	stats, err := h.app.Services.Books.GetSourceStats(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&booksv1.GetSourceStatsResponse{
+		Sources: []*booksv1.SourceStat{
+			{
+				Source:       "openlibrary",
+				FoundCount:   int32FromInt(stats.OpenLibraryFound),
+				AppliedCount: int32FromInt(stats.OpenLibraryApplied),
+			},
+			{
+				Source:       "googlebooks",
+				FoundCount:   int32FromInt(stats.GoogleBooksFound),
+				AppliedCount: int32FromInt(stats.GoogleBooksApplied),
+			},
+			{
+				Source:       "unicat",
+				FoundCount:   int32FromInt(stats.UniCatFound),
+				AppliedCount: int32FromInt(stats.UniCatApplied),
+			},
+		},
+		TotalBooks:       int32FromInt(stats.TotalBooks),
+		NotFoundAnywhere: int32FromInt(stats.NotFoundAnywhere),
+		NeverScanned:     int32FromInt(stats.NeverScanned),
+	}), nil
 }

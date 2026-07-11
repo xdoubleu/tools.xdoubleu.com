@@ -27,7 +27,8 @@ import type { ListKoboDevicesResponse } from '@/lib/gen/books/v1/kobo_pb'
 import type {
   FindDuplicatesResponse,
   ListResyncProposalsResponse,
-  GetBookSourcesResponse
+  GetBookSourcesResponse,
+  GetSourceStatsResponse
 } from '@/lib/gen/books/v1/catalog_pb'
 
 export type CreateBookInput = MessageInitShape<typeof CreateBookRequestSchema>
@@ -273,21 +274,47 @@ export function useApplyResyncChoice() {
   )
 }
 
+// SourceSearchOverride carries admin-tweaked title/author search terms for
+// the live source fetch, used when the stored fields find no match.
+export interface SourceSearchOverride {
+  title: string
+  author: string
+}
+
 // useBookSources live-fetches one book's candidate sources for the book-page
 // admin sync control. enabled gates the fetch behind a user action (the
 // live fetch hits every configured provider, so it shouldn't run on mount).
-export function useBookSources(bookId: string, enabled: boolean) {
+export function useBookSources(bookId: string, enabled: boolean, override?: SourceSearchOverride) {
   const client = createServiceClient(CatalogService)
-  return useSWR<GetBookSourcesResponse, Error>(enabled ? swrKeys.bookSources(bookId) : null, () =>
-    client.getBookSources({ bookId })
+  return useSWR<GetBookSourcesResponse, Error>(
+    enabled ? swrKeys.bookSources(bookId, override?.title ?? '', override?.author ?? '') : null,
+    () =>
+      client.getBookSources({
+        bookId,
+        overrideTitle: override?.title || undefined,
+        overrideAuthor: override?.author || undefined
+      })
   )
 }
 
 export function useApplyBookSource() {
   const client = useMemo(() => createServiceClient(CatalogService), [])
   return useCallback(
-    (bookId: string, source: string) => client.applyBookSource({ bookId, source }),
+    (bookId: string, source: string, override?: SourceSearchOverride) =>
+      client.applyBookSource({
+        bookId,
+        source,
+        overrideTitle: override?.title || undefined,
+        overrideAuthor: override?.author || undefined
+      }),
     [client]
+  )
+}
+
+export function useSourceStats() {
+  const client = createServiceClient(CatalogService)
+  return useSWR<GetSourceStatsResponse, Error>(swrKeys.bookSourceStats, () =>
+    client.getSourceStats({})
   )
 }
 
