@@ -5,12 +5,21 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestMain sets headless so serve() never spins up the real AppKit menu bar
+// or touches the real ~/Library/LaunchAgents — there's no window server
+// session under go test.
+func TestMain(m *testing.M) {
+	headless = true
+	os.Exit(m.Run())
+}
 
 func TestRunInvalidFlag(t *testing.T) {
 	var out strings.Builder

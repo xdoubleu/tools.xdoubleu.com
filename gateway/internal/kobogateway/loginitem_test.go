@@ -1,8 +1,11 @@
 package kobogateway_test
 
 import (
+	"encoding/xml"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,6 +36,26 @@ func TestEnableLoginItemWritesPlist(t *testing.T) {
 	assert.Contains(t, string(raw), "/usr/local/bin/kobo-gateway")
 	assert.Contains(t, string(raw), "com.xdoubleu.tools.kobo-gateway")
 	assert.Contains(t, string(raw), "RunAtLoad")
+}
+
+func TestEnableLoginItemEscapesExecPath(t *testing.T) {
+	home := t.TempDir()
+	execPath := "/Applications/Tom & Jerry/kobo-gateway"
+
+	require.NoError(t, kobogateway.EnableLoginItem(home, execPath))
+
+	raw, err := os.ReadFile(kobogateway.LoginItemPath(home))
+	require.NoError(t, err)
+
+	assert.Contains(t, string(raw), "&amp;")
+
+	// The plist must still be well-formed XML.
+	dec := xml.NewDecoder(strings.NewReader(string(raw)))
+	var tokenErr error
+	for tokenErr == nil {
+		_, tokenErr = dec.Token()
+	}
+	require.ErrorIs(t, tokenErr, io.EOF)
 }
 
 func TestDisableLoginItemRemovesPlist(t *testing.T) {

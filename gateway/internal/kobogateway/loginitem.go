@@ -1,11 +1,12 @@
 package kobogateway
 
 import (
+	"bytes"
+	"encoding/xml"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"testing"
 )
 
 const (
@@ -40,9 +41,14 @@ func LoginItemPath(homeDir string) string {
 }
 
 // loginItemPlist renders the LaunchAgent plist that launches execPath at
-// login.
+// login. execPath is XML-escaped — an unescaped "&"/"<"/">" in the path
+// (e.g. an app installed under a folder with an ampersand in its name) would
+// otherwise produce malformed XML that launchd silently rejects.
 func loginItemPlist(execPath string) string {
-	return fmt.Sprintf(loginItemPlistTemplate, loginItemLabel, execPath)
+	var escaped bytes.Buffer
+	_ = xml.EscapeText(&escaped, []byte(execPath))
+
+	return fmt.Sprintf(loginItemPlistTemplate, loginItemLabel, escaped.String())
 }
 
 // EnableLoginItem writes the LaunchAgent plist so execPath launches at every
@@ -108,26 +114,25 @@ func EnsureInitialLoginItem(markerDir, homeDir, execPath string) error {
 	return os.WriteFile(markerPath, []byte("initialized\n"), loginItemFilePerm)
 }
 
-// bootstrapLoginItem/bootoutLoginItem best-effort nudge launchctl so the
-// change takes effect immediately instead of at next login. Skipped under
-// go test — there's no real gui/<uid> session and shelling out would just
-// fail noisily on every CI run.
-func bootstrapLoginItem(path string) {
-	if testing.Testing() {
-		return
-	}
-
+// launchctl runs the given launchctl args, best-effort. A var (not a plain
+// func call) so export_test.go can swap in a no-op under go test — there's
+// no real gui/<uid> session there and shelling out would just fail noisily
+// on every CI run.
+//
+//nolint:gochecknoglobals // test seam, see export_test.go
+var launchctl = func(args ...string) {
 	//nolint:errcheck,gosec // best-effort; the plist file is the source of truth
-	exec.Command("launchctl", "bootstrap", loginItemDomain(), path).Run()
+	exec.Command("launchctl", args...).Run()
+}
+
+// bootstrapLoginItem/bootoutLoginItem best-effort nudge launchctl so the
+// change takes effect immediately instead of at next login.
+func bootstrapLoginItem(path string) {
+	launchctl("bootstrap", loginItemDomain(), path)
 }
 
 func bootoutLoginItem() {
-	if testing.Testing() {
-		return
-	}
-
-	//nolint:errcheck,gosec // best-effort; removing the plist file is the source of truth
-	exec.Command("launchctl", "bootout", loginItemDomain()+"/"+loginItemLabel).Run()
+	launchctl("bootout", loginItemDomain()+"/"+loginItemLabel)
 }
 
 func loginItemDomain() string {

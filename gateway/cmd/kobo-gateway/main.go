@@ -15,7 +15,6 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
-	"testing"
 	"time"
 
 	"tools.xdoubleu.com/gateway/internal/kobogateway"
@@ -23,6 +22,14 @@ import (
 
 //nolint:gochecknoglobals //Release is set at build time via -ldflags.
 var Release = "dev"
+
+// headless skips the real AppKit menu bar and login-item registration —
+// set by TestMain in main_test.go. There's no window server session under
+// go test, so running the real menu bar would crash or hang the test run,
+// and login-item registration would touch the real ~/Library/LaunchAgents.
+//
+//nolint:gochecknoglobals // test seam, see main_test.go's TestMain
+var headless = false
 
 const (
 	readTimeout = 5 * time.Second
@@ -201,7 +208,7 @@ func serve(
 	defer cancelWatch()
 	koboEvents := kobogateway.Watch(watchCtx, cfg.VolumesRoot, koboPollInterval)
 
-	if testing.Testing() {
+	if headless {
 		<-stop
 	} else {
 		homeDir, _ := os.UserHomeDir()

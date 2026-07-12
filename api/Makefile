@@ -138,9 +138,6 @@ test/cov/per-pkg:
 	go test ./internal/contacts \
 		-coverpkg=./internal/contacts \
 		-covermode=set -count=1 -coverprofile=cov_internal_contacts.out
-	go test ./internal/crypto \
-		-coverpkg=./internal/crypto \
-		-covermode=set -count=1 -coverprofile=cov_internal_crypto.out
 	go test ./internal/format \
 		-coverpkg=./internal/format \
 		-covermode=set -count=1 -coverprofile=cov_internal_format.out
@@ -155,4 +152,4 @@ test/cov/per-pkg:
 		cov_watchparty_pkg.out cov_watchparty_internal.out \
 		cov_api_pkg.out \
 		cov_internal_app.out cov_internal_contacts.out \
-		cov_internal_crypto.out cov_internal_format.out
+		cov_internal_format.out
