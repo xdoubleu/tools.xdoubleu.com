@@ -316,6 +316,18 @@ func getUserBookStatus(t *testing.T, bookID uuid.UUID) string {
 	return ub.Status
 }
 
+// seedUserBookProgress creates a user_book row and seeds an explicit progress
+// mode/page on it, so tests can verify a Kobo percent push overrides pages mode.
+func seedUserBookProgress(
+	t *testing.T, bookID uuid.UUID, status, progressMode string, currentPage int,
+) {
+	t.Helper()
+	seedUserBook(t, bookID, status)
+	require.NoError(t, testApp.Repositories.Books.UpdateProgress(
+		context.Background(), userID, bookID, progressMode, currentPage, 0,
+	))
+}
+
 // TestUpdateReadingProgress_PromotesToReading_FromToRead verifies that a book
 // with status "to-read" is promoted to "currently-reading" when progress > 0.
 func TestUpdateReadingProgress_PromotesToReading_FromToRead(t *testing.T) {
@@ -328,6 +340,30 @@ func TestUpdateReadingProgress_PromotesToReading_FromToRead(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
+}
+
+// TestUpdateReadingProgress_UpdatesLibraryProgress verifies that a Kobo/web
+// progress push writes user_books.progress_percent (what the library UI shows),
+// switching a pages-mode book to percent mode without touching current_page.
+func TestUpdateReadingProgress_UpdatesLibraryProgress(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBookProgress(t, book.ID, models.StatusToRead, models.ProgressModePages, 42)
+
+	err := testApp.Services.Books.UpdateReadingProgress(
+		context.Background(), userID, book.ID, models.ReadingSourceKobo, 40, nil,
+	)
+	require.NoError(t, err)
+
+	ub, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(),
+		userID,
+		book.ID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, models.StatusReading, ub.Status)
+	assert.Equal(t, models.ProgressModePercent, ub.ProgressMode)
+	assert.Equal(t, 40, ub.ProgressPercent)
+	assert.Equal(t, 42, ub.CurrentPage) // untouched — Kobo only reports percent
 }
 
 // TestUpdateReadingProgress_PromotesToReading_FromDropped verifies that a
@@ -369,7 +405,14 @@ func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, models.StatusRead, getUserBookStatus(t, book.ID))
+	ub, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(),
+		userID,
+		book.ID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, models.StatusRead, ub.Status) // not demoted
+	assert.Equal(t, 80, ub.ProgressPercent)       // progress still recorded
 }
 
 // TestUpdateReadingProgress_NoPromote_ZeroPercent confirms that a 0% progress

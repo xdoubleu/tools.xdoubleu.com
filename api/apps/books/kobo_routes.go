@@ -304,6 +304,12 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 	// Upstream items first, then ours (additive — never drops store items).
 	all := append(upstreamItems, ourEntries...) //nolint:gocritic // intentional
+	if all == nil {
+		// A nil slice would encode as JSON null, which the Kobo firmware doesn't
+		// treat as "sync complete" — it hangs at "Checking for updates…". Happens
+		// when there are zero kobo-sync books and upstream sync is unavailable.
+		all = []json.RawMessage{}
+	}
 	koboWriteJSON(w, all)
 }
 
