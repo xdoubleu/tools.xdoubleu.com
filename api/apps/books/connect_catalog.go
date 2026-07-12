@@ -43,30 +43,6 @@ func (h *booksConnectHandler) ImportBooks(
 	}), nil
 }
 
-func (h *booksConnectHandler) ClearLibrary(
-	ctx context.Context,
-	_ *connect.Request[booksv1.ClearLibraryRequest],
-) (*connect.Response[booksv1.ClearLibraryResponse], error) {
-	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
-		)
-	}
-	deletedBooks, deletedFiles, err := h.app.Services.Books.ClearLibrary(ctx, user.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
-	}
-	return connect.NewResponse(&booksv1.ClearLibraryResponse{
-		DeletedBooks: deletedBooks,
-		DeletedFiles: deletedFiles,
-	}), nil
-}
-
 func (h *booksConnectHandler) FindDuplicates(
 	ctx context.Context,
 	_ *connect.Request[booksv1.FindDuplicatesRequest],

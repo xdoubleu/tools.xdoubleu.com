@@ -36,9 +36,6 @@ const (
 	// CatalogServiceImportBooksProcedure is the fully-qualified name of the CatalogService's
 	// ImportBooks RPC.
 	CatalogServiceImportBooksProcedure = "/books.v1.CatalogService/ImportBooks"
-	// CatalogServiceClearLibraryProcedure is the fully-qualified name of the CatalogService's
-	// ClearLibrary RPC.
-	CatalogServiceClearLibraryProcedure = "/books.v1.CatalogService/ClearLibrary"
 	// CatalogServiceFindDuplicatesProcedure is the fully-qualified name of the CatalogService's
 	// FindDuplicates RPC.
 	CatalogServiceFindDuplicatesProcedure = "/books.v1.CatalogService/FindDuplicates"
@@ -77,7 +74,6 @@ const (
 // CatalogServiceClient is a client for the books.v1.CatalogService service.
 type CatalogServiceClient interface {
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
-	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
 	StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error)
@@ -106,12 +102,6 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+CatalogServiceImportBooksProcedure,
 			connect.WithSchema(catalogServiceMethods.ByName("ImportBooks")),
-			connect.WithClientOptions(opts...),
-		),
-		clearLibrary: connect.NewClient[v1.ClearLibraryRequest, v1.ClearLibraryResponse](
-			httpClient,
-			baseURL+CatalogServiceClearLibraryProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("ClearLibrary")),
 			connect.WithClientOptions(opts...),
 		),
 		findDuplicates: connect.NewClient[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse](
@@ -186,7 +176,6 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 // catalogServiceClient implements CatalogServiceClient.
 type catalogServiceClient struct {
 	importBooks             *connect.Client[v1.ImportBooksRequest, v1.ImportBooksResponse]
-	clearLibrary            *connect.Client[v1.ClearLibraryRequest, v1.ClearLibraryResponse]
 	findDuplicates          *connect.Client[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse]
 	mergeBooks              *connect.Client[v1.MergeBooksRequest, v1.MergeBooksResponse]
 	startResync             *connect.Client[v1.StartResyncRequest, v1.StartResyncResponse]
@@ -203,11 +192,6 @@ type catalogServiceClient struct {
 // ImportBooks calls books.v1.CatalogService.ImportBooks.
 func (c *catalogServiceClient) ImportBooks(ctx context.Context, req *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error) {
 	return c.importBooks.CallUnary(ctx, req)
-}
-
-// ClearLibrary calls books.v1.CatalogService.ClearLibrary.
-func (c *catalogServiceClient) ClearLibrary(ctx context.Context, req *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error) {
-	return c.clearLibrary.CallUnary(ctx, req)
 }
 
 // FindDuplicates calls books.v1.CatalogService.FindDuplicates.
@@ -268,7 +252,6 @@ func (c *catalogServiceClient) ListBooksInExactSources(ctx context.Context, req 
 // CatalogServiceHandler is an implementation of the books.v1.CatalogService service.
 type CatalogServiceHandler interface {
 	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
-	ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error)
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
 	StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error)
@@ -293,12 +276,6 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		CatalogServiceImportBooksProcedure,
 		svc.ImportBooks,
 		connect.WithSchema(catalogServiceMethods.ByName("ImportBooks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceClearLibraryHandler := connect.NewUnaryHandler(
-		CatalogServiceClearLibraryProcedure,
-		svc.ClearLibrary,
-		connect.WithSchema(catalogServiceMethods.ByName("ClearLibrary")),
 		connect.WithHandlerOptions(opts...),
 	)
 	catalogServiceFindDuplicatesHandler := connect.NewUnaryHandler(
@@ -371,8 +348,6 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		switch r.URL.Path {
 		case CatalogServiceImportBooksProcedure:
 			catalogServiceImportBooksHandler.ServeHTTP(w, r)
-		case CatalogServiceClearLibraryProcedure:
-			catalogServiceClearLibraryHandler.ServeHTTP(w, r)
 		case CatalogServiceFindDuplicatesProcedure:
 			catalogServiceFindDuplicatesHandler.ServeHTTP(w, r)
 		case CatalogServiceMergeBooksProcedure:
@@ -406,10 +381,6 @@ type UnimplementedCatalogServiceHandler struct{}
 
 func (UnimplementedCatalogServiceHandler) ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ImportBooks is not implemented"))
-}
-
-func (UnimplementedCatalogServiceHandler) ClearLibrary(context.Context, *connect.Request[v1.ClearLibraryRequest]) (*connect.Response[v1.ClearLibraryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ClearLibrary is not implemented"))
 }
 
 func (UnimplementedCatalogServiceHandler) FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error) {

@@ -4,8 +4,7 @@ import { render, screen } from '@testing-library/react'
 const mockImportBooks = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
-  useImportBooks: () => mockImportBooks,
-  useClearLibrary: () => jest.fn()
+  useImportBooks: () => mockImportBooks
 }))
 
 jest.mock('@/hooks/useAuth', () => ({
@@ -25,11 +24,6 @@ jest.mock('@/components/books/KoboSetup', () => ({
 jest.mock('@/components/books/KoboDevices', () => ({
   __esModule: true,
   default: () => <div data-testid="kobo-devices" />
-}))
-
-jest.mock('@/components/books/ClearLibraryDialog', () => ({
-  __esModule: true,
-  default: ({ open }: { open: boolean }) => (open ? <div data-testid="clear-dialog" /> : null)
 }))
 
 jest.mock('swr', () => ({ __esModule: true, mutate: jest.fn(), default: jest.fn() }))
@@ -99,12 +93,6 @@ describe('BooksSettingsClient', () => {
   it('renders the Connected devices heading', () => {
     render(<BooksSettingsClient />)
     expect(screen.getByText('Connected devices')).toBeInTheDocument()
-  })
-
-  it('renders the Danger zone section with clear-library button', () => {
-    render(<BooksSettingsClient />)
-    expect(screen.getByText('Danger zone')).toBeInTheDocument()
-    expect(screen.getByTestId('clear-library-btn')).toBeInTheDocument()
   })
 
   it('does not show resync or find-duplicates on the settings page', () => {

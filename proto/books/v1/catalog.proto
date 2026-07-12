@@ -7,12 +7,6 @@ import "books/v1/library.proto";
 message ImportBooksRequest { bytes csv_data = 1; }
 message ImportBooksResponse { int32 imported_count = 1; }
 
-message ClearLibraryRequest {}
-message ClearLibraryResponse {
-  uint32 deleted_books = 1;
-  uint32 deleted_files = 2;
-}
-
 message DuplicateGroup {
   // Library entries judged to be the same book. entries[0] is the suggested
   // winner (the entry to keep); the rest are the suggested losers.
@@ -190,7 +184,6 @@ message ListBooksInExactSourcesResponse {
 
 service CatalogService {
   rpc ImportBooks(ImportBooksRequest) returns (ImportBooksResponse);
-  rpc ClearLibrary(ClearLibraryRequest) returns (ClearLibraryResponse);
   rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
   rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
   rpc StartResync(StartResyncRequest) returns (StartResyncResponse);

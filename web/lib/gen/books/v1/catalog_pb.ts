@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file books/v1/catalog.proto.
  */
 export const file_books_v1_catalog: GenFile = /*@__PURE__*/
-  fileDesc("ChZib29rcy92MS9jYXRhbG9nLnByb3RvEghib29rcy52MSImChJJbXBvcnRCb29rc1JlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwiLQoTSW1wb3J0Qm9va3NSZXNwb25zZRIWCg5pbXBvcnRlZF9jb3VudBgBIAEoBSIVChNDbGVhckxpYnJhcnlSZXF1ZXN0IkQKFENsZWFyTGlicmFyeVJlc3BvbnNlEhUKDWRlbGV0ZWRfYm9va3MYASABKA0SFQoNZGVsZXRlZF9maWxlcxgCIAEoDSJFCg5EdXBsaWNhdGVHcm91cBIjCgdlbnRyaWVzGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSDgoGcmVhc29uGAIgASgJIhcKFUZpbmREdXBsaWNhdGVzUmVxdWVzdCJCChZGaW5kRHVwbGljYXRlc1Jlc3BvbnNlEigKBmdyb3VwcxgBIAMoCzIYLmJvb2tzLnYxLkR1cGxpY2F0ZUdyb3VwIokCChFNZXJnZUJvb2tzUmVxdWVzdBIWCg53aW5uZXJfYm9va19pZBgBIAEoCRIWCg5sb3Nlcl9ib29rX2lkcxgCIAMoCRIuChFyZXNvbHZlZF9tZXRhZGF0YRgDIAEoCzIOLmJvb2tzLnYxLkJvb2tIAIgBARIqCh1yZXNvbHZlZF9jb3Zlcl9zb3VyY2VfYm9va19pZBgEIAEoCUgBiAEBEhwKD3Jlc29sdmVkX3N0YXR1cxgFIAEoCUgCiAEBQhQKEl9yZXNvbHZlZF9tZXRhZGF0YUIgCh5fcmVzb2x2ZWRfY292ZXJfc291cmNlX2Jvb2tfaWRCEgoQX3Jlc29sdmVkX3N0YXR1cyJCChJNZXJnZUJvb2tzUmVzcG9uc2USFQoNbWVyZ2VkX2dyb3VwcxgBIAEoDRIVCg1kZWxldGVkX2ZpbGVzGAIgASgNIiMKElN0YXJ0UmVzeW5jUmVxdWVzdBINCgVmb3JjZRgBIAEoCCIVChNTdGFydFJlc3luY1Jlc3BvbnNlIhUKE0NhbmNlbFJlc3luY1JlcXVlc3QiFgoUQ2FuY2VsUmVzeW5jUmVzcG9uc2UimQEKClNvdXJjZUJvb2sSDgoGc291cmNlGAEgASgJEhEKCWNvdmVyX3VybBgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRISCgpwYWdlX2NvdW50GAQgASgFEg4KBmlzYm4xMxgFIAEoCRINCgV0aXRsZRgGIAEoCRIPCgdhdXRob3JzGAcgAygJEg8KB2RpZmZlcnMYCCADKAkibwoOUmVzeW5jUHJvcG9zYWwSDwoHYm9va19pZBgBIAEoCRIlCgdsaWJyYXJ5GAIgASgLMhQuYm9va3MudjEuU291cmNlQm9vaxIlCgdzb3VyY2VzGAMgAygLMhQuYm9va3MudjEuU291cmNlQm9vayIcChpMaXN0UmVzeW5jUHJvcG9zYWxzUmVxdWVzdCJKChtMaXN0UmVzeW5jUHJvcG9zYWxzUmVzcG9uc2USKwoJcHJvcG9zYWxzGAEgAygLMhguYm9va3MudjEuUmVzeW5jUHJvcG9zYWwiOwoYQXBwbHlSZXN5bmNDaG9pY2VSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJIhsKGUFwcGx5UmVzeW5jQ2hvaWNlUmVzcG9uc2UiNQoSU2V0Qm9va0lTQk5SZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGaXNibjEzGAIgASgJIhUKE1NldEJvb2tJU0JOUmVzcG9uc2UiigEKFUdldEJvb2tTb3VyY2VzUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEhsKDm92ZXJyaWRlX3RpdGxlGAIgASgJSACIAQESHAoPb3ZlcnJpZGVfYXV0aG9yGAMgASgJSAGIAQFCEQoPX292ZXJyaWRlX3RpdGxlQhIKEF9vdmVycmlkZV9hdXRob3IiRAoWR2V0Qm9va1NvdXJjZXNSZXNwb25zZRIqCghwcm9wb3NhbBgBIAEoCzIYLmJvb2tzLnYxLlJlc3luY1Byb3Bvc2FsIpsBChZBcHBseUJvb2tTb3VyY2VSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJEhsKDm92ZXJyaWRlX3RpdGxlGAMgASgJSACIAQESHAoPb3ZlcnJpZGVfYXV0aG9yGAQgASgJSAGIAQFCEQoPX292ZXJyaWRlX3RpdGxlQhIKEF9vdmVycmlkZV9hdXRob3IiGQoXQXBwbHlCb29rU291cmNlUmVzcG9uc2UiFwoVR2V0U291cmNlU3RhdHNSZXF1ZXN0Il0KClNvdXJjZVN0YXQSDgoGc291cmNlGAEgASgJEhMKC2ZvdW5kX2NvdW50GAIgASgFEhQKDHVuaXF1ZV9jb3VudBgDIAEoBRIUCgxtaXNzZWRfY291bnQYBCABKAUiMQoPU291cmNlQ29tYm9TdGF0Eg8KB3NvdXJjZXMYASADKAkSDQoFY291bnQYAiABKAUi6AEKFkdldFNvdXJjZVN0YXRzUmVzcG9uc2USJQoHc291cmNlcxgBIAMoCzIULmJvb2tzLnYxLlNvdXJjZVN0YXQSEwoLdG90YWxfYm9va3MYAiABKAUSGgoSbm90X2ZvdW5kX2FueXdoZXJlGAMgASgFEhUKDW5ldmVyX3NjYW5uZWQYBCABKAUSKwoIb3ZlcmxhcHMYBSADKAsyGS5ib29rcy52MS5Tb3VyY2VDb21ib1N0YXQSMgoPbWlzc2VkX292ZXJsYXBzGAYgAygLMhkuYm9va3MudjEuU291cmNlQ29tYm9TdGF0IjEKHkxpc3RCb29rc0luRXhhY3RTb3VyY2VzUmVxdWVzdBIPCgdzb3VyY2VzGAEgAygJIkAKH0xpc3RCb29rc0luRXhhY3RTb3VyY2VzUmVzcG9uc2USHQoFYm9va3MYASADKAsyDi5ib29rcy52MS5Cb29rMuQICg5DYXRhbG9nU2VydmljZRJKCgtJbXBvcnRCb29rcxIcLmJvb2tzLnYxLkltcG9ydEJvb2tzUmVxdWVzdBodLmJvb2tzLnYxLkltcG9ydEJvb2tzUmVzcG9uc2USTQoMQ2xlYXJMaWJyYXJ5Eh0uYm9va3MudjEuQ2xlYXJMaWJyYXJ5UmVxdWVzdBoeLmJvb2tzLnYxLkNsZWFyTGlicmFyeVJlc3BvbnNlElMKDkZpbmREdXBsaWNhdGVzEh8uYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXF1ZXN0GiAuYm9va3MudjEuRmluZER1cGxpY2F0ZXNSZXNwb25zZRJHCgpNZXJnZUJvb2tzEhsuYm9va3MudjEuTWVyZ2VCb29rc1JlcXVlc3QaHC5ib29rcy52MS5NZXJnZUJvb2tzUmVzcG9uc2USSgoLU3RhcnRSZXN5bmMSHC5ib29rcy52MS5TdGFydFJlc3luY1JlcXVlc3QaHS5ib29rcy52MS5TdGFydFJlc3luY1Jlc3BvbnNlEk0KDENhbmNlbFJlc3luYxIdLmJvb2tzLnYxLkNhbmNlbFJlc3luY1JlcXVlc3QaHi5ib29rcy52MS5DYW5jZWxSZXN5bmNSZXNwb25zZRJiChNMaXN0UmVzeW5jUHJvcG9zYWxzEiQuYm9va3MudjEuTGlzdFJlc3luY1Byb3Bvc2Fsc1JlcXVlc3QaJS5ib29rcy52MS5MaXN0UmVzeW5jUHJvcG9zYWxzUmVzcG9uc2USXAoRQXBwbHlSZXN5bmNDaG9pY2USIi5ib29rcy52MS5BcHBseVJlc3luY0Nob2ljZVJlcXVlc3QaIy5ib29rcy52MS5BcHBseVJlc3luY0Nob2ljZVJlc3BvbnNlEkoKC1NldEJvb2tJU0JOEhwuYm9va3MudjEuU2V0Qm9va0lTQk5SZXF1ZXN0Gh0uYm9va3MudjEuU2V0Qm9va0lTQk5SZXNwb25zZRJTCg5HZXRCb29rU291cmNlcxIfLmJvb2tzLnYxLkdldEJvb2tTb3VyY2VzUmVxdWVzdBogLmJvb2tzLnYxLkdldEJvb2tTb3VyY2VzUmVzcG9uc2USVgoPQXBwbHlCb29rU291cmNlEiAuYm9va3MudjEuQXBwbHlCb29rU291cmNlUmVxdWVzdBohLmJvb2tzLnYxLkFwcGx5Qm9va1NvdXJjZVJlc3BvbnNlElMKDkdldFNvdXJjZVN0YXRzEh8uYm9va3MudjEuR2V0U291cmNlU3RhdHNSZXF1ZXN0GiAuYm9va3MudjEuR2V0U291cmNlU3RhdHNSZXNwb25zZRJuChdMaXN0Qm9va3NJbkV4YWN0U291cmNlcxIoLmJvb2tzLnYxLkxpc3RCb29rc0luRXhhY3RTb3VyY2VzUmVxdWVzdBopLmJvb2tzLnYxLkxpc3RCb29rc0luRXhhY3RTb3VyY2VzUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9ib29rcy92MTtib29rc3YxYgZwcm90bzM", [file_books_v1_library]);
+  fileDesc("ChZib29rcy92MS9jYXRhbG9nLnByb3RvEghib29rcy52MSImChJJbXBvcnRCb29rc1JlcXVlc3QSEAoIY3N2X2RhdGEYASABKAwiLQoTSW1wb3J0Qm9va3NSZXNwb25zZRIWCg5pbXBvcnRlZF9jb3VudBgBIAEoBSJFCg5EdXBsaWNhdGVHcm91cBIjCgdlbnRyaWVzGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSDgoGcmVhc29uGAIgASgJIhcKFUZpbmREdXBsaWNhdGVzUmVxdWVzdCJCChZGaW5kRHVwbGljYXRlc1Jlc3BvbnNlEigKBmdyb3VwcxgBIAMoCzIYLmJvb2tzLnYxLkR1cGxpY2F0ZUdyb3VwIokCChFNZXJnZUJvb2tzUmVxdWVzdBIWCg53aW5uZXJfYm9va19pZBgBIAEoCRIWCg5sb3Nlcl9ib29rX2lkcxgCIAMoCRIuChFyZXNvbHZlZF9tZXRhZGF0YRgDIAEoCzIOLmJvb2tzLnYxLkJvb2tIAIgBARIqCh1yZXNvbHZlZF9jb3Zlcl9zb3VyY2VfYm9va19pZBgEIAEoCUgBiAEBEhwKD3Jlc29sdmVkX3N0YXR1cxgFIAEoCUgCiAEBQhQKEl9yZXNvbHZlZF9tZXRhZGF0YUIgCh5fcmVzb2x2ZWRfY292ZXJfc291cmNlX2Jvb2tfaWRCEgoQX3Jlc29sdmVkX3N0YXR1cyJCChJNZXJnZUJvb2tzUmVzcG9uc2USFQoNbWVyZ2VkX2dyb3VwcxgBIAEoDRIVCg1kZWxldGVkX2ZpbGVzGAIgASgNIiMKElN0YXJ0UmVzeW5jUmVxdWVzdBINCgVmb3JjZRgBIAEoCCIVChNTdGFydFJlc3luY1Jlc3BvbnNlIhUKE0NhbmNlbFJlc3luY1JlcXVlc3QiFgoUQ2FuY2VsUmVzeW5jUmVzcG9uc2UimQEKClNvdXJjZUJvb2sSDgoGc291cmNlGAEgASgJEhEKCWNvdmVyX3VybBgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRISCgpwYWdlX2NvdW50GAQgASgFEg4KBmlzYm4xMxgFIAEoCRINCgV0aXRsZRgGIAEoCRIPCgdhdXRob3JzGAcgAygJEg8KB2RpZmZlcnMYCCADKAkibwoOUmVzeW5jUHJvcG9zYWwSDwoHYm9va19pZBgBIAEoCRIlCgdsaWJyYXJ5GAIgASgLMhQuYm9va3MudjEuU291cmNlQm9vaxIlCgdzb3VyY2VzGAMgAygLMhQuYm9va3MudjEuU291cmNlQm9vayIcChpMaXN0UmVzeW5jUHJvcG9zYWxzUmVxdWVzdCJKChtMaXN0UmVzeW5jUHJvcG9zYWxzUmVzcG9uc2USKwoJcHJvcG9zYWxzGAEgAygLMhguYm9va3MudjEuUmVzeW5jUHJvcG9zYWwiOwoYQXBwbHlSZXN5bmNDaG9pY2VSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJIhsKGUFwcGx5UmVzeW5jQ2hvaWNlUmVzcG9uc2UiNQoSU2V0Qm9va0lTQk5SZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGaXNibjEzGAIgASgJIhUKE1NldEJvb2tJU0JOUmVzcG9uc2UiigEKFUdldEJvb2tTb3VyY2VzUmVxdWVzdBIPCgdib29rX2lkGAEgASgJEhsKDm92ZXJyaWRlX3RpdGxlGAIgASgJSACIAQESHAoPb3ZlcnJpZGVfYXV0aG9yGAMgASgJSAGIAQFCEQoPX292ZXJyaWRlX3RpdGxlQhIKEF9vdmVycmlkZV9hdXRob3IiRAoWR2V0Qm9va1NvdXJjZXNSZXNwb25zZRIqCghwcm9wb3NhbBgBIAEoCzIYLmJvb2tzLnYxLlJlc3luY1Byb3Bvc2FsIpsBChZBcHBseUJvb2tTb3VyY2VSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJEhsKDm92ZXJyaWRlX3RpdGxlGAMgASgJSACIAQESHAoPb3ZlcnJpZGVfYXV0aG9yGAQgASgJSAGIAQFCEQoPX292ZXJyaWRlX3RpdGxlQhIKEF9vdmVycmlkZV9hdXRob3IiGQoXQXBwbHlCb29rU291cmNlUmVzcG9uc2UiFwoVR2V0U291cmNlU3RhdHNSZXF1ZXN0Il0KClNvdXJjZVN0YXQSDgoGc291cmNlGAEgASgJEhMKC2ZvdW5kX2NvdW50GAIgASgFEhQKDHVuaXF1ZV9jb3VudBgDIAEoBRIUCgxtaXNzZWRfY291bnQYBCABKAUiMQoPU291cmNlQ29tYm9TdGF0Eg8KB3NvdXJjZXMYASADKAkSDQoFY291bnQYAiABKAUi6AEKFkdldFNvdXJjZVN0YXRzUmVzcG9uc2USJQoHc291cmNlcxgBIAMoCzIULmJvb2tzLnYxLlNvdXJjZVN0YXQSEwoLdG90YWxfYm9va3MYAiABKAUSGgoSbm90X2ZvdW5kX2FueXdoZXJlGAMgASgFEhUKDW5ldmVyX3NjYW5uZWQYBCABKAUSKwoIb3ZlcmxhcHMYBSADKAsyGS5ib29rcy52MS5Tb3VyY2VDb21ib1N0YXQSMgoPbWlzc2VkX292ZXJsYXBzGAYgAygLMhkuYm9va3MudjEuU291cmNlQ29tYm9TdGF0IjEKHkxpc3RCb29rc0luRXhhY3RTb3VyY2VzUmVxdWVzdBIPCgdzb3VyY2VzGAEgAygJIkAKH0xpc3RCb29rc0luRXhhY3RTb3VyY2VzUmVzcG9uc2USHQoFYm9va3MYASADKAsyDi5ib29rcy52MS5Cb29rMpUICg5DYXRhbG9nU2VydmljZRJKCgtJbXBvcnRCb29rcxIcLmJvb2tzLnYxLkltcG9ydEJvb2tzUmVxdWVzdBodLmJvb2tzLnYxLkltcG9ydEJvb2tzUmVzcG9uc2USUwoORmluZER1cGxpY2F0ZXMSHy5ib29rcy52MS5GaW5kRHVwbGljYXRlc1JlcXVlc3QaIC5ib29rcy52MS5GaW5kRHVwbGljYXRlc1Jlc3BvbnNlEkcKCk1lcmdlQm9va3MSGy5ib29rcy52MS5NZXJnZUJvb2tzUmVxdWVzdBocLmJvb2tzLnYxLk1lcmdlQm9va3NSZXNwb25zZRJKCgtTdGFydFJlc3luYxIcLmJvb2tzLnYxLlN0YXJ0UmVzeW5jUmVxdWVzdBodLmJvb2tzLnYxLlN0YXJ0UmVzeW5jUmVzcG9uc2USTQoMQ2FuY2VsUmVzeW5jEh0uYm9va3MudjEuQ2FuY2VsUmVzeW5jUmVxdWVzdBoeLmJvb2tzLnYxLkNhbmNlbFJlc3luY1Jlc3BvbnNlEmIKE0xpc3RSZXN5bmNQcm9wb3NhbHMSJC5ib29rcy52MS5MaXN0UmVzeW5jUHJvcG9zYWxzUmVxdWVzdBolLmJvb2tzLnYxLkxpc3RSZXN5bmNQcm9wb3NhbHNSZXNwb25zZRJcChFBcHBseVJlc3luY0Nob2ljZRIiLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVxdWVzdBojLmJvb2tzLnYxLkFwcGx5UmVzeW5jQ2hvaWNlUmVzcG9uc2USSgoLU2V0Qm9va0lTQk4SHC5ib29rcy52MS5TZXRCb29rSVNCTlJlcXVlc3QaHS5ib29rcy52MS5TZXRCb29rSVNCTlJlc3BvbnNlElMKDkdldEJvb2tTb3VyY2VzEh8uYm9va3MudjEuR2V0Qm9va1NvdXJjZXNSZXF1ZXN0GiAuYm9va3MudjEuR2V0Qm9va1NvdXJjZXNSZXNwb25zZRJWCg9BcHBseUJvb2tTb3VyY2USIC5ib29rcy52MS5BcHBseUJvb2tTb3VyY2VSZXF1ZXN0GiEuYm9va3MudjEuQXBwbHlCb29rU291cmNlUmVzcG9uc2USUwoOR2V0U291cmNlU3RhdHMSHy5ib29rcy52MS5HZXRTb3VyY2VTdGF0c1JlcXVlc3QaIC5ib29rcy52MS5HZXRTb3VyY2VTdGF0c1Jlc3BvbnNlEm4KF0xpc3RCb29rc0luRXhhY3RTb3VyY2VzEiguYm9va3MudjEuTGlzdEJvb2tzSW5FeGFjdFNvdXJjZXNSZXF1ZXN0GikuYm9va3MudjEuTGlzdEJvb2tzSW5FeGFjdFNvdXJjZXNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2Jvb2tzL3YxO2Jvb2tzdjFiBnByb3RvMw", [file_books_v1_library]);
 
 /**
  * @generated from message books.v1.ImportBooksRequest
@@ -49,41 +49,6 @@ export const ImportBooksResponseSchema: GenMessage<ImportBooksResponse> = /*@__P
   messageDesc(file_books_v1_catalog, 1);
 
 /**
- * @generated from message books.v1.ClearLibraryRequest
- */
-export type ClearLibraryRequest = Message<"books.v1.ClearLibraryRequest"> & {
-};
-
-/**
- * Describes the message books.v1.ClearLibraryRequest.
- * Use `create(ClearLibraryRequestSchema)` to create a new message.
- */
-export const ClearLibraryRequestSchema: GenMessage<ClearLibraryRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 2);
-
-/**
- * @generated from message books.v1.ClearLibraryResponse
- */
-export type ClearLibraryResponse = Message<"books.v1.ClearLibraryResponse"> & {
-  /**
-   * @generated from field: uint32 deleted_books = 1;
-   */
-  deletedBooks: number;
-
-  /**
-   * @generated from field: uint32 deleted_files = 2;
-   */
-  deletedFiles: number;
-};
-
-/**
- * Describes the message books.v1.ClearLibraryResponse.
- * Use `create(ClearLibraryResponseSchema)` to create a new message.
- */
-export const ClearLibraryResponseSchema: GenMessage<ClearLibraryResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 3);
-
-/**
  * @generated from message books.v1.DuplicateGroup
  */
 export type DuplicateGroup = Message<"books.v1.DuplicateGroup"> & {
@@ -108,7 +73,7 @@ export type DuplicateGroup = Message<"books.v1.DuplicateGroup"> & {
  * Use `create(DuplicateGroupSchema)` to create a new message.
  */
 export const DuplicateGroupSchema: GenMessage<DuplicateGroup> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 4);
+  messageDesc(file_books_v1_catalog, 2);
 
 /**
  * @generated from message books.v1.FindDuplicatesRequest
@@ -121,7 +86,7 @@ export type FindDuplicatesRequest = Message<"books.v1.FindDuplicatesRequest"> & 
  * Use `create(FindDuplicatesRequestSchema)` to create a new message.
  */
 export const FindDuplicatesRequestSchema: GenMessage<FindDuplicatesRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 5);
+  messageDesc(file_books_v1_catalog, 3);
 
 /**
  * @generated from message books.v1.FindDuplicatesResponse
@@ -138,7 +103,7 @@ export type FindDuplicatesResponse = Message<"books.v1.FindDuplicatesResponse"> 
  * Use `create(FindDuplicatesResponseSchema)` to create a new message.
  */
 export const FindDuplicatesResponseSchema: GenMessage<FindDuplicatesResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 6);
+  messageDesc(file_books_v1_catalog, 4);
 
 /**
  * @generated from message books.v1.MergeBooksRequest
@@ -192,7 +157,7 @@ export type MergeBooksRequest = Message<"books.v1.MergeBooksRequest"> & {
  * Use `create(MergeBooksRequestSchema)` to create a new message.
  */
 export const MergeBooksRequestSchema: GenMessage<MergeBooksRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 7);
+  messageDesc(file_books_v1_catalog, 5);
 
 /**
  * @generated from message books.v1.MergeBooksResponse
@@ -218,7 +183,7 @@ export type MergeBooksResponse = Message<"books.v1.MergeBooksResponse"> & {
  * Use `create(MergeBooksResponseSchema)` to create a new message.
  */
 export const MergeBooksResponseSchema: GenMessage<MergeBooksResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 8);
+  messageDesc(file_books_v1_catalog, 6);
 
 /**
  * @generated from message books.v1.StartResyncRequest
@@ -240,7 +205,7 @@ export type StartResyncRequest = Message<"books.v1.StartResyncRequest"> & {
  * Use `create(StartResyncRequestSchema)` to create a new message.
  */
 export const StartResyncRequestSchema: GenMessage<StartResyncRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 9);
+  messageDesc(file_books_v1_catalog, 7);
 
 /**
  * @generated from message books.v1.StartResyncResponse
@@ -253,7 +218,7 @@ export type StartResyncResponse = Message<"books.v1.StartResyncResponse"> & {
  * Use `create(StartResyncResponseSchema)` to create a new message.
  */
 export const StartResyncResponseSchema: GenMessage<StartResyncResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 10);
+  messageDesc(file_books_v1_catalog, 8);
 
 /**
  * CancelResync stops an in-progress resync scan started by StartResync. A
@@ -270,7 +235,7 @@ export type CancelResyncRequest = Message<"books.v1.CancelResyncRequest"> & {
  * Use `create(CancelResyncRequestSchema)` to create a new message.
  */
 export const CancelResyncRequestSchema: GenMessage<CancelResyncRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 11);
+  messageDesc(file_books_v1_catalog, 9);
 
 /**
  * @generated from message books.v1.CancelResyncResponse
@@ -283,7 +248,7 @@ export type CancelResyncResponse = Message<"books.v1.CancelResyncResponse"> & {
  * Use `create(CancelResyncResponseSchema)` to create a new message.
  */
 export const CancelResyncResponseSchema: GenMessage<CancelResyncResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 12);
+  messageDesc(file_books_v1_catalog, 10);
 
 /**
  * SourceBook is one candidate set of metadata for a catalog book — either the
@@ -342,7 +307,7 @@ export type SourceBook = Message<"books.v1.SourceBook"> & {
  * Use `create(SourceBookSchema)` to create a new message.
  */
 export const SourceBookSchema: GenMessage<SourceBook> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 13);
+  messageDesc(file_books_v1_catalog, 11);
 
 /**
  * ResyncProposal describes one catalog book that differs from at least one
@@ -372,7 +337,7 @@ export type ResyncProposal = Message<"books.v1.ResyncProposal"> & {
  * Use `create(ResyncProposalSchema)` to create a new message.
  */
 export const ResyncProposalSchema: GenMessage<ResyncProposal> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 14);
+  messageDesc(file_books_v1_catalog, 12);
 
 /**
  * @generated from message books.v1.ListResyncProposalsRequest
@@ -385,7 +350,7 @@ export type ListResyncProposalsRequest = Message<"books.v1.ListResyncProposalsRe
  * Use `create(ListResyncProposalsRequestSchema)` to create a new message.
  */
 export const ListResyncProposalsRequestSchema: GenMessage<ListResyncProposalsRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 15);
+  messageDesc(file_books_v1_catalog, 13);
 
 /**
  * @generated from message books.v1.ListResyncProposalsResponse
@@ -402,7 +367,7 @@ export type ListResyncProposalsResponse = Message<"books.v1.ListResyncProposalsR
  * Use `create(ListResyncProposalsResponseSchema)` to create a new message.
  */
 export const ListResyncProposalsResponseSchema: GenMessage<ListResyncProposalsResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 16);
+  messageDesc(file_books_v1_catalog, 14);
 
 /**
  * @generated from message books.v1.ApplyResyncChoiceRequest
@@ -428,7 +393,7 @@ export type ApplyResyncChoiceRequest = Message<"books.v1.ApplyResyncChoiceReques
  * Use `create(ApplyResyncChoiceRequestSchema)` to create a new message.
  */
 export const ApplyResyncChoiceRequestSchema: GenMessage<ApplyResyncChoiceRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 17);
+  messageDesc(file_books_v1_catalog, 15);
 
 /**
  * @generated from message books.v1.ApplyResyncChoiceResponse
@@ -441,7 +406,7 @@ export type ApplyResyncChoiceResponse = Message<"books.v1.ApplyResyncChoiceRespo
  * Use `create(ApplyResyncChoiceResponseSchema)` to create a new message.
  */
 export const ApplyResyncChoiceResponseSchema: GenMessage<ApplyResyncChoiceResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 18);
+  messageDesc(file_books_v1_catalog, 16);
 
 /**
  * @generated from message books.v1.SetBookISBNRequest
@@ -463,7 +428,7 @@ export type SetBookISBNRequest = Message<"books.v1.SetBookISBNRequest"> & {
  * Use `create(SetBookISBNRequestSchema)` to create a new message.
  */
 export const SetBookISBNRequestSchema: GenMessage<SetBookISBNRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 19);
+  messageDesc(file_books_v1_catalog, 17);
 
 /**
  * @generated from message books.v1.SetBookISBNResponse
@@ -476,7 +441,7 @@ export type SetBookISBNResponse = Message<"books.v1.SetBookISBNResponse"> & {
  * Use `create(SetBookISBNResponseSchema)` to create a new message.
  */
 export const SetBookISBNResponseSchema: GenMessage<SetBookISBNResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 20);
+  messageDesc(file_books_v1_catalog, 18);
 
 /**
  * GetBookSources live-fetches one book's candidates from every configured
@@ -512,7 +477,7 @@ export type GetBookSourcesRequest = Message<"books.v1.GetBookSourcesRequest"> & 
  * Use `create(GetBookSourcesRequestSchema)` to create a new message.
  */
 export const GetBookSourcesRequestSchema: GenMessage<GetBookSourcesRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 21);
+  messageDesc(file_books_v1_catalog, 19);
 
 /**
  * @generated from message books.v1.GetBookSourcesResponse
@@ -529,7 +494,7 @@ export type GetBookSourcesResponse = Message<"books.v1.GetBookSourcesResponse"> 
  * Use `create(GetBookSourcesResponseSchema)` to create a new message.
  */
 export const GetBookSourcesResponseSchema: GenMessage<GetBookSourcesResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 22);
+  messageDesc(file_books_v1_catalog, 20);
 
 /**
  * ApplyBookSource live-fetches the book's sources and applies the chosen one
@@ -570,7 +535,7 @@ export type ApplyBookSourceRequest = Message<"books.v1.ApplyBookSourceRequest"> 
  * Use `create(ApplyBookSourceRequestSchema)` to create a new message.
  */
 export const ApplyBookSourceRequestSchema: GenMessage<ApplyBookSourceRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 23);
+  messageDesc(file_books_v1_catalog, 21);
 
 /**
  * @generated from message books.v1.ApplyBookSourceResponse
@@ -583,7 +548,7 @@ export type ApplyBookSourceResponse = Message<"books.v1.ApplyBookSourceResponse"
  * Use `create(ApplyBookSourceResponseSchema)` to create a new message.
  */
 export const ApplyBookSourceResponseSchema: GenMessage<ApplyBookSourceResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 24);
+  messageDesc(file_books_v1_catalog, 22);
 
 /**
  * GetSourceStats reports per-source coverage over the whole catalog, for
@@ -599,7 +564,7 @@ export type GetSourceStatsRequest = Message<"books.v1.GetSourceStatsRequest"> & 
  * Use `create(GetSourceStatsRequestSchema)` to create a new message.
  */
 export const GetSourceStatsRequestSchema: GenMessage<GetSourceStatsRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 25);
+  messageDesc(file_books_v1_catalog, 23);
 
 /**
  * @generated from message books.v1.SourceStat
@@ -640,7 +605,7 @@ export type SourceStat = Message<"books.v1.SourceStat"> & {
  * Use `create(SourceStatSchema)` to create a new message.
  */
 export const SourceStatSchema: GenMessage<SourceStat> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 26);
+  messageDesc(file_books_v1_catalog, 24);
 
 /**
  * SourceComboStat reports how many books were found by exactly this set of
@@ -668,7 +633,7 @@ export type SourceComboStat = Message<"books.v1.SourceComboStat"> & {
  * Use `create(SourceComboStatSchema)` to create a new message.
  */
 export const SourceComboStatSchema: GenMessage<SourceComboStat> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 27);
+  messageDesc(file_books_v1_catalog, 25);
 
 /**
  * @generated from message books.v1.GetSourceStatsResponse
@@ -720,7 +685,7 @@ export type GetSourceStatsResponse = Message<"books.v1.GetSourceStatsResponse"> 
  * Use `create(GetSourceStatsResponseSchema)` to create a new message.
  */
 export const GetSourceStatsResponseSchema: GenMessage<GetSourceStatsResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 28);
+  messageDesc(file_books_v1_catalog, 26);
 
 /**
  * ListBooksInExactSources lists the catalog books found by exactly the given
@@ -744,7 +709,7 @@ export type ListBooksInExactSourcesRequest = Message<"books.v1.ListBooksInExactS
  * Use `create(ListBooksInExactSourcesRequestSchema)` to create a new message.
  */
 export const ListBooksInExactSourcesRequestSchema: GenMessage<ListBooksInExactSourcesRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 29);
+  messageDesc(file_books_v1_catalog, 27);
 
 /**
  * @generated from message books.v1.ListBooksInExactSourcesResponse
@@ -761,7 +726,7 @@ export type ListBooksInExactSourcesResponse = Message<"books.v1.ListBooksInExact
  * Use `create(ListBooksInExactSourcesResponseSchema)` to create a new message.
  */
 export const ListBooksInExactSourcesResponseSchema: GenMessage<ListBooksInExactSourcesResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_catalog, 30);
+  messageDesc(file_books_v1_catalog, 28);
 
 /**
  * @generated from service books.v1.CatalogService
@@ -774,14 +739,6 @@ export const CatalogService: GenService<{
     methodKind: "unary";
     input: typeof ImportBooksRequestSchema;
     output: typeof ImportBooksResponseSchema;
-  },
-  /**
-   * @generated from rpc books.v1.CatalogService.ClearLibrary
-   */
-  clearLibrary: {
-    methodKind: "unary";
-    input: typeof ClearLibraryRequestSchema;
-    output: typeof ClearLibraryResponseSchema;
   },
   /**
    * @generated from rpc books.v1.CatalogService.FindDuplicates
