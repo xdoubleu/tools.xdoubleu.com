@@ -90,7 +90,26 @@ After every code change, always run **both** of the following before reporting t
 
    Always start the DB with `docker-compose up -d` (from `api/`) before running api tests and stop it with `docker-compose down` afterwards. Do not silently skip this step.
 
-These two steps are **not optional**. Do not mark any task complete without running both.
+3. **Open / update the PR** — commit the work, push the feature branch, and ensure a PR exists against `main`:
+
+   ```bash
+   # branch was already created from up-to-date main at task start
+   git push -u origin HEAD
+   gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
+   ```
+
+   This is standing authorization to commit and open the PR as part of finishing a task — it overrides the default "commit only when asked" rule for the task's own branch. Never push to `main` directly. If a PR already exists for the branch, just push — do not open a duplicate.
+
+4. **Verify CI is green and the PR is mergeable** — wait for the required `ci-pass` check (see "CI" below) and confirm there are no merge conflicts:
+
+   ```bash
+   gh pr checks --watch
+   gh pr view --json mergeable,mergeStateStatus,statusCheckRollup
+   ```
+
+   If any check fails, fix the cause and repeat from step 1 — a red PR is not "done". `mergeable` must be `MERGEABLE`. On green + mergeable, report the PR URL and stop — **do not merge**; the user merges.
+
+These four steps are **not optional**. Do not mark any task complete without running all of them.
 
 ## CI
 
