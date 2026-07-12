@@ -692,6 +692,43 @@ func TestKoboState_GetNoState(t *testing.T) {
 	assert.Equal(t, "1970-01-01T00:00:00Z", si["LastModified"])
 }
 
+// TestKoboState_PutLocationEmptyValueOmitted verifies that a Location object
+// with an empty Value (no bare-string fallback either) is treated as "no
+// location" rather than erroring or storing an empty string.
+func TestKoboState_PutLocationEmptyValueOmitted(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-state-empty-location-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	body, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{
+				"ProgressPercent": 10,
+				"Location": map[string]any{
+					"Source": "x",
+					"Type":   "KoboSpan",
+					"Value":  "",
+				},
+			},
+		}},
+	})
+	require.NoError(t, err)
+
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), body))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	var state map[string]any
+	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	bm, ok := state["CurrentBookmark"].(map[string]any)
+	require.True(t, ok)
+	assert.Nil(t, bm["Location"], "empty Value must not be stored as a location")
+}
+
 func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
@@ -782,6 +819,37 @@ func TestKoboState_PutEmptyReadingStates(t *testing.T) {
 	require.True(t, ok)
 	assert.InDelta(t, 50.0, bm["ProgressPercent"], 0.01,
 		"empty ReadingStates must preserve existing progress, not zero it")
+}
+
+// TestKoboState_PutZeroProgressReportsReadyToRead verifies that an existing
+// (non-nil) reading state at 0% still reports "ReadyToRead", exercising the
+// default branch of koboStatusForPercent — distinct from the never-synced
+// nil-state case, which is hardcoded rather than computed.
+func TestKoboState_PutZeroProgressReportsReadyToRead(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-state-zero-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	body, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{"ProgressPercent": 0},
+		}},
+	})
+	require.NoError(t, err)
+
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), body))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	var state map[string]any
+	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	si, ok := state["StatusInfo"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "ReadyToRead", si["Status"])
 }
 
 // TestKoboState_PutFullProgressReportsFinished verifies that reaching 100%
