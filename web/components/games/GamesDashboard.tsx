@@ -5,15 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { mutate } from 'swr'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts'
 import { useSteam, useSteamProgress, useRecentlyActiveGames } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
 import type {
@@ -22,22 +13,15 @@ import type {
   RecentGame
 } from '@/lib/gen/games/v1/games_pb'
 import GamesSearch from '@/components/games/GamesSearch'
+import GamesStatCard from '@/components/games/GamesStatCard'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
+import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
-import { Card, interactiveCardClass } from '@/components/ui/card'
+import { interactiveCardClass } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
 import { swrKeys } from '@/lib/swrKeys'
-
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Card className="p-3">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="text-xl font-bold mt-0.5">{value}</p>
-    </Card>
-  )
-}
 
 function RecentGameCard({ game }: { game: RecentGame }) {
   const unlockLabel = game.recentUnlocks === 1 ? 'unlock' : 'unlocks'
@@ -119,10 +103,10 @@ export default function GamesDashboard({
 
       {steam && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Total backlog" value={steam.totalBacklog} />
-          <StatCard label="Current rate" value={`${steam.currentRate}%`} />
-          <StatCard label="In progress" value={steam.inProgress.length} />
-          <StatCard label="Completed" value={steam.completed.length} />
+          <GamesStatCard label="Total backlog" value={steam.totalBacklog} />
+          <GamesStatCard label="Current rate" value={`${steam.currentRate}%`} />
+          <GamesStatCard label="In progress" value={steam.inProgress.length} />
+          <GamesStatCard label="Completed" value={steam.completed.length} />
         </div>
       )}
 
@@ -204,29 +188,7 @@ export default function GamesDashboard({
               )}
               {progressChartData.length > 0 && (
                 <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={progressChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                      <YAxis />
-                      <Tooltip
-                        cursor={{ stroke: 'var(--color-border)' }}
-                        contentStyle={{
-                          backgroundColor: 'var(--color-surface)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: '0.75rem',
-                          color: 'var(--color-fg)'
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="var(--color-accent)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <SteamProgressChart data={progressChartData} />
                 </div>
               )}
             </>
