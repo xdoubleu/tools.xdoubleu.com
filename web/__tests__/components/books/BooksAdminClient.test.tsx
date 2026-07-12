@@ -1,15 +1,18 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
+
+const mockUseResyncRefresh = jest.fn().mockReturnValue({
+  connected: true,
+  isRefreshing: false,
+  lastRefresh: null,
+  processed: null,
+  total: null,
+  refresh: jest.fn()
+})
 
 jest.mock('@/lib/books/resyncRefresh', () => ({
-  useResyncRefresh: () => ({
-    connected: true,
-    isRefreshing: false,
-    lastRefresh: null,
-    processed: null,
-    total: null,
-    refresh: jest.fn()
-  })
+  useResyncRefresh: (onSynced?: () => void, force?: boolean) =>
+    mockUseResyncRefresh(onSynced, force)
 }))
 
 jest.mock('@/components/books/ResyncWizard', () => ({
@@ -60,5 +63,18 @@ describe('BooksAdminClient', () => {
     render(<BooksAdminClient />)
     expect(screen.getByRole('heading', { name: /find duplicates/i })).toBeInTheDocument()
     expect(screen.getByTestId('find-duplicates-btn')).toBeInTheDocument()
+  })
+
+  it('starts with the force-Google-Books checkbox unchecked and passes false', () => {
+    render(<BooksAdminClient />)
+    expect(screen.getByTestId('resync-force-googlebooks-checkbox')).not.toBeChecked()
+    expect(mockUseResyncRefresh).toHaveBeenLastCalledWith(expect.any(Function), false)
+  })
+
+  it('toggling the checkbox passes forceGoogleBooks through to useResyncRefresh', () => {
+    render(<BooksAdminClient />)
+    fireEvent.click(screen.getByTestId('resync-force-googlebooks-checkbox'))
+    expect(screen.getByTestId('resync-force-googlebooks-checkbox')).toBeChecked()
+    expect(mockUseResyncRefresh).toHaveBeenLastCalledWith(expect.any(Function), true)
   })
 })

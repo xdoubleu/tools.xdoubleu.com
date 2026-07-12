@@ -28,6 +28,22 @@ func TestConnectStartResync_Success(t *testing.T) {
 	assert.NotNil(t, resp)
 }
 
+// TestConnectStartResync_Force verifies the force flag round-trips through
+// the RPC without erroring — the job itself asserts the flag is honored (see
+// TestResyncOpenLibraryJob_Run in internal/jobs).
+func TestConnectStartResync_Force(t *testing.T) {
+	client := newAdminBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.StartResyncRequest{Force: true})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.StartResync(ctx, req)
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+}
+
 // TestBuildResyncProposals_Service exercises the service layer end-to-end
 // against the real DB. The test app's mock Open Library client always
 // returns "The Odyssey" by Homer, so a book seeded with a different title
@@ -50,7 +66,12 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 		fakeStore.Put(ctx, coverKey, bytes.NewReader([]byte("img")), 3, "image/jpeg"),
 	)
 
-	n, err := testApp.Services.Books.BuildResyncProposals(ctx, testApp.Logger, nil)
+	n, err := testApp.Services.Books.BuildResyncProposals(
+		ctx,
+		testApp.Logger,
+		nil,
+		false,
+	)
 	require.NoError(t, err)
 	assert.Positive(t, n, "the mock provider always disagrees on title")
 

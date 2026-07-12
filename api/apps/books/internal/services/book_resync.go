@@ -110,10 +110,17 @@ type ResyncProposal struct {
 // onProgress is called with (processed, total) after each book, first call
 // always (0, total). Pass nil to skip progress reporting. A per-book fetch
 // failure is logged and collected but does not abort the scan.
+//
+// forceGoogleBooks bypasses the skip-if-known cache (see scanOptions) so
+// Google Books is queried fresh for every book, even ones already resolved
+// true or false — the escape hatch for books stuck unresolved after a
+// rate-limit trip or a stale cached miss. The 429 circuit breaker still
+// applies within a forced run.
 func (s *BookService) BuildResyncProposals(
 	ctx context.Context,
 	logger *slog.Logger,
 	onProgress func(processed, total int),
+	forceGoogleBooks bool,
 ) (int, error) {
 	books, err := s.resyncRepo().ListCatalogBooks(ctx)
 	if err != nil {
@@ -147,7 +154,10 @@ func (s *BookService) BuildResyncProposals(
 	for _, book := range books {
 		b := book
 		eg.Go(func() error {
-			opts := &scanOptions{gbKnown: b.GoogleBooksFound, gbExceeded: gbExceeded}
+			opts := &scanOptions{
+				gbKnown:    gbKnownFor(b, forceGoogleBooks),
+				gbExceeded: gbExceeded,
+			}
 			proposals, unresolved := s.fetchSourceProposals(egCtx, logger, b, opts)
 			if raw, ok := encodeIfFlagged(b, proposals); ok {
 				mu.Lock()
@@ -277,9 +287,11 @@ func anyDiffers(book models.Book, proposals []SourceProposal) bool {
 // BuildResyncProposals run after a Google Books 429, so the daily quota isn't
 // hammered further once it's gone; those books stay unresolved and are
 // retried next run.
-// ponytail: skip-if-known never re-checks a resolved GB source for drift
-// (e.g. a book gaining a cover later) — add a forced full-rescan knob if
-// that's needed.
+// BuildResyncProposals' forceGoogleBooks param nils out gbKnown for every
+// book, bypassing the cache entirely for one run — the escape hatch for
+// books stuck unresolved after a rate-limit trip or a stale cached miss
+// (skip-if-known never re-checks a resolved GB source for drift otherwise,
+// e.g. a book gaining a cover later).
 // nil means on-demand mode (GetBookSources / ApplyBookSource): always query
 // Google Books fresh, no skip, no breaker.
 type scanOptions struct {
@@ -289,6 +301,15 @@ type scanOptions struct {
 
 func gbBreakerTripped(opts *scanOptions) bool {
 	return opts != nil && opts.gbExceeded != nil && opts.gbExceeded.Load()
+}
+
+// gbKnownFor returns the book's cached Google Books found flag, or nil when
+// force bypasses the cache for this run.
+func gbKnownFor(book models.Book, force bool) *bool {
+	if force {
+		return nil
+	}
+	return book.GoogleBooksFound
 }
 
 // fetchSourceProposals fetches each configured provider's view of one catalog

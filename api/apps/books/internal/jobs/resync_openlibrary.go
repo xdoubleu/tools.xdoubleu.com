@@ -26,6 +26,7 @@ type ResyncOpenLibraryJob struct {
 	ws    *progressws.Service
 
 	armed   atomic.Bool
+	force   atomic.Bool
 	running atomic.Bool
 }
 
@@ -46,9 +47,12 @@ func (j *ResyncOpenLibraryJob) RunEvery() time.Duration {
 	return hoursInDay * time.Hour
 }
 
-// Arm marks the job to scan the whole catalog on the next Run call.
-func (j *ResyncOpenLibraryJob) Arm() {
+// Arm marks the job to scan the whole catalog on the next Run call. force
+// bypasses Google Books' skip-if-known cache for that run — see
+// BookService.BuildResyncProposals.
+func (j *ResyncOpenLibraryJob) Arm(force bool) {
 	j.armed.Store(true)
+	j.force.Store(force)
 }
 
 func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) error {
@@ -61,6 +65,8 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 	}
 	defer j.running.Store(false)
 
+	force := j.force.Swap(false)
+
 	var onProgress func(int, int)
 	if j.ws != nil {
 		id := j.ID()
@@ -69,7 +75,7 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 		}
 	}
 
-	n, err := j.books.BuildResyncProposals(ctx, logger, onProgress)
+	n, err := j.books.BuildResyncProposals(ctx, logger, onProgress, force)
 	if n > 0 {
 		logger.InfoContext(ctx, "flagged books with resync differences",
 			slog.Int("count", n),

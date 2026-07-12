@@ -94,4 +94,16 @@ describe('useResyncRefresh', () => {
     act(() => result.current.refresh())
     expect(mockTrigger).toHaveBeenCalledTimes(1)
   })
+
+  it('defaults to force=false when not requested', () => {
+    const { result } = renderHook(() => useResyncRefresh())
+    act(() => result.current.refresh())
+    expect(mockTrigger).toHaveBeenCalledWith(false)
+  })
+
+  it('passes force=true through to the trigger when requested', () => {
+    const { result } = renderHook(() => useResyncRefresh(undefined, true))
+    act(() => result.current.refresh())
+    expect(mockTrigger).toHaveBeenCalledWith(true)
+  })
 })

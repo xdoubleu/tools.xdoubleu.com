@@ -117,6 +117,7 @@ func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 		context.Background(),
 		adminApp.Logger,
 		nil,
+		false,
 	)
 	require.NoError(t, err)
 
@@ -149,6 +150,7 @@ func TestGetSourceStats_Admin_CountsOverlap(t *testing.T) {
 		context.Background(),
 		adminApp.Logger,
 		nil,
+		false,
 	)
 	require.NoError(t, err)
 
@@ -226,6 +228,7 @@ func TestListBooksInExactSources_Admin_ReturnsOnlyUniqueBook(t *testing.T) {
 		context.Background(),
 		adminApp.Logger,
 		nil,
+		false,
 	)
 	require.NoError(t, err)
 
@@ -263,6 +266,7 @@ func TestListBooksInExactSources_Admin_ReturnsOverlapBook(t *testing.T) {
 		context.Background(),
 		adminApp.Logger,
 		nil,
+		false,
 	)
 	require.NoError(t, err)
 

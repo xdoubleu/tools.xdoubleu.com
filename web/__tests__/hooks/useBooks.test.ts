@@ -29,7 +29,8 @@ jest.mock('@/lib/client', () => ({
     applyResyncChoice: jest.fn().mockResolvedValue({}),
     getBookSources: jest.fn().mockResolvedValue({ proposal: undefined }),
     applyBookSource: jest.fn().mockResolvedValue({}),
-    getExternalBook: jest.fn().mockResolvedValue({ result: undefined })
+    getExternalBook: jest.fn().mockResolvedValue({ result: undefined }),
+    startResync: jest.fn().mockResolvedValue({})
   }))
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({
@@ -68,7 +69,8 @@ import {
   useBookSources,
   useApplyBookSource,
   useSourceStats,
-  useExternalBook
+  useExternalBook,
+  useStartResync
 } from '@/hooks/useBooks'
 import { createServiceClient } from '@/lib/client'
 
@@ -170,6 +172,26 @@ describe('useSetBookISBN', () => {
     const { result } = renderHook(() => useSetBookISBN())
     await result.current('book-1', '9780140449112')
     expect(mockSet).toHaveBeenCalledWith({ bookId: 'book-1', isbn13: '9780140449112' })
+  })
+})
+
+describe('useStartResync', () => {
+  it('calls client.startResync with force=false by default', async () => {
+    const mockStart = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ startResync: mockStart })
+    const { result } = renderHook(() => useStartResync())
+    await result.current()
+    expect(mockStart).toHaveBeenCalledWith({ force: false })
+  })
+
+  it('calls client.startResync with force=true when requested', async () => {
+    const mockStart = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ startResync: mockStart })
+    const { result } = renderHook(() => useStartResync())
+    await result.current(true)
+    expect(mockStart).toHaveBeenCalledWith({ force: true })
   })
 })
 
