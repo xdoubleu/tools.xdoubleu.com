@@ -2,6 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 const mockDisconnectKoboDevice = jest.fn()
+const mockSetKoboDeviceLogging = jest.fn()
 const mockMutate = jest.fn()
 
 function makeUseListKoboDevices(devices: unknown[]) {
@@ -16,7 +17,16 @@ const mockUseListKoboDevices = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
   useListKoboDevices: () => mockUseListKoboDevices(),
-  useDisconnectKoboDevice: () => mockDisconnectKoboDevice
+  useDisconnectKoboDevice: () => mockDisconnectKoboDevice,
+  useSetKoboDeviceLogging: () => mockSetKoboDeviceLogging
+}))
+
+// Stub the logs viewer — it has its own test and its own hooks.
+jest.mock('@/components/books/KoboDeviceLogs', () => ({
+  __esModule: true,
+  default: ({ deviceId }: { deviceId: string }) => (
+    <div data-testid={`kobo-logs-stub-${deviceId}`}>logs</div>
+  )
 }))
 
 // Stub Dialog to render children inline (avoids portal issues in jsdom).
@@ -32,8 +42,10 @@ import KoboDevices from '@/components/books/KoboDevices'
 
 beforeEach(() => {
   mockDisconnectKoboDevice.mockReset()
+  mockSetKoboDeviceLogging.mockReset()
   mockMutate.mockReset()
   mockDisconnectKoboDevice.mockResolvedValue({})
+  mockSetKoboDeviceLogging.mockResolvedValue({})
 })
 
 describe('KoboDevices — empty state', () => {
@@ -166,5 +178,67 @@ describe('KoboDevices — disconnect flow', () => {
       expect(screen.getByTestId('disconnect-error')).toBeInTheDocument()
     })
     expect(mockMutate).not.toHaveBeenCalled()
+  })
+})
+
+describe('KoboDevices — debug logging', () => {
+  const offDevice = {
+    id: 'dev-off',
+    name: 'Logging Off Kobo',
+    serial: '',
+    createdAt: '2024-01-01T00:00:00Z',
+    lastSeenAt: '',
+    loggingEnabled: false
+  }
+  const onDevice = {
+    id: 'dev-on',
+    name: 'Logging On Kobo',
+    serial: '',
+    createdAt: '2024-01-01T00:00:00Z',
+    lastSeenAt: '',
+    loggingEnabled: true
+  }
+
+  it('renders a debug-logging toggle per device', () => {
+    mockUseListKoboDevices.mockReturnValue(makeUseListKoboDevices([offDevice]))
+    render(<KoboDevices />)
+    const toggle = screen.getByTestId(`kobo-logging-toggle-${offDevice.id}`)
+    expect(toggle).not.toBeChecked()
+  })
+
+  it('enables logging and mutates when toggled on', async () => {
+    mockUseListKoboDevices.mockReturnValue(makeUseListKoboDevices([offDevice]))
+    render(<KoboDevices />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`kobo-logging-toggle-${offDevice.id}`))
+    })
+
+    await waitFor(() => {
+      expect(mockSetKoboDeviceLogging).toHaveBeenCalledWith(offDevice.id, true)
+    })
+    expect(mockMutate).toHaveBeenCalled()
+  })
+
+  it('shows View logs and expands the viewer for a logging-enabled device', async () => {
+    mockUseListKoboDevices.mockReturnValue(makeUseListKoboDevices([onDevice]))
+    render(<KoboDevices />)
+
+    const toggleBtn = screen.getByTestId(`kobo-logs-toggle-${onDevice.id}`)
+    expect(toggleBtn).toHaveTextContent('View logs')
+    expect(screen.queryByTestId(`kobo-logs-stub-${onDevice.id}`)).not.toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(toggleBtn)
+    })
+
+    expect(screen.getByTestId(`kobo-logs-stub-${onDevice.id}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`kobo-logs-toggle-${onDevice.id}`)).toHaveTextContent('Hide logs')
+  })
+
+  it('does not show View logs when logging is disabled', () => {
+    mockUseListKoboDevices.mockReturnValue(makeUseListKoboDevices([offDevice]))
+    render(<KoboDevices />)
+    expect(screen.queryByTestId(`kobo-logs-toggle-${offDevice.id}`)).not.toBeInTheDocument()
   })
 })

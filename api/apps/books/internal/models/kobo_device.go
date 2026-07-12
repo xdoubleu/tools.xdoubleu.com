@@ -10,4 +10,7 @@ type KoboDevice struct {
 	Serial     string // may be empty if not known
 	CreatedAt  time.Time
 	LastSeenAt *time.Time // nil if the device has never synced
+	// LoggingEnabled reflects the in-memory debug-logging switch; it is filled
+	// by the service/handler layer from KoboLogStore, not persisted in the DB.
+	LoggingEnabled bool
 }
