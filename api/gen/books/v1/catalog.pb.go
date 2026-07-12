@@ -475,7 +475,11 @@ func (x *MergeBooksResponse) GetDeletedFiles() uint32 {
 }
 
 type StartResyncRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Force re-queries Google Books for every book, ignoring the
+	// skip-if-known cache (googlebooks_found). Use to recover books stuck
+	// unresolved after a rate-limit trip or a stale cached miss.
+	Force         bool `protobuf:"varint,1,opt,name=force,proto3" json:"force,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -508,6 +512,13 @@ func (x *StartResyncRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use StartResyncRequest.ProtoReflect.Descriptor instead.
 func (*StartResyncRequest) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *StartResyncRequest) GetForce() bool {
+	if x != nil {
+		return x.Force
+	}
+	return false
 }
 
 type StartResyncResponse struct {
@@ -1552,8 +1563,9 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x10_resolved_status\"^\n" +
 	"\x12MergeBooksResponse\x12#\n" +
 	"\rmerged_groups\x18\x01 \x01(\rR\fmergedGroups\x12#\n" +
-	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles\"\x14\n" +
-	"\x12StartResyncRequest\"\x15\n" +
+	"\rdeleted_files\x18\x02 \x01(\rR\fdeletedFiles\"*\n" +
+	"\x12StartResyncRequest\x12\x14\n" +
+	"\x05force\x18\x01 \x01(\bR\x05force\"\x15\n" +
 	"\x13StartResyncResponse\"\xe4\x01\n" +
 	"\n" +
 	"SourceBook\x12\x16\n" +

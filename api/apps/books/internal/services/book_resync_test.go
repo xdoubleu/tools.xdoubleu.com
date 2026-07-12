@@ -491,6 +491,48 @@ func TestFetchByISBN_GoogleBooksKnown_SkippedAndUnresolved(t *testing.T) {
 	assert.Zero(t, gb.calls.Load(), "an already-known source must not be re-queried")
 }
 
+// TestBuildResyncProposals_ForceGoogleBooks_BypassesCache is a regression test
+// for the bug where Google Books stopped being queried at all: once
+// googlebooks_found is set (true or false) for every book — which happens
+// after the very first scan — gbKnown is always non-nil and every later scan
+// skips GB catalog-wide. forceGoogleBooks must bypass that cache so a stuck
+// book (e.g. left "false" by a tripped rate-limit breaker) can be re-queried
+// and pick up a fresh match.
+func TestBuildResyncProposals_ForceGoogleBooks_BypassesCache(t *testing.T) {
+	id := uuid.New()
+	isbn := "9780140449112"
+	gbFoundFalse := false
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID: id, Title: "Stuck Book", ISBN13: &isbn, GoogleBooksFound: &gbFoundFalse,
+	}
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	//nolint:exhaustruct // partial
+	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
+	//nolint:exhaustruct // partial
+	gb := &fakeGBClient{byISBN: &googlebooks.ExternalBook{Title: "GB Title"}}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    olClient,
+		googleBooks: gb,
+		objectStore: objectstore.NewFake(),
+	}
+
+	_, err := svc.BuildResyncProposals(
+		context.Background(), logging.NewNopLogger(), nil, false,
+	)
+	require.NoError(t, err)
+	assert.Zero(t, gb.calls.Load(),
+		"without force, a known (even false) GB flag must keep skipping GB")
+
+	_, err = svc.BuildResyncProposals(
+		context.Background(), logging.NewNopLogger(), nil, true,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), gb.calls.Load(),
+		"force must bypass the skip-if-known cache and query GB")
+}
+
 func TestFetchByISBN_GoogleBooksBreakerTripped_SkipsCall(t *testing.T) {
 	//nolint:exhaustruct // partial
 	gb := &fakeGBClient{byISBN: &googlebooks.ExternalBook{Title: "GB Title"}}
@@ -841,6 +883,7 @@ func TestBuildResyncProposals_FlagsOnlyDiffering(t *testing.T) {
 	n, err := svc.BuildResyncProposals(
 		context.Background(), logging.NewNopLogger(),
 		func(processed, total int) { calls = append(calls, [2]int{processed, total}) },
+		false,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n, "only the differing book should be flagged")
@@ -883,6 +926,7 @@ func TestBuildResyncProposals_FlagsNotFoundAnywhere(t *testing.T) {
 		context.Background(),
 		logging.NewNopLogger(),
 		nil,
+		false,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n, "a book no source could find must still be flagged")
@@ -913,6 +957,7 @@ func TestBuildResyncProposals_NeverAttempted_NotFlagged(t *testing.T) {
 		context.Background(),
 		logging.NewNopLogger(),
 		nil,
+		false,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n, "a book nothing could be searched for must not be flagged")
@@ -931,6 +976,7 @@ func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
 	n, err := svc.BuildResyncProposals(
 		context.Background(), logging.NewNopLogger(),
 		func(processed, total int) { calls = append(calls, [2]int{processed, total}) },
+		false,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, 0, n)
@@ -951,6 +997,7 @@ func TestBuildResyncProposals_ListError(t *testing.T) {
 		context.Background(),
 		logging.NewNopLogger(),
 		nil,
+		false,
 	)
 	require.ErrorIs(t, err, listErr)
 	assert.Equal(t, 0, n)

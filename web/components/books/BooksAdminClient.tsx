@@ -7,16 +7,18 @@ import ManageDuplicatesDialog from '@/components/books/ManageDuplicatesDialog'
 import ResyncWizard from '@/components/books/ResyncWizard'
 import SourceStats from '@/components/books/SourceStats'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { formatDateTime } from '@/lib/dates'
 
 export default function BooksAdminClient() {
+  const [forceGoogleBooks, setForceGoogleBooks] = useState(false)
   const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(() => {
     void mutate(swrKeys.resyncProposals)
     void mutate(swrKeys.bookSourceStats)
-  })
+  }, forceGoogleBooks)
 
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
@@ -58,6 +60,16 @@ export default function BooksAdminClient() {
           your library. Nothing is written automatically — review each flagged book below and pick
           which source (or your existing library value) should win.
         </p>
+        <div className="mb-3">
+          <Checkbox
+            id="resync-force-googlebooks"
+            checked={forceGoogleBooks}
+            disabled={isRefreshing}
+            onChange={(e) => setForceGoogleBooks(e.target.checked)}
+            label="Re-check Google Books (ignore cache)"
+            data-testid="resync-force-googlebooks-checkbox"
+          />
+        </div>
         <Button
           type="button"
           variant="secondary"

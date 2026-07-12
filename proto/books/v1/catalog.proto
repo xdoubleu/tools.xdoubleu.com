@@ -50,7 +50,12 @@ message MergeBooksResponse {
   uint32 deleted_files = 2;
 }
 
-message StartResyncRequest {}
+message StartResyncRequest {
+  // Force re-queries Google Books for every book, ignoring the
+  // skip-if-known cache (googlebooks_found). Use to recover books stuck
+  // unresolved after a rate-limit trip or a stale cached miss.
+  bool force = 1;
+}
 message StartResyncResponse {}
 
 // SourceBook is one candidate set of metadata for a catalog book — either the

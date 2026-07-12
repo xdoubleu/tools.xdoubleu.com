@@ -13,8 +13,17 @@ export type ResyncRefreshState = ProgressState
 // The scan is read-only — it only flags books that differ from an external
 // source for the wizard to review; nothing is written to a book here.
 // onSynced is called once per completed run so the caller can re-fetch the
-// flagged proposals.
-export function useResyncRefresh(onSynced?: () => void): ResyncRefreshState {
+// flagged proposals. forceGoogleBooks bypasses Google Books' skip-if-known
+// cache for this run — see BookService.BuildResyncProposals.
+export function useResyncRefresh(
+  onSynced?: () => void,
+  forceGoogleBooks = false
+): ResyncRefreshState {
   const triggerResync = useStartResync()
-  return useProgressSocket('books', 'resync-openlibrary', triggerResync, onSynced)
+  return useProgressSocket(
+    'books',
+    'resync-openlibrary',
+    () => triggerResync(forceGoogleBooks),
+    onSynced
+  )
 }

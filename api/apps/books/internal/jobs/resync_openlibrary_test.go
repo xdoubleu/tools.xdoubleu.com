@@ -28,12 +28,12 @@ func TestResyncOpenLibraryJob_NotArmed_IsNoop(t *testing.T) {
 // subsequent unarmed Run does nothing (simulates the guard without calling books).
 func TestResyncOpenLibraryJob_ArmThenDisarm(t *testing.T) {
 	j := jobs.NewResyncOpenLibraryJob(nil, nil)
-	j.Arm()
+	j.Arm(false)
 
 	// A second Run (not yet called) resets the flag — simulate by calling Run
 	// with a nil books field: if the guard fires it returns nil before touching books.
 	// Arm() → Run() would call books (nil) and panic, so we cannot call Run here.
 	// Instead verify the ID is stable and Arm is idempotent (no panic on double-arm).
-	j.Arm()
+	j.Arm(true)
 	assert.Equal(t, "resync-openlibrary", j.ID())
 }

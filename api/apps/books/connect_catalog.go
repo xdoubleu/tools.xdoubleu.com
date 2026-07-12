@@ -172,13 +172,13 @@ func (h *booksConnectHandler) MergeBooks(
 
 func (h *booksConnectHandler) StartResync(
 	ctx context.Context,
-	_ *connect.Request[booksv1.StartResyncRequest],
+	req *connect.Request[booksv1.StartResyncRequest],
 ) (*connect.Response[booksv1.StartResyncResponse], error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	h.app.resyncBooksJob.Arm()
+	h.app.resyncBooksJob.Arm(req.Msg.Force)
 	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
 
 	return connect.NewResponse(&booksv1.StartResyncResponse{}), nil

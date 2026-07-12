@@ -249,7 +249,7 @@ export function useClearLibrary() {
 
 export function useStartResync() {
   const client = createServiceClient(CatalogService)
-  return () => client.startResync({})
+  return (force = false) => client.startResync({ force })
 }
 
 export function useFindDuplicates() {

@@ -43,7 +43,7 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 	}
 
 	_, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(), nil,
+		context.Background(), logging.NewNopLogger(), nil, false,
 	)
 	require.NoError(t, err)
 
@@ -71,7 +71,7 @@ func TestBuildResyncProposals_ScanStatus_UnsearchableAllNil(t *testing.T) {
 	}
 
 	_, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(), nil,
+		context.Background(), logging.NewNopLogger(), nil, false,
 	)
 	require.NoError(t, err)
 
@@ -101,7 +101,7 @@ func TestBuildResyncProposals_ScanStatusError_NonFatal(t *testing.T) {
 	}
 
 	n, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(), nil,
+		context.Background(), logging.NewNopLogger(), nil, false,
 	)
 	require.ErrorContains(t, err, "record scan status")
 	assert.Equal(t, 1, n,
