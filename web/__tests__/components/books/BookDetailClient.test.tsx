@@ -298,19 +298,30 @@ describe('BookDetailClient', () => {
     expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
   })
 
-  it('hides Kobo sync toggle when book is not owned digitally', () => {
+  it('hides Kobo sync toggle when book has no epub/pdf format', () => {
+    const noFormatBook = create(UserBookSchema, { ...mockUserBook, formats: [] })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([noFormatBook]),
+      isLoading: false,
+      error: undefined
+    })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.queryByTestId('kobo-sync-toggle')).not.toBeInTheDocument()
   })
 
-  it('shows Kobo sync toggle when book is owned digitally', () => {
-    const digitalBook = create(UserBookSchema, {
-      ...mockUserBook,
-      tags: ['favourite', 'sci-fi', 'own-digital']
-    })
+  it('shows Kobo sync toggle when book has an epub format, even without the own-digital tag', () => {
+    // The Kobo sync option must not depend on the own-digital tag, which can
+    // drift out of sync with the book's actual files — only on formats.
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByTestId('kobo-sync-toggle')).toBeInTheDocument()
+  })
+
+  it('shows Kobo sync toggle when book has a pdf format', () => {
+    const pdfBook = create(UserBookSchema, { ...mockUserBook, formats: ['pdf'] })
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     jest.mocked(useLibrary).mockReturnValue({
-      data: makeLibraryData([digitalBook]),
+      data: makeLibraryData([pdfBook]),
       isLoading: false,
       error: undefined
     })
