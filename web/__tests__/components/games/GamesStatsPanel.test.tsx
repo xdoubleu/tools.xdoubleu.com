@@ -67,7 +67,7 @@ describe('GamesStatsPanel', () => {
     mockProgress({ labels: ['Jan'], values: ['10'] })
     render(<GamesStatsPanel />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Library stats' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open library stats' }))
 
     expect(screen.getByText('Total backlog')).toBeInTheDocument()
     expect(screen.getByText('50.00%')).toBeInTheDocument()
@@ -79,7 +79,18 @@ describe('GamesStatsPanel', () => {
     mockSteam()
     mockProgress()
     render(<GamesStatsPanel />)
-    fireEvent.click(screen.getByRole('button', { name: 'Library stats' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open library stats' }))
     expect(screen.getByText('No progress data for this range.')).toBeInTheDocument()
+  })
+
+  it('closes via the close chevron', () => {
+    mockSteam()
+    mockProgress()
+    render(<GamesStatsPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open library stats' }))
+    expect(screen.getByText('Total backlog')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close library stats' }))
+    expect(screen.queryByText('Total backlog')).not.toBeInTheDocument()
   })
 })

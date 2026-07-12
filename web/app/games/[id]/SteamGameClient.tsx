@@ -153,10 +153,17 @@ export default function SteamGameClient({
             <Button
               variant="secondary"
               size="sm"
+              className="h-auto flex-col gap-0.5 py-1.5"
+              aria-label={isRefetching ? 'Refreshing…' : 'Refresh'}
               onClick={() => void refetch()}
               disabled={isRefetching}
             >
-              {isRefetching ? 'Refreshing…' : 'Refresh'}
+              <span>{isRefetching ? 'Refreshing…' : 'Refresh'}</span>
+              {game.lastSyncedAt && (
+                <span className="text-xs font-normal text-muted">
+                  Last synced: {formatDateTime(game.lastSyncedAt)}
+                </span>
+              )}
             </Button>
             <Button
               variant={highPollMode ? 'default' : 'secondary'}
@@ -165,29 +172,24 @@ export default function SteamGameClient({
             >
               {highPollMode ? 'High poll: on' : 'High poll: off'}
             </Button>
-            {game.lastSyncedAt && (
-              <span className="text-xs text-muted">
-                Last synced: {formatDateTime(game.lastSyncedAt)}
-              </span>
+            {achievedCount > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowCompleted((prev) => !prev)}
+              >
+                {showCompleted ? 'Hide completed' : 'Show completed'}
+              </Button>
             )}
             <GamesStatsPanel />
           </div>
 
           {achievements.length > 0 && (
             <section>
-              <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+              <div className="mb-4">
                 <h2 className="text-xl font-semibold">
                   Achievements ({achievedCount}/{achievements.length})
                 </h2>
-                {achievedCount > 0 && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setShowCompleted((prev) => !prev)}
-                  >
-                    {showCompleted ? 'Hide completed' : 'Show completed'}
-                  </Button>
-                )}
               </div>
               {visibleAchievements.length > 0 ? (
                 <div className="flex flex-col gap-3">

@@ -104,14 +104,20 @@ export default function GamesStatsPanel() {
 
   return (
     <>
-      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        Library stats
+      <Button
+        variant="secondary"
+        size="sm"
+        className="ml-auto"
+        aria-label="Open library stats"
+        onClick={() => setOpen(true)}
+      >
+        ‹
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent side="right" className="overflow-x-hidden">
           <DialogHeader>
+            <DialogClose aria-label="Close library stats">›</DialogClose>
             <DialogTitle>Library stats</DialogTitle>
-            <DialogClose aria-label="Close">×</DialogClose>
           </DialogHeader>
           {open && <GamesStatsPanelContent />}
         </DialogContent>

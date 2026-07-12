@@ -18,9 +18,14 @@ function Dialog({ open, onOpenChange, children }: DialogProps) {
   )
 }
 
-function DialogOverlay() {
+function DialogOverlay({ side = 'center' }: { side?: 'center' | 'right' }) {
   return (
-    <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+    <RadixDialog.Overlay
+      className={cn(
+        'fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        side !== 'right' && 'backdrop-blur-sm'
+      )}
+    />
   )
 }
 
@@ -50,7 +55,7 @@ const rightContentClass = [
 function DialogContent({ children, className = '', side = 'center' }: DialogContentProps) {
   return (
     <RadixDialog.Portal>
-      <DialogOverlay />
+      <DialogOverlay side={side} />
       <RadixDialog.Content
         className={cn(
           'fixed z-50 overflow-y-auto',
