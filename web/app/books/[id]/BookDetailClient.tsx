@@ -162,8 +162,10 @@ export default function BookDetailClient({ id }: { id: string }) {
                 <BookReadDatesEditor userBook={userBook} onSaved={handleSaved} />
               )}
 
-              {/* Kobo sync — only shown when the book is owned digitally */}
-              {userBook.tags.includes('own-digital') && (
+              {/* Kobo sync — only shown when a syncable file exists (same
+                  check the preview buttons below use), not the own-digital
+                  tag, which can drift out of sync with the actual files */}
+              {(userBook.formats.includes('epub') || userBook.formats.includes('pdf')) && (
                 <div>
                   <p className="text-xs text-muted mb-1">Kobo sync</p>
                   <KoboSyncToggle

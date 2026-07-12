@@ -17,6 +17,15 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 )
 
+// koboUpstreamTimeout bounds calls to the upstream Kobo store so a slow or
+// stalled upstream can never hang a device's sync request indefinitely.
+// r.Context() still cancels on device disconnect; Timeout adds an absolute
+// ceiling on top of that.
+const koboUpstreamTimeout = 10 * time.Second
+
+//nolint:gochecknoglobals // shared client, Timeout mutated only in tests
+var koboUpstreamClient = &http.Client{Timeout: koboUpstreamTimeout}
+
 // koboRoutes mounts the Kobo native sync protocol endpoints under
 // /{prefix}/kobo/{token}/. The token is a raw bearer secret embedded in the
 // device's api_endpoint URL by the web setup flow; it is SHA-256 hashed before
@@ -326,7 +335,7 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 	proxyReq.Header = r.Header.Clone()
 
 	//nolint:gosec // intentional proxy to upstream Kobo store
-	resp, err := http.DefaultClient.Do(proxyReq)
+	resp, err := koboUpstreamClient.Do(proxyReq)
 	if err != nil {
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 		return
@@ -363,7 +372,7 @@ func (app *Books) koboFetchUpstreamSync(
 	req.Header = r.Header.Clone()
 
 	//nolint:gosec // intentional call to upstream Kobo store
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := koboUpstreamClient.Do(req)
 	if err != nil {
 		return nil, nil
 	}
