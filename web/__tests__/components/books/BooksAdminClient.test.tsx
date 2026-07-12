@@ -7,6 +7,7 @@ const mockUseResyncRefresh = jest.fn().mockReturnValue({
   lastRefresh: null,
   processed: null,
   total: null,
+  quotaReached: false,
   refresh: jest.fn()
 })
 
@@ -65,16 +66,30 @@ describe('BooksAdminClient', () => {
     expect(screen.getByTestId('find-duplicates-btn')).toBeInTheDocument()
   })
 
-  it('starts with the force-Google-Books checkbox unchecked and passes false', () => {
+  it('starts with the force checkbox unchecked and passes false', () => {
     render(<BooksAdminClient />)
-    expect(screen.getByTestId('resync-force-googlebooks-checkbox')).not.toBeChecked()
+    expect(screen.getByTestId('resync-force-checkbox')).not.toBeChecked()
     expect(mockUseResyncRefresh).toHaveBeenLastCalledWith(expect.any(Function), false)
   })
 
-  it('toggling the checkbox passes forceGoogleBooks through to useResyncRefresh', () => {
+  it('toggling the checkbox passes force through to useResyncRefresh', () => {
     render(<BooksAdminClient />)
-    fireEvent.click(screen.getByTestId('resync-force-googlebooks-checkbox'))
-    expect(screen.getByTestId('resync-force-googlebooks-checkbox')).toBeChecked()
+    fireEvent.click(screen.getByTestId('resync-force-checkbox'))
+    expect(screen.getByTestId('resync-force-checkbox')).toBeChecked()
     expect(mockUseResyncRefresh).toHaveBeenLastCalledWith(expect.any(Function), true)
+  })
+
+  it('shows a quota-reached notice when the resync hook reports one', () => {
+    mockUseResyncRefresh.mockReturnValueOnce({
+      connected: true,
+      isRefreshing: true,
+      lastRefresh: null,
+      processed: 500,
+      total: 1000,
+      quotaReached: true,
+      refresh: jest.fn()
+    })
+    render(<BooksAdminClient />)
+    expect(screen.getByTestId('resync-quota-reached')).toBeInTheDocument()
   })
 })

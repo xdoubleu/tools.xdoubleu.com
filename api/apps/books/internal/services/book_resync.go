@@ -107,20 +107,23 @@ type ResyncProposal struct {
 // books that now agree with every source (or were fixed by a prior wizard
 // pass) drop out automatically.
 //
-// onProgress is called with (processed, total) after each book, first call
-// always (0, total). Pass nil to skip progress reporting. A per-book fetch
-// failure is logged and collected but does not abort the scan.
+// onProgress is called with (processed, total, gbQuotaReached) after each
+// book, first call always (0, total, false). gbQuotaReached reports whether
+// the Google Books 429 breaker has tripped for this run (see gbExceeded
+// below), so callers can surface a quota-reached notice live. Pass nil to
+// skip progress reporting. A per-book fetch failure is logged and collected
+// but does not abort the scan.
 //
-// forceGoogleBooks bypasses the skip-if-known cache (see scanOptions) so
-// Google Books is queried fresh for every book, even ones already resolved
-// true or false — the escape hatch for books stuck unresolved after a
-// rate-limit trip or a stale cached miss. The 429 circuit breaker still
-// applies within a forced run.
+// force bypasses the skip-if-known cache (see scanOptions) so every source is
+// queried fresh for every book, even ones already resolved true or false —
+// the escape hatch for books stuck unresolved after a rate-limit trip or a
+// stale cached miss. The Google Books 429 circuit breaker still applies
+// within a forced run.
 func (s *BookService) BuildResyncProposals(
 	ctx context.Context,
 	logger *slog.Logger,
-	onProgress func(processed, total int),
-	forceGoogleBooks bool,
+	onProgress func(processed, total int, gbQuotaReached bool),
+	force bool,
 ) (int, error) {
 	books, err := s.resyncRepo().ListCatalogBooks(ctx)
 	if err != nil {
@@ -129,7 +132,7 @@ func (s *BookService) BuildResyncProposals(
 
 	total := len(books)
 	if onProgress != nil {
-		onProgress(0, total)
+		onProgress(0, total, false)
 	}
 
 	// Same concurrency cap as the old resync loop: the client-side rate
@@ -155,7 +158,7 @@ func (s *BookService) BuildResyncProposals(
 		b := book
 		eg.Go(func() error {
 			opts := &scanOptions{
-				gbKnown:    gbKnownFor(b, forceGoogleBooks),
+				known:      knownFor(b, force),
 				gbExceeded: gbExceeded,
 			}
 			proposals, unresolved := s.fetchSourceProposals(egCtx, logger, b, opts)
@@ -177,7 +180,7 @@ func (s *BookService) BuildResyncProposals(
 				mu.Unlock()
 			}
 			if onProgress != nil {
-				onProgress(int(processed.Add(1)), total)
+				onProgress(int(processed.Add(1)), total, gbExceeded.Load())
 			}
 			return nil
 		})
@@ -275,27 +278,26 @@ func anyDiffers(book models.Book, proposals []SourceProposal) bool {
 	return false
 }
 
-// scanOptions gates the bulk BuildResyncProposals pass. Only Google Books is
-// gated — it's the source with a real daily quota (free tier: 1000/day); a
-// full-catalog scan otherwise exhausts it and every subsequent lookup that
-// day errors. OpenLibrary and UniCat have no such quota and are always
-// queried fresh, so the wizard can still detect metadata drift on them.
-// gbKnown lets the Google Books call be skipped once that source is already
-// resolved for the book — with UpdateResyncScanStatus's preserve-on-unknown
-// write, the found column is a durable cache, so a steady-state scan only
-// queries GB for unresolved books. gbExceeded trips for the rest of one
-// BuildResyncProposals run after a Google Books 429, so the daily quota isn't
-// hammered further once it's gone; those books stay unresolved and are
-// retried next run.
-// BuildResyncProposals' forceGoogleBooks param nils out gbKnown for every
+// scanOptions gates the bulk BuildResyncProposals pass. known lets a source's
+// call be skipped once that source has already been resolved for the book —
+// true or false, doesn't matter, either answer is on record — with
+// UpdateResyncScanStatus's preserve-on-unknown write, the found columns are a
+// durable cache, so a steady-state scan only re-queries sources with no
+// answer yet. BuildResyncProposals' force param leaves known empty for every
 // book, bypassing the cache entirely for one run — the escape hatch for
 // books stuck unresolved after a rate-limit trip or a stale cached miss
-// (skip-if-known never re-checks a resolved GB source for drift otherwise,
-// e.g. a book gaining a cover later).
+// (skip-if-known never re-checks a resolved source for drift otherwise, e.g.
+// a book gaining a cover later).
+// gbExceeded is Google-Books-only: it's the one source with a real daily
+// quota (free tier: 1000/day), so it trips a circuit breaker for the rest of
+// one BuildResyncProposals run after a 429, and stays tripped even within a
+// forced run — otherwise a full-catalog force exhausts the quota and every
+// subsequent GB lookup that day errors. OpenLibrary and UniCat have no such
+// quota or breaker; only skip-if-known gates them.
 // nil means on-demand mode (GetBookSources / ApplyBookSource): always query
-// Google Books fresh, no skip, no breaker.
+// every source fresh, no skip, no breaker.
 type scanOptions struct {
-	gbKnown    *bool
+	known      map[string]bool
 	gbExceeded *atomic.Bool
 }
 
@@ -303,13 +305,29 @@ func gbBreakerTripped(opts *scanOptions) bool {
 	return opts != nil && opts.gbExceeded != nil && opts.gbExceeded.Load()
 }
 
-// gbKnownFor returns the book's cached Google Books found flag, or nil when
-// force bypasses the cache for this run.
-func gbKnownFor(book models.Book, force bool) *bool {
+func (opts *scanOptions) skipKnown(source string) bool {
+	return opts != nil && opts.known[source]
+}
+
+// knownFor returns the set of sources already resolved for this book as of
+// the last scan — true or false, doesn't matter, a non-nil found column means
+// that source has an answer on record — or an empty set when force bypasses
+// the cache for this run.
+func knownFor(book models.Book, force bool) map[string]bool {
+	known := map[string]bool{}
 	if force {
-		return nil
+		return known
 	}
-	return book.GoogleBooksFound
+	if book.OpenLibraryFound != nil {
+		known["openlibrary"] = true
+	}
+	if book.GoogleBooksFound != nil {
+		known["googlebooks"] = true
+	}
+	if book.UniCatFound != nil {
+		known["unicat"] = true
+	}
+	return known
 }
 
 // fetchSourceProposals fetches each configured provider's view of one catalog
@@ -346,13 +364,14 @@ func (s *BookService) fetchByISBN(
 	var out []SourceProposal
 	unresolved := map[string]bool{}
 
-	olDetail, olErr := s.external.GetByISBN(ctx, isbn13)
-	if olErr != nil && !errors.Is(olErr, openlibrary.ErrNotFound) {
+	if opts.skipKnown("openlibrary") {
+		unresolved["openlibrary"] = true
+	} else if olDetail, olErr := s.external.GetByISBN(ctx, isbn13); olErr != nil &&
+		!errors.Is(olErr, openlibrary.ErrNotFound) {
 		unresolved["openlibrary"] = true
 		logger.WarnContext(ctx, "open library ISBN lookup failed",
 			slog.String("isbn13", isbn13), slog.Any("error", olErr))
-	}
-	if olDetail != nil {
+	} else if olDetail != nil {
 		p := newSourceProposalFromCandidate("openlibrary", titleOnlyCandidate{
 			title: olDetail.Title, authors: olDetail.Authors, isbn13: olDetail.ISBN13,
 			coverURL: olDetail.CoverURL, description: olDetail.Description,
@@ -374,7 +393,9 @@ func (s *BookService) fetchByISBN(
 		}
 	}
 
-	if s.uniCat != nil {
+	if s.uniCat != nil && opts.skipKnown("unicat") {
+		unresolved["unicat"] = true
+	} else if s.uniCat != nil {
 		ucDetail, ucErr := s.uniCat.GetByISBN(ctx, isbn13)
 		if ucErr != nil && !errors.Is(ucErr, unicat.ErrNotFound) {
 			unresolved["unicat"] = true
@@ -411,7 +432,7 @@ func (s *BookService) fetchGoogleBooksByISBN(
 	isbn13 string,
 	opts *scanOptions,
 ) (*SourceProposal, bool) {
-	if gbBreakerTripped(opts) || (opts != nil && opts.gbKnown != nil) {
+	if gbBreakerTripped(opts) || opts.skipKnown("googlebooks") {
 		return nil, true
 	}
 
@@ -470,7 +491,9 @@ func (s *BookService) searchProviders(
 	var out []SourceProposal
 	unresolved := map[string]bool{}
 
-	if results, err := s.external.Search(ctx, query); err != nil {
+	if opts.skipKnown("openlibrary") {
+		unresolved["openlibrary"] = true
+	} else if results, err := s.external.Search(ctx, query); err != nil {
 		unresolved["openlibrary"] = true
 		logger.WarnContext(ctx, "open library search failed",
 			slog.String("title", logTitle), slog.Any("error", err))
@@ -482,7 +505,7 @@ func (s *BookService) searchProviders(
 		switch {
 		case gbBreakerTripped(opts):
 			unresolved["googlebooks"] = true
-		case opts != nil && opts.gbKnown != nil:
+		case opts.skipKnown("googlebooks"):
 			unresolved["googlebooks"] = true
 		default:
 			if results, err := s.googleBooks.Search(ctx, query); err != nil {
@@ -499,7 +522,9 @@ func (s *BookService) searchProviders(
 		}
 	}
 
-	if s.uniCat != nil {
+	if s.uniCat != nil && opts.skipKnown("unicat") {
+		unresolved["unicat"] = true
+	} else if s.uniCat != nil {
 		if results, err := s.uniCat.Search(ctx, query); err != nil {
 			unresolved["unicat"] = true
 			logger.WarnContext(ctx, "unicat search failed",

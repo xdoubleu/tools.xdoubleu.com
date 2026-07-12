@@ -8,6 +8,7 @@ interface StateMessage {
   lastRefresh: string | null
   processed?: number
   total?: number
+  quotaReached?: boolean
 }
 
 export interface ProgressState {
@@ -16,6 +17,10 @@ export interface ProgressState {
   lastRefresh: Date | null
   processed: number | null
   total: number | null
+  // True once a source's daily quota trips during the current/last run (e.g.
+  // Google Books' 429 breaker in the books resync). Latches until refresh()
+  // starts a new run.
+  quotaReached: boolean
   refresh: () => void
 }
 
@@ -52,6 +57,7 @@ export function useProgressSocket(
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [processed, setProcessed] = useState<number | null>(null)
   const [total, setTotal] = useState<number | null>(null)
+  const [quotaReached, setQuotaReached] = useState(false)
 
   const wasRefreshing = useRef(false)
   const onSyncedRef = useRef(onSynced)
@@ -86,6 +92,8 @@ export function useProgressSocket(
           // Update live count if the server sent one.
           setProcessed(parsed.processed ?? null)
           setTotal(parsed.total ?? null)
+          // Latches true once tripped; only refresh() resets it for a new run.
+          if (parsed.quotaReached) setQuotaReached(true)
         } else {
           // Run finished — clear counts and fire onSynced if we were running.
           setProcessed(null)
@@ -119,8 +127,9 @@ export function useProgressSocket(
   }, [app, topic])
 
   const refresh = useCallback(() => {
+    setQuotaReached(false)
     void triggerRefresh()
   }, [triggerRefresh])
 
-  return { connected, isRefreshing, lastRefresh, processed, total, refresh }
+  return { connected, isRefreshing, lastRefresh, processed, total, quotaReached, refresh }
 }

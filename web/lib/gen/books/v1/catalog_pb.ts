@@ -225,9 +225,10 @@ export const MergeBooksResponseSchema: GenMessage<MergeBooksResponse> = /*@__PUR
  */
 export type StartResyncRequest = Message<"books.v1.StartResyncRequest"> & {
   /**
-   * Force re-queries Google Books for every book, ignoring the
-   * skip-if-known cache (googlebooks_found). Use to recover books stuck
-   * unresolved after a rate-limit trip or a stale cached miss.
+   * Force re-queries every source (Open Library, Google Books, UniCat) for
+   * every book, ignoring the skip-if-known cache (openlibrary_found /
+   * googlebooks_found / unicat_found). Use to recover books stuck unresolved
+   * after a rate-limit trip or a stale cached miss.
    *
    * @generated from field: bool force = 1;
    */

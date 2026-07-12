@@ -16,6 +16,9 @@ import (
 // armed via Arm() before Run() does any work, so the unavoidable startup run
 // (added by JobQueue.AddJob) and the daily scheduler tick are no-ops.
 //
+// force bypasses the skip-if-known cache for every source, not just Google
+// Books — see BookService.BuildResyncProposals.
+//
 // It never writes to a book itself — that only happens when an admin resolves
 // a proposal via BookService.ApplyResyncChoice.
 //
@@ -48,7 +51,7 @@ func (j *ResyncOpenLibraryJob) RunEvery() time.Duration {
 }
 
 // Arm marks the job to scan the whole catalog on the next Run call. force
-// bypasses Google Books' skip-if-known cache for that run — see
+// bypasses every source's skip-if-known cache for that run — see
 // BookService.BuildResyncProposals.
 func (j *ResyncOpenLibraryJob) Arm(force bool) {
 	j.armed.Store(true)
@@ -67,11 +70,11 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 
 	force := j.force.Swap(false)
 
-	var onProgress func(int, int)
+	var onProgress func(int, int, bool)
 	if j.ws != nil {
 		id := j.ID()
-		onProgress = func(processed, total int) {
-			j.ws.UpdateProgress(id, processed, total)
+		onProgress = func(processed, total int, quotaReached bool) {
+			j.ws.UpdateProgress(id, processed, total, quotaReached)
 		}
 	}
 

@@ -476,9 +476,10 @@ func (x *MergeBooksResponse) GetDeletedFiles() uint32 {
 
 type StartResyncRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Force re-queries Google Books for every book, ignoring the
-	// skip-if-known cache (googlebooks_found). Use to recover books stuck
-	// unresolved after a rate-limit trip or a stale cached miss.
+	// Force re-queries every source (Open Library, Google Books, UniCat) for
+	// every book, ignoring the skip-if-known cache (openlibrary_found /
+	// googlebooks_found / unicat_found). Use to recover books stuck unresolved
+	// after a rate-limit trip or a stale cached miss.
 	Force         bool `protobuf:"varint,1,opt,name=force,proto3" json:"force,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

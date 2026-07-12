@@ -14,11 +14,14 @@ import { PageContainer } from '@/components/ui/page-container'
 import { formatDateTime } from '@/lib/dates'
 
 export default function BooksAdminClient() {
-  const [forceGoogleBooks, setForceGoogleBooks] = useState(false)
-  const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(() => {
-    void mutate(swrKeys.resyncProposals)
-    void mutate(swrKeys.bookSourceStats)
-  }, forceGoogleBooks)
+  const [force, setForce] = useState(false)
+  const { isRefreshing, lastRefresh, processed, total, quotaReached, refresh } = useResyncRefresh(
+    () => {
+      void mutate(swrKeys.resyncProposals)
+      void mutate(swrKeys.bookSourceStats)
+    },
+    force
+  )
 
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
@@ -62,12 +65,12 @@ export default function BooksAdminClient() {
         </p>
         <div className="mb-3">
           <Checkbox
-            id="resync-force-googlebooks"
-            checked={forceGoogleBooks}
+            id="resync-force"
+            checked={force}
             disabled={isRefreshing}
-            onChange={(e) => setForceGoogleBooks(e.target.checked)}
-            label="Re-check Google Books (ignore cache)"
-            data-testid="resync-force-googlebooks-checkbox"
+            onChange={(e) => setForce(e.target.checked)}
+            label="Force re-check all sources (ignore cache)"
+            data-testid="resync-force-checkbox"
           />
         </div>
         <Button
@@ -102,6 +105,12 @@ export default function BooksAdminClient() {
               <p className="text-xs text-muted">Scanning…</p>
             )}
           </div>
+        )}
+        {quotaReached && (
+          <p className="mt-3 text-xs text-warn" data-testid="resync-quota-reached">
+            Google Books daily quota reached — remaining books were skipped and will retry on the
+            next resync.
+          </p>
         )}
         {!isRefreshing && lastRefresh && (
           <p className="mt-2 text-xs text-muted" data-testid="resync-openlibrary-status">

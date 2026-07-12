@@ -79,6 +79,7 @@ export default function SourceStats() {
   if (error || !data) return <p className="text-xs text-danger">Failed to load source stats.</p>
 
   const overlaps = data.overlaps.filter((o) => o.count > 0)
+  const foundTotal = data.totalBooks - data.notFoundAnywhere - data.neverScanned
 
   return (
     <Card className="rounded-2xl p-4">
@@ -114,14 +115,17 @@ export default function SourceStats() {
         </tbody>
       </table>
       <div className="mt-3 space-y-0.5 text-xs text-muted">
+        <p className="font-medium text-fg">
+          {foundTotal} found across all sources (in at least one).
+        </p>
         <p>{data.totalBooks} books in the catalog.</p>
-        <p>{data.notFoundAnywhere} scanned but not found in any source.</p>
+        <p>{data.notFoundAnywhere} missing from all sources.</p>
         <p>{data.neverScanned} never scanned.</p>
       </div>
       {overlaps.length > 0 && (
         <div className="mt-4 border-t border-border pt-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Overlap (2+ sources)
+            Overlap — found in exactly these sources
           </p>
           <ul className="space-y-1">
             {overlaps.map((o) => (

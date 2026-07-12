@@ -76,8 +76,9 @@ describe('SourceStats', () => {
     expect(screen.getByText('UniCat')).toBeInTheDocument()
     expect(screen.getByText('42')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
+    expect(screen.getByText('43 found across all sources (in at least one).')).toBeInTheDocument()
     expect(screen.getByText('50 books in the catalog.')).toBeInTheDocument()
-    expect(screen.getByText('4 scanned but not found in any source.')).toBeInTheDocument()
+    expect(screen.getByText('4 missing from all sources.')).toBeInTheDocument()
     expect(screen.getByText('3 never scanned.')).toBeInTheDocument()
   })
 
@@ -136,7 +137,7 @@ describe('SourceStats', () => {
     }
     render(<SourceStats />)
 
-    expect(screen.getByText('Overlap (2+ sources)')).toBeInTheDocument()
+    expect(screen.getByText('Overlap — found in exactly these sources')).toBeInTheDocument()
     expect(screen.getByText('Open Library + Google Books')).toBeInTheDocument()
     expect(screen.getByText('All three')).toBeInTheDocument()
 
@@ -161,6 +162,6 @@ describe('SourceStats', () => {
     }
     render(<SourceStats />)
 
-    expect(screen.queryByText('Overlap (2+ sources)')).not.toBeInTheDocument()
+    expect(screen.queryByText('Overlap — found in exactly these sources')).not.toBeInTheDocument()
   })
 })
