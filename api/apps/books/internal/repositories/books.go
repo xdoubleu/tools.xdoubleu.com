@@ -1085,17 +1085,22 @@ func (repo *BooksRepository) RenameShelf(
 		return 0, postgres.PgxErrorToHTTPError(err)
 	}
 
-	// Drop the old registry entry and (re-)register the new name, rather than
-	// UPDATE-ing the row in place: newName might already be registered (e.g.
-	// an empty shelf someone created separately), and an in-place UPDATE
-	// would violate the (user_id, name) primary key in that case. Deleting
-	// then upserting merges into the existing entry instead of erroring.
-	deleteQuery := `DELETE FROM books.shelves WHERE user_id = $1 AND name = $2`
-	if _, err = repo.db.Exec(ctx, deleteQuery, userID, oldName); err != nil {
+	// Drop the old registry entry and (re-)register the new name in one
+	// statement, rather than UPDATE-ing the row in place: newName might
+	// already be registered (e.g. an empty shelf someone created
+	// separately), and an in-place UPDATE would violate the (user_id, name)
+	// primary key in that case. Deleting then inserting merges into the
+	// existing entry instead of erroring.
+	registryQuery := `
+		WITH removed AS (
+			DELETE FROM books.shelves WHERE user_id = $1 AND name = $2
+		)
+		INSERT INTO books.shelves (user_id, name)
+		VALUES ($1, $3)
+		ON CONFLICT DO NOTHING
+	`
+	if _, err = repo.db.Exec(ctx, registryQuery, userID, oldName, newName); err != nil {
 		return 0, postgres.PgxErrorToHTTPError(err)
-	}
-	if err = repo.EnsureShelf(ctx, userID, newName); err != nil {
-		return 0, err
 	}
 
 	//nolint:gosec // row count is safe for domain values

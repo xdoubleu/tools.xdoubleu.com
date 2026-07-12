@@ -79,6 +79,24 @@ describe('ManageShelvesTagsDialog', () => {
     expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled()
   })
 
+  it('creates a shelf when Enter is pressed in the new-shelf input', async () => {
+    renderDialog()
+    const input = screen.getByPlaceholderText('New shelf name…')
+    fireEvent.change(input, { target: { value: 'enter-shelf' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(mockCreateShelf).toHaveBeenCalledWith('enter-shelf'))
+  })
+
+  it('shows an error when createShelf fails', async () => {
+    mockCreateShelf.mockRejectedValue(new Error('Shelf already exists'))
+    renderDialog()
+    fireEvent.change(screen.getByPlaceholderText('New shelf name…'), {
+      target: { value: 'dup-shelf' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(screen.getByText('Shelf already exists')).toBeInTheDocument())
+  })
+
   it('renders the dialog with built-in and custom shelves', () => {
     renderDialog()
     expect(screen.getByText('Edit shelves & tags')).toBeInTheDocument()
