@@ -61,6 +61,24 @@ Never read generated or mock files — the warning in "Proto Code Generation" ap
 - Field names / RPC signatures → read the `.proto` file in `proto/`
 - Mock method signatures → read the interface definition in the source package (not `internal/mocks/`)
 
+## Starting a Task — Branch Setup
+
+Before making any edits, ensure you're on a fresh branch off up-to-date `main` —
+never assume the currently checked-out branch is still the right one, even if
+it looks like the task you're continuing. A branch from an earlier session or
+plan can already have been merged (by CI, another session, or the user) while
+this one was idle; committing on top of it either reopens a merged branch or,
+worse, lands directly on `main`.
+
+```bash
+git checkout main && git pull
+git checkout -b <descriptive-branch-name>
+```
+
+Run this at the start of every task, even mid-conversation ones (e.g. after
+exiting plan mode) — `git branch --show-current` first if unsure whether one
+already exists for this task.
+
 ## Finishing a Task — Required Final Steps
 
 After every code change, always run **both** of the following before reporting the task as done:
@@ -93,7 +111,7 @@ After every code change, always run **both** of the following before reporting t
 3. **Open / update the PR** — commit the work, push the feature branch, and ensure a PR exists against `main`:
 
    ```bash
-   # branch was already created from up-to-date main at task start
+   # branch was created from up-to-date main per "Starting a Task" above
    git push -u origin HEAD
    gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
    ```

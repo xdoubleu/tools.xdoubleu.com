@@ -257,6 +257,12 @@ func TestConfigure(t *testing.T) {
 		"https://tools.xdoubleu.com/books/kobo/TOKEN",
 		conf.APIEndpoint(),
 	)
+
+	// The atomic write must not leave its temp sibling behind.
+	_, err = os.Stat(filepath.Join(
+		volumePath, ".kobo", "Kobo", "Kobo eReader.conf.tmp",
+	))
+	assert.True(t, os.IsNotExist(err))
 }
 
 func TestConfigureInvalidJSON(t *testing.T) {
