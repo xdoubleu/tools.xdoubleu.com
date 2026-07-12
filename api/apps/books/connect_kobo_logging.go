@@ -3,6 +3,7 @@ package books
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -93,14 +94,20 @@ func (h *booksConnectHandler) ClearKoboDeviceLogs(
 	return connect.NewResponse(&booksv1.ClearKoboDeviceLogsResponse{}), nil
 }
 
+// koboLogEntryProto converts a captured entry to its proto form. Captured
+// bodies come from arbitrary Kobo/upstream traffic (including binary/gzip
+// responses proxied verbatim) and the 64KB capture cap can slice a body
+// mid-rune, so they are not guaranteed valid UTF-8. proto3 string fields must
+// be valid UTF-8 or marshaling fails, so sanitize here — the single point
+// every captured entry passes through on its way into the response.
 func koboLogEntryProto(e services.KoboLogEntry) *booksv1.KoboLogEntry {
 	return &booksv1.KoboLogEntry{
 		Time:         e.Time.Format(time.RFC3339),
 		Method:       e.Method,
 		Path:         e.Path,
 		Query:        e.Query,
-		RequestBody:  e.RequestBody,
+		RequestBody:  strings.ToValidUTF8(e.RequestBody, "�"),
 		Status:       int32(e.Status), //nolint:gosec // HTTP status fits int32
-		ResponseBody: e.ResponseBody,
+		ResponseBody: strings.ToValidUTF8(e.ResponseBody, "�"),
 	}
 }
