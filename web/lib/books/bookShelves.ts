@@ -22,6 +22,12 @@ export function statusLabel(status: string): string {
   return BOOK_STATUSES.find((s) => s.value === status)?.label ?? status
 }
 
+// Shelf ids that are fixed and not user-editable: the four reading-state
+// statuses plus the "favourite" pseudo-shelf (backed by a tag, not a status).
+export function isBuiltInShelfId(id: string): boolean {
+  return BUILT_IN_STATUSES.has(id) || id === 'favourite'
+}
+
 // Returns display tags (non-special user tags).
 export function displayTags(tags: string[]): string[] {
   return tags.filter((t) => !SPECIAL_TAGS.has(t))

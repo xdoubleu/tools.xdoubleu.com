@@ -146,6 +146,8 @@ message UpdateReadingProgressResponse {}
 message GetReadingStateRequest { string book_id = 1; }
 message GetReadingStateResponse { BookReadingStateData state = 1; }
 
+message CreateShelfRequest { string name = 1; }
+message CreateShelfResponse {}
 message RenameShelfRequest { string old_name = 1; string new_name = 2; }
 message RenameShelfResponse { uint32 moved = 1; }
 // Reassign every book on `name` to `target_name`, after which `name` no longer exists.
@@ -170,6 +172,7 @@ service LibraryService {
   rpc RemoveBook(RemoveBookRequest) returns (RemoveBookResponse);
   rpc UpdateReadingProgress(UpdateReadingProgressRequest) returns (UpdateReadingProgressResponse);
   rpc GetReadingState(GetReadingStateRequest) returns (GetReadingStateResponse);
+  rpc CreateShelf(CreateShelfRequest) returns (CreateShelfResponse);
   rpc RenameShelf(RenameShelfRequest) returns (RenameShelfResponse);
   rpc DeleteShelf(DeleteShelfRequest) returns (DeleteShelfResponse);
   rpc RenameTag(RenameTagRequest) returns (RenameTagResponse);

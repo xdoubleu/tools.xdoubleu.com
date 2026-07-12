@@ -21,7 +21,10 @@ type booksPageData struct {
 	Shelves  []bookShelf
 }
 
-func groupByStatus(userBooks []models.UserBook) []bookShelf {
+func groupByStatus(
+	userBooks []models.UserBook,
+	registeredShelves []string,
+) []bookShelf {
 	// Dropped is intentionally excluded here: unlike the other three statuses
 	// it has no dedicated LibraryResponse field, so it flows through as a
 	// shelf named "dropped" instead of disappearing from the library.
@@ -40,6 +43,14 @@ func groupByStatus(userBooks []models.UserBook) []bookShelf {
 			order = append(order, ub.Status)
 		}
 		seen[ub.Status] = append(seen[ub.Status], ub)
+	}
+	// Registered shelves with no books yet (or currently) still get a shelf
+	// entry, just with an empty Books slice, so they don't vanish from the UI.
+	for _, name := range registeredShelves {
+		if _, ok := seen[name]; !ok {
+			seen[name] = nil
+			order = append(order, name)
+		}
 	}
 	slices.Sort(order)
 	shelves := make([]bookShelf, 0, len(order))
@@ -78,7 +89,12 @@ func (app *Books) buildLibraryData(
 		}
 	}
 
-	shelves := groupByStatus(library)
+	registeredShelves, err := app.Services.Books.ListShelves(ctx, userID)
+	if err != nil {
+		return booksPageData{}, err
+	}
+
+	shelves := groupByStatus(library, registeredShelves)
 	slices.SortFunc(shelves, func(a, b bookShelf) int {
 		if a.Name < b.Name {
 			return -1

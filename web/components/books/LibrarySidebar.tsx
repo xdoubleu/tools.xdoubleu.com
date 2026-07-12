@@ -2,14 +2,14 @@
 
 import { cn } from '@/lib/cn'
 import type { LibraryResponse } from '@/lib/gen/books/v1/library_pb'
-import { SPECIAL_TAGS } from '@/lib/books/bookShelves'
+import { SPECIAL_TAGS, statusLabel } from '@/lib/books/bookShelves'
 
 export type ShelfId =
   | 'all'
   | 'favourite'
   | 'currently-reading'
-  | 'wishlist'
-  | 'finished'
+  | 'to-read'
+  | 'read'
   | (string & Record<never, never>)
 
 export interface Shelf {
@@ -40,9 +40,13 @@ export function buildShelves(library: LibraryResponse): Shelf[] {
       label: 'All books',
       count: allBooks.length
     },
-    { id: 'currently-reading', label: 'Currently reading', count: library.reading.length },
-    { id: 'wishlist', label: 'Want to read', count: library.wishlist.length },
-    { id: 'finished', label: 'Read', count: library.finished.length },
+    {
+      id: 'currently-reading',
+      label: statusLabel('currently-reading'),
+      count: library.reading.length
+    },
+    { id: 'to-read', label: statusLabel('to-read'), count: library.wishlist.length },
+    { id: 'read', label: statusLabel('read'), count: library.finished.length },
     {
       id: 'favourite',
       label: 'Favourites',

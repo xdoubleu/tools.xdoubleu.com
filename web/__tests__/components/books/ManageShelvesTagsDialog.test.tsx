@@ -1,12 +1,14 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
+const mockCreateShelf = jest.fn()
 const mockRenameShelf = jest.fn()
 const mockDeleteShelf = jest.fn()
 const mockRenameTag = jest.fn()
 const mockDeleteTag = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
+  useCreateShelf: () => mockCreateShelf,
   useRenameShelf: () => mockRenameShelf,
   useDeleteShelf: () => mockDeleteShelf,
   useRenameTag: () => mockRenameTag,
@@ -52,10 +54,29 @@ function renderDialog(tags: string[] = []) {
 describe('ManageShelvesTagsDialog', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockCreateShelf.mockResolvedValue(undefined)
     mockRenameShelf.mockResolvedValue(undefined)
     mockDeleteShelf.mockResolvedValue(undefined)
     mockRenameTag.mockResolvedValue(undefined)
     mockDeleteTag.mockResolvedValue(undefined)
+  })
+
+  it('creates a new shelf and mutates on Add', async () => {
+    renderDialog()
+    const input = screen.getByPlaceholderText('New shelf name…')
+    fireEvent.change(input, { target: { value: 'my-new-shelf' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(mockCreateShelf).toHaveBeenCalledWith('my-new-shelf'))
+    await waitFor(() => expect(mockMutate).toHaveBeenCalledWith('/books'))
+  })
+
+  it('disables Add until a shelf name is entered', () => {
+    renderDialog()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+    fireEvent.change(screen.getByPlaceholderText('New shelf name…'), {
+      target: { value: 'x' }
+    })
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled()
   })
 
   it('renders the dialog with built-in and custom shelves', () => {

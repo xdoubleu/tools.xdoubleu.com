@@ -369,6 +369,11 @@ export function useGetBookFile(bookId: string | null, format: string | null) {
   )
 }
 
+export function useCreateShelf() {
+  const client = createServiceClient(LibraryService)
+  return (name: string) => client.createShelf({ name })
+}
+
 export function useRenameShelf() {
   const client = createServiceClient(LibraryService)
   return (oldName: string, newName: string) => client.renameShelf({ oldName, newName })

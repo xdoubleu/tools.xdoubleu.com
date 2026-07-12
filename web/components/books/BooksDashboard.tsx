@@ -16,6 +16,7 @@ import { DateInput } from '@/components/ui/date-input'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
 import { ytdProgress } from '@/lib/books/ytdProgress'
+import { statusLabel } from '@/lib/books/bookShelves'
 import { swrKeys } from '@/lib/swrKeys'
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
@@ -97,10 +98,10 @@ export default function BooksDashboard() {
             label="Total books"
             value={reading.length + library.wishlist.length + library.finished.length}
           />
-          <StatCard label="In progress" value={reading.length} />
-          <StatCard label="Finished" value={library.finished.length} />
+          <StatCard label={statusLabel('currently-reading')} value={reading.length} />
+          <StatCard label={statusLabel('read')} value={library.finished.length} />
           <StatCard label="Read this year" value={ytd.total} />
-          <StatCard label="Wishlist" value={library.wishlist.length} />
+          <StatCard label={statusLabel('to-read')} value={library.wishlist.length} />
         </div>
       )}
 

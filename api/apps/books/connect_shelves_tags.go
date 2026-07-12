@@ -44,6 +44,24 @@ func (h *booksConnectHandler) ToggleTag(
 	return connect.NewResponse(&booksv1.ToggleTagResponse{}), nil
 }
 
+func (h *booksConnectHandler) CreateShelf(
+	ctx context.Context,
+	req *connect.Request[booksv1.CreateShelfRequest],
+) (*connect.Response[booksv1.CreateShelfResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	err := h.app.Services.Books.CreateShelf(ctx, user.ID, req.Msg.Name)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	return connect.NewResponse(&booksv1.CreateShelfResponse{}), nil
+}
+
 func (h *booksConnectHandler) RenameShelf(
 	ctx context.Context,
 	req *connect.Request[booksv1.RenameShelfRequest],

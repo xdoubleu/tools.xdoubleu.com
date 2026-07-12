@@ -30,8 +30,8 @@ function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'favourite')
     return flattenLibrary(library).filter((b) => b.tags.includes('favourite'))
   if (shelfId === 'currently-reading') return library.reading
-  if (shelfId === 'wishlist') return library.wishlist
-  if (shelfId === 'finished') return library.finished
+  if (shelfId === 'to-read') return library.wishlist
+  if (shelfId === 'read') return library.finished
   return library.shelves.find((s) => s.name === shelfId)?.books ?? []
 }
 
