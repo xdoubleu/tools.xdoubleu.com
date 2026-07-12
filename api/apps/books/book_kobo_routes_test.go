@@ -1278,6 +1278,104 @@ func TestKoboLibrarySync_EntitlementTimestampIsEnableTime(t *testing.T) {
 		ts2, before, after)
 }
 
+// --- Removal: disabled kobo-sync must be actively removed from the device ---
+
+// TestKoboLibrarySync_DisabledBook_EmitsRemoval is the TDD anchor for active
+// removal: disabling kobo-sync after a book was already synced must not just
+// drop it silently — the next sync manifest must carry a ChangedEntitlement
+// with IsRemoved:true so the device deletes its local copy.
+func TestKoboLibrarySync_DisabledBook_EmitsRemoval(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-disabled-removal-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	require.NoError(t, testApp.Services.Books.ToggleTag(
+		context.Background(), owner, bookID, models.TagKoboSync,
+	))
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var entries []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+
+	// The book must no longer appear as a NewEntitlement (it's not offered
+	// for download anymore)...
+	for _, e := range entries {
+		ne, neOK := e["NewEntitlement"].(map[string]any)
+		if !neOK {
+			continue
+		}
+		if ent, entOK := ne["BookEntitlement"].(map[string]any); entOK {
+			assert.NotEqual(t, bookID.String(), ent["RevisionId"],
+				"disabled book must not still be offered as NewEntitlement")
+		}
+	}
+
+	// ...but must appear as a ChangedEntitlement with IsRemoved:true.
+	found := false
+	for _, e := range entries {
+		ce, ok := e["ChangedEntitlement"].(map[string]any)
+		if !ok {
+			continue
+		}
+		ent, ok := ce["BookEntitlement"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if ent["RevisionId"] == bookID.String() {
+			found = true
+			assert.Equal(t, true, ent["IsRemoved"])
+		}
+	}
+	assert.True(t, found, "disabled book must appear as a removal entitlement")
+}
+
+// TestKoboLibrarySync_ReenabledBook_NoRemoval verifies that re-enabling
+// kobo-sync after a disable clears the removal so the device isn't told to
+// delete a book that's actually back in the library.
+func TestKoboLibrarySync_ReenabledBook_NoRemoval(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-reenabled-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	require.NoError(t, testApp.Services.Books.ToggleTag(
+		context.Background(), owner, bookID, models.TagKoboSync,
+	))
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+		context.Background(), owner, bookID,
+	))
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var entries []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+
+	for _, e := range entries {
+		ce, ceOK := e["ChangedEntitlement"].(map[string]any)
+		if !ceOK {
+			continue
+		}
+		if ent, entOK := ce["BookEntitlement"].(map[string]any); entOK {
+			assert.NotEqual(t, bookID.String(), ent["RevisionId"],
+				"re-enabled book must not carry a stale removal entry")
+		}
+	}
+}
+
 // TestKoboMetadata_CrossUserProxied verifies that user B requesting user A's
 // book ID is proxied upstream (not served from our DB).
 func TestKoboMetadata_CrossUserProxied(t *testing.T) {

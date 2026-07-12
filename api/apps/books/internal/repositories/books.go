@@ -653,6 +653,66 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	return out, nil
 }
 
+// UpsertKoboRemoval records that bookID must be actively removed from the
+// user's Kobo device on the next sync. A no-op if already tombstoned.
+func (repo *BooksRepository) UpsertKoboRemoval(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) error {
+	query := `
+		INSERT INTO books.kobo_removals (user_id, book_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id, book_id) DO NOTHING
+	`
+	_, err := repo.db.Exec(ctx, query, userID, bookID)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// DeleteKoboRemoval clears a book's removal tombstone, e.g. when kobo-sync
+// is re-enabled or the book is re-added after having been removed.
+func (repo *BooksRepository) DeleteKoboRemoval(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) error {
+	query := `DELETE FROM books.kobo_removals WHERE user_id = $1 AND book_id = $2`
+	_, err := repo.db.Exec(ctx, query, userID, bookID)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// ListKoboRemovals returns all books tombstoned for removal from the user's
+// Kobo device.
+func (repo *BooksRepository) ListKoboRemovals(
+	ctx context.Context,
+	userID string,
+) ([]models.KoboRemoval, error) {
+	query := `
+		SELECT book_id, removed_at
+		FROM books.kobo_removals
+		WHERE user_id = $1
+	`
+
+	rows, err := repo.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []models.KoboRemoval
+	for rows.Next() {
+		var r models.KoboRemoval
+		if scanErr := rows.Scan(&r.BookID, &r.RemovedAt); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out = append(out, r)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
 // ListBooksWithISBN13 returns all catalog books that have a non-null ISBN13.
 // Kept for backward compatibility; prefer ListBooksMissingMetadata for resync.
 func (repo *BooksRepository) ListBooksWithISBN13(

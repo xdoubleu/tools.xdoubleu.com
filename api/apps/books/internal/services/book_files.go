@@ -651,7 +651,11 @@ func (s *BookService) EnableKoboSync(
 	userID string,
 	bookID uuid.UUID,
 ) error {
-	return s.ensureTag(ctx, userID, bookID, models.TagKoboSync)
+	if err := s.ensureTag(ctx, userID, bookID, models.TagKoboSync); err != nil {
+		return err
+	}
+	// Clear any stale removal tombstone from a prior disable.
+	return s.books.DeleteKoboRemoval(ctx, userID, bookID)
 }
 
 const presignTTL = 5 * time.Minute

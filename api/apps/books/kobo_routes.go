@@ -154,6 +154,13 @@ type koboNewEntitlement struct {
 	NewEntitlement koboSyncEntry `json:"NewEntitlement"`
 }
 
+// koboChangedEntitlement is the discriminator used for an existing
+// entitlement whose state changed — we use it to signal a removal
+// (BookEntitlement.IsRemoved: true) for a book that was previously synced.
+type koboChangedEntitlement struct {
+	ChangedEntitlement koboSyncEntry `json:"ChangedEntitlement"`
+}
+
 type koboBookEntitlement struct {
 	Accessibility string            `json:"Accessibility"`
 	ActivePeriod  map[string]string `json:"ActivePeriod"`
@@ -292,6 +299,16 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		ourEntries[i] = raw
 	}
 
+	removals, err := app.Services.Books.ListKoboRemovals(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	removalEntries := make([]json.RawMessage, len(removals))
+	for i, rm := range removals {
+		removalEntries[i] = buildKoboRemovalEntry(rm)
+	}
+
 	// Fetch upstream items (gracefully degrade to empty on error).
 	upstreamItems, upstreamHdrs := app.koboFetchUpstreamSync(r)
 
@@ -302,8 +319,10 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// Upstream items first, then ours (additive — never drops store items).
+	// Upstream items first, then ours, then removals (additive — never drops
+	// store items).
 	all := append(upstreamItems, ourEntries...) //nolint:gocritic // intentional
+	all = append(all, removalEntries...)
 	if all == nil {
 		// A nil slice would encode as JSON null, which the Kobo firmware doesn't
 		// treat as "sync complete" — it hangs at "Checking for updates…". Happens
@@ -419,6 +438,44 @@ func buildKoboMetadata(b models.KoboSyncBook, libraryBase string) koboBookMetada
 			Platform: "Generic",
 		}},
 	}
+}
+
+// buildKoboRemovalEntry builds a ChangedEntitlement payload telling the
+// device to delete a book it previously synced. We only have the book ID and
+// the tombstone timestamp (the catalog row may already be gone), so
+// BookMetadata is left minimal.
+//
+// ponytail: the exact discriminator/shape the firmware needs for a removal
+// (ChangedEntitlement vs NewEntitlement, whether it tolerates empty
+// BookMetadata) isn't verifiable without a real device — confirm on-device
+// and adjust if the book isn't actually removed.
+func buildKoboRemovalEntry(rm models.KoboRemoval) json.RawMessage {
+	id := rm.BookID.String()
+	removed := rm.RemovedAt.UTC().Format(time.RFC3339)
+	// json.Marshal cannot fail on this fully-typed struct.
+	raw, _ := json.Marshal(koboChangedEntitlement{
+		ChangedEntitlement: koboSyncEntry{
+			BookEntitlement: koboBookEntitlement{
+				Accessibility:   "Full",
+				ActivePeriod:    map[string]string{},
+				Created:         removed,
+				CrossRevisionId: id,
+				Id:              id,
+				IsRemoved:       true,
+				IsHiddenFromUI:  true,
+				PurchasedDate:   removed,
+				RevisionId:      id,
+				Status:          "Active",
+				Type:            "ebook",
+			},
+			BookMetadata: koboBookMetadata{ //nolint:exhaustruct // removal: no
+				// download/content details to give — the book is gone.
+				RevisionId: id,
+			},
+			ReadingState: nil,
+		},
+	})
+	return raw
 }
 
 // koboMetadataHandler handles GET /v1/library/{revisionId}/metadata.
