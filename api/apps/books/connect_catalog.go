@@ -184,6 +184,19 @@ func (h *booksConnectHandler) StartResync(
 	return connect.NewResponse(&booksv1.StartResyncResponse{}), nil
 }
 
+func (h *booksConnectHandler) CancelResync(
+	ctx context.Context,
+	_ *connect.Request[booksv1.CancelResyncRequest],
+) (*connect.Response[booksv1.CancelResyncResponse], error) {
+	if _, err := h.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	h.app.resyncBooksJob.Cancel()
+
+	return connect.NewResponse(&booksv1.CancelResyncResponse{}), nil
+}
+
 func (h *booksConnectHandler) ListResyncProposals(
 	ctx context.Context,
 	_ *connect.Request[booksv1.ListResyncProposalsRequest],
@@ -381,16 +394,19 @@ func (h *booksConnectHandler) GetSourceStats(
 				Source:      sourceOpenLibrary,
 				FoundCount:  int32FromInt(stats.OpenLibraryFound),
 				UniqueCount: int32FromInt(stats.OpenLibraryUnique),
+				MissedCount: int32FromInt(stats.OpenLibraryMissed),
 			},
 			{
 				Source:      sourceGoogleBooks,
 				FoundCount:  int32FromInt(stats.GoogleBooksFound),
 				UniqueCount: int32FromInt(stats.GoogleBooksUnique),
+				MissedCount: int32FromInt(stats.GoogleBooksMissed),
 			},
 			{
 				Source:      sourceUniCat,
 				FoundCount:  int32FromInt(stats.UniCatFound),
 				UniqueCount: int32FromInt(stats.UniCatUnique),
+				MissedCount: int32FromInt(stats.UniCatMissed),
 			},
 		},
 		TotalBooks:       int32FromInt(stats.TotalBooks),
@@ -412,6 +428,28 @@ func (h *booksConnectHandler) GetSourceStats(
 			{
 				Sources: []string{sourceOpenLibrary, sourceGoogleBooks, sourceUniCat},
 				Count:   int32FromInt(stats.AllThree),
+			},
+		},
+		// missed_overlaps mirrors overlaps: missed by exactly {A,B} (both A
+		// and B confirmed miss) is the same book set as found-only-by-the-
+		// third-source, so it's just that Unique count under a different
+		// label. All-three-missed is the one genuinely new number.
+		MissedOverlaps: []*booksv1.SourceComboStat{
+			{
+				Sources: []string{sourceOpenLibrary, sourceGoogleBooks},
+				Count:   int32FromInt(stats.UniCatUnique),
+			},
+			{
+				Sources: []string{sourceOpenLibrary, sourceUniCat},
+				Count:   int32FromInt(stats.GoogleBooksUnique),
+			},
+			{
+				Sources: []string{sourceGoogleBooks, sourceUniCat},
+				Count:   int32FromInt(stats.OpenLibraryUnique),
+			},
+			{
+				Sources: []string{sourceOpenLibrary, sourceGoogleBooks, sourceUniCat},
+				Count:   int32FromInt(stats.AllThreeMissed),
 			},
 		},
 	}), nil

@@ -79,6 +79,7 @@ export default function SourceStats() {
   if (error || !data) return <p className="text-xs text-danger">Failed to load source stats.</p>
 
   const overlaps = data.overlaps.filter((o) => o.count > 0)
+  const missedOverlaps = data.missedOverlaps.filter((o) => o.count > 0)
   const foundTotal = data.totalBooks - data.notFoundAnywhere - data.neverScanned
 
   return (
@@ -88,6 +89,7 @@ export default function SourceStats() {
           <tr className="text-left text-xs uppercase tracking-wide text-muted">
             <th className="pb-2 font-semibold">Source</th>
             <th className="pb-2 text-right font-semibold">Found</th>
+            <th className="pb-2 text-right font-semibold">Missed</th>
             <th className="pb-2 text-right font-semibold">Unique</th>
           </tr>
         </thead>
@@ -96,6 +98,7 @@ export default function SourceStats() {
             <tr key={s.source} className="border-t border-border">
               <td className="py-1.5">{sourceLabel(s.source)}</td>
               <td className="py-1.5 text-right tabular-nums">{s.foundCount}</td>
+              <td className="py-1.5 text-right tabular-nums">{s.missedCount}</td>
               <td className="py-1.5 text-right tabular-nums">
                 {s.uniqueCount > 0 ? (
                   <Button
@@ -139,6 +142,21 @@ export default function SourceStats() {
                 >
                   {o.count}
                 </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {missedOverlaps.length > 0 && (
+        <div className="mt-4 border-t border-border pt-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+            Missed overlaps — missed by exactly these sources
+          </p>
+          <ul className="space-y-1">
+            {missedOverlaps.map((o) => (
+              <li key={o.sources.join('+')} className="flex items-center justify-between">
+                <span className="text-sm">{comboLabel(o.sources)}</span>
+                <span className="text-sm tabular-nums">{o.count}</span>
               </li>
             ))}
           </ul>

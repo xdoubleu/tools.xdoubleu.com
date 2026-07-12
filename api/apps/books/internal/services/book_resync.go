@@ -139,12 +139,9 @@ func (s *BookService) BuildResyncProposals(
 	// limiters are the real throttle, this just bounds in-flight goroutines.
 	const concurrency = 5
 
-	var (
-		mu        sync.Mutex
-		entries   = make(map[uuid.UUID][]byte)
-		errs      []error
-		processed atomic.Int64
-	)
+	//nolint:exhaustruct // errs/mu zero values fine
+	acc := &resyncAccumulator{entries: make(map[uuid.UUID][]byte)}
+	var processed atomic.Int64
 
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(concurrency)
@@ -157,28 +154,16 @@ func (s *BookService) BuildResyncProposals(
 	for _, book := range books {
 		b := book
 		eg.Go(func() error {
+			// Cancelled (StartResync's Cancel RPC, or app shutdown): stop
+			// picking up new books, let already in-flight ones finish.
+			if egCtx.Err() != nil {
+				return nil //nolint:nilerr // cancellation is not a failure
+			}
 			opts := &scanOptions{
 				known:      knownFor(b, force),
 				gbExceeded: gbExceeded,
 			}
-			proposals, unresolved := s.fetchSourceProposals(egCtx, logger, b, opts)
-			if raw, ok := encodeIfFlagged(b, proposals); ok {
-				mu.Lock()
-				if raw != nil {
-					entries[b.ID] = raw
-				} else {
-					errs = append(errs, fmt.Errorf("book %s: encode proposals", b.ID))
-				}
-				mu.Unlock()
-			}
-			statusErr := s.recordScanStatus(egCtx, b, proposals, unresolved)
-			if statusErr != nil {
-				mu.Lock()
-				errs = append(errs, fmt.Errorf(
-					"book %s: record scan status: %w", b.ID, statusErr,
-				))
-				mu.Unlock()
-			}
+			s.scanBookForResync(egCtx, logger, b, opts, acc)
 			if onProgress != nil {
 				onProgress(int(processed.Add(1)), total, gbExceeded.Load())
 			}
@@ -187,11 +172,66 @@ func (s *BookService) BuildResyncProposals(
 	}
 	_ = eg.Wait()
 
-	if err = s.resyncRepo().ReplaceResyncProposals(ctx, entries); err != nil {
+	// Cancelled mid-run: books already processed keep the scan-status
+	// writes recordScanStatus already committed, but the proposals table is
+	// left untouched — replacing it with a partial scan's results would
+	// erase proposals from books this run never got to. Not an error: the
+	// caller asked to stop.
+	if ctx.Err() != nil {
+		return len(acc.entries), nil //nolint:nilerr // cancellation is not a failure
+	}
+
+	if err = s.resyncRepo().ReplaceResyncProposals(ctx, acc.entries); err != nil {
 		return 0, err
 	}
 
-	return len(entries), errors.Join(errs...)
+	return len(acc.entries), errors.Join(acc.errs...)
+}
+
+// resyncAccumulator collects one BuildResyncProposals run's per-book results
+// under a single mutex, since scanBookForResync runs concurrently across
+// books.
+type resyncAccumulator struct {
+	mu      sync.Mutex
+	entries map[uuid.UUID][]byte
+	errs    []error
+}
+
+func (a *resyncAccumulator) addEntry(bookID uuid.UUID, raw []byte) {
+	a.mu.Lock()
+	a.entries[bookID] = raw
+	a.mu.Unlock()
+}
+
+func (a *resyncAccumulator) addError(err error) {
+	a.mu.Lock()
+	a.errs = append(a.errs, err)
+	a.mu.Unlock()
+}
+
+// scanBookForResync fetches one book's candidate proposals from every
+// configured source, records them into acc when the book should be flagged,
+// and persists the scan status — the per-book unit of work BuildResyncProposals
+// runs concurrently.
+func (s *BookService) scanBookForResync(
+	ctx context.Context,
+	logger *slog.Logger,
+	book models.Book,
+	opts *scanOptions,
+	acc *resyncAccumulator,
+) {
+	proposals, unresolved := s.fetchSourceProposals(ctx, logger, book, opts)
+	if raw, ok := encodeIfFlagged(book, proposals); ok {
+		if raw != nil {
+			acc.addEntry(book.ID, raw)
+		} else {
+			acc.addError(fmt.Errorf("book %s: encode proposals", book.ID))
+		}
+	}
+	statusErr := s.recordScanStatus(ctx, book, proposals, unresolved)
+	if statusErr != nil {
+		acc.addError(fmt.Errorf("book %s: record scan status: %w", book.ID, statusErr))
+	}
 }
 
 // recordScanStatus persists one scan pass's per-source found flags on the

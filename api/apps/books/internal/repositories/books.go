@@ -787,15 +787,26 @@ func (repo *BooksRepository) UpdateResyncScanStatus(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ListCatalogBooks returns all catalog books ordered by title. Used by the
-// admin resync wizard scan.
+// ListCatalogBooks returns all catalog books ordered least-covered-first (by
+// count of sources with a confirmed found = true), then title. Used by the
+// admin resync wizard scan: Google Books has a ~1000/day free-tier quota, so
+// once a full-catalog force resync trips its circuit breaker (see
+// BuildResyncProposals), whatever books are left in the scan order never get
+// a GB check that run. Alphabetical order let that quota starve the tail of
+// the catalog; ordering by coverage gap instead spends the budget on the
+// books that most need it — never-scanned and not-yet-found books sort
+// first, already-well-covered books last.
 func (repo *BooksRepository) ListCatalogBooks(
 	ctx context.Context,
 ) ([]models.Book, error) {
 	query := `
 		SELECT ` + bookColumns + `
 		FROM books.books
-		ORDER BY title
+		ORDER BY (
+			(openlibrary_found IS TRUE)::int +
+			(googlebooks_found IS TRUE)::int +
+			(unicat_found IS TRUE)::int
+		), title
 	`
 
 	rows, err := repo.db.Query(ctx, query)

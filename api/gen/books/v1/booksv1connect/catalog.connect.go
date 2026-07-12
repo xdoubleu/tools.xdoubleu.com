@@ -48,6 +48,9 @@ const (
 	// CatalogServiceStartResyncProcedure is the fully-qualified name of the CatalogService's
 	// StartResync RPC.
 	CatalogServiceStartResyncProcedure = "/books.v1.CatalogService/StartResync"
+	// CatalogServiceCancelResyncProcedure is the fully-qualified name of the CatalogService's
+	// CancelResync RPC.
+	CatalogServiceCancelResyncProcedure = "/books.v1.CatalogService/CancelResync"
 	// CatalogServiceListResyncProposalsProcedure is the fully-qualified name of the CatalogService's
 	// ListResyncProposals RPC.
 	CatalogServiceListResyncProposalsProcedure = "/books.v1.CatalogService/ListResyncProposals"
@@ -78,6 +81,7 @@ type CatalogServiceClient interface {
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
 	StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error)
+	CancelResync(context.Context, *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error)
 	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
 	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
@@ -126,6 +130,12 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+CatalogServiceStartResyncProcedure,
 			connect.WithSchema(catalogServiceMethods.ByName("StartResync")),
+			connect.WithClientOptions(opts...),
+		),
+		cancelResync: connect.NewClient[v1.CancelResyncRequest, v1.CancelResyncResponse](
+			httpClient,
+			baseURL+CatalogServiceCancelResyncProcedure,
+			connect.WithSchema(catalogServiceMethods.ByName("CancelResync")),
 			connect.WithClientOptions(opts...),
 		),
 		listResyncProposals: connect.NewClient[v1.ListResyncProposalsRequest, v1.ListResyncProposalsResponse](
@@ -180,6 +190,7 @@ type catalogServiceClient struct {
 	findDuplicates          *connect.Client[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse]
 	mergeBooks              *connect.Client[v1.MergeBooksRequest, v1.MergeBooksResponse]
 	startResync             *connect.Client[v1.StartResyncRequest, v1.StartResyncResponse]
+	cancelResync            *connect.Client[v1.CancelResyncRequest, v1.CancelResyncResponse]
 	listResyncProposals     *connect.Client[v1.ListResyncProposalsRequest, v1.ListResyncProposalsResponse]
 	applyResyncChoice       *connect.Client[v1.ApplyResyncChoiceRequest, v1.ApplyResyncChoiceResponse]
 	setBookISBN             *connect.Client[v1.SetBookISBNRequest, v1.SetBookISBNResponse]
@@ -212,6 +223,11 @@ func (c *catalogServiceClient) MergeBooks(ctx context.Context, req *connect.Requ
 // StartResync calls books.v1.CatalogService.StartResync.
 func (c *catalogServiceClient) StartResync(ctx context.Context, req *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error) {
 	return c.startResync.CallUnary(ctx, req)
+}
+
+// CancelResync calls books.v1.CatalogService.CancelResync.
+func (c *catalogServiceClient) CancelResync(ctx context.Context, req *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error) {
+	return c.cancelResync.CallUnary(ctx, req)
 }
 
 // ListResyncProposals calls books.v1.CatalogService.ListResyncProposals.
@@ -256,6 +272,7 @@ type CatalogServiceHandler interface {
 	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
 	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
 	StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error)
+	CancelResync(context.Context, *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error)
 	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
 	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
@@ -300,6 +317,12 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		CatalogServiceStartResyncProcedure,
 		svc.StartResync,
 		connect.WithSchema(catalogServiceMethods.ByName("StartResync")),
+		connect.WithHandlerOptions(opts...),
+	)
+	catalogServiceCancelResyncHandler := connect.NewUnaryHandler(
+		CatalogServiceCancelResyncProcedure,
+		svc.CancelResync,
+		connect.WithSchema(catalogServiceMethods.ByName("CancelResync")),
 		connect.WithHandlerOptions(opts...),
 	)
 	catalogServiceListResyncProposalsHandler := connect.NewUnaryHandler(
@@ -356,6 +379,8 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 			catalogServiceMergeBooksHandler.ServeHTTP(w, r)
 		case CatalogServiceStartResyncProcedure:
 			catalogServiceStartResyncHandler.ServeHTTP(w, r)
+		case CatalogServiceCancelResyncProcedure:
+			catalogServiceCancelResyncHandler.ServeHTTP(w, r)
 		case CatalogServiceListResyncProposalsProcedure:
 			catalogServiceListResyncProposalsHandler.ServeHTTP(w, r)
 		case CatalogServiceApplyResyncChoiceProcedure:
@@ -397,6 +422,10 @@ func (UnimplementedCatalogServiceHandler) MergeBooks(context.Context, *connect.R
 
 func (UnimplementedCatalogServiceHandler) StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.StartResync is not implemented"))
+}
+
+func (UnimplementedCatalogServiceHandler) CancelResync(context.Context, *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.CancelResync is not implemented"))
 }
 
 func (UnimplementedCatalogServiceHandler) ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error) {

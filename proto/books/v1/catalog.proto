@@ -59,6 +59,12 @@ message StartResyncRequest {
 }
 message StartResyncResponse {}
 
+// CancelResync stops an in-progress resync scan started by StartResync. A
+// no-op if no scan is running. Books already processed keep their scan
+// status; the proposals table is left untouched by the cancelled run.
+message CancelResyncRequest {}
+message CancelResyncResponse {}
+
 // SourceBook is one candidate set of metadata for a catalog book — either the
 // current library values (source = "") or one external provider's proposal
 // (source = "openlibrary" | "googlebooks" | "unicat").
@@ -143,6 +149,9 @@ message SourceStat {
   int32 found_count = 2;
   // Books found ONLY in this source (found here, nowhere else).
   int32 unique_count = 3;
+  // Books this source actually checked and came back empty (found_column IS
+  // FALSE) — distinct from never having been scanned at all.
+  int32 missed_count = 4;
 }
 // SourceComboStat reports how many books were found by exactly this set of
 // two or three sources (a genuine overlap) — the complement of SourceStat's
@@ -161,6 +170,10 @@ message GetSourceStatsResponse {
   int32 never_scanned = 4;
   // Every 2-source and the 3-source overlap combo, size >= 2 only.
   repeated SourceComboStat overlaps = 5;
+  // The mirror of overlaps: books missed by exactly this set of sources (those
+  // sources IS FALSE, every other source IS TRUE). Same partition model as
+  // overlaps, just complemented.
+  repeated SourceComboStat missed_overlaps = 6;
 }
 
 // ListBooksInExactSources lists the catalog books found by exactly the given
@@ -181,6 +194,7 @@ service CatalogService {
   rpc FindDuplicates(FindDuplicatesRequest) returns (FindDuplicatesResponse);
   rpc MergeBooks(MergeBooksRequest) returns (MergeBooksResponse);
   rpc StartResync(StartResyncRequest) returns (StartResyncResponse);
+  rpc CancelResync(CancelResyncRequest) returns (CancelResyncResponse);
   rpc ListResyncProposals(ListResyncProposalsRequest) returns (ListResyncProposalsResponse);
   rpc ApplyResyncChoice(ApplyResyncChoiceRequest) returns (ApplyResyncChoiceResponse);
   rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);

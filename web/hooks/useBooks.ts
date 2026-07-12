@@ -252,6 +252,11 @@ export function useStartResync() {
   return (force = false) => client.startResync({ force })
 }
 
+export function useCancelResync() {
+  const client = createServiceClient(CatalogService)
+  return () => client.cancelResync({})
+}
+
 export function useFindDuplicates() {
   const client = createServiceClient(CatalogService)
   return useSWR<FindDuplicatesResponse, Error>(swrKeys.bookDuplicates, () =>

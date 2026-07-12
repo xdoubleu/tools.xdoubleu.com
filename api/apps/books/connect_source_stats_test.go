@@ -54,6 +54,21 @@ func overlapFor(
 	return nil
 }
 
+func missedOverlapFor(
+	t *testing.T,
+	msg *booksv1.GetSourceStatsResponse,
+	sources ...string,
+) *booksv1.SourceComboStat {
+	t.Helper()
+	for _, o := range msg.MissedOverlaps {
+		if equalSourceSets(o.Sources, sources) {
+			return o
+		}
+	}
+	t.Fatalf("missed overlap combo %v missing from stats", sources)
+	return nil
+}
+
 func equalSourceSets(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -172,6 +187,70 @@ func TestGetSourceStats_Admin_CountsOverlap(t *testing.T) {
 		"the mock UniCat client never confirms a match, so all-three must stay 0",
 	)
 	require.Len(t, after.Overlaps, 4)
+}
+
+// TestGetSourceStats_Admin_CountsMissed verifies per-source missed counting: a
+// book found only by OpenLibrary is a confirmed miss (IS FALSE, not NULL) for
+// the two other configured sources, bumping their missed counts.
+func TestGetSourceStats_Admin_CountsMissed(t *testing.T) {
+	client, adminApp := newAdminBooksTestClientWithMockSources(t)
+	before := getSourceStats(t, client)
+
+	id := uuid.New()
+	addTestBookWithISBN(t, "SourceStatsMissedBook", isbnFromUUID(id))
+
+	_, err := adminApp.Services.Books.BuildResyncProposals(
+		context.Background(),
+		adminApp.Logger,
+		nil,
+		false,
+	)
+	require.NoError(t, err)
+
+	after := getSourceStats(t, client)
+	assert.GreaterOrEqual(
+		t,
+		statFor(t, after, "googlebooks").MissedCount,
+		statFor(t, before, "googlebooks").MissedCount+1,
+	)
+	assert.GreaterOrEqual(
+		t,
+		statFor(t, after, "unicat").MissedCount,
+		statFor(t, before, "unicat").MissedCount+1,
+	)
+	assert.Equal(
+		t,
+		statFor(t, before, "openlibrary").MissedCount,
+		statFor(t, after, "openlibrary").MissedCount,
+		"the mock OpenLibrary client always finds, so its missed count must not move",
+	)
+}
+
+// TestGetSourceStats_MissedOverlapsMirrorUniqueCounts verifies the handler's
+// missed_overlaps wiring: missed by exactly {A,B} (both confirmed miss) is
+// the same book set as found-only-by-the-third-source, so it must always
+// equal that source's Unique count — a structural invariant, independent of
+// what's currently seeded in the shared test DB.
+func TestGetSourceStats_MissedOverlapsMirrorUniqueCounts(t *testing.T) {
+	client := newAdminBooksTestClient(t)
+	msg := getSourceStats(t, client)
+
+	require.Len(t, msg.MissedOverlaps, 4)
+	assert.Equal(
+		t,
+		statFor(t, msg, "unicat").UniqueCount,
+		missedOverlapFor(t, msg, "openlibrary", "googlebooks").Count,
+	)
+	assert.Equal(
+		t,
+		statFor(t, msg, "googlebooks").UniqueCount,
+		missedOverlapFor(t, msg, "openlibrary", "unicat").Count,
+	)
+	assert.Equal(
+		t,
+		statFor(t, msg, "openlibrary").UniqueCount,
+		missedOverlapFor(t, msg, "googlebooks", "unicat").Count,
+	)
 }
 
 func TestListBooksInExactSources_NonAdmin_PermissionDenied(t *testing.T) {
