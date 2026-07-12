@@ -70,6 +70,8 @@ func TestKoboLogging_CapturesSyncRequestAndResponse(t *testing.T) {
 	e := entries[0]
 	assert.Equal(t, http.MethodGet, e.Method)
 	assert.True(t, strings.HasSuffix(e.Path, "/v1/library/sync"))
+	assert.NotContains(t, e.Path, rawToken,
+		"the device's live sync token must never appear in captured logs")
 	assert.Equal(t, http.StatusOK, e.Status)
 	// The sync manifest body must be captured (empty library serializes to
 	// the JSON null/array the device receives).

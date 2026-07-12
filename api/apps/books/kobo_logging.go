@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/services"
@@ -85,6 +86,18 @@ func (rec *koboResponseRecorder) Write(p []byte) (int, error) {
 	return rec.ResponseWriter.Write(p)
 }
 
+// redactKoboToken replaces the raw bearer token segment in a captured request
+// path with a placeholder. The token is the device's live sync credential —
+// it must never be persisted (even in the in-memory debug log the device
+// owner can view) per the "plaintext never stored" rule documented in
+// kobo_routes.go.
+func redactKoboToken(path, token string) string {
+	if token == "" {
+		return path
+	}
+	return strings.Replace(path, "/"+token+"/", "/redacted/", 1)
+}
+
 // koboLogged wraps a Kobo device-facing handler so that, when debug logging is
 // enabled for the authenticated device, the request endpoint + body and the
 // response status + body are captured into the in-memory KoboLogStore.
@@ -105,7 +118,7 @@ func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 			app.Services.KoboLog.Append(holder.deviceID, services.KoboLogEntry{
 				Time:         time.Now(),
 				Method:       r.Method,
-				Path:         r.URL.Path,
+				Path:         redactKoboToken(r.URL.Path, r.PathValue("token")),
 				Query:        r.URL.RawQuery,
 				RequestBody:  holder.reqBody.String(),
 				Status:       holder.status,
