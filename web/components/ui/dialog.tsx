@@ -7,25 +7,21 @@ import { cn } from '@/lib/cn'
 interface DialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  modal?: boolean
   children: ReactNode
 }
 
-function Dialog({ open, onOpenChange, children }: DialogProps) {
+function Dialog({ open, onOpenChange, modal = true, children }: DialogProps) {
   return (
-    <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
+    <RadixDialog.Root open={open} onOpenChange={onOpenChange} modal={modal}>
       {children}
     </RadixDialog.Root>
   )
 }
 
-function DialogOverlay({ side = 'center' }: { side?: 'center' | 'right' }) {
+function DialogOverlay() {
   return (
-    <RadixDialog.Overlay
-      className={cn(
-        'fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-        side !== 'right' && 'backdrop-blur-sm'
-      )}
-    />
+    <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
   )
 }
 
@@ -55,8 +51,9 @@ const rightContentClass = [
 function DialogContent({ children, className = '', side = 'center' }: DialogContentProps) {
   return (
     <RadixDialog.Portal>
-      <DialogOverlay side={side} />
+      {side !== 'right' && <DialogOverlay />}
       <RadixDialog.Content
+        onInteractOutside={side === 'right' ? (e) => e.preventDefault() : undefined}
         className={cn(
           'fixed z-50 overflow-y-auto',
           'border border-border bg-card shadow-elevated',

@@ -7,14 +7,12 @@ import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { oneYearAgo, today } from '@/lib/dates'
+
+// ponytail: panel width mirrors dialog.tsx's rightContentClass (`w-[calc(100%-3rem)] max-w-md`)
+// so the close handle sits flush on the panel's left edge; keep the two in sync.
+const PANEL_OFFSET = 'right-[min(calc(100%_-_3rem),28rem)]'
 
 function GamesStatsPanelContent() {
   const [progressStart, setProgressStart] = useState(oneYearAgo())
@@ -104,24 +102,36 @@ export default function GamesStatsPanel() {
 
   return (
     <>
-      <Button
-        variant="secondary"
-        size="sm"
-        className="ml-auto"
-        aria-label="Open library stats"
-        onClick={() => setOpen(true)}
-      >
-        ‹
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      {!open && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-xl rounded-r-none"
+          aria-label="Open library stats"
+          onClick={() => setOpen(true)}
+        >
+          ‹
+        </Button>
+      )}
+      <Dialog open={open} onOpenChange={setOpen} modal={false}>
         <DialogContent side="right" className="overflow-x-hidden">
           <DialogHeader>
-            <DialogClose aria-label="Close library stats">›</DialogClose>
             <DialogTitle>Library stats</DialogTitle>
           </DialogHeader>
           {open && <GamesStatsPanelContent />}
         </DialogContent>
       </Dialog>
+      {open && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className={`fixed ${PANEL_OFFSET} top-1/2 z-60 -translate-y-1/2 rounded-l-xl rounded-r-none`}
+          aria-label="Close library stats"
+          onClick={() => setOpen(false)}
+        >
+          ›
+        </Button>
+      )}
     </>
   )
 }
