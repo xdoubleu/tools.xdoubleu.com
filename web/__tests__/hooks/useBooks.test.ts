@@ -49,6 +49,7 @@ import useSWR from 'swr'
 import {
   useLibrary,
   useBooksProgress,
+  useCreateShelf,
   useSearchLibrary,
   useSearchExternal,
   useCreateBook,
@@ -365,6 +366,17 @@ describe('useSourceStats', () => {
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockGet).toHaveBeenCalledWith({})
+  })
+})
+
+describe('useCreateShelf', () => {
+  it('calls client.createShelf with name', () => {
+    const mockCreate = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ createShelf: mockCreate })
+    const { result } = renderHook(() => useCreateShelf())
+    result.current('my-shelf')
+    expect(mockCreate).toHaveBeenCalledWith({ name: 'my-shelf' })
   })
 })
 

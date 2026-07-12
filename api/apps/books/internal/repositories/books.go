@@ -1018,8 +1018,56 @@ func (repo *BooksRepository) GetBooksByIDs(
 	return books, nil
 }
 
+// ListShelves returns every custom shelf name registered for the user,
+// including shelves with zero books on them.
+func (repo *BooksRepository) ListShelves(
+	ctx context.Context,
+	userID string,
+) ([]string, error) {
+	query := `SELECT name FROM books.shelves WHERE user_id = $1`
+	rows, err := repo.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var name string
+		if scanErr := rows.Scan(&name); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		names = append(names, name)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return names, nil
+}
+
+// EnsureShelf registers a custom shelf name for the user if it isn't already
+// registered, so it persists in ListShelves even once it has no books left.
+// The caller is responsible for rejecting built-in status values.
+func (repo *BooksRepository) EnsureShelf(
+	ctx context.Context,
+	userID string,
+	name string,
+) error {
+	query := `
+		INSERT INTO books.shelves (user_id, name)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`
+	_, err := repo.db.Exec(ctx, query, userID, name)
+	if err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	return nil
+}
+
 // RenameShelf updates the status of every user_book with status == oldName to
-// newName. Returns the number of rows affected.
+// newName, and moves the shelf's registry entry along with it. Returns the
+// number of user_books rows affected.
 // The caller is responsible for rejecting built-in status values.
 func (repo *BooksRepository) RenameShelf(
 	ctx context.Context,
@@ -1036,12 +1084,31 @@ func (repo *BooksRepository) RenameShelf(
 	if err != nil {
 		return 0, postgres.PgxErrorToHTTPError(err)
 	}
+
+	// Drop the old registry entry and (re-)register the new name in one
+	// statement, rather than UPDATE-ing the row in place: newName might
+	// already be registered (e.g. an empty shelf someone created
+	// separately), and an in-place UPDATE would violate the (user_id, name)
+	// primary key in that case. Deleting then inserting merges into the
+	// existing entry instead of erroring.
+	registryQuery := `
+		WITH removed AS (
+			DELETE FROM books.shelves WHERE user_id = $1 AND name = $2
+		)
+		INSERT INTO books.shelves (user_id, name)
+		VALUES ($1, $3)
+		ON CONFLICT DO NOTHING
+	`
+	if _, err = repo.db.Exec(ctx, registryQuery, userID, oldName, newName); err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+
 	//nolint:gosec // row count is safe for domain values
 	return uint32(tag.RowsAffected()), nil
 }
 
-// DeleteShelf reassigns every book on shelf oldName to targetName, removing
-// oldName. Returns the number of rows moved.
+// DeleteShelf reassigns every book on shelf oldName to targetName and removes
+// oldName from the shelf registry. Returns the number of rows moved.
 // The caller is responsible for rejecting built-in status values.
 func (repo *BooksRepository) DeleteShelf(
 	ctx context.Context,
@@ -1049,7 +1116,23 @@ func (repo *BooksRepository) DeleteShelf(
 	oldName string,
 	targetName string,
 ) (uint32, error) {
-	return repo.RenameShelf(ctx, userID, oldName, targetName)
+	query := `
+		UPDATE books.user_books
+		SET status = $3, updated_at = now()
+		WHERE user_id = $1 AND status = $2
+	`
+	tag, err := repo.db.Exec(ctx, query, userID, oldName, targetName)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+
+	deleteQuery := `DELETE FROM books.shelves WHERE user_id = $1 AND name = $2`
+	if _, err = repo.db.Exec(ctx, deleteQuery, userID, oldName); err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+
+	//nolint:gosec // row count is safe for domain values
+	return uint32(tag.RowsAffected()), nil
 }
 
 // RenameTag replaces every occurrence of oldName in the tags array with

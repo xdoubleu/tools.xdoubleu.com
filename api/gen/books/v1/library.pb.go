@@ -1868,6 +1868,86 @@ func (x *GetReadingStateResponse) GetState() *BookReadingStateData {
 	return nil
 }
 
+type CreateShelfRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateShelfRequest) Reset() {
+	*x = CreateShelfRequest{}
+	mi := &file_books_v1_library_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateShelfRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateShelfRequest) ProtoMessage() {}
+
+func (x *CreateShelfRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_library_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateShelfRequest.ProtoReflect.Descriptor instead.
+func (*CreateShelfRequest) Descriptor() ([]byte, []int) {
+	return file_books_v1_library_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *CreateShelfRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type CreateShelfResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateShelfResponse) Reset() {
+	*x = CreateShelfResponse{}
+	mi := &file_books_v1_library_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateShelfResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateShelfResponse) ProtoMessage() {}
+
+func (x *CreateShelfResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_library_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateShelfResponse.ProtoReflect.Descriptor instead.
+func (*CreateShelfResponse) Descriptor() ([]byte, []int) {
+	return file_books_v1_library_proto_rawDescGZIP(), []int{34}
+}
+
 type RenameShelfRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OldName       string                 `protobuf:"bytes,1,opt,name=old_name,json=oldName,proto3" json:"old_name,omitempty"`
@@ -1878,7 +1958,7 @@ type RenameShelfRequest struct {
 
 func (x *RenameShelfRequest) Reset() {
 	*x = RenameShelfRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[33]
+	mi := &file_books_v1_library_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1890,7 +1970,7 @@ func (x *RenameShelfRequest) String() string {
 func (*RenameShelfRequest) ProtoMessage() {}
 
 func (x *RenameShelfRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[33]
+	mi := &file_books_v1_library_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1903,7 +1983,7 @@ func (x *RenameShelfRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameShelfRequest.ProtoReflect.Descriptor instead.
 func (*RenameShelfRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{33}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *RenameShelfRequest) GetOldName() string {
@@ -1929,7 +2009,7 @@ type RenameShelfResponse struct {
 
 func (x *RenameShelfResponse) Reset() {
 	*x = RenameShelfResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[34]
+	mi := &file_books_v1_library_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1941,7 +2021,7 @@ func (x *RenameShelfResponse) String() string {
 func (*RenameShelfResponse) ProtoMessage() {}
 
 func (x *RenameShelfResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[34]
+	mi := &file_books_v1_library_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1954,7 +2034,7 @@ func (x *RenameShelfResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameShelfResponse.ProtoReflect.Descriptor instead.
 func (*RenameShelfResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{34}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *RenameShelfResponse) GetMoved() uint32 {
@@ -1975,7 +2055,7 @@ type DeleteShelfRequest struct {
 
 func (x *DeleteShelfRequest) Reset() {
 	*x = DeleteShelfRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[35]
+	mi := &file_books_v1_library_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1987,7 +2067,7 @@ func (x *DeleteShelfRequest) String() string {
 func (*DeleteShelfRequest) ProtoMessage() {}
 
 func (x *DeleteShelfRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[35]
+	mi := &file_books_v1_library_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2000,7 +2080,7 @@ func (x *DeleteShelfRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShelfRequest.ProtoReflect.Descriptor instead.
 func (*DeleteShelfRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{35}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *DeleteShelfRequest) GetName() string {
@@ -2026,7 +2106,7 @@ type DeleteShelfResponse struct {
 
 func (x *DeleteShelfResponse) Reset() {
 	*x = DeleteShelfResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[36]
+	mi := &file_books_v1_library_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2038,7 +2118,7 @@ func (x *DeleteShelfResponse) String() string {
 func (*DeleteShelfResponse) ProtoMessage() {}
 
 func (x *DeleteShelfResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[36]
+	mi := &file_books_v1_library_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2051,7 +2131,7 @@ func (x *DeleteShelfResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShelfResponse.ProtoReflect.Descriptor instead.
 func (*DeleteShelfResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{36}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *DeleteShelfResponse) GetMoved() uint32 {
@@ -2071,7 +2151,7 @@ type RenameTagRequest struct {
 
 func (x *RenameTagRequest) Reset() {
 	*x = RenameTagRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[37]
+	mi := &file_books_v1_library_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2083,7 +2163,7 @@ func (x *RenameTagRequest) String() string {
 func (*RenameTagRequest) ProtoMessage() {}
 
 func (x *RenameTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[37]
+	mi := &file_books_v1_library_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2096,7 +2176,7 @@ func (x *RenameTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameTagRequest.ProtoReflect.Descriptor instead.
 func (*RenameTagRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{37}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *RenameTagRequest) GetOldName() string {
@@ -2122,7 +2202,7 @@ type RenameTagResponse struct {
 
 func (x *RenameTagResponse) Reset() {
 	*x = RenameTagResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[38]
+	mi := &file_books_v1_library_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2134,7 +2214,7 @@ func (x *RenameTagResponse) String() string {
 func (*RenameTagResponse) ProtoMessage() {}
 
 func (x *RenameTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[38]
+	mi := &file_books_v1_library_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2147,7 +2227,7 @@ func (x *RenameTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameTagResponse.ProtoReflect.Descriptor instead.
 func (*RenameTagResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{38}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *RenameTagResponse) GetAffected() uint32 {
@@ -2166,7 +2246,7 @@ type DeleteTagRequest struct {
 
 func (x *DeleteTagRequest) Reset() {
 	*x = DeleteTagRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[39]
+	mi := &file_books_v1_library_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2178,7 +2258,7 @@ func (x *DeleteTagRequest) String() string {
 func (*DeleteTagRequest) ProtoMessage() {}
 
 func (x *DeleteTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[39]
+	mi := &file_books_v1_library_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2191,7 +2271,7 @@ func (x *DeleteTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTagRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTagRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{39}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *DeleteTagRequest) GetName() string {
@@ -2210,7 +2290,7 @@ type DeleteTagResponse struct {
 
 func (x *DeleteTagResponse) Reset() {
 	*x = DeleteTagResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[40]
+	mi := &file_books_v1_library_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2222,7 +2302,7 @@ func (x *DeleteTagResponse) String() string {
 func (*DeleteTagResponse) ProtoMessage() {}
 
 func (x *DeleteTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[40]
+	mi := &file_books_v1_library_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2235,7 +2315,7 @@ func (x *DeleteTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTagResponse.ProtoReflect.Descriptor instead.
 func (*DeleteTagResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{40}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *DeleteTagResponse) GetAffected() uint32 {
@@ -2378,7 +2458,10 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\x16GetReadingStateRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\"O\n" +
 	"\x17GetReadingStateResponse\x124\n" +
-	"\x05state\x18\x01 \x01(\v2\x1e.books.v1.BookReadingStateDataR\x05state\"J\n" +
+	"\x05state\x18\x01 \x01(\v2\x1e.books.v1.BookReadingStateDataR\x05state\"(\n" +
+	"\x12CreateShelfRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x15\n" +
+	"\x13CreateShelfResponse\"J\n" +
 	"\x12RenameShelfRequest\x12\x19\n" +
 	"\bold_name\x18\x01 \x01(\tR\aoldName\x12\x19\n" +
 	"\bnew_name\x18\x02 \x01(\tR\anewName\"+\n" +
@@ -2398,8 +2481,7 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\x10DeleteTagRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"/\n" +
 	"\x11DeleteTagResponse\x12\x1a\n" +
-	"\baffected\x18\x01 \x01(\rR\baffected2\xfc\n" +
-	"\n" +
+	"\baffected\x18\x01 \x01(\rR\baffected2\xc8\v\n" +
 	"\x0eLibraryService\x12G\n" +
 	"\n" +
 	"GetLibrary\x12\x1b.books.v1.GetLibraryRequest\x1a\x1c.books.v1.GetLibraryResponse\x12Y\n" +
@@ -2417,6 +2499,7 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"RemoveBook\x12\x1b.books.v1.RemoveBookRequest\x1a\x1c.books.v1.RemoveBookResponse\x12h\n" +
 	"\x15UpdateReadingProgress\x12&.books.v1.UpdateReadingProgressRequest\x1a'.books.v1.UpdateReadingProgressResponse\x12V\n" +
 	"\x0fGetReadingState\x12 .books.v1.GetReadingStateRequest\x1a!.books.v1.GetReadingStateResponse\x12J\n" +
+	"\vCreateShelf\x12\x1c.books.v1.CreateShelfRequest\x1a\x1d.books.v1.CreateShelfResponse\x12J\n" +
 	"\vRenameShelf\x12\x1c.books.v1.RenameShelfRequest\x1a\x1d.books.v1.RenameShelfResponse\x12J\n" +
 	"\vDeleteShelf\x12\x1c.books.v1.DeleteShelfRequest\x1a\x1d.books.v1.DeleteShelfResponse\x12D\n" +
 	"\tRenameTag\x12\x1a.books.v1.RenameTagRequest\x1a\x1b.books.v1.RenameTagResponse\x12D\n" +
@@ -2434,7 +2517,7 @@ func file_books_v1_library_proto_rawDescGZIP() []byte {
 	return file_books_v1_library_proto_rawDescData
 }
 
-var file_books_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_books_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_books_v1_library_proto_goTypes = []any{
 	(*Book)(nil),                          // 0: books.v1.Book
 	(*UserBook)(nil),                      // 1: books.v1.UserBook
@@ -2469,14 +2552,16 @@ var file_books_v1_library_proto_goTypes = []any{
 	(*UpdateReadingProgressResponse)(nil), // 30: books.v1.UpdateReadingProgressResponse
 	(*GetReadingStateRequest)(nil),        // 31: books.v1.GetReadingStateRequest
 	(*GetReadingStateResponse)(nil),       // 32: books.v1.GetReadingStateResponse
-	(*RenameShelfRequest)(nil),            // 33: books.v1.RenameShelfRequest
-	(*RenameShelfResponse)(nil),           // 34: books.v1.RenameShelfResponse
-	(*DeleteShelfRequest)(nil),            // 35: books.v1.DeleteShelfRequest
-	(*DeleteShelfResponse)(nil),           // 36: books.v1.DeleteShelfResponse
-	(*RenameTagRequest)(nil),              // 37: books.v1.RenameTagRequest
-	(*RenameTagResponse)(nil),             // 38: books.v1.RenameTagResponse
-	(*DeleteTagRequest)(nil),              // 39: books.v1.DeleteTagRequest
-	(*DeleteTagResponse)(nil),             // 40: books.v1.DeleteTagResponse
+	(*CreateShelfRequest)(nil),            // 33: books.v1.CreateShelfRequest
+	(*CreateShelfResponse)(nil),           // 34: books.v1.CreateShelfResponse
+	(*RenameShelfRequest)(nil),            // 35: books.v1.RenameShelfRequest
+	(*RenameShelfResponse)(nil),           // 36: books.v1.RenameShelfResponse
+	(*DeleteShelfRequest)(nil),            // 37: books.v1.DeleteShelfRequest
+	(*DeleteShelfResponse)(nil),           // 38: books.v1.DeleteShelfResponse
+	(*RenameTagRequest)(nil),              // 39: books.v1.RenameTagRequest
+	(*RenameTagResponse)(nil),             // 40: books.v1.RenameTagResponse
+	(*DeleteTagRequest)(nil),              // 41: books.v1.DeleteTagRequest
+	(*DeleteTagResponse)(nil),             // 42: books.v1.DeleteTagResponse
 }
 var file_books_v1_library_proto_depIdxs = []int32{
 	0,  // 0: books.v1.UserBook.book:type_name -> books.v1.Book
@@ -2504,29 +2589,31 @@ var file_books_v1_library_proto_depIdxs = []int32{
 	23, // 22: books.v1.LibraryService.RemoveBook:input_type -> books.v1.RemoveBookRequest
 	29, // 23: books.v1.LibraryService.UpdateReadingProgress:input_type -> books.v1.UpdateReadingProgressRequest
 	31, // 24: books.v1.LibraryService.GetReadingState:input_type -> books.v1.GetReadingStateRequest
-	33, // 25: books.v1.LibraryService.RenameShelf:input_type -> books.v1.RenameShelfRequest
-	35, // 26: books.v1.LibraryService.DeleteShelf:input_type -> books.v1.DeleteShelfRequest
-	37, // 27: books.v1.LibraryService.RenameTag:input_type -> books.v1.RenameTagRequest
-	39, // 28: books.v1.LibraryService.DeleteTag:input_type -> books.v1.DeleteTagRequest
-	8,  // 29: books.v1.LibraryService.GetLibrary:output_type -> books.v1.GetLibraryResponse
-	10, // 30: books.v1.LibraryService.GetBooksProgress:output_type -> books.v1.GetBooksProgressResponse
-	12, // 31: books.v1.LibraryService.SearchLibrary:output_type -> books.v1.SearchLibraryResponse
-	14, // 32: books.v1.LibraryService.SearchExternal:output_type -> books.v1.SearchExternalResponse
-	16, // 33: books.v1.LibraryService.GetExternalBook:output_type -> books.v1.GetExternalBookResponse
-	18, // 34: books.v1.LibraryService.CreateBook:output_type -> books.v1.CreateBookResponse
-	20, // 35: books.v1.LibraryService.UpdateBookStatus:output_type -> books.v1.UpdateBookStatusResponse
-	26, // 36: books.v1.LibraryService.UpdateFinishedAt:output_type -> books.v1.UpdateFinishedAtResponse
-	28, // 37: books.v1.LibraryService.UpdateProgress:output_type -> books.v1.UpdateProgressResponse
-	22, // 38: books.v1.LibraryService.ToggleTag:output_type -> books.v1.ToggleTagResponse
-	24, // 39: books.v1.LibraryService.RemoveBook:output_type -> books.v1.RemoveBookResponse
-	30, // 40: books.v1.LibraryService.UpdateReadingProgress:output_type -> books.v1.UpdateReadingProgressResponse
-	32, // 41: books.v1.LibraryService.GetReadingState:output_type -> books.v1.GetReadingStateResponse
-	34, // 42: books.v1.LibraryService.RenameShelf:output_type -> books.v1.RenameShelfResponse
-	36, // 43: books.v1.LibraryService.DeleteShelf:output_type -> books.v1.DeleteShelfResponse
-	38, // 44: books.v1.LibraryService.RenameTag:output_type -> books.v1.RenameTagResponse
-	40, // 45: books.v1.LibraryService.DeleteTag:output_type -> books.v1.DeleteTagResponse
-	29, // [29:46] is the sub-list for method output_type
-	12, // [12:29] is the sub-list for method input_type
+	33, // 25: books.v1.LibraryService.CreateShelf:input_type -> books.v1.CreateShelfRequest
+	35, // 26: books.v1.LibraryService.RenameShelf:input_type -> books.v1.RenameShelfRequest
+	37, // 27: books.v1.LibraryService.DeleteShelf:input_type -> books.v1.DeleteShelfRequest
+	39, // 28: books.v1.LibraryService.RenameTag:input_type -> books.v1.RenameTagRequest
+	41, // 29: books.v1.LibraryService.DeleteTag:input_type -> books.v1.DeleteTagRequest
+	8,  // 30: books.v1.LibraryService.GetLibrary:output_type -> books.v1.GetLibraryResponse
+	10, // 31: books.v1.LibraryService.GetBooksProgress:output_type -> books.v1.GetBooksProgressResponse
+	12, // 32: books.v1.LibraryService.SearchLibrary:output_type -> books.v1.SearchLibraryResponse
+	14, // 33: books.v1.LibraryService.SearchExternal:output_type -> books.v1.SearchExternalResponse
+	16, // 34: books.v1.LibraryService.GetExternalBook:output_type -> books.v1.GetExternalBookResponse
+	18, // 35: books.v1.LibraryService.CreateBook:output_type -> books.v1.CreateBookResponse
+	20, // 36: books.v1.LibraryService.UpdateBookStatus:output_type -> books.v1.UpdateBookStatusResponse
+	26, // 37: books.v1.LibraryService.UpdateFinishedAt:output_type -> books.v1.UpdateFinishedAtResponse
+	28, // 38: books.v1.LibraryService.UpdateProgress:output_type -> books.v1.UpdateProgressResponse
+	22, // 39: books.v1.LibraryService.ToggleTag:output_type -> books.v1.ToggleTagResponse
+	24, // 40: books.v1.LibraryService.RemoveBook:output_type -> books.v1.RemoveBookResponse
+	30, // 41: books.v1.LibraryService.UpdateReadingProgress:output_type -> books.v1.UpdateReadingProgressResponse
+	32, // 42: books.v1.LibraryService.GetReadingState:output_type -> books.v1.GetReadingStateResponse
+	34, // 43: books.v1.LibraryService.CreateShelf:output_type -> books.v1.CreateShelfResponse
+	36, // 44: books.v1.LibraryService.RenameShelf:output_type -> books.v1.RenameShelfResponse
+	38, // 45: books.v1.LibraryService.DeleteShelf:output_type -> books.v1.DeleteShelfResponse
+	40, // 46: books.v1.LibraryService.RenameTag:output_type -> books.v1.RenameTagResponse
+	42, // 47: books.v1.LibraryService.DeleteTag:output_type -> books.v1.DeleteTagResponse
+	30, // [30:48] is the sub-list for method output_type
+	12, // [12:30] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
 	12, // [12:12] is the sub-list for extension extendee
 	0,  // [0:12] is the sub-list for field type_name
@@ -2543,7 +2630,7 @@ func file_books_v1_library_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_books_v1_library_proto_rawDesc), len(file_books_v1_library_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   41,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

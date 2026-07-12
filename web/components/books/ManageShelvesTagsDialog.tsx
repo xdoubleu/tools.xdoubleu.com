@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
-import { useRenameShelf, useDeleteShelf, useRenameTag, useDeleteTag } from '@/hooks/useBooks'
+import {
+  useCreateShelf,
+  useRenameShelf,
+  useDeleteShelf,
+  useRenameTag,
+  useDeleteTag
+} from '@/hooks/useBooks'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { BUILT_IN_STATUSES, BOOK_STATUSES } from '@/lib/books/bookShelves'
+import { isBuiltInShelfId, BOOK_STATUSES } from '@/lib/books/bookShelves'
 import type { Shelf } from '@/components/books/LibrarySidebar'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -35,17 +41,35 @@ export default function ManageShelvesTagsDialog({
 }: ManageShelvesTagsDialogProps) {
   const [renaming, setRenaming] = useState<RenameState | null>(null)
   const [deletingShelf, setDeletingShelf] = useState<DeleteShelfState | null>(null)
+  const [newShelfName, setNewShelfName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  const createShelf = useCreateShelf()
   const renameShelf = useRenameShelf()
   const deleteShelf = useDeleteShelf()
   const renameTag = useRenameTag()
   const deleteTag = useDeleteTag()
 
-  const customShelves = shelves.filter((s) => s.id !== 'all' && !BUILT_IN_STATUSES.has(s.id))
+  const customShelves = shelves.filter((s) => s.id !== 'all' && !isBuiltInShelfId(s.id))
 
-  const builtInShelves = shelves.filter((s) => s.id !== 'all' && BUILT_IN_STATUSES.has(s.id))
+  const builtInShelves = shelves.filter((s) => s.id !== 'all' && isBuiltInShelfId(s.id))
+
+  const handleCreateShelf = async () => {
+    const name = newShelfName.trim()
+    if (!name) return
+    setBusy(true)
+    setError(null)
+    try {
+      await createShelf(name)
+      mutate(swrKeys.books)
+      setNewShelfName('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Create shelf failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const handleRename = async () => {
     if (!renaming || !renaming.newName.trim()) return
@@ -135,6 +159,24 @@ export default function ManageShelvesTagsDialog({
           <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
             Custom shelves
           </h3>
+          <div className="mb-2 flex gap-2">
+            <Input
+              value={newShelfName}
+              onChange={(e) => setNewShelfName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleCreateShelf()
+              }}
+              placeholder="New shelf name…"
+              className="flex-1 h-8 text-sm"
+            />
+            <Button
+              size="sm"
+              onClick={() => void handleCreateShelf()}
+              disabled={busy || !newShelfName.trim()}
+            >
+              Add
+            </Button>
+          </div>
           {customShelves.length === 0 && (
             <p className="text-sm text-muted">No custom shelves yet.</p>
           )}

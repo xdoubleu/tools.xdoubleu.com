@@ -39,8 +39,8 @@ describe('buildShelves', () => {
     const ids = shelves.map((s) => s.id)
     expect(ids).toContain('all')
     expect(ids).toContain('currently-reading')
-    expect(ids).toContain('wishlist')
-    expect(ids).toContain('finished')
+    expect(ids).toContain('to-read')
+    expect(ids).toContain('read')
     expect(ids).toContain('Custom')
   })
 
@@ -123,7 +123,7 @@ describe('LibrarySidebar', () => {
   const shelves: Shelf[] = [
     { id: 'all', label: 'All books', count: 5 },
     { id: 'currently-reading', label: 'Currently reading', count: 2 },
-    { id: 'wishlist', label: 'Want to read', count: 3 }
+    { id: 'to-read', label: 'Want to read', count: 3 }
   ]
   const tags: TagEntry[] = [
     { name: 'fantasy', count: 4 },
@@ -161,7 +161,7 @@ describe('LibrarySidebar', () => {
     )
     const btns = screen.getAllByText('Want to read')
     fireEvent.click(btns[0])
-    expect(onSelectShelf).toHaveBeenCalledWith('wishlist')
+    expect(onSelectShelf).toHaveBeenCalledWith('to-read')
   })
 
   it('renders tags and calls onSelectTag when clicked', () => {

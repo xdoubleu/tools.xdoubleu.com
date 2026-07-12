@@ -82,6 +82,102 @@ func TestConnectToggleTag_EmptyTag(t *testing.T) {
 	assert.True(t, errors.As(err, &connectErr))
 }
 
+func TestConnectCreateShelf_Success(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.CreateShelfRequest{Name: "empty-shelf"})
+	req.Header().Set("Cookie", accessToken.String())
+	_, err := client.CreateShelf(ctx, req)
+	require.NoError(t, err)
+
+	// The shelf must show up in the library with zero books, since nothing
+	// was ever assigned to it.
+	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
+	libReq.Header().Set("Cookie", accessToken.String())
+	libResp, err := client.GetLibrary(ctx, libReq)
+	require.NoError(t, err)
+
+	found := false
+	for _, shelf := range libResp.Msg.Library.Shelves {
+		if shelf.Name == "empty-shelf" {
+			found = true
+			assert.Empty(t, shelf.Books)
+		}
+	}
+	assert.True(t, found, "empty-shelf should appear in the library shelves")
+}
+
+func TestConnectCreateShelf_BuiltIn(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.CreateShelfRequest{Name: models.StatusRead})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.CreateShelf(ctx, req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestConnectCreateShelf_EmptyName(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.CreateShelfRequest{Name: ""})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.CreateShelf(ctx, req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// TestConnectShelf_PersistsWhenEmptied covers the core "shelves I'm lacking"
+// fix: a custom shelf registered via UpdateBookStatus must keep showing up
+// in GetLibrary even after its last book is moved off it.
+func TestConnectShelf_PersistsWhenEmptied(t *testing.T) {
+	book := addTestBook(t, "PersistShelfBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+		BookId: book.BookID.String(),
+		Status: "temporary-shelf",
+	})
+	statusReq.Header().Set("Cookie", accessToken.String())
+	_, err := client.UpdateBookStatus(ctx, statusReq)
+	require.NoError(t, err)
+
+	// Move the book back off the shelf.
+	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+		BookId: book.BookID.String(),
+		Status: models.StatusToRead,
+	})
+	backReq.Header().Set("Cookie", accessToken.String())
+	_, err = client.UpdateBookStatus(ctx, backReq)
+	require.NoError(t, err)
+
+	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
+	libReq.Header().Set("Cookie", accessToken.String())
+	libResp, err := client.GetLibrary(ctx, libReq)
+	require.NoError(t, err)
+
+	found := false
+	for _, shelf := range libResp.Msg.Library.Shelves {
+		if shelf.Name == "temporary-shelf" {
+			found = true
+			assert.Empty(t, shelf.Books)
+		}
+	}
+	assert.True(t, found, "temporary-shelf should persist after being emptied")
+}
+
 func TestConnectRenameShelf_Success(t *testing.T) {
 	book := addTestBook(t, "RenameShelfBook")
 	require.NotNil(t, book)
@@ -108,6 +204,32 @@ func TestConnectRenameShelf_Success(t *testing.T) {
 	resp, err := client.RenameShelf(ctx, renameReq)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, resp.Msg.Moved, uint32(1))
+
+	// Move the book off the renamed shelf: it must persist under its new
+	// name (the registry entry moved with the rename), not the old one.
+	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+		BookId: book.BookID.String(),
+		Status: models.StatusToRead,
+	})
+	backReq.Header().Set("Cookie", accessToken.String())
+	_, err = client.UpdateBookStatus(ctx, backReq)
+	require.NoError(t, err)
+
+	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
+	libReq.Header().Set("Cookie", accessToken.String())
+	libResp, err := client.GetLibrary(ctx, libReq)
+	require.NoError(t, err)
+	foundRenamed, foundOld := false, false
+	for _, shelf := range libResp.Msg.Library.Shelves {
+		if shelf.Name == "renamed-shelf" {
+			foundRenamed = true
+		}
+		if shelf.Name == "custom-shelf" {
+			foundOld = true
+		}
+	}
+	assert.True(t, foundRenamed, "renamed-shelf should persist after rename+empty")
+	assert.False(t, foundOld, "custom-shelf should no longer exist after rename")
 }
 
 func TestConnectRenameShelf_BuiltIn(t *testing.T) {
@@ -184,6 +306,15 @@ func TestConnectDeleteShelf_Success(t *testing.T) {
 	resp, err := client.DeleteShelf(ctx, deleteReq)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, resp.Msg.Moved, uint32(1))
+
+	// The deleted shelf must not reappear, even as an empty shelf.
+	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
+	libReq.Header().Set("Cookie", accessToken.String())
+	libResp, err := client.GetLibrary(ctx, libReq)
+	require.NoError(t, err)
+	for _, shelf := range libResp.Msg.Library.Shelves {
+		assert.NotEqual(t, "shelf-to-delete", shelf.Name)
+	}
 }
 
 func TestConnectDeleteShelf_BuiltIn(t *testing.T) {

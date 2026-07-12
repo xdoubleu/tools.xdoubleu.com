@@ -86,10 +86,10 @@ describe('BooksDashboard', () => {
     mockLibrary()
     render(<BooksDashboard />)
     expect(screen.getByText('Total books')).toBeInTheDocument()
-    expect(screen.getByText('In progress')).toBeInTheDocument()
-    expect(screen.getByText('Finished')).toBeInTheDocument()
+    expect(screen.getAllByText('Currently reading').length).toBeGreaterThan(0)
+    expect(screen.getByText('Read')).toBeInTheDocument()
     expect(screen.getByText('Read this year')).toBeInTheDocument()
-    expect(screen.getByText('Wishlist')).toBeInTheDocument()
+    expect(screen.getByText('Want to read')).toBeInTheDocument()
   })
 
   it('renders currently reading cards with a progress bar', () => {

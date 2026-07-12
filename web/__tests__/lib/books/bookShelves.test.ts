@@ -3,6 +3,7 @@ import {
   BUILT_IN_STATUSES,
   BOOK_STATUSES,
   statusLabel,
+  isBuiltInShelfId,
   displayTags
 } from '@/lib/books/bookShelves'
 
@@ -57,6 +58,20 @@ describe('statusLabel', () => {
 
   it('returns the raw value for unknown / custom statuses', () => {
     expect(statusLabel('my-custom-shelf')).toBe('my-custom-shelf')
+  })
+})
+
+describe('isBuiltInShelfId', () => {
+  it('treats the four reading statuses and favourite as built-in', () => {
+    expect(isBuiltInShelfId('to-read')).toBe(true)
+    expect(isBuiltInShelfId('currently-reading')).toBe(true)
+    expect(isBuiltInShelfId('read')).toBe(true)
+    expect(isBuiltInShelfId('dropped')).toBe(true)
+    expect(isBuiltInShelfId('favourite')).toBe(true)
+  })
+
+  it('treats custom shelf names as not built-in', () => {
+    expect(isBuiltInShelfId('my-shelf')).toBe(false)
   })
 })
 

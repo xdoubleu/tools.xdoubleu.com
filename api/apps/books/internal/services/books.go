@@ -123,16 +123,35 @@ func (s *BookService) AddToLibrary(
 	if err = s.books.UpsertUserBook(ctx, ub); err != nil {
 		return nil, err
 	}
+	if err = s.registerCustomShelf(ctx, userID, status); err != nil {
+		return nil, err
+	}
 
 	return s.books.GetUserBook(ctx, userID, saved.ID)
 }
 
 func (s *BookService) UpdateStatus(
 	ctx context.Context,
-	_ string,
+	userID string,
 	ub models.UserBook,
 ) error {
-	return s.books.UpsertUserBook(ctx, ub)
+	if err := s.books.UpsertUserBook(ctx, ub); err != nil {
+		return err
+	}
+	return s.registerCustomShelf(ctx, userID, ub.Status)
+}
+
+// registerCustomShelf records a custom (non-built-in) status in the shelves
+// registry so it persists even after its last book is moved off it. Built-in
+// statuses are never stored — they're always implicit.
+func (s *BookService) registerCustomShelf(
+	ctx context.Context,
+	userID, status string,
+) error {
+	if builtInStatuses[status] {
+		return nil
+	}
+	return s.books.EnsureShelf(ctx, userID, status)
 }
 
 // UpdateFinishedAt overwrites the read-date history for a user's book.
@@ -198,6 +217,31 @@ var builtInStatuses = map[string]bool{
 	models.StatusReading: true,
 	models.StatusRead:    true,
 	models.StatusDropped: true,
+}
+
+// ListShelves returns every custom shelf name registered for the user,
+// including shelves with zero books currently on them.
+func (s *BookService) ListShelves(
+	ctx context.Context,
+	userID string,
+) ([]string, error) {
+	return s.books.ListShelves(ctx, userID)
+}
+
+// CreateShelf registers a new custom shelf with no books on it yet. Returns
+// an error if the name is empty or a built-in status.
+func (s *BookService) CreateShelf(
+	ctx context.Context,
+	userID string,
+	name string,
+) error {
+	if name == "" {
+		return fmt.Errorf("shelf name cannot be empty")
+	}
+	if builtInStatuses[name] {
+		return fmt.Errorf("cannot create built-in shelf %q", name)
+	}
+	return s.books.EnsureShelf(ctx, userID, name)
 }
 
 // RenameShelf renames a custom shelf (= status) across the user's library.
