@@ -883,3 +883,187 @@ func TestUpdateTags_ClearsKoboSyncEnabledAt(t *testing.T) {
 	assert.Nil(t, enabledAt,
 		"kobo_sync_enabled_at must be NULL after kobo-sync tag is removed")
 }
+
+// --- kobo_removals tombstone: repository tests ---
+
+func TestKoboRemoval_UpsertListDelete_RoundTrip(t *testing.T) {
+	ctx := context.Background()
+	book := addUniqueBook(t)
+	owner := "kobo-removal-repo-" + uuid.NewString()
+
+	require.NoError(t,
+		testApp.Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
+
+	removals, err := testApp.Repositories.Books.ListKoboRemovals(ctx, owner)
+	require.NoError(t, err)
+	require.Len(t, removals, 1)
+	assert.Equal(t, book.ID, removals[0].BookID)
+
+	require.NoError(t,
+		testApp.Repositories.Books.DeleteKoboRemoval(ctx, owner, book.ID))
+
+	removals, err = testApp.Repositories.Books.ListKoboRemovals(ctx, owner)
+	require.NoError(t, err)
+	assert.Empty(t, removals)
+}
+
+func TestKoboRemoval_Upsert_IdempotentOnConflict(t *testing.T) {
+	ctx := context.Background()
+	book := addUniqueBook(t)
+	owner := "kobo-removal-idempotent-" + uuid.NewString()
+
+	require.NoError(t,
+		testApp.Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
+	require.NoError(t,
+		testApp.Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
+
+	removals, err := testApp.Repositories.Books.ListKoboRemovals(ctx, owner)
+	require.NoError(t, err)
+	require.Len(t, removals, 1, "re-upserting the same book must not duplicate")
+}
+
+// --- kobo_removals tombstone: service tests (disable / re-enable) ---
+
+// TestToggleTag_DisableKoboSync_WritesTombstone is the TDD anchor: it asserts
+// that disabling kobo-sync via ToggleTag records a removal tombstone so the
+// device gets an active removal on its next sync, not silence.
+func TestToggleTag_DisableKoboSync_WritesTombstone(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "KoboRemovalDisable-"+uuid.NewString())
+
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
+	require.NoError(t,
+		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+
+	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	require.NoError(t, err)
+	found := false
+	for _, r := range removals {
+		if r.BookID == ub.BookID {
+			found = true
+		}
+	}
+	assert.True(t, found, "disabling kobo-sync must tombstone the book for removal")
+}
+
+// TestEnableKoboSync_ClearsStaleTombstone verifies that re-enabling kobo-sync
+// after a disable clears the removal tombstone (the book is going back onto
+// the device, so it must not also be scheduled for removal).
+func TestEnableKoboSync_ClearsStaleTombstone(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "KoboRemovalReenable-"+uuid.NewString())
+
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
+	require.NoError(t,
+		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
+
+	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	require.NoError(t, err)
+	for _, r := range removals {
+		assert.NotEqual(t, ub.BookID, r.BookID,
+			"re-enabling kobo-sync must clear the stale removal tombstone")
+	}
+}
+
+// TestToggleTag_ReenableViaToggle_ClearsTombstone verifies the DeleteKoboRemoval
+// branch of ToggleTag itself (not EnableKoboSync): toggling kobo-sync back on
+// after a ToggleTag-driven disable must clear the tombstone too.
+func TestToggleTag_ReenableViaToggle_ClearsTombstone(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "KoboRemovalToggleReenable-"+uuid.NewString())
+
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
+	require.NoError(t, // disable
+		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+	require.NoError(t, // re-enable via ToggleTag, not EnableKoboSync
+		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+
+	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	require.NoError(t, err)
+	for _, r := range removals {
+		assert.NotEqual(t, ub.BookID, r.BookID,
+			"re-enabling via ToggleTag must clear the tombstone")
+	}
+}
+
+// TestRemoveFromLibrary_NoUserBookRow_NoError verifies that deleting a book
+// with no user_books row at all (already removed, or never added) tolerates
+// the not-found and proceeds rather than failing the whole deletion — there's
+// nothing to tombstone if the book was never in this user's library.
+func TestRemoveFromLibrary_NoUserBookRow_NoError(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-removal-no-userbook-" + uuid.NewString()
+	book := addUniqueBook(t)
+
+	err := testApp.Services.Books.RemoveFromLibrary(ctx, owner, book.ID)
+	require.NoError(t, err,
+		"removing a book with no user_books row must not error")
+}
+
+// TestToggleTag_UnrelatedTag_DoesNotTombstone verifies that toggling a
+// non-kobo-sync tag (e.g. kobo-format-pdf) never touches the removal
+// tombstone.
+func TestToggleTag_UnrelatedTag_DoesNotTombstone(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "KoboRemovalUnrelated-"+uuid.NewString())
+
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
+	require.NoError(
+		t,
+		testApp.Services.Books.ToggleTag(
+			ctx,
+			userID,
+			ub.BookID,
+			models.TagKoboFormatPDF,
+		),
+	)
+
+	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	require.NoError(t, err)
+	for _, r := range removals {
+		assert.NotEqual(t, ub.BookID, r.BookID,
+			"toggling an unrelated tag must not tombstone the book")
+	}
+}
+
+// TestRemoveFromLibrary_KoboSyncedBook_WritesTombstone verifies that deleting
+// a book that's currently kobo-synced tombstones it for removal, since the
+// catalog row (and possibly the user_books row) is gone afterwards and can no
+// longer signal a disable.
+func TestRemoveFromLibrary_KoboSyncedBook_WritesTombstone(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-removal-delete-" + uuid.NewString()
+	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+
+	require.NoError(t, testApp.Services.Books.RemoveFromLibrary(ctx, owner, bookID))
+
+	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, owner)
+	require.NoError(t, err)
+	found := false
+	for _, r := range removals {
+		if r.BookID == bookID {
+			found = true
+		}
+	}
+	assert.True(t, found,
+		"deleting a kobo-synced book must tombstone it for removal")
+}
+
+// TestRemoveFromLibrary_NonSyncedBook_NoTombstone verifies that deleting a
+// book that was never kobo-synced does not create a spurious tombstone.
+func TestRemoveFromLibrary_NonSyncedBook_NoTombstone(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-removal-delete-nosync-" + uuid.NewString()
+	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
+
+	require.NoError(t, testApp.Services.Books.RemoveFromLibrary(ctx, owner, bookID))
+
+	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, owner)
+	require.NoError(t, err)
+	for _, r := range removals {
+		assert.NotEqual(t, bookID, r.BookID,
+			"deleting a never-synced book must not tombstone it")
+	}
+}

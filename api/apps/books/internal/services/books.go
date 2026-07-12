@@ -192,10 +192,23 @@ func (s *BookService) ToggleTag(
 		newTags = append(newTags, tag)
 	}
 
-	return s.books.UpdateTags(
-		ctx, userID, bookID, newTags,
-		slices.Contains(newTags, models.TagKoboSync),
-	)
+	koboSyncEnabled := slices.Contains(newTags, models.TagKoboSync)
+	if updateErr := s.books.UpdateTags(
+		ctx, userID, bookID, newTags, koboSyncEnabled,
+	); updateErr != nil {
+		return updateErr
+	}
+
+	if tag != models.TagKoboSync {
+		return nil
+	}
+	// Disabling kobo-sync leaves any already-downloaded copy on the device;
+	// tombstone it so the next sync actively removes it. Re-enabling clears
+	// a stale tombstone from a prior disable.
+	if koboSyncEnabled {
+		return s.books.DeleteKoboRemoval(ctx, userID, bookID)
+	}
+	return s.books.UpsertKoboRemoval(ctx, userID, bookID)
 }
 
 func (s *BookService) GetUserBook(
@@ -465,6 +478,15 @@ func (s *BookService) ListKoboSyncBooks(
 	return s.books.ListKoboSyncBooks(ctx, userID)
 }
 
+// ListKoboRemovals returns books tombstoned for active removal from the
+// user's Kobo device.
+func (s *BookService) ListKoboRemovals(
+	ctx context.Context,
+	userID string,
+) ([]models.KoboRemoval, error) {
+	return s.books.ListKoboRemovals(ctx, userID)
+}
+
 // GetKoboSyncBook returns a single kobo-sync book by ID for the user.
 // Returns database.ErrResourceNotFound when the book is not in the user's
 // kobo-sync list or has no ready file.
@@ -577,17 +599,48 @@ func (s *BookService) UpdateProgress(
 	)
 }
 
+// tombstoneIfKoboSynced records a removal tombstone when bookID currently has
+// the kobo-sync tag. Deleting a kobo-synced book leaves a copy on the device
+// with nothing left server-side to un-sync it later, so this must run before
+// the book is actually deleted.
+func (s *BookService) tombstoneIfKoboSynced(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) error {
+	ub, err := s.books.GetUserBook(ctx, userID, bookID)
+	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return nil
+		}
+		return err
+	}
+	if !slices.Contains(ub.Tags, models.TagKoboSync) {
+		return nil
+	}
+	return s.books.UpsertKoboRemoval(ctx, userID, bookID)
+}
+
 // RemoveFromLibrary removes a single book from the caller's own library:
 // their uploaded files (DB rows + R2 objects, refcount-safe), reading state,
 // and user_books entry. If the book is no longer referenced by any user's
 // library afterwards, the shared catalog row and its R2 objects (files and
 // cover) are deleted too. R2 deletes are best-effort — a failed object delete
 // is logged and skipped; the daily storage scan sweeps any leftovers.
+//
+// move complexity, not reduce it (see tombstoneIfKoboSynced for the one
+// piece that was genuinely separable).
+//
+//nolint:gocognit // linear cleanup sequence; splitting further would only
 func (s *BookService) RemoveFromLibrary(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 ) error {
+	if err := s.tombstoneIfKoboSynced(ctx, userID, bookID); err != nil {
+		return err
+	}
+
 	files, err := s.bookFiles.ListByBook(ctx, userID, bookID)
 	if err != nil {
 		return err
