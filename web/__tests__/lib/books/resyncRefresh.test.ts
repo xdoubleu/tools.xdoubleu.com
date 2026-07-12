@@ -106,4 +106,43 @@ describe('useResyncRefresh', () => {
     act(() => result.current.refresh())
     expect(mockTrigger).toHaveBeenCalledWith(true)
   })
+
+  it('latches quotaReached once the server reports it, through run completion', () => {
+    const { result } = renderHook(() => useResyncRefresh())
+    act(() => latest().emitOpen())
+    act(() => latest().emit({ isRefreshing: true, lastRefresh: null, processed: 5, total: 20 }))
+    expect(result.current.quotaReached).toBe(false)
+
+    act(() =>
+      latest().emit({
+        isRefreshing: true,
+        lastRefresh: null,
+        processed: 10,
+        total: 20,
+        quotaReached: true
+      })
+    )
+    expect(result.current.quotaReached).toBe(true)
+
+    act(() => latest().emit({ isRefreshing: false, lastRefresh: '2026-06-24T12:00:00Z' }))
+    expect(result.current.quotaReached).toBe(true)
+  })
+
+  it('resets quotaReached when refresh() starts a new run', () => {
+    const { result } = renderHook(() => useResyncRefresh())
+    act(() => latest().emitOpen())
+    act(() =>
+      latest().emit({
+        isRefreshing: true,
+        lastRefresh: null,
+        processed: 10,
+        total: 20,
+        quotaReached: true
+      })
+    )
+    expect(result.current.quotaReached).toBe(true)
+
+    act(() => result.current.refresh())
+    expect(result.current.quotaReached).toBe(false)
+  })
 })

@@ -477,9 +477,8 @@ func TestFetchByISBN_GoogleBooksKnown_SkippedAndUnresolved(t *testing.T) {
 	//nolint:exhaustruct // partial
 	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
 	svc := gbSvc(olClient, gb)
-	known := true
 	opts := &scanOptions{
-		gbKnown:    &known,
+		known:      map[string]bool{"googlebooks": true},
 		gbExceeded: &atomic.Bool{},
 	}
 
@@ -531,6 +530,83 @@ func TestBuildResyncProposals_ForceGoogleBooks_BypassesCache(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int32(1), gb.calls.Load(),
 		"force must bypass the skip-if-known cache and query GB")
+}
+
+// TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced verifies the
+// skip-if-known cache now applies to OpenLibrary too, not just Google Books —
+// a resolved (true or false) openlibrary_found flag skips the OL call on a
+// normal run, and force bypasses it.
+func TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced(t *testing.T) {
+	id := uuid.New()
+	isbn := "9780140449112"
+	olFoundTrue := true
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID: id, Title: "Known Book", ISBN13: &isbn, OpenLibraryFound: &olFoundTrue,
+	}
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	//nolint:exhaustruct // partial
+	olClient := &fakeOLClient{detail: &openlibrary.ExternalBook{Title: "OL Title"}}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    olClient,
+		objectStore: objectstore.NewFake(),
+	}
+
+	_, err := svc.BuildResyncProposals(
+		context.Background(), logging.NewNopLogger(), nil, false,
+	)
+	require.NoError(t, err)
+	assert.Zero(t, olClient.calls,
+		"without force, a known OpenLibrary flag must skip the OL call")
+
+	_, err = svc.BuildResyncProposals(
+		context.Background(), logging.NewNopLogger(), nil, true,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 1, olClient.calls,
+		"force must bypass the skip-if-known cache and query OpenLibrary")
+}
+
+// TestBuildResyncProposals_OnProgress_ReportsGoogleBooksQuotaReached verifies
+// the gbExceeded breaker state is threaded through onProgress live, so
+// callers (the resync job / progress WebSocket) can surface a quota-reached
+// notice without waiting for the run to finish.
+func TestBuildResyncProposals_OnProgress_ReportsGoogleBooksQuotaReached(t *testing.T) {
+	isbn := "9780140449112"
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID: uuid.New(), Title: "Rate Limited Book", ISBN13: &isbn,
+	}
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	//nolint:exhaustruct // partial
+	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
+	//nolint:exhaustruct // partial
+	gb := &fakeGBClient{err: googlebooks.ErrRateLimited}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    olClient,
+		googleBooks: gb,
+		objectStore: objectstore.NewFake(),
+	}
+
+	var quotaCalls []bool
+	_, err := svc.BuildResyncProposals(
+		context.Background(),
+		logging.NewNopLogger(),
+		func(_, _ int, gbQuotaReached bool) {
+			quotaCalls = append(quotaCalls, gbQuotaReached)
+		},
+		false,
+	)
+	require.NoError(t, err)
+	require.Len(t, quotaCalls, 2, "one initial (0,total) call plus one per book")
+	assert.False(t, quotaCalls[0], "the initial call precedes any GB lookup")
+	assert.True(
+		t,
+		quotaCalls[1],
+		"the 429 must trip the breaker before the per-book call",
+	)
 }
 
 func TestFetchByISBN_GoogleBooksBreakerTripped_SkipsCall(t *testing.T) {
@@ -736,9 +812,8 @@ func TestFetchBySearch_GoogleBooksKnown_SkippedAndUnresolved(t *testing.T) {
 	//nolint:exhaustruct // no OL match; proves GB still runs
 	olClient := &fakeOLClientWithSearch{}
 	svc := gbSvc(olClient, gb)
-	known := false
 	opts := &scanOptions{
-		gbKnown:    &known,
+		known:      map[string]bool{"googlebooks": true},
 		gbExceeded: &atomic.Bool{},
 	}
 
@@ -881,8 +956,11 @@ func TestBuildResyncProposals_FlagsOnlyDiffering(t *testing.T) {
 
 	var calls [][2]int
 	n, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(),
-		func(processed, total int) { calls = append(calls, [2]int{processed, total}) },
+		context.Background(),
+		logging.NewNopLogger(),
+		func(processed, total int, _ bool) {
+			calls = append(calls, [2]int{processed, total})
+		},
 		false,
 	)
 	require.NoError(t, err)
@@ -974,8 +1052,11 @@ func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
 
 	var calls [][2]int
 	n, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(),
-		func(processed, total int) { calls = append(calls, [2]int{processed, total}) },
+		context.Background(),
+		logging.NewNopLogger(),
+		func(processed, total int, _ bool) {
+			calls = append(calls, [2]int{processed, total})
+		},
 		false,
 	)
 	require.NoError(t, err)
