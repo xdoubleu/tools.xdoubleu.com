@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -231,6 +232,30 @@ func TestConnectGetKoboDeviceLogs_ReturnsEntries(t *testing.T) {
 	require.NotEmpty(t, logsResp.Msg.Entries)
 	assert.Equal(t, http.MethodPost, logsResp.Msg.Entries[0].Method)
 	assert.NotEmpty(t, logsResp.Msg.Entries[0].ResponseBody)
+}
+
+func TestConnectGetKoboDeviceLogs_InvalidUTF8ResponseBody(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx := context.Background()
+
+	_, deviceID := registerDeviceReturningID(t, userID)
+	testApp.Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+
+	// A captured body containing invalid UTF-8, as would happen when the
+	// catch-all proxy captures a binary/gzip upstream response.
+	testApp.Services.KoboLog.Append(deviceID, services.KoboLogEntry{
+		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
+		RequestBody: "", Status: 200,
+		ResponseBody: string([]byte{0xff, 0xfe, 0x00}),
+	})
+
+	req := connect.NewRequest(&booksv1.GetKoboDeviceLogsRequest{Id: deviceID})
+	req.Header().Set("Cookie", accessToken.String())
+	logsResp, err := client.GetKoboDeviceLogs(ctx, req)
+	require.NoError(t, err)
+	require.NotEmpty(t, logsResp.Msg.Entries)
+	assert.True(t, utf8.ValidString(logsResp.Msg.Entries[0].ResponseBody))
 }
 
 func TestConnectClearKoboDeviceLogs_Empties(t *testing.T) {
