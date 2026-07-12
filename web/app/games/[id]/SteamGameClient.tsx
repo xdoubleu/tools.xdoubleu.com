@@ -13,6 +13,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import GamesStatsPanel from '@/components/games/GamesStatsPanel'
 import { formatDateTime } from '@/lib/dates'
 
 interface AchievementCardProps {
@@ -169,6 +170,7 @@ export default function SteamGameClient({
                 Last synced: {formatDateTime(game.lastSyncedAt)}
               </span>
             )}
+            <GamesStatsPanel />
           </div>
 
           {achievements.length > 0 && (

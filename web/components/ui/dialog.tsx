@@ -27,23 +27,38 @@ function DialogOverlay() {
 interface DialogContentProps {
   children: ReactNode
   className?: string
+  side?: 'center' | 'right'
 }
 
-function DialogContent({ children, className = '' }: DialogContentProps) {
+const centerContentClass = [
+  'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+  'w-[calc(100%-2rem)] max-w-md max-h-[85vh]',
+  'rounded-2xl p-5',
+  'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+  'data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]',
+  'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]'
+]
+
+const rightContentClass = [
+  'inset-y-0 right-0',
+  'w-[calc(100%-3rem)] max-w-md h-full',
+  'rounded-l-2xl p-5',
+  'data-[state=closed]:slide-out-to-right',
+  'data-[state=open]:slide-in-from-right'
+]
+
+function DialogContent({ children, className = '', side = 'center' }: DialogContentProps) {
   return (
     <RadixDialog.Portal>
       <DialogOverlay />
       <RadixDialog.Content
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
-          'w-[calc(100%-2rem)] max-w-md max-h-[85vh] overflow-y-auto',
-          'rounded-2xl border border-border bg-card shadow-elevated p-5',
+          'fixed z-50 overflow-y-auto',
+          'border border-border bg-card shadow-elevated',
           'focus:outline-none',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-          'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-          'data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]',
-          'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
+          side === 'right' ? rightContentClass : centerContentClass,
           className
         )}
       >
