@@ -1065,6 +1065,33 @@ func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
 	assert.Equal(t, [2]int{0, 0}, calls[0])
 }
 
+// TestBuildResyncProposals_Cancelled_SkipsProposalsReplace verifies that a
+// cancelled context stops the scan without overwriting the proposals table —
+// a cancel must not read as "nothing was found anywhere" for books the scan
+// never got to.
+func TestBuildResyncProposals_Cancelled_SkipsProposalsReplace(t *testing.T) {
+	book := models.Book{ID: uuid.New(), Title: "Dune"}   //nolint:exhaustruct // partial
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	svc := &BookService{                                 //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external:    &fakeOLClient{}, //nolint:exhaustruct //zero values fine
+		objectStore: objectstore.NewFake(),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	n, err := svc.BuildResyncProposals(ctx, logging.NewNopLogger(), nil, false)
+	require.NoError(t, err, "a cancel is not a failure")
+	assert.Equal(t, 0, n)
+	assert.Nil(
+		t,
+		repo.replaced,
+		"ReplaceResyncProposals must not run on a cancelled scan",
+	)
+}
+
 func TestBuildResyncProposals_ListError(t *testing.T) {
 	listErr := errors.New("connection refused")
 	repo := &fakeBooksResync{listErr: listErr} //nolint:exhaustruct // partial

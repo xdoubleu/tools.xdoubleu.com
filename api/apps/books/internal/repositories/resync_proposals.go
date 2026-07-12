@@ -160,12 +160,26 @@ type SourceStats struct {
 	OpenLibraryUnique int
 	GoogleBooksUnique int
 	UniCatUnique      int
+	// Missed counts a source actually checked and came back empty
+	// (found_column IS FALSE) — distinct from never having been scanned.
+	OpenLibraryMissed int
+	GoogleBooksMissed int
+	UniCatMissed      int
 	OpenLibraryGBOnly int
 	OpenLibraryUCOnly int
 	GoogleBooksUCOnly int
 	AllThree          int
-	NotFoundAnywhere  int
-	NeverScanned      int
+	// AllThreeMissed is missed-overlaps' one genuinely new number: all three
+	// sources explicitly checked and came back empty (strict IS FALSE, no
+	// NULLs) — stricter than NotFoundAnywhere, which also counts a book with
+	// an unresolved (NULL) source as long as none confirmed found. The
+	// pairwise missed-overlaps ("missed by exactly {A,B}", i.e. A and B both
+	// confirmed miss) are mathematically identical to the third source's
+	// *Unique count, so they're derived in the handler instead of queried
+	// again here.
+	AllThreeMissed   int
+	NotFoundAnywhere int
+	NeverScanned     int
 }
 
 // GetSourceStats computes SourceStats in a single aggregate query.
@@ -177,6 +191,9 @@ func (repo *BooksRepository) GetSourceStats(
 		    count(*) FILTER (WHERE openlibrary_found),
 		    count(*) FILTER (WHERE googlebooks_found),
 		    count(*) FILTER (WHERE unicat_found),
+		    count(*) FILTER (WHERE openlibrary_found IS FALSE),
+		    count(*) FILTER (WHERE googlebooks_found IS FALSE),
+		    count(*) FILTER (WHERE unicat_found IS FALSE),
 		    count(*) FILTER (WHERE openlibrary_found IS TRUE
 		        AND googlebooks_found IS FALSE
 		        AND unicat_found IS FALSE),
@@ -198,6 +215,9 @@ func (repo *BooksRepository) GetSourceStats(
 		    count(*) FILTER (WHERE openlibrary_found IS TRUE
 		        AND googlebooks_found IS TRUE
 		        AND unicat_found IS TRUE),
+		    count(*) FILTER (WHERE openlibrary_found IS FALSE
+		        AND googlebooks_found IS FALSE
+		        AND unicat_found IS FALSE),
 		    count(*) FILTER (WHERE last_resync_at IS NOT NULL
 		        AND NOT COALESCE(openlibrary_found, false)
 		        AND NOT COALESCE(googlebooks_found, false)
@@ -212,6 +232,9 @@ func (repo *BooksRepository) GetSourceStats(
 		&stats.OpenLibraryFound,
 		&stats.GoogleBooksFound,
 		&stats.UniCatFound,
+		&stats.OpenLibraryMissed,
+		&stats.GoogleBooksMissed,
+		&stats.UniCatMissed,
 		&stats.OpenLibraryUnique,
 		&stats.GoogleBooksUnique,
 		&stats.UniCatUnique,
@@ -219,6 +242,7 @@ func (repo *BooksRepository) GetSourceStats(
 		&stats.OpenLibraryUCOnly,
 		&stats.GoogleBooksUCOnly,
 		&stats.AllThree,
+		&stats.AllThreeMissed,
 		&stats.NotFoundAnywhere,
 		&stats.NeverScanned,
 	)

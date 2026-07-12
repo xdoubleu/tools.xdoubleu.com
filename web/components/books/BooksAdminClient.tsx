@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
+import { useCancelResync } from '@/hooks/useBooks'
 import { useResyncRefresh } from '@/lib/books/resyncRefresh'
 import ManageDuplicatesDialog from '@/components/books/ManageDuplicatesDialog'
 import ResyncWizard from '@/components/books/ResyncWizard'
@@ -22,6 +23,7 @@ export default function BooksAdminClient() {
     },
     force
   )
+  const cancelResync = useCancelResync()
 
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
@@ -73,15 +75,27 @@ export default function BooksAdminClient() {
             data-testid="resync-force-checkbox"
           />
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={isRefreshing}
-          onClick={refresh}
-          data-testid="resync-openlibrary-btn"
-        >
-          {isRefreshing ? 'Scanning…' : 'Start resync'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isRefreshing}
+            onClick={refresh}
+            data-testid="resync-openlibrary-btn"
+          >
+            {isRefreshing ? 'Scanning…' : 'Start resync'}
+          </Button>
+          {isRefreshing && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void cancelResync()}
+              data-testid="resync-cancel-btn"
+            >
+              Stop
+            </Button>
+          )}
+        </div>
         {isRefreshing && (
           <div className="mt-3" data-testid="resync-openlibrary-progress">
             {total !== null ? (

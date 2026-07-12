@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -31,6 +32,9 @@ type ResyncOpenLibraryJob struct {
 	armed   atomic.Bool
 	force   atomic.Bool
 	running atomic.Bool
+
+	mu     sync.Mutex
+	cancel context.CancelFunc
 }
 
 func NewResyncOpenLibraryJob(
@@ -58,6 +62,17 @@ func (j *ResyncOpenLibraryJob) Arm(force bool) {
 	j.force.Store(force)
 }
 
+// Cancel stops an in-progress scan, if one is running. A no-op otherwise —
+// there's nothing to stop between runs.
+func (j *ResyncOpenLibraryJob) Cancel() {
+	j.mu.Lock()
+	cancel := j.cancel
+	j.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+}
+
 func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) error {
 	if !j.armed.Swap(false) {
 		return nil
@@ -67,6 +82,17 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 		return nil
 	}
 	defer j.running.Store(false)
+
+	ctx, cancel := context.WithCancel(ctx)
+	j.mu.Lock()
+	j.cancel = cancel
+	j.mu.Unlock()
+	defer func() {
+		j.mu.Lock()
+		j.cancel = nil
+		j.mu.Unlock()
+		cancel()
+	}()
 
 	force := j.force.Swap(false)
 

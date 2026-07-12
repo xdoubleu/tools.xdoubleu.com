@@ -16,6 +16,11 @@ jest.mock('@/lib/books/resyncRefresh', () => ({
     mockUseResyncRefresh(onSynced, force)
 }))
 
+const mockCancelResync = jest.fn()
+jest.mock('@/hooks/useBooks', () => ({
+  useCancelResync: () => mockCancelResync
+}))
+
 jest.mock('@/components/books/ResyncWizard', () => ({
   __esModule: true,
   default: () => <div data-testid="resync-wizard" />
@@ -77,6 +82,28 @@ describe('BooksAdminClient', () => {
     fireEvent.click(screen.getByTestId('resync-force-checkbox'))
     expect(screen.getByTestId('resync-force-checkbox')).toBeChecked()
     expect(mockUseResyncRefresh).toHaveBeenLastCalledWith(expect.any(Function), true)
+  })
+
+  it('does not render a Stop button while idle', () => {
+    render(<BooksAdminClient />)
+    expect(screen.queryByTestId('resync-cancel-btn')).not.toBeInTheDocument()
+  })
+
+  it('renders a Stop button while refreshing and calls cancelResync on click', () => {
+    mockUseResyncRefresh.mockReturnValueOnce({
+      connected: true,
+      isRefreshing: true,
+      lastRefresh: null,
+      processed: 10,
+      total: 100,
+      quotaReached: false,
+      refresh: jest.fn()
+    })
+    render(<BooksAdminClient />)
+
+    const stopBtn = screen.getByTestId('resync-cancel-btn')
+    fireEvent.click(stopBtn)
+    expect(mockCancelResync).toHaveBeenCalledTimes(1)
   })
 
   it('shows a quota-reached notice when the resync hook reports one', () => {

@@ -5,11 +5,17 @@ import SourceStats from '@/components/books/SourceStats'
 const mockStatsData: {
   data:
     | {
-        sources: { source: string; foundCount: number; uniqueCount: number }[]
+        sources: {
+          source: string
+          foundCount: number
+          uniqueCount: number
+          missedCount: number
+        }[]
         totalBooks: number
         notFoundAnywhere: number
         neverScanned: number
         overlaps: { sources: string[]; count: number }[]
+        missedOverlaps: { sources: string[]; count: number }[]
       }
     | undefined
   isLoading: boolean
@@ -57,17 +63,18 @@ describe('SourceStats', () => {
     expect(screen.getByText(/failed to load source stats/i)).toBeInTheDocument()
   })
 
-  it('renders one row per source with found/unique counts and the totals', () => {
+  it('renders one row per source with found/missed/unique counts and the totals', () => {
     mockStatsData.data = {
       sources: [
-        { source: 'openlibrary', foundCount: 42, uniqueCount: 7 },
-        { source: 'googlebooks', foundCount: 30, uniqueCount: 2 },
-        { source: 'unicat', foundCount: 5, uniqueCount: 1 }
+        { source: 'openlibrary', foundCount: 42, uniqueCount: 7, missedCount: 8 },
+        { source: 'googlebooks', foundCount: 30, uniqueCount: 2, missedCount: 20 },
+        { source: 'unicat', foundCount: 5, uniqueCount: 1, missedCount: 45 }
       ],
       totalBooks: 50,
       notFoundAnywhere: 4,
       neverScanned: 3,
-      overlaps: []
+      overlaps: [],
+      missedOverlaps: []
     }
     render(<SourceStats />)
 
@@ -75,6 +82,7 @@ describe('SourceStats', () => {
     expect(screen.getByText('Google Books')).toBeInTheDocument()
     expect(screen.getByText('UniCat')).toBeInTheDocument()
     expect(screen.getByText('42')).toBeInTheDocument()
+    expect(screen.getByText('8')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
     expect(screen.getByText('43 found across all sources (in at least one).')).toBeInTheDocument()
     expect(screen.getByText('50 books in the catalog.')).toBeInTheDocument()
@@ -84,11 +92,12 @@ describe('SourceStats', () => {
 
   it('opens a dialog listing the unique books when a Unique count is clicked', () => {
     mockStatsData.data = {
-      sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 1 }],
+      sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 1, missedCount: 44 }],
       totalBooks: 50,
       notFoundAnywhere: 4,
       neverScanned: 3,
-      overlaps: []
+      overlaps: [],
+      missedOverlaps: []
     }
     mockExactSourcesData.data = {
       books: [{ id: 'b1', title: 'De Kleine Bibliotheek', authors: ['Iemand'], coverUrl: '' }]
@@ -104,11 +113,12 @@ describe('SourceStats', () => {
 
   it('does not render a click target when a source has zero unique books', () => {
     mockStatsData.data = {
-      sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 0 }],
+      sources: [{ source: 'unicat', foundCount: 5, uniqueCount: 0, missedCount: 45 }],
       totalBooks: 50,
       notFoundAnywhere: 4,
       neverScanned: 3,
-      overlaps: []
+      overlaps: [],
+      missedOverlaps: []
     }
     render(<SourceStats />)
 
@@ -118,9 +128,9 @@ describe('SourceStats', () => {
   it('renders an overlap section and opens a dialog for a pair combo', () => {
     mockStatsData.data = {
       sources: [
-        { source: 'openlibrary', foundCount: 42, uniqueCount: 7 },
-        { source: 'googlebooks', foundCount: 30, uniqueCount: 2 },
-        { source: 'unicat', foundCount: 5, uniqueCount: 1 }
+        { source: 'openlibrary', foundCount: 42, uniqueCount: 7, missedCount: 8 },
+        { source: 'googlebooks', foundCount: 30, uniqueCount: 2, missedCount: 20 },
+        { source: 'unicat', foundCount: 5, uniqueCount: 1, missedCount: 45 }
       ],
       totalBooks: 50,
       notFoundAnywhere: 4,
@@ -130,7 +140,8 @@ describe('SourceStats', () => {
         { sources: ['openlibrary', 'unicat'], count: 0 },
         { sources: ['googlebooks', 'unicat'], count: 0 },
         { sources: ['openlibrary', 'googlebooks', 'unicat'], count: 5 }
-      ]
+      ],
+      missedOverlaps: []
     }
     mockExactSourcesData.data = {
       books: [{ id: 'b2', title: 'Overlap Book', authors: [], coverUrl: '' }]
@@ -149,7 +160,7 @@ describe('SourceStats', () => {
 
   it('does not render the overlap section when every combo is zero', () => {
     mockStatsData.data = {
-      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5 }],
+      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
       totalBooks: 5,
       notFoundAnywhere: 0,
       neverScanned: 0,
@@ -158,10 +169,55 @@ describe('SourceStats', () => {
         { sources: ['openlibrary', 'unicat'], count: 0 },
         { sources: ['googlebooks', 'unicat'], count: 0 },
         { sources: ['openlibrary', 'googlebooks', 'unicat'], count: 0 }
-      ]
+      ],
+      missedOverlaps: []
     }
     render(<SourceStats />)
 
     expect(screen.queryByText('Overlap — found in exactly these sources')).not.toBeInTheDocument()
+  })
+
+  it('renders a missed-overlaps section when a combo is nonzero', () => {
+    mockStatsData.data = {
+      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
+      totalBooks: 5,
+      notFoundAnywhere: 0,
+      neverScanned: 0,
+      overlaps: [],
+      missedOverlaps: [
+        { sources: ['openlibrary', 'googlebooks'], count: 3 },
+        { sources: ['openlibrary', 'unicat'], count: 0 },
+        { sources: ['googlebooks', 'unicat'], count: 0 },
+        { sources: ['openlibrary', 'googlebooks', 'unicat'], count: 0 }
+      ]
+    }
+    render(<SourceStats />)
+
+    expect(
+      screen.getByText('Missed overlaps — missed by exactly these sources')
+    ).toBeInTheDocument()
+    expect(screen.getByText('Open Library + Google Books')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+  })
+
+  it('does not render the missed-overlaps section when every combo is zero', () => {
+    mockStatsData.data = {
+      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
+      totalBooks: 5,
+      notFoundAnywhere: 0,
+      neverScanned: 0,
+      overlaps: [],
+      missedOverlaps: [
+        { sources: ['openlibrary', 'googlebooks'], count: 0 },
+        { sources: ['openlibrary', 'unicat'], count: 0 },
+        { sources: ['googlebooks', 'unicat'], count: 0 },
+        { sources: ['openlibrary', 'googlebooks', 'unicat'], count: 0 }
+      ]
+    }
+    render(<SourceStats />)
+
+    expect(
+      screen.queryByText('Missed overlaps — missed by exactly these sources')
+    ).not.toBeInTheDocument()
   })
 })

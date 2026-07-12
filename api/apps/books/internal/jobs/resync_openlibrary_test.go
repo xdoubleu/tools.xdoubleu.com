@@ -37,3 +37,10 @@ func TestResyncOpenLibraryJob_ArmThenDisarm(t *testing.T) {
 	j.Arm(true)
 	assert.Equal(t, "resync-openlibrary", j.ID())
 }
+
+// TestResyncOpenLibraryJob_Cancel_NoopWhenNotRunning verifies Cancel is safe
+// to call when no scan is running — it must not panic on the nil cancel func.
+func TestResyncOpenLibraryJob_Cancel_NoopWhenNotRunning(t *testing.T) {
+	j := jobs.NewResyncOpenLibraryJob(nil, nil)
+	assert.NotPanics(t, j.Cancel)
+}

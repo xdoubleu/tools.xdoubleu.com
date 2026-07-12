@@ -30,7 +30,8 @@ jest.mock('@/lib/client', () => ({
     getBookSources: jest.fn().mockResolvedValue({ proposal: undefined }),
     applyBookSource: jest.fn().mockResolvedValue({}),
     getExternalBook: jest.fn().mockResolvedValue({ result: undefined }),
-    startResync: jest.fn().mockResolvedValue({})
+    startResync: jest.fn().mockResolvedValue({}),
+    cancelResync: jest.fn().mockResolvedValue({})
   }))
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({
@@ -70,7 +71,8 @@ import {
   useApplyBookSource,
   useSourceStats,
   useExternalBook,
-  useStartResync
+  useStartResync,
+  useCancelResync
 } from '@/hooks/useBooks'
 import { createServiceClient } from '@/lib/client'
 
@@ -192,6 +194,17 @@ describe('useStartResync', () => {
     const { result } = renderHook(() => useStartResync())
     await result.current(true)
     expect(mockStart).toHaveBeenCalledWith({ force: true })
+  })
+})
+
+describe('useCancelResync', () => {
+  it('calls client.cancelResync with no args', async () => {
+    const mockCancel = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ cancelResync: mockCancel })
+    const { result } = renderHook(() => useCancelResync())
+    await result.current()
+    expect(mockCancel).toHaveBeenCalledWith({})
   })
 })
 
