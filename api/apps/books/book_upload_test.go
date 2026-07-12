@@ -143,14 +143,6 @@ func seedBookInLibrary(t *testing.T, uid, title, author, isbn string) *models.Us
 	return ub
 }
 
-// addTestBookForUser seeds a book in the given user's library with the provided
-// title and ISBN13 using the standard "Coverage Author" author string.
-// Use this in tests that upload as a user other than the global userID.
-func addTestBookForUser(t *testing.T, uid, title, isbn string) *models.UserBook {
-	t.Helper()
-	return seedBookInLibrary(t, uid, title, "Coverage Author", isbn)
-}
-
 // --- service-level tests ---
 
 func TestUploadFile_UnsupportedFormat(t *testing.T) {
@@ -386,63 +378,6 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 	// Only one canonical blob exists in the store.
 	_, existsA := fakeStore.GetContent(canonicalKey)
 	assert.True(t, existsA, "canonical blob must still exist")
-}
-
-// TestUploadFile_GlobalDedup_CrossUser_ClearLibraryPreservesBlob verifies that
-// clearing user A's library does NOT delete the canonical blob while user B
-// still references it, and that clearing both eventually removes the blob.
-func TestUploadFile_GlobalDedup_CrossUser_ClearLibraryPreservesBlob(t *testing.T) {
-	const userA2 = "refcount-user-a2"
-	const userB2 = "refcount-user-b2"
-	t.Cleanup(func() {
-		for _, uid := range []string{userA2, userB2} {
-			_, _ = testDB.Exec(context.Background(),
-				`DELETE FROM books.user_books WHERE user_id = $1`, uid)
-			_, _ = testDB.Exec(context.Background(),
-				`DELETE FROM books.book_files WHERE user_id = $1`, uid)
-		}
-	})
-
-	addTestBookForUser(t, userA2, "RefCountBook", "9780001004004")
-	data := buildEPUBBytes("RefCountBook", "Refcount Author", "9780001004004")
-
-	// User A2 uploads first.
-	r1, err := simulateUpload(
-		context.Background(), t, userA2,
-		"refcount.epub", "application/epub+zip", data, fakeStore,
-	)
-	require.NoError(t, err)
-	canonicalKey := r1.BookFile.StorageKey
-
-	// User B2 attaches to the same canonical blob.
-	checksum := *r1.BookFile.Checksum
-	_, err = testApp.Services.Books.FinalizeUpload(
-		context.Background(), userB2, "", "refcount.epub", "application/epub+zip",
-		checksum,
-	)
-	require.NoError(t, err)
-
-	// Clear user A2. Blob must survive because B2 still references it.
-	_, _, err = testApp.Services.Books.ClearLibrary(context.Background(), userA2)
-	require.NoError(t, err)
-	exists, err := fakeStore.Exists(context.Background(), canonicalKey)
-	require.NoError(t, err)
-	assert.True(
-		t,
-		exists,
-		"canonical blob must survive while userB2 still references it",
-	)
-
-	// Clear user B2. Now the blob must be gone.
-	_, _, err = testApp.Services.Books.ClearLibrary(context.Background(), userB2)
-	require.NoError(t, err)
-	exists, err = fakeStore.Exists(context.Background(), canonicalKey)
-	require.NoError(t, err)
-	assert.False(
-		t,
-		exists,
-		"canonical blob must be deleted when the last reference is gone",
-	)
 }
 
 // --- repository tests ---

@@ -151,34 +151,6 @@ func (r *BookFilesRepository) Delete(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-func (r *BookFilesRepository) StorageKeysByUser(
-	ctx context.Context,
-	userID string,
-) ([]string, error) {
-	query := `SELECT storage_key FROM books.book_files WHERE user_id = $1`
-
-	rows, err := r.db.Query(ctx, query, userID)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	var keys []string
-	for rows.Next() {
-		var key string
-		if scanErr := rows.Scan(&key); scanErr != nil {
-			return nil, postgres.PgxErrorToHTTPError(scanErr)
-		}
-		keys = append(keys, key)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return keys, nil
-}
-
 // AllStorageKeys returns every distinct storage key referenced by a book
 // file, across all users — the set of R2 objects that are NOT orphaned.
 func (r *BookFilesRepository) AllStorageKeys(
@@ -207,18 +179,6 @@ func (r *BookFilesRepository) AllStorageKeys(
 	}
 
 	return keys, nil
-}
-
-func (r *BookFilesRepository) DeleteByUser(
-	ctx context.Context,
-	userID string,
-) (int64, error) {
-	query := `DELETE FROM books.book_files WHERE user_id = $1`
-	tag, err := r.db.Exec(ctx, query, userID)
-	if err != nil {
-		return 0, postgres.PgxErrorToHTTPError(err)
-	}
-	return tag.RowsAffected(), nil
 }
 
 // DeleteByUserBook removes a user's files for a single book.

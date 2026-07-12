@@ -94,15 +94,6 @@ func (r *BookReadingStateRepository) ListByUser(
 	return states, rows.Err()
 }
 
-func (r *BookReadingStateRepository) DeleteByUser(
-	ctx context.Context,
-	userID string,
-) error {
-	query := `DELETE FROM books.book_reading_state WHERE user_id = $1`
-	_, err := r.db.Exec(ctx, query, userID)
-	return postgres.PgxErrorToHTTPError(err)
-}
-
 // DeleteByBook removes the reading state for a single book owned by userID.
 func (r *BookReadingStateRepository) DeleteByBook(
 	ctx context.Context,

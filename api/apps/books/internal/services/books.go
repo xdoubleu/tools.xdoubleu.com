@@ -533,69 +533,6 @@ func (s *BookService) UpdateProgress(
 	)
 }
 
-// ClearLibrary removes all per-user books data: uploaded files (DB rows + R2
-// objects), reading state, and user_books entries. The shared books.books
-// catalog is never touched. R2 deletes are best-effort — a failed object delete
-// is logged and skipped so the user can retry without being blocked.
-//
-// R2 objects shared with other users (content-addressed canonical blobs) are
-// only deleted when no other book_files row still references them; this is
-// checked after DeleteByUser so the count already excludes this user's rows.
-func (s *BookService) ClearLibrary(
-	ctx context.Context,
-	userID string,
-) (uint32, uint32, error) {
-	keys, err := s.bookFiles.StorageKeysByUser(ctx, userID)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	fileCount, err := s.bookFiles.DeleteByUser(ctx, userID)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	// Deduplicate keys so we issue at most one refcount check per object.
-	seen := make(map[string]struct{}, len(keys))
-	for _, key := range keys {
-		if key == "" {
-			continue
-		}
-		if _, already := seen[key]; already {
-			continue
-		}
-		seen[key] = struct{}{}
-
-		// Only delete the R2 object when no other row still references it.
-		remaining, countErr := s.bookFiles.CountByStorageKey(ctx, key)
-		if countErr != nil {
-			s.logger.Warn("failed to count references for book file",
-				"key", key, "err", countErr)
-			continue
-		}
-		if remaining > 0 {
-			continue
-		}
-
-		if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
-			s.logger.Warn("failed to delete book file from object store",
-				"key", key, "err", delErr)
-		}
-	}
-
-	if err = s.readingState.DeleteByUser(ctx, userID); err != nil {
-		return 0, 0, err
-	}
-
-	bookCount, err := s.books.DeleteUserBooks(ctx, userID)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	//nolint:gosec // row counts are safe to downcast
-	return uint32(bookCount), uint32(fileCount), nil
-}
-
 // RemoveFromLibrary removes a single book from the caller's own library:
 // their uploaded files (DB rows + R2 objects, refcount-safe), reading state,
 // and user_books entry. If the book is no longer referenced by any user's

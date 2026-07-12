@@ -242,11 +242,6 @@ export function useClearKoboDeviceLogs() {
   return (id: string) => client.clearKoboDeviceLogs({ id })
 }
 
-export function useClearLibrary() {
-  const client = createServiceClient(CatalogService)
-  return () => client.clearLibrary({})
-}
-
 export function useStartResync() {
   const client = createServiceClient(CatalogService)
   return (force = false) => client.startResync({ force })

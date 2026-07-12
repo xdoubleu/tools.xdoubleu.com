@@ -7,7 +7,6 @@ import { useCurrentUser } from '@/hooks/useAuth'
 import BulkBookUploader from '@/components/books/BulkBookUploader'
 import KoboSetup from '@/components/books/KoboSetup'
 import KoboDevices from '@/components/books/KoboDevices'
-import ClearLibraryDialog from '@/components/books/ClearLibraryDialog'
 import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
@@ -20,8 +19,6 @@ export default function BooksSettingsClient() {
   const isAdmin = currentUser?.role === 'admin'
 
   const [importStatus, setImportStatus] = useState('')
-  const [clearDialogOpen, setClearDialogOpen] = useState(false)
-  const [clearStatus, setClearStatus] = useState('')
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -107,38 +104,6 @@ export default function BooksSettingsClient() {
           </Button>
         </section>
       )}
-
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Danger zone
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Permanently delete all books, reading progress, and uploaded files from your library. This
-          cannot be undone.
-        </p>
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={() => {
-            setClearStatus('')
-            setClearDialogOpen(true)
-          }}
-          data-testid="clear-library-btn"
-        >
-          Clear library
-        </Button>
-        {clearStatus && (
-          <p className="mt-2 text-sm text-success" data-testid="clear-library-status">
-            {clearStatus}
-          </p>
-        )}
-      </section>
-
-      <ClearLibraryDialog
-        open={clearDialogOpen}
-        onOpenChange={setClearDialogOpen}
-        onCleared={() => setClearStatus('Library cleared successfully.')}
-      />
     </PageContainer>
   )
 }

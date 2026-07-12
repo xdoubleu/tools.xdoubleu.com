@@ -561,20 +561,6 @@ func (repo *BooksRepository) DeleteUserBook(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// DeleteUserBooks removes all entries from user_books for a given user.
-// It does NOT touch books.books (the shared catalog).
-func (repo *BooksRepository) DeleteUserBooks(
-	ctx context.Context,
-	userID string,
-) (int64, error) {
-	query := `DELETE FROM books.user_books WHERE user_id = $1`
-	tag, err := repo.db.Exec(ctx, query, userID)
-	if err != nil {
-		return 0, postgres.PgxErrorToHTTPError(err)
-	}
-	return tag.RowsAffected(), nil
-}
-
 // UpdateTags replaces the tag list for a user_book.
 // koboSync must be true when the resulting tag list contains the kobo-sync
 // tag so that kobo_sync_enabled_at is set (on first enable) or preserved
