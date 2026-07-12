@@ -30,6 +30,9 @@ const (
 	// inside the handler.
 	writeTimeout    = 2 * time.Minute
 	shutdownTimeout = 5 * time.Second
+	// koboPollInterval is how often the menu bar checks for a Kobo being
+	// connected/disconnected (see kobogateway.Watch).
+	koboPollInterval = 2 * time.Second
 )
 
 func main() {
@@ -191,11 +194,27 @@ func serve(
 	}()
 
 	// Never spin up the real AppKit menu bar from a test binary — it has no
-	// window server session and would crash or hang the test run.
+	// window server session and would crash or hang the test run. This also
+	// keeps login-item registration (which touches the real
+	// ~/Library/LaunchAgents) out of `go test` entirely.
+	watchCtx, cancelWatch := context.WithCancel(context.Background())
+	defer cancelWatch()
+	koboEvents := kobogateway.Watch(watchCtx, cfg.VolumesRoot, koboPollInterval)
+
 	if testing.Testing() {
 		<-stop
 	} else {
-		runUI(cfg.Release, stop)
+		homeDir, _ := os.UserHomeDir()
+		execPath, _ := os.Executable()
+
+		if homeDir != "" && execPath != "" {
+			err = kobogateway.EnsureInitialLoginItem(certsDir, homeDir, execPath)
+			if err != nil {
+				fmt.Fprintln(stdout, "warning: could not register login item:", err)
+			}
+		}
+
+		runUI(cfg.Release, stop, koboEvents, homeDir, execPath)
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(

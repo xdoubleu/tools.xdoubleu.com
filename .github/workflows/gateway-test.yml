@@ -1,0 +1,27 @@
+name: Gateway Test Workflow
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test:
+    name: Gateway Test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: './gateway/go.mod'
+          cache-dependency-path: './gateway/go.sum'
+      - run: make test/cov/report
+        working-directory: './gateway'
+      - name: Upload coverage reports to Codecov
+        if: always()
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: gateway

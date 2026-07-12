@@ -149,9 +149,31 @@ jobs:
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
 
+  gateway-test:
+    needs: changes
+    # Runs on push to main too (in parallel with docker/deploy, which do not
+    # depend on it) purely to refresh Codecov's default-branch baseline.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.workflows == 'true'
+    name: Gateway Test Workflow
+    uses: ./.github/workflows/gateway-test.yml
+    secrets: inherit
+
   ci-pass:
     needs:
-      [proto-check, build-api, build-web, build-gateway, api-lint, web-lint, api-test, web-test]
+      [
+        proto-check,
+        build-api,
+        build-web,
+        build-gateway,
+        api-lint,
+        web-lint,
+        api-test,
+        web-test,
+        gateway-test,
+      ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -170,8 +192,11 @@ jobs:
 
       - name: Wait for Codecov to report
         # Only the test jobs upload coverage, so only wait when one of them ran.
-        # If both were skipped, Codecov never posts a status and there is nothing to wait for.
-        if: needs.api-test.result == 'success' || needs.web-test.result == 'success'
+        # If all were skipped, Codecov never posts a status and there is nothing to wait for.
+        if: |
+          needs.api-test.result == 'success' ||
+          needs.web-test.result == 'success' ||
+          needs.gateway-test.result == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}

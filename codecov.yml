@@ -10,3 +10,7 @@ flags:
     paths:
       - web/
     carryforward: true
+  gateway:
+    paths:
+      - gateway/
+    carryforward: true
