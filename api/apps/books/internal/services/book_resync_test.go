@@ -592,14 +592,21 @@ func TestBuildResyncProposals_OnProgress_ReportsGoogleBooksQuotaReached(t *testi
 
 	var quotaCalls []bool
 	_, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(),
-		func(_, _ int, gbQuotaReached bool) { quotaCalls = append(quotaCalls, gbQuotaReached) },
+		context.Background(),
+		logging.NewNopLogger(),
+		func(_, _ int, gbQuotaReached bool) {
+			quotaCalls = append(quotaCalls, gbQuotaReached)
+		},
 		false,
 	)
 	require.NoError(t, err)
 	require.Len(t, quotaCalls, 2, "one initial (0,total) call plus one per book")
 	assert.False(t, quotaCalls[0], "the initial call precedes any GB lookup")
-	assert.True(t, quotaCalls[1], "the 429 must trip the breaker before the per-book call")
+	assert.True(
+		t,
+		quotaCalls[1],
+		"the 429 must trip the breaker before the per-book call",
+	)
 }
 
 func TestFetchByISBN_GoogleBooksBreakerTripped_SkipsCall(t *testing.T) {
@@ -949,8 +956,11 @@ func TestBuildResyncProposals_FlagsOnlyDiffering(t *testing.T) {
 
 	var calls [][2]int
 	n, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(),
-		func(processed, total int, _ bool) { calls = append(calls, [2]int{processed, total}) },
+		context.Background(),
+		logging.NewNopLogger(),
+		func(processed, total int, _ bool) {
+			calls = append(calls, [2]int{processed, total})
+		},
 		false,
 	)
 	require.NoError(t, err)
@@ -1042,8 +1052,11 @@ func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
 
 	var calls [][2]int
 	n, err := svc.BuildResyncProposals(
-		context.Background(), logging.NewNopLogger(),
-		func(processed, total int, _ bool) { calls = append(calls, [2]int{processed, total}) },
+		context.Background(),
+		logging.NewNopLogger(),
+		func(processed, total int, _ bool) {
+			calls = append(calls, [2]int{processed, total})
+		},
 		false,
 	)
 	require.NoError(t, err)

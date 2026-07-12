@@ -480,6 +480,8 @@ func (s *BookService) fetchBySearch(
 
 // searchProviders queries every configured provider's Search with one query
 // and keeps at most one candidate per provider, selected by pick.
+//
+//nolint:gocognit // The function is long but the logic is straightforward
 func (s *BookService) searchProviders(
 	ctx context.Context,
 	logger *slog.Logger,
