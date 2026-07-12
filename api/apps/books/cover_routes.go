@@ -45,6 +45,6 @@ func (app *Books) coverHandler(w http.ResponseWriter, r *http.Request) {
 	// URL itself is valid for 24 h, so the cache window is well inside the TTL.
 	w.Header().
 		Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
-	//nolint:gosec // URL comes from internal objectstore presign, not user input
+
 	http.Redirect(w, r, result.URL, http.StatusFound)
 }
