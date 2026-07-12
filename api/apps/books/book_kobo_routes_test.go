@@ -692,6 +692,43 @@ func TestKoboState_GetNoState(t *testing.T) {
 	assert.Equal(t, "1970-01-01T00:00:00Z", si["LastModified"])
 }
 
+// TestKoboState_PutLocationEmptyValueOmitted verifies that a Location object
+// with an empty Value (no bare-string fallback either) is treated as "no
+// location" rather than erroring or storing an empty string.
+func TestKoboState_PutLocationEmptyValueOmitted(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-state-empty-location-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	body, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{
+				"ProgressPercent": 10,
+				"Location": map[string]any{
+					"Source": "x",
+					"Type":   "KoboSpan",
+					"Value":  "",
+				},
+			},
+		}},
+	})
+	require.NoError(t, err)
+
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), body))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	var state map[string]any
+	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	bm, ok := state["CurrentBookmark"].(map[string]any)
+	require.True(t, ok)
+	assert.Nil(t, bm["Location"], "empty Value must not be stored as a location")
+}
+
 func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
@@ -699,15 +736,22 @@ func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
 	const owner = "kobo-state-roundtrip-user"
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
-	location := "chapter-3"
+	location := "kobo.22.1"
+	// Real device shape: plural "ReadingStates" array, whole-book progress in
+	// ProgressPercent (int 0-100), and Location as a {Source,Type,Value} object.
 	body, err := json.Marshal(map[string]any{
-		"ReadingState": map[string]any{
+		"ReadingStates": []map[string]any{{
 			"CurrentBookmark": map[string]any{
-				"ContentSourceProgressPercent": 0.42,
-				"Location":                     location,
+				"ContentSourceProgressPercent": 0,
+				"ProgressPercent":              1,
+				"Location": map[string]any{
+					"Source": "index_split_000.html",
+					"Type":   "KoboSpan",
+					"Value":  location,
+				},
 			},
-			"StatusInfo": map[string]any{"Status": "ReadyToRead"},
-		},
+			"StatusInfo": map[string]any{"Status": "Reading"},
+		}},
 	})
 	require.NoError(t, err)
 
@@ -729,8 +773,113 @@ func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
 	require.NoError(t, json.NewDecoder(getResp.Body).Decode(&state))
 	bm, ok := state["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
-	assert.InDelta(t, 0.42, bm["ContentSourceProgressPercent"], 0.01)
+	assert.InDelta(t, 1.0, bm["ProgressPercent"], 0.01)
+	assert.InDelta(t, 1.0, bm["ContentSourceProgressPercent"], 0.01)
 	assert.Equal(t, location, bm["Location"])
+	si, ok := state["StatusInfo"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "Reading", si["Status"])
+}
+
+// TestKoboState_PutEmptyReadingStates verifies that a PUT with an empty
+// ReadingStates array (which the firmware can send) does not zero out
+// previously-saved progress.
+func TestKoboState_PutEmptyReadingStates(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-state-empty-put-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	// Seed progress first.
+	seedBody, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{"ProgressPercent": 50},
+		}},
+	})
+	require.NoError(t, err)
+	seedResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), seedBody))
+	require.NoError(t, err)
+	seedResp.Body.Close()
+	require.Equal(t, http.StatusOK, seedResp.StatusCode)
+
+	// PUT with an empty array must not reset the saved progress.
+	emptyBody, err := json.Marshal(map[string]any{"ReadingStates": []map[string]any{}})
+	require.NoError(t, err)
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), emptyBody))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	var state map[string]any
+	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	bm, ok := state["CurrentBookmark"].(map[string]any)
+	require.True(t, ok)
+	assert.InDelta(t, 50.0, bm["ProgressPercent"], 0.01,
+		"empty ReadingStates must preserve existing progress, not zero it")
+}
+
+// TestKoboState_PutZeroProgressReportsReadyToRead verifies that an existing
+// (non-nil) reading state at 0% still reports "ReadyToRead", exercising the
+// default branch of koboStatusForPercent — distinct from the never-synced
+// nil-state case, which is hardcoded rather than computed.
+func TestKoboState_PutZeroProgressReportsReadyToRead(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-state-zero-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	body, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{"ProgressPercent": 0},
+		}},
+	})
+	require.NoError(t, err)
+
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), body))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	var state map[string]any
+	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	si, ok := state["StatusInfo"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "ReadyToRead", si["Status"])
+}
+
+// TestKoboState_PutFullProgressReportsFinished verifies that reaching 100%
+// progress is reflected back as StatusInfo.Status "Finished", not "Reading".
+func TestKoboState_PutFullProgressReportsFinished(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-state-finished-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	body, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{"ProgressPercent": 100},
+			"StatusInfo":      map[string]any{"Status": "Closed"},
+		}},
+	})
+	require.NoError(t, err)
+
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), body))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	var state map[string]any
+	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	si, ok := state["StatusInfo"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "Finished", si["Status"])
 }
 
 // TestKoboLibrarySync_ReadingStateIncluded verifies that every entry in the
@@ -763,8 +912,8 @@ func TestKoboLibrarySync_ReadingStateIncluded(t *testing.T) {
 
 	bm, ok := rs["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
-	assert.InDelta(t, 0.0, bm["ContentSourceProgressPercent"], 0.001,
-		"new book with no progress should advertise 0.0")
+	assert.InDelta(t, 0.0, bm["ProgressPercent"], 0.001,
+		"new book with no progress should advertise 0")
 
 	// LastModified must be the epoch. Returning time.Now() would make the
 	// server appear newer than the device on every sync, causing it to pull
@@ -786,12 +935,17 @@ func TestKoboLibrarySync_ReadingStateReflectsProgress(t *testing.T) {
 
 	// Push progress as the device would.
 	putBody, err := json.Marshal(map[string]any{
-		"ReadingState": map[string]any{
+		"ReadingStates": []map[string]any{{
 			"CurrentBookmark": map[string]any{
-				"ContentSourceProgressPercent": 0.65,
-				"Location":                     location,
+				"ProgressPercent": 65,
+				"Location": map[string]any{
+					"Source": "index_split_000.html",
+					"Type":   "KoboSpan",
+					"Value":  location,
+				},
 			},
-		},
+			"StatusInfo": map[string]any{"Status": "Reading"},
+		}},
 	})
 	require.NoError(t, err)
 
@@ -821,8 +975,12 @@ func TestKoboLibrarySync_ReadingStateReflectsProgress(t *testing.T) {
 
 	bm, ok := rs["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
-	assert.InDelta(t, 0.65, bm["ContentSourceProgressPercent"], 0.01)
+	assert.InDelta(t, 65.0, bm["ProgressPercent"], 0.01)
 	assert.Equal(t, location, bm["Location"])
+	si, ok := rs["StatusInfo"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "Reading", si["Status"],
+		"sync manifest must reflect the device's in-progress status")
 }
 
 // TestKoboLibrarySync_PDFFormat_ServesPDF verifies that when a book has the
@@ -900,12 +1058,10 @@ func TestKoboState_UserBCannotReadUserAState(t *testing.T) {
 	// Write state for user A.
 	rawTokenA := registerTestDevice(t, userA)
 	body, err := json.Marshal(map[string]any{
-		"ReadingState": map[string]any{
-			"CurrentBookmark": map[string]any{
-				"ContentSourceProgressPercent": 0.9,
-			},
-			"StatusInfo": map[string]any{"Status": "ReadyToRead"},
-		},
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{"ProgressPercent": 90},
+			"StatusInfo":      map[string]any{"Status": "Reading"},
+		}},
 	})
 	require.NoError(t, err)
 	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,

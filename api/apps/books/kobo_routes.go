@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -112,9 +111,6 @@ func (app *Books) koboAuth(w http.ResponseWriter, r *http.Request) (string, bool
 	return userID, true
 }
 
-// koboProgressScale converts between Kobo's 0.0–1.0 and our 0–100 integer.
-const koboProgressScale = 100
-
 // koboEpoch is used as LastModified when no reading state exists server-side.
 // Returning time.Now() would make the server always appear newer than the
 // device, causing the firmware to overwrite local progress with the server's
@@ -200,7 +196,11 @@ type koboReadingState struct {
 }
 
 type koboBookmark struct {
-	ContentSourceProgressPercent float64 `json:"ContentSourceProgressPercent"`
+	ProgressPercent int `json:"ProgressPercent"`
+	// ContentSourceProgressPercent is the within-chapter position on real
+	// devices; we don't track that granularity, so we mirror the whole-book
+	// ProgressPercent here too — good enough for the firmware's progress bar.
+	ContentSourceProgressPercent int     `json:"ContentSourceProgressPercent"`
 	Location                     *string `json:"Location,omitempty"`
 }
 
@@ -527,36 +527,42 @@ func (app *Books) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The device sends a plural "ReadingStates" array (not a singular
+	// "ReadingState" object), whole-book progress as an integer 0-100 in
+	// ProgressPercent (ContentSourceProgressPercent is the within-chapter
+	// position, which we don't track), and Location as a
+	// {Source,Type,Value} object rather than a bare string.
 	var body struct {
-		ReadingState struct {
+		ReadingStates []struct {
 			CurrentBookmark struct {
-				ContentSourceProgressPercent float64 `json:"ContentSourceProgressPercent"`
-				Location                     *string `json:"Location"`
+				ProgressPercent int             `json:"ProgressPercent"`
+				Location        json.RawMessage `json:"Location"`
 			} `json:"CurrentBookmark"`
-		} `json:"ReadingState"`
+		} `json:"ReadingStates"`
 	}
 	if decodeErr := json.NewDecoder(r.Body).Decode(&body); decodeErr != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
-	pct := int(
-		math.Round(
-			body.ReadingState.CurrentBookmark.ContentSourceProgressPercent *
-				koboProgressScale,
-		),
-	)
-	loc := body.ReadingState.CurrentBookmark.Location
+	// An empty array carries no update — leave existing progress untouched.
+	if len(body.ReadingStates) > 0 {
+		bm := body.ReadingStates[len(body.ReadingStates)-1].CurrentBookmark
+		loc := parseKoboLocation(bm.Location)
 
-	if err = app.Services.Books.UpdateReadingProgress(
-		r.Context(), userID, bookID, models.ReadingSourceKobo, pct, loc,
-	); err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
+		if err = app.Services.Books.UpdateReadingProgress(
+			r.Context(), userID, bookID, models.ReadingSourceKobo,
+			bm.ProgressPercent, loc,
+		); err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 	}
 
+	// No prior state (e.g. an empty ReadingStates PUT on a book never synced
+	// before) is not an error — buildKoboState handles nil as 0%/ReadyToRead.
 	state, err := app.Services.Books.GetReadingState(r.Context(), userID, bookID)
-	if err != nil {
+	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -593,12 +599,48 @@ func (app *Books) koboLibraryBase(r *http.Request) string {
 	return "https://" + host + path
 }
 
+// parseKoboLocation extracts a resumable location string from the Kobo
+// CurrentBookmark.Location field, which real devices send as an object
+// {Source,Type,Value}. Falls back to a bare JSON string for older/other
+// clients, else nil.
+func parseKoboLocation(raw json.RawMessage) *string {
+	if len(raw) == 0 {
+		return nil
+	}
+	var obj struct {
+		Value string `json:"Value"`
+	}
+	if err := json.Unmarshal(raw, &obj); err == nil && obj.Value != "" {
+		return &obj.Value
+	}
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil && s != "" {
+		return &s
+	}
+	return nil // ponytail: object with empty Value → no location, acceptable
+}
+
+// koboStatusForPercent derives the Kobo StatusInfo.Status the firmware
+// expects from our stored percent, since we don't persist a separate status
+// column — it's fully determined by progress (0 / partial / complete).
+func koboStatusForPercent(percent int) string {
+	switch {
+	case percent >= models.MaxProgressPercent:
+		return "Finished"
+	case percent > 0:
+		return "Reading"
+	default:
+		return "ReadyToRead"
+	}
+}
+
 // buildKoboState converts an optional BookReadingState into the Kobo reading
 // state JSON shape returned by GET and PUT state endpoints.
 func buildKoboState(id string, state *models.BookReadingState) *koboReadingState {
 	if state == nil {
 		return &koboReadingState{
 			CurrentBookmark: koboBookmark{
+				ProgressPercent:              0,
 				ContentSourceProgressPercent: 0,
 				Location:                     nil,
 			},
@@ -614,14 +656,15 @@ func buildKoboState(id string, state *models.BookReadingState) *koboReadingState
 	ts := state.UpdatedAt.UTC().Format(time.RFC3339)
 	return &koboReadingState{
 		CurrentBookmark: koboBookmark{
-			ContentSourceProgressPercent: float64(state.Percent) / koboProgressScale,
+			ProgressPercent:              state.Percent,
+			ContentSourceProgressPercent: state.Percent,
 			Location:                     state.Location,
 		},
 		EntitlementId: id,
 		LastModified:  ts,
 		StatusInfo: koboStatusInfo{
 			LastModified: ts,
-			Status:       "ReadyToRead",
+			Status:       koboStatusForPercent(state.Percent),
 			TimestampId:  id,
 		},
 	}

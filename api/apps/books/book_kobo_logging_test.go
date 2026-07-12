@@ -95,8 +95,8 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	testApp.Services.KoboLog.SetEnabled(deviceID, true)
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
 
-	body := `{"ReadingState":{"CurrentBookmark":` +
-		`{"ContentSourceProgressPercent":0.5,"Location":"chap-2"}}}`
+	body := `{"ReadingStates":[{"CurrentBookmark":` +
+		`{"ProgressPercent":50,"Location":"chap-2"}}]}`
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
 		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"),
 		[]byte(body)))
@@ -107,7 +107,7 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	var found bool
 	for _, e := range testApp.Services.KoboLog.List(deviceID) {
 		if e.Method == http.MethodPut &&
-			strings.Contains(e.RequestBody, "ContentSourceProgressPercent") {
+			strings.Contains(e.RequestBody, "ProgressPercent") {
 			assert.Contains(t, e.RequestBody, "chap-2")
 			assert.Equal(t, http.StatusOK, e.Status)
 			found = true
@@ -135,8 +135,8 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 
 	// A Location far larger than the 64 KiB capture cap.
 	huge := strings.Repeat("x", 200*1024)
-	body := `{"ReadingState":{"CurrentBookmark":` +
-		`{"ContentSourceProgressPercent":0.5,"Location":"` + huge + `"}}}`
+	body := `{"ReadingStates":[{"CurrentBookmark":` +
+		`{"ProgressPercent":50,"Location":"` + huge + `"}}]}`
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
 		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"),
 		[]byte(body)))
