@@ -62,14 +62,14 @@ func TestKoboTooltip(t *testing.T) {
 		Kobo:      kobogateway.Kobo{Serial: "N418ABCD1234"},
 	}
 	assert.Equal(t,
-		"Kobo Gateway — Kobo connected (N418ABCD1234)",
-		kobogateway.KoboTooltip(connected),
+		"Kobo Gateway abc123 — Kobo connected (N418ABCD1234)",
+		kobogateway.KoboTooltip(connected, "abc123"),
 	)
 
 	disconnected := kobogateway.KoboEvent{Connected: false}
 	assert.Equal(t,
-		"Kobo Gateway — no Kobo connected",
-		kobogateway.KoboTooltip(disconnected),
+		"Kobo Gateway abc123 — no Kobo connected",
+		kobogateway.KoboTooltip(disconnected, "abc123"),
 	)
 }
 

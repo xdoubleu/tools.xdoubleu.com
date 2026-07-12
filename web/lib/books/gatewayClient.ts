@@ -9,19 +9,24 @@
  * reach it too.
  */
 
+import { getRelease } from '@/lib/env'
+
 const GATEWAY_PORT = 41132
 const GATEWAY_URL = `https://127.0.0.1:${GATEWAY_PORT}`
 
 /**
  * Minimum gateway protocol version this web app can drive. When a probe
  * reports an older version the UI triggers a self-update via updateGateway.
+ * Only bump this for genuine HTTP API/file-handling breaks — routine
+ * releases are instead caught by the release (build SHA) check in
+ * gatewayNeedsUpdate below.
  */
 export const REQUIRED_GATEWAY_VERSION = 2
 
 // The .dmg is what the download button offers (drag-to-Applications, menu
 // bar app). The self-updater (updateGateway below) fetches the raw binary
 // at /downloads/kobo-gateway-darwin-arm64 instead, to replace the running
-// executable in place — see api/internal/kobogateway/update.go.
+// executable in place — see gateway/internal/kobogateway/update.go.
 export const GATEWAY_DOWNLOAD_PATH = '/downloads/kobo-gateway.dmg'
 
 export interface GatewayKobo {
@@ -86,6 +91,24 @@ export function revertGateway(
   volumePath?: string
 ): Promise<{ serial: string }> {
   return gatewayPost('/revert', { targetEndpoint, ...(volumePath ? { volumePath } : {}) })
+}
+
+/**
+ * True when the installed gateway should self-update: either it's below the
+ * required protocol version, or its release (build SHA) doesn't match this
+ * web build's — CI stamps both with the same github.sha, so any mismatch
+ * means a newer gateway binary is available. Routine releases (icon fixes,
+ * login-item changes, etc.) don't bump GatewayVersion, so the release check
+ * is what actually delivers them to installed gateways.
+ */
+export function gatewayNeedsUpdate(status: GatewayStatus): boolean {
+  if (status.version < REQUIRED_GATEWAY_VERSION) return true
+
+  const current = getRelease()
+  // Local/dev builds have no deployed binary to fetch — skip the check.
+  if (current === 'dev' || status.release === 'dev') return false
+
+  return status.release !== current
 }
 
 /**
