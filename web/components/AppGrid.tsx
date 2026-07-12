@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import { interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 
 export interface AppLink {
   name: string
@@ -24,7 +25,12 @@ function AppCards({ apps }: { apps: AppLink[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {apps.map((app) => (
-        <Link key={app.name} href={app.href} className={cn(interactiveCardClass, 'block p-4')}>
+        <Link
+          key={app.name}
+          href={app.href}
+          className={cn(interactiveCardClass, 'relative block p-4')}
+        >
+          <CardLinkStatus />
           <div className="font-semibold text-fg">{app.label}</div>
           <div className="mt-1 text-sm text-muted">{app.description}</div>
         </Link>

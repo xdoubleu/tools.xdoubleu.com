@@ -19,6 +19,7 @@ import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
 import { interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
 import { swrKeys } from '@/lib/swrKeys'
@@ -26,7 +27,11 @@ import { swrKeys } from '@/lib/swrKeys'
 function RecentGameCard({ game }: { game: RecentGame }) {
   const unlockLabel = game.recentUnlocks === 1 ? 'unlock' : 'unlocks'
   return (
-    <Link href={`/games/${game.id}`} className={cn(interactiveCardClass, 'flex gap-3 p-4')}>
+    <Link
+      href={`/games/${game.id}`}
+      className={cn(interactiveCardClass, 'relative flex gap-3 p-4')}
+    >
+      <CardLinkStatus />
       {game.imageUrl && (
         <Image
           src={game.imageUrl}

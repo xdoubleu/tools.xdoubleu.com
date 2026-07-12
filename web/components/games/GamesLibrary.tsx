@@ -10,12 +10,17 @@ import type { Game, GetSteamResponse } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
 import { swrKeys } from '@/lib/swrKeys'
 
 function GameCard({ game }: { game: Game }) {
   return (
-    <Link href={`/games/${game.id}`} className={cn(interactiveCardClass, 'flex gap-3 p-4')}>
+    <Link
+      href={`/games/${game.id}`}
+      className={cn(interactiveCardClass, 'relative flex gap-3 p-4')}
+    >
+      <CardLinkStatus />
       {game.imageUrl && (
         <Image
           src={game.imageUrl}

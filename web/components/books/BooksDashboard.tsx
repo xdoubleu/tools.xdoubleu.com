@@ -11,6 +11,7 @@ import BooksProgressChart from '@/components/books/BooksProgressChart'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import { Button } from '@/components/ui/button'
 import { Card, interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { DateInput } from '@/components/ui/date-input'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
@@ -32,8 +33,12 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
   return (
     <Link
       href={`/books/${userBook.id}`}
-      className={cn(interactiveCardClass, 'flex w-full gap-3 p-4 text-left sm:w-60 self-start')}
+      className={cn(
+        interactiveCardClass,
+        'relative flex w-full gap-3 p-4 text-left sm:w-60 self-start'
+      )}
     >
+      <CardLinkStatus />
       <BookCover coverUrl={book.coverUrl} title={book.title} size="md" />
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold truncate">{book.title}</h3>

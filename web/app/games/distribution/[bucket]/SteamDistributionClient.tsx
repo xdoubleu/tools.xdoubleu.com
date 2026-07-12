@@ -6,13 +6,15 @@ import { useSteamDistribution } from '@/hooks/useGames'
 import type { Game, GetSteamDistributionResponse } from '@/lib/gen/games/v1/games_pb'
 import { cn } from '@/lib/cn'
 import { interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
 
 function GameCard({ game, bucket, label }: { game: Game; bucket: number; label: string }) {
   const href = `/games/${game.id}?bucket=${bucket}&label=${encodeURIComponent(label)}`
   return (
-    <Link href={href} className={cn(interactiveCardClass, 'flex gap-3 p-4')}>
+    <Link href={href} className={cn(interactiveCardClass, 'relative flex gap-3 p-4')}>
+      <CardLinkStatus />
       {game.imageUrl && (
         <Image
           src={game.imageUrl}

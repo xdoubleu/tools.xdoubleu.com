@@ -4,9 +4,11 @@ import { type HTMLAttributes } from 'react'
  * Shared hover/focus treatment for clickable cards (Links or buttons rendered
  * as cards). Apply alongside layout classes (`block`, padding, `cursor-pointer`)
  * so every navigable card elevates the same way. Pairs with `cn()` for overrides.
+ * `active:` mirrors `hover:` so touch devices (no hover) still get visible
+ * press feedback.
  */
 const interactiveCardClass =
-  'rounded-2xl border border-border bg-card shadow-card transition-[box-shadow,transform] duration-200 hover:shadow-elevated hover:ring-1 hover:ring-accent/30 active:scale-[0.99]'
+  'rounded-2xl border border-border bg-card shadow-card transition-[box-shadow,transform] duration-200 hover:shadow-elevated hover:ring-1 hover:ring-accent/30 active:shadow-elevated active:ring-1 active:ring-accent/30 active:scale-[0.98]'
 
 function Card({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
   return (

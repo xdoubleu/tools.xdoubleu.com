@@ -12,12 +12,14 @@ import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import ShareModal from '@/components/recipes/ShareModal'
 import { PageContainer } from '@/components/ui/page-container'
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
-    <Link href={`/recipes/${recipe.id}`} className={cn(interactiveCardClass, 'block p-4')}>
+    <Link href={`/recipes/${recipe.id}`} className={cn(interactiveCardClass, 'relative block p-4')}>
+      <CardLinkStatus />
       <h2 className="font-semibold text-lg">{recipe.name}</h2>
       <p className="text-sm text-muted mt-1">Serves {recipe.baseServings}</p>
     </Link>
