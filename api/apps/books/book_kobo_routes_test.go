@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -283,6 +284,33 @@ func TestKoboLibrarySync_OurBooksPreservedWhenUpstreamDown(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "our book must still appear when upstream is down")
+}
+
+// TestKoboLibrarySync_EmptyLibraryAndUpstreamDown is the regression test for
+// the "stuck at Checking for updates…" hang: with zero kobo-sync books AND an
+// unreachable upstream, append(nil, ...zero items) stays nil, which encodes as
+// JSON null instead of []. The Kobo firmware expects an array and hangs on
+// null. Body is checked as raw bytes because decoding into a slice silently
+// turns null back into an empty slice, masking the bug.
+func TestKoboLibrarySync_EmptyLibraryAndUpstreamDown(t *testing.T) {
+	rawToken := registerTestDevice(t, "kobo-empty-and-down-"+uuid.NewString())
+
+	// Use an invalid URL to simulate upstream being down.
+	ts := httptest.NewServer(
+		getRoutesWithKoboUpstream(t, "http://127.0.0.1:0"),
+	)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "[]\n", string(body))
 }
 
 // koboURL builds a URL for the Kobo sync API on the given httptest server.

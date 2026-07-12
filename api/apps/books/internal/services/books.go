@@ -467,11 +467,11 @@ func (s *BookService) UpdateReadingProgress(
 		return err
 	}
 
-	// Promote from to-read / dropped → currently-reading whenever progress
-	// is non-zero. No-op for books already reading, read, or not in the
-	// library at all.
+	// Reflect progress on the library entry and promote from to-read / dropped
+	// → currently-reading whenever progress is non-zero. No-op for books
+	// already reading, read, or not in the library at all.
 	if percent > 0 {
-		return s.books.PromoteToReading(ctx, userID, bookID)
+		return s.books.UpdateLibraryProgress(ctx, userID, bookID, percent)
 	}
 	return nil
 }
