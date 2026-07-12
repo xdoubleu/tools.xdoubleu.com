@@ -50,6 +50,12 @@ runs on the main OS thread (`runtime.LockOSThread` in `main`); `serve()` in
 `runUI` until Quit, a server error, or a self-update restart signal closes
 the shared `stop` channel.
 
+The `NSStatusItem` is kept in a package-level `statusItem` var, not a local —
+`objc.Retain` installs a Go finalizer that *releases* the object once its Go
+wrapper is garbage-collected, so a value that only lives in `runUI`'s setup
+closure gets finalized (and the icon disappears) a few GC cycles after
+launch. A package-level reference keeps it reachable indefinitely.
+
 `internal/kobogateway/watcher.go`'s `Watch` polls `FindKobos` every
 `koboPollInterval` (main.go) and diffs snapshots (`DiffKobos`) to emit
 connect/disconnect `KoboEvent`s; `menubar_darwin.go` consumes them off the
@@ -58,7 +64,9 @@ main dispatch queue to update the tooltip/menu line and fire a best-effort
 deprecated — or for `UNUserNotificationCenter`, which needs a properly
 signed bundle/entitlement this ad-hoc-signed `.app` doesn't have; see the
 `postNotification` comment for the `objc.Call` fallback, mirroring
-darwinkit's own notification example).
+darwinkit's own notification example). `KoboTooltip` prefixes the tooltip
+with the running release so the version is visible on hover without opening
+the menu.
 
 `internal/kobogateway/loginitem.go` manages a `~/Library/LaunchAgents`
 plist (a plain LaunchAgent, not `SMAppService` — the latter needs macOS 13,
@@ -119,7 +127,21 @@ See the root `CLAUDE.md` CI section for the full wiring.
 `Updater.SelfUpdate`, which downloads `kobo-gateway-darwin-arm64` from the
 requesting/configured origin and atomically replaces the running executable
 (inside an app bundle, that's `Contents/MacOS/kobo-gateway`), then signals a
-restart — `main.go` re-execs via `syscall.Exec`. `GatewayVersion`
-(`internal/kobogateway/server.go`) must track `REQUIRED_GATEWAY_VERSION` in
-`web/lib/books/gatewayClient.ts`; bump the Go side whenever the HTTP API or
-file handling changes so the web UI knows to trigger the self-update.
+restart — `main.go` re-execs via `syscall.Exec`.
+
+The web UI (`KoboGatewaySetup.tsx`) decides *when* to trigger this via
+`gatewayNeedsUpdate` (`web/lib/books/gatewayClient.ts`), which compares two
+independent things:
+
+- **`GatewayVersion`** (`internal/kobogateway/server.go`) vs.
+  `REQUIRED_GATEWAY_VERSION` — a floor for genuine HTTP API/file-handling
+  breaks; bump both together only when the protocol itself changes ("routine
+  releases don't bump it").
+- **`release`** (the `/status` field, `-ldflags -X main.Release`) vs. the web
+  app's own `getRelease()` — both are stamped with the same `github.sha` by
+  CI (`build-gateway.yml`'s `make dist RELEASE=${{ github.sha }}`, chained to
+  the same web build), so any mismatch means a newer gateway binary is
+  available. This is what actually delivers *routine* releases (bug fixes
+  that don't touch the protocol) to installed gateways — without it, a
+  gateway only updates on the rare protocol bump. `'dev'` on either side
+  skips the check (no deployed binary to fetch).

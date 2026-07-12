@@ -3,7 +3,9 @@ import {
   configureGateway,
   revertGateway,
   updateGateway,
-  REQUIRED_GATEWAY_VERSION
+  gatewayNeedsUpdate,
+  REQUIRED_GATEWAY_VERSION,
+  type GatewayStatus
 } from '@/lib/books/gatewayClient'
 
 // jsdom may not ship AbortSignal.timeout; the real targets (modern browsers)
@@ -149,5 +151,41 @@ describe('updateGateway', () => {
 describe('REQUIRED_GATEWAY_VERSION', () => {
   it('is a positive integer', () => {
     expect(REQUIRED_GATEWAY_VERSION).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('gatewayNeedsUpdate', () => {
+  function status(overrides: Partial<GatewayStatus> = {}): GatewayStatus {
+    return { version: REQUIRED_GATEWAY_VERSION, release: 'abc1234', kobos: [], ...overrides }
+  }
+
+  it('is true when the protocol version is below the required minimum', () => {
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'abc1234' }
+
+    expect(gatewayNeedsUpdate(status({ version: REQUIRED_GATEWAY_VERSION - 1 }))).toBe(true)
+  })
+
+  it('is true when the release does not match this web build', () => {
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'current-sha' }
+
+    expect(gatewayNeedsUpdate(status({ release: 'stale-sha' }))).toBe(true)
+  })
+
+  it('is false when version and release both match', () => {
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'abc1234' }
+
+    expect(gatewayNeedsUpdate(status({ release: 'abc1234' }))).toBe(false)
+  })
+
+  it('is false when this web build is a local dev build', () => {
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'dev' }
+
+    expect(gatewayNeedsUpdate(status({ release: 'stale-sha' }))).toBe(false)
+  })
+
+  it('is false when the gateway itself is a local dev build', () => {
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'current-sha' }
+
+    expect(gatewayNeedsUpdate(status({ release: 'dev' }))).toBe(false)
   })
 })

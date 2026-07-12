@@ -2,7 +2,8 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 jest.mock('@/lib/env', () => ({
-  getApiUrl: () => 'https://api.example.com'
+  getApiUrl: () => 'https://api.example.com',
+  getRelease: () => 'current-sha'
 }))
 
 jest.mock('@/lib/books/koboDevice', () => ({
@@ -14,8 +15,11 @@ const mockConfigureGateway = jest.fn()
 const mockRevertGateway = jest.fn()
 const mockUpdateGateway = jest.fn()
 
+// gatewayNeedsUpdate and REQUIRED_GATEWAY_VERSION are kept real (they're pure
+// version/release comparisons against the mocked getRelease above); only the
+// network calls are stubbed.
 jest.mock('@/lib/books/gatewayClient', () => ({
-  REQUIRED_GATEWAY_VERSION: 1,
+  ...jest.requireActual('@/lib/books/gatewayClient'),
   configureGateway: (...args: unknown[]) => mockConfigureGateway(...args),
   revertGateway: (...args: unknown[]) => mockRevertGateway(...args),
   updateGateway: (...args: unknown[]) => mockUpdateGateway(...args)
@@ -53,8 +57,10 @@ const KOBO_MANAGED = {
   currentEndpoint: 'https://api.example.com/books/kobo/some-token'
 }
 
-function status(kobos: (typeof KOBO_UNMANAGED)[], version = 1) {
-  return { version, release: 'abc1234', kobos }
+// Matches the mocked getRelease() above so these don't trigger the
+// self-update effect unless a test explicitly wants to.
+function status(kobos: (typeof KOBO_UNMANAGED)[], version = 2, release = 'current-sha') {
+  return { version, release, kobos }
 }
 
 beforeEach(() => {
@@ -250,5 +256,31 @@ describe('KoboGatewaySetup — self-update', () => {
         'did not come back after updating'
       )
     })
+  })
+
+  it('updates a gateway with a stale release even at the required protocol version', async () => {
+    // Routine release: protocol version unchanged, but the build SHA differs
+    // from this web app's — this is what keeps installed gateways current.
+    mockMutateGatewayStatus.mockResolvedValue(status([KOBO_UNMANAGED]))
+
+    render(
+      <KoboGatewaySetup status={status([KOBO_UNMANAGED], 2, 'stale-sha')} pollIntervalMs={1} />
+    )
+
+    expect(screen.getByTestId('kobo-gateway-updating')).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(mockUpdateGateway).toHaveBeenCalled()
+    })
+    await waitFor(() => {
+      expect(screen.queryByTestId('kobo-gateway-updating')).not.toBeInTheDocument()
+    })
+  })
+
+  it('does not update when version and release both match', () => {
+    render(<KoboGatewaySetup status={status([KOBO_UNMANAGED])} />)
+
+    expect(screen.queryByTestId('kobo-gateway-updating')).not.toBeInTheDocument()
+    expect(mockUpdateGateway).not.toHaveBeenCalled()
   })
 })

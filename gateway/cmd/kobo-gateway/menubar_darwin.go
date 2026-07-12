@@ -30,6 +30,17 @@ var iconTemplate []byte
 // the menu bar and effectively looks blank/missing at a glance.
 const menubarIconSize = 18
 
+// statusItem holds the menu-bar status item at package scope. objc.Retain
+// (below) retains the underlying NSStatusItem but also installs a Go
+// finalizer that releases it once its Go wrapper is garbage-collected — a
+// local variable inside runUI's setup closure becomes unreachable as soon as
+// that closure returns, so the item would be finalized (and the icon vanish)
+// a few GC cycles after launch. Keeping a package-level reference to it
+// prevents that GC.
+//
+//nolint:gochecknoglobals // must outlive runUI's setup closure, see above.
+var statusItem appkit.StatusItem
+
 // runUI shows a menu-bar status item so the running gateway is visible, and
 // blocks until the app quits — either via the Quit menu item or the process
 // being asked to stop (self-update requesting a restart). Must run on the
@@ -44,11 +55,11 @@ func runUI(
 		// Accessory: no Dock icon, no app switcher entry — just the status item.
 		app.SetActivationPolicy(appkit.ApplicationActivationPolicyAccessory)
 
-		item := appkit.StatusBar_SystemStatusBar().
+		statusItem = appkit.StatusBar_SystemStatusBar().
 			StatusItemWithLength(appkit.VariableStatusItemLength)
-		objc.Retain(&item)
+		objc.Retain(&statusItem)
 
-		button := item.Button()
+		button := statusItem.Button()
 		if len(iconTemplate) > 0 {
 			img := appkit.NewImageWithData(iconTemplate)
 			img.SetTemplate(true)
@@ -57,7 +68,7 @@ func runUI(
 		} else {
 			button.SetTitle("Kobo")
 		}
-		button.SetToolTip("Kobo Gateway — no Kobo connected")
+		button.SetToolTip(kobogateway.KoboTooltip(kobogateway.KoboEvent{}, release))
 
 		menu := appkit.NewMenu()
 
@@ -98,7 +109,7 @@ func runUI(
 			"Quit", objc.Sel("terminate:"), "q")
 		menu.AddItem(quit)
 
-		item.SetMenu(menu)
+		statusItem.SetMenu(menu)
 
 		go func() {
 			<-stop
@@ -107,7 +118,7 @@ func runUI(
 			})
 		}()
 
-		go watchKobos(koboEvents, button, status)
+		go watchKobos(koboEvents, button, status, release)
 	})
 }
 
@@ -141,11 +152,12 @@ func watchKobos(
 	events <-chan kobogateway.KoboEvent,
 	button appkit.StatusBarButton,
 	status appkit.MenuItem,
+	release string,
 ) {
 	for ev := range events {
 		ev := ev
 		dispatch.MainQueue().DispatchAsync(func() {
-			applyKoboEvent(ev, button, status)
+			applyKoboEvent(ev, button, status, release)
 		})
 	}
 }
@@ -154,8 +166,9 @@ func applyKoboEvent(
 	ev kobogateway.KoboEvent,
 	button appkit.StatusBarButton,
 	status appkit.MenuItem,
+	release string,
 ) {
-	button.SetToolTip(kobogateway.KoboTooltip(ev))
+	button.SetToolTip(kobogateway.KoboTooltip(ev, release))
 	status.SetTitle(kobogateway.KoboMenuLine(ev))
 	postNotification(kobogateway.KoboNotification(ev))
 }

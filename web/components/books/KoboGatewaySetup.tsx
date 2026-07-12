@@ -6,8 +6,8 @@ import { getApiUrl } from '@/lib/env'
 import { KOBO_DEFAULT_ENDPOINT, isManagedEndpoint } from '@/lib/books/koboConf'
 import { defaultDeviceName } from '@/lib/books/koboDevice'
 import {
-  REQUIRED_GATEWAY_VERSION,
   configureGateway,
+  gatewayNeedsUpdate,
   revertGateway,
   updateGateway,
   type GatewayStatus,
@@ -60,7 +60,7 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
       for (let attempt = 0; attempt < UPDATE_POLL_ATTEMPTS; attempt++) {
         await sleep(pollIntervalMs)
         const fresh = await mutateGatewayStatus()
-        if (fresh && fresh.version >= REQUIRED_GATEWAY_VERSION) {
+        if (fresh && !gatewayNeedsUpdate(fresh)) {
           setState('idle')
           return
         }
@@ -75,12 +75,12 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
   }, [pollIntervalMs, mutateGatewayStatus])
 
   useEffect(() => {
-    if (status.version < REQUIRED_GATEWAY_VERSION && !updateAttempted.current) {
+    if (gatewayNeedsUpdate(status) && !updateAttempted.current) {
       updateAttempted.current = true
       setState('updating')
       void runUpdate()
     }
-  }, [status.version, runUpdate])
+  }, [status, runUpdate])
 
   async function handleConfigure(kobo: GatewayKobo) {
     setState('configuring')

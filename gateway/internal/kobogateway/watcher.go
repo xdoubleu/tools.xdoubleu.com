@@ -45,13 +45,14 @@ func DiffKobos(prev, curr []Kobo) []KoboEvent {
 }
 
 // KoboTooltip renders the status-bar tooltip text for the current
-// connect/disconnect state.
-func KoboTooltip(ev KoboEvent) string {
+// connect/disconnect state, prefixed with the running release so it's
+// visible on hover without opening the menu.
+func KoboTooltip(ev KoboEvent, release string) string {
 	if ev.Connected {
-		return fmt.Sprintf("Kobo Gateway — Kobo connected (%s)", ev.Kobo.Serial)
+		return fmt.Sprintf("Kobo Gateway %s — Kobo connected (%s)", release, ev.Kobo.Serial)
 	}
 
-	return "Kobo Gateway — no Kobo connected"
+	return fmt.Sprintf("Kobo Gateway %s — no Kobo connected", release)
 }
 
 // KoboMenuLine renders the menu's status line for the current
