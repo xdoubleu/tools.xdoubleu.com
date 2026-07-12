@@ -5,6 +5,7 @@ import type { ExternalBookResult } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
 import { Badge } from '@/components/ui/badge'
 import { interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
 import { providerLabel } from '@/lib/books/bookShelves'
 
@@ -21,6 +22,7 @@ export default function ExternalBookCard({ book }: ExternalBookCardProps) {
       href={`/books/external/${book.provider}/${book.providerId}`}
       className={cn(interactiveCardClass, 'relative p-3 flex gap-3 items-start')}
     >
+      <CardLinkStatus />
       <div className="shrink-0">
         <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
       </div>

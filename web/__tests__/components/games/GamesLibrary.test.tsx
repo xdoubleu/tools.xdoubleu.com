@@ -15,9 +15,10 @@ jest.mock('swr', () => ({ mutate: jest.fn() }))
 import { mutate } from 'swr'
 
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+  const Link = ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   )
+  return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
 })
 
 import GamesLibrary from '@/components/games/GamesLibrary'

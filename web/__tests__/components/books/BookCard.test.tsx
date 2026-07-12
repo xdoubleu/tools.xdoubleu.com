@@ -5,7 +5,7 @@ import BookCard from '@/components/books/BookCard'
 import { UserBookSchema, BookSchema } from '@/lib/gen/books/v1/library_pb'
 
 jest.mock('next/link', () => {
-  return ({
+  const Link = ({
     children,
     href,
     ...props
@@ -18,6 +18,7 @@ jest.mock('next/link', () => {
       {children}
     </a>
   )
+  return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
 })
 
 jest.mock('next/image', () => {

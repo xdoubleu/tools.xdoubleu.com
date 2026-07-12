@@ -8,6 +8,7 @@ import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
 import { interactiveCardClass } from '@/components/ui/card'
+import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
 import { displayTags } from '@/lib/books/bookShelves'
 
@@ -30,7 +31,9 @@ export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
   return (
     <div className={cn(interactiveCardClass, 'relative p-3 flex gap-3 items-start')}>
       {/* Stretched link covers the whole card; interactive controls sit above it via z-10 */}
-      <Link href={href} className="absolute inset-0 rounded-2xl" aria-label={book.title} />
+      <Link href={href} className="absolute inset-0 rounded-2xl" aria-label={book.title}>
+        <CardLinkStatus />
+      </Link>
       {/* Cover sits below the link — clicking it navigates */}
       <div className="shrink-0">
         <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
