@@ -621,39 +621,17 @@ func (s *BookService) tombstoneIfKoboSynced(
 	return s.books.UpsertKoboRemoval(ctx, userID, bookID)
 }
 
-// deleteOrphanedFiles best-effort deletes each file's R2 object once no other
-// book_files row still references the same storage key. Failures are logged
-// and skipped — the daily storage scan sweeps any leftovers.
-func (s *BookService) deleteOrphanedFiles(
-	ctx context.Context,
-	files []models.BookFile,
-) {
-	for _, f := range files {
-		if f.StorageKey == "" {
-			continue
-		}
-		remaining, countErr := s.bookFiles.CountByStorageKey(ctx, f.StorageKey)
-		if countErr != nil {
-			s.logger.Warn("failed to count references for book file",
-				"key", f.StorageKey, "err", countErr)
-			continue
-		}
-		if remaining > 0 {
-			continue
-		}
-		if delErr := s.objectStore.Delete(ctx, f.StorageKey); delErr != nil {
-			s.logger.Warn("failed to delete book file from object store",
-				"key", f.StorageKey, "err", delErr)
-		}
-	}
-}
-
 // RemoveFromLibrary removes a single book from the caller's own library:
 // their uploaded files (DB rows + R2 objects, refcount-safe), reading state,
 // and user_books entry. If the book is no longer referenced by any user's
 // library afterwards, the shared catalog row and its R2 objects (files and
 // cover) are deleted too. R2 deletes are best-effort — a failed object delete
 // is logged and skipped; the daily storage scan sweeps any leftovers.
+//
+// move complexity, not reduce it (see tombstoneIfKoboSynced for the one
+// piece that was genuinely separable).
+//
+//nolint:gocognit // linear cleanup sequence; splitting further would only
 func (s *BookService) RemoveFromLibrary(
 	ctx context.Context,
 	userID string,
@@ -672,7 +650,25 @@ func (s *BookService) RemoveFromLibrary(
 		return err
 	}
 
-	s.deleteOrphanedFiles(ctx, files)
+	for _, f := range files {
+		if f.StorageKey == "" {
+			continue
+		}
+		// Only delete the R2 object when no other row still references it.
+		remaining, countErr := s.bookFiles.CountByStorageKey(ctx, f.StorageKey)
+		if countErr != nil {
+			s.logger.Warn("failed to count references for book file",
+				"key", f.StorageKey, "err", countErr)
+			continue
+		}
+		if remaining > 0 {
+			continue
+		}
+		if delErr := s.objectStore.Delete(ctx, f.StorageKey); delErr != nil {
+			s.logger.Warn("failed to delete book file from object store",
+				"key", f.StorageKey, "err", delErr)
+		}
+	}
 
 	if err = s.readingState.DeleteByBook(ctx, userID, bookID); err != nil {
 		return err

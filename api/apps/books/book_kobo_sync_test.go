@@ -966,6 +966,41 @@ func TestEnableKoboSync_ClearsStaleTombstone(t *testing.T) {
 	}
 }
 
+// TestToggleTag_ReenableViaToggle_ClearsTombstone verifies the DeleteKoboRemoval
+// branch of ToggleTag itself (not EnableKoboSync): toggling kobo-sync back on
+// after a ToggleTag-driven disable must clear the tombstone too.
+func TestToggleTag_ReenableViaToggle_ClearsTombstone(t *testing.T) {
+	ctx := context.Background()
+	ub := addTestBook(t, "KoboRemovalToggleReenable-"+uuid.NewString())
+
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
+	require.NoError(t, // disable
+		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+	require.NoError(t, // re-enable via ToggleTag, not EnableKoboSync
+		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+
+	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	require.NoError(t, err)
+	for _, r := range removals {
+		assert.NotEqual(t, ub.BookID, r.BookID,
+			"re-enabling via ToggleTag must clear the tombstone")
+	}
+}
+
+// TestRemoveFromLibrary_NoUserBookRow_NoError verifies that deleting a book
+// with no user_books row at all (already removed, or never added) tolerates
+// the not-found and proceeds rather than failing the whole deletion — there's
+// nothing to tombstone if the book was never in this user's library.
+func TestRemoveFromLibrary_NoUserBookRow_NoError(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-removal-no-userbook-" + uuid.NewString()
+	book := addUniqueBook(t)
+
+	err := testApp.Services.Books.RemoveFromLibrary(ctx, owner, book.ID)
+	require.NoError(t, err,
+		"removing a book with no user_books row must not error")
+}
+
 // TestToggleTag_UnrelatedTag_DoesNotTombstone verifies that toggling a
 // non-kobo-sync tag (e.g. kobo-format-pdf) never touches the removal
 // tombstone.
