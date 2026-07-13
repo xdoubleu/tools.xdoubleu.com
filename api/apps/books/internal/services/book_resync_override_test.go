@@ -254,7 +254,7 @@ func TestSyncBookSource_Override_AppliesTopResult(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 0,
 		"Correct Title", "",
 	)
 	require.NoError(t, err)
@@ -263,6 +263,93 @@ func TestSyncBookSource_Override_AppliesTopResult(t *testing.T) {
 	rc := repo.refreshCalls[0]
 	assert.Equal(t, "Correct Title", rc.title)
 	assert.Equal(t, "openlibrary", rc.metadataSource)
+}
+
+func TestGetBookSources_Override_ReturnsUpToFiveCandidatesPerSource(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "T"} //nolint:exhaustruct // partial
+
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	svc := &BookService{                                 //nolint:exhaustruct // partial
+		booksResync: repo,
+		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
+
+			searchResults: []openlibrary.ExternalBook{
+				{Title: "First Match"},           //nolint:exhaustruct // partial
+				{Title: "Second Match"},          //nolint:exhaustruct // partial
+				{Title: "Third Match"},           //nolint:exhaustruct // partial
+				{Title: "Fourth Match"},          //nolint:exhaustruct // partial
+				{Title: "Fifth Match"},           //nolint:exhaustruct // partial
+				{Title: "Sixth Match (dropped)"}, //nolint:exhaustruct // partial
+			},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposal, err := svc.GetBookSources(
+		context.Background(), logging.NewNopLogger(), bookID, "T", "",
+	)
+	require.NoError(t, err)
+	require.Len(t, proposal.Sources, 5,
+		"override search must cap each source at 5 candidates")
+	for i, source := range proposal.Sources {
+		assert.Equal(t, "openlibrary", source.Source)
+		assert.Equal(t, i, source.Index,
+			"candidates must be numbered by their position in the provider's results")
+	}
+	assert.Equal(t, "First Match", proposal.Sources[0].Title)
+	assert.Equal(t, "Fifth Match", proposal.Sources[4].Title)
+}
+
+func TestSyncBookSource_Override_AppliesChosenIndexNotJustFirst(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "T"} //nolint:exhaustruct // partial
+
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	svc := &BookService{                                 //nolint:exhaustruct // partial
+		booksResync: repo,
+		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
+
+			searchResults: []openlibrary.ExternalBook{
+				{Title: "First Match"},  //nolint:exhaustruct // partial
+				{Title: "Second Match"}, //nolint:exhaustruct // partial
+			},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	err := svc.SyncBookSource(
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 1,
+		"T", "",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1)
+	assert.Equal(t, "Second Match", repo.refreshCalls[0].title,
+		"index 1 must apply the second candidate, not the first")
+}
+
+func TestSyncBookSource_Override_UnknownIndexNotFound(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "T"} //nolint:exhaustruct // partial
+
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	svc := &BookService{                                 //nolint:exhaustruct // partial
+		booksResync: repo,
+		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
+			searchResults: []openlibrary.ExternalBook{
+				//nolint:exhaustruct // partial
+				{Title: "Only Match"},
+			},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	err := svc.SyncBookSource(
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 3,
+		"T", "",
+	)
+	require.ErrorIs(t, err, ErrProposalNotFound)
 }
 
 // ---------------------------------------------------------------------------

@@ -327,29 +327,31 @@ describe('useApplyBookSource', () => {
     expect(typeof result.current).toBe('function')
   })
 
-  it('calls client.applyBookSource with bookId and source', async () => {
+  it('calls client.applyBookSource with bookId, source, and index', async () => {
     const mockApply = jest.fn().mockResolvedValue({})
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ applyBookSource: mockApply })
     const { result } = renderHook(() => useApplyBookSource())
-    await result.current('book-1', 'openlibrary')
+    await result.current('book-1', 'openlibrary', 0)
     expect(mockApply).toHaveBeenCalledWith({
       bookId: 'book-1',
       source: 'openlibrary',
+      index: 0,
       overrideTitle: undefined,
       overrideAuthor: undefined
     })
   })
 
-  it('forwards the override terms', async () => {
+  it('forwards a non-zero index and the override terms', async () => {
     const mockApply = jest.fn().mockResolvedValue({})
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ applyBookSource: mockApply })
     const { result } = renderHook(() => useApplyBookSource())
-    await result.current('book-1', 'openlibrary', { title: 'T', author: 'A' })
+    await result.current('book-1', 'openlibrary', 2, { title: 'T', author: 'A' })
     expect(mockApply).toHaveBeenCalledWith({
       bookId: 'book-1',
       source: 'openlibrary',
+      index: 2,
       overrideTitle: 'T',
       overrideAuthor: 'A'
     })

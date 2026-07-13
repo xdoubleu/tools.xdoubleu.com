@@ -80,7 +80,8 @@ describe('BookSourceSync', () => {
             description: '',
             pageCount: 0,
             isbn13: '',
-            differs: ['authors']
+            differs: ['authors'],
+            index: 0
           }
         ]
       }
@@ -92,7 +93,7 @@ describe('BookSourceSync', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
 
     await waitFor(() =>
-      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary', undefined)
+      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary', 0, undefined)
     )
     expect(mockMutate).toHaveBeenCalledWith('/books')
   })
@@ -128,6 +129,6 @@ describe('BookSourceSync', () => {
     expect(mockUseBookSources).toHaveBeenLastCalledWith('b1', true, override)
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
-    await waitFor(() => expect(mockApplyBookSource).toHaveBeenCalledWith('b1', '', override))
+    await waitFor(() => expect(mockApplyBookSource).toHaveBeenCalledWith('b1', '', 0, override))
   })
 })

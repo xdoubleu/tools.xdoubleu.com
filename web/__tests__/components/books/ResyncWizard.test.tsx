@@ -58,7 +58,8 @@ function makeProposal(bookId: string, title: string) {
         description: '',
         pageCount: 0,
         isbn13: '',
-        differs: ['title']
+        differs: ['title'],
+        index: 0
       }
     ]
   }
@@ -220,7 +221,7 @@ describe('ResyncWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: /apply & next/i }))
 
     await waitFor(() => {
-      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary', {
+      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary', 0, {
         title: 'Correct Title',
         author: ''
       })

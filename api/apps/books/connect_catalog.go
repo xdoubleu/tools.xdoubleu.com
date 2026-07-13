@@ -283,6 +283,7 @@ func (h *booksConnectHandler) ApplyBookSource(
 		h.app.Logger,
 		bookID,
 		req.Msg.Source,
+		int(req.Msg.Index),
 		req.Msg.GetOverrideTitle(),
 		req.Msg.GetOverrideAuthor(),
 	)

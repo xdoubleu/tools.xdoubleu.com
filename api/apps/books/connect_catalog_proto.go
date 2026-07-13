@@ -19,6 +19,7 @@ func protoSourceProposal(p services.SourceProposal) *booksv1.SourceBook {
 		Title:       p.Title,
 		Authors:     p.Authors,
 		Differs:     p.Differs,
+		Index:       int32FromInt(p.Index),
 	}
 }
 

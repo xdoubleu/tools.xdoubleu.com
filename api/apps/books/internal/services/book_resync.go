@@ -85,6 +85,11 @@ type SourceProposal struct {
 	ISBN13      string   `json:"isbn13,omitempty"`
 	Title       string   `json:"title,omitempty"`
 	Authors     []string `json:"authors,omitempty"`
+	// Index is this candidate's ordinal position (0-based) among other
+	// SourceProposals sharing the same Source. Always 0 except for the manual
+	// override search, which can return up to 5 candidates per source (see
+	// topCandidates).
+	Index int `json:"index,omitempty"`
 	// Differs lists which fields differ from the library values. Computed at
 	// read time (never persisted), empty for the library's own SourceProposal.
 	Differs []string `json:"-"`
@@ -680,15 +685,45 @@ func (s *BookService) fetchBySearch(
 ) ([]SourceProposal, map[string]bool) {
 	return s.searchProviders(
 		ctx, logger, book.Title, buildSearchQuery(book.Title, book.Authors),
-		func(candidates []titleOnlyCandidate) (titleOnlyCandidate, bool) {
+		single(func(candidates []titleOnlyCandidate) (titleOnlyCandidate, bool) {
 			return matchSearchResult(book, candidates)
-		},
+		}),
 		opts,
 	)
 }
 
+// single adapts a one-candidate picker to the []titleOnlyCandidate picker
+// shape searchProviders expects, for callers that must keep the existing
+// one-candidate-per-source behavior (the wizard scan and the guarded
+// on-demand search).
+func single(
+	pick func([]titleOnlyCandidate) (titleOnlyCandidate, bool),
+) func([]titleOnlyCandidate) []titleOnlyCandidate {
+	return func(candidates []titleOnlyCandidate) []titleOnlyCandidate {
+		if m, ok := pick(candidates); ok {
+			return []titleOnlyCandidate{m}
+		}
+		return nil
+	}
+}
+
+// topCandidates returns a picker that keeps the first n candidates in a
+// provider's own relevance order, unguarded — used by the manual override
+// search ("Search with these terms") so the admin can review multiple
+// candidates per source instead of just the top hit.
+func topCandidates(n int) func([]titleOnlyCandidate) []titleOnlyCandidate {
+	return func(candidates []titleOnlyCandidate) []titleOnlyCandidate {
+		if len(candidates) > n {
+			return candidates[:n]
+		}
+		return candidates
+	}
+}
+
 // searchProviders queries every configured provider's Search with one query
-// and keeps at most one candidate per provider, selected by pick.
+// and keeps the candidates pick selects per provider (0 or more), each
+// becoming its own SourceProposal with Index set to its ordinal position
+// within that provider's results.
 //
 //nolint:gocognit // The function is long but the logic is straightforward
 func (s *BookService) searchProviders(
@@ -696,7 +731,7 @@ func (s *BookService) searchProviders(
 	logger *slog.Logger,
 	logTitle string,
 	query string,
-	pick func([]titleOnlyCandidate) (titleOnlyCandidate, bool),
+	pick func([]titleOnlyCandidate) []titleOnlyCandidate,
 	opts *scanOptions,
 ) ([]SourceProposal, map[string]bool) {
 	var out []SourceProposal
@@ -708,8 +743,8 @@ func (s *BookService) searchProviders(
 		unresolved["openlibrary"] = true
 		logger.WarnContext(ctx, "open library search failed",
 			slog.String("title", logTitle), slog.Any("error", err))
-	} else if m, ok := pick(olCandidates(results)); ok {
-		out = append(out, newSourceProposalFromCandidate("openlibrary", m))
+	} else {
+		out = appendPicked(out, "openlibrary", pick(olCandidates(results)))
 	}
 
 	if s.googleBooks != nil {
@@ -727,8 +762,8 @@ func (s *BookService) searchProviders(
 				}
 				logger.WarnContext(ctx, "google books search failed",
 					slog.String("title", logTitle), slog.Any("error", err))
-			} else if m, ok := pick(gbCandidates(results)); ok {
-				out = append(out, newSourceProposalFromCandidate("googlebooks", m))
+			} else {
+				out = appendPicked(out, "googlebooks", pick(gbCandidates(results)))
 			}
 		}
 	}
@@ -740,8 +775,8 @@ func (s *BookService) searchProviders(
 			unresolved["unicat"] = true
 			logger.WarnContext(ctx, "unicat search failed",
 				slog.String("title", logTitle), slog.Any("error", err))
-		} else if m, ok := pick(ucCandidates(results)); ok {
-			out = append(out, newSourceProposalFromCandidate("unicat", m))
+		} else {
+			out = appendPicked(out, "unicat", pick(ucCandidates(results)))
 		}
 	}
 
@@ -752,8 +787,8 @@ func (s *BookService) searchProviders(
 			unresolved["hardcover"] = true
 			logger.WarnContext(ctx, "hardcover search failed",
 				slog.String("title", logTitle), slog.Any("error", err))
-		} else if m, ok := pick(hcCandidates(results)); ok {
-			out = append(out, newSourceProposalFromCandidate("hardcover", m))
+		} else {
+			out = appendPicked(out, "hardcover", pick(hcCandidates(results)))
 		}
 	}
 
@@ -769,9 +804,11 @@ func (s *BookService) searchProviders(
 // flip a later fetch onto a different (often empty) ISBN-keyed candidate set,
 // which used to make a second sync fail with "source not found".
 // An override always uses the search path too and skips the match guards.
-// ponytail: override takes each provider's top result unguarded — the admin
-// reviews the full candidate before applying; tighten to guards-against-the-
-// override-values if it misfires in practice.
+// ponytail: override takes each provider's top 5 results unguarded — the
+// admin reviews the full candidates before applying; tighten to guards-
+// against-the-override-values if it misfires in practice.
+const overrideMaxCandidates = 5
+
 func (s *BookService) fetchProposals(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -800,18 +837,10 @@ func (s *BookService) fetchProposals(
 	}
 
 	proposals, _ := s.searchProviders(
-		ctx, logger, title, buildSearchQuery(title, authors), firstCandidate, nil,
+		ctx, logger, title, buildSearchQuery(title, authors),
+		topCandidates(overrideMaxCandidates), nil,
 	)
 	return proposals
-}
-
-func firstCandidate(
-	candidates []titleOnlyCandidate,
-) (titleOnlyCandidate, bool) {
-	if len(candidates) == 0 {
-		return titleOnlyCandidate{}, false //nolint:exhaustruct // zero value intended
-	}
-	return candidates[0], true
 }
 
 // matchSearchResult picks the best-matching candidate from one provider's
@@ -872,6 +901,32 @@ func hcCandidates(results []hardcover.ExternalBook) []titleOnlyCandidate {
 			title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
 			coverURL: r.CoverURL, description: r.Description, pageCount: r.PageCount,
 		}
+	}
+	return out
+}
+
+// appendPicked converts one provider's picked candidates into SourceProposals
+// and appends them to out.
+func appendPicked(
+	out []SourceProposal,
+	source string,
+	picked []titleOnlyCandidate,
+) []SourceProposal {
+	return append(out, newSourceProposalsFromCandidates(source, picked)...)
+}
+
+// newSourceProposalsFromCandidates converts every candidate pick selected for
+// one provider into its own SourceProposal, numbering them by their position
+// in candidates (their ordinal within that provider's results).
+func newSourceProposalsFromCandidates(
+	source string,
+	candidates []titleOnlyCandidate,
+) []SourceProposal {
+	out := make([]SourceProposal, len(candidates))
+	for i, c := range candidates {
+		p := newSourceProposalFromCandidate(source, c)
+		p.Index = i
+		out[i] = p
 	}
 	return out
 }
@@ -1058,7 +1113,8 @@ func (s *BookService) applyChosenSource(
 		return fmt.Errorf("decode resync proposals for book %s: %w", row.Book.ID, err)
 	}
 
-	return s.applySelectedSource(ctx, logger, row.Book, sources, source)
+	// Wizard proposals are always one candidate per source (index 0).
+	return s.applySelectedSource(ctx, logger, row.Book, sources, source, 0)
 }
 
 // applySelectedSource writes the chosen source's fields onto book, replacing
@@ -1068,18 +1124,25 @@ func (s *BookService) applyChosenSource(
 // only overwrites an existing value when the source actually supplies one
 // (the repo's dup guard prevents attaching an ISBN already used elsewhere).
 // Shared by the stored-proposal path (ApplyResyncChoice) and the live
-// per-book path (SyncBookSource). Returns ErrProposalNotFound if source isn't
-// among sources.
+// per-book path (SyncBookSource). Returns ErrProposalNotFound if no proposal
+// matches (source, index).
+//
+// ponytail: index identifies a candidate by its ordinal position within its
+// source, relying on the provider returning the same order on the apply-time
+// re-fetch as it did when GetBookSources first showed the candidates to the
+// admin — the same stability the pre-existing index-0-only apply already
+// depended on. Add a stable per-candidate id if this ever misfires.
 func (s *BookService) applySelectedSource(
 	ctx context.Context,
 	logger *slog.Logger,
 	book models.Book,
 	sources []SourceProposal,
 	source string,
+	index int,
 ) error {
 	var chosen *SourceProposal
 	for i := range sources {
-		if sources[i].Source == source {
+		if sources[i].Source == source && sources[i].Index == index {
 			chosen = &sources[i]
 			break
 		}
@@ -1135,6 +1198,7 @@ func (s *BookService) SyncBookSource(
 	logger *slog.Logger,
 	bookID uuid.UUID,
 	source string,
+	index int,
 	overrideTitle string,
 	overrideAuthor string,
 ) error {
@@ -1149,7 +1213,8 @@ func (s *BookService) SyncBookSource(
 	// "" keeps the library row unchanged — same as ApplyResyncChoice's dismiss.
 	if source != "" {
 		sources := s.fetchProposals(ctx, logger, *book, overrideTitle, overrideAuthor)
-		if err = s.applySelectedSource(ctx, logger, *book, sources, source); err != nil {
+		err = s.applySelectedSource(ctx, logger, *book, sources, source, index)
+		if err != nil {
 			return err
 		}
 	}

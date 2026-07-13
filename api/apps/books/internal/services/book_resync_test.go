@@ -1464,7 +1464,7 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", "", "",
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 0, "", "",
 	)
 	require.NoError(t, err)
 
@@ -1490,7 +1490,7 @@ func TestSyncBookSource_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", "", "",
+		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 0, "", "",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
