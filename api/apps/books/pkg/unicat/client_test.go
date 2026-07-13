@@ -145,7 +145,9 @@ func TestGetByISBN_ClientError_NoRetry(t *testing.T) {
 func TestSearch_Found(t *testing.T) {
 	cleanup := buildServer(func(w http.ResponseWriter, r *http.Request) {
 		cql := r.URL.Query().Get("query")
-		assert.Contains(t, cql, "dc.title=")
+		assert.Contains(t, cql, "title=")
+		assert.Contains(t, cql, "author=")
+		assert.NotContains(t, cql, "dc.")
 		w.Header().Set("Content-Type", "application/xml")
 		_, _ = w.Write([]byte(fixtureISBN9789463107389))
 	})

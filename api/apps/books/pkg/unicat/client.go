@@ -314,9 +314,9 @@ func buildCQL(query string) string {
 		return ""
 	}
 	if author != "" {
-		return fmt.Sprintf(`dc.title="%s" AND dc.creator="%s"`, title, author)
+		return fmt.Sprintf(`title="%s" AND author="%s"`, title, author)
 	}
-	return fmt.Sprintf(`dc.title="%s"`, title)
+	return fmt.Sprintf(`title="%s"`, title)
 }
 
 // extractQuoted extracts the double-quoted value after "key:" in s.

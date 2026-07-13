@@ -468,9 +468,11 @@ func (s *BookService) fetchSourceProposals(
 
 // fetchByISBN queries every configured provider's GetByISBN independently and
 // keeps every result — no fallback chaining, each provider stands on its own,
-// except Hardcover: its edition-level ISBN coverage is sparse compared to its
-// Typesense work index (see fetchHardcoverByISBN), so it alone falls back to a
-// guarded title+author search on a miss.
+// except Hardcover and UniCat: Hardcover's edition-level ISBN coverage is
+// sparse compared to its Typesense work index (see fetchHardcoverByISBN), and
+// UniCat's ISBN index misses books its title/author index has (see
+// fetchUniCatByISBN), so both fall back to a guarded title+author search on
+// a miss.
 func (s *BookService) fetchByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -511,7 +513,7 @@ func (s *BookService) fetchByISBN(
 	}
 
 	if s.uniCat != nil {
-		if p, unres := s.fetchUniCatByISBN(ctx, logger, isbn13, opts); unres {
+		if p, unres := s.fetchUniCatByISBN(ctx, logger, book, opts); unres {
 			unresolved["unicat"] = true
 		} else if p != nil {
 			out = append(out, *p)
@@ -533,16 +535,23 @@ func (s *BookService) fetchByISBN(
 // UniCat has no daily quota, so only the skip-if-known cache gates it. Returns
 // the proposal (nil if UniCat has no match) and whether the source is
 // unresolved this pass (skipped or errored) — see recordScanStatus.
+//
+// On an ISBN miss, falls back to a guarded title+author search: UniCat's
+// ISBN index (020$a) is populated from the physical item catalogued, which
+// can miss editions the union catalog otherwise has under a different ISBN
+// or none at all. Without this, a book UniCat indexes by title never gets a
+// resync proposal at all.
 func (s *BookService) fetchUniCatByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
-	isbn13 string,
+	book models.Book,
 	opts *scanOptions,
 ) (*SourceProposal, bool) {
 	if opts.skipKnown("unicat") {
 		return nil, true
 	}
 
+	isbn13 := *book.ISBN13
 	ucDetail, ucErr := s.uniCat.GetByISBN(ctx, isbn13)
 	if ucErr != nil && !errors.Is(ucErr, unicat.ErrNotFound) {
 		logger.WarnContext(ctx, "unicat ISBN lookup failed",
@@ -550,7 +559,7 @@ func (s *BookService) fetchUniCatByISBN(
 		return nil, true
 	}
 	if ucDetail == nil {
-		return nil, false
+		return s.fetchUniCatBySearchFallback(ctx, logger, book)
 	}
 
 	p := newSourceProposalFromCandidate(
@@ -563,6 +572,36 @@ func (s *BookService) fetchUniCatByISBN(
 			pageCount:   ucDetail.PageCount,
 		},
 	)
+	return &p, false
+}
+
+// fetchUniCatBySearchFallback runs a guarded title+author search when
+// UniCat's ISBN lookup misses. Matched with the same matchSearchResult guard
+// the title-search resync path uses, so an unrelated same-titled book is
+// never proposed.
+func (s *BookService) fetchUniCatBySearchFallback(
+	ctx context.Context,
+	logger *slog.Logger,
+	book models.Book,
+) (*SourceProposal, bool) {
+	if book.Title == "" {
+		return nil, false
+	}
+
+	results, err := s.uniCat.Search(
+		ctx, buildSearchQuery(book.Title, book.Authors),
+	)
+	if err != nil {
+		logger.WarnContext(ctx, "unicat search fallback failed",
+			slog.String("title", book.Title), slog.Any("error", err))
+		return nil, true
+	}
+
+	m, ok := matchSearchResult(book, ucCandidates(results))
+	if !ok {
+		return nil, false
+	}
+	p := newSourceProposalFromCandidate("unicat", m)
 	return &p, false
 }
 
