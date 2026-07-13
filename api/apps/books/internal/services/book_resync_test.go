@@ -994,11 +994,17 @@ func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 		objectStore: objectstore.NewFake(),
 	}
 
+	// onProgress runs from each book's goroutine in BuildResyncProposals, so
+	// the append needs its own lock — two books scanning concurrently means
+	// two potential writers.
+	var callsMu sync.Mutex
 	var calls [][2]int
 	n, err := svc.BuildResyncProposals(
 		context.Background(),
 		logging.NewNopLogger(),
 		func(processed, total int, _ bool) {
+			callsMu.Lock()
+			defer callsMu.Unlock()
 			calls = append(calls, [2]int{processed, total})
 		},
 		false,

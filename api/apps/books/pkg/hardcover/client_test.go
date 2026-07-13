@@ -213,14 +213,14 @@ func TestGetByISBN_TooManyRequests_Retries(t *testing.T) {
 }
 
 func TestSearch_ReturnsResults(t *testing.T) {
-	body := searchResponse(t, []bookFixture{
+	books := searchResponse(t, []bookFixture{
 		//nolint:exhaustruct // only fields under test
 		{Title: "Space Odyssey", Authors: []string{"Clarke"}, Pages: 221},
 		//nolint:exhaustruct // only fields under test
 		{Title: "Another Book", Authors: []string{"Smith"}},
 	})
 
-	cleanup := buildServer(jsonHandler(body))
+	cleanup := buildServer(searchIDsThenBooksHandler(t, []int{1, 2}, books))
 	defer cleanup()
 
 	c := hardcover.New(logging.NewNopLogger(), "token")
@@ -236,9 +236,9 @@ func TestSearch_ReturnsResults(t *testing.T) {
 	assert.Equal(t, 221, *results[0].PageCount)
 }
 
-// TestSearch_SendsWildcardTitle verifies the extracted title is wrapped in
-// ILIKE wildcards and sent as the GraphQL variable.
-func TestSearch_SendsWildcardTitle(t *testing.T) {
+// TestSearch_SendsPlainQuery verifies the extracted title is sent as-is (no
+// ILIKE wildcards) as the Typesense search query variable.
+func TestSearch_SendsPlainQuery(t *testing.T) {
 	var captured struct {
 		Variables map[string]any `json:"variables"`
 	}
@@ -246,7 +246,7 @@ func TestSearch_SendsWildcardTitle(t *testing.T) {
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_ = json.NewDecoder(r.Body).Decode(&captured)
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(json.RawMessage(`{"data":{"books":[]}}`))
+			_, _ = w.Write(json.RawMessage(`{"data":{"search":{"ids":[]}}}`))
 		}),
 	)
 	defer cleanup()
@@ -254,7 +254,7 @@ func TestSearch_SendsWildcardTitle(t *testing.T) {
 	c := hardcover.New(logging.NewNopLogger(), "token")
 	_, err := c.Search(context.Background(), `intitle:"Dune" inauthor:"Herbert"`)
 	require.NoError(t, err)
-	assert.Equal(t, "%Dune%", captured.Variables["title"])
+	assert.Equal(t, "Dune", captured.Variables["query"])
 }
 
 func TestSearch_NoTitle_SkipsRequest(t *testing.T) {
@@ -263,7 +263,7 @@ func TestSearch_NoTitle_SkipsRequest(t *testing.T) {
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			called = true
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(json.RawMessage(`{"data":{"books":[]}}`))
+			_, _ = w.Write(json.RawMessage(`{"data":{"search":{"ids":[]}}}`))
 		}),
 	)
 	defer cleanup()
@@ -273,6 +273,46 @@ func TestSearch_NoTitle_SkipsRequest(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, results)
 	assert.False(t, called, "search without a title must not hit the API")
+}
+
+// TestSearch_NoIDs_SkipsSecondRequest verifies that when the Typesense search
+// returns no IDs, Search returns early without querying books by ID.
+func TestSearch_NoIDs_SkipsSecondRequest(t *testing.T) {
+	requests := 0
+	cleanup := buildServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			requests++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(json.RawMessage(`{"data":{"search":{"ids":[]}}}`))
+		}),
+	)
+	defer cleanup()
+
+	c := hardcover.New(logging.NewNopLogger(), "token")
+	results, err := c.Search(context.Background(), `intitle:"Dune"`)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+	assert.Equal(t, 1, requests, "no ids means the books-by-id request must be skipped")
+}
+
+// TestSearch_403_PropagatesError guards the reported regression: Hardcover's
+// server rejects ilike/like/similar/regex operators with a 403, and that
+// error must bubble up rather than being swallowed.
+func TestSearch_403_PropagatesError(t *testing.T) {
+	cleanup := buildServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(
+				`{"error":"ilike and related operations are not permitted on this server."}`,
+			))
+		}),
+	)
+	defer cleanup()
+
+	c := hardcover.New(logging.NewNopLogger(), "token")
+	_, err := c.Search(context.Background(), `intitle:"Dune"`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "403")
 }
 
 func TestGetByISBN_SendsBearerToken(t *testing.T) {
@@ -415,6 +455,30 @@ func searchResponse(t *testing.T, books []bookFixture) json.RawMessage {
 	}
 	resp := map[string]any{"data": map[string]any{"books": out}}
 	return mustJSON(t, resp)
+}
+
+// searchIDsThenBooksHandler serves the two-request Search flow: the first
+// POST (search by title) gets ids, the second POST (books by id) gets booksBody.
+func searchIDsThenBooksHandler(
+	t *testing.T,
+	ids []int,
+	booksBody json.RawMessage,
+) http.Handler {
+	t.Helper()
+
+	first := true
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if first {
+			first = false
+			idsResp := map[string]any{
+				"data": map[string]any{"search": map[string]any{"ids": ids}},
+			}
+			_, _ = w.Write(mustJSON(t, idsResp))
+			return
+		}
+		_, _ = w.Write(booksBody)
+	})
 }
 
 func jsonHandler(body json.RawMessage) http.Handler {
