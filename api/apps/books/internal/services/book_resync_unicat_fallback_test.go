@@ -11,6 +11,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
+	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
@@ -78,4 +79,126 @@ func TestFetchUniCatByISBN_MissFallback_GuardsWrongTitle(t *testing.T) {
 	)
 	assert.Nil(t, p, "a title/author mismatch must not be proposed")
 	assert.False(t, unresolved, "a clean guarded miss is resolved, not unresolved")
+}
+
+// TestFetchUniCatByISBN_NoTitle_FallbackSkipsSearch verifies the fallback
+// doesn't call Search for a book with no title to search by.
+func TestFetchUniCatByISBN_NoTitle_FallbackSkipsSearch(t *testing.T) {
+	isbn := "9789463107389"
+	book := models.Book{ISBN13: &isbn} //nolint:exhaustruct // partial: no title
+	uc := &fakeUCClient{}              //nolint:exhaustruct // byISBN nil -> ErrNotFound
+	svc := &BookService{               //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		uniCat:      uc,
+		objectStore: objectstore.NewFake(),
+	}
+
+	p, unresolved := svc.fetchUniCatByISBN(
+		context.Background(), logging.NewNopLogger(), book, nil,
+	)
+	assert.Nil(t, p)
+	assert.False(t, unresolved)
+}
+
+// fakeUCClientSearchErr returns ErrNotFound from GetByISBN (so
+// fetchUniCatByISBN reaches the search fallback) but errors from Search,
+// unlike fakeUCClient whose single err field drives both methods identically.
+type fakeUCClientSearchErr struct{}
+
+func (fakeUCClientSearchErr) GetByISBN(
+	_ context.Context,
+	_ string,
+) (*unicat.ExternalBook, error) {
+	return nil, unicat.ErrNotFound
+}
+
+func (fakeUCClientSearchErr) Search(
+	_ context.Context,
+	_ string,
+) ([]unicat.ExternalBook, error) {
+	return nil, assert.AnError
+}
+
+// TestFetchUniCatByISBN_SearchFallback_Errors verifies a Search error surfaces
+// as unresolved rather than a silent miss.
+func TestFetchUniCatByISBN_SearchFallback_Errors(t *testing.T) {
+	isbn := "9789463107389"
+	book := models.Book{ //nolint:exhaustruct // partial
+		Title: "10 franke vragen aan Frank", ISBN13: &isbn,
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		uniCat:      fakeUCClientSearchErr{},
+		objectStore: objectstore.NewFake(),
+	}
+
+	p, unresolved := svc.fetchUniCatByISBN(
+		context.Background(), logging.NewNopLogger(), book, nil,
+	)
+	assert.Nil(t, p)
+	assert.True(t, unresolved)
+}
+
+// TestFetchUniCatByISBN_GetByISBNErrors verifies a non-ErrNotFound error from
+// the ISBN lookup itself surfaces as unresolved without reaching the fallback.
+func TestFetchUniCatByISBN_GetByISBNErrors(t *testing.T) {
+	isbn := "9789463107389"
+	book := models.Book{ISBN13: &isbn}       //nolint:exhaustruct // partial
+	uc := &fakeUCClient{err: assert.AnError} //nolint:exhaustruct // partial
+	svc := &BookService{                     //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		uniCat:      uc,
+		objectStore: objectstore.NewFake(),
+	}
+
+	p, unresolved := svc.fetchUniCatByISBN(
+		context.Background(), logging.NewNopLogger(), book, nil,
+	)
+	assert.Nil(t, p)
+	assert.True(t, unresolved)
+}
+
+// TestFetchUniCatByISBN_SkipKnown verifies opts' skip-if-known cache short-
+// circuits before any provider call, mirroring the other sources' gating.
+func TestFetchUniCatByISBN_SkipKnown(t *testing.T) {
+	isbn := "9789463107389"
+	book := models.Book{ISBN13: &isbn} //nolint:exhaustruct // partial
+	svc := &BookService{               //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		uniCat:      &fakeUCClient{}, //nolint:exhaustruct // partial
+		objectStore: objectstore.NewFake(),
+	}
+	opts := &scanOptions{ //nolint:exhaustruct // partial
+		known: map[string]bool{"unicat": true},
+	}
+
+	p, unresolved := svc.fetchUniCatByISBN(
+		context.Background(), logging.NewNopLogger(), book, opts,
+	)
+	assert.Nil(t, p)
+	assert.True(t, unresolved)
+}
+
+// TestFetchByISBN_UniCatUnresolved_PropagatesToOutput verifies fetchByISBN's
+// UniCat dispatch surfaces an unresolved source (skip-known here) rather than
+// silently dropping it, matching Hardcover's and Google Books' dispatch.
+func TestFetchByISBN_UniCatUnresolved_PropagatesToOutput(t *testing.T) {
+	isbn := "9789463107389"
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger: logging.NewNopLogger(),
+		//nolint:exhaustruct // detail unused, err drives the not-found path
+		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		uniCat:      &fakeUCClient{}, //nolint:exhaustruct // partial
+		objectStore: objectstore.NewFake(),
+	}
+	opts := &scanOptions{ //nolint:exhaustruct // partial
+		known: map[string]bool{"unicat": true},
+	}
+
+	proposals, unresolved := svc.fetchByISBN(
+		context.Background(), logging.NewNopLogger(),
+		models.Book{ISBN13: &isbn}, opts, //nolint:exhaustruct // partial
+	)
+	assert.Empty(t, proposals)
+	assert.True(t, unresolved["unicat"])
 }
