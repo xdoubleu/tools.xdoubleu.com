@@ -72,6 +72,10 @@ type edition struct {
 // denormalised JSON fields Hardcover exposes so callers avoid deep relation
 // joins that would exceed the API's max query depth of 3.
 type book struct {
+	// ID is only populated by booksByIDsQuery (used to restore Typesense's
+	// relevance order); isbnQuery's nested book{} doesn't select it, so it's
+	// zero there — harmless, since GetByISBN doesn't use ID.
+	ID                int                 `json:"id"`
 	Title             string              `json:"title"`
 	Pages             int                 `json:"pages"`
 	Description       string              `json:"description"`

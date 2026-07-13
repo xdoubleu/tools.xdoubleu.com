@@ -75,6 +75,7 @@ const searchIDsQuery = `query SearchBookIDs($query: String!, $perPage: Int!) {
 // searchIDsQuery. Uses _in, which (unlike ilike) is a permitted operator.
 const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
   books(where: {id: {_in: $ids}}) {
+    id
     title
     pages
     description
@@ -165,9 +166,18 @@ func (c client) Search(
 		return nil, err
 	}
 
-	books := make([]ExternalBook, 0, len(resp.Data.Books))
+	// booksByIDsQuery has no order_by, so Hasura/Postgres returns rows in its
+	// own default order rather than the Typesense relevance order the IDs
+	// arrived in. Reindex by ID and re-emit in that original order.
+	byID := make(map[int]book, len(resp.Data.Books))
 	for _, b := range resp.Data.Books {
-		books = append(books, bookToExternalBook(b))
+		byID[b.ID] = b
+	}
+	books := make([]ExternalBook, 0, len(idsResp.Data.Search.IDs))
+	for _, id := range idsResp.Data.Search.IDs {
+		if b, ok := byID[id]; ok {
+			books = append(books, bookToExternalBook(b))
+		}
 	}
 	return books, nil
 }
