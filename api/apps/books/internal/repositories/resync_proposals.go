@@ -24,7 +24,7 @@ type ResyncProposalRow struct {
 // stored proposals blob.
 const resyncProposalColumns = `b.id, b.title, b.authors, b.isbn13, b.cover_url,
 	b.description, b.page_count, b.created_at, b.updated_at,
-	b.openlibrary_found, b.googlebooks_found, b.unicat_found, b.hardcover_found,
+	b.openlibrary_found, b.unicat_found, b.hardcover_found,
 	b.last_resync_at, b.metadata_source,
 	rp.proposals`
 
@@ -43,7 +43,6 @@ func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
 		&book.CreatedAt,
 		&book.UpdatedAt,
 		&book.OpenLibraryFound,
-		&book.GoogleBooksFound,
 		&book.UniCatFound,
 		&book.HardcoverFound,
 		&book.LastResyncAt,
@@ -156,111 +155,64 @@ func (repo *BooksRepository) GetResyncProposal(
 type SourceStats struct {
 	TotalBooks       int
 	OpenLibraryFound int
-	GoogleBooksFound int
 	UniCatFound      int
 	HardcoverFound   int
-	// Unique counts books found in exactly this one source (the other three
+	// Unique counts books found in exactly this one source (the other two
 	// explicitly checked and came back empty, IS FALSE).
 	OpenLibraryUnique int
-	GoogleBooksUnique int
 	UniCatUnique      int
 	HardcoverUnique   int
 	// Missed counts a source actually checked and came back empty
 	// (found_column IS FALSE) — distinct from never having been scanned.
 	OpenLibraryMissed int
-	GoogleBooksMissed int
 	UniCatMissed      int
 	HardcoverMissed   int
-	// Pairwise "found in exactly these two" (both IS TRUE, other two IS FALSE).
-	OLGBOnly int
+	// Pairwise "found in exactly these two" (both IS TRUE, the third IS FALSE).
 	OLUCOnly int
 	OLHCOnly int
-	GBUCOnly int
-	GBHCOnly int
 	UCHCOnly int
-	// Triples "found in exactly these three" (three IS TRUE, the fourth IS
-	// FALSE).
-	OLGBUCOnly int
-	OLGBHCOnly int
-	OLUCHCOnly int
-	GBUCHCOnly int
-	// AllFour is found in every source. AllFourMissed is missed-overlaps' one
-	// genuinely new number: all four sources explicitly checked and came back
-	// empty (strict IS FALSE, no NULLs) — stricter than NotFoundAnywhere, which
-	// also counts a book with an unresolved (NULL) source as long as none
-	// confirmed found. Every other missed-overlap ("missed by exactly S") is
-	// mathematically identical to "found by exactly the complement of S", so
-	// they're derived in the handler from the found-only counts above.
-	AllFour          int
-	AllFourMissed    int
+	// AllThree is found in every source. AllThreeMissed is missed-overlaps'
+	// one genuinely new number: all three sources explicitly checked and came
+	// back empty (strict IS FALSE, no NULLs) — stricter than NotFoundAnywhere,
+	// which also counts a book with an unresolved (NULL) source as long as
+	// none confirmed found. Every other missed-overlap ("missed by exactly S")
+	// is mathematically identical to "found by exactly the complement of S",
+	// so they're derived in the handler from the found-only counts above.
+	AllThree         int
+	AllThreeMissed   int
 	NotFoundAnywhere int
 	NeverScanned     int
 }
 
-// sourceStatsQuery computes every SourceStats aggregate over the four-source
-// partition (found/missed/unique per source, all pairwise/triple/quad "found
-// by exactly" combos, and the catalog totals) in one pass.
+// sourceStatsQuery computes every SourceStats aggregate over the three-source
+// partition (found/missed/unique per source, all pairwise/triple "found by
+// exactly" combos, and the catalog totals) in one pass.
 const sourceStatsQuery = `
 		SELECT count(*),
 		    count(*) FILTER (WHERE openlibrary_found),
-		    count(*) FILTER (WHERE googlebooks_found),
 		    count(*) FILTER (WHERE unicat_found),
 		    count(*) FILTER (WHERE hardcover_found),
 		    count(*) FILTER (WHERE openlibrary_found IS FALSE),
-		    count(*) FILTER (WHERE googlebooks_found IS FALSE),
 		    count(*) FILTER (WHERE unicat_found IS FALSE),
 		    count(*) FILTER (WHERE hardcover_found IS FALSE),
 		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND googlebooks_found IS FALSE AND unicat_found IS FALSE
-		        AND hardcover_found IS FALSE),
-		    count(*) FILTER (WHERE googlebooks_found IS TRUE
-		        AND openlibrary_found IS FALSE AND unicat_found IS FALSE
-		        AND hardcover_found IS FALSE),
+		        AND unicat_found IS FALSE AND hardcover_found IS FALSE),
 		    count(*) FILTER (WHERE unicat_found IS TRUE
-		        AND openlibrary_found IS FALSE AND googlebooks_found IS FALSE
-		        AND hardcover_found IS FALSE),
+		        AND openlibrary_found IS FALSE AND hardcover_found IS FALSE),
 		    count(*) FILTER (WHERE hardcover_found IS TRUE
-		        AND openlibrary_found IS FALSE AND googlebooks_found IS FALSE
-		        AND unicat_found IS FALSE),
+		        AND openlibrary_found IS FALSE AND unicat_found IS FALSE),
 		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND googlebooks_found IS TRUE AND unicat_found IS FALSE
-		        AND hardcover_found IS FALSE),
+		        AND unicat_found IS TRUE AND hardcover_found IS FALSE),
 		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND unicat_found IS TRUE AND googlebooks_found IS FALSE
-		        AND hardcover_found IS FALSE),
-		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND hardcover_found IS TRUE AND googlebooks_found IS FALSE
-		        AND unicat_found IS FALSE),
-		    count(*) FILTER (WHERE googlebooks_found IS TRUE
-		        AND unicat_found IS TRUE AND openlibrary_found IS FALSE
-		        AND hardcover_found IS FALSE),
-		    count(*) FILTER (WHERE googlebooks_found IS TRUE
-		        AND hardcover_found IS TRUE AND openlibrary_found IS FALSE
-		        AND unicat_found IS FALSE),
+		        AND hardcover_found IS TRUE AND unicat_found IS FALSE),
 		    count(*) FILTER (WHERE unicat_found IS TRUE
-		        AND hardcover_found IS TRUE AND openlibrary_found IS FALSE
-		        AND googlebooks_found IS FALSE),
+		        AND hardcover_found IS TRUE AND openlibrary_found IS FALSE),
 		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND googlebooks_found IS TRUE AND unicat_found IS TRUE
-		        AND hardcover_found IS FALSE),
-		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND googlebooks_found IS TRUE AND hardcover_found IS TRUE
-		        AND unicat_found IS FALSE),
-		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND unicat_found IS TRUE AND hardcover_found IS TRUE
-		        AND googlebooks_found IS FALSE),
-		    count(*) FILTER (WHERE googlebooks_found IS TRUE
-		        AND unicat_found IS TRUE AND hardcover_found IS TRUE
-		        AND openlibrary_found IS FALSE),
-		    count(*) FILTER (WHERE openlibrary_found IS TRUE
-		        AND googlebooks_found IS TRUE AND unicat_found IS TRUE
-		        AND hardcover_found IS TRUE),
+		        AND unicat_found IS TRUE AND hardcover_found IS TRUE),
 		    count(*) FILTER (WHERE openlibrary_found IS FALSE
-		        AND googlebooks_found IS FALSE AND unicat_found IS FALSE
-		        AND hardcover_found IS FALSE),
+		        AND unicat_found IS FALSE AND hardcover_found IS FALSE),
 		    count(*) FILTER (WHERE last_resync_at IS NOT NULL
 		        AND NOT COALESCE(openlibrary_found, false)
-		        AND NOT COALESCE(googlebooks_found, false)
 		        AND NOT COALESCE(unicat_found, false)
 		        AND NOT COALESCE(hardcover_found, false)),
 		    count(*) FILTER (WHERE last_resync_at IS NULL)
@@ -275,29 +227,19 @@ func (repo *BooksRepository) GetSourceStats(
 	err := repo.db.QueryRow(ctx, sourceStatsQuery).Scan(
 		&stats.TotalBooks,
 		&stats.OpenLibraryFound,
-		&stats.GoogleBooksFound,
 		&stats.UniCatFound,
 		&stats.HardcoverFound,
 		&stats.OpenLibraryMissed,
-		&stats.GoogleBooksMissed,
 		&stats.UniCatMissed,
 		&stats.HardcoverMissed,
 		&stats.OpenLibraryUnique,
-		&stats.GoogleBooksUnique,
 		&stats.UniCatUnique,
 		&stats.HardcoverUnique,
-		&stats.OLGBOnly,
 		&stats.OLUCOnly,
 		&stats.OLHCOnly,
-		&stats.GBUCOnly,
-		&stats.GBHCOnly,
 		&stats.UCHCOnly,
-		&stats.OLGBUCOnly,
-		&stats.OLGBHCOnly,
-		&stats.OLUCHCOnly,
-		&stats.GBUCHCOnly,
-		&stats.AllFour,
-		&stats.AllFourMissed,
+		&stats.AllThree,
+		&stats.AllThreeMissed,
 		&stats.NotFoundAnywhere,
 		&stats.NeverScanned,
 	)

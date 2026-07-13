@@ -15,7 +15,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/books"
-	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
@@ -32,7 +31,6 @@ type BookService struct {
 	objectStore  objectstore.Client
 	readingState *repositories.BookReadingStateRepository
 	external     openlibrary.Client
-	googleBooks  googlebooks.Client
 	uniCat       unicat.Client
 	hardcover    hardcover.Client
 	// booksResync overrides s.books for the resync path in unit tests.

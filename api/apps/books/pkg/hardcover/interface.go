@@ -10,11 +10,11 @@ var ErrNotFound = errors.New("hardcover: book not found")
 
 // Client is the subset of the Hardcover GraphQL API used for metadata
 // enrichment. Hardcover (https://hardcover.app) exposes a Hasura GraphQL API at
-// https://api.hardcover.app/v1/graphql. Unlike Google Books it has no daily
-// quota — only a 60 requests/minute rate limit — so it needs no daily-quota
-// circuit breaker in the resync orchestration. A free API key (a Bearer JWT,
-// taken from the account settings page) is required; the key expires roughly
-// yearly and must be refreshed.
+// https://api.hardcover.app/v1/graphql. It has no daily quota — only a
+// documented 1 req/s API ceiling, enforced client-side by a rate limiter
+// (the resync throughput floor, see book_resync.go). A free API key (a
+// Bearer JWT, taken from the account settings page) is required; the key
+// expires roughly yearly and must be refreshed.
 type Client interface {
 	// Search queries Hardcover for books matching query (the same
 	// "intitle:<title> inauthor:<author>" format produced by buildSearchQuery

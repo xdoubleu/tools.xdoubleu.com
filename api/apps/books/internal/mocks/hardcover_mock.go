@@ -1,4 +1,3 @@
-//nolint:dupl // boilerplate provider mock, mirrors the other provider mocks
 package mocks
 
 import (

@@ -32,7 +32,6 @@ func buildCoverApp(
 	store := objectstore.NewFake()
 	clients := books.Clients{
 		OpenLibrary:      ol,
-		GoogleBooks:      nil,
 		UniCat:           nil,
 		Hardcover:        nil,
 		ObjectStore:      store,

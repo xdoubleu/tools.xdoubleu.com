@@ -12,13 +12,13 @@ import (
 )
 
 // ResyncOpenLibraryJob scans the whole catalog for metadata differences
-// against Open Library, Google Books, and UniCat, and stores what it finds
-// for the admin resync wizard to review. It is on-demand only: it must be
-// armed via Arm() before Run() does any work, so the unavoidable startup run
+// against Open Library, UniCat, and Hardcover, and stores what it finds for
+// the admin resync wizard to review. It is on-demand only: it must be armed
+// via Arm() before Run() does any work, so the unavoidable startup run
 // (added by JobQueue.AddJob) and the daily scheduler tick are no-ops.
 //
-// force bypasses the skip-if-known cache for every source, not just Google
-// Books — see BookService.BuildResyncProposals.
+// force bypasses the skip-if-known cache for every source — see
+// BookService.BuildResyncProposals.
 //
 // It never writes to a book itself — that only happens when an admin resolves
 // a proposal via BookService.ApplyResyncChoice.
@@ -96,11 +96,11 @@ func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) err
 
 	force := j.force.Swap(false)
 
-	var onProgress func(int, int, bool)
+	var onProgress func(int, int)
 	if j.ws != nil {
 		id := j.ID()
-		onProgress = func(processed, total int, quotaReached bool) {
-			j.ws.UpdateProgress(id, processed, total, quotaReached)
+		onProgress = func(processed, total int) {
+			j.ws.UpdateProgress(id, processed, total)
 		}
 	}
 

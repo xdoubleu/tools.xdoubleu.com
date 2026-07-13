@@ -349,7 +349,6 @@ func (h *booksConnectHandler) SetBookISBN(
 // RPCs — must match repositories.sourceColumns' keys.
 const (
 	sourceOpenLibrary = "openlibrary"
-	sourceGoogleBooks = "googlebooks"
 	sourceUniCat      = "unicat"
 	sourceHardcover   = "hardcover"
 )
@@ -376,12 +375,6 @@ func (h *booksConnectHandler) GetSourceStats(
 				MissedCount: int32FromInt(stats.OpenLibraryMissed),
 			},
 			{
-				Source:      sourceGoogleBooks,
-				FoundCount:  int32FromInt(stats.GoogleBooksFound),
-				UniqueCount: int32FromInt(stats.GoogleBooksUnique),
-				MissedCount: int32FromInt(stats.GoogleBooksMissed),
-			},
-			{
 				Source:      sourceUniCat,
 				FoundCount:  int32FromInt(stats.UniCatFound),
 				UniqueCount: int32FromInt(stats.UniCatUnique),
@@ -403,57 +396,37 @@ func (h *booksConnectHandler) GetSourceStats(
 }
 
 // sourceOverlaps lists every "found in exactly this set" combo of two or more
-// sources: the 6 pairs, 4 triples, and the all-four case. Zero-count combos
-// are kept — the web report filters them out.
-//
-//nolint:dupl // parallel to sourceMissedOverlaps by design; same combo layout
+// sources: the 3 pairs and the all-three case. Zero-count combos are kept —
+// the web report filters them out.
 func sourceOverlaps(stats *repositories.SourceStats) []*booksv1.SourceComboStat {
-	ol, gb, uc, hc := sourceOpenLibrary, sourceGoogleBooks, sourceUniCat,
-		sourceHardcover
+	ol, uc, hc := sourceOpenLibrary, sourceUniCat, sourceHardcover
 	return []*booksv1.SourceComboStat{
-		{Sources: []string{ol, gb}, Count: int32FromInt(stats.OLGBOnly)},
 		{Sources: []string{ol, uc}, Count: int32FromInt(stats.OLUCOnly)},
 		{Sources: []string{ol, hc}, Count: int32FromInt(stats.OLHCOnly)},
-		{Sources: []string{gb, uc}, Count: int32FromInt(stats.GBUCOnly)},
-		{Sources: []string{gb, hc}, Count: int32FromInt(stats.GBHCOnly)},
 		{Sources: []string{uc, hc}, Count: int32FromInt(stats.UCHCOnly)},
-		{Sources: []string{ol, gb, uc}, Count: int32FromInt(stats.OLGBUCOnly)},
-		{Sources: []string{ol, gb, hc}, Count: int32FromInt(stats.OLGBHCOnly)},
-		{Sources: []string{ol, uc, hc}, Count: int32FromInt(stats.OLUCHCOnly)},
-		{Sources: []string{gb, uc, hc}, Count: int32FromInt(stats.GBUCHCOnly)},
-		{Sources: []string{ol, gb, uc, hc}, Count: int32FromInt(stats.AllFour)},
+		{Sources: []string{ol, uc, hc}, Count: int32FromInt(stats.AllThree)},
 	}
 }
 
 // sourceMissedOverlaps mirrors sourceOverlaps: "missed by exactly set S"
 // (every source in S confirmed IS FALSE, every source outside S confirmed IS
 // TRUE) is the same book set as "found by exactly the complement of S", so each
-// entry reuses a found-only count under the complementary label. All-four-
+// entry reuses a found-only count under the complementary label. All-three-
 // missed is the one genuinely new number.
-//
-//nolint:dupl // parallel to sourceOverlaps by design; same combo layout
 func sourceMissedOverlaps(
 	stats *repositories.SourceStats,
 ) []*booksv1.SourceComboStat {
-	ol, gb, uc, hc := sourceOpenLibrary, sourceGoogleBooks, sourceUniCat,
-		sourceHardcover
+	ol, uc, hc := sourceOpenLibrary, sourceUniCat, sourceHardcover
 	return []*booksv1.SourceComboStat{
-		// Missed by exactly a pair → found by exactly the complement pair.
-		{Sources: []string{ol, gb}, Count: int32FromInt(stats.UCHCOnly)},
-		{Sources: []string{ol, uc}, Count: int32FromInt(stats.GBHCOnly)},
-		{Sources: []string{ol, hc}, Count: int32FromInt(stats.GBUCOnly)},
-		{Sources: []string{gb, uc}, Count: int32FromInt(stats.OLHCOnly)},
-		{Sources: []string{gb, hc}, Count: int32FromInt(stats.OLUCOnly)},
-		{Sources: []string{uc, hc}, Count: int32FromInt(stats.OLGBOnly)},
-		// Missed by exactly a triple → found only by the fourth (its Unique).
-		{Sources: []string{ol, gb, uc}, Count: int32FromInt(stats.HardcoverUnique)},
-		{Sources: []string{ol, gb, hc}, Count: int32FromInt(stats.UniCatUnique)},
-		{Sources: []string{ol, uc, hc}, Count: int32FromInt(stats.GoogleBooksUnique)},
-		{Sources: []string{gb, uc, hc}, Count: int32FromInt(stats.OpenLibraryUnique)},
-		// Missed by all four.
+		// Missed by exactly a pair → found only by the remaining source (its
+		// Unique).
+		{Sources: []string{ol, uc}, Count: int32FromInt(stats.HardcoverUnique)},
+		{Sources: []string{ol, hc}, Count: int32FromInt(stats.UniCatUnique)},
+		{Sources: []string{uc, hc}, Count: int32FromInt(stats.OpenLibraryUnique)},
+		// Missed by all three.
 		{
-			Sources: []string{ol, gb, uc, hc},
-			Count:   int32FromInt(stats.AllFourMissed),
+			Sources: []string{ol, uc, hc},
+			Count:   int32FromInt(stats.AllThreeMissed),
 		},
 	}
 }
@@ -470,7 +443,7 @@ func (h *booksConnectHandler) ListBooksInExactSources(
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("sources must be 1-3 of openlibrary, googlebooks, unicat"),
+			errors.New("sources must be 1-3 of openlibrary, unicat, hardcover"),
 		)
 	}
 	if err != nil {

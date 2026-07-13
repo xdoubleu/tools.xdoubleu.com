@@ -92,7 +92,6 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, scanned.OpenLibraryFound)
 	assert.True(t, *scanned.OpenLibraryFound, "the mock provider always finds")
-	assert.Nil(t, scanned.GoogleBooksFound, "unconfigured provider stays NULL")
 	assert.Nil(t, scanned.UniCatFound, "unconfigured provider stays NULL")
 	assert.NotNil(t, scanned.LastResyncAt)
 
@@ -147,8 +146,8 @@ func TestConnectCancelResync_Admin_NoopWhenNothingRunning(t *testing.T) {
 // TestListCatalogBooks_OrdersLeastCoveredFirst verifies the scan order fix:
 // a book with no sources confirmed found (the quota-starved case under a
 // full-catalog force resync) must sort before a book already confirmed found
-// by every source, so a Google Books daily quota is spent on the books that
-// most need checking rather than being exhausted on already-covered ones.
+// by every source, so a rate-limited or interrupted run spends its budget on
+// the books that most need checking rather than the already-covered ones.
 func TestListCatalogBooks_OrdersLeastCoveredFirst(t *testing.T) {
 	ctx := context.Background()
 	id := uuid.New()
@@ -167,7 +166,7 @@ func TestListCatalogBooks_OrdersLeastCoveredFirst(t *testing.T) {
 	)
 	trueVal := true
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, fullyCovered.BookID, &trueVal, &trueVal, &trueVal, &trueVal,
+		ctx, fullyCovered.BookID, &trueVal, &trueVal, &trueVal,
 	))
 
 	books, err := testApp.Repositories.Books.ListCatalogBooks(ctx)
@@ -205,7 +204,7 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 
 	trueVal := true
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, book.BookID, &trueVal, &trueVal, &trueVal, &trueVal,
+		ctx, book.BookID, &trueVal, &trueVal, &trueVal,
 	))
 
 	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
@@ -216,7 +215,7 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 	// A second pass with all-nil flags (every source unresolved this time)
 	// must leave the previously-known true values untouched.
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, book.BookID, nil, nil, nil, nil,
+		ctx, book.BookID, nil, nil, nil,
 	))
 
 	rescanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
@@ -227,8 +226,6 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 		*rescanned.OpenLibraryFound,
 		"nil must preserve, not overwrite with NULL",
 	)
-	require.NotNil(t, rescanned.GoogleBooksFound)
-	assert.True(t, *rescanned.GoogleBooksFound)
 	require.NotNil(t, rescanned.UniCatFound)
 	assert.True(t, *rescanned.UniCatFound)
 	require.NotNil(t, rescanned.HardcoverFound)

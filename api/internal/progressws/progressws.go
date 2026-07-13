@@ -29,10 +29,6 @@ type StateMessageDto struct {
 	// that emit only start/stop events (e.g. Steam refresh).
 	Processed *int `json:"processed,omitempty"`
 	Total     *int `json:"total,omitempty"`
-	// QuotaReached is set by the books resync job once Google Books' daily
-	// quota trips for the run, so clients can show a live notice. Always
-	// false for jobs that don't track a quota.
-	QuotaReached bool `json:"quotaReached,omitempty"`
 }
 
 func (dto SubscribeMessageDto) Topic() string {
@@ -98,7 +94,6 @@ func (service *Service) UpdateState(
 	topic.EnqueueEvent(StateMessageDto{
 		IsRefreshing: isRunning,
 		LastRefresh:  lastRunTime,
-		QuotaReached: false,
 		Processed:    nil,
 		Total:        nil,
 	})
@@ -108,11 +103,9 @@ func (service *Service) UpdateState(
 // meant for long-running background jobs (e.g. the Open Library resync) that
 // want to broadcast "X of N items done" to connected clients. The message
 // carries IsRefreshing: true so clients keep the running indicator active.
-// quotaReached is passed through as-is (false for jobs that don't track one).
 func (service *Service) UpdateProgress(
 	id string,
 	processed, total int,
-	quotaReached bool,
 ) {
 	service.mu.RLock()
 	topic, ok := service.topics[id]
@@ -126,7 +119,6 @@ func (service *Service) UpdateProgress(
 		LastRefresh:  nil,
 		Processed:    &processed,
 		Total:        &total,
-		QuotaReached: quotaReached,
 	})
 }
 
@@ -158,7 +150,6 @@ func (service *Service) fetchState(topic *wstools.Topic) StateMessageDto {
 	return StateMessageDto{
 		IsRefreshing: isRefreshing,
 		LastRefresh:  lastRefresh,
-		QuotaReached: false,
 		Processed:    nil,
 		Total:        nil,
 	}

@@ -8,27 +8,26 @@ import (
 )
 
 type Config struct {
-	Env               string
-	Port              int
-	Throttle          bool
-	WebURL            string
-	APIURL            string
-	SentryDsn         string
-	SampleRate        float64
-	AccessExpiry      string
-	RefreshExpiry     string
-	AuthCacheTTL      int // seconds; 0 disables the per-token user cache
-	DBDsn             string
-	Release           string
-	SupabaseProjRef   string
-	SupabaseAPIKey    string
-	SteamAPIKey       string
-	GoogleBooksAPIKey string
-	HardcoverAPIKey   string
-	R2AccountID       string
-	R2AccessKeyID     string
-	R2SecretKey       string
-	R2Bucket          string
+	Env             string
+	Port            int
+	Throttle        bool
+	WebURL          string
+	APIURL          string
+	SentryDsn       string
+	SampleRate      float64
+	AccessExpiry    string
+	RefreshExpiry   string
+	AuthCacheTTL    int // seconds; 0 disables the per-token user cache
+	DBDsn           string
+	Release         string
+	SupabaseProjRef string
+	SupabaseAPIKey  string
+	SteamAPIKey     string
+	HardcoverAPIKey string
+	R2AccountID     string
+	R2AccessKeyID   string
+	R2SecretKey     string
+	R2Bucket        string
 }
 
 func New(logger *slog.Logger) Config {
@@ -53,7 +52,6 @@ func New(logger *slog.Logger) Config {
 	cfg.SupabaseAPIKey = parser.EnvStr("SUPABASE_API_KEY", "")
 
 	cfg.SteamAPIKey = parser.EnvStr("STEAM_API_KEY", "")
-	cfg.GoogleBooksAPIKey = parser.EnvStr("GOOGLE_BOOKS_API_KEY", "")
 	cfg.HardcoverAPIKey = parser.EnvStr("HARDCOVER_API_KEY", "")
 
 	cfg.R2AccountID = parser.EnvStr("R2_ACCOUNT_ID", "")

@@ -11,7 +11,7 @@ import (
 )
 
 // TestNew_ReturnsApp covers the production New constructor that wires real
-// Open Library / Google Books / R2 clients.
+// Open Library / UniCat / Hardcover / R2 clients.
 func TestNew_ReturnsApp(t *testing.T) {
 	bl := books.New(
 		sharedmocks.NewMockedAuthService(userID),
@@ -31,7 +31,6 @@ func TestStart_RegistersJobs(t *testing.T) {
 		testDB,
 		books.Clients{
 			OpenLibrary:      nil,
-			GoogleBooks:      nil,
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),

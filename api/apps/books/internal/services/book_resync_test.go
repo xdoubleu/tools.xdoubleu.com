@@ -7,7 +7,6 @@ import (
 	"errors"
 	"io"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
-	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
@@ -44,7 +42,6 @@ type refreshCall struct {
 type scanStatusCall struct {
 	bookID  uuid.UUID
 	olFound *bool
-	gbFound *bool
 	ucFound *bool
 	hcFound *bool
 }
@@ -117,14 +114,12 @@ func (f *fakeBooksResync) UpdateResyncScanStatus(
 	_ context.Context,
 	bookID uuid.UUID,
 	olFound *bool,
-	gbFound *bool,
 	ucFound *bool,
 	hcFound *bool,
 ) error {
 	f.mu.Lock()
 	f.scanStatusCalls = append(f.scanStatusCalls, scanStatusCall{
-		bookID: bookID, olFound: olFound, gbFound: gbFound, ucFound: ucFound,
-		hcFound: hcFound,
+		bookID: bookID, olFound: olFound, ucFound: ucFound, hcFound: hcFound,
 	})
 	f.mu.Unlock()
 	return f.scanStatusErr
@@ -184,49 +179,25 @@ func (f *fakeBooksResync) DeleteResyncProposal(
 	return nil
 }
 
-// fakeGBClient is a configurable googlebooks.Client stub. calls counts every
-// GetByISBN/Search invocation, so tests can assert a call was skipped.
-type fakeGBClient struct {
-	searchResults []googlebooks.ExternalBook
-	byISBN        *googlebooks.ExternalBook
-	err           error
-
-	calls atomic.Int32
-}
-
-func (f *fakeGBClient) Search(
-	_ context.Context,
-	_ string,
-) ([]googlebooks.ExternalBook, error) {
-	f.calls.Add(1)
-	return f.searchResults, f.err
-}
-
-func (f *fakeGBClient) GetByISBN(
-	_ context.Context,
-	_ string,
-) (*googlebooks.ExternalBook, error) {
-	f.calls.Add(1)
-	if f.err != nil {
-		return nil, f.err
-	}
-	if f.byISBN == nil {
-		return nil, googlebooks.ErrNotFound
-	}
-	return f.byISBN, nil
-}
-
-// fakeUCClient is a configurable unicat.Client stub.
+// fakeUCClient is a configurable unicat.Client stub. calls counts every
+// GetByISBN/Search invocation (mutex-protected: fetchByISBN/searchProviders
+// now query sources concurrently), so tests can assert a call was skipped.
 type fakeUCClient struct {
 	searchResults []unicat.ExternalBook
 	byISBN        *unicat.ExternalBook
 	err           error
+
+	mu    sync.Mutex
+	calls int
 }
 
 func (f *fakeUCClient) GetByISBN(
 	_ context.Context,
 	_ string,
 ) (*unicat.ExternalBook, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -240,20 +211,31 @@ func (f *fakeUCClient) Search(
 	_ context.Context,
 	_ string,
 ) ([]unicat.ExternalBook, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
 	return f.searchResults, f.err
 }
 
-// fakeHCClient is a configurable hardcover.Client stub.
+// fakeHCClient is a configurable hardcover.Client stub. calls counts every
+// GetByISBN/Search invocation (mutex-protected: fetchByISBN/searchProviders
+// now query sources concurrently), so tests can assert a call was skipped.
 type fakeHCClient struct {
 	searchResults []hardcover.ExternalBook
 	byISBN        *hardcover.ExternalBook
 	err           error
+
+	mu    sync.Mutex
+	calls int
 }
 
 func (f *fakeHCClient) GetByISBN(
 	_ context.Context,
 	_ string,
 ) (*hardcover.ExternalBook, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -267,6 +249,9 @@ func (f *fakeHCClient) Search(
 	_ context.Context,
 	_ string,
 ) ([]hardcover.ExternalBook, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
 	return f.searchResults, f.err
 }
 
@@ -421,17 +406,17 @@ func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
 		Title:   "OL Title",
 		Authors: []string{"OL Author"},
 	}
-	gbCover := "https://books.google.com/cover.jpg"
-	gbDetail := &googlebooks.ExternalBook{ //nolint:exhaustruct // partial
-		Title: "GB Title", CoverURL: &gbCover,
-	}
 	ucDetail := &unicat.ExternalBook{Title: "UC Title"} //nolint:exhaustruct // partial
+	hcCover := "https://hardcover.app/cover.jpg"
+	hcDetail := &hardcover.ExternalBook{ //nolint:exhaustruct // partial
+		Title: "HC Title", CoverURL: &hcCover,
+	}
 
 	svc := &BookService{ //nolint:exhaustruct //only resync-path fields needed
 		logger:      logging.NewNopLogger(),
 		external:    &fakeOLClient{detail: olDetail}, //nolint:exhaustruct // partial
-		googleBooks: &fakeGBClient{byISBN: gbDetail}, //nolint:exhaustruct // partial
 		uniCat:      &fakeUCClient{byISBN: ucDetail}, //nolint:exhaustruct // partial
+		hardcover:   &fakeHCClient{byISBN: hcDetail}, //nolint:exhaustruct // partial
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -444,11 +429,11 @@ func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
 	assert.Empty(t, unresolved, "every provider answered cleanly")
 	assert.Equal(t, "openlibrary", proposals[0].Source)
 	assert.Equal(t, "OL Title", proposals[0].Title)
-	assert.Equal(t, "googlebooks", proposals[1].Source)
-	assert.Equal(t, "GB Title", proposals[1].Title)
-	assert.Equal(t, gbCover, proposals[1].CoverURL)
-	assert.Equal(t, "unicat", proposals[2].Source)
-	assert.Equal(t, "UC Title", proposals[2].Title)
+	assert.Equal(t, "unicat", proposals[1].Source)
+	assert.Equal(t, "UC Title", proposals[1].Title)
+	assert.Equal(t, "hardcover", proposals[2].Source)
+	assert.Equal(t, "HC Title", proposals[2].Title)
+	assert.Equal(t, hcCover, proposals[2].CoverURL)
 }
 
 func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
@@ -471,50 +456,47 @@ func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// fetchByISBN: errored/skipped Google Books must be unresolved, not "false"
+// fetchByISBN: errored/skipped Hardcover must be unresolved, not "false"
 // (regression — a source that errors or is skipped must leave the DB flag
 // untouched via recordScanStatus/UpdateResyncScanStatus's COALESCE-preserve,
 // never overwrite a previously-known true with false).
 // ---------------------------------------------------------------------------
 
-// gbSvc builds a BookService with the given OL/GB fakes, wired for the
-// fetchByISBN/fetchBySearch GB skip/breaker regression tests below.
-func gbSvc(external openlibrary.Client, googleBooks *fakeGBClient) *BookService {
-	//nolint:exhaustruct // test helper builds a partial service
-	return &BookService{
-		logger:      logging.NewNopLogger(),
-		external:    external,
-		googleBooks: googleBooks,
-		objectStore: objectstore.NewFake(),
-	}
-}
-
-func TestFetchByISBN_GoogleBooksErrors_MarkedUnresolved(t *testing.T) {
+func TestFetchByISBN_HardcoverErrors_MarkedUnresolved(t *testing.T) {
 	//nolint:exhaustruct // partial
 	olClient := &fakeOLClient{detail: &openlibrary.ExternalBook{Title: "OL Title"}}
 	//nolint:exhaustruct // partial
-	gb := &fakeGBClient{err: errors.New("boom")}
-	svc := gbSvc(olClient, gb)
+	hc := &fakeHCClient{err: errors.New("boom")}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		external:    olClient,
+		hardcover:   hc,
+		objectStore: objectstore.NewFake(),
+	}
 
 	isbn := "9780140449112"
 	proposals, unresolved := svc.fetchByISBN(
 		context.Background(), logging.NewNopLogger(),
 		models.Book{ISBN13: &isbn}, nil, //nolint:exhaustruct // partial
 	)
-	require.Len(t, proposals, 1, "OL still succeeds independently of GB's error")
-	assert.True(t, unresolved["googlebooks"],
+	require.Len(t, proposals, 1, "OL still succeeds independently of HC's error")
+	assert.True(t, unresolved["hardcover"],
 		"an errored source must be unresolved, not a false miss")
 }
 
-func TestFetchByISBN_GoogleBooksKnown_SkippedAndUnresolved(t *testing.T) {
+func TestFetchByISBN_HardcoverKnown_SkippedAndUnresolved(t *testing.T) {
 	//nolint:exhaustruct // partial
-	gb := &fakeGBClient{byISBN: &googlebooks.ExternalBook{Title: "GB Title"}}
+	hc := &fakeHCClient{byISBN: &hardcover.ExternalBook{Title: "HC Title"}}
 	//nolint:exhaustruct // partial
 	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
-	svc := gbSvc(olClient, gb)
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		external:    olClient,
+		hardcover:   hc,
+		objectStore: objectstore.NewFake(),
+	}
 	opts := &scanOptions{
-		known:      map[string]bool{"googlebooks": true},
-		gbExceeded: &atomic.Bool{},
+		known: map[string]bool{"hardcover": true},
 	}
 
 	isbn := "9780140449112"
@@ -523,34 +505,35 @@ func TestFetchByISBN_GoogleBooksKnown_SkippedAndUnresolved(t *testing.T) {
 		models.Book{ISBN13: &isbn}, opts, //nolint:exhaustruct // partial
 	)
 	assert.Empty(t, proposals)
-	assert.True(t, unresolved["googlebooks"], "a skipped source must be unresolved")
-	assert.Zero(t, gb.calls.Load(), "an already-known source must not be re-queried")
+	assert.True(t, unresolved["hardcover"], "a skipped source must be unresolved")
+	hc.mu.Lock()
+	defer hc.mu.Unlock()
+	assert.Zero(t, hc.calls, "an already-known source must not be re-queried")
 }
 
-// TestBuildResyncProposals_ForceGoogleBooks_BypassesCache is a regression test
-// for the bug where Google Books stopped being queried at all: once
-// googlebooks_found is set (true or false) for every book — which happens
-// after the very first scan — gbKnown is always non-nil and every later scan
-// skips GB catalog-wide. forceGoogleBooks must bypass that cache so a stuck
-// book (e.g. left "false" by a tripped rate-limit breaker) can be re-queried
-// and pick up a fresh match.
-func TestBuildResyncProposals_ForceGoogleBooks_BypassesCache(t *testing.T) {
+// TestBuildResyncProposals_ForceHardcover_BypassesCache is a regression test
+// for a stuck-source bug class: once hardcover_found is set (true or false)
+// for every book — which happens after the very first scan — the skip-if-
+// known cache is always non-nil and every later scan skips Hardcover
+// catalog-wide. force must bypass that cache so a stuck book can be
+// re-queried and pick up a fresh match.
+func TestBuildResyncProposals_ForceHardcover_BypassesCache(t *testing.T) {
 	id := uuid.New()
 	isbn := "9780140449112"
-	gbFoundFalse := false
+	hcFoundFalse := false
 	book := models.Book{ //nolint:exhaustruct // partial
-		ID: id, Title: "Stuck Book", ISBN13: &isbn, GoogleBooksFound: &gbFoundFalse,
+		ID: id, Title: "Stuck Book", ISBN13: &isbn, HardcoverFound: &hcFoundFalse,
 	}
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	//nolint:exhaustruct // partial
 	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
 	//nolint:exhaustruct // partial
-	gb := &fakeGBClient{byISBN: &googlebooks.ExternalBook{Title: "GB Title"}}
+	hc := &fakeHCClient{byISBN: &hardcover.ExternalBook{Title: "HC Title"}}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
 		external:    olClient,
-		googleBooks: gb,
+		hardcover:   hc,
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -558,21 +541,26 @@ func TestBuildResyncProposals_ForceGoogleBooks_BypassesCache(t *testing.T) {
 		context.Background(), logging.NewNopLogger(), nil, false,
 	)
 	require.NoError(t, err)
-	assert.Zero(t, gb.calls.Load(),
-		"without force, a known (even false) GB flag must keep skipping GB")
+	hc.mu.Lock()
+	callsBeforeForce := hc.calls
+	hc.mu.Unlock()
+	assert.Zero(t, callsBeforeForce,
+		"without force, a known (even false) HC flag must keep skipping HC")
 
 	_, err = svc.BuildResyncProposals(
 		context.Background(), logging.NewNopLogger(), nil, true,
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(1), gb.calls.Load(),
-		"force must bypass the skip-if-known cache and query GB")
+	hc.mu.Lock()
+	defer hc.mu.Unlock()
+	assert.Equal(t, 1, hc.calls,
+		"force must bypass the skip-if-known cache and query HC")
 }
 
 // TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced verifies the
-// skip-if-known cache now applies to OpenLibrary too, not just Google Books —
-// a resolved (true or false) openlibrary_found flag skips the OL call on a
-// normal run, and force bypasses it.
+// skip-if-known cache applies to OpenLibrary too, not just the other
+// sources — a resolved (true or false) openlibrary_found flag skips the OL
+// call on a normal run, and force bypasses it.
 func TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced(t *testing.T) {
 	id := uuid.New()
 	isbn := "9780140449112"
@@ -603,86 +591,6 @@ func TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, olClient.calls,
 		"force must bypass the skip-if-known cache and query OpenLibrary")
-}
-
-// TestBuildResyncProposals_OnProgress_ReportsGoogleBooksQuotaReached verifies
-// the gbExceeded breaker state is threaded through onProgress live, so
-// callers (the resync job / progress WebSocket) can surface a quota-reached
-// notice without waiting for the run to finish.
-func TestBuildResyncProposals_OnProgress_ReportsGoogleBooksQuotaReached(t *testing.T) {
-	isbn := "9780140449112"
-	book := models.Book{ //nolint:exhaustruct // partial
-		ID: uuid.New(), Title: "Rate Limited Book", ISBN13: &isbn,
-	}
-	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
-	//nolint:exhaustruct // partial
-	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
-	//nolint:exhaustruct // partial
-	gb := &fakeGBClient{err: googlebooks.ErrRateLimited}
-	svc := &BookService{ //nolint:exhaustruct // partial
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		external:    olClient,
-		googleBooks: gb,
-		objectStore: objectstore.NewFake(),
-	}
-
-	var quotaCalls []bool
-	_, err := svc.BuildResyncProposals(
-		context.Background(),
-		logging.NewNopLogger(),
-		func(_, _ int, gbQuotaReached bool) {
-			quotaCalls = append(quotaCalls, gbQuotaReached)
-		},
-		false,
-	)
-	require.NoError(t, err)
-	require.Len(t, quotaCalls, 2, "one initial (0,total) call plus one per book")
-	assert.False(t, quotaCalls[0], "the initial call precedes any GB lookup")
-	assert.True(
-		t,
-		quotaCalls[1],
-		"the 429 must trip the breaker before the per-book call",
-	)
-}
-
-func TestFetchByISBN_GoogleBooksBreakerTripped_SkipsCall(t *testing.T) {
-	//nolint:exhaustruct // partial
-	gb := &fakeGBClient{byISBN: &googlebooks.ExternalBook{Title: "GB Title"}}
-	//nolint:exhaustruct // partial
-	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
-	svc := gbSvc(olClient, gb)
-	tripped := &atomic.Bool{}
-	tripped.Store(true)
-	opts := &scanOptions{gbExceeded: tripped} //nolint:exhaustruct // partial
-
-	isbn := "9780140449112"
-	_, unresolved := svc.fetchByISBN(
-		context.Background(), logging.NewNopLogger(),
-		models.Book{ISBN13: &isbn}, opts, //nolint:exhaustruct // partial
-	)
-	assert.True(t, unresolved["googlebooks"])
-	assert.Zero(t, gb.calls.Load(), "a tripped breaker must skip the call entirely")
-}
-
-func TestFetchByISBN_GoogleBooksRateLimited_TripsBreaker(t *testing.T) {
-	gb := &fakeGBClient{err: googlebooks.ErrRateLimited} //nolint:exhaustruct // partial
-	//nolint:exhaustruct // partial
-	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
-	svc := gbSvc(olClient, gb)
-	opts := &scanOptions{gbExceeded: &atomic.Bool{}} //nolint:exhaustruct // partial
-
-	isbn := "9780140449112"
-	_, unresolved := svc.fetchByISBN(
-		context.Background(), logging.NewNopLogger(),
-		models.Book{ISBN13: &isbn}, opts, //nolint:exhaustruct // partial
-	)
-	assert.True(t, unresolved["googlebooks"])
-	assert.True(
-		t,
-		opts.gbExceeded.Load(),
-		"a 429 must trip the breaker for the rest of the run",
-	)
 }
 
 func TestFetchSourceProposals_DispatchesOnISBNPresence(t *testing.T) {
@@ -799,21 +707,21 @@ func TestFetchBySearch_TitleOnly_AmbiguousDisjointAuthors_Rejected(t *testing.T)
 	assert.Empty(t, proposals, "disjoint-author title matches must not be proposed")
 }
 
-func TestFetchBySearch_GoogleBooksAndUniCat_AlsoMatch(t *testing.T) {
+func TestFetchBySearch_UniCatAndHardcover_AlsoMatch(t *testing.T) {
 	//nolint:exhaustruct // partial
 	book := models.Book{Title: "Dune", Authors: []string{"Frank Herbert"}}
-	//nolint:exhaustruct // no OL match; proves GB/UC still run
+	//nolint:exhaustruct // no OL match; proves UC/HC still run
 	olFake := &fakeOLClientWithSearch{}
-	gbFake := &fakeGBClient{ //nolint:exhaustruct // partial
-		searchResults: []googlebooks.ExternalBook{
+	ucFake := &fakeUCClient{ //nolint:exhaustruct // partial
+		searchResults: []unicat.ExternalBook{
 			{ //nolint:exhaustruct // title/authors are all this test checks
 				Title:   "Dune",
 				Authors: []string{"Frank Herbert"},
 			},
 		},
 	}
-	ucFake := &fakeUCClient{ //nolint:exhaustruct // partial
-		searchResults: []unicat.ExternalBook{
+	hcFake := &fakeHCClient{ //nolint:exhaustruct // partial
+		searchResults: []hardcover.ExternalBook{
 			{ //nolint:exhaustruct // title/authors are all this test checks
 				Title:   "Dune",
 				Authors: []string{"Frank Herbert"},
@@ -823,8 +731,8 @@ func TestFetchBySearch_GoogleBooksAndUniCat_AlsoMatch(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		external:    olFake,
-		googleBooks: gbFake,
 		uniCat:      ucFake,
+		hardcover:   hcFake,
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -834,75 +742,44 @@ func TestFetchBySearch_GoogleBooksAndUniCat_AlsoMatch(t *testing.T) {
 		book,
 		nil,
 	)
-	require.Len(t, proposals, 2, "both GB and UC matched")
-	assert.Equal(t, "googlebooks", proposals[0].Source)
-	assert.Equal(t, "unicat", proposals[1].Source)
+	require.Len(t, proposals, 2, "both UC and HC matched")
+	assert.Equal(t, "unicat", proposals[0].Source)
+	assert.Equal(t, "hardcover", proposals[1].Source)
 }
 
 // ---------------------------------------------------------------------------
-// searchProviders: the same GB skip/breaker rules apply on the search path
-// (a book with no ISBN), not just fetchByISBN.
+// searchProviders: the same skip-if-known rule applies on the search path (a
+// book with no ISBN), not just fetchByISBN.
 // ---------------------------------------------------------------------------
 
-func TestFetchBySearch_GoogleBooksKnown_SkippedAndUnresolved(t *testing.T) {
+func TestFetchBySearch_HardcoverKnown_SkippedAndUnresolved(t *testing.T) {
 	book := models.Book{Title: "Dune"} //nolint:exhaustruct // partial
 	//nolint:exhaustruct // partial
-	gb := &fakeGBClient{
-		searchResults: []googlebooks.ExternalBook{{Title: "Dune"}},
-	} //nolint:exhaustruct // partial
-	//nolint:exhaustruct // no OL match; proves GB still runs
+	hc := &fakeHCClient{
+		searchResults: []hardcover.ExternalBook{
+			{Title: "Dune"},
+		}, //nolint:exhaustruct // partial
+	}
+	//nolint:exhaustruct // no OL match; proves HC still runs
 	olClient := &fakeOLClientWithSearch{}
-	svc := gbSvc(olClient, gb)
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		external:    olClient,
+		hardcover:   hc,
+		objectStore: objectstore.NewFake(),
+	}
 	opts := &scanOptions{
-		known:      map[string]bool{"googlebooks": true},
-		gbExceeded: &atomic.Bool{},
+		known: map[string]bool{"hardcover": true},
 	}
 
 	proposals, unresolved := svc.fetchBySearch(
 		context.Background(), logging.NewNopLogger(), book, opts,
 	)
 	assert.Empty(t, proposals)
-	assert.True(t, unresolved["googlebooks"])
-	assert.Zero(t, gb.calls.Load(), "an already-known source must not be re-queried")
-}
-
-func TestFetchBySearch_GoogleBooksBreakerTripped_SkipsCall(t *testing.T) {
-	book := models.Book{Title: "Dune"} //nolint:exhaustruct // partial
-	//nolint:exhaustruct // partial
-	gb := &fakeGBClient{
-		searchResults: []googlebooks.ExternalBook{{Title: "Dune"}},
-	} //nolint:exhaustruct // partial
-	//nolint:exhaustruct // no OL match; proves GB still runs
-	olClient := &fakeOLClientWithSearch{}
-	svc := gbSvc(olClient, gb)
-	tripped := &atomic.Bool{}
-	tripped.Store(true)
-	opts := &scanOptions{gbExceeded: tripped} //nolint:exhaustruct // partial
-
-	_, unresolved := svc.fetchBySearch(
-		context.Background(), logging.NewNopLogger(), book, opts,
-	)
-	assert.True(t, unresolved["googlebooks"])
-	assert.Zero(t, gb.calls.Load(), "a tripped breaker must skip the call entirely")
-}
-
-func TestFetchBySearch_GoogleBooksRateLimited_TripsBreaker(t *testing.T) {
-	book := models.Book{Title: "Dune"}                   //nolint:exhaustruct // partial
-	gb := &fakeGBClient{err: googlebooks.ErrRateLimited} //nolint:exhaustruct // partial
-	//nolint:exhaustruct // no OL match; proves GB still runs
-	olClient := &fakeOLClientWithSearch{}
-	svc := gbSvc(olClient, gb)
-	opts := &scanOptions{gbExceeded: &atomic.Bool{}} //nolint:exhaustruct // partial
-
-	_, unresolved := svc.fetchBySearch(
-		context.Background(), logging.NewNopLogger(), book, opts,
-	)
-	assert.True(t, unresolved["googlebooks"])
-	assert.True(
-		t,
-		opts.gbExceeded.Load(),
-		"a 429 must trip the breaker for the rest of the run",
-	)
+	assert.True(t, unresolved["hardcover"])
+	hc.mu.Lock()
+	defer hc.mu.Unlock()
+	assert.Zero(t, hc.calls, "an already-known source must not be re-queried")
 }
 
 // ---------------------------------------------------------------------------
@@ -1012,7 +889,7 @@ func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 	n, err := svc.BuildResyncProposals(
 		context.Background(),
 		logging.NewNopLogger(),
-		func(processed, total int, _ bool) {
+		func(processed, total int) {
 			callsMu.Lock()
 			defer callsMu.Unlock()
 			calls = append(calls, [2]int{processed, total})
@@ -1116,7 +993,7 @@ func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
 	n, err := svc.BuildResyncProposals(
 		context.Background(),
 		logging.NewNopLogger(),
-		func(processed, total int, _ bool) {
+		func(processed, total int) {
 			calls = append(calls, [2]int{processed, total})
 		},
 		false,
@@ -1283,7 +1160,7 @@ func TestApplyResyncChoice_ChosenSource_BlanksFieldsSourceLacks(t *testing.T) {
 	// Chosen source supplies only a title — everything else is blank, and
 	// must overwrite the book's existing values rather than leaving them.
 	raw, err := json.Marshal([]SourceProposal{
-		{Source: "googlebooks", Title: "New Title"}, //nolint:exhaustruct // partial
+		{Source: "hardcover", Title: "New Title"}, //nolint:exhaustruct // partial
 	})
 	require.NoError(t, err)
 
@@ -1298,7 +1175,7 @@ func TestApplyResyncChoice_ChosenSource_BlanksFieldsSourceLacks(t *testing.T) {
 	}
 
 	err = svc.ApplyResyncChoice(
-		context.Background(), logging.NewNopLogger(), bookID, "googlebooks",
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover",
 	)
 	require.NoError(t, err)
 
@@ -1375,7 +1252,7 @@ func TestApplyResyncChoice_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	svc := &BookService{booksResync: repo} //nolint:exhaustruct // partial
 
 	err = svc.ApplyResyncChoice(
-		context.Background(), logging.NewNopLogger(), bookID, "googlebooks",
+		context.Background(), logging.NewNopLogger(), bookID, "unknownsource",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }

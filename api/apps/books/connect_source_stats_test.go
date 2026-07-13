@@ -125,7 +125,7 @@ func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 	assert.Equal(t, before.NeverScanned+1, afterAdd.NeverScanned,
 		"a freshly added book has never been scanned")
 
-	// Scan via adminApp's own service — it has GB/UniCat configured
+	// Scan via adminApp's own service — it has UniCat/Hardcover configured
 	// (confirmed-absent mocks), unlike the shared testApp (OL-only), so this
 	// book's OL-unique status actually resolves instead of staying unknown.
 	_, err := adminApp.Services.Books.BuildResyncProposals(
@@ -147,12 +147,12 @@ func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 		statFor(t, after, "openlibrary").UniqueCount,
 		statFor(t, before, "openlibrary").UniqueCount+1,
 	)
-	require.Len(t, after.Sources, 4)
+	require.Len(t, after.Sources, 3)
 }
 
 // TestGetSourceStats_Admin_CountsOverlap verifies pairwise overlap counting:
-// a book found by both OpenLibrary and Google Books (and not UniCat, which
-// stays unconfigured/NULL) bumps the OpenLibrary+GoogleBooks overlap count,
+// a book found by both OpenLibrary and Hardcover (and not UniCat, which
+// stays unconfigured/NULL) bumps the OpenLibrary+Hardcover overlap count,
 // not the all-three count.
 func TestGetSourceStats_Admin_CountsOverlap(t *testing.T) {
 	client, adminApp := newAdminBooksTestClientWithTwoSources(t)
@@ -177,17 +177,17 @@ func TestGetSourceStats_Admin_CountsOverlap(t *testing.T) {
 	// (TestListBooksInExactSources_Admin_ReturnsOverlapBook).
 	assert.GreaterOrEqual(
 		t,
-		overlapFor(t, after, "openlibrary", "googlebooks").Count,
-		overlapFor(t, before, "openlibrary", "googlebooks").Count+1,
+		overlapFor(t, after, "openlibrary", "hardcover").Count,
+		overlapFor(t, before, "openlibrary", "hardcover").Count+1,
 	)
 	assert.Equal(
 		t,
-		overlapFor(t, before, "openlibrary", "googlebooks", "unicat").Count,
-		overlapFor(t, after, "openlibrary", "googlebooks", "unicat").Count,
+		overlapFor(t, before, "openlibrary", "hardcover", "unicat").Count,
+		overlapFor(t, after, "openlibrary", "hardcover", "unicat").Count,
 		"the mock UniCat client never confirms a match, so all-three must stay 0",
 	)
-	// 6 pairs + 4 triples + all-four = 11 combos of size >= 2.
-	require.Len(t, after.Overlaps, 11)
+	// 3 pairs + the all-three combo = 4 combos of size >= 2.
+	require.Len(t, after.Overlaps, 4)
 }
 
 // TestGetSourceStats_Admin_CountsMissed verifies per-source missed counting: a
@@ -211,8 +211,8 @@ func TestGetSourceStats_Admin_CountsMissed(t *testing.T) {
 	after := getSourceStats(t, client)
 	assert.GreaterOrEqual(
 		t,
-		statFor(t, after, "googlebooks").MissedCount,
-		statFor(t, before, "googlebooks").MissedCount+1,
+		statFor(t, after, "hardcover").MissedCount,
+		statFor(t, before, "hardcover").MissedCount+1,
 	)
 	assert.GreaterOrEqual(
 		t,
@@ -228,41 +228,34 @@ func TestGetSourceStats_Admin_CountsMissed(t *testing.T) {
 }
 
 // TestGetSourceStats_MissedOverlapsMirrorFoundCombos verifies the handler's
-// missed_overlaps wiring across four sources: "missed by exactly S" (every
+// missed_overlaps wiring across three sources: "missed by exactly S" (every
 // source in S confirmed miss, every other confirmed found) is the same book
 // set as "found by exactly the complement of S". So a missed pair equals the
-// overlap of the complementary pair, and a missed triple equals the fourth
-// source's Unique count — structural invariants, independent of what's
+// remaining source's Unique count, and the missed triple is the genuinely new
+// AllThreeMissed number — structural invariants, independent of what's
 // currently seeded in the shared test DB.
 func TestGetSourceStats_MissedOverlapsMirrorFoundCombos(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	msg := getSourceStats(t, client)
 
-	// 6 pairs + 4 triples + all-four = 11 combos of size >= 2.
-	require.Len(t, msg.MissedOverlaps, 11)
+	// 3 pairs + the all-three combo = 4 combos of size >= 2.
+	require.Len(t, msg.MissedOverlaps, 4)
 
-	// Missed by exactly a pair == found by exactly the complement pair.
-	assert.Equal(
-		t,
-		overlapFor(t, msg, "unicat", "hardcover").Count,
-		missedOverlapFor(t, msg, "openlibrary", "googlebooks").Count,
-	)
-	assert.Equal(
-		t,
-		overlapFor(t, msg, "openlibrary", "hardcover").Count,
-		missedOverlapFor(t, msg, "googlebooks", "unicat").Count,
-	)
-
-	// Missed by exactly a triple == found only by the fourth source.
+	// Missed by exactly a pair == found only by the remaining source.
 	assert.Equal(
 		t,
 		statFor(t, msg, "hardcover").UniqueCount,
-		missedOverlapFor(t, msg, "openlibrary", "googlebooks", "unicat").Count,
+		missedOverlapFor(t, msg, "openlibrary", "unicat").Count,
+	)
+	assert.Equal(
+		t,
+		statFor(t, msg, "unicat").UniqueCount,
+		missedOverlapFor(t, msg, "openlibrary", "hardcover").Count,
 	)
 	assert.Equal(
 		t,
 		statFor(t, msg, "openlibrary").UniqueCount,
-		missedOverlapFor(t, msg, "googlebooks", "unicat", "hardcover").Count,
+		missedOverlapFor(t, msg, "unicat", "hardcover").Count,
 	)
 }
 
@@ -345,8 +338,8 @@ func TestListBooksInExactSources_Admin_ReturnsOnlyUniqueBook(t *testing.T) {
 }
 
 // TestListBooksInExactSources_Admin_ReturnsOverlapBook verifies a book found
-// by exactly OpenLibrary+GoogleBooks appears when querying that pair, and
-// not when querying OpenLibrary alone (which now means OL-only, not OL+GB).
+// by exactly OpenLibrary+Hardcover appears when querying that pair, and not
+// when querying OpenLibrary alone (which now means OL-only, not OL+HC).
 func TestListBooksInExactSources_Admin_ReturnsOverlapBook(t *testing.T) {
 	client, adminApp := newAdminBooksTestClientWithTwoSources(t)
 
@@ -362,7 +355,7 @@ func TestListBooksInExactSources_Admin_ReturnsOverlapBook(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	pairMsg := listBooksInExactSources(t, client, "openlibrary", "googlebooks")
+	pairMsg := listBooksInExactSources(t, client, "openlibrary", "hardcover")
 	found := false
 	for _, b := range pairMsg.Books {
 		if b.Title == title {
@@ -372,12 +365,12 @@ func TestListBooksInExactSources_Admin_ReturnsOverlapBook(t *testing.T) {
 	assert.True(
 		t,
 		found,
-		"book found by exactly OL+GB must appear in that combo's list",
+		"book found by exactly OL+HC must appear in that combo's list",
 	)
 
 	olOnlyMsg := listBooksInExactSources(t, client, "openlibrary")
 	for _, b := range olOnlyMsg.Books {
 		assert.NotEqual(t, title, b.Title,
-			"a book also found by GB must not appear in the OL-only list")
+			"a book also found by HC must not appear in the OL-only list")
 	}
 }

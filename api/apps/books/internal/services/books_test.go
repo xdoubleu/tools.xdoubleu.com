@@ -145,7 +145,7 @@ func TestGetExternal_UnknownProvider_ReturnsNotFound(t *testing.T) {
 		external: fake,
 	}
 
-	_, err := svc.GetExternal(context.Background(), "googlebooks", "anything")
+	_, err := svc.GetExternal(context.Background(), "unknownprovider", "anything")
 	require.ErrorIs(t, err, openlibrary.ErrNotFound)
 	assert.Zero(t, fake.calls, "unknown provider should not call the client")
 }

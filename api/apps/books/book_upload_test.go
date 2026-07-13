@@ -531,7 +531,6 @@ func TestUploadFile_EPUB_OpenLibraryFallback(t *testing.T) {
 		testDB,
 		books.Clients{
 			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
-			GoogleBooks:      nil,
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      fakeStore,
@@ -869,7 +868,6 @@ func noExternalMatchApp(t *testing.T, isolatedUser string) *books.Books {
 		testDB,
 		books.Clients{
 			OpenLibrary:      mocks.NewMockEmptyOpenLibraryClient(),
-			GoogleBooks:      nil,
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      fakeStore,

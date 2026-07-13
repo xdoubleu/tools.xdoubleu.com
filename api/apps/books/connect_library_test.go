@@ -210,7 +210,7 @@ func TestConnectGetExternalBook_UnknownProvider(t *testing.T) {
 	defer cancel()
 
 	req := connect.NewRequest(&booksv1.GetExternalBookRequest{
-		Provider:   "googlebooks",
+		Provider:   "unknownprovider",
 		ProviderId: "anything",
 	})
 	req.Header().Set("Cookie", accessToken.String())

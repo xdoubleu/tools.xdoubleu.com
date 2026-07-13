@@ -7,7 +7,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
-	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
@@ -34,7 +33,6 @@ func New(
 	jobQueue *threading.JobQueue,
 	repositories *repositories.Repositories,
 	external openlibrary.Client,
-	googleBooks googlebooks.Client,
 	uniCat unicat.Client,
 	hardcoverClient hardcover.Client,
 	objectStore objectstore.Client,
@@ -53,7 +51,6 @@ func New(
 		objectStore:  objectStore,
 		readingState: repositories.ReadingState,
 		external:     external,
-		googleBooks:  googleBooks,
 		uniCat:       uniCat,
 		hardcover:    hardcoverClient,
 		booksResync:  nil, // nil → resyncRepo() falls back to books

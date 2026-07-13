@@ -13,7 +13,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/jobs"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/internal/services"
-	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
@@ -55,16 +54,9 @@ func New(
 		)
 	}
 
-	if cfg.GoogleBooksAPIKey == "" {
-		logger.Warn(
-			"GOOGLE_BOOKS_API_KEY is not set — Google Books will use the " +
-				"unauthenticated tier (lower rate limit)",
-		)
-	}
-
-	// Hardcover requires a token to work at all (unlike Google Books' usable
-	// unauthenticated tier), so leave the client nil when unset — the resync
-	// orchestration nil-checks every non-OpenLibrary provider.
+	// Hardcover requires a token to work at all, so leave the client nil when
+	// unset — the resync orchestration nil-checks every non-OpenLibrary
+	// provider.
 	var hardcoverClient hardcover.Client
 	if cfg.HardcoverAPIKey == "" {
 		logger.Warn(
@@ -78,7 +70,6 @@ func New(
 
 	clients := Clients{
 		OpenLibrary: openlibrary.New(logger),
-		GoogleBooks: googlebooks.New(logger, cfg.GoogleBooksAPIKey),
 		UniCat:      unicat.New(logger),
 		Hardcover:   hardcoverClient,
 		ObjectStore: objectstore.NewR2(
@@ -120,7 +111,6 @@ func NewInner(
 		a.jobQueue,
 		a.Repositories,
 		clients.OpenLibrary,
-		clients.GoogleBooks,
 		clients.UniCat,
 		clients.Hardcover,
 		clients.ObjectStore,

@@ -16,13 +16,10 @@ import { formatDateTime } from '@/lib/dates'
 
 export default function BooksAdminClient() {
   const [force, setForce] = useState(false)
-  const { isRefreshing, lastRefresh, processed, total, quotaReached, refresh } = useResyncRefresh(
-    () => {
-      void mutate(swrKeys.resyncProposals)
-      void mutate(swrKeys.bookSourceStats)
-    },
-    force
-  )
+  const { isRefreshing, lastRefresh, processed, total, refresh } = useResyncRefresh(() => {
+    void mutate(swrKeys.resyncProposals)
+    void mutate(swrKeys.bookSourceStats)
+  }, force)
   const cancelResync = useCancelResync()
 
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
@@ -61,9 +58,9 @@ export default function BooksAdminClient() {
           Scan for metadata differences
         </h2>
         <p className="mb-3 text-xs text-muted">
-          Fetch Open Library, Google Books, UniCat, and Hardcover for every book and flag any that
-          differ from your library. Nothing is written automatically — review each flagged book
-          below and pick which source (or your existing library value) should win.
+          Fetch Open Library, UniCat, and Hardcover for every book and flag any that differ from
+          your library. Nothing is written automatically — review each flagged book below and pick
+          which source (or your existing library value) should win.
         </p>
         <div className="mb-3">
           <Checkbox
@@ -119,12 +116,6 @@ export default function BooksAdminClient() {
               <p className="text-xs text-muted">Scanning…</p>
             )}
           </div>
-        )}
-        {quotaReached && (
-          <p className="mt-3 text-xs text-warn" data-testid="resync-quota-reached">
-            Google Books daily quota reached — remaining books were skipped and will retry on the
-            next resync.
-          </p>
         )}
         {!isRefreshing && lastRefresh && (
           <p className="mt-2 text-xs text-muted" data-testid="resync-openlibrary-status">

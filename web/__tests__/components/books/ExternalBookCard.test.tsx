@@ -46,9 +46,9 @@ describe('ExternalBookCard', () => {
   })
 
   it('falls back to the raw provider string for unknown providers', () => {
-    const other = create(ExternalBookResultSchema, { ...fakeBook, provider: 'googlebooks' })
+    const other = create(ExternalBookResultSchema, { ...fakeBook, provider: 'unknownprovider' })
     render(<ExternalBookCard book={other} />)
-    expect(screen.getByText('googlebooks')).toBeInTheDocument()
+    expect(screen.getByText('unknownprovider')).toBeInTheDocument()
   })
 
   it('omits the author line when there are no authors', () => {
