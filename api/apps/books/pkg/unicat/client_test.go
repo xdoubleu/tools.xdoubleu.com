@@ -92,7 +92,7 @@ func TestGetByISBN_Found(t *testing.T) {
 	require.NotNil(t, book)
 
 	assert.Equal(t, "10 franke vragen aan Frank", book.Title)
-	assert.Equal(t, []string{"Vandenbroucke, Frank", "Coenen, Mark"}, book.Authors)
+	assert.Equal(t, []string{"Frank Vandenbroucke", "Mark Coenen"}, book.Authors)
 	require.NotNil(t, book.ISBN13)
 	assert.Equal(t, "9789463107389", *book.ISBN13)
 	require.NotNil(t, book.PageCount)
@@ -216,6 +216,9 @@ func TestGetByISBN_MultipleAuthors(t *testing.T) {
           <datafield tag="700" ind1="1" ind2=" ">
             <subfield code="a">Author, Third,</subfield>
           </datafield>
+          <datafield tag="700" ind1="1" ind2=" ">
+            <subfield code="a">King, Martin Luther, Jr.</subfield>
+          </datafield>
           <datafield tag="245" ind1="1" ind2="0">
             <subfield code="a">Test Book</subfield>
           </datafield>
@@ -235,10 +238,15 @@ func TestGetByISBN_MultipleAuthors(t *testing.T) {
 	book, err := c.GetByISBN(context.Background(), "9780000000000")
 	require.NoError(t, err)
 	require.NotNil(t, book)
-	// Trailing commas/periods stripped from MARC personal name fields.
+	// Trailing commas/periods stripped, and MARC "Last, First" personal names
+	// flipped to "First Last". Names with more than one comma (suffixes like
+	// "Jr.") pass through unchanged rather than being flipped wrong.
 	assert.Equal(
 		t,
-		[]string{"Author, First", "Author, Second", "Author, Third"},
+		[]string{
+			"First Author", "Second Author", "Third Author",
+			"King, Martin Luther, Jr",
+		},
 		book.Authors,
 	)
 }

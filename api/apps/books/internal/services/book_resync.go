@@ -693,6 +693,7 @@ func (s *BookService) fetchBySearch(
 ) ([]SourceProposal, map[string]bool) {
 	return s.searchProviders(
 		ctx, logger, book.Title, buildSearchQuery(book.Title, book.Authors),
+		book.Authors,
 		single(func(candidates []titleOnlyCandidate) (titleOnlyCandidate, bool) {
 			return matchSearchResult(book, candidates)
 		}),
@@ -733,6 +734,13 @@ func topCandidates(n int) func([]titleOnlyCandidate) []titleOnlyCandidate {
 // becoming its own SourceProposal with Index set to its ordinal position
 // within that provider's results.
 //
+// authors is applied as a post-fetch filter to Hardcover's candidates only:
+// its Typesense query is title-only (see pkg/hardcover extractSearchTerms)
+// and its API allows no fuzzy author operators, so unlike OL/UniCat — whose
+// queries carry inauthor: and filter server-side — Hardcover results arrive
+// author-blind and same-titled books by unrelated authors must be dropped
+// here.
+//
 // further would only hide the fixed-order merge that must stay next to them.
 //
 //nolint:gocognit // three independent concurrent source searches; splitting
@@ -741,6 +749,7 @@ func (s *BookService) searchProviders(
 	logger *slog.Logger,
 	logTitle string,
 	query string,
+	authors []string,
 	pick func([]titleOnlyCandidate) []titleOnlyCandidate,
 	opts *scanOptions,
 ) ([]SourceProposal, map[string]bool) {
@@ -802,7 +811,7 @@ func (s *BookService) searchProviders(
 					slog.String("title", logTitle), slog.Any("error", err))
 				return nil
 			}
-			hcPicked = pick(hcCandidates(results))
+			hcPicked = pick(filterByAuthor(hcCandidates(results), authors))
 			return nil
 		})
 	}
@@ -842,9 +851,13 @@ func (s *BookService) searchProviders(
 // flip a later fetch onto a different (often empty) ISBN-keyed candidate set,
 // which used to make a second sync fail with "source not found".
 // An override always uses the search path too and skips the match guards.
-// ponytail: override takes each provider's top 5 results unguarded — the
-// admin reviews the full candidates before applying; tighten to guards-
-// against-the-override-values if it misfires in practice.
+// ponytail: override takes each provider's top 5 results with the title
+// unguarded — the admin reviews the full candidates before applying. The
+// author IS filtered (searchProviders' Hardcover post-fetch filter; OL and
+// UniCat filter server-side via inauthor:) after unfiltered Hardcover
+// results misfired in practice ("The Fall" / Albert Camus showed five
+// unrelated same-titled books); tighten the title the same way if it too
+// misfires.
 const overrideMaxCandidates = 5
 
 func (s *BookService) fetchProposals(
@@ -875,7 +888,7 @@ func (s *BookService) fetchProposals(
 	}
 
 	proposals, _ := s.searchProviders(
-		ctx, logger, title, buildSearchQuery(title, authors),
+		ctx, logger, title, buildSearchQuery(title, authors), authors,
 		topCandidates(overrideMaxCandidates), nil,
 	)
 	return proposals
@@ -916,6 +929,37 @@ func ucCandidates(results []unicat.ExternalBook) []titleOnlyCandidate {
 		out[i] = titleOnlyCandidate{ //nolint:exhaustruct // UniCat has no cover images
 			title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
 			description: r.Description, pageCount: r.PageCount,
+		}
+	}
+	return out
+}
+
+// filterByAuthor keeps the candidates that share a normalised author last
+// name with one of authors (the same author semantics titleAuthorMatch uses,
+// so diacritics fold and "Last, First" forms match). With no authors to
+// filter on — or none that normalise to anything — candidates pass through
+// unchanged.
+func filterByAuthor(
+	candidates []titleOnlyCandidate,
+	authors []string,
+) []titleOnlyCandidate {
+	lastNames := make(map[string]struct{}, len(authors))
+	for _, a := range authors {
+		if n := normalizeAuthor(a); n != "" {
+			lastNames[n] = struct{}{}
+		}
+	}
+	if len(lastNames) == 0 {
+		return candidates
+	}
+
+	var out []titleOnlyCandidate
+	for _, c := range candidates {
+		for _, a := range c.authors {
+			if _, ok := lastNames[normalizeAuthor(a)]; ok {
+				out = append(out, c)
+				break
+			}
 		}
 	}
 	return out

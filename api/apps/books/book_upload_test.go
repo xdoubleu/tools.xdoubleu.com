@@ -454,7 +454,10 @@ func TestBookFilesRepo_FindByChecksum_NotFound(t *testing.T) {
 
 func TestBookFilesRepo_FindByChecksumGlobal_Found(t *testing.T) {
 	book := addUniqueBook(t)
-	const chk = "globalchecksumABC"
+	// Unique checksum per test run: FindByChecksumGlobal is user- and
+	// book-agnostic, so a fixed value would collide with the row left behind
+	// by a previous run on the shared local DB.
+	chk := fmt.Sprintf("globalchecksum-%s", book.ID)
 	f := models.BookFile{ //nolint:exhaustruct //optional fields omitted
 		BookID:     book.ID,
 		UserID:     userID,
