@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
+	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -61,12 +62,25 @@ func New(
 		)
 	}
 
+	// Hardcover requires a token to work at all (unlike Google Books' usable
+	// unauthenticated tier), so leave the client nil when unset — the resync
+	// orchestration nil-checks every non-OpenLibrary provider.
+	var hardcoverClient hardcover.Client
+	if cfg.HardcoverAPIKey == "" {
+		logger.Warn(
+			"HARDCOVER_API_KEY is not set — Hardcover metadata source is disabled",
+		)
+	} else {
+		hardcoverClient = hardcover.New(logger, cfg.HardcoverAPIKey)
+	}
+
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
 
 	clients := Clients{
 		OpenLibrary: openlibrary.New(logger),
 		GoogleBooks: googlebooks.New(logger, cfg.GoogleBooksAPIKey),
 		UniCat:      unicat.New(logger),
+		Hardcover:   hardcoverClient,
 		ObjectStore: objectstore.NewR2(
 			endpoint,
 			cfg.R2AccessKeyID,
@@ -108,6 +122,7 @@ func NewInner(
 		clients.OpenLibrary,
 		clients.GoogleBooks,
 		clients.UniCat,
+		clients.Hardcover,
 		clients.ObjectStore,
 		authService,
 	)

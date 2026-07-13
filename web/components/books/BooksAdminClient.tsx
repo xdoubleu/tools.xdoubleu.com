@@ -61,9 +61,9 @@ export default function BooksAdminClient() {
           Scan for metadata differences
         </h2>
         <p className="mb-3 text-xs text-muted">
-          Fetch Open Library, Google Books, and UniCat for every book and flag any that differ from
-          your library. Nothing is written automatically — review each flagged book below and pick
-          which source (or your existing library value) should win.
+          Fetch Open Library, Google Books, UniCat, and Hardcover for every book and flag any that
+          differ from your library. Nothing is written automatically — review each flagged book
+          below and pick which source (or your existing library value) should win.
         </p>
         <div className="mb-3">
           <Checkbox

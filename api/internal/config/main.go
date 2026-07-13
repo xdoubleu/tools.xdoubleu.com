@@ -24,6 +24,7 @@ type Config struct {
 	SupabaseAPIKey    string
 	SteamAPIKey       string
 	GoogleBooksAPIKey string
+	HardcoverAPIKey   string
 	R2AccountID       string
 	R2AccessKeyID     string
 	R2SecretKey       string
@@ -53,6 +54,7 @@ func New(logger *slog.Logger) Config {
 
 	cfg.SteamAPIKey = parser.EnvStr("STEAM_API_KEY", "")
 	cfg.GoogleBooksAPIKey = parser.EnvStr("GOOGLE_BOOKS_API_KEY", "")
+	cfg.HardcoverAPIKey = parser.EnvStr("HARDCOVER_API_KEY", "")
 
 	cfg.R2AccountID = parser.EnvStr("R2_ACCOUNT_ID", "")
 	cfg.R2AccessKeyID = parser.EnvStr("R2_ACCESS_KEY_ID", "")

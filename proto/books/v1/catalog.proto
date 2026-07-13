@@ -45,10 +45,11 @@ message MergeBooksResponse {
 }
 
 message StartResyncRequest {
-  // Force re-queries every source (Open Library, Google Books, UniCat) for
-  // every book, ignoring the skip-if-known cache (openlibrary_found /
-  // googlebooks_found / unicat_found). Use to recover books stuck unresolved
-  // after a rate-limit trip or a stale cached miss.
+  // Force re-queries every source (Open Library, Google Books, UniCat,
+  // Hardcover) for every book, ignoring the skip-if-known cache
+  // (openlibrary_found / googlebooks_found / unicat_found / hardcover_found).
+  // Use to recover books stuck unresolved after a rate-limit trip or a stale
+  // cached miss.
   bool force = 1;
 }
 message StartResyncResponse {}
@@ -61,7 +62,7 @@ message CancelResyncResponse {}
 
 // SourceBook is one candidate set of metadata for a catalog book — either the
 // current library values (source = "") or one external provider's proposal
-// (source = "openlibrary" | "googlebooks" | "unicat").
+// (source = "openlibrary" | "googlebooks" | "unicat" | "hardcover").
 message SourceBook {
   string source = 1;
   string cover_url = 2;
@@ -92,7 +93,7 @@ message ApplyResyncChoiceRequest {
   string book_id = 1;
   // source selects which SourceBook wins: "" keeps the library row unchanged
   // (and simply dismisses the proposal), or one of
-  // "openlibrary" | "googlebooks" | "unicat".
+  // "openlibrary" | "googlebooks" | "unicat" | "hardcover".
   string source = 2;
 }
 message ApplyResyncChoiceResponse {}
@@ -124,7 +125,7 @@ message GetBookSourcesResponse {
 message ApplyBookSourceRequest {
   string book_id = 1;
   // source selects which source wins: one of
-  // "openlibrary" | "googlebooks" | "unicat".
+  // "openlibrary" | "googlebooks" | "unicat" | "hardcover".
   string source = 2;
   // Must repeat the override used in GetBookSources so the apply-time
   // re-fetch finds the same candidates.
@@ -137,7 +138,7 @@ message ApplyBookSourceResponse {}
 // scoring metadata sources.
 message GetSourceStatsRequest {}
 message SourceStat {
-  // "openlibrary" | "googlebooks" | "unicat"
+  // "openlibrary" | "googlebooks" | "unicat" | "hardcover"
   string source = 1;
   // Books the last scan found in this source (coverage).
   int32 found_count = 2;
@@ -148,10 +149,10 @@ message SourceStat {
   int32 missed_count = 4;
 }
 // SourceComboStat reports how many books were found by exactly this set of
-// two or three sources (a genuine overlap) — the complement of SourceStat's
+// two to four sources (a genuine overlap) — the complement of SourceStat's
 // unique_count, which is the one-source case.
 message SourceComboStat {
-  // "openlibrary" | "googlebooks" | "unicat", 2 or 3 entries.
+  // "openlibrary" | "googlebooks" | "unicat" | "hardcover", 2 to 4 entries.
   repeated string sources = 1;
   int32 count = 2;
 }
@@ -175,7 +176,7 @@ message GetSourceStatsResponse {
 // unique_count, two or three is an overlaps combo — for drilling into the
 // source-stats report.
 message ListBooksInExactSourcesRequest {
-  // "openlibrary" | "googlebooks" | "unicat", 1 to 3 entries.
+  // "openlibrary" | "googlebooks" | "unicat" | "hardcover", 1 to 4 entries.
   repeated string sources = 1;
 }
 message ListBooksInExactSourcesResponse {

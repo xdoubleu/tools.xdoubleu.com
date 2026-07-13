@@ -11,7 +11,8 @@ export const SOURCE_LABELS: Record<string, string> = {
   '': 'Keep library',
   openlibrary: 'Open Library',
   googlebooks: 'Google Books',
-  unicat: 'UniCat'
+  unicat: 'UniCat',
+  hardcover: 'Hardcover'
 }
 
 // cover_url is rendered as an image via BookCover, not as a text field.
@@ -158,8 +159,8 @@ export default function SourceCompare({
 
       {proposal.sources.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface p-3 text-sm text-muted">
-          No configured source (Open Library, Google Books, UniCat) has this book. Consider adding a
-          new source, or dismiss if this is expected.
+          No configured source (Open Library, Google Books, UniCat, Hardcover) has this book.
+          Consider adding a new source, or dismiss if this is expected.
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">

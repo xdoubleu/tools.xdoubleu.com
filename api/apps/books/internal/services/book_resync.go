@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
+	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
@@ -47,6 +48,7 @@ type booksResyncSource interface {
 		openLibraryFound *bool,
 		googleBooksFound *bool,
 		uniCatFound *bool,
+		hardcoverFound *bool,
 	) error
 	GetSourceStats(ctx context.Context) (*repositories.SourceStats, error)
 	ListBooksInExactSources(
@@ -263,16 +265,19 @@ func (s *BookService) recordScanStatus(
 	}
 
 	olFound := found("openlibrary")
-	var gbFound, ucFound *bool
+	var gbFound, ucFound, hcFound *bool
 	if s.googleBooks != nil {
 		gbFound = found("googlebooks")
 	}
 	if s.uniCat != nil {
 		ucFound = found("unicat")
 	}
+	if s.hardcover != nil {
+		hcFound = found("hardcover")
+	}
 
 	return s.resyncRepo().UpdateResyncScanStatus(
-		ctx, book.ID, olFound, gbFound, ucFound,
+		ctx, book.ID, olFound, gbFound, ucFound, hcFound,
 	)
 }
 
@@ -306,7 +311,8 @@ func anyKnownFound(book models.Book) bool {
 	isTrue := func(b *bool) bool { return b != nil && *b }
 	return isTrue(book.OpenLibraryFound) ||
 		isTrue(book.GoogleBooksFound) ||
-		isTrue(book.UniCatFound)
+		isTrue(book.UniCatFound) ||
+		isTrue(book.HardcoverFound)
 }
 
 func anyDiffers(book models.Book, proposals []SourceProposal) bool {
@@ -366,6 +372,9 @@ func knownFor(book models.Book, force bool) map[string]bool {
 	}
 	if book.UniCatFound != nil {
 		known["unicat"] = true
+	}
+	if book.HardcoverFound != nil {
+		known["hardcover"] = true
 	}
 	return known
 }
@@ -433,33 +442,93 @@ func (s *BookService) fetchByISBN(
 		}
 	}
 
-	if s.uniCat != nil && opts.skipKnown("unicat") {
-		unresolved["unicat"] = true
-	} else if s.uniCat != nil {
-		ucDetail, ucErr := s.uniCat.GetByISBN(ctx, isbn13)
-		if ucErr != nil && !errors.Is(ucErr, unicat.ErrNotFound) {
+	if s.uniCat != nil {
+		if p, unres := s.fetchUniCatByISBN(ctx, logger, isbn13, opts); unres {
 			unresolved["unicat"] = true
-			logger.WarnContext(ctx, "unicat ISBN lookup failed",
-				slog.String("isbn13", isbn13), slog.Any("error", ucErr))
+		} else if p != nil {
+			out = append(out, *p)
 		}
-		if ucDetail != nil {
-			out = append(
-				out,
-				newSourceProposalFromCandidate(
-					"unicat",
-					titleOnlyCandidate{ //nolint:exhaustruct // UniCat has no cover images
-						title:       ucDetail.Title,
-						authors:     ucDetail.Authors,
-						isbn13:      ucDetail.ISBN13,
-						description: ucDetail.Description,
-						pageCount:   ucDetail.PageCount,
-					},
-				),
-			)
+	}
+
+	if s.hardcover != nil {
+		if p, unres := s.fetchHardcoverByISBN(ctx, logger, isbn13, opts); unres {
+			unresolved["hardcover"] = true
+		} else if p != nil {
+			out = append(out, *p)
 		}
 	}
 
 	return out, unresolved
+}
+
+// fetchUniCatByISBN queries UniCat for one ISBN, honoring opts' skip-if-known.
+// UniCat has no daily quota, so only the skip-if-known cache gates it. Returns
+// the proposal (nil if UniCat has no match) and whether the source is
+// unresolved this pass (skipped or errored) — see recordScanStatus.
+func (s *BookService) fetchUniCatByISBN(
+	ctx context.Context,
+	logger *slog.Logger,
+	isbn13 string,
+	opts *scanOptions,
+) (*SourceProposal, bool) {
+	if opts.skipKnown("unicat") {
+		return nil, true
+	}
+
+	ucDetail, ucErr := s.uniCat.GetByISBN(ctx, isbn13)
+	if ucErr != nil && !errors.Is(ucErr, unicat.ErrNotFound) {
+		logger.WarnContext(ctx, "unicat ISBN lookup failed",
+			slog.String("isbn13", isbn13), slog.Any("error", ucErr))
+		return nil, true
+	}
+	if ucDetail == nil {
+		return nil, false
+	}
+
+	p := newSourceProposalFromCandidate(
+		"unicat",
+		titleOnlyCandidate{ //nolint:exhaustruct // UniCat has no cover images
+			title:       ucDetail.Title,
+			authors:     ucDetail.Authors,
+			isbn13:      ucDetail.ISBN13,
+			description: ucDetail.Description,
+			pageCount:   ucDetail.PageCount,
+		},
+	)
+	return &p, false
+}
+
+// fetchHardcoverByISBN queries Hardcover for one ISBN, honoring opts'
+// skip-if-known. Hardcover has no daily quota, so there is no circuit breaker —
+// only the skip-if-known cache gates it (like Open Library and UniCat).
+// Returns the proposal (nil if Hardcover has no match) and whether the source
+// is unresolved this pass (skipped or errored) — see recordScanStatus.
+func (s *BookService) fetchHardcoverByISBN(
+	ctx context.Context,
+	logger *slog.Logger,
+	isbn13 string,
+	opts *scanOptions,
+) (*SourceProposal, bool) {
+	if opts.skipKnown("hardcover") {
+		return nil, true
+	}
+
+	hcDetail, hcErr := s.hardcover.GetByISBN(ctx, isbn13)
+	if hcErr != nil && !errors.Is(hcErr, hardcover.ErrNotFound) {
+		logger.WarnContext(ctx, "hardcover ISBN lookup failed",
+			slog.String("isbn13", isbn13), slog.Any("error", hcErr))
+		return nil, true
+	}
+	if hcDetail == nil {
+		return nil, false
+	}
+
+	p := newSourceProposalFromCandidate("hardcover", titleOnlyCandidate{
+		title: hcDetail.Title, authors: hcDetail.Authors, isbn13: hcDetail.ISBN13,
+		coverURL: hcDetail.CoverURL, description: hcDetail.Description,
+		pageCount: hcDetail.PageCount,
+	})
+	return &p, false
 }
 
 // fetchGoogleBooksByISBN queries Google Books for one ISBN, honoring opts'
@@ -576,6 +645,18 @@ func (s *BookService) searchProviders(
 		}
 	}
 
+	if s.hardcover != nil && opts.skipKnown("hardcover") {
+		unresolved["hardcover"] = true
+	} else if s.hardcover != nil {
+		if results, err := s.hardcover.Search(ctx, query); err != nil {
+			unresolved["hardcover"] = true
+			logger.WarnContext(ctx, "hardcover search failed",
+				slog.String("title", logTitle), slog.Any("error", err))
+		} else if m, ok := pick(hcCandidates(results)); ok {
+			out = append(out, newSourceProposalFromCandidate("hardcover", m))
+		}
+	}
+
 	return out, unresolved
 }
 
@@ -671,6 +752,17 @@ func ucCandidates(results []unicat.ExternalBook) []titleOnlyCandidate {
 		out[i] = titleOnlyCandidate{ //nolint:exhaustruct // UniCat has no cover images
 			title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
 			description: r.Description, pageCount: r.PageCount,
+		}
+	}
+	return out
+}
+
+func hcCandidates(results []hardcover.ExternalBook) []titleOnlyCandidate {
+	out := make([]titleOnlyCandidate, len(results))
+	for i, r := range results {
+		out[i] = titleOnlyCandidate{
+			title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
+			coverURL: r.CoverURL, description: r.Description, pageCount: r.PageCount,
 		}
 	}
 	return out

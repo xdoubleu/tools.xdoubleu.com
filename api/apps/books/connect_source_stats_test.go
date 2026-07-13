@@ -147,7 +147,7 @@ func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 		statFor(t, after, "openlibrary").UniqueCount,
 		statFor(t, before, "openlibrary").UniqueCount+1,
 	)
-	require.Len(t, after.Sources, 3)
+	require.Len(t, after.Sources, 4)
 }
 
 // TestGetSourceStats_Admin_CountsOverlap verifies pairwise overlap counting:
@@ -186,7 +186,8 @@ func TestGetSourceStats_Admin_CountsOverlap(t *testing.T) {
 		overlapFor(t, after, "openlibrary", "googlebooks", "unicat").Count,
 		"the mock UniCat client never confirms a match, so all-three must stay 0",
 	)
-	require.Len(t, after.Overlaps, 4)
+	// 6 pairs + 4 triples + all-four = 11 combos of size >= 2.
+	require.Len(t, after.Overlaps, 11)
 }
 
 // TestGetSourceStats_Admin_CountsMissed verifies per-source missed counting: a
@@ -226,30 +227,42 @@ func TestGetSourceStats_Admin_CountsMissed(t *testing.T) {
 	)
 }
 
-// TestGetSourceStats_MissedOverlapsMirrorUniqueCounts verifies the handler's
-// missed_overlaps wiring: missed by exactly {A,B} (both confirmed miss) is
-// the same book set as found-only-by-the-third-source, so it must always
-// equal that source's Unique count — a structural invariant, independent of
-// what's currently seeded in the shared test DB.
-func TestGetSourceStats_MissedOverlapsMirrorUniqueCounts(t *testing.T) {
+// TestGetSourceStats_MissedOverlapsMirrorFoundCombos verifies the handler's
+// missed_overlaps wiring across four sources: "missed by exactly S" (every
+// source in S confirmed miss, every other confirmed found) is the same book
+// set as "found by exactly the complement of S". So a missed pair equals the
+// overlap of the complementary pair, and a missed triple equals the fourth
+// source's Unique count — structural invariants, independent of what's
+// currently seeded in the shared test DB.
+func TestGetSourceStats_MissedOverlapsMirrorFoundCombos(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	msg := getSourceStats(t, client)
 
-	require.Len(t, msg.MissedOverlaps, 4)
+	// 6 pairs + 4 triples + all-four = 11 combos of size >= 2.
+	require.Len(t, msg.MissedOverlaps, 11)
+
+	// Missed by exactly a pair == found by exactly the complement pair.
 	assert.Equal(
 		t,
-		statFor(t, msg, "unicat").UniqueCount,
+		overlapFor(t, msg, "unicat", "hardcover").Count,
 		missedOverlapFor(t, msg, "openlibrary", "googlebooks").Count,
 	)
 	assert.Equal(
 		t,
-		statFor(t, msg, "googlebooks").UniqueCount,
-		missedOverlapFor(t, msg, "openlibrary", "unicat").Count,
+		overlapFor(t, msg, "openlibrary", "hardcover").Count,
+		missedOverlapFor(t, msg, "googlebooks", "unicat").Count,
+	)
+
+	// Missed by exactly a triple == found only by the fourth source.
+	assert.Equal(
+		t,
+		statFor(t, msg, "hardcover").UniqueCount,
+		missedOverlapFor(t, msg, "openlibrary", "googlebooks", "unicat").Count,
 	)
 	assert.Equal(
 		t,
 		statFor(t, msg, "openlibrary").UniqueCount,
-		missedOverlapFor(t, msg, "googlebooks", "unicat").Count,
+		missedOverlapFor(t, msg, "googlebooks", "unicat", "hardcover").Count,
 	)
 }
 

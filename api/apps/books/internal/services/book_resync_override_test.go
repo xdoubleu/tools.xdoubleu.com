@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
+	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 )
@@ -55,6 +56,45 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 	require.NotNil(t, call.gbFound)
 	assert.False(t, *call.gbFound)
 	assert.Nil(t, call.ucFound, "unconfigured provider must record NULL")
+	assert.Nil(t, call.hcFound, "unconfigured provider must record NULL")
+}
+
+// TestBuildResyncProposals_Hardcover_FoundByISBN verifies the hardcover branch:
+// a configured hardcover client that resolves the ISBN produces a "hardcover"
+// proposal and records hardcover_found = true.
+func TestBuildResyncProposals_Hardcover_FoundByISBN(t *testing.T) {
+	id := uuid.New()
+	isbn := "9780140449112"
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		books: []models.Book{
+			//nolint:exhaustruct // partial
+			{ID: id, Title: "The Odyssey", ISBN13: &isbn},
+		},
+	}
+	hcTitle := "The Odyssey"
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:      logging.NewNopLogger(),
+		booksResync: repo,
+		external: &fakeOLClient{ //nolint:exhaustruct // partial
+			err: openlibrary.ErrNotFound,
+		},
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			byISBN: &hardcover.ExternalBook{ //nolint:exhaustruct // partial
+				Title: hcTitle, Authors: []string{"Homer"}, ISBN13: &isbn,
+			},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	_, err := svc.BuildResyncProposals(
+		context.Background(), logging.NewNopLogger(), nil, false,
+	)
+	require.NoError(t, err)
+
+	require.Len(t, repo.scanStatusCalls, 1)
+	call := repo.scanStatusCalls[0]
+	require.NotNil(t, call.hcFound)
+	assert.True(t, *call.hcFound, "hardcover resolved the ISBN, so it's found")
 }
 
 func TestBuildResyncProposals_ScanStatus_UnsearchableAllNil(t *testing.T) {

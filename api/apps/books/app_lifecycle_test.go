@@ -33,6 +33,7 @@ func TestStart_RegistersJobs(t *testing.T) {
 			OpenLibrary:      nil,
 			GoogleBooks:      nil,
 			UniCat:           nil,
+			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
