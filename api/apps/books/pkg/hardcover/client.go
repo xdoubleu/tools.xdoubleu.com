@@ -60,11 +60,21 @@ const isbnQuery = `query BookByISBN($isbn: String!) {
   }
 }`
 
-// searchQuery finds books by a case-insensitive title match. Author
-// disambiguation is left to the resync match layer, which reads the authors
-// mapped from cached_contributors.
-const searchQuery = `query SearchBooks($title: String!, $limit: Int!) {
-  books(where: {title: {_ilike: $title}}, limit: $limit) {
+// searchIDsQuery finds book IDs via Hardcover's Typesense-backed search index
+// (the same index the website uses). This is the only fuzzy-match path
+// Hardcover permits: its Hasura server rejects ilike/like/similar/regex
+// operators on the books table with a 403, so a title filter there cannot do
+// fuzzy matching — only search() can.
+const searchIDsQuery = `query SearchBookIDs($query: String!, $perPage: Int!) {
+  search(query: $query, query_type: "Book", per_page: $perPage, page: 1) {
+    ids
+  }
+}`
+
+// booksByIDsQuery fetches full book records for IDs returned by
+// searchIDsQuery. Uses _in, which (unlike ilike) is a permitted operator.
+const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
+  books(where: {id: {_in: $ids}}) {
     title
     pages
     description
@@ -117,7 +127,9 @@ func (c client) GetByISBN(
 	return &out, nil
 }
 
-// Search queries Hardcover for books matching the title in query.
+// Search queries Hardcover for books matching the title in query. It first
+// resolves matching book IDs via the Typesense search index, then fetches
+// the full records for those IDs.
 func (c client) Search(
 	ctx context.Context,
 	query string,
@@ -127,10 +139,24 @@ func (c client) Search(
 		return nil, nil
 	}
 
+	var idsResp searchIDsResponse
+	err := c.post(ctx, searchIDsQuery, map[string]any{
+		"query":   title,
+		"perPage": searchLimit,
+	}, &idsResp)
+	if err != nil {
+		return nil, err
+	}
+	if err = graphQLErr(idsResp.Errors); err != nil {
+		return nil, err
+	}
+	if len(idsResp.Data.Search.IDs) == 0 {
+		return nil, nil
+	}
+
 	var resp searchResponse
-	err := c.post(ctx, searchQuery, map[string]any{
-		"title": "%" + title + "%",
-		"limit": searchLimit,
+	err = c.post(ctx, booksByIDsQuery, map[string]any{
+		"ids": idsResp.Data.Search.IDs,
 	}, &resp)
 	if err != nil {
 		return nil, err

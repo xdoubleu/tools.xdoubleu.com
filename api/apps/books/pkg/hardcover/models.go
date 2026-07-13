@@ -37,10 +37,23 @@ type isbnResponse struct {
 	Errors []graphQLError `json:"errors"`
 }
 
-// searchResponse is the response shape for the Search query.
+// searchResponse is the response shape for the booksByIDsQuery half of Search.
 type searchResponse struct {
 	Data struct {
 		Books []book `json:"books"`
+	} `json:"data"`
+	Errors []graphQLError `json:"errors"`
+}
+
+// searchIDsResponse is the response shape for the searchIDsQuery half of
+// Search (the Typesense-backed lookup).
+// ponytail: IDs assumed []int (Hardcover book.id is an Int); switch to
+// []json.Number if a live response turns out to send them as strings.
+type searchIDsResponse struct {
+	Data struct {
+		Search struct {
+			IDs []int `json:"ids"`
+		} `json:"search"`
 	} `json:"data"`
 	Errors []graphQLError `json:"errors"`
 }
