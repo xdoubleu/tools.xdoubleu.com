@@ -17,8 +17,8 @@ export default function BookSourceSync({ bookId }: { bookId: string }) {
   const { data, isLoading, error: fetchError } = useBookSources(bookId, open, override)
   const applySource = useApplyBookSource()
 
-  async function handleApply(source: string) {
-    await applySource(bookId, source, override)
+  async function handleApply(source: string, index: number) {
+    await applySource(bookId, source, index, override)
     await mutate(swrKeys.books)
     await mutate(swrKeys.bookSources(bookId, override?.title ?? '', override?.author ?? ''))
     await mutate(swrKeys.bookSourceStats)

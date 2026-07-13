@@ -318,10 +318,11 @@ export function useBookSources(bookId: string, enabled: boolean, override?: Sour
 export function useApplyBookSource() {
   const client = useMemo(() => createServiceClient(CatalogService), [])
   return useCallback(
-    (bookId: string, source: string, override?: SourceSearchOverride) =>
+    (bookId: string, source: string, index: number, override?: SourceSearchOverride) =>
       client.applyBookSource({
         bookId,
         source,
+        index,
         overrideTitle: override?.title || undefined,
         overrideAuthor: override?.author || undefined
       }),

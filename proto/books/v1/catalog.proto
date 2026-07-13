@@ -74,6 +74,12 @@ message SourceBook {
   // differs lists which fields differ from the library row. Empty for the
   // library SourceBook itself.
   repeated string differs = 8;
+  // index is this candidate's ordinal position (0-based) among other
+  // SourceBooks sharing the same source. Always 0 for the library SourceBook
+  // and for sources that only ever produce one candidate (the guarded
+  // search). The manual override search ("Search with these terms") can
+  // return up to 5 candidates per source, distinguished by this index.
+  int32 index = 9;
 }
 
 // ResyncProposal describes one catalog book that differs from at least one
@@ -131,6 +137,10 @@ message ApplyBookSourceRequest {
   // re-fetch finds the same candidates.
   optional string override_title = 3;
   optional string override_author = 4;
+  // index selects which of the source's candidates to apply (0-based),
+  // matching SourceBook.index. 0 for sources that only ever produce one
+  // candidate.
+  int32 index = 5;
 }
 message ApplyBookSourceResponse {}
 

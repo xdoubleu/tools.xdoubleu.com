@@ -51,13 +51,14 @@ export default function ResyncWizard() {
     setIndex(Math.max(0, Math.min(next, visible.length - 1)))
   }
 
-  async function handleApply(choice: string) {
+  async function handleApply(choice: string, choiceIndex: number) {
     if (!current) return
     if (override) {
       // ApplyBookSource re-runs the tweaked search server-side and also
       // clears the stored proposal, so the wizard advances exactly as below.
-      await applySource(current.bookId, choice, override)
+      await applySource(current.bookId, choice, choiceIndex, override)
     } else {
+      // The stored wizard proposal always has one candidate per source.
       await applyChoice(current.bookId, choice)
     }
     await mutate(swrKeys.resyncProposals)

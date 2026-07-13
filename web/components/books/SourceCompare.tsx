@@ -70,12 +70,26 @@ function SourceCard({ label, source }: { label: string; source: SourceBook }) {
 
 interface SourceCompareProps {
   proposal: ResyncProposal
-  onApply: (source: string) => Promise<void>
+  onApply: (source: string, index: number) => Promise<void>
   applyLabel: (choice: string) => string
   // When set, renders editable title/author search fields so the admin can
   // re-run the live source search with tweaked terms (for books whose stored
   // title/author is slightly off and matches nothing).
   onSearch?: (title: string, author: string) => void
+}
+
+// choiceValue/parseChoice encode a (source, index) pair as the RadioGroup's
+// single string value. "" always means "keep library" (index is irrelevant
+// there); every other source defaults to index 0 unless a manual override
+// search produced multiple candidates for it.
+function choiceValue(source: string, index: number): string {
+  return source === '' ? '' : `${source}:${index}`
+}
+
+function parseChoice(value: string): { source: string; index: number } {
+  if (value === '') return { source: '', index: 0 }
+  const sepIndex = value.lastIndexOf(':')
+  return { source: value.slice(0, sepIndex), index: Number(value.slice(sepIndex + 1)) }
 }
 
 // SearchOverrideForm lets the admin steer the source search with hand-tweaked
@@ -131,11 +145,19 @@ export default function SourceCompare({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Grouped by source: normally one candidate per source, but a manual
+  // override search ("Search with these terms") can return up to 5.
+  const groups = new Map<string, SourceBook[]>()
+  for (const s of proposal.sources) {
+    groups.set(s.source, [...(groups.get(s.source) ?? []), s])
+  }
+
   async function handleApply() {
     setBusy(true)
     setError(null)
     try {
-      await onApply(choice)
+      const { source, index } = parseChoice(choice)
+      await onApply(source, index)
       setChoice('')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to apply.')
@@ -165,22 +187,45 @@ export default function SourceCompare({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {proposal.library && <SourceCard label="Library" source={proposal.library} />}
-          {proposal.sources.map((s) => (
-            <SourceCard key={s.source} label={SOURCE_LABELS[s.source] ?? s.source} source={s} />
-          ))}
+          {Array.from(groups.entries()).map(([source, candidates]) =>
+            candidates.length === 1 ? (
+              <SourceCard
+                key={source}
+                label={SOURCE_LABELS[source] ?? source}
+                source={candidates[0]}
+              />
+            ) : (
+              <div key={source} className="sm:col-span-2">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                  {SOURCE_LABELS[source] ?? source} ({candidates.length} candidates)
+                </p>
+                <div className="grid max-h-80 gap-3 overflow-y-auto sm:grid-cols-2">
+                  {candidates.map((s) => (
+                    <SourceCard key={s.index} label={`Candidate ${s.index + 1}`} source={s} />
+                  ))}
+                </div>
+              </div>
+            )
+          )}
         </div>
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <RadioGroup name="source-compare" value={choice} onChange={setChoice}>
           <RadioGroupItem value="" label="Keep library" />
-          {proposal.sources.map((s) => (
-            <RadioGroupItem
-              key={s.source}
-              value={s.source}
-              label={SOURCE_LABELS[s.source] ?? s.source}
-            />
-          ))}
+          {Array.from(groups.entries()).flatMap(([source, candidates]) =>
+            candidates.map((s) => (
+              <RadioGroupItem
+                key={choiceValue(source, s.index)}
+                value={choiceValue(source, s.index)}
+                label={
+                  candidates.length === 1
+                    ? (SOURCE_LABELS[source] ?? source)
+                    : `${SOURCE_LABELS[source] ?? source} #${s.index + 1}`
+                }
+              />
+            ))
+          )}
         </RadioGroup>
         <span className="flex items-center gap-2">
           {error && <span className="text-xs text-danger">{error}</span>}

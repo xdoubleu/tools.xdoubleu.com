@@ -560,7 +560,13 @@ type SourceBook struct {
 	Authors     []string               `protobuf:"bytes,7,rep,name=authors,proto3" json:"authors,omitempty"`
 	// differs lists which fields differ from the library row. Empty for the
 	// library SourceBook itself.
-	Differs       []string `protobuf:"bytes,8,rep,name=differs,proto3" json:"differs,omitempty"`
+	Differs []string `protobuf:"bytes,8,rep,name=differs,proto3" json:"differs,omitempty"`
+	// index is this candidate's ordinal position (0-based) among other
+	// SourceBooks sharing the same source. Always 0 for the library SourceBook
+	// and for sources that only ever produce one candidate (the guarded
+	// search). The manual override search ("Search with these terms") can
+	// return up to 5 candidates per source, distinguished by this index.
+	Index         int32 `protobuf:"varint,9,opt,name=index,proto3" json:"index,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -649,6 +655,13 @@ func (x *SourceBook) GetDiffers() []string {
 		return x.Differs
 	}
 	return nil
+}
+
+func (x *SourceBook) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
 }
 
 // ResyncProposal describes one catalog book that differs from at least one
@@ -1095,8 +1108,12 @@ type ApplyBookSourceRequest struct {
 	// re-fetch finds the same candidates.
 	OverrideTitle  *string `protobuf:"bytes,3,opt,name=override_title,json=overrideTitle,proto3,oneof" json:"override_title,omitempty"`
 	OverrideAuthor *string `protobuf:"bytes,4,opt,name=override_author,json=overrideAuthor,proto3,oneof" json:"override_author,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// index selects which of the source's candidates to apply (0-based),
+	// matching SourceBook.index. 0 for sources that only ever produce one
+	// candidate.
+	Index         int32 `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApplyBookSourceRequest) Reset() {
@@ -1155,6 +1172,13 @@ func (x *ApplyBookSourceRequest) GetOverrideAuthor() string {
 		return *x.OverrideAuthor
 	}
 	return ""
+}
+
+func (x *ApplyBookSourceRequest) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
 }
 
 type ApplyBookSourceResponse struct {
@@ -1574,7 +1598,7 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x05force\x18\x01 \x01(\bR\x05force\"\x15\n" +
 	"\x13StartResyncResponse\"\x15\n" +
 	"\x13CancelResyncRequest\"\x16\n" +
-	"\x14CancelResyncResponse\"\xe4\x01\n" +
+	"\x14CancelResyncResponse\"\xfa\x01\n" +
 	"\n" +
 	"SourceBook\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x1b\n" +
@@ -1585,7 +1609,8 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x06isbn13\x18\x05 \x01(\tR\x06isbn13\x12\x14\n" +
 	"\x05title\x18\x06 \x01(\tR\x05title\x12\x18\n" +
 	"\aauthors\x18\a \x03(\tR\aauthors\x12\x18\n" +
-	"\adiffers\x18\b \x03(\tR\adiffers\"\x89\x01\n" +
+	"\adiffers\x18\b \x03(\tR\adiffers\x12\x14\n" +
+	"\x05index\x18\t \x01(\x05R\x05index\"\x89\x01\n" +
 	"\x0eResyncProposal\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12.\n" +
 	"\alibrary\x18\x02 \x01(\v2\x14.books.v1.SourceBookR\alibrary\x12.\n" +
@@ -1608,12 +1633,13 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x0f_override_titleB\x12\n" +
 	"\x10_override_author\"N\n" +
 	"\x16GetBookSourcesResponse\x124\n" +
-	"\bproposal\x18\x01 \x01(\v2\x18.books.v1.ResyncProposalR\bproposal\"\xca\x01\n" +
+	"\bproposal\x18\x01 \x01(\v2\x18.books.v1.ResyncProposalR\bproposal\"\xe0\x01\n" +
 	"\x16ApplyBookSourceRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12*\n" +
 	"\x0eoverride_title\x18\x03 \x01(\tH\x00R\roverrideTitle\x88\x01\x01\x12,\n" +
-	"\x0foverride_author\x18\x04 \x01(\tH\x01R\x0eoverrideAuthor\x88\x01\x01B\x11\n" +
+	"\x0foverride_author\x18\x04 \x01(\tH\x01R\x0eoverrideAuthor\x88\x01\x01\x12\x14\n" +
+	"\x05index\x18\x05 \x01(\x05R\x05indexB\x11\n" +
 	"\x0f_override_titleB\x12\n" +
 	"\x10_override_author\"\x19\n" +
 	"\x17ApplyBookSourceResponse\"\x17\n" +
