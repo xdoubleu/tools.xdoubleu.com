@@ -436,7 +436,8 @@ func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
 	}
 
 	proposals, unresolved := svc.fetchByISBN(
-		context.Background(), logging.NewNopLogger(), isbn, nil,
+		context.Background(), logging.NewNopLogger(),
+		models.Book{ISBN13: &isbn}, nil, //nolint:exhaustruct // partial
 	)
 
 	require.Len(t, proposals, 3, "all three providers returned a record; no merge")
@@ -458,10 +459,11 @@ func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
 		objectStore: objectstore.NewFake(),
 	}
 
+	isbn := "9780140449112"
 	proposals, unresolved := svc.fetchByISBN(
 		context.Background(),
 		logging.NewNopLogger(),
-		"9780140449112",
+		models.Book{ISBN13: &isbn}, //nolint:exhaustruct // partial
 		nil,
 	)
 	assert.Empty(t, proposals)
@@ -494,8 +496,10 @@ func TestFetchByISBN_GoogleBooksErrors_MarkedUnresolved(t *testing.T) {
 	gb := &fakeGBClient{err: errors.New("boom")}
 	svc := gbSvc(olClient, gb)
 
+	isbn := "9780140449112"
 	proposals, unresolved := svc.fetchByISBN(
-		context.Background(), logging.NewNopLogger(), "9780140449112", nil,
+		context.Background(), logging.NewNopLogger(),
+		models.Book{ISBN13: &isbn}, nil, //nolint:exhaustruct // partial
 	)
 	require.Len(t, proposals, 1, "OL still succeeds independently of GB's error")
 	assert.True(t, unresolved["googlebooks"],
@@ -513,8 +517,10 @@ func TestFetchByISBN_GoogleBooksKnown_SkippedAndUnresolved(t *testing.T) {
 		gbExceeded: &atomic.Bool{},
 	}
 
+	isbn := "9780140449112"
 	proposals, unresolved := svc.fetchByISBN(
-		context.Background(), logging.NewNopLogger(), "9780140449112", opts,
+		context.Background(), logging.NewNopLogger(),
+		models.Book{ISBN13: &isbn}, opts, //nolint:exhaustruct // partial
 	)
 	assert.Empty(t, proposals)
 	assert.True(t, unresolved["googlebooks"], "a skipped source must be unresolved")
@@ -650,8 +656,10 @@ func TestFetchByISBN_GoogleBooksBreakerTripped_SkipsCall(t *testing.T) {
 	tripped.Store(true)
 	opts := &scanOptions{gbExceeded: tripped} //nolint:exhaustruct // partial
 
+	isbn := "9780140449112"
 	_, unresolved := svc.fetchByISBN(
-		context.Background(), logging.NewNopLogger(), "9780140449112", opts,
+		context.Background(), logging.NewNopLogger(),
+		models.Book{ISBN13: &isbn}, opts, //nolint:exhaustruct // partial
 	)
 	assert.True(t, unresolved["googlebooks"])
 	assert.Zero(t, gb.calls.Load(), "a tripped breaker must skip the call entirely")
@@ -664,8 +672,10 @@ func TestFetchByISBN_GoogleBooksRateLimited_TripsBreaker(t *testing.T) {
 	svc := gbSvc(olClient, gb)
 	opts := &scanOptions{gbExceeded: &atomic.Bool{}} //nolint:exhaustruct // partial
 
+	isbn := "9780140449112"
 	_, unresolved := svc.fetchByISBN(
-		context.Background(), logging.NewNopLogger(), "9780140449112", opts,
+		context.Background(), logging.NewNopLogger(),
+		models.Book{ISBN13: &isbn}, opts, //nolint:exhaustruct // partial
 	)
 	assert.True(t, unresolved["googlebooks"])
 	assert.True(

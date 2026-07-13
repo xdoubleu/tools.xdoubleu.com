@@ -453,7 +453,7 @@ func (s *BookService) fetchSourceProposals(
 	opts *scanOptions,
 ) ([]SourceProposal, map[string]bool) {
 	if book.ISBN13 != nil && *book.ISBN13 != "" {
-		return s.fetchByISBN(ctx, logger, *book.ISBN13, opts)
+		return s.fetchByISBN(ctx, logger, book, opts)
 	}
 	if book.Title == "" {
 		return nil, nil
@@ -462,13 +462,17 @@ func (s *BookService) fetchSourceProposals(
 }
 
 // fetchByISBN queries every configured provider's GetByISBN independently and
-// keeps every result — no fallback chaining, each provider stands on its own.
+// keeps every result — no fallback chaining, each provider stands on its own,
+// except Hardcover: its edition-level ISBN coverage is sparse compared to its
+// Typesense work index (see fetchHardcoverByISBN), so it alone falls back to a
+// guarded title+author search on a miss.
 func (s *BookService) fetchByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
-	isbn13 string,
+	book models.Book,
 	opts *scanOptions,
 ) ([]SourceProposal, map[string]bool) {
+	isbn13 := *book.ISBN13
 	var out []SourceProposal
 	unresolved := map[string]bool{}
 
@@ -510,7 +514,7 @@ func (s *BookService) fetchByISBN(
 	}
 
 	if s.hardcover != nil {
-		if p, unres := s.fetchHardcoverByISBN(ctx, logger, isbn13, opts); unres {
+		if p, unres := s.fetchHardcoverByISBN(ctx, logger, book, opts); unres {
 			unresolved["hardcover"] = true
 		} else if p != nil {
 			out = append(out, *p)
@@ -562,16 +566,23 @@ func (s *BookService) fetchUniCatByISBN(
 // only the skip-if-known cache gates it (like Open Library and UniCat).
 // Returns the proposal (nil if Hardcover has no match) and whether the source
 // is unresolved this pass (skipped or errored) — see recordScanStatus.
+//
+// On an ISBN miss, falls back to a guarded title+author search: Hardcover's
+// edition-level ISBN coverage is sparse (niche/non-US/self-published editions
+// are often absent from its editions table), while its Typesense work index —
+// the same one "Search with these terms" uses — is comprehensive. Without
+// this, a book Hardcover indexes by title never gets a resync proposal at all.
 func (s *BookService) fetchHardcoverByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
-	isbn13 string,
+	book models.Book,
 	opts *scanOptions,
 ) (*SourceProposal, bool) {
 	if opts.skipKnown("hardcover") {
 		return nil, true
 	}
 
+	isbn13 := *book.ISBN13
 	hcDetail, hcErr := s.hardcover.GetByISBN(ctx, isbn13)
 	if hcErr != nil && !errors.Is(hcErr, hardcover.ErrNotFound) {
 		logger.WarnContext(ctx, "hardcover ISBN lookup failed",
@@ -579,7 +590,7 @@ func (s *BookService) fetchHardcoverByISBN(
 		return nil, true
 	}
 	if hcDetail == nil {
-		return nil, false
+		return s.fetchHardcoverBySearchFallback(ctx, logger, book)
 	}
 
 	p := newSourceProposalFromCandidate("hardcover", titleOnlyCandidate{
@@ -587,6 +598,36 @@ func (s *BookService) fetchHardcoverByISBN(
 		coverURL: hcDetail.CoverURL, description: hcDetail.Description,
 		pageCount: hcDetail.PageCount,
 	})
+	return &p, false
+}
+
+// fetchHardcoverBySearchFallback runs a guarded title+author search when
+// Hardcover's ISBN lookup misses. Matched with the same matchSearchResult
+// guard the title-search resync path uses, so an unrelated same-titled book
+// is never proposed.
+func (s *BookService) fetchHardcoverBySearchFallback(
+	ctx context.Context,
+	logger *slog.Logger,
+	book models.Book,
+) (*SourceProposal, bool) {
+	if book.Title == "" {
+		return nil, false
+	}
+
+	results, err := s.hardcover.Search(
+		ctx, buildSearchQuery(book.Title, book.Authors),
+	)
+	if err != nil {
+		logger.WarnContext(ctx, "hardcover search fallback failed",
+			slog.String("title", book.Title), slog.Any("error", err))
+		return nil, true
+	}
+
+	m, ok := matchSearchResult(book, hcCandidates(results))
+	if !ok {
+		return nil, false
+	}
+	p := newSourceProposalFromCandidate("hardcover", m)
 	return &p, false
 }
 

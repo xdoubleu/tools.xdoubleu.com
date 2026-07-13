@@ -261,9 +261,11 @@ func TestSearch_PreservesRelevanceOrder(t *testing.T) {
 	assert.Equal(t, "Least Relevant", results[1].Title)
 }
 
-// TestSearch_SendsPlainQuery verifies the extracted title is sent as-is (no
-// ILIKE wildcards) as the Typesense search query variable.
-func TestSearch_SendsPlainQuery(t *testing.T) {
+// TestSearch_SendsTitleAndAuthor verifies the Typesense query includes both
+// the title and author (not title-only) so that a same-titled but different
+// book cannot outrank the real match — a past regression where Hardcover's
+// extractTitle silently dropped the inauthor: token.
+func TestSearch_SendsTitleAndAuthor(t *testing.T) {
 	var captured struct {
 		Variables map[string]any `json:"variables"`
 	}
@@ -278,6 +280,28 @@ func TestSearch_SendsPlainQuery(t *testing.T) {
 
 	c := hardcover.New(logging.NewNopLogger(), "token")
 	_, err := c.Search(context.Background(), `intitle:"Dune" inauthor:"Herbert"`)
+	require.NoError(t, err)
+	assert.Equal(t, "Dune Herbert", captured.Variables["query"])
+}
+
+// TestSearch_NoAuthor_SendsTitleOnly verifies an authorless query still
+// searches (title-only), matching buildSearchQuery's output for books with
+// no known author.
+func TestSearch_NoAuthor_SendsTitleOnly(t *testing.T) {
+	var captured struct {
+		Variables map[string]any `json:"variables"`
+	}
+	cleanup := buildServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewDecoder(r.Body).Decode(&captured)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(json.RawMessage(`{"data":{"search":{"ids":[]}}}`))
+		}),
+	)
+	defer cleanup()
+
+	c := hardcover.New(logging.NewNopLogger(), "token")
+	_, err := c.Search(context.Background(), `intitle:"Dune"`)
 	require.NoError(t, err)
 	assert.Equal(t, "Dune", captured.Variables["query"])
 }

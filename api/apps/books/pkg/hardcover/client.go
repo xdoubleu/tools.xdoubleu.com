@@ -135,14 +135,14 @@ func (c client) Search(
 	ctx context.Context,
 	query string,
 ) ([]ExternalBook, error) {
-	title := extractTitle(query)
-	if title == "" {
+	terms := extractSearchTerms(query)
+	if terms == "" {
 		return nil, nil
 	}
 
 	var idsResp searchIDsResponse
 	err := c.post(ctx, searchIDsQuery, map[string]any{
-		"query":   title,
+		"query":   terms,
 		"perPage": searchLimit,
 	}, &idsResp)
 	if err != nil {
@@ -250,10 +250,27 @@ func graphQLErr(errs []graphQLError) error {
 	return fmt.Errorf("hardcover GraphQL error: %s", strings.Join(msgs, "; "))
 }
 
-// extractTitle pulls the title out of an intitle:"..." query token. Returns ""
-// when no quoted title is present (caller should skip the search).
-func extractTitle(query string) string {
-	const prefix = `intitle:"`
+// extractSearchTerms builds Hardcover's Typesense free-text query from a
+// buildSearchQuery-style string ("intitle:\"...\" inauthor:\"...\""):
+// title and author (when present) joined by a space. Hardcover's search()
+// takes plain text, not the intitle:/inauthor: field syntax other providers
+// accept, so both tokens must be extracted and merged into one term set —
+// title alone lets a same-titled but different book outrank the real match.
+// Returns "" when no title token is present (caller should skip the search).
+func extractSearchTerms(query string) string {
+	title := extractQuotedField(query, "intitle:\"")
+	if title == "" {
+		return ""
+	}
+	if author := extractQuotedField(query, "inauthor:\""); author != "" {
+		return title + " " + author
+	}
+	return title
+}
+
+// extractQuotedField pulls the quoted value out of a "prefix"..."value"...
+// token. Returns "" when prefix isn't present or its quote is unterminated.
+func extractQuotedField(query, prefix string) string {
 	idx := strings.Index(query, prefix)
 	if idx < 0 {
 		return ""
