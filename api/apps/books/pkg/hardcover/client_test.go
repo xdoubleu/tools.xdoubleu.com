@@ -261,11 +261,15 @@ func TestSearch_PreservesRelevanceOrder(t *testing.T) {
 	assert.Equal(t, "Least Relevant", results[1].Title)
 }
 
-// TestSearch_SendsTitleAndAuthor verifies the Typesense query includes both
-// the title and author (not title-only) so that a same-titled but different
-// book cannot outrank the real match — a past regression where Hardcover's
-// extractTitle silently dropped the inauthor: token.
-func TestSearch_SendsTitleAndAuthor(t *testing.T) {
+// TestSearch_DropsAuthor_SendsTitleOnly verifies the Typesense query is
+// title-only even when the caller's query has an inauthor: token. Hardcover's
+// Typesense index weights the title field highest, so appending the author
+// as free text surfaces books whose *title* contains the author name (e.g.
+// critical companions like "Emily Brontë: Wuthering Heights") above the real
+// work — confirmed against the live API for "Wuthering Heights"/"Emily
+// Bronte", where the combined query dropped the actual novel from the top 5
+// entirely. Author disambiguation happens after the fetch (titleAuthorMatch).
+func TestSearch_DropsAuthor_SendsTitleOnly(t *testing.T) {
 	var captured struct {
 		Variables map[string]any `json:"variables"`
 	}
@@ -281,7 +285,7 @@ func TestSearch_SendsTitleAndAuthor(t *testing.T) {
 	c := hardcover.New(logging.NewNopLogger(), "token")
 	_, err := c.Search(context.Background(), `intitle:"Dune" inauthor:"Herbert"`)
 	require.NoError(t, err)
-	assert.Equal(t, "Dune Herbert", captured.Variables["query"])
+	assert.Equal(t, "Dune", captured.Variables["query"])
 }
 
 // TestSearch_NoAuthor_SendsTitleOnly verifies an authorless query still
