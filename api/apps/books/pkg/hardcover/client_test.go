@@ -215,9 +215,9 @@ func TestGetByISBN_TooManyRequests_Retries(t *testing.T) {
 func TestSearch_ReturnsResults(t *testing.T) {
 	books := searchResponse(t, []bookFixture{
 		//nolint:exhaustruct // only fields under test
-		{Title: "Space Odyssey", Authors: []string{"Clarke"}, Pages: 221},
+		{ID: 1, Title: "Space Odyssey", Authors: []string{"Clarke"}, Pages: 221},
 		//nolint:exhaustruct // only fields under test
-		{Title: "Another Book", Authors: []string{"Smith"}},
+		{ID: 2, Title: "Another Book", Authors: []string{"Smith"}},
 	})
 
 	cleanup := buildServer(searchIDsThenBooksHandler(t, []int{1, 2}, books))
@@ -234,6 +234,31 @@ func TestSearch_ReturnsResults(t *testing.T) {
 	assert.Equal(t, []string{"Clarke"}, results[0].Authors)
 	require.NotNil(t, results[0].PageCount)
 	assert.Equal(t, 221, *results[0].PageCount)
+}
+
+// TestSearch_PreservesRelevanceOrder guards against the regression where
+// booksByIDsQuery (which has no order_by) returns rows in Hasura's own
+// default order instead of the Typesense relevance order the IDs arrived in.
+// Search must reorder the hydrated books back to that relevance order.
+func TestSearch_PreservesRelevanceOrder(t *testing.T) {
+	// Typesense ranks id 2 first, but the books-by-id response comes back in
+	// ascending-id order (id 1 first) — the order Hasura defaults to.
+	books := searchResponse(t, []bookFixture{
+		//nolint:exhaustruct // only fields under test
+		{ID: 1, Title: "Least Relevant"},
+		//nolint:exhaustruct // only fields under test
+		{ID: 2, Title: "Most Relevant"},
+	})
+
+	cleanup := buildServer(searchIDsThenBooksHandler(t, []int{2, 1}, books))
+	defer cleanup()
+
+	c := hardcover.New(logging.NewNopLogger(), "token")
+	results, err := c.Search(context.Background(), `intitle:"query"`)
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	assert.Equal(t, "Most Relevant", results[0].Title)
+	assert.Equal(t, "Least Relevant", results[1].Title)
 }
 
 // TestSearch_SendsPlainQuery verifies the extracted title is sent as-is (no
@@ -387,6 +412,7 @@ type editionFixture struct {
 }
 
 type bookFixture struct {
+	ID      int
 	Title   string
 	Authors []string
 	Desc    string
@@ -408,6 +434,7 @@ func contributorsJSON(authors []string, flat bool) []map[string]any {
 
 func bookJSON(f bookFixture) map[string]any {
 	b := map[string]any{
+		"id":                  f.ID,
 		"title":               f.Title,
 		"description":         f.Desc,
 		"pages":               f.Pages,
