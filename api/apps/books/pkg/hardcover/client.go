@@ -77,21 +77,21 @@ type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
 	limiter    *rate.Limiter
-	apiToken   string
+	apiKey     string
 }
 
-// New creates a Hardcover client. apiToken is the Bearer JWT from the
-// Hardcover account settings page; an empty token still constructs a client but
-// every request will be rejected by Hardcover — callers should leave the client
-// nil when no token is configured.
-func New(logger *slog.Logger, apiToken string) Client {
+// New creates a Hardcover client. apiKey is the Bearer JWT from the Hardcover
+// account settings page; an empty key still constructs a client but every
+// request will be rejected by Hardcover — callers should leave the client nil
+// when no key is configured.
+func New(logger *slog.Logger, apiKey string) Client {
 	return client{
 		logger: logger,
 		httpClient: &http.Client{
 			Timeout: apiTimeout,
 		},
-		limiter:  rate.NewLimiter(requestsPerSecond, burst),
-		apiToken: apiToken,
+		limiter: rate.NewLimiter(requestsPerSecond, burst),
+		apiKey:  apiKey,
 	}
 }
 
@@ -257,8 +257,8 @@ func (c client) post(
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json")
-		if c.apiToken != "" {
-			req.Header.Set("Authorization", "Bearer "+c.apiToken)
+		if c.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+c.apiKey)
 		}
 
 		resp, doErr := c.httpClient.Do(req)

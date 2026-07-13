@@ -12,8 +12,8 @@ var ErrNotFound = errors.New("hardcover: book not found")
 // enrichment. Hardcover (https://hardcover.app) exposes a Hasura GraphQL API at
 // https://api.hardcover.app/v1/graphql. Unlike Google Books it has no daily
 // quota — only a 60 requests/minute rate limit — so it needs no daily-quota
-// circuit breaker in the resync orchestration. A free API token (a Bearer JWT,
-// taken from the account settings page) is required; the token expires roughly
+// circuit breaker in the resync orchestration. A free API key (a Bearer JWT,
+// taken from the account settings page) is required; the key expires roughly
 // yearly and must be refreshed.
 type Client interface {
 	// Search queries Hardcover for books matching query (the same

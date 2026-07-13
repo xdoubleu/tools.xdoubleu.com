@@ -66,12 +66,12 @@ func New(
 	// unauthenticated tier), so leave the client nil when unset — the resync
 	// orchestration nil-checks every non-OpenLibrary provider.
 	var hardcoverClient hardcover.Client
-	if cfg.HardcoverAPIToken == "" {
+	if cfg.HardcoverAPIKey == "" {
 		logger.Warn(
-			"HARDCOVER_API_TOKEN is not set — Hardcover metadata source is disabled",
+			"HARDCOVER_API_KEY is not set — Hardcover metadata source is disabled",
 		)
 	} else {
-		hardcoverClient = hardcover.New(logger, cfg.HardcoverAPIToken)
+		hardcoverClient = hardcover.New(logger, cfg.HardcoverAPIKey)
 	}
 
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
