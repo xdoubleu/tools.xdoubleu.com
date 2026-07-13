@@ -250,22 +250,16 @@ func graphQLErr(errs []graphQLError) error {
 	return fmt.Errorf("hardcover GraphQL error: %s", strings.Join(msgs, "; "))
 }
 
-// extractSearchTerms builds Hardcover's Typesense free-text query from a
-// buildSearchQuery-style string ("intitle:\"...\" inauthor:\"...\""):
-// title and author (when present) joined by a space. Hardcover's search()
-// takes plain text, not the intitle:/inauthor: field syntax other providers
-// accept, so both tokens must be extracted and merged into one term set —
-// title alone lets a same-titled but different book outrank the real match.
+// extractSearchTerms pulls the title out of a buildSearchQuery-style string
+// ("intitle:\"...\" inauthor:\"...\"") for Hardcover's plain-text Typesense
+// query. Only the title is used: Typesense weights the title field highest,
+// so appending the author surfaces books whose *title* contains the author
+// name (e.g. critical companions like "Emily Brontë: Wuthering Heights")
+// above the real work. Author disambiguation happens after the fetch
+// (titleAuthorMatch in the caller's guarded path).
 // Returns "" when no title token is present (caller should skip the search).
 func extractSearchTerms(query string) string {
-	title := extractQuotedField(query, "intitle:\"")
-	if title == "" {
-		return ""
-	}
-	if author := extractQuotedField(query, "inauthor:\""); author != "" {
-		return title + " " + author
-	}
-	return title
+	return extractQuotedField(query, "intitle:\"")
 }
 
 // extractQuotedField pulls the quoted value out of a "prefix"..."value"...
