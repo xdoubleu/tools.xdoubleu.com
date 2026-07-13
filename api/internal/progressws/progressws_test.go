@@ -32,7 +32,7 @@ func newTestService(t *testing.T) *progressws.Service {
 func TestUpdateProgress_UnknownTopic(t *testing.T) {
 	svc := newTestService(t)
 	// Must not panic — topic "unknown" was never registered.
-	svc.UpdateProgress("unknown", 5, 10, false)
+	svc.UpdateProgress("unknown", 5, 10)
 }
 
 // TestUpdateState_UnknownTopic verifies the symmetric no-op for UpdateState.

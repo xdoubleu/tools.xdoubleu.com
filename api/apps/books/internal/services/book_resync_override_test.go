@@ -13,7 +13,6 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
-	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
@@ -38,8 +37,9 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 		external: &multiISBNOLClient{results: map[string]*openlibrary.ExternalBook{
 			isbn: {Title: "Found In OL Only"},
 		}},
-		//nolint:exhaustruct // partial
-		googleBooks: &fakeGBClient{err: googlebooks.ErrNotFound},
+		//nolint:exhaustruct // zero-value: byISBN nil -> ErrNotFound, empty
+		// search fallback -> a clean, resolved "not found" (not unresolved)
+		hardcover:   &fakeHCClient{},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -53,10 +53,9 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 	assert.Equal(t, id, call.bookID)
 	require.NotNil(t, call.olFound)
 	assert.True(t, *call.olFound)
-	require.NotNil(t, call.gbFound)
-	assert.False(t, *call.gbFound)
+	require.NotNil(t, call.hcFound)
+	assert.False(t, *call.hcFound)
 	assert.Nil(t, call.ucFound, "unconfigured provider must record NULL")
-	assert.Nil(t, call.hcFound, "unconfigured provider must record NULL")
 }
 
 // TestBuildResyncProposals_Hardcover_FoundByISBN verifies the hardcover branch:
@@ -119,8 +118,8 @@ func TestBuildResyncProposals_ScanStatus_UnsearchableAllNil(t *testing.T) {
 		"last_resync_at must still be bumped for unsearchable books")
 	call := repo.scanStatusCalls[0]
 	assert.Nil(t, call.olFound)
-	assert.Nil(t, call.gbFound)
 	assert.Nil(t, call.ucFound)
+	assert.Nil(t, call.hcFound)
 }
 
 func TestBuildResyncProposals_ScanStatusError_NonFatal(t *testing.T) {

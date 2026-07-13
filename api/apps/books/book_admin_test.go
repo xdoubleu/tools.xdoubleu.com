@@ -51,7 +51,6 @@ func newAdminBooksTestClient(t *testing.T) booksTestClient {
 		testDB,
 		books.Clients{
 			OpenLibrary:      nil,
-			GoogleBooks:      nil,
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),

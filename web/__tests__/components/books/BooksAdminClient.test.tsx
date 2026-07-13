@@ -7,7 +7,6 @@ const mockUseResyncRefresh = jest.fn().mockReturnValue({
   lastRefresh: null,
   processed: null,
   total: null,
-  quotaReached: false,
   refresh: jest.fn()
 })
 
@@ -96,7 +95,6 @@ describe('BooksAdminClient', () => {
       lastRefresh: null,
       processed: 10,
       total: 100,
-      quotaReached: false,
       refresh: jest.fn()
     })
     render(<BooksAdminClient />)
@@ -104,19 +102,5 @@ describe('BooksAdminClient', () => {
     const stopBtn = screen.getByTestId('resync-cancel-btn')
     fireEvent.click(stopBtn)
     expect(mockCancelResync).toHaveBeenCalledTimes(1)
-  })
-
-  it('shows a quota-reached notice when the resync hook reports one', () => {
-    mockUseResyncRefresh.mockReturnValueOnce({
-      connected: true,
-      isRefreshing: true,
-      lastRefresh: null,
-      processed: 500,
-      total: 1000,
-      quotaReached: true,
-      refresh: jest.fn()
-    })
-    render(<BooksAdminClient />)
-    expect(screen.getByTestId('resync-quota-reached')).toBeInTheDocument()
   })
 })

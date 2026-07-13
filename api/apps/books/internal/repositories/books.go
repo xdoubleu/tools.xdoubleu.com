@@ -794,49 +794,39 @@ func (repo *BooksRepository) RefreshBookExternalData(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// UpdateResyncScanStatus records one scan pass's per-source found flags and
-// bumps last_resync_at. Nil flags mean "provider not configured" or "book not
-// searchable" and write NULL.
 // UpdateResyncScanStatus records one scan pass's per-source found flags. A
 // nil flag means the source wasn't resolved this pass — not configured, not
-// attempted, skipped because already known, or its call errored (including a
-// throttled Google Books lookup) — and must leave the column unchanged
-// (COALESCE) rather than overwrite a previously-known value with NULL/false.
-// Only a source that was actually queried and answered this pass writes a
-// fresh true/false.
+// attempted, skipped because already known, or its call errored — and must
+// leave the column unchanged (COALESCE) rather than overwrite a
+// previously-known value with NULL/false. Only a source that was actually
+// queried and answered this pass writes a fresh true/false.
 func (repo *BooksRepository) UpdateResyncScanStatus(
 	ctx context.Context,
 	bookID uuid.UUID,
 	openLibraryFound *bool,
-	googleBooksFound *bool,
 	uniCatFound *bool,
 	hardcoverFound *bool,
 ) error {
 	query := `
 		UPDATE books.books
 		SET openlibrary_found = COALESCE($2, openlibrary_found),
-		    googlebooks_found = COALESCE($3, googlebooks_found),
-		    unicat_found      = COALESCE($4, unicat_found),
-		    hardcover_found   = COALESCE($5, hardcover_found),
+		    unicat_found      = COALESCE($3, unicat_found),
+		    hardcover_found   = COALESCE($4, hardcover_found),
 		    last_resync_at    = now()
 		WHERE id = $1
 	`
 	_, err := repo.db.Exec(
 		ctx, query,
-		bookID, openLibraryFound, googleBooksFound, uniCatFound, hardcoverFound,
+		bookID, openLibraryFound, uniCatFound, hardcoverFound,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
 // ListCatalogBooks returns all catalog books ordered least-covered-first (by
 // count of sources with a confirmed found = true), then title. Used by the
-// admin resync wizard scan: Google Books has a ~1000/day free-tier quota, so
-// once a full-catalog force resync trips its circuit breaker (see
-// BuildResyncProposals), whatever books are left in the scan order never get
-// a GB check that run. Alphabetical order let that quota starve the tail of
-// the catalog; ordering by coverage gap instead spends the budget on the
-// books that most need it — never-scanned and not-yet-found books sort
-// first, already-well-covered books last.
+// admin resync wizard scan so a run that's interrupted or rate-limited
+// spends its budget on the books that most need it — never-scanned and
+// not-yet-found books sort first, already-well-covered books last.
 func (repo *BooksRepository) ListCatalogBooks(
 	ctx context.Context,
 ) ([]models.Book, error) {
@@ -845,7 +835,6 @@ func (repo *BooksRepository) ListCatalogBooks(
 		FROM books.books
 		ORDER BY (
 			(openlibrary_found IS TRUE)::int +
-			(googlebooks_found IS TRUE)::int +
 			(unicat_found IS TRUE)::int +
 			(hardcover_found IS TRUE)::int
 		), title
@@ -878,7 +867,6 @@ func (repo *BooksRepository) ListCatalogBooks(
 //nolint:gochecknoglobals // fixed lookup table, never mutated
 var sourceColumns = map[string]string{
 	"openlibrary": "openlibrary_found",
-	"googlebooks": "googlebooks_found",
 	"unicat":      "unicat_found",
 	"hardcover":   "hardcover_found",
 }

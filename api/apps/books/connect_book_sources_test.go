@@ -24,7 +24,7 @@ import (
 // newAdminBooksTestClientWithMockSources is like newAdminBooksTestClient but
 // wires the mocked Open Library client (always "The Odyssey" by Homer)
 // instead of nil, so GetBookSources/ApplyBookSource's live fetch has
-// something to find. Google Books and UniCat are wired to empty (not nil)
+// something to find. UniCat and Hardcover are wired to empty (not nil)
 // mocks — configured but confirmed-absent — matching production, where all
 // three sources are always configured; a genuinely nil client would leave
 // its found flag NULL (unresolved) forever, and GetSourceStats' IS TRUE/IS
@@ -42,7 +42,6 @@ func newAdminBooksTestClientWithMockSources(
 		testDB,
 		books.Clients{
 			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
-			GoogleBooks:      mocks.NewMockEmptyGoogleBooksClient(),
 			UniCat:           mocks.NewMockEmptyUniCatClient(),
 			Hardcover:        mocks.NewMockEmptyHardcoverClient(),
 			ObjectStore:      objectstore.NewFake(),
@@ -56,9 +55,9 @@ func newAdminBooksTestClientWithMockSources(
 }
 
 // newAdminBooksTestClientWithTwoSources wires the mocked Open Library and
-// Google Books clients (both resolve any ISBN to their own canned book) plus
+// Hardcover clients (both resolve any ISBN to their own canned book) plus
 // an empty (confirmed-absent, not nil — see newAdminBooksTestClientWithMockSources)
-// UniCat client, so a scanned ISBN'd book is found by exactly OL+GB — used to
+// UniCat client, so a scanned ISBN'd book is found by exactly OL+HC — used to
 // exercise the source-stats overlap combos. Returns the app too, for driving
 // a scan through its own service.
 func newAdminBooksTestClientWithTwoSources(
@@ -72,9 +71,8 @@ func newAdminBooksTestClientWithTwoSources(
 		testDB,
 		books.Clients{
 			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
-			GoogleBooks:      mocks.NewMockGoogleBooksClient(),
 			UniCat:           mocks.NewMockEmptyUniCatClient(),
-			Hardcover:        mocks.NewMockEmptyHardcoverClient(),
+			Hardcover:        mocks.NewMockHardcoverClient(),
 			ObjectStore:      objectstore.NewFake(),
 			PublicAPIBaseURL: "",
 			KoboStoreBaseURL: "",
@@ -306,7 +304,7 @@ func TestApplyBookSource_Admin_UnknownSource_NotFound(t *testing.T) {
 	client, _ := newAdminBooksTestClientWithMockSources(t)
 	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
 		BookId: ub.BookID.String(),
-		Source: "googlebooks", // mock GB is configured but always confirmed-absent
+		Source: "hardcover", // mock HC is configured but always confirmed-absent
 	})
 	req.Header().Set("Cookie", accessToken.String())
 

@@ -303,9 +303,10 @@ func parseLeadingInt(s string) int {
 	return 0
 }
 
-// buildCQL converts a Google Books-style intitle/inauthor query string into a
-// CQL query suitable for the UniCat SRU endpoint. Returns "" when no title can
-// be extracted (caller should skip the search).
+// buildCQL converts this package's intitle/inauthor query string format (see
+// buildSearchQuery in book_resync.go) into a CQL query suitable for the
+// UniCat SRU endpoint. Returns "" when no title can be extracted (caller
+// should skip the search).
 func buildCQL(query string) string {
 	title := extractQuoted(query, "intitle")
 	author := extractQuoted(query, "inauthor")

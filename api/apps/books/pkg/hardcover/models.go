@@ -2,8 +2,8 @@ package hardcover
 
 // ExternalBook is the normalised representation returned by this package.
 // Fields are nil/empty when the Hardcover record has no value for them. The
-// shape matches googlebooks.ExternalBook so the resync candidate mapping is
-// identical across providers.
+// shape matches the other provider packages' ExternalBook so the resync
+// candidate mapping is identical across providers.
 type ExternalBook struct {
 	Title    string
 	Authors  []string

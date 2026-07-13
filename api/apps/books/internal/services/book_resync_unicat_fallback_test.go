@@ -168,7 +168,7 @@ func TestFetchUniCatByISBN_SkipKnown(t *testing.T) {
 		uniCat:      &fakeUCClient{}, //nolint:exhaustruct // partial
 		objectStore: objectstore.NewFake(),
 	}
-	opts := &scanOptions{ //nolint:exhaustruct // partial
+	opts := &scanOptions{
 		known: map[string]bool{"unicat": true},
 	}
 
@@ -181,7 +181,7 @@ func TestFetchUniCatByISBN_SkipKnown(t *testing.T) {
 
 // TestFetchByISBN_UniCatUnresolved_PropagatesToOutput verifies fetchByISBN's
 // UniCat dispatch surfaces an unresolved source (skip-known here) rather than
-// silently dropping it, matching Hardcover's and Google Books' dispatch.
+// silently dropping it, matching Hardcover's and OpenLibrary's dispatch.
 func TestFetchByISBN_UniCatUnresolved_PropagatesToOutput(t *testing.T) {
 	isbn := "9789463107389"
 	svc := &BookService{ //nolint:exhaustruct // partial
@@ -191,7 +191,7 @@ func TestFetchByISBN_UniCatUnresolved_PropagatesToOutput(t *testing.T) {
 		uniCat:      &fakeUCClient{}, //nolint:exhaustruct // partial
 		objectStore: objectstore.NewFake(),
 	}
-	opts := &scanOptions{ //nolint:exhaustruct // partial
+	opts := &scanOptions{
 		known: map[string]bool{"unicat": true},
 	}
 

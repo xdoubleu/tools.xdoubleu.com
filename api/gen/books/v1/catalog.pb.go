@@ -388,9 +388,9 @@ func (x *MergeBooksResponse) GetDeletedFiles() uint32 {
 
 type StartResyncRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Force re-queries every source (Open Library, Google Books, UniCat,
-	// Hardcover) for every book, ignoring the skip-if-known cache
-	// (openlibrary_found / googlebooks_found / unicat_found / hardcover_found).
+	// Force re-queries every source (Open Library, UniCat, Hardcover) for
+	// every book, ignoring the skip-if-known cache
+	// (openlibrary_found / unicat_found / hardcover_found).
 	// Use to recover books stuck unresolved after a rate-limit trip or a stale
 	// cached miss.
 	Force         bool `protobuf:"varint,1,opt,name=force,proto3" json:"force,omitempty"`
@@ -548,7 +548,7 @@ func (*CancelResyncResponse) Descriptor() ([]byte, []int) {
 
 // SourceBook is one candidate set of metadata for a catalog book — either the
 // current library values (source = "") or one external provider's proposal
-// (source = "openlibrary" | "googlebooks" | "unicat" | "hardcover").
+// (source = "openlibrary" | "unicat" | "hardcover").
 type SourceBook struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Source      string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
@@ -811,7 +811,7 @@ type ApplyResyncChoiceRequest struct {
 	BookId string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
 	// source selects which SourceBook wins: "" keeps the library row unchanged
 	// (and simply dismisses the proposal), or one of
-	// "openlibrary" | "googlebooks" | "unicat" | "hardcover".
+	// "openlibrary" | "unicat" | "hardcover".
 	Source        string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1102,7 +1102,7 @@ type ApplyBookSourceRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	BookId string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
 	// source selects which source wins: one of
-	// "openlibrary" | "googlebooks" | "unicat" | "hardcover".
+	// "openlibrary" | "unicat" | "hardcover".
 	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	// Must repeat the override used in GetBookSources so the apply-time
 	// re-fetch finds the same candidates.
@@ -1257,7 +1257,7 @@ func (*GetSourceStatsRequest) Descriptor() ([]byte, []int) {
 
 type SourceStat struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "openlibrary" | "googlebooks" | "unicat" | "hardcover"
+	// "openlibrary" | "unicat" | "hardcover"
 	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	// Books the last scan found in this source (coverage).
 	FoundCount int32 `protobuf:"varint,2,opt,name=found_count,json=foundCount,proto3" json:"found_count,omitempty"`
@@ -1329,11 +1329,11 @@ func (x *SourceStat) GetMissedCount() int32 {
 }
 
 // SourceComboStat reports how many books were found by exactly this set of
-// two to four sources (a genuine overlap) — the complement of SourceStat's
+// two or three sources (a genuine overlap) — the complement of SourceStat's
 // unique_count, which is the one-source case.
 type SourceComboStat struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "openlibrary" | "googlebooks" | "unicat" | "hardcover", 2 to 4 entries.
+	// "openlibrary" | "unicat" | "hardcover", 2 to 3 entries.
 	Sources       []string `protobuf:"bytes,1,rep,name=sources,proto3" json:"sources,omitempty"`
 	Count         int32    `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1392,7 +1392,7 @@ type GetSourceStatsResponse struct {
 	NotFoundAnywhere int32 `protobuf:"varint,3,opt,name=not_found_anywhere,json=notFoundAnywhere,proto3" json:"not_found_anywhere,omitempty"`
 	// Never processed by a scan (last_resync_at IS NULL).
 	NeverScanned int32 `protobuf:"varint,4,opt,name=never_scanned,json=neverScanned,proto3" json:"never_scanned,omitempty"`
-	// Every 2-source and the 3-source overlap combo, size >= 2 only.
+	// Every 2-source combo and the 3-source overlap, size >= 2 only.
 	Overlaps []*SourceComboStat `protobuf:"bytes,5,rep,name=overlaps,proto3" json:"overlaps,omitempty"`
 	// The mirror of overlaps: books missed by exactly this set of sources (those
 	// sources IS FALSE, every other source IS TRUE). Same partition model as
@@ -1480,7 +1480,7 @@ func (x *GetSourceStatsResponse) GetMissedOverlaps() []*SourceComboStat {
 // source-stats report.
 type ListBooksInExactSourcesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "openlibrary" | "googlebooks" | "unicat" | "hardcover", 1 to 4 entries.
+	// "openlibrary" | "unicat" | "hardcover", 1 to 3 entries.
 	Sources       []string `protobuf:"bytes,1,rep,name=sources,proto3" json:"sources,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

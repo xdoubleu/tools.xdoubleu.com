@@ -7,7 +7,6 @@ export type ResyncRefreshState = ProgressState
 // "resync-openlibrary" topic. It exposes:
 //   - isRefreshing: true while the scan is running
 //   - processed / total: live "X of N" counts (null until first update)
-//   - quotaReached: true once Google Books' daily quota trips during the run
 //   - lastRefresh: timestamp of the last completed run
 //   - refresh(): trigger a new scan
 //

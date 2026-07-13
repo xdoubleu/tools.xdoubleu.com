@@ -54,7 +54,6 @@ func TestMain(m *testing.M) {
 	fakeStore = objectstore.NewFake()
 	clients := books.Clients{
 		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
-		GoogleBooks:      nil,
 		UniCat:           nil,
 		Hardcover:        nil,
 		ObjectStore:      fakeStore,
@@ -89,7 +88,6 @@ func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 	t.Helper()
 	clients := books.Clients{
 		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
-		GoogleBooks:      nil,
 		UniCat:           nil,
 		Hardcover:        nil,
 		ObjectStore:      objectstore.NewFake(),
