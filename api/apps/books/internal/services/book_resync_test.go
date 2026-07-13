@@ -30,11 +30,11 @@ import (
 // so tests can assert which fields were actually written to the DB.
 type refreshCall struct {
 	bookID         uuid.UUID
-	coverURL       *string
-	description    *string
-	pageCount      *int
-	isbn13         *string
-	title          *string
+	coverURL       string
+	description    string
+	pageCount      int
+	isbn13         string
+	title          string
 	authors        []string
 	metadataSource string
 }
@@ -95,11 +95,11 @@ func (f *fakeBooksResync) GetBookByID(
 func (f *fakeBooksResync) RefreshBookExternalData(
 	_ context.Context,
 	bookID uuid.UUID,
-	coverURL *string,
-	description *string,
-	pageCount *int,
-	isbn13 *string,
-	title *string,
+	coverURL string,
+	description string,
+	pageCount int,
+	isbn13 string,
+	title string,
 	authors []string,
 	metadataSource string,
 ) error {
@@ -957,30 +957,39 @@ func TestComputeDifferences_Rules(t *testing.T) {
 // BuildResyncProposals
 // ---------------------------------------------------------------------------
 
-func TestBuildResyncProposals_FlagsOnlyDiffering(t *testing.T) {
-	idAgree, idDiffer := uuid.New(), uuid.New()
+// TestBuildResyncProposals_FlagsOnlyMoreCompleteSource verifies that a source
+// which merely disagrees (e.g. a different title) is never flagged — only a
+// source that supplies strictly more of the comparable fields than the book
+// currently has is worth surfacing, since applying now replaces the book's
+// metadata wholesale (see applySelectedSource).
+func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
+	idMereDiff, idMoreComplete := uuid.New(), uuid.New()
 	isbnA, isbnB := "9780140449112", "9780062316097"
-	// The library already has a cover, matching the ISBN-keyed fallback OL
-	// falls back to, so the "agree" book truly agrees on every field.
-	coverA := openlibrary.CoverURLByISBN(&isbnA)
+	existingDesc := "Already has a description."
 
 	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
 		books: []models.Book{
+			// Already has title, ISBN, and a description — OL's differing
+			// title/cover-only candidate covers no more fields than this.
+			{ //nolint:exhaustruct // partial
+				ID: idMereDiff, Title: "Has A Description", ISBN13: &isbnA,
+				Description: &existingDesc,
+			},
+			// Missing a description entirely — OL supplies one, a genuine gap-fill.
 			//nolint:exhaustruct // partial
-			{ID: idAgree, Title: "Agreeing Book", ISBN13: &isbnA, CoverURL: &coverA},
-			//nolint:exhaustruct // partial
-			{ID: idDiffer, Title: "Differing Book", ISBN13: &isbnB},
+			{ID: idMoreComplete, Title: "Missing A Description", ISBN13: &isbnB},
 		},
 	}
 
-	// OL returns the same title for the "agree" book but a different one for
-	// the "differ" book.
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
 		external: &multiISBNOLClient{results: map[string]*openlibrary.ExternalBook{
-			isbnA: {Title: "Agreeing Book"},
-			isbnB: {Title: "A Totally Different Title"},
+			isbnA: {Title: "A Totally Different Title"},
+			isbnB: {
+				Title:       "Missing A Description",
+				Description: strPtr("A description OL actually has."),
+			},
 		}},
 		objectStore: objectstore.NewFake(),
 	}
@@ -995,15 +1004,21 @@ func TestBuildResyncProposals_FlagsOnlyDiffering(t *testing.T) {
 		false,
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 1, n, "only the differing book should be flagged")
+	assert.Equal(
+		t,
+		1,
+		n,
+		"only the book a source can genuinely complete should be flagged",
+	)
 	require.Len(t, calls, 3, "one (0,total) call plus one per book")
 	assert.Equal(t, [2]int{0, 2}, calls[0])
 
 	require.Len(t, repo.replaced, 1)
-	_, ok := repo.replaced[idDiffer]
-	assert.True(t, ok, "the differing book must be in the replacement set")
-	_, agreeStillThere := repo.replaced[idAgree]
-	assert.False(t, agreeStillThere, "the agreeing book must not be flagged")
+	_, ok := repo.replaced[idMoreComplete]
+	assert.True(t, ok, "the more-complete-source book must be in the replacement set")
+	_, mereDiffStillThere := repo.replaced[idMereDiff]
+	assert.False(t, mereDiffStillThere,
+		"a source that merely differs, without adding fields, must not be flagged")
 }
 
 // TestBuildResyncProposals_FlagsNotFoundAnywhere verifies that a searchable
@@ -1231,18 +1246,56 @@ func TestApplyResyncChoice_ChosenSource_WritesFields(t *testing.T) {
 
 	require.Len(t, repo.refreshCalls, 1)
 	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.title)
-	assert.Equal(t, "New Title", *rc.title)
-	require.NotNil(t, rc.description)
-	assert.Equal(t, "New desc", *rc.description)
-	require.NotNil(t, rc.pageCount)
-	assert.Equal(t, 42, *rc.pageCount)
+	assert.Equal(t, "New Title", rc.title)
+	assert.Equal(t, "New desc", rc.description)
+	assert.Equal(t, 42, rc.pageCount)
 	assert.Equal(t, "openlibrary", rc.metadataSource,
 		"applying a source must record it as the book's metadata source")
 	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs)
 }
 
-func TestApplyResyncChoice_NeverOverwritesExistingISBN(t *testing.T) {
+func TestApplyResyncChoice_ChosenSource_BlanksFieldsSourceLacks(t *testing.T) {
+	bookID := uuid.New()
+	oldDesc := "Old desc"
+	oldPages := 99
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID:          bookID,
+		Title:       "Old Title",
+		Description: &oldDesc,
+		PageCount:   &oldPages,
+	}
+	// Chosen source supplies only a title — everything else is blank, and
+	// must overwrite the book's existing values rather than leaving them.
+	raw, err := json.Marshal([]SourceProposal{
+		{Source: "googlebooks", Title: "New Title"}, //nolint:exhaustruct // partial
+	})
+	require.NoError(t, err)
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: raw},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		booksResync: repo,
+		objectStore: objectstore.NewFake(),
+	}
+
+	err = svc.ApplyResyncChoice(
+		context.Background(), logging.NewNopLogger(), bookID, "googlebooks",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1)
+	rc := repo.refreshCalls[0]
+	assert.Equal(t, "New Title", rc.title)
+	assert.Empty(t, rc.description,
+		"a field the chosen source doesn't supply must be blanked, not kept")
+	assert.Zero(t, rc.pageCount,
+		"a field the chosen source doesn't supply must be blanked, not kept")
+}
+
+func TestApplyResyncChoice_PassesSourceISBNThrough(t *testing.T) {
 	bookID := uuid.New()
 	existingISBN := "9780140449112"
 	book := models.Book{ //nolint:exhaustruct // partial
@@ -1272,9 +1325,12 @@ func TestApplyResyncChoice_NeverOverwritesExistingISBN(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	// The service passes the chosen source's ISBN straight through — a
+	// title+author match is trusted to overwrite the book's ISBN. The
+	// duplicate-ISBN guard that stops a collision lives in the repository's
+	// SQL (RefreshBookExternalData's NOT EXISTS clause), not here.
 	require.Len(t, repo.refreshCalls, 1)
-	assert.Nil(t, repo.refreshCalls[0].isbn13,
-		"an existing ISBN must never be overwritten by a resync choice")
+	assert.Equal(t, "9780062316097", repo.refreshCalls[0].isbn13)
 }
 
 func TestApplyResyncChoice_UnknownBook_ErrProposalNotFound(t *testing.T) {
@@ -1368,9 +1424,12 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 		Title:  "Old Title",
 		ISBN13: &isbn,
 	}
+	// The on-demand book-page path always matches by title+author search, even
+	// for a book that already has an ISBN (see fetchProposals) — so the
+	// candidate's title must match the book's to pass the search guard.
 	//nolint:exhaustruct // partial
-	olDetail := &openlibrary.ExternalBook{
-		Title:   "New Title",
+	olDetail := openlibrary.ExternalBook{
+		Title:   "Old Title",
 		Authors: []string{"Author"},
 	}
 
@@ -1382,7 +1441,9 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		booksResync: repo,
-		external:    &fakeOLClient{detail: olDetail}, //nolint:exhaustruct // partial
+		external: &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
+			searchResults: []openlibrary.ExternalBook{olDetail},
+		},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -1392,8 +1453,8 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, repo.refreshCalls, 1)
-	require.NotNil(t, repo.refreshCalls[0].title)
-	assert.Equal(t, "New Title", *repo.refreshCalls[0].title)
+	assert.Equal(t, "Old Title", repo.refreshCalls[0].title)
+	assert.Equal(t, []string{"Author"}, repo.refreshCalls[0].authors)
 	assert.Equal(t, "openlibrary", repo.refreshCalls[0].metadataSource)
 	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs,
 		"applying live should also clear any pending wizard proposal")

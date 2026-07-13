@@ -261,8 +261,7 @@ func TestSyncBookSource_Override_AppliesTopResult(t *testing.T) {
 
 	require.Len(t, repo.refreshCalls, 1)
 	rc := repo.refreshCalls[0]
-	require.NotNil(t, rc.title)
-	assert.Equal(t, "Correct Title", *rc.title)
+	assert.Equal(t, "Correct Title", rc.title)
 	assert.Equal(t, "openlibrary", rc.metadataSource)
 }
 

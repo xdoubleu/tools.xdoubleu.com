@@ -45,10 +45,15 @@ func TestConnectStartResync_Force(t *testing.T) {
 }
 
 // TestBuildResyncProposals_Service exercises the service layer end-to-end
-// against the real DB. The test app's mock Open Library client always
-// returns "The Odyssey" by Homer, so a book seeded with a different title
-// must come back flagged. BuildResyncProposals never writes to a book or the
-// cover cache — that only happens through ApplyResyncChoice.
+// against the real DB. AddToLibrary enriches a new book from the same mocked
+// Open Library client resync later queries (see enrichByISBN), so a freshly
+// seeded book already agrees with the mock on every field resync would
+// otherwise supply — a title-only mismatch alone is a mere difference, not a
+// gap, and must not be flagged (see encodeIfFlagged). The test blanks the
+// seeded book's description directly in the DB to create a genuine gap the
+// mock source can fill, so the book is surfaced. BuildResyncProposals never
+// writes to a book or the cover cache — that only happens through
+// ApplyResyncChoice.
 func TestBuildResyncProposals_Service(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -59,6 +64,9 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 		"ResyncTest-"+id.String()[:8],
 		isbnFromUUID(id),
 	)
+	_, err := testDB.Exec(ctx,
+		`UPDATE books.books SET description = NULL WHERE id = $1`, book.BookID)
+	require.NoError(t, err)
 
 	coverKey := "books/" + book.BookID.String() + "/cover.jpg"
 	require.NoError(
@@ -73,7 +81,7 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 		false,
 	)
 	require.NoError(t, err)
-	assert.Positive(t, n, "the mock provider always disagrees on title")
+	assert.Positive(t, n, "the mock provider can fill the description gap we created")
 
 	exists, err := fakeStore.Exists(ctx, coverKey)
 	require.NoError(t, err)
