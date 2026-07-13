@@ -29,7 +29,11 @@ const apiTimeout = 30 * time.Second
 
 const (
 	// searchLimit caps the number of results requested from a title search.
-	searchLimit = 5
+	// The query is title-only (see extractSearchTerms), so for a common title
+	// the right author's book can sit well below the top few results — the
+	// caller's post-fetch author filter needs this depth to find it. Same two
+	// requests per search either way.
+	searchLimit = 25
 
 	// requestsPerSecond and burst for the token-bucket rate limiter. Hardcover
 	// allows 60 req/min with no daily cap; keep it conservative at ~1 req/s.
@@ -62,9 +66,12 @@ const isbnQuery = `query BookByISBN($isbn: String!) {
 
 // searchIDsQuery finds book IDs via Hardcover's Typesense-backed search index
 // (the same index the website uses). This is the only fuzzy-match path
-// Hardcover permits: its Hasura server rejects ilike/like/similar/regex
-// operators on the books table with a 403, so a title filter there cannot do
-// fuzzy matching — only search() can.
+// Hardcover permits: per its API docs, _like/_ilike/_similar/_regex (and
+// variants) are disabled API-wide, so neither a books title filter nor a
+// contributions.author.name filter can do fuzzy matching — author filtering
+// via _eq would be exact-match only (case- and diacritic-sensitive, "Emily
+// Bronte" misses "Emily Brontë"), which is why author disambiguation happens
+// post-fetch in the caller instead.
 const searchIDsQuery = `query SearchBookIDs($query: String!, $perPage: Int!) {
   search(query: $query, query_type: "Book", per_page: $perPage, page: 1) {
     ids
@@ -255,8 +262,9 @@ func graphQLErr(errs []graphQLError) error {
 // query. Only the title is used: Typesense weights the title field highest,
 // so appending the author surfaces books whose *title* contains the author
 // name (e.g. critical companions like "Emily Brontë: Wuthering Heights")
-// above the real work. Author disambiguation happens after the fetch
-// (titleAuthorMatch in the caller's guarded path).
+// above the real work. Author disambiguation happens after the fetch in the
+// service layer (searchProviders' Hardcover author filter on every search
+// path, plus titleAuthorMatch on the guarded paths).
 // Returns "" when no title token is present (caller should skip the search).
 func extractSearchTerms(query string) string {
 	return extractQuotedField(query, "intitle:\"")

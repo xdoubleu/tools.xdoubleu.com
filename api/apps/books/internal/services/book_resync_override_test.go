@@ -351,6 +351,127 @@ func TestSyncBookSource_Override_UnknownIndexNotFound(t *testing.T) {
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
 
+// TestGetBookSources_Override_Hardcover_FiltersByAuthor: Hardcover's Typesense
+// query is title-only (see pkg/hardcover extractSearchTerms), so the author
+// must be applied as a post-fetch filter — without it the override search
+// shows same-titled books by unrelated authors (the "The Fall" / Albert Camus
+// regression: OL and UniCat filter server-side via inauthor:, Hardcover can't).
+func TestGetBookSources_Override_Hardcover_FiltersByAuthor(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "The Fall"} //nolint:exhaustruct // partial
+
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	svc := &BookService{                                 //nolint:exhaustruct // partial
+		booksResync: repo,
+		external:    &fakeOLClientWithSearch{}, //nolint:exhaustruct // no results
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			searchResults: []hardcover.ExternalBook{
+				//nolint:exhaustruct // partial
+				{Title: "The Fall", Authors: []string{"Guillermo del Toro"}},
+				//nolint:exhaustruct // partial
+				{Title: "The Fall", Authors: []string{"T.J. Newman"}},
+				//nolint:exhaustruct // partial
+				{Title: "The Fall", Authors: []string{"Albert Camus"}},
+				//nolint:exhaustruct // partial
+				{Title: "The Fall of Hyperion", Authors: []string{"Dan Simmons"}},
+			},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposal, err := svc.GetBookSources(
+		context.Background(), logging.NewNopLogger(), bookID,
+		"The Fall", "Albert Camus",
+	)
+	require.NoError(t, err)
+	require.Len(t, proposal.Sources, 1,
+		"only the author-matching hardcover candidate must be proposed")
+	assert.Equal(t, "hardcover", proposal.Sources[0].Source)
+	assert.Equal(t, []string{"Albert Camus"}, proposal.Sources[0].Authors)
+}
+
+// TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered: with no author
+// anywhere (book has none, no override), there is nothing to filter on — the
+// override search keeps Hardcover's relevance-ordered candidates as-is.
+func TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "The Fall"} //nolint:exhaustruct // partial
+
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	svc := &BookService{                                 //nolint:exhaustruct // partial
+		booksResync: repo,
+		external:    &fakeOLClientWithSearch{}, //nolint:exhaustruct // no results
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			searchResults: []hardcover.ExternalBook{
+				//nolint:exhaustruct // partial
+				{Title: "The Fall", Authors: []string{"Guillermo del Toro"}},
+				//nolint:exhaustruct // partial
+				{Title: "The Fall", Authors: []string{"Albert Camus"}},
+			},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	proposal, err := svc.GetBookSources(
+		context.Background(), logging.NewNopLogger(), bookID, "The Fall", "",
+	)
+	require.NoError(t, err)
+	assert.Len(t, proposal.Sources, 2,
+		"no author to filter on: all hardcover candidates must be kept")
+}
+
+// TestGetBookSources_Hardcover_WutheringHeights_Regression pins the #374
+// scenario end to end: Hardcover's index ranks a critical companion whose
+// *title* contains the author name above the real novel. The post-fetch
+// author filter must keep the real novel (diacritic-folded "Brontë" matches
+// the stored "Bronte") and drop the critic's companion — on both the guarded
+// no-override path and the manual override path.
+func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID:      bookID,
+		Title:   "Wuthering Heights",
+		Authors: []string{"Emily Bronte"},
+	}
+
+	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
+	svc := &BookService{                                 //nolint:exhaustruct // partial
+		booksResync: repo,
+		external:    &fakeOLClientWithSearch{}, //nolint:exhaustruct // no results
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			searchResults: []hardcover.ExternalBook{
+				//nolint:exhaustruct // partial
+				{
+					Title:   "Emily Brontë: Wuthering Heights",
+					Authors: []string{"Patsy Stoneman"},
+				},
+				//nolint:exhaustruct // partial
+				{Title: "Wuthering Heights", Authors: []string{"Emily Brontë"}},
+			},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	// Guarded path (no override).
+	proposal, err := svc.GetBookSources(
+		context.Background(), logging.NewNopLogger(), bookID, "", "",
+	)
+	require.NoError(t, err)
+	require.Len(t, proposal.Sources, 1)
+	assert.Equal(t, "hardcover", proposal.Sources[0].Source)
+	assert.Equal(t, "Wuthering Heights", proposal.Sources[0].Title)
+
+	// Manual override path.
+	proposal, err = svc.GetBookSources(
+		context.Background(), logging.NewNopLogger(), bookID,
+		"Wuthering Heights", "Emily Bronte",
+	)
+	require.NoError(t, err)
+	require.Len(t, proposal.Sources, 1,
+		"the critic's companion must be filtered out by author")
+	assert.Equal(t, "Wuthering Heights", proposal.Sources[0].Title)
+}
+
 // ---------------------------------------------------------------------------
 // externalToBook: creation provenance
 // ---------------------------------------------------------------------------

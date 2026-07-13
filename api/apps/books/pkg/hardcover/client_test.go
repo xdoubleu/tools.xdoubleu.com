@@ -286,6 +286,10 @@ func TestSearch_DropsAuthor_SendsTitleOnly(t *testing.T) {
 	_, err := c.Search(context.Background(), `intitle:"Dune" inauthor:"Herbert"`)
 	require.NoError(t, err)
 	assert.Equal(t, "Dune", captured.Variables["query"])
+	// The title-only query needs depth: for a common title, the right
+	// author's book may sit well below the top 5, and the caller's post-fetch
+	// author filter needs candidates to work with.
+	assert.Equal(t, float64(25), captured.Variables["perPage"])
 }
 
 // TestSearch_NoAuthor_SendsTitleOnly verifies an authorless query still
