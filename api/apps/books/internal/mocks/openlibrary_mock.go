@@ -45,14 +45,14 @@ func NewMockOpenLibraryClient() openlibrary.Client {
 }
 
 func odysseyBook() openlibrary.ExternalBook {
-	isbn := "9780140447934"
+	isbn := testBookISBN13
 	cover := "https://example.com/cover.jpg"
-	desc := "A test book."
+	desc := testBookDesc
 	return openlibrary.ExternalBook{ //nolint:exhaustruct //ISBN10 not needed for mock
 		Provider:    "openlibrary",
 		ProviderID:  "OL1W",
-		Title:       "The Odyssey",
-		Authors:     []string{"Homer"},
+		Title:       testBookTitle,
+		Authors:     []string{testBookAuthor},
 		ISBN13:      &isbn,
 		CoverURL:    &cover,
 		Description: &desc,

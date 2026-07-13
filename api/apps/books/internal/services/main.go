@@ -8,6 +8,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
+	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -35,6 +36,7 @@ func New(
 	external openlibrary.Client,
 	googleBooks googlebooks.Client,
 	uniCat unicat.Client,
+	hardcoverClient hardcover.Client,
 	objectStore objectstore.Client,
 	authService auth.Service,
 ) *Services {
@@ -53,6 +55,7 @@ func New(
 		external:     external,
 		googleBooks:  googleBooks,
 		uniCat:       uniCat,
+		hardcover:    hardcoverClient,
 		booksResync:  nil, // nil → resyncRepo() falls back to books
 	}
 

@@ -190,10 +190,11 @@ export const MergeBooksResponseSchema: GenMessage<MergeBooksResponse> = /*@__PUR
  */
 export type StartResyncRequest = Message<"books.v1.StartResyncRequest"> & {
   /**
-   * Force re-queries every source (Open Library, Google Books, UniCat) for
-   * every book, ignoring the skip-if-known cache (openlibrary_found /
-   * googlebooks_found / unicat_found). Use to recover books stuck unresolved
-   * after a rate-limit trip or a stale cached miss.
+   * Force re-queries every source (Open Library, Google Books, UniCat,
+   * Hardcover) for every book, ignoring the skip-if-known cache
+   * (openlibrary_found / googlebooks_found / unicat_found / hardcover_found).
+   * Use to recover books stuck unresolved after a rate-limit trip or a stale
+   * cached miss.
    *
    * @generated from field: bool force = 1;
    */
@@ -253,7 +254,7 @@ export const CancelResyncResponseSchema: GenMessage<CancelResyncResponse> = /*@_
 /**
  * SourceBook is one candidate set of metadata for a catalog book — either the
  * current library values (source = "") or one external provider's proposal
- * (source = "openlibrary" | "googlebooks" | "unicat").
+ * (source = "openlibrary" | "googlebooks" | "unicat" | "hardcover").
  *
  * @generated from message books.v1.SourceBook
  */
@@ -381,7 +382,7 @@ export type ApplyResyncChoiceRequest = Message<"books.v1.ApplyResyncChoiceReques
   /**
    * source selects which SourceBook wins: "" keeps the library row unchanged
    * (and simply dismisses the proposal), or one of
-   * "openlibrary" | "googlebooks" | "unicat".
+   * "openlibrary" | "googlebooks" | "unicat" | "hardcover".
    *
    * @generated from field: string source = 2;
    */
@@ -510,7 +511,7 @@ export type ApplyBookSourceRequest = Message<"books.v1.ApplyBookSourceRequest"> 
 
   /**
    * source selects which source wins: one of
-   * "openlibrary" | "googlebooks" | "unicat".
+   * "openlibrary" | "googlebooks" | "unicat" | "hardcover".
    *
    * @generated from field: string source = 2;
    */
@@ -571,7 +572,7 @@ export const GetSourceStatsRequestSchema: GenMessage<GetSourceStatsRequest> = /*
  */
 export type SourceStat = Message<"books.v1.SourceStat"> & {
   /**
-   * "openlibrary" | "googlebooks" | "unicat"
+   * "openlibrary" | "googlebooks" | "unicat" | "hardcover"
    *
    * @generated from field: string source = 1;
    */
@@ -609,14 +610,14 @@ export const SourceStatSchema: GenMessage<SourceStat> = /*@__PURE__*/
 
 /**
  * SourceComboStat reports how many books were found by exactly this set of
- * two or three sources (a genuine overlap) — the complement of SourceStat's
+ * two to four sources (a genuine overlap) — the complement of SourceStat's
  * unique_count, which is the one-source case.
  *
  * @generated from message books.v1.SourceComboStat
  */
 export type SourceComboStat = Message<"books.v1.SourceComboStat"> & {
   /**
-   * "openlibrary" | "googlebooks" | "unicat", 2 or 3 entries.
+   * "openlibrary" | "googlebooks" | "unicat" | "hardcover", 2 to 4 entries.
    *
    * @generated from field: repeated string sources = 1;
    */
@@ -697,7 +698,7 @@ export const GetSourceStatsResponseSchema: GenMessage<GetSourceStatsResponse> = 
  */
 export type ListBooksInExactSourcesRequest = Message<"books.v1.ListBooksInExactSourcesRequest"> & {
   /**
-   * "openlibrary" | "googlebooks" | "unicat", 1 to 3 entries.
+   * "openlibrary" | "googlebooks" | "unicat" | "hardcover", 1 to 4 entries.
    *
    * @generated from field: repeated string sources = 1;
    */

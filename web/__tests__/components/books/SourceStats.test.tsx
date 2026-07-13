@@ -130,7 +130,8 @@ describe('SourceStats', () => {
       sources: [
         { source: 'openlibrary', foundCount: 42, uniqueCount: 7, missedCount: 8 },
         { source: 'googlebooks', foundCount: 30, uniqueCount: 2, missedCount: 20 },
-        { source: 'unicat', foundCount: 5, uniqueCount: 1, missedCount: 45 }
+        { source: 'unicat', foundCount: 5, uniqueCount: 1, missedCount: 45 },
+        { source: 'hardcover', foundCount: 18, uniqueCount: 3, missedCount: 25 }
       ],
       totalBooks: 50,
       notFoundAnywhere: 4,
@@ -139,7 +140,7 @@ describe('SourceStats', () => {
         { sources: ['openlibrary', 'googlebooks'], count: 12 },
         { sources: ['openlibrary', 'unicat'], count: 0 },
         { sources: ['googlebooks', 'unicat'], count: 0 },
-        { sources: ['openlibrary', 'googlebooks', 'unicat'], count: 5 }
+        { sources: ['openlibrary', 'googlebooks', 'unicat', 'hardcover'], count: 5 }
       ],
       missedOverlaps: []
     }
@@ -150,7 +151,7 @@ describe('SourceStats', () => {
 
     expect(screen.getByText('Overlap — found in exactly these sources')).toBeInTheDocument()
     expect(screen.getByText('Open Library + Google Books')).toBeInTheDocument()
-    expect(screen.getByText('All three')).toBeInTheDocument()
+    expect(screen.getByText('All sources')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('12'))
 

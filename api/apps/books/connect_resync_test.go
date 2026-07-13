@@ -159,7 +159,7 @@ func TestListCatalogBooks_OrdersLeastCoveredFirst(t *testing.T) {
 	)
 	trueVal := true
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, fullyCovered.BookID, &trueVal, &trueVal, &trueVal,
+		ctx, fullyCovered.BookID, &trueVal, &trueVal, &trueVal, &trueVal,
 	))
 
 	books, err := testApp.Repositories.Books.ListCatalogBooks(ctx)
@@ -197,7 +197,7 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 
 	trueVal := true
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, book.BookID, &trueVal, &trueVal, &trueVal,
+		ctx, book.BookID, &trueVal, &trueVal, &trueVal, &trueVal,
 	))
 
 	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
@@ -208,7 +208,7 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 	// A second pass with all-nil flags (every source unresolved this time)
 	// must leave the previously-known true values untouched.
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, book.BookID, nil, nil, nil,
+		ctx, book.BookID, nil, nil, nil, nil,
 	))
 
 	rescanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
@@ -223,4 +223,6 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 	assert.True(t, *rescanned.GoogleBooksFound)
 	require.NotNil(t, rescanned.UniCatFound)
 	assert.True(t, *rescanned.UniCatFound)
+	require.NotNil(t, rescanned.HardcoverFound)
+	assert.True(t, *rescanned.HardcoverFound)
 }

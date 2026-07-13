@@ -20,6 +20,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/googlebooks"
+	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -45,6 +46,7 @@ type scanStatusCall struct {
 	olFound *bool
 	gbFound *bool
 	ucFound *bool
+	hcFound *bool
 }
 
 // fakeBooksResync is a test stub for booksResyncSource.
@@ -117,10 +119,12 @@ func (f *fakeBooksResync) UpdateResyncScanStatus(
 	olFound *bool,
 	gbFound *bool,
 	ucFound *bool,
+	hcFound *bool,
 ) error {
 	f.mu.Lock()
 	f.scanStatusCalls = append(f.scanStatusCalls, scanStatusCall{
 		bookID: bookID, olFound: olFound, gbFound: gbFound, ucFound: ucFound,
+		hcFound: hcFound,
 	})
 	f.mu.Unlock()
 	return f.scanStatusErr
@@ -236,6 +240,33 @@ func (f *fakeUCClient) Search(
 	_ context.Context,
 	_ string,
 ) ([]unicat.ExternalBook, error) {
+	return f.searchResults, f.err
+}
+
+// fakeHCClient is a configurable hardcover.Client stub.
+type fakeHCClient struct {
+	searchResults []hardcover.ExternalBook
+	byISBN        *hardcover.ExternalBook
+	err           error
+}
+
+func (f *fakeHCClient) GetByISBN(
+	_ context.Context,
+	_ string,
+) (*hardcover.ExternalBook, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.byISBN == nil {
+		return nil, hardcover.ErrNotFound
+	}
+	return f.byISBN, nil
+}
+
+func (f *fakeHCClient) Search(
+	_ context.Context,
+	_ string,
+) ([]hardcover.ExternalBook, error) {
 	return f.searchResults, f.err
 }
 

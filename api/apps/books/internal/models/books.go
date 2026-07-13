@@ -51,11 +51,12 @@ type Book struct {
 	OpenLibraryFound *bool
 	GoogleBooksFound *bool
 	UniCatFound      *bool
+	HardcoverFound   *bool
 	LastResyncAt     *time.Time
 
 	// MetadataSource records which source's metadata was last applied
-	// ("openlibrary" | "googlebooks" | "unicat"). Nil for books whose
-	// metadata never came from a source apply (e.g. plain CSV imports).
+	// ("openlibrary" | "googlebooks" | "unicat" | "hardcover"). Nil for books
+	// whose metadata never came from a source apply (e.g. plain CSV imports).
 	MetadataSource *string
 }
 

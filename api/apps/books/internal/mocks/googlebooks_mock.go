@@ -1,3 +1,4 @@
+//nolint:dupl // boilerplate provider mock, mirrors the other provider mocks
 package mocks
 
 import (
@@ -31,13 +32,13 @@ func NewMockGoogleBooksClient() googlebooks.Client {
 }
 
 func gbOdysseyBook() googlebooks.ExternalBook {
-	isbn := "9780140447934"
+	isbn := testBookISBN13
 	cover := "https://books.google.com/cover.jpg"
-	desc := "A test book."
+	desc := testBookDesc
 	pages := 300
 	return googlebooks.ExternalBook{
-		Title:       "The Odyssey",
-		Authors:     []string{"Homer"},
+		Title:       testBookTitle,
+		Authors:     []string{testBookAuthor},
 		ISBN13:      &isbn,
 		CoverURL:    &cover,
 		Description: &desc,

@@ -53,6 +53,7 @@ func newAdminBooksTestClient(t *testing.T) booksTestClient {
 			OpenLibrary:      nil,
 			GoogleBooks:      nil,
 			UniCat:           nil,
+			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),
 			PublicAPIBaseURL: "",
 			KoboStoreBaseURL: "",
