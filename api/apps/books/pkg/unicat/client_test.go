@@ -145,7 +145,9 @@ func TestGetByISBN_ClientError_NoRetry(t *testing.T) {
 func TestSearch_Found(t *testing.T) {
 	cleanup := buildServer(func(w http.ResponseWriter, r *http.Request) {
 		cql := r.URL.Query().Get("query")
-		assert.Contains(t, cql, "dc.title=")
+		assert.Contains(t, cql, "title=")
+		assert.Contains(t, cql, "author=")
+		assert.NotContains(t, cql, "dc.")
 		w.Header().Set("Content-Type", "application/xml")
 		_, _ = w.Write([]byte(fixtureISBN9789463107389))
 	})
@@ -159,6 +161,25 @@ func TestSearch_Found(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, books, 1)
 	assert.Equal(t, "10 franke vragen aan Frank", books[0].Title)
+}
+
+func TestSearch_Found_TitleOnly(t *testing.T) {
+	cleanup := buildServer(func(w http.ResponseWriter, r *http.Request) {
+		cql := r.URL.Query().Get("query")
+		assert.Contains(t, cql, "title=")
+		assert.NotContains(t, cql, "author=")
+		assert.NotContains(t, cql, "dc.")
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte(fixtureISBN9789463107389))
+	})
+	defer cleanup()
+
+	c := newClient(t)
+	books, err := c.Search(
+		context.Background(), `intitle:"10 franke vragen aan Frank"`,
+	)
+	require.NoError(t, err)
+	require.Len(t, books, 1)
 }
 
 func TestSearch_EmptyTitle_ReturnsNil(t *testing.T) {
