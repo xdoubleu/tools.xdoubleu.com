@@ -2,6 +2,7 @@ package books_test
 
 import (
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"testing"
 
@@ -12,7 +13,9 @@ import (
 
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/internal/mocks"
+	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
+	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
@@ -162,15 +165,21 @@ func TestApplyBookSource_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 
 // TestGetBookSources_Admin_Success verifies the RPC live-fetches the mocked
 // Open Library candidate (always "The Odyssey" by Homer) for any book on
-// demand, without needing a prior wizard scan.
+// demand, without needing a prior wizard scan. The on-demand path always
+// matches by title+author search (see fetchProposals), even for a book that
+// has an ISBN, so the request carries an override matching the mock's canned
+// result — a stored title/author that doesn't match would otherwise be
+// rejected by the search guard.
 func TestGetBookSources_Admin_Success(t *testing.T) {
 	id := uuid.New()
 	ub := addTestBookWithISBN(t, "GetBookSourcesTestBook", isbnFromUUID(id))
 
 	client, _ := newAdminBooksTestClientWithMockSources(t)
-	req := connect.NewRequest(
-		&booksv1.GetBookSourcesRequest{BookId: ub.BookID.String()},
-	)
+	title, author := "The Odyssey", "Homer"
+	req := connect.NewRequest(&booksv1.GetBookSourcesRequest{
+		BookId:        ub.BookID.String(),
+		OverrideTitle: &title, OverrideAuthor: &author,
+	})
 	req.Header().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetBookSources(context.Background(), req)
@@ -185,14 +194,17 @@ func TestGetBookSources_Admin_Success(t *testing.T) {
 // TestApplyBookSource_Admin_Success verifies applying the live-fetched source
 // writes its fields onto the book — usable on any book, unlike
 // ApplyResyncChoice which requires a prior scan to have stored a proposal.
+// See TestGetBookSources_Admin_Success for why the override is needed.
 func TestApplyBookSource_Admin_Success(t *testing.T) {
 	id := uuid.New()
 	ub := addTestBookWithISBN(t, "ApplyBookSourceTestBook", isbnFromUUID(id))
 
 	client, _ := newAdminBooksTestClientWithMockSources(t)
+	title, author := "The Odyssey", "Homer"
 	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
-		BookId: ub.BookID.String(),
-		Source: "openlibrary",
+		BookId:        ub.BookID.String(),
+		Source:        "openlibrary",
+		OverrideTitle: &title, OverrideAuthor: &author,
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
@@ -247,6 +259,45 @@ func TestApplyBookSource_Admin_Override(t *testing.T) {
 	assert.Equal(t, "The Odyssey", book.Title)
 	require.NotNil(t, book.MetadataSource)
 	assert.Equal(t, "openlibrary", *book.MetadataSource)
+}
+
+// TestApplyBookSource_Admin_SecondSyncStillSucceeds is the regression test for
+// the reported "2nd sync always fails" bug: an ISBN-less book naturally
+// matches the mocked source by title+author (no override needed). Applying
+// once can fill in an ISBN the book previously lacked (subject to the
+// repository's duplicate-ISBN guard); the bug was that a second sync then
+// routed the follow-up fetch by that new ISBN instead of by title+author (see
+// fetchSourceProposals), landing on a different candidate set and returning
+// ErrProposalNotFound ("source not found"). The on-demand path now always
+// matches by title+author (see fetchProposals), so a second sync on the same
+// book/source must succeed exactly like the first, regardless of what
+// happened to the ISBN in between.
+func TestApplyBookSource_Admin_SecondSyncStillSucceeds(t *testing.T) {
+	ext := openlibrary.ExternalBook{ //nolint:exhaustruct // ISBN intentionally absent
+		Provider:   "manual",
+		ProviderID: fmt.Sprintf("secondsync-%s", uuid.New()),
+		Title:      "The Odyssey",
+		Authors:    []string{"Homer"},
+	}
+	ub, err := testApp.Services.Books.AddToLibrary(
+		context.Background(), userID, ext, models.StatusToRead, []string{},
+	)
+	require.NoError(t, err)
+
+	client, _ := newAdminBooksTestClientWithMockSources(t)
+	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+		BookId: ub.BookID.String(),
+		Source: "openlibrary",
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	// First apply: matches naturally.
+	_, err = client.ApplyBookSource(context.Background(), req)
+	require.NoError(t, err)
+
+	// Second apply on the same book/source must still succeed.
+	_, err = client.ApplyBookSource(context.Background(), req)
+	require.NoError(t, err, "a second sync must not fail")
 }
 
 func TestApplyBookSource_Admin_UnknownSource_NotFound(t *testing.T) {

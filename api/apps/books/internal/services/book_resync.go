@@ -34,11 +34,11 @@ type booksResyncSource interface {
 	RefreshBookExternalData(
 		ctx context.Context,
 		bookID uuid.UUID,
-		coverURL *string,
-		description *string,
-		pageCount *int,
-		isbn13 *string,
-		title *string,
+		coverURL string,
+		description string,
+		pageCount int,
+		isbn13 string,
+		title string,
 		authors []string,
 		metadataSource string,
 	) error
@@ -282,9 +282,13 @@ func (s *BookService) recordScanStatus(
 }
 
 // encodeIfFlagged returns the JSON-marshaled proposals and true when the book
-// should be surfaced to the wizard — either a source disagrees with the
-// library, or every configured, queryable source came up empty (a coverage
-// gap worth knowing about, e.g. to decide whether a new source is needed).
+// should be surfaced to the wizard — either a source is strictly more
+// complete than what the book currently has (worth switching to, since
+// applying a source now replaces the book's metadata wholesale — see
+// applySelectedSource), or every configured, queryable source came up empty (a
+// coverage gap worth knowing about, e.g. to decide whether a new source is
+// needed). A source that merely differs, or covers the same or fewer fields,
+// is never flagged — switching to it would be a lateral or backward move.
 // Books nobody could search (no ISBN and no title) are never flagged: nothing
 // was actually attempted. A nil, true result signals a marshal failure that
 // the caller should log.
@@ -295,7 +299,7 @@ func encodeIfFlagged(book models.Book, proposals []SourceProposal) ([]byte, bool
 	// already confirmed found, so this pass's proposals can be empty for a
 	// book that's actually well covered — that must never read as a gap.
 	notFoundAnywhere := attempted && len(proposals) == 0 && !anyKnownFound(book)
-	if !notFoundAnywhere && !anyDiffers(book, proposals) {
+	if !notFoundAnywhere && !anySourceMoreComplete(book, proposals) {
 		return nil, false
 	}
 	raw, err := json.Marshal(proposals)
@@ -315,9 +319,64 @@ func anyKnownFound(book models.Book) bool {
 		isTrue(book.HardcoverFound)
 }
 
-func anyDiffers(book models.Book, proposals []SourceProposal) bool {
+// bookFieldCount counts how many of the comparable metadata fields the
+// library book currently has filled in.
+func bookFieldCount(book models.Book) int {
+	count := 0
+	if book.Title != "" {
+		count++
+	}
+	if len(book.Authors) > 0 {
+		count++
+	}
+	if book.Description != nil && *book.Description != "" {
+		count++
+	}
+	if book.PageCount != nil && *book.PageCount != 0 {
+		count++
+	}
+	if book.ISBN13 != nil && *book.ISBN13 != "" {
+		count++
+	}
+	if book.CoverURL != nil && *book.CoverURL != "" {
+		count++
+	}
+	return count
+}
+
+// proposalFieldCount counts how many of the same fields a source proposal
+// supplies.
+func proposalFieldCount(p SourceProposal) int {
+	count := 0
+	if p.Title != "" {
+		count++
+	}
+	if len(p.Authors) > 0 {
+		count++
+	}
+	if p.Description != "" {
+		count++
+	}
+	if p.PageCount != 0 {
+		count++
+	}
+	if p.ISBN13 != "" {
+		count++
+	}
+	if p.CoverURL != "" {
+		count++
+	}
+	return count
+}
+
+// anySourceMoreComplete reports whether any candidate source supplies
+// strictly more of the comparable fields than the book currently has —
+// applying is single-source (see applySelectedSource), so a source that's
+// merely different, or no more complete, is never worth switching to.
+func anySourceMoreComplete(book models.Book, proposals []SourceProposal) bool {
+	current := bookFieldCount(book)
 	for _, p := range proposals {
-		if len(computeDifferences(book, p)) > 0 {
+		if proposalFieldCount(p) > current {
 			return true
 		}
 	}
@@ -660,10 +719,15 @@ func (s *BookService) searchProviders(
 	return out, unresolved
 }
 
-// fetchProposals routes between the standard guarded fetch and the override
+// fetchProposals routes between the standard guarded search and the override
 // search used when an admin manually steers the query on an unmatched book.
-// An override always uses the search path (even for ISBN'd books — the point
-// is to escape the stored fields) and skips the match guards.
+// Unlike the bulk resync scan (fetchSourceProposals, ISBN-first), the
+// on-demand book-page path always matches by title+author search — even for
+// a book that already has an ISBN. This keeps the picker's candidate set
+// stable across repeated applies: filling in an ISBN on one apply must not
+// flip a later fetch onto a different (often empty) ISBN-keyed candidate set,
+// which used to make a second sync fail with "source not found".
+// An override always uses the search path too and skips the match guards.
 // ponytail: override takes each provider's top result unguarded — the admin
 // reviews the full candidate before applying; tighten to guards-against-the-
 // override-values if it misfires in practice.
@@ -678,7 +742,10 @@ func (s *BookService) fetchProposals(
 	// must always query every configured provider fresh, never skip a
 	// resolved source or trip the GB breaker.
 	if overrideTitle == "" && overrideAuthor == "" {
-		proposals, _ := s.fetchSourceProposals(ctx, logger, book, nil)
+		if book.Title == "" {
+			return nil
+		}
+		proposals, _ := s.fetchBySearch(ctx, logger, book, nil)
 		return proposals
 	}
 
@@ -953,9 +1020,15 @@ func (s *BookService) applyChosenSource(
 	return s.applySelectedSource(ctx, logger, row.Book, sources, source)
 }
 
-// applySelectedSource writes the chosen source's fields onto book. Shared by
-// the stored-proposal path (ApplyResyncChoice) and the live per-book path
-// (SyncBookSource). Returns ErrProposalNotFound if source isn't among sources.
+// applySelectedSource writes the chosen source's fields onto book, replacing
+// the book's metadata wholesale — a field the chosen source doesn't supply is
+// blanked, not left as whatever an earlier, different source wrote. isbn13 is
+// the one exception (see RefreshBookExternalData): it is never blanked, and
+// only overwrites an existing value when the source actually supplies one
+// (the repo's dup guard prevents attaching an ISBN already used elsewhere).
+// Shared by the stored-proposal path (ApplyResyncChoice) and the live
+// per-book path (SyncBookSource). Returns ErrProposalNotFound if source isn't
+// among sources.
 func (s *BookService) applySelectedSource(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -974,29 +1047,10 @@ func (s *BookService) applySelectedSource(
 		return ErrProposalNotFound
 	}
 
-	var coverURL, description, isbn13, title *string
-	var pageCount *int
-	if chosen.CoverURL != "" {
-		coverURL = &chosen.CoverURL
-	}
-	if chosen.Description != "" {
-		description = &chosen.Description
-	}
-	if chosen.Title != "" {
-		title = &chosen.Title
-	}
-	if chosen.PageCount != 0 {
-		pageCount = &chosen.PageCount
-	}
-	// Never overwrite an existing ISBN — only fill it in when the book has none.
-	if chosen.ISBN13 != "" && (book.ISBN13 == nil || *book.ISBN13 == "") {
-		isbn13 = &chosen.ISBN13
-	}
-
 	return s.writeResyncResult(
 		ctx, logger, book,
-		coverURL, description, pageCount, isbn13, title, chosen.Authors,
-		chosen.Source,
+		chosen.CoverURL, chosen.Description, chosen.PageCount, chosen.ISBN13,
+		chosen.Title, chosen.Authors, chosen.Source,
 	)
 }
 
@@ -1075,16 +1129,17 @@ func (s *BookService) SyncBookSource(
 }
 
 // writeResyncResult persists the chosen fields and busts the cover cache when
-// a new cover URL was resolved.
+// the cover URL actually changes — including when the new source blanks a
+// cover the book previously had.
 func (s *BookService) writeResyncResult(
 	ctx context.Context,
 	logger *slog.Logger,
 	book models.Book,
-	coverURL *string,
-	description *string,
-	pageCount *int,
-	isbn13 *string,
-	title *string,
+	coverURL string,
+	description string,
+	pageCount int,
+	isbn13 string,
+	title string,
 	authors []string,
 	metadataSource string,
 ) error {
@@ -1102,7 +1157,7 @@ func (s *BookService) writeResyncResult(
 		return dbErr
 	}
 
-	if coverURL != nil {
+	if coverURL != derefStr(book.CoverURL) {
 		s.bustCoverCache(ctx, logger, book.ID)
 	}
 

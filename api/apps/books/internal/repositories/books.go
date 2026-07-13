@@ -744,51 +744,44 @@ func (repo *BooksRepository) ListBooksWithISBN13(
 	return books, nil
 }
 
-// RefreshBookExternalData backfills a book's externally-sourced fields.
-// All columns use COALESCE so a nil argument never erases an existing value —
-// callers pass nil for fields they do not want to touch.
+// RefreshBookExternalData overwrites a book's externally-sourced fields with
+// exactly one chosen source's values — cover_url, description, page_count,
+// title, and authors are written as-is, so a field the source doesn't supply
+// (empty string / zero) blanks the column rather than preserving whatever an
+// earlier, different source left behind.
 //
-// The isbn13 update is guarded by a NOT EXISTS subquery: if another book in
-// the catalog already has that ISBN the write is silently skipped, preventing
-// a unique-constraint error from a fuzzy title/author match attaching the
-// wrong ISBN.
+// isbn13 is the one exception: it is never blanked. A non-empty isbn13 only
+// overwrites the existing value when no other book in the catalog already has
+// that ISBN (the NOT EXISTS guard) — preventing a unique-constraint error
+// from a fuzzy title/author match attaching the wrong ISBN. An empty isbn13,
+// or one that collides, leaves the column untouched.
 func (repo *BooksRepository) RefreshBookExternalData(
 	ctx context.Context,
 	bookID uuid.UUID,
-	coverURL *string,
-	description *string,
-	pageCount *int,
-	isbn13 *string,
-	title *string,
+	coverURL string,
+	description string,
+	pageCount int,
+	isbn13 string,
+	title string,
 	authors []string,
 	metadataSource string,
 ) error {
-	// authors is passed as a Go nil slice when the caller has nothing to write;
-	// convert to a typed nil so COALESCE sees a true SQL NULL rather than an
-	// empty array, which would overwrite the existing value.
-	var authorsArg *[]string
-	if len(authors) > 0 {
-		authorsArg = &authors
-	}
-
 	query := `
 		UPDATE books.books
-		SET cover_url   = COALESCE($2, cover_url),
-		    description = COALESCE($3, description),
-		    page_count  = COALESCE($4, page_count),
-		    isbn13      = COALESCE(
-		                    CASE
-		                      WHEN $5::text IS NOT NULL
-		                        AND NOT EXISTS (
-		                          SELECT 1 FROM books.books
-		                          WHERE isbn13 = $5 AND id <> $1
-		                        )
-		                      THEN $5::text
-		                    END,
-		                    isbn13
-		                  ),
-		    title       = COALESCE($6, title),
-		    authors     = COALESCE($7, authors),
+		SET cover_url   = NULLIF($2, ''),
+		    description = NULLIF($3, ''),
+		    page_count  = NULLIF($4, 0),
+		    isbn13      = CASE
+		                    WHEN $5 <> ''
+		                      AND NOT EXISTS (
+		                        SELECT 1 FROM books.books
+		                        WHERE isbn13 = $5 AND id <> $1
+		                      )
+		                    THEN $5
+		                    ELSE isbn13
+		                  END,
+		    title       = $6,
+		    authors     = $7,
 		    metadata_source = NULLIF($8, ''),
 		    updated_at  = now()
 		WHERE id = $1
@@ -796,7 +789,7 @@ func (repo *BooksRepository) RefreshBookExternalData(
 	_, err := repo.db.Exec(
 		ctx, query,
 		bookID, coverURL, description, pageCount, isbn13,
-		title, authorsArg, metadataSource,
+		title, authors, metadataSource,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }
