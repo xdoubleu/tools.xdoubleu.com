@@ -2,7 +2,6 @@ package books_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -12,21 +11,19 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
 // addTestBookWithISBN adds a book with a unique ISBN so it gets its own DB row.
 func addTestBookWithISBN(t *testing.T, title, isbn string) *models.UserBook {
 	t.Helper()
-	cover := "https://example.com/cover.jpg"
-	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields not needed
-		Provider:   "manual",
-		ProviderID: fmt.Sprintf("cov-%s-%s", title, uuid.New()),
-		Title:      title,
-		Authors:    []string{"Coverage Author"},
-		ISBN13:     &isbn,
-		CoverURL:   &cover,
+	ext := services.SourceProposal{ //nolint:exhaustruct //optional fields not needed
+		Source:   "manual",
+		Title:    title,
+		Authors:  []string{"Coverage Author"},
+		ISBN13:   isbn,
+		CoverURL: "https://example.com/cover.jpg",
 	}
 	ub, err := testApp.Services.Books.AddToLibrary(
 		context.Background(), userID, ext, models.StatusToRead, []string{},

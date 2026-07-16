@@ -2,7 +2,6 @@ package books_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
@@ -38,14 +37,12 @@ func addMergeBook(
 	tags []string,
 ) *models.UserBook {
 	t.Helper()
-	cover := "https://example.com/cover.jpg"
-	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
-		Provider:   "manual",
-		ProviderID: fmt.Sprintf("merge-%s-%s", title, uuid.NewString()),
-		Title:      title,
-		Authors:    []string{"Merge Author"},
-		ISBN13:     &isbn,
-		CoverURL:   &cover,
+	ext := services.SourceProposal{ //nolint:exhaustruct //only required fields
+		Source:   "manual",
+		Title:    title,
+		Authors:  []string{"Merge Author"},
+		ISBN13:   isbn,
+		CoverURL: "https://example.com/cover.jpg",
 	}
 	ub, err := testApp.Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser, ext, status, tags,
@@ -703,17 +700,15 @@ func TestConnectMergeBooks_ResolvedStatusApplied(t *testing.T) {
 	// Books created via the service are owned by userID (the mocked auth identity).
 	isbn1 := "9780020202061"
 	isbn2 := "9780020202062"
-	cover := "https://example.com/cover.jpg"
 
 	createBook := func(title string, isbn string) *models.UserBook {
 		t.Helper()
-		ext := openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
-			Provider:   "manual",
-			ProviderID: fmt.Sprintf("conn-shelf-%s", uuid.NewString()),
-			Title:      title,
-			Authors:    []string{"Shelf Author"},
-			ISBN13:     &isbn,
-			CoverURL:   &cover,
+		ext := services.SourceProposal{ //nolint:exhaustruct //only required fields
+			Source:   "manual",
+			Title:    title,
+			Authors:  []string{"Shelf Author"},
+			ISBN13:   isbn,
+			CoverURL: "https://example.com/cover.jpg",
 		}
 		ub, addErr := testApp.Services.Books.AddToLibrary(
 			context.Background(), userID, ext, models.StatusToRead, []string{},
@@ -777,14 +772,12 @@ func addMergeBookForUser2(
 	tags []string,
 ) *models.UserBook {
 	t.Helper()
-	cover := "https://example.com/cover.jpg"
-	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
-		Provider:   "manual",
-		ProviderID: fmt.Sprintf("merge-%s-%s", title, uuid.NewString()),
-		Title:      title,
-		Authors:    []string{"Merge Author"},
-		ISBN13:     &isbn,
-		CoverURL:   &cover,
+	ext := services.SourceProposal{ //nolint:exhaustruct //only required fields
+		Source:   "manual",
+		Title:    title,
+		Authors:  []string{"Merge Author"},
+		ISBN13:   isbn,
+		CoverURL: "https://example.com/cover.jpg",
 	}
 	ub, err := testApp.Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser2, ext, status, tags,

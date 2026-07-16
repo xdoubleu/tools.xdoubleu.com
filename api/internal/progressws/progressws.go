@@ -24,7 +24,7 @@ type SubscribeMessageDto struct {
 type StateMessageDto struct {
 	LastRefresh  *time.Time `json:"lastRefresh"`
 	IsRefreshing bool       `json:"isRefreshing"`
-	// Processed and Total are set during long-running jobs (e.g. Open Library
+	// Processed and Total are set during long-running jobs (e.g. books
 	// resync) to give clients a live "X of N" count. They are omitted for jobs
 	// that emit only start/stop events (e.g. Steam refresh).
 	Processed *int `json:"processed,omitempty"`
@@ -100,7 +100,7 @@ func (service *Service) UpdateState(
 }
 
 // UpdateProgress enqueues a mid-run progress event on the named topic. It is
-// meant for long-running background jobs (e.g. the Open Library resync) that
+// meant for long-running background jobs (e.g. the books resync) that
 // want to broadcast "X of N items done" to connected clients. The message
 // carries IsRefreshing: true so clients keep the running indicator active.
 func (service *Service) UpdateProgress(

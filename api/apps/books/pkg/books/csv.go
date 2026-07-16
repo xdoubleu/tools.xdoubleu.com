@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 )
 
 const (
@@ -124,16 +123,13 @@ func parseRow(row []string, idx map[string]int) (ParsedEntry, error) {
 		status,
 	)
 
-	var coverURL *string
-	if u := openlibrary.CoverURLByISBN(isbn13); u != "" {
-		coverURL = &u
-	}
-
+	// No cover: Goodreads exports carry no cover URL, and the ISBN-keyed
+	// guess this used to fall back to (Open Library's covers.openlibrary.org)
+	// is gone. A later metadata resync fills the cover in.
 	book := models.Book{ //nolint:exhaustruct //optional fields
-		Title:    title,
-		Authors:  []string{author},
-		ISBN13:   isbn13,
-		CoverURL: coverURL,
+		Title:   title,
+		Authors: []string{author},
+		ISBN13:  isbn13,
 	}
 
 	userBook := models.UserBook{ //nolint:exhaustruct //IDs assigned later

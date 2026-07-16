@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
 // ---------------------------------------------------------------------------
@@ -28,15 +28,16 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
 		books: []models.Book{
 			//nolint:exhaustruct // partial
-			{ID: id, Title: "Found In OL Only", ISBN13: &isbn},
+			{ID: id, Title: "Found In UniCat Only", ISBN13: &isbn},
 		},
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		external: &multiISBNOLClient{results: map[string]*openlibrary.ExternalBook{
-			isbn: {Title: "Found In OL Only"},
-		}},
+		uniCat: &fakeUCClient{ //nolint:exhaustruct // partial
+			//nolint:exhaustruct // partial
+			byISBN: &unicat.ExternalBook{Title: "Found In UniCat Only"},
+		},
 		//nolint:exhaustruct // zero-value: byISBN nil -> ErrNotFound, empty
 		// search fallback -> a clean, resolved "not found" (not unresolved)
 		hardcover:   &fakeHCClient{},
@@ -51,11 +52,10 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 	require.Len(t, repo.scanStatusCalls, 1)
 	call := repo.scanStatusCalls[0]
 	assert.Equal(t, id, call.bookID)
-	require.NotNil(t, call.olFound)
-	assert.True(t, *call.olFound)
+	require.NotNil(t, call.ucFound)
+	assert.True(t, *call.ucFound)
 	require.NotNil(t, call.hcFound)
 	assert.False(t, *call.hcFound)
-	assert.Nil(t, call.ucFound, "unconfigured provider must record NULL")
 }
 
 // TestBuildResyncProposals_Hardcover_FoundByISBN verifies the hardcover branch:
@@ -74,9 +74,6 @@ func TestBuildResyncProposals_Hardcover_FoundByISBN(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		external: &fakeOLClient{ //nolint:exhaustruct // partial
-			err: openlibrary.ErrNotFound,
-		},
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			byISBN: &hardcover.ExternalBook{ //nolint:exhaustruct // partial
 				Title: hcTitle, Authors: []string{"Homer"}, ISBN13: &isbn,
@@ -104,8 +101,6 @@ func TestBuildResyncProposals_ScanStatus_UnsearchableAllNil(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		//nolint:exhaustruct // partial
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -117,7 +112,6 @@ func TestBuildResyncProposals_ScanStatus_UnsearchableAllNil(t *testing.T) {
 	require.Len(t, repo.scanStatusCalls, 1,
 		"last_resync_at must still be bumped for unsearchable books")
 	call := repo.scanStatusCalls[0]
-	assert.Nil(t, call.olFound)
 	assert.Nil(t, call.ucFound)
 	assert.Nil(t, call.hcFound)
 }
@@ -134,8 +128,6 @@ func TestBuildResyncProposals_ScanStatusError_NonFatal(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		//nolint:exhaustruct // partial
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -166,13 +158,13 @@ func TestGetBookSources_Override_ForcesSearchAndSkipsGuards(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
-			searchResults: []openlibrary.ExternalBook{
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
 				{Title: "The Real Book", Authors: []string{"Real Author"}},
 			},
 			//nolint:exhaustruct // partial
-			detail: &openlibrary.ExternalBook{Title: "ISBN Result"},
+			byISBN: &hardcover.ExternalBook{Title: "ISBN Result"},
 		},
 		objectStore: objectstore.NewFake(),
 	}
@@ -197,8 +189,8 @@ func TestGetBookSources_OverrideAuthorOnly_UsesStoredTitle(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
-			searchResults: []openlibrary.ExternalBook{
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
 				{Title: "Whatever The Provider Says", Authors: []string{"New Author"}},
 			},
@@ -222,7 +214,7 @@ func TestGetBookSources_Override_NoResults_EmptySources(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external:    &fakeOLClientWithSearch{}, //nolint:exhaustruct // no results
+		hardcover:   &fakeHCClient{}, //nolint:exhaustruct // no results
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -243,8 +235,8 @@ func TestSyncBookSource_Override_AppliesTopResult(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
-			searchResults: []openlibrary.ExternalBook{
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
 				{Title: "Correct Title", Authors: []string{"Author"}},
 			},
@@ -253,7 +245,7 @@ func TestSyncBookSource_Override_AppliesTopResult(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 0,
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover", 0,
 		"Correct Title", "",
 	)
 	require.NoError(t, err)
@@ -261,7 +253,7 @@ func TestSyncBookSource_Override_AppliesTopResult(t *testing.T) {
 	require.Len(t, repo.refreshCalls, 1)
 	rc := repo.refreshCalls[0]
 	assert.Equal(t, "Correct Title", rc.title)
-	assert.Equal(t, "openlibrary", rc.metadataSource)
+	assert.Equal(t, "hardcover", rc.metadataSource)
 }
 
 func TestGetBookSources_Override_ReturnsUpToFiveCandidatesPerSource(t *testing.T) {
@@ -271,9 +263,9 @@ func TestGetBookSources_Override_ReturnsUpToFiveCandidatesPerSource(t *testing.T
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 
-			searchResults: []openlibrary.ExternalBook{
+			searchResults: []hardcover.ExternalBook{
 				{Title: "First Match"},           //nolint:exhaustruct // partial
 				{Title: "Second Match"},          //nolint:exhaustruct // partial
 				{Title: "Third Match"},           //nolint:exhaustruct // partial
@@ -292,7 +284,7 @@ func TestGetBookSources_Override_ReturnsUpToFiveCandidatesPerSource(t *testing.T
 	require.Len(t, proposal.Sources, 5,
 		"override search must cap each source at 5 candidates")
 	for i, source := range proposal.Sources {
-		assert.Equal(t, "openlibrary", source.Source)
+		assert.Equal(t, "hardcover", source.Source)
 		assert.Equal(t, i, source.Index,
 			"candidates must be numbered by their position in the provider's results")
 	}
@@ -307,9 +299,9 @@ func TestSyncBookSource_Override_AppliesChosenIndexNotJustFirst(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 
-			searchResults: []openlibrary.ExternalBook{
+			searchResults: []hardcover.ExternalBook{
 				{Title: "First Match"},  //nolint:exhaustruct // partial
 				{Title: "Second Match"}, //nolint:exhaustruct // partial
 			},
@@ -318,7 +310,7 @@ func TestSyncBookSource_Override_AppliesChosenIndexNotJustFirst(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 1,
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover", 1,
 		"T", "",
 	)
 	require.NoError(t, err)
@@ -335,8 +327,8 @@ func TestSyncBookSource_Override_UnknownIndexNotFound(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct // partial
-			searchResults: []openlibrary.ExternalBook{
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
 				{Title: "Only Match"},
 			},
@@ -345,7 +337,7 @@ func TestSyncBookSource_Override_UnknownIndexNotFound(t *testing.T) {
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 3,
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover", 3,
 		"T", "",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
@@ -355,7 +347,7 @@ func TestSyncBookSource_Override_UnknownIndexNotFound(t *testing.T) {
 // query is title-only (see pkg/hardcover extractSearchTerms), so the author
 // must be applied as a post-fetch filter — without it the override search
 // shows same-titled books by unrelated authors (the "The Fall" / Albert Camus
-// regression: OL and UniCat filter server-side via inauthor:, Hardcover can't).
+// regression: UniCat filters server-side via inauthor:, Hardcover can't).
 func TestGetBookSources_Override_Hardcover_FiltersByAuthor(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ID: bookID, Title: "The Fall"} //nolint:exhaustruct // partial
@@ -363,7 +355,6 @@ func TestGetBookSources_Override_Hardcover_FiltersByAuthor(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external:    &fakeOLClientWithSearch{}, //nolint:exhaustruct // no results
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -400,7 +391,6 @@ func TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external:    &fakeOLClientWithSearch{}, //nolint:exhaustruct // no results
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -437,7 +427,6 @@ func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		booksResync: repo,
-		external:    &fakeOLClientWithSearch{}, //nolint:exhaustruct // no results
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -478,17 +467,17 @@ func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
 
 func TestExternalToBook_MetadataSourceProvenance(t *testing.T) {
 	//nolint:exhaustruct // partial
-	fromOL := externalToBook(openlibrary.ExternalBook{
-		Provider: "openlibrary",
-		Title:    "T",
+	fromHC := externalToBook(SourceProposal{
+		Source: "hardcover",
+		Title:  "T",
 	})
-	require.NotNil(t, fromOL.MetadataSource)
-	assert.Equal(t, "openlibrary", *fromOL.MetadataSource)
+	require.NotNil(t, fromHC.MetadataSource)
+	assert.Equal(t, "hardcover", *fromHC.MetadataSource)
 
 	//nolint:exhaustruct // partial
-	manual := externalToBook(openlibrary.ExternalBook{
-		Provider: "manual",
-		Title:    "T",
+	manual := externalToBook(SourceProposal{
+		Source: "manual",
+		Title:  "T",
 	})
 	assert.Nil(t, manual.MetadataSource,
 		"hand-entered books must not claim source provenance")
@@ -500,10 +489,10 @@ func TestExternalToBook_MetadataSourceProvenance(t *testing.T) {
 
 func TestGetSourceStats_Passthrough(t *testing.T) {
 	want := &repositories.SourceStats{ //nolint:exhaustruct // partial
-		TotalBooks:        10,
-		OpenLibraryFound:  7,
-		OpenLibraryUnique: 3,
-		NeverScanned:      2,
+		TotalBooks:   10,
+		UniCatFound:  7,
+		UniCatUnique: 3,
+		NeverScanned: 2,
 	}
 	repo := &fakeBooksResync{sourceStats: want} //nolint:exhaustruct // partial
 	svc := &BookService{booksResync: repo}      //nolint:exhaustruct // partial

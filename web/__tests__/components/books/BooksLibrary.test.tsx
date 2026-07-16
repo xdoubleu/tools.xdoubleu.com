@@ -369,8 +369,8 @@ describe('BooksLibrary', () => {
     mockSearchExternal.mockResolvedValue({
       results: [
         {
-          provider: 'openlibrary',
-          providerId: 'OL1W',
+          provider: 'hardcover',
+          providerId: '9780000000001',
           title: 'Far Away Book',
           authors: ['Someone Else'],
           isbn13: '',
@@ -388,10 +388,10 @@ describe('BooksLibrary', () => {
       expect(mockSearchExternal).toHaveBeenCalledWith('not-in-library')
       expect(screen.getByText('Far Away Book')).toBeInTheDocument()
     })
-    expect(screen.getByText('OpenLibrary')).toBeInTheDocument()
+    expect(screen.getByText('Hardcover')).toBeInTheDocument()
     expect(screen.getByText('Far Away Book').closest('a')).toHaveAttribute(
       'href',
-      '/books/external/openlibrary/OL1W'
+      '/books/external/hardcover/9780000000001'
     )
   })
 

@@ -31,12 +31,8 @@ func TestParseCSV_HappyPath(t *testing.T) {
 	assert.Equal(t, "The Odyssey", e0.Book.Title)
 	assert.Equal(t, []string{"Homer"}, e0.Book.Authors)
 	assert.Equal(t, "9780140449112", *e0.Book.ISBN13)
-	// ISBN13 present → OpenLibrary cover URL populated
-	assert.Equal(
-		t,
-		"https://covers.openlibrary.org/b/isbn/9780140449112-L.jpg",
-		*e0.Book.CoverURL,
-	)
+	// Goodreads exports carry no cover URL; a later metadata resync fills it in.
+	assert.Nil(t, e0.Book.CoverURL)
 	assert.Equal(t, models.StatusRead, e0.UserBook.Status)
 	assert.NotEmpty(t, e0.UserBook.FinishedAt)
 	assert.EqualValues(t, 5, *e0.UserBook.Rating)

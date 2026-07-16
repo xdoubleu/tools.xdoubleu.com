@@ -62,10 +62,10 @@ describe('useResyncRefresh', () => {
     MockWebSocket.instances = []
   })
 
-  it('subscribes to the resync-openlibrary topic on connect', () => {
+  it('subscribes to the resync-books topic on connect', () => {
     renderHook(() => useResyncRefresh())
     act(() => latest().emitOpen())
-    expect(latest().sent).toEqual([JSON.stringify({ subject: 'resync-openlibrary' })])
+    expect(latest().sent).toEqual([JSON.stringify({ subject: 'resync-books' })])
   })
 
   it('exposes processed and total counts from the server message', () => {

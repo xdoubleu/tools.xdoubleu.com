@@ -50,7 +50,6 @@ func newAdminBooksTestClient(t *testing.T) booksTestClient {
 		testCfg,
 		testDB,
 		books.Clients{
-			OpenLibrary:      nil,
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),

@@ -51,8 +51,8 @@ function makeProposal(bookId: string, title: string) {
     },
     sources: [
       {
-        source: 'openlibrary',
-        title: `${title} (OL)`,
+        source: 'unicat',
+        title: `${title} (UC)`,
         authors: ['Some Author'],
         coverUrl: '',
         description: '',
@@ -114,8 +114,8 @@ describe('ResyncWizard', () => {
     // field value.
     expect(screen.getAllByText('Dune').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Library')).toBeInTheDocument()
-    // "Open Library" appears both as the source card label and the radio option.
-    expect(screen.getAllByText('Open Library').length).toBeGreaterThanOrEqual(2)
+    // "UniCat" appears both as the source card label and the radio option.
+    expect(screen.getAllByText('UniCat').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Book 1 of 1')).toBeInTheDocument()
   })
 
@@ -135,11 +135,11 @@ describe('ResyncWizard', () => {
     mockProposalsData.data = { proposals: [makeProposal('b1', 'Dune')] }
     render(<ResyncWizard />)
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Open Library' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'UniCat' }))
     fireEvent.click(screen.getByRole('button', { name: /apply & next/i }))
 
     await waitFor(() => {
-      expect(mockApplyResyncChoice).toHaveBeenCalledWith('b1', 'openlibrary')
+      expect(mockApplyResyncChoice).toHaveBeenCalledWith('b1', 'unicat')
     })
   })
 
@@ -217,11 +217,11 @@ describe('ResyncWizard', () => {
     // The live proposal replaces the stored one.
     expect(screen.getAllByText('Correct Title').length).toBeGreaterThanOrEqual(1)
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Open Library' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'UniCat' }))
     fireEvent.click(screen.getByRole('button', { name: /apply & next/i }))
 
     await waitFor(() => {
-      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary', 0, {
+      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'unicat', 0, {
         title: 'Correct Title',
         author: ''
       })

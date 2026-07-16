@@ -12,7 +12,8 @@ import { MenuItem } from '@/components/ui/menu-item'
 //
 //  1. Standalone mode (BooksDashboard): omit query/onChange. The bar manages
 //     its own query state, searches the library, navigates on a hit, and
-//     falls back to Open Library when the library has no results.
+//     falls back to the configured external providers when the library has
+//     no results.
 //
 //  2. Controlled mode (BooksSection / library page): supply query and
 //     onChange. The bar is a plain controlled input with no dropdown —

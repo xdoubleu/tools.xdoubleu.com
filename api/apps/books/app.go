@@ -15,7 +15,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
@@ -36,7 +35,7 @@ type Books struct {
 	Services       *services.Services
 	Repositories   *repositories.Repositories
 	jobQueue       *threading.JobQueue
-	resyncBooksJob *jobs.ResyncOpenLibraryJob
+	resyncBooksJob *jobs.ResyncMetadataJob
 	storageScanJob *jobs.StorageScanJob
 }
 
@@ -55,8 +54,7 @@ func New(
 	}
 
 	// Hardcover requires a token to work at all, so leave the client nil when
-	// unset — the resync orchestration nil-checks every non-OpenLibrary
-	// provider.
+	// unset — the resync orchestration nil-checks every optional provider.
 	var hardcoverClient hardcover.Client
 	if cfg.HardcoverAPIKey == "" {
 		logger.Warn(
@@ -69,9 +67,8 @@ func New(
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
 
 	clients := Clients{
-		OpenLibrary: openlibrary.New(logger),
-		UniCat:      unicat.New(logger),
-		Hardcover:   hardcoverClient,
+		UniCat:    unicat.New(logger),
+		Hardcover: hardcoverClient,
 		ObjectStore: objectstore.NewR2(
 			endpoint,
 			cfg.R2AccessKeyID,
@@ -110,13 +107,12 @@ func NewInner(
 		a.Config,
 		a.jobQueue,
 		a.Repositories,
-		clients.OpenLibrary,
 		clients.UniCat,
 		clients.Hardcover,
 		clients.ObjectStore,
 		authService,
 	)
-	a.resyncBooksJob = jobs.NewResyncOpenLibraryJob(
+	a.resyncBooksJob = jobs.NewResyncMetadataJob(
 		a.Services.Books,
 		a.Services.WebSocket,
 	)

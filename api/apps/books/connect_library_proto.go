@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
@@ -26,8 +26,9 @@ func protoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
 	}
 
 	// Only expose a cover URL when the book has one stored. The actual image is
-	// served through our proxy endpoint (which caches it in R2) rather than
-	// directly from Open Library.
+	// served through our proxy endpoint from R2 (fetched there eagerly at
+	// write time — see BookService.cacheCoverFromURL), not from the source
+	// directly.
 	proxyURL := ""
 	if book.CoverURL != nil && *book.CoverURL != "" {
 		proxyURL = coverProxyURL(book.ID, coverBaseURL)
@@ -91,20 +92,23 @@ func protoBookshelves(shelves []bookShelf, coverBaseURL string) []*booksv1.BookS
 	return result
 }
 
-func protoExternalBook(b openlibrary.ExternalBook) *booksv1.ExternalBookResult {
+// protoExternalBook maps a search/detail result onto the wire type.
+// ProviderId is the ISBN13 by convention — both Hardcover and UniCat only
+// support fetch-by-ISBN, so that's what GetExternalBook routes on.
+func protoExternalBook(b services.SourceProposal) *booksv1.ExternalBookResult {
 	return &booksv1.ExternalBookResult{
-		Provider:    b.Provider,
-		ProviderId:  b.ProviderID,
+		Provider:    b.Source,
+		ProviderId:  b.ISBN13,
 		Title:       b.Title,
 		Authors:     b.Authors,
-		Isbn13:      stringPtr(b.ISBN13),
-		CoverUrl:    stringPtr(b.CoverURL),
-		Description: stringPtr(b.Description),
+		Isbn13:      b.ISBN13,
+		CoverUrl:    b.CoverURL,
+		Description: b.Description,
 	}
 }
 
 func protoExternalBooks(
-	books []openlibrary.ExternalBook,
+	books []services.SourceProposal,
 ) []*booksv1.ExternalBookResult {
 	result := make([]*booksv1.ExternalBookResult, len(books))
 	for i, b := range books {

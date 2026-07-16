@@ -17,12 +17,25 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/books"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
-// providerOpenLibrary identifies Open Library as a metadata source/provider.
-const providerOpenLibrary = "openlibrary"
+// ErrExternalNotFound is returned by GetExternal when the named provider is
+// unavailable (unset API key) or has no matching book.
+var ErrExternalNotFound = errors.New("external book not found")
+
+// externalSearchMaxCandidates caps how many results per provider SearchExternal
+// keeps — the free-text external search shows a flat list, unlike the resync
+// wizard which only needs the single best match per source.
+const externalSearchMaxCandidates = 10
+
+// Source name constants for the two configured metadata providers, plus
+// "manual" for hand-entered books that carry no source provenance.
+const (
+	sourceHardcover = "hardcover"
+	sourceUniCat    = "unicat"
+	sourceManual    = "manual"
+)
 
 type BookService struct {
 	logger       *slog.Logger
@@ -30,7 +43,6 @@ type BookService struct {
 	bookFiles    *repositories.BookFilesRepository
 	objectStore  objectstore.Client
 	readingState *repositories.BookReadingStateRepository
-	external     openlibrary.Client
 	uniCat       unicat.Client
 	hardcover    hardcover.Client
 	// booksResync overrides s.books for the resync path in unit tests.
@@ -47,26 +59,72 @@ func (s *BookService) SearchLibrary(
 	return s.books.SearchLibrary(ctx, userID, query)
 }
 
-// SearchExternal searches the Open Library API for books matching the query.
+// SearchExternal searches every configured provider (Hardcover, UniCat) for
+// books matching query and merges their results — no single-provider fallback,
+// each source's matches are kept side by side (same fan-out searchProviders
+// uses for the resync wizard).
 func (s *BookService) SearchExternal(
 	ctx context.Context,
 	query string,
-) ([]openlibrary.ExternalBook, error) {
-	return s.external.Search(ctx, query)
+) []SourceProposal {
+	if query == "" {
+		return nil
+	}
+	proposals, _ := s.searchProviders(
+		ctx, s.logger, query, buildSearchQuery(query, nil), nil,
+		topCandidates(externalSearchMaxCandidates), nil,
+	)
+	return proposals
 }
 
-// GetExternal fetches a single book from an external provider by its
-// provider-scoped ID, for the not-in-library detail page. Only "openlibrary"
-// is supported today; other values return ErrNotFound.
+// GetExternal fetches a single book from an external provider by ISBN13 (the
+// provider-scoped ID for both Hardcover and UniCat), for the not-in-library
+// detail page. Returns ErrExternalNotFound when the provider is unknown,
+// unconfigured, or has no matching book.
 func (s *BookService) GetExternal(
 	ctx context.Context,
 	provider string,
 	providerID string,
-) (*openlibrary.ExternalBook, error) {
-	if provider != providerOpenLibrary {
-		return nil, openlibrary.ErrNotFound
+) (*SourceProposal, error) {
+	switch provider {
+	case sourceHardcover:
+		if s.hardcover == nil {
+			return nil, ErrExternalNotFound
+		}
+		d, err := s.hardcover.GetByISBN(ctx, providerID)
+		if err != nil {
+			if errors.Is(err, hardcover.ErrNotFound) {
+				return nil, ErrExternalNotFound
+			}
+			return nil, err
+		}
+		p := newSourceProposalFromCandidate(sourceHardcover, titleOnlyCandidate{
+			title: d.Title, authors: d.Authors, isbn13: d.ISBN13,
+			coverURL: d.CoverURL, description: d.Description, pageCount: d.PageCount,
+		})
+		return &p, nil
+	case sourceUniCat:
+		if s.uniCat == nil {
+			return nil, ErrExternalNotFound
+		}
+		d, err := s.uniCat.GetByISBN(ctx, providerID)
+		if err != nil {
+			if errors.Is(err, unicat.ErrNotFound) {
+				return nil, ErrExternalNotFound
+			}
+			return nil, err
+		}
+		p := newSourceProposalFromCandidate(
+			sourceUniCat,
+			titleOnlyCandidate{ //nolint:exhaustruct // UniCat has no cover images
+				title: d.Title, authors: d.Authors, isbn13: d.ISBN13,
+				description: d.Description, pageCount: d.PageCount,
+			},
+		)
+		return &p, nil
+	default:
+		return nil, ErrExternalNotFound
 	}
-	return s.external.Get(ctx, providerID)
 }
 
 // SetBookISBN sets the isbn13 of the given catalog book.
@@ -103,7 +161,7 @@ func (s *BookService) SetBookISBN(
 func (s *BookService) AddToLibrary(
 	ctx context.Context,
 	userID string,
-	ext openlibrary.ExternalBook,
+	ext SourceProposal,
 	status string,
 	initialTags []string,
 ) (*models.UserBook, error) {
@@ -111,6 +169,17 @@ func (s *BookService) AddToLibrary(
 	saved, err := s.books.UpsertBook(ctx, book)
 	if err != nil {
 		return nil, err
+	}
+
+	// Eager-fetch into R2 now so the cover proxy never needs a live fetch.
+	// ponytail: re-fetches even if this exact cover was already cached by a
+	// prior add of the same book — harmless (R2 Put just overwrites), and
+	// simpler than diffing against the pre-upsert cover.
+	if book.CoverURL != nil && *book.CoverURL != "" {
+		if cacheErr := s.cacheCoverFromURL(ctx, saved.ID, *book.CoverURL); cacheErr != nil {
+			s.logger.WarnContext(ctx, "failed to cache book cover",
+				"bookID", saved.ID, "error", cacheErr)
+		}
 	}
 
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
@@ -406,65 +475,100 @@ func countDatesOn(dates []time.Time, dateStr string) int {
 	return count
 }
 
-// enrichByISBN best-effort fills missing description/page-count/cover on a book
-// by looking it up in Open Library by ISBN13. Open Library's search results omit
-// the description and sometimes the page count, so this is run when a book is
-// added to the library. Lookup failures are logged and the original book is
+// enrichByISBN best-effort fills missing description/page-count/cover on a
+// search result by looking it up by ISBN13 in whichever configured providers
+// haven't already answered — a provider's search results can be less complete
+// than its ISBN-keyed lookup (UniCat especially). Run when a book is added to
+// the library. Lookup failures are logged and the original proposal is
 // returned unchanged — enrichment never blocks an add.
 func (s *BookService) enrichByISBN(
 	ctx context.Context,
-	ext openlibrary.ExternalBook,
-) openlibrary.ExternalBook {
-	if ext.ISBN13 == nil || *ext.ISBN13 == "" {
+	ext SourceProposal,
+) SourceProposal {
+	if ext.ISBN13 == "" {
 		return ext
 	}
-	if ext.Description != nil && ext.PageCount != nil && ext.CoverURL != nil {
+	if ext.Description != "" && ext.PageCount != 0 && ext.CoverURL != "" {
 		return ext
 	}
 
-	detail, err := s.external.GetByISBN(ctx, *ext.ISBN13)
-	if err != nil || detail == nil {
-		if err != nil && !errors.Is(err, openlibrary.ErrNotFound) {
-			s.logger.WarnContext(ctx, "open library ISBN lookup failed", "error", err)
+	if s.hardcover != nil {
+		detail, err := s.hardcover.GetByISBN(ctx, ext.ISBN13)
+		if err != nil && !errors.Is(err, hardcover.ErrNotFound) {
+			s.logger.WarnContext(ctx, "hardcover ISBN lookup failed", "error", err)
 		}
-		return ext
+		if detail != nil {
+			ext.Description = fillStrIfEmpty(ext.Description, detail.Description)
+			ext.PageCount = fillIntIfZero(ext.PageCount, detail.PageCount)
+			ext.CoverURL = fillStrIfEmpty(ext.CoverURL, detail.CoverURL)
+		}
 	}
 
-	if ext.Description == nil {
-		ext.Description = detail.Description
+	if s.uniCat != nil && (ext.Description == "" || ext.PageCount == 0) {
+		detail, err := s.uniCat.GetByISBN(ctx, ext.ISBN13)
+		if err != nil && !errors.Is(err, unicat.ErrNotFound) {
+			s.logger.WarnContext(ctx, "unicat ISBN lookup failed", "error", err)
+		}
+		if detail != nil {
+			ext.Description = fillStrIfEmpty(ext.Description, detail.Description)
+			ext.PageCount = fillIntIfZero(ext.PageCount, detail.PageCount)
+		}
 	}
-	if ext.PageCount == nil {
-		ext.PageCount = detail.PageCount
-	}
-	if ext.CoverURL == nil {
-		ext.CoverURL = detail.CoverURL
-	}
+
 	return ext
 }
 
-func externalToBook(ext openlibrary.ExternalBook) models.Book {
-	coverURL := ext.CoverURL
-	if coverURL == nil {
-		if fallback := openlibrary.CoverURLByISBN(ext.ISBN13); fallback != "" {
-			coverURL = &fallback
-		}
+// fillStrIfEmpty returns src's value when cur is empty and src is set,
+// otherwise cur unchanged.
+func fillStrIfEmpty(cur string, src *string) string {
+	if cur == "" && src != nil {
+		return *src
+	}
+	return cur
+}
+
+// fillIntIfZero returns src's value when cur is zero and src is set,
+// otherwise cur unchanged.
+func fillIntIfZero(cur int, src *int) int {
+	if cur == 0 && src != nil {
+		return *src
+	}
+	return cur
+}
+
+func externalToBook(ext SourceProposal) models.Book {
+	var coverURL *string
+	if ext.CoverURL != "" {
+		coverURL = &ext.CoverURL
+	}
+	var isbn13 *string
+	if ext.ISBN13 != "" {
+		isbn13 = &ext.ISBN13
+	}
+	var description *string
+	if ext.Description != "" {
+		description = &ext.Description
+	}
+	var pageCount *int
+	if ext.PageCount != 0 {
+		pageCount = &ext.PageCount
 	}
 
 	// Record provenance only for books whose metadata actually came from a
-	// source — hand-entered books (Provider "manual"/"") stay NULL.
+	// source — hand-entered books (Source "manual"/"") stay NULL.
 	var metadataSource *string
-	if ext.Provider == providerOpenLibrary {
-		source := ext.Provider
+	if ext.Source != "" && ext.Source != sourceManual {
+		source := ext.Source
 		metadataSource = &source
 	}
 
 	return models.Book{ //nolint:exhaustruct //optional fields
 		Title:          ext.Title,
 		Authors:        ext.Authors,
-		ISBN13:         ext.ISBN13,
+		ISBN13:         isbn13,
 		CoverURL:       coverURL,
-		Description:    ext.Description,
-		PageCount:      ext.PageCount,
+		Description:    description,
+		PageCount:      pageCount,
 		MetadataSource: metadataSource,
 	}
 }
@@ -999,8 +1103,7 @@ func (s *BookService) MergeBooks(
 }
 
 // applyCoverSource copies the source book's cover_url onto the winner catalog
-// row and clears the winner's R2 cover cache so the next request re-fetches
-// the image from the new URL.
+// row and eagerly refreshes the winner's R2 cover cache to match.
 func (s *BookService) applyCoverSource(
 	ctx context.Context,
 	winnerBookID uuid.UUID,
@@ -1021,28 +1124,18 @@ func (s *BookService) applyCoverSource(
 		return fmt.Errorf("write cover_url to winner: %w", updateErr)
 	}
 
-	// Clear cached cover images so the next proxy request re-fetches.
-	for _, key := range []string{
-		bookCoverKey(winnerBookID),
-		bookCoverMissingKey(winnerBookID),
-	} {
-		if exists, checkErr := s.objectStore.Exists(ctx, key); checkErr != nil {
-			s.logger.Warn(
-				"failed to check cover cache key",
-				"key",
-				key,
-				"err",
-				checkErr,
-			)
-		} else if exists {
-			if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
-				s.logger.Warn(
-					"failed to clear cover cache key",
-					"key", key, "err", delErr,
-				)
-			}
+	if winner.CoverURL != nil && *winner.CoverURL != "" {
+		cacheErr := s.cacheCoverFromURL(ctx, winnerBookID, *winner.CoverURL)
+		if cacheErr != nil {
+			s.logger.Warn("failed to cache merged book cover",
+				"bookID", winnerBookID, "err", cacheErr)
 		}
+		return nil
 	}
 
+	if clearErr := s.clearCoverCache(ctx, winnerBookID); clearErr != nil {
+		s.logger.Warn("failed to clear book cover cache",
+			"bookID", winnerBookID, "err", clearErr)
+	}
 	return nil
 }

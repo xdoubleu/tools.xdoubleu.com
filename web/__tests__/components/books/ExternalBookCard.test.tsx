@@ -19,8 +19,8 @@ jest.mock('next/image', () => {
 })
 
 const fakeBook = create(ExternalBookResultSchema, {
-  provider: 'openlibrary',
-  providerId: 'OL123W',
+  provider: 'hardcover',
+  providerId: '9780134190440',
   title: 'The Go Programming Language',
   authors: ['Alan Donovan', 'Brian Kernighan'],
   isbn13: '9780134190440',
@@ -37,12 +37,15 @@ describe('ExternalBookCard', () => {
 
   it('shows the provider as a badge', () => {
     render(<ExternalBookCard book={fakeBook} />)
-    expect(screen.getByText('OpenLibrary')).toBeInTheDocument()
+    expect(screen.getByText('Hardcover')).toBeInTheDocument()
   })
 
   it('links to the external detail page', () => {
     render(<ExternalBookCard book={fakeBook} />)
-    expect(screen.getByRole('link')).toHaveAttribute('href', '/books/external/openlibrary/OL123W')
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/books/external/hardcover/9780134190440'
+    )
   })
 
   it('falls back to the raw provider string for unknown providers', () => {
@@ -55,5 +58,14 @@ describe('ExternalBookCard', () => {
     const noAuthors = create(ExternalBookResultSchema, { ...fakeBook, authors: [] })
     render(<ExternalBookCard book={noAuthors} />)
     expect(screen.queryByText('Alan Donovan, Brian Kernighan')).not.toBeInTheDocument()
+  })
+
+  // provider_id is the result's ISBN13 — a search result with no ISBN has no
+  // detail page to link to (both configured providers only fetch by ISBN).
+  it('renders as a non-clickable card when providerId is empty', () => {
+    const noProviderId = create(ExternalBookResultSchema, { ...fakeBook, providerId: '' })
+    render(<ExternalBookCard book={noProviderId} />)
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByText('The Go Programming Language')).toBeInTheDocument()
   })
 })

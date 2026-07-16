@@ -13,7 +13,7 @@ import (
 // must match scanBook.
 const bookColumns = `id, title, authors, isbn13, cover_url, description,
 	page_count, created_at, updated_at,
-	openlibrary_found, unicat_found, hardcover_found,
+	unicat_found, hardcover_found,
 	last_resync_at, metadata_source`
 
 // userBookColumns is the joined column list for user_book selects. The order must
@@ -44,7 +44,6 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 		&book.PageCount,
 		&book.CreatedAt,
 		&book.UpdatedAt,
-		&book.OpenLibraryFound,
 		&book.UniCatFound,
 		&book.HardcoverFound,
 		&book.LastResyncAt,

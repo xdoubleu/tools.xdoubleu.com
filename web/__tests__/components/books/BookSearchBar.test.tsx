@@ -20,7 +20,7 @@ jest.mock('next/navigation', () => ({
 jest.useFakeTimers()
 
 const EXTERNAL_BOOK = {
-  provider: 'openlibrary',
+  provider: 'hardcover',
   providerId: '1',
   title: 'Go Book',
   authors: ['Donovan'],
@@ -153,7 +153,7 @@ describe('BookSearchBar — controlled mode', () => {
     expect(screen.getByDisplayValue('foundation')).toBeInTheDocument()
   })
 
-  it('never searches the library or Open Library directly', () => {
+  it('never searches the library or external providers directly', () => {
     render(<BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} />)
     expect(mockSearchLibrary).not.toHaveBeenCalled()
     expect(mockSearchExternal).not.toHaveBeenCalled()

@@ -97,7 +97,7 @@ describe('BooksSettingsClient', () => {
 
   it('does not show resync or find-duplicates on the settings page', () => {
     render(<BooksSettingsClient />)
-    expect(screen.queryByTestId('resync-openlibrary-btn')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('resync-books-btn')).not.toBeInTheDocument()
     expect(screen.queryByTestId('find-duplicates-btn')).not.toBeInTheDocument()
   })
 

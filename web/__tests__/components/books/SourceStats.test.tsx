@@ -66,7 +66,6 @@ describe('SourceStats', () => {
   it('renders one row per source with found/missed/unique counts and the totals', () => {
     mockStatsData.data = {
       sources: [
-        { source: 'openlibrary', foundCount: 42, uniqueCount: 7, missedCount: 8 },
         { source: 'hardcover', foundCount: 30, uniqueCount: 2, missedCount: 20 },
         { source: 'unicat', foundCount: 5, uniqueCount: 1, missedCount: 45 }
       ],
@@ -78,12 +77,11 @@ describe('SourceStats', () => {
     }
     render(<SourceStats />)
 
-    expect(screen.getByText('Open Library')).toBeInTheDocument()
     expect(screen.getByText('Hardcover')).toBeInTheDocument()
     expect(screen.getByText('UniCat')).toBeInTheDocument()
-    expect(screen.getByText('42')).toBeInTheDocument()
-    expect(screen.getByText('8')).toBeInTheDocument()
-    expect(screen.getByText('7')).toBeInTheDocument()
+    expect(screen.getByText('30')).toBeInTheDocument()
+    expect(screen.getByText('20')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.getByText('43 found across all sources (in at least one).')).toBeInTheDocument()
     expect(screen.getByText('50 books in the catalog.')).toBeInTheDocument()
     expect(screen.getByText('4 missing from all sources.')).toBeInTheDocument()
@@ -125,22 +123,19 @@ describe('SourceStats', () => {
     expect(screen.queryByRole('button', { name: '0' })).not.toBeInTheDocument()
   })
 
-  it('renders an overlap section and opens a dialog for a pair combo', () => {
+  // With only two configured sources (UniCat, Hardcover), the sole overlap
+  // combo always spans every source — comboLabel renders it as "All sources"
+  // rather than a specific pair.
+  it('renders an overlap section and opens a dialog for the combo', () => {
     mockStatsData.data = {
       sources: [
-        { source: 'openlibrary', foundCount: 42, uniqueCount: 7, missedCount: 8 },
         { source: 'unicat', foundCount: 5, uniqueCount: 1, missedCount: 45 },
         { source: 'hardcover', foundCount: 18, uniqueCount: 3, missedCount: 25 }
       ],
       totalBooks: 50,
       notFoundAnywhere: 4,
       neverScanned: 3,
-      overlaps: [
-        { sources: ['openlibrary', 'hardcover'], count: 12 },
-        { sources: ['openlibrary', 'unicat'], count: 0 },
-        { sources: ['unicat', 'hardcover'], count: 0 },
-        { sources: ['openlibrary', 'unicat', 'hardcover'], count: 5 }
-      ],
+      overlaps: [{ sources: ['unicat', 'hardcover'], count: 12 }],
       missedOverlaps: []
     }
     mockExactSourcesData.data = {
@@ -149,27 +144,21 @@ describe('SourceStats', () => {
     render(<SourceStats />)
 
     expect(screen.getByText('Overlap — found in exactly these sources')).toBeInTheDocument()
-    expect(screen.getByText('Open Library + Hardcover')).toBeInTheDocument()
     expect(screen.getByText('All sources')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('12'))
 
-    expect(screen.getByText('Found in Open Library + Hardcover')).toBeInTheDocument()
+    expect(screen.getByText('Found in All sources')).toBeInTheDocument()
     expect(screen.getByText('Overlap Book')).toBeInTheDocument()
   })
 
-  it('does not render the overlap section when every combo is zero', () => {
+  it('does not render the overlap section when the combo is zero', () => {
     mockStatsData.data = {
-      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
+      sources: [{ source: 'hardcover', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
       totalBooks: 5,
       notFoundAnywhere: 0,
       neverScanned: 0,
-      overlaps: [
-        { sources: ['openlibrary', 'unicat'], count: 0 },
-        { sources: ['openlibrary', 'hardcover'], count: 0 },
-        { sources: ['unicat', 'hardcover'], count: 0 },
-        { sources: ['openlibrary', 'unicat', 'hardcover'], count: 0 }
-      ],
+      overlaps: [{ sources: ['unicat', 'hardcover'], count: 0 }],
       missedOverlaps: []
     }
     render(<SourceStats />)
@@ -177,42 +166,32 @@ describe('SourceStats', () => {
     expect(screen.queryByText('Overlap — found in exactly these sources')).not.toBeInTheDocument()
   })
 
-  it('renders a missed-overlaps section when a combo is nonzero', () => {
+  it('renders a missed-overlaps section when the combo is nonzero', () => {
     mockStatsData.data = {
-      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
+      sources: [{ source: 'hardcover', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
       totalBooks: 5,
       notFoundAnywhere: 0,
       neverScanned: 0,
       overlaps: [],
-      missedOverlaps: [
-        { sources: ['openlibrary', 'hardcover'], count: 3 },
-        { sources: ['openlibrary', 'unicat'], count: 0 },
-        { sources: ['unicat', 'hardcover'], count: 0 },
-        { sources: ['openlibrary', 'unicat', 'hardcover'], count: 0 }
-      ]
+      missedOverlaps: [{ sources: ['unicat', 'hardcover'], count: 3 }]
     }
     render(<SourceStats />)
 
     expect(
       screen.getByText('Missed overlaps — missed by exactly these sources')
     ).toBeInTheDocument()
-    expect(screen.getByText('Open Library + Hardcover')).toBeInTheDocument()
+    expect(screen.getByText('All sources')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
   })
 
-  it('does not render the missed-overlaps section when every combo is zero', () => {
+  it('does not render the missed-overlaps section when the combo is zero', () => {
     mockStatsData.data = {
-      sources: [{ source: 'openlibrary', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
+      sources: [{ source: 'hardcover', foundCount: 5, uniqueCount: 5, missedCount: 0 }],
       totalBooks: 5,
       notFoundAnywhere: 0,
       neverScanned: 0,
       overlaps: [],
-      missedOverlaps: [
-        { sources: ['openlibrary', 'unicat'], count: 0 },
-        { sources: ['openlibrary', 'hardcover'], count: 0 },
-        { sources: ['unicat', 'hardcover'], count: 0 },
-        { sources: ['openlibrary', 'unicat', 'hardcover'], count: 0 }
-      ]
+      missedOverlaps: [{ sources: ['unicat', 'hardcover'], count: 0 }]
     }
     render(<SourceStats />)
 

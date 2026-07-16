@@ -14,8 +14,8 @@ function makeProposal() {
     }),
     sources: [
       create(SourceBookSchema, {
-        source: 'openlibrary',
-        title: 'Dune (OL)',
+        source: 'unicat',
+        title: 'Dune (UC)',
         coverUrl: 'https://example.com/cover.jpg',
         differs: ['title', 'authors']
       })
@@ -29,7 +29,7 @@ describe('SourceCompare', () => {
       <SourceCompare proposal={makeProposal()} onApply={jest.fn()} applyLabel={() => 'Apply'} />
     )
     const img = screen.getByRole('img')
-    expect(img).toHaveAttribute('alt', 'Dune (OL)')
+    expect(img).toHaveAttribute('alt', 'Dune (UC)')
   })
 
   it('does not render cover_url as a text field', () => {
@@ -43,10 +43,10 @@ describe('SourceCompare', () => {
     const onApply = jest.fn().mockResolvedValue(undefined)
     render(<SourceCompare proposal={makeProposal()} onApply={onApply} applyLabel={() => 'Apply'} />)
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Open Library' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'UniCat' }))
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
 
-    await waitFor(() => expect(onApply).toHaveBeenCalledWith('openlibrary', 0))
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith('unicat', 0))
   })
 
   it('shows an error message when onApply rejects', async () => {

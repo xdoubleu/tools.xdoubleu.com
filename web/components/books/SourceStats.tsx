@@ -18,9 +18,9 @@ function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source
 }
 
-// TOTAL_SOURCES is the number of external metadata providers (Open Library,
-// UniCat, Hardcover) — SOURCE_LABELS also carries the '' "Keep library"
-// entry, which is excluded here.
+// TOTAL_SOURCES is the number of external metadata providers (UniCat,
+// Hardcover) — SOURCE_LABELS also carries the '' "Keep library" entry, which
+// is excluded here.
 const TOTAL_SOURCES = Object.keys(SOURCE_LABELS).filter((s) => s !== '').length
 
 function comboLabel(sources: string[]): string {

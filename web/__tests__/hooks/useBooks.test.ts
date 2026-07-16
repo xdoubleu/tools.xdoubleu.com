@@ -237,8 +237,8 @@ describe('useApplyResyncChoice', () => {
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ applyResyncChoice: mockApply })
     const { result } = renderHook(() => useApplyResyncChoice())
-    await result.current('book-1', 'openlibrary')
-    expect(mockApply).toHaveBeenCalledWith({ bookId: 'book-1', source: 'openlibrary' })
+    await result.current('book-1', 'hardcover')
+    expect(mockApply).toHaveBeenCalledWith({ bookId: 'book-1', source: 'hardcover' })
   })
 })
 
@@ -298,14 +298,14 @@ describe('useExternalBook', () => {
     renderHook(() => useExternalBook(null, 'OL1W'))
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
     mockUseSWR.mockClear()
-    renderHook(() => useExternalBook('openlibrary', null))
+    renderHook(() => useExternalBook('hardcover', null))
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
   })
 
   it('uses the externalBook key when both are provided', () => {
-    renderHook(() => useExternalBook('openlibrary', 'OL1W'))
+    renderHook(() => useExternalBook('hardcover', 'OL1W'))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/books/external', 'openlibrary', 'OL1W'],
+      ['/books/external', 'hardcover', 'OL1W'],
       expect.any(Function)
     )
   })
@@ -314,10 +314,10 @@ describe('useExternalBook', () => {
     const mockGet = jest.fn().mockResolvedValue({ result: undefined })
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ getExternalBook: mockGet })
-    renderHook(() => useExternalBook('openlibrary', 'OL1W'))
+    renderHook(() => useExternalBook('hardcover', 'OL1W'))
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
-    expect(mockGet).toHaveBeenCalledWith({ provider: 'openlibrary', providerId: 'OL1W' })
+    expect(mockGet).toHaveBeenCalledWith({ provider: 'hardcover', providerId: 'OL1W' })
   })
 })
 
@@ -332,10 +332,10 @@ describe('useApplyBookSource', () => {
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ applyBookSource: mockApply })
     const { result } = renderHook(() => useApplyBookSource())
-    await result.current('book-1', 'openlibrary', 0)
+    await result.current('book-1', 'hardcover', 0)
     expect(mockApply).toHaveBeenCalledWith({
       bookId: 'book-1',
-      source: 'openlibrary',
+      source: 'hardcover',
       index: 0,
       overrideTitle: undefined,
       overrideAuthor: undefined
@@ -347,10 +347,10 @@ describe('useApplyBookSource', () => {
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ applyBookSource: mockApply })
     const { result } = renderHook(() => useApplyBookSource())
-    await result.current('book-1', 'openlibrary', 2, { title: 'T', author: 'A' })
+    await result.current('book-1', 'hardcover', 2, { title: 'T', author: 'A' })
     expect(mockApply).toHaveBeenCalledWith({
       bookId: 'book-1',
-      source: 'openlibrary',
+      source: 'hardcover',
       index: 2,
       overrideTitle: 'T',
       overrideAuthor: 'A'

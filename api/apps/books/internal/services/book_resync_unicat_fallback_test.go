@@ -11,7 +11,6 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
@@ -181,13 +180,11 @@ func TestFetchUniCatByISBN_SkipKnown(t *testing.T) {
 
 // TestFetchByISBN_UniCatUnresolved_PropagatesToOutput verifies fetchByISBN's
 // UniCat dispatch surfaces an unresolved source (skip-known here) rather than
-// silently dropping it, matching Hardcover's and OpenLibrary's dispatch.
+// silently dropping it, matching Hardcover's dispatch.
 func TestFetchByISBN_UniCatUnresolved_PropagatesToOutput(t *testing.T) {
 	isbn := "9789463107389"
 	svc := &BookService{ //nolint:exhaustruct // partial
-		logger: logging.NewNopLogger(),
-		//nolint:exhaustruct // detail unused, err drives the not-found path
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		logger:      logging.NewNopLogger(),
 		uniCat:      &fakeUCClient{}, //nolint:exhaustruct // partial
 		objectStore: objectstore.NewFake(),
 	}
