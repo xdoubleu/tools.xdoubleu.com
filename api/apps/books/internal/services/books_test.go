@@ -107,7 +107,8 @@ func TestGetExternal_DelegatesToUniCat(t *testing.T) {
 
 func TestGetExternal_HardcoverError_Propagates(t *testing.T) {
 	fake := &fakeHCClient{err: errors.New("boom")} //nolint:exhaustruct //partial
-	svc := &BookService{                           //nolint:exhaustruct //only hardcover needed
+	//nolint:exhaustruct //only hardcover needed
+	svc := &BookService{
 		logger:    logging.NewNopLogger(),
 		hardcover: fake,
 	}
@@ -129,7 +130,8 @@ func TestGetExternal_UniCatNotFound_ReturnsNotFound(t *testing.T) {
 }
 
 func TestGetExternal_UniCatProviderNotConfigured_ReturnsNotFound(t *testing.T) {
-	svc := &BookService{logger: logging.NewNopLogger()} //nolint:exhaustruct //only logger needed
+	//nolint:exhaustruct //only logger needed
+	svc := &BookService{logger: logging.NewNopLogger()}
 
 	_, err := svc.GetExternal(context.Background(), "unicat", "anything")
 	require.ErrorIs(t, err, ErrExternalNotFound)
