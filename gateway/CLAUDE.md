@@ -50,23 +50,40 @@ runs on the main OS thread (`runtime.LockOSThread` in `main`); `serve()` in
 `runUI` until Quit, a server error, or a self-update restart signal closes
 the shared `stop` channel.
 
-The `NSStatusItem` is kept in a package-level `statusItem` var, not a local —
+The status item, its button, and its live menu line are kept in
+package-level vars (`statusItem`, `statusButton`, `statusLine`), not locals —
 `objc.Retain` installs a Go finalizer that *releases* the object once its Go
 wrapper is garbage-collected, so a value that only lives in `runUI`'s setup
 closure gets finalized (and the icon disappears) a few GC cycles after
 launch. A package-level reference keeps it reachable indefinitely.
 
+Creation is factored into `buildStatusItem`, called once from `runUI` and
+again from an `NSWorkspaceDidWakeNotification` observer registered there:
+macOS can drop a status item's on-screen presence across sleep/wake even
+though the retained `NSStatusItem` stays alive (the icon silently vanishes
+after the Mac sleeps), so the observer removes the stale item and rebuilds a
+fresh one on wake. `lastKoboEvent` (also package-level) is re-applied after
+each rebuild so the tooltip/menu line reflect the current Kobo instead of
+resetting to "No Kobo connected".
+
 `internal/kobogateway/watcher.go`'s `Watch` polls `FindKobos` every
 `koboPollInterval` (main.go) and diffs snapshots (`DiffKobos`) to emit
 connect/disconnect `KoboEvent`s; `menubar_darwin.go` consumes them off the
 main dispatch queue to update the tooltip/menu line and fire a best-effort
-`NSUserNotification` toast (darwinkit has no generated binding for it — it's
-deprecated — or for `UNUserNotificationCenter`, which needs a properly
-signed bundle/entitlement this ad-hoc-signed `.app` doesn't have; see the
-`postNotification` comment for the `objc.Call` fallback, mirroring
-darwinkit's own notification example). `KoboTooltip` prefixes the tooltip
-with the running release so the version is visible on hover without opening
-the menu.
+`UNUserNotificationCenter` toast. darwinkit has no generated binding for
+`UserNotifications.framework`, so `postNotification` calls it directly
+through `objc.Call` (same approach darwinkit's own notification example
+uses for the older, deprecated `NSUserNotification` API this replaced —
+that one no longer reliably delivers on current macOS).
+`requestNotificationAuth` requests permission once per process at startup
+with a nil completion handler, deliberately skipping the
+Go-func-as-ObjC-block marshalling that isn't needed here: a denied
+notification just never shows, same failure mode as any other best-effort
+toast. Both notification calls are gated by `runningInAppBundle`
+(`bundle.go`) — `UNUserNotificationCenter` throws when the process has no
+bundle proxy, which is the case for a raw dev binary run outside
+`KoboGateway.app`. `KoboTooltip` prefixes the tooltip with the running
+release so the version is visible on hover without opening the menu.
 
 `internal/kobogateway/loginitem.go` manages a `~/Library/LaunchAgents`
 plist (a plain LaunchAgent, not `SMAppService` — the latter needs macOS 13,
