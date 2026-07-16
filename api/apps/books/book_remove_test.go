@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
@@ -45,17 +45,14 @@ func TestRemoveFromLibrary_Service_CancelledContext_ReturnsError(t *testing.T) {
 
 func TestRemoveFromLibrary_Service_DeletesUserBook(t *testing.T) {
 	cleanupRemoveBookUser(t)
-	isbn := "9780316769488"
-	cover := "https://example.com/cover.jpg"
 	book, err := testApp.Services.Books.AddToLibrary(
 		context.Background(), removeBookUser,
-		openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
-			Provider:   "manual",
-			ProviderID: "remove-test-1",
-			Title:      "RemoveBookOnly",
-			Authors:    []string{"Remove Author"},
-			ISBN13:     &isbn,
-			CoverURL:   &cover,
+		services.SourceProposal{ //nolint:exhaustruct //only required fields
+			Source:   "manual",
+			Title:    "RemoveBookOnly",
+			Authors:  []string{"Remove Author"},
+			ISBN13:   "9780316769488",
+			CoverURL: "https://example.com/cover.jpg",
 		},
 		models.StatusToRead,
 		[]string{},
@@ -78,17 +75,14 @@ func TestRemoveFromLibrary_Service_DeletesUserBook(t *testing.T) {
 
 func TestRemoveFromLibrary_Service_LastReference_DeletesOrphanCatalogRow(t *testing.T) {
 	cleanupRemoveBookUser(t)
-	isbn := "9780316769489"
-	cover := "https://example.com/cover.jpg"
 	book, err := testApp.Services.Books.AddToLibrary(
 		context.Background(), removeBookUser,
-		openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
-			Provider:   "manual",
-			ProviderID: "remove-test-2",
-			Title:      "RemoveBookOrphan",
-			Authors:    []string{"Remove Author"},
-			ISBN13:     &isbn,
-			CoverURL:   &cover,
+		services.SourceProposal{ //nolint:exhaustruct //only required fields
+			Source:   "manual",
+			Title:    "RemoveBookOrphan",
+			Authors:  []string{"Remove Author"},
+			ISBN13:   "9780316769489",
+			CoverURL: "https://example.com/cover.jpg",
 		},
 		models.StatusToRead,
 		[]string{},
@@ -271,17 +265,14 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 }
 
 func TestConnectRemoveBook_OK(t *testing.T) {
-	isbn := "9780316769492"
-	cover := "https://example.com/cover.jpg"
 	book, err := testApp.Services.Books.AddToLibrary(
 		context.Background(), userID,
-		openlibrary.ExternalBook{ //nolint:exhaustruct //only required fields
-			Provider:   "manual",
-			ProviderID: "remove-handler-1",
-			Title:      "RemoveHandlerBook",
-			Authors:    []string{"H Author"},
-			ISBN13:     &isbn,
-			CoverURL:   &cover,
+		services.SourceProposal{ //nolint:exhaustruct //only required fields
+			Source:   "manual",
+			Title:    "RemoveHandlerBook",
+			Authors:  []string{"H Author"},
+			ISBN13:   "9780316769492",
+			CoverURL: "https://example.com/cover.jpg",
 		},
 		models.StatusToRead,
 		[]string{},

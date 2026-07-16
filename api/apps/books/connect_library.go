@@ -11,7 +11,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -116,13 +116,7 @@ func (h *booksConnectHandler) SearchExternal(
 			Results: []*booksv1.ExternalBookResult{},
 		}), nil
 	}
-	results, err := h.app.Services.Books.SearchExternal(
-		ctx,
-		req.Msg.Query,
-	)
-	if err != nil {
-		h.app.Logger.WarnContext(ctx, "open library search failed", "error", err)
-	}
+	results := h.app.Services.Books.SearchExternal(ctx, req.Msg.Query)
 	return connect.NewResponse(&booksv1.SearchExternalResponse{
 		Results: protoExternalBooks(results),
 	}), nil
@@ -145,7 +139,7 @@ func (h *booksConnectHandler) GetExternalBook(
 		req.Msg.ProviderId,
 	)
 	if err != nil {
-		if errors.Is(err, openlibrary.ErrNotFound) {
+		if errors.Is(err, services.ErrExternalNotFound) {
 			return nil, connect.NewError(connect.CodeNotFound, err)
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -170,27 +164,13 @@ func (h *booksConnectHandler) CreateBook(
 	if status == "" {
 		status = models.StatusToRead
 	}
-	var isbn13 *string
-	if req.Msg.Isbn13 != "" {
-		isbn13 = &req.Msg.Isbn13
-	}
-	var coverURL *string
-	if req.Msg.CoverUrl != "" {
-		coverURL = &req.Msg.CoverUrl
-	}
-	var desc *string
-	if req.Msg.Description != "" {
-		desc = &req.Msg.Description
-	}
-	ext := openlibrary.ExternalBook{
-		Provider:    req.Msg.Provider,
-		ProviderID:  req.Msg.ProviderId,
+	ext := services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused here
+		Source:      req.Msg.Provider,
 		Title:       req.Msg.Title,
 		Authors:     []string{req.Msg.Author},
-		ISBN13:      isbn13,
-		CoverURL:    coverURL,
-		Description: desc,
-		PageCount:   nil,
+		ISBN13:      req.Msg.Isbn13,
+		CoverURL:    req.Msg.CoverUrl,
+		Description: req.Msg.Description,
 	}
 	initialTags := []string{}
 	if req.Msg.OwnPhysical {

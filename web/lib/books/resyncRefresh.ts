@@ -4,7 +4,7 @@ import { useProgressSocket, type ProgressState } from '@/lib/progressSocket'
 export type ResyncRefreshState = ProgressState
 
 // useResyncRefresh subscribes to the books progress WebSocket for the
-// "resync-openlibrary" topic. It exposes:
+// "resync-books" topic. It exposes:
 //   - isRefreshing: true while the scan is running
 //   - processed / total: live "X of N" counts (null until first update)
 //   - lastRefresh: timestamp of the last completed run
@@ -17,5 +17,5 @@ export type ResyncRefreshState = ProgressState
 // this run — see BookService.BuildResyncProposals.
 export function useResyncRefresh(onSynced?: () => void, force = false): ResyncRefreshState {
   const triggerResync = useStartResync()
-  return useProgressSocket('books', 'resync-openlibrary', () => triggerResync(force), onSynced)
+  return useProgressSocket('books', 'resync-books', () => triggerResync(force), onSynced)
 }

@@ -3,12 +3,10 @@ package books
 import (
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
 type Clients struct {
-	OpenLibrary openlibrary.Client
 	UniCat      unicat.Client
 	Hardcover   hardcover.Client
 	ObjectStore objectstore.Client

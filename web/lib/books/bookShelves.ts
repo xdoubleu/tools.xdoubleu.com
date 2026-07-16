@@ -36,7 +36,8 @@ export function displayTags(tags: string[]): string[] {
 // Display name for an external search-result provider. Falls back to the raw
 // value for providers without a friendly label.
 const PROVIDER_LABELS: Record<string, string> = {
-  openlibrary: 'OpenLibrary'
+  unicat: 'UniCat',
+  hardcover: 'Hardcover'
 }
 
 export function providerLabel(provider: string): string {

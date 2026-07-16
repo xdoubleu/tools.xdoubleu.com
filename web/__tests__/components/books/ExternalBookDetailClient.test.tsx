@@ -37,8 +37,8 @@ import ExternalBookDetailClient from '@/app/books/external/[provider]/[providerI
 import { useExternalBook } from '@/hooks/useBooks'
 
 const mockBook = create(ExternalBookResultSchema, {
-  provider: 'openlibrary',
-  providerId: 'OL123W',
+  provider: 'hardcover',
+  providerId: '9780134190440',
   title: 'The Go Programming Language',
   authors: ['Alan Donovan', 'Brian Kernighan'],
   isbn13: '9780134190440',
@@ -67,7 +67,7 @@ describe('ExternalBookDetailClient', () => {
       error: undefined,
       isLoading: true
     })
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     expect(screen.getByText('Loading book…')).toBeInTheDocument()
   })
 
@@ -78,7 +78,7 @@ describe('ExternalBookDetailClient', () => {
       error: new Error('fail'),
       isLoading: false
     })
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     expect(screen.getByText('Failed to load book.')).toBeInTheDocument()
   })
 
@@ -89,43 +89,43 @@ describe('ExternalBookDetailClient', () => {
       error: undefined,
       isLoading: false
     })
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     expect(screen.getByText('Book not found.')).toBeInTheDocument()
   })
 
   it('renders title, authors, isbn and description', () => {
     mockResult()
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     expect(screen.getByRole('heading', { name: 'The Go Programming Language' })).toBeInTheDocument()
     expect(screen.getByText('Alan Donovan, Brian Kernighan')).toBeInTheDocument()
     expect(screen.getByText('ISBN: 9780134190440')).toBeInTheDocument()
     expect(screen.getByText('A great book about Go.')).toBeInTheDocument()
-    expect(screen.getByText('OpenLibrary')).toBeInTheDocument()
+    expect(screen.getByText('Hardcover')).toBeInTheDocument()
   })
 
   it('shows no description fallback when description is empty', () => {
     mockResult(create(ExternalBookResultSchema, { ...mockBook, description: '' }))
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     expect(screen.getByText('No description available.')).toBeInTheDocument()
   })
 
   it('renders breadcrumb with Books and Library links', () => {
     mockResult()
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     expect(screen.getByText('Books').closest('a')).toHaveAttribute('href', '/books')
     expect(screen.getByText('Library').closest('a')).toHaveAttribute('href', '/books/library')
   })
 
   it('opens the add-to-library modal when "Add to library" is clicked', () => {
     mockResult()
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     fireEvent.click(screen.getByRole('button', { name: 'Add to library' }))
     expect(screen.getByRole('button', { name: 'Add Book' })).toBeInTheDocument()
   })
 
   it('redirects to the library after the book is added', async () => {
     mockResult()
-    render(<ExternalBookDetailClient provider="openlibrary" providerId="OL123W" />)
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     fireEvent.click(screen.getByRole('button', { name: 'Add to library' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add Book' }))
     await waitFor(() => {

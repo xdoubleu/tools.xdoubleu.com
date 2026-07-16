@@ -20,7 +20,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
@@ -41,7 +40,6 @@ type refreshCall struct {
 // fakeBooksResync.UpdateResyncScanStatus.
 type scanStatusCall struct {
 	bookID  uuid.UUID
-	olFound *bool
 	ucFound *bool
 	hcFound *bool
 }
@@ -113,13 +111,12 @@ func (f *fakeBooksResync) RefreshBookExternalData(
 func (f *fakeBooksResync) UpdateResyncScanStatus(
 	_ context.Context,
 	bookID uuid.UUID,
-	olFound *bool,
 	ucFound *bool,
 	hcFound *bool,
 ) error {
 	f.mu.Lock()
 	f.scanStatusCalls = append(f.scanStatusCalls, scanStatusCall{
-		bookID: bookID, olFound: olFound, ucFound: ucFound, hcFound: hcFound,
+		bookID: bookID, ucFound: ucFound, hcFound: hcFound,
 	})
 	f.mu.Unlock()
 	return f.scanStatusErr
@@ -220,9 +217,13 @@ func (f *fakeUCClient) Search(
 // fakeHCClient is a configurable hardcover.Client stub. calls counts every
 // GetByISBN/Search invocation (mutex-protected: fetchByISBN/searchProviders
 // now query sources concurrently), so tests can assert a call was skipped.
+// byISBNMap, when set, keys GetByISBN's response by the requested ISBN — used
+// to give two books in the same test different provider responses; byISBN
+// (single value) takes priority when both are set.
 type fakeHCClient struct {
 	searchResults []hardcover.ExternalBook
 	byISBN        *hardcover.ExternalBook
+	byISBNMap     map[string]*hardcover.ExternalBook
 	err           error
 
 	mu    sync.Mutex
@@ -231,7 +232,7 @@ type fakeHCClient struct {
 
 func (f *fakeHCClient) GetByISBN(
 	_ context.Context,
-	_ string,
+	isbn string,
 ) (*hardcover.ExternalBook, error) {
 	f.mu.Lock()
 	f.calls++
@@ -239,10 +240,16 @@ func (f *fakeHCClient) GetByISBN(
 	if f.err != nil {
 		return nil, f.err
 	}
-	if f.byISBN == nil {
+	if f.byISBN != nil {
+		return f.byISBN, nil
+	}
+	if f.byISBNMap != nil {
+		if r, ok := f.byISBNMap[isbn]; ok {
+			return r, nil
+		}
 		return nil, hardcover.ErrNotFound
 	}
-	return f.byISBN, nil
+	return nil, hardcover.ErrNotFound
 }
 
 func (f *fakeHCClient) Search(
@@ -253,81 +260,6 @@ func (f *fakeHCClient) Search(
 	f.calls++
 	f.mu.Unlock()
 	return f.searchResults, f.err
-}
-
-// fakeOLClientWithSearch wraps fakeOLClient but supports returning
-// configurable Search results so we can exercise the search-match path.
-type fakeOLClientWithSearch struct {
-	searchResults []openlibrary.ExternalBook
-	searchErr     error
-	detail        *openlibrary.ExternalBook
-	getErr        error
-}
-
-func (f *fakeOLClientWithSearch) Search(
-	_ context.Context,
-	_ string,
-) ([]openlibrary.ExternalBook, error) {
-	return f.searchResults, f.searchErr
-}
-
-func (f *fakeOLClientWithSearch) Get(
-	_ context.Context,
-	_ string,
-) (*openlibrary.ExternalBook, error) {
-	return f.detail, f.getErr
-}
-
-func (f *fakeOLClientWithSearch) GetByISBN(
-	_ context.Context,
-	_ string,
-) (*openlibrary.ExternalBook, error) {
-	return f.detail, f.getErr
-}
-
-func (f *fakeOLClientWithSearch) FetchCover(
-	_ context.Context,
-	_ string,
-) ([]byte, string, error) {
-	return nil, "", errors.New("not implemented")
-}
-
-// multiISBNOLClient returns a canned result per ISBN, used to give two books
-// in the same test different provider responses.
-type multiISBNOLClient struct {
-	results map[string]*openlibrary.ExternalBook
-}
-
-func (f *multiISBNOLClient) Search(
-	_ context.Context, _ string,
-) ([]openlibrary.ExternalBook, error) {
-	return nil, nil
-}
-
-func (f *multiISBNOLClient) Get(
-	_ context.Context, id string,
-) (*openlibrary.ExternalBook, error) {
-	r, ok := f.results[id]
-	if !ok {
-		return nil, openlibrary.ErrNotFound
-	}
-	return r, nil
-}
-
-func (f *multiISBNOLClient) GetByISBN(
-	_ context.Context, isbn string,
-) (*openlibrary.ExternalBook, error) {
-	r, ok := f.results[isbn]
-	if !ok {
-		return nil, openlibrary.ErrNotFound
-	}
-	return r, nil
-}
-
-func (f *multiISBNOLClient) FetchCover(
-	_ context.Context, _ string,
-) ([]byte, string, error) {
-	return nil, "", errors.New("not implemented")
 }
 
 // failDeleteObjectStore is an objectstore.Client that always errors on Delete.
@@ -401,11 +333,6 @@ func (s failDeleteObjectStore) List(
 
 func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
 	isbn := "9780140449112"
-	//nolint:exhaustruct // partial
-	olDetail := &openlibrary.ExternalBook{
-		Title:   "OL Title",
-		Authors: []string{"OL Author"},
-	}
 	ucDetail := &unicat.ExternalBook{Title: "UC Title"} //nolint:exhaustruct // partial
 	hcCover := "https://hardcover.app/cover.jpg"
 	hcDetail := &hardcover.ExternalBook{ //nolint:exhaustruct // partial
@@ -414,7 +341,6 @@ func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
 
 	svc := &BookService{ //nolint:exhaustruct //only resync-path fields needed
 		logger:      logging.NewNopLogger(),
-		external:    &fakeOLClient{detail: olDetail}, //nolint:exhaustruct // partial
 		uniCat:      &fakeUCClient{byISBN: ucDetail}, //nolint:exhaustruct // partial
 		hardcover:   &fakeHCClient{byISBN: hcDetail}, //nolint:exhaustruct // partial
 		objectStore: objectstore.NewFake(),
@@ -425,22 +351,20 @@ func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
 		models.Book{ISBN13: &isbn}, nil, //nolint:exhaustruct // partial
 	)
 
-	require.Len(t, proposals, 3, "all three providers returned a record; no merge")
+	require.Len(t, proposals, 2, "both providers returned a record; no merge")
 	assert.Empty(t, unresolved, "every provider answered cleanly")
-	assert.Equal(t, "openlibrary", proposals[0].Source)
-	assert.Equal(t, "OL Title", proposals[0].Title)
-	assert.Equal(t, "unicat", proposals[1].Source)
-	assert.Equal(t, "UC Title", proposals[1].Title)
-	assert.Equal(t, "hardcover", proposals[2].Source)
-	assert.Equal(t, "HC Title", proposals[2].Title)
-	assert.Equal(t, hcCover, proposals[2].CoverURL)
+	assert.Equal(t, "unicat", proposals[0].Source)
+	assert.Equal(t, "UC Title", proposals[0].Title)
+	assert.Equal(t, "hardcover", proposals[1].Source)
+	assert.Equal(t, "HC Title", proposals[1].Title)
+	assert.Equal(t, hcCover, proposals[1].CoverURL)
 }
 
 func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger: logging.NewNopLogger(),
-		//nolint:exhaustruct // detail unused, err drives the not-found path
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		//nolint:exhaustruct // byISBN unused, err drives the not-found path
+		hardcover:   &fakeHCClient{err: hardcover.ErrNotFound},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -456,7 +380,7 @@ func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// fetchByISBN: errored/skipped Hardcover must be unresolved, not "false"
+// fetchByISBN: an errored/skipped source must be unresolved, not "false"
 // (regression — a source that errors or is skipped must leave the DB flag
 // untouched via recordScanStatus/UpdateResyncScanStatus's COALESCE-preserve,
 // never overwrite a previously-known true with false).
@@ -464,12 +388,12 @@ func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
 
 func TestFetchByISBN_HardcoverErrors_MarkedUnresolved(t *testing.T) {
 	//nolint:exhaustruct // partial
-	olClient := &fakeOLClient{detail: &openlibrary.ExternalBook{Title: "OL Title"}}
+	uc := &fakeUCClient{byISBN: &unicat.ExternalBook{Title: "UC Title"}}
 	//nolint:exhaustruct // partial
 	hc := &fakeHCClient{err: errors.New("boom")}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
-		external:    olClient,
+		uniCat:      uc,
 		hardcover:   hc,
 		objectStore: objectstore.NewFake(),
 	}
@@ -479,7 +403,7 @@ func TestFetchByISBN_HardcoverErrors_MarkedUnresolved(t *testing.T) {
 		context.Background(), logging.NewNopLogger(),
 		models.Book{ISBN13: &isbn}, nil, //nolint:exhaustruct // partial
 	)
-	require.Len(t, proposals, 1, "OL still succeeds independently of HC's error")
+	require.Len(t, proposals, 1, "UniCat still succeeds independently of HC's error")
 	assert.True(t, unresolved["hardcover"],
 		"an errored source must be unresolved, not a false miss")
 }
@@ -487,11 +411,8 @@ func TestFetchByISBN_HardcoverErrors_MarkedUnresolved(t *testing.T) {
 func TestFetchByISBN_HardcoverKnown_SkippedAndUnresolved(t *testing.T) {
 	//nolint:exhaustruct // partial
 	hc := &fakeHCClient{byISBN: &hardcover.ExternalBook{Title: "HC Title"}}
-	//nolint:exhaustruct // partial
-	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
-		external:    olClient,
 		hardcover:   hc,
 		objectStore: objectstore.NewFake(),
 	}
@@ -526,13 +447,10 @@ func TestBuildResyncProposals_ForceHardcover_BypassesCache(t *testing.T) {
 	}
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	//nolint:exhaustruct // partial
-	olClient := &fakeOLClient{err: openlibrary.ErrNotFound}
-	//nolint:exhaustruct // partial
 	hc := &fakeHCClient{byISBN: &hardcover.ExternalBook{Title: "HC Title"}}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		external:    olClient,
 		hardcover:   hc,
 		objectStore: objectstore.NewFake(),
 	}
@@ -557,24 +475,24 @@ func TestBuildResyncProposals_ForceHardcover_BypassesCache(t *testing.T) {
 		"force must bypass the skip-if-known cache and query HC")
 }
 
-// TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced verifies the
-// skip-if-known cache applies to OpenLibrary too, not just the other
-// sources — a resolved (true or false) openlibrary_found flag skips the OL
-// call on a normal run, and force bypasses it.
-func TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced(t *testing.T) {
+// TestBuildResyncProposals_SkipsKnownUniCat_UnlessForced verifies the
+// skip-if-known cache applies to UniCat too, not just Hardcover — a resolved
+// (true or false) unicat_found flag skips the UniCat call on a normal run,
+// and force bypasses it.
+func TestBuildResyncProposals_SkipsKnownUniCat_UnlessForced(t *testing.T) {
 	id := uuid.New()
 	isbn := "9780140449112"
-	olFoundTrue := true
+	ucFoundTrue := true
 	book := models.Book{ //nolint:exhaustruct // partial
-		ID: id, Title: "Known Book", ISBN13: &isbn, OpenLibraryFound: &olFoundTrue,
+		ID: id, Title: "Known Book", ISBN13: &isbn, UniCatFound: &ucFoundTrue,
 	}
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	//nolint:exhaustruct // partial
-	olClient := &fakeOLClient{detail: &openlibrary.ExternalBook{Title: "OL Title"}}
+	ucClient := &fakeUCClient{byISBN: &unicat.ExternalBook{Title: "UC Title"}}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		external:    olClient,
+		uniCat:      ucClient,
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -582,30 +500,30 @@ func TestBuildResyncProposals_SkipsKnownOpenLibrary_UnlessForced(t *testing.T) {
 		context.Background(), logging.NewNopLogger(), nil, false,
 	)
 	require.NoError(t, err)
-	assert.Zero(t, olClient.calls,
-		"without force, a known OpenLibrary flag must skip the OL call")
+	assert.Zero(t, ucClient.calls,
+		"without force, a known UniCat flag must skip the UniCat call")
 
 	_, err = svc.BuildResyncProposals(
 		context.Background(), logging.NewNopLogger(), nil, true,
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 1, olClient.calls,
-		"force must bypass the skip-if-known cache and query OpenLibrary")
+	assert.Equal(t, 1, ucClient.calls,
+		"force must bypass the skip-if-known cache and query UniCat")
 }
 
 func TestFetchSourceProposals_DispatchesOnISBNPresence(t *testing.T) {
 	//nolint:exhaustruct // partial
 	svc := &BookService{
 		logger: logging.NewNopLogger(),
-		//nolint:exhaustruct // partial
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		//nolint:exhaustruct // byISBN unused, err drives the not-found path
+		hardcover:   &fakeHCClient{err: hardcover.ErrNotFound},
 		objectStore: objectstore.NewFake(),
 	}
 	ctx := context.Background()
 
 	isbn := "9780140449112"
 	withISBN := models.Book{ISBN13: &isbn} //nolint:exhaustruct // partial
-	// Has an ISBN: fetchByISBN's path runs (proves it by observing the OL call
+	// Has an ISBN: fetchByISBN's path runs (proves it by observing the HC call
 	// outcome — ErrNotFound yields no proposals, same as a direct call would).
 	proposals, _ := svc.fetchSourceProposals(ctx, logging.NewNopLogger(), withISBN, nil)
 	assert.Empty(t, proposals)
@@ -624,15 +542,15 @@ func TestFetchBySearch_TitleAuthorMatch_Accepted(t *testing.T) {
 	book := models.Book{ //nolint:exhaustruct // partial
 		Title: "Dune", Authors: []string{"Frank Herbert"},
 	}
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
-		searchResults: []openlibrary.ExternalBook{
+	hcFake := &fakeHCClient{ //nolint:exhaustruct //only relevant fields
+		searchResults: []hardcover.ExternalBook{
 			//nolint:exhaustruct // title/authors are all this test checks
 			{Title: "Dune", Authors: []string{"Frank Herbert"}},
 		},
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
-		external:    olFake,
+		hardcover:   hcFake,
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -643,15 +561,15 @@ func TestFetchBySearch_TitleAuthorMatch_Accepted(t *testing.T) {
 		nil,
 	)
 	require.Len(t, proposals, 1)
-	assert.Equal(t, "openlibrary", proposals[0].Source)
+	assert.Equal(t, "hardcover", proposals[0].Source)
 }
 
 func TestFetchBySearch_TitleMismatch_Rejected(t *testing.T) {
 	book := models.Book{ //nolint:exhaustruct // partial
 		Title: "Dune", Authors: []string{"Frank Herbert"},
 	}
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
-		searchResults: []openlibrary.ExternalBook{
+	hcFake := &fakeHCClient{ //nolint:exhaustruct //only relevant fields
+		searchResults: []hardcover.ExternalBook{
 			{ //nolint:exhaustruct // title/authors are all this test checks
 				Title:   "Totally Different Book",
 				Authors: []string{"Frank Herbert"},
@@ -660,7 +578,7 @@ func TestFetchBySearch_TitleMismatch_Rejected(t *testing.T) {
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
-		external:    olFake,
+		hardcover:   hcFake,
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -678,8 +596,8 @@ func TestFetchBySearch_TitleOnly_AmbiguousDisjointAuthors_Rejected(t *testing.T)
 		Title: "Emma",
 	}
 	isbn1, isbn2 := "9780141439587", "9780385340069"
-	olFake := &fakeOLClientWithSearch{ //nolint:exhaustruct //only searchResults
-		searchResults: []openlibrary.ExternalBook{
+	hcFake := &fakeHCClient{ //nolint:exhaustruct //only searchResults
+		searchResults: []hardcover.ExternalBook{
 			{ //nolint:exhaustruct // title/authors/isbn13 are all this test checks
 				Title:   "Emma",
 				Authors: []string{"Jane Austen"},
@@ -694,7 +612,7 @@ func TestFetchBySearch_TitleOnly_AmbiguousDisjointAuthors_Rejected(t *testing.T)
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
-		external:    olFake,
+		hardcover:   hcFake,
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -707,11 +625,9 @@ func TestFetchBySearch_TitleOnly_AmbiguousDisjointAuthors_Rejected(t *testing.T)
 	assert.Empty(t, proposals, "disjoint-author title matches must not be proposed")
 }
 
-func TestFetchBySearch_UniCatAndHardcover_AlsoMatch(t *testing.T) {
+func TestFetchBySearch_UniCatAndHardcover_BothMatch(t *testing.T) {
 	//nolint:exhaustruct // partial
 	book := models.Book{Title: "Dune", Authors: []string{"Frank Herbert"}}
-	//nolint:exhaustruct // no OL match; proves UC/HC still run
-	olFake := &fakeOLClientWithSearch{}
 	ucFake := &fakeUCClient{ //nolint:exhaustruct // partial
 		searchResults: []unicat.ExternalBook{
 			{ //nolint:exhaustruct // title/authors are all this test checks
@@ -730,7 +646,6 @@ func TestFetchBySearch_UniCatAndHardcover_AlsoMatch(t *testing.T) {
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
-		external:    olFake,
 		uniCat:      ucFake,
 		hardcover:   hcFake,
 		objectStore: objectstore.NewFake(),
@@ -757,14 +672,11 @@ func TestFetchBySearch_HardcoverKnown_SkippedAndUnresolved(t *testing.T) {
 	//nolint:exhaustruct // partial
 	hc := &fakeHCClient{
 		searchResults: []hardcover.ExternalBook{
-			{Title: "Dune"},
-		}, //nolint:exhaustruct // partial
+			{Title: "Dune"}, //nolint:exhaustruct // partial
+		},
 	}
-	//nolint:exhaustruct // no OL match; proves HC still runs
-	olClient := &fakeOLClientWithSearch{}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
-		external:    olClient,
 		hardcover:   hc,
 		objectStore: objectstore.NewFake(),
 	}
@@ -856,13 +768,13 @@ func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 
 	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
 		books: []models.Book{
-			// Already has title, ISBN, and a description — OL's differing
+			// Already has title, ISBN, and a description — HC's differing
 			// title/cover-only candidate covers no more fields than this.
 			{ //nolint:exhaustruct // partial
 				ID: idMereDiff, Title: "Has A Description", ISBN13: &isbnA,
 				Description: &existingDesc,
 			},
-			// Missing a description entirely — OL supplies one, a genuine gap-fill.
+			// Missing a description entirely — HC supplies one, a genuine gap-fill.
 			//nolint:exhaustruct // partial
 			{ID: idMoreComplete, Title: "Missing A Description", ISBN13: &isbnB},
 		},
@@ -871,13 +783,18 @@ func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		external: &multiISBNOLClient{results: map[string]*openlibrary.ExternalBook{
-			isbnA: {Title: "A Totally Different Title"},
-			isbnB: {
-				Title:       "Missing A Description",
-				Description: strPtr("A description OL actually has."),
+		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
+			byISBNMap: map[string]*hardcover.ExternalBook{
+				isbnA: {
+					Title: "A Totally Different Title",
+				},
+				isbnB: {
+					Title:       "Missing A Description",
+					Description: strPtr("A description HC actually has."),
+					ISBN13:      &isbnB,
+				},
 			},
-		}},
+		},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -935,7 +852,7 @@ func TestBuildResyncProposals_FlagsNotFoundAnywhere(t *testing.T) {
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
 		//nolint:exhaustruct // partial
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		hardcover:   &fakeHCClient{err: hardcover.ErrNotFound},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -966,7 +883,7 @@ func TestBuildResyncProposals_NeverAttempted_NotFlagged(t *testing.T) {
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
 		//nolint:exhaustruct // partial
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		hardcover:   &fakeHCClient{err: hardcover.ErrNotFound},
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -985,7 +902,7 @@ func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
 	svc := &BookService{       //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		external:    &fakeOLClient{}, //nolint:exhaustruct //zero values fine
+		hardcover:   &fakeHCClient{}, //nolint:exhaustruct //zero values fine
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -1014,7 +931,7 @@ func TestBuildResyncProposals_Cancelled_SkipsProposalsReplace(t *testing.T) {
 	svc := &BookService{                                 //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
 		booksResync: repo,
-		external:    &fakeOLClient{}, //nolint:exhaustruct //zero values fine
+		hardcover:   &fakeHCClient{}, //nolint:exhaustruct //zero values fine
 		objectStore: objectstore.NewFake(),
 	}
 
@@ -1060,7 +977,7 @@ func TestListResyncProposals_RecomputesDiffers(t *testing.T) {
 
 	raw, err := json.Marshal([]SourceProposal{
 		{ //nolint:exhaustruct // partial
-			Source: "openlibrary",
+			Source: "hardcover",
 			Title:  "Different Title",
 		},
 	})
@@ -1089,7 +1006,7 @@ func TestApplyResyncChoice_KeepLibrary_DismissesWithoutWriting(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ID: bookID, Title: "Dune"} //nolint:exhaustruct // partial
 	raw, err := json.Marshal([]SourceProposal{
-		{Source: "openlibrary", Title: "Other Title"}, //nolint:exhaustruct // partial
+		{Source: "hardcover", Title: "Other Title"}, //nolint:exhaustruct // partial
 	})
 	require.NoError(t, err)
 
@@ -1116,51 +1033,9 @@ func TestApplyResyncChoice_ChosenSource_WritesFields(t *testing.T) {
 	book := models.Book{ID: bookID, Title: "Old Title"} //nolint:exhaustruct // partial
 	raw, err := json.Marshal([]SourceProposal{
 		{ //nolint:exhaustruct // partial
-			Source: "openlibrary", Title: "New Title", Description: "New desc",
+			Source: "hardcover", Title: "New Title", Description: "New desc",
 			PageCount: 42, CoverURL: "https://example.com/c.jpg",
 		},
-	})
-	require.NoError(t, err)
-
-	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
-		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
-			bookID: {Book: book, ProposalsJSON: raw},
-		},
-	}
-	svc := &BookService{ //nolint:exhaustruct // partial
-		booksResync: repo,
-		objectStore: objectstore.NewFake(),
-	}
-
-	err = svc.ApplyResyncChoice(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
-	)
-	require.NoError(t, err)
-
-	require.Len(t, repo.refreshCalls, 1)
-	rc := repo.refreshCalls[0]
-	assert.Equal(t, "New Title", rc.title)
-	assert.Equal(t, "New desc", rc.description)
-	assert.Equal(t, 42, rc.pageCount)
-	assert.Equal(t, "openlibrary", rc.metadataSource,
-		"applying a source must record it as the book's metadata source")
-	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs)
-}
-
-func TestApplyResyncChoice_ChosenSource_BlanksFieldsSourceLacks(t *testing.T) {
-	bookID := uuid.New()
-	oldDesc := "Old desc"
-	oldPages := 99
-	book := models.Book{ //nolint:exhaustruct // partial
-		ID:          bookID,
-		Title:       "Old Title",
-		Description: &oldDesc,
-		PageCount:   &oldPages,
-	}
-	// Chosen source supplies only a title — everything else is blank, and
-	// must overwrite the book's existing values rather than leaving them.
-	raw, err := json.Marshal([]SourceProposal{
-		{Source: "hardcover", Title: "New Title"}, //nolint:exhaustruct // partial
 	})
 	require.NoError(t, err)
 
@@ -1182,6 +1057,48 @@ func TestApplyResyncChoice_ChosenSource_BlanksFieldsSourceLacks(t *testing.T) {
 	require.Len(t, repo.refreshCalls, 1)
 	rc := repo.refreshCalls[0]
 	assert.Equal(t, "New Title", rc.title)
+	assert.Equal(t, "New desc", rc.description)
+	assert.Equal(t, 42, rc.pageCount)
+	assert.Equal(t, "hardcover", rc.metadataSource,
+		"applying a source must record it as the book's metadata source")
+	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs)
+}
+
+func TestApplyResyncChoice_ChosenSource_BlanksFieldsSourceLacks(t *testing.T) {
+	bookID := uuid.New()
+	oldDesc := "Old desc"
+	oldPages := 99
+	book := models.Book{ //nolint:exhaustruct // partial
+		ID:          bookID,
+		Title:       "Old Title",
+		Description: &oldDesc,
+		PageCount:   &oldPages,
+	}
+	// Chosen source supplies only a title — everything else is blank, and
+	// must overwrite the book's existing values rather than leaving them.
+	raw, err := json.Marshal([]SourceProposal{
+		{Source: "unicat", Title: "New Title"}, //nolint:exhaustruct // partial
+	})
+	require.NoError(t, err)
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		proposalRows: map[uuid.UUID]repositories.ResyncProposalRow{
+			bookID: {Book: book, ProposalsJSON: raw},
+		},
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		booksResync: repo,
+		objectStore: objectstore.NewFake(),
+	}
+
+	err = svc.ApplyResyncChoice(
+		context.Background(), logging.NewNopLogger(), bookID, "unicat",
+	)
+	require.NoError(t, err)
+
+	require.Len(t, repo.refreshCalls, 1)
+	rc := repo.refreshCalls[0]
+	assert.Equal(t, "New Title", rc.title)
 	assert.Empty(t, rc.description,
 		"a field the chosen source doesn't supply must be blanked, not kept")
 	assert.Zero(t, rc.pageCount,
@@ -1197,7 +1114,7 @@ func TestApplyResyncChoice_PassesSourceISBNThrough(t *testing.T) {
 	}
 	raw, err := json.Marshal([]SourceProposal{
 		{ //nolint:exhaustruct // partial
-			Source: "openlibrary",
+			Source: "hardcover",
 			ISBN13: "9780062316097",
 		},
 	})
@@ -1214,7 +1131,7 @@ func TestApplyResyncChoice_PassesSourceISBNThrough(t *testing.T) {
 	}
 
 	err = svc.ApplyResyncChoice(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary",
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover",
 	)
 	require.NoError(t, err)
 
@@ -1231,7 +1148,7 @@ func TestApplyResyncChoice_UnknownBook_ErrProposalNotFound(t *testing.T) {
 	svc := &BookService{booksResync: repo} //nolint:exhaustruct // partial
 
 	err := svc.ApplyResyncChoice(
-		context.Background(), logging.NewNopLogger(), uuid.New(), "openlibrary",
+		context.Background(), logging.NewNopLogger(), uuid.New(), "hardcover",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
@@ -1240,7 +1157,7 @@ func TestApplyResyncChoice_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ID: bookID} //nolint:exhaustruct // partial
 	raw, err := json.Marshal([]SourceProposal{
-		{Source: "openlibrary", Title: "X"}, //nolint:exhaustruct // partial
+		{Source: "hardcover", Title: "X"}, //nolint:exhaustruct // partial
 	})
 	require.NoError(t, err)
 
@@ -1265,7 +1182,7 @@ func TestGetBookSources_ReturnsLiveProposal(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ID: bookID, Title: "Dune"} //nolint:exhaustruct // partial
 	//nolint:exhaustruct // partial
-	olDetail := &openlibrary.ExternalBook{
+	hcDetail := hardcover.ExternalBook{
 		Title:   "Dune",
 		Authors: []string{"Frank Herbert"},
 	}
@@ -1275,8 +1192,8 @@ func TestGetBookSources_ReturnsLiveProposal(t *testing.T) {
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
-			searchResults: []openlibrary.ExternalBook{*olDetail},
+		hardcover: &fakeHCClient{ //nolint:exhaustruct //only relevant fields
+			searchResults: []hardcover.ExternalBook{hcDetail},
 		},
 		objectStore: objectstore.NewFake(),
 	}
@@ -1291,7 +1208,7 @@ func TestGetBookSources_ReturnsLiveProposal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, bookID.String(), proposal.BookID)
 	require.Len(t, proposal.Sources, 1)
-	assert.Equal(t, "openlibrary", proposal.Sources[0].Source)
+	assert.Equal(t, "hardcover", proposal.Sources[0].Source)
 	assert.Contains(t, proposal.Sources[0].Differs, "authors")
 }
 
@@ -1321,7 +1238,7 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 	// for a book that already has an ISBN (see fetchProposals) — so the
 	// candidate's title must match the book's to pass the search guard.
 	//nolint:exhaustruct // partial
-	olDetail := openlibrary.ExternalBook{
+	hcDetail := hardcover.ExternalBook{
 		Title:   "Old Title",
 		Authors: []string{"Author"},
 	}
@@ -1334,21 +1251,21 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		booksResync: repo,
-		external: &fakeOLClientWithSearch{ //nolint:exhaustruct //only relevant fields
-			searchResults: []openlibrary.ExternalBook{olDetail},
+		hardcover: &fakeHCClient{ //nolint:exhaustruct //only relevant fields
+			searchResults: []hardcover.ExternalBook{hcDetail},
 		},
 		objectStore: objectstore.NewFake(),
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 0, "", "",
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover", 0, "", "",
 	)
 	require.NoError(t, err)
 
 	require.Len(t, repo.refreshCalls, 1)
 	assert.Equal(t, "Old Title", repo.refreshCalls[0].title)
 	assert.Equal(t, []string{"Author"}, repo.refreshCalls[0].authors)
-	assert.Equal(t, "openlibrary", repo.refreshCalls[0].metadataSource)
+	assert.Equal(t, "hardcover", repo.refreshCalls[0].metadataSource)
 	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs,
 		"applying live should also clear any pending wizard proposal")
 }
@@ -1361,30 +1278,40 @@ func TestSyncBookSource_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		booksResync: repo,
-		//nolint:exhaustruct // detail unused, err drives the not-found path
-		external:    &fakeOLClient{err: openlibrary.ErrNotFound},
+		//nolint:exhaustruct // byISBN unused, err drives the not-found path
+		hardcover:   &fakeHCClient{err: hardcover.ErrNotFound},
 		objectStore: objectstore.NewFake(),
 	}
 
 	err := svc.SyncBookSource(
-		context.Background(), logging.NewNopLogger(), bookID, "openlibrary", 0, "", "",
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover", 0, "", "",
 	)
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
 
 // ---------------------------------------------------------------------------
-// bustCoverCache: Delete failures are non-fatal
+// writeResyncResult: cover cache errors are non-fatal
 // ---------------------------------------------------------------------------
 
-func TestBustCoverCache_DeleteErrors(t *testing.T) {
+// TestWriteResyncResult_ClearCoverCacheErrors_NonFatal verifies that a failed
+// R2 delete when a chosen source blanks the cover (writeResyncResult ->
+// clearCoverCache) does not fail the apply itself.
+func TestWriteResyncResult_ClearCoverCacheErrors_NonFatal(t *testing.T) {
 	bookID := uuid.New()
+	oldCover := "https://example.com/old.jpg"
+	book := models.Book{ID: bookID, CoverURL: &oldCover} //nolint:exhaustruct // partial
+
+	repo := &fakeBooksResync{} //nolint:exhaustruct //zero values fine
 	store := failDeleteObjectStore{inner: objectstore.NewFake()}
 	svc := &BookService{ //nolint:exhaustruct // partial
 		logger:      logging.NewNopLogger(),
+		booksResync: repo,
 		objectStore: store,
 	}
 
-	assert.NotPanics(t, func() {
-		svc.bustCoverCache(context.Background(), logging.NewNopLogger(), bookID)
-	})
+	err := svc.writeResyncResult(
+		context.Background(), logging.NewNopLogger(), book,
+		"", "", 0, "", "New Title", nil, "hardcover",
+	)
+	require.NoError(t, err, "a cover-cache-clear failure must not fail the apply")
 }

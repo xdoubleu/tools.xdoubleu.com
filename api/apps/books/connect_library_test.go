@@ -191,16 +191,19 @@ func TestConnectGetExternalBook_Found(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// testApp is wired with the Hardcover mock, which resolves any ISBN to a
+	// canned book — provider_id is the ISBN13 by convention (see
+	// protoExternalBook).
 	req := connect.NewRequest(&booksv1.GetExternalBookRequest{
-		Provider:   "openlibrary",
-		ProviderId: "OL1W",
+		Provider:   "hardcover",
+		ProviderId: "9780140447934",
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetExternalBook(ctx, req)
 	require.NoError(t, err)
 	require.NotNil(t, resp.Msg.Result)
-	assert.Equal(t, "openlibrary", resp.Msg.Result.Provider)
+	assert.Equal(t, "hardcover", resp.Msg.Result.Provider)
 	assert.NotEmpty(t, resp.Msg.Result.Title)
 }
 

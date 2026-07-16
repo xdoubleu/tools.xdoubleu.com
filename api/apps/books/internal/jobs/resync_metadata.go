@@ -11,8 +11,8 @@ import (
 	"tools.xdoubleu.com/internal/progressws"
 )
 
-// ResyncOpenLibraryJob scans the whole catalog for metadata differences
-// against Open Library, UniCat, and Hardcover, and stores what it finds for
+// ResyncMetadataJob scans the whole catalog for metadata differences
+// against UniCat and Hardcover, and stores what it finds for
 // the admin resync wizard to review. It is on-demand only: it must be armed
 // via Arm() before Run() does any work, so the unavoidable startup run
 // (added by JobQueue.AddJob) and the daily scheduler tick are no-ops.
@@ -25,7 +25,7 @@ import (
 //
 // The job holds a reference to the progress WebSocket service so it can emit
 // per-book progress events (X of N) over the /books/api/progress WebSocket.
-type ResyncOpenLibraryJob struct {
+type ResyncMetadataJob struct {
 	books *services.BookService
 	ws    *progressws.Service
 
@@ -37,19 +37,19 @@ type ResyncOpenLibraryJob struct {
 	cancel context.CancelFunc
 }
 
-func NewResyncOpenLibraryJob(
+func NewResyncMetadataJob(
 	books *services.BookService,
 	ws *progressws.Service,
-) *ResyncOpenLibraryJob {
+) *ResyncMetadataJob {
 	//nolint:exhaustruct //armed + running are atomic.Bool; zero value = false
-	return &ResyncOpenLibraryJob{books: books, ws: ws}
+	return &ResyncMetadataJob{books: books, ws: ws}
 }
 
-func (j *ResyncOpenLibraryJob) ID() string {
-	return "resync-openlibrary"
+func (j *ResyncMetadataJob) ID() string {
+	return "resync-books"
 }
 
-func (j *ResyncOpenLibraryJob) RunEvery() time.Duration {
+func (j *ResyncMetadataJob) RunEvery() time.Duration {
 	const hoursInDay = 24
 	return hoursInDay * time.Hour
 }
@@ -57,14 +57,14 @@ func (j *ResyncOpenLibraryJob) RunEvery() time.Duration {
 // Arm marks the job to scan the whole catalog on the next Run call. force
 // bypasses every source's skip-if-known cache for that run — see
 // BookService.BuildResyncProposals.
-func (j *ResyncOpenLibraryJob) Arm(force bool) {
+func (j *ResyncMetadataJob) Arm(force bool) {
 	j.armed.Store(true)
 	j.force.Store(force)
 }
 
 // Cancel stops an in-progress scan, if one is running. A no-op otherwise —
 // there's nothing to stop between runs.
-func (j *ResyncOpenLibraryJob) Cancel() {
+func (j *ResyncMetadataJob) Cancel() {
 	j.mu.Lock()
 	cancel := j.cancel
 	j.mu.Unlock()
@@ -73,7 +73,7 @@ func (j *ResyncOpenLibraryJob) Cancel() {
 	}
 }
 
-func (j *ResyncOpenLibraryJob) Run(ctx context.Context, logger *slog.Logger) error {
+func (j *ResyncMetadataJob) Run(ctx context.Context, logger *slog.Logger) error {
 	if !j.armed.Swap(false) {
 		return nil
 	}

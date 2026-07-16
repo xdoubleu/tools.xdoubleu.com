@@ -3,7 +3,6 @@ package books_test
 import (
 	"bytes"
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,24 +13,19 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/books"
-	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// buildCoverApp creates a test Backlog with a configurable OpenLibrary client
-// and a fresh fakeStore so cover cache tests are isolated.
-func buildCoverApp(
-	t *testing.T,
-	ol openlibrary.Client,
-) (*books.Books, *objectstore.FakeClient) {
+// buildCoverApp creates a test Backlog with a fresh fakeStore so cover cache
+// tests are isolated. Covers are fetched eagerly at write time (AddToLibrary,
+// resync apply, merge) — GetBookCover itself only ever reads R2.
+func buildCoverApp(t *testing.T) (*books.Books, *objectstore.FakeClient) {
 	t.Helper()
 	store := objectstore.NewFake()
 	clients := books.Clients{
-		OpenLibrary:      ol,
 		UniCat:           nil,
 		Hardcover:        nil,
 		ObjectStore:      store,
@@ -49,12 +43,11 @@ func buildCoverApp(
 }
 
 // TestGetBookCover_CacheHit verifies that a cover already in R2 returns a
-// presigned URL without touching the OpenLibrary client.
+// presigned URL.
 func TestGetBookCover_CacheHit(t *testing.T) {
 	ub := addTestBook(t, "CoverCacheHitBook")
-	app, store := buildCoverApp(t, mocks.NewMockOpenLibraryClient())
+	app, store := buildCoverApp(t)
 
-	// Pre-populate the cover in the fake store.
 	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
 	require.NoError(t, store.Put(
 		context.Background(),
@@ -69,54 +62,11 @@ func TestGetBookCover_CacheHit(t *testing.T) {
 	assert.Contains(t, result.URL, coverKey)
 }
 
-// TestGetBookCover_Miss_FetchesAndCaches verifies the cache-miss path:
-// the cover is fetched from Open Library and stored in R2.
-func TestGetBookCover_Miss_FetchesAndCaches(t *testing.T) {
-	ub := addTestBook(t, "CoverMissFetchBook")
-	app, store := buildCoverApp(t, mocks.NewMockOpenLibraryClient())
-
-	result, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
-	require.NoError(t, err)
-	assert.NotEmpty(t, result.URL)
-
-	// Cover should now be cached in R2.
-	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
-	_, cached := store.GetContent(coverKey)
-	assert.True(t, cached, "cover should be cached in R2 after fetch")
-}
-
-// TestGetBookCover_Miss_OpenLibraryNotFound verifies that when Open Library
-// returns ErrCoverNotFound, a .missing marker is written and ErrCoverNotFound
-// is returned.
-func TestGetBookCover_Miss_OpenLibraryNotFound(t *testing.T) {
-	ub := addTestBook(t, "CoverMissingFromOLBook")
-	app, store := buildCoverApp(t, mocks.NewMockEmptyOpenLibraryClient())
-
-	_, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, services.ErrCoverNotFound)
-
-	// A .missing marker should be written.
-	missingKey := "books/" + ub.BookID.String() + "/cover.missing"
-	_, hasMissing := store.GetContent(missingKey)
-	assert.True(t, hasMissing, "cover.missing marker should be written in R2")
-}
-
-// TestGetBookCover_NegativeCacheHit verifies that a pre-existing .missing marker
-// returns ErrCoverNotFound without calling Open Library.
-func TestGetBookCover_NegativeCacheHit(t *testing.T) {
-	ub := addTestBook(t, "CoverNegCacheBook")
-	app, store := buildCoverApp(t, mocks.NewMockOpenLibraryClient())
-
-	// Pre-populate the missing marker.
-	missingKey := "books/" + ub.BookID.String() + "/cover.missing"
-	require.NoError(t, store.Put(
-		context.Background(),
-		missingKey,
-		bytes.NewReader([]byte{}),
-		0,
-		"application/octet-stream",
-	))
+// TestGetBookCover_NotCached verifies that a book with no cached R2 cover
+// returns ErrCoverNotFound — GetBookCover never live-fetches.
+func TestGetBookCover_NotCached(t *testing.T) {
+	ub := addTestBook(t, "CoverNotCachedBook")
+	app, _ := buildCoverApp(t)
 
 	_, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
 	require.Error(t, err)
@@ -126,7 +76,7 @@ func TestGetBookCover_NegativeCacheHit(t *testing.T) {
 // TestGetBookCover_UnknownBook verifies that a non-existent book ID returns
 // ErrCoverNotFound.
 func TestGetBookCover_UnknownBook(t *testing.T) {
-	app, _ := buildCoverApp(t, mocks.NewMockOpenLibraryClient())
+	app, _ := buildCoverApp(t)
 
 	nonExistentID := uuid.New()
 	_, err := app.Services.Books.GetBookCover(context.Background(), nonExistentID)
@@ -137,9 +87,8 @@ func TestGetBookCover_UnknownBook(t *testing.T) {
 // TestCoverHandler_Hit verifies the cover HTTP handler issues a 302 on a hit.
 func TestCoverHandler_Hit(t *testing.T) {
 	ub := addTestBook(t, "CoverHandlerHitBook")
-	app, store := buildCoverApp(t, mocks.NewMockOpenLibraryClient())
+	app, store := buildCoverApp(t)
 
-	// Pre-populate the cover.
 	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
 	require.NoError(t, store.Put(
 		context.Background(),
@@ -165,22 +114,10 @@ func TestCoverHandler_Hit(t *testing.T) {
 }
 
 // TestCoverHandler_NotFound verifies the cover HTTP handler returns 404 when
-// no cover is available.
+// no cover is cached.
 func TestCoverHandler_NotFound(t *testing.T) {
-	app, store := buildCoverApp(t, mocks.NewMockEmptyOpenLibraryClient())
-
-	// Use a valid book with no cover.
+	app, _ := buildCoverApp(t)
 	ub := addTestBook(t, "CoverHandlerMissingBook")
-
-	// Seed the missing marker directly so we skip the OL fetch.
-	missingKey := "books/" + ub.BookID.String() + "/cover.missing"
-	require.NoError(t, store.Put(
-		context.Background(),
-		missingKey,
-		bytes.NewReader([]byte{}),
-		0,
-		"application/octet-stream",
-	))
 
 	mux := testhelper.BuildMux(app)
 	req := httptest.NewRequest(
@@ -194,84 +131,6 @@ func TestCoverHandler_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-// TestGetBookCover_BookHasNoCoverURL verifies that when a book exists in the DB
-// but has no stored cover URL, GetBookCover writes a .missing marker and returns
-// ErrCoverNotFound without calling Open Library.
-func TestGetBookCover_BookHasNoCoverURL(t *testing.T) {
-	// addUniqueBook inserts a book with no CoverURL set.
-	book := addUniqueBook(t)
-	app, store := buildCoverApp(t, mocks.NewMockOpenLibraryClient())
-
-	_, err := app.Services.Books.GetBookCover(context.Background(), book.ID)
-	require.Error(t, err)
-	assert.ErrorIs(t, err, services.ErrCoverNotFound)
-
-	// A .missing marker should be written so we don't re-fetch on every request.
-	missingKey := "books/" + book.ID.String() + "/cover.missing"
-	_, hasMissing := store.GetContent(missingKey)
-	assert.True(
-		t,
-		hasMissing,
-		"cover.missing marker should be written when book has no cover URL",
-	)
-}
-
-// errFetchClient is an openlibrary.Client stub whose FetchCover always returns
-// a non-404 error, exercising the "fetch failed for unknown reason" branch in
-// GetBookCover.
-type errFetchClient struct{}
-
-func (errFetchClient) Search(
-	_ context.Context,
-	_ string,
-) ([]openlibrary.ExternalBook, error) {
-	return nil, errors.New("errFetchClient: Search not implemented")
-}
-
-func (errFetchClient) Get(
-	_ context.Context,
-	_ string,
-) (*openlibrary.ExternalBook, error) {
-	return nil, errors.New("errFetchClient: Get not implemented")
-}
-
-func (errFetchClient) GetByISBN(
-	_ context.Context,
-	_ string,
-) (*openlibrary.ExternalBook, error) {
-	return nil, errors.New("errFetchClient: GetByISBN not implemented")
-}
-
-func (errFetchClient) FetchCover(
-	_ context.Context,
-	_ string,
-) ([]byte, string, error) {
-	return nil, "", errors.New("ol: network timeout")
-}
-
-// TestGetBookCover_Miss_FetchError verifies that when Open Library returns a
-// non-404 error, GetBookCover propagates that error (no .missing marker is
-// written).
-func TestGetBookCover_Miss_FetchError(t *testing.T) {
-	ub := addTestBook(t, "CoverFetchErrorBook")
-	app, store := buildCoverApp(t, errFetchClient{})
-
-	_, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
-	require.Error(t, err)
-	// The error must NOT be ErrCoverNotFound — it should propagate the underlying
-	// network error.
-	assert.NotErrorIs(t, err, services.ErrCoverNotFound)
-
-	// No .missing marker should be written for transient errors.
-	missingKey := "books/" + ub.BookID.String() + "/cover.missing"
-	_, hasMissing := store.GetContent(missingKey)
-	assert.False(
-		t,
-		hasMissing,
-		"cover.missing must not be written for transient fetch errors",
-	)
-}
-
 // TestCoverHandler_InvalidID verifies the cover HTTP handler returns 400 on bad input.
 func TestCoverHandler_InvalidID(t *testing.T) {
 	mux := getRoutes()
@@ -279,4 +138,59 @@ func TestCoverHandler_InvalidID(t *testing.T) {
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestAddToLibrary_CachesCoverEagerly verifies that adding a book with a
+// cover URL fetches the image into R2 immediately, before any cover request.
+func TestAddToLibrary_CachesCoverEagerly(t *testing.T) {
+	imgServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write([]byte("eager-cover-bytes"))
+		},
+	))
+	defer imgServer.Close()
+
+	app, store := buildCoverApp(t)
+	ub, err := app.Services.Books.AddToLibrary(
+		context.Background(),
+		userID,
+		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
+			Source:   "manual",
+			Title:    "EagerCoverBook",
+			Authors:  []string{"Test Author"},
+			CoverURL: imgServer.URL,
+		},
+		"to-read",
+		[]string{},
+	)
+	require.NoError(t, err)
+
+	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
+	data, cached := store.GetContent(coverKey)
+	require.True(t, cached, "cover should be cached in R2 right after add")
+	assert.Equal(t, "eager-cover-bytes", string(data))
+}
+
+// TestAddToLibrary_CoverFetchFailure_DoesNotBlockAdd verifies that a failing
+// cover fetch never blocks the add itself.
+func TestAddToLibrary_CoverFetchFailure_DoesNotBlockAdd(t *testing.T) {
+	app, store := buildCoverApp(t)
+	ub, err := app.Services.Books.AddToLibrary(
+		context.Background(),
+		userID,
+		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
+			Source:   "manual",
+			Title:    "BadCoverURLBook",
+			Authors:  []string{"Test Author"},
+			CoverURL: "http://127.0.0.1:1/unreachable.jpg",
+		},
+		"to-read",
+		[]string{},
+	)
+	require.NoError(t, err)
+
+	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
+	_, cached := store.GetContent(coverKey)
+	assert.False(t, cached, "no cover should be cached when the fetch fails")
 }

@@ -803,21 +803,19 @@ func (repo *BooksRepository) RefreshBookExternalData(
 func (repo *BooksRepository) UpdateResyncScanStatus(
 	ctx context.Context,
 	bookID uuid.UUID,
-	openLibraryFound *bool,
 	uniCatFound *bool,
 	hardcoverFound *bool,
 ) error {
 	query := `
 		UPDATE books.books
-		SET openlibrary_found = COALESCE($2, openlibrary_found),
-		    unicat_found      = COALESCE($3, unicat_found),
-		    hardcover_found   = COALESCE($4, hardcover_found),
+		SET unicat_found      = COALESCE($2, unicat_found),
+		    hardcover_found   = COALESCE($3, hardcover_found),
 		    last_resync_at    = now()
 		WHERE id = $1
 	`
 	_, err := repo.db.Exec(
 		ctx, query,
-		bookID, openLibraryFound, uniCatFound, hardcoverFound,
+		bookID, uniCatFound, hardcoverFound,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }
@@ -834,7 +832,6 @@ func (repo *BooksRepository) ListCatalogBooks(
 		SELECT ` + bookColumns + `
 		FROM books.books
 		ORDER BY (
-			(openlibrary_found IS TRUE)::int +
 			(unicat_found IS TRUE)::int +
 			(hardcover_found IS TRUE)::int
 		), title
@@ -866,9 +863,8 @@ func (repo *BooksRepository) ListCatalogBooks(
 //
 //nolint:gochecknoglobals // fixed lookup table, never mutated
 var sourceColumns = map[string]string{
-	"openlibrary": "openlibrary_found",
-	"unicat":      "unicat_found",
-	"hardcover":   "hardcover_found",
+	"unicat":    "unicat_found",
+	"hardcover": "hardcover_found",
 }
 
 // exactSourcesPredicate returns the SQL boolean expression matching books

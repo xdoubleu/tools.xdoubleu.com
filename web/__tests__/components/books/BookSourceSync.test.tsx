@@ -73,8 +73,8 @@ describe('BookSourceSync', () => {
         },
         sources: [
           {
-            source: 'openlibrary',
-            title: 'Dune (OL)',
+            source: 'unicat',
+            title: 'Dune (UC)',
             authors: ['Frank Herbert'],
             coverUrl: '',
             description: '',
@@ -89,11 +89,11 @@ describe('BookSourceSync', () => {
     render(<BookSourceSync bookId="b1" />)
     fireEvent.click(screen.getByRole('button', { name: /sync metadata source/i }))
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Open Library' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'UniCat' }))
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
 
     await waitFor(() =>
-      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'openlibrary', 0, undefined)
+      expect(mockApplyBookSource).toHaveBeenCalledWith('b1', 'unicat', 0, undefined)
     )
     expect(mockMutate).toHaveBeenCalledWith('/books')
   })

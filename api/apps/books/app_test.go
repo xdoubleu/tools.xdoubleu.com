@@ -2,7 +2,6 @@ package books_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -15,8 +14,8 @@ import (
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/internal/config"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
@@ -53,9 +52,8 @@ func TestMain(m *testing.M) {
 
 	fakeStore = objectstore.NewFake()
 	clients := books.Clients{
-		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
 		UniCat:           nil,
-		Hardcover:        nil,
+		Hardcover:        mocks.NewMockHardcoverClient(),
 		ObjectStore:      fakeStore,
 		KoboStoreBaseURL: "",
 		PublicAPIBaseURL: "",
@@ -87,9 +85,8 @@ func getRoutes() http.Handler {
 func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 	t.Helper()
 	clients := books.Clients{
-		OpenLibrary:      mocks.NewMockOpenLibraryClient(),
 		UniCat:           nil,
-		Hardcover:        nil,
+		Hardcover:        mocks.NewMockHardcoverClient(),
 		ObjectStore:      objectstore.NewFake(),
 		KoboStoreBaseURL: upstreamURL,
 		PublicAPIBaseURL: "",
@@ -119,11 +116,10 @@ const goodreadsCSVForImport = `Book Id,Title,Author,ISBN,ISBN13,My Rating,Exclus
 // catalog entry (ISBN is the dedup key; without it each ProviderID gets its own row).
 func addTestBookNoISBN(t *testing.T, title string) *models.UserBook {
 	t.Helper()
-	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //ISBN intentionally absent
-		Provider:   "manual",
-		ProviderID: fmt.Sprintf("noisbn-%s", title),
-		Title:      title,
-		Authors:    []string{"Test Author"},
+	ext := services.SourceProposal{ //nolint:exhaustruct //ISBN intentionally absent
+		Source:  "manual",
+		Title:   title,
+		Authors: []string{"Test Author"},
 	}
 	ub, err := testApp.Services.Books.AddToLibrary(
 		context.Background(),
@@ -139,17 +135,13 @@ func addTestBookNoISBN(t *testing.T, title string) *models.UserBook {
 
 func addTestBook(t *testing.T, title string) *models.UserBook {
 	t.Helper()
-	isbn := "9780140449112"
-	cover := "https://example.com/cover.jpg"
-	desc := "Test description."
-	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional ISBN10 not needed
-		Provider:    "manual",
-		ProviderID:  fmt.Sprintf("test-%s", title),
+	ext := services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
+		Source:      "manual",
 		Title:       title,
 		Authors:     []string{"Test Author"},
-		ISBN13:      &isbn,
-		CoverURL:    &cover,
-		Description: &desc,
+		ISBN13:      "9780140449112",
+		CoverURL:    "https://example.com/cover.jpg",
+		Description: "Test description.",
 	}
 	ub, err := testApp.Services.Books.AddToLibrary(
 		context.Background(),

@@ -16,7 +16,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 )
 
@@ -44,7 +43,6 @@ type booksResyncSource interface {
 	UpdateResyncScanStatus(
 		ctx context.Context,
 		bookID uuid.UUID,
-		openLibraryFound *bool,
 		uniCatFound *bool,
 		hardcoverFound *bool,
 	) error
@@ -73,8 +71,8 @@ func (s *BookService) resyncRepo() booksResyncSource {
 
 // SourceProposal is one candidate metadata set for a catalog book: either the
 // current library values (Source == "") or one external provider's proposal
-// ("openlibrary" | "unicat" | "hardcover"). Zero-value fields mean the
-// source didn't supply that field.
+// ("unicat" | "hardcover"). Zero-value fields mean the source didn't supply
+// that field.
 type SourceProposal struct {
 	Source      string   `json:"source"`
 	CoverURL    string   `json:"cover_url,omitempty"`
@@ -206,8 +204,8 @@ func (a *resyncAccumulator) addError(err error) {
 
 // scanBookForResync fetches one book's candidate proposals from every
 // configured source, records them into acc when the book should be flagged,
-// and persists the scan status — the per-book unit of work BuildResyncProposals
-// runs concurrently.
+// persists the scan status, and backfills the R2 cover cache — the per-book
+// unit of work BuildResyncProposals runs concurrently.
 func (s *BookService) scanBookForResync(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -227,6 +225,22 @@ func (s *BookService) scanBookForResync(
 	if statusErr != nil {
 		acc.addError(fmt.Errorf("book %s: record scan status: %w", book.ID, statusErr))
 	}
+	s.ensureCoverCached(ctx, book)
+}
+
+// ensureCoverCached fetches a book's cover into R2 when it has a CoverURL but
+// no cached R2 object yet — the backfill for books added before covers were
+// fetched eagerly at write time. Runs on every full resync pass; best-effort,
+// errors are swallowed since a cover miss must never fail the scan.
+func (s *BookService) ensureCoverCached(ctx context.Context, book models.Book) {
+	if book.CoverURL == nil || *book.CoverURL == "" {
+		return
+	}
+	exists, err := s.objectStore.Exists(ctx, bookCoverKey(book.ID))
+	if err != nil || exists {
+		return
+	}
+	_ = s.cacheCoverFromURL(ctx, book.ID, *book.CoverURL)
 }
 
 // recordScanStatus persists one scan pass's per-source found flags on the
@@ -257,7 +271,6 @@ func (s *BookService) recordScanStatus(
 		return &f
 	}
 
-	olFound := found("openlibrary")
 	var ucFound, hcFound *bool
 	if s.uniCat != nil {
 		ucFound = found("unicat")
@@ -267,7 +280,7 @@ func (s *BookService) recordScanStatus(
 	}
 
 	return s.resyncRepo().UpdateResyncScanStatus(
-		ctx, book.ID, olFound, ucFound, hcFound,
+		ctx, book.ID, ucFound, hcFound,
 	)
 }
 
@@ -303,8 +316,7 @@ func encodeIfFlagged(book models.Book, proposals []SourceProposal) ([]byte, bool
 // this book as of the last scan.
 func anyKnownFound(book models.Book) bool {
 	isTrue := func(b *bool) bool { return b != nil && *b }
-	return isTrue(book.OpenLibraryFound) ||
-		isTrue(book.UniCatFound) ||
+	return isTrue(book.UniCatFound) ||
 		isTrue(book.HardcoverFound)
 }
 
@@ -401,9 +413,6 @@ func knownFor(book models.Book, force bool) map[string]bool {
 	if force {
 		return known
 	}
-	if book.OpenLibraryFound != nil {
-		known["openlibrary"] = true
-	}
 	if book.UniCatFound != nil {
 		known["unicat"] = true
 	}
@@ -438,61 +447,24 @@ func (s *BookService) fetchSourceProposals(
 
 // fetchByISBN queries every configured provider's GetByISBN independently and
 // keeps every result — no fallback chaining, each provider stands on its own,
-// except Hardcover and UniCat: Hardcover's edition-level ISBN coverage is
-// sparse compared to its Typesense work index (see fetchHardcoverByISBN), and
-// UniCat's ISBN index misses books its title/author index has (see
-// fetchUniCatByISBN), so both fall back to a guarded title+author search on
-// a miss.
-//
-// further would only hide the fixed-order merge that must stay next to them.
-//
-//nolint:gocognit // three independent concurrent source fetches; splitting
+// except Hardcover and UniCat also fall back to a guarded title+author search
+// on a miss: Hardcover's edition-level ISBN coverage is sparse compared to its
+// Typesense work index (see fetchHardcoverByISBN), and UniCat's ISBN index
+// misses books its title/author index has (see fetchUniCatByISBN).
 func (s *BookService) fetchByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
 	book models.Book,
 	opts *scanOptions,
 ) ([]SourceProposal, map[string]bool) {
-	isbn13 := *book.ISBN13
 	unresolved := map[string]bool{}
 
-	var olProposal *SourceProposal
-	var olUnresolved bool
 	var ucProposal *SourceProposal
 	var ucUnresolved bool
 	var hcProposal *SourceProposal
 	var hcUnresolved bool
 
 	eg, egCtx := errgroup.WithContext(ctx)
-
-	eg.Go(func() error {
-		if opts.skipKnown("openlibrary") {
-			olUnresolved = true
-			return nil
-		}
-		olDetail, olErr := s.external.GetByISBN(egCtx, isbn13)
-		if olErr != nil && !errors.Is(olErr, openlibrary.ErrNotFound) {
-			olUnresolved = true
-			logger.WarnContext(egCtx, "open library ISBN lookup failed",
-				slog.String("isbn13", isbn13), slog.Any("error", olErr))
-			return nil
-		}
-		if olDetail == nil {
-			return nil
-		}
-		p := newSourceProposalFromCandidate("openlibrary", titleOnlyCandidate{
-			title: olDetail.Title, authors: olDetail.Authors, isbn13: olDetail.ISBN13,
-			coverURL: olDetail.CoverURL, description: olDetail.Description,
-			pageCount: olDetail.PageCount,
-		})
-		// Last-resort ISBN-keyed cover URL when OL found the book but its
-		// record has no explicit cover.
-		if p.CoverURL == "" {
-			p.CoverURL = openlibrary.CoverURLByISBN(&isbn13)
-		}
-		olProposal = &p
-		return nil
-	})
 
 	if s.uniCat != nil {
 		eg.Go(func() error {
@@ -513,11 +485,6 @@ func (s *BookService) fetchByISBN(
 	_ = eg.Wait()
 
 	var out []SourceProposal
-	if olUnresolved {
-		unresolved["openlibrary"] = true
-	} else if olProposal != nil {
-		out = append(out, *olProposal)
-	}
 	if s.uniCat != nil {
 		if ucUnresolved {
 			unresolved["unicat"] = true
@@ -612,7 +579,7 @@ func (s *BookService) fetchUniCatBySearchFallback(
 
 // fetchHardcoverByISBN queries Hardcover for one ISBN, honoring opts'
 // skip-if-known. Hardcover has no daily quota, so there is no circuit breaker —
-// only the skip-if-known cache gates it (like Open Library and UniCat).
+// only the skip-if-known cache gates it (like UniCat).
 // Returns the proposal (nil if Hardcover has no match) and whether the source
 // is unresolved this pass (skipped or errored) — see recordScanStatus.
 //
@@ -736,14 +703,14 @@ func topCandidates(n int) func([]titleOnlyCandidate) []titleOnlyCandidate {
 //
 // authors is applied as a post-fetch filter to Hardcover's candidates only:
 // its Typesense query is title-only (see pkg/hardcover extractSearchTerms)
-// and its API allows no fuzzy author operators, so unlike OL/UniCat — whose
-// queries carry inauthor: and filter server-side — Hardcover results arrive
+// and its API allows no fuzzy author operators, so unlike UniCat — whose
+// query carries inauthor: and filters server-side — Hardcover results arrive
 // author-blind and same-titled books by unrelated authors must be dropped
 // here.
 //
 // further would only hide the fixed-order merge that must stay next to them.
 //
-//nolint:gocognit // three independent concurrent source searches; splitting
+//nolint:gocognit // two independent concurrent source searches; splitting
 func (s *BookService) searchProviders(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -755,30 +722,12 @@ func (s *BookService) searchProviders(
 ) ([]SourceProposal, map[string]bool) {
 	unresolved := map[string]bool{}
 
-	var olPicked []titleOnlyCandidate
-	var olUnresolved bool
 	var ucPicked []titleOnlyCandidate
 	var ucUnresolved bool
 	var hcPicked []titleOnlyCandidate
 	var hcUnresolved bool
 
 	eg, egCtx := errgroup.WithContext(ctx)
-
-	eg.Go(func() error {
-		if opts.skipKnown("openlibrary") {
-			olUnresolved = true
-			return nil
-		}
-		results, err := s.external.Search(egCtx, query)
-		if err != nil {
-			olUnresolved = true
-			logger.WarnContext(egCtx, "open library search failed",
-				slog.String("title", logTitle), slog.Any("error", err))
-			return nil
-		}
-		olPicked = pick(olCandidates(results))
-		return nil
-	})
 
 	if s.uniCat != nil {
 		eg.Go(func() error {
@@ -819,11 +768,6 @@ func (s *BookService) searchProviders(
 	_ = eg.Wait()
 
 	var out []SourceProposal
-	if olUnresolved {
-		unresolved["openlibrary"] = true
-	} else {
-		out = appendPicked(out, "openlibrary", olPicked)
-	}
 	if s.uniCat != nil {
 		if ucUnresolved {
 			unresolved["unicat"] = true
@@ -910,17 +854,6 @@ func matchSearchResult(
 		return titleOnlyCandidate{}, false //nolint:exhaustruct // zero value intended
 	}
 	return selectTitleOnlyMatch(book.Title, candidates)
-}
-
-func olCandidates(results []openlibrary.ExternalBook) []titleOnlyCandidate {
-	out := make([]titleOnlyCandidate, len(results))
-	for i, r := range results {
-		out[i] = titleOnlyCandidate{
-			title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
-			coverURL: r.CoverURL, description: r.Description, pageCount: r.PageCount,
-		}
-	}
-	return out
 }
 
 func ucCandidates(results []unicat.ExternalBook) []titleOnlyCandidate {
@@ -1305,9 +1238,9 @@ func (s *BookService) SyncBookSource(
 	return nil
 }
 
-// writeResyncResult persists the chosen fields and busts the cover cache when
-// the cover URL actually changes — including when the new source blanks a
-// cover the book previously had.
+// writeResyncResult persists the chosen fields and refreshes the R2 cover
+// cache when the cover URL actually changes — including when the new source
+// blanks a cover the book previously had.
 func (s *BookService) writeResyncResult(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -1334,10 +1267,22 @@ func (s *BookService) writeResyncResult(
 		return dbErr
 	}
 
-	if coverURL != derefStr(book.CoverURL) {
-		s.bustCoverCache(ctx, logger, book.ID)
+	if coverURL == derefStr(book.CoverURL) {
+		return nil
 	}
 
+	if coverURL == "" {
+		if clearErr := s.clearCoverCache(ctx, book.ID); clearErr != nil {
+			logger.WarnContext(ctx, "failed to clear book cover cache",
+				slog.String("bookID", book.ID.String()), slog.Any("error", clearErr))
+		}
+		return nil
+	}
+
+	if cacheErr := s.cacheCoverFromURL(ctx, book.ID, coverURL); cacheErr != nil {
+		logger.WarnContext(ctx, "failed to cache book cover",
+			slog.String("bookID", book.ID.String()), slog.Any("error", cacheErr))
+	}
 	return nil
 }
 
@@ -1491,21 +1436,4 @@ func setsOverlap(a, b map[string]struct{}) bool {
 		}
 	}
 	return false
-}
-
-// bustCoverCache deletes both the cached cover image and the negative-cache
-// missing marker from R2 so that GetBookCover re-fetches on the next request.
-func (s *BookService) bustCoverCache(
-	ctx context.Context,
-	logger *slog.Logger,
-	bookID uuid.UUID,
-) {
-	if delErr := s.objectStore.Delete(ctx, bookCoverKey(bookID)); delErr != nil {
-		logger.WarnContext(ctx, "failed to bust cover cache",
-			slog.String("bookID", bookID.String()), slog.Any("error", delErr))
-	}
-	if delErr := s.objectStore.Delete(ctx, bookCoverMissingKey(bookID)); delErr != nil {
-		logger.WarnContext(ctx, "failed to bust cover missing marker",
-			slog.String("bookID", bookID.String()), slog.Any("error", delErr))
-	}
 }

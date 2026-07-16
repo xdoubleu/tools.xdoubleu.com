@@ -30,7 +30,7 @@ func TestConnectStartResync_Success(t *testing.T) {
 
 // TestConnectStartResync_Force verifies the force flag round-trips through
 // the RPC without erroring — the job itself asserts the flag is honored (see
-// TestResyncOpenLibraryJob_Run in internal/jobs).
+// internal/jobs' ResyncMetadataJob tests).
 func TestConnectStartResync_Force(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -46,7 +46,7 @@ func TestConnectStartResync_Force(t *testing.T) {
 
 // TestBuildResyncProposals_Service exercises the service layer end-to-end
 // against the real DB. AddToLibrary enriches a new book from the same mocked
-// Open Library client resync later queries (see enrichByISBN), so a freshly
+// Hardcover client resync later queries (see enrichByISBN), so a freshly
 // seeded book already agrees with the mock on every field resync would
 // otherwise supply — a title-only mismatch alone is a mere difference, not a
 // gap, and must not be flagged (see encodeIfFlagged). The test blanks the
@@ -90,8 +90,8 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	// The scan must persist per-source found flags and bump last_resync_at.
 	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
 	require.NoError(t, err)
-	require.NotNil(t, scanned.OpenLibraryFound)
-	assert.True(t, *scanned.OpenLibraryFound, "the mock provider always finds")
+	require.NotNil(t, scanned.HardcoverFound)
+	assert.True(t, *scanned.HardcoverFound, "the mock provider always finds")
 	assert.Nil(t, scanned.UniCatFound, "unconfigured provider stays NULL")
 	assert.NotNil(t, scanned.LastResyncAt)
 
@@ -166,7 +166,7 @@ func TestListCatalogBooks_OrdersLeastCoveredFirst(t *testing.T) {
 	)
 	trueVal := true
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, fullyCovered.BookID, &trueVal, &trueVal, &trueVal,
+		ctx, fullyCovered.BookID, &trueVal, &trueVal,
 	))
 
 	books, err := testApp.Repositories.Books.ListCatalogBooks(ctx)
@@ -204,30 +204,28 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 
 	trueVal := true
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, book.BookID, &trueVal, &trueVal, &trueVal,
+		ctx, book.BookID, &trueVal, &trueVal,
 	))
 
 	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
 	require.NoError(t, err)
-	require.NotNil(t, scanned.OpenLibraryFound)
-	assert.True(t, *scanned.OpenLibraryFound)
+	require.NotNil(t, scanned.UniCatFound)
+	assert.True(t, *scanned.UniCatFound)
 
 	// A second pass with all-nil flags (every source unresolved this time)
 	// must leave the previously-known true values untouched.
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
-		ctx, book.BookID, nil, nil, nil,
+		ctx, book.BookID, nil, nil,
 	))
 
 	rescanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
 	require.NoError(t, err)
-	require.NotNil(t, rescanned.OpenLibraryFound)
+	require.NotNil(t, rescanned.UniCatFound)
 	assert.True(
 		t,
-		*rescanned.OpenLibraryFound,
+		*rescanned.UniCatFound,
 		"nil must preserve, not overwrite with NULL",
 	)
-	require.NotNil(t, rescanned.UniCatFound)
-	assert.True(t, *rescanned.UniCatFound)
 	require.NotNil(t, rescanned.HardcoverFound)
 	assert.True(t, *rescanned.HardcoverFound)
 }

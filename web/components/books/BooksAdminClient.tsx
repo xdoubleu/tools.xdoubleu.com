@@ -58,9 +58,9 @@ export default function BooksAdminClient() {
           Scan for metadata differences
         </h2>
         <p className="mb-3 text-xs text-muted">
-          Fetch Open Library, UniCat, and Hardcover for every book and flag any that differ from
-          your library. Nothing is written automatically — review each flagged book below and pick
-          which source (or your existing library value) should win.
+          Fetch UniCat and Hardcover for every book and flag any that differ from your library.
+          Nothing is written automatically — review each flagged book below and pick which source
+          (or your existing library value) should win.
         </p>
         <div className="mb-3">
           <Checkbox
@@ -78,7 +78,7 @@ export default function BooksAdminClient() {
             variant="secondary"
             disabled={isRefreshing}
             onClick={refresh}
-            data-testid="resync-openlibrary-btn"
+            data-testid="resync-books-btn"
           >
             {isRefreshing ? 'Scanning…' : 'Start resync'}
           </Button>
@@ -94,7 +94,7 @@ export default function BooksAdminClient() {
           )}
         </div>
         {isRefreshing && (
-          <div className="mt-3" data-testid="resync-openlibrary-progress">
+          <div className="mt-3" data-testid="resync-books-progress">
             {total !== null ? (
               <>
                 <div className="mb-1 flex justify-between text-xs text-muted">
@@ -118,7 +118,7 @@ export default function BooksAdminClient() {
           </div>
         )}
         {!isRefreshing && lastRefresh && (
-          <p className="mt-2 text-xs text-muted" data-testid="resync-openlibrary-status">
+          <p className="mt-2 text-xs text-muted" data-testid="resync-books-status">
             Last scanned {formatDateTime(lastRefresh)}
           </p>
         )}

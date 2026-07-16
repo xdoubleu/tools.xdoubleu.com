@@ -55,7 +55,7 @@ describe('BooksAdminClient', () => {
     expect(
       screen.getByRole('heading', { name: /scan for metadata differences/i })
     ).toBeInTheDocument()
-    expect(screen.getByTestId('resync-openlibrary-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('resync-books-btn')).toBeInTheDocument()
   })
 
   it('renders the wizard section with the ResyncWizard component', () => {

@@ -20,9 +20,9 @@ func (app *Books) coverRoutes(prefix string, mux *http.ServeMux) {
 }
 
 // coverHandler handles GET /{prefix}/api/cover/{bookId}.
-// On a cache hit it issues a 302 redirect to a presigned R2 URL.
-// On a cache miss it fetches the cover from Open Library, caches it in R2,
-// then redirects. Returns 404 when no cover exists.
+// Covers are fetched into R2 eagerly at write time (add/resync/merge — see
+// BookService.cacheCoverFromURL), so this only ever reads R2: a hit issues a
+// 302 redirect to a presigned URL, a miss returns 404.
 func (app *Books) coverHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := uuid.Parse(r.PathValue("bookId"))
 	if err != nil {

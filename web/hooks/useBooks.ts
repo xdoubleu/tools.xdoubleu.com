@@ -66,7 +66,7 @@ export function useSearchExternal() {
 }
 
 // useExternalBook fetches a single not-in-library book from a provider (e.g.
-// Open Library) for the external book detail page. Null args disable the
+// Hardcover) for the external book detail page. Null args disable the
 // fetch (route params not resolved yet).
 export function useExternalBook(provider: string | null, providerId: string | null) {
   const client = createServiceClient(LibraryService)

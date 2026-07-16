@@ -11,8 +11,8 @@ jest.mock('@/hooks/useBooks', () => ({
 }))
 
 const fakeBook = create(ExternalBookResultSchema, {
-  provider: 'openlibrary',
-  providerId: 'OL123W',
+  provider: 'hardcover',
+  providerId: '9780134190440',
   title: 'The Go Programming Language',
   authors: ['Alan Donovan', 'Brian Kernighan'],
   isbn13: '9780134190440',

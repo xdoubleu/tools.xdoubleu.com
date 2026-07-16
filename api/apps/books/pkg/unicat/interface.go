@@ -12,7 +12,7 @@ var ErrNotFound = errors.New("unicat: book not found")
 // Client is the subset of the UniCat SRU API used for metadata enrichment.
 // UniCat is the Belgian union catalog (https://www.unicat.be) and provides
 // good coverage for Dutch- and French-language Belgian/Flemish titles that
-// OpenLibrary frequently misses.
+// Hardcover frequently misses.
 type Client interface {
 	// GetByISBN returns metadata for the book with the given ISBN-13.
 	// Returns ErrNotFound when no matching record exists in UniCat.

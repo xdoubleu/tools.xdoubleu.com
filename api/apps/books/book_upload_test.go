@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
@@ -20,7 +19,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	bsvc "tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/apps/books/pkg/openlibrary"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
@@ -124,16 +122,14 @@ func uploadViaTestApp(
 // ISBN match — ensure the author matches exactly what the EPUB/PDF carries.
 func seedBookInLibrary(t *testing.T, uid, title, author, isbn string) *models.UserBook {
 	t.Helper()
-	cover := "https://example.com/cover.jpg"
-	ext := openlibrary.ExternalBook{ //nolint:exhaustruct //optional fields not needed
-		Provider:   "manual",
-		ProviderID: fmt.Sprintf("upload-test-%s-%s", title, uuid.New()),
-		Title:      title,
-		Authors:    []string{author},
-		CoverURL:   &cover,
+	ext := bsvc.SourceProposal{ //nolint:exhaustruct //optional fields not needed
+		Source:   "manual",
+		Title:    title,
+		Authors:  []string{author},
+		CoverURL: "https://example.com/cover.jpg",
 	}
 	if isbn != "" {
-		ext.ISBN13 = &isbn
+		ext.ISBN13 = isbn
 	}
 	ub, err := testApp.Services.Books.AddToLibrary(
 		context.Background(), uid, ext, models.StatusToRead, []string{},
@@ -523,9 +519,10 @@ func TestBookFilesRepo_CountByStorageKey(t *testing.T) {
 	assert.Equal(t, int64(2), n)
 }
 
-// TestUploadFile_EPUB_OpenLibraryFallback covers the Open Library search branch.
-func TestUploadFile_EPUB_OpenLibraryFallback(t *testing.T) {
-	const isolatedUser = "ol-fallback-upload-user"
+// TestUploadFile_EPUB_ExternalSearchFallback covers the multi-source external
+// search branch (Hardcover here) used when the upload has no library match.
+func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
+	const isolatedUser = "hc-fallback-upload-user"
 
 	app2 := books.NewInner(
 		sharedmocks.NewMockedAuthService(isolatedUser),
@@ -533,9 +530,8 @@ func TestUploadFile_EPUB_OpenLibraryFallback(t *testing.T) {
 		testCfg,
 		testDB,
 		books.Clients{
-			OpenLibrary:      mocks.NewMockOpenLibraryClient(),
 			UniCat:           nil,
-			Hardcover:        nil,
+			Hardcover:        mocks.NewMockHardcoverClient(),
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
@@ -828,7 +824,7 @@ func TestConnectFinalizeBookUpload_WrongOwner_ReturnsPermissionDenied(t *testing
 
 // TestUploadFile_Unrecognized_EmptyMetadata_Rejected uploads an EPUB whose OPF
 // metadata has empty title, author, and no ISBN. With no library match and an
-// empty title (so no Open Library lookup is attempted), the service must return
+// empty title (so no external lookup is attempted), the service must return
 // ErrUnrecognizedBook and clean up the temp upload object.
 func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 	data := buildEPUBBytes("", "", "")
@@ -859,7 +855,7 @@ func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 	assert.False(t, exists, "temp upload object must be deleted on rejection")
 }
 
-// noExternalMatchApp returns an isolated Backlog instance whose Open Library
+// noExternalMatchApp returns an isolated Backlog instance whose Hardcover
 // client returns no results, so SearchExternal never finds a match. Used to test
 // the rejection path when neither a library match nor an external match is found.
 func noExternalMatchApp(t *testing.T, isolatedUser string) *books.Books {
@@ -870,9 +866,8 @@ func noExternalMatchApp(t *testing.T, isolatedUser string) *books.Books {
 		testCfg,
 		testDB,
 		books.Clients{
-			OpenLibrary:      mocks.NewMockEmptyOpenLibraryClient(),
 			UniCat:           nil,
-			Hardcover:        nil,
+			Hardcover:        mocks.NewMockEmptyHardcoverClient(),
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
