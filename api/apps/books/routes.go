@@ -52,6 +52,14 @@ func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 		"POST "+catalogPath,
 		a.Services.Auth.AppAccess(prefix, catalogHandler.ServeHTTP),
 	)
+
+	// Public shareable-profile RPCs — deliberately NOT wrapped in auth
+	// middleware; access is gated by the profile share token instead.
+	publicPath, publicHandler := booksv1connect.NewPublicLibraryServiceHandler(
+		&publicConnectHandler{app: a},
+		scrub,
+	)
+	mux.Handle("POST "+publicPath, publicHandler)
 }
 
 func (a *Books) Routes(prefix string, mux *http.ServeMux) {

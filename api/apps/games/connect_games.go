@@ -3,11 +3,11 @@ package games
 import (
 	"context"
 	"errors"
-	"sort"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
@@ -34,61 +34,14 @@ func (h *gamesConnectHandler) GetSteam(
 		)
 	}
 
-	notStarted, err := h.app.Services.Steam.GetBacklog(ctx, user.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	inProgress, err := h.app.Services.Steam.GetInProgress(ctx, user.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	distribution, _, err := h.app.Services.Progress.GetCompletionRateDistribution(
-		ctx,
-		user.ID,
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	completed, err := h.app.Services.Steam.GetCompleted(ctx, user.ID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	currentRate, err := h.app.Services.Progress.GetCurrentSteamCompletionRate(
-		ctx,
-		user.ID,
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
 	dateStart, dateEnd := parseDateRangeFromStrings(req.Msg.DateStart, req.Msg.DateEnd)
 
-	labels, values, err := h.app.Services.Progress.GetByDates(
-		ctx, user.ID, dateStart, dateEnd,
-	)
+	steam, err := h.app.buildSteamResponse(ctx, user.ID, dateStart, dateEnd)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	return connect.NewResponse(&gamesv1.GetSteamResponse{
-		Steam: &gamesv1.SteamResponse{
-			NotStarted: protoGames(notStarted),
-			InProgress: protoGames(inProgress),
-			Completed:  protoGames(completed),
-			//nolint:gosec // safe for domain counts
-			TotalBacklog: int32(len(notStarted) + len(inProgress)),
-			Distribution: convertIntSlice(distribution),
-			CurrentRate:  currentRate,
-			Labels:       labels,
-			Values:       values,
-			DateStart:    dateStart.Format(models.ProgressDateFormat),
-			DateEnd:      dateEnd.Format(models.ProgressDateFormat),
-		},
-	}), nil
+	return connect.NewResponse(&gamesv1.GetSteamResponse{Steam: steam}), nil
 }
 
 func (h *gamesConnectHandler) GetSteamGame(
@@ -103,43 +56,12 @@ func (h *gamesConnectHandler) GetSteamGame(
 		)
 	}
 
-	gameID := int(req.Msg.GameId)
-
-	game, err := h.app.Services.Steam.GetGameByID(ctx, gameID, user.ID)
+	data, err := h.app.buildSteamGameResponse(ctx, user.ID, int(req.Msg.GameId))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	achievements, err := h.app.Services.Steam.GetAchievementsForGame(
-		ctx,
-		gameID,
-		user.ID,
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	sort.Slice(achievements, func(i, j int) bool {
-		pi := achievements[i].GlobalPercent
-		pj := achievements[j].GlobalPercent
-		if pi == nil && pj == nil {
-			return achievements[i].DisplayName < achievements[j].DisplayName
-		}
-		if pi == nil {
-			return false
-		}
-		if pj == nil {
-			return true
-		}
-		return *pi > *pj
-	})
-
-	return connect.NewResponse(&gamesv1.GetSteamGameResponse{
-		Data: &gamesv1.SteamGameResponse{
-			Game:         protoGame(*game),
-			Achievements: protoAchievements(achievements),
-		},
-	}), nil
+	return connect.NewResponse(&gamesv1.GetSteamGameResponse{Data: data}), nil
 }
 
 func (h *gamesConnectHandler) RefreshSteamGame(
@@ -160,40 +82,47 @@ func (h *gamesConnectHandler) RefreshSteamGame(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	data, err := h.app.buildSteamGameResponse(ctx, user.ID, gameID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&gamesv1.RefreshSteamGameResponse{Data: data}), nil
+}
+
+// SetGameFavourite flips the user-set favourite flag on a game and returns
+// the updated game.
+func (h *gamesConnectHandler) SetGameFavourite(
+	ctx context.Context,
+	req *connect.Request[gamesv1.SetGameFavouriteRequest],
+) (*connect.Response[gamesv1.SetGameFavouriteResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+
+	gameID := int(req.Msg.GameId)
+
+	err := h.app.Services.Steam.SetFavourite(
+		ctx, user.ID, gameID, req.Msg.Favourite,
+	)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	game, err := h.app.Services.Steam.GetGameByID(ctx, gameID, user.ID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	achievements, err := h.app.Services.Steam.GetAchievementsForGame(
-		ctx,
-		gameID,
-		user.ID,
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	sort.Slice(achievements, func(i, j int) bool {
-		pi := achievements[i].GlobalPercent
-		pj := achievements[j].GlobalPercent
-		if pi == nil && pj == nil {
-			return achievements[i].DisplayName < achievements[j].DisplayName
-		}
-		if pi == nil {
-			return false
-		}
-		if pj == nil {
-			return true
-		}
-		return *pi > *pj
-	})
-
-	return connect.NewResponse(&gamesv1.RefreshSteamGameResponse{
-		Data: &gamesv1.SteamGameResponse{
-			Game:         protoGame(*game),
-			Achievements: protoAchievements(achievements),
-		},
+	return connect.NewResponse(&gamesv1.SetGameFavouriteResponse{
+		Game: protoGame(*game),
 	}), nil
 }
 
@@ -269,6 +198,7 @@ func protoGame(g models.Game) *gamesv1.Game {
 		Playtime:       int32(g.Playtime), //nolint:gosec // safe for domain values
 		ImageUrl:       g.ImageURL,
 		LastSyncedAt:   g.LastSyncedAt.Format(time.RFC3339),
+		Favourite:      g.Favourite,
 	}
 }
 

@@ -11,7 +11,8 @@ jest.mock('swr', () => ({
 
 jest.mock('@/hooks/useGames', () => ({
   useSteamGame: jest.fn(),
-  useRefreshSteamGame: jest.fn(() => mockRefreshSteamGame)
+  useRefreshSteamGame: jest.fn(() => mockRefreshSteamGame),
+  useSetGameFavourite: jest.fn(() => jest.fn().mockResolvedValue({}))
 }))
 
 let mockSearchParams = new URLSearchParams()

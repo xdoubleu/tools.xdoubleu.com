@@ -53,6 +53,9 @@ const (
 	// GamesServiceSaveIntegrationsProcedure is the fully-qualified name of the GamesService's
 	// SaveIntegrations RPC.
 	GamesServiceSaveIntegrationsProcedure = "/games.v1.GamesService/SaveIntegrations"
+	// GamesServiceSetGameFavouriteProcedure is the fully-qualified name of the GamesService's
+	// SetGameFavourite RPC.
+	GamesServiceSetGameFavouriteProcedure = "/games.v1.GamesService/SetGameFavourite"
 )
 
 // GamesServiceClient is a client for the games.v1.GamesService service.
@@ -64,6 +67,7 @@ type GamesServiceClient interface {
 	RefreshSteamGame(context.Context, *connect.Request[v1.RefreshSteamGameRequest]) (*connect.Response[v1.RefreshSteamGameResponse], error)
 	GetIntegrations(context.Context, *connect.Request[v1.GetIntegrationsRequest]) (*connect.Response[v1.GetIntegrationsResponse], error)
 	SaveIntegrations(context.Context, *connect.Request[v1.SaveIntegrationsRequest]) (*connect.Response[v1.SaveIntegrationsResponse], error)
+	SetGameFavourite(context.Context, *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error)
 }
 
 // NewGamesServiceClient constructs a client for the games.v1.GamesService service. By default, it
@@ -119,6 +123,12 @@ func NewGamesServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(gamesServiceMethods.ByName("SaveIntegrations")),
 			connect.WithClientOptions(opts...),
 		),
+		setGameFavourite: connect.NewClient[v1.SetGameFavouriteRequest, v1.SetGameFavouriteResponse](
+			httpClient,
+			baseURL+GamesServiceSetGameFavouriteProcedure,
+			connect.WithSchema(gamesServiceMethods.ByName("SetGameFavourite")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -131,6 +141,7 @@ type gamesServiceClient struct {
 	refreshSteamGame       *connect.Client[v1.RefreshSteamGameRequest, v1.RefreshSteamGameResponse]
 	getIntegrations        *connect.Client[v1.GetIntegrationsRequest, v1.GetIntegrationsResponse]
 	saveIntegrations       *connect.Client[v1.SaveIntegrationsRequest, v1.SaveIntegrationsResponse]
+	setGameFavourite       *connect.Client[v1.SetGameFavouriteRequest, v1.SetGameFavouriteResponse]
 }
 
 // GetSteam calls games.v1.GamesService.GetSteam.
@@ -168,6 +179,11 @@ func (c *gamesServiceClient) SaveIntegrations(ctx context.Context, req *connect.
 	return c.saveIntegrations.CallUnary(ctx, req)
 }
 
+// SetGameFavourite calls games.v1.GamesService.SetGameFavourite.
+func (c *gamesServiceClient) SetGameFavourite(ctx context.Context, req *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error) {
+	return c.setGameFavourite.CallUnary(ctx, req)
+}
+
 // GamesServiceHandler is an implementation of the games.v1.GamesService service.
 type GamesServiceHandler interface {
 	GetSteam(context.Context, *connect.Request[v1.GetSteamRequest]) (*connect.Response[v1.GetSteamResponse], error)
@@ -177,6 +193,7 @@ type GamesServiceHandler interface {
 	RefreshSteamGame(context.Context, *connect.Request[v1.RefreshSteamGameRequest]) (*connect.Response[v1.RefreshSteamGameResponse], error)
 	GetIntegrations(context.Context, *connect.Request[v1.GetIntegrationsRequest]) (*connect.Response[v1.GetIntegrationsResponse], error)
 	SaveIntegrations(context.Context, *connect.Request[v1.SaveIntegrationsRequest]) (*connect.Response[v1.SaveIntegrationsResponse], error)
+	SetGameFavourite(context.Context, *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error)
 }
 
 // NewGamesServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -228,6 +245,12 @@ func NewGamesServiceHandler(svc GamesServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(gamesServiceMethods.ByName("SaveIntegrations")),
 		connect.WithHandlerOptions(opts...),
 	)
+	gamesServiceSetGameFavouriteHandler := connect.NewUnaryHandler(
+		GamesServiceSetGameFavouriteProcedure,
+		svc.SetGameFavourite,
+		connect.WithSchema(gamesServiceMethods.ByName("SetGameFavourite")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/games.v1.GamesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case GamesServiceGetSteamProcedure:
@@ -244,6 +267,8 @@ func NewGamesServiceHandler(svc GamesServiceHandler, opts ...connect.HandlerOpti
 			gamesServiceGetIntegrationsHandler.ServeHTTP(w, r)
 		case GamesServiceSaveIntegrationsProcedure:
 			gamesServiceSaveIntegrationsHandler.ServeHTTP(w, r)
+		case GamesServiceSetGameFavouriteProcedure:
+			gamesServiceSetGameFavouriteHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -279,4 +304,8 @@ func (UnimplementedGamesServiceHandler) GetIntegrations(context.Context, *connec
 
 func (UnimplementedGamesServiceHandler) SaveIntegrations(context.Context, *connect.Request[v1.SaveIntegrationsRequest]) (*connect.Response[v1.SaveIntegrationsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.SaveIntegrations is not implemented"))
+}
+
+func (UnimplementedGamesServiceHandler) SetGameFavourite(context.Context, *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.SetGameFavourite is not implemented"))
 }

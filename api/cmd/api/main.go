@@ -34,19 +34,20 @@ var globalMigrations embed.FS
 var Release = "dev"
 
 type Application struct {
-	ctx          context.Context
-	logger       *slog.Logger
-	config       config.Config
-	db           *pgxpool.Pool
-	auth         *auth.GoTrueService
-	contacts     contacts.Service
-	apps         *Apps
-	appUsersRepo *repositories.AppUsersRepository
-	usage        *observability.UsageRecorder
-	jobRunsRepo  *repositories.JobRunsRepository
-	usageRepo    *repositories.UsageRepository
-	storageRepo  *repositories.StorageSnapshotsRepository
-	dbStatsRepo  *repositories.DBStatsRepository
+	ctx               context.Context
+	logger            *slog.Logger
+	config            config.Config
+	db                *pgxpool.Pool
+	auth              *auth.GoTrueService
+	contacts          contacts.Service
+	apps              *Apps
+	appUsersRepo      *repositories.AppUsersRepository
+	profileSharesRepo *repositories.ProfileSharesRepository
+	usage             *observability.UsageRecorder
+	jobRunsRepo       *repositories.JobRunsRepository
+	usageRepo         *repositories.UsageRepository
+	storageRepo       *repositories.StorageSnapshotsRepository
+	dbStatsRepo       *repositories.DBStatsRepository
 }
 
 //	@title			tools
@@ -150,18 +151,19 @@ func NewApplication(
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
-		ctx:          ctx,
-		logger:       logger,
-		config:       config,
-		db:           db,
-		auth:         authSvc,
-		contacts:     contactsSvc,
-		appUsersRepo: appUsersRepo,
-		usage:        observability.NewUsageRecorder(logger, db),
-		jobRunsRepo:  repositories.NewJobRunsRepository(db),
-		usageRepo:    repositories.NewUsageRepository(db),
-		storageRepo:  repositories.NewStorageSnapshotsRepository(db),
-		dbStatsRepo:  repositories.NewDBStatsRepository(db),
+		ctx:               ctx,
+		logger:            logger,
+		config:            config,
+		db:                db,
+		auth:              authSvc,
+		contacts:          contactsSvc,
+		appUsersRepo:      appUsersRepo,
+		profileSharesRepo: repositories.NewProfileSharesRepository(db),
+		usage:             observability.NewUsageRecorder(logger, db),
+		jobRunsRepo:       repositories.NewJobRunsRepository(db),
+		usageRepo:         repositories.NewUsageRepository(db),
+		storageRepo:       repositories.NewStorageSnapshotsRepository(db),
+		dbStatsRepo:       repositories.NewDBStatsRepository(db),
 	}
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.

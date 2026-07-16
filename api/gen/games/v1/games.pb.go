@@ -31,6 +31,7 @@ type Game struct {
 	Playtime       int32                  `protobuf:"varint,6,opt,name=playtime,proto3" json:"playtime,omitempty"`
 	ImageUrl       string                 `protobuf:"bytes,7,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
 	LastSyncedAt   string                 `protobuf:"bytes,8,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	Favourite      bool                   `protobuf:"varint,9,opt,name=favourite,proto3" json:"favourite,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -119,6 +120,13 @@ func (x *Game) GetLastSyncedAt() string {
 		return x.LastSyncedAt
 	}
 	return ""
+}
+
+func (x *Game) GetFavourite() bool {
+	if x != nil {
+		return x.Favourite
+	}
+	return false
 }
 
 type Achievement struct {
@@ -1154,11 +1162,107 @@ func (*SaveIntegrationsResponse) Descriptor() ([]byte, []int) {
 	return file_games_v1_games_proto_rawDescGZIP(), []int{20}
 }
 
+type SetGameFavouriteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GameId        int32                  `protobuf:"varint,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
+	Favourite     bool                   `protobuf:"varint,2,opt,name=favourite,proto3" json:"favourite,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetGameFavouriteRequest) Reset() {
+	*x = SetGameFavouriteRequest{}
+	mi := &file_games_v1_games_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetGameFavouriteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetGameFavouriteRequest) ProtoMessage() {}
+
+func (x *SetGameFavouriteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_games_v1_games_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetGameFavouriteRequest.ProtoReflect.Descriptor instead.
+func (*SetGameFavouriteRequest) Descriptor() ([]byte, []int) {
+	return file_games_v1_games_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *SetGameFavouriteRequest) GetGameId() int32 {
+	if x != nil {
+		return x.GameId
+	}
+	return 0
+}
+
+func (x *SetGameFavouriteRequest) GetFavourite() bool {
+	if x != nil {
+		return x.Favourite
+	}
+	return false
+}
+
+type SetGameFavouriteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Game          *Game                  `protobuf:"bytes,1,opt,name=game,proto3" json:"game,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetGameFavouriteResponse) Reset() {
+	*x = SetGameFavouriteResponse{}
+	mi := &file_games_v1_games_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetGameFavouriteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetGameFavouriteResponse) ProtoMessage() {}
+
+func (x *SetGameFavouriteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_games_v1_games_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetGameFavouriteResponse.ProtoReflect.Descriptor instead.
+func (*SetGameFavouriteResponse) Descriptor() ([]byte, []int) {
+	return file_games_v1_games_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *SetGameFavouriteResponse) GetGame() *Game {
+	if x != nil {
+		return x.Game
+	}
+	return nil
+}
+
 var File_games_v1_games_proto protoreflect.FileDescriptor
 
 const file_games_v1_games_proto_rawDesc = "" +
 	"\n" +
-	"\x14games/v1/games.proto\x12\bgames.v1\"\xf7\x01\n" +
+	"\x14games/v1/games.proto\x12\bgames.v1\"\x95\x02\n" +
 	"\x04Game\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -1168,7 +1272,8 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\fcontribution\x18\x05 \x01(\tR\fcontribution\x12\x1a\n" +
 	"\bplaytime\x18\x06 \x01(\x05R\bplaytime\x12\x1b\n" +
 	"\timage_url\x18\a \x01(\tR\bimageUrl\x12$\n" +
-	"\x0elast_synced_at\x18\b \x01(\tR\flastSyncedAt\"\xdc\x01\n" +
+	"\x0elast_synced_at\x18\b \x01(\tR\flastSyncedAt\x12\x1c\n" +
+	"\tfavourite\x18\t \x01(\bR\tfavourite\"\xdc\x01\n" +
 	"\vAchievement\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
@@ -1234,7 +1339,12 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\fintegrations\x18\x01 \x01(\v2\x16.games.v1.IntegrationsR\fintegrations\"U\n" +
 	"\x17SaveIntegrationsRequest\x12:\n" +
 	"\fintegrations\x18\x01 \x01(\v2\x16.games.v1.IntegrationsR\fintegrations\"\x1a\n" +
-	"\x18SaveIntegrationsResponse2\x82\x05\n" +
+	"\x18SaveIntegrationsResponse\"P\n" +
+	"\x17SetGameFavouriteRequest\x12\x17\n" +
+	"\agame_id\x18\x01 \x01(\x05R\x06gameId\x12\x1c\n" +
+	"\tfavourite\x18\x02 \x01(\bR\tfavourite\">\n" +
+	"\x18SetGameFavouriteResponse\x12\"\n" +
+	"\x04game\x18\x01 \x01(\v2\x0e.games.v1.GameR\x04game2\xdd\x05\n" +
 	"\fGamesService\x12A\n" +
 	"\bGetSteam\x12\x19.games.v1.GetSteamRequest\x1a\x1a.games.v1.GetSteamResponse\x12M\n" +
 	"\fGetSteamGame\x12\x1d.games.v1.GetSteamGameRequest\x1a\x1e.games.v1.GetSteamGameResponse\x12e\n" +
@@ -1242,7 +1352,8 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\x16GetRecentlyActiveGames\x12'.games.v1.GetRecentlyActiveGamesRequest\x1a(.games.v1.GetRecentlyActiveGamesResponse\x12Y\n" +
 	"\x10RefreshSteamGame\x12!.games.v1.RefreshSteamGameRequest\x1a\".games.v1.RefreshSteamGameResponse\x12V\n" +
 	"\x0fGetIntegrations\x12 .games.v1.GetIntegrationsRequest\x1a!.games.v1.GetIntegrationsResponse\x12Y\n" +
-	"\x10SaveIntegrations\x12!.games.v1.SaveIntegrationsRequest\x1a\".games.v1.SaveIntegrationsResponseB)Z'tools.xdoubleu.com/gen/games/v1;gamesv1b\x06proto3"
+	"\x10SaveIntegrations\x12!.games.v1.SaveIntegrationsRequest\x1a\".games.v1.SaveIntegrationsResponse\x12Y\n" +
+	"\x10SetGameFavourite\x12!.games.v1.SetGameFavouriteRequest\x1a\".games.v1.SetGameFavouriteResponseB)Z'tools.xdoubleu.com/gen/games/v1;gamesv1b\x06proto3"
 
 var (
 	file_games_v1_games_proto_rawDescOnce sync.Once
@@ -1256,7 +1367,7 @@ func file_games_v1_games_proto_rawDescGZIP() []byte {
 	return file_games_v1_games_proto_rawDescData
 }
 
-var file_games_v1_games_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_games_v1_games_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_games_v1_games_proto_goTypes = []any{
 	(*Game)(nil),                           // 0: games.v1.Game
 	(*Achievement)(nil),                    // 1: games.v1.Achievement
@@ -1279,6 +1390,8 @@ var file_games_v1_games_proto_goTypes = []any{
 	(*GetIntegrationsResponse)(nil),        // 18: games.v1.GetIntegrationsResponse
 	(*SaveIntegrationsRequest)(nil),        // 19: games.v1.SaveIntegrationsRequest
 	(*SaveIntegrationsResponse)(nil),       // 20: games.v1.SaveIntegrationsResponse
+	(*SetGameFavouriteRequest)(nil),        // 21: games.v1.SetGameFavouriteRequest
+	(*SetGameFavouriteResponse)(nil),       // 22: games.v1.SetGameFavouriteResponse
 }
 var file_games_v1_games_proto_depIdxs = []int32{
 	0,  // 0: games.v1.SteamResponse.not_started:type_name -> games.v1.Game
@@ -1294,25 +1407,28 @@ var file_games_v1_games_proto_depIdxs = []int32{
 	3,  // 10: games.v1.RefreshSteamGameResponse.data:type_name -> games.v1.SteamGameResponse
 	6,  // 11: games.v1.GetIntegrationsResponse.integrations:type_name -> games.v1.Integrations
 	6,  // 12: games.v1.SaveIntegrationsRequest.integrations:type_name -> games.v1.Integrations
-	7,  // 13: games.v1.GamesService.GetSteam:input_type -> games.v1.GetSteamRequest
-	9,  // 14: games.v1.GamesService.GetSteamGame:input_type -> games.v1.GetSteamGameRequest
-	11, // 15: games.v1.GamesService.GetSteamDistribution:input_type -> games.v1.GetSteamDistributionRequest
-	13, // 16: games.v1.GamesService.GetRecentlyActiveGames:input_type -> games.v1.GetRecentlyActiveGamesRequest
-	15, // 17: games.v1.GamesService.RefreshSteamGame:input_type -> games.v1.RefreshSteamGameRequest
-	17, // 18: games.v1.GamesService.GetIntegrations:input_type -> games.v1.GetIntegrationsRequest
-	19, // 19: games.v1.GamesService.SaveIntegrations:input_type -> games.v1.SaveIntegrationsRequest
-	8,  // 20: games.v1.GamesService.GetSteam:output_type -> games.v1.GetSteamResponse
-	10, // 21: games.v1.GamesService.GetSteamGame:output_type -> games.v1.GetSteamGameResponse
-	12, // 22: games.v1.GamesService.GetSteamDistribution:output_type -> games.v1.GetSteamDistributionResponse
-	14, // 23: games.v1.GamesService.GetRecentlyActiveGames:output_type -> games.v1.GetRecentlyActiveGamesResponse
-	16, // 24: games.v1.GamesService.RefreshSteamGame:output_type -> games.v1.RefreshSteamGameResponse
-	18, // 25: games.v1.GamesService.GetIntegrations:output_type -> games.v1.GetIntegrationsResponse
-	20, // 26: games.v1.GamesService.SaveIntegrations:output_type -> games.v1.SaveIntegrationsResponse
-	20, // [20:27] is the sub-list for method output_type
-	13, // [13:20] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	0,  // 13: games.v1.SetGameFavouriteResponse.game:type_name -> games.v1.Game
+	7,  // 14: games.v1.GamesService.GetSteam:input_type -> games.v1.GetSteamRequest
+	9,  // 15: games.v1.GamesService.GetSteamGame:input_type -> games.v1.GetSteamGameRequest
+	11, // 16: games.v1.GamesService.GetSteamDistribution:input_type -> games.v1.GetSteamDistributionRequest
+	13, // 17: games.v1.GamesService.GetRecentlyActiveGames:input_type -> games.v1.GetRecentlyActiveGamesRequest
+	15, // 18: games.v1.GamesService.RefreshSteamGame:input_type -> games.v1.RefreshSteamGameRequest
+	17, // 19: games.v1.GamesService.GetIntegrations:input_type -> games.v1.GetIntegrationsRequest
+	19, // 20: games.v1.GamesService.SaveIntegrations:input_type -> games.v1.SaveIntegrationsRequest
+	21, // 21: games.v1.GamesService.SetGameFavourite:input_type -> games.v1.SetGameFavouriteRequest
+	8,  // 22: games.v1.GamesService.GetSteam:output_type -> games.v1.GetSteamResponse
+	10, // 23: games.v1.GamesService.GetSteamGame:output_type -> games.v1.GetSteamGameResponse
+	12, // 24: games.v1.GamesService.GetSteamDistribution:output_type -> games.v1.GetSteamDistributionResponse
+	14, // 25: games.v1.GamesService.GetRecentlyActiveGames:output_type -> games.v1.GetRecentlyActiveGamesResponse
+	16, // 26: games.v1.GamesService.RefreshSteamGame:output_type -> games.v1.RefreshSteamGameResponse
+	18, // 27: games.v1.GamesService.GetIntegrations:output_type -> games.v1.GetIntegrationsResponse
+	20, // 28: games.v1.GamesService.SaveIntegrations:output_type -> games.v1.SaveIntegrationsResponse
+	22, // 29: games.v1.GamesService.SetGameFavourite:output_type -> games.v1.SetGameFavouriteResponse
+	22, // [22:30] is the sub-list for method output_type
+	14, // [14:22] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_games_v1_games_proto_init() }
@@ -1327,7 +1443,7 @@ func file_games_v1_games_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_games_v1_games_proto_rawDesc), len(file_games_v1_games_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

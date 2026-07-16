@@ -1,0 +1,36 @@
+syntax = "proto3";
+package games.v1;
+option go_package = "tools.xdoubleu.com/gen/games/v1;gamesv1";
+
+import "games/v1/games.proto";
+
+// PublicGamesService serves the read-only shareable profile. It is
+// registered WITHOUT auth middleware: requests are authorized solely by the
+// opaque profile share token (see profile.v1.ProfileService), which resolves
+// to the owning user. Unknown tokens return CodeNotFound.
+service PublicGamesService {
+  rpc GetSharedSteam(GetSharedSteamRequest) returns (GetSharedSteamResponse);
+  rpc GetSharedSteamGame(GetSharedSteamGameRequest) returns (GetSharedSteamGameResponse);
+  rpc GetSharedRecentlyActiveGames(GetSharedRecentlyActiveGamesRequest) returns (GetSharedRecentlyActiveGamesResponse);
+}
+
+message GetSharedSteamRequest {
+  string token = 1;
+  string date_start = 2;
+  string date_end = 3;
+}
+message GetSharedSteamResponse {
+  SteamResponse steam = 1;
+  // Most recent Steam library sync (max last_synced_at across the owner's
+  // games); empty when the library has never been synced.
+  string last_synced_at = 2;
+}
+
+message GetSharedSteamGameRequest {
+  string token = 1;
+  int32 game_id = 2;
+}
+message GetSharedSteamGameResponse { SteamGameResponse data = 1; }
+
+message GetSharedRecentlyActiveGamesRequest { string token = 1; }
+message GetSharedRecentlyActiveGamesResponse { repeated RecentGame games = 1; }

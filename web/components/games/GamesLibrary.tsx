@@ -1,59 +1,16 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
 import { mutate } from 'swr'
 import { useSteam } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
 import type { Game, GetSteamResponse } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
-import { cn } from '@/lib/cn'
+import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
 
-function GameCard({ game }: { game: Game }) {
-  return (
-    <Link
-      href={`/games/${game.id}`}
-      className={cn(interactiveCardClass, 'relative flex gap-3 p-4')}
-    >
-      <CardLinkStatus />
-      {game.imageUrl && (
-        <Image
-          src={game.imageUrl}
-          alt={game.name}
-          width={32}
-          height={32}
-          className="h-8 w-8 rounded-lg object-cover shrink-0"
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <h3 className="font-semibold">{game.name}</h3>
-        <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
-        <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
-      </div>
-    </Link>
-  )
-}
-
-function GameGroup({ title, games }: { title: string; games: Game[] }) {
-  if (games.length === 0) return null
-  return (
-    <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">
-        {title} ({games.length})
-      </h2>
-      <div className="grid sm:grid-cols-2 gap-3">
-        {games.map((g) => (
-          <GameCard key={g.id} game={g} />
-        ))}
-      </div>
-    </div>
-  )
-}
+const ownerGameHref = (game: Game) => `/games/${game.id}`
 
 export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteamResponse }) {
   const [search, setSearch] = useState('')
@@ -76,6 +33,7 @@ export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteam
   const inProgress = steam ? filterGames(steam.inProgress) : []
   const notStarted = steam ? filterGames(steam.notStarted) : []
   const completed = steam ? filterGames(steam.completed) : []
+  const favourites = [...inProgress, ...notStarted, ...completed].filter((g) => g.favourite)
 
   return (
     <section>
@@ -104,9 +62,10 @@ export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteam
           <p className="mb-4 text-muted text-sm">
             Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
           </p>
-          <GameGroup title="In Progress" games={inProgress} />
-          <GameGroup title="Not Started" games={notStarted} />
-          <GameGroup title="Completed" games={completed} />
+          <GameGroup title="Favourites" games={favourites} hrefFor={ownerGameHref} />
+          <GameGroup title="In Progress" games={inProgress} hrefFor={ownerGameHref} />
+          <GameGroup title="Not Started" games={notStarted} hrefFor={ownerGameHref} />
+          <GameGroup title="Completed" games={completed} hrefFor={ownerGameHref} />
           {search.trim() &&
             inProgress.length === 0 &&
             notStarted.length === 0 &&

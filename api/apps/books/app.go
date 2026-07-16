@@ -34,6 +34,7 @@ type Books struct {
 	// data through the real service layer.
 	Services       *services.Services
 	Repositories   *repositories.Repositories
+	profileShares  *sharedrepos.ProfileSharesRepository
 	jobQueue       *threading.JobQueue
 	resyncBooksJob *jobs.ResyncMetadataJob
 	storageScanJob *jobs.StorageScanJob
@@ -101,6 +102,7 @@ func NewInner(
 	a.jobQueue = threading.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize)
 
 	a.Repositories = repositories.New(a.db)
+	a.profileShares = sharedrepos.NewProfileSharesRepository(a.db)
 	a.Services = services.New(
 		a.Ctx,
 		logger,

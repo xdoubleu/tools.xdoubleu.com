@@ -164,6 +164,7 @@ func (service *SteamService) buildGamesMap(
 			IsDelisted:     false,
 			ImageURL:       g.GetFullImgIconURL(),
 			LastSyncedAt:   time.Time{}, // set by DB via now() in UpsertGames
+			Favourite:      false,       // user-set; never written by UpsertGames
 		}
 		if prev, ok := existingByID[g.AppID]; ok {
 			game.CompletionRate = prev.CompletionRate
@@ -395,6 +396,25 @@ func (service *SteamService) GetCompleted(
 	userID string,
 ) ([]models.Game, error) {
 	return service.steam.GetCompleted(ctx, userID)
+}
+
+// SetFavourite flips the user-set favourite flag on a game.
+func (service *SteamService) SetFavourite(
+	ctx context.Context,
+	userID string,
+	gameID int,
+	favourite bool,
+) error {
+	return service.steam.SetFavourite(ctx, userID, gameID, favourite)
+}
+
+// GetLastSyncedAt returns the most recent Steam sync across the user's
+// library, or nil when never synced.
+func (service *SteamService) GetLastSyncedAt(
+	ctx context.Context,
+	userID string,
+) (*time.Time, error) {
+	return service.steam.GetLastSyncedAt(ctx, userID)
 }
 
 // SyncGame refreshes a single game's achievements from Steam and persists the

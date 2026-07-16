@@ -139,5 +139,9 @@ func TestMergeBooks_CoverSource_NoCover_ClearsCache(t *testing.T) {
 	require.NoError(t, err)
 
 	_, cachedAfterMerge := fakeStore.GetContent(coverKey)
-	assert.False(t, cachedAfterMerge, "stale cover cache must be cleared, not left behind")
+	assert.False(
+		t,
+		cachedAfterMerge,
+		"stale cover cache must be cleared, not left behind",
+	)
 }

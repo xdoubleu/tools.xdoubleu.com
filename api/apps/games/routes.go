@@ -25,4 +25,12 @@ func (a *Games) Routes(prefix string, mux *http.ServeMux) {
 		"POST "+gamesPath,
 		a.Services.Auth.AppAccess(prefix, gamesHandler.ServeHTTP),
 	)
+
+	// Public shareable-profile RPCs — deliberately NOT wrapped in auth
+	// middleware; access is gated by the profile share token instead.
+	publicPath, publicHandler := gamesv1connect.NewPublicGamesServiceHandler(
+		&publicConnectHandler{app: a},
+		iapp.ScrubInternalErrors(a.Logger),
+	)
+	mux.Handle("POST "+publicPath, publicHandler)
 }

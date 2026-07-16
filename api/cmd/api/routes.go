@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/gen/admin/v1/adminv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
+	"tools.xdoubleu.com/gen/profile/v1/profilev1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
 )
@@ -38,6 +39,15 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(
 		"POST "+contactsPath,
 		app.auth.Access(contactsHandler.ServeHTTP),
+	)
+
+	profilePath, profileHandler := profilev1connect.NewProfileServiceHandler(
+		&profileConnectHandler{app: app},
+		scrub,
+	)
+	mux.Handle(
+		"POST "+profilePath,
+		app.auth.Access(profileHandler.ServeHTTP),
 	)
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)

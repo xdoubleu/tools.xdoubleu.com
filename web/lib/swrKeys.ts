@@ -18,6 +18,16 @@ export const swrKeys = {
   webRelease: '/release',
   sharedMealPlans: '/sharing/mealplans',
 
+  profileShare: '/profile/share',
+  profileBooks: (token: string) => `/profile/${token}/books`,
+  profileBooksProgress: (token: string, dateStart?: string, dateEnd?: string) =>
+    ['/profile/books-progress', token, dateStart, dateEnd] as const,
+  profileGames: (token: string) => `/profile/${token}/games`,
+  profileGamesProgress: (token: string, dateStart?: string, dateEnd?: string) =>
+    ['/profile/games-progress', token, dateStart, dateEnd] as const,
+  profileGame: (token: string, gameId: number) => `/profile/${token}/games/${gameId}`,
+  profileRecentGames: (token: string) => `/profile/${token}/games/recent`,
+
   books: '/books',
   booksProgress: (dateStart?: string, dateEnd?: string) =>
     ['/books/progress', dateStart, dateEnd] as const,

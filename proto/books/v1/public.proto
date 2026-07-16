@@ -1,0 +1,29 @@
+syntax = "proto3";
+package books.v1;
+option go_package = "tools.xdoubleu.com/gen/books/v1;booksv1";
+
+import "books/v1/library.proto";
+
+// PublicLibraryService serves the read-only shareable profile. It is
+// registered WITHOUT auth middleware: requests are authorized solely by the
+// opaque profile share token (see profile.v1.ProfileService), which resolves
+// to the owning user. Unknown tokens return CodeNotFound.
+service PublicLibraryService {
+  rpc GetSharedLibrary(GetSharedLibraryRequest) returns (GetSharedLibraryResponse);
+  rpc GetSharedBooksProgress(GetSharedBooksProgressRequest) returns (GetSharedBooksProgressResponse);
+}
+
+message GetSharedLibraryRequest { string token = 1; }
+message GetSharedLibraryResponse {
+  LibraryResponse library = 1;
+  // Most recent Kobo device sync (max last_seen_at); empty when the owner
+  // has no Kobo devices. Kobo sync is the books equivalent of a refresh.
+  string last_synced_at = 2;
+}
+
+message GetSharedBooksProgressRequest {
+  string token = 1;
+  string date_start = 2;
+  string date_end = 3;
+}
+message GetSharedBooksProgressResponse { BooksProgressResponse progress = 1; }
