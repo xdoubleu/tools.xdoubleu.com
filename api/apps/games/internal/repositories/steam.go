@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
@@ -67,6 +68,7 @@ func (repo *SteamRepository) queryGames(
 			&game.Playtime,
 			&game.ImageURL,
 			&game.LastSyncedAt,
+			&game.Favourite,
 		)
 		if err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
@@ -88,7 +90,7 @@ func (repo *SteamRepository) GetAllGames(
 ) ([]models.Game, error) {
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url, last_synced_at
+		       playtime_forever, image_url, last_synced_at, favourite
 		FROM games.steam_games
 		WHERE user_id = $1
 	`
@@ -102,7 +104,8 @@ func (repo *SteamRepository) GetBacklog(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at
+		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
+		       sg.favourite
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) = 0
@@ -123,7 +126,8 @@ func (repo *SteamRepository) GetInProgress(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at
+		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
+		       sg.favourite
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) > 0
@@ -145,7 +149,8 @@ func (repo *SteamRepository) GetCompleted(
 ) ([]models.Game, error) {
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at
+		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
+		       sg.favourite
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND sg.is_delisted = false
@@ -227,6 +232,8 @@ func (repo *SteamRepository) UpsertGames(
 		q = repo.db
 	}
 
+	// favourite is deliberately absent from both column lists: it is
+	// user-set state and must survive every sync (new rows default FALSE).
 	query := `
 		INSERT INTO games.steam_games
 		    (id, user_id, name, is_delisted, completion_rate, contribution,
@@ -260,6 +267,44 @@ func (repo *SteamRepository) UpsertGames(
 	}
 
 	return nil
+}
+
+// SetFavourite flips the user-set favourite flag on a game. Returns
+// database.ErrResourceNotFound when the game is not in the user's library.
+func (repo *SteamRepository) SetFavourite(
+	ctx context.Context,
+	userID string,
+	gameID int,
+	favourite bool,
+) error {
+	tag, err := repo.db.Exec(ctx, `
+		UPDATE games.steam_games
+		SET favourite = $3
+		WHERE id = $1 AND user_id = $2
+	`, gameID, userID, favourite)
+	if err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return database.ErrResourceNotFound
+	}
+	return nil
+}
+
+// GetLastSyncedAt returns the most recent Steam sync across the user's
+// library, or nil when no game has ever been synced.
+func (repo *SteamRepository) GetLastSyncedAt(
+	ctx context.Context,
+	userID string,
+) (*time.Time, error) {
+	var lastSynced *time.Time
+	err := repo.db.QueryRow(ctx, `
+		SELECT max(last_synced_at) FROM games.steam_games WHERE user_id = $1
+	`, userID).Scan(&lastSynced)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return lastSynced, nil
 }
 
 func (repo *SteamRepository) GetAchievementsForGames(
@@ -319,7 +364,7 @@ func (repo *SteamRepository) GetGameByID(
 ) (*models.Game, error) {
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url, last_synced_at
+		       playtime_forever, image_url, last_synced_at, favourite
 		FROM games.steam_games
 		WHERE id = $1 AND user_id = $2
 	`
@@ -334,6 +379,7 @@ func (repo *SteamRepository) GetGameByID(
 		&game.Playtime,
 		&game.ImageURL,
 		&game.LastSyncedAt,
+		&game.Favourite,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

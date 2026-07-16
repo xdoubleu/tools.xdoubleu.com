@@ -8,13 +8,15 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 
 ## Tools
 
-- **games** — Steam backlog tracker: library sync, achievements, completion-rate progress and distribution, with background sync jobs and WebSocket live updates.
+- **games** — Steam backlog tracker: library sync, achievements, completion-rate progress and distribution, favourite games, with background sync jobs and WebSocket live updates.
 - **books** — Book library and e-reader companion: external metadata sync (Open Library, Google Books, UniCat), EPUB/PDF uploads with KEPUB conversion, Kobo device sync, and reading progress. Kobo devices sync against `/books/kobo/<token>/…`; devices configured before the games/books split (old `/backlog/kobo/…` URLs) must re-run the setup flow. Setup is entirely driven by **kobo-gateway** (`gateway/`), a downloadable macOS menu-bar app the books page drives over a loopback-only HTTP API — built on a macOS CI runner (its menu bar needs cgo + AppKit) and served as a `.dmg` at `/downloads/kobo-gateway.dmg`, so gateway code changes rebuild the *web* image too (see the `gateway` path filter in `main.yml`).
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, item categories, store-ordered export (group items by the aisle order of the store you're visiting), and full-list sharing with contacts (switch between your own and shared lists).
 - **todos** — Task management with sections, workspaces, subtasks, policies, archive, and search.
+
+Books and games can also be shared publicly: a revocable token link (managed from the Sharing page) exposes read-only profile pages at `/profile/<token>` with the same dashboards, libraries, and backlogs — no account needed.
 
 ## Quick Start
 

@@ -124,7 +124,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 - **`contacts/`** — Contact management service with editable display names (used by recipes, shopping list, and meal-plan sharing)
 - **`crypto/`** — Encryption utilities
 - **`models/`** — Shared domain models
-- **`repositories/`** — Shared DB repositories over the `global` schema (users, contacts, and the observability tables: `JobRunsRepository`, `UsageRepository`, `StorageSnapshotsRepository`, `DBStatsRepository`)
+- **`repositories/`** — Shared DB repositories over the `global` schema (users, contacts, the observability tables: `JobRunsRepository`, `UsageRepository`, `StorageSnapshotsRepository`, `DBStatsRepository`, and `ProfileSharesRepository` for the public-profile share tokens)
 - **`observability/`** — Cross-cutting instrumentation. `TrackedJob` decorates any `threading.Job` so every run is timed and recorded in `global.job_runs`, panics are recovered, and failures log at Error level (so they reach Sentry); wrap jobs at registration (see `apps/{todos,games,books}/app.go`). `UsageRecorder` counts requests per `(day, app, endpoint)` in memory and flushes to `global.usage_daily`; the counting `usageMiddleware` sits in the `cmd/api` alice chain after `domainMiddleware`.
 - **`progressws/`** — WebSocket service broadcasting background-job progress (start/stop state, live "X of N" counts) keyed by job-ID topics
 - **`progresshistory/`** — Generic cumulative-progress storage with carry-forward reads (used by games and books progress graphs)
@@ -147,7 +147,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 
 ### Apps
 
-- **games** — Steam backlog tracker: library sync, achievements, completion rate progress/distribution, and the user's Steam integration settings. External client package lives in `pkg/steam/`. Has a background sync job (1 worker) and WebSocket live updates. Uses `games` DB schema (adopted from the former `backlog` schema).
+- **games** — Steam backlog tracker: library sync, achievements, completion rate progress/distribution, user-set favourites, and the user's Steam integration settings. External client package lives in `pkg/steam/`. Has a background sync job (1 worker) and WebSocket live updates. The `steam_games.favourite` flag is user-set state: `UpsertGames` deliberately never writes it, so it survives every sync. Uses `games` DB schema (adopted from the former `backlog` schema).
 - **books** — Book library and e-reader companion. Book metadata enrichment queries three independent providers (each kept, no priority merge), each source's calls run concurrently per book (`fetchByISBN`/`searchProviders` in `book_resync.go`, via `errgroup`): Open Library (primary, no key), UniCat (Belgian SRU/MARC catalog, no key), and Hardcover (GraphQL; set `HARDCOVER_API_KEY` — a free Bearer JWT from the account settings page that expires ~yearly and must be refreshed; left disabled/nil when unset. No daily quota, its 1 req/s limiter is the resync throughput floor). ISBN-less books are matched by title+author. External client packages live in `pkg/openlibrary/`, `pkg/unicat/`, `pkg/hardcover/`; the resync orchestration and per-source scan-status cache (`*_found` columns) live in `internal/services/book_resync.go`. Serves the raw Kobo sync protocol under `/books/kobo/{token}/…` and a public cover proxy. Per-device debug logging (endpoint + request/response bodies) can be toggled from the Books settings page; captured requests live in an in-memory `KoboLogStore` (`apps/books/internal/services/kobo_log.go`), not the DB, and reset on restart. Has background jobs (2 workers) and WebSocket live updates, including a daily R2 bucket scan (`books-storage-scan`) that writes a `global.storage_snapshots` row for the admin dashboard. The object-store `Client` (`pkg/objectstore/`) exposes a paginated `List` used by that scan. Uses `books` DB schema (adopted from the former `backlog` schema).
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no background jobs.
 - **icsproxy** — ICS calendar feed filtering and proxying. Uses `icsproxy` DB schema.
@@ -159,7 +159,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 ### Database Conventions
 
 - Each app uses its own PostgreSQL schema (e.g., `books`, `icsproxy`)
-- Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The admin observability RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_admin_stats.go`) read these plus live `pg_*` size queries.
+- Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, `profile_shares`, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The admin observability RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_admin_stats.go`) read these plus live `pg_*` size queries.
 - Migrations live in `apps/<name>/migrations/` and follow Goose SQL format
 - `updated_at` columns are managed via PostgreSQL triggers
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking
@@ -184,6 +184,20 @@ Rules: reads only (never write another app's schema), never add a dependency
 in the reverse direction, and each app's migrations touch only its own schema.
 Upstream schema changes (recipes, mealplans) must grep downstream repositories
 for affected columns.
+
+### Public Profile Sharing
+
+Books and games expose read-only shareable-profile RPCs
+(`books.v1.PublicLibraryService`, `games.v1.PublicGamesService`, in each app's
+`connect_public.go`). These are registered in `routes.go` **without** any
+auth middleware: every request carries an opaque share token that resolves to
+the owning user via the shared `ProfileSharesRepository`
+(`global.profile_shares`, plaintext token — read-only data, so the owner can
+copy the link anytime; unknown tokens return `CodeNotFound`). The owner
+manages the token through `profile.v1.ProfileService`, handled in
+`cmd/api/connect_profile.go` behind `Access`; regenerating replaces the row
+and instantly invalidates the old link. Public handlers must never read
+`constants.UserContextKey` — no auth middleware runs, so it is never set.
 
 ## Linting
 

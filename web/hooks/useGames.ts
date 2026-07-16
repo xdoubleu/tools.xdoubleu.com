@@ -53,6 +53,11 @@ export function useRecentlyActiveGames(fallbackData?: GetRecentlyActiveGamesResp
   )
 }
 
+export function useSetGameFavourite() {
+  const client = createServiceClient(GamesService)
+  return (gameId: number, favourite: boolean) => client.setGameFavourite({ gameId, favourite })
+}
+
 export function useRefreshSteamGame() {
   const client = createServiceClient(GamesService)
   return (gameId: number) => client.refreshSteamGame({ gameId })

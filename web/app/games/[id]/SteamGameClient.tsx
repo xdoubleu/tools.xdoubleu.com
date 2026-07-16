@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Image from 'next/image'
 import { create } from '@bufbuild/protobuf'
 import { mutate as globalMutate } from 'swr'
 import { useSteamGame, useRefreshSteamGame } from '@/hooks/useGames'
-import type { Achievement } from '@/lib/gen/games/v1/games_pb'
 import { GetSteamGameResponseSchema } from '@/lib/gen/games/v1/games_pb'
 import type { GetSteamGameResponse } from '@/lib/gen/games/v1/games_pb'
 import { swrKeys } from '@/lib/swrKeys'
@@ -14,50 +12,9 @@ import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import GamesStatsPanel from '@/components/games/GamesStatsPanel'
+import GameFavouriteButton from '@/components/games/GameFavouriteButton'
+import AchievementCard from '@/components/games/AchievementCard'
 import { formatDateTime } from '@/lib/dates'
-
-interface AchievementCardProps {
-  achievement: Achievement
-}
-
-function AchievementCard({ achievement }: AchievementCardProps) {
-  return (
-    <div className="border border-border bg-card rounded-2xl p-3 flex gap-3 items-start">
-      {achievement.iconUrl && (
-        <Image
-          src={achievement.iconUrl}
-          alt={achievement.displayName}
-          width={48}
-          height={48}
-          className="h-12 w-12 rounded-lg object-cover shrink-0"
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-semibold text-sm">{achievement.displayName}</h3>
-          {achievement.achieved ? (
-            <span className="rounded-full border border-success/20 bg-success/10 px-2 py-0.5 text-xs text-success">
-              Achieved
-            </span>
-          ) : (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">Locked</span>
-          )}
-          {!achievement.description && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">Hidden</span>
-          )}
-        </div>
-        {achievement.description && (
-          <p className="text-xs text-muted mt-0.5 line-clamp-2">{achievement.description}</p>
-        )}
-        {achievement.globalPercent !== undefined && (
-          <p className="text-xs text-muted mt-0.5">
-            {achievement.globalPercent.toFixed(1)}% of players
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
 
 const REFRESH_INTERVAL_MS = 60_000
 
@@ -139,7 +96,10 @@ export default function SteamGameClient({
       {game && (
         <>
           <div className="mt-4 mb-4">
-            <h1 className="text-3xl font-bold">{game.name}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">{game.name}</h1>
+              <GameFavouriteButton game={game} className="text-2xl" />
+            </div>
             <div className="flex gap-6 mt-2 text-muted">
               <span>{Math.round(game.playtime / 60)} hrs played</span>
               <span>Completion: {game.completionRate}%</span>

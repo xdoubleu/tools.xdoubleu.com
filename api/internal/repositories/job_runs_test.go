@@ -23,11 +23,17 @@ func TestMain(m *testing.M) {
 	postgresDB := testhelper.ConnectTestDB(cfg.DBDsn)
 	testDB = postgresDB
 
-	// Mirrors cmd/api/migrations/00005_observability.sql so these tests can
-	// run before the cmd/api package has applied the global migrations.
+	// Mirrors cmd/api/migrations/00005_observability.sql and
+	// 00006_profile_shares.sql so these tests can run before the cmd/api
+	// package has applied the global migrations.
 	ctx := context.Background()
 	stmts := []string{
 		"CREATE SCHEMA IF NOT EXISTS global",
+		`CREATE TABLE IF NOT EXISTS global.profile_shares (
+			user_id TEXT PRIMARY KEY,
+			token TEXT UNIQUE NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
 		`CREATE TABLE IF NOT EXISTS global.job_runs (
 			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 			job_id TEXT NOT NULL,

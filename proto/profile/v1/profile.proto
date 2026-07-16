@@ -1,0 +1,31 @@
+syntax = "proto3";
+package profile.v1;
+option go_package = "tools.xdoubleu.com/gen/profile/v1;profilev1";
+
+// ProfileService manages the owner's public profile share link.
+// The generated token gates the public read-only profile RPCs
+// (books.v1.PublicLibraryService, games.v1.PublicGamesService).
+service ProfileService {
+  rpc GetProfileShare(GetProfileShareRequest) returns (GetProfileShareResponse);
+  rpc CreateProfileShare(CreateProfileShareRequest) returns (CreateProfileShareResponse);
+  rpc DeleteProfileShare(DeleteProfileShareRequest) returns (DeleteProfileShareResponse);
+}
+
+message ProfileShare {
+  string token = 1;
+  string created_at = 2;
+}
+
+message GetProfileShareRequest {}
+message GetProfileShareResponse {
+  // Unset when the user has no active share link.
+  optional ProfileShare share = 1;
+}
+
+// CreateProfileShare generates a new share token, replacing any existing one
+// (the old link stops working immediately).
+message CreateProfileShareRequest {}
+message CreateProfileShareResponse { ProfileShare share = 1; }
+
+message DeleteProfileShareRequest {}
+message DeleteProfileShareResponse {}

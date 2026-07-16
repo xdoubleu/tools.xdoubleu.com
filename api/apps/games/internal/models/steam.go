@@ -15,6 +15,7 @@ type Game struct {
 	Playtime       int       `json:"playtime"`
 	ImageURL       string    `json:"imageUrl"`
 	LastSyncedAt   time.Time `json:"lastSyncedAt"`
+	Favourite      bool      `json:"favourite"`
 }
 
 type Achievement struct {

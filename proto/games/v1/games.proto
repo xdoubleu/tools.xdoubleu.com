@@ -11,6 +11,7 @@ message Game {
   int32 playtime = 6;
   string image_url = 7;
   string last_synced_at = 8;
+  bool favourite = 9;
 }
 
 message Achievement {
@@ -85,6 +86,12 @@ message GetIntegrationsResponse { Integrations integrations = 1; }
 message SaveIntegrationsRequest { Integrations integrations = 1; }
 message SaveIntegrationsResponse {}
 
+message SetGameFavouriteRequest {
+  int32 game_id = 1;
+  bool favourite = 2;
+}
+message SetGameFavouriteResponse { Game game = 1; }
+
 service GamesService {
   rpc GetSteam(GetSteamRequest) returns (GetSteamResponse);
   rpc GetSteamGame(GetSteamGameRequest) returns (GetSteamGameResponse);
@@ -93,4 +100,5 @@ service GamesService {
   rpc RefreshSteamGame(RefreshSteamGameRequest) returns (RefreshSteamGameResponse);
   rpc GetIntegrations(GetIntegrationsRequest) returns (GetIntegrationsResponse);
   rpc SaveIntegrations(SaveIntegrationsRequest) returns (SaveIntegrationsResponse);
+  rpc SetGameFavourite(SetGameFavouriteRequest) returns (SetGameFavouriteResponse);
 }

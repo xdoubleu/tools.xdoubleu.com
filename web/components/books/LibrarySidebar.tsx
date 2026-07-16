@@ -91,7 +91,8 @@ interface LibrarySidebarProps {
   selectedTag: string | null
   onSelectShelf: (id: ShelfId) => void
   onSelectTag: (tag: string) => void
-  onManage: () => void
+  /** Omit on read-only views (public profile) to hide shelf/tag editing. */
+  onManage?: () => void
 }
 
 function NavItem({
@@ -169,14 +170,18 @@ export default function LibrarySidebar({
           </>
         )}
 
-        <div className="my-1 h-px bg-border" />
-        <button
-          type="button"
-          onClick={onManage}
-          className="w-full text-left px-3 py-2 rounded-xl text-sm text-subtle hover:bg-surface hover:text-foreground transition-colors"
-        >
-          Edit shelves & tags
-        </button>
+        {onManage && (
+          <>
+            <div className="my-1 h-px bg-border" />
+            <button
+              type="button"
+              onClick={onManage}
+              className="w-full text-left px-3 py-2 rounded-xl text-sm text-subtle hover:bg-surface hover:text-foreground transition-colors"
+            >
+              Edit shelves & tags
+            </button>
+          </>
+        )}
       </nav>
 
       {/* Mobile: horizontal scrollable chip rows */}

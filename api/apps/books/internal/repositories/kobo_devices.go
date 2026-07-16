@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -117,4 +118,20 @@ func (r *KoboDevicesRepository) GetKoboAuthByTokenHash(
 		return "", "", database.ErrResourceNotFound
 	}
 	return userID, deviceID, err
+}
+
+// GetLastSeenAt returns the most recent Kobo sync across the user's devices,
+// or nil when the user has no devices (or none has synced yet).
+func (r *KoboDevicesRepository) GetLastSeenAt(
+	ctx context.Context,
+	userID string,
+) (*time.Time, error) {
+	var lastSeen *time.Time
+	err := r.db.QueryRow(ctx, `
+		SELECT max(last_seen_at) FROM books.kobo_devices WHERE user_id = $1
+	`, userID).Scan(&lastSeen)
+	if err != nil {
+		return nil, err
+	}
+	return lastSeen, nil
 }
