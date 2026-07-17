@@ -1229,9 +1229,11 @@ func (x *Store) GetName() string {
 	return ""
 }
 
+// Stores are private to the caller: the store RPCs always act on the
+// authenticated user's own stores and take no owner_user_id (a shared-list
+// recipient never gains access to the owner's stores).
 type ListStoresRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OwnerUserId   string                 `protobuf:"bytes,1,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1264,13 +1266,6 @@ func (x *ListStoresRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListStoresRequest.ProtoReflect.Descriptor instead.
 func (*ListStoresRequest) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *ListStoresRequest) GetOwnerUserId() string {
-	if x != nil {
-		return x.OwnerUserId
-	}
-	return ""
 }
 
 type ListStoresResponse struct {
@@ -1320,7 +1315,6 @@ func (x *ListStoresResponse) GetStores() []*Store {
 type CreateStoreRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1358,13 +1352,6 @@ func (*CreateStoreRequest) Descriptor() ([]byte, []int) {
 func (x *CreateStoreRequest) GetName() string {
 	if x != nil {
 		return x.Name
-	}
-	return ""
-}
-
-func (x *CreateStoreRequest) GetOwnerUserId() string {
-	if x != nil {
-		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1417,7 +1404,6 @@ type RenameStoreRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	OwnerUserId   string                 `protobuf:"bytes,3,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1462,13 +1448,6 @@ func (x *RenameStoreRequest) GetId() string {
 func (x *RenameStoreRequest) GetName() string {
 	if x != nil {
 		return x.Name
-	}
-	return ""
-}
-
-func (x *RenameStoreRequest) GetOwnerUserId() string {
-	if x != nil {
-		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1520,7 +1499,6 @@ func (x *RenameStoreResponse) GetStore() *Store {
 type DeleteStoreRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1558,13 +1536,6 @@ func (*DeleteStoreRequest) Descriptor() ([]byte, []int) {
 func (x *DeleteStoreRequest) GetId() string {
 	if x != nil {
 		return x.Id
-	}
-	return ""
-}
-
-func (x *DeleteStoreRequest) GetOwnerUserId() string {
-	if x != nil {
-		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1611,7 +1582,6 @@ func (*DeleteStoreResponse) Descriptor() ([]byte, []int) {
 type GetStoreCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StoreId       string                 `protobuf:"bytes,1,opt,name=store_id,json=storeId,proto3" json:"store_id,omitempty"`
-	OwnerUserId   string                 `protobuf:"bytes,2,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1649,13 +1619,6 @@ func (*GetStoreCategoriesRequest) Descriptor() ([]byte, []int) {
 func (x *GetStoreCategoriesRequest) GetStoreId() string {
 	if x != nil {
 		return x.StoreId
-	}
-	return ""
-}
-
-func (x *GetStoreCategoriesRequest) GetOwnerUserId() string {
-	if x != nil {
-		return x.OwnerUserId
 	}
 	return ""
 }
@@ -1708,7 +1671,6 @@ type SetStoreCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StoreId       string                 `protobuf:"bytes,1,opt,name=store_id,json=storeId,proto3" json:"store_id,omitempty"`
 	CategoryIds   []string               `protobuf:"bytes,2,rep,name=category_ids,json=categoryIds,proto3" json:"category_ids,omitempty"`
-	OwnerUserId   string                 `protobuf:"bytes,3,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1755,13 +1717,6 @@ func (x *SetStoreCategoriesRequest) GetCategoryIds() []string {
 		return x.CategoryIds
 	}
 	return nil
-}
-
-func (x *SetStoreCategoriesRequest) GetOwnerUserId() string {
-	if x != nil {
-		return x.OwnerUserId
-	}
-	return ""
 }
 
 type SetStoreCategoriesResponse struct {
@@ -2826,37 +2781,31 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x16DeleteCategoryResponse\"+\n" +
 	"\x05Store\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"7\n" +
-	"\x11ListStoresRequest\x12\"\n" +
-	"\rowner_user_id\x18\x01 \x01(\tR\vownerUserId\"D\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"(\n" +
+	"\x11ListStoresRequestJ\x04\b\x01\x10\x02R\rowner_user_id\"D\n" +
 	"\x12ListStoresResponse\x12.\n" +
-	"\x06stores\x18\x01 \x03(\v2\x16.shoppinglist.v1.StoreR\x06stores\"L\n" +
+	"\x06stores\x18\x01 \x03(\v2\x16.shoppinglist.v1.StoreR\x06stores\"=\n" +
 	"\x12CreateStoreRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\"\n" +
-	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"C\n" +
+	"\x04name\x18\x01 \x01(\tR\x04nameJ\x04\b\x02\x10\x03R\rowner_user_id\"C\n" +
 	"\x13CreateStoreResponse\x12,\n" +
-	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"\\\n" +
+	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"M\n" +
 	"\x12RenameStoreRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\"\n" +
-	"\rowner_user_id\x18\x03 \x01(\tR\vownerUserId\"C\n" +
+	"\x04name\x18\x02 \x01(\tR\x04nameJ\x04\b\x03\x10\x04R\rowner_user_id\"C\n" +
 	"\x13RenameStoreResponse\x12,\n" +
-	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"H\n" +
+	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"9\n" +
 	"\x12DeleteStoreRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
-	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"\x15\n" +
-	"\x13DeleteStoreResponse\"Z\n" +
+	"\x02id\x18\x01 \x01(\tR\x02idJ\x04\b\x02\x10\x03R\rowner_user_id\"\x15\n" +
+	"\x13DeleteStoreResponse\"K\n" +
 	"\x19GetStoreCategoriesRequest\x12\x19\n" +
-	"\bstore_id\x18\x01 \x01(\tR\astoreId\x12\"\n" +
-	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\"W\n" +
+	"\bstore_id\x18\x01 \x01(\tR\astoreIdJ\x04\b\x02\x10\x03R\rowner_user_id\"W\n" +
 	"\x1aGetStoreCategoriesResponse\x129\n" +
 	"\n" +
 	"categories\x18\x01 \x03(\v2\x19.shoppinglist.v1.CategoryR\n" +
-	"categories\"}\n" +
+	"categories\"n\n" +
 	"\x19SetStoreCategoriesRequest\x12\x19\n" +
 	"\bstore_id\x18\x01 \x01(\tR\astoreId\x12!\n" +
-	"\fcategory_ids\x18\x02 \x03(\tR\vcategoryIds\x12\"\n" +
-	"\rowner_user_id\x18\x03 \x01(\tR\vownerUserId\"\x1c\n" +
+	"\fcategory_ids\x18\x02 \x03(\tR\vcategoryIdsJ\x04\b\x03\x10\x04R\rowner_user_id\"\x1c\n" +
 	"\x1aSetStoreCategoriesResponse\"[\n" +
 	"\bItemName\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +

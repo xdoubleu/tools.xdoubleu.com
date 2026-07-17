@@ -3,19 +3,9 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import ExportModal from '@/components/recipes/ExportModal'
 import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 
+// The modal no longer fetches meal-plan items or ingredient groups — those are
+// owned by the landing page and passed in via the mealItems prop.
 jest.mock('@/hooks/useShoppingList', () => ({
-  useAllMealPlanExportItems: (excludedGroups: string[]) => ({
-    data: {
-      items: excludedGroups.includes('Sauce')
-        ? []
-        : [{ name: 'garlic', amount: '2', unit: 'cloves', recipeName: 'Pasta', groupName: 'Sauce' }]
-    },
-    isLoading: false
-  }),
-  useAllPlanIngredientGroups: () => ({
-    data: { groups: [{ recipeName: 'Pasta', groupName: 'Sauce' }] },
-    isLoading: false
-  }),
   useStores: () => ({
     data: { stores: [{ id: 'store-1', name: 'Colruyt' }] },
     isLoading: false
@@ -44,6 +34,14 @@ jest.mock('@/hooks/useShoppingList', () => ({
 }))
 
 const customItems: ShoppingItem[] = [{ id: 'c1', amount: '1', unit: 'L', name: 'milk' }]
+const mealItems: ShoppingItem[] = [
+  { name: 'garlic', amount: '2', unit: 'cloves', recipeName: 'Pasta', groupName: 'Sauce' }
+]
+
+const renderModal = (props: Partial<React.ComponentProps<typeof ExportModal>> = {}) =>
+  render(
+    <ExportModal customItems={customItems} mealItems={mealItems} onClose={jest.fn()} {...props} />
+  )
 
 beforeEach(() => {
   Object.defineProperty(navigator, 'clipboard', {
@@ -60,49 +58,35 @@ beforeEach(() => {
 
 describe('ExportModal', () => {
   it('renders export buttons', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     expect(screen.getByRole('button', { name: /Copy to Clipboard/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Share to Apple Notes/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Download .txt/ })).toBeInTheDocument()
   })
 
-  it('does not render a plan selector dropdown', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    expect(screen.queryByLabelText(/Add meal plan ingredients/)).not.toBeInTheDocument()
-  })
-
-  it('always shows meal plan items in the export preview', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+  it('shows the passed-in meal plan items in the export preview', () => {
+    renderModal()
     expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
   })
 
-  it('shows ingredient groups for exclusion', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    expect(screen.getByText('Sauce')).toBeInTheDocument()
-    expect(screen.getByText('(Pasta)')).toBeInTheDocument()
+  it('no longer renders the ingredient-group exclusion controls', () => {
+    renderModal()
+    expect(screen.queryByText('Exclude ingredient groups')).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 
-  it('excludes ingredient group items when group is unchecked', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
-    const checkbox = screen.getByRole('checkbox')
-    expect(checkbox).toBeChecked()
-    fireEvent.click(checkbox)
-    // After excluding 'Sauce', garlic (from Sauce group) should be gone
-    expect(screen.queryByText(/garlic/)).not.toBeInTheDocument()
-  })
-
-  it('shows ingredient group name in origin label in the preview', () => {
-    render(<ExportModal customItems={[]} onClose={jest.fn()} />)
+  it('shows the ingredient group name in the origin label in the preview', () => {
+    renderModal({ customItems: [] })
     expect(screen.getByText(/Pasta \[Sauce\]/)).toBeInTheDocument()
   })
 
   it('renders store selector with options', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     expect(screen.getByRole('option', { name: 'Colruyt' })).toBeInTheDocument()
   })
 
   it('groups items by store aisle order when a store is selected', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -112,7 +96,7 @@ describe('ExportModal', () => {
   })
 
   it('warns when items have no category assigned for the selected store', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -128,7 +112,7 @@ describe('ExportModal', () => {
       ...customItems,
       { id: 'c2', amount: '1', unit: 'tub', name: 'icecream' }
     ]
-    render(<ExportModal customItems={items} onClose={jest.fn()} />)
+    renderModal({ customItems: items })
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -137,13 +121,13 @@ describe('ExportModal', () => {
   })
 
   it('does not show store-coverage warnings until a store is selected', () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     expect(screen.queryByText(/no category assigned/)).not.toBeInTheDocument()
     expect(screen.queryByText(/this store doesn.t order/)).not.toBeInTheDocument()
   })
 
   it('copies grouped output to clipboard when a store is selected', async () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -158,20 +142,20 @@ describe('ExportModal', () => {
 
   it('calls onClose when close button is clicked', () => {
     const onClose = jest.fn()
-    render(<ExportModal customItems={customItems} onClose={onClose} />)
+    renderModal({ onClose })
     fireEvent.click(screen.getByRole('button', { name: /Close/ }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onClose when Escape is pressed', () => {
     const onClose = jest.fn()
-    render(<ExportModal customItems={customItems} onClose={onClose} />)
+    renderModal({ onClose })
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('Copy to Clipboard calls navigator.clipboard.writeText', async () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Copy to Clipboard/ }))
     })
@@ -179,7 +163,7 @@ describe('ExportModal', () => {
   })
 
   it('Share to Apple Notes falls back to clipboard when navigator.share is absent', async () => {
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
     })
@@ -193,7 +177,7 @@ describe('ExportModal', () => {
       writable: true,
       configurable: true
     })
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
     })
@@ -208,7 +192,7 @@ describe('ExportModal', () => {
       writable: true,
       configurable: true
     })
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
     })
@@ -218,7 +202,7 @@ describe('ExportModal', () => {
 
   it('Download .txt triggers file download', () => {
     const mockClick = jest.fn()
-    render(<ExportModal customItems={customItems} onClose={jest.fn()} />)
+    renderModal()
     const mockAppendChild = jest.spyOn(document.body, 'appendChild').mockImplementation(jest.fn())
     const mockRemoveChild = jest.spyOn(document.body, 'removeChild').mockImplementation(jest.fn())
     const realCreate = document.createElement.bind(document)

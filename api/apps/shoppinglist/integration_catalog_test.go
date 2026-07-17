@@ -352,6 +352,65 @@ func TestSetStoreCategories_InvalidCategoryID(t *testing.T) {
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
 
+// seedForeignStore inserts a store owned by another user directly in the DB
+// (the mock auth always authenticates as userID, so a foreign owner can only be
+// staged via SQL) and returns its ID.
+func seedForeignStore(t *testing.T, owner, name string) string {
+	t.Helper()
+	var id string
+	err := testDB.QueryRow(context.Background(), `
+		INSERT INTO shoppinglist.stores (user_id, name)
+		VALUES ($1, $2) RETURNING id`,
+		owner, name,
+	).Scan(&id)
+	require.NoError(t, err)
+	return id
+}
+
+// Stores are private to the caller: even with a shared-list grant, a recipient
+// never sees or touches the owner's stores.
+func TestStores_PrivateToCaller(t *testing.T) {
+	const owner = "sl-store-owner"
+	grantListAccess(t, owner, true) // full edit access to the owner's list…
+	foreignID := seedForeignStore(t, owner, "Owner-Only-"+uuid.NewString())
+
+	client := newShoppingClient(t)
+
+	// …yet ListStores never returns the owner's store.
+	list, err := client.ListStores(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.ListStoresRequest{}),
+	)
+	require.NoError(t, err)
+	for _, s := range list.Msg.Stores {
+		assert.NotEqual(t, foreignID, s.Id, "must not see another user's store")
+	}
+
+	// Reading or mutating the foreign store by ID is a 404 (queries are
+	// user_id-scoped, so the row is invisible to the caller).
+	_, err = client.GetStoreCategories(
+		t.Context(),
+		connect.NewRequest(
+			&shoppinglistv1.GetStoreCategoriesRequest{StoreId: foreignID},
+		),
+	)
+	assertCode(t, err, connect.CodeNotFound)
+
+	_, err = client.RenameStore(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.RenameStoreRequest{
+			Id: foreignID, Name: "Hijacked",
+		}),
+	)
+	assertCode(t, err, connect.CodeNotFound)
+
+	_, err = client.DeleteStore(
+		t.Context(),
+		connect.NewRequest(&shoppinglistv1.DeleteStoreRequest{Id: foreignID}),
+	)
+	assertCode(t, err, connect.CodeNotFound)
+}
+
 // ── Item catalog ──────────────────────────────────────────────────────────────
 
 func TestSetItemCategory_AssignAndList(t *testing.T) {
