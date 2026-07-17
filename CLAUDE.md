@@ -138,6 +138,8 @@ See `.github/workflows/` for the pipeline. `main.yml` orchestrates reusable work
 
 Because `main` is deployed without re-testing, protect `main` from direct pushes and merge only PRs whose CI passed.
 
+When editing any `.github/workflows/` file, make sure the change is itself covered by CI: every non-docker-build workflow's `pull_request` trigger must include `.github/workflows/**` in its `paths` filter, so editing a workflow reruns the full pipeline instead of silently skipping validation. Docker-build workflows are the deliberate exception — they only trigger on push to `main` (see above), not on `pull_request`.
+
 One cross-cutting nuance: the **kobo-gateway** macOS menu-bar app lives in its own top-level module, `gateway/` (see [`gateway/CLAUDE.md`](gateway/CLAUDE.md)), but ships inside the **web** Docker image (served as a download). It needs cgo + the real AppKit/Xcode SDK for its menu bar, so it can't cross-compile from the Linux runners the rest of CI uses — `build-gateway.yml` builds and packages it on a `macos-14` runner and hands the `.dmg` + raw binary to `docker.yml` as an artifact, which `web/Dockerfile` then `COPY`s in (there is no `gateway-builder` Docker stage). The `gateway` path filter in `main.yml` feeds `build-web`, `build-gateway`, and `docker.build_web` — keep it in sync if `gateway/` moves, or gateway changes would silently deploy a stale binary.
 
 ## Docs Impact
