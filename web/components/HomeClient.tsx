@@ -18,9 +18,9 @@ const ALL_APPS: AppLink[] = [
     description: 'Steam backlog, progress and distribution.'
   },
   {
-    name: 'books',
-    label: 'Books',
-    href: '/books',
+    name: 'reading',
+    label: 'Reading',
+    href: '/reading',
     description: 'Search, library and reading progress.'
   },
   { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' },
@@ -63,7 +63,7 @@ const ALL_APPS: AppLink[] = [
 const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 
 const SECTION_DEFS: { title: string; names: string[] }[] = [
-  { title: 'Productivity', names: ['games', 'books', 'todos'] },
+  { title: 'Productivity', names: ['games', 'reading', 'todos'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty', 'icsproxy'] },
   { title: 'Account', names: ['settings', 'contacts', 'sharing'] },

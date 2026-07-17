@@ -18,35 +18,36 @@ export const swrKeys = {
   webRelease: '/release',
   sharedMealPlans: '/sharing/mealplans',
 
-  profileShare: (app: 'books' | 'games') => `/profile/share/${app}`,
-  profileBooks: (token: string) => `/profile/books/${token}`,
+  profileShare: (app: 'reading' | 'games') => `/profile/share/${app}`,
+  profileBooks: (token: string) => `/profile/reading/${token}`,
   profileBooksProgress: (token: string, dateStart?: string, dateEnd?: string) =>
-    ['/profile/books-progress', token, dateStart, dateEnd] as const,
+    ['/profile/reading-progress', token, dateStart, dateEnd] as const,
   profileGames: (token: string) => `/profile/games/${token}`,
   profileGamesProgress: (token: string, dateStart?: string, dateEnd?: string) =>
     ['/profile/games-progress', token, dateStart, dateEnd] as const,
   profileGame: (token: string, gameId: number) => `/profile/games/${token}/${gameId}`,
   profileRecentGames: (token: string) => `/profile/games/${token}/recent`,
 
-  books: '/books',
+  books: '/reading',
   booksProgress: (dateStart?: string, dateEnd?: string) =>
-    ['/books/progress', dateStart, dateEnd] as const,
-  koboDevices: '/books/kobo/devices',
+    ['/reading/progress', dateStart, dateEnd] as const,
+  koboDevices: '/reading/kobo/devices',
   // Local-only key (no server round-trip) for polling the kobo-gateway
-  // helper's /status — see lib/books/gatewayClient.ts.
-  gatewayStatus: '/books/kobo/gateway-status',
-  koboDeviceLogs: (id: string) => ['/books/kobo/logs', id] as const,
-  bookDuplicates: '/books/duplicates',
-  resyncProposals: '/books/resync-proposals',
+  // helper's /status — see lib/reading/gatewayClient.ts.
+  gatewayStatus: '/reading/kobo/gateway-status',
+  koboDeviceLogs: (id: string) => ['/reading/kobo/logs', id] as const,
+  bookFeeds: '/reading/feeds',
+  bookDuplicates: '/reading/duplicates',
+  resyncProposals: '/reading/resync-proposals',
   bookSources: (bookId: string, overrideTitle = '', overrideAuthor = '') =>
-    ['/books/sources', bookId, overrideTitle, overrideAuthor] as const,
-  bookSourceStats: '/books/source-stats',
+    ['/reading/sources', bookId, overrideTitle, overrideAuthor] as const,
+  bookSourceStats: '/reading/source-stats',
   bookBooksInExactSources: (sources: string[]) =>
-    ['/books/exact-sources', [...sources].sort().join(',')] as const,
-  kepubStatus: (bookId: string) => ['/books/kepub-status', bookId] as const,
-  bookFile: (bookId: string, format: string) => ['/books/file', bookId, format] as const,
+    ['/reading/exact-sources', [...sources].sort().join(',')] as const,
+  kepubStatus: (bookId: string) => ['/reading/kepub-status', bookId] as const,
+  bookFile: (bookId: string, format: string) => ['/reading/file', bookId, format] as const,
   externalBook: (provider: string, providerId: string) =>
-    ['/books/external', provider, providerId] as const,
+    ['/reading/external', provider, providerId] as const,
 
   games: '/games',
   game: (gameId: number) => `/games/${gameId}`,

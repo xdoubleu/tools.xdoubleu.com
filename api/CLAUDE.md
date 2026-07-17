@@ -21,7 +21,7 @@ make test/cov/report        # Coverage report (HTML, excludes mocks)
 make test/cov/per-pkg       # Per-package coverage with merged report
 
 # Single test
-go test ./apps/books/... -run TestFunctionName
+go test ./apps/reading/... -run TestFunctionName
 
 # Linting
 make lint                   # Run all linters (Go + SQL)
@@ -35,9 +35,10 @@ make proto/generate
 ## Docker Image
 
 The api image uses `debian:12-slim` (not distroless) as the final stage because the
-**books conversion feature** shells out to Calibre's `ebook-convert` binary to
-convert PDFs to EPUB before kepubification. Calibre requires Qt and Python shared
-libraries that distroless cannot provide.
+**reading conversion features** shell out to Calibre's `ebook-convert` binary — to
+convert PDFs to EPUB before kepubification, and to build article EPUBs from
+extracted web-page HTML. Calibre requires Qt and Python shared libraries that
+distroless cannot provide.
 
 This makes the image significantly larger than a distroless build (~700 MB vs ~20 MB).
 The Calibre layer is cached via `type=gha` GitHub Actions layer caching, so CI rebuild
@@ -66,7 +67,7 @@ re-applying the rule — it is not stored in this repo.
 
 ## Architecture
 
-A Go monorepo that serves multiple web apps from a single binary. All apps are registered in `cmd/api/apps.go` and share a single HTTP mux routed by URL prefix; `main.go` wraps the shared pgx pool in `postgres.NewSpanDB` once so every app's queries emit tracing spans (migrations use the raw pool). Registration order matters for migrations: `books` registers before `games` because games' final migration drops the leftover `backlog` schema after both apps have adopted their tables. Apps expose ConnectRPC endpoints consumed by the Next.js frontend in `web/`.
+A Go monorepo that serves multiple web apps from a single binary. All apps are registered in `cmd/api/apps.go` and share a single HTTP mux routed by URL prefix; `main.go` wraps the shared pgx pool in `postgres.NewSpanDB` once so every app's queries emit tracing spans (migrations use the raw pool). Registration order matters for migrations: `reading` registers before `games` because games' final migration drops the leftover `backlog` schema after both apps have adopted their tables. Apps expose ConnectRPC endpoints consumed by the Next.js frontend in `web/`.
 
 ### App Structure
 
@@ -76,7 +77,7 @@ Each app lives in `apps/<name>/` and follows a consistent layout:
 apps/<name>/
 ├── app.go              # App struct embedding app.Base, implements App interface
 │                       # Apps whose integration tests seed data through the
-│                       # service layer (games, books, watchparty) export a
+│                       # service layer (games, reading, watchparty) export a
 │                       # Services field; the rest keep services private
 ├── routes.go           # HTTP route registration
 ├── handlers.go         # HTTP handlers (shared middleware/error helpers)
@@ -125,9 +126,9 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 - **`crypto/`** — Encryption utilities
 - **`models/`** — Shared domain models
 - **`repositories/`** — Shared DB repositories over the `global` schema (users, contacts, the observability tables: `JobRunsRepository`, `UsageRepository`, `StorageSnapshotsRepository`, `DBStatsRepository`, and `ProfileSharesRepository` for the public-profile share tokens)
-- **`observability/`** — Cross-cutting instrumentation. `TrackedJob` decorates any `threading.Job` so every run is timed and recorded in `global.job_runs`, panics are recovered, and failures log at Error level (so they reach Sentry); wrap jobs at registration (see `apps/{todos,games,books}/app.go`). `UsageRecorder` counts requests per `(day, app, endpoint)` in memory and flushes to `global.usage_daily`; the counting `usageMiddleware` sits in the `cmd/api` alice chain after `domainMiddleware`.
+- **`observability/`** — Cross-cutting instrumentation. `TrackedJob` decorates any `threading.Job` so every run is timed and recorded in `global.job_runs`, panics are recovered, and failures log at Error level (so they reach Sentry); wrap jobs at registration (see `apps/{todos,games,reading}/app.go`). `UsageRecorder` counts requests per `(day, app, endpoint)` in memory and flushes to `global.usage_daily`; the counting `usageMiddleware` sits in the `cmd/api` alice chain after `domainMiddleware`.
 - **`progressws/`** — WebSocket service broadcasting background-job progress (start/stop state, live "X of N" counts) keyed by job-ID topics
-- **`progresshistory/`** — Generic cumulative-progress storage with carry-forward reads (used by games and books progress graphs)
+- **`progresshistory/`** — Generic cumulative-progress storage with carry-forward reads (used by games and reading progress graphs)
 - **`mocks/`** — Shared mock implementations
 - **`testhelper/`** — Test utilities: `ConnectTestDB(dsn)` wraps `postgres.Connect` for integration tests; `BuildMux(Routable)` constructs a test `http.Handler` from any app that implements `Routes`/`GetName`
 
@@ -148,7 +149,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 ### Apps
 
 - **games** — Steam backlog tracker: library sync, achievements, completion rate progress/distribution, user-set favourites, and the user's Steam integration settings. External client package lives in `pkg/steam/`. Has a background sync job (1 worker) and WebSocket live updates. The `steam_games.favourite` flag is user-set state: `UpsertGames` deliberately never writes it, so it survives every sync. Uses `games` DB schema (adopted from the former `backlog` schema).
-- **books** — Book library and e-reader companion. Book metadata enrichment queries three independent providers (each kept, no priority merge), each source's calls run concurrently per book (`fetchByISBN`/`searchProviders` in `book_resync.go`, via `errgroup`): Open Library (primary, no key), UniCat (Belgian SRU/MARC catalog, no key), and Hardcover (GraphQL; set `HARDCOVER_API_KEY` — a free Bearer JWT from the account settings page that expires ~yearly and must be refreshed; left disabled/nil when unset. No daily quota, its 1 req/s limiter is the resync throughput floor). ISBN-less books are matched by title+author. External client packages live in `pkg/openlibrary/`, `pkg/unicat/`, `pkg/hardcover/`; the resync orchestration and per-source scan-status cache (`*_found` columns) live in `internal/services/book_resync.go`. Serves the raw Kobo sync protocol under `/books/kobo/{token}/…` and a public cover proxy. Per-device debug logging (endpoint + request/response bodies) can be toggled from the Books settings page; captured requests live in an in-memory `KoboLogStore` (`apps/books/internal/services/kobo_log.go`), not the DB, and reset on restart. Has background jobs (2 workers) and WebSocket live updates, including a daily R2 bucket scan (`books-storage-scan`) that writes a `global.storage_snapshots` row for the admin dashboard. The object-store `Client` (`pkg/objectstore/`) exposes a paginated `List` used by that scan. Uses `books` DB schema (adopted from the former `backlog` schema).
+- **reading** (formerly **books** — Go package `apps/reading/`, URL prefix `/reading`, schema `reading`, proto package `reading.v1`; entity types like `Book`/`BookService` keep their names) — Reading library and e-reader companion for books, arXiv papers, web articles, and RSS posts. Every catalog row has a fixed `category` (`book`/`paper`/`article`/`rss`) and non-book items carry a canonical `source_url` (dedup key, partial unique index). Ingestion paths: `LibraryService.AddBookByURL` routes arXiv URLs (`pkg/arxiv/`, Atom API) to paper ingestion (metadata + PDF download) and everything else to readability extraction (`go-shiori/go-readability`) + article-EPUB building via the shared Calibre subprocess slot (`conversion_calibre.go` — HTML and PDF conversions share one semaphore; article images are downloaded and localized first, `ingest_images.go`); `FeedService` manages RSS/Atom subscriptions (`reading.feeds` + per-feed seen-set `reading.feed_items`, parsed with `mmcdole/gofeed`), imported on subscribe and polled hourly by the `poll-feeds` job with conditional GETs; a per-feed `kobo_sync` flag auto-opts every new item into Kobo sync (tag + eager KEPUB). All external web content goes through the size-capped `pkg/webfetch/` client. Book metadata enrichment queries two independent providers, concurrently per book (`fetchByISBN`/`searchProviders` in `book_resync.go`, via `errgroup`): UniCat (Belgian SRU/MARC catalog, no key) and Hardcover (GraphQL; set `HARDCOVER_API_KEY` — a free Bearer JWT from the account settings page that expires ~yearly and must be refreshed; left disabled/nil when unset. No daily quota, its 1 req/s limiter is the resync throughput floor). ISBN-less books are matched by title+author; resync/duplicate scans skip non-book categories. External client packages live in `pkg/unicat/`, `pkg/hardcover/`, `pkg/arxiv/`, `pkg/webfetch/`; the resync orchestration and per-source scan-status cache (`*_found` columns) live in `internal/services/book_resync.go`. Serves the raw Kobo sync protocol under `/reading/kobo/{token}/…` and a public cover proxy — both are also mounted permanently under the legacy `/books` prefix, because registered Kobo devices have `/books/kobo/…` baked into their firmware config (see `routes.go`; `cmd/api`'s usage middleware remaps the legacy prefix too). Per-device debug logging (endpoint + request/response bodies) can be toggled from the Reading settings page; captured requests live in an in-memory `KoboLogStore` (`apps/reading/internal/services/kobo_log.go`), not the DB, and reset on restart. Has background jobs (2 workers) and WebSocket live updates, including a daily R2 bucket scan (`books-storage-scan`) that writes a `global.storage_snapshots` row for the admin dashboard. The object-store `Client` (`pkg/objectstore/`) exposes a paginated `List` used by that scan. Uses the `reading` DB schema — renamed in place from `books` by a pre-migration bootstrap in Go (`renameLegacyBooksSchema` in `app.go`: goose's version table lives inside the schema, so `ALTER SCHEMA … RENAME` carries the migration history along; historical migration files were rewritten to `reading.` for fresh installs, and R2 storage keys keep their `books/` prefix). The `books`→`reading` app identifier is also rewritten in `global` data by `cmd/api/migrations/00008`.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no background jobs.
 - **icsproxy** — ICS calendar feed filtering and proxying. Uses `icsproxy` DB schema.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (`recipebook_access`, view-only or edit). Uses `recipes` DB schema.
@@ -158,7 +159,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 
 ### Database Conventions
 
-- Each app uses its own PostgreSQL schema (e.g., `books`, `icsproxy`)
+- Each app uses its own PostgreSQL schema (e.g., `reading`, `icsproxy`)
 - Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, `profile_shares`, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The admin observability RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_admin_stats.go`) read these plus live `pg_*` size queries.
 - Migrations live in `apps/<name>/migrations/` and follow Goose SQL format
 - `updated_at` columns are managed via PostgreSQL triggers
@@ -187,14 +188,14 @@ for affected columns.
 
 ### Public Profile Sharing
 
-Books and games expose read-only shareable-profile RPCs
-(`books.v1.PublicLibraryService`, `games.v1.PublicGamesService`, in each app's
+Reading and games expose read-only shareable-profile RPCs
+(`reading.v1.PublicLibraryService`, `games.v1.PublicGamesService`, in each app's
 `connect_public.go`). These are registered in `routes.go` **without** any
 auth middleware: every request carries an opaque share token that resolves to
 the owning user via the shared `ProfileSharesRepository`
 (`global.profile_shares`, plaintext token, keyed by `(user_id, app)` — read-only
 data, so the owner can copy the link anytime; unknown tokens, and tokens
-resolved against the wrong app, return `CodeNotFound`). Books and games each
+resolved against the wrong app, return `CodeNotFound`). Reading and games each
 have their own independent share link — disabling one never touches the
 other. The owner manages both tokens through `profile.v1.ProfileService`,
 handled in `cmd/api/connect_profile.go` behind `Access`; every RPC takes a

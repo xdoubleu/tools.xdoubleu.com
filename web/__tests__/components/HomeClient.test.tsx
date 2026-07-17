@@ -52,7 +52,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Books')).toBeInTheDocument()
+      expect(screen.getByText('Reading')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
@@ -64,7 +64,7 @@ describe('HomeClient', () => {
     })
 
     expect(screen.getByRole('link', { name: /Games/ })).toHaveAttribute('href', '/games')
-    expect(screen.getByRole('link', { name: /Books/ })).toHaveAttribute('href', '/books')
+    expect(screen.getByRole('link', { name: /Reading/ })).toHaveAttribute('href', '/reading')
     expect(screen.getByRole('link', { name: /Watch Party/ })).toHaveAttribute('href', '/watchparty')
     expect(screen.getByRole('link', { name: /ICS Proxy/ })).toHaveAttribute('href', '/icsproxy')
     expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/list')
@@ -273,7 +273,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, {
         role: 'user',
-        appAccess: ['games', 'books', 'todos']
+        appAccess: ['games', 'reading', 'todos']
       }),
       isLoading: false,
       error: undefined
@@ -285,7 +285,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Books')).toBeInTheDocument()
+      expect(screen.getByText('Reading')).toBeInTheDocument()
       expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Contacts')).toBeInTheDocument()
@@ -316,7 +316,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Books')).toBeInTheDocument()
+      expect(screen.getByText('Reading')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
@@ -344,7 +344,7 @@ describe('HomeClient', () => {
     })
 
     expect(screen.queryByText('Games')).not.toBeInTheDocument()
-    expect(screen.queryByText('Books')).not.toBeInTheDocument()
+    expect(screen.queryByText('Reading')).not.toBeInTheDocument()
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
     expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()

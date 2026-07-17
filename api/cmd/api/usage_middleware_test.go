@@ -9,7 +9,7 @@ import (
 )
 
 func TestUsageLabels(t *testing.T) {
-	appNames := map[string]bool{"books": true, "games": true, "todos": true}
+	appNames := map[string]bool{"reading": true, "games": true, "todos": true}
 
 	tests := []struct {
 		name         string
@@ -38,8 +38,16 @@ func TestUsageLabels(t *testing.T) {
 		{
 			name:         "kobo token masked",
 			method:       http.MethodGet,
+			path:         "/reading/kobo/9f8b2c1d4e5a6b7c8d9e0f1a2b3c4d5e/sync",
+			wantApp:      "reading",
+			wantEndpoint: "kobo",
+			wantOK:       true,
+		},
+		{
+			name:         "legacy books prefix counts as reading",
+			method:       http.MethodGet,
 			path:         "/books/kobo/9f8b2c1d4e5a6b7c8d9e0f1a2b3c4d5e/sync",
-			wantApp:      "books",
+			wantApp:      "reading",
 			wantEndpoint: "kobo",
 			wantOK:       true,
 		},
@@ -54,8 +62,8 @@ func TestUsageLabels(t *testing.T) {
 		{
 			name:         "app root",
 			method:       http.MethodGet,
-			path:         "/books/",
-			wantApp:      "books",
+			path:         "/reading/",
+			wantApp:      "reading",
 			wantEndpoint: "root",
 			wantOK:       true,
 		},

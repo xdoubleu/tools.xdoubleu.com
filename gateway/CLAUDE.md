@@ -1,6 +1,6 @@
 # gateway/ — kobo-gateway macOS app
 
-A menu-bar macOS helper the books page (`web/`) drives to configure a
+A menu-bar macOS helper the reading page (`web/`) drives to configure a
 USB-mounted Kobo e-reader. It's a **separate Go module** from `api/`
 (`module tools.xdoubleu.com/gateway`) because its menu bar needs cgo and the
 real AppKit/Xcode SDK ([`github.com/progrium/darwinkit`](https://github.com/progrium/darwinkit)) —
@@ -23,7 +23,7 @@ gateway/
 page drives to read/write a USB-mounted Kobo's `Kobo eReader.conf`. It has no
 AppKit dependency. Setup is gateway-only now — the browser never reads the
 conf file itself, so `conf.go` is the only place that parses/serializes it
-(`web/lib/books/koboConf.ts` only keeps `KOBO_DEFAULT_ENDPOINT` and
+(`web/lib/reading/koboConf.ts` only keeps `KOBO_DEFAULT_ENDPOINT` and
 `isManagedEndpoint`, both simple string checks with no parsing to stay
 compatible with). Security = strict Origin allowlist + Host check +
 CORS/PNA. `POST /update` self-replaces the running binary from the
@@ -147,7 +147,7 @@ requesting/configured origin and atomically replaces the running executable
 restart — `main.go` re-execs via `syscall.Exec`.
 
 The web UI (`KoboGatewaySetup.tsx`) decides *when* to trigger this via
-`gatewayNeedsUpdate` (`web/lib/books/gatewayClient.ts`), which compares two
+`gatewayNeedsUpdate` (`web/lib/reading/gatewayClient.ts`), which compares two
 independent things:
 
 - **`GatewayVersion`** (`internal/kobogateway/server.go`) vs.

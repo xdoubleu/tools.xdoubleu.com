@@ -24,7 +24,7 @@ func TestGetProfileShare_Unauthenticated(t *testing.T) {
 	_, err := client.GetProfileShare(
 		context.Background(),
 		connect.NewRequest(&profilev1.GetProfileShareRequest{
-			App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+			App: profilev1.ProfileApp_PROFILE_APP_READING,
 		}),
 	)
 	require.Error(t, err)
@@ -36,10 +36,10 @@ func TestCreateProfileShare_RequiresDisplayName(t *testing.T) {
 
 	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
 	require.NoError(t, testApp.appUsersRepo.SetDisplayName(ctx, testUserID, ""))
-	require.NoError(t, testApp.profileSharesRepo.Delete(ctx, testUserID, "books"))
+	require.NoError(t, testApp.profileSharesRepo.Delete(ctx, testUserID, "reading"))
 
 	req := connect.NewRequest(&profilev1.CreateProfileShareRequest{
-		App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+		App: profilev1.ProfileApp_PROFILE_APP_READING,
 	})
 	setCookieOnRequest(req, accessToken)
 	_, err := client.CreateProfileShare(ctx, req)
@@ -85,10 +85,10 @@ func TestProfileShare_Lifecycle(t *testing.T) {
 		t,
 		testApp.appUsersRepo.SetDisplayName(ctx, testUserID, "Books Owner"),
 	)
-	require.NoError(t, testApp.profileSharesRepo.Delete(ctx, testUserID, "books"))
+	require.NoError(t, testApp.profileSharesRepo.Delete(ctx, testUserID, "reading"))
 
 	getReq := connect.NewRequest(&profilev1.GetProfileShareRequest{
-		App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+		App: profilev1.ProfileApp_PROFILE_APP_READING,
 	})
 	setCookieOnRequest(getReq, accessToken)
 	getResp, err := client.GetProfileShare(ctx, getReq)
@@ -96,7 +96,7 @@ func TestProfileShare_Lifecycle(t *testing.T) {
 	assert.Nil(t, getResp.Msg.Share, "no share should exist yet")
 
 	createReq := connect.NewRequest(&profilev1.CreateProfileShareRequest{
-		App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+		App: profilev1.ProfileApp_PROFILE_APP_READING,
 	})
 	setCookieOnRequest(createReq, accessToken)
 	createResp, err := client.CreateProfileShare(ctx, createReq)
@@ -108,7 +108,7 @@ func TestProfileShare_Lifecycle(t *testing.T) {
 	assert.NoError(t, err)
 
 	getReq = connect.NewRequest(&profilev1.GetProfileShareRequest{
-		App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+		App: profilev1.ProfileApp_PROFILE_APP_READING,
 	})
 	setCookieOnRequest(getReq, accessToken)
 	getResp, err = client.GetProfileShare(ctx, getReq)
@@ -128,7 +128,7 @@ func TestProfileShare_Lifecycle(t *testing.T) {
 
 	// Regenerating replaces the token, invalidating the old link.
 	createReq = connect.NewRequest(&profilev1.CreateProfileShareRequest{
-		App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+		App: profilev1.ProfileApp_PROFILE_APP_READING,
 	})
 	setCookieOnRequest(createReq, accessToken)
 	regenResp, err := client.CreateProfileShare(ctx, createReq)
@@ -137,14 +137,14 @@ func TestProfileShare_Lifecycle(t *testing.T) {
 	assert.NotEqual(t, token, regenResp.Msg.Share.Token)
 
 	deleteReq := connect.NewRequest(&profilev1.DeleteProfileShareRequest{
-		App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+		App: profilev1.ProfileApp_PROFILE_APP_READING,
 	})
 	setCookieOnRequest(deleteReq, accessToken)
 	_, err = client.DeleteProfileShare(ctx, deleteReq)
 	require.NoError(t, err)
 
 	getReq = connect.NewRequest(&profilev1.GetProfileShareRequest{
-		App: profilev1.ProfileApp_PROFILE_APP_BOOKS,
+		App: profilev1.ProfileApp_PROFILE_APP_READING,
 	})
 	setCookieOnRequest(getReq, accessToken)
 	getResp, err = client.GetProfileShare(ctx, getReq)

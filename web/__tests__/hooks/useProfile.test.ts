@@ -18,9 +18,9 @@ jest.mock('@/lib/client', () => ({
 }))
 jest.mock('@/lib/gen/profile/v1/profile_pb', () => ({
   ProfileService: {},
-  ProfileApp: { UNSPECIFIED: 0, BOOKS: 1, GAMES: 2 }
+  ProfileApp: { UNSPECIFIED: 0, READING: 1, GAMES: 2 }
 }))
-jest.mock('@/lib/gen/books/v1/public_pb', () => ({ PublicLibraryService: {} }))
+jest.mock('@/lib/gen/reading/v1/public_pb', () => ({ PublicLibraryService: {} }))
 jest.mock('@/lib/gen/games/v1/public_pb', () => ({ PublicGamesService: {} }))
 
 import useSWR from 'swr'
@@ -47,9 +47,9 @@ describe('useProfile hooks', () => {
   })
 
   it('useProfileShare queries the app-scoped share key', async () => {
-    renderHook(() => useProfileShare('books'))
+    renderHook(() => useProfileShare('reading'))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe('/profile/share/books')
+    expect(key).toBe('/profile/share/reading')
     await fetcher!()
     expect(clientMocks.getProfileShare).toHaveBeenCalledWith({ app: 1 })
   })
@@ -67,7 +67,7 @@ describe('useProfile hooks', () => {
   })
 
   it('useDeleteProfileShare calls the RPC with the app', async () => {
-    const { result } = renderHook(() => useDeleteProfileShare('books'))
+    const { result } = renderHook(() => useDeleteProfileShare('reading'))
     await result.current()
     expect(clientMocks.deleteProfileShare).toHaveBeenCalledWith({ app: 1 })
   })
@@ -75,7 +75,7 @@ describe('useProfile hooks', () => {
   it('useSharedLibrary keys by token and passes it to the RPC', async () => {
     renderHook(() => useSharedLibrary('tok-1'))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe('/profile/books/tok-1')
+    expect(key).toBe('/profile/reading/tok-1')
     await fetcher!()
     expect(clientMocks.getSharedLibrary).toHaveBeenCalledWith({ token: 'tok-1' })
   })

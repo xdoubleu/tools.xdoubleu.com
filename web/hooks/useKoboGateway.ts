@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { probeGateway, type GatewayStatus } from '@/lib/books/gatewayClient'
+import { probeGateway, type GatewayStatus } from '@/lib/reading/gatewayClient'
 import { swrKeys } from '@/lib/swrKeys'
 
 const POLL_INTERVAL_MS = 2000

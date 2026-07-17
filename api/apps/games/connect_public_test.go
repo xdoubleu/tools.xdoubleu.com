@@ -153,7 +153,7 @@ func TestGetSharedSteam_WrongAppToken(t *testing.T) {
 	_, err := repo.Upsert(
 		ctx,
 		publicUserID,
-		sharedmodels.ProfileAppBooks,
+		sharedmodels.ProfileAppReading,
 		"cross-app-books-token",
 	)
 	require.NoError(t, err)
