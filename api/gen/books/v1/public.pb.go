@@ -70,7 +70,9 @@ type GetSharedLibraryResponse struct {
 	Library *LibraryResponse       `protobuf:"bytes,1,opt,name=library,proto3" json:"library,omitempty"`
 	// Most recent Kobo device sync (max last_seen_at); empty when the owner
 	// has no Kobo devices. Kobo sync is the books equivalent of a refresh.
-	LastSyncedAt  string `protobuf:"bytes,2,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	LastSyncedAt string `protobuf:"bytes,2,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	// The owner's public profile display name.
+	DisplayName   string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,6 +117,13 @@ func (x *GetSharedLibraryResponse) GetLibrary() *LibraryResponse {
 func (x *GetSharedLibraryResponse) GetLastSyncedAt() string {
 	if x != nil {
 		return x.LastSyncedAt
+	}
+	return ""
+}
+
+func (x *GetSharedLibraryResponse) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
 	}
 	return ""
 }
@@ -229,10 +238,11 @@ const file_books_v1_public_proto_rawDesc = "" +
 	"\n" +
 	"\x15books/v1/public.proto\x12\bbooks.v1\x1a\x16books/v1/library.proto\"/\n" +
 	"\x17GetSharedLibraryRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"u\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\x98\x01\n" +
 	"\x18GetSharedLibraryResponse\x123\n" +
 	"\alibrary\x18\x01 \x01(\v2\x19.books.v1.LibraryResponseR\alibrary\x12$\n" +
-	"\x0elast_synced_at\x18\x02 \x01(\tR\flastSyncedAt\"o\n" +
+	"\x0elast_synced_at\x18\x02 \x01(\tR\flastSyncedAt\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"o\n" +
 	"\x1dGetSharedBooksProgressRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
 	"\n" +

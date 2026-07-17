@@ -81,13 +81,12 @@ describe('ProfileGameClient', () => {
     expect(screen.queryByRole('button', { name: /high poll/i })).not.toBeInTheDocument()
   })
 
-  it('links breadcrumbs back to the public profile', () => {
+  it('links the breadcrumb back to the games profile', () => {
     mockUseSharedSteamGame.mockReturnValue({ data: makeGame() })
     render(<ProfileGameClient token="tok-1" id="7" />)
 
     const links = screen.getAllByRole('link')
-    expect(links.some((l) => l.getAttribute('href') === '/profile/tok-1')).toBe(true)
-    expect(links.some((l) => l.getAttribute('href') === '/profile/tok-1/games')).toBe(true)
+    expect(links.some((l) => l.getAttribute('href') === '/profile/games/tok-1')).toBe(true)
   })
 
   it('shows an error state when the game fails to load', () => {

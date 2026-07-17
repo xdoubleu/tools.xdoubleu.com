@@ -207,14 +207,17 @@ func (h *authConnectHandler) GetCurrentUser(
 	enrichedUser, dbErr := h.app.appUsersRepo.GetByID(ctx, user.ID)
 	role := user.Role
 	appAccess := []string{}
+	displayName := ""
 	if dbErr == nil {
 		role = enrichedUser.Role
 		appAccess = enrichedUser.AppAccess
+		displayName = enrichedUser.DisplayName
 	}
 
 	resp.Msg.Role = string(role)
 	resp.Msg.AppAccess = appAccess
 	resp.Msg.HasMfa = user.HasMFA
+	resp.Msg.DisplayName = displayName
 	return resp, nil
 }
 

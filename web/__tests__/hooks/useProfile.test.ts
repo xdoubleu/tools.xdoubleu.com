@@ -16,7 +16,10 @@ const clientMocks = {
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => clientMocks)
 }))
-jest.mock('@/lib/gen/profile/v1/profile_pb', () => ({ ProfileService: {} }))
+jest.mock('@/lib/gen/profile/v1/profile_pb', () => ({
+  ProfileService: {},
+  ProfileApp: { UNSPECIFIED: 0, BOOKS: 1, GAMES: 2 }
+}))
 jest.mock('@/lib/gen/books/v1/public_pb', () => ({ PublicLibraryService: {} }))
 jest.mock('@/lib/gen/games/v1/public_pb', () => ({ PublicGamesService: {} }))
 
@@ -43,30 +46,36 @@ describe('useProfile hooks', () => {
     jest.clearAllMocks()
   })
 
-  it('useProfileShare queries the share key', async () => {
-    renderHook(() => useProfileShare())
+  it('useProfileShare queries the app-scoped share key', async () => {
+    renderHook(() => useProfileShare('books'))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe('/profile/share')
+    expect(key).toBe('/profile/share/books')
     await fetcher!()
-    expect(clientMocks.getProfileShare).toHaveBeenCalled()
+    expect(clientMocks.getProfileShare).toHaveBeenCalledWith({ app: 1 })
   })
 
-  it('useCreateProfileShare calls the RPC', async () => {
-    const { result } = renderHook(() => useCreateProfileShare())
-    await result.current()
-    expect(clientMocks.createProfileShare).toHaveBeenCalled()
+  it('useProfileShare keys games independently from books', () => {
+    renderHook(() => useProfileShare('games'))
+    const [key] = mockUseSWR.mock.calls[0]!
+    expect(key).toBe('/profile/share/games')
   })
 
-  it('useDeleteProfileShare calls the RPC', async () => {
-    const { result } = renderHook(() => useDeleteProfileShare())
+  it('useCreateProfileShare calls the RPC with the app', async () => {
+    const { result } = renderHook(() => useCreateProfileShare('games'))
     await result.current()
-    expect(clientMocks.deleteProfileShare).toHaveBeenCalled()
+    expect(clientMocks.createProfileShare).toHaveBeenCalledWith({ app: 2 })
+  })
+
+  it('useDeleteProfileShare calls the RPC with the app', async () => {
+    const { result } = renderHook(() => useDeleteProfileShare('books'))
+    await result.current()
+    expect(clientMocks.deleteProfileShare).toHaveBeenCalledWith({ app: 1 })
   })
 
   it('useSharedLibrary keys by token and passes it to the RPC', async () => {
     renderHook(() => useSharedLibrary('tok-1'))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe('/profile/tok-1/books')
+    expect(key).toBe('/profile/books/tok-1')
     await fetcher!()
     expect(clientMocks.getSharedLibrary).toHaveBeenCalledWith({ token: 'tok-1' })
   })
@@ -90,7 +99,7 @@ describe('useProfile hooks', () => {
   it('useSharedSteam keys by token', async () => {
     renderHook(() => useSharedSteam('tok-1'))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe('/profile/tok-1/games')
+    expect(key).toBe('/profile/games/tok-1')
     await fetcher!()
     expect(clientMocks.getSharedSteam).toHaveBeenCalledWith({ token: 'tok-1' })
   })
@@ -109,7 +118,7 @@ describe('useProfile hooks', () => {
   it('useSharedSteamGame keys by token and game id', async () => {
     renderHook(() => useSharedSteamGame('tok-1', 7))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe('/profile/tok-1/games/7')
+    expect(key).toBe('/profile/games/tok-1/7')
     await fetcher!()
     expect(clientMocks.getSharedSteamGame).toHaveBeenCalledWith({ token: 'tok-1', gameId: 7 })
   })
@@ -117,7 +126,7 @@ describe('useProfile hooks', () => {
   it('useSharedRecentlyActiveGames keys by token', async () => {
     renderHook(() => useSharedRecentlyActiveGames('tok-1'))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe('/profile/tok-1/games/recent')
+    expect(key).toBe('/profile/games/tok-1/recent')
     await fetcher!()
     expect(clientMocks.getSharedRecentlyActiveGames).toHaveBeenCalledWith({ token: 'tok-1' })
   })

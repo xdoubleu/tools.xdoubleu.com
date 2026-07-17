@@ -24,6 +24,8 @@ message GetSharedSteamResponse {
   // Most recent Steam library sync (max last_synced_at across the owner's
   // games); empty when the library has never been synced.
   string last_synced_at = 2;
+  // The owner's public profile display name.
+  string display_name = 3;
 }
 
 message GetSharedSteamGameRequest {

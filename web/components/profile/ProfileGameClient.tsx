@@ -27,8 +27,7 @@ export default function ProfileGameClient({
   const [showCompleted, setShowCompleted] = useState(false)
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Shared profile', href: `/profile/${token}` },
-    { label: 'Games', href: `/profile/${token}/games` },
+    { label: 'Games', href: `/profile/games/${token}` },
     { label: game?.name ?? 'Game' }
   ]
 

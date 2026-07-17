@@ -2,15 +2,15 @@
 // @generated from file profile/v1/profile.proto (package profile.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file profile/v1/profile.proto.
  */
 export const file_profile_v1_profile: GenFile = /*@__PURE__*/
-  fileDesc("Chhwcm9maWxlL3YxL3Byb2ZpbGUucHJvdG8SCnByb2ZpbGUudjEiMQoMUHJvZmlsZVNoYXJlEg0KBXRva2VuGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAkiGAoWR2V0UHJvZmlsZVNoYXJlUmVxdWVzdCJRChdHZXRQcm9maWxlU2hhcmVSZXNwb25zZRIsCgVzaGFyZRgBIAEoCzIYLnByb2ZpbGUudjEuUHJvZmlsZVNoYXJlSACIAQFCCAoGX3NoYXJlIhsKGUNyZWF0ZVByb2ZpbGVTaGFyZVJlcXVlc3QiRQoaQ3JlYXRlUHJvZmlsZVNoYXJlUmVzcG9uc2USJwoFc2hhcmUYASABKAsyGC5wcm9maWxlLnYxLlByb2ZpbGVTaGFyZSIbChlEZWxldGVQcm9maWxlU2hhcmVSZXF1ZXN0IhwKGkRlbGV0ZVByb2ZpbGVTaGFyZVJlc3BvbnNlMrYCCg5Qcm9maWxlU2VydmljZRJaCg9HZXRQcm9maWxlU2hhcmUSIi5wcm9maWxlLnYxLkdldFByb2ZpbGVTaGFyZVJlcXVlc3QaIy5wcm9maWxlLnYxLkdldFByb2ZpbGVTaGFyZVJlc3BvbnNlEmMKEkNyZWF0ZVByb2ZpbGVTaGFyZRIlLnByb2ZpbGUudjEuQ3JlYXRlUHJvZmlsZVNoYXJlUmVxdWVzdBomLnByb2ZpbGUudjEuQ3JlYXRlUHJvZmlsZVNoYXJlUmVzcG9uc2USYwoSRGVsZXRlUHJvZmlsZVNoYXJlEiUucHJvZmlsZS52MS5EZWxldGVQcm9maWxlU2hhcmVSZXF1ZXN0GiYucHJvZmlsZS52MS5EZWxldGVQcm9maWxlU2hhcmVSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL3Byb2ZpbGUvdjE7cHJvZmlsZXYxYgZwcm90bzM");
+  fileDesc("Chhwcm9maWxlL3YxL3Byb2ZpbGUucHJvdG8SCnByb2ZpbGUudjEiMQoMUHJvZmlsZVNoYXJlEg0KBXRva2VuGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAkiPQoWR2V0UHJvZmlsZVNoYXJlUmVxdWVzdBIjCgNhcHAYASABKA4yFi5wcm9maWxlLnYxLlByb2ZpbGVBcHAiUQoXR2V0UHJvZmlsZVNoYXJlUmVzcG9uc2USLAoFc2hhcmUYASABKAsyGC5wcm9maWxlLnYxLlByb2ZpbGVTaGFyZUgAiAEBQggKBl9zaGFyZSJAChlDcmVhdGVQcm9maWxlU2hhcmVSZXF1ZXN0EiMKA2FwcBgBIAEoDjIWLnByb2ZpbGUudjEuUHJvZmlsZUFwcCJFChpDcmVhdGVQcm9maWxlU2hhcmVSZXNwb25zZRInCgVzaGFyZRgBIAEoCzIYLnByb2ZpbGUudjEuUHJvZmlsZVNoYXJlIkAKGURlbGV0ZVByb2ZpbGVTaGFyZVJlcXVlc3QSIwoDYXBwGAEgASgOMhYucHJvZmlsZS52MS5Qcm9maWxlQXBwIhwKGkRlbGV0ZVByb2ZpbGVTaGFyZVJlc3BvbnNlIi0KFVNldERpc3BsYXlOYW1lUmVxdWVzdBIUCgxkaXNwbGF5X25hbWUYASABKAkiGAoWU2V0RGlzcGxheU5hbWVSZXNwb25zZSpXCgpQcm9maWxlQXBwEhsKF1BST0ZJTEVfQVBQX1VOU1BFQ0lGSUVEEAASFQoRUFJPRklMRV9BUFBfQk9PS1MQARIVChFQUk9GSUxFX0FQUF9HQU1FUxACMo8DCg5Qcm9maWxlU2VydmljZRJaCg9HZXRQcm9maWxlU2hhcmUSIi5wcm9maWxlLnYxLkdldFByb2ZpbGVTaGFyZVJlcXVlc3QaIy5wcm9maWxlLnYxLkdldFByb2ZpbGVTaGFyZVJlc3BvbnNlEmMKEkNyZWF0ZVByb2ZpbGVTaGFyZRIlLnByb2ZpbGUudjEuQ3JlYXRlUHJvZmlsZVNoYXJlUmVxdWVzdBomLnByb2ZpbGUudjEuQ3JlYXRlUHJvZmlsZVNoYXJlUmVzcG9uc2USYwoSRGVsZXRlUHJvZmlsZVNoYXJlEiUucHJvZmlsZS52MS5EZWxldGVQcm9maWxlU2hhcmVSZXF1ZXN0GiYucHJvZmlsZS52MS5EZWxldGVQcm9maWxlU2hhcmVSZXNwb25zZRJXCg5TZXREaXNwbGF5TmFtZRIhLnByb2ZpbGUudjEuU2V0RGlzcGxheU5hbWVSZXF1ZXN0GiIucHJvZmlsZS52MS5TZXREaXNwbGF5TmFtZVJlc3BvbnNlQi1aK3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vcHJvZmlsZS92MTtwcm9maWxldjFiBnByb3RvMw");
 
 /**
  * @generated from message profile.v1.ProfileShare
@@ -38,6 +38,10 @@ export const ProfileShareSchema: GenMessage<ProfileShare> = /*@__PURE__*/
  * @generated from message profile.v1.GetProfileShareRequest
  */
 export type GetProfileShareRequest = Message<"profile.v1.GetProfileShareRequest"> & {
+  /**
+   * @generated from field: profile.v1.ProfileApp app = 1;
+   */
+  app: ProfileApp;
 };
 
 /**
@@ -52,7 +56,7 @@ export const GetProfileShareRequestSchema: GenMessage<GetProfileShareRequest> = 
  */
 export type GetProfileShareResponse = Message<"profile.v1.GetProfileShareResponse"> & {
   /**
-   * Unset when the user has no active share link.
+   * Unset when the user has no active share link for this app.
    *
    * @generated from field: optional profile.v1.ProfileShare share = 1;
    */
@@ -67,12 +71,17 @@ export const GetProfileShareResponseSchema: GenMessage<GetProfileShareResponse> 
   messageDesc(file_profile_v1_profile, 2);
 
 /**
- * CreateProfileShare generates a new share token, replacing any existing one
- * (the old link stops working immediately).
+ * CreateProfileShare generates a new share token for the given app, replacing
+ * any existing one for that app (the old link stops working immediately).
+ * Fails with FailedPrecondition when the owner has not set a display name yet.
  *
  * @generated from message profile.v1.CreateProfileShareRequest
  */
 export type CreateProfileShareRequest = Message<"profile.v1.CreateProfileShareRequest"> & {
+  /**
+   * @generated from field: profile.v1.ProfileApp app = 1;
+   */
+  app: ProfileApp;
 };
 
 /**
@@ -103,6 +112,10 @@ export const CreateProfileShareResponseSchema: GenMessage<CreateProfileShareResp
  * @generated from message profile.v1.DeleteProfileShareRequest
  */
 export type DeleteProfileShareRequest = Message<"profile.v1.DeleteProfileShareRequest"> & {
+  /**
+   * @generated from field: profile.v1.ProfileApp app = 1;
+   */
+  app: ProfileApp;
 };
 
 /**
@@ -126,9 +139,66 @@ export const DeleteProfileShareResponseSchema: GenMessage<DeleteProfileShareResp
   messageDesc(file_profile_v1_profile, 6);
 
 /**
- * ProfileService manages the owner's public profile share link.
- * The generated token gates the public read-only profile RPCs
- * (books.v1.PublicLibraryService, games.v1.PublicGamesService).
+ * @generated from message profile.v1.SetDisplayNameRequest
+ */
+export type SetDisplayNameRequest = Message<"profile.v1.SetDisplayNameRequest"> & {
+  /**
+   * @generated from field: string display_name = 1;
+   */
+  displayName: string;
+};
+
+/**
+ * Describes the message profile.v1.SetDisplayNameRequest.
+ * Use `create(SetDisplayNameRequestSchema)` to create a new message.
+ */
+export const SetDisplayNameRequestSchema: GenMessage<SetDisplayNameRequest> = /*@__PURE__*/
+  messageDesc(file_profile_v1_profile, 7);
+
+/**
+ * @generated from message profile.v1.SetDisplayNameResponse
+ */
+export type SetDisplayNameResponse = Message<"profile.v1.SetDisplayNameResponse"> & {
+};
+
+/**
+ * Describes the message profile.v1.SetDisplayNameResponse.
+ * Use `create(SetDisplayNameResponseSchema)` to create a new message.
+ */
+export const SetDisplayNameResponseSchema: GenMessage<SetDisplayNameResponse> = /*@__PURE__*/
+  messageDesc(file_profile_v1_profile, 8);
+
+/**
+ * @generated from enum profile.v1.ProfileApp
+ */
+export enum ProfileApp {
+  /**
+   * @generated from enum value: PROFILE_APP_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: PROFILE_APP_BOOKS = 1;
+   */
+  BOOKS = 1,
+
+  /**
+   * @generated from enum value: PROFILE_APP_GAMES = 2;
+   */
+  GAMES = 2,
+}
+
+/**
+ * Describes the enum profile.v1.ProfileApp.
+ */
+export const ProfileAppSchema: GenEnum<ProfileApp> = /*@__PURE__*/
+  enumDesc(file_profile_v1_profile, 0);
+
+/**
+ * ProfileService manages the owner's public profile share links and display
+ * name. Each app (books, games) has its own independent share token, gating
+ * the corresponding public read-only profile RPCs (books.v1.PublicLibraryService,
+ * games.v1.PublicGamesService).
  *
  * @generated from service profile.v1.ProfileService
  */
@@ -156,6 +226,14 @@ export const ProfileService: GenService<{
     methodKind: "unary";
     input: typeof DeleteProfileShareRequestSchema;
     output: typeof DeleteProfileShareResponseSchema;
+  },
+  /**
+   * @generated from rpc profile.v1.ProfileService.SetDisplayName
+   */
+  setDisplayName: {
+    methodKind: "unary";
+    input: typeof SetDisplayNameRequestSchema;
+    output: typeof SetDisplayNameResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_profile_v1_profile, 0);

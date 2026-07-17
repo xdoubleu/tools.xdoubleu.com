@@ -19,6 +19,8 @@ message GetSharedLibraryResponse {
   // Most recent Kobo device sync (max last_seen_at); empty when the owner
   // has no Kobo devices. Kobo sync is the books equivalent of a refresh.
   string last_synced_at = 2;
+  // The owner's public profile display name.
+  string display_name = 3;
 }
 
 message GetSharedBooksProgressRequest {

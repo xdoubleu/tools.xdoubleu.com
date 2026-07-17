@@ -192,12 +192,23 @@ Books and games expose read-only shareable-profile RPCs
 `connect_public.go`). These are registered in `routes.go` **without** any
 auth middleware: every request carries an opaque share token that resolves to
 the owning user via the shared `ProfileSharesRepository`
-(`global.profile_shares`, plaintext token — read-only data, so the owner can
-copy the link anytime; unknown tokens return `CodeNotFound`). The owner
-manages the token through `profile.v1.ProfileService`, handled in
-`cmd/api/connect_profile.go` behind `Access`; regenerating replaces the row
-and instantly invalidates the old link. Public handlers must never read
+(`global.profile_shares`, plaintext token, keyed by `(user_id, app)` — read-only
+data, so the owner can copy the link anytime; unknown tokens, and tokens
+resolved against the wrong app, return `CodeNotFound`). Books and games each
+have their own independent share link — disabling one never touches the
+other. The owner manages both tokens through `profile.v1.ProfileService`,
+handled in `cmd/api/connect_profile.go` behind `Access`; every RPC takes a
+`ProfileApp` argument, and regenerating replaces that app's row, instantly
+invalidating its old link. Public handlers must never read
 `constants.UserContextKey` — no auth middleware runs, so it is never set.
+
+`global.app_users` carries a nullable `display_name` column (the user's public
+profile name, set via `ProfileService.SetDisplayName`). `CreateProfileShare`
+requires it to be non-empty first (`CodeFailedPrecondition` otherwise) — a
+share link is worthless without a name to attribute it to. The public RPCs
+resolve it alongside the owning user ID (`ProfileSharesRepository.ResolveToken`,
+a `LEFT JOIN` against `app_users`) and return it on `GetSharedLibraryResponse`/
+`GetSharedSteamResponse` for the frontend to display.
 
 ## Linting
 

@@ -16,6 +16,7 @@ import GamesSearch from '@/components/games/GamesSearch'
 import GamesStatCard from '@/components/games/GamesStatCard'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
+import ProfileShareButton from '@/components/profile/ProfileShareButton'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
 import { interactiveCardClass } from '@/components/ui/card'
@@ -98,6 +99,7 @@ export default function GamesDashboard({
         <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
           {isRefreshing ? 'Refreshing…' : 'Refresh'}
         </Button>
+        <ProfileShareButton app="games" />
         <Button asChild variant="secondary">
           <Link href="/games/library">Browse full library</Link>
         </Button>

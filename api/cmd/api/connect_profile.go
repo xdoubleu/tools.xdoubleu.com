@@ -39,13 +39,22 @@ func protoProfileShare(s models.ProfileShare) *profilev1.ProfileShare {
 	}
 }
 
+func profileAppFromProto(app profilev1.ProfileApp) models.ProfileApp {
+	if app == profilev1.ProfileApp_PROFILE_APP_GAMES {
+		return models.ProfileAppGames
+	}
+	return models.ProfileAppBooks
+}
+
 func (h *profileConnectHandler) GetProfileShare(
 	ctx context.Context,
-	_ *connect.Request[profilev1.GetProfileShareRequest],
+	req *connect.Request[profilev1.GetProfileShareRequest],
 ) (*connect.Response[profilev1.GetProfileShareResponse], error) {
 	resp := &profilev1.GetProfileShareResponse{}
 
-	share, err := h.app.profileSharesRepo.Get(ctx, h.userID(ctx))
+	share, err := h.app.profileSharesRepo.Get(
+		ctx, h.userID(ctx), profileAppFromProto(req.Msg.App),
+	)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		// Having no share link yet is a normal state, not an error.
 		return connect.NewResponse(resp), nil
@@ -60,15 +69,28 @@ func (h *profileConnectHandler) GetProfileShare(
 
 func (h *profileConnectHandler) CreateProfileShare(
 	ctx context.Context,
-	_ *connect.Request[profilev1.CreateProfileShareRequest],
+	req *connect.Request[profilev1.CreateProfileShareRequest],
 ) (*connect.Response[profilev1.CreateProfileShareResponse], error) {
+	user, err := h.app.appUsersRepo.GetByID(ctx, h.userID(ctx))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if user.DisplayName == "" {
+		return nil, connect.NewError(
+			connect.CodeFailedPrecondition,
+			errors.New("set a display name before sharing your profile"),
+		)
+	}
+
 	raw := make([]byte, profileTokenBytes)
-	if _, err := rand.Read(raw); err != nil {
+	if _, err = rand.Read(raw); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
 
-	share, err := h.app.profileSharesRepo.Upsert(ctx, h.userID(ctx), token)
+	share, err := h.app.profileSharesRepo.Upsert(
+		ctx, h.userID(ctx), profileAppFromProto(req.Msg.App), token,
+	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -80,10 +102,31 @@ func (h *profileConnectHandler) CreateProfileShare(
 
 func (h *profileConnectHandler) DeleteProfileShare(
 	ctx context.Context,
-	_ *connect.Request[profilev1.DeleteProfileShareRequest],
+	req *connect.Request[profilev1.DeleteProfileShareRequest],
 ) (*connect.Response[profilev1.DeleteProfileShareResponse], error) {
-	if err := h.app.profileSharesRepo.Delete(ctx, h.userID(ctx)); err != nil {
+	err := h.app.profileSharesRepo.Delete(
+		ctx, h.userID(ctx), profileAppFromProto(req.Msg.App),
+	)
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&profilev1.DeleteProfileShareResponse{}), nil
+}
+
+func (h *profileConnectHandler) SetDisplayName(
+	ctx context.Context,
+	req *connect.Request[profilev1.SetDisplayNameRequest],
+) (*connect.Response[profilev1.SetDisplayNameResponse], error) {
+	if req.Msg.DisplayName == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("display_name is required"),
+		)
+	}
+
+	err := h.app.appUsersRepo.SetDisplayName(ctx, h.userID(ctx), req.Msg.DisplayName)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&profilev1.SetDisplayNameResponse{}), nil
 }

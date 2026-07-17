@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { swrKeys } from '@/lib/swrKeys'
-import { ProfileService } from '@/lib/gen/profile/v1/profile_pb'
+import { ProfileApp, ProfileService } from '@/lib/gen/profile/v1/profile_pb'
 import type { GetProfileShareResponse } from '@/lib/gen/profile/v1/profile_pb'
 import { PublicLibraryService } from '@/lib/gen/books/v1/public_pb'
 import type {
@@ -15,25 +15,32 @@ import type {
   GetSharedRecentlyActiveGamesResponse
 } from '@/lib/gen/games/v1/public_pb'
 
-// Owner-side share management.
+// Owner-side share management. Each app has its own independent share link.
 
-export function useProfileShare(fallbackData?: GetProfileShareResponse) {
+export type ProfileAppKey = 'books' | 'games'
+
+const PROFILE_APP_ENUM: Record<ProfileAppKey, ProfileApp> = {
+  books: ProfileApp.BOOKS,
+  games: ProfileApp.GAMES
+}
+
+export function useProfileShare(app: ProfileAppKey, fallbackData?: GetProfileShareResponse) {
   const client = createServiceClient(ProfileService)
   return useSWR<GetProfileShareResponse, Error>(
-    swrKeys.profileShare,
-    () => client.getProfileShare({}),
+    swrKeys.profileShare(app),
+    () => client.getProfileShare({ app: PROFILE_APP_ENUM[app] }),
     { fallbackData }
   )
 }
 
-export function useCreateProfileShare() {
+export function useCreateProfileShare(app: ProfileAppKey) {
   const client = createServiceClient(ProfileService)
-  return () => client.createProfileShare({})
+  return () => client.createProfileShare({ app: PROFILE_APP_ENUM[app] })
 }
 
-export function useDeleteProfileShare() {
+export function useDeleteProfileShare(app: ProfileAppKey) {
   const client = createServiceClient(ProfileService)
-  return () => client.deleteProfileShare({})
+  return () => client.deleteProfileShare({ app: PROFILE_APP_ENUM[app] })
 }
 
 // Public (token-gated, no session) profile data.

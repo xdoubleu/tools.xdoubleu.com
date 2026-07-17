@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import SWRFallback from '@/components/SWRFallback'
 import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { PublicGamesService } from '@/lib/gen/games/v1/public_pb'
 import ProfileGamesClient from '@/components/profile/ProfileGamesClient'
-import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 
 // Token URLs are capability links — keep them out of search indexes.
@@ -25,12 +23,9 @@ export default async function ProfileGamesPage({ params }: { params: Promise<{ t
 
   return (
     <PageContainer className="p-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold">Games</h1>
-        <Button asChild variant="secondary" size="sm">
-          <Link href={`/profile/${token}`}>Back to profile</Link>
-        </Button>
-      </div>
+      <h1 className="mb-6 text-3xl font-bold">
+        {steam?.displayName ? `${steam.displayName}'s games` : 'Shared games'}
+      </h1>
       <SWRFallback
         fallback={{
           ...(steam ? { [swrKeys.profileGames(token)]: steam } : {}),
