@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   useCustomList,
@@ -8,12 +8,16 @@ import {
   useAccessibleLists,
   useShoppingListShares,
   useShareShoppingList,
-  useUnshareShoppingList
+  useUnshareShoppingList,
+  useAllMealPlanExportItems,
+  useAllPlanIngredientGroups
 } from '@/hooks/useShoppingList'
 import ShoppingList from '@/components/recipes/ShoppingList'
 import ExportModal from '@/components/recipes/ExportModal'
 import ShareModal from '@/components/recipes/ShareModal'
 import AddItemForm from '@/components/shoppinglist/AddItemForm'
+import MealPlanGroupFilter from '@/components/shoppinglist/MealPlanGroupFilter'
+import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { Select } from '@/components/ui/select'
@@ -35,6 +39,7 @@ export default function ShoppingListPageClient() {
   const [showExport, setShowExport] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [ownerUserId, setOwnerUserId] = useState('')
+  const [excludedGroups, setExcludedGroups] = useState<Set<string>>(new Set())
 
   const { data: accessibleData } = useAccessibleLists()
   const owners = accessibleData?.owners ?? []
@@ -63,6 +68,34 @@ export default function ShoppingListPageClient() {
   }
 
   const items = (data?.items ?? []).map(toExportItem)
+
+  const { data: groupsData } = useAllPlanIngredientGroups()
+  const { data: mealExportData, isLoading: mealLoading } = useAllMealPlanExportItems(
+    Array.from(excludedGroups)
+  )
+
+  // Map the aggregated meal-plan export items into the shared ShoppingItem shape
+  // once, so both the read-only landing preview and the ExportModal work off a
+  // single source of truth (and a single SWR fetch).
+  const mealItems: ShoppingItemExport[] = useMemo(
+    () =>
+      (mealExportData?.items ?? []).map((item) => ({
+        name: item.name,
+        amount: item.amount,
+        unit: item.unit,
+        recipeName: item.recipeName,
+        groupName: item.groupName || undefined
+      })),
+    [mealExportData]
+  )
+
+  const toggleGroup = (groupName: string) =>
+    setExcludedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupName)) next.delete(groupName)
+      else next.add(groupName)
+      return next
+    })
 
   const handleDelete = async (itemId: string) => {
     const client = createServiceClient(ShoppingListService)
@@ -134,7 +167,22 @@ export default function ShoppingListPageClient() {
         />
       )}
 
-      {showExport && <ExportModal customItems={items} onClose={() => setShowExport(false)} />}
+      <div className="mt-8 space-y-6">
+        <MealPlanGroupFilter
+          groups={groupsData?.groups ?? []}
+          excludedGroups={excludedGroups}
+          onToggle={toggleGroup}
+        />
+        <MealPlanItemsPreview mealItems={mealItems} isLoading={mealLoading} />
+      </div>
+
+      {showExport && (
+        <ExportModal
+          customItems={items}
+          mealItems={mealItems}
+          onClose={() => setShowExport(false)}
+        />
+      )}
 
       {showShare && (
         <ShareModal

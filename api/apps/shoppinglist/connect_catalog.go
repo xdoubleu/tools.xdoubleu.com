@@ -54,7 +54,6 @@ func (h *shoppingConnectHandler) CreateCategory(
 	}), nil
 }
 
-//nolint:dupl // parallel to RenameStore but operates on a distinct entity
 func (h *shoppingConnectHandler) RenameCategory(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.RenameCategoryRequest],

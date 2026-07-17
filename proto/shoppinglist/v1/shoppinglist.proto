@@ -87,20 +87,29 @@ message Store {
   string name = 2;
 }
 
-message ListStoresRequest  { string owner_user_id = 1; }
+// Stores are private to the caller: the store RPCs always act on the
+// authenticated user's own stores and take no owner_user_id (a shared-list
+// recipient never gains access to the owner's stores).
+message ListStoresRequest  { reserved 1; reserved "owner_user_id"; }
 message ListStoresResponse { repeated Store stores = 1; }
 
-message CreateStoreRequest  { string name = 1; string owner_user_id = 2; }
+message CreateStoreRequest  {
+  string name = 1;
+  reserved 2; reserved "owner_user_id";
+}
 message CreateStoreResponse { Store store = 1; }
 
 message RenameStoreRequest  {
   string id = 1;
   string name = 2;
-  string owner_user_id = 3;
+  reserved 3; reserved "owner_user_id";
 }
 message RenameStoreResponse { Store store = 1; }
 
-message DeleteStoreRequest  { string id = 1; string owner_user_id = 2; }
+message DeleteStoreRequest  {
+  string id = 1;
+  reserved 2; reserved "owner_user_id";
+}
 message DeleteStoreResponse {}
 
 // Ordered list of categories for a store. GetStoreCategories returns the
@@ -108,14 +117,14 @@ message DeleteStoreResponse {}
 // using array index as sort_order.
 message GetStoreCategoriesRequest  {
   string store_id = 1;
-  string owner_user_id = 2;
+  reserved 2; reserved "owner_user_id";
 }
 message GetStoreCategoriesResponse { repeated Category categories = 1; }
 
 message SetStoreCategoriesRequest  {
   string store_id              = 1;
   repeated string category_ids = 2;
-  string owner_user_id         = 3;
+  reserved 3; reserved "owner_user_id";
 }
 message SetStoreCategoriesResponse {}
 

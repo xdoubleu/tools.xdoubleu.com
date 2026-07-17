@@ -1,13 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import {
-  useAllMealPlanExportItems,
-  useAllPlanIngredientGroups,
-  useStores,
-  useStoreCategories,
-  useItemCategories
-} from '@/hooks/useShoppingList'
+import { useStores, useStoreCategories, useItemCategories } from '@/hooks/useShoppingList'
 import {
   formatForClipboard,
   formatForAppleNotes,
@@ -34,31 +28,19 @@ import { Select } from '@/components/ui/select'
 
 interface ExportModalProps {
   customItems: ShoppingItem[]
+  // Meal-plan items are fetched once on the landing page (which also owns the
+  // ingredient-group exclusion) and passed in. The modal only picks the store.
+  mealItems: ShoppingItem[]
   onClose: () => void
 }
 
-export default function ExportModal({ customItems, onClose }: ExportModalProps) {
+export default function ExportModal({ customItems, mealItems, onClose }: ExportModalProps) {
   const [selectedStoreId, setSelectedStoreId] = useState('')
-  const [excludedGroups, setExcludedGroups] = useState<Set<string>>(new Set())
   const [copyFeedback, setCopyFeedback] = useState('')
 
-  const { data: groupsData } = useAllPlanIngredientGroups()
-  const { data: exportData, isLoading: exportLoading } = useAllMealPlanExportItems(
-    Array.from(excludedGroups)
-  )
   const { data: storesData } = useStores()
   const { data: storeCategoriesData } = useStoreCategories(selectedStoreId)
   const { data: itemCategoriesData } = useItemCategories()
-
-  const mealItems: ShoppingItem[] | undefined = exportData
-    ? exportData.items.map((item) => ({
-        name: item.name,
-        amount: item.amount,
-        unit: item.unit,
-        recipeName: item.recipeName,
-        groupName: item.groupName || undefined
-      }))
-    : undefined
 
   const nameToCategoryId = useMemo(() => {
     const map: Record<string, string> = {}
@@ -139,40 +121,6 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
         </DialogHeader>
 
         <div className="space-y-5">
-          {groupsData && groupsData.groups.length > 0 && (
-            <div className="space-y-1.5">
-              <Label>Exclude ingredient groups</Label>
-              <div className="space-y-1">
-                {groupsData.groups.map((g) => {
-                  const key = `${g.recipeName}::${g.groupName}`
-                  const checked = !excludedGroups.has(g.groupName)
-                  return (
-                    <label key={key} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          setExcludedGroups((prev) => {
-                            const next = new Set(prev)
-                            if (next.has(g.groupName)) {
-                              next.delete(g.groupName)
-                            } else {
-                              next.add(g.groupName)
-                            }
-                            return next
-                          })
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-fg">{g.groupName}</span>
-                      <span className="text-muted">({g.recipeName})</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
           <div className="space-y-1.5">
             <Label htmlFor="export-store-select">Order by store (optional)</Label>
             <Select
@@ -245,19 +193,16 @@ export default function ExportModal({ customItems, onClose }: ExportModalProps) 
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
                 Export preview
               </h3>
-              {exportLoading && <p className="text-sm text-muted">Loading…</p>}
-              {!exportLoading && (
-                <ul className="space-y-1">
-                  {prepareForExport(customItems, mealItems).map((item, i) => (
-                    <li key={i} className="text-sm text-subtle">
-                      {item.amount} {item.unit} — {item.name}
-                      {item.origins && item.origins.length > 0 && (
-                        <span className="text-muted">{formatOrigins(item.origins)}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <ul className="space-y-1">
+                {prepareForExport(customItems, mealItems).map((item, i) => (
+                  <li key={i} className="text-sm text-subtle">
+                    {item.amount} {item.unit} — {item.name}
+                    {item.origins && item.origins.length > 0 && (
+                      <span className="text-muted">{formatOrigins(item.origins)}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
