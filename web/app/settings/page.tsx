@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { mutate } from 'swr'
 import { ConnectError } from '@connectrpc/connect'
 import {
   useCurrentUser,
   useUpdatePassword,
+  useUpdateDisplayName,
   useMFAEnroll,
   useMFAEnrollVerify,
   useMFAUnenroll
@@ -21,9 +22,20 @@ export default function SettingsPage() {
   const { data, isLoading } = useCurrentUser()
 
   const updatePassword = useUpdatePassword()
+  const updateDisplayName = useUpdateDisplayName()
   const mfaEnroll = useMFAEnroll()
   const mfaEnrollVerify = useMFAEnrollVerify()
   const mfaUnenroll = useMFAUnenroll()
+
+  // Display name section
+  const [displayName, setDisplayName] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameSaved, setNameSaved] = useState(false)
+  const [nameError, setNameError] = useState('')
+
+  useEffect(() => {
+    if (data) setDisplayName(data.displayName)
+  }, [data])
 
   // Password section
   const [newPassword, setNewPassword] = useState('')
@@ -46,6 +58,26 @@ export default function SettingsPage() {
   }
 
   const hasMFA = data.hasMfa
+
+  async function handleDisplayNameSave(e: React.FormEvent) {
+    e.preventDefault()
+    setNameSaved(false)
+    setNameError('')
+    setNameSaving(true)
+    try {
+      await updateDisplayName(displayName.trim())
+      await mutate(swrKeys.currentUser)
+      setNameSaved(true)
+    } catch (err) {
+      if (err instanceof ConnectError) {
+        setNameError(err.message)
+      } else {
+        setNameError('Failed to update display name.')
+      }
+    } finally {
+      setNameSaving(false)
+    }
+  }
 
   async function handlePasswordSave(e: React.FormEvent) {
     e.preventDefault()
@@ -135,6 +167,46 @@ export default function SettingsPage() {
   return (
     <PageContainer size="narrow" className="p-6 space-y-10">
       <h1 className="text-3xl font-bold">Account Settings</h1>
+
+      {/* Display name */}
+      <section>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
+          Display Name
+        </h2>
+        <p className="mb-4 text-sm text-subtle">
+          Shown on your public profile when you share your books or games. Required before you can
+          create a share link.
+        </p>
+
+        {nameSaved && (
+          <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
+            Display name updated successfully.
+          </div>
+        )}
+        {nameError && (
+          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+            {nameError}
+          </div>
+        )}
+
+        <form onSubmit={handleDisplayNameSave} className="space-y-3">
+          <div>
+            <label htmlFor="display_name" className="mb-1 block text-sm text-subtle">
+              Display name
+            </label>
+            <Input
+              id="display_name"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+            />
+          </div>
+          <Button type="submit" size="sm" disabled={nameSaving || !displayName.trim()}>
+            {nameSaving ? 'Saving…' : 'Save display name'}
+          </Button>
+        </form>
+      </section>
 
       {/* Password */}
       <section>

@@ -86,4 +86,7 @@ message GetCurrentUserResponse {
   string role = 1;
   repeated string app_access = 2;
   bool has_mfa = 3;
+  // Public profile display name; empty when unset (share links require this
+  // to be set first, see profile.v1.ProfileService).
+  string display_name = 4;
 }

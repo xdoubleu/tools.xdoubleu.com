@@ -21,6 +21,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ProfileApp int32
+
+const (
+	ProfileApp_PROFILE_APP_UNSPECIFIED ProfileApp = 0
+	ProfileApp_PROFILE_APP_BOOKS       ProfileApp = 1
+	ProfileApp_PROFILE_APP_GAMES       ProfileApp = 2
+)
+
+// Enum value maps for ProfileApp.
+var (
+	ProfileApp_name = map[int32]string{
+		0: "PROFILE_APP_UNSPECIFIED",
+		1: "PROFILE_APP_BOOKS",
+		2: "PROFILE_APP_GAMES",
+	}
+	ProfileApp_value = map[string]int32{
+		"PROFILE_APP_UNSPECIFIED": 0,
+		"PROFILE_APP_BOOKS":       1,
+		"PROFILE_APP_GAMES":       2,
+	}
+)
+
+func (x ProfileApp) Enum() *ProfileApp {
+	p := new(ProfileApp)
+	*p = x
+	return p
+}
+
+func (x ProfileApp) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ProfileApp) Descriptor() protoreflect.EnumDescriptor {
+	return file_profile_v1_profile_proto_enumTypes[0].Descriptor()
+}
+
+func (ProfileApp) Type() protoreflect.EnumType {
+	return &file_profile_v1_profile_proto_enumTypes[0]
+}
+
+func (x ProfileApp) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ProfileApp.Descriptor instead.
+func (ProfileApp) EnumDescriptor() ([]byte, []int) {
+	return file_profile_v1_profile_proto_rawDescGZIP(), []int{0}
+}
+
 type ProfileShare struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
@@ -75,6 +124,7 @@ func (x *ProfileShare) GetCreatedAt() string {
 
 type GetProfileShareRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	App           ProfileApp             `protobuf:"varint,1,opt,name=app,proto3,enum=profile.v1.ProfileApp" json:"app,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -109,9 +159,16 @@ func (*GetProfileShareRequest) Descriptor() ([]byte, []int) {
 	return file_profile_v1_profile_proto_rawDescGZIP(), []int{1}
 }
 
+func (x *GetProfileShareRequest) GetApp() ProfileApp {
+	if x != nil {
+		return x.App
+	}
+	return ProfileApp_PROFILE_APP_UNSPECIFIED
+}
+
 type GetProfileShareResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Unset when the user has no active share link.
+	// Unset when the user has no active share link for this app.
 	Share         *ProfileShare `protobuf:"bytes,1,opt,name=share,proto3,oneof" json:"share,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -154,10 +211,12 @@ func (x *GetProfileShareResponse) GetShare() *ProfileShare {
 	return nil
 }
 
-// CreateProfileShare generates a new share token, replacing any existing one
-// (the old link stops working immediately).
+// CreateProfileShare generates a new share token for the given app, replacing
+// any existing one for that app (the old link stops working immediately).
+// Fails with FailedPrecondition when the owner has not set a display name yet.
 type CreateProfileShareRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	App           ProfileApp             `protobuf:"varint,1,opt,name=app,proto3,enum=profile.v1.ProfileApp" json:"app,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -190,6 +249,13 @@ func (x *CreateProfileShareRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateProfileShareRequest.ProtoReflect.Descriptor instead.
 func (*CreateProfileShareRequest) Descriptor() ([]byte, []int) {
 	return file_profile_v1_profile_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateProfileShareRequest) GetApp() ProfileApp {
+	if x != nil {
+		return x.App
+	}
+	return ProfileApp_PROFILE_APP_UNSPECIFIED
 }
 
 type CreateProfileShareResponse struct {
@@ -238,6 +304,7 @@ func (x *CreateProfileShareResponse) GetShare() *ProfileShare {
 
 type DeleteProfileShareRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	App           ProfileApp             `protobuf:"varint,1,opt,name=app,proto3,enum=profile.v1.ProfileApp" json:"app,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -270,6 +337,13 @@ func (x *DeleteProfileShareRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteProfileShareRequest.ProtoReflect.Descriptor instead.
 func (*DeleteProfileShareRequest) Descriptor() ([]byte, []int) {
 	return file_profile_v1_profile_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DeleteProfileShareRequest) GetApp() ProfileApp {
+	if x != nil {
+		return x.App
+	}
+	return ProfileApp_PROFILE_APP_UNSPECIFIED
 }
 
 type DeleteProfileShareResponse struct {
@@ -308,6 +382,86 @@ func (*DeleteProfileShareResponse) Descriptor() ([]byte, []int) {
 	return file_profile_v1_profile_proto_rawDescGZIP(), []int{6}
 }
 
+type SetDisplayNameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DisplayName   string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetDisplayNameRequest) Reset() {
+	*x = SetDisplayNameRequest{}
+	mi := &file_profile_v1_profile_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetDisplayNameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetDisplayNameRequest) ProtoMessage() {}
+
+func (x *SetDisplayNameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_profile_v1_profile_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetDisplayNameRequest.ProtoReflect.Descriptor instead.
+func (*SetDisplayNameRequest) Descriptor() ([]byte, []int) {
+	return file_profile_v1_profile_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SetDisplayNameRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type SetDisplayNameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetDisplayNameResponse) Reset() {
+	*x = SetDisplayNameResponse{}
+	mi := &file_profile_v1_profile_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetDisplayNameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetDisplayNameResponse) ProtoMessage() {}
+
+func (x *SetDisplayNameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_profile_v1_profile_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetDisplayNameResponse.ProtoReflect.Descriptor instead.
+func (*SetDisplayNameResponse) Descriptor() ([]byte, []int) {
+	return file_profile_v1_profile_proto_rawDescGZIP(), []int{8}
+}
+
 var File_profile_v1_profile_proto protoreflect.FileDescriptor
 
 const file_profile_v1_profile_proto_rawDesc = "" +
@@ -317,20 +471,32 @@ const file_profile_v1_profile_proto_rawDesc = "" +
 	"\fProfileShare\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x02 \x01(\tR\tcreatedAt\"\x18\n" +
-	"\x16GetProfileShareRequest\"X\n" +
+	"created_at\x18\x02 \x01(\tR\tcreatedAt\"B\n" +
+	"\x16GetProfileShareRequest\x12(\n" +
+	"\x03app\x18\x01 \x01(\x0e2\x16.profile.v1.ProfileAppR\x03app\"X\n" +
 	"\x17GetProfileShareResponse\x123\n" +
 	"\x05share\x18\x01 \x01(\v2\x18.profile.v1.ProfileShareH\x00R\x05share\x88\x01\x01B\b\n" +
-	"\x06_share\"\x1b\n" +
-	"\x19CreateProfileShareRequest\"L\n" +
+	"\x06_share\"E\n" +
+	"\x19CreateProfileShareRequest\x12(\n" +
+	"\x03app\x18\x01 \x01(\x0e2\x16.profile.v1.ProfileAppR\x03app\"L\n" +
 	"\x1aCreateProfileShareResponse\x12.\n" +
-	"\x05share\x18\x01 \x01(\v2\x18.profile.v1.ProfileShareR\x05share\"\x1b\n" +
-	"\x19DeleteProfileShareRequest\"\x1c\n" +
-	"\x1aDeleteProfileShareResponse2\xb6\x02\n" +
+	"\x05share\x18\x01 \x01(\v2\x18.profile.v1.ProfileShareR\x05share\"E\n" +
+	"\x19DeleteProfileShareRequest\x12(\n" +
+	"\x03app\x18\x01 \x01(\x0e2\x16.profile.v1.ProfileAppR\x03app\"\x1c\n" +
+	"\x1aDeleteProfileShareResponse\":\n" +
+	"\x15SetDisplayNameRequest\x12!\n" +
+	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\"\x18\n" +
+	"\x16SetDisplayNameResponse*W\n" +
+	"\n" +
+	"ProfileApp\x12\x1b\n" +
+	"\x17PROFILE_APP_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11PROFILE_APP_BOOKS\x10\x01\x12\x15\n" +
+	"\x11PROFILE_APP_GAMES\x10\x022\x8f\x03\n" +
 	"\x0eProfileService\x12Z\n" +
 	"\x0fGetProfileShare\x12\".profile.v1.GetProfileShareRequest\x1a#.profile.v1.GetProfileShareResponse\x12c\n" +
 	"\x12CreateProfileShare\x12%.profile.v1.CreateProfileShareRequest\x1a&.profile.v1.CreateProfileShareResponse\x12c\n" +
-	"\x12DeleteProfileShare\x12%.profile.v1.DeleteProfileShareRequest\x1a&.profile.v1.DeleteProfileShareResponseB-Z+tools.xdoubleu.com/gen/profile/v1;profilev1b\x06proto3"
+	"\x12DeleteProfileShare\x12%.profile.v1.DeleteProfileShareRequest\x1a&.profile.v1.DeleteProfileShareResponse\x12W\n" +
+	"\x0eSetDisplayName\x12!.profile.v1.SetDisplayNameRequest\x1a\".profile.v1.SetDisplayNameResponseB-Z+tools.xdoubleu.com/gen/profile/v1;profilev1b\x06proto3"
 
 var (
 	file_profile_v1_profile_proto_rawDescOnce sync.Once
@@ -344,30 +510,39 @@ func file_profile_v1_profile_proto_rawDescGZIP() []byte {
 	return file_profile_v1_profile_proto_rawDescData
 }
 
-var file_profile_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_profile_v1_profile_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_profile_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_profile_v1_profile_proto_goTypes = []any{
-	(*ProfileShare)(nil),               // 0: profile.v1.ProfileShare
-	(*GetProfileShareRequest)(nil),     // 1: profile.v1.GetProfileShareRequest
-	(*GetProfileShareResponse)(nil),    // 2: profile.v1.GetProfileShareResponse
-	(*CreateProfileShareRequest)(nil),  // 3: profile.v1.CreateProfileShareRequest
-	(*CreateProfileShareResponse)(nil), // 4: profile.v1.CreateProfileShareResponse
-	(*DeleteProfileShareRequest)(nil),  // 5: profile.v1.DeleteProfileShareRequest
-	(*DeleteProfileShareResponse)(nil), // 6: profile.v1.DeleteProfileShareResponse
+	(ProfileApp)(0),                    // 0: profile.v1.ProfileApp
+	(*ProfileShare)(nil),               // 1: profile.v1.ProfileShare
+	(*GetProfileShareRequest)(nil),     // 2: profile.v1.GetProfileShareRequest
+	(*GetProfileShareResponse)(nil),    // 3: profile.v1.GetProfileShareResponse
+	(*CreateProfileShareRequest)(nil),  // 4: profile.v1.CreateProfileShareRequest
+	(*CreateProfileShareResponse)(nil), // 5: profile.v1.CreateProfileShareResponse
+	(*DeleteProfileShareRequest)(nil),  // 6: profile.v1.DeleteProfileShareRequest
+	(*DeleteProfileShareResponse)(nil), // 7: profile.v1.DeleteProfileShareResponse
+	(*SetDisplayNameRequest)(nil),      // 8: profile.v1.SetDisplayNameRequest
+	(*SetDisplayNameResponse)(nil),     // 9: profile.v1.SetDisplayNameResponse
 }
 var file_profile_v1_profile_proto_depIdxs = []int32{
-	0, // 0: profile.v1.GetProfileShareResponse.share:type_name -> profile.v1.ProfileShare
-	0, // 1: profile.v1.CreateProfileShareResponse.share:type_name -> profile.v1.ProfileShare
-	1, // 2: profile.v1.ProfileService.GetProfileShare:input_type -> profile.v1.GetProfileShareRequest
-	3, // 3: profile.v1.ProfileService.CreateProfileShare:input_type -> profile.v1.CreateProfileShareRequest
-	5, // 4: profile.v1.ProfileService.DeleteProfileShare:input_type -> profile.v1.DeleteProfileShareRequest
-	2, // 5: profile.v1.ProfileService.GetProfileShare:output_type -> profile.v1.GetProfileShareResponse
-	4, // 6: profile.v1.ProfileService.CreateProfileShare:output_type -> profile.v1.CreateProfileShareResponse
-	6, // 7: profile.v1.ProfileService.DeleteProfileShare:output_type -> profile.v1.DeleteProfileShareResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: profile.v1.GetProfileShareRequest.app:type_name -> profile.v1.ProfileApp
+	1, // 1: profile.v1.GetProfileShareResponse.share:type_name -> profile.v1.ProfileShare
+	0, // 2: profile.v1.CreateProfileShareRequest.app:type_name -> profile.v1.ProfileApp
+	1, // 3: profile.v1.CreateProfileShareResponse.share:type_name -> profile.v1.ProfileShare
+	0, // 4: profile.v1.DeleteProfileShareRequest.app:type_name -> profile.v1.ProfileApp
+	2, // 5: profile.v1.ProfileService.GetProfileShare:input_type -> profile.v1.GetProfileShareRequest
+	4, // 6: profile.v1.ProfileService.CreateProfileShare:input_type -> profile.v1.CreateProfileShareRequest
+	6, // 7: profile.v1.ProfileService.DeleteProfileShare:input_type -> profile.v1.DeleteProfileShareRequest
+	8, // 8: profile.v1.ProfileService.SetDisplayName:input_type -> profile.v1.SetDisplayNameRequest
+	3, // 9: profile.v1.ProfileService.GetProfileShare:output_type -> profile.v1.GetProfileShareResponse
+	5, // 10: profile.v1.ProfileService.CreateProfileShare:output_type -> profile.v1.CreateProfileShareResponse
+	7, // 11: profile.v1.ProfileService.DeleteProfileShare:output_type -> profile.v1.DeleteProfileShareResponse
+	9, // 12: profile.v1.ProfileService.SetDisplayName:output_type -> profile.v1.SetDisplayNameResponse
+	9, // [9:13] is the sub-list for method output_type
+	5, // [5:9] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_profile_v1_profile_proto_init() }
@@ -381,13 +556,14 @@ func file_profile_v1_profile_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_profile_v1_profile_proto_rawDesc), len(file_profile_v1_profile_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   7,
+			NumEnums:      1,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_profile_v1_profile_proto_goTypes,
 		DependencyIndexes: file_profile_v1_profile_proto_depIdxs,
+		EnumInfos:         file_profile_v1_profile_proto_enumTypes,
 		MessageInfos:      file_profile_v1_profile_proto_msgTypes,
 	}.Build()
 	File_profile_v1_profile_proto = out.File

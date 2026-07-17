@@ -11,11 +11,12 @@ import (
 
 func testUser(id string) models.User {
 	return models.User{
-		ID:        id,
-		Email:     id + "@example.com",
-		Role:      models.RoleUser,
-		AppAccess: []string{},
-		HasMFA:    false,
+		ID:          id,
+		Email:       id + "@example.com",
+		Role:        models.RoleUser,
+		AppAccess:   []string{},
+		HasMFA:      false,
+		DisplayName: "",
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
 // publicConnectHandler serves the read-only shareable profile RPCs. It is
@@ -21,36 +22,39 @@ type publicConnectHandler struct {
 
 var _ gamesv1connect.PublicGamesServiceHandler = (*publicConnectHandler)(nil)
 
-// resolveToken maps a share token to the owning user ID; unknown tokens
-// surface as CodeNotFound to avoid acting as a token oracle.
+// resolveToken maps a share token to the owning user ID and display name,
+// scoped to the games app; unknown or wrong-app tokens surface as
+// CodeNotFound to avoid acting as a token oracle.
 func (h *publicConnectHandler) resolveToken(
 	ctx context.Context,
 	token string,
-) (string, error) {
+) (string, string, error) {
 	if token == "" {
-		return "", connect.NewError(
+		return "", "", connect.NewError(
 			connect.CodeNotFound,
 			errors.New("unknown profile"),
 		)
 	}
-	userID, err := h.app.profileShares.GetUserIDByToken(ctx, token)
+	userID, displayName, err := h.app.profileShares.ResolveToken(
+		ctx, token, sharedmodels.ProfileAppGames,
+	)
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return "", connect.NewError(
+		return "", "", connect.NewError(
 			connect.CodeNotFound,
 			errors.New("unknown profile"),
 		)
 	}
 	if err != nil {
-		return "", connect.NewError(connect.CodeInternal, err)
+		return "", "", connect.NewError(connect.CodeInternal, err)
 	}
-	return userID, nil
+	return userID, displayName, nil
 }
 
 func (h *publicConnectHandler) GetSharedSteam(
 	ctx context.Context,
 	req *connect.Request[gamesv1.GetSharedSteamRequest],
 ) (*connect.Response[gamesv1.GetSharedSteamResponse], error) {
-	userID, err := h.resolveToken(ctx, req.Msg.Token)
+	userID, displayName, err := h.resolveToken(ctx, req.Msg.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +78,7 @@ func (h *publicConnectHandler) GetSharedSteam(
 	return connect.NewResponse(&gamesv1.GetSharedSteamResponse{
 		Steam:        steam,
 		LastSyncedAt: lastSyncedAt,
+		DisplayName:  displayName,
 	}), nil
 }
 
@@ -81,7 +86,7 @@ func (h *publicConnectHandler) GetSharedSteamGame(
 	ctx context.Context,
 	req *connect.Request[gamesv1.GetSharedSteamGameRequest],
 ) (*connect.Response[gamesv1.GetSharedSteamGameResponse], error) {
-	userID, err := h.resolveToken(ctx, req.Msg.Token)
+	userID, _, err := h.resolveToken(ctx, req.Msg.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +108,7 @@ func (h *publicConnectHandler) GetSharedRecentlyActiveGames(
 	ctx context.Context,
 	req *connect.Request[gamesv1.GetSharedRecentlyActiveGamesRequest],
 ) (*connect.Response[gamesv1.GetSharedRecentlyActiveGamesResponse], error) {
-	userID, err := h.resolveToken(ctx, req.Msg.Token)
+	userID, _, err := h.resolveToken(ctx, req.Msg.Token)
 	if err != nil {
 		return nil, err
 	}

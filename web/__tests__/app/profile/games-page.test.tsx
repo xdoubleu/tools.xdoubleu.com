@@ -1,22 +1,20 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-
-jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  )
-})
+import { create } from '@bufbuild/protobuf'
+import { GetSharedSteamResponseSchema } from '@/lib/gen/games/v1/public_pb'
 
 jest.mock('@/components/profile/ProfileGamesClient', () => () => (
   <div data-testid="profile-games" />
 ))
+
+const mockFetchOrNull = jest.fn<Promise<unknown>, [unknown]>(async () => null)
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({}))
 }))
 
 jest.mock('@/lib/server/fetchers', () => ({
-  fetchOrNull: jest.fn(async () => null)
+  fetchOrNull: (fn: () => unknown) => mockFetchOrNull(fn)
 }))
 
 jest.mock('@/components/SWRFallback', () => ({
@@ -24,21 +22,22 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-import ProfileGamesPage, { metadata } from '@/app/profile/[token]/games/page'
+import ProfileGamesPage, { metadata } from '@/app/profile/games/[token]/page'
 
 describe('ProfileGamesPage', () => {
-  it('renders the Games heading and client component', async () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('renders a generic heading and client component when the link is invalid', async () => {
+    mockFetchOrNull.mockResolvedValue(null)
     render(await ProfileGamesPage({ params: Promise.resolve({ token: 'tok-1' }) }))
-    expect(screen.getByRole('heading', { name: 'Games' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Shared games' })).toBeInTheDocument()
     expect(screen.getByTestId('profile-games')).toBeInTheDocument()
   })
 
-  it('links back to the profile landing page', async () => {
+  it("renders the owner's display name in the heading", async () => {
+    mockFetchOrNull.mockResolvedValue(create(GetSharedSteamResponseSchema, { displayName: 'Bob' }))
     render(await ProfileGamesPage({ params: Promise.resolve({ token: 'tok-1' }) }))
-    expect(screen.getByRole('link', { name: 'Back to profile' })).toHaveAttribute(
-      'href',
-      '/profile/tok-1'
-    )
+    expect(screen.getByRole('heading', { name: "Bob's games" })).toBeInTheDocument()
   })
 
   it('is excluded from search indexing', () => {

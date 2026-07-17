@@ -32,6 +32,12 @@ jest.mock('@/components/books/BooksProgressChart', () => {
   }
 })
 
+jest.mock('@/components/profile/ProfileShareButton', () => {
+  return function MockProfileShareButton() {
+    return <div data-testid="profile-share-button" />
+  }
+})
+
 jest.mock('swr', () => ({ mutate: jest.fn() }))
 
 import BooksDashboard from '@/components/books/BooksDashboard'

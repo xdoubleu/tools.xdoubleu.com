@@ -61,18 +61,30 @@ func (r *AppUsersRepository) GetByID(
 	u.AppAccess = []string{}
 
 	err := r.db.QueryRow(ctx, `
-		SELECT u.id, u.email, u.role,
+		SELECT u.id, u.email, u.role, COALESCE(u.display_name, ''),
 		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.app_name IS NOT NULL), '{}')
 		FROM global.app_users u
 		LEFT JOIN global.app_access a ON a.user_id = u.id
 		WHERE u.id = $1
 		GROUP BY u.id, u.email, u.role
-	`, id).Scan(&u.ID, &u.Email, &u.Role, &u.AppAccess)
+	`, id).Scan(&u.ID, &u.Email, &u.Role, &u.DisplayName, &u.AppAccess)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 
 	return &u, nil
+}
+
+// SetDisplayName sets the user's public profile display name.
+func (r *AppUsersRepository) SetDisplayName(
+	ctx context.Context,
+	userID, displayName string,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE global.app_users SET display_name = $2 WHERE id = $1`,
+		userID, displayName,
+	)
+	return err
 }
 
 func (r *AppUsersRepository) GetAllWithAccess(

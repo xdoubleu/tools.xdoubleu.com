@@ -42,6 +42,9 @@ const (
 	// ProfileServiceDeleteProfileShareProcedure is the fully-qualified name of the ProfileService's
 	// DeleteProfileShare RPC.
 	ProfileServiceDeleteProfileShareProcedure = "/profile.v1.ProfileService/DeleteProfileShare"
+	// ProfileServiceSetDisplayNameProcedure is the fully-qualified name of the ProfileService's
+	// SetDisplayName RPC.
+	ProfileServiceSetDisplayNameProcedure = "/profile.v1.ProfileService/SetDisplayName"
 )
 
 // ProfileServiceClient is a client for the profile.v1.ProfileService service.
@@ -49,6 +52,7 @@ type ProfileServiceClient interface {
 	GetProfileShare(context.Context, *connect.Request[v1.GetProfileShareRequest]) (*connect.Response[v1.GetProfileShareResponse], error)
 	CreateProfileShare(context.Context, *connect.Request[v1.CreateProfileShareRequest]) (*connect.Response[v1.CreateProfileShareResponse], error)
 	DeleteProfileShare(context.Context, *connect.Request[v1.DeleteProfileShareRequest]) (*connect.Response[v1.DeleteProfileShareResponse], error)
+	SetDisplayName(context.Context, *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error)
 }
 
 // NewProfileServiceClient constructs a client for the profile.v1.ProfileService service. By
@@ -80,6 +84,12 @@ func NewProfileServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(profileServiceMethods.ByName("DeleteProfileShare")),
 			connect.WithClientOptions(opts...),
 		),
+		setDisplayName: connect.NewClient[v1.SetDisplayNameRequest, v1.SetDisplayNameResponse](
+			httpClient,
+			baseURL+ProfileServiceSetDisplayNameProcedure,
+			connect.WithSchema(profileServiceMethods.ByName("SetDisplayName")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -88,6 +98,7 @@ type profileServiceClient struct {
 	getProfileShare    *connect.Client[v1.GetProfileShareRequest, v1.GetProfileShareResponse]
 	createProfileShare *connect.Client[v1.CreateProfileShareRequest, v1.CreateProfileShareResponse]
 	deleteProfileShare *connect.Client[v1.DeleteProfileShareRequest, v1.DeleteProfileShareResponse]
+	setDisplayName     *connect.Client[v1.SetDisplayNameRequest, v1.SetDisplayNameResponse]
 }
 
 // GetProfileShare calls profile.v1.ProfileService.GetProfileShare.
@@ -105,11 +116,17 @@ func (c *profileServiceClient) DeleteProfileShare(ctx context.Context, req *conn
 	return c.deleteProfileShare.CallUnary(ctx, req)
 }
 
+// SetDisplayName calls profile.v1.ProfileService.SetDisplayName.
+func (c *profileServiceClient) SetDisplayName(ctx context.Context, req *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error) {
+	return c.setDisplayName.CallUnary(ctx, req)
+}
+
 // ProfileServiceHandler is an implementation of the profile.v1.ProfileService service.
 type ProfileServiceHandler interface {
 	GetProfileShare(context.Context, *connect.Request[v1.GetProfileShareRequest]) (*connect.Response[v1.GetProfileShareResponse], error)
 	CreateProfileShare(context.Context, *connect.Request[v1.CreateProfileShareRequest]) (*connect.Response[v1.CreateProfileShareResponse], error)
 	DeleteProfileShare(context.Context, *connect.Request[v1.DeleteProfileShareRequest]) (*connect.Response[v1.DeleteProfileShareResponse], error)
+	SetDisplayName(context.Context, *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error)
 }
 
 // NewProfileServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -137,6 +154,12 @@ func NewProfileServiceHandler(svc ProfileServiceHandler, opts ...connect.Handler
 		connect.WithSchema(profileServiceMethods.ByName("DeleteProfileShare")),
 		connect.WithHandlerOptions(opts...),
 	)
+	profileServiceSetDisplayNameHandler := connect.NewUnaryHandler(
+		ProfileServiceSetDisplayNameProcedure,
+		svc.SetDisplayName,
+		connect.WithSchema(profileServiceMethods.ByName("SetDisplayName")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/profile.v1.ProfileService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ProfileServiceGetProfileShareProcedure:
@@ -145,6 +168,8 @@ func NewProfileServiceHandler(svc ProfileServiceHandler, opts ...connect.Handler
 			profileServiceCreateProfileShareHandler.ServeHTTP(w, r)
 		case ProfileServiceDeleteProfileShareProcedure:
 			profileServiceDeleteProfileShareHandler.ServeHTTP(w, r)
+		case ProfileServiceSetDisplayNameProcedure:
+			profileServiceSetDisplayNameHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -164,4 +189,8 @@ func (UnimplementedProfileServiceHandler) CreateProfileShare(context.Context, *c
 
 func (UnimplementedProfileServiceHandler) DeleteProfileShare(context.Context, *connect.Request[v1.DeleteProfileShareRequest]) (*connect.Response[v1.DeleteProfileShareResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("profile.v1.ProfileService.DeleteProfileShare is not implemented"))
+}
+
+func (UnimplementedProfileServiceHandler) SetDisplayName(context.Context, *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("profile.v1.ProfileService.SetDisplayName is not implemented"))
 }

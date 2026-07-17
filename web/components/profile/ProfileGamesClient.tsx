@@ -74,7 +74,7 @@ export default function ProfileGamesClient({
 
   const steam = data?.steam
   const recentGames = recentData?.games ?? []
-  const gameHref = (game: Game | RecentGame) => `/profile/${token}/games/${game.id}`
+  const gameHref = (game: Game | RecentGame) => `/profile/games/${token}/${game.id}`
 
   const progressSteam = progressData?.steam
   const progressChartData =

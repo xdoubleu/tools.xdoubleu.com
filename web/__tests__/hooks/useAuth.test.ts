@@ -18,6 +18,9 @@ jest.mock('@/lib/client', () => ({
 jest.mock('@/lib/gen/auth/v1/auth_pb', () => ({
   AuthService: {}
 }))
+jest.mock('@/lib/gen/profile/v1/profile_pb', () => ({
+  ProfileService: {}
+}))
 
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
@@ -27,6 +30,7 @@ import {
   useForgotPassword,
   useExchangeToken,
   useUpdatePassword,
+  useUpdateDisplayName,
   useMFAChallenge,
   useMFAEnroll,
   useMFAEnrollVerify,
@@ -109,6 +113,20 @@ describe('useUpdatePassword', () => {
     const { result } = renderHook(() => useUpdatePassword())
     result.current('newpass123')
     expect(mockUpdatePassword).toHaveBeenCalledWith({ newPassword: 'newpass123' })
+  })
+})
+
+describe('useUpdateDisplayName', () => {
+  it('returns a function that calls client.setDisplayName', () => {
+    const mockSetDisplayName = jest.fn().mockResolvedValue({})
+    mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
+      setDisplayName: mockSetDisplayName
+    })
+
+    const { result } = renderHook(() => useUpdateDisplayName())
+    result.current('Alice')
+    expect(mockSetDisplayName).toHaveBeenCalledWith({ displayName: 'Alice' })
   })
 })
 

@@ -28,6 +28,12 @@ jest.mock('next/link', () => {
   return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
 })
 
+jest.mock('@/components/profile/ProfileShareButton', () => {
+  return function MockProfileShareButton() {
+    return <div data-testid="profile-share-button" />
+  }
+})
+
 jest.mock('@/components/games/SteamDistributionChart', () => {
   return function MockSteamDistributionChart({
     onBucketClick

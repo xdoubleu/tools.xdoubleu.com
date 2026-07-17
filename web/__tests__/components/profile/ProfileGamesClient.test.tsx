@@ -92,8 +92,10 @@ describe('ProfileGamesClient', () => {
     render(<ProfileGamesClient token="tok-1" />)
 
     const links = screen.getAllByRole('link')
-    expect(links.some((l) => l.getAttribute('href') === '/profile/tok-1/games/2')).toBe(true)
-    expect(links.every((l) => l.getAttribute('href')?.startsWith('/profile/tok-1/'))).toBe(true)
+    expect(links.some((l) => l.getAttribute('href') === '/profile/games/tok-1/2')).toBe(true)
+    expect(links.every((l) => l.getAttribute('href')?.startsWith('/profile/games/tok-1/'))).toBe(
+      true
+    )
   })
 
   it('is read-only: no refresh button', () => {

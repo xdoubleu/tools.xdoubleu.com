@@ -906,10 +906,13 @@ func (*GetCurrentUserRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetCurrentUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
-	AppAccess     []string               `protobuf:"bytes,2,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
-	HasMfa        bool                   `protobuf:"varint,3,opt,name=has_mfa,json=hasMfa,proto3" json:"has_mfa,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Role      string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
+	AppAccess []string               `protobuf:"bytes,2,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
+	HasMfa    bool                   `protobuf:"varint,3,opt,name=has_mfa,json=hasMfa,proto3" json:"has_mfa,omitempty"`
+	// Public profile display name; empty when unset (share links require this
+	// to be set first, see profile.v1.ProfileService).
+	DisplayName   string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -965,6 +968,13 @@ func (x *GetCurrentUserResponse) GetHasMfa() bool {
 	return false
 }
 
+func (x *GetCurrentUserResponse) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
 var File_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_auth_v1_auth_proto_rawDesc = "" +
@@ -1008,12 +1018,13 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x16UpdatePasswordResponse\"\x10\n" +
 	"\x0eSignOutRequest\"\x11\n" +
 	"\x0fSignOutResponse\"\x17\n" +
-	"\x15GetCurrentUserRequest\"d\n" +
+	"\x15GetCurrentUserRequest\"\x87\x01\n" +
 	"\x16GetCurrentUserResponse\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x1d\n" +
 	"\n" +
 	"app_access\x18\x02 \x03(\tR\tappAccess\x12\x17\n" +
-	"\ahas_mfa\x18\x03 \x01(\bR\x06hasMfa2\xd0\x06\n" +
+	"\ahas_mfa\x18\x03 \x01(\bR\x06hasMfa\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName2\xd0\x06\n" +
 	"\vAuthService\x129\n" +
 	"\x06SignIn\x12\x16.auth.v1.SignInRequest\x1a\x17.auth.v1.SignInResponse\x12B\n" +
 	"\tMFAEnroll\x12\x19.auth.v1.MFAEnrollRequest\x1a\x1a.auth.v1.MFAEnrollResponse\x12T\n" +

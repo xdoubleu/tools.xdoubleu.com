@@ -2,13 +2,21 @@ syntax = "proto3";
 package profile.v1;
 option go_package = "tools.xdoubleu.com/gen/profile/v1;profilev1";
 
-// ProfileService manages the owner's public profile share link.
-// The generated token gates the public read-only profile RPCs
-// (books.v1.PublicLibraryService, games.v1.PublicGamesService).
+// ProfileService manages the owner's public profile share links and display
+// name. Each app (books, games) has its own independent share token, gating
+// the corresponding public read-only profile RPCs (books.v1.PublicLibraryService,
+// games.v1.PublicGamesService).
 service ProfileService {
   rpc GetProfileShare(GetProfileShareRequest) returns (GetProfileShareResponse);
   rpc CreateProfileShare(CreateProfileShareRequest) returns (CreateProfileShareResponse);
   rpc DeleteProfileShare(DeleteProfileShareRequest) returns (DeleteProfileShareResponse);
+  rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
+}
+
+enum ProfileApp {
+  PROFILE_APP_UNSPECIFIED = 0;
+  PROFILE_APP_BOOKS = 1;
+  PROFILE_APP_GAMES = 2;
 }
 
 message ProfileShare {
@@ -16,16 +24,20 @@ message ProfileShare {
   string created_at = 2;
 }
 
-message GetProfileShareRequest {}
+message GetProfileShareRequest { ProfileApp app = 1; }
 message GetProfileShareResponse {
-  // Unset when the user has no active share link.
+  // Unset when the user has no active share link for this app.
   optional ProfileShare share = 1;
 }
 
-// CreateProfileShare generates a new share token, replacing any existing one
-// (the old link stops working immediately).
-message CreateProfileShareRequest {}
+// CreateProfileShare generates a new share token for the given app, replacing
+// any existing one for that app (the old link stops working immediately).
+// Fails with FailedPrecondition when the owner has not set a display name yet.
+message CreateProfileShareRequest { ProfileApp app = 1; }
 message CreateProfileShareResponse { ProfileShare share = 1; }
 
-message DeleteProfileShareRequest {}
+message DeleteProfileShareRequest { ProfileApp app = 1; }
 message DeleteProfileShareResponse {}
+
+message SetDisplayNameRequest { string display_name = 1; }
+message SetDisplayNameResponse {}

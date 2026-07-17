@@ -17,11 +17,12 @@ const (
 )
 
 type User struct {
-	ID        string   `json:"id"`
-	Email     string   `json:"email"`
-	Role      Role     `json:"role"`
-	AppAccess []string `json:"app_access"`
-	HasMFA    bool     `json:"has_mfa"`
+	ID          string   `json:"id"`
+	Email       string   `json:"email"`
+	Role        Role     `json:"role"`
+	AppAccess   []string `json:"app_access"`
+	HasMFA      bool     `json:"has_mfa"`
+	DisplayName string   `json:"display_name"`
 }
 
 func UserFromTypesUser(user types.User) User {
@@ -33,10 +34,11 @@ func UserFromTypesUser(user types.User) User {
 		}
 	}
 	return User{
-		ID:        user.ID.String(),
-		Email:     user.Email,
-		Role:      RoleUser,
-		AppAccess: []string{},
-		HasMFA:    hasMFA,
+		ID:          user.ID.String(),
+		Email:       user.Email,
+		Role:        RoleUser,
+		AppAccess:   []string{},
+		HasMFA:      hasMFA,
+		DisplayName: "",
 	}
 }

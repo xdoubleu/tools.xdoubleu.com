@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 
@@ -24,20 +25,31 @@ import (
 const publicUserID = "dddddddd-1111-2222-3333-444444444444"
 
 const publicBooksToken = "test-books-profile-token"
+const publicDisplayName = "Public Books Owner"
 
-// ensureProfileShare mirrors cmd/api/migrations/00006_profile_shares.sql so
-// these tests can run before the cmd/api package has applied the global
-// migrations, then links publicBooksToken to publicUserID.
+// ensureProfileShare mirrors cmd/api/migrations/00001_init.sql and
+// 00007_profile_shares_per_app.sql so these tests can run before the
+// cmd/api package has applied the global migrations, then links
+// publicBooksToken to publicUserID with a display name.
 func ensureProfileShare(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 
 	stmts := []string{
 		"CREATE SCHEMA IF NOT EXISTS global",
+		`CREATE TABLE IF NOT EXISTS global.app_users (
+			id           TEXT PRIMARY KEY,
+			email        TEXT NOT NULL,
+			last_seen    TIMESTAMPTZ NOT NULL DEFAULT now(),
+			role         TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
+			display_name TEXT
+		)`,
 		`CREATE TABLE IF NOT EXISTS global.profile_shares (
-			user_id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			app TEXT NOT NULL CHECK (app IN ('books', 'games')),
 			token TEXT UNIQUE NOT NULL,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			PRIMARY KEY (user_id, app)
 		)`,
 	}
 	for _, stmt := range stmts {
@@ -45,8 +57,20 @@ func ensureProfileShare(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	_, err := testDB.Exec(ctx, `
+		INSERT INTO global.app_users (id, email, display_name)
+		VALUES ($1, 'public-owner@example.com', $2)
+		ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name
+	`, publicUserID, publicDisplayName)
+	require.NoError(t, err)
+
 	repo := sharedrepos.NewProfileSharesRepository(testDB)
-	_, err := repo.Upsert(ctx, publicUserID, publicBooksToken)
+	_, err = repo.Upsert(
+		ctx,
+		publicUserID,
+		sharedmodels.ProfileAppBooks,
+		publicBooksToken,
+	)
 	require.NoError(t, err)
 }
 
@@ -101,6 +125,7 @@ func TestGetSharedLibrary_Success(t *testing.T) {
 	require.NotEmpty(t, resp.Msg.Library.Wishlist)
 	assert.Empty(t, resp.Msg.LastSyncedAt,
 		"user without Kobo devices has no last synced timestamp")
+	assert.Equal(t, publicDisplayName, resp.Msg.DisplayName)
 
 	var found *booksv1.UserBook
 	for _, ub := range resp.Msg.Library.Wishlist {
@@ -157,6 +182,32 @@ func TestGetSharedLibrary_EmptyToken(t *testing.T) {
 	_, err := client.GetSharedLibrary(
 		context.Background(),
 		connect.NewRequest(&booksv1.GetSharedLibraryRequest{}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
+func TestGetSharedLibrary_WrongAppToken(t *testing.T) {
+	ensureProfileShare(t)
+	ctx := context.Background()
+
+	// A token minted for the games app must not resolve on the books
+	// endpoint, even though it belongs to the same user.
+	repo := sharedrepos.NewProfileSharesRepository(testDB)
+	_, err := repo.Upsert(
+		ctx,
+		publicUserID,
+		sharedmodels.ProfileAppGames,
+		"cross-app-games-token",
+	)
+	require.NoError(t, err)
+
+	client := newPublicBooksClient(t)
+	_, err = client.GetSharedLibrary(
+		ctx,
+		connect.NewRequest(&booksv1.GetSharedLibraryRequest{
+			Token: "cross-app-games-token",
+		}),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))

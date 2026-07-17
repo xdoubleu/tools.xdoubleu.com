@@ -36,11 +36,12 @@ func (m *MockedAuthService) mockUser() models.User {
 		role = models.RoleAdmin
 	}
 	return models.User{
-		ID:        m.userID,
-		Email:     mockUserEmail,
-		Role:      role,
-		AppAccess: []string{"backlog", "watchparty", "icsproxy", "recipes"},
-		HasMFA:    false,
+		ID:          m.userID,
+		Email:       mockUserEmail,
+		Role:        role,
+		AppAccess:   []string{"backlog", "watchparty", "icsproxy", "recipes"},
+		HasMFA:      false,
+		DisplayName: "",
 	}
 }
 

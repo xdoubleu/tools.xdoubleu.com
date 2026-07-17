@@ -12,7 +12,6 @@ import { useSharePlan, useUnsharePlan } from '@/hooks/useMealPlans'
 import { createServiceClient } from '@/lib/client'
 import { MealPlansService } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import ShareModal, { type ShareEntry } from '@/components/recipes/ShareModal'
-import PublicProfileCard from '@/components/sharing/PublicProfileCard'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -107,7 +106,6 @@ export default function SharingPageClient() {
       <h1 className="mb-6 text-3xl font-bold">Sharing</h1>
 
       <div className="space-y-6">
-        <PublicProfileCard />
         <SharingCard title="Recipe book" shares={bookEntries} onManage={() => setOpen('book')} />
         <SharingCard title="Shopping list" shares={listEntries} onManage={() => setOpen('list')} />
         {(planShares ?? []).map((plan) => (

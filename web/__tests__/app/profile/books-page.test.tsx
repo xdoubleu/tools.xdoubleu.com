@@ -1,22 +1,25 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-
-jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  )
-})
+import { create } from '@bufbuild/protobuf'
+import {
+  GetSharedLibraryResponseSchema,
+  type GetSharedLibraryResponse
+} from '@/lib/gen/books/v1/public_pb'
 
 jest.mock('@/components/profile/ProfileBooksClient', () => () => (
   <div data-testid="profile-books" />
 ))
+
+const mockFetchOrNull = jest.fn<Promise<GetSharedLibraryResponse | null>, [unknown]>(
+  async () => null
+)
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({}))
 }))
 
 jest.mock('@/lib/server/fetchers', () => ({
-  fetchOrNull: jest.fn(async () => null)
+  fetchOrNull: (fn: () => unknown) => mockFetchOrNull(fn)
 }))
 
 jest.mock('@/components/SWRFallback', () => ({
@@ -24,21 +27,24 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-import ProfileBooksPage, { metadata } from '@/app/profile/[token]/books/page'
+import ProfileBooksPage, { metadata } from '@/app/profile/books/[token]/page'
 
 describe('ProfileBooksPage', () => {
-  it('renders the Books heading and client component', async () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('renders a generic heading and client component when the link is invalid', async () => {
+    mockFetchOrNull.mockResolvedValue(null)
     render(await ProfileBooksPage({ params: Promise.resolve({ token: 'tok-1' }) }))
-    expect(screen.getByRole('heading', { name: 'Books' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Shared books' })).toBeInTheDocument()
     expect(screen.getByTestId('profile-books')).toBeInTheDocument()
   })
 
-  it('links back to the profile landing page', async () => {
-    render(await ProfileBooksPage({ params: Promise.resolve({ token: 'tok-1' }) }))
-    expect(screen.getByRole('link', { name: 'Back to profile' })).toHaveAttribute(
-      'href',
-      '/profile/tok-1'
+  it("renders the owner's display name in the heading", async () => {
+    mockFetchOrNull.mockResolvedValue(
+      create(GetSharedLibraryResponseSchema, { displayName: 'Alice' })
     )
+    render(await ProfileBooksPage({ params: Promise.resolve({ token: 'tok-1' }) }))
+    expect(screen.getByRole('heading', { name: "Alice's books" })).toBeInTheDocument()
   })
 
   it('is excluded from search indexing', () => {

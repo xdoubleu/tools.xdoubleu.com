@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
+import { ProfileService } from '@/lib/gen/profile/v1/profile_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
 export function useSignIn() {
@@ -28,6 +29,11 @@ export function useExchangeToken() {
 export function useUpdatePassword() {
   const client = createServiceClient(AuthService)
   return (newPassword: string) => client.updatePassword({ newPassword })
+}
+
+export function useUpdateDisplayName() {
+  const client = createServiceClient(ProfileService)
+  return (displayName: string) => client.setDisplayName({ displayName })
 }
 
 export function useMFAChallenge() {

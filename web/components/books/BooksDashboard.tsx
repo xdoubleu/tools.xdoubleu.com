@@ -9,6 +9,7 @@ import BookCover from '@/components/books/BookCover'
 import BookSearchBar from '@/components/books/BookSearchBar'
 import BooksProgressChart from '@/components/books/BooksProgressChart'
 import BookProgressBar from '@/components/books/BookProgressBar'
+import ProfileShareButton from '@/components/profile/ProfileShareButton'
 import { Button } from '@/components/ui/button'
 import { Card, interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
@@ -84,6 +85,7 @@ export default function BooksDashboard() {
         <div className="mr-auto w-full max-w-md">
           <BookSearchBar onAdded={handleRefresh} />
         </div>
+        <ProfileShareButton app="books" />
         <Button asChild variant="secondary">
           <Link href="/books/library">Browse full library</Link>
         </Button>

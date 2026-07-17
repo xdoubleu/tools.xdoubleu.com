@@ -17,7 +17,7 @@ jest.mock('@/lib/server/fetchers', () => ({
   fetchOrNull: jest.fn(async () => null)
 }))
 
-import ProfileGamePage, { metadata } from '@/app/profile/[token]/games/[id]/page'
+import ProfileGamePage, { metadata } from '@/app/profile/games/[token]/[id]/page'
 
 describe('ProfileGamePage', () => {
   it('renders the client component with token and id', async () => {
