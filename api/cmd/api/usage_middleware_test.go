@@ -44,14 +44,6 @@ func TestUsageLabels(t *testing.T) {
 			wantOK:       true,
 		},
 		{
-			name:         "legacy books prefix counts as reading",
-			method:       http.MethodGet,
-			path:         "/books/kobo/9f8b2c1d4e5a6b7c8d9e0f1a2b3c4d5e/sync",
-			wantApp:      "reading",
-			wantEndpoint: "kobo",
-			wantOK:       true,
-		},
-		{
 			name:         "uuid segment masked",
 			method:       http.MethodGet,
 			path:         "/games/4001e9cf-3fbe-4b09-863f-bd1654cfbf76",

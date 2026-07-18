@@ -15,13 +15,6 @@ const (
 	maxPlainSegmentLen = 32
 )
 
-// legacyAppPrefixes maps retired URL prefixes to the app that still serves
-// them. Kobo devices registered before the books→reading rename keep calling
-// /books/kobo/… forever, and those requests should count as reading traffic.
-//
-//nolint:gochecknoglobals,goconst // static lookup table
-var legacyAppPrefixes = map[string]string{"books": "reading"}
-
 // usageMiddleware counts every request per app and endpoint for the admin
 // dashboard. It must run after domainMiddleware so custom-domain requests
 // are already rewritten to /<app>/… paths.
@@ -58,9 +51,6 @@ func usageLabels(
 	appName := usageGlobalApp
 	if appNames[segments[0]] {
 		appName = segments[0]
-		segments = segments[1:]
-	} else if target, isLegacy := legacyAppPrefixes[segments[0]]; isLegacy {
-		appName = target
 		segments = segments[1:]
 	}
 

@@ -315,30 +315,10 @@ func TestKoboLibrarySync_EmptyLibraryAndUpstreamDown(t *testing.T) {
 
 // koboURL builds a URL for the Kobo sync API on the given httptest server.
 // The rawToken is embedded in the path, matching the real device URL shape:
-// the device sets api_endpoint = <server>/books/kobo/<rawToken> and appends
+// the device sets api_endpoint = <server>/reading/kobo/<rawToken> and appends
 // store protocol paths (e.g. /v1/library/sync) to form the full request URL.
-// It deliberately uses the legacy /books prefix: devices registered before
-// the books→reading rename keep that endpoint forever, so every test here
-// doubles as coverage for the permanent legacy alias.
 func koboURL(ts *httptest.Server, rawToken, path string) string {
-	return ts.URL + "/books/kobo/" + rawToken + path
-}
-
-// TestKoboSync_PrimaryPrefix verifies the sync protocol is also served under
-// the app's current /reading prefix (used for newly set-up devices).
-func TestKoboSync_PrimaryPrefix(t *testing.T) {
-	rawToken, _ := setupKoboSyncBook(t, "kobo-primary-prefix-"+uuid.NewString())
-
-	ts := httptest.NewServer(getRoutes())
-	t.Cleanup(ts.Close)
-
-	url := ts.URL + "/reading/kobo/" + rawToken + "/v1/library/sync"
-	resp, err := http.DefaultClient.Do(
-		koboReq(t, http.MethodGet, url, nil),
-	)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	return ts.URL + "/reading/kobo/" + rawToken + path
 }
 
 // koboReq builds an HTTP request with the HTTPS forwarded-proto header set.

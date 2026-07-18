@@ -134,29 +134,6 @@ func TestCoverHandler_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-// TestCoverHandler_LegacyPrefix verifies covers are still served under the
-// pre-rename /books prefix — Kobo device metadata and cached pages may hold
-// old cover URLs.
-func TestCoverHandler_LegacyPrefix(t *testing.T) {
-	app, _ := buildCoverApp(t)
-	ub := addTestBook(t, "CoverHandlerLegacyPrefixBook")
-
-	mux := testhelper.BuildMux(app)
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/books/api/cover/"+ub.BookID.String(),
-		nil,
-	)
-	w := httptest.NewRecorder()
-	mux.ServeHTTP(w, req)
-
-	// 404 (no cover cached) proves the route is mounted and reaches the
-	// handler; an unmounted path would 404 from the mux with a plain body,
-	// so assert on the handler's specific error text.
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Contains(t, w.Body.String(), "cover not found")
-}
-
 // TestCoverHandler_InvalidID verifies the cover HTTP handler returns 400 on bad input.
 func TestCoverHandler_InvalidID(t *testing.T) {
 	mux := getRoutes()

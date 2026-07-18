@@ -71,19 +71,8 @@ func (a *Reading) booksRoutes(prefix string, mux *http.ServeMux) {
 	mux.Handle("POST "+publicPath, publicHandler)
 }
 
-// legacyPrefix is the app's pre-rename URL prefix. Kobo devices registered
-// before the rename have "/books/kobo/{token}" baked into their firmware's
-// api_endpoint, and device metadata may hold "/books/…" cover URLs — both
-// route groups therefore stay mounted under the old prefix permanently so
-// no device ever needs to be set up again.
-const legacyPrefix = "books"
-
 func (a *Reading) Routes(prefix string, mux *http.ServeMux) {
 	a.booksRoutes(prefix, mux)
 	a.coverRoutes(prefix, mux)
 	a.koboRoutes(prefix, mux)
-	if prefix != legacyPrefix {
-		a.coverRoutes(legacyPrefix, mux)
-		a.koboRoutes(legacyPrefix, mux)
-	}
 }

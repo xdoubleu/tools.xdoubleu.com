@@ -23,29 +23,6 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
-  },
-  // The books app was renamed to "reading". Old bookmarks and public share
-  // links keep working via permanent redirects. (The Kobo device sync API
-  // under /books/kobo/ is served by the Go backend, not Next, and keeps its
-  // legacy path there.)
-  async redirects() {
-    return [
-      {
-        source: '/profile/books/:token',
-        destination: '/profile/reading/:token',
-        permanent: true
-      },
-      {
-        source: '/books',
-        destination: '/reading',
-        permanent: true
-      },
-      {
-        source: '/books/:path*',
-        destination: '/reading/:path*',
-        permanent: true
-      }
-    ]
   }
 }
 
