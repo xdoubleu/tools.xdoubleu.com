@@ -22,8 +22,8 @@ export default async function ProfileGamesPage({ params }: { params: Promise<{ t
   ])
 
   return (
-    <PageContainer className="p-6">
-      <h1 className="mb-6 text-3xl font-bold">
+    <PageContainer className="p-6 lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden lg:p-4">
+      <h1 className="mb-6 text-3xl font-bold lg:mb-3 lg:text-2xl">
         {steam?.displayName ? `${steam.displayName}'s games` : 'Shared games'}
       </h1>
       <SWRFallback

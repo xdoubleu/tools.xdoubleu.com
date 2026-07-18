@@ -77,17 +77,19 @@ describe('ProfileGamesClient', () => {
     expect(screen.getByText(/Last synced:/)).toBeInTheDocument()
   })
 
-  it('groups games with a Favourites section first', () => {
+  it('links to the shared library and omits the inline game groups', () => {
     mockUseSharedSteam.mockReturnValue({ data: makeSteam() })
     render(<ProfileGamesClient token="tok-1" />)
 
-    expect(screen.getByRole('heading', { name: 'Favourites (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'In Progress (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Not Started (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Completed (1)' })).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: 'Browse full library' })
+    expect(link).toHaveAttribute('href', '/profile/games/tok-1/library')
+
+    // The grouped game grid now lives on its own route.
+    expect(screen.queryByPlaceholderText('Search games…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Not Started (1)' })).not.toBeInTheDocument()
   })
 
-  it('links game cards to the public game pages', () => {
+  it('links recent game cards to the public game pages', () => {
     mockUseSharedSteam.mockReturnValue({ data: makeSteam() })
     render(<ProfileGamesClient token="tok-1" />)
 
@@ -110,22 +112,6 @@ describe('ProfileGamesClient', () => {
     render(<ProfileGamesClient token="tok-1" />)
 
     expect(screen.getByText('Failed to load games.')).toBeInTheDocument()
-  })
-
-  it('filters games with the search input', () => {
-    mockUseSharedSteam.mockReturnValue({ data: makeSteam() })
-    render(<ProfileGamesClient token="tok-1" />)
-
-    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
-      target: { value: 'backlog' }
-    })
-    expect(screen.getByRole('heading', { name: 'Not Started (1)' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'In Progress (1)' })).not.toBeInTheDocument()
-
-    fireEvent.change(screen.getByPlaceholderText('Search games…'), {
-      target: { value: 'zzz-no-match' }
-    })
-    expect(screen.getByText('No games match your search.')).toBeInTheDocument()
   })
 
   it('switches to the progress chart with a date range', () => {

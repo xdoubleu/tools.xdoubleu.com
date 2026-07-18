@@ -21,6 +21,13 @@ jest.mock('@/components/reading/BooksProgressChart', () => () => (
   <div data-testid="books-progress-chart" />
 ))
 
+jest.mock('next/link', () => {
+  const Link = ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  )
+  return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
+})
+
 import ProfileBooksClient from '@/components/profile/ProfileBooksClient'
 
 function makeLibrary() {
@@ -93,31 +100,33 @@ describe('ProfileBooksClient', () => {
     expect(screen.getByText(/Last synced:/)).toBeInTheDocument()
   })
 
-  it('shows custom shelves and tags in the sidebar', () => {
+  it('links to the shared library and omits the inline library', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     render(<ProfileBooksClient token="tok-1" />)
 
-    // Desktop sidebar + mobile chips each render the shelf/tag once.
-    expect(screen.getAllByText('custom-shelf').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('sci-fi').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Favourites').length).toBeGreaterThan(0)
+    const link = screen.getByRole('link', { name: 'Browse full library' })
+    expect(link).toHaveAttribute('href', '/profile/reading/tok-1/library')
+
+    // The inline library (search + shelf sidebar) now lives on its own route.
+    expect(screen.queryByPlaceholderText('Search books…')).not.toBeInTheDocument()
+    expect(screen.queryByText('custom-shelf')).not.toBeInTheDocument()
   })
 
-  it('is read-only: no refresh button and no shelf/tag editing', () => {
+  it('shows the currently-reading strip only', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    render(<ProfileBooksClient token="tok-1" />)
+
+    // Reading Book appears once (currently-reading strip); library-only books
+    // like the wishlist entry are not shown on the dashboard.
+    expect(screen.getAllByText('Reading Book')).toHaveLength(1)
+    expect(screen.queryByText('Wishlist Book')).not.toBeInTheDocument()
+  })
+
+  it('is read-only: no refresh button', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     render(<ProfileBooksClient token="tok-1" />)
 
     expect(screen.queryByRole('button', { name: /refresh/i })).not.toBeInTheDocument()
-    expect(screen.queryByText('Edit shelves & tags')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /favourites$/i })).toBeDefined()
-    expect(screen.queryByRole('button', { name: /add to favourites/i })).not.toBeInTheDocument()
-  })
-
-  it('shows ratings on book cards', () => {
-    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
-    render(<ProfileBooksClient token="tok-1" />)
-
-    expect(screen.getByLabelText('Rated 4 of 5')).toBeInTheDocument()
   })
 
   it('shows an error state when the library fails to load', () => {
@@ -125,58 +134,6 @@ describe('ProfileBooksClient', () => {
     render(<ProfileBooksClient token="tok-1" />)
 
     expect(screen.getByText('Failed to load books.')).toBeInTheDocument()
-  })
-
-  it('filters books across the library with the search input', () => {
-    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
-    render(<ProfileBooksClient token="tok-1" />)
-
-    fireEvent.change(screen.getByPlaceholderText('Search books…'), {
-      target: { value: 'shelved' }
-    })
-
-    expect(screen.getByText('Search results')).toBeInTheDocument()
-    expect(screen.getByText('Shelved Book')).toBeInTheDocument()
-    expect(screen.queryByText('Wishlist Book')).not.toBeInTheDocument()
-
-    fireEvent.change(screen.getByPlaceholderText('Search books…'), {
-      target: { value: 'zzz-no-match' }
-    })
-    expect(screen.getByText('No books.')).toBeInTheDocument()
-  })
-
-  it('selects shelves and tags from the sidebar', () => {
-    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
-    render(<ProfileBooksClient token="tok-1" />)
-
-    // In the default all-books view the reading book renders twice: once in
-    // the currently-reading strip and once in the shelf grid.
-    expect(screen.getAllByText('Reading Book')).toHaveLength(2)
-
-    // Fixed favourite shelf narrows the grid to the tagged book; the
-    // currently-reading strip keeps its own copy.
-    fireEvent.click(screen.getAllByText('Favourites')[0]!)
-    expect(screen.getByText('Wishlist Book')).toBeInTheDocument()
-    expect(screen.getAllByText('Reading Book')).toHaveLength(1)
-
-    // Custom shelf shows its own books.
-    fireEvent.click(screen.getAllByText('custom-shelf')[0]!)
-    expect(screen.getByText('Shelved Book')).toBeInTheDocument()
-
-    // Fixed status shelves work too ("Want to read" also appears as a stat
-    // card label, so target the sidebar buttons by role).
-    fireEvent.click(screen.getAllByRole('button', { name: /^Want to read \d/ })[0]!)
-    expect(screen.getByText('Wishlist Book')).toBeInTheDocument()
-    fireEvent.click(screen.getAllByRole('button', { name: /^Currently reading \d/ })[0]!)
-    fireEvent.click(screen.getAllByRole('button', { name: /^Read \d/ })[0]!)
-    fireEvent.click(screen.getAllByRole('button', { name: /^All books \d/ })[0]!)
-
-    // Tag selection filters the grid, clicking again returns to all books.
-    fireEvent.click(screen.getAllByText('sci-fi')[0]!)
-    expect(screen.getByText('Wishlist Book')).toBeInTheDocument()
-    expect(screen.getAllByText('Reading Book')).toHaveLength(1)
-    fireEvent.click(screen.getAllByText('sci-fi')[0]!)
-    expect(screen.getAllByText('Reading Book')).toHaveLength(2)
   })
 
   it('switches to the all-time chart and loads progress data', () => {
