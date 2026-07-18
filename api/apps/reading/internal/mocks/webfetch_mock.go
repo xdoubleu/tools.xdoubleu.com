@@ -48,6 +48,16 @@ func (m *MockWebFetchClient) SetBody(url, contentType string, body []byte) {
 	}
 }
 
+// SetNotModified registers a 304 (conditional GET short-circuit) response for
+// url — Body empty, NotModified true.
+func (m *MockWebFetchClient) SetNotModified(url string) {
+	//nolint:exhaustruct // a 304 carries no body or content type
+	m.Responses[url] = &webfetch.Result{
+		FinalURL:    url,
+		NotModified: true,
+	}
+}
+
 func (m *MockWebFetchClient) Get(
 	_ context.Context,
 	rawURL string,

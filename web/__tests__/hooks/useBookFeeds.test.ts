@@ -41,9 +41,9 @@ describe('useBookFeeds', () => {
 
   it('useFeeds queries the feed list key', async () => {
     renderHook(() => useFeeds())
-    const [key, fetcher] = mockUseSWR.mock.calls[0] as [string, () => Promise<unknown>]
+    const [key, fetcher] = mockUseSWR.mock.calls[0]!
     expect(key).toBe(swrKeys.bookFeeds)
-    await fetcher()
+    await fetcher!()
     expect(clientMocks.listFeeds).toHaveBeenCalledWith({})
   })
 

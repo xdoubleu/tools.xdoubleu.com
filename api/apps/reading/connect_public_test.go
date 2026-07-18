@@ -46,7 +46,7 @@ func ensureProfileShare(t *testing.T) {
 		)`,
 		`CREATE TABLE IF NOT EXISTS global.profile_shares (
 			user_id TEXT NOT NULL,
-			app TEXT NOT NULL CHECK (app IN ('books', 'games')),
+			app TEXT NOT NULL CHECK (app IN ('reading', 'games')),
 			token TEXT UNIQUE NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			PRIMARY KEY (user_id, app)
