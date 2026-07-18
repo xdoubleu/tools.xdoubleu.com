@@ -39,6 +39,7 @@ func (h *booksConnectHandler) GetLibrary(
 			Wishlist: protoUserBooks(data.Wishlist, base),
 			Finished: protoUserBooks(data.Finished, base),
 			Shelves:  protoBookshelves(data.Shelves, base),
+			Rss:      protoUserBooks(data.RSS, base),
 		},
 	}), nil
 }

@@ -36,10 +36,10 @@ describe('BookModal', () => {
     expect(screen.getByText('Alan Donovan, Brian Kernighan')).toBeInTheDocument()
   })
 
-  it('renders status select with wishlist default', () => {
+  it('renders status select defaulting to "Want to read"', () => {
     render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     const select = screen.getByLabelText('Status') as HTMLSelectElement
-    expect(select.value).toBe('wishlist')
+    expect(select.value).toBe('to-read')
   })
 
   it('calls onClose when Cancel button clicked', () => {

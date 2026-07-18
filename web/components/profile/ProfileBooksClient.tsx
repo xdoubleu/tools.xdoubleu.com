@@ -26,7 +26,8 @@ function flattenLibrary(library: LibraryResponse): UserBook[] {
     ...library.reading,
     ...library.wishlist,
     ...library.finished,
-    ...library.shelves.flatMap((s) => s.books)
+    ...library.shelves.flatMap((s) => s.books),
+    ...library.rss
   ]
 }
 
@@ -102,6 +103,8 @@ export default function ProfileBooksClient({
 
   const library = data?.library
   const reading = library?.reading ?? []
+  const rss = library?.rss ?? []
+  const rssRead = rss.filter((ub) => ub.status === 'read').length
   const ytd = ytdProgress(library?.finished ?? [])
 
   const allTimeChartData =
@@ -159,6 +162,13 @@ export default function ProfileBooksClient({
         <GamesStatCard label="Read this year" value={ytd.total} />
         <GamesStatCard label={statusLabel('to-read')} value={library.wishlist.length} />
       </div>
+
+      {rss.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <GamesStatCard label="RSS items" value={rss.length} />
+          <GamesStatCard label="RSS read" value={rssRead} />
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div>

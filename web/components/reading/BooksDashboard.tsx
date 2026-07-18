@@ -9,6 +9,8 @@ import BookCover from '@/components/reading/BookCover'
 import BookSearchBar from '@/components/reading/BookSearchBar'
 import BooksProgressChart from '@/components/reading/BooksProgressChart'
 import BookProgressBar from '@/components/reading/BookProgressBar'
+import AddToLibraryDialog from '@/components/reading/AddToLibraryDialog'
+import SubscribedFeedsCard from '@/components/reading/SubscribedFeedsCard'
 import ProfileShareButton from '@/components/profile/ProfileShareButton'
 import { Button } from '@/components/ui/button'
 import { Card, interactiveCardClass } from '@/components/ui/card'
@@ -57,6 +59,7 @@ export default function BooksDashboard() {
   const [view, setView] = useState<'ytd' | 'all'>('ytd')
   const [progressStart, setProgressStart] = useState(oneYearAgo())
   const [progressEnd, setProgressEnd] = useState(today())
+  const [addOpen, setAddOpen] = useState(false)
 
   const { data: libraryData, error: libError, isLoading: libLoading } = useLibrary()
   const { data: progressData } = useBooksProgress(
@@ -66,6 +69,8 @@ export default function BooksDashboard() {
 
   const library = libraryData?.library
   const reading = library?.reading ?? []
+  const rss = library?.rss ?? []
+  const rssRead = rss.filter((ub) => ub.status === 'read').length
 
   const ytd = ytdProgress(library?.finished ?? [])
 
@@ -85,11 +90,13 @@ export default function BooksDashboard() {
         <div className="mr-auto w-full max-w-md">
           <BookSearchBar onAdded={handleRefresh} />
         </div>
+        <Button onClick={() => setAddOpen(true)}>Add to library</Button>
         <ProfileShareButton app="reading" />
         <Button asChild variant="secondary">
           <Link href="/reading/library">Browse full library</Link>
         </Button>
       </div>
+      <AddToLibraryDialog open={addOpen} onOpenChange={setAddOpen} onAdded={handleRefresh} />
 
       {libLoading && <p className="text-muted">Loading dashboard…</p>}
       {libError && <p className="text-danger">Failed to load books.</p>}
@@ -107,19 +114,31 @@ export default function BooksDashboard() {
         </div>
       )}
 
+      {library && rss.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="RSS items" value={rss.length} />
+          <StatCard label="RSS read" value={rssRead} />
+        </div>
+      )}
+
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
-        <div className="flex min-h-0 flex-col">
-          <h2 className="mb-2 text-base font-semibold">Currently reading</h2>
-          {!libLoading && reading.length === 0 && (
-            <p className="text-muted text-sm">No books in progress.</p>
-          )}
-          {reading.length > 0 && (
-            <div className="flex min-h-0 flex-wrap content-start gap-3 overflow-y-auto pr-1 lg:flex-1">
-              {reading.map((ub) => (
-                <ReadingBookCard key={ub.id} userBook={ub} />
-              ))}
-            </div>
-          )}
+        <div className="flex min-h-0 flex-col gap-3">
+          <div className="flex min-h-0 flex-col lg:flex-1">
+            <h2 className="mb-2 text-base font-semibold">Currently reading</h2>
+            {!libLoading && reading.length === 0 && (
+              <p className="text-muted text-sm">No books in progress.</p>
+            )}
+            {reading.length > 0 && (
+              <div className="flex min-h-0 flex-wrap content-start gap-3 overflow-y-auto pr-1 lg:flex-1">
+                {reading.map((ub) => (
+                  <ReadingBookCard key={ub.id} userBook={ub} />
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="shrink-0 lg:max-h-56 lg:overflow-y-auto">
+            <SubscribedFeedsCard />
+          </div>
         </div>
 
         <div className="flex min-h-0 flex-col">

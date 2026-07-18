@@ -19,6 +19,15 @@ type booksPageData struct {
 	Wishlist []models.UserBook
 	Finished []models.UserBook
 	Shelves  []bookShelf
+	// RSS holds feed-ingested items, kept out of the reading-state shelves
+	// above: they are an auto-pulled firehose, not deliberately-added reading.
+	RSS []models.UserBook
+}
+
+// isRSS reports whether a user_book is an RSS-feed item. Empty/missing
+// categories are treated as books (the column default).
+func isRSS(ub models.UserBook) bool {
+	return ub.Book != nil && ub.Book.Category == models.CategoryRSS
 }
 
 func groupByStatus(
@@ -77,8 +86,16 @@ func (app *Reading) buildLibraryData(
 		library[i].Formats = formats[library[i].BookID]
 	}
 
-	var reading, wishlist, finished []models.UserBook
+	// RSS items are separated from the reading-state shelves; papers and
+	// articles (deliberately added) stay in the shelves with books.
+	var reading, wishlist, finished, rss []models.UserBook
+	shelfBooks := make([]models.UserBook, 0, len(library))
 	for _, ub := range library {
+		if isRSS(ub) {
+			rss = append(rss, ub)
+			continue
+		}
+		shelfBooks = append(shelfBooks, ub)
 		switch ub.Status {
 		case models.StatusReading:
 			reading = append(reading, ub)
@@ -94,7 +111,7 @@ func (app *Reading) buildLibraryData(
 		return booksPageData{}, err
 	}
 
-	shelves := groupByStatus(library, registeredShelves)
+	shelves := groupByStatus(shelfBooks, registeredShelves)
 	slices.SortFunc(shelves, func(a, b bookShelf) int {
 		if a.Name < b.Name {
 			return -1
@@ -110,6 +127,7 @@ func (app *Reading) buildLibraryData(
 		Wishlist: wishlist,
 		Finished: finished,
 		Shelves:  shelves,
+		RSS:      rss,
 	}, nil
 }
 

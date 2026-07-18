@@ -38,6 +38,18 @@ jest.mock('@/components/profile/ProfileShareButton', () => {
   }
 })
 
+jest.mock('@/components/reading/SubscribedFeedsCard', () => {
+  return function MockSubscribedFeedsCard() {
+    return <div data-testid="subscribed-feeds-card" />
+  }
+})
+
+jest.mock('@/components/reading/AddToLibraryDialog', () => {
+  return function MockAddToLibraryDialog() {
+    return <div data-testid="add-to-library-dialog" />
+  }
+})
+
 jest.mock('swr', () => ({ mutate: jest.fn() }))
 
 import BooksDashboard from '@/components/reading/BooksDashboard'
@@ -147,6 +159,27 @@ describe('BooksDashboard', () => {
     mockUseBooksProgress.mockReturnValue({ data: undefined })
     render(<BooksDashboard />)
     expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
+  })
+
+  it('shows RSS stat cards when the library has rss items', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseBacklogLibrary.mockReturnValue({
+      data: create(GetLibraryResponseSchema, {
+        library: create(LibraryResponseSchema, {
+          rss: [
+            create(UserBookSchema, { id: 'r1', status: 'read' }),
+            create(UserBookSchema, { id: 'r2', status: 'to-read' })
+          ]
+        })
+      }),
+      error: undefined,
+      isLoading: false
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseBooksProgress.mockReturnValue({ data: undefined })
+    render(<BooksDashboard />)
+    expect(screen.getByText('RSS items')).toBeInTheDocument()
+    expect(screen.getByText('RSS read')).toBeInTheDocument()
   })
 
   it('shows an error state', () => {

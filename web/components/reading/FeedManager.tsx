@@ -1,26 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { ConnectError, Code } from '@connectrpc/connect'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  useFeeds,
-  useCreateFeed,
-  useUpdateFeed,
-  useDeleteFeed,
-  useRefreshFeed
-} from '@/hooks/useBookFeeds'
+import AddFeedForm from '@/components/reading/AddFeedForm'
+import { useFeeds, useUpdateFeed, useDeleteFeed, useRefreshFeed } from '@/hooks/useBookFeeds'
 import type { Feed } from '@/lib/gen/reading/v1/feeds_pb'
-
-function createErrorMessage(err: unknown): string {
-  if (err instanceof ConnectError) {
-    if (err.code === Code.AlreadyExists) return 'You are already subscribed to this feed.'
-    if (err.code === Code.InvalidArgument) return 'That URL is not a valid RSS/Atom feed.'
-  }
-  return 'Subscribing failed. Please try again.'
-}
 
 function FeedRow({ feed }: { feed: Feed }) {
   const updateFeed = useUpdateFeed()
@@ -99,57 +84,12 @@ function FeedRow({ feed }: { feed: Feed }) {
 // auto-opts new items into Kobo syncing.
 export default function FeedManager() {
   const { data, error, isLoading } = useFeeds()
-  const createFeed = useCreateFeed()
-  const [url, setUrl] = useState('')
-  const [koboSync, setKoboSync] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [addStatus, setAddStatus] = useState('')
-
-  const submit = async () => {
-    if (!url.trim() || busy) return
-    setBusy(true)
-    setAddStatus('')
-    try {
-      const resp = await createFeed(url.trim(), koboSync)
-      setAddStatus(`Subscribed — imported ${resp.ingested} item(s).`)
-      setUrl('')
-      setKoboSync(false)
-    } catch (err) {
-      setAddStatus(createErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const feeds = data?.feeds ?? []
 
   return (
     <div>
-      <form
-        className="flex flex-wrap items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void submit()
-        }}
-      >
-        <Input
-          type="url"
-          required
-          placeholder="https://example.com/feed.xml"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          aria-label="Feed URL"
-          className="w-auto min-w-0 flex-1"
-        />
-        <label className="flex items-center gap-1.5 text-xs text-subtle">
-          <Checkbox checked={koboSync} onChange={(e) => setKoboSync(e.target.checked)} />
-          Kobo sync
-        </label>
-        <Button type="submit" disabled={busy || !url.trim()}>
-          {busy ? 'Subscribing…' : 'Subscribe'}
-        </Button>
-      </form>
-      {addStatus && <p className="mt-2 text-xs text-muted">{addStatus}</p>}
+      <AddFeedForm />
 
       {isLoading && <p className="mt-3 text-muted">Loading…</p>}
       {error && <p className="mt-3 text-danger">Failed to load feeds.</p>}

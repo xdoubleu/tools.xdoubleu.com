@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { mutate } from 'swr'
 import { useLibrary } from '@/hooks/useBooks'
-import AddByUrlDialog from '@/components/reading/AddByUrlDialog'
+import AddToLibraryDialog from '@/components/reading/AddToLibraryDialog'
 import BookSearchBar from '@/components/reading/BookSearchBar'
 import BooksLibrary from '@/components/reading/BooksLibrary'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import { swrKeys } from '@/lib/swrKeys'
 
 export default function BooksSection() {
   const { data: libraryData, error: libError, isLoading: libLoading } = useLibrary()
-  const [addByUrlOpen, setAddByUrlOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   // The query lives in the URL (?q=) rather than component state so that
@@ -42,15 +42,9 @@ export default function BooksSection() {
         <div className="min-w-0 flex-1">
           <BookSearchBar query={query} onChange={setQuery} onAdded={handleLibraryRefresh} />
         </div>
-        <Button variant="secondary" onClick={() => setAddByUrlOpen(true)}>
-          Add by URL
-        </Button>
+        <Button onClick={() => setAddOpen(true)}>Add to library</Button>
       </div>
-      <AddByUrlDialog
-        open={addByUrlOpen}
-        onOpenChange={setAddByUrlOpen}
-        onAdded={handleLibraryRefresh}
-      />
+      <AddToLibraryDialog open={addOpen} onOpenChange={setAddOpen} onAdded={handleLibraryRefresh} />
 
       {libLoading && <p className="text-muted">Loading books…</p>}
       {libError && <p className="text-danger">Failed to load books.</p>}
