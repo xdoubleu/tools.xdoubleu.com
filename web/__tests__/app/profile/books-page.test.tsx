@@ -4,7 +4,7 @@ import { create } from '@bufbuild/protobuf'
 import {
   GetSharedLibraryResponseSchema,
   type GetSharedLibraryResponse
-} from '@/lib/gen/books/v1/public_pb'
+} from '@/lib/gen/reading/v1/public_pb'
 
 jest.mock('@/components/profile/ProfileBooksClient', () => () => (
   <div data-testid="profile-books" />
@@ -27,7 +27,7 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-import ProfileBooksPage, { metadata } from '@/app/profile/books/[token]/page'
+import ProfileBooksPage, { metadata } from '@/app/profile/reading/[token]/page'
 
 describe('ProfileBooksPage', () => {
   beforeEach(() => jest.clearAllMocks())

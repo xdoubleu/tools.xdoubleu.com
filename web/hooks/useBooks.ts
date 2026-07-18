@@ -4,16 +4,16 @@ import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { createServiceClient } from '@/lib/client'
-import { sha256Hex } from '@/lib/books/checksum'
+import { sha256Hex } from '@/lib/reading/checksum'
 import {
   LibraryService,
   CreateBookRequestSchema,
   UpdateBookStatusRequestSchema,
   UpdateProgressRequestSchema
-} from '@/lib/gen/books/v1/library_pb'
-import { BookFilesService } from '@/lib/gen/books/v1/files_pb'
-import { KoboService } from '@/lib/gen/books/v1/kobo_pb'
-import { CatalogService } from '@/lib/gen/books/v1/catalog_pb'
+} from '@/lib/gen/reading/v1/library_pb'
+import { BookFilesService } from '@/lib/gen/reading/v1/files_pb'
+import { KoboService } from '@/lib/gen/reading/v1/kobo_pb'
+import { CatalogService } from '@/lib/gen/reading/v1/catalog_pb'
 import type {
   GetLibraryResponse,
   GetBooksProgressResponse,
@@ -21,16 +21,19 @@ import type {
   SearchExternalResponse,
   GetExternalBookResponse,
   Book
-} from '@/lib/gen/books/v1/library_pb'
-import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/books/v1/files_pb'
-import type { ListKoboDevicesResponse, GetKoboDeviceLogsResponse } from '@/lib/gen/books/v1/kobo_pb'
+} from '@/lib/gen/reading/v1/library_pb'
+import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/reading/v1/files_pb'
+import type {
+  ListKoboDevicesResponse,
+  GetKoboDeviceLogsResponse
+} from '@/lib/gen/reading/v1/kobo_pb'
 import type {
   FindDuplicatesResponse,
   ListResyncProposalsResponse,
   GetBookSourcesResponse,
   GetSourceStatsResponse,
   ListBooksInExactSourcesResponse
-} from '@/lib/gen/books/v1/catalog_pb'
+} from '@/lib/gen/reading/v1/catalog_pb'
 
 export type CreateBookInput = MessageInitShape<typeof CreateBookRequestSchema>
 export type UpdateBookStatusInput = MessageInitShape<typeof UpdateBookStatusRequestSchema>
@@ -73,6 +76,17 @@ export function useExternalBook(provider: string | null, providerId: string | nu
   return useSWR<GetExternalBookResponse, Error>(
     provider && providerId ? swrKeys.externalBook(provider, providerId) : null,
     () => client.getExternalBook({ provider: provider!, providerId: providerId! })
+  )
+}
+
+// useAddBookByURL ingests a pasted URL: arXiv links become papers, other
+// pages become readability-extracted articles. category is '' (auto),
+// 'paper', or 'article'.
+export function useAddBookByURL() {
+  const client = useMemo(() => createServiceClient(LibraryService), [])
+  return useCallback(
+    (url: string, category: string) => client.addBookByURL({ url, category }),
+    [client]
   )
 }
 

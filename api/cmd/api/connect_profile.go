@@ -43,7 +43,7 @@ func profileAppFromProto(app profilev1.ProfileApp) models.ProfileApp {
 	if app == profilev1.ProfileApp_PROFILE_APP_GAMES {
 		return models.ProfileAppGames
 	}
-	return models.ProfileAppBooks
+	return models.ProfileAppReading
 }
 
 func (h *profileConnectHandler) GetProfileShare(

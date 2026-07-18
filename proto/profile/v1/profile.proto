@@ -3,8 +3,8 @@ package profile.v1;
 option go_package = "tools.xdoubleu.com/gen/profile/v1;profilev1";
 
 // ProfileService manages the owner's public profile share links and display
-// name. Each app (books, games) has its own independent share token, gating
-// the corresponding public read-only profile RPCs (books.v1.PublicLibraryService,
+// name. Each app (reading, games) has its own independent share token, gating
+// the corresponding public read-only profile RPCs (reading.v1.PublicLibraryService,
 // games.v1.PublicGamesService).
 service ProfileService {
   rpc GetProfileShare(GetProfileShareRequest) returns (GetProfileShareResponse);
@@ -15,7 +15,7 @@ service ProfileService {
 
 enum ProfileApp {
   PROFILE_APP_UNSPECIFIED = 0;
-  PROFILE_APP_BOOKS = 1;
+  PROFILE_APP_READING = 1;
   PROFILE_APP_GAMES = 2;
 }
 

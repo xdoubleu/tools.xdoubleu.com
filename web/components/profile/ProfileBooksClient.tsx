@@ -2,24 +2,24 @@
 
 import { useMemo, useState } from 'react'
 import { useSharedLibrary, useSharedBooksProgress } from '@/hooks/useProfile'
-import type { GetSharedLibraryResponse } from '@/lib/gen/books/v1/public_pb'
-import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
+import type { GetSharedLibraryResponse } from '@/lib/gen/reading/v1/public_pb'
+import type { LibraryResponse, UserBook } from '@/lib/gen/reading/v1/library_pb'
 import LibrarySidebar, {
   buildShelves,
   buildTags,
   type ShelfId
-} from '@/components/books/LibrarySidebar'
-import BookCover from '@/components/books/BookCover'
-import BookProgressBar from '@/components/books/BookProgressBar'
-import BooksProgressChart from '@/components/books/BooksProgressChart'
+} from '@/components/reading/LibrarySidebar'
+import BookCover from '@/components/reading/BookCover'
+import BookProgressBar from '@/components/reading/BookProgressBar'
+import BooksProgressChart from '@/components/reading/BooksProgressChart'
 import GamesStatCard from '@/components/games/GamesStatCard'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
 import { formatDateTime, oneYearAgo, today } from '@/lib/dates'
-import { ytdProgress } from '@/lib/books/ytdProgress'
-import { statusLabel, displayTags } from '@/lib/books/bookShelves'
+import { ytdProgress } from '@/lib/reading/ytdProgress'
+import { statusLabel, displayTags } from '@/lib/reading/bookShelves'
 
 function flattenLibrary(library: LibraryResponse): UserBook[] {
   return [

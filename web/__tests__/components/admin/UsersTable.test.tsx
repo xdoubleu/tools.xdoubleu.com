@@ -54,7 +54,7 @@ describe('UsersTable', () => {
   it('renders all app columns', () => {
     render(<UsersTable users={mockUsers} />)
     expect(screen.getByText('games')).toBeInTheDocument()
-    expect(screen.getByText('books')).toBeInTheDocument()
+    expect(screen.getByText('reading')).toBeInTheDocument()
     expect(screen.getByText('todos')).toBeInTheDocument()
     expect(screen.getByText('mealplans')).toBeInTheDocument()
     expect(screen.getByText('shoppinglist')).toBeInTheDocument()

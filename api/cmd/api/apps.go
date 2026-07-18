@@ -8,10 +8,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
-	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/mealplans"
+	"tools.xdoubleu.com/apps/reading"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/apps/todos"
@@ -43,7 +43,7 @@ func NewApps(
 	// tables from the former backlog schema before games' final migration
 	// drops that schema, so books registers before games (this also matches
 	// the alphabetical package order used by `go test -p 1 ./...`).
-	apps.addApp(books.New(authService, logger, cfg, db))
+	apps.addApp(reading.New(authService, logger, cfg, db))
 	apps.addApp(games.New(authService, logger, cfg, db))
 	apps.addApp(watchparty.New(authService, logger, cfg))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db))

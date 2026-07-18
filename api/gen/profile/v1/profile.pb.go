@@ -25,7 +25,7 @@ type ProfileApp int32
 
 const (
 	ProfileApp_PROFILE_APP_UNSPECIFIED ProfileApp = 0
-	ProfileApp_PROFILE_APP_BOOKS       ProfileApp = 1
+	ProfileApp_PROFILE_APP_READING     ProfileApp = 1
 	ProfileApp_PROFILE_APP_GAMES       ProfileApp = 2
 )
 
@@ -33,12 +33,12 @@ const (
 var (
 	ProfileApp_name = map[int32]string{
 		0: "PROFILE_APP_UNSPECIFIED",
-		1: "PROFILE_APP_BOOKS",
+		1: "PROFILE_APP_READING",
 		2: "PROFILE_APP_GAMES",
 	}
 	ProfileApp_value = map[string]int32{
 		"PROFILE_APP_UNSPECIFIED": 0,
-		"PROFILE_APP_BOOKS":       1,
+		"PROFILE_APP_READING":     1,
 		"PROFILE_APP_GAMES":       2,
 	}
 )
@@ -486,11 +486,11 @@ const file_profile_v1_profile_proto_rawDesc = "" +
 	"\x1aDeleteProfileShareResponse\":\n" +
 	"\x15SetDisplayNameRequest\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\"\x18\n" +
-	"\x16SetDisplayNameResponse*W\n" +
+	"\x16SetDisplayNameResponse*Y\n" +
 	"\n" +
 	"ProfileApp\x12\x1b\n" +
-	"\x17PROFILE_APP_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11PROFILE_APP_BOOKS\x10\x01\x12\x15\n" +
+	"\x17PROFILE_APP_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13PROFILE_APP_READING\x10\x01\x12\x15\n" +
 	"\x11PROFILE_APP_GAMES\x10\x022\x8f\x03\n" +
 	"\x0eProfileService\x12Z\n" +
 	"\x0fGetProfileShare\x12\".profile.v1.GetProfileShareRequest\x1a#.profile.v1.GetProfileShareResponse\x12c\n" +

@@ -44,7 +44,7 @@ describe('ProfileShareButton', () => {
 
   it('prompts to set a display name before sharing is possible', () => {
     mockUseCurrentUser.mockReturnValue({ data: { displayName: '' } })
-    render(<ProfileShareButton app="books" />)
+    render(<ProfileShareButton app="reading" />)
     openDialog()
 
     expect(screen.getByText(/Set a display name in settings before sharing/)).toBeInTheDocument()
@@ -53,7 +53,7 @@ describe('ProfileShareButton', () => {
 
   it('offers to create a link once a display name is set', () => {
     mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
-    render(<ProfileShareButton app="books" />)
+    render(<ProfileShareButton app="reading" />)
     openDialog()
 
     expect(screen.getByRole('button', { name: 'Create share link' })).toBeInTheDocument()
@@ -91,13 +91,13 @@ describe('ProfileShareButton', () => {
     Object.assign(navigator, { clipboard: { writeText } })
     mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
     mockUseProfileShare.mockReturnValue({ data: withShare('tok-123'), mutate: mockMutate })
-    render(<ProfileShareButton app="books" />)
+    render(<ProfileShareButton app="reading" />)
     openDialog()
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }))
 
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/profile/books/tok-123'))
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/profile/reading/tok-123'))
     })
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
   })
@@ -105,7 +105,7 @@ describe('ProfileShareButton', () => {
   it('regenerates the share', async () => {
     mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
     mockUseProfileShare.mockReturnValue({ data: withShare('tok-123'), mutate: mockMutate })
-    render(<ProfileShareButton app="books" />)
+    render(<ProfileShareButton app="reading" />)
     openDialog()
 
     fireEvent.click(screen.getByRole('button', { name: 'Regenerate link' }))
@@ -118,7 +118,7 @@ describe('ProfileShareButton', () => {
   it('disables sharing', async () => {
     mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
     mockUseProfileShare.mockReturnValue({ data: withShare('tok-123'), mutate: mockMutate })
-    render(<ProfileShareButton app="books" />)
+    render(<ProfileShareButton app="reading" />)
     openDialog()
 
     fireEvent.click(screen.getByRole('button', { name: 'Disable sharing' }))

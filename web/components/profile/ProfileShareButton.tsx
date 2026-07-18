@@ -24,7 +24,7 @@ function shareUrl(app: ProfileAppKey, token: string) {
 }
 
 // ProfileShareButton opens a public, read-only profile link for one app
-// (books or games) — its own token, independent of the other app's. Sharing
+// (reading or games) — its own token, independent of the other app's. Sharing
 // requires a display name (set in Settings) so visitors know whose profile
 // they're viewing.
 export default function ProfileShareButton({ app }: { app: ProfileAppKey }) {

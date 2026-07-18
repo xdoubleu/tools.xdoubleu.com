@@ -3,11 +3,11 @@ import { createServiceClient } from '@/lib/client'
 import { swrKeys } from '@/lib/swrKeys'
 import { ProfileApp, ProfileService } from '@/lib/gen/profile/v1/profile_pb'
 import type { GetProfileShareResponse } from '@/lib/gen/profile/v1/profile_pb'
-import { PublicLibraryService } from '@/lib/gen/books/v1/public_pb'
+import { PublicLibraryService } from '@/lib/gen/reading/v1/public_pb'
 import type {
   GetSharedLibraryResponse,
   GetSharedBooksProgressResponse
-} from '@/lib/gen/books/v1/public_pb'
+} from '@/lib/gen/reading/v1/public_pb'
 import { PublicGamesService } from '@/lib/gen/games/v1/public_pb'
 import type {
   GetSharedSteamResponse,
@@ -17,10 +17,10 @@ import type {
 
 // Owner-side share management. Each app has its own independent share link.
 
-export type ProfileAppKey = 'books' | 'games'
+export type ProfileAppKey = 'reading' | 'games'
 
 const PROFILE_APP_ENUM: Record<ProfileAppKey, ProfileApp> = {
-  books: ProfileApp.BOOKS,
+  reading: ProfileApp.READING,
   games: ProfileApp.GAMES
 }
 

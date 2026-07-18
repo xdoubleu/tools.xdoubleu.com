@@ -28,7 +28,7 @@ function isStateMessage(value: unknown): value is StateMessage {
   )
 }
 
-export type ProgressApp = 'games' | 'books'
+export type ProgressApp = 'games' | 'reading'
 
 function buildProgressWsUrl(apiUrl: string, app: ProgressApp): string {
   const wsBase = apiUrl

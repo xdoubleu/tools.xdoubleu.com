@@ -6,8 +6,8 @@ import "time"
 type ProfileApp string
 
 const (
-	ProfileAppBooks ProfileApp = "books"
-	ProfileAppGames ProfileApp = "games"
+	ProfileAppReading ProfileApp = "reading"
+	ProfileAppGames   ProfileApp = "games"
 )
 
 // ProfileShare is the opaque token behind a user's public profile link for

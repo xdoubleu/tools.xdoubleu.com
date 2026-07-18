@@ -1,0 +1,58 @@
+syntax = "proto3";
+package reading.v1;
+option go_package = "tools.xdoubleu.com/gen/reading/v1;readingv1";
+
+// Feed is an RSS/Atom subscription. Its items are ingested into the library
+// as regular catalog entries with category "rss".
+message Feed {
+  string id = 1;
+  string url = 2;
+  string title = 3;
+  // When true, every newly ingested item is auto-opted-in to Kobo sync
+  // (kobo-sync tag + KEPUB conversion).
+  bool kobo_sync = 4;
+  // RFC3339; empty when the feed has never been fetched.
+  string last_fetched_at = 5;
+  // The most recent poll failure; empty when the last poll succeeded.
+  string last_error = 6;
+  string created_at = 7;
+}
+
+message ListFeedsRequest {}
+message ListFeedsResponse { repeated Feed feeds = 1; }
+
+// CreateFeed validates the URL by fetching and parsing it, then imports the
+// feed's current contents (newest first, capped) as a first batch.
+message CreateFeedRequest {
+  string url = 1;
+  bool kobo_sync = 2;
+}
+message CreateFeedResponse {
+  Feed feed = 1;
+  // Items imported from the feed's current contents on subscribe.
+  int32 ingested = 2;
+}
+
+message UpdateFeedRequest {
+  string feed_id = 1;
+  string title = 2;
+  bool kobo_sync = 3;
+}
+message UpdateFeedResponse {}
+
+// DeleteFeed removes the subscription and its seen-item records. Library
+// items already ingested from the feed are NOT touched.
+message DeleteFeedRequest { string feed_id = 1; }
+message DeleteFeedResponse {}
+
+// RefreshFeed polls the feed synchronously and ingests new items.
+message RefreshFeedRequest { string feed_id = 1; }
+message RefreshFeedResponse { int32 ingested = 1; }
+
+service FeedService {
+  rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
+  rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
+  rpc UpdateFeed(UpdateFeedRequest) returns (UpdateFeedResponse);
+  rpc DeleteFeed(DeleteFeedRequest) returns (DeleteFeedResponse);
+  rpc RefreshFeed(RefreshFeedRequest) returns (RefreshFeedResponse);
+}
