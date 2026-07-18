@@ -136,6 +136,16 @@ describe('ProfileBooksClient', () => {
     expect(screen.getByText('Failed to load books.')).toBeInTheDocument()
   })
 
+  it('omits the last-synced line when it is unset', () => {
+    const lib = makeLibrary()
+    lib.lastSyncedAt = ''
+    mockUseSharedLibrary.mockReturnValue({ data: lib })
+    render(<ProfileBooksClient token="tok-1" />)
+
+    expect(screen.queryByText(/Last synced:/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Browse full library' })).toBeInTheDocument()
+  })
+
   it('switches to the all-time chart and loads progress data', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     mockUseSharedBooksProgress.mockReturnValue({

@@ -114,6 +114,16 @@ describe('ProfileGamesClient', () => {
     expect(screen.getByText('Failed to load games.')).toBeInTheDocument()
   })
 
+  it('omits the last-synced line when it is unset', () => {
+    const steam = makeSteam()
+    steam.lastSyncedAt = ''
+    mockUseSharedSteam.mockReturnValue({ data: steam })
+    render(<ProfileGamesClient token="tok-1" />)
+
+    expect(screen.queryByText(/Last synced:/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Browse full library' })).toBeInTheDocument()
+  })
+
   it('switches to the progress chart with a date range', () => {
     mockUseSharedSteam.mockReturnValue({ data: makeSteam() })
     mockUseSharedSteamProgress.mockReturnValue({
