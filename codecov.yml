@@ -1,3 +1,13 @@
+# manual_trigger holds all Codecov notifications (statuses + PR comment) until
+# ci-pass explicitly runs `codecovcli send-notifications`, once every test job has
+# uploaded. Needed because the number of coverage uploads per commit is variable
+# (1-3, gated by the `changes` path filter in main.yml), so Codecov must not post a
+# status off the first upload with the others carried forward from an older commit —
+# that stale status is what left ci-pass red in #403.
+codecov:
+  notify:
+    manual_trigger: true
+
 comment:
   require_changes: true
 
