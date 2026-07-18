@@ -367,6 +367,61 @@ func TestCreateFeed_ArxivItemsBecomePapers(t *testing.T) {
 	assert.True(t, statusResult.HasPDF)
 }
 
+// TestCreateFeed_ArxivFromGUID covers the GUID fallback in arxivIDFromItem:
+// the item's <link> is a normal URL but its <guid> is an arXiv id.
+func TestCreateFeed_ArxivFromGUID(t *testing.T) {
+	id := uniqueArxivID()
+	registerMockPaper(id, "Paper From GUID", "Alan Turing")
+
+	base := uniqueBlogBase()
+	feedURL := base + "/arxiv-guid.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"arXiv GUID Feed",
+		rssItem{"Paper From GUID", base + "/landing", arxiv.AbsURL(id), ""},
+	)))
+
+	client := newBooksTestClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.Msg.Ingested)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), arxiv.AbsURL(id),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, models.CategoryPaper, book.Category)
+}
+
+// TestCreateFeed_UnknownArxivItem_IsSkipped covers the error path of
+// IngestArxivByID: an arXiv item the API can't resolve is marked seen and not
+// ingested, without failing the whole poll.
+func TestCreateFeed_UnknownArxivItem_IsSkipped(t *testing.T) {
+	id := uniqueArxivID() // deliberately NOT registered in the arXiv mock
+
+	base := uniqueBlogBase()
+	feedURL := base + "/arxiv-missing.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"arXiv Missing Feed",
+		rssItem{"Missing Paper", arxiv.AbsURL(id), arxiv.AbsURL(id), ""},
+	)))
+
+	client := newBooksTestClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(0), resp.Msg.Ingested)
+
+	_, err = testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), arxiv.AbsURL(id),
+	)
+	require.Error(t, err)
+}
+
 func TestFeedItemWithoutContent_TracksMetadataOnly(t *testing.T) {
 	base := uniqueBlogBase()
 	feedURL := base + "/feed-nocontent.xml"
