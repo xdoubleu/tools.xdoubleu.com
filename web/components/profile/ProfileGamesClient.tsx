@@ -12,13 +12,11 @@ import type {
   GetSharedSteamResponse,
   GetSharedRecentlyActiveGamesResponse
 } from '@/lib/gen/games/v1/public_pb'
-import type { Game, RecentGame } from '@/lib/gen/games/v1/games_pb'
+import type { RecentGame } from '@/lib/gen/games/v1/games_pb'
 import GamesStatCard from '@/components/games/GamesStatCard'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
-import { GameGroup } from '@/components/games/GameCards'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { DateInput } from '@/components/ui/date-input'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
@@ -62,7 +60,6 @@ export default function ProfileGamesClient({
   const [view, setView] = useState<'progress' | 'distribution'>('distribution')
   const [progressStart, setProgressStart] = useState(oneYearAgo())
   const [progressEnd, setProgressEnd] = useState(today())
-  const [search, setSearch] = useState('')
 
   const { data, error, isLoading } = useSharedSteam(token, initialSteam)
   const { data: progressData, isLoading: progressLoading } = useSharedSteamProgress(
@@ -74,7 +71,7 @@ export default function ProfileGamesClient({
 
   const steam = data?.steam
   const recentGames = recentData?.games ?? []
-  const gameHref = (game: Game | RecentGame) => `/profile/games/${token}/${game.id}`
+  const gameHref = (game: RecentGame) => `/profile/games/${token}/${game.id}`
 
   const progressSteam = progressData?.steam
   const progressChartData =
@@ -87,22 +84,18 @@ export default function ProfileGamesClient({
   if (error && !steam) return <p className="text-danger">Failed to load games.</p>
   if (!steam) return null
 
-  const filterGames = (games: Game[]) => {
-    const q = search.trim().toLowerCase()
-    if (!q) return games
-    return games.filter((g) => g.name.toLowerCase().includes(q))
-  }
-
-  const inProgress = filterGames(steam.inProgress)
-  const notStarted = filterGames(steam.notStarted)
-  const completed = filterGames(steam.completed)
-  const favourites = [...inProgress, ...notStarted, ...completed].filter((g) => g.favourite)
-
   return (
-    <section className="flex flex-col gap-6">
-      {data?.lastSyncedAt && (
-        <p className="text-xs text-muted">Last synced: {formatDateTime(data.lastSyncedAt)}</p>
-      )}
+    <section className="flex flex-col gap-3 lg:h-full lg:min-h-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {data?.lastSyncedAt ? (
+          <p className="text-xs text-muted">Last synced: {formatDateTime(data.lastSyncedAt)}</p>
+        ) : (
+          <span />
+        )}
+        <Button asChild variant="secondary">
+          <Link href={`/profile/games/${token}/library`}>Browse full library</Link>
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <GamesStatCard label="Total backlog" value={steam.totalBacklog} />
@@ -111,14 +104,14 @@ export default function ProfileGamesClient({
         <GamesStatCard label="Completed" value={steam.completed.length} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div>
+      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
+        <div className="flex min-h-0 flex-col">
           <h2 className="mb-2 text-base font-semibold">Recently active</h2>
           {recentGames.length === 0 && (
             <p className="text-muted text-sm">No recent achievement activity.</p>
           )}
           {recentGames.length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:flex-1 lg:grid-cols-1">
               {recentGames.map((g) => (
                 <ProfileRecentGameCard key={g.id} game={g} href={gameHref(g)} />
               ))}
@@ -126,7 +119,7 @@ export default function ProfileGamesClient({
           )}
         </div>
 
-        <div>
+        <div className="flex min-h-0 flex-col">
           <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
             <div
               role="tablist"
@@ -181,7 +174,7 @@ export default function ProfileGamesClient({
           </div>
 
           {view === 'distribution' && (
-            <div className="h-72 w-full">
+            <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
               <SteamDistributionChart distribution={steam.distribution} />
             </div>
           )}
@@ -192,36 +185,13 @@ export default function ProfileGamesClient({
                 <p className="text-muted">No progress data for this range.</p>
               )}
               {progressChartData.length > 0 && (
-                <div className="h-72 w-full">
+                <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
                   <SteamProgressChart data={progressChartData} />
                 </div>
               )}
             </>
           )}
         </div>
-      </div>
-
-      <div>
-        <Input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search games…"
-          className="mb-4 max-w-md"
-        />
-        <p className="mb-4 text-muted text-sm">
-          Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
-        </p>
-        <GameGroup title="Favourites" games={favourites} hrefFor={gameHref} />
-        <GameGroup title="In Progress" games={inProgress} hrefFor={gameHref} />
-        <GameGroup title="Not Started" games={notStarted} hrefFor={gameHref} />
-        <GameGroup title="Completed" games={completed} hrefFor={gameHref} />
-        {search.trim() &&
-          inProgress.length === 0 &&
-          notStarted.length === 0 &&
-          completed.length === 0 && (
-            <p className="text-muted text-sm">No games match your search.</p>
-          )}
       </div>
     </section>
   )
