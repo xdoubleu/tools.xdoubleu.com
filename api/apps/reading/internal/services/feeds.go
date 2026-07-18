@@ -13,6 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
 	"tools.xdoubleu.com/apps/reading/internal/repositories"
+	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	"tools.xdoubleu.com/apps/reading/pkg/webfetch"
 )
 
@@ -110,12 +111,24 @@ func (s *FeedService) Update(
 	return s.feeds.Update(ctx, userID, id, title, koboSync)
 }
 
-// Delete removes the subscription; already-ingested library items stay.
+// Delete removes the subscription and the library items it ingested, except
+// any the user engaged with (read or favourited), which are kept. The removable
+// book IDs are collected before the feed is deleted, while the feed_items links
+// still exist.
 func (s *FeedService) Delete(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 ) error {
+	bookIDs, err := s.feeds.ListRemovableBookIDs(ctx, userID, id)
+	if err != nil {
+		return err
+	}
+	for _, bookID := range bookIDs {
+		if err = s.books.RemoveFromLibrary(ctx, userID, bookID); err != nil {
+			return err
+		}
+	}
 	return s.feeds.Delete(ctx, userID, id)
 }
 
@@ -287,6 +300,11 @@ func (s *FeedService) ingestItemContent(
 	if item.Link == "" {
 		return nil, errors.New("feed item has no link")
 	}
+	// arXiv items are ingested as papers (metadata + PDF from the arXiv API),
+	// not readability-extracted rss articles — so an arXiv feed yields papers.
+	if id, ok := arxivIDFromItem(item); ok {
+		return s.ingest.IngestArxivByID(ctx, feed.UserID, id)
+	}
 	canonical, err := canonicalURL(item.Link)
 	if err != nil {
 		return nil, err
@@ -455,6 +473,20 @@ func (s *FeedService) recordFetchResult(
 		s.logger.WarnContext(ctx, "feed fetch-result update failed",
 			"feedID", feedID, "error", err)
 	}
+}
+
+// arxivIDFromItem extracts an arXiv paper ID from a feed item's link or GUID
+// (arXiv feeds put the abstract URL in either), reporting whether one matched.
+func arxivIDFromItem(item *gofeed.Item) (string, bool) {
+	if id, ok := arxiv.ParseID(item.Link); ok {
+		return id, true
+	}
+	if item.GUID != "" {
+		if id, ok := arxiv.ParseID(item.GUID); ok {
+			return id, true
+		}
+	}
+	return "", false
 }
 
 func itemGUID(item *gofeed.Item) string {

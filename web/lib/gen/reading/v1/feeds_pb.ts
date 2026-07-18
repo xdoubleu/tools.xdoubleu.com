@@ -189,8 +189,9 @@ export const UpdateFeedResponseSchema: GenMessage<UpdateFeedResponse> = /*@__PUR
   messageDesc(file_reading_v1_feeds, 6);
 
 /**
- * DeleteFeed removes the subscription and its seen-item records. Library
- * items already ingested from the feed are NOT touched.
+ * DeleteFeed removes the subscription and its seen-item records, and also
+ * removes the library items it ingested — except any the user engaged with
+ * (marked read or favourited), which are kept.
  *
  * @generated from message reading.v1.DeleteFeedRequest
  */

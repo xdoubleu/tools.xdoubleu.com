@@ -14,8 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-
-const BOOK_STATUSES = ['wishlist', 'reading', 'finished', 'dnf']
+import { BOOK_STATUSES } from '@/lib/reading/bookShelves'
 
 interface BookModalProps {
   book: ExternalBookResult | null
@@ -24,7 +23,7 @@ interface BookModalProps {
 }
 
 export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
-  const [status, setStatus] = useState('wishlist')
+  const [status, setStatus] = useState('to-read')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const addBook = useCreateBook()
@@ -73,8 +72,8 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
             <Label htmlFor="status-select">Status</Label>
             <Select id="status-select" value={status} onChange={(e) => setStatus(e.target.value)}>
               {BOOK_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                <option key={s.value} value={s.value}>
+                  {s.label}
                 </option>
               ))}
             </Select>

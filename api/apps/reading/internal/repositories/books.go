@@ -254,10 +254,13 @@ func (repo *BooksRepository) GetFinishedDates(
 	ctx context.Context,
 	userID string,
 ) ([]time.Time, error) {
+	// RSS-feed items are counted separately from deliberate reading, so the
+	// read-progress graph excludes them (books, papers, and articles count).
 	query := `
-		SELECT UNNEST(finished_at) AS finished_date
-		FROM reading.user_books
-		WHERE user_id = $1 AND status = 'read'
+		SELECT UNNEST(ub.finished_at) AS finished_date
+		FROM reading.user_books ub
+		JOIN reading.books b ON b.id = ub.book_id
+		WHERE ub.user_id = $1 AND ub.status = 'read' AND b.category <> 'rss'
 		ORDER BY finished_date
 	`
 

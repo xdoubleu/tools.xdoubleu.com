@@ -402,8 +402,9 @@ func (*UpdateFeedResponse) Descriptor() ([]byte, []int) {
 	return file_reading_v1_feeds_proto_rawDescGZIP(), []int{6}
 }
 
-// DeleteFeed removes the subscription and its seen-item records. Library
-// items already ingested from the feed are NOT touched.
+// DeleteFeed removes the subscription and its seen-item records, and also
+// removes the library items it ingested — except any the user engaged with
+// (marked read or favourited), which are kept.
 type DeleteFeedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FeedId        string                 `protobuf:"bytes,1,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`

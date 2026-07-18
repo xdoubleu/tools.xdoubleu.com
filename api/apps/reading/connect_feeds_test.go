@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
+	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
 )
 
@@ -257,6 +258,168 @@ func TestUpdateListDeleteFeed(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
+// TestDeleteFeed_RemovesUntouchedItems proves #405: deleting a feed removes the
+// library items it ingested, except any the user read or favourited.
+func TestDeleteFeed_RemovesUntouchedItems(t *testing.T) {
+	base := uniqueBlogBase()
+	feedURL := base + "/feed-cascade.xml"
+	untouched := base + "/untouched"
+	readItem := base + "/read"
+	favItem := base + "/fav"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"Cascade Blog",
+		rssItem{"Untouched", untouched, "c1", itemContent},
+		rssItem{"Read", readItem, "c2", itemContent},
+		rssItem{"Fav", favItem, "c3", itemContent},
+	)))
+
+	client := newBooksTestClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(3), created.Msg.Ingested)
+
+	bookID := func(sourceURL string) uuid.UUID {
+		book, bookErr := testApp.Repositories.Books.GetBookBySourceURL(
+			context.Background(), sourceURL,
+		)
+		require.NoError(t, bookErr)
+		return book.ID
+	}
+	untouchedID := bookID(untouched)
+	readID := bookID(readItem)
+	favID := bookID(favItem)
+
+	// Engage with two of the three items: mark one read, favourite the other.
+	_, err = client.UpdateBookStatus(context.Background(), feedReq(t,
+		&readingv1.UpdateBookStatusRequest{
+			BookId: readID.String(), Status: models.StatusRead,
+		}))
+	require.NoError(t, err)
+	_, err = client.UpdateBookStatus(context.Background(), feedReq(t,
+		&readingv1.UpdateBookStatusRequest{
+			BookId: favID.String(), Status: models.StatusToRead, Favourite: true,
+		}))
+	require.NoError(t, err)
+
+	_, err = client.DeleteFeed(
+		context.Background(),
+		feedReq(t, &readingv1.DeleteFeedRequest{FeedId: created.Msg.Feed.Id}),
+	)
+	require.NoError(t, err)
+
+	// The untouched item is gone; the read and favourited items survive.
+	_, err = testApp.Repositories.Books.GetUserBook(
+		context.Background(), userID, untouchedID,
+	)
+	require.Error(t, err)
+
+	readUB, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(), userID, readID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, models.StatusRead, readUB.Status)
+
+	favUB, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(), userID, favID,
+	)
+	require.NoError(t, err)
+	assert.Contains(t, favUB.Tags, models.TagFavourite)
+}
+
+// TestCreateFeed_ArxivItemsBecomePapers proves #406: a feed item linking to an
+// arXiv paper is ingested as a "paper" with a PDF, not a readability "rss"
+// article.
+func TestCreateFeed_ArxivItemsBecomePapers(t *testing.T) {
+	id := uniqueArxivID()
+	registerMockPaper(id, "A Feed-Ingested Paper", "Grace Hopper")
+
+	base := uniqueBlogBase()
+	feedURL := base + "/arxiv-feed.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"arXiv Feed",
+		rssItem{"A Feed-Ingested Paper", arxiv.AbsURL(id), arxiv.AbsURL(id), ""},
+	)))
+
+	client := newBooksTestClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.Msg.Ingested)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), arxiv.AbsURL(id),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, models.CategoryPaper, book.Category)
+	assert.Equal(t, "A Feed-Ingested Paper", book.Title)
+
+	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.True(t, statusResult.HasPDF)
+}
+
+// TestCreateFeed_ArxivFromGUID covers the GUID fallback in arxivIDFromItem:
+// the item's <link> is a normal URL but its <guid> is an arXiv id.
+func TestCreateFeed_ArxivFromGUID(t *testing.T) {
+	id := uniqueArxivID()
+	registerMockPaper(id, "Paper From GUID", "Alan Turing")
+
+	base := uniqueBlogBase()
+	feedURL := base + "/arxiv-guid.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"arXiv GUID Feed",
+		rssItem{"Paper From GUID", base + "/landing", arxiv.AbsURL(id), ""},
+	)))
+
+	client := newBooksTestClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.Msg.Ingested)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), arxiv.AbsURL(id),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, models.CategoryPaper, book.Category)
+}
+
+// TestCreateFeed_UnknownArxivItem_IsSkipped covers the error path of
+// IngestArxivByID: an arXiv item the API can't resolve is marked seen and not
+// ingested, without failing the whole poll.
+func TestCreateFeed_UnknownArxivItem_IsSkipped(t *testing.T) {
+	id := uniqueArxivID() // deliberately NOT registered in the arXiv mock
+
+	base := uniqueBlogBase()
+	feedURL := base + "/arxiv-missing.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"arXiv Missing Feed",
+		rssItem{"Missing Paper", arxiv.AbsURL(id), arxiv.AbsURL(id), ""},
+	)))
+
+	client := newBooksTestClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(0), resp.Msg.Ingested)
+
+	_, err = testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), arxiv.AbsURL(id),
+	)
+	require.Error(t, err)
 }
 
 func TestFeedItemWithoutContent_TracksMetadataOnly(t *testing.T) {

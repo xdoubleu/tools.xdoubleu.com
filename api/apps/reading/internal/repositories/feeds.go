@@ -153,8 +153,49 @@ func (repo *FeedsRepository) Update(
 	return nil
 }
 
+// ListRemovableBookIDs returns the book IDs this feed ingested that the user
+// has NOT engaged with — items still unread and not favourited. Read or
+// favourited items are excluded so they survive the feed's deletion. Scoped to
+// a feed the user owns.
+func (repo *FeedsRepository) ListRemovableBookIDs(
+	ctx context.Context,
+	userID string,
+	feedID uuid.UUID,
+) ([]uuid.UUID, error) {
+	query := `
+		SELECT fi.book_id
+		FROM reading.feed_items fi
+		JOIN reading.feeds f ON f.id = fi.feed_id AND f.user_id = $1
+		JOIN reading.user_books ub
+		    ON ub.book_id = fi.book_id AND ub.user_id = $1
+		WHERE fi.feed_id = $2
+		    AND fi.book_id IS NOT NULL
+		    AND ub.status <> 'read'
+		    AND NOT ('favourite' = ANY(ub.tags))
+	`
+	rows, err := repo.db.Query(ctx, query, userID, feedID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if scanErr := rows.Scan(&id); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out = append(out, id)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
 // Delete removes the feed; its feed_items rows cascade. Library items already
-// ingested from the feed are not touched.
+// ingested from the feed are not touched (the service layer removes the
+// unengaged ones first — see FeedService.Delete).
 func (repo *FeedsRepository) Delete(
 	ctx context.Context,
 	userID string,

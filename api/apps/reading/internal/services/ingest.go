@@ -125,6 +125,21 @@ func (s *IngestService) AddByURL(
 	return s.addWebItem(ctx, userID, canonical, category)
 }
 
+// IngestArxivByID ingests an arXiv paper (metadata + PDF) into the user's
+// library and returns the resulting user_book. Used by the feed pipeline when
+// a feed item links to an arXiv paper, so it lands as a "paper" with a PDF
+// rather than a readability-extracted "rss" article.
+func (s *IngestService) IngestArxivByID(
+	ctx context.Context,
+	userID, arxivID string,
+) (*models.UserBook, error) {
+	res, err := s.addPaper(ctx, userID, arxivID)
+	if err != nil {
+		return nil, err
+	}
+	return res.UserBook, nil
+}
+
 // addPaper ingests an arXiv paper: metadata from the API, the PDF stored as
 // a ready book_file (KEPUB conversion stays lazy, via the PDF path).
 func (s *IngestService) addPaper(

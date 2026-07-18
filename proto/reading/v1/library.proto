@@ -46,6 +46,10 @@ message LibraryResponse {
   repeated UserBook wishlist = 2;
   repeated UserBook finished = 3;
   repeated BookShelf shelves = 4;
+  // RSS-feed items, kept out of the reading-state shelves above: they are an
+  // auto-pulled firehose, not deliberately-added reading. Papers and articles
+  // (added on purpose) stay in the shelves with books.
+  repeated UserBook rss = 5;
 }
 
 message BooksProgressResponse {

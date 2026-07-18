@@ -26,7 +26,10 @@ function flattenLibrary(library: LibraryResponse): UserBook[] {
     ...library.reading,
     ...library.wishlist,
     ...library.finished,
-    ...library.shelves.flatMap((s) => s.books)
+    ...library.shelves.flatMap((s) => s.books),
+    // RSS items live outside the reading-state shelves; include them so the
+    // sidebar's RSS category filter and the "all" view still see them.
+    ...library.rss
   ]
 }
 
