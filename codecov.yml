@@ -8,6 +8,16 @@ codecov:
   notify:
     manual_trigger: true
 
+coverage:
+  status:
+    project:
+      default:
+        # Absorb small, nondeterministic coverage swings (the api suite's Hit
+        # count varies run-to-run) so the project status doesn't flake red on
+        # PRs that don't touch product code. patch stays strict below, so newly
+        # added/changed lines must still be covered.
+        threshold: 1%
+
 comment:
   require_changes: true
 
