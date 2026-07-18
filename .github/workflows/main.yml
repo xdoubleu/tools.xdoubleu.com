@@ -206,7 +206,7 @@ jobs:
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           pip install --quiet codecov-cli
-          codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO"
+          codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
 
       - name: Wait for Codecov to report
         # Only the test jobs upload coverage, so only wait when one of them ran.
