@@ -190,6 +190,24 @@ jobs:
             fi
           done
 
+      # codecov.yml sets `manual_trigger: true`, so Codecov posts no statuses/comment
+      # until we tell it to here — once every test job has uploaded. This avoids the
+      # stale carried-forward status Codecov used to post off the first upload (#403).
+      # Guarded like the wait below: nothing to trigger when no test job ran.
+      - name: Trigger Codecov notifications
+        if: |
+          needs.api-test.result == 'success' ||
+          needs.web-test.result == 'success' ||
+          needs.gateway-test.result == 'success'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          REPO: ${{ github.repository }}
+          # PRs: notify on the head commit, not the merge commit github.sha exposes.
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          pip install --quiet codecov-cli
+          codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
+
       - name: Wait for Codecov to report
         # Only the test jobs upload coverage, so only wait when one of them ran.
         # If all were skipped, Codecov never posts a status and there is nothing to wait for.
