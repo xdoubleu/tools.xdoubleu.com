@@ -39,4 +39,12 @@ describe('BacklogBooksLibraryPage', () => {
     render(await BacklogBooksLibraryPage())
     expect(screen.getByTestId('books-section')).toBeInTheDocument()
   })
+
+  it('renders a settings link', async () => {
+    render(await BacklogBooksLibraryPage())
+    expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute(
+      'href',
+      '/reading/settings'
+    )
+  })
 })
