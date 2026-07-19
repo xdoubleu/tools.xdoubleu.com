@@ -40,15 +40,30 @@ func (h *obsConnectHandler) GetJobStats(
 		return nil, err
 	}
 
-	since := windowSince(req.Msg.WindowDays)
-
-	stats, err := h.app.jobRunsRepo.Stats(ctx, since)
+	resp, err := h.jobStats(ctx, req.Msg.WindowDays)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+
+	return connect.NewResponse(resp), nil
+}
+
+// jobStats runs the job-stats query and builds the response. It is shared by
+// the Connect handler above and the MCP tool; neither the admin check nor the
+// connect wrapping lives here.
+func (h *obsConnectHandler) jobStats(
+	ctx context.Context,
+	windowDays int32,
+) (*observabilityv1.GetJobStatsResponse, error) {
+	since := windowSince(windowDays)
+
+	stats, err := h.app.jobRunsRepo.Stats(ctx, since)
+	if err != nil {
+		return nil, err
+	}
 	runs, err := h.app.jobRunsRepo.ListRecent(ctx, since, recentRunsLimit)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	protoStats := make([]*observabilityv1.JobStat, len(stats))
@@ -73,10 +88,10 @@ func (h *obsConnectHandler) GetJobStats(
 		}
 	}
 
-	return connect.NewResponse(&observabilityv1.GetJobStatsResponse{
+	return &observabilityv1.GetJobStatsResponse{
 		Stats:      protoStats,
 		RecentRuns: protoRuns,
-	}), nil
+	}, nil
 }
 
 func (h *obsConnectHandler) GetUsageStats(
@@ -87,9 +102,21 @@ func (h *obsConnectHandler) GetUsageStats(
 		return nil, err
 	}
 
-	entries, err := h.app.usageRepo.GetDaily(ctx, windowSince(req.Msg.WindowDays))
+	resp, err := h.usageStats(ctx, req.Msg.WindowDays)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(resp), nil
+}
+
+func (h *obsConnectHandler) usageStats(
+	ctx context.Context,
+	windowDays int32,
+) (*observabilityv1.GetUsageStatsResponse, error) {
+	entries, err := h.app.usageRepo.GetDaily(ctx, windowSince(windowDays))
+	if err != nil {
+		return nil, err
 	}
 
 	protoEntries := make([]*observabilityv1.UsageDay, len(entries))
@@ -102,9 +129,9 @@ func (h *obsConnectHandler) GetUsageStats(
 		}
 	}
 
-	return connect.NewResponse(&observabilityv1.GetUsageStatsResponse{
+	return &observabilityv1.GetUsageStatsResponse{
 		Entries: protoEntries,
-	}), nil
+	}, nil
 }
 
 func (h *obsConnectHandler) GetStorageStats(
@@ -115,6 +142,17 @@ func (h *obsConnectHandler) GetStorageStats(
 		return nil, err
 	}
 
+	resp, err := h.storageStats(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(resp), nil
+}
+
+func (h *obsConnectHandler) storageStats(
+	ctx context.Context,
+) (*observabilityv1.GetStorageStatsResponse, error) {
 	latest, err := h.app.storageRepo.Latest(ctx)
 	if err != nil {
 		// No snapshot yet is not an error — the scan has not run.
@@ -123,7 +161,7 @@ func (h *obsConnectHandler) GetStorageStats(
 
 	history, err := h.app.storageRepo.History(ctx, windowSince(defaultWindowDays))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	protoHistory := make([]*observabilityv1.StorageSnapshot, len(history))
@@ -132,10 +170,10 @@ func (h *obsConnectHandler) GetStorageStats(
 		protoHistory[i] = protoStorageSnapshot(&snap)
 	}
 
-	return connect.NewResponse(&observabilityv1.GetStorageStatsResponse{
+	return &observabilityv1.GetStorageStatsResponse{
 		Latest:  protoStorageSnapshot(latest),
 		History: protoHistory,
-	}), nil
+	}, nil
 }
 
 func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSnapshot {
@@ -172,13 +210,24 @@ func (h *obsConnectHandler) GetDatabaseStats(
 		return nil, err
 	}
 
-	total, err := h.app.dbStatsRepo.TotalSize(ctx)
+	resp, err := h.databaseStats(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+
+	return connect.NewResponse(resp), nil
+}
+
+func (h *obsConnectHandler) databaseStats(
+	ctx context.Context,
+) (*observabilityv1.GetDatabaseStatsResponse, error) {
+	total, err := h.app.dbStatsRepo.TotalSize(ctx)
+	if err != nil {
+		return nil, err
+	}
 	schemas, err := h.app.dbStatsRepo.SchemaSizes(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	protoSchemas := make([]*observabilityv1.SchemaStat, len(schemas))
@@ -190,8 +239,8 @@ func (h *obsConnectHandler) GetDatabaseStats(
 		}
 	}
 
-	return connect.NewResponse(&observabilityv1.GetDatabaseStatsResponse{
+	return &observabilityv1.GetDatabaseStatsResponse{
 		TotalSizeBytes: total,
 		Schemas:        protoSchemas,
-	}), nil
+	}, nil
 }

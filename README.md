@@ -91,6 +91,37 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 
 Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).
 
+## Monitoring MCP server
+
+The admin observability signals are exposed to a locally-running Claude CLI over
+a **read-only** MCP server (streamable-HTTP) at `/monitoring/mcp`. The tools wrap
+only the `ObservabilityService` read methods — no write RPC is reachable, so the
+server is read-only by construction. Tools: `get_job_stats`, `get_usage_stats`,
+`get_storage_stats`, `get_database_stats`, `get_github_issues`,
+`get_sentry_issues`, `get_deploy_status`.
+
+Point a local Claude Code at it (OAuth is handled automatically — no header):
+
+```bash
+claude mcp add --transport http tools-obs https://tools.xdoubleu.com/api/monitoring/mcp
+```
+
+Auth is **MCP OAuth 2.1**: the api is the OAuth resource server (it verifies the
+Bearer token and advertises protected-resource metadata), **Supabase Auth is the
+authorization server**, and the `/oauth/consent` page (web) shows the approval
+screen. On first use Claude Code discovers the metadata, dynamically registers,
+runs the PKCE flow against Supabase (a browser consent screen opens), and then
+calls the server with the issued token. Every tool additionally requires the
+signed-in user to be an **admin**.
+
+**One-time Supabase setup** (dashboard → **Authentication → OAuth Server**):
+enable the OAuth 2.1 server, set the **Authorization Path** to `/oauth/consent`,
+enable **dynamic client registration**, and confirm the **Site URL** is
+`https://tools.xdoubleu.com`. Set the web component's `SUPABASE_URL`
+(`https://<project-ref>.supabase.co`) and `SUPABASE_ANON_KEY` (see
+[`do-app.yaml`](do-app.yaml)). Until this is configured the endpoint returns a
+401 challenge but the flow cannot complete.
+
 ## Adding a New Tool
 
 ```bash

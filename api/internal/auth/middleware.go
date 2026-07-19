@@ -75,6 +75,18 @@ func (service *GoTrueService) getCurrentUser(r *http.Request) *models.User {
 	return user
 }
 
+// ResolveToken validates a bearer access token and returns the DB-enriched
+// user, reusing the same TTL cache and admin-role enrichment as the cookie
+// middleware. It is the entry point for the observability MCP server acting as
+// an OAuth resource server: an OAuth-issued Supabase access token resolves
+// exactly like the cookie token.
+func (service *GoTrueService) ResolveToken(
+	ctx context.Context,
+	accessToken string,
+) (*models.User, error) {
+	return service.resolveUser(ctx, accessToken)
+}
+
 // resolveUser returns the DB-enriched user for an access token, consulting
 // the TTL cache first so repeated requests skip the GoTrue round-trip and
 // the enrichment queries.
