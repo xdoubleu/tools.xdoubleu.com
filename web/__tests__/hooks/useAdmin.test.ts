@@ -8,8 +8,8 @@ jest.mock('@/lib/client', () => ({
     setAppAccess: jest.fn()
   }))
 }))
-jest.mock('@/lib/gen/admin/v1/admin_pb', () => ({
-  AdminService: {}
+jest.mock('@/lib/gen/access/v1/access_pb', () => ({
+  AccessService: {}
 }))
 
 import useSWR from 'swr'

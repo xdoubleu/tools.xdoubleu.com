@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { mutate } from 'swr'
 import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
-import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
+import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { PageContainer } from '@/components/ui/page-container'
@@ -83,7 +83,7 @@ export default function AdminUsersClient() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">User Management</h1>
         <Button asChild variant="secondary">
-          <Link href="/admin/observability">Observability</Link>
+          <Link href="/monitoring">Observability</Link>
         </Button>
       </div>
 

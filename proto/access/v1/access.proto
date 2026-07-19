@@ -1,0 +1,41 @@
+syntax = "proto3";
+package access.v1;
+option go_package = "tools.xdoubleu.com/gen/access/v1;accessv1";
+
+service AccessService {
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc SetRole(SetRoleRequest) returns (SetRoleResponse);
+  rpc SetAppAccess(SetAppAccessRequest) returns (SetAppAccessResponse);
+}
+
+message AppUser {
+  string id = 1;
+  string email = 2;
+  string role = 3;
+  repeated string app_access = 4;
+}
+
+message ListUsersRequest {}
+
+message ListUsersResponse {
+  repeated AppUser users = 1;
+}
+
+message SetRoleRequest {
+  string user_id = 1;
+  string role = 2;
+}
+
+message SetRoleResponse {
+  AppUser user = 1;
+}
+
+message SetAppAccessRequest {
+  string user_id = 1;
+  string app_name = 2;
+  bool grant = 3;
+}
+
+message SetAppAccessResponse {
+  AppUser user = 1;
+}
