@@ -30,9 +30,9 @@ func TestUsageLabels(t *testing.T) {
 		{
 			name:         "global connectrpc path",
 			method:       http.MethodPost,
-			path:         "/admin.v1.AdminService/ListUsers",
+			path:         "/access.v1.AccessService/ListUsers",
 			wantApp:      "global",
-			wantEndpoint: "AdminService/ListUsers",
+			wantEndpoint: "AccessService/ListUsers",
 			wantOK:       true,
 		},
 		{

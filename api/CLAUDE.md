@@ -160,7 +160,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 ### Database Conventions
 
 - Each app uses its own PostgreSQL schema (e.g., `reading`, `icsproxy`)
-- Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, `profile_shares`, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The admin observability RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_admin_stats.go`) read these plus live `pg_*` size queries.
+- Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, `profile_shares`, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The `observability.v1.ObservabilityService` RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_observability.go`) read these plus live `pg_*` size queries.
 - Migrations live in `apps/<name>/migrations/` and follow Goose SQL format
 - `updated_at` columns are managed via PostgreSQL triggers
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking

@@ -1,7 +1,7 @@
 'use client'
 
 import { useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
-import type { AppUser } from '@/lib/gen/admin/v1/admin_pb'
+import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { Select } from '@/components/ui/select'
 
 interface UsersTableProps {

@@ -57,7 +57,13 @@ const ALL_APPS: AppLink[] = [
     href: '/sharing',
     description: 'Manage what you share'
   },
-  { name: 'admin', label: 'Admin', href: '/admin', description: 'Administration' }
+  { name: 'admin', label: 'Admin', href: '/admin', description: 'Administration' },
+  {
+    name: 'monitoring',
+    label: 'Monitoring',
+    href: '/monitoring',
+    description: 'Observability'
+  }
 ]
 
 const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
@@ -67,11 +73,11 @@ const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty', 'icsproxy'] },
   { title: 'Account', names: ['settings', 'contacts', 'sharing'] },
-  { title: 'Admin', names: ['admin'] }
+  { title: 'Admin', names: ['admin', 'monitoring'] }
 ]
 
 const ALWAYS_VISIBLE = new Set(['settings', 'contacts', 'sharing'])
-const ADMIN_ONLY = new Set(['admin'])
+const ADMIN_ONLY = new Set(['admin', 'monitoring'])
 
 export default function HomeClient() {
   const { data, error, isLoading } = useCurrentUser()

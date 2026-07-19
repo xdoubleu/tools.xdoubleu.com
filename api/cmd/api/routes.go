@@ -8,9 +8,10 @@ import (
 	"github.com/justinas/alice"
 	"github.com/xdoubleu/essentia/v4/pkg/middleware"
 
-	"tools.xdoubleu.com/gen/admin/v1/adminv1connect"
+	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
+	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	"tools.xdoubleu.com/gen/profile/v1/profilev1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
@@ -26,11 +27,20 @@ func (app *Application) Routes() http.Handler {
 	)
 	mux.Handle("POST "+authPath, authHandler)
 
-	adminPath, adminHandler := adminv1connect.NewAdminServiceHandler(
-		&adminConnectHandler{app: app},
+	accessPath, accessHandler := accessv1connect.NewAccessServiceHandler(
+		&accessConnectHandler{app: app},
 		scrub,
 	)
-	mux.Handle("POST "+adminPath, app.auth.Access(adminHandler.ServeHTTP))
+	mux.Handle("POST "+accessPath, app.auth.Access(accessHandler.ServeHTTP))
+
+	obsPath, obsHandler := observabilityv1connect.NewObservabilityServiceHandler(
+		&obsConnectHandler{app: app},
+		scrub,
+	)
+	mux.Handle(
+		"POST "+obsPath,
+		app.auth.Access(obsHandler.ServeHTTP),
+	)
 
 	contactsPath, contactsHandler := contactsv1connect.NewContactsServiceHandler(
 		&contactsConnectHandler{app: app},
