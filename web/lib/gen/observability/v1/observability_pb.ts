@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file observability/v1/observability.proto.
  */
 export const file_observability_v1_observability: GenFile = /*@__PURE__*/
-  fileDesc("CiRvYnNlcnZhYmlsaXR5L3YxL29ic2VydmFiaWxpdHkucHJvdG8SEG9ic2VydmFiaWxpdHkudjEicAoHSm9iU3RhdBIOCgZqb2JfaWQYASABKAkSEgoKdG90YWxfcnVucxgCIAEoAxITCgtmYWlsZWRfcnVucxgDIAEoAxIXCg9hdmdfZHVyYXRpb25fbXMYBCABKAMSEwoLbGFzdF9ydW5fYXQYBSABKAkiYQoGSm9iUnVuEg4KBmpvYl9pZBgBIAEoCRISCgpzdGFydGVkX2F0GAIgASgJEhMKC2R1cmF0aW9uX21zGAMgASgDEg8KB3N1Y2Nlc3MYBCABKAgSDQoFZXJyb3IYBSABKAkiKQoSR2V0Sm9iU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIm4KE0dldEpvYlN0YXRzUmVzcG9uc2USKAoFc3RhdHMYASADKAsyGS5vYnNlcnZhYmlsaXR5LnYxLkpvYlN0YXQSLQoLcmVjZW50X3J1bnMYAiADKAsyGC5vYnNlcnZhYmlsaXR5LnYxLkpvYlJ1biJFCghVc2FnZURheRILCgNkYXkYASABKAkSCwoDYXBwGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBWNvdW50GAQgASgDIisKFEdldFVzYWdlU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIkQKFUdldFVzYWdlU3RhdHNSZXNwb25zZRIrCgdlbnRyaWVzGAEgAygLMhoub2JzZXJ2YWJpbGl0eS52MS5Vc2FnZURheSI/CgpQcmVmaXhTdGF0Eg4KBnByZWZpeBgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEg0KBWNvdW50GAMgASgDIvsBCg9TdG9yYWdlU25hcHNob3QSEgoKc2Nhbm5lZF9hdBgBIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAIgASgDEhQKDG9iamVjdF9jb3VudBgDIAEoAxIZChFvcnBoYW5fc2l6ZV9ieXRlcxgEIAEoAxIUCgxvcnBoYW5fY291bnQYBSABKAMSHwoXc3RhbGVfdXBsb2FkX3NpemVfYnl0ZXMYBiABKAMSGgoSc3RhbGVfdXBsb2FkX2NvdW50GAcgASgDEjYKEHByZWZpeF9icmVha2Rvd24YCCADKAsyHC5vYnNlcnZhYmlsaXR5LnYxLlByZWZpeFN0YXQiGAoWR2V0U3RvcmFnZVN0YXRzUmVxdWVzdCKAAQoXR2V0U3RvcmFnZVN0YXRzUmVzcG9uc2USMQoGbGF0ZXN0GAEgASgLMiEub2JzZXJ2YWJpbGl0eS52MS5TdG9yYWdlU25hcHNob3QSMgoHaGlzdG9yeRgCIAMoCzIhLm9ic2VydmFiaWxpdHkudjEuU3RvcmFnZVNuYXBzaG90IkMKClNjaGVtYVN0YXQSDAoEbmFtZRgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEhMKC3RhYmxlX2NvdW50GAMgASgDIhkKF0dldERhdGFiYXNlU3RhdHNSZXF1ZXN0ImMKGEdldERhdGFiYXNlU3RhdHNSZXNwb25zZRIYChB0b3RhbF9zaXplX2J5dGVzGAEgASgDEi0KB3NjaGVtYXMYAiADKAsyHC5vYnNlcnZhYmlsaXR5LnYxLlNjaGVtYVN0YXQypwMKFE9ic2VydmFiaWxpdHlTZXJ2aWNlEloKC0dldEpvYlN0YXRzEiQub2JzZXJ2YWJpbGl0eS52MS5HZXRKb2JTdGF0c1JlcXVlc3QaJS5vYnNlcnZhYmlsaXR5LnYxLkdldEpvYlN0YXRzUmVzcG9uc2USYAoNR2V0VXNhZ2VTdGF0cxImLm9ic2VydmFiaWxpdHkudjEuR2V0VXNhZ2VTdGF0c1JlcXVlc3QaJy5vYnNlcnZhYmlsaXR5LnYxLkdldFVzYWdlU3RhdHNSZXNwb25zZRJmCg9HZXRTdG9yYWdlU3RhdHMSKC5vYnNlcnZhYmlsaXR5LnYxLkdldFN0b3JhZ2VTdGF0c1JlcXVlc3QaKS5vYnNlcnZhYmlsaXR5LnYxLkdldFN0b3JhZ2VTdGF0c1Jlc3BvbnNlEmkKEEdldERhdGFiYXNlU3RhdHMSKS5vYnNlcnZhYmlsaXR5LnYxLkdldERhdGFiYXNlU3RhdHNSZXF1ZXN0Gioub2JzZXJ2YWJpbGl0eS52MS5HZXREYXRhYmFzZVN0YXRzUmVzcG9uc2VCOVo3dG9vbHMueGRvdWJsZXUuY29tL2dlbi9vYnNlcnZhYmlsaXR5L3YxO29ic2VydmFiaWxpdHl2MWIGcHJvdG8z");
+  fileDesc("CiRvYnNlcnZhYmlsaXR5L3YxL29ic2VydmFiaWxpdHkucHJvdG8SEG9ic2VydmFiaWxpdHkudjEicAoHSm9iU3RhdBIOCgZqb2JfaWQYASABKAkSEgoKdG90YWxfcnVucxgCIAEoAxITCgtmYWlsZWRfcnVucxgDIAEoAxIXCg9hdmdfZHVyYXRpb25fbXMYBCABKAMSEwoLbGFzdF9ydW5fYXQYBSABKAkiYQoGSm9iUnVuEg4KBmpvYl9pZBgBIAEoCRISCgpzdGFydGVkX2F0GAIgASgJEhMKC2R1cmF0aW9uX21zGAMgASgDEg8KB3N1Y2Nlc3MYBCABKAgSDQoFZXJyb3IYBSABKAkiKQoSR2V0Sm9iU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIm4KE0dldEpvYlN0YXRzUmVzcG9uc2USKAoFc3RhdHMYASADKAsyGS5vYnNlcnZhYmlsaXR5LnYxLkpvYlN0YXQSLQoLcmVjZW50X3J1bnMYAiADKAsyGC5vYnNlcnZhYmlsaXR5LnYxLkpvYlJ1biJFCghVc2FnZURheRILCgNkYXkYASABKAkSCwoDYXBwGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBWNvdW50GAQgASgDIisKFEdldFVzYWdlU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIkQKFUdldFVzYWdlU3RhdHNSZXNwb25zZRIrCgdlbnRyaWVzGAEgAygLMhoub2JzZXJ2YWJpbGl0eS52MS5Vc2FnZURheSI/CgpQcmVmaXhTdGF0Eg4KBnByZWZpeBgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEg0KBWNvdW50GAMgASgDIvsBCg9TdG9yYWdlU25hcHNob3QSEgoKc2Nhbm5lZF9hdBgBIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAIgASgDEhQKDG9iamVjdF9jb3VudBgDIAEoAxIZChFvcnBoYW5fc2l6ZV9ieXRlcxgEIAEoAxIUCgxvcnBoYW5fY291bnQYBSABKAMSHwoXc3RhbGVfdXBsb2FkX3NpemVfYnl0ZXMYBiABKAMSGgoSc3RhbGVfdXBsb2FkX2NvdW50GAcgASgDEjYKEHByZWZpeF9icmVha2Rvd24YCCADKAsyHC5vYnNlcnZhYmlsaXR5LnYxLlByZWZpeFN0YXQiGAoWR2V0U3RvcmFnZVN0YXRzUmVxdWVzdCKAAQoXR2V0U3RvcmFnZVN0YXRzUmVzcG9uc2USMQoGbGF0ZXN0GAEgASgLMiEub2JzZXJ2YWJpbGl0eS52MS5TdG9yYWdlU25hcHNob3QSMgoHaGlzdG9yeRgCIAMoCzIhLm9ic2VydmFiaWxpdHkudjEuU3RvcmFnZVNuYXBzaG90IkMKClNjaGVtYVN0YXQSDAoEbmFtZRgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEhMKC3RhYmxlX2NvdW50GAMgASgDIhkKF0dldERhdGFiYXNlU3RhdHNSZXF1ZXN0ImMKGEdldERhdGFiYXNlU3RhdHNSZXNwb25zZRIYChB0b3RhbF9zaXplX2J5dGVzGAEgASgDEi0KB3NjaGVtYXMYAiADKAsyHC5vYnNlcnZhYmlsaXR5LnYxLlNjaGVtYVN0YXQibAoLR2l0aHViSXNzdWUSDgoGbnVtYmVyGAEgASgDEg0KBXRpdGxlGAIgASgJEgsKA3VybBgDIAEoCRINCgVzdGF0ZRgEIAEoCRISCgpjcmVhdGVkX2F0GAUgASgJEg4KBmxhYmVscxgGIAMoCSIYChZHZXRHaXRodWJJc3N1ZXNSZXF1ZXN0InAKF0dldEdpdGh1Yklzc3Vlc1Jlc3BvbnNlEi0KBmlzc3VlcxgBIAMoCzIdLm9ic2VydmFiaWxpdHkudjEuR2l0aHViSXNzdWUSEgoKY29uZmlndXJlZBgCIAEoCBISCgpvcGVuX2NvdW50GAMgASgFIn0KC1NlbnRyeUlzc3VlEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEg8KB2N1bHByaXQYAyABKAkSEQoJcGVybWFsaW5rGAQgASgJEg0KBWNvdW50GAUgASgDEhEKCWxhc3Rfc2VlbhgGIAEoCRINCgVsZXZlbBgHIAEoCSIYChZHZXRTZW50cnlJc3N1ZXNSZXF1ZXN0InYKF0dldFNlbnRyeUlzc3Vlc1Jlc3BvbnNlEi0KBmlzc3VlcxgBIAMoCzIdLm9ic2VydmFiaWxpdHkudjEuU2VudHJ5SXNzdWUSEgoKY29uZmlndXJlZBgCIAEoCBIYChB1bnJlc29sdmVkX2NvdW50GAMgASgFIhgKFkdldERlcGxveVN0YXR1c1JlcXVlc3QiigEKF0dldERlcGxveVN0YXR1c1Jlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSDQoFcGhhc2UYAiABKAkSDQoFY2F1c2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoCRISCgp1cGRhdGVkX2F0GAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkiGgoYR2V0SGVhbHRoT3ZlcnZpZXdSZXF1ZXN0IswBChlHZXRIZWFsdGhPdmVydmlld1Jlc3BvbnNlEjkKBmdpdGh1YhgBIAEoCzIpLm9ic2VydmFiaWxpdHkudjEuR2V0R2l0aHViSXNzdWVzUmVzcG9uc2USOQoGc2VudHJ5GAIgASgLMikub2JzZXJ2YWJpbGl0eS52MS5HZXRTZW50cnlJc3N1ZXNSZXNwb25zZRI5CgZkZXBsb3kYAyABKAsyKS5vYnNlcnZhYmlsaXR5LnYxLkdldERlcGxveVN0YXR1c1Jlc3BvbnNlMs0GChRPYnNlcnZhYmlsaXR5U2VydmljZRJaCgtHZXRKb2JTdGF0cxIkLm9ic2VydmFiaWxpdHkudjEuR2V0Sm9iU3RhdHNSZXF1ZXN0GiUub2JzZXJ2YWJpbGl0eS52MS5HZXRKb2JTdGF0c1Jlc3BvbnNlEmAKDUdldFVzYWdlU3RhdHMSJi5vYnNlcnZhYmlsaXR5LnYxLkdldFVzYWdlU3RhdHNSZXF1ZXN0Gicub2JzZXJ2YWJpbGl0eS52MS5HZXRVc2FnZVN0YXRzUmVzcG9uc2USZgoPR2V0U3RvcmFnZVN0YXRzEigub2JzZXJ2YWJpbGl0eS52MS5HZXRTdG9yYWdlU3RhdHNSZXF1ZXN0Gikub2JzZXJ2YWJpbGl0eS52MS5HZXRTdG9yYWdlU3RhdHNSZXNwb25zZRJpChBHZXREYXRhYmFzZVN0YXRzEikub2JzZXJ2YWJpbGl0eS52MS5HZXREYXRhYmFzZVN0YXRzUmVxdWVzdBoqLm9ic2VydmFiaWxpdHkudjEuR2V0RGF0YWJhc2VTdGF0c1Jlc3BvbnNlEmYKD0dldEdpdGh1Yklzc3VlcxIoLm9ic2VydmFiaWxpdHkudjEuR2V0R2l0aHViSXNzdWVzUmVxdWVzdBopLm9ic2VydmFiaWxpdHkudjEuR2V0R2l0aHViSXNzdWVzUmVzcG9uc2USZgoPR2V0U2VudHJ5SXNzdWVzEigub2JzZXJ2YWJpbGl0eS52MS5HZXRTZW50cnlJc3N1ZXNSZXF1ZXN0Gikub2JzZXJ2YWJpbGl0eS52MS5HZXRTZW50cnlJc3N1ZXNSZXNwb25zZRJmCg9HZXREZXBsb3lTdGF0dXMSKC5vYnNlcnZhYmlsaXR5LnYxLkdldERlcGxveVN0YXR1c1JlcXVlc3QaKS5vYnNlcnZhYmlsaXR5LnYxLkdldERlcGxveVN0YXR1c1Jlc3BvbnNlEmwKEUdldEhlYWx0aE92ZXJ2aWV3Eioub2JzZXJ2YWJpbGl0eS52MS5HZXRIZWFsdGhPdmVydmlld1JlcXVlc3QaKy5vYnNlcnZhYmlsaXR5LnYxLkdldEhlYWx0aE92ZXJ2aWV3UmVzcG9uc2VCOVo3dG9vbHMueGRvdWJsZXUuY29tL2dlbi9vYnNlcnZhYmlsaXR5L3YxO29ic2VydmFiaWxpdHl2MWIGcHJvdG8z");
 
 /**
  * @generated from message observability.v1.JobStat
@@ -376,6 +376,297 @@ export const GetDatabaseStatsResponseSchema: GenMessage<GetDatabaseStatsResponse
   messageDesc(file_observability_v1_observability, 13);
 
 /**
+ * GithubIssue is a single open issue on the configured repository.
+ *
+ * @generated from message observability.v1.GithubIssue
+ */
+export type GithubIssue = Message<"observability.v1.GithubIssue"> & {
+  /**
+   * @generated from field: int64 number = 1;
+   */
+  number: bigint;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string url = 3;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string state = 4;
+   */
+  state: string;
+
+  /**
+   * RFC3339
+   *
+   * @generated from field: string created_at = 5;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: repeated string labels = 6;
+   */
+  labels: string[];
+};
+
+/**
+ * Describes the message observability.v1.GithubIssue.
+ * Use `create(GithubIssueSchema)` to create a new message.
+ */
+export const GithubIssueSchema: GenMessage<GithubIssue> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 14);
+
+/**
+ * @generated from message observability.v1.GetGithubIssuesRequest
+ */
+export type GetGithubIssuesRequest = Message<"observability.v1.GetGithubIssuesRequest"> & {
+};
+
+/**
+ * Describes the message observability.v1.GetGithubIssuesRequest.
+ * Use `create(GetGithubIssuesRequestSchema)` to create a new message.
+ */
+export const GetGithubIssuesRequestSchema: GenMessage<GetGithubIssuesRequest> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 15);
+
+/**
+ * GetGithubIssuesResponse carries the open issues. configured is false when no
+ * GitHub token/repo is set — the section is degraded, not failed.
+ *
+ * @generated from message observability.v1.GetGithubIssuesResponse
+ */
+export type GetGithubIssuesResponse = Message<"observability.v1.GetGithubIssuesResponse"> & {
+  /**
+   * @generated from field: repeated observability.v1.GithubIssue issues = 1;
+   */
+  issues: GithubIssue[];
+
+  /**
+   * @generated from field: bool configured = 2;
+   */
+  configured: boolean;
+
+  /**
+   * @generated from field: int32 open_count = 3;
+   */
+  openCount: number;
+};
+
+/**
+ * Describes the message observability.v1.GetGithubIssuesResponse.
+ * Use `create(GetGithubIssuesResponseSchema)` to create a new message.
+ */
+export const GetGithubIssuesResponseSchema: GenMessage<GetGithubIssuesResponse> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 16);
+
+/**
+ * SentryIssue is a single unresolved issue on the configured project.
+ *
+ * @generated from message observability.v1.SentryIssue
+ */
+export type SentryIssue = Message<"observability.v1.SentryIssue"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string culprit = 3;
+   */
+  culprit: string;
+
+  /**
+   * @generated from field: string permalink = 4;
+   */
+  permalink: string;
+
+  /**
+   * number of events
+   *
+   * @generated from field: int64 count = 5;
+   */
+  count: bigint;
+
+  /**
+   * RFC3339
+   *
+   * @generated from field: string last_seen = 6;
+   */
+  lastSeen: string;
+
+  /**
+   * @generated from field: string level = 7;
+   */
+  level: string;
+};
+
+/**
+ * Describes the message observability.v1.SentryIssue.
+ * Use `create(SentryIssueSchema)` to create a new message.
+ */
+export const SentryIssueSchema: GenMessage<SentryIssue> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 17);
+
+/**
+ * @generated from message observability.v1.GetSentryIssuesRequest
+ */
+export type GetSentryIssuesRequest = Message<"observability.v1.GetSentryIssuesRequest"> & {
+};
+
+/**
+ * Describes the message observability.v1.GetSentryIssuesRequest.
+ * Use `create(GetSentryIssuesRequestSchema)` to create a new message.
+ */
+export const GetSentryIssuesRequestSchema: GenMessage<GetSentryIssuesRequest> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 18);
+
+/**
+ * GetSentryIssuesResponse carries the unresolved issues. configured is false
+ * when no Sentry org/project/token is set — the section is degraded.
+ *
+ * @generated from message observability.v1.GetSentryIssuesResponse
+ */
+export type GetSentryIssuesResponse = Message<"observability.v1.GetSentryIssuesResponse"> & {
+  /**
+   * @generated from field: repeated observability.v1.SentryIssue issues = 1;
+   */
+  issues: SentryIssue[];
+
+  /**
+   * @generated from field: bool configured = 2;
+   */
+  configured: boolean;
+
+  /**
+   * @generated from field: int32 unresolved_count = 3;
+   */
+  unresolvedCount: number;
+};
+
+/**
+ * Describes the message observability.v1.GetSentryIssuesResponse.
+ * Use `create(GetSentryIssuesResponseSchema)` to create a new message.
+ */
+export const GetSentryIssuesResponseSchema: GenMessage<GetSentryIssuesResponse> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 19);
+
+/**
+ * @generated from message observability.v1.GetDeployStatusRequest
+ */
+export type GetDeployStatusRequest = Message<"observability.v1.GetDeployStatusRequest"> & {
+};
+
+/**
+ * Describes the message observability.v1.GetDeployStatusRequest.
+ * Use `create(GetDeployStatusRequestSchema)` to create a new message.
+ */
+export const GetDeployStatusRequestSchema: GenMessage<GetDeployStatusRequest> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 20);
+
+/**
+ * GetDeployStatusResponse carries the latest deployment. configured is false
+ * when no DigitalOcean token/app ID is set — the section is degraded. All
+ * deployment fields are empty when configured is false or no deployment exists.
+ *
+ * @generated from message observability.v1.GetDeployStatusResponse
+ */
+export type GetDeployStatusResponse = Message<"observability.v1.GetDeployStatusResponse"> & {
+  /**
+   * @generated from field: bool configured = 1;
+   */
+  configured: boolean;
+
+  /**
+   * @generated from field: string phase = 2;
+   */
+  phase: string;
+
+  /**
+   * @generated from field: string cause = 3;
+   */
+  cause: string;
+
+  /**
+   * RFC3339
+   *
+   * @generated from field: string created_at = 4;
+   */
+  createdAt: string;
+
+  /**
+   * RFC3339
+   *
+   * @generated from field: string updated_at = 5;
+   */
+  updatedAt: string;
+
+  /**
+   * @generated from field: string deployment_id = 6;
+   */
+  deploymentId: string;
+};
+
+/**
+ * Describes the message observability.v1.GetDeployStatusResponse.
+ * Use `create(GetDeployStatusResponseSchema)` to create a new message.
+ */
+export const GetDeployStatusResponseSchema: GenMessage<GetDeployStatusResponse> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 21);
+
+/**
+ * @generated from message observability.v1.GetHealthOverviewRequest
+ */
+export type GetHealthOverviewRequest = Message<"observability.v1.GetHealthOverviewRequest"> & {
+};
+
+/**
+ * Describes the message observability.v1.GetHealthOverviewRequest.
+ * Use `create(GetHealthOverviewRequestSchema)` to create a new message.
+ */
+export const GetHealthOverviewRequestSchema: GenMessage<GetHealthOverviewRequest> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 22);
+
+/**
+ * GetHealthOverviewResponse rolls up the three external signals into one call,
+ * each section degrading independently.
+ *
+ * @generated from message observability.v1.GetHealthOverviewResponse
+ */
+export type GetHealthOverviewResponse = Message<"observability.v1.GetHealthOverviewResponse"> & {
+  /**
+   * @generated from field: observability.v1.GetGithubIssuesResponse github = 1;
+   */
+  github?: GetGithubIssuesResponse | undefined;
+
+  /**
+   * @generated from field: observability.v1.GetSentryIssuesResponse sentry = 2;
+   */
+  sentry?: GetSentryIssuesResponse | undefined;
+
+  /**
+   * @generated from field: observability.v1.GetDeployStatusResponse deploy = 3;
+   */
+  deploy?: GetDeployStatusResponse | undefined;
+};
+
+/**
+ * Describes the message observability.v1.GetHealthOverviewResponse.
+ * Use `create(GetHealthOverviewResponseSchema)` to create a new message.
+ */
+export const GetHealthOverviewResponseSchema: GenMessage<GetHealthOverviewResponse> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 23);
+
+/**
  * @generated from service observability.v1.ObservabilityService
  */
 export const ObservabilityService: GenService<{
@@ -410,6 +701,38 @@ export const ObservabilityService: GenService<{
     methodKind: "unary";
     input: typeof GetDatabaseStatsRequestSchema;
     output: typeof GetDatabaseStatsResponseSchema;
+  },
+  /**
+   * @generated from rpc observability.v1.ObservabilityService.GetGithubIssues
+   */
+  getGithubIssues: {
+    methodKind: "unary";
+    input: typeof GetGithubIssuesRequestSchema;
+    output: typeof GetGithubIssuesResponseSchema;
+  },
+  /**
+   * @generated from rpc observability.v1.ObservabilityService.GetSentryIssues
+   */
+  getSentryIssues: {
+    methodKind: "unary";
+    input: typeof GetSentryIssuesRequestSchema;
+    output: typeof GetSentryIssuesResponseSchema;
+  },
+  /**
+   * @generated from rpc observability.v1.ObservabilityService.GetDeployStatus
+   */
+  getDeployStatus: {
+    methodKind: "unary";
+    input: typeof GetDeployStatusRequestSchema;
+    output: typeof GetDeployStatusResponseSchema;
+  },
+  /**
+   * @generated from rpc observability.v1.ObservabilityService.GetHealthOverview
+   */
+  getHealthOverview: {
+    methodKind: "unary";
+    input: typeof GetHealthOverviewRequestSchema;
+    output: typeof GetHealthOverviewResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_observability_v1_observability, 0);

@@ -28,6 +28,13 @@ type Config struct {
 	R2AccessKeyID   string
 	R2SecretKey     string
 	R2Bucket        string
+	GithubToken     string
+	GithubRepo      string
+	SentryOrg       string
+	SentryProject   string
+	SentryAuthToken string
+	DOAccessToken   string
+	DOAppID         string
 }
 
 func New(logger *slog.Logger) Config {
@@ -58,6 +65,14 @@ func New(logger *slog.Logger) Config {
 	cfg.R2AccessKeyID = parser.EnvStr("R2_ACCESS_KEY_ID", "")
 	cfg.R2SecretKey = parser.EnvStr("R2_SECRET_ACCESS_KEY", "")
 	cfg.R2Bucket = parser.EnvStr("R2_BUCKET", "")
+
+	cfg.GithubToken = parser.EnvStr("GITHUB_TOKEN", "")
+	cfg.GithubRepo = parser.EnvStr("GITHUB_REPO", "")
+	cfg.SentryOrg = parser.EnvStr("SENTRY_ORG", "")
+	cfg.SentryProject = parser.EnvStr("SENTRY_PROJECT", "")
+	cfg.SentryAuthToken = parser.EnvStr("SENTRY_AUTH_TOKEN", "")
+	cfg.DOAccessToken = parser.EnvStr("DO_ACCESS_TOKEN", "")
+	cfg.DOAppID = parser.EnvStr("DO_APP_ID", "")
 
 	return cfg
 }

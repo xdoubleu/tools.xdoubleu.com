@@ -124,6 +124,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 - **`constants/`** — Shared constants
 - **`contacts/`** — Contact management service with editable display names (used by recipes, shopping list, and meal-plan sharing)
 - **`crypto/`** — Encryption utilities
+- **`github/`, `sentryapi/`, `digitalocean/`** — Read-only external observability clients (open GitHub issues, unresolved Sentry issues, latest DigitalOcean deployment). Style B (mirrors `apps/reading/pkg/hardcover`): exported `Client` interface + `New(...)`, injected `*http.Client` with timeout, `doWithRetry` backoff, `SetBaseURL`/`SetBackoffBase` test seams, a ~45s in-memory cache, and an `ErrNotConfigured` sentinel returned when the token is unset. Consumed by the observability handlers, which degrade each source independently.
 - **`models/`** — Shared domain models
 - **`repositories/`** — Shared DB repositories over the `global` schema (users, contacts, the observability tables: `JobRunsRepository`, `UsageRepository`, `StorageSnapshotsRepository`, `DBStatsRepository`, and `ProfileSharesRepository` for the public-profile share tokens)
 - **`observability/`** — Cross-cutting instrumentation. `TrackedJob` decorates any `threading.Job` so every run is timed and recorded in `global.job_runs`, panics are recovered, and failures log at Error level (so they reach Sentry); wrap jobs at registration (see `apps/{todos,games,reading}/app.go`). `UsageRecorder` counts requests per `(day, app, endpoint)` in memory and flushes to `global.usage_daily`; the counting `usageMiddleware` sits in the `cmd/api` alice chain after `domainMiddleware`.
@@ -160,7 +161,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 ### Database Conventions
 
 - Each app uses its own PostgreSQL schema (e.g., `reading`, `icsproxy`)
-- Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, `profile_shares`, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The `observability.v1.ObservabilityService` RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_observability.go`) read these plus live `pg_*` size queries.
+- Cross-cutting tables live in the `global` schema with migrations in `cmd/api/migrations/` (users, contacts, `profile_shares`, and observability: `job_runs`, `usage_daily`, `storage_snapshots`). The `observability.v1.ObservabilityService` DB-backed RPCs (`GetJobStats`/`GetUsageStats`/`GetStorageStats`/`GetDatabaseStats` in `cmd/api/connect_observability.go`) read these plus live `pg_*` size queries. The same service also exposes three external-signal RPCs (`GetGithubIssues`/`GetSentryIssues`/`GetDeployStatus`) plus a `GetHealthOverview` rollup in `cmd/api/connect_observability_external.go`, backed by the `internal/{github,sentryapi,digitalocean}` clients; each source degrades to an empty `configured=false` section when its token is unset or the upstream call fails, so one broken source never fails the response.
 - Migrations live in `apps/<name>/migrations/` and follow Goose SQL format
 - `updated_at` columns are managed via PostgreSQL triggers
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking
