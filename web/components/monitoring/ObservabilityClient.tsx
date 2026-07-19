@@ -7,7 +7,10 @@ import {
   useJobStats,
   useUsageStats,
   useStorageStats,
-  useDatabaseStats
+  useDatabaseStats,
+  useGithubIssues,
+  useSentryIssues,
+  useDeployStatus
 } from '@/hooks/useMonitoring'
 import { formatBytes, formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -15,6 +18,9 @@ import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
 import UsageCard from './UsageCard'
+import GithubIssuesCard from './GithubIssuesCard'
+import SentryCard from './SentryCard'
+import DeployCard from './DeployCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
 
@@ -25,9 +31,19 @@ export default function ObservabilityClient() {
   const usageStats = useUsageStats(windowDays)
   const storageStats = useStorageStats()
   const databaseStats = useDatabaseStats()
+  const githubIssues = useGithubIssues()
+  const sentryIssues = useSentryIssues()
+  const deployStatus = useDeployStatus()
 
   const latest = storageStats.data?.latest
   const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
+
+  const github = githubIssues.data
+  const sentry = sentryIssues.data
+  const deploy = deployStatus.data
+  const openIssues = github?.configured ? github.openCount : 0
+  const unresolvedErrors = sentry?.configured ? sentry.unresolvedCount : 0
+  const deployPhase = deploy?.configured ? deploy.phase : ''
 
   const tiles = [
     {
@@ -47,6 +63,24 @@ export default function ObservabilityClient() {
       label: 'Jobs failing',
       value: formatCount(failingJobs),
       tone: failingJobs > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Open issues',
+      value: github?.configured ? formatCount(openIssues) : '—',
+      tone: openIssues > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Unresolved errors',
+      value: sentry?.configured ? formatCount(unresolvedErrors) : '—',
+      tone: unresolvedErrors > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Deploy',
+      value: deployPhase || '—',
+      tone:
+        deployPhase === 'ERROR' || deployPhase === 'CANCELED'
+          ? ('danger' as const)
+          : ('default' as const)
     }
   ]
 
@@ -75,6 +109,9 @@ export default function ObservabilityClient() {
         <DatabaseCard data={databaseStats.data} />
         <JobsCard data={jobStats.data} />
         <UsageCard data={usageStats.data} />
+        <GithubIssuesCard data={githubIssues.data} />
+        <SentryCard data={sentryIssues.data} />
+        <DeployCard data={deployStatus.data} />
       </div>
     </PageContainer>
   )

@@ -5,7 +5,10 @@ import type {
   GetJobStatsResponse,
   GetUsageStatsResponse,
   GetStorageStatsResponse,
-  GetDatabaseStatsResponse
+  GetDatabaseStatsResponse,
+  GetGithubIssuesResponse,
+  GetSentryIssuesResponse,
+  GetDeployStatusResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -34,5 +37,26 @@ export function useDatabaseStats() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetDatabaseStatsResponse, Error>(swrKeys.monitoringDatabaseStats, () =>
     client.getDatabaseStats({})
+  )
+}
+
+export function useGithubIssues() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetGithubIssuesResponse, Error>(swrKeys.monitoringGithubIssues, () =>
+    client.getGithubIssues({})
+  )
+}
+
+export function useSentryIssues() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetSentryIssuesResponse, Error>(swrKeys.monitoringSentryIssues, () =>
+    client.getSentryIssues({})
+  )
+}
+
+export function useDeployStatus() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetDeployStatusResponse, Error>(swrKeys.monitoringDeployStatus, () =>
+    client.getDeployStatus({})
   )
 }

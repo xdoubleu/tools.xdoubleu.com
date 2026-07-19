@@ -12,16 +12,30 @@ const DEFAULT_WINDOW_DAYS = 30
 export default async function MonitoringPage() {
   const client = await createServerClient(ObservabilityService)
 
-  const [jobStats, usageStats, storageStats, databaseStats] = await Promise.all([
+  const [
+    jobStats,
+    usageStats,
+    storageStats,
+    databaseStats,
+    githubIssues,
+    sentryIssues,
+    deployStatus
+  ] = await Promise.all([
     fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getUsageStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getStorageStats({})),
-    fetchOrNull(() => client.getDatabaseStats({}))
+    fetchOrNull(() => client.getDatabaseStats({})),
+    fetchOrNull(() => client.getGithubIssues({})),
+    fetchOrNull(() => client.getSentryIssues({})),
+    fetchOrNull(() => client.getDeployStatus({}))
   ])
 
   const fallback: Record<string, unknown> = {}
   if (storageStats) fallback[swrKeys.monitoringStorageStats] = storageStats
   if (databaseStats) fallback[swrKeys.monitoringDatabaseStats] = databaseStats
+  if (githubIssues) fallback[swrKeys.monitoringGithubIssues] = githubIssues
+  if (sentryIssues) fallback[swrKeys.monitoringSentryIssues] = sentryIssues
+  if (deployStatus) fallback[swrKeys.monitoringDeployStatus] = deployStatus
 
   const keyed: [readonly unknown[], unknown][] = []
   if (jobStats) keyed.push([swrKeys.monitoringJobStats(DEFAULT_WINDOW_DAYS), jobStats])
