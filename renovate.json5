@@ -2,6 +2,7 @@
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
     'config:recommended',
+    'schedule:daily',
   ],
   customManagers: [
     {
@@ -89,9 +90,8 @@
   dependencyDashboardLabels: [
     'dependencies',
   ],
-  schedule: [
-    'monthly',
-  ],
+  minimumReleaseAge: '3 days',
+  internalChecksFilter: 'strict',
   automerge: true,
   automergeType: 'pr',
   platformAutomerge: true,
