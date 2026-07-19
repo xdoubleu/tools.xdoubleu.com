@@ -12,6 +12,9 @@ export const swrKeys = {
   monitoringUsageStats: (windowDays: number) => ['/monitoring/usage-stats', windowDays] as const,
   monitoringStorageStats: '/monitoring/storage-stats',
   monitoringDatabaseStats: '/monitoring/database-stats',
+  monitoringGithubIssues: '/monitoring/github-issues',
+  monitoringSentryIssues: '/monitoring/sentry-issues',
+  monitoringDeployStatus: '/monitoring/deploy-status',
   contacts: '/contacts',
   // Must stay off the /api prefix: the DO ingress routes /api/* to the Go
   // api service, so a path under /api never reaches this Next.js route.

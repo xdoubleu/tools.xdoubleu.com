@@ -4,11 +4,17 @@ import { render, screen } from '@testing-library/react'
 import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
-  GetDatabaseStatsResponseSchema
+  GetDatabaseStatsResponseSchema,
+  GetGithubIssuesResponseSchema,
+  GetSentryIssuesResponseSchema,
+  GetDeployStatusResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
 import DatabaseCard from '@/components/monitoring/DatabaseCard'
+import GithubIssuesCard from '@/components/monitoring/GithubIssuesCard'
+import SentryCard from '@/components/monitoring/SentryCard'
+import DeployCard from '@/components/monitoring/DeployCard'
 
 // recharts needs a non-zero layout size that jsdom does not provide.
 jest.mock('recharts', () => {
@@ -122,5 +128,173 @@ describe('DatabaseCard', () => {
     render(<DatabaseCard data={data} />)
     expect(screen.getByText('books')).toBeInTheDocument()
     expect(screen.getByText('global')).toBeInTheDocument()
+  })
+})
+
+describe('GithubIssuesCard', () => {
+  it('renders open issues with labels', () => {
+    const data = create(GetGithubIssuesResponseSchema, {
+      configured: true,
+      openCount: 1,
+      issues: [
+        {
+          number: 42n,
+          title: 'Something is broken',
+          url: 'https://github.com/x/y/issues/42',
+          state: 'open',
+          createdAt: '2026-01-01T00:00:00Z',
+          labels: ['bug']
+        }
+      ]
+    })
+
+    render(<GithubIssuesCard data={data} />)
+    expect(screen.getByText('Something is broken')).toBeInTheDocument()
+    expect(screen.getByText('#42')).toBeInTheDocument()
+    expect(screen.getByText('bug')).toBeInTheDocument()
+  })
+
+  it('degrades when not configured', () => {
+    const data = create(GetGithubIssuesResponseSchema, { configured: false })
+    render(<GithubIssuesCard data={data} />)
+    expect(screen.getByText('GitHub is not configured.')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when configured with no issues', () => {
+    const data = create(GetGithubIssuesResponseSchema, { configured: true, openCount: 0 })
+    render(<GithubIssuesCard data={data} />)
+    expect(screen.getByText('No open issues.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<GithubIssuesCard data={undefined} />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+})
+
+describe('SentryCard', () => {
+  it('renders unresolved issues with level badge', () => {
+    const data = create(GetSentryIssuesResponseSchema, {
+      configured: true,
+      unresolvedCount: 1,
+      issues: [
+        {
+          id: 'abc',
+          title: 'TypeError: boom',
+          culprit: 'app/foo.ts',
+          permalink: 'https://sentry.io/x',
+          count: 12n,
+          lastSeen: '2026-01-01T00:00:00Z',
+          level: 'error'
+        }
+      ]
+    })
+
+    render(<SentryCard data={data} />)
+    expect(screen.getByText('TypeError: boom')).toBeInTheDocument()
+    expect(screen.getByText('app/foo.ts')).toBeInTheDocument()
+    expect(screen.getByText('error')).toBeInTheDocument()
+    expect(screen.getByText('12 events')).toBeInTheDocument()
+  })
+
+  it('maps warning and info levels to their badge variants', () => {
+    const data = create(GetSentryIssuesResponseSchema, {
+      configured: true,
+      unresolvedCount: 2,
+      issues: [
+        {
+          id: 'warn',
+          title: 'A warning',
+          permalink: 'https://sentry.io/w',
+          count: 1n,
+          lastSeen: '2026-01-01T00:00:00Z',
+          level: 'warning'
+        },
+        {
+          id: 'info',
+          title: 'An info',
+          permalink: 'https://sentry.io/i',
+          count: 1n,
+          lastSeen: '2026-01-01T00:00:00Z',
+          level: 'info'
+        }
+      ]
+    })
+
+    render(<SentryCard data={data} />)
+    expect(screen.getByText('warning')).toBeInTheDocument()
+    expect(screen.getByText('info')).toBeInTheDocument()
+  })
+
+  it('degrades when not configured', () => {
+    const data = create(GetSentryIssuesResponseSchema, { configured: false })
+    render(<SentryCard data={data} />)
+    expect(screen.getByText('Sentry is not configured.')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when configured with no issues', () => {
+    const data = create(GetSentryIssuesResponseSchema, { configured: true, unresolvedCount: 0 })
+    render(<SentryCard data={data} />)
+    expect(screen.getByText('No unresolved issues.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<SentryCard data={undefined} />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+})
+
+describe('DeployCard', () => {
+  it('renders the latest deployment', () => {
+    const data = create(GetDeployStatusResponseSchema, {
+      configured: true,
+      phase: 'ACTIVE',
+      cause: 'manual deploy',
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:05:00Z',
+      deploymentId: 'deploy-123'
+    })
+
+    render(<DeployCard data={data} />)
+    expect(screen.getByText('ACTIVE')).toBeInTheDocument()
+    expect(screen.getByText('manual deploy')).toBeInTheDocument()
+    expect(screen.getByText('deploy-123')).toBeInTheDocument()
+  })
+
+  it('flags a failed deployment phase', () => {
+    const data = create(GetDeployStatusResponseSchema, {
+      configured: true,
+      phase: 'ERROR',
+      deploymentId: 'deploy-err'
+    })
+    render(<DeployCard data={data} />)
+    expect(screen.getByText('ERROR')).toBeInTheDocument()
+  })
+
+  it('renders an in-progress deployment phase', () => {
+    const data = create(GetDeployStatusResponseSchema, {
+      configured: true,
+      phase: 'BUILDING',
+      deploymentId: 'deploy-wip'
+    })
+    render(<DeployCard data={data} />)
+    expect(screen.getByText('BUILDING')).toBeInTheDocument()
+  })
+
+  it('degrades when not configured', () => {
+    const data = create(GetDeployStatusResponseSchema, { configured: false })
+    render(<DeployCard data={data} />)
+    expect(screen.getByText('DigitalOcean is not configured.')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when configured without a deployment', () => {
+    const data = create(GetDeployStatusResponseSchema, { configured: true, deploymentId: '' })
+    render(<DeployCard data={data} />)
+    expect(screen.getByText('No deployment recorded.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<DeployCard data={undefined} />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 })

@@ -11,7 +11,10 @@ jest.mock('@/lib/client', () => ({
     getJobStats: jest.fn(),
     getUsageStats: jest.fn(),
     getStorageStats: jest.fn(),
-    getDatabaseStats: jest.fn()
+    getDatabaseStats: jest.fn(),
+    getGithubIssues: jest.fn(),
+    getSentryIssues: jest.fn(),
+    getDeployStatus: jest.fn()
   }))
 }))
 jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
@@ -23,18 +26,26 @@ import {
   useJobStats,
   useUsageStats,
   useStorageStats,
-  useDatabaseStats
+  useDatabaseStats,
+  useGithubIssues,
+  useSentryIssues,
+  useDeployStatus
 } from '@/hooks/useMonitoring'
 import { swrKeys } from '@/lib/swrKeys'
 
 const mockUseSWR = jest.mocked(useSWR)
 
 beforeEach(() => {
-  mockUseSWR.mockReturnValue(
-    // @ts-expect-error -- mock returns a partial SWRResponse for test purposes
-    { data: undefined, isLoading: false, error: undefined }
-  )
-  mockUseSWR.mockClear()
+  // Invoke the fetcher each hook hands to useSWR so its client call executes.
+  // @ts-expect-error -- mock returns a partial SWRResponse for test purposes
+  mockUseSWR.mockImplementation((key, fetcher) => {
+    if (typeof fetcher === 'function') fetcher(key)
+    return { data: undefined, isLoading: false, error: undefined }
+  })
+})
+
+afterEach(() => {
+  mockUseSWR.mockReset()
 })
 
 describe('useMonitoring', () => {
@@ -56,6 +67,21 @@ describe('useMonitoring', () => {
   it('keys database stats statically', () => {
     renderHook(() => useDatabaseStats())
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDatabaseStats, expect.any(Function))
+  })
+
+  it('keys github issues statically', () => {
+    renderHook(() => useGithubIssues())
+    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringGithubIssues, expect.any(Function))
+  })
+
+  it('keys sentry issues statically', () => {
+    renderHook(() => useSentryIssues())
+    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringSentryIssues, expect.any(Function))
+  })
+
+  it('keys deploy status statically', () => {
+    renderHook(() => useDeployStatus())
+    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDeployStatus, expect.any(Function))
   })
 
   it('distinct window keys do not collide', () => {
