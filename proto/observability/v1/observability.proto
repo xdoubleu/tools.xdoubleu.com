@@ -8,6 +8,11 @@ service ObservabilityService {
   rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
   rpc GetDatabaseStats(GetDatabaseStatsRequest)
       returns (GetDatabaseStatsResponse);
+  rpc GetGithubIssues(GetGithubIssuesRequest) returns (GetGithubIssuesResponse);
+  rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
+  rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
+  rpc GetHealthOverview(GetHealthOverviewRequest)
+      returns (GetHealthOverviewResponse);
 }
 
 message JobStat {
@@ -85,4 +90,69 @@ message GetDatabaseStatsRequest {}
 message GetDatabaseStatsResponse {
   int64 total_size_bytes = 1;
   repeated SchemaStat schemas = 2;
+}
+
+// GithubIssue is a single open issue on the configured repository.
+message GithubIssue {
+  int64 number = 1;
+  string title = 2;
+  string url = 3;
+  string state = 4;
+  string created_at = 5;  // RFC3339
+  repeated string labels = 6;
+}
+
+message GetGithubIssuesRequest {}
+
+// GetGithubIssuesResponse carries the open issues. configured is false when no
+// GitHub token/repo is set — the section is degraded, not failed.
+message GetGithubIssuesResponse {
+  repeated GithubIssue issues = 1;
+  bool configured = 2;
+  int32 open_count = 3;
+}
+
+// SentryIssue is a single unresolved issue on the configured project.
+message SentryIssue {
+  string id = 1;
+  string title = 2;
+  string culprit = 3;
+  string permalink = 4;
+  int64 count = 5;  // number of events
+  string last_seen = 6;  // RFC3339
+  string level = 7;
+}
+
+message GetSentryIssuesRequest {}
+
+// GetSentryIssuesResponse carries the unresolved issues. configured is false
+// when no Sentry org/project/token is set — the section is degraded.
+message GetSentryIssuesResponse {
+  repeated SentryIssue issues = 1;
+  bool configured = 2;
+  int32 unresolved_count = 3;
+}
+
+message GetDeployStatusRequest {}
+
+// GetDeployStatusResponse carries the latest deployment. configured is false
+// when no DigitalOcean token/app ID is set — the section is degraded. All
+// deployment fields are empty when configured is false or no deployment exists.
+message GetDeployStatusResponse {
+  bool configured = 1;
+  string phase = 2;
+  string cause = 3;
+  string created_at = 4;  // RFC3339
+  string updated_at = 5;  // RFC3339
+  string deployment_id = 6;
+}
+
+message GetHealthOverviewRequest {}
+
+// GetHealthOverviewResponse rolls up the three external signals into one call,
+// each section degrading independently.
+message GetHealthOverviewResponse {
+  GetGithubIssuesResponse github = 1;
+  GetSentryIssuesResponse sentry = 2;
+  GetDeployStatusResponse deploy = 3;
 }

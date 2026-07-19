@@ -821,6 +821,601 @@ func (x *GetDatabaseStatsResponse) GetSchemas() []*SchemaStat {
 	return nil
 }
 
+// GithubIssue is a single open issue on the configured repository.
+type GithubIssue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Number        int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC3339
+	Labels        []string               `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GithubIssue) Reset() {
+	*x = GithubIssue{}
+	mi := &file_observability_v1_observability_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GithubIssue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GithubIssue) ProtoMessage() {}
+
+func (x *GithubIssue) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GithubIssue.ProtoReflect.Descriptor instead.
+func (*GithubIssue) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GithubIssue) GetNumber() int64 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *GithubIssue) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *GithubIssue) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *GithubIssue) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *GithubIssue) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *GithubIssue) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+type GetGithubIssuesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGithubIssuesRequest) Reset() {
+	*x = GetGithubIssuesRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGithubIssuesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGithubIssuesRequest) ProtoMessage() {}
+
+func (x *GetGithubIssuesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGithubIssuesRequest.ProtoReflect.Descriptor instead.
+func (*GetGithubIssuesRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{15}
+}
+
+// GetGithubIssuesResponse carries the open issues. configured is false when no
+// GitHub token/repo is set — the section is degraded, not failed.
+type GetGithubIssuesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Issues        []*GithubIssue         `protobuf:"bytes,1,rep,name=issues,proto3" json:"issues,omitempty"`
+	Configured    bool                   `protobuf:"varint,2,opt,name=configured,proto3" json:"configured,omitempty"`
+	OpenCount     int32                  `protobuf:"varint,3,opt,name=open_count,json=openCount,proto3" json:"open_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGithubIssuesResponse) Reset() {
+	*x = GetGithubIssuesResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGithubIssuesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGithubIssuesResponse) ProtoMessage() {}
+
+func (x *GetGithubIssuesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGithubIssuesResponse.ProtoReflect.Descriptor instead.
+func (*GetGithubIssuesResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetGithubIssuesResponse) GetIssues() []*GithubIssue {
+	if x != nil {
+		return x.Issues
+	}
+	return nil
+}
+
+func (x *GetGithubIssuesResponse) GetConfigured() bool {
+	if x != nil {
+		return x.Configured
+	}
+	return false
+}
+
+func (x *GetGithubIssuesResponse) GetOpenCount() int32 {
+	if x != nil {
+		return x.OpenCount
+	}
+	return 0
+}
+
+// SentryIssue is a single unresolved issue on the configured project.
+type SentryIssue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Culprit       string                 `protobuf:"bytes,3,opt,name=culprit,proto3" json:"culprit,omitempty"`
+	Permalink     string                 `protobuf:"bytes,4,opt,name=permalink,proto3" json:"permalink,omitempty"`
+	Count         int64                  `protobuf:"varint,5,opt,name=count,proto3" json:"count,omitempty"`                      // number of events
+	LastSeen      string                 `protobuf:"bytes,6,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"` // RFC3339
+	Level         string                 `protobuf:"bytes,7,opt,name=level,proto3" json:"level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SentryIssue) Reset() {
+	*x = SentryIssue{}
+	mi := &file_observability_v1_observability_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SentryIssue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SentryIssue) ProtoMessage() {}
+
+func (x *SentryIssue) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SentryIssue.ProtoReflect.Descriptor instead.
+func (*SentryIssue) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SentryIssue) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SentryIssue) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *SentryIssue) GetCulprit() string {
+	if x != nil {
+		return x.Culprit
+	}
+	return ""
+}
+
+func (x *SentryIssue) GetPermalink() string {
+	if x != nil {
+		return x.Permalink
+	}
+	return ""
+}
+
+func (x *SentryIssue) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *SentryIssue) GetLastSeen() string {
+	if x != nil {
+		return x.LastSeen
+	}
+	return ""
+}
+
+func (x *SentryIssue) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+type GetSentryIssuesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSentryIssuesRequest) Reset() {
+	*x = GetSentryIssuesRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSentryIssuesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSentryIssuesRequest) ProtoMessage() {}
+
+func (x *GetSentryIssuesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSentryIssuesRequest.ProtoReflect.Descriptor instead.
+func (*GetSentryIssuesRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{18}
+}
+
+// GetSentryIssuesResponse carries the unresolved issues. configured is false
+// when no Sentry org/project/token is set — the section is degraded.
+type GetSentryIssuesResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Issues          []*SentryIssue         `protobuf:"bytes,1,rep,name=issues,proto3" json:"issues,omitempty"`
+	Configured      bool                   `protobuf:"varint,2,opt,name=configured,proto3" json:"configured,omitempty"`
+	UnresolvedCount int32                  `protobuf:"varint,3,opt,name=unresolved_count,json=unresolvedCount,proto3" json:"unresolved_count,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetSentryIssuesResponse) Reset() {
+	*x = GetSentryIssuesResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSentryIssuesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSentryIssuesResponse) ProtoMessage() {}
+
+func (x *GetSentryIssuesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSentryIssuesResponse.ProtoReflect.Descriptor instead.
+func (*GetSentryIssuesResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetSentryIssuesResponse) GetIssues() []*SentryIssue {
+	if x != nil {
+		return x.Issues
+	}
+	return nil
+}
+
+func (x *GetSentryIssuesResponse) GetConfigured() bool {
+	if x != nil {
+		return x.Configured
+	}
+	return false
+}
+
+func (x *GetSentryIssuesResponse) GetUnresolvedCount() int32 {
+	if x != nil {
+		return x.UnresolvedCount
+	}
+	return 0
+}
+
+type GetDeployStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDeployStatusRequest) Reset() {
+	*x = GetDeployStatusRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDeployStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDeployStatusRequest) ProtoMessage() {}
+
+func (x *GetDeployStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDeployStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetDeployStatusRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{20}
+}
+
+// GetDeployStatusResponse carries the latest deployment. configured is false
+// when no DigitalOcean token/app ID is set — the section is degraded. All
+// deployment fields are empty when configured is false or no deployment exists.
+type GetDeployStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Configured    bool                   `protobuf:"varint,1,opt,name=configured,proto3" json:"configured,omitempty"`
+	Phase         string                 `protobuf:"bytes,2,opt,name=phase,proto3" json:"phase,omitempty"`
+	Cause         string                 `protobuf:"bytes,3,opt,name=cause,proto3" json:"cause,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC3339
+	UpdatedAt     string                 `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"` // RFC3339
+	DeploymentId  string                 `protobuf:"bytes,6,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDeployStatusResponse) Reset() {
+	*x = GetDeployStatusResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDeployStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDeployStatusResponse) ProtoMessage() {}
+
+func (x *GetDeployStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDeployStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetDeployStatusResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GetDeployStatusResponse) GetConfigured() bool {
+	if x != nil {
+		return x.Configured
+	}
+	return false
+}
+
+func (x *GetDeployStatusResponse) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *GetDeployStatusResponse) GetCause() string {
+	if x != nil {
+		return x.Cause
+	}
+	return ""
+}
+
+func (x *GetDeployStatusResponse) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *GetDeployStatusResponse) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *GetDeployStatusResponse) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+type GetHealthOverviewRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHealthOverviewRequest) Reset() {
+	*x = GetHealthOverviewRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHealthOverviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHealthOverviewRequest) ProtoMessage() {}
+
+func (x *GetHealthOverviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHealthOverviewRequest.ProtoReflect.Descriptor instead.
+func (*GetHealthOverviewRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{22}
+}
+
+// GetHealthOverviewResponse rolls up the three external signals into one call,
+// each section degrading independently.
+type GetHealthOverviewResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Github        *GetGithubIssuesResponse `protobuf:"bytes,1,opt,name=github,proto3" json:"github,omitempty"`
+	Sentry        *GetSentryIssuesResponse `protobuf:"bytes,2,opt,name=sentry,proto3" json:"sentry,omitempty"`
+	Deploy        *GetDeployStatusResponse `protobuf:"bytes,3,opt,name=deploy,proto3" json:"deploy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHealthOverviewResponse) Reset() {
+	*x = GetHealthOverviewResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHealthOverviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHealthOverviewResponse) ProtoMessage() {}
+
+func (x *GetHealthOverviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHealthOverviewResponse.ProtoReflect.Descriptor instead.
+func (*GetHealthOverviewResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetHealthOverviewResponse) GetGithub() *GetGithubIssuesResponse {
+	if x != nil {
+		return x.Github
+	}
+	return nil
+}
+
+func (x *GetHealthOverviewResponse) GetSentry() *GetSentryIssuesResponse {
+	if x != nil {
+		return x.Sentry
+	}
+	return nil
+}
+
+func (x *GetHealthOverviewResponse) GetDeploy() *GetDeployStatusResponse {
+	if x != nil {
+		return x.Deploy
+	}
+	return nil
+}
+
 var File_observability_v1_observability_proto protoreflect.FileDescriptor
 
 const file_observability_v1_observability_proto_rawDesc = "" +
@@ -889,12 +1484,64 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x17GetDatabaseStatsRequest\"|\n" +
 	"\x18GetDatabaseStatsResponse\x12(\n" +
 	"\x10total_size_bytes\x18\x01 \x01(\x03R\x0etotalSizeBytes\x126\n" +
-	"\aschemas\x18\x02 \x03(\v2\x1c.observability.v1.SchemaStatR\aschemas2\xa7\x03\n" +
+	"\aschemas\x18\x02 \x03(\v2\x1c.observability.v1.SchemaStatR\aschemas\"\x9a\x01\n" +
+	"\vGithubIssue\x12\x16\n" +
+	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12\x14\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x16\n" +
+	"\x06labels\x18\x06 \x03(\tR\x06labels\"\x18\n" +
+	"\x16GetGithubIssuesRequest\"\x8f\x01\n" +
+	"\x17GetGithubIssuesResponse\x125\n" +
+	"\x06issues\x18\x01 \x03(\v2\x1d.observability.v1.GithubIssueR\x06issues\x12\x1e\n" +
+	"\n" +
+	"configured\x18\x02 \x01(\bR\n" +
+	"configured\x12\x1d\n" +
+	"\n" +
+	"open_count\x18\x03 \x01(\x05R\topenCount\"\xb4\x01\n" +
+	"\vSentryIssue\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
+	"\aculprit\x18\x03 \x01(\tR\aculprit\x12\x1c\n" +
+	"\tpermalink\x18\x04 \x01(\tR\tpermalink\x12\x14\n" +
+	"\x05count\x18\x05 \x01(\x03R\x05count\x12\x1b\n" +
+	"\tlast_seen\x18\x06 \x01(\tR\blastSeen\x12\x14\n" +
+	"\x05level\x18\a \x01(\tR\x05level\"\x18\n" +
+	"\x16GetSentryIssuesRequest\"\x9b\x01\n" +
+	"\x17GetSentryIssuesResponse\x125\n" +
+	"\x06issues\x18\x01 \x03(\v2\x1d.observability.v1.SentryIssueR\x06issues\x12\x1e\n" +
+	"\n" +
+	"configured\x18\x02 \x01(\bR\n" +
+	"configured\x12)\n" +
+	"\x10unresolved_count\x18\x03 \x01(\x05R\x0funresolvedCount\"\x18\n" +
+	"\x16GetDeployStatusRequest\"\xc8\x01\n" +
+	"\x17GetDeployStatusResponse\x12\x1e\n" +
+	"\n" +
+	"configured\x18\x01 \x01(\bR\n" +
+	"configured\x12\x14\n" +
+	"\x05phase\x18\x02 \x01(\tR\x05phase\x12\x14\n" +
+	"\x05cause\x18\x03 \x01(\tR\x05cause\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x05 \x01(\tR\tupdatedAt\x12#\n" +
+	"\rdeployment_id\x18\x06 \x01(\tR\fdeploymentId\"\x1a\n" +
+	"\x18GetHealthOverviewRequest\"\xe4\x01\n" +
+	"\x19GetHealthOverviewResponse\x12A\n" +
+	"\x06github\x18\x01 \x01(\v2).observability.v1.GetGithubIssuesResponseR\x06github\x12A\n" +
+	"\x06sentry\x18\x02 \x01(\v2).observability.v1.GetSentryIssuesResponseR\x06sentry\x12A\n" +
+	"\x06deploy\x18\x03 \x01(\v2).observability.v1.GetDeployStatusResponseR\x06deploy2\xcd\x06\n" +
 	"\x14ObservabilityService\x12Z\n" +
 	"\vGetJobStats\x12$.observability.v1.GetJobStatsRequest\x1a%.observability.v1.GetJobStatsResponse\x12`\n" +
 	"\rGetUsageStats\x12&.observability.v1.GetUsageStatsRequest\x1a'.observability.v1.GetUsageStatsResponse\x12f\n" +
 	"\x0fGetStorageStats\x12(.observability.v1.GetStorageStatsRequest\x1a).observability.v1.GetStorageStatsResponse\x12i\n" +
-	"\x10GetDatabaseStats\x12).observability.v1.GetDatabaseStatsRequest\x1a*.observability.v1.GetDatabaseStatsResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
+	"\x10GetDatabaseStats\x12).observability.v1.GetDatabaseStatsRequest\x1a*.observability.v1.GetDatabaseStatsResponse\x12f\n" +
+	"\x0fGetGithubIssues\x12(.observability.v1.GetGithubIssuesRequest\x1a).observability.v1.GetGithubIssuesResponse\x12f\n" +
+	"\x0fGetSentryIssues\x12(.observability.v1.GetSentryIssuesRequest\x1a).observability.v1.GetSentryIssuesResponse\x12f\n" +
+	"\x0fGetDeployStatus\x12(.observability.v1.GetDeployStatusRequest\x1a).observability.v1.GetDeployStatusResponse\x12l\n" +
+	"\x11GetHealthOverview\x12*.observability.v1.GetHealthOverviewRequest\x1a+.observability.v1.GetHealthOverviewResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
 
 var (
 	file_observability_v1_observability_proto_rawDescOnce sync.Once
@@ -908,22 +1555,32 @@ func file_observability_v1_observability_proto_rawDescGZIP() []byte {
 	return file_observability_v1_observability_proto_rawDescData
 }
 
-var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_observability_v1_observability_proto_goTypes = []any{
-	(*JobStat)(nil),                  // 0: observability.v1.JobStat
-	(*JobRun)(nil),                   // 1: observability.v1.JobRun
-	(*GetJobStatsRequest)(nil),       // 2: observability.v1.GetJobStatsRequest
-	(*GetJobStatsResponse)(nil),      // 3: observability.v1.GetJobStatsResponse
-	(*UsageDay)(nil),                 // 4: observability.v1.UsageDay
-	(*GetUsageStatsRequest)(nil),     // 5: observability.v1.GetUsageStatsRequest
-	(*GetUsageStatsResponse)(nil),    // 6: observability.v1.GetUsageStatsResponse
-	(*PrefixStat)(nil),               // 7: observability.v1.PrefixStat
-	(*StorageSnapshot)(nil),          // 8: observability.v1.StorageSnapshot
-	(*GetStorageStatsRequest)(nil),   // 9: observability.v1.GetStorageStatsRequest
-	(*GetStorageStatsResponse)(nil),  // 10: observability.v1.GetStorageStatsResponse
-	(*SchemaStat)(nil),               // 11: observability.v1.SchemaStat
-	(*GetDatabaseStatsRequest)(nil),  // 12: observability.v1.GetDatabaseStatsRequest
-	(*GetDatabaseStatsResponse)(nil), // 13: observability.v1.GetDatabaseStatsResponse
+	(*JobStat)(nil),                   // 0: observability.v1.JobStat
+	(*JobRun)(nil),                    // 1: observability.v1.JobRun
+	(*GetJobStatsRequest)(nil),        // 2: observability.v1.GetJobStatsRequest
+	(*GetJobStatsResponse)(nil),       // 3: observability.v1.GetJobStatsResponse
+	(*UsageDay)(nil),                  // 4: observability.v1.UsageDay
+	(*GetUsageStatsRequest)(nil),      // 5: observability.v1.GetUsageStatsRequest
+	(*GetUsageStatsResponse)(nil),     // 6: observability.v1.GetUsageStatsResponse
+	(*PrefixStat)(nil),                // 7: observability.v1.PrefixStat
+	(*StorageSnapshot)(nil),           // 8: observability.v1.StorageSnapshot
+	(*GetStorageStatsRequest)(nil),    // 9: observability.v1.GetStorageStatsRequest
+	(*GetStorageStatsResponse)(nil),   // 10: observability.v1.GetStorageStatsResponse
+	(*SchemaStat)(nil),                // 11: observability.v1.SchemaStat
+	(*GetDatabaseStatsRequest)(nil),   // 12: observability.v1.GetDatabaseStatsRequest
+	(*GetDatabaseStatsResponse)(nil),  // 13: observability.v1.GetDatabaseStatsResponse
+	(*GithubIssue)(nil),               // 14: observability.v1.GithubIssue
+	(*GetGithubIssuesRequest)(nil),    // 15: observability.v1.GetGithubIssuesRequest
+	(*GetGithubIssuesResponse)(nil),   // 16: observability.v1.GetGithubIssuesResponse
+	(*SentryIssue)(nil),               // 17: observability.v1.SentryIssue
+	(*GetSentryIssuesRequest)(nil),    // 18: observability.v1.GetSentryIssuesRequest
+	(*GetSentryIssuesResponse)(nil),   // 19: observability.v1.GetSentryIssuesResponse
+	(*GetDeployStatusRequest)(nil),    // 20: observability.v1.GetDeployStatusRequest
+	(*GetDeployStatusResponse)(nil),   // 21: observability.v1.GetDeployStatusResponse
+	(*GetHealthOverviewRequest)(nil),  // 22: observability.v1.GetHealthOverviewRequest
+	(*GetHealthOverviewResponse)(nil), // 23: observability.v1.GetHealthOverviewResponse
 }
 var file_observability_v1_observability_proto_depIdxs = []int32{
 	0,  // 0: observability.v1.GetJobStatsResponse.stats:type_name -> observability.v1.JobStat
@@ -933,19 +1590,32 @@ var file_observability_v1_observability_proto_depIdxs = []int32{
 	8,  // 4: observability.v1.GetStorageStatsResponse.latest:type_name -> observability.v1.StorageSnapshot
 	8,  // 5: observability.v1.GetStorageStatsResponse.history:type_name -> observability.v1.StorageSnapshot
 	11, // 6: observability.v1.GetDatabaseStatsResponse.schemas:type_name -> observability.v1.SchemaStat
-	2,  // 7: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
-	5,  // 8: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
-	9,  // 9: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
-	12, // 10: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
-	3,  // 11: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
-	6,  // 12: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
-	10, // 13: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
-	13, // 14: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	14, // 7: observability.v1.GetGithubIssuesResponse.issues:type_name -> observability.v1.GithubIssue
+	17, // 8: observability.v1.GetSentryIssuesResponse.issues:type_name -> observability.v1.SentryIssue
+	16, // 9: observability.v1.GetHealthOverviewResponse.github:type_name -> observability.v1.GetGithubIssuesResponse
+	19, // 10: observability.v1.GetHealthOverviewResponse.sentry:type_name -> observability.v1.GetSentryIssuesResponse
+	21, // 11: observability.v1.GetHealthOverviewResponse.deploy:type_name -> observability.v1.GetDeployStatusResponse
+	2,  // 12: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
+	5,  // 13: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
+	9,  // 14: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
+	12, // 15: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
+	15, // 16: observability.v1.ObservabilityService.GetGithubIssues:input_type -> observability.v1.GetGithubIssuesRequest
+	18, // 17: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
+	20, // 18: observability.v1.ObservabilityService.GetDeployStatus:input_type -> observability.v1.GetDeployStatusRequest
+	22, // 19: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
+	3,  // 20: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
+	6,  // 21: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
+	10, // 22: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
+	13, // 23: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
+	16, // 24: observability.v1.ObservabilityService.GetGithubIssues:output_type -> observability.v1.GetGithubIssuesResponse
+	19, // 25: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
+	21, // 26: observability.v1.ObservabilityService.GetDeployStatus:output_type -> observability.v1.GetDeployStatusResponse
+	23, // 27: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
+	20, // [20:28] is the sub-list for method output_type
+	12, // [12:20] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_observability_v1_observability_proto_init() }
@@ -959,7 +1629,7 @@ func file_observability_v1_observability_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_observability_v1_observability_proto_rawDesc), len(file_observability_v1_observability_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

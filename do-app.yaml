@@ -71,6 +71,23 @@ services:
       - key: SENTRY_DSN
         scope: RUN_TIME
         type: SECRET
+      - key: SENTRY_ORG
+        scope: RUN_TIME
+        value: xdoubleu
+      - key: SENTRY_PROJECT
+        scope: RUN_TIME
+        value: tools-xdoubleu-com
+      - key: SENTRY_AUTH_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: DO_ACCESS_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      # Set to this app's own ID so it can read its latest deployment. Left
+      # blank ships the deploy-status card disabled (degraded) until filled in.
+      - key: DO_APP_ID
+        scope: RUN_TIME
+        value: ""
 
   - name: web
     image:
