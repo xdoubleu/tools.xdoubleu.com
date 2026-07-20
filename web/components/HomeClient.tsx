@@ -11,13 +11,21 @@ import { ConnectError } from '@connectrpc/connect'
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
 
 // Reads and validates the `next` query param so post-sign-in redirects can
-// only ever land same-origin (never `//evil.com` or the backslash variant
-// browsers normalize to a protocol-relative URL).
+// only ever land same-origin. Resolving through the URL API (rather than
+// string-prefix checks) lets the platform parser itself collapse
+// protocol-relative and backslash variants (`//evil.com`, `/\evil.com`) down
+// to their real origin, which we then compare directly.
 export function safeNext(): string {
   if (typeof window === 'undefined') return '/'
   const next = new URLSearchParams(window.location.search).get('next')
-  if (next && next.startsWith('/') && !next.startsWith('//') && next[1] !== '\\') {
-    return next
+  if (!next) return '/'
+  try {
+    const resolved = new URL(next, window.location.origin)
+    if (resolved.origin === window.location.origin) {
+      return resolved.pathname + resolved.search + resolved.hash
+    }
+  } catch {
+    // fall through to the default below
   }
   return '/'
 }
