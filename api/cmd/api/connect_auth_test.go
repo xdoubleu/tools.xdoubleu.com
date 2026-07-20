@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -105,6 +106,53 @@ func TestSignIn_InvalidRedirect(t *testing.T) {
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestIsRelativeURL(t *testing.T) {
+	tests := []struct {
+		url  string
+		want bool
+	}{
+		{"/", true},
+		{"/foo", true},
+		{"/foo/bar?x=1", true},
+		{"", false},
+		{"https://evil.com", false},
+		{"//evil.com", false},
+		// Some browsers normalize a leading backslash to a slash, turning
+		// these into protocol-relative URLs — see #449.
+		{"/\\evil.com", false},
+		{"/\\/evil.com", false},
+		{"\\/evil.com", false},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, isRelativeURL(tt.url), "url=%q", tt.url)
+	}
+}
+
+func TestSignIn_Success_UsesLaxCookies(t *testing.T) {
+	// #445: session cookies must be SameSite=Lax so they still attach on the
+	// cross-site redirect from Supabase to /oauth/consent.
+	client := authClient(t)
+	resp, err := client.SignIn(
+		context.Background(),
+		connect.NewRequest(&authv1.SignInRequest{
+			Email:      "valid@example.com",
+			Password:   "password",
+			RememberMe: true,
+			Redirect:   "/",
+		}),
+	)
+	require.NoError(t, err)
+
+	found := false
+	for _, raw := range resp.Header().Values("Set-Cookie") {
+		if strings.HasPrefix(raw, "accessToken=") {
+			found = true
+			assert.Contains(t, raw, "SameSite=Lax")
+		}
+	}
+	assert.True(t, found, "expected an accessToken Set-Cookie header")
 }
 
 func TestForgotPassword_Success(t *testing.T) {

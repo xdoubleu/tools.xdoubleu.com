@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -21,6 +22,34 @@ func TestExchangeToken_Success(t *testing.T) {
 	assert.NotNil(t, resp)
 	setCookieHeaders := resp.Header().Values("Set-Cookie")
 	assert.NotEmpty(t, setCookieHeaders)
+}
+
+func TestExchangeToken_NeedsMFA(t *testing.T) {
+	// #447: a verified TOTP factor must still be challenged before
+	// ExchangeToken (the password-reset flow) grants a full session.
+	client := authClient(t)
+	resp, err := client.ExchangeToken(context.Background(), connect.NewRequest(
+		&authv1.ExchangeTokenRequest{
+			AccessToken:  "mfa-access",
+			RefreshToken: "mfa-refresh",
+		},
+	))
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.NeedsMfa)
+
+	setCookieHeaders := resp.Header().Values("Set-Cookie")
+	sawMFACookie, sawSessionCookie := false, false
+	for _, c := range setCookieHeaders {
+		switch {
+		case strings.HasPrefix(c, "mfaToken="):
+			sawMFACookie = true
+		case strings.HasPrefix(c, "accessToken="),
+			strings.HasPrefix(c, "refreshToken="):
+			sawSessionCookie = true
+		}
+	}
+	assert.True(t, sawMFACookie, "expected mfaToken cookie to be set")
+	assert.False(t, sawSessionCookie, "must not grant a full session before MFA")
 }
 
 func TestExchangeToken_InvalidToken(t *testing.T) {
@@ -89,6 +118,25 @@ func TestUpdatePassword_Success(t *testing.T) {
 	setCookieOnRequest(req, accessToken)
 	_, err := client.UpdatePassword(context.Background(), req)
 	require.NoError(t, err)
+}
+
+func TestUpdatePassword_RevokesOtherSessions(t *testing.T) {
+	// "logout-fail-access" maps to a mock whose Logout() call errors, so a
+	// successful UpdatePassword here would mean the #448 fix (revoke other
+	// sessions on password change) stopped calling Logout.
+	client := authClient(t)
+	req := connect.NewRequest(
+		&authv1.UpdatePasswordRequest{NewPassword: "newpassword123"},
+	)
+	setCookieOnRequest(
+		req,
+		http.Cookie{Name: "accessToken", Value: "logout-fail-access"},
+	)
+	_, err := client.UpdatePassword(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
 }
 
 func TestMFAUnenroll_NoToken(t *testing.T) {

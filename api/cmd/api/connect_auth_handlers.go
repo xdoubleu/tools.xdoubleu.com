@@ -12,7 +12,8 @@ import (
 )
 
 func isRelativeURL(url string) bool {
-	return len(url) > 0 && url[0] == '/' && (len(url) == 1 || url[1] != '/')
+	return len(url) > 0 && url[0] == '/' &&
+		(len(url) == 1 || (url[1] != '/' && url[1] != '\\'))
 }
 
 func (h *authConnectHandler) SignIn(
@@ -66,16 +67,7 @@ func (h *authConnectHandler) SignIn(
 		req.Msg.RememberMe,
 		req.Msg.Redirect,
 	)
-	//nolint:gosec // Secure is conditionally set based on environment
-	resp.Header().Add("Set-Cookie", (&http.Cookie{
-		Name:     mfaFactorIDCookieName,
-		Value:    factorID.String(),
-		MaxAge:   int(mfaCookieTTL.Seconds()),
-		SameSite: http.SameSiteStrictMode,
-		HttpOnly: true,
-		Secure:   h.secure(),
-		Path:     "/",
-	}).String())
+	h.setMFAFactorIDCookie(resp.Header(), factorID)
 	return resp, nil
 }
 
@@ -119,6 +111,18 @@ func (h *authConnectHandler) ExchangeToken(
 			connect.CodeUnauthenticated,
 			errors.New("invalid or expired token"),
 		)
+	}
+
+	// Mirror SignIn: a verified TOTP factor must still be challenged before a
+	// full session is granted, so a password reset alone can't bypass MFA.
+	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, req.Msg.AccessToken)
+	if hasMFA {
+		resp := connect.NewResponse(&authv1.ExchangeTokenResponse{NeedsMfa: true})
+		h.setMFACookies(
+			resp.Header(), req.Msg.AccessToken, req.Msg.RefreshToken, true, "",
+		)
+		h.setMFAFactorIDCookie(resp.Header(), factorID)
+		return resp, nil
 	}
 
 	resp := connect.NewResponse(&authv1.ExchangeTokenResponse{})

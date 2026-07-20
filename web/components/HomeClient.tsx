@@ -10,6 +10,18 @@ import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
 
+// Reads and validates the `next` query param so post-sign-in redirects can
+// only ever land same-origin (never `//evil.com` or the backslash variant
+// browsers normalize to a protocol-relative URL).
+export function safeNext(): string {
+  if (typeof window === 'undefined') return '/'
+  const next = new URLSearchParams(window.location.search).get('next')
+  if (next && next.startsWith('/') && !next.startsWith('//') && next[1] !== '\\') {
+    return next
+  }
+  return '/'
+}
+
 const ALL_APPS: AppLink[] = [
   {
     name: 'games',
@@ -121,10 +133,8 @@ export default function HomeClient() {
       const res = await signIn(email, password, rememberMe, '')
       if (res.needsMfa) {
         setAuthState('mfa-challenge')
-      } else {
-        if (typeof window !== 'undefined') {
-          window.location.reload()
-        }
+      } else if (typeof window !== 'undefined') {
+        window.location.href = safeNext()
       }
     } catch (err) {
       if (err instanceof ConnectError) {
@@ -144,7 +154,7 @@ export default function HomeClient() {
     try {
       await mFAChallenge(mfaCode)
       if (typeof window !== 'undefined') {
-        window.location.reload()
+        window.location.href = safeNext()
       }
     } catch (err) {
       if (err instanceof ConnectError) {

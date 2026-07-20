@@ -1,7 +1,7 @@
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ConnectError } from '@connectrpc/connect'
-import HomeClient from '@/components/HomeClient'
+import HomeClient, { safeNext } from '@/components/HomeClient'
 import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 
 jest.mock('@/hooks/useAuth', () => ({
@@ -350,6 +350,28 @@ describe('HomeClient', () => {
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
     expect(screen.queryByText('Todos')).not.toBeInTheDocument()
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()
+  })
+
+  describe('safeNext (#446 next-redirect validation)', () => {
+    it('returns a same-origin next param unchanged', () => {
+      window.history.pushState({}, '', '/?next=%2Freading')
+      expect(safeNext()).toBe('/reading')
+    })
+
+    it('rejects a protocol-relative //evil.com next param', () => {
+      window.history.pushState({}, '', '/?next=%2F%2Fevil.com')
+      expect(safeNext()).toBe('/')
+    })
+
+    it('rejects the backslash variant browsers normalize to protocol-relative', () => {
+      window.history.pushState({}, '', '/?next=%2F%5Cevil.com')
+      expect(safeNext()).toBe('/')
+    })
+
+    it('defaults to / when next is absent', () => {
+      window.history.pushState({}, '', '/')
+      expect(safeNext()).toBe('/')
+    })
   })
 
   it('shows MFA challenge UI when needsMfa is true', async () => {

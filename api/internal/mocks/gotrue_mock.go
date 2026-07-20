@@ -194,6 +194,11 @@ func (client MockedGoTrueClient) Invite(
 }
 
 func (client MockedGoTrueClient) Logout() error {
+	// "logout-fail-access" lets tests exercise UpdatePassword's session-
+	// revocation error path (see #448).
+	if client.token == "logout-fail-access" {
+		return errors.New("logout failed")
+	}
 	return nil
 }
 
