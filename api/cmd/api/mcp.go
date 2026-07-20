@@ -9,10 +9,10 @@ import (
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/mcptools"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -67,12 +67,23 @@ func (app *Application) mcpResourceMetadataURL() string {
 }
 
 func (app *Application) mcpResourceMetadata() *oauthex.ProtectedResourceMetadata {
+	return app.mcpResourceMetadataFor(
+		monitoringMCPPath, "tools.xdoubleu.com observability",
+	)
+}
+
+// mcpResourceMetadataFor builds the RFC 9728 protected-resource metadata for the
+// MCP endpoint at mcpPath: the resource URL, the Supabase authorization server,
+// and a human-readable resource name. Shared by every MCP endpoint.
+func (app *Application) mcpResourceMetadataFor(
+	mcpPath, resourceName string,
+) *oauthex.ProtectedResourceMetadata {
 	//nolint:exhaustruct // only the discovery fields are relevant
 	return &oauthex.ProtectedResourceMetadata{
-		Resource:               app.mcpResourceURL(),
+		Resource:               app.config.APIURL + mcpPath,
 		AuthorizationServers:   []string{app.mcpAuthServerIssuer()},
 		BearerMethodsSupported: []string{"header"},
-		ResourceName:           "tools.xdoubleu.com observability",
+		ResourceName:           resourceName,
 	}
 }
 
@@ -121,14 +132,27 @@ func (app *Application) mcpUserContext(next http.Handler) http.Handler {
 // the WWW-Authenticate challenge pointing at the resource metadata) → user
 // promotion → the streamable-HTTP MCP handler.
 func (app *Application) monitoringMCPRoute() http.Handler {
+	return app.mcpBearerRoute(
+		app.mcpResourceMetadataURL(), app.monitoringMCPHandler(),
+	)
+}
+
+// mcpBearerRoute wraps an MCP handler in the OAuth 2.1 resource-server gate:
+// Bearer verification (whose 401 challenge points at resourceMetadataURL) then
+// promotion of the resolved user onto the request context. Shared by every MCP
+// endpoint.
+func (app *Application) mcpBearerRoute(
+	resourceMetadataURL string,
+	inner http.Handler,
+) http.Handler {
 	bearer := mcpauth.RequireBearerToken(
 		app.mcpTokenVerifier(),
 		&mcpauth.RequireBearerTokenOptions{
-			ResourceMetadataURL: app.mcpResourceMetadataURL(),
+			ResourceMetadataURL: resourceMetadataURL,
 			Scopes:              nil,
 		},
 	)
-	return bearer(app.mcpUserContext(app.monitoringMCPHandler()))
+	return bearer(app.mcpUserContext(inner))
 }
 
 func (app *Application) monitoringMCPHandler() http.Handler {
@@ -209,18 +233,6 @@ func addObsTool[In any](
 			if err != nil {
 				return nil, nil, err
 			}
-			return mcpResult(msg)
+			return mcptools.Result(msg)
 		})
-}
-
-func mcpResult(msg proto.Message) (*mcp.CallToolResult, any, error) {
-	data, err := protojson.Marshal(msg)
-	if err != nil {
-		return nil, nil, err
-	}
-	//nolint:exhaustruct // only Content carries the tool output
-	return &mcp.CallToolResult{
-		//nolint:exhaustruct // TextContent needs only Text
-		Content: []mcp.Content{&mcp.TextContent{Text: string(data)}},
-	}, nil, nil
 }

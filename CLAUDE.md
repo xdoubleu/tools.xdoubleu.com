@@ -18,6 +18,8 @@ Apps: **games**, **reading** (formerly books — Go package `apps/reading`, sche
 
 Admin observability (`observability.v1`) also powers a read-only **MCP server** at `/monitoring/mcp` (behind MCP OAuth 2.1, Supabase as the authorization server) so a local Claude CLI can pull production signals as read-only context. See the "Monitoring MCP server" section in [`README.md`](README.md).
 
+A second read-only **MCP server** at `/apps/mcp` exposes each app's own read RPCs as `<app>_<rpc>` tools (reusing the same OAuth 2.1 flow), so a local Claude CLI can query production domain data. Apps contribute tools by implementing `MCPToolProvider` (`api/cmd/api/apps.go`); the shared gate + marshaling live in `api/internal/mcptools`. Unlike the monitoring server, each tool is gated by the caller's own per-app access (not admin-only) and returns only that user's data. See the "Apps MCP server" section in [`README.md`](README.md).
+
 ## Code Navigation (ast-grep)
 
 **Prefer `ast-grep` over `grep` for any code search.** It understands syntax trees so results are exact — no false positives from comments or strings.
