@@ -1,5 +1,24 @@
 {
   "model": "opusplan",
+  "permissions": {
+    "allow": [
+      "Bash(go test *)",
+      "Bash(npm run test:cov *)",
+      "Bash(ast-grep run *)",
+      "Bash(make test/cov/report)",
+      "Bash(go build *)",
+      "Bash(go vet *)",
+      "Bash(npm run lint *)",
+      "Bash(go tool cover *)",
+      "Bash(make lint)",
+      "Bash(npm run test:single *)",
+      "Bash(make test)",
+      "Bash(gh project list *)",
+      "Bash(gh project view *)",
+      "Bash(gh project item-list *)",
+      "Bash(/usr/bin/log show *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
