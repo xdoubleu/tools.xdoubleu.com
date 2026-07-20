@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useCurrentUser, useSignOut } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 
@@ -9,8 +10,11 @@ const navItemClass = 'text-muted hover:bg-transparent hover:text-accent'
 export default function Navbar() {
   const { data, isLoading } = useCurrentUser()
   const signOut = useSignOut()
+  const pathname = usePathname()
 
   if (isLoading || !data) return null
+  // ponytail: /profile/** is the public share-link surface; never show owner chrome there
+  if (pathname?.startsWith('/profile/')) return null
 
   const handleSignOut = async () => {
     await signOut()
