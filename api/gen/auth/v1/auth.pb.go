@@ -683,6 +683,7 @@ func (x *ExchangeTokenRequest) GetRefreshToken() string {
 
 type ExchangeTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	NeedsMfa      bool                   `protobuf:"varint,1,opt,name=needs_mfa,json=needsMfa,proto3" json:"needs_mfa,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -715,6 +716,13 @@ func (x *ExchangeTokenResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ExchangeTokenResponse.ProtoReflect.Descriptor instead.
 func (*ExchangeTokenResponse) Descriptor() ([]byte, []int) {
 	return file_auth_v1_auth_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ExchangeTokenResponse) GetNeedsMfa() bool {
+	if x != nil {
+		return x.NeedsMfa
+	}
+	return false
 }
 
 type UpdatePasswordRequest struct {
@@ -1011,8 +1019,9 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x16ForgotPasswordResponse\"^\n" +
 	"\x14ExchangeTokenRequest\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"\x17\n" +
-	"\x15ExchangeTokenResponse\":\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"4\n" +
+	"\x15ExchangeTokenResponse\x12\x1b\n" +
+	"\tneeds_mfa\x18\x01 \x01(\bR\bneedsMfa\":\n" +
 	"\x15UpdatePasswordRequest\x12!\n" +
 	"\fnew_password\x18\x01 \x01(\tR\vnewPassword\"\x18\n" +
 	"\x16UpdatePasswordResponse\"\x10\n" +

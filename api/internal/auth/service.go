@@ -183,7 +183,7 @@ func (service *GoTrueService) SignOut(
 		Name:     service.GetCookieName(models.AccessScope),
 		Value:    "",
 		MaxAge:   -1,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
 		Secure:   secure,
 		Path:     "/",
@@ -194,7 +194,7 @@ func (service *GoTrueService) SignOut(
 		Name:     service.GetCookieName(models.RefreshScope),
 		Value:    "",
 		MaxAge:   -1,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
 		Secure:   secure,
 		Path:     "/",
@@ -229,10 +229,14 @@ func (service *GoTrueService) CreateCookie(
 
 	//nolint:gosec // Secure is conditionally set based on environment
 	cookie := http.Cookie{
-		Name:     name,
-		Value:    token,
-		Expires:  time.Now().Add(ttl),
-		SameSite: http.SameSiteStrictMode,
+		Name:    name,
+		Value:   token,
+		Expires: time.Now().Add(ttl),
+		// Lax (not Strict): Supabase redirects the browser here cross-site
+		// during the MCP OAuth consent flow (/oauth/consent), and a Strict
+		// cookie would not attach to that top-level GET. These cookies don't
+		// gate cross-site CSRF on their own, so Lax is the standard tradeoff.
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
 		Secure:   secure,
 		Path:     "/",
@@ -256,11 +260,25 @@ func (service *GoTrueService) UpdatePassword(
 	_ context.Context,
 	accessToken, newPassword string,
 ) error {
-	service.userCache.evict(accessToken)
+	authedClient := service.client.WithToken(accessToken)
 
 	//nolint:exhaustruct //only updating password field
-	_, err := service.client.WithToken(accessToken).UpdateUser(
+	_, err := authedClient.UpdateUser(
 		types.UpdateUserRequest{Password: &newPassword},
 	)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// ponytail: auth-go v1.5.0's Logout has no scope param, so this revokes
+	// every refresh token for the user (including the one just used here) —
+	// the point of resetting a password is to kick out any other session too.
+	// The caller's own JWT access token stays valid until it expires; the
+	// cache eviction below stops it being trusted past this request's TTL.
+	if err = authedClient.Logout(); err != nil {
+		return err
+	}
+
+	service.InvalidateUserCache()
+	return nil
 }

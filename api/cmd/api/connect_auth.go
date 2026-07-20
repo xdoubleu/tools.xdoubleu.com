@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/xdoubleu/essentia/v4/pkg/config"
 
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
@@ -97,6 +98,22 @@ func (h *authConnectHandler) setMFACookies(
 	} {
 		header.Add("Set-Cookie", c.String())
 	}
+}
+
+func (h *authConnectHandler) setMFAFactorIDCookie(
+	header http.Header,
+	factorID uuid.UUID,
+) {
+	//nolint:gosec // Secure is conditionally set based on environment
+	header.Add("Set-Cookie", (&http.Cookie{
+		Name:     mfaFactorIDCookieName,
+		Value:    factorID.String(),
+		MaxAge:   int(mfaCookieTTL.Seconds()),
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		Secure:   h.secure(),
+		Path:     "/",
+	}).String())
 }
 
 func (h *authConnectHandler) clearMFACookies(header http.Header) {

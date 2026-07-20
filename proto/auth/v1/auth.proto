@@ -68,7 +68,9 @@ message ExchangeTokenRequest {
   string refresh_token = 2;
 }
 
-message ExchangeTokenResponse {}
+message ExchangeTokenResponse {
+  bool needs_mfa = 1;
+}
 
 message UpdatePasswordRequest {
   string new_password = 1;
