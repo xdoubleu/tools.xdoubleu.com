@@ -8,13 +8,20 @@ jest.mock('@/hooks/useAuth', () => ({
   useSignOut: jest.fn()
 }))
 
+jest.mock('next/navigation', () => ({
+  usePathname: jest.fn()
+}))
+
 import { useCurrentUser, useSignOut } from '@/hooks/useAuth'
+import { usePathname } from 'next/navigation'
 
 const mockUseCurrentUser = jest.mocked(useCurrentUser)
 const mockUseSignOut = jest.mocked(useSignOut)
+const mockUsePathname = jest.mocked(usePathname)
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockUsePathname.mockReturnValue('/settings')
 })
 
 describe('Navbar', () => {
@@ -56,6 +63,20 @@ describe('Navbar', () => {
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Contacts' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
+  })
+
+  it('renders nothing on a public shared profile page', () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseCurrentUser.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
+      isLoading: false,
+      error: undefined
+    })
+    mockUseSignOut.mockReturnValue(jest.fn())
+    mockUsePathname.mockReturnValue('/profile/reading/some-token')
+
+    const { container } = render(<Navbar />)
+    expect(container.firstChild).toBeNull()
   })
 
   it('calls signOut and redirects to / on sign out', async () => {
