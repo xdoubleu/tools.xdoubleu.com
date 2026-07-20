@@ -71,6 +71,14 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(rootResourceMetadataPath, prm)
 	mux.Handle(monitoringMCPPath, app.monitoringMCPRoute())
 
+	// Apps MCP server (read-only) — each app's read RPCs behind the same OAuth
+	// 2.1 Bearer auth, gated per tool by the caller's own per-app access.
+	appsPRM := mcpauth.ProtectedResourceMetadataHandler(
+		app.mcpResourceMetadataFor(appsMCPPath, "tools.xdoubleu.com apps"),
+	)
+	mux.Handle(appsResourceMetadataPath, appsPRM)
+	mux.Handle(appsMCPPath, app.appsMCPRoute())
+
 	mux.HandleFunc("GET /api/version", app.versionHandler)
 	mux.HandleFunc("GET /health", app.healthHandler)
 

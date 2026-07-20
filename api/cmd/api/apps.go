@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/games"
@@ -29,6 +30,13 @@ type App interface {
 	GetDisplayName() string
 	GetDomain() string
 	Start() error
+}
+
+// MCPToolProvider is implemented by apps that expose read-only MCP tools on the
+// combined /apps/mcp server. It is optional: newAppsMCPServer only registers
+// tools for apps that satisfy it (see mcp_apps.go).
+type MCPToolProvider interface {
+	RegisterMCPTools(srv *mcp.Server)
 }
 
 func NewApps(

@@ -122,6 +122,26 @@ enable **dynamic client registration**, and confirm the **Site URL** is
 [`do-app.yaml`](do-app.yaml)). Until this is configured the endpoint returns a
 401 challenge but the flow cannot complete.
 
+## Apps MCP server
+
+The apps' own **read-only** data is exposed to a locally-running Claude CLI over a
+second streamable-HTTP MCP server at `/apps/mcp`, so production domain data can be
+pulled in as read-only context for testing/verifying changes with no mutation
+risk. Every tool wraps an existing **read** RPC of an app (games, reading,
+recipes, mealplans, shoppinglist, todos, icsproxy) — no write RPC is reachable,
+so the server is read-only by construction. Tools are named `<app>_<rpc>` (e.g.
+`games_get_steam`, `reading_search_library`, `todos_list_tasks`).
+
+```bash
+claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp
+```
+
+It reuses the **same MCP OAuth 2.1** flow and Supabase setup as the monitoring
+server above (nothing extra to configure). The difference is authorization: each
+tool is gated by the **caller's own per-app access** (admin, or the app in their
+app-access list) — never a blanket admin gate — and every tool returns only that
+signed-in user's own data, exactly what they can already see over HTTP.
+
 ## Adding a New Tool
 
 ```bash
