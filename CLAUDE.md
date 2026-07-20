@@ -16,6 +16,8 @@ Go 1.26 backend (`api/`) serving multiple apps from a single binary, paired with
 
 Apps: **games**, **reading** (formerly books — Go package `apps/reading`, schema `reading`, proto `reading.v1`), **watchparty**, **icsproxy**, **recipes**, **mealplans**, **shoppinglist**, **todos**. See [`api/CLAUDE.md`](api/CLAUDE.md) for per-app details.
 
+Admin observability (`observability.v1`) also powers a read-only **MCP server** at `/monitoring/mcp` (behind MCP OAuth 2.1, Supabase as the authorization server) so a local Claude CLI can pull production signals as read-only context. See the "Monitoring MCP server" section in [`README.md`](README.md).
+
 ## Code Navigation (ast-grep)
 
 **Prefer `ast-grep` over `grep` for any code search.** It understands syntax trees so results are exact — no false positives from comments or strings.

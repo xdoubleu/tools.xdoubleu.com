@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/justinas/alice"
+	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/xdoubleu/essentia/v4/pkg/middleware"
 
 	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
@@ -59,6 +60,16 @@ func (app *Application) Routes() http.Handler {
 		"POST "+profilePath,
 		app.auth.Access(profileHandler.ServeHTTP),
 	)
+
+	// Observability MCP server (read-only) behind OAuth 2.1 Bearer auth. The
+	// protected-resource metadata is public (unauthenticated) for client
+	// discovery; the MCP endpoint itself verifies the Bearer token.
+	prm := mcpauth.ProtectedResourceMetadataHandler(
+		app.mcpResourceMetadata(),
+	)
+	mux.Handle(resourceMetadataPath, prm)
+	mux.Handle(rootResourceMetadataPath, prm)
+	mux.Handle(monitoringMCPPath, app.monitoringMCPRoute())
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)
 	mux.HandleFunc("GET /health", app.healthHandler)

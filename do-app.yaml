@@ -103,3 +103,12 @@ services:
       - key: SENTRY_DSN
         scope: RUN_TIME
         type: SECRET
+      # Used server-side by the OAuth 2.1 consent page (/oauth/consent) to drive
+      # the Supabase authorization endpoints. SUPABASE_URL is
+      # https://<SUPABASE_PROJ_REF>.supabase.co; the anon key is publishable.
+      - key: SUPABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: SUPABASE_ANON_KEY
+        scope: RUN_TIME
+        type: SECRET
