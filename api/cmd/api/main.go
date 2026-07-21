@@ -68,13 +68,13 @@ type Application struct {
 //	@Produce		json
 
 const (
-	dbMaxConns       = 25
-	dbMaxIdleTime    = "15m"
-	dbMaxLifetime    = 60
-	dbConnectTimeout = 10 * time.Second
-	dbHealthCheck    = 5 * time.Minute
-	httpReadTimeout  = 5 * time.Second
-	httpWriteTimeout = 10 * time.Second
+	dbMaxConns           = 25
+	dbMaxIdleTime        = "15m"
+	dbConnectTimeoutSecs = 10
+	dbRetrySleep         = 2 * time.Second
+	dbMaxRetryDuration   = 20 * time.Second
+	httpReadTimeout      = 5 * time.Second
+	httpWriteTimeout     = 10 * time.Second
 	// migrationLockKey identifies the advisory lock that serializes
 	// migration runs across concurrently starting replicas.
 	migrationLockKey = 20260101
@@ -82,6 +82,25 @@ const (
 	// written to global.usage_daily.
 	usageFlushInterval = time.Minute
 )
+
+// migrationLockTimeout bounds how long a starting replica waits for the
+// migration advisory lock before failing loudly, so a lock left held by a
+// stale connection from a prior replica can't hang startup silently forever.
+// A var (not const) so tests can shrink it instead of waiting out the real
+// timeout.
+//
+//nolint:gochecknoglobals //test seam, see comment above
+var migrationLockTimeout = 20 * time.Second
+
+// newDBPool opens the shared pgx pool with the app's real connect
+// parameters; factored out so tests can exercise the same argument list
+// TestMain uses to spin up its own test-DB pool.
+func newDBPool(logger *slog.Logger, dsn string) (*pgxpool.Pool, error) {
+	return postgres.Connect(
+		logger, dsn, dbMaxConns, dbMaxIdleTime,
+		dbConnectTimeoutSecs, dbRetrySleep, dbMaxRetryDuration,
+	)
+}
 
 func main() {
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
@@ -93,15 +112,7 @@ func main() {
 	// Code that can't receive the injected logger falls back to
 	// slog.Default(); route it through the Sentry handler too.
 	slog.SetDefault(logger)
-	db, err := postgres.Connect(
-		logger,
-		cfg.DBDsn,
-		dbMaxConns,
-		dbMaxIdleTime,
-		dbMaxLifetime,
-		dbConnectTimeout,
-		dbHealthCheck,
-	)
+	db, err := newDBPool(logger, cfg.DBDsn)
 	if err != nil {
 		panic(err)
 	}
@@ -283,11 +294,16 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	}
 	defer lockConn.Release()
 
+	lockCtx, cancel := context.WithTimeout(app.ctx, migrationLockTimeout)
+	defer cancel()
+
+	app.logger.Info("acquiring migration lock")
 	if _, err = lockConn.Exec(
-		app.ctx, "SELECT pg_advisory_lock($1)", migrationLockKey,
+		lockCtx, "SELECT pg_advisory_lock($1)", migrationLockKey,
 	); err != nil {
-		return err
+		return fmt.Errorf("failed to acquire migration lock: %w", err)
 	}
+	app.logger.Info("acquired migration lock")
 	defer func() {
 		_, _ = lockConn.Exec(
 			app.ctx, "SELECT pg_advisory_unlock($1)", migrationLockKey,

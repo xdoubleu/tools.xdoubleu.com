@@ -6,9 +6,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/internal/mocks"
@@ -31,15 +29,7 @@ func TestMain(m *testing.M) {
 	// real AES-GCM sealer instead of the "encryption not configured" path.
 	cfg.OAuthTokenEncKey = base64.StdEncoding.EncodeToString(make([]byte, 32))
 
-	postgresDB, err := postgres.Connect(
-		logging.NewNopLogger(),
-		cfg.DBDsn,
-		25,
-		"15m",
-		5,
-		15*time.Second,
-		30*time.Second,
-	)
+	postgresDB, err := newDBPool(logging.NewNopLogger(), cfg.DBDsn)
 	if err != nil {
 		panic(err)
 	}
