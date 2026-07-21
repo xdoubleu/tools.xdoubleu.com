@@ -164,6 +164,11 @@ func newObservabilityClients(
 	config config.Config,
 	oauthConnRepo *repositories.OAuthConnectionsRepository,
 ) (github.Client, sentryapi.Client, digitalocean.Client) {
+	if config.GithubOAuthClientID == "" || config.GithubOAuthClientSecret == "" {
+		logger.Warn(
+			"GITHUB_OAUTH_CLIENT_ID/SECRET not set — GitHub OAuth connect will fail",
+		)
+	}
 	githubClient := github.New(
 		logger,
 		oauthconn.NewTokenFunc(
@@ -175,6 +180,11 @@ func newObservabilityClients(
 		),
 		config.GithubRepo,
 	)
+	if config.SentryOAuthClientID == "" || config.SentryOAuthClientSecret == "" {
+		logger.Warn(
+			"SENTRY_OAUTH_CLIENT_ID/SECRET not set — Sentry OAuth connect will fail",
+		)
+	}
 	sentryClient := sentryapi.New(
 		logger, config.SentryOrg, config.SentryProject,
 		oauthconn.NewTokenFunc(
@@ -185,6 +195,11 @@ func newObservabilityClients(
 			),
 		),
 	)
+	if config.DOOAuthClientID == "" || config.DOOAuthClientSecret == "" {
+		logger.Warn(
+			"DO_OAUTH_CLIENT_ID/SECRET not set — DigitalOcean OAuth connect will fail",
+		)
+	}
 	doClient := digitalocean.New(
 		logger,
 		oauthconn.NewTokenFunc(
