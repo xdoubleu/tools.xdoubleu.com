@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { mutate } from 'swr'
 import { useSetGameFavourite } from '@/hooks/useGames'
 import type { Game } from '@/lib/gen/games/v1/games_pb'
@@ -18,7 +18,11 @@ export default function GameFavouriteButton({ game, className }: GameFavouriteBu
   const [favourite, setFavourite] = useState(game.favourite)
   const setGameFavourite = useSetGameFavourite()
 
-  const handleClick = async () => {
+  const handleClick = async (e: MouseEvent) => {
+    // Stop the click from bubbling to a wrapping card <Link> (card view).
+    e.preventDefault()
+    e.stopPropagation()
+
     const newFavourite = !favourite
     const prev = favourite
     setFavourite(newFavourite)

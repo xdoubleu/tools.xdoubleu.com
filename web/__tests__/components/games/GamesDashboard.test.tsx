@@ -98,8 +98,8 @@ function mockRecent(
       id: 10,
       name: 'Hades',
       completionRate: '60.00',
-      recentUnlocks: 3,
-      lastUnlockedAt: '2026-06-01',
+      playtime: 120,
+      lastPlayedAt: '2026-06-01',
       imageUrl: 'https://example.com/hades.jpg'
     })
   ]
@@ -148,7 +148,7 @@ describe('GamesDashboard', () => {
     render(<GamesDashboard />)
     const card = screen.getAllByText('Hades')[0]!
     expect(card.closest('a')).toHaveAttribute('href', '/games/10')
-    expect(screen.getByText(/3 recent unlocks/)).toBeInTheDocument()
+    expect(screen.getByText(/Last played 01\/06\/2026/)).toBeInTheDocument()
   })
 
   it('renders the recent game icon with a locked square aspect ratio', () => {
@@ -159,20 +159,20 @@ describe('GamesDashboard', () => {
     expect(screen.getByAltText('Hades')).toHaveClass('h-8', 'w-8', 'object-cover')
   })
 
-  it('uses the singular label for a single recent unlock', () => {
+  it('shows the playtime for a recently played game', () => {
     mockSteam()
     mockRecent([
       create(RecentGameSchema, {
         id: 11,
         name: 'Celeste',
         completionRate: '10.00',
-        recentUnlocks: 1,
-        lastUnlockedAt: '2026-06-02'
+        playtime: 90,
+        lastPlayedAt: '2026-06-02'
       })
     ])
     mockNoProgress()
     render(<GamesDashboard />)
-    expect(screen.getByText(/1 recent unlock /)).toBeInTheDocument()
+    expect(screen.getByText(/2 hrs/)).toBeInTheDocument()
   })
 
   it('shows an empty message when there is no recent activity', () => {
@@ -180,7 +180,30 @@ describe('GamesDashboard', () => {
     mockRecent([])
     mockNoProgress()
     render(<GamesDashboard />)
-    expect(screen.getByText('No recent achievement activity.')).toBeInTheDocument()
+    expect(screen.getByText('No recently played games.')).toBeInTheDocument()
+  })
+
+  it('renders a clickable favourites stat card linking to the library', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseBacklogSteam.mockReturnValue({
+      data: create(GetSteamResponseSchema, {
+        steam: create(SteamResponseSchema, {
+          inProgress: [create(GameSchema, { id: 10, name: 'Hades', favourite: true })],
+          completed: [create(GameSchema, { id: 12, name: 'Bastion' })],
+          totalBacklog: 2,
+          currentRate: '50.00',
+          distribution: [1, 2, 3]
+        })
+      }),
+      error: undefined,
+      isLoading: false
+    })
+    mockRecent()
+    mockNoProgress()
+    render(<GamesDashboard />)
+    const favouritesCard = screen.getByText('Favourites').closest('a')
+    expect(favouritesCard).toHaveAttribute('href', '/games/library')
+    expect(favouritesCard).toHaveTextContent('1')
   })
 
   it('shows an empty progress message', () => {

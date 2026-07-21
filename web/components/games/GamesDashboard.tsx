@@ -22,11 +22,10 @@ import { DateInput } from '@/components/ui/date-input'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
-import { oneYearAgo, today } from '@/lib/dates'
+import { formatDate, oneYearAgo, today } from '@/lib/dates'
 import { swrKeys } from '@/lib/swrKeys'
 
 function RecentGameCard({ game }: { game: RecentGame }) {
-  const unlockLabel = game.recentUnlocks === 1 ? 'unlock' : 'unlocks'
   return (
     <Link
       href={`/games/${game.id}`}
@@ -46,7 +45,7 @@ function RecentGameCard({ game }: { game: RecentGame }) {
         <h3 className="font-semibold truncate">{game.name}</h3>
         <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
         <p className="text-sm text-muted">
-          {game.recentUnlocks} recent {unlockLabel} &mdash; last {game.lastUnlockedAt}
+          Last played {formatDate(game.lastPlayedAt)} &mdash; {Math.round(game.playtime / 60)} hrs
         </p>
       </div>
     </Link>
@@ -82,6 +81,10 @@ export default function GamesDashboard({
   const steam = steamData?.steam
   const progressSteam = progressData?.steam
   const recentGames = recentData?.games ?? []
+  const favouritesCount = steam
+    ? [...steam.inProgress, ...steam.notStarted, ...steam.completed].filter((g) => g.favourite)
+        .length
+    : 0
 
   const progressChartData =
     progressSteam?.labels?.map((label, idx) => ({
@@ -109,11 +112,12 @@ export default function GamesDashboard({
       {steamError && <p className="text-danger">Failed to load Steam data.</p>}
 
       {steam && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <GamesStatCard label="Total backlog" value={steam.totalBacklog} />
           <GamesStatCard label="Current rate" value={`${steam.currentRate}%`} />
           <GamesStatCard label="In progress" value={steam.inProgress.length} />
           <GamesStatCard label="Completed" value={steam.completed.length} />
+          <GamesStatCard label="Favourites" value={favouritesCount} href="/games/library" />
         </div>
       )}
 
@@ -122,7 +126,7 @@ export default function GamesDashboard({
           <h2 className="mb-2 text-base font-semibold">Recently active</h2>
           {recentLoading && <p className="text-muted">Loading recent activity…</p>}
           {!recentLoading && recentGames.length === 0 && (
-            <p className="text-muted text-sm">No recent achievement activity.</p>
+            <p className="text-muted text-sm">No recently played games.</p>
           )}
           {recentGames.length > 0 && (
             <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:flex-1 lg:grid-cols-1">

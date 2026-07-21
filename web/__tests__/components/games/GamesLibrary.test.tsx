@@ -1,10 +1,12 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const mockRefresh = jest.fn()
+const mockSetGameFavourite = jest.fn().mockResolvedValue({})
 
 jest.mock('@/hooks/useGames', () => ({
-  useSteam: jest.fn()
+  useSteam: jest.fn(),
+  useSetGameFavourite: () => mockSetGameFavourite
 }))
 
 jest.mock('@/lib/games/steamRefresh', () => ({
@@ -151,6 +153,14 @@ describe('GamesLibrary', () => {
     mockSteam()
     render(<GamesLibrary />)
     expect(screen.getByText('Hades').closest('a')).toHaveAttribute('href', '/games/10')
+  })
+
+  it('lets a game be marked favourite from the card view', async () => {
+    mockSteam()
+    render(<GamesLibrary />)
+    const toggle = screen.getAllByRole('button', { name: 'Add to favourites' })[0]!
+    fireEvent.click(toggle)
+    await waitFor(() => expect(mockSetGameFavourite).toHaveBeenCalledWith(10, true))
   })
 
   it('shows a loading state', () => {

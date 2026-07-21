@@ -438,9 +438,9 @@ type RecentGame struct {
 	Id             int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	CompletionRate string                 `protobuf:"bytes,3,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
-	RecentUnlocks  int32                  `protobuf:"varint,4,opt,name=recent_unlocks,json=recentUnlocks,proto3" json:"recent_unlocks,omitempty"`
-	LastUnlockedAt string                 `protobuf:"bytes,5,opt,name=last_unlocked_at,json=lastUnlockedAt,proto3" json:"last_unlocked_at,omitempty"`
 	ImageUrl       string                 `protobuf:"bytes,6,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	LastPlayedAt   string                 `protobuf:"bytes,7,opt,name=last_played_at,json=lastPlayedAt,proto3" json:"last_played_at,omitempty"`
+	Playtime       int32                  `protobuf:"varint,8,opt,name=playtime,proto3" json:"playtime,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -496,25 +496,25 @@ func (x *RecentGame) GetCompletionRate() string {
 	return ""
 }
 
-func (x *RecentGame) GetRecentUnlocks() int32 {
-	if x != nil {
-		return x.RecentUnlocks
-	}
-	return 0
-}
-
-func (x *RecentGame) GetLastUnlockedAt() string {
-	if x != nil {
-		return x.LastUnlockedAt
-	}
-	return ""
-}
-
 func (x *RecentGame) GetImageUrl() string {
 	if x != nil {
 		return x.ImageUrl
 	}
 	return ""
+}
+
+func (x *RecentGame) GetLastPlayedAt() string {
+	if x != nil {
+		return x.LastPlayedAt
+	}
+	return ""
+}
+
+func (x *RecentGame) GetPlaytime() int32 {
+	if x != nil {
+		return x.Playtime
+	}
+	return 0
 }
 
 // Integrations holds the user's external-account settings for the games app.
@@ -1302,15 +1302,15 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\fachievements\x18\x02 \x03(\v2\x15.games.v1.AchievementR\fachievements\"W\n" +
 	"\x19SteamDistributionResponse\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12$\n" +
-	"\x05games\x18\x02 \x03(\v2\x0e.games.v1.GameR\x05games\"\xc7\x01\n" +
+	"\x05games\x18\x02 \x03(\v2\x0e.games.v1.GameR\x05games\"\xe6\x01\n" +
 	"\n" +
 	"RecentGame\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
-	"\x0fcompletion_rate\x18\x03 \x01(\tR\x0ecompletionRate\x12%\n" +
-	"\x0erecent_unlocks\x18\x04 \x01(\x05R\rrecentUnlocks\x12(\n" +
-	"\x10last_unlocked_at\x18\x05 \x01(\tR\x0elastUnlockedAt\x12\x1b\n" +
-	"\timage_url\x18\x06 \x01(\tR\bimageUrl\"`\n" +
+	"\x0fcompletion_rate\x18\x03 \x01(\tR\x0ecompletionRate\x12\x1b\n" +
+	"\timage_url\x18\x06 \x01(\tR\bimageUrl\x12$\n" +
+	"\x0elast_played_at\x18\a \x01(\tR\flastPlayedAt\x12\x1a\n" +
+	"\bplaytime\x18\b \x01(\x05R\bplaytimeJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x0erecent_unlocksR\x10last_unlocked_at\"`\n" +
 	"\fIntegrations\x12\"\n" +
 	"\rsteam_user_id\x18\x02 \x01(\tR\vsteamUserIdJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04R\rsteam_api_keyR\x11hardcover_api_key\"K\n" +
 	"\x0fGetSteamRequest\x12\x1d\n" +

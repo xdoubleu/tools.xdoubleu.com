@@ -47,12 +47,14 @@ message SteamDistributionResponse {
 }
 
 message RecentGame {
+  reserved 4, 5;
+  reserved "recent_unlocks", "last_unlocked_at";
   int32 id = 1;
   string name = 2;
   string completion_rate = 3;
-  int32 recent_unlocks = 4;
-  string last_unlocked_at = 5;
   string image_url = 6;
+  string last_played_at = 7;
+  int32 playtime = 8;
 }
 
 // Integrations holds the user's external-account settings for the games app.

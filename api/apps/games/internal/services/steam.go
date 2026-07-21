@@ -165,6 +165,7 @@ func (service *SteamService) buildGamesMap(
 			ImageURL:       g.GetFullImgIconURL(),
 			LastSyncedAt:   time.Time{}, // set by DB via now() in UpsertGames
 			Favourite:      false,       // user-set; never written by UpsertGames
+			LastPlayed:     rtimeLastPlayedToTime(g.RtimeLastPlayed),
 		}
 		if prev, ok := existingByID[g.AppID]; ok {
 			game.CompletionRate = prev.CompletionRate
@@ -187,6 +188,16 @@ func (service *SteamService) buildGamesMap(
 	}
 
 	return gamesMap, nil
+}
+
+// rtimeLastPlayedToTime converts Steam's rtime_last_played (Unix seconds, 0
+// meaning never played) to a nullable timestamp for storage.
+func rtimeLastPlayedToTime(rtimeLastPlayed int64) *time.Time {
+	if rtimeLastPlayed == 0 {
+		return nil
+	}
+	t := time.Unix(rtimeLastPlayed, 0).UTC()
+	return &t
 }
 
 // fetchAchievements concurrently fetches and assembles the achievement rows for
@@ -491,20 +502,15 @@ func (service *SteamService) SyncGame(
 	})
 }
 
-// GetRecentlyActive returns the games the user most recently unlocked
-// achievements in, capped at recentGamesLimit and ordered most recent first,
-// regardless of how long ago the last unlock happened. It powers the
+// GetRecentlyActive returns the games the user most recently played, capped
+// at recentGamesLimit and ordered most recent first. It powers the
 // dashboard's "recently active" section.
 func (service *SteamService) GetRecentlyActive(
 	ctx context.Context,
 	userID string,
 ) ([]models.RecentGame, error) {
 	const recentGamesLimit = 5
-	// A zero time leaves the window unbounded so games surface no matter how
-	// long ago their last achievement was unlocked.
-	return service.steam.GetRecentlyActiveGames(
-		ctx, userID, time.Time{}, recentGamesLimit,
-	)
+	return service.steam.GetRecentlyActiveGames(ctx, userID, recentGamesLimit)
 }
 
 func (service *SteamService) GetGameByID(

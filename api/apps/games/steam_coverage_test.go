@@ -138,16 +138,16 @@ func TestSteamCompletionRate_WithRecord(t *testing.T) {
 	assert.Equal(t, "55.00", rate)
 }
 
-// TestGetRecentlyActiveGames_Repo seeds steam data (game 1 with an achievement
-// unlocked ~now) then verifies the repository returns it inside the window and
-// excludes it once the window starts in the future.
+// TestGetRecentlyActiveGames_Repo seeds steam data (game 1, played ~now per
+// the mock's rtime_last_played) then verifies the repository returns it
+// ordered by last_played, and that a game which was never played (last_played
+// IS NULL) is excluded even though it has achievement unlocks.
 func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 	seedSteamData(t)
 	ctx := context.Background()
 
-	since := time.Now().AddDate(0, 0, -30)
 	games, err := testApp.Repositories.Steam.GetRecentlyActiveGames(
-		ctx, userID, since, 10,
+		ctx, userID, 10,
 	)
 	require.NoError(t, err)
 
@@ -158,16 +158,25 @@ func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 		}
 	}
 	require.NotNil(t, found, "seeded game should be recently active")
-	assert.GreaterOrEqual(t, found.RecentUnlocks, 1)
-	assert.False(t, found.LastUnlocked.IsZero())
+	assert.False(t, found.LastPlayed.IsZero())
 
-	// A window starting in the future excludes every unlock.
-	future := time.Now().Add(time.Hour)
-	empty, err := testApp.Repositories.Steam.GetRecentlyActiveGames(
-		ctx, userID, future, 10,
+	// Clear last_played directly (simulating a game with unlocked achievements
+	// but no recorded play session) and verify it drops out of the list.
+	_, err = testDB.Exec(
+		ctx,
+		"UPDATE games.steam_games SET last_played = NULL WHERE id = $1 AND user_id = $2",
+		1,
+		userID,
 	)
 	require.NoError(t, err)
-	assert.Empty(t, empty)
+
+	afterClear, err := testApp.Repositories.Steam.GetRecentlyActiveGames(
+		ctx, userID, 10,
+	)
+	require.NoError(t, err)
+	for _, g := range afterClear {
+		assert.NotEqual(t, 1, g.ID, "game with no last_played should be excluded")
+	}
 }
 
 // TestGetRecentlyActive_Service covers the service wrapper that computes the

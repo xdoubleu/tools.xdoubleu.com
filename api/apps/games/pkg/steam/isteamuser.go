@@ -23,6 +23,9 @@ type Game struct {
 	ImgLogoURL               string `json:"img_logo_url"`
 	HasCommunityVisibleStats bool   `json:"has_community_visible_stats"`
 	PlaytimeForever          int    `json:"playtime_forever"`
+	// RtimeLastPlayed is the Unix timestamp of the game's last session, 0 if
+	// never played. Steam includes it in GetOwnedGames without any extra call.
+	RtimeLastPlayed int64 `json:"rtime_last_played"`
 }
 
 func (game Game) GetFullImgIconURL() string {
