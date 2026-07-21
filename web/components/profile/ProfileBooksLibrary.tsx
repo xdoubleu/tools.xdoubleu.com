@@ -11,16 +11,7 @@ import LibrarySidebar, {
 } from '@/components/reading/LibrarySidebar'
 import ProfileBookCard from '@/components/profile/ProfileBookCard'
 import { Input } from '@/components/ui/input'
-
-function flattenLibrary(library: LibraryResponse): UserBook[] {
-  return [
-    ...library.reading,
-    ...library.wishlist,
-    ...library.finished,
-    ...library.shelves.flatMap((s) => s.books),
-    ...library.rss
-  ]
-}
+import { flattenLibrary } from '@/lib/reading/bookShelves'
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'all') return flattenLibrary(library)

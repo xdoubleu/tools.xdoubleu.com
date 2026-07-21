@@ -13,25 +13,13 @@ import BookCard from '@/components/reading/BookCard'
 import ExternalBookCard from '@/components/reading/ExternalBookCard'
 import ManageShelvesTagsDialog from '@/components/reading/ManageShelvesTagsDialog'
 import { useSearchExternal } from '@/hooks/useBooks'
-import { SPECIAL_TAGS } from '@/lib/reading/bookShelves'
+import { SPECIAL_TAGS, flattenLibrary } from '@/lib/reading/bookShelves'
 import { categoryLabel, categoryOf, type Category } from '@/lib/reading/categories'
 
 type Selection =
   | { kind: 'shelf'; id: ShelfId }
   | { kind: 'tag'; tag: string }
   | { kind: 'category'; category: Category }
-
-function flattenLibrary(library: LibraryResponse): UserBook[] {
-  return [
-    ...library.reading,
-    ...library.wishlist,
-    ...library.finished,
-    ...library.shelves.flatMap((s) => s.books),
-    // RSS items live outside the reading-state shelves; include them so the
-    // sidebar's RSS category filter and the "all" view still see them.
-    ...library.rss
-  ]
-}
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'all') return flattenLibrary(library)

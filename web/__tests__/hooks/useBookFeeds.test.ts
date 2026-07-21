@@ -69,11 +69,12 @@ describe('useBookFeeds', () => {
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.bookFeeds)
   })
 
-  it('useDeleteFeed deletes and invalidates feeds', async () => {
+  it('useDeleteFeed deletes and invalidates feeds + library', async () => {
     const { result } = renderHook(() => useDeleteFeed())
     await result.current('f1')
     expect(clientMocks.deleteFeed).toHaveBeenCalledWith({ feedId: 'f1' })
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.bookFeeds)
+    expect(mutateMock).toHaveBeenCalledWith(swrKeys.books)
   })
 
   it('useRefreshFeed skips the library invalidation when nothing was ingested', async () => {

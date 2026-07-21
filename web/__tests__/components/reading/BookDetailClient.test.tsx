@@ -147,10 +147,11 @@ function makeLibraryData(
   reading: ReturnType<typeof create<typeof UserBookSchema>>[] = [mockUserBook],
   wishlist: ReturnType<typeof create<typeof UserBookSchema>>[] = [],
   finished: ReturnType<typeof create<typeof UserBookSchema>>[] = [],
-  shelves: ReturnType<typeof create<typeof BookShelfSchema>>[] = []
+  shelves: ReturnType<typeof create<typeof BookShelfSchema>>[] = [],
+  rss: ReturnType<typeof create<typeof UserBookSchema>>[] = []
 ) {
   return create(GetLibraryResponseSchema, {
-    library: create(LibraryResponseSchema, { reading, wishlist, finished, shelves })
+    library: create(LibraryResponseSchema, { reading, wishlist, finished, shelves, rss })
   })
 }
 
@@ -192,6 +193,23 @@ describe('BookDetailClient', () => {
   it('shows not found when id has no match', () => {
     render(<BookDetailClient id="ub-unknown" />)
     expect(screen.getByText('Book not found.')).toBeInTheDocument()
+  })
+
+  it('renders an rss item (not just reading/wishlist/finished/shelf books)', () => {
+    const rssBook = create(UserBookSchema, {
+      ...mockUserBook,
+      id: 'ub-rss',
+      book: create(BookSchema, { ...mockBook, title: 'RSS Article' })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([], [], [], [], [rssBook]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-rss" />)
+    expect(screen.getByRole('heading', { name: 'RSS Article' })).toBeInTheDocument()
+    expect(screen.queryByText('Book not found.')).not.toBeInTheDocument()
   })
 
   it('renders title and author', () => {

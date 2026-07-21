@@ -6,7 +6,8 @@ import { FeedService } from '@/lib/gen/reading/v1/feeds_pb'
 import type { ListFeedsResponse } from '@/lib/gen/reading/v1/feeds_pb'
 
 // RSS/Atom feed subscriptions for the reading library. Mutations invalidate
-// the feed list; anything that can ingest items also invalidates the library.
+// the feed list; anything that can change library contents (ingest or
+// delete items) also invalidates the library.
 
 export function useFeeds() {
   const client = createServiceClient(FeedService)
@@ -46,6 +47,9 @@ export function useDeleteFeed() {
     async (feedId: string) => {
       await client.deleteFeed({ feedId })
       await mutate(swrKeys.bookFeeds)
+      // Deletion can remove books from the library (unless the user engaged
+      // with them), so revalidate it the same way create/refresh do.
+      await mutate(swrKeys.books)
     },
     [client]
   )

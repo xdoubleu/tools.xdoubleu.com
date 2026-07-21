@@ -7,11 +7,10 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useLibrary } from '@/hooks/useBooks'
 import { useCurrentUser } from '@/hooks/useAuth'
-import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
 import BookCover from '@/components/reading/BookCover'
 import BookSourceSync from '@/components/reading/BookSourceSync'
 import CategoryBadge from '@/components/reading/CategoryBadge'
-import { SPECIAL_TAGS } from '@/lib/reading/bookShelves'
+import { SPECIAL_TAGS, flattenLibrary } from '@/lib/reading/bookShelves'
 import BookProgressEditor from '@/components/reading/BookProgressEditor'
 import BookRatingStars from '@/components/reading/BookRatingStars'
 import BookReadDatesEditor from '@/components/reading/BookReadDatesEditor'
@@ -26,14 +25,6 @@ import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { swrKeys } from '@/lib/swrKeys'
 import { formatDate } from '@/lib/dates'
-
-function flattenLibrary(
-  library: NonNullable<ReturnType<typeof useLibrary>['data']>['library']
-): UserBook[] {
-  if (!library) return []
-  const shelfBooks = library.shelves.flatMap((s) => s.books)
-  return [...library.reading, ...library.wishlist, ...library.finished, ...shelfBooks]
-}
 
 export default function BookDetailClient({ id }: { id: string }) {
   const { data, error, isLoading } = useLibrary()

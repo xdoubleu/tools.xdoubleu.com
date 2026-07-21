@@ -1,11 +1,18 @@
+import { create } from '@bufbuild/protobuf'
 import {
   SPECIAL_TAGS,
   BUILT_IN_STATUSES,
   BOOK_STATUSES,
   statusLabel,
   isBuiltInShelfId,
-  displayTags
+  displayTags,
+  flattenLibrary
 } from '@/lib/reading/bookShelves'
+import {
+  UserBookSchema,
+  BookShelfSchema,
+  LibraryResponseSchema
+} from '@/lib/gen/reading/v1/library_pb'
 
 describe('SPECIAL_TAGS', () => {
   it('includes all reserved tags', () => {
@@ -88,5 +95,34 @@ describe('displayTags', () => {
   it('returns all tags when none are special', () => {
     const input = ['fantasy', '2024']
     expect(displayTags(input)).toEqual(input)
+  })
+})
+
+describe('flattenLibrary', () => {
+  function userBook(id: string) {
+    return create(UserBookSchema, { id })
+  }
+
+  it('returns an empty array when library is missing', () => {
+    expect(flattenLibrary(undefined)).toEqual([])
+    expect(flattenLibrary(null)).toEqual([])
+  })
+
+  it('includes rss items alongside shelf-based books', () => {
+    const library = create(LibraryResponseSchema, {
+      reading: [userBook('reading')],
+      wishlist: [userBook('wishlist')],
+      finished: [userBook('finished')],
+      shelves: [create(BookShelfSchema, { name: 'Sci-Fi', books: [userBook('shelf')] })],
+      rss: [userBook('rss')]
+    })
+
+    expect(flattenLibrary(library).map((ub) => ub.id)).toEqual([
+      'reading',
+      'wishlist',
+      'finished',
+      'shelf',
+      'rss'
+    ])
   })
 })

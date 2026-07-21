@@ -50,14 +50,15 @@ import { useLibrary } from '@/hooks/useBooks'
 
 const mockUseBacklogLibrary = jest.mocked(useLibrary)
 
-function makeLibraryWith(books: UserBook[], shelves: BookShelf[]) {
+function makeLibraryWith(books: UserBook[], shelves: BookShelf[], rss: UserBook[] = []) {
   return {
     data: {
       library: create(LibraryResponseSchema, {
         reading: books.filter((b) => b.status === 'currently-reading'),
         wishlist: books.filter((b) => b.status === 'to-read'),
         finished: books.filter((b) => b.status === 'read'),
-        shelves
+        shelves,
+        rss
       })
     },
     error: null,
@@ -143,6 +144,24 @@ describe('AuthorBooksClient', () => {
     mockUseBacklogLibrary.mockReturnValue(makeLibraryWith([], [shelf]))
     render(<AuthorBooksClient name="Frank Herbert" />)
     expect(screen.getByText('Chapterhouse: Dune')).toBeInTheDocument()
+  })
+
+  it('includes rss items (covers flattenLibrary rss branch)', () => {
+    const rssBook = create(UserBookSchema, {
+      id: 'ub-rss',
+      status: 'rss',
+      tags: [],
+      formats: [],
+      book: create(BookSchema, {
+        title: 'Dune Retrospective',
+        authors: ['Frank Herbert'],
+        pageCount: 0
+      })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseBacklogLibrary.mockReturnValue(makeLibraryWith([], [], [rssBook]))
+    render(<AuthorBooksClient name="Frank Herbert" />)
+    expect(screen.getByText('Dune Retrospective')).toBeInTheDocument()
   })
 
   it('collects non-special tags from books (covers knownTags tag filter)', () => {
