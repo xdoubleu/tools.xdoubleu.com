@@ -13,8 +13,8 @@
     "generate": "buf generate"
   },
   "dependencies": {
-    "@connectrpc/connect": "2.1.1",
-    "@connectrpc/connect-web": "2.1.1",
+    "@connectrpc/connect": "2.1.2",
+    "@connectrpc/connect-web": "2.1.2",
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
@@ -35,8 +35,8 @@
     "typescript": "6.0.3"
   },
   "devDependencies": {
-    "@bufbuild/protobuf": "2.12.0",
-    "@bufbuild/protoc-gen-es": "2.12.0",
+    "@bufbuild/protobuf": "2.12.1",
+    "@bufbuild/protoc-gen-es": "2.12.1",
     "@eslint/js": "10.0.1",
     "@tailwindcss/postcss": "4.3.0",
     "@tailwindcss/typography": "0.5.20",
