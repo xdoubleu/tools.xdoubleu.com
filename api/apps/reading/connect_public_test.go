@@ -242,3 +242,47 @@ func TestGetSharedBooksProgress_UnknownToken(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
+
+func TestGetSharedFeeds_Success(t *testing.T) {
+	ensureProfileShare(t)
+
+	feedURL := uniqueBlogBase() + "/feed.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML("Public Feed")))
+	feed, err := testApp.Services.Feeds.Create(
+		context.Background(), publicUserID, feedURL, false,
+	)
+	require.NoError(t, err)
+
+	client := newPublicBooksClient(t)
+	resp, err := client.GetSharedFeeds(
+		context.Background(),
+		connect.NewRequest(&readingv1.GetSharedFeedsRequest{
+			Token: publicBooksToken,
+		}),
+	)
+	require.NoError(t, err)
+
+	var found *readingv1.Feed
+	for _, f := range resp.Msg.Feeds {
+		if f.Id == feed.ID.String() {
+			found = f
+			break
+		}
+	}
+	require.NotNil(t, found, "subscribed feed should be in the shared feeds list")
+	assert.Equal(t, "Public Feed", found.Title)
+}
+
+func TestGetSharedFeeds_UnknownToken(t *testing.T) {
+	ensureProfileShare(t)
+
+	client := newPublicBooksClient(t)
+	_, err := client.GetSharedFeeds(
+		context.Background(),
+		connect.NewRequest(&readingv1.GetSharedFeedsRequest{
+			Token: "definitely-not-a-token",
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}

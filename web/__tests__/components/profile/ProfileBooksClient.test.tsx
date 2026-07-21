@@ -11,10 +11,12 @@ import { GetSharedLibraryResponseSchema } from '@/lib/gen/reading/v1/public_pb'
 
 const mockUseSharedLibrary = jest.fn()
 const mockUseSharedBooksProgress = jest.fn()
+const mockUseSharedFeeds = jest.fn()
 
 jest.mock('@/hooks/useProfile', () => ({
   useSharedLibrary: () => mockUseSharedLibrary(),
-  useSharedBooksProgress: () => mockUseSharedBooksProgress()
+  useSharedBooksProgress: () => mockUseSharedBooksProgress(),
+  useSharedFeeds: () => mockUseSharedFeeds()
 }))
 
 jest.mock('@/components/reading/BooksProgressChart', () => () => (
@@ -82,6 +84,27 @@ describe('ProfileBooksClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseSharedBooksProgress.mockReturnValue({ data: undefined })
+    mockUseSharedFeeds.mockReturnValue({ data: undefined })
+  })
+
+  it('renders subscribed feeds without a manage link', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    mockUseSharedFeeds.mockReturnValue({
+      data: { feeds: [{ id: 'feed-1', title: 'Example Blog', url: 'https://example.com/feed' }] }
+    })
+    render(<ProfileBooksClient token="tok-1" />)
+
+    expect(screen.getByText('Subscribed feeds')).toBeInTheDocument()
+    expect(screen.getByText('Example Blog')).toBeInTheDocument()
+    expect(screen.queryByText('Manage')).not.toBeInTheDocument()
+  })
+
+  it('omits the subscribed feeds card when there are none', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    mockUseSharedFeeds.mockReturnValue({ data: { feeds: [] } })
+    render(<ProfileBooksClient token="tok-1" />)
+
+    expect(screen.queryByText('Subscribed feeds')).not.toBeInTheDocument()
   })
 
   it('renders separate RSS stat cards', () => {

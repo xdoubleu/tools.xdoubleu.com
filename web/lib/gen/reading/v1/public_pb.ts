@@ -6,13 +6,15 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { BooksProgressResponse, LibraryResponse } from "./library_pb";
 import { file_reading_v1_library } from "./library_pb";
+import type { Feed } from "./feeds_pb";
+import { file_reading_v1_feeds } from "./feeds_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file reading/v1/public.proto.
  */
 export const file_reading_v1_public: GenFile = /*@__PURE__*/
-  fileDesc("ChdyZWFkaW5nL3YxL3B1YmxpYy5wcm90bxIKcmVhZGluZy52MSIoChdHZXRTaGFyZWRMaWJyYXJ5UmVxdWVzdBINCgV0b2tlbhgBIAEoCSJ2ChhHZXRTaGFyZWRMaWJyYXJ5UmVzcG9uc2USLAoHbGlicmFyeRgBIAEoCzIbLnJlYWRpbmcudjEuTGlicmFyeVJlc3BvbnNlEhYKDmxhc3Rfc3luY2VkX2F0GAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCSJUCh1HZXRTaGFyZWRCb29rc1Byb2dyZXNzUmVxdWVzdBINCgV0b2tlbhgBIAEoCRISCgpkYXRlX3N0YXJ0GAIgASgJEhAKCGRhdGVfZW5kGAMgASgJIlUKHkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXNwb25zZRIzCghwcm9ncmVzcxgBIAEoCzIhLnJlYWRpbmcudjEuQm9va3NQcm9ncmVzc1Jlc3BvbnNlMuYBChRQdWJsaWNMaWJyYXJ5U2VydmljZRJdChBHZXRTaGFyZWRMaWJyYXJ5EiMucmVhZGluZy52MS5HZXRTaGFyZWRMaWJyYXJ5UmVxdWVzdBokLnJlYWRpbmcudjEuR2V0U2hhcmVkTGlicmFyeVJlc3BvbnNlEm8KFkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3MSKS5yZWFkaW5nLnYxLkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXF1ZXN0GioucmVhZGluZy52MS5HZXRTaGFyZWRCb29rc1Byb2dyZXNzUmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9yZWFkaW5nL3YxO3JlYWRpbmd2MWIGcHJvdG8z", [file_reading_v1_library]);
+  fileDesc("ChdyZWFkaW5nL3YxL3B1YmxpYy5wcm90bxIKcmVhZGluZy52MSIoChdHZXRTaGFyZWRMaWJyYXJ5UmVxdWVzdBINCgV0b2tlbhgBIAEoCSJ2ChhHZXRTaGFyZWRMaWJyYXJ5UmVzcG9uc2USLAoHbGlicmFyeRgBIAEoCzIbLnJlYWRpbmcudjEuTGlicmFyeVJlc3BvbnNlEhYKDmxhc3Rfc3luY2VkX2F0GAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCSJUCh1HZXRTaGFyZWRCb29rc1Byb2dyZXNzUmVxdWVzdBINCgV0b2tlbhgBIAEoCRISCgpkYXRlX3N0YXJ0GAIgASgJEhAKCGRhdGVfZW5kGAMgASgJIlUKHkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXNwb25zZRIzCghwcm9ncmVzcxgBIAEoCzIhLnJlYWRpbmcudjEuQm9va3NQcm9ncmVzc1Jlc3BvbnNlIiYKFUdldFNoYXJlZEZlZWRzUmVxdWVzdBINCgV0b2tlbhgBIAEoCSI5ChZHZXRTaGFyZWRGZWVkc1Jlc3BvbnNlEh8KBWZlZWRzGAEgAygLMhAucmVhZGluZy52MS5GZWVkMr8CChRQdWJsaWNMaWJyYXJ5U2VydmljZRJdChBHZXRTaGFyZWRMaWJyYXJ5EiMucmVhZGluZy52MS5HZXRTaGFyZWRMaWJyYXJ5UmVxdWVzdBokLnJlYWRpbmcudjEuR2V0U2hhcmVkTGlicmFyeVJlc3BvbnNlEm8KFkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3MSKS5yZWFkaW5nLnYxLkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXF1ZXN0GioucmVhZGluZy52MS5HZXRTaGFyZWRCb29rc1Byb2dyZXNzUmVzcG9uc2USVwoOR2V0U2hhcmVkRmVlZHMSIS5yZWFkaW5nLnYxLkdldFNoYXJlZEZlZWRzUmVxdWVzdBoiLnJlYWRpbmcudjEuR2V0U2hhcmVkRmVlZHNSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL3JlYWRpbmcvdjE7cmVhZGluZ3YxYgZwcm90bzM", [file_reading_v1_library, file_reading_v1_feeds]);
 
 /**
  * @generated from message reading.v1.GetSharedLibraryRequest
@@ -108,6 +110,40 @@ export const GetSharedBooksProgressResponseSchema: GenMessage<GetSharedBooksProg
   messageDesc(file_reading_v1_public, 3);
 
 /**
+ * @generated from message reading.v1.GetSharedFeedsRequest
+ */
+export type GetSharedFeedsRequest = Message<"reading.v1.GetSharedFeedsRequest"> & {
+  /**
+   * @generated from field: string token = 1;
+   */
+  token: string;
+};
+
+/**
+ * Describes the message reading.v1.GetSharedFeedsRequest.
+ * Use `create(GetSharedFeedsRequestSchema)` to create a new message.
+ */
+export const GetSharedFeedsRequestSchema: GenMessage<GetSharedFeedsRequest> = /*@__PURE__*/
+  messageDesc(file_reading_v1_public, 4);
+
+/**
+ * @generated from message reading.v1.GetSharedFeedsResponse
+ */
+export type GetSharedFeedsResponse = Message<"reading.v1.GetSharedFeedsResponse"> & {
+  /**
+   * @generated from field: repeated reading.v1.Feed feeds = 1;
+   */
+  feeds: Feed[];
+};
+
+/**
+ * Describes the message reading.v1.GetSharedFeedsResponse.
+ * Use `create(GetSharedFeedsResponseSchema)` to create a new message.
+ */
+export const GetSharedFeedsResponseSchema: GenMessage<GetSharedFeedsResponse> = /*@__PURE__*/
+  messageDesc(file_reading_v1_public, 5);
+
+/**
  * PublicLibraryService serves the read-only shareable profile. It is
  * registered WITHOUT auth middleware: requests are authorized solely by the
  * opaque profile share token (see profile.v1.ProfileService), which resolves
@@ -131,6 +167,14 @@ export const PublicLibraryService: GenService<{
     methodKind: "unary";
     input: typeof GetSharedBooksProgressRequestSchema;
     output: typeof GetSharedBooksProgressResponseSchema;
+  },
+  /**
+   * @generated from rpc reading.v1.PublicLibraryService.GetSharedFeeds
+   */
+  getSharedFeeds: {
+    methodKind: "unary";
+    input: typeof GetSharedFeedsRequestSchema;
+    output: typeof GetSharedFeedsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_reading_v1_public, 0);

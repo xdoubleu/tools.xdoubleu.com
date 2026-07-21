@@ -114,3 +114,24 @@ func (h *publicConnectHandler) GetSharedBooksProgress(
 		},
 	}), nil
 }
+
+func (h *publicConnectHandler) GetSharedFeeds(
+	ctx context.Context,
+	req *connect.Request[readingv1.GetSharedFeedsRequest],
+) (*connect.Response[readingv1.GetSharedFeedsResponse], error) {
+	userID, _, err := h.resolveToken(ctx, req.Msg.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	feeds, err := h.app.Services.Feeds.List(ctx, userID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	out := make([]*readingv1.Feed, len(feeds))
+	for i, f := range feeds {
+		out[i] = protoFeed(f)
+	}
+	return connect.NewResponse(&readingv1.GetSharedFeedsResponse{Feeds: out}), nil
+}
