@@ -12,10 +12,10 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// ErrEncryptionNotConfigured is returned when OAUTH_TOKEN_ENC_KEY isn't set,
+// ErrEncryptionNotConfigured is returned when ENCRYPTION_KEY isn't set,
 // so no OAuth connection can be stored or read.
 var ErrEncryptionNotConfigured = errors.New(
-	"repositories: OAUTH_TOKEN_ENC_KEY not configured",
+	"repositories: ENCRYPTION_KEY not configured",
 )
 
 // OAuthConnectionsRepository stores one OAuth connection per external

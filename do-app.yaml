@@ -53,9 +53,6 @@ services:
       - key: DB_DSN
         scope: RUN_TIME
         type: SECRET
-      - key: ENCRYPTION_KEY
-        scope: RUN_TIME
-        type: SECRET
       - key: SUPABASE_PROJ_REF
         scope: RUN_TIME
         type: SECRET
@@ -105,7 +102,7 @@ services:
         type: SECRET
       # 32 raw bytes, base64-standard-encoded (e.g. `openssl rand -base64 32`).
       # Encrypts stored OAuth tokens at rest (global.oauth_connections).
-      - key: OAUTH_TOKEN_ENC_KEY
+      - key: ENCRYPTION_KEY
         scope: RUN_TIME
         type: SECRET
 

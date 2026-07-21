@@ -22,7 +22,7 @@ type Sealer struct {
 }
 
 // New builds a Sealer from a base64-standard-encoded 32-byte key (e.g.
-// OAUTH_TOKEN_ENC_KEY). Generate one with `openssl rand -base64 32`.
+// ENCRYPTION_KEY). Generate one with `openssl rand -base64 32`.
 func New(keyB64 string) (*Sealer, error) {
 	key, err := base64.StdEncoding.DecodeString(keyB64)
 	if err != nil {

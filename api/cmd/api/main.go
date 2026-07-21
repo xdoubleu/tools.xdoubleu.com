@@ -138,18 +138,18 @@ func main() {
 }
 
 // newOAuthSealer builds the AES-GCM sealer used to encrypt stored OAuth
-// tokens (issue #440). Returns nil if OAUTH_TOKEN_ENC_KEY isn't set — the
+// tokens (issue #440). Returns nil if ENCRYPTION_KEY isn't set — the
 // observability integrations then simply can't be connected until it is; the
 // rest of the app still starts.
 func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
-	if config.OAuthTokenEncKey == "" {
+	if config.EncryptionKey == "" {
 		logger.Warn(
-			"OAUTH_TOKEN_ENC_KEY not set — GitHub/Sentry/DigitalOcean " +
+			"ENCRYPTION_KEY not set — GitHub/Sentry/DigitalOcean " +
 				"OAuth connections cannot be stored",
 		)
 		return nil
 	}
-	sealer, err := crypto.New(config.OAuthTokenEncKey)
+	sealer, err := crypto.New(config.EncryptionKey)
 	if err != nil {
 		panic(err)
 	}

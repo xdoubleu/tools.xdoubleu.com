@@ -175,7 +175,7 @@ re-applied if a bucket is recreated.
 provider needs its own OAuth App registered once, with callback URL
 `https://tools.xdoubleu.com/api/admin/oauth/{provider}/callback` (`github`, `sentry`,
 `digitalocean`). The resulting client id/secret pairs, plus a generated
-`OAUTH_TOKEN_ENC_KEY` (`openssl rand -base64 32`), are declared as `SECRET`
+`ENCRYPTION_KEY` (`openssl rand -base64 32`), are declared as `SECRET`
 placeholders in [`do-app.yaml`](do-app.yaml) but must be pushed to the *live* DO App
 explicitly — editing `do-app.yaml` alone doesn't update a running app:
 

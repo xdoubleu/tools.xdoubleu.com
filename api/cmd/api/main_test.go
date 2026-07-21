@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 	cfg := testhelper.NewTestConfig()
 	// A fixed test key so OAuth connection tests can round-trip through the
 	// real AES-GCM sealer instead of the "encryption not configured" path.
-	cfg.OAuthTokenEncKey = base64.StdEncoding.EncodeToString(make([]byte, 32))
+	cfg.EncryptionKey = base64.StdEncoding.EncodeToString(make([]byte, 32))
 
 	postgresDB, err := newDBPool(logging.NewNopLogger(), cfg.DBDsn)
 	if err != nil {
