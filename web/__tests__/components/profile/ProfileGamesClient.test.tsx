@@ -77,6 +77,16 @@ describe('ProfileGamesClient', () => {
     expect(screen.getByText(/Last synced:/)).toBeInTheDocument()
   })
 
+  it('shows the favourites stat card linking to the shared library', () => {
+    mockUseSharedSteam.mockReturnValue({ data: makeSteam() })
+    render(<ProfileGamesClient token="tok-1" />)
+
+    const favouritesCard = screen.getByText('Favourites').closest('a')
+    expect(favouritesCard).toHaveAttribute('href', '/profile/games/tok-1/library')
+    // makeSteam() has one favourite game.
+    expect(favouritesCard).toHaveTextContent('1')
+  })
+
   it('links to the shared library and omits the inline game groups', () => {
     mockUseSharedSteam.mockReturnValue({ data: makeSteam() })
     render(<ProfileGamesClient token="tok-1" />)
