@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -18,6 +19,12 @@ import (
 var ErrEncryptionNotConfigured = errors.New(
 	"repositories: ENCRYPTION_KEY not configured",
 )
+
+// ErrInvalidConfig is returned by SetConfig when config isn't valid JSON.
+// The config column is JSONB, so Postgres would otherwise reject it with a
+// raw SQLSTATE 22P02 that surfaces to the client as an unscrubbed
+// CodeInternal instead of a clean, actionable error.
+var ErrInvalidConfig = errors.New("repositories: config is not valid JSON")
 
 // OAuthConnectionsRepository stores one OAuth connection per external
 // provider (global.oauth_connections). Access/refresh tokens are encrypted
@@ -125,6 +132,10 @@ func (r *OAuthConnectionsRepository) UpdateToken(
 func (r *OAuthConnectionsRepository) SetConfig(
 	ctx context.Context, provider models.OAuthProvider, config []byte,
 ) error {
+	if !json.Valid(config) {
+		return ErrInvalidConfig
+	}
+
 	tag, err := r.db.Exec(ctx, `
 		UPDATE global.oauth_connections
 		SET config = $2, updated_at = now()
