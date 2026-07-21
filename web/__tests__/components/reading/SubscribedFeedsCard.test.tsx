@@ -54,6 +54,19 @@ describe('SubscribedFeedsCard', () => {
     expect(screen.getByText('Last poll failed')).toBeInTheDocument()
   })
 
+  it('falls back to the URL when a feed has no title', () => {
+    feedsData.data = { feeds: [{ ...feed, title: '' }] }
+    render(<SubscribedFeedsCard />)
+    expect(screen.getByText(feed.url)).toBeInTheDocument()
+  })
+
+  it('shows no fetch status for a feed that has never been polled', () => {
+    feedsData.data = { feeds: [{ ...feed, lastError: '', lastFetchedAt: '' }] }
+    render(<SubscribedFeedsCard />)
+    expect(screen.queryByText('Last poll failed')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Last fetched/)).not.toBeInTheDocument()
+  })
+
   it('shows an error state', () => {
     feedsData.data = undefined
     feedsData.error = new Error('nope')

@@ -25,6 +25,7 @@ export const swrKeys = {
   profileBooks: (token: string) => `/profile/reading/${token}`,
   profileBooksProgress: (token: string, dateStart?: string, dateEnd?: string) =>
     ['/profile/reading-progress', token, dateStart, dateEnd] as const,
+  profileBooksFeeds: (token: string) => `/profile/reading/${token}/feeds`,
   profileGames: (token: string) => `/profile/games/${token}`,
   profileGamesProgress: (token: string, dateStart?: string, dateEnd?: string) =>
     ['/profile/games-progress', token, dateStart, dateEnd] as const,

@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSharedLibrary, useSharedBooksProgress } from '@/hooks/useProfile'
+import { useSharedLibrary, useSharedBooksProgress, useSharedFeeds } from '@/hooks/useProfile'
 import type { GetSharedLibraryResponse } from '@/lib/gen/reading/v1/public_pb'
 import ProfileBookCard from '@/components/profile/ProfileBookCard'
 import BooksProgressChart from '@/components/reading/BooksProgressChart'
+import FeedList from '@/components/reading/FeedList'
 import GamesStatCard from '@/components/games/GamesStatCard'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
 import { formatDateTime, oneYearAgo, today } from '@/lib/dates'
@@ -30,6 +32,8 @@ export default function ProfileBooksClient({
     progressStart,
     progressEnd
   )
+  const { data: feedsData, error: feedsError, isLoading: feedsLoading } = useSharedFeeds(token)
+  const feeds = feedsData?.feeds ?? []
 
   const library = data?.library
   const reading = library?.reading ?? []
@@ -76,6 +80,13 @@ export default function ProfileBooksClient({
           <GamesStatCard label="RSS items" value={rss.length} />
           <GamesStatCard label="RSS read" value={rssRead} />
         </div>
+      )}
+
+      {feeds.length > 0 && (
+        <Card className="flex min-h-0 flex-col p-4">
+          <h2 className="mb-2 text-base font-semibold">Subscribed feeds</h2>
+          <FeedList feeds={feeds} isLoading={feedsLoading} error={feedsError} />
+        </Card>
       )}
 
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">

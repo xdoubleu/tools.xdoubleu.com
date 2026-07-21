@@ -39,12 +39,16 @@ const (
 	// PublicLibraryServiceGetSharedBooksProgressProcedure is the fully-qualified name of the
 	// PublicLibraryService's GetSharedBooksProgress RPC.
 	PublicLibraryServiceGetSharedBooksProgressProcedure = "/reading.v1.PublicLibraryService/GetSharedBooksProgress"
+	// PublicLibraryServiceGetSharedFeedsProcedure is the fully-qualified name of the
+	// PublicLibraryService's GetSharedFeeds RPC.
+	PublicLibraryServiceGetSharedFeedsProcedure = "/reading.v1.PublicLibraryService/GetSharedFeeds"
 )
 
 // PublicLibraryServiceClient is a client for the reading.v1.PublicLibraryService service.
 type PublicLibraryServiceClient interface {
 	GetSharedLibrary(context.Context, *connect.Request[v1.GetSharedLibraryRequest]) (*connect.Response[v1.GetSharedLibraryResponse], error)
 	GetSharedBooksProgress(context.Context, *connect.Request[v1.GetSharedBooksProgressRequest]) (*connect.Response[v1.GetSharedBooksProgressResponse], error)
+	GetSharedFeeds(context.Context, *connect.Request[v1.GetSharedFeedsRequest]) (*connect.Response[v1.GetSharedFeedsResponse], error)
 }
 
 // NewPublicLibraryServiceClient constructs a client for the reading.v1.PublicLibraryService
@@ -70,6 +74,12 @@ func NewPublicLibraryServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(publicLibraryServiceMethods.ByName("GetSharedBooksProgress")),
 			connect.WithClientOptions(opts...),
 		),
+		getSharedFeeds: connect.NewClient[v1.GetSharedFeedsRequest, v1.GetSharedFeedsResponse](
+			httpClient,
+			baseURL+PublicLibraryServiceGetSharedFeedsProcedure,
+			connect.WithSchema(publicLibraryServiceMethods.ByName("GetSharedFeeds")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -77,6 +87,7 @@ func NewPublicLibraryServiceClient(httpClient connect.HTTPClient, baseURL string
 type publicLibraryServiceClient struct {
 	getSharedLibrary       *connect.Client[v1.GetSharedLibraryRequest, v1.GetSharedLibraryResponse]
 	getSharedBooksProgress *connect.Client[v1.GetSharedBooksProgressRequest, v1.GetSharedBooksProgressResponse]
+	getSharedFeeds         *connect.Client[v1.GetSharedFeedsRequest, v1.GetSharedFeedsResponse]
 }
 
 // GetSharedLibrary calls reading.v1.PublicLibraryService.GetSharedLibrary.
@@ -89,10 +100,16 @@ func (c *publicLibraryServiceClient) GetSharedBooksProgress(ctx context.Context,
 	return c.getSharedBooksProgress.CallUnary(ctx, req)
 }
 
+// GetSharedFeeds calls reading.v1.PublicLibraryService.GetSharedFeeds.
+func (c *publicLibraryServiceClient) GetSharedFeeds(ctx context.Context, req *connect.Request[v1.GetSharedFeedsRequest]) (*connect.Response[v1.GetSharedFeedsResponse], error) {
+	return c.getSharedFeeds.CallUnary(ctx, req)
+}
+
 // PublicLibraryServiceHandler is an implementation of the reading.v1.PublicLibraryService service.
 type PublicLibraryServiceHandler interface {
 	GetSharedLibrary(context.Context, *connect.Request[v1.GetSharedLibraryRequest]) (*connect.Response[v1.GetSharedLibraryResponse], error)
 	GetSharedBooksProgress(context.Context, *connect.Request[v1.GetSharedBooksProgressRequest]) (*connect.Response[v1.GetSharedBooksProgressResponse], error)
+	GetSharedFeeds(context.Context, *connect.Request[v1.GetSharedFeedsRequest]) (*connect.Response[v1.GetSharedFeedsResponse], error)
 }
 
 // NewPublicLibraryServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -114,12 +131,20 @@ func NewPublicLibraryServiceHandler(svc PublicLibraryServiceHandler, opts ...con
 		connect.WithSchema(publicLibraryServiceMethods.ByName("GetSharedBooksProgress")),
 		connect.WithHandlerOptions(opts...),
 	)
+	publicLibraryServiceGetSharedFeedsHandler := connect.NewUnaryHandler(
+		PublicLibraryServiceGetSharedFeedsProcedure,
+		svc.GetSharedFeeds,
+		connect.WithSchema(publicLibraryServiceMethods.ByName("GetSharedFeeds")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/reading.v1.PublicLibraryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PublicLibraryServiceGetSharedLibraryProcedure:
 			publicLibraryServiceGetSharedLibraryHandler.ServeHTTP(w, r)
 		case PublicLibraryServiceGetSharedBooksProgressProcedure:
 			publicLibraryServiceGetSharedBooksProgressHandler.ServeHTTP(w, r)
+		case PublicLibraryServiceGetSharedFeedsProcedure:
+			publicLibraryServiceGetSharedFeedsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -135,4 +160,8 @@ func (UnimplementedPublicLibraryServiceHandler) GetSharedLibrary(context.Context
 
 func (UnimplementedPublicLibraryServiceHandler) GetSharedBooksProgress(context.Context, *connect.Request[v1.GetSharedBooksProgressRequest]) (*connect.Response[v1.GetSharedBooksProgressResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("reading.v1.PublicLibraryService.GetSharedBooksProgress is not implemented"))
+}
+
+func (UnimplementedPublicLibraryServiceHandler) GetSharedFeeds(context.Context, *connect.Request[v1.GetSharedFeedsRequest]) (*connect.Response[v1.GetSharedFeedsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("reading.v1.PublicLibraryService.GetSharedFeeds is not implemented"))
 }

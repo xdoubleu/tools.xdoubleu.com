@@ -8,6 +8,7 @@ const clientMocks = {
   deleteProfileShare: jest.fn().mockResolvedValue({}),
   getSharedLibrary: jest.fn().mockResolvedValue({}),
   getSharedBooksProgress: jest.fn().mockResolvedValue({}),
+  getSharedFeeds: jest.fn().mockResolvedValue({}),
   getSharedSteam: jest.fn().mockResolvedValue({}),
   getSharedSteamGame: jest.fn().mockResolvedValue({}),
   getSharedRecentlyActiveGames: jest.fn().mockResolvedValue({})
@@ -30,6 +31,7 @@ import {
   useDeleteProfileShare,
   useSharedLibrary,
   useSharedBooksProgress,
+  useSharedFeeds,
   useSharedSteam,
   useSharedSteamProgress,
   useSharedSteamGame,
@@ -94,6 +96,19 @@ describe('useProfile hooks', () => {
       dateStart: '2026-01-01',
       dateEnd: '2026-02-01'
     })
+  })
+
+  it('useSharedFeeds keys by token and passes it to the RPC', async () => {
+    renderHook(() => useSharedFeeds('tok-1'))
+    const [key, fetcher] = mockUseSWR.mock.calls[0]!
+    expect(key).toBe('/profile/reading/tok-1/feeds')
+    await fetcher!()
+    expect(clientMocks.getSharedFeeds).toHaveBeenCalledWith({ token: 'tok-1' })
+  })
+
+  it('useSharedFeeds is disabled without a token', () => {
+    renderHook(() => useSharedFeeds(''))
+    expect(mockUseSWR.mock.calls[0]![0]).toBeNull()
   })
 
   it('useSharedSteam keys by token', async () => {

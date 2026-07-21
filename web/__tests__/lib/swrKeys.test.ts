@@ -46,6 +46,7 @@ describe('swrKeys', () => {
     expect(swrKeys.mealSuggestions('p1', '2026-07-04', 'dinner')).toBe(
       '/mealplans/p1/suggest?d=2026-07-04&s=dinner'
     )
+    expect(swrKeys.profileBooksFeeds('tok')).toBe('/profile/reading/tok/feeds')
     expect(swrKeys.recipe('r1')).toBe('/recipes/r1')
     expect(swrKeys.recipe('r1', 4)).toBe('/recipes/r1?servings=4')
     expect(swrKeys.shoppingList('u1')).toBe('/shoppinglist?owner=u1')

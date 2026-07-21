@@ -232,12 +232,100 @@ func (x *GetSharedBooksProgressResponse) GetProgress() *BooksProgressResponse {
 	return nil
 }
 
+type GetSharedFeedsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSharedFeedsRequest) Reset() {
+	*x = GetSharedFeedsRequest{}
+	mi := &file_reading_v1_public_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSharedFeedsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSharedFeedsRequest) ProtoMessage() {}
+
+func (x *GetSharedFeedsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_reading_v1_public_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSharedFeedsRequest.ProtoReflect.Descriptor instead.
+func (*GetSharedFeedsRequest) Descriptor() ([]byte, []int) {
+	return file_reading_v1_public_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetSharedFeedsRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type GetSharedFeedsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Feeds         []*Feed                `protobuf:"bytes,1,rep,name=feeds,proto3" json:"feeds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSharedFeedsResponse) Reset() {
+	*x = GetSharedFeedsResponse{}
+	mi := &file_reading_v1_public_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSharedFeedsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSharedFeedsResponse) ProtoMessage() {}
+
+func (x *GetSharedFeedsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_reading_v1_public_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSharedFeedsResponse.ProtoReflect.Descriptor instead.
+func (*GetSharedFeedsResponse) Descriptor() ([]byte, []int) {
+	return file_reading_v1_public_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetSharedFeedsResponse) GetFeeds() []*Feed {
+	if x != nil {
+		return x.Feeds
+	}
+	return nil
+}
+
 var File_reading_v1_public_proto protoreflect.FileDescriptor
 
 const file_reading_v1_public_proto_rawDesc = "" +
 	"\n" +
 	"\x17reading/v1/public.proto\x12\n" +
-	"reading.v1\x1a\x18reading/v1/library.proto\"/\n" +
+	"reading.v1\x1a\x18reading/v1/library.proto\x1a\x16reading/v1/feeds.proto\"/\n" +
 	"\x17GetSharedLibraryRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"\x9a\x01\n" +
 	"\x18GetSharedLibraryResponse\x125\n" +
@@ -250,10 +338,15 @@ const file_reading_v1_public_proto_rawDesc = "" +
 	"date_start\x18\x02 \x01(\tR\tdateStart\x12\x19\n" +
 	"\bdate_end\x18\x03 \x01(\tR\adateEnd\"_\n" +
 	"\x1eGetSharedBooksProgressResponse\x12=\n" +
-	"\bprogress\x18\x01 \x01(\v2!.reading.v1.BooksProgressResponseR\bprogress2\xe6\x01\n" +
+	"\bprogress\x18\x01 \x01(\v2!.reading.v1.BooksProgressResponseR\bprogress\"-\n" +
+	"\x15GetSharedFeedsRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"@\n" +
+	"\x16GetSharedFeedsResponse\x12&\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds2\xbf\x02\n" +
 	"\x14PublicLibraryService\x12]\n" +
 	"\x10GetSharedLibrary\x12#.reading.v1.GetSharedLibraryRequest\x1a$.reading.v1.GetSharedLibraryResponse\x12o\n" +
-	"\x16GetSharedBooksProgress\x12).reading.v1.GetSharedBooksProgressRequest\x1a*.reading.v1.GetSharedBooksProgressResponseB-Z+tools.xdoubleu.com/gen/reading/v1;readingv1b\x06proto3"
+	"\x16GetSharedBooksProgress\x12).reading.v1.GetSharedBooksProgressRequest\x1a*.reading.v1.GetSharedBooksProgressResponse\x12W\n" +
+	"\x0eGetSharedFeeds\x12!.reading.v1.GetSharedFeedsRequest\x1a\".reading.v1.GetSharedFeedsResponseB-Z+tools.xdoubleu.com/gen/reading/v1;readingv1b\x06proto3"
 
 var (
 	file_reading_v1_public_proto_rawDescOnce sync.Once
@@ -267,27 +360,33 @@ func file_reading_v1_public_proto_rawDescGZIP() []byte {
 	return file_reading_v1_public_proto_rawDescData
 }
 
-var file_reading_v1_public_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_reading_v1_public_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_reading_v1_public_proto_goTypes = []any{
 	(*GetSharedLibraryRequest)(nil),        // 0: reading.v1.GetSharedLibraryRequest
 	(*GetSharedLibraryResponse)(nil),       // 1: reading.v1.GetSharedLibraryResponse
 	(*GetSharedBooksProgressRequest)(nil),  // 2: reading.v1.GetSharedBooksProgressRequest
 	(*GetSharedBooksProgressResponse)(nil), // 3: reading.v1.GetSharedBooksProgressResponse
-	(*LibraryResponse)(nil),                // 4: reading.v1.LibraryResponse
-	(*BooksProgressResponse)(nil),          // 5: reading.v1.BooksProgressResponse
+	(*GetSharedFeedsRequest)(nil),          // 4: reading.v1.GetSharedFeedsRequest
+	(*GetSharedFeedsResponse)(nil),         // 5: reading.v1.GetSharedFeedsResponse
+	(*LibraryResponse)(nil),                // 6: reading.v1.LibraryResponse
+	(*BooksProgressResponse)(nil),          // 7: reading.v1.BooksProgressResponse
+	(*Feed)(nil),                           // 8: reading.v1.Feed
 }
 var file_reading_v1_public_proto_depIdxs = []int32{
-	4, // 0: reading.v1.GetSharedLibraryResponse.library:type_name -> reading.v1.LibraryResponse
-	5, // 1: reading.v1.GetSharedBooksProgressResponse.progress:type_name -> reading.v1.BooksProgressResponse
-	0, // 2: reading.v1.PublicLibraryService.GetSharedLibrary:input_type -> reading.v1.GetSharedLibraryRequest
-	2, // 3: reading.v1.PublicLibraryService.GetSharedBooksProgress:input_type -> reading.v1.GetSharedBooksProgressRequest
-	1, // 4: reading.v1.PublicLibraryService.GetSharedLibrary:output_type -> reading.v1.GetSharedLibraryResponse
-	3, // 5: reading.v1.PublicLibraryService.GetSharedBooksProgress:output_type -> reading.v1.GetSharedBooksProgressResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6, // 0: reading.v1.GetSharedLibraryResponse.library:type_name -> reading.v1.LibraryResponse
+	7, // 1: reading.v1.GetSharedBooksProgressResponse.progress:type_name -> reading.v1.BooksProgressResponse
+	8, // 2: reading.v1.GetSharedFeedsResponse.feeds:type_name -> reading.v1.Feed
+	0, // 3: reading.v1.PublicLibraryService.GetSharedLibrary:input_type -> reading.v1.GetSharedLibraryRequest
+	2, // 4: reading.v1.PublicLibraryService.GetSharedBooksProgress:input_type -> reading.v1.GetSharedBooksProgressRequest
+	4, // 5: reading.v1.PublicLibraryService.GetSharedFeeds:input_type -> reading.v1.GetSharedFeedsRequest
+	1, // 6: reading.v1.PublicLibraryService.GetSharedLibrary:output_type -> reading.v1.GetSharedLibraryResponse
+	3, // 7: reading.v1.PublicLibraryService.GetSharedBooksProgress:output_type -> reading.v1.GetSharedBooksProgressResponse
+	5, // 8: reading.v1.PublicLibraryService.GetSharedFeeds:output_type -> reading.v1.GetSharedFeedsResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_reading_v1_public_proto_init() }
@@ -296,13 +395,14 @@ func file_reading_v1_public_proto_init() {
 		return
 	}
 	file_reading_v1_library_proto_init()
+	file_reading_v1_feeds_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reading_v1_public_proto_rawDesc), len(file_reading_v1_public_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
