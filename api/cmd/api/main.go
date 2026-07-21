@@ -73,14 +73,19 @@ const (
 	// migrationLockKey identifies the advisory lock that serializes
 	// migration runs across concurrently starting replicas.
 	migrationLockKey = 20260101
-	// migrationLockTimeout bounds how long a starting replica waits for the
-	// advisory lock before failing loudly, so a lock left held by a stale
-	// connection from a prior replica can't hang startup silently forever.
-	migrationLockTimeout = 20 * time.Second
 	// usageFlushInterval is how often accumulated request counts are
 	// written to global.usage_daily.
 	usageFlushInterval = time.Minute
 )
+
+// migrationLockTimeout bounds how long a starting replica waits for the
+// migration advisory lock before failing loudly, so a lock left held by a
+// stale connection from a prior replica can't hang startup silently forever.
+// A var (not const) so tests can shrink it instead of waiting out the real
+// timeout.
+//
+//nolint:gochecknoglobals //test seam, see comment above
+var migrationLockTimeout = 20 * time.Second
 
 func main() {
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
