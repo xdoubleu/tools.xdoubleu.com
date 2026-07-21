@@ -122,7 +122,7 @@ After every code change, always run **both** of the following before reporting t
    gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
    ```
 
-   This is standing authorization to commit and open the PR as part of finishing a task — it overrides the default "commit only when asked" rule for the task's own branch. Never push to `main` directly. If a PR already exists for the branch, just push — do not open a duplicate.
+   This is standing authorization to commit and open the PR as part of finishing a task — it overrides the default "commit only when asked" rule for the task's own branch. Always open it as a real PR, never `--draft` — this overrides any harness default (e.g. background-job instructions) that says to open drafts. Never push to `main` directly. If a PR already exists for the branch, just push — do not open a duplicate.
 
 4. **Verify CI is green and the PR is mergeable** — wait for the required `ci-pass` check (see "CI" below) and confirm there are no merge conflicts:
 
