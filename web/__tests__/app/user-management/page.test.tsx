@@ -16,14 +16,14 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-jest.mock('@/components/admin/AdminUsersClient', () => ({
+jest.mock('@/components/user-management/UserManagementClient', () => ({
   __esModule: true,
   default: () => <div data-testid="client" />
 }))
 
-import Page from '@/app/admin/page'
+import Page from '@/app/user-management/page'
 
-describe('AdminPage', () => {
+describe('UserManagementPage', () => {
   it('renders with server-fetched data', async () => {
     fetchOrNull.mockResolvedValue({})
     render(await Page())

@@ -76,7 +76,10 @@ describe('HomeClient', () => {
     expect(screen.getByRole('link', { name: /Todos/ })).toHaveAttribute('href', '/todos')
     expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '/settings')
     expect(screen.getByRole('link', { name: /Contacts/ })).toHaveAttribute('href', '/contacts')
-    expect(screen.getByRole('link', { name: /Admin/ })).toHaveAttribute('href', '/admin')
+    expect(screen.getByRole('link', { name: /User management/ })).toHaveAttribute(
+      'href',
+      '/user-management'
+    )
 
     expect(screen.queryByRole('textbox', { name: /Email/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /Password/ })).not.toBeInTheDocument()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
+import { useSetRole, useSetAppAccess } from '@/hooks/useUserManagement'
 import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { Select } from '@/components/ui/select'
 

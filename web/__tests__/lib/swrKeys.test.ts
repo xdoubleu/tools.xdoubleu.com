@@ -6,7 +6,7 @@ import { swrKeys } from '@/lib/swrKeys'
 describe('swrKeys', () => {
   it('static keys match their historical literals', () => {
     expect(swrKeys.currentUser).toBe('/auth/current-user')
-    expect(swrKeys.adminUsers).toBe('/admin/users')
+    expect(swrKeys.userManagementUsers).toBe('/user-management/users')
     expect(swrKeys.contacts).toBe('/contacts')
     expect(swrKeys.webRelease).toBe('/release')
     expect(swrKeys.sharedMealPlans).toBe('/sharing/mealplans')

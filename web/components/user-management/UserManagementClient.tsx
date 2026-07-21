@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { mutate } from 'swr'
-import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
+import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useUserManagement'
 import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -26,13 +25,13 @@ function UserRow({ user }: { user: AppUser }) {
 
   async function handleRoleChange(role: string) {
     await setRole(user.id, role)
-    await mutate(swrKeys.adminUsers)
+    await mutate(swrKeys.userManagementUsers)
   }
 
   async function handleAccessToggle(appName: string) {
     const grant = !user.appAccess.includes(appName)
     await setAppAccess(user.id, appName, grant)
-    await mutate(swrKeys.adminUsers)
+    await mutate(swrKeys.userManagementUsers)
   }
 
   return (
@@ -66,7 +65,7 @@ function UserRow({ user }: { user: AppUser }) {
   )
 }
 
-export default function AdminUsersClient() {
+export default function UserManagementClient() {
   const { data, isLoading, error } = useUsers()
   const users = data?.users ?? []
 
@@ -80,12 +79,7 @@ export default function AdminUsersClient() {
 
   return (
     <PageContainer className="p-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold">User Management</h1>
-        <Button asChild variant="secondary">
-          <Link href="/monitoring">Observability</Link>
-        </Button>
-      </div>
+      <h1 className="mb-6 text-3xl font-bold">User Management</h1>
 
       <div className="overflow-x-auto rounded-2xl border border-border">
         <table className="w-full text-left">
