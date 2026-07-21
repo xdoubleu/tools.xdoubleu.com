@@ -122,6 +122,45 @@ func TestOAuthConnectionsIndependentPerProvider(t *testing.T) {
 	assert.Equal(t, "sentry-token", tok.AccessToken)
 }
 
+func TestOAuthConnectionsSetConfig(t *testing.T) {
+	clearOAuthConnections(t)
+	repo := repositories.NewOAuthConnectionsRepository(testDB, testSealer(t))
+
+	err := repo.SetConfig(
+		t.Context(), models.OAuthProviderGithub, []byte(`{"repo":"o/r"}`),
+	)
+	assert.ErrorIs(
+		t, err, database.ErrResourceNotFound,
+		"configuring an unconnected provider must not silently no-op",
+	)
+
+	require.NoError(t, repo.Upsert(
+		t.Context(),
+		models.OAuthProviderGithub,
+		&oauth2.Token{ //nolint:exhaustruct // other token fields unused in test
+			AccessToken: "gh-token",
+		},
+		"admin",
+	))
+
+	_, conn, err := repo.Get(t.Context(), models.OAuthProviderGithub)
+	require.NoError(t, err)
+	assert.Empty(t, conn.Config, "config is nil until explicitly set")
+
+	require.NoError(t, repo.SetConfig(
+		t.Context(), models.OAuthProviderGithub, []byte(`{"repo":"o/r"}`),
+	))
+
+	_, conn, err = repo.Get(t.Context(), models.OAuthProviderGithub)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"repo":"o/r"}`, string(conn.Config))
+
+	list, err := repo.List(t.Context())
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.JSONEq(t, `{"repo":"o/r"}`, string(list[0].Config))
+}
+
 func TestOAuthConnectionsRepository_EncryptionNotConfigured(t *testing.T) {
 	clearOAuthConnections(t)
 	repo := repositories.NewOAuthConnectionsRepository(testDB, nil)

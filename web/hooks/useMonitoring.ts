@@ -1,7 +1,11 @@
 import { useCallback, useMemo } from 'react'
 import useSWR, { mutate } from 'swr'
+import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
-import { ObservabilityService } from '@/lib/gen/observability/v1/observability_pb'
+import {
+  ObservabilityService,
+  ProviderConfigSchema
+} from '@/lib/gen/observability/v1/observability_pb'
 import type {
   GetJobStatsResponse,
   GetUsageStatsResponse,
@@ -10,9 +14,12 @@ import type {
   GetGithubIssuesResponse,
   GetSentryIssuesResponse,
   GetDeployStatusResponse,
-  ListOAuthConnectionsResponse
+  ListOAuthConnectionsResponse,
+  GetProviderOptionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
+
+export type ProviderConfigInput = MessageInitShape<typeof ProviderConfigSchema>
 
 export function useJobStats(windowDays: number) {
   const client = createServiceClient(ObservabilityService)
@@ -76,6 +83,40 @@ export function useDisconnectOAuthConnection() {
     async (provider: string) => {
       await client.disconnectOAuthConnection({ provider })
       await mutate(swrKeys.monitoringOAuthConnections)
+    },
+    [client]
+  )
+}
+
+// PROVIDER_DATA_KEYS maps a provider to the SWR key holding the data it
+// unlocks, so useSetProviderConfig can flip that card to "configured"
+// immediately instead of waiting for its own poll/revalidation.
+const PROVIDER_DATA_KEYS: Record<string, string> = {
+  github: swrKeys.monitoringGithubIssues,
+  sentry: swrKeys.monitoringSentryIssues,
+  digitalocean: swrKeys.monitoringDeployStatus
+}
+
+// useProviderOptions is fetched on demand (when the config picker dialog
+// opens), not via SWR — matching useDisconnectOAuthConnection's callback
+// pattern above.
+export function useProviderOptions() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    (provider: string, sentryOrg?: string): Promise<GetProviderOptionsResponse> =>
+      client.getProviderOptions({ provider, sentryOrg: sentryOrg ?? '' }),
+    [client]
+  )
+}
+
+export function useSetProviderConfig() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    async (provider: string, config: ProviderConfigInput) => {
+      await client.setProviderConfig({ provider, config })
+      await mutate(swrKeys.monitoringOAuthConnections)
+      const dataKey = PROVIDER_DATA_KEYS[provider]
+      if (dataKey) await mutate(dataKey)
     },
     [client]
   )

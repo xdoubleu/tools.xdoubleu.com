@@ -63,6 +63,12 @@ const (
 	// ObservabilityServiceDisconnectOAuthConnectionProcedure is the fully-qualified name of the
 	// ObservabilityService's DisconnectOAuthConnection RPC.
 	ObservabilityServiceDisconnectOAuthConnectionProcedure = "/observability.v1.ObservabilityService/DisconnectOAuthConnection"
+	// ObservabilityServiceGetProviderOptionsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetProviderOptions RPC.
+	ObservabilityServiceGetProviderOptionsProcedure = "/observability.v1.ObservabilityService/GetProviderOptions"
+	// ObservabilityServiceSetProviderConfigProcedure is the fully-qualified name of the
+	// ObservabilityService's SetProviderConfig RPC.
+	ObservabilityServiceSetProviderConfigProcedure = "/observability.v1.ObservabilityService/SetProviderConfig"
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -77,6 +83,8 @@ type ObservabilityServiceClient interface {
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
+	GetProviderOptions(context.Context, *connect.Request[v1.GetProviderOptionsRequest]) (*connect.Response[v1.GetProviderOptionsResponse], error)
+	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -150,6 +158,18 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("DisconnectOAuthConnection")),
 			connect.WithClientOptions(opts...),
 		),
+		getProviderOptions: connect.NewClient[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetProviderOptionsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetProviderOptions")),
+			connect.WithClientOptions(opts...),
+		),
+		setProviderConfig: connect.NewClient[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse](
+			httpClient,
+			baseURL+ObservabilityServiceSetProviderConfigProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("SetProviderConfig")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -165,6 +185,8 @@ type observabilityServiceClient struct {
 	getHealthOverview         *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
 	listOAuthConnections      *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
 	disconnectOAuthConnection *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
+	getProviderOptions        *connect.Client[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse]
+	setProviderConfig         *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -217,6 +239,16 @@ func (c *observabilityServiceClient) DisconnectOAuthConnection(ctx context.Conte
 	return c.disconnectOAuthConnection.CallUnary(ctx, req)
 }
 
+// GetProviderOptions calls observability.v1.ObservabilityService.GetProviderOptions.
+func (c *observabilityServiceClient) GetProviderOptions(ctx context.Context, req *connect.Request[v1.GetProviderOptionsRequest]) (*connect.Response[v1.GetProviderOptionsResponse], error) {
+	return c.getProviderOptions.CallUnary(ctx, req)
+}
+
+// SetProviderConfig calls observability.v1.ObservabilityService.SetProviderConfig.
+func (c *observabilityServiceClient) SetProviderConfig(ctx context.Context, req *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error) {
+	return c.setProviderConfig.CallUnary(ctx, req)
+}
+
 // ObservabilityServiceHandler is an implementation of the observability.v1.ObservabilityService
 // service.
 type ObservabilityServiceHandler interface {
@@ -230,6 +262,8 @@ type ObservabilityServiceHandler interface {
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
+	GetProviderOptions(context.Context, *connect.Request[v1.GetProviderOptionsRequest]) (*connect.Response[v1.GetProviderOptionsResponse], error)
+	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 }
 
 // NewObservabilityServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -299,6 +333,18 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("DisconnectOAuthConnection")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceGetProviderOptionsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetProviderOptionsProcedure,
+		svc.GetProviderOptions,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetProviderOptions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceSetProviderConfigHandler := connect.NewUnaryHandler(
+		ObservabilityServiceSetProviderConfigProcedure,
+		svc.SetProviderConfig,
+		connect.WithSchema(observabilityServiceMethods.ByName("SetProviderConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/observability.v1.ObservabilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObservabilityServiceGetJobStatsProcedure:
@@ -321,6 +367,10 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceListOAuthConnectionsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceDisconnectOAuthConnectionProcedure:
 			observabilityServiceDisconnectOAuthConnectionHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetProviderOptionsProcedure:
+			observabilityServiceGetProviderOptionsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceSetProviderConfigProcedure:
+			observabilityServiceSetProviderConfigHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -368,4 +418,12 @@ func (UnimplementedObservabilityServiceHandler) ListOAuthConnections(context.Con
 
 func (UnimplementedObservabilityServiceHandler) DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.DisconnectOAuthConnection is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetProviderOptions(context.Context, *connect.Request[v1.GetProviderOptionsRequest]) (*connect.Response[v1.GetProviderOptionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetProviderOptions is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.SetProviderConfig is not implemented"))
 }

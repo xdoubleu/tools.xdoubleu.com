@@ -16,4 +16,11 @@ type Client interface {
 	// ListUnresolvedIssues returns the unresolved issues of the configured
 	// project. Returns ErrNotConfigured when org/project/token is unset.
 	ListUnresolvedIssues(ctx context.Context) ([]Issue, error)
+	// ListOrgs returns the organizations visible to the connected account,
+	// for the admin config picker. Returns oauthconn.ErrNotConnected when no
+	// token is set — discovery must work before an org/project is picked.
+	ListOrgs(ctx context.Context) ([]Org, error)
+	// ListProjects returns the projects within org visible to the connected
+	// account, for the admin config picker.
+	ListProjects(ctx context.Context, org string) ([]Project, error)
 }

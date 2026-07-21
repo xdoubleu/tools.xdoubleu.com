@@ -17,6 +17,10 @@ service ObservabilityService {
       returns (ListOAuthConnectionsResponse);
   rpc DisconnectOAuthConnection(DisconnectOAuthConnectionRequest)
       returns (DisconnectOAuthConnectionResponse);
+  rpc GetProviderOptions(GetProviderOptionsRequest)
+      returns (GetProviderOptionsResponse);
+  rpc SetProviderConfig(SetProviderConfigRequest)
+      returns (SetProviderConfigResponse);
 }
 
 message JobStat {
@@ -116,7 +120,8 @@ message GetGithubIssuesResponse {
   int32 open_count = 3;
 }
 
-// SentryIssue is a single unresolved issue on the configured project.
+// SentryIssue is a single unresolved issue on one of the configured
+// projects.
 message SentryIssue {
   string id = 1;
   string title = 2;
@@ -125,6 +130,7 @@ message SentryIssue {
   int64 count = 5;  // number of events
   string last_seen = 6;  // RFC3339
   string level = 7;
+  string project = 8;  // which configured project this issue came from
 }
 
 message GetSentryIssuesRequest {}
@@ -161,6 +167,29 @@ message GetHealthOverviewResponse {
   GetDeployStatusResponse deploy = 3;
 }
 
+message GithubConfig {
+  string repo = 1;  // "owner/name"
+}
+
+message SentryConfig {
+  string org = 1;
+  repeated string projects = 2;
+}
+
+message DigitalOceanConfig {
+  string app_id = 1;
+}
+
+// ProviderConfig is the admin-picked identifier(s) for a connected provider
+// (issue #440 follow-up: picked interactively instead of a static env var).
+message ProviderConfig {
+  oneof config {
+    GithubConfig github = 1;
+    SentryConfig sentry = 2;
+    DigitalOceanConfig digitalocean = 3;
+  }
+}
+
 // OAuthConnectionStatus is the admin-facing status of one provider's OAuth
 // connection (issue #440) — never the token itself.
 message OAuthConnectionStatus {
@@ -169,6 +198,7 @@ message OAuthConnectionStatus {
   string connected_by = 3;  // email, empty if not connected
   string connected_at = 4;  // RFC3339, empty if not connected
   string expires_at = 5;    // RFC3339, empty if non-expiring or not connected
+  ProviderConfig config = 6;  // unset if connected but not yet configured
 }
 
 message ListOAuthConnectionsRequest {}
@@ -182,3 +212,25 @@ message DisconnectOAuthConnectionRequest {
 }
 
 message DisconnectOAuthConnectionResponse {}
+
+// GetProviderOptionsRequest asks a connected provider what identifiers are
+// available to pick from. sentry_org disambiguates the second Sentry step:
+// empty lists orgs, set lists that org's projects.
+message GetProviderOptionsRequest {
+  string provider = 1;
+  string sentry_org = 2;
+}
+
+message GetProviderOptionsResponse {
+  repeated string repos = 1;
+  repeated string sentry_orgs = 2;
+  repeated string sentry_projects = 3;
+  repeated string apps = 4;
+}
+
+message SetProviderConfigRequest {
+  string provider = 1;
+  ProviderConfig config = 2;
+}
+
+message SetProviderConfigResponse {}

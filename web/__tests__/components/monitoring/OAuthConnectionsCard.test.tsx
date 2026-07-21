@@ -10,6 +10,12 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useDisconnectOAuthConnection: () => mockDisconnect
 }))
 
+jest.mock('@/components/monitoring/ProviderConfigDialog', () => ({
+  __esModule: true,
+  default: ({ provider, open }: { provider: string; open: boolean }) =>
+    open ? <div data-testid="provider-config-dialog">Configuring {provider}</div> : null
+}))
+
 beforeEach(() => {
   jest.clearAllMocks()
 })
@@ -40,6 +46,26 @@ describe('OAuthConnectionsCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
     expect(mockDisconnect).toHaveBeenCalledWith('github')
+  })
+
+  it('opens the config dialog for a connected provider', () => {
+    const data = create(ListOAuthConnectionsResponseSchema, {
+      connections: [
+        {
+          provider: 'github',
+          connected: true,
+          connectedBy: 'admin@example.com',
+          connectedAt: '2026-01-01T00:00:00Z',
+          expiresAt: ''
+        }
+      ]
+    })
+
+    render(<OAuthConnectionsCard data={data} />)
+    expect(screen.queryByTestId('provider-config-dialog')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Configure' }))
+    expect(screen.getByTestId('provider-config-dialog')).toHaveTextContent('Configuring github')
   })
 
   it('renders an unconnected provider with a connect link', () => {

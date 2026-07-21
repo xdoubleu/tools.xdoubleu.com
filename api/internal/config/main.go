@@ -28,10 +28,6 @@ type Config struct {
 	R2AccessKeyID   string
 	R2SecretKey     string
 	R2Bucket        string
-	GithubRepo      string
-	SentryOrg       string
-	SentryProject   string
-	DOAppID         string
 
 	// OAuth app registration credentials for the observability integrations
 	// (issue #440): each provider's connection itself is stored in
@@ -76,11 +72,6 @@ func New(logger *slog.Logger) Config {
 	cfg.R2AccessKeyID = parser.EnvStr("R2_ACCESS_KEY_ID", "")
 	cfg.R2SecretKey = parser.EnvStr("R2_SECRET_ACCESS_KEY", "")
 	cfg.R2Bucket = parser.EnvStr("R2_BUCKET", "")
-
-	cfg.GithubRepo = parser.EnvStr("GITHUB_REPO", "")
-	cfg.SentryOrg = parser.EnvStr("SENTRY_ORG", "")
-	cfg.SentryProject = parser.EnvStr("SENTRY_PROJECT", "")
-	cfg.DOAppID = parser.EnvStr("DO_APP_ID", "")
 
 	cfg.GithubOAuthClientID = parser.EnvStr("GITHUB_OAUTH_CLIENT_ID", "")
 	cfg.GithubOAuthClientSecret = parser.EnvStr("GITHUB_OAUTH_CLIENT_SECRET", "")

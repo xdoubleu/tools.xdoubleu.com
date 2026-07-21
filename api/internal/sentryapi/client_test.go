@@ -2,6 +2,7 @@ package sentryapi_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,20 +12,66 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
+	"golang.org/x/oauth2"
 
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 const realBaseURL = "https://sentry.io"
 
+//nolint:unparam // always "token" in practice; kept as a param for clarity
 func stubToken(token string) oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return token, nil }
 }
 
 func stubNotConnected() oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
+}
+
+// stubConfigStore stands in for *repositories.OAuthConnectionsRepository.
+type stubConfigStore struct {
+	conn *models.OAuthConnection
+	err  error
+}
+
+func (s stubConfigStore) Get(
+	context.Context, models.OAuthProvider,
+) (*oauth2.Token, *models.OAuthConnection, error) {
+	return nil, s.conn, s.err
+}
+
+func configWith(org string, projects ...string) stubConfigStore {
+	raw, _ := json.Marshal(struct {
+		Org      string   `json:"org"`
+		Projects []string `json:"projects"`
+	}{Org: org, Projects: projects})
+	return stubConfigStore{
+		conn: &models.OAuthConnection{Config: raw}, //nolint:exhaustruct // test fixture
+		err:  nil,
+	}
+}
+
+func configNotConnected() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: simulates "not connected"
+	return stubConfigStore{err: database.ErrResourceNotFound}
+}
+
+func configWithMalformedJSON() stubConfigStore {
+	return stubConfigStore{
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // test fixture
+			Config: json.RawMessage(`not json`),
+		},
+		err: nil,
+	}
+}
+
+func configGetError() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: a generic DB error
+	return stubConfigStore{err: assert.AnError}
 }
 
 func TestMain(m *testing.M) {
@@ -42,7 +89,9 @@ func buildServer(handler http.Handler) func() {
 }
 
 func newClient() sentryapi.Client {
-	return sentryapi.New(logging.NewNopLogger(), "org", "proj", stubToken("token"))
+	return sentryapi.New(
+		logging.NewNopLogger(), stubToken("token"), configWith("org", "proj"),
+	)
 }
 
 func TestListUnresolvedIssues_ParsesPayload(t *testing.T) {
@@ -69,9 +118,57 @@ func TestListUnresolvedIssues_ParsesPayload(t *testing.T) {
 	assert.Equal(t, "boom", issues[0].Title)
 	assert.Equal(t, int64(17), issues[0].Count)
 	assert.Equal(t, "error", issues[0].Level)
+	assert.Equal(t, "proj", issues[0].Project)
 	assert.True(t, strings.HasSuffix(gotPath, "/api/0/projects/org/proj/issues/"))
 	assert.Equal(t, "is:unresolved", gotQuery)
 	assert.Equal(t, "Bearer token", authHeader)
+}
+
+func TestListUnresolvedIssues_MergesMultipleProjectsSortedByLastSeen(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			if strings.Contains(r.URL.Path, "/proj-a/") {
+				_, _ = w.Write([]byte(
+					`[{"id":"a1","title":"old","count":"1","lastSeen":"2026-07-01T00:00:00Z"}]`,
+				))
+				return
+			}
+			_, _ = w.Write([]byte(
+				`[{"id":"b1","title":"new","count":"1","lastSeen":"2026-07-10T00:00:00Z"}]`,
+			))
+		}))
+	defer cleanup()
+
+	c := sentryapi.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWith("org", "proj-a", "proj-b"),
+	)
+	issues, err := c.ListUnresolvedIssues(context.Background())
+	require.NoError(t, err)
+	require.Len(t, issues, 2)
+	assert.Equal(t, "b1", issues[0].ID, "newest issue must sort first")
+	assert.Equal(t, "proj-b", issues[0].Project)
+	assert.Equal(t, "a1", issues[1].ID)
+	assert.Equal(t, "proj-a", issues[1].Project)
+}
+
+func TestListUnresolvedIssues_MalformedConfig(t *testing.T) {
+	c := sentryapi.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWithMalformedJSON(),
+	)
+	_, err := c.ListUnresolvedIssues(context.Background())
+	require.Error(t, err)
+	require.NotErrorIs(t, err, sentryapi.ErrNotConfigured)
+}
+
+func TestListUnresolvedIssues_ConfigLookupError(t *testing.T) {
+	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configGetError())
+	_, err := c.ListUnresolvedIssues(context.Background())
+	require.ErrorIs(t, err, assert.AnError)
 }
 
 func TestListUnresolvedIssues_NotConfigured(t *testing.T) {
@@ -84,9 +181,18 @@ func TestListUnresolvedIssues_NotConfigured(t *testing.T) {
 	defer cleanup()
 
 	cases := []sentryapi.Client{
-		sentryapi.New(logging.NewNopLogger(), "", "proj", stubToken("token")),
-		sentryapi.New(logging.NewNopLogger(), "org", "", stubToken("token")),
-		sentryapi.New(logging.NewNopLogger(), "org", "proj", stubNotConnected()),
+		sentryapi.New(
+			logging.NewNopLogger(),
+			stubToken("token"),
+			configWith("", "proj"),
+		),
+		sentryapi.New(logging.NewNopLogger(), stubToken("token"), configWith("org")),
+		sentryapi.New(
+			logging.NewNopLogger(),
+			stubNotConnected(),
+			configWith("org", "proj"),
+		),
+		sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected()),
 	}
 	for _, c := range cases {
 		_, err := c.ListUnresolvedIssues(context.Background())

@@ -2,6 +2,8 @@ package github_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,9 +12,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
+	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
@@ -21,12 +26,53 @@ const (
 	testRepo    = "xdoubleu/tools.xdoubleu.com"
 )
 
+//nolint:unparam // always "token" in practice; kept as a param for clarity
 func stubToken(token string) oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return token, nil }
 }
 
 func stubNotConnected() oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
+}
+
+// stubConfigStore stands in for *repositories.OAuthConnectionsRepository.
+type stubConfigStore struct {
+	conn *models.OAuthConnection
+	err  error
+}
+
+func (s stubConfigStore) Get(
+	context.Context, models.OAuthProvider,
+) (*oauth2.Token, *models.OAuthConnection, error) {
+	return nil, s.conn, s.err
+}
+
+func configWithRepo(repo string) stubConfigStore {
+	return stubConfigStore{
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // test fixture
+			Config: json.RawMessage(fmt.Sprintf(`{"repo":%q}`, repo)),
+		},
+		err: nil,
+	}
+}
+
+func configNotConnected() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: simulates "not connected"
+	return stubConfigStore{err: database.ErrResourceNotFound}
+}
+
+func configWithMalformedJSON() stubConfigStore {
+	return stubConfigStore{
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // test fixture
+			Config: json.RawMessage(`not json`),
+		},
+		err: nil,
+	}
+}
+
+func configGetError() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: a generic DB error
+	return stubConfigStore{err: assert.AnError}
 }
 
 func TestMain(m *testing.M) {
@@ -46,7 +92,11 @@ func buildServer(handler http.Handler) func() {
 }
 
 func newClient() github.Client {
-	return github.New(logging.NewNopLogger(), stubToken("token"), testRepo)
+	return github.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWithRepo(testRepo),
+	)
 }
 
 func TestListOpenIssues_ReturnsIssuesAndSkipsPRs(t *testing.T) {
@@ -93,16 +143,43 @@ func TestListOpenIssues_NotConfigured_NotConnected(t *testing.T) {
 		}))
 	defer cleanup()
 
-	c := github.New(logging.NewNopLogger(), stubNotConnected(), testRepo)
+	c := github.New(
+		logging.NewNopLogger(),
+		stubNotConnected(),
+		configWithRepo(testRepo),
+	)
 	_, err := c.ListOpenIssues(context.Background())
 	require.ErrorIs(t, err, github.ErrNotConfigured)
 	assert.False(t, called, "must not hit the API when unconfigured")
 }
 
-func TestListOpenIssues_NotConfigured_NoRepo(t *testing.T) {
-	c := github.New(logging.NewNopLogger(), stubToken("token"), "")
+func TestListOpenIssues_NotConfigured_NoConnection(t *testing.T) {
+	c := github.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
 	_, err := c.ListOpenIssues(context.Background())
 	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListOpenIssues_NotConfigured_NoRepoPicked(t *testing.T) {
+	c := github.New(logging.NewNopLogger(), stubToken("token"), configWithRepo(""))
+	_, err := c.ListOpenIssues(context.Background())
+	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListOpenIssues_MalformedConfig(t *testing.T) {
+	c := github.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWithMalformedJSON(),
+	)
+	_, err := c.ListOpenIssues(context.Background())
+	require.Error(t, err)
+	require.NotErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListOpenIssues_ConfigLookupError(t *testing.T) {
+	c := github.New(logging.NewNopLogger(), stubToken("token"), configGetError())
+	_, err := c.ListOpenIssues(context.Background())
+	require.ErrorIs(t, err, assert.AnError)
 }
 
 func TestListOpenIssues_CachesResult(t *testing.T) {

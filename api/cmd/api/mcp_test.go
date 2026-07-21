@@ -124,9 +124,21 @@ func TestMonitoringMCPCallEveryTool(t *testing.T) {
 
 	// Unconfigured external clients degrade gracefully; the DB-backed tools run
 	// against the (empty) test schema. Every tool must return a non-error result.
-	testApp.githubClient = github.New(logging.NewNopLogger(), stubTok(""), "")
-	testApp.sentryClient = sentryapi.New(logging.NewNopLogger(), "", "", stubTok(""))
-	testApp.doClient = digitalocean.New(logging.NewNopLogger(), stubTok(""), "")
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok(""),
+		configNotConnected(),
+	)
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(),
+		stubTok(""),
+		configNotConnected(),
+	)
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok(""),
+		configNotConnected(),
+	)
 
 	session := mcpSession(t, accessToken.Value)
 	tools := []string{
@@ -174,7 +186,10 @@ func TestMonitoringMCPCallToolReturnsData(t *testing.T) {
 	]`)
 	github.SetBaseURL(srv.URL)
 	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
-	testApp.githubClient = github.New(logging.NewNopLogger(), stubTok("tok"), "o/r")
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
 
 	session := mcpSession(t, accessToken.Value)
 	//nolint:exhaustruct // only the tool name is required to call it
