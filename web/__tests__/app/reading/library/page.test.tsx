@@ -22,9 +22,21 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
+jest.mock('@/hooks/useAuth', () => ({
+  useCurrentUser: jest.fn()
+}))
+
+import { useCurrentUser } from '@/hooks/useAuth'
 import BacklogBooksLibraryPage from '@/app/reading/library/page'
 
+const mockUseCurrentUser = jest.mocked(useCurrentUser)
+
 describe('BacklogBooksLibraryPage', () => {
+  beforeEach(() => {
+    // @ts-expect-error -- partial mock
+    mockUseCurrentUser.mockReturnValue({ data: { role: 'user' }, isLoading: false })
+  })
+
   it('renders the Library heading', async () => {
     render(await BacklogBooksLibraryPage())
     expect(screen.getByRole('heading', { name: 'Library' })).toBeInTheDocument()
@@ -46,5 +58,20 @@ describe('BacklogBooksLibraryPage', () => {
       'href',
       '/reading/settings'
     )
+  })
+
+  it('shows an Admin tools link for admin users', async () => {
+    // @ts-expect-error -- partial mock
+    mockUseCurrentUser.mockReturnValue({ data: { role: 'admin' }, isLoading: false })
+    render(await BacklogBooksLibraryPage())
+    expect(screen.getByRole('link', { name: 'Admin tools' })).toHaveAttribute(
+      'href',
+      '/reading/admin'
+    )
+  })
+
+  it('hides the Admin tools link for non-admin users', async () => {
+    render(await BacklogBooksLibraryPage())
+    expect(screen.queryByRole('link', { name: 'Admin tools' })).not.toBeInTheDocument()
   })
 })
