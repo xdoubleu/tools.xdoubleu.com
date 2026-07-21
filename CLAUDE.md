@@ -65,20 +65,30 @@ Never read generated or mock files — the warning in "Proto Code Generation" ap
 - Field names / RPC signatures → read the `.proto` file in `proto/`
 - Mock method signatures → read the interface definition in the source package (not `internal/mocks/`)
 
+## Starting a Task — Traceability
+
+Before changing any code, make sure a GitHub issue exists for the work
+(`gh issue list` / `gh issue view`). If none does, create one
+(`gh issue create`) describing what's changing and why. This keeps every
+change traceable back to a tracked reason — don't start editing on a hunch
+with no issue behind it.
+
 ## Starting a Task — Branch Setup
 
-Before making any edits, use the `EnterWorktree` tool to isolate the task in a
-fresh worktree off up-to-date `main` — never assume the currently checked-out
-branch or worktree is still the right one, even if it looks like the task
-you're continuing. A branch from an earlier session or plan can already have
-been merged (by CI, another session, or the user) while this one was idle;
-committing on top of it either reopens a merged branch or, worse, lands
-directly on `main`.
+Before making any edits, pull the latest `main`, then use the `EnterWorktree`
+tool to isolate the task in a fresh worktree off it — never assume the
+currently checked-out branch or worktree is still the right one, even if it
+looks like the task you're continuing. A branch from an earlier session or
+plan can already have been merged (by CI, another session, or the user) while
+this one was idle; committing on top of it either reopens a merged branch or,
+worse, lands directly on `main`.
 
 Run this at the start of every task, even mid-conversation ones (e.g. after
 exiting plan mode) — check whether you're already in a worktree under
 `.claude/worktrees/` first if unsure whether one already exists for this task.
-If `EnterWorktree` is unavailable, fall back to:
+`EnterWorktree` branches from `origin/main` by default (`worktree.baseRef`),
+but confirm it's actually up to date — `git fetch origin main` first if
+uncertain. If `EnterWorktree` is unavailable, fall back to:
 
 ```bash
 git checkout main && git pull
