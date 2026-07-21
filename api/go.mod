@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.104.1
 	github.com/coder/websocket v1.8.14
 	github.com/getsentry/sentry-go v0.46.2
-	github.com/go-shiori/go-readability v0.0.0-20250217085726-9f5bf5ca7612
+	github.com/go-shiori/go-readability v0.0.0-20251205110129-5db1dc9836f0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
