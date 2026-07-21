@@ -15,9 +15,13 @@ const (
 	loginItemFilePerm   = 0o644
 )
 
-// loginItemPlistTemplate is a minimal LaunchAgent: run execPath once at
-// login, no KeepAlive (the gateway doesn't need to be relaunched if it
-// exits — the user quit it on purpose).
+// loginItemPlistTemplate is a LaunchAgent that runs execPath at login and
+// relaunches it on any abnormal exit (SuccessfulExit false) — a panic, a
+// listener error, or the darwinkit AppKit bridge's SIGABRT (see
+// gateway/CLAUDE.md) all leave the process dead with nothing to bring it
+// back otherwise. A clean exit (the user quit from the menu, which exits 0)
+// is not relaunched. launchd's default throttle prevents a crash-loop from
+// hammering.
 const loginItemPlistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -30,6 +34,11 @@ const loginItemPlistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
 </dict>
 </plist>
 `
@@ -51,24 +60,49 @@ func loginItemPlist(execPath string) string {
 	return fmt.Sprintf(loginItemPlistTemplate, loginItemLabel, escaped.String())
 }
 
-// EnableLoginItem writes the LaunchAgent plist so execPath launches at every
-// login, and asks launchctl to pick it up immediately (best-effort — a
-// failure there still leaves the plist in place for the next login).
-func EnableLoginItem(homeDir, execPath string) error {
+// writeLoginItemPlist renders and writes the LaunchAgent plist for execPath
+// to homeDir, creating the LaunchAgents directory if needed.
+func writeLoginItemPlist(homeDir, execPath string) error {
 	path := LoginItemPath(homeDir)
 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("create LaunchAgents dir: %w", err)
 	}
 
-	err := os.WriteFile(path, []byte(loginItemPlist(execPath)), loginItemFilePerm)
-	if err != nil {
+	if err := os.WriteFile(path, []byte(loginItemPlist(execPath)), loginItemFilePerm); err != nil {
 		return fmt.Errorf("write login item: %w", err)
 	}
 
-	bootstrapLoginItem(path)
+	return nil
+}
+
+// EnableLoginItem writes the LaunchAgent plist so execPath launches at every
+// login, and asks launchctl to pick it up immediately (best-effort — a
+// failure there still leaves the plist in place for the next login).
+func EnableLoginItem(homeDir, execPath string) error {
+	if err := writeLoginItemPlist(homeDir, execPath); err != nil {
+		return err
+	}
+
+	bootstrapLoginItem(LoginItemPath(homeDir))
 
 	return nil
+}
+
+// SyncLoginItem rewrites an already-installed LaunchAgent plist to match the
+// current template (e.g. to pick up a new KeepAlive policy on an existing
+// install whose plist predates it) without touching launchctl — a
+// bootout/bootstrap cycle would SIGTERM the very process calling this,
+// killing the gateway mid-startup. The refreshed KeepAlive policy takes
+// effect once launchd next reloads the plist (next login/reboot). Does
+// nothing when the login item isn't enabled, so a user who disabled
+// autostart isn't silently re-opted-in.
+func SyncLoginItem(homeDir, execPath string) error {
+	if !LoginItemEnabled(homeDir) {
+		return nil
+	}
+
+	return writeLoginItemPlist(homeDir, execPath)
 }
 
 // DisableLoginItem removes the LaunchAgent plist so the gateway no longer

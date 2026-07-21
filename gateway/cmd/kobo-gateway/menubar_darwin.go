@@ -97,17 +97,19 @@ func runUI(
 				nil,
 				foundation.OperationQueue_MainQueue(),
 				func(foundation.Notification) {
+					defer guard("wake-observer")
+
 					appkit.StatusBar_SystemStatusBar().RemoveStatusItem(statusItem)
 					buildStatusItem(release, homeDir, execPath)
 				},
 			)
 
-		go func() {
+		go recoverGo("stop-terminate", func() {
 			<-stop
 			dispatch.MainQueue().DispatchSync(func() {
 				app.Terminate(nil)
 			})
-		}()
+		})
 
 		go watchKobos(koboEvents, release)
 	})
@@ -206,6 +208,8 @@ func watchKobos(events <-chan kobogateway.KoboEvent, release string) {
 	for ev := range events {
 		ev := ev
 		dispatch.MainQueue().DispatchAsync(func() {
+			defer guard("applyKoboEvent")
+
 			applyKoboEvent(ev, release, true)
 		})
 	}
@@ -238,6 +242,8 @@ func requestNotificationAuth(execPath string) {
 	}
 
 	notifyAuthOnce.Do(func() {
+		defer guard("requestNotificationAuth")
+
 		objc.WithAutoreleasePool(func() {
 			center := objc.Call[objc.Object](
 				objc.GetClass("UNUserNotificationCenter"),
@@ -270,6 +276,8 @@ func postNotification(title, body string) {
 	if !runningInAppBundle(currentExecPath()) {
 		return
 	}
+
+	defer guard("postNotification")
 
 	objc.WithAutoreleasePool(func() {
 		content := objc.Call[objc.Object](objc.GetClass("UNMutableNotificationContent"), objc.Sel("new"))

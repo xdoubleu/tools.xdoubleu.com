@@ -17,11 +17,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+
 	"tools.xdoubleu.com/gateway/internal/kobogateway"
 )
 
 //nolint:gochecknoglobals //Release is set at build time via -ldflags.
 var Release = "dev"
+
+// SentryDSN is set at build time via -ldflags (see Makefile), mirroring
+// Release. Left empty in dev builds and go test, in which case initSentry
+// skips sentry.Init entirely — nothing is ever reported off this Mac
+// without an explicit DSN baked in at build time.
+//
+//nolint:gochecknoglobals // ldflags injection point, mirrors Release above.
+var SentryDSN = ""
 
 // headless skips the real AppKit menu bar and login-item registration —
 // set by TestMain in main_test.go. There's no window server session under
@@ -46,9 +56,43 @@ func main() {
 	// The menu bar's AppKit run loop must run on the main OS thread.
 	runtime.LockOSThread()
 
+	initSentry()
+	defer reportAndRepanic()
+
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+}
+
+// initSentry initializes crash reporting when SentryDSN was set at build
+// time (see the Makefile). A Sentry DSN is a publishable, send-only key, so
+// baking it into the distributed binary is the standard approach for a
+// client app — the reverse (an empty DSN, e.g. `make build` without one, or
+// go test) leaves Sentry fully disabled so nothing is ever sent off the
+// user's Mac. Scope is Go panics only: the darwinkit ObjC bridge's SIGABRT
+// bypasses Go's panic machinery entirely and never reaches this SDK; that
+// class is covered by launchd's KeepAlive relaunch, not by reporting.
+func initSentry() {
+	if SentryDSN == "" {
+		return
+	}
+
+	environment := "production"
+	if Release == "dev" {
+		environment = "dev"
+	}
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:         SentryDSN,
+		Release:     Release,
+		Environment: environment,
+		// This app is loopback-only and stores no credentials; keep the
+		// crash payload to stack + release, not the user's hostname.
+		ServerName: "",
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "warning: could not initialize Sentry:", err)
 	}
 }
 
@@ -218,6 +262,10 @@ func serve(
 			err = kobogateway.EnsureInitialLoginItem(certsDir, homeDir, execPath)
 			if err != nil {
 				fmt.Fprintln(stdout, "warning: could not register login item:", err)
+			}
+
+			if err = kobogateway.SyncLoginItem(homeDir, execPath); err != nil {
+				fmt.Fprintln(stdout, "warning: could not refresh login item:", err)
 			}
 		}
 

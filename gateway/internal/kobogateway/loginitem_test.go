@@ -36,6 +36,27 @@ func TestEnableLoginItemWritesPlist(t *testing.T) {
 	assert.Contains(t, string(raw), "/usr/local/bin/kobo-gateway")
 	assert.Contains(t, string(raw), "com.xdoubleu.tools.kobo-gateway")
 	assert.Contains(t, string(raw), "RunAtLoad")
+	assert.Contains(t, string(raw), "KeepAlive")
+	assert.Contains(t, string(raw), "SuccessfulExit")
+}
+
+func TestSyncLoginItemRewritesWhenEnabled(t *testing.T) {
+	home := t.TempDir()
+	require.NoError(t, kobogateway.EnableLoginItem(home, "/usr/local/bin/kobo-gateway"))
+
+	require.NoError(t, kobogateway.SyncLoginItem(home, "/usr/local/bin/kobo-gateway-v2"))
+
+	raw, err := os.ReadFile(kobogateway.LoginItemPath(home))
+	require.NoError(t, err)
+	assert.Contains(t, string(raw), "/usr/local/bin/kobo-gateway-v2")
+}
+
+func TestSyncLoginItemNoopWhenDisabled(t *testing.T) {
+	home := t.TempDir()
+
+	require.NoError(t, kobogateway.SyncLoginItem(home, "/usr/local/bin/kobo-gateway"))
+
+	assert.False(t, kobogateway.LoginItemEnabled(home))
 }
 
 func TestEnableLoginItemEscapesExecPath(t *testing.T) {

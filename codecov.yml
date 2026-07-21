@@ -21,6 +21,13 @@ coverage:
 comment:
   require_changes: true
 
+# menubar_darwin.go is pure AppKit/cgo status-bar code with no window server
+# session under go test (see gateway/CLAUDE.md) — it's exercised manually,
+# not by go test, so it's permanently 0% and shouldn't count against patch
+# coverage on every gateway PR that touches it.
+ignore:
+  - "gateway/cmd/kobo-gateway/menubar_darwin.go"
+
 flags:
   api:
     paths:
