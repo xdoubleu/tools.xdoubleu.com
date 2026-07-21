@@ -41,7 +41,7 @@ A shiny new feature never outranks a broken thing. When an issue is ambiguous, a
    - Type label: `bug` / `enhancement` / `feature` / `chore` / `documentation` — whichever already-existing label fits; the repo has these, don't invent new ones
    - App label if scoped to one app: `books` / `games` / `recipes` / `mealplans` / `shoppinglist` / `todos`, otherwise `platform` or `infra`
    - Priority per the rule above
-   - Whether it actually bundles 2+ separable pieces of work — if so, list candidate subtask titles
+   - Whether it actually bundles 2+ separable pieces of work — if so, list candidate subtask titles. Only propose a split when the pieces would plausibly ship as separate PRs. If the pieces touch the same file(s)/component and would naturally get fixed together in one pass, they're multiple small fixes to the same code area, not separate work — keep them as one issue. When unsure, prefer keeping it as one issue.
 
 3. **Show the plan, then wait.** A short table: issue# → duplicate-of/keep, summary, labels, priority, proposed subtasks. Closing issues and rewriting bodies is hard to undo, so get a go-ahead before executing even though the general behavior (auto-comment-and-close dupes, rewrite descriptions) is pre-approved — the *plan* is what needs a look, not the mechanism.
 
@@ -67,7 +67,7 @@ A shiny new feature never outranks a broken thing. When an issue is ambiguous, a
      gh project item-edit --project-id <PVT_id> --id <item-id> --field-id <field-id> --single-select-option-id <opt-id>
      ```
 
-5. **Split bundled issues into real sub-issues** (this repo's project board already has "Parent issue" / "Sub-issues progress" fields — use GitHub's native relationship, not a markdown checklist):
+5. **Split bundled issues into real sub-issues** — only the ones flagged in step 2 as plausibly separate PRs, not every issue with multiple bullets (this repo's project board already has "Parent issue" / "Sub-issues progress" fields — use GitHub's native relationship, not a markdown checklist):
    ```
    gh issue create --repo <repo> --title "<subtask title>" --body "Split out of #<parent>."
    gh api repos/<repo>/issues/<parent>/sub_issues -X POST -f sub_issue_id=<child_numeric_id>
