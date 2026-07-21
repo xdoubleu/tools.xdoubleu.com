@@ -19,7 +19,8 @@ export default async function MonitoringPage() {
     databaseStats,
     githubIssues,
     sentryIssues,
-    deployStatus
+    deployStatus,
+    oauthConnections
   ] = await Promise.all([
     fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getUsageStats({ windowDays: DEFAULT_WINDOW_DAYS })),
@@ -27,7 +28,8 @@ export default async function MonitoringPage() {
     fetchOrNull(() => client.getDatabaseStats({})),
     fetchOrNull(() => client.getGithubIssues({})),
     fetchOrNull(() => client.getSentryIssues({})),
-    fetchOrNull(() => client.getDeployStatus({}))
+    fetchOrNull(() => client.getDeployStatus({})),
+    fetchOrNull(() => client.listOAuthConnections({}))
   ])
 
   const fallback: Record<string, unknown> = {}
@@ -36,6 +38,7 @@ export default async function MonitoringPage() {
   if (githubIssues) fallback[swrKeys.monitoringGithubIssues] = githubIssues
   if (sentryIssues) fallback[swrKeys.monitoringSentryIssues] = sentryIssues
   if (deployStatus) fallback[swrKeys.monitoringDeployStatus] = deployStatus
+  if (oauthConnections) fallback[swrKeys.monitoringOAuthConnections] = oauthConnections
 
   const keyed: [readonly unknown[], unknown][] = []
   if (jobStats) keyed.push([swrKeys.monitoringJobStats(DEFAULT_WINDOW_DAYS), jobStats])

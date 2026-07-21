@@ -13,9 +13,18 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/internal/digitalocean"
+	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 const realBaseURL = "https://api.digitalocean.com"
+
+func stubToken(token string) oauthconn.TokenFunc {
+	return func(context.Context) (string, error) { return token, nil }
+}
+
+func stubNotConnected() oauthconn.TokenFunc {
+	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
+}
 
 func TestMain(m *testing.M) {
 	digitalocean.SetBackoffBase(1 * time.Millisecond)
@@ -32,7 +41,7 @@ func buildServer(handler http.Handler) func() {
 }
 
 func newClient() digitalocean.Client {
-	return digitalocean.New(logging.NewNopLogger(), "token", "app-123")
+	return digitalocean.New(logging.NewNopLogger(), stubToken("token"), "app-123")
 }
 
 func TestLatestDeployment_ReturnsNewest(t *testing.T) {
@@ -86,8 +95,8 @@ func TestLatestDeployment_NotConfigured(t *testing.T) {
 	defer cleanup()
 
 	cases := []digitalocean.Client{
-		digitalocean.New(logging.NewNopLogger(), "", "app-123"),
-		digitalocean.New(logging.NewNopLogger(), "token", ""),
+		digitalocean.New(logging.NewNopLogger(), stubNotConnected(), "app-123"),
+		digitalocean.New(logging.NewNopLogger(), stubToken("token"), ""),
 	}
 	for _, c := range cases {
 		_, err := c.LatestDeployment(context.Background())

@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 //nolint:gochecknoglobals // overridable in tests
@@ -36,7 +38,7 @@ const (
 type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
-	token      string
+	tokenFn    oauthconn.TokenFunc
 	repo       string
 
 	mu       sync.Mutex
@@ -44,22 +46,23 @@ type client struct {
 	cachedAt time.Time
 }
 
-// New creates a GitHub client. token is a personal access / installation token
-// and repo is "owner/name". When either is empty the client is considered not
-// configured and every call returns ErrNotConfigured.
-func New(logger *slog.Logger, token, repo string) Client {
+// New creates a GitHub client. tokenFn resolves a live OAuth bearer token
+// (see internal/oauthconn) and repo is "owner/name". When repo is empty, or
+// tokenFn reports the provider isn't connected, every call returns
+// ErrNotConfigured.
+func New(logger *slog.Logger, tokenFn oauthconn.TokenFunc, repo string) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
 		logger: logger,
 		httpClient: &http.Client{
 			Timeout: apiTimeout,
 		},
-		token: token,
-		repo:  repo,
+		tokenFn: tokenFn,
+		repo:    repo,
 	}
 }
 
 func (c *client) ListOpenIssues(ctx context.Context) ([]Issue, error) {
-	if c.token == "" || c.repo == "" {
+	if c.repo == "" {
 		return nil, ErrNotConfigured
 	}
 
@@ -67,7 +70,15 @@ func (c *client) ListOpenIssues(ctx context.Context) ([]Issue, error) {
 		return cached, nil
 	}
 
-	issues, err := c.fetch(ctx)
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	issues, err := c.fetch(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -92,11 +103,11 @@ func (c *client) store(issues []Issue) {
 	c.cachedAt = time.Now()
 }
 
-func (c *client) fetch(ctx context.Context) ([]Issue, error) {
+func (c *client) fetch(ctx context.Context, token string) ([]Issue, error) {
 	endpoint := fmt.Sprintf("%s/repos/%s/issues?state=open", baseURL, c.repo)
 
 	var wires []issueWire
-	if err := c.get(ctx, endpoint, &wires); err != nil {
+	if err := c.get(ctx, endpoint, token, &wires); err != nil {
 		return nil, err
 	}
 
@@ -110,7 +121,7 @@ func (c *client) fetch(ctx context.Context) ([]Issue, error) {
 	return issues, nil
 }
 
-func (c *client) get(ctx context.Context, endpoint string, dst any) error {
+func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
 	return c.doWithRetry(ctx, func() (bool, error) {
 		req, reqErr := http.NewRequestWithContext(
 			ctx, http.MethodGet, endpoint, nil,
@@ -119,7 +130,7 @@ func (c *client) get(ctx context.Context, endpoint string, dst any) error {
 			return false, reqErr
 		}
 		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("Authorization", "Bearer "+c.token)
+		req.Header.Set("Authorization", "Bearer "+token)
 
 		resp, doErr := c.httpClient.Do(req)
 		if doErr != nil {

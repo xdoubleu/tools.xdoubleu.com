@@ -7,7 +7,8 @@ import {
   GetDatabaseStatsResponseSchema,
   GetGithubIssuesResponseSchema,
   GetSentryIssuesResponseSchema,
-  GetDeployStatusResponseSchema
+  GetDeployStatusResponseSchema,
+  ListOAuthConnectionsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
@@ -18,6 +19,7 @@ const mockUseDatabaseStats = jest.fn()
 const mockUseGithubIssues = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseDeployStatus = jest.fn()
+const mockUseOAuthConnections = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
@@ -26,7 +28,9 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useDatabaseStats: () => mockUseDatabaseStats(),
   useGithubIssues: () => mockUseGithubIssues(),
   useSentryIssues: () => mockUseSentryIssues(),
-  useDeployStatus: () => mockUseDeployStatus()
+  useDeployStatus: () => mockUseDeployStatus(),
+  useOAuthConnections: () => mockUseOAuthConnections(),
+  useDisconnectOAuthConnection: () => jest.fn()
 }))
 
 jest.mock('recharts', () => {
@@ -75,6 +79,9 @@ beforeEach(() => {
   })
   mockUseDeployStatus.mockReturnValue({
     data: create(GetDeployStatusResponseSchema, { configured: true, phase: 'ACTIVE' })
+  })
+  mockUseOAuthConnections.mockReturnValue({
+    data: create(ListOAuthConnectionsResponseSchema, { connections: [] })
   })
 })
 

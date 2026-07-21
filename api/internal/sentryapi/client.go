@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 //nolint:gochecknoglobals // overridable in tests
@@ -37,7 +39,7 @@ type client struct {
 	httpClient *http.Client
 	org        string
 	project    string
-	token      string
+	tokenFn    oauthconn.TokenFunc
 
 	mu       sync.Mutex
 	cached   []Issue
@@ -45,9 +47,10 @@ type client struct {
 }
 
 // New creates a Sentry API client. org and project identify the project and
-// token is a Sentry auth token. When any of them is empty the client is
-// considered not configured and every call returns ErrNotConfigured.
-func New(logger *slog.Logger, org, project, token string) Client {
+// tokenFn resolves a live OAuth bearer token (see internal/oauthconn). When
+// org/project are empty, or tokenFn reports the provider isn't connected,
+// every call returns ErrNotConfigured.
+func New(logger *slog.Logger, org, project string, tokenFn oauthconn.TokenFunc) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
 		logger: logger,
 		httpClient: &http.Client{
@@ -55,12 +58,12 @@ func New(logger *slog.Logger, org, project, token string) Client {
 		},
 		org:     org,
 		project: project,
-		token:   token,
+		tokenFn: tokenFn,
 	}
 }
 
 func (c *client) ListUnresolvedIssues(ctx context.Context) ([]Issue, error) {
-	if c.org == "" || c.project == "" || c.token == "" {
+	if c.org == "" || c.project == "" {
 		return nil, ErrNotConfigured
 	}
 
@@ -68,7 +71,15 @@ func (c *client) ListUnresolvedIssues(ctx context.Context) ([]Issue, error) {
 		return cached, nil
 	}
 
-	issues, err := c.fetch(ctx)
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	issues, err := c.fetch(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -93,14 +104,14 @@ func (c *client) store(issues []Issue) {
 	c.cachedAt = time.Now()
 }
 
-func (c *client) fetch(ctx context.Context) ([]Issue, error) {
+func (c *client) fetch(ctx context.Context, token string) ([]Issue, error) {
 	endpoint := fmt.Sprintf(
 		"%s/api/0/projects/%s/%s/issues/?query=%s",
 		baseURL, c.org, c.project, url.QueryEscape("is:unresolved"),
 	)
 
 	var wires []issueWire
-	if err := c.get(ctx, endpoint, &wires); err != nil {
+	if err := c.get(ctx, endpoint, token, &wires); err != nil {
 		return nil, err
 	}
 
@@ -111,7 +122,7 @@ func (c *client) fetch(ctx context.Context) ([]Issue, error) {
 	return issues, nil
 }
 
-func (c *client) get(ctx context.Context, endpoint string, dst any) error {
+func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
 	return c.doWithRetry(ctx, func() (bool, error) {
 		req, reqErr := http.NewRequestWithContext(
 			ctx, http.MethodGet, endpoint, nil,
@@ -120,7 +131,7 @@ func (c *client) get(ctx context.Context, endpoint string, dst any) error {
 			return false, reqErr
 		}
 		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Authorization", "Bearer "+c.token)
+		req.Header.Set("Authorization", "Bearer "+token)
 
 		resp, doErr := c.httpClient.Do(req)
 		if doErr != nil {

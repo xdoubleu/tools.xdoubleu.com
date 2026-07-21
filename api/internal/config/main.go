@@ -28,13 +28,24 @@ type Config struct {
 	R2AccessKeyID   string
 	R2SecretKey     string
 	R2Bucket        string
-	GithubToken     string
 	GithubRepo      string
 	SentryOrg       string
 	SentryProject   string
-	SentryAuthToken string
-	DOAccessToken   string
 	DOAppID         string
+
+	// OAuth app registration credentials for the observability integrations
+	// (issue #440): each provider's connection itself is stored in
+	// global.oauth_connections, not here — these are only the app's own
+	// client id/secret, registered once with each provider.
+	GithubOAuthClientID     string
+	GithubOAuthClientSecret string
+	SentryOAuthClientID     string
+	SentryOAuthClientSecret string
+	DOOAuthClientID         string
+	DOOAuthClientSecret     string
+	// OAuthTokenEncKey is a base64-standard-encoded 32-byte AES-256 key used
+	// to encrypt stored OAuth tokens at rest (see internal/crypto).
+	OAuthTokenEncKey string
 }
 
 func New(logger *slog.Logger) Config {
@@ -66,13 +77,18 @@ func New(logger *slog.Logger) Config {
 	cfg.R2SecretKey = parser.EnvStr("R2_SECRET_ACCESS_KEY", "")
 	cfg.R2Bucket = parser.EnvStr("R2_BUCKET", "")
 
-	cfg.GithubToken = parser.EnvStr("GITHUB_TOKEN", "")
 	cfg.GithubRepo = parser.EnvStr("GITHUB_REPO", "")
 	cfg.SentryOrg = parser.EnvStr("SENTRY_ORG", "")
 	cfg.SentryProject = parser.EnvStr("SENTRY_PROJECT", "")
-	cfg.SentryAuthToken = parser.EnvStr("SENTRY_AUTH_TOKEN", "")
-	cfg.DOAccessToken = parser.EnvStr("DO_ACCESS_TOKEN", "")
 	cfg.DOAppID = parser.EnvStr("DO_APP_ID", "")
+
+	cfg.GithubOAuthClientID = parser.EnvStr("GITHUB_OAUTH_CLIENT_ID", "")
+	cfg.GithubOAuthClientSecret = parser.EnvStr("GITHUB_OAUTH_CLIENT_SECRET", "")
+	cfg.SentryOAuthClientID = parser.EnvStr("SENTRY_OAUTH_CLIENT_ID", "")
+	cfg.SentryOAuthClientSecret = parser.EnvStr("SENTRY_OAUTH_CLIENT_SECRET", "")
+	cfg.DOOAuthClientID = parser.EnvStr("DO_OAUTH_CLIENT_ID", "")
+	cfg.DOOAuthClientSecret = parser.EnvStr("DO_OAUTH_CLIENT_SECRET", "")
+	cfg.OAuthTokenEncKey = parser.EnvStr("OAUTH_TOKEN_ENC_KEY", "")
 
 	return cfg
 }

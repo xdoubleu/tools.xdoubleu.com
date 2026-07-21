@@ -25,6 +25,7 @@ require (
 	github.com/xdoubleu/essentia/v4 v4.0.2
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	golang.org/x/net v0.57.0
+	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/text v0.40.0
 	google.golang.org/protobuf v1.36.11
@@ -77,6 +78,5 @@ require (
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/oauth2 v0.35.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

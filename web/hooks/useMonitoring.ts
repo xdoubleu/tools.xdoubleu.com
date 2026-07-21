@@ -1,4 +1,5 @@
-import useSWR from 'swr'
+import { useCallback, useMemo } from 'react'
+import useSWR, { mutate } from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { ObservabilityService } from '@/lib/gen/observability/v1/observability_pb'
 import type {
@@ -8,7 +9,8 @@ import type {
   GetDatabaseStatsResponse,
   GetGithubIssuesResponse,
   GetSentryIssuesResponse,
-  GetDeployStatusResponse
+  GetDeployStatusResponse,
+  ListOAuthConnectionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -58,5 +60,23 @@ export function useDeployStatus() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetDeployStatusResponse, Error>(swrKeys.monitoringDeployStatus, () =>
     client.getDeployStatus({})
+  )
+}
+
+export function useOAuthConnections() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<ListOAuthConnectionsResponse, Error>(swrKeys.monitoringOAuthConnections, () =>
+    client.listOAuthConnections({})
+  )
+}
+
+export function useDisconnectOAuthConnection() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    async (provider: string) => {
+      await client.disconnectOAuthConnection({ provider })
+      await mutate(swrKeys.monitoringOAuthConnections)
+    },
+    [client]
   )
 }

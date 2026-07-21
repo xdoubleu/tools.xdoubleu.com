@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 //nolint:gochecknoglobals // overridable in tests
@@ -35,7 +37,7 @@ const (
 type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
-	token      string
+	tokenFn    oauthconn.TokenFunc
 	appID      string
 
 	mu       sync.Mutex
@@ -43,22 +45,23 @@ type client struct {
 	cachedAt time.Time
 }
 
-// New creates a DigitalOcean App Platform client. token is a DO access token
-// and appID identifies the app. When either is empty the client is considered
-// not configured and every call returns ErrNotConfigured.
-func New(logger *slog.Logger, token, appID string) Client {
+// New creates a DigitalOcean App Platform client. tokenFn resolves a live
+// OAuth bearer token (see internal/oauthconn) and appID identifies the app.
+// When appID is empty, or tokenFn reports the provider isn't connected,
+// every call returns ErrNotConfigured.
+func New(logger *slog.Logger, tokenFn oauthconn.TokenFunc, appID string) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
 		logger: logger,
 		httpClient: &http.Client{
 			Timeout: apiTimeout,
 		},
-		token: token,
-		appID: appID,
+		tokenFn: tokenFn,
+		appID:   appID,
 	}
 }
 
 func (c *client) LatestDeployment(ctx context.Context) (*Deployment, error) {
-	if c.token == "" || c.appID == "" {
+	if c.appID == "" {
 		return nil, ErrNotConfigured
 	}
 
@@ -66,7 +69,15 @@ func (c *client) LatestDeployment(ctx context.Context) (*Deployment, error) {
 		return cached, nil
 	}
 
-	deployment, err := c.fetch(ctx)
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	deployment, err := c.fetch(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -91,11 +102,11 @@ func (c *client) store(deployment *Deployment) {
 	c.cachedAt = time.Now()
 }
 
-func (c *client) fetch(ctx context.Context) (*Deployment, error) {
+func (c *client) fetch(ctx context.Context, token string) (*Deployment, error) {
 	endpoint := fmt.Sprintf("%s/v2/apps/%s/deployments", baseURL, c.appID)
 
 	var wire deploymentsWire
-	if err := c.get(ctx, endpoint, &wire); err != nil {
+	if err := c.get(ctx, endpoint, token, &wire); err != nil {
 		return nil, err
 	}
 
@@ -107,7 +118,7 @@ func (c *client) fetch(ctx context.Context) (*Deployment, error) {
 	return &latest, nil
 }
 
-func (c *client) get(ctx context.Context, endpoint string, dst any) error {
+func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
 	return c.doWithRetry(ctx, func() (bool, error) {
 		req, reqErr := http.NewRequestWithContext(
 			ctx, http.MethodGet, endpoint, nil,
@@ -116,7 +127,7 @@ func (c *client) get(ctx context.Context, endpoint string, dst any) error {
 			return false, reqErr
 		}
 		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Authorization", "Bearer "+c.token)
+		req.Header.Set("Authorization", "Bearer "+token)
 
 		resp, doErr := c.httpClient.Do(req)
 		if doErr != nil {

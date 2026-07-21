@@ -57,6 +57,12 @@ const (
 	// ObservabilityServiceGetHealthOverviewProcedure is the fully-qualified name of the
 	// ObservabilityService's GetHealthOverview RPC.
 	ObservabilityServiceGetHealthOverviewProcedure = "/observability.v1.ObservabilityService/GetHealthOverview"
+	// ObservabilityServiceListOAuthConnectionsProcedure is the fully-qualified name of the
+	// ObservabilityService's ListOAuthConnections RPC.
+	ObservabilityServiceListOAuthConnectionsProcedure = "/observability.v1.ObservabilityService/ListOAuthConnections"
+	// ObservabilityServiceDisconnectOAuthConnectionProcedure is the fully-qualified name of the
+	// ObservabilityService's DisconnectOAuthConnection RPC.
+	ObservabilityServiceDisconnectOAuthConnectionProcedure = "/observability.v1.ObservabilityService/DisconnectOAuthConnection"
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -69,6 +75,8 @@ type ObservabilityServiceClient interface {
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
+	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
+	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -130,19 +138,33 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("GetHealthOverview")),
 			connect.WithClientOptions(opts...),
 		),
+		listOAuthConnections: connect.NewClient[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceListOAuthConnectionsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("ListOAuthConnections")),
+			connect.WithClientOptions(opts...),
+		),
+		disconnectOAuthConnection: connect.NewClient[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse](
+			httpClient,
+			baseURL+ObservabilityServiceDisconnectOAuthConnectionProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("DisconnectOAuthConnection")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // observabilityServiceClient implements ObservabilityServiceClient.
 type observabilityServiceClient struct {
-	getJobStats       *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
-	getUsageStats     *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
-	getStorageStats   *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
-	getDatabaseStats  *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
-	getGithubIssues   *connect.Client[v1.GetGithubIssuesRequest, v1.GetGithubIssuesResponse]
-	getSentryIssues   *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
-	getDeployStatus   *connect.Client[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse]
-	getHealthOverview *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
+	getJobStats               *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
+	getUsageStats             *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
+	getStorageStats           *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
+	getDatabaseStats          *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
+	getGithubIssues           *connect.Client[v1.GetGithubIssuesRequest, v1.GetGithubIssuesResponse]
+	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
+	getDeployStatus           *connect.Client[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse]
+	getHealthOverview         *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
+	listOAuthConnections      *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
+	disconnectOAuthConnection *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -185,6 +207,16 @@ func (c *observabilityServiceClient) GetHealthOverview(ctx context.Context, req 
 	return c.getHealthOverview.CallUnary(ctx, req)
 }
 
+// ListOAuthConnections calls observability.v1.ObservabilityService.ListOAuthConnections.
+func (c *observabilityServiceClient) ListOAuthConnections(ctx context.Context, req *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error) {
+	return c.listOAuthConnections.CallUnary(ctx, req)
+}
+
+// DisconnectOAuthConnection calls observability.v1.ObservabilityService.DisconnectOAuthConnection.
+func (c *observabilityServiceClient) DisconnectOAuthConnection(ctx context.Context, req *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error) {
+	return c.disconnectOAuthConnection.CallUnary(ctx, req)
+}
+
 // ObservabilityServiceHandler is an implementation of the observability.v1.ObservabilityService
 // service.
 type ObservabilityServiceHandler interface {
@@ -196,6 +228,8 @@ type ObservabilityServiceHandler interface {
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
+	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
+	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
 }
 
 // NewObservabilityServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -253,6 +287,18 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("GetHealthOverview")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceListOAuthConnectionsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceListOAuthConnectionsProcedure,
+		svc.ListOAuthConnections,
+		connect.WithSchema(observabilityServiceMethods.ByName("ListOAuthConnections")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceDisconnectOAuthConnectionHandler := connect.NewUnaryHandler(
+		ObservabilityServiceDisconnectOAuthConnectionProcedure,
+		svc.DisconnectOAuthConnection,
+		connect.WithSchema(observabilityServiceMethods.ByName("DisconnectOAuthConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/observability.v1.ObservabilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObservabilityServiceGetJobStatsProcedure:
@@ -271,6 +317,10 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetDeployStatusHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetHealthOverviewProcedure:
 			observabilityServiceGetHealthOverviewHandler.ServeHTTP(w, r)
+		case ObservabilityServiceListOAuthConnectionsProcedure:
+			observabilityServiceListOAuthConnectionsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceDisconnectOAuthConnectionProcedure:
+			observabilityServiceDisconnectOAuthConnectionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -310,4 +360,12 @@ func (UnimplementedObservabilityServiceHandler) GetDeployStatus(context.Context,
 
 func (UnimplementedObservabilityServiceHandler) GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetHealthOverview is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.ListOAuthConnections is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.DisconnectOAuthConnection is not implemented"))
 }

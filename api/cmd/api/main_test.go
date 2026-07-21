@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"os"
 	"testing"
@@ -26,6 +27,9 @@ func TestMain(m *testing.M) {
 	var err error
 
 	cfg := testhelper.NewTestConfig()
+	// A fixed test key so OAuth connection tests can round-trip through the
+	// real AES-GCM sealer instead of the "encryption not configured" path.
+	cfg.OAuthTokenEncKey = base64.StdEncoding.EncodeToString(make([]byte, 32))
 
 	postgresDB, err := postgres.Connect(
 		logging.NewNopLogger(),
