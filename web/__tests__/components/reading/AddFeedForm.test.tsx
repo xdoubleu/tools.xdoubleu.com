@@ -13,8 +13,8 @@ describe('AddFeedForm', () => {
     jest.clearAllMocks()
   })
 
-  it('subscribes to a feed and reports the import count', async () => {
-    createFeed.mockResolvedValue({ ingested: 3 })
+  it('subscribes to a feed and reports that the import is in progress', async () => {
+    createFeed.mockResolvedValue({})
     const onAdded = jest.fn()
     render(<AddFeedForm onAdded={onAdded} />)
 
@@ -26,7 +26,9 @@ describe('AddFeedForm', () => {
 
     await waitFor(() => {
       expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true)
-      expect(screen.getByText(/imported 3 item/)).toBeInTheDocument()
+      expect(
+        screen.getByText('Subscribed — importing items in the background.')
+      ).toBeInTheDocument()
       expect(onAdded).toHaveBeenCalled()
     })
   })

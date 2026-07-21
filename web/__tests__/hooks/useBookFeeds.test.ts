@@ -9,7 +9,7 @@ jest.mock('swr', () => ({
 
 const clientMocks = {
   listFeeds: jest.fn().mockResolvedValue({ feeds: [] }),
-  createFeed: jest.fn().mockResolvedValue({ ingested: 2 }),
+  createFeed: jest.fn().mockResolvedValue({}),
   updateFeed: jest.fn().mockResolvedValue({}),
   deleteFeed: jest.fn().mockResolvedValue({}),
   refreshFeed: jest.fn().mockResolvedValue({ ingested: 0 })
@@ -49,12 +49,11 @@ describe('useBookFeeds', () => {
 
   it('useCreateFeed creates and invalidates feeds + library', async () => {
     const { result } = renderHook(() => useCreateFeed())
-    const resp = await result.current('https://example.com/feed.xml', true)
+    await result.current('https://example.com/feed.xml', true)
     expect(clientMocks.createFeed).toHaveBeenCalledWith({
       url: 'https://example.com/feed.xml',
       koboSync: true
     })
-    expect(resp.ingested).toBe(2)
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.bookFeeds)
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.books)
   })

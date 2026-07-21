@@ -62,26 +62,31 @@ func (s *FeedService) List(
 	return s.feeds.List(ctx, userID)
 }
 
-// Create validates the URL by fetching and parsing it, stores the feed (with
-// its self-reported title), then imports the feed's current contents as a
-// first batch. Returns the feed and how many items were ingested.
+// Create validates the URL by fetching and parsing it and stores the feed
+// (with its self-reported title), then imports the feed's current contents
+// as a first batch in the background. Returns the feed as soon as it is
+// stored — the initial import (up to maxItemsPerPoll items, each possibly
+// fetching its linked page and running it through Calibre) can comfortably
+// exceed the server's write timeout, so it must not block the request; the
+// same items land within seconds via the detached import, or within the hour
+// via the poll-feeds job if the process restarts mid-import.
 func (s *FeedService) Create(
 	ctx context.Context,
 	userID, rawURL string,
 	koboSync bool,
-) (*models.Feed, int, error) {
+) (*models.Feed, error) {
 	canonical, err := canonicalURL(rawURL)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	res, err := s.webFetch.Get(ctx, canonical, fetchOptions(0, ""))
 	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %w", ErrInvalidFeed, err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidFeed, err)
 	}
 	parsed, err := gofeed.NewParser().Parse(bytes.NewReader(res.Body))
 	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %w", ErrInvalidFeed, err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidFeed, err)
 	}
 
 	//nolint:exhaustruct // fetch state starts empty; ids are DB-owned
@@ -92,12 +97,19 @@ func (s *FeedService) Create(
 		KoboSync: koboSync,
 	})
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	ingested := s.processItems(ctx, *feed, parsed.Items)
-	s.recordFetchResult(ctx, feed.ID, res, nil)
-	return feed, ingested, nil
+	// ponytail: detached goroutine, not a job-queue task — mirrors the
+	// existing KEPUB-conversion pattern (connect_files.go). A process
+	// restart mid-import can drop it; the hourly poll-feeds job backfills.
+	importFeed := *feed
+	go func() {
+		importCtx := context.WithoutCancel(ctx)
+		s.processItems(importCtx, importFeed, parsed.Items)
+		s.recordFetchResult(importCtx, importFeed.ID, res, nil)
+	}()
+	return feed, nil
 }
 
 // Update changes the feed's title and kobo-sync flag.

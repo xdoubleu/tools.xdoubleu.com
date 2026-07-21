@@ -200,7 +200,9 @@ func (x *ListFeedsResponse) GetFeeds() []*Feed {
 }
 
 // CreateFeed validates the URL by fetching and parsing it, then imports the
-// feed's current contents (newest first, capped) as a first batch.
+// feed's current contents (newest first, capped) as a first batch in the
+// background — the import can take longer than the request, so it is not
+// reflected in the response; poll ListFeeds/GetLibrary to see new items land.
 type CreateFeedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
@@ -254,10 +256,8 @@ func (x *CreateFeedRequest) GetKoboSync() bool {
 }
 
 type CreateFeedResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Feed  *Feed                  `protobuf:"bytes,1,opt,name=feed,proto3" json:"feed,omitempty"`
-	// Items imported from the feed's current contents on subscribe.
-	Ingested      int32 `protobuf:"varint,2,opt,name=ingested,proto3" json:"ingested,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Feed          *Feed                  `protobuf:"bytes,1,opt,name=feed,proto3" json:"feed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -297,13 +297,6 @@ func (x *CreateFeedResponse) GetFeed() *Feed {
 		return x.Feed
 	}
 	return nil
-}
-
-func (x *CreateFeedResponse) GetIngested() int32 {
-	if x != nil {
-		return x.Ingested
-	}
-	return 0
 }
 
 type UpdateFeedRequest struct {
@@ -595,10 +588,9 @@ const file_reading_v1_feeds_proto_rawDesc = "" +
 	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds\"B\n" +
 	"\x11CreateFeedRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1b\n" +
-	"\tkobo_sync\x18\x02 \x01(\bR\bkoboSync\"V\n" +
+	"\tkobo_sync\x18\x02 \x01(\bR\bkoboSync\"@\n" +
 	"\x12CreateFeedResponse\x12$\n" +
-	"\x04feed\x18\x01 \x01(\v2\x10.reading.v1.FeedR\x04feed\x12\x1a\n" +
-	"\bingested\x18\x02 \x01(\x05R\bingested\"_\n" +
+	"\x04feed\x18\x01 \x01(\v2\x10.reading.v1.FeedR\x04feedJ\x04\b\x02\x10\x03\"_\n" +
 	"\x11UpdateFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1b\n" +

@@ -19,7 +19,10 @@ export function useCreateFeed() {
     async (url: string, koboSync: boolean) => {
       const resp = await client.createFeed({ url, koboSync })
       await mutate(swrKeys.bookFeeds)
-      if (resp.ingested > 0) await mutate(swrKeys.books)
+      // The initial import runs in the background (#430), so how many items
+      // it will ingest is unknown here. Revalidate the library anyway — a
+      // no-op refetch is cheap, and it picks up items that already landed.
+      await mutate(swrKeys.books)
       return resp
     },
     [client]

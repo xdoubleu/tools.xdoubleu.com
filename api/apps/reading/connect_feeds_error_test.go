@@ -135,6 +135,16 @@ func TestCreateFeed_ItemWithoutLink(t *testing.T) {
 		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
 	)
 	require.NoError(t, err)
-	// The item has no link (gofeed leaves it empty), so it is not ingested.
-	assert.Equal(t, int32(0), created.Msg.Ingested)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	// The item has no link (gofeed leaves it empty), so it cannot be
+	// ingested — but it is still marked seen (with an error), never retried
+	// by polling.
+	feedID, parseErr := uuid.Parse(created.Msg.Feed.Id)
+	require.NoError(t, parseErr)
+	newGUIDs, err := testApp.Repositories.Feeds.FilterNewGUIDs(
+		context.Background(), feedID, []string{"nl1"},
+	)
+	require.NoError(t, err)
+	assert.Empty(t, newGUIDs)
 }
