@@ -17,6 +17,9 @@ func OAuthConfig(clientID, clientSecret, apiURL string) *oauth2.Config {
 			TokenURL: "https://sentry.io/oauth/token/",
 		},
 		RedirectURL: apiURL + "/admin/oauth/sentry/callback",
-		Scopes:      []string{"project:read", "event:read"},
+		// org:read is required by GET /api/0/organizations/, which the admin
+		// config picker calls first to list orgs (project:read/event:read
+		// cover the projects and issues endpoints).
+		Scopes: []string{"org:read", "project:read", "event:read"},
 	}
 }
