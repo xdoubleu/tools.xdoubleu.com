@@ -13,7 +13,6 @@ import (
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
-	"tools.xdoubleu.com/internal/repositories"
 )
 
 // allOAuthProviders lists every provider the admin UI can show a card for,
@@ -298,9 +297,6 @@ func (h *obsConnectHandler) SetProviderConfig(
 	if setErr := h.app.oauthConnRepo.SetConfig(ctx, provider, raw); setErr != nil {
 		h.app.logger.WarnContext(ctx, "failed to set oauth connection config",
 			slog.String("provider", string(provider)), slog.Any("error", setErr))
-		if errors.Is(setErr, repositories.ErrInvalidConfig) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, setErr)
-		}
 		return nil, connect.NewError(connect.CodeInternal, setErr)
 	}
 
