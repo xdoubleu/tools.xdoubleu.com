@@ -161,6 +161,33 @@ func TestOAuthConnectionsSetConfig(t *testing.T) {
 	assert.JSONEq(t, `{"repo":"o/r"}`, string(list[0].Config))
 }
 
+func TestOAuthConnectionsSetConfigRejectsInvalidJSON(t *testing.T) {
+	clearOAuthConnections(t)
+	repo := repositories.NewOAuthConnectionsRepository(testDB, testSealer(t))
+
+	require.NoError(t, repo.Upsert(
+		t.Context(),
+		models.OAuthProviderGithub,
+		&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+			AccessToken: "gh-token",
+		},
+		"admin",
+	))
+
+	// Postgres would otherwise reject this with a raw SQLSTATE 22P02
+	// (invalid input syntax for type json) surfacing as an unscrubbed
+	// CodeInternal — SetConfig must catch it before it reaches the DB.
+	err := repo.SetConfig(
+		t.Context(), models.OAuthProviderGithub, []byte("not json"),
+	)
+	assert.ErrorIs(t, err, repositories.ErrInvalidConfig)
+
+	err = repo.SetConfig(
+		t.Context(), models.OAuthProviderGithub, []byte{},
+	)
+	assert.ErrorIs(t, err, repositories.ErrInvalidConfig)
+}
+
 func TestOAuthConnectionsRepository_EncryptionNotConfigured(t *testing.T) {
 	clearOAuthConnections(t)
 	repo := repositories.NewOAuthConnectionsRepository(testDB, nil)
