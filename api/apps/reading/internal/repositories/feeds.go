@@ -193,6 +193,41 @@ func (repo *FeedsRepository) ListRemovableBookIDs(
 	return out, nil
 }
 
+// ListItemBooks returns, for every book this user's feeds have ingested into
+// the library, which feed it came from — used to label the ad hoc
+// feed-reader view. Books whose feed has since been deleted (but were kept
+// because the user engaged with them) are omitted, since feed_items cascades
+// away with the feed.
+func (repo *FeedsRepository) ListItemBooks(
+	ctx context.Context,
+	userID string,
+) ([]models.FeedItemBook, error) {
+	query := `
+		SELECT fi.book_id, f.id, f.title
+		FROM reading.feed_items fi
+		JOIN reading.feeds f ON f.id = fi.feed_id
+		WHERE f.user_id = $1 AND fi.book_id IS NOT NULL
+	`
+	rows, err := repo.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []models.FeedItemBook
+	for rows.Next() {
+		var item models.FeedItemBook
+		if scanErr := rows.Scan(&item.BookID, &item.FeedID, &item.FeedTitle); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out = append(out, item)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
 // Delete removes the feed; its feed_items rows cascade. Library items already
 // ingested from the feed are not touched (the service layer removes the
 // unengaged ones first — see FeedService.Delete).

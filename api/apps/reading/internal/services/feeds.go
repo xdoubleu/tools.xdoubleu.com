@@ -62,6 +62,15 @@ func (s *FeedService) List(
 	return s.feeds.List(ctx, userID)
 }
 
+// ListItemBooks returns which feed each of the user's ingested library books
+// came from, for the ad hoc feed-reader view (issue #476).
+func (s *FeedService) ListItemBooks(
+	ctx context.Context,
+	userID string,
+) ([]models.FeedItemBook, error) {
+	return s.feeds.ListItemBooks(ctx, userID)
+}
+
 // Create validates the URL by fetching and parsing it and stores the feed
 // (with its self-reported title), then imports the feed's current contents
 // as a first batch in the background. Returns the feed as soon as it is

@@ -567,6 +567,149 @@ func (x *RefreshFeedResponse) GetIngested() int32 {
 	return 0
 }
 
+// FeedItemBook links a library book to the feed it was ingested from, for
+// labeling the ad hoc feed-reader view. Omitted for rss items whose feed was
+// later deleted (kept because the user engaged with them).
+type FeedItemBook struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	FeedId        string                 `protobuf:"bytes,2,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
+	FeedTitle     string                 `protobuf:"bytes,3,opt,name=feed_title,json=feedTitle,proto3" json:"feed_title,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FeedItemBook) Reset() {
+	*x = FeedItemBook{}
+	mi := &file_reading_v1_feeds_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FeedItemBook) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FeedItemBook) ProtoMessage() {}
+
+func (x *FeedItemBook) ProtoReflect() protoreflect.Message {
+	mi := &file_reading_v1_feeds_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FeedItemBook.ProtoReflect.Descriptor instead.
+func (*FeedItemBook) Descriptor() ([]byte, []int) {
+	return file_reading_v1_feeds_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *FeedItemBook) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+func (x *FeedItemBook) GetFeedId() string {
+	if x != nil {
+		return x.FeedId
+	}
+	return ""
+}
+
+func (x *FeedItemBook) GetFeedTitle() string {
+	if x != nil {
+		return x.FeedTitle
+	}
+	return ""
+}
+
+type ListFeedItemsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFeedItemsRequest) Reset() {
+	*x = ListFeedItemsRequest{}
+	mi := &file_reading_v1_feeds_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFeedItemsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFeedItemsRequest) ProtoMessage() {}
+
+func (x *ListFeedItemsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_reading_v1_feeds_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFeedItemsRequest.ProtoReflect.Descriptor instead.
+func (*ListFeedItemsRequest) Descriptor() ([]byte, []int) {
+	return file_reading_v1_feeds_proto_rawDescGZIP(), []int{12}
+}
+
+type ListFeedItemsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*FeedItemBook        `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFeedItemsResponse) Reset() {
+	*x = ListFeedItemsResponse{}
+	mi := &file_reading_v1_feeds_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFeedItemsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFeedItemsResponse) ProtoMessage() {}
+
+func (x *ListFeedItemsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_reading_v1_feeds_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFeedItemsResponse.ProtoReflect.Descriptor instead.
+func (*ListFeedItemsResponse) Descriptor() ([]byte, []int) {
+	return file_reading_v1_feeds_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListFeedItemsResponse) GetItems() []*FeedItemBook {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
 var File_reading_v1_feeds_proto protoreflect.FileDescriptor
 
 const file_reading_v1_feeds_proto_rawDesc = "" +
@@ -602,7 +745,15 @@ const file_reading_v1_feeds_proto_rawDesc = "" +
 	"\x12RefreshFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\"1\n" +
 	"\x13RefreshFeedResponse\x12\x1a\n" +
-	"\bingested\x18\x01 \x01(\x05R\bingested2\x8e\x03\n" +
+	"\bingested\x18\x01 \x01(\x05R\bingested\"_\n" +
+	"\fFeedItemBook\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x17\n" +
+	"\afeed_id\x18\x02 \x01(\tR\x06feedId\x12\x1d\n" +
+	"\n" +
+	"feed_title\x18\x03 \x01(\tR\tfeedTitle\"\x16\n" +
+	"\x14ListFeedItemsRequest\"G\n" +
+	"\x15ListFeedItemsResponse\x12.\n" +
+	"\x05items\x18\x01 \x03(\v2\x18.reading.v1.FeedItemBookR\x05items2\xe4\x03\n" +
 	"\vFeedService\x12H\n" +
 	"\tListFeeds\x12\x1c.reading.v1.ListFeedsRequest\x1a\x1d.reading.v1.ListFeedsResponse\x12K\n" +
 	"\n" +
@@ -611,7 +762,8 @@ const file_reading_v1_feeds_proto_rawDesc = "" +
 	"UpdateFeed\x12\x1d.reading.v1.UpdateFeedRequest\x1a\x1e.reading.v1.UpdateFeedResponse\x12K\n" +
 	"\n" +
 	"DeleteFeed\x12\x1d.reading.v1.DeleteFeedRequest\x1a\x1e.reading.v1.DeleteFeedResponse\x12N\n" +
-	"\vRefreshFeed\x12\x1e.reading.v1.RefreshFeedRequest\x1a\x1f.reading.v1.RefreshFeedResponseB-Z+tools.xdoubleu.com/gen/reading/v1;readingv1b\x06proto3"
+	"\vRefreshFeed\x12\x1e.reading.v1.RefreshFeedRequest\x1a\x1f.reading.v1.RefreshFeedResponse\x12T\n" +
+	"\rListFeedItems\x12 .reading.v1.ListFeedItemsRequest\x1a!.reading.v1.ListFeedItemsResponseB-Z+tools.xdoubleu.com/gen/reading/v1;readingv1b\x06proto3"
 
 var (
 	file_reading_v1_feeds_proto_rawDescOnce sync.Once
@@ -625,38 +777,44 @@ func file_reading_v1_feeds_proto_rawDescGZIP() []byte {
 	return file_reading_v1_feeds_proto_rawDescData
 }
 
-var file_reading_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_reading_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_reading_v1_feeds_proto_goTypes = []any{
-	(*Feed)(nil),                // 0: reading.v1.Feed
-	(*ListFeedsRequest)(nil),    // 1: reading.v1.ListFeedsRequest
-	(*ListFeedsResponse)(nil),   // 2: reading.v1.ListFeedsResponse
-	(*CreateFeedRequest)(nil),   // 3: reading.v1.CreateFeedRequest
-	(*CreateFeedResponse)(nil),  // 4: reading.v1.CreateFeedResponse
-	(*UpdateFeedRequest)(nil),   // 5: reading.v1.UpdateFeedRequest
-	(*UpdateFeedResponse)(nil),  // 6: reading.v1.UpdateFeedResponse
-	(*DeleteFeedRequest)(nil),   // 7: reading.v1.DeleteFeedRequest
-	(*DeleteFeedResponse)(nil),  // 8: reading.v1.DeleteFeedResponse
-	(*RefreshFeedRequest)(nil),  // 9: reading.v1.RefreshFeedRequest
-	(*RefreshFeedResponse)(nil), // 10: reading.v1.RefreshFeedResponse
+	(*Feed)(nil),                  // 0: reading.v1.Feed
+	(*ListFeedsRequest)(nil),      // 1: reading.v1.ListFeedsRequest
+	(*ListFeedsResponse)(nil),     // 2: reading.v1.ListFeedsResponse
+	(*CreateFeedRequest)(nil),     // 3: reading.v1.CreateFeedRequest
+	(*CreateFeedResponse)(nil),    // 4: reading.v1.CreateFeedResponse
+	(*UpdateFeedRequest)(nil),     // 5: reading.v1.UpdateFeedRequest
+	(*UpdateFeedResponse)(nil),    // 6: reading.v1.UpdateFeedResponse
+	(*DeleteFeedRequest)(nil),     // 7: reading.v1.DeleteFeedRequest
+	(*DeleteFeedResponse)(nil),    // 8: reading.v1.DeleteFeedResponse
+	(*RefreshFeedRequest)(nil),    // 9: reading.v1.RefreshFeedRequest
+	(*RefreshFeedResponse)(nil),   // 10: reading.v1.RefreshFeedResponse
+	(*FeedItemBook)(nil),          // 11: reading.v1.FeedItemBook
+	(*ListFeedItemsRequest)(nil),  // 12: reading.v1.ListFeedItemsRequest
+	(*ListFeedItemsResponse)(nil), // 13: reading.v1.ListFeedItemsResponse
 }
 var file_reading_v1_feeds_proto_depIdxs = []int32{
 	0,  // 0: reading.v1.ListFeedsResponse.feeds:type_name -> reading.v1.Feed
 	0,  // 1: reading.v1.CreateFeedResponse.feed:type_name -> reading.v1.Feed
-	1,  // 2: reading.v1.FeedService.ListFeeds:input_type -> reading.v1.ListFeedsRequest
-	3,  // 3: reading.v1.FeedService.CreateFeed:input_type -> reading.v1.CreateFeedRequest
-	5,  // 4: reading.v1.FeedService.UpdateFeed:input_type -> reading.v1.UpdateFeedRequest
-	7,  // 5: reading.v1.FeedService.DeleteFeed:input_type -> reading.v1.DeleteFeedRequest
-	9,  // 6: reading.v1.FeedService.RefreshFeed:input_type -> reading.v1.RefreshFeedRequest
-	2,  // 7: reading.v1.FeedService.ListFeeds:output_type -> reading.v1.ListFeedsResponse
-	4,  // 8: reading.v1.FeedService.CreateFeed:output_type -> reading.v1.CreateFeedResponse
-	6,  // 9: reading.v1.FeedService.UpdateFeed:output_type -> reading.v1.UpdateFeedResponse
-	8,  // 10: reading.v1.FeedService.DeleteFeed:output_type -> reading.v1.DeleteFeedResponse
-	10, // 11: reading.v1.FeedService.RefreshFeed:output_type -> reading.v1.RefreshFeedResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	11, // 2: reading.v1.ListFeedItemsResponse.items:type_name -> reading.v1.FeedItemBook
+	1,  // 3: reading.v1.FeedService.ListFeeds:input_type -> reading.v1.ListFeedsRequest
+	3,  // 4: reading.v1.FeedService.CreateFeed:input_type -> reading.v1.CreateFeedRequest
+	5,  // 5: reading.v1.FeedService.UpdateFeed:input_type -> reading.v1.UpdateFeedRequest
+	7,  // 6: reading.v1.FeedService.DeleteFeed:input_type -> reading.v1.DeleteFeedRequest
+	9,  // 7: reading.v1.FeedService.RefreshFeed:input_type -> reading.v1.RefreshFeedRequest
+	12, // 8: reading.v1.FeedService.ListFeedItems:input_type -> reading.v1.ListFeedItemsRequest
+	2,  // 9: reading.v1.FeedService.ListFeeds:output_type -> reading.v1.ListFeedsResponse
+	4,  // 10: reading.v1.FeedService.CreateFeed:output_type -> reading.v1.CreateFeedResponse
+	6,  // 11: reading.v1.FeedService.UpdateFeed:output_type -> reading.v1.UpdateFeedResponse
+	8,  // 12: reading.v1.FeedService.DeleteFeed:output_type -> reading.v1.DeleteFeedResponse
+	10, // 13: reading.v1.FeedService.RefreshFeed:output_type -> reading.v1.RefreshFeedResponse
+	13, // 14: reading.v1.FeedService.ListFeedItems:output_type -> reading.v1.ListFeedItemsResponse
+	9,  // [9:15] is the sub-list for method output_type
+	3,  // [3:9] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_reading_v1_feeds_proto_init() }
@@ -670,7 +828,7 @@ func file_reading_v1_feeds_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reading_v1_feeds_proto_rawDesc), len(file_reading_v1_feeds_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
