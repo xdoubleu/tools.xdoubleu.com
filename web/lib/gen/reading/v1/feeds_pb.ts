@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file reading/v1/feeds.proto.
  */
 export const file_reading_v1_feeds: GenFile = /*@__PURE__*/
-  fileDesc("ChZyZWFkaW5nL3YxL2ZlZWRzLnByb3RvEgpyZWFkaW5nLnYxIoIBCgRGZWVkEgoKAmlkGAEgASgJEgsKA3VybBgCIAEoCRINCgV0aXRsZRgDIAEoCRIRCglrb2JvX3N5bmMYBCABKAgSFwoPbGFzdF9mZXRjaGVkX2F0GAUgASgJEhIKCmxhc3RfZXJyb3IYBiABKAkSEgoKY3JlYXRlZF9hdBgHIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjQKEUxpc3RGZWVkc1Jlc3BvbnNlEh8KBWZlZWRzGAEgAygLMhAucmVhZGluZy52MS5GZWVkIjMKEUNyZWF0ZUZlZWRSZXF1ZXN0EgsKA3VybBgBIAEoCRIRCglrb2JvX3N5bmMYAiABKAgiOgoSQ3JlYXRlRmVlZFJlc3BvbnNlEh4KBGZlZWQYASABKAsyEC5yZWFkaW5nLnYxLkZlZWRKBAgCEAMiRgoRVXBkYXRlRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIRCglrb2JvX3N5bmMYAyABKAgiFAoSVXBkYXRlRmVlZFJlc3BvbnNlIiQKEURlbGV0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkiFAoSRGVsZXRlRmVlZFJlc3BvbnNlIiUKElJlZnJlc2hGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIicKE1JlZnJlc2hGZWVkUmVzcG9uc2USEAoIaW5nZXN0ZWQYASABKAUyjgMKC0ZlZWRTZXJ2aWNlEkgKCUxpc3RGZWVkcxIcLnJlYWRpbmcudjEuTGlzdEZlZWRzUmVxdWVzdBodLnJlYWRpbmcudjEuTGlzdEZlZWRzUmVzcG9uc2USSwoKQ3JlYXRlRmVlZBIdLnJlYWRpbmcudjEuQ3JlYXRlRmVlZFJlcXVlc3QaHi5yZWFkaW5nLnYxLkNyZWF0ZUZlZWRSZXNwb25zZRJLCgpVcGRhdGVGZWVkEh0ucmVhZGluZy52MS5VcGRhdGVGZWVkUmVxdWVzdBoeLnJlYWRpbmcudjEuVXBkYXRlRmVlZFJlc3BvbnNlEksKCkRlbGV0ZUZlZWQSHS5yZWFkaW5nLnYxLkRlbGV0ZUZlZWRSZXF1ZXN0Gh4ucmVhZGluZy52MS5EZWxldGVGZWVkUmVzcG9uc2USTgoLUmVmcmVzaEZlZWQSHi5yZWFkaW5nLnYxLlJlZnJlc2hGZWVkUmVxdWVzdBofLnJlYWRpbmcudjEuUmVmcmVzaEZlZWRSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL3JlYWRpbmcvdjE7cmVhZGluZ3YxYgZwcm90bzM");
+  fileDesc("ChZyZWFkaW5nL3YxL2ZlZWRzLnByb3RvEgpyZWFkaW5nLnYxIoIBCgRGZWVkEgoKAmlkGAEgASgJEgsKA3VybBgCIAEoCRINCgV0aXRsZRgDIAEoCRIRCglrb2JvX3N5bmMYBCABKAgSFwoPbGFzdF9mZXRjaGVkX2F0GAUgASgJEhIKCmxhc3RfZXJyb3IYBiABKAkSEgoKY3JlYXRlZF9hdBgHIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjQKEUxpc3RGZWVkc1Jlc3BvbnNlEh8KBWZlZWRzGAEgAygLMhAucmVhZGluZy52MS5GZWVkIjMKEUNyZWF0ZUZlZWRSZXF1ZXN0EgsKA3VybBgBIAEoCRIRCglrb2JvX3N5bmMYAiABKAgiOgoSQ3JlYXRlRmVlZFJlc3BvbnNlEh4KBGZlZWQYASABKAsyEC5yZWFkaW5nLnYxLkZlZWRKBAgCEAMiRgoRVXBkYXRlRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIRCglrb2JvX3N5bmMYAyABKAgiFAoSVXBkYXRlRmVlZFJlc3BvbnNlIiQKEURlbGV0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkiFAoSRGVsZXRlRmVlZFJlc3BvbnNlIiUKElJlZnJlc2hGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIicKE1JlZnJlc2hGZWVkUmVzcG9uc2USEAoIaW5nZXN0ZWQYASABKAUiRAoMRmVlZEl0ZW1Cb29rEg8KB2Jvb2tfaWQYASABKAkSDwoHZmVlZF9pZBgCIAEoCRISCgpmZWVkX3RpdGxlGAMgASgJIhYKFExpc3RGZWVkSXRlbXNSZXF1ZXN0IkAKFUxpc3RGZWVkSXRlbXNSZXNwb25zZRInCgVpdGVtcxgBIAMoCzIYLnJlYWRpbmcudjEuRmVlZEl0ZW1Cb29rMuQDCgtGZWVkU2VydmljZRJICglMaXN0RmVlZHMSHC5yZWFkaW5nLnYxLkxpc3RGZWVkc1JlcXVlc3QaHS5yZWFkaW5nLnYxLkxpc3RGZWVkc1Jlc3BvbnNlEksKCkNyZWF0ZUZlZWQSHS5yZWFkaW5nLnYxLkNyZWF0ZUZlZWRSZXF1ZXN0Gh4ucmVhZGluZy52MS5DcmVhdGVGZWVkUmVzcG9uc2USSwoKVXBkYXRlRmVlZBIdLnJlYWRpbmcudjEuVXBkYXRlRmVlZFJlcXVlc3QaHi5yZWFkaW5nLnYxLlVwZGF0ZUZlZWRSZXNwb25zZRJLCgpEZWxldGVGZWVkEh0ucmVhZGluZy52MS5EZWxldGVGZWVkUmVxdWVzdBoeLnJlYWRpbmcudjEuRGVsZXRlRmVlZFJlc3BvbnNlEk4KC1JlZnJlc2hGZWVkEh4ucmVhZGluZy52MS5SZWZyZXNoRmVlZFJlcXVlc3QaHy5yZWFkaW5nLnYxLlJlZnJlc2hGZWVkUmVzcG9uc2USVAoNTGlzdEZlZWRJdGVtcxIgLnJlYWRpbmcudjEuTGlzdEZlZWRJdGVtc1JlcXVlc3QaIS5yZWFkaW5nLnYxLkxpc3RGZWVkSXRlbXNSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL3JlYWRpbmcvdjE7cmVhZGluZ3YxYgZwcm90bzM");
 
 /**
  * Feed is an RSS/Atom subscription. Its items are ingested into the library
@@ -254,6 +254,67 @@ export const RefreshFeedResponseSchema: GenMessage<RefreshFeedResponse> = /*@__P
   messageDesc(file_reading_v1_feeds, 10);
 
 /**
+ * FeedItemBook links a library book to the feed it was ingested from, for
+ * labeling the ad hoc feed-reader view. Omitted for rss items whose feed was
+ * later deleted (kept because the user engaged with them).
+ *
+ * @generated from message reading.v1.FeedItemBook
+ */
+export type FeedItemBook = Message<"reading.v1.FeedItemBook"> & {
+  /**
+   * @generated from field: string book_id = 1;
+   */
+  bookId: string;
+
+  /**
+   * @generated from field: string feed_id = 2;
+   */
+  feedId: string;
+
+  /**
+   * @generated from field: string feed_title = 3;
+   */
+  feedTitle: string;
+};
+
+/**
+ * Describes the message reading.v1.FeedItemBook.
+ * Use `create(FeedItemBookSchema)` to create a new message.
+ */
+export const FeedItemBookSchema: GenMessage<FeedItemBook> = /*@__PURE__*/
+  messageDesc(file_reading_v1_feeds, 11);
+
+/**
+ * @generated from message reading.v1.ListFeedItemsRequest
+ */
+export type ListFeedItemsRequest = Message<"reading.v1.ListFeedItemsRequest"> & {
+};
+
+/**
+ * Describes the message reading.v1.ListFeedItemsRequest.
+ * Use `create(ListFeedItemsRequestSchema)` to create a new message.
+ */
+export const ListFeedItemsRequestSchema: GenMessage<ListFeedItemsRequest> = /*@__PURE__*/
+  messageDesc(file_reading_v1_feeds, 12);
+
+/**
+ * @generated from message reading.v1.ListFeedItemsResponse
+ */
+export type ListFeedItemsResponse = Message<"reading.v1.ListFeedItemsResponse"> & {
+  /**
+   * @generated from field: repeated reading.v1.FeedItemBook items = 1;
+   */
+  items: FeedItemBook[];
+};
+
+/**
+ * Describes the message reading.v1.ListFeedItemsResponse.
+ * Use `create(ListFeedItemsResponseSchema)` to create a new message.
+ */
+export const ListFeedItemsResponseSchema: GenMessage<ListFeedItemsResponse> = /*@__PURE__*/
+  messageDesc(file_reading_v1_feeds, 13);
+
+/**
  * @generated from service reading.v1.FeedService
  */
 export const FeedService: GenService<{
@@ -296,6 +357,14 @@ export const FeedService: GenService<{
     methodKind: "unary";
     input: typeof RefreshFeedRequestSchema;
     output: typeof RefreshFeedResponseSchema;
+  },
+  /**
+   * @generated from rpc reading.v1.FeedService.ListFeedItems
+   */
+  listFeedItems: {
+    methodKind: "unary";
+    input: typeof ListFeedItemsRequestSchema;
+    output: typeof ListFeedItemsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_reading_v1_feeds, 0);
