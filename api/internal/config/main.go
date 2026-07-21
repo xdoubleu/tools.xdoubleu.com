@@ -43,9 +43,9 @@ type Config struct {
 	SentryOAuthClientSecret string
 	DOOAuthClientID         string
 	DOOAuthClientSecret     string
-	// OAuthTokenEncKey is a base64-standard-encoded 32-byte AES-256 key used
+	// EncryptionKey is a base64-standard-encoded 32-byte AES-256 key used
 	// to encrypt stored OAuth tokens at rest (see internal/crypto).
-	OAuthTokenEncKey string
+	EncryptionKey string
 }
 
 func New(logger *slog.Logger) Config {
@@ -88,7 +88,7 @@ func New(logger *slog.Logger) Config {
 	cfg.SentryOAuthClientSecret = parser.EnvStr("SENTRY_OAUTH_CLIENT_SECRET", "")
 	cfg.DOOAuthClientID = parser.EnvStr("DO_OAUTH_CLIENT_ID", "")
 	cfg.DOOAuthClientSecret = parser.EnvStr("DO_OAUTH_CLIENT_SECRET", "")
-	cfg.OAuthTokenEncKey = parser.EnvStr("OAUTH_TOKEN_ENC_KEY", "")
+	cfg.EncryptionKey = parser.EnvStr("ENCRYPTION_KEY", "")
 
 	return cfg
 }
