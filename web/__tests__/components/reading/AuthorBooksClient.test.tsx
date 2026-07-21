@@ -146,7 +146,9 @@ describe('AuthorBooksClient', () => {
     expect(screen.getByText('Chapterhouse: Dune')).toBeInTheDocument()
   })
 
-  it('includes rss items (covers flattenLibrary rss branch)', () => {
+  // #475: rss items are an auto-pulled firehose excluded from default views;
+  // this page has no rss category filter, so they simply don't appear here.
+  it('excludes rss items', () => {
     const rssBook = create(UserBookSchema, {
       id: 'ub-rss',
       status: 'rss',
@@ -161,7 +163,7 @@ describe('AuthorBooksClient', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBacklogLibrary.mockReturnValue(makeLibraryWith([], [], [rssBook]))
     render(<AuthorBooksClient name="Frank Herbert" />)
-    expect(screen.getByText('Dune Retrospective')).toBeInTheDocument()
+    expect(screen.queryByText('Dune Retrospective')).not.toBeInTheDocument()
   })
 
   it('collects non-special tags from books (covers knownTags tag filter)', () => {

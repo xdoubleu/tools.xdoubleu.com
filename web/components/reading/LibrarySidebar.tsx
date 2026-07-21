@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/cn'
 import type { LibraryResponse } from '@/lib/gen/reading/v1/library_pb'
-import { SPECIAL_TAGS, statusLabel } from '@/lib/reading/bookShelves'
+import { SPECIAL_TAGS, flattenLibrary, statusLabel } from '@/lib/reading/bookShelves'
 import { categoryLabel, categoryOf, type Category } from '@/lib/reading/categories'
 
 export type ShelfId =
@@ -25,13 +25,7 @@ export interface TagEntry {
 }
 
 export function buildShelves(library: LibraryResponse): Shelf[] {
-  const allBooks = [
-    ...library.reading,
-    ...library.wishlist,
-    ...library.finished,
-    ...library.shelves.flatMap((s) => s.books),
-    ...library.rss
-  ]
+  const allBooks = flattenLibrary(library)
   // The backend has no dedicated LibraryResponse field for dropped books —
   // they arrive as a generic shelf named "dropped". Pull it out and render
   // it as a fixed shelf with a proper label instead of the raw status value.
@@ -76,13 +70,7 @@ export interface CategoryEntry {
 // library yields a single 'book' entry, which the sidebar treats as "nothing
 // to filter" and hides the section entirely.
 export function buildCategories(library: LibraryResponse): CategoryEntry[] {
-  const all = [
-    ...library.reading,
-    ...library.wishlist,
-    ...library.finished,
-    ...library.shelves.flatMap((s) => s.books),
-    ...library.rss
-  ]
+  const all = [...flattenLibrary(library), ...library.rss]
   const counts = new Map<Category, number>()
   for (const ub of all) {
     const cat = categoryOf(ub.book?.category)
@@ -94,13 +82,7 @@ export function buildCategories(library: LibraryResponse): CategoryEntry[] {
 }
 
 export function buildTags(library: LibraryResponse): TagEntry[] {
-  const all = [
-    ...library.reading,
-    ...library.wishlist,
-    ...library.finished,
-    ...library.shelves.flatMap((s) => s.books),
-    ...library.rss
-  ]
+  const all = flattenLibrary(library)
   const counts = new Map<string, number>()
   for (const ub of all) {
     for (const t of ub.tags) {

@@ -83,7 +83,7 @@ export default function BooksLibrary({
       return flattenLibrary(library).filter((b) => b.tags.includes(selection.tag))
     }
     if (selection.kind === 'category') {
-      return flattenLibrary(library).filter(
+      return [...flattenLibrary(library), ...library.rss].filter(
         (b) => categoryOf(b.book?.category) === selection.category
       )
     }

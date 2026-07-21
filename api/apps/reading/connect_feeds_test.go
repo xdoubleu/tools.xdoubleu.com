@@ -163,6 +163,14 @@ func TestCreateFeed_ImportsCurrentContents(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, models.StatusToRead, ub.Status)
 	assert.NotContains(t, ub.Tags, models.TagKoboSync)
+
+	// #459: a feed not opted into Kobo sync must not pay for EPUB conversion,
+	// even though the item has full HTML content available.
+	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.False(t, statusResult.HasEPUB)
 }
 
 func TestCreateFeed_DuplicateAndInvalid(t *testing.T) {
