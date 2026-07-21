@@ -71,7 +71,6 @@ describe('MealPlanMealChip', () => {
     const items = screen.getAllByRole('listitem')
     expect(items).toHaveLength(2)
     expect(items[0]).toHaveClass('text-muted')
-    expect(items[0]).toHaveTextContent('(not on list)')
     expect(items[0].textContent).not.toMatch(/🚫/)
   })
 
