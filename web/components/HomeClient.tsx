@@ -77,7 +77,12 @@ const ALL_APPS: AppLink[] = [
     href: '/sharing',
     description: 'Manage what you share'
   },
-  { name: 'admin', label: 'Admin', href: '/admin', description: 'Administration' },
+  {
+    name: 'user-management',
+    label: 'User management',
+    href: '/user-management',
+    description: 'Administration'
+  },
   {
     name: 'monitoring',
     label: 'Monitoring',
@@ -93,11 +98,11 @@ const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty', 'icsproxy'] },
   { title: 'Account', names: ['settings', 'contacts', 'sharing'] },
-  { title: 'Admin', names: ['admin', 'monitoring'] }
+  { title: 'Admin', names: ['user-management', 'monitoring'] }
 ]
 
 const ALWAYS_VISIBLE = new Set(['settings', 'contacts', 'sharing'])
-const ADMIN_ONLY = new Set(['admin', 'monitoring'])
+const ADMIN_ONLY = new Set(['user-management', 'monitoring'])
 
 export default function HomeClient() {
   const { data, error, isLoading } = useCurrentUser()

@@ -1,13 +1,13 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import UsersTable from '@/components/admin/UsersTable'
+import UsersTable from '@/components/user-management/UsersTable'
 import { AppUserSchema } from '@/lib/gen/access/v1/access_pb'
 
 const mockSetRole = jest.fn()
 const mockSetAppAccess = jest.fn()
 
-jest.mock('@/hooks/useAdmin', () => ({
+jest.mock('@/hooks/useUserManagement', () => ({
   useSetRole: jest.fn(() => mockSetRole),
   useSetAppAccess: jest.fn(() => mockSetAppAccess)
 }))

@@ -6,7 +6,7 @@ import { swrKeys } from '@/lib/swrKeys'
 
 export function useUsers() {
   const client = createServiceClient(AccessService)
-  return useSWR<ListUsersResponse, Error>(swrKeys.adminUsers, () => client.listUsers({}))
+  return useSWR<ListUsersResponse, Error>(swrKeys.userManagementUsers, () => client.listUsers({}))
 }
 
 export function useSetRole() {

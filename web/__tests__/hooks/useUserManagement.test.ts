@@ -14,7 +14,7 @@ jest.mock('@/lib/gen/access/v1/access_pb', () => ({
 
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
-import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useAdmin'
+import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useUserManagement'
 
 const mockUseSWR = jest.mocked(useSWR)
 const mockCreateServiceClient = jest.mocked(createServiceClient)
@@ -28,9 +28,9 @@ beforeEach(() => {
 })
 
 describe('useUsers', () => {
-  it('uses /admin/users as key', () => {
+  it('uses /user-management/users as key', () => {
     renderHook(() => useUsers())
-    expect(mockUseSWR).toHaveBeenCalledWith('/admin/users', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/user-management/users', expect.any(Function))
   })
 
   it('returns SWR result', () => {
