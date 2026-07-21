@@ -5,22 +5,9 @@ import { mutate } from 'swr'
 import { useLibrary } from '@/hooks/useBooks'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import BooksTable from '@/components/reading/BooksTable'
-import { SPECIAL_TAGS } from '@/lib/reading/bookShelves'
-import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
+import { SPECIAL_TAGS, flattenLibrary } from '@/lib/reading/bookShelves'
 import { PageContainer } from '@/components/ui/page-container'
 import { swrKeys } from '@/lib/swrKeys'
-
-function flattenLibrary(
-  library: NonNullable<ReturnType<typeof useLibrary>['data']>['library']
-): UserBook[] {
-  if (!library) return []
-  return [
-    ...library.reading,
-    ...library.wishlist,
-    ...library.finished,
-    ...library.shelves.flatMap((s) => s.books)
-  ]
-}
 
 interface AuthorBooksClientProps {
   name: string

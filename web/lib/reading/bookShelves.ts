@@ -1,3 +1,20 @@
+import type { LibraryResponse, UserBook } from '@/lib/gen/reading/v1/library_pb'
+
+// Flattens every book/RSS-item list on a library response into one array.
+// RSS items live outside the reading-state shelves (library.rss), so callers
+// that want "all books" — sidebar filters, detail pages, author pages — must
+// go through this rather than re-listing the shelf fields themselves.
+export function flattenLibrary(library: LibraryResponse | null | undefined): UserBook[] {
+  if (!library) return []
+  return [
+    ...library.reading,
+    ...library.wishlist,
+    ...library.finished,
+    ...library.shelves.flatMap((s) => s.books),
+    ...library.rss
+  ]
+}
+
 // Tags that have reserved UI treatment — not user-visible shelves/tags.
 export const SPECIAL_TAGS = new Set([
   'favourite',
