@@ -6,6 +6,9 @@
 export GOTOOLCHAIN := go1.24.13
 
 RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
+# Empty by default (dev builds, go test): initSentry (main.go) then skips
+# sentry.Init entirely, so nothing is ever reported off a dev machine.
+SENTRY_DSN ?=
 
 test:
 	go test ./...
@@ -29,7 +32,7 @@ lint/fix:
 # macOS (arm64 native — no cross-compile). See ../.github/workflows/build-gateway.yml
 # (macos-14 runner) for CI; on Linux only the no-UI stub (menubar_other.go) compiles.
 build:
-	go build -ldflags="-w -s -X main.Release=$(RELEASE)" \
+	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.SentryDSN=$(SENTRY_DSN)" \
 		-o=./bin/kobo-gateway-darwin-arm64 ./cmd/kobo-gateway
 
 # Packages the built binary into KoboGateway.app + kobo-gateway.dmg for the

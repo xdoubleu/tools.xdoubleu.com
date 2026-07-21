@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,41 @@ import (
 func TestMain(m *testing.M) {
 	headless = true
 	os.Exit(m.Run())
+}
+
+func TestInitSentrySkipsWhenDSNEmpty(t *testing.T) {
+	SentryDSN = ""
+
+	// No observable effect to assert beyond "doesn't panic" — the whole
+	// point is that sentry.Init is never reached.
+	initSentry()
+}
+
+func TestInitSentryWarnsOnInvalidDSN(t *testing.T) {
+	old := SentryDSN
+	defer func() { SentryDSN = old }()
+	SentryDSN = "not-a-valid-dsn"
+
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	oldStderr := os.Stderr
+	os.Stderr = w
+	defer func() { os.Stderr = oldStderr }()
+
+	initSentry()
+
+	require.NoError(t, w.Close())
+	out, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Contains(t, string(out), "could not initialize Sentry")
+}
+
+func TestInitSentryInitializesWithValidDSN(t *testing.T) {
+	old := SentryDSN
+	defer func() { SentryDSN = old }()
+	SentryDSN = "https://abc123@o0.ingest.sentry.io/1"
+
+	assert.NotPanics(t, initSentry)
 }
 
 func TestRunInvalidFlag(t *testing.T) {

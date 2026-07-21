@@ -95,6 +95,44 @@ menu-bar toggle changes it. `main.go`'s `serve()` only calls it outside
 `testing.Testing()`, alongside the `runUI` gate — otherwise `go test` would
 write a real LaunchAgent into the test-runner's actual home directory.
 
+The plist sets `KeepAlive`/`SuccessfulExit: false`, so launchd relaunches the
+gateway on any abnormal exit — a panic, a listener error, or the darwinkit
+AppKit bridge's `SIGABRT` (see "Building" below) all otherwise leave the
+process dead with nothing to bring it back (#427). A clean Quit exits 0 and
+is not relaunched. Since existing installs already have the marker file (so
+`EnsureInitialLoginItem` never rewrites their plist) and self-update only
+replaces the binary, `main.go`'s `serve()` also calls `SyncLoginItem` right
+after `EnsureInitialLoginItem` on every launch: if the login item is already
+enabled, it rewrites the plist to the current template (picking up template
+changes like `KeepAlive`) without touching `launchctl` — a bootout/bootstrap
+cycle would kill the very process calling it. The refreshed policy takes
+effect once launchd next reloads the plist (next login/reboot).
+
+As defense-in-depth on top of `KeepAlive`, `cmd/kobo-gateway/recover.go`
+(built for both darwin and non-darwin, since it touches no AppKit) adds
+`guard`/`recoverGo`: `defer guard(where)` recovers and swallows a panic in a
+single event/block (a dispatched menu update, a notification call) so one
+bad event doesn't take the whole app down, and reports it to Sentry.
+`reportAndRepanic` (deferred once, in `main`) instead reports then
+re-panics — swallowing a main-thread panic would leave the app running in a
+broken, un-relaunched state, whereas re-panicking exits non-zero and lets
+`KeepAlive` relaunch a fresh process. Neither helper catches the darwinkit
+`SIGABRT` — that's a native abort that bypasses Go's panic machinery
+entirely, and stays covered by `KeepAlive`, not by recovery or reporting.
+
+Crash reporting goes to Sentry (`github.com/getsentry/sentry-go`, the same
+org `web/` already reports to), initialized in `main.go`'s `initSentry` from
+`SentryDSN` — a build-time `-ldflags -X main.SentryDSN=...` var, mirroring
+`Release`. Left empty (dev builds, `go test`, a `make build` without the
+flag), `initSentry` skips `sentry.Init` entirely, so nothing is ever sent
+off a dev machine. `build-gateway.yml` passes the real DSN from the
+`GATEWAY_SENTRY_DSN` repo secret into `make dist`. A Sentry DSN is a
+publishable, send-only key, so baking it into the distributed binary is
+standard for a client app. Scope: Sentry only ever sees pure Go panics
+(everything `guard`/`reportAndRepanic` catch) — never the darwinkit
+`SIGABRT`, which is why `KeepAlive` remains the fix for that class rather
+than an enhancement to reporting.
+
 ## Building
 
 **macOS only** (cgo + Xcode command line tools required — this will not
