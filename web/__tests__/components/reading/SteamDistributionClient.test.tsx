@@ -1,8 +1,11 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
+const mockSetGameFavourite = jest.fn().mockResolvedValue({})
+
 jest.mock('@/hooks/useGames', () => ({
-  useSteamDistribution: jest.fn()
+  useSteamDistribution: jest.fn(),
+  useSetGameFavourite: () => mockSetGameFavourite
 }))
 
 jest.mock('next/link', () => {
