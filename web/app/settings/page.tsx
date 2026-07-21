@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
+import { McpSetupSection } from '@/components/settings/McpSetupSection'
 
 type MFAEnrollState = 'idle' | 'qr' | 'done'
 
@@ -335,6 +336,8 @@ export default function SettingsPage() {
           </div>
         ) : null}
       </section>
+
+      <McpSetupSection role={data.role} />
     </PageContainer>
   )
 }
