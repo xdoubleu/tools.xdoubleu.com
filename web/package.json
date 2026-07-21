@@ -38,7 +38,7 @@
     "@bufbuild/protobuf": "2.12.1",
     "@bufbuild/protoc-gen-es": "2.12.1",
     "@eslint/js": "10.0.1",
-    "@tailwindcss/postcss": "4.3.0",
+    "@tailwindcss/postcss": "4.3.3",
     "@tailwindcss/typography": "0.5.20",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "6.9.1",
@@ -56,7 +56,7 @@
     "prettier": "3.8.3",
     "react-is": "19.2.6",
     "syncpack": "15.3.2",
-    "tailwindcss": "4.3.0",
+    "tailwindcss": "4.3.3",
     "typescript-eslint": "8.60.0"
   },
   "engines": {
