@@ -5,6 +5,7 @@ const mockMutate = jest.fn()
 const mockDisconnectOAuthConnection = jest.fn()
 const mockGetProviderOptions = jest.fn()
 const mockSetProviderConfig = jest.fn()
+const mockTriggerStorageScan = jest.fn()
 
 jest.mock('swr', () => ({
   __esModule: true,
@@ -17,6 +18,7 @@ jest.mock('@/lib/client', () => ({
     getJobStats: jest.fn(),
     getUsageStats: jest.fn(),
     getStorageStats: jest.fn(),
+    triggerStorageScan: (...args: unknown[]) => mockTriggerStorageScan(...args),
     getDatabaseStats: jest.fn(),
     getGithubIssues: jest.fn(),
     getSentryIssues: jest.fn(),
@@ -37,6 +39,7 @@ import {
   useJobStats,
   useUsageStats,
   useStorageStats,
+  useTriggerStorageScan,
   useDatabaseStats,
   useGithubIssues,
   useSentryIssues,
@@ -111,6 +114,20 @@ describe('useMonitoring', () => {
     expect(unstable_serialize(swrKeys.monitoringJobStats(7))).not.toBe(
       unstable_serialize(swrKeys.monitoringJobStats(30))
     )
+  })
+})
+
+describe('useTriggerStorageScan', () => {
+  it('runs a live rescan and revalidates storage stats', async () => {
+    mockTriggerStorageScan.mockResolvedValue({})
+    const { result } = renderHook(() => useTriggerStorageScan())
+
+    await act(async () => {
+      await result.current()
+    })
+
+    expect(mockTriggerStorageScan).toHaveBeenCalledWith({})
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringStorageStats)
   })
 })
 

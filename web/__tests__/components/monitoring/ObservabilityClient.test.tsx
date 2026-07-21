@@ -15,6 +15,7 @@ import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 const mockUseJobStats = jest.fn()
 const mockUseUsageStats = jest.fn()
 const mockUseStorageStats = jest.fn()
+const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
 const mockUseGithubIssues = jest.fn()
 const mockUseSentryIssues = jest.fn()
@@ -25,6 +26,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
   useUsageStats: (d: number) => mockUseUsageStats(d),
   useStorageStats: () => mockUseStorageStats(),
+  useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: () => mockUseDatabaseStats(),
   useGithubIssues: () => mockUseGithubIssues(),
   useSentryIssues: () => mockUseSentryIssues(),
@@ -48,6 +50,7 @@ const mockMutate = jest.fn()
 beforeEach(() => {
   jest.clearAllMocks()
   mockMutate.mockResolvedValue(undefined)
+  mockTriggerStorageScan.mockResolvedValue(undefined)
   mockUseJobStats.mockReturnValue({
     data: create(GetJobStatsResponseSchema, { stats: [], recentRuns: [] }),
     mutate: mockMutate
@@ -141,7 +144,10 @@ describe('ObservabilityClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
-    expect(mockMutate).toHaveBeenCalledTimes(8)
+    // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
+    // instead of a plain mutate(), so mockMutate covers the other 7 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(7)
+    expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
   })

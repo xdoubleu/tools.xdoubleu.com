@@ -47,6 +47,7 @@ type Application struct {
 	auth              *auth.GoTrueService
 	contacts          contacts.Service
 	apps              *Apps
+	readingApp        storageScanRunner
 	appUsersRepo      *repositories.AppUsersRepository
 	profileSharesRepo *repositories.ProfileSharesRepository
 	usage             *observability.UsageRecorder
@@ -280,7 +281,7 @@ func NewApplication(
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
 	spanDB := postgres.NewSpanDB(db)
-	app.apps = NewApps(app.auth, logger, config, spanDB)
+	app.apps, app.readingApp = NewApps(app.auth, logger, config, spanDB)
 
 	err = app.ApplyMigrations(db)
 	if err != nil {

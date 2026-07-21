@@ -210,6 +210,13 @@ func renameLegacyBooksSchema(ctx context.Context, db *pgxpool.Pool) error {
 	return err
 }
 
+// RunStorageScanNow runs the R2 bucket scan synchronously, wrapped in the
+// same TrackedJob used for the scheduled run so a manual trigger still shows
+// up in global.job_runs / the Jobs card.
+func (a *Reading) RunStorageScanNow(ctx context.Context) error {
+	return observability.NewTrackedJob(a.storageScanJob, a.db).Run(ctx, a.Logger)
+}
+
 func (a *Reading) GetName() string {
 	return "reading"
 }
