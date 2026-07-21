@@ -5,13 +5,11 @@
 package readingv1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
 	http "net/http"
 	strings "strings"
-
-	connect "connectrpc.com/connect"
-
 	v1 "tools.xdoubleu.com/gen/reading/v1"
 )
 
