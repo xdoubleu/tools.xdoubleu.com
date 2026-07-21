@@ -87,6 +87,16 @@ const (
 //nolint:gochecknoglobals //test seam, see comment above
 var migrationLockTimeout = 20 * time.Second
 
+// newDBPool opens the shared pgx pool with the app's real connect
+// parameters; factored out so tests can exercise the same argument list
+// TestMain uses to spin up its own test-DB pool.
+func newDBPool(logger *slog.Logger, dsn string) (*pgxpool.Pool, error) {
+	return postgres.Connect(
+		logger, dsn, dbMaxConns, dbMaxIdleTime,
+		dbConnectTimeoutSecs, dbRetrySleep, dbMaxRetryDuration,
+	)
+}
+
 func main() {
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 	// Release is set at build time via -ldflags; always use that value
@@ -97,15 +107,7 @@ func main() {
 	// Code that can't receive the injected logger falls back to
 	// slog.Default(); route it through the Sentry handler too.
 	slog.SetDefault(logger)
-	db, err := postgres.Connect(
-		logger,
-		cfg.DBDsn,
-		dbMaxConns,
-		dbMaxIdleTime,
-		dbConnectTimeoutSecs,
-		dbRetrySleep,
-		dbMaxRetryDuration,
-	)
+	db, err := newDBPool(logger, cfg.DBDsn)
 	if err != nil {
 		panic(err)
 	}
