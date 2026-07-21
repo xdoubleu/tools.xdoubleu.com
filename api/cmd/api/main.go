@@ -63,16 +63,20 @@ type Application struct {
 //	@Produce		json
 
 const (
-	dbMaxConns       = 25
-	dbMaxIdleTime    = "15m"
-	dbMaxLifetime    = 60
-	dbConnectTimeout = 10 * time.Second
-	dbHealthCheck    = 5 * time.Minute
-	httpReadTimeout  = 5 * time.Second
-	httpWriteTimeout = 10 * time.Second
+	dbMaxConns           = 25
+	dbMaxIdleTime        = "15m"
+	dbConnectTimeoutSecs = 10
+	dbRetrySleep         = 2 * time.Second
+	dbMaxRetryDuration   = 20 * time.Second
+	httpReadTimeout      = 5 * time.Second
+	httpWriteTimeout     = 10 * time.Second
 	// migrationLockKey identifies the advisory lock that serializes
 	// migration runs across concurrently starting replicas.
 	migrationLockKey = 20260101
+	// migrationLockTimeout bounds how long a starting replica waits for the
+	// advisory lock before failing loudly, so a lock left held by a stale
+	// connection from a prior replica can't hang startup silently forever.
+	migrationLockTimeout = 20 * time.Second
 	// usageFlushInterval is how often accumulated request counts are
 	// written to global.usage_daily.
 	usageFlushInterval = time.Minute
@@ -93,9 +97,9 @@ func main() {
 		cfg.DBDsn,
 		dbMaxConns,
 		dbMaxIdleTime,
-		dbMaxLifetime,
-		dbConnectTimeout,
-		dbHealthCheck,
+		dbConnectTimeoutSecs,
+		dbRetrySleep,
+		dbMaxRetryDuration,
 	)
 	if err != nil {
 		panic(err)
@@ -239,11 +243,16 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	}
 	defer lockConn.Release()
 
+	lockCtx, cancel := context.WithTimeout(app.ctx, migrationLockTimeout)
+	defer cancel()
+
+	app.logger.Info("acquiring migration lock")
 	if _, err = lockConn.Exec(
-		app.ctx, "SELECT pg_advisory_lock($1)", migrationLockKey,
+		lockCtx, "SELECT pg_advisory_lock($1)", migrationLockKey,
 	); err != nil {
-		return err
+		return fmt.Errorf("failed to acquire migration lock: %w", err)
 	}
+	app.logger.Info("acquired migration lock")
 	defer func() {
 		_, _ = lockConn.Exec(
 			app.ctx, "SELECT pg_advisory_unlock($1)", migrationLockKey,
