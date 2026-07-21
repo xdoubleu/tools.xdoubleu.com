@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { Select } from '@/components/ui/select'
 import {
@@ -28,6 +29,7 @@ const WINDOW_OPTIONS = [7, 30, 90]
 
 export default function ObservabilityClient() {
   const [windowDays, setWindowDays] = useState(30)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const jobStats = useJobStats(windowDays)
   const usageStats = useUsageStats(windowDays)
@@ -37,6 +39,21 @@ export default function ObservabilityClient() {
   const sentryIssues = useSentryIssues()
   const deployStatus = useDeployStatus()
   const oauthConnections = useOAuthConnections()
+
+  const refreshAll = async () => {
+    setIsRefreshing(true)
+    await Promise.all([
+      jobStats.mutate(),
+      usageStats.mutate(),
+      storageStats.mutate(),
+      databaseStats.mutate(),
+      githubIssues.mutate(),
+      sentryIssues.mutate(),
+      deployStatus.mutate(),
+      oauthConnections.mutate()
+    ])
+    setIsRefreshing(false)
+  }
 
   const latest = storageStats.data?.latest
   const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
@@ -91,18 +108,23 @@ export default function ObservabilityClient() {
     <PageContainer className="p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">Observability</h1>
-        <Select
-          value={String(windowDays)}
-          onChange={(e) => setWindowDays(Number(e.target.value))}
-          className="h-9 w-auto"
-          aria-label="Time window"
-        >
-          {WINDOW_OPTIONS.map((d) => (
-            <option key={d} value={d}>
-              Last {d} days
-            </option>
-          ))}
-        </Select>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={refreshAll} disabled={isRefreshing}>
+            {isRefreshing ? 'Refreshing…' : 'Refresh'}
+          </Button>
+          <Select
+            value={String(windowDays)}
+            onChange={(e) => setWindowDays(Number(e.target.value))}
+            className="h-9 w-auto"
+            aria-label="Time window"
+          >
+            {WINDOW_OPTIONS.map((d) => (
+              <option key={d} value={d}>
+                Last {d} days
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       <StatTiles tiles={tiles} />

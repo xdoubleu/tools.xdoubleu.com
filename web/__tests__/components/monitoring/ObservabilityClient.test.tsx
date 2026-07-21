@@ -1,6 +1,6 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
@@ -43,12 +43,16 @@ jest.mock('recharts', () => {
   }
 })
 
+const mockMutate = jest.fn()
+
 beforeEach(() => {
   jest.clearAllMocks()
+  mockMutate.mockResolvedValue(undefined)
   mockUseJobStats.mockReturnValue({
-    data: create(GetJobStatsResponseSchema, { stats: [], recentRuns: [] })
+    data: create(GetJobStatsResponseSchema, { stats: [], recentRuns: [] }),
+    mutate: mockMutate
   })
-  mockUseUsageStats.mockReturnValue({ data: undefined })
+  mockUseUsageStats.mockReturnValue({ data: undefined, mutate: mockMutate })
   mockUseStorageStats.mockReturnValue({
     data: create(GetStorageStatsResponseSchema, {
       latest: {
@@ -62,26 +66,32 @@ beforeEach(() => {
         prefixBreakdown: []
       },
       history: []
-    })
+    }),
+    mutate: mockMutate
   })
   mockUseDatabaseStats.mockReturnValue({
-    data: create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 2097152n, schemas: [] })
+    data: create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 2097152n, schemas: [] }),
+    mutate: mockMutate
   })
   mockUseGithubIssues.mockReturnValue({
-    data: create(GetGithubIssuesResponseSchema, { configured: true, openCount: 3, issues: [] })
+    data: create(GetGithubIssuesResponseSchema, { configured: true, openCount: 3, issues: [] }),
+    mutate: mockMutate
   })
   mockUseSentryIssues.mockReturnValue({
     data: create(GetSentryIssuesResponseSchema, {
       configured: true,
       unresolvedCount: 0,
       issues: []
-    })
+    }),
+    mutate: mockMutate
   })
   mockUseDeployStatus.mockReturnValue({
-    data: create(GetDeployStatusResponseSchema, { configured: true, phase: 'ACTIVE' })
+    data: create(GetDeployStatusResponseSchema, { configured: true, phase: 'ACTIVE' }),
+    mutate: mockMutate
   })
   mockUseOAuthConnections.mockReturnValue({
-    data: create(ListOAuthConnectionsResponseSchema, { connections: [] })
+    data: create(ListOAuthConnectionsResponseSchema, { connections: [] }),
+    mutate: mockMutate
   })
 })
 
@@ -123,5 +133,16 @@ describe('ObservabilityClient', () => {
     fireEvent.change(screen.getByLabelText('Time window'), { target: { value: '7' } })
     expect(mockUseJobStats).toHaveBeenCalledWith(7)
     expect(mockUseUsageStats).toHaveBeenCalledWith(7)
+  })
+
+  it('revalidates every data source when Refresh is clicked', async () => {
+    render(<ObservabilityClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+
+    expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
+    expect(mockMutate).toHaveBeenCalledTimes(8)
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
   })
 })
