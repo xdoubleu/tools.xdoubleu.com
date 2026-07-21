@@ -5,11 +5,13 @@
 package observabilityv1connect
 
 import (
-	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
 	http "net/http"
 	strings "strings"
+
+	connect "connectrpc.com/connect"
+
 	v1 "tools.xdoubleu.com/gen/observability/v1"
 )
 
@@ -42,6 +44,9 @@ const (
 	// ObservabilityServiceGetStorageStatsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetStorageStats RPC.
 	ObservabilityServiceGetStorageStatsProcedure = "/observability.v1.ObservabilityService/GetStorageStats"
+	// ObservabilityServiceTriggerStorageScanProcedure is the fully-qualified name of the
+	// ObservabilityService's TriggerStorageScan RPC.
+	ObservabilityServiceTriggerStorageScanProcedure = "/observability.v1.ObservabilityService/TriggerStorageScan"
 	// ObservabilityServiceGetDatabaseStatsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetDatabaseStats RPC.
 	ObservabilityServiceGetDatabaseStatsProcedure = "/observability.v1.ObservabilityService/GetDatabaseStats"
@@ -76,6 +81,7 @@ type ObservabilityServiceClient interface {
 	GetJobStats(context.Context, *connect.Request[v1.GetJobStatsRequest]) (*connect.Response[v1.GetJobStatsResponse], error)
 	GetUsageStats(context.Context, *connect.Request[v1.GetUsageStatsRequest]) (*connect.Response[v1.GetUsageStatsResponse], error)
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
+	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
@@ -114,6 +120,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetStorageStatsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetStorageStats")),
+			connect.WithClientOptions(opts...),
+		),
+		triggerStorageScan: connect.NewClient[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse](
+			httpClient,
+			baseURL+ObservabilityServiceTriggerStorageScanProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("TriggerStorageScan")),
 			connect.WithClientOptions(opts...),
 		),
 		getDatabaseStats: connect.NewClient[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse](
@@ -178,6 +190,7 @@ type observabilityServiceClient struct {
 	getJobStats               *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
 	getUsageStats             *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
 	getStorageStats           *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
+	triggerStorageScan        *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
 	getDatabaseStats          *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
 	getGithubIssues           *connect.Client[v1.GetGithubIssuesRequest, v1.GetGithubIssuesResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
@@ -202,6 +215,11 @@ func (c *observabilityServiceClient) GetUsageStats(ctx context.Context, req *con
 // GetStorageStats calls observability.v1.ObservabilityService.GetStorageStats.
 func (c *observabilityServiceClient) GetStorageStats(ctx context.Context, req *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error) {
 	return c.getStorageStats.CallUnary(ctx, req)
+}
+
+// TriggerStorageScan calls observability.v1.ObservabilityService.TriggerStorageScan.
+func (c *observabilityServiceClient) TriggerStorageScan(ctx context.Context, req *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error) {
+	return c.triggerStorageScan.CallUnary(ctx, req)
 }
 
 // GetDatabaseStats calls observability.v1.ObservabilityService.GetDatabaseStats.
@@ -255,6 +273,7 @@ type ObservabilityServiceHandler interface {
 	GetJobStats(context.Context, *connect.Request[v1.GetJobStatsRequest]) (*connect.Response[v1.GetJobStatsResponse], error)
 	GetUsageStats(context.Context, *connect.Request[v1.GetUsageStatsRequest]) (*connect.Response[v1.GetUsageStatsResponse], error)
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
+	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
@@ -289,6 +308,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetStorageStatsProcedure,
 		svc.GetStorageStats,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetStorageStats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceTriggerStorageScanHandler := connect.NewUnaryHandler(
+		ObservabilityServiceTriggerStorageScanProcedure,
+		svc.TriggerStorageScan,
+		connect.WithSchema(observabilityServiceMethods.ByName("TriggerStorageScan")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetDatabaseStatsHandler := connect.NewUnaryHandler(
@@ -353,6 +378,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetUsageStatsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetStorageStatsProcedure:
 			observabilityServiceGetStorageStatsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceTriggerStorageScanProcedure:
+			observabilityServiceTriggerStorageScanHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDatabaseStatsProcedure:
 			observabilityServiceGetDatabaseStatsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetGithubIssuesProcedure:
@@ -390,6 +417,10 @@ func (UnimplementedObservabilityServiceHandler) GetUsageStats(context.Context, *
 
 func (UnimplementedObservabilityServiceHandler) GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetStorageStats is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.TriggerStorageScan is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error) {

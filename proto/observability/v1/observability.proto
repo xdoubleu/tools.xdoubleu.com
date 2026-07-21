@@ -6,6 +6,8 @@ service ObservabilityService {
   rpc GetJobStats(GetJobStatsRequest) returns (GetJobStatsResponse);
   rpc GetUsageStats(GetUsageStatsRequest) returns (GetUsageStatsResponse);
   rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
+  rpc TriggerStorageScan(TriggerStorageScanRequest)
+      returns (TriggerStorageScanResponse);
   rpc GetDatabaseStats(GetDatabaseStatsRequest)
       returns (GetDatabaseStatsResponse);
   rpc GetGithubIssues(GetGithubIssuesRequest) returns (GetGithubIssuesResponse);
@@ -83,6 +85,16 @@ message StorageSnapshot {
 message GetStorageStatsRequest {}
 
 message GetStorageStatsResponse {
+  StorageSnapshot latest = 1;
+  repeated StorageSnapshot history = 2;
+}
+
+message TriggerStorageScanRequest {}
+
+// TriggerStorageScanResponse mirrors GetStorageStatsResponse so the frontend
+// can seed its cache directly from this response — no follow-up
+// GetStorageStats call needed.
+message TriggerStorageScanResponse {
   StorageSnapshot latest = 1;
   repeated StorageSnapshot history = 2;
 }
