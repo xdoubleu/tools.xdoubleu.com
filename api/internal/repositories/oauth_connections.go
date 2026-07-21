@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"golang.org/x/oauth2"
 
@@ -40,6 +41,7 @@ type oauthConnectionRow struct {
 	connectedBy  string
 	connectedAt  time.Time
 	updatedAt    time.Time
+	config       []byte
 }
 
 // Get returns the decrypted token plus connection metadata for provider, or
@@ -50,12 +52,12 @@ func (r *OAuthConnectionsRepository) Get(
 	var row oauthConnectionRow
 	err := r.db.QueryRow(ctx, `
 		SELECT access_token, refresh_token, expires_at, connected_by,
-		       connected_at, updated_at
+		       connected_at, updated_at, config
 		FROM global.oauth_connections
 		WHERE provider = $1
 	`, provider).Scan(
 		&row.accessToken, &row.refreshToken, &row.expiresAt,
-		&row.connectedBy, &row.connectedAt, &row.updatedAt,
+		&row.connectedBy, &row.connectedAt, &row.updatedAt, &row.config,
 	)
 	if err != nil {
 		return nil, nil, postgres.PgxErrorToHTTPError(err)
@@ -116,6 +118,27 @@ func (r *OAuthConnectionsRepository) UpdateToken(
 	return err
 }
 
+// SetConfig stores the admin-picked provider-specific config, replacing any
+// previous value. Returns database.ErrResourceNotFound if provider has no
+// stored connection — configuring an unconnected provider is a caller error,
+// not a silent no-op.
+func (r *OAuthConnectionsRepository) SetConfig(
+	ctx context.Context, provider models.OAuthProvider, config []byte,
+) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE global.oauth_connections
+		SET config = $2, updated_at = now()
+		WHERE provider = $1
+	`, provider, config)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return database.ErrResourceNotFound
+	}
+	return nil
+}
+
 func (r *OAuthConnectionsRepository) Delete(
 	ctx context.Context, provider models.OAuthProvider,
 ) error {
@@ -131,7 +154,8 @@ func (r *OAuthConnectionsRepository) List(
 	ctx context.Context,
 ) ([]models.OAuthConnection, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT provider, expires_at, connected_by, connected_at, updated_at
+		SELECT provider, expires_at, connected_by, connected_at, updated_at,
+		       config
 		FROM global.oauth_connections
 		ORDER BY provider
 	`)
@@ -148,7 +172,7 @@ func (r *OAuthConnectionsRepository) List(
 		)
 		if scanErr := rows.Scan(
 			&provider, &row.expiresAt, &row.connectedBy,
-			&row.connectedAt, &row.updatedAt,
+			&row.connectedAt, &row.updatedAt, &row.config,
 		); scanErr != nil {
 			return nil, scanErr
 		}
@@ -219,6 +243,7 @@ func rowToConnection(
 		ConnectedAt: row.connectedAt,
 		UpdatedAt:   row.updatedAt,
 		ExpiresAt:   row.expiresAt,
+		Config:      row.config,
 	}
 }
 

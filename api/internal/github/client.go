@@ -12,6 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/xdoubleu/essentia/v4/pkg/database"
+	"golang.org/x/oauth2"
+
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
@@ -35,11 +39,24 @@ const (
 	cacheTTL = 45 * time.Second
 )
 
+// configStore is the subset of *repositories.OAuthConnectionsRepository used
+// to resolve the admin-picked repo fresh on every call, instead of a static
+// value baked in at boot (mirrors oauthconn's own narrow connectionStore).
+type configStore interface {
+	Get(
+		ctx context.Context, provider models.OAuthProvider,
+	) (*oauth2.Token, *models.OAuthConnection, error)
+}
+
+type repoConfig struct {
+	Repo string `json:"repo"`
+}
+
 type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
 	tokenFn    oauthconn.TokenFunc
-	repo       string
+	configRepo configStore
 
 	mu       sync.Mutex
 	cached   []Issue
@@ -47,23 +64,24 @@ type client struct {
 }
 
 // New creates a GitHub client. tokenFn resolves a live OAuth bearer token
-// (see internal/oauthconn) and repo is "owner/name". When repo is empty, or
-// tokenFn reports the provider isn't connected, every call returns
-// ErrNotConfigured.
-func New(logger *slog.Logger, tokenFn oauthconn.TokenFunc, repo string) Client {
+// (see internal/oauthconn) and configRepo resolves the admin-picked
+// "owner/name" repo on every call. When no repo is picked, or tokenFn
+// reports the provider isn't connected, every call returns ErrNotConfigured.
+func New(
+	logger *slog.Logger, tokenFn oauthconn.TokenFunc, configRepo configStore,
+) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
-		logger: logger,
-		httpClient: &http.Client{
-			Timeout: apiTimeout,
-		},
-		tokenFn: tokenFn,
-		repo:    repo,
+		logger:     logger,
+		httpClient: &http.Client{Timeout: apiTimeout},
+		tokenFn:    tokenFn,
+		configRepo: configRepo,
 	}
 }
 
 func (c *client) ListOpenIssues(ctx context.Context) ([]Issue, error) {
-	if c.repo == "" {
-		return nil, ErrNotConfigured
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	if cached, ok := c.cachedIssues(); ok {
@@ -78,13 +96,38 @@ func (c *client) ListOpenIssues(ctx context.Context) ([]Issue, error) {
 		return nil, err
 	}
 
-	issues, err := c.fetch(ctx, token)
+	issues, err := c.fetch(ctx, token, repo)
 	if err != nil {
 		return nil, err
 	}
 
 	c.store(issues)
 	return issues, nil
+}
+
+// resolveRepo reads the admin-picked repo from the stored connection config.
+// Returns ErrNotConfigured when the provider isn't connected or no repo has
+// been picked yet.
+func (c *client) resolveRepo(ctx context.Context) (string, error) {
+	_, conn, err := c.configRepo.Get(ctx, models.OAuthProviderGithub)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return "", ErrNotConfigured
+	}
+	if err != nil {
+		return "", err
+	}
+	if len(conn.Config) == 0 {
+		return "", ErrNotConfigured
+	}
+
+	var cfg repoConfig
+	if unmarshalErr := json.Unmarshal(conn.Config, &cfg); unmarshalErr != nil {
+		return "", unmarshalErr
+	}
+	if cfg.Repo == "" {
+		return "", ErrNotConfigured
+	}
+	return cfg.Repo, nil
 }
 
 func (c *client) cachedIssues() ([]Issue, bool) {
@@ -103,8 +146,8 @@ func (c *client) store(issues []Issue) {
 	c.cachedAt = time.Now()
 }
 
-func (c *client) fetch(ctx context.Context, token string) ([]Issue, error) {
-	endpoint := fmt.Sprintf("%s/repos/%s/issues?state=open", baseURL, c.repo)
+func (c *client) fetch(ctx context.Context, token, repo string) ([]Issue, error) {
+	endpoint := fmt.Sprintf("%s/repos/%s/issues?state=open", baseURL, repo)
 
 	var wires []issueWire
 	if err := c.get(ctx, endpoint, token, &wires); err != nil {

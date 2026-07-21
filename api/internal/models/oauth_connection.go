@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // OAuthProvider identifies which external service an OAuth connection
 // belongs to.
@@ -21,4 +24,8 @@ type OAuthConnection struct {
 	ConnectedAt time.Time
 	UpdatedAt   time.Time
 	ExpiresAt   *time.Time // nil = non-expiring or unknown
+	// Config is the admin-picked provider-specific identifier(s), stored as
+	// opaque JSON — nil means "connected but not yet configured". Parsing
+	// into a provider-specific shape happens at the client/handler layer.
+	Config json.RawMessage
 }

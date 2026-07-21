@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,7 @@ import { useDisconnectOAuthConnection } from '@/hooks/useMonitoring'
 import type { ListOAuthConnectionsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { formatDateTime } from '@/lib/dates'
 import { getApiUrl } from '@/lib/env'
+import ProviderConfigDialog from '@/components/monitoring/ProviderConfigDialog'
 
 const PROVIDER_LABELS: Record<string, string> = {
   github: 'GitHub',
@@ -16,6 +18,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnectionsResponse }) {
   const disconnect = useDisconnectOAuthConnection()
+  const [configuring, setConfiguring] = useState<string | null>(null)
 
   return (
     <Card>
@@ -51,9 +54,18 @@ export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnect
                   )}
                 </div>
                 {c.connected ? (
-                  <Button variant="destructive" size="sm" onClick={() => disconnect(c.provider)}>
-                    Disconnect
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setConfiguring(c.provider)}
+                    >
+                      Configure
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => disconnect(c.provider)}>
+                      Disconnect
+                    </Button>
+                  </div>
                 ) : (
                   <Button asChild variant="secondary" size="sm">
                     <a href={`${getApiUrl()}/admin/oauth/${c.provider}/start`}>Connect</a>
@@ -64,6 +76,16 @@ export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnect
           </ul>
         )}
       </CardContent>
+
+      {configuring && (
+        <ProviderConfigDialog
+          provider={configuring}
+          open={configuring !== null}
+          onOpenChange={(open) => {
+            if (!open) setConfiguring(null)
+          }}
+        />
+      )}
     </Card>
   )
 }

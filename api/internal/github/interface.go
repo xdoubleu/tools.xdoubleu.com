@@ -16,4 +16,8 @@ type Client interface {
 	// ListOpenIssues returns the open issues (pull requests excluded) of the
 	// configured repository. Returns ErrNotConfigured when no token/repo is set.
 	ListOpenIssues(ctx context.Context) ([]Issue, error)
+	// ListRepos returns the repositories visible to the connected account,
+	// for the admin config picker. Returns oauthconn.ErrNotConnected when no
+	// token is set — discovery must work before a repo is picked.
+	ListRepos(ctx context.Context) ([]Repo, error)
 }

@@ -14,6 +14,9 @@ type Issue struct {
 	Count     int64
 	LastSeen  time.Time
 	Level     string
+	// Project is the slug of the configured project this issue came from —
+	// set by the caller (fetch loops per project), not present on the wire.
+	Project string
 }
 
 // issueWire is the subset of the Sentry issues API payload that is decoded.
@@ -41,5 +44,7 @@ func (w issueWire) toIssue() Issue {
 		Count:     count,
 		LastSeen:  w.LastSeen,
 		Level:     w.Level,
+		// Project is filled in by the caller (fetchAll loops per project).
+		Project: "",
 	}
 }

@@ -9,9 +9,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"sort"
 	"sync"
 	"time"
 
+	"github.com/xdoubleu/essentia/v4/pkg/database"
+	"golang.org/x/oauth2"
+
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
@@ -34,37 +39,51 @@ const (
 	cacheTTL = 45 * time.Second
 )
 
+// configStore is the subset of *repositories.OAuthConnectionsRepository used
+// to resolve the admin-picked org/projects fresh on every call, instead of
+// static values baked in at boot (mirrors oauthconn's own narrow
+// connectionStore).
+type configStore interface {
+	Get(
+		ctx context.Context, provider models.OAuthProvider,
+	) (*oauth2.Token, *models.OAuthConnection, error)
+}
+
+type projectsConfig struct {
+	Org      string   `json:"org"`
+	Projects []string `json:"projects"`
+}
+
 type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
-	org        string
-	project    string
 	tokenFn    oauthconn.TokenFunc
+	configRepo configStore
 
 	mu       sync.Mutex
 	cached   []Issue
 	cachedAt time.Time
 }
 
-// New creates a Sentry API client. org and project identify the project and
-// tokenFn resolves a live OAuth bearer token (see internal/oauthconn). When
-// org/project are empty, or tokenFn reports the provider isn't connected,
-// every call returns ErrNotConfigured.
-func New(logger *slog.Logger, org, project string, tokenFn oauthconn.TokenFunc) Client {
+// New creates a Sentry API client. tokenFn resolves a live OAuth bearer
+// token (see internal/oauthconn) and configRepo resolves the admin-picked
+// org/projects on every call. When no org/projects are picked, or tokenFn
+// reports the provider isn't connected, every call returns ErrNotConfigured.
+func New(
+	logger *slog.Logger, tokenFn oauthconn.TokenFunc, configRepo configStore,
+) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
-		logger: logger,
-		httpClient: &http.Client{
-			Timeout: apiTimeout,
-		},
-		org:     org,
-		project: project,
-		tokenFn: tokenFn,
+		logger:     logger,
+		httpClient: &http.Client{Timeout: apiTimeout},
+		tokenFn:    tokenFn,
+		configRepo: configRepo,
 	}
 }
 
 func (c *client) ListUnresolvedIssues(ctx context.Context) ([]Issue, error) {
-	if c.org == "" || c.project == "" {
-		return nil, ErrNotConfigured
+	cfg, err := c.resolveConfig(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	if cached, ok := c.cachedIssues(); ok {
@@ -79,13 +98,63 @@ func (c *client) ListUnresolvedIssues(ctx context.Context) ([]Issue, error) {
 		return nil, err
 	}
 
-	issues, err := c.fetch(ctx, token)
+	issues, err := c.fetchAll(ctx, token, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	c.store(issues)
 	return issues, nil
+}
+
+// resolveConfig reads the admin-picked org/projects from the stored
+// connection config. Returns ErrNotConfigured when the provider isn't
+// connected or no org/projects have been picked yet.
+func (c *client) resolveConfig(ctx context.Context) (projectsConfig, error) {
+	_, conn, err := c.configRepo.Get(ctx, models.OAuthProviderSentry)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return projectsConfig{}, ErrNotConfigured
+	}
+	if err != nil {
+		return projectsConfig{}, err
+	}
+	if len(conn.Config) == 0 {
+		return projectsConfig{}, ErrNotConfigured
+	}
+
+	var cfg projectsConfig
+	if unmarshalErr := json.Unmarshal(conn.Config, &cfg); unmarshalErr != nil {
+		return projectsConfig{}, unmarshalErr
+	}
+	if cfg.Org == "" || len(cfg.Projects) == 0 {
+		return projectsConfig{}, ErrNotConfigured
+	}
+	return cfg, nil
+}
+
+// fetchAll fetches unresolved issues for every configured project
+// sequentially (N is small and results are cache-backed for cacheTTL, so no
+// added concurrency), tags each with its project, and merges them into one
+// list sorted by LastSeen descending.
+func (c *client) fetchAll(
+	ctx context.Context, token string, cfg projectsConfig,
+) ([]Issue, error) {
+	var all []Issue
+	for _, project := range cfg.Projects {
+		issues, err := c.fetch(ctx, token, cfg.Org, project)
+		if err != nil {
+			return nil, err
+		}
+		for i := range issues {
+			issues[i].Project = project
+		}
+		all = append(all, issues...)
+	}
+
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].LastSeen.After(all[j].LastSeen)
+	})
+	return all, nil
 }
 
 func (c *client) cachedIssues() ([]Issue, bool) {
@@ -104,10 +173,12 @@ func (c *client) store(issues []Issue) {
 	c.cachedAt = time.Now()
 }
 
-func (c *client) fetch(ctx context.Context, token string) ([]Issue, error) {
+func (c *client) fetch(
+	ctx context.Context, token, org, project string,
+) ([]Issue, error) {
 	endpoint := fmt.Sprintf(
 		"%s/api/0/projects/%s/%s/issues/?query=%s",
-		baseURL, c.org, c.project, url.QueryEscape("is:unresolved"),
+		baseURL, org, project, url.QueryEscape("is:unresolved"),
 	)
 
 	var wires []issueWire

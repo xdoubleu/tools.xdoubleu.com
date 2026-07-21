@@ -69,7 +69,8 @@ func TestMain(m *testing.M) {
 			stale_upload_count BIGINT NOT NULL,
 			prefix_breakdown JSONB NOT NULL
 		)`,
-		// Mirrors cmd/api/migrations/00009_oauth_connections.sql.
+		// Mirrors cmd/api/migrations/00009_oauth_connections.sql and
+		// 00010_oauth_connections_config.sql.
 		`CREATE TABLE IF NOT EXISTS global.oauth_connections (
 			provider      TEXT PRIMARY KEY
 				CHECK (provider IN ('github', 'sentry', 'digitalocean')),
@@ -78,7 +79,8 @@ func TestMain(m *testing.M) {
 			expires_at    TIMESTAMPTZ,
 			connected_by  TEXT NOT NULL,
 			connected_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-			updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+			updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+			config        JSONB
 		)`,
 	}
 	for _, stmt := range stmts {

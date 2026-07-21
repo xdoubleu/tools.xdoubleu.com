@@ -34,7 +34,10 @@ function IssueRow({ issue }: { issue: SentryIssue }) {
         >
           {issue.title}
         </a>
-        {issue.level && <Badge variant={levelVariant(issue.level)}>{issue.level}</Badge>}
+        <div className="flex shrink-0 items-center gap-1">
+          {issue.project && <Badge variant="secondary">{issue.project}</Badge>}
+          {issue.level && <Badge variant={levelVariant(issue.level)}>{issue.level}</Badge>}
+        </div>
       </div>
       {issue.culprit && (
         <p className="mt-1 break-words font-mono text-xs text-muted">{issue.culprit}</p>

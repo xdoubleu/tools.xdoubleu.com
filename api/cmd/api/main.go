@@ -178,7 +178,7 @@ func newObservabilityClients(
 				config.APIURL,
 			),
 		),
-		config.GithubRepo,
+		oauthConnRepo,
 	)
 	if config.SentryOAuthClientID == "" || config.SentryOAuthClientSecret == "" {
 		logger.Warn(
@@ -186,7 +186,7 @@ func newObservabilityClients(
 		)
 	}
 	sentryClient := sentryapi.New(
-		logger, config.SentryOrg, config.SentryProject,
+		logger,
 		oauthconn.NewTokenFunc(
 			oauthConnRepo, models.OAuthProviderSentry,
 			sentryapi.OAuthConfig(
@@ -194,6 +194,7 @@ func newObservabilityClients(
 				config.APIURL,
 			),
 		),
+		oauthConnRepo,
 	)
 	if config.DOOAuthClientID == "" || config.DOOAuthClientSecret == "" {
 		logger.Warn(
@@ -209,7 +210,7 @@ func newObservabilityClients(
 				config.APIURL,
 			),
 		),
-		config.DOAppID,
+		oauthConnRepo,
 	)
 	return githubClient, sentryClient, doClient
 }

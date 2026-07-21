@@ -105,6 +105,7 @@ func (h *obsConnectHandler) sentryIssues(
 			Count:     is.Count,
 			LastSeen:  is.LastSeen.Format(time.RFC3339),
 			Level:     is.Level,
+			Project:   is.Project,
 		}
 	}
 	resp.Issues = protoIssues

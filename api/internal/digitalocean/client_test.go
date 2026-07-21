@@ -2,6 +2,8 @@ package digitalocean_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,20 +12,50 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
+	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/internal/digitalocean"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 const realBaseURL = "https://api.digitalocean.com"
 
+//nolint:unparam // always "token" in practice; kept as a param for clarity
 func stubToken(token string) oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return token, nil }
 }
 
 func stubNotConnected() oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
+}
+
+// stubConfigStore stands in for *repositories.OAuthConnectionsRepository.
+type stubConfigStore struct {
+	conn *models.OAuthConnection
+	err  error
+}
+
+func (s stubConfigStore) Get(
+	context.Context, models.OAuthProvider,
+) (*oauth2.Token, *models.OAuthConnection, error) {
+	return nil, s.conn, s.err
+}
+
+func configWithAppID(appID string) stubConfigStore {
+	return stubConfigStore{
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // test fixture
+			Config: json.RawMessage(fmt.Sprintf(`{"app_id":%q}`, appID)),
+		},
+		err: nil,
+	}
+}
+
+func configNotConnected() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: simulates "not connected"
+	return stubConfigStore{err: database.ErrResourceNotFound}
 }
 
 func TestMain(m *testing.M) {
@@ -41,7 +73,9 @@ func buildServer(handler http.Handler) func() {
 }
 
 func newClient() digitalocean.Client {
-	return digitalocean.New(logging.NewNopLogger(), stubToken("token"), "app-123")
+	return digitalocean.New(
+		logging.NewNopLogger(), stubToken("token"), configWithAppID("app-123"),
+	)
 }
 
 func TestLatestDeployment_ReturnsNewest(t *testing.T) {
@@ -95,8 +129,21 @@ func TestLatestDeployment_NotConfigured(t *testing.T) {
 	defer cleanup()
 
 	cases := []digitalocean.Client{
-		digitalocean.New(logging.NewNopLogger(), stubNotConnected(), "app-123"),
-		digitalocean.New(logging.NewNopLogger(), stubToken("token"), ""),
+		digitalocean.New(
+			logging.NewNopLogger(),
+			stubNotConnected(),
+			configWithAppID("app-123"),
+		),
+		digitalocean.New(
+			logging.NewNopLogger(),
+			stubToken("token"),
+			configWithAppID(""),
+		),
+		digitalocean.New(
+			logging.NewNopLogger(),
+			stubToken("token"),
+			configNotConnected(),
+		),
 	}
 	for _, c := range cases {
 		_, err := c.LatestDeployment(context.Background())

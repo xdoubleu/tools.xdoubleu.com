@@ -12,6 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/xdoubleu/essentia/v4/pkg/database"
+	"golang.org/x/oauth2"
+
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
@@ -34,11 +38,25 @@ const (
 	cacheTTL = 45 * time.Second
 )
 
+// configStore is the subset of *repositories.OAuthConnectionsRepository used
+// to resolve the admin-picked app ID fresh on every call, instead of a
+// static value baked in at boot (mirrors oauthconn's own narrow
+// connectionStore).
+type configStore interface {
+	Get(
+		ctx context.Context, provider models.OAuthProvider,
+	) (*oauth2.Token, *models.OAuthConnection, error)
+}
+
+type appConfig struct {
+	AppID string `json:"app_id"`
+}
+
 type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
 	tokenFn    oauthconn.TokenFunc
-	appID      string
+	configRepo configStore
 
 	mu       sync.Mutex
 	cached   *Deployment
@@ -46,23 +64,24 @@ type client struct {
 }
 
 // New creates a DigitalOcean App Platform client. tokenFn resolves a live
-// OAuth bearer token (see internal/oauthconn) and appID identifies the app.
-// When appID is empty, or tokenFn reports the provider isn't connected,
-// every call returns ErrNotConfigured.
-func New(logger *slog.Logger, tokenFn oauthconn.TokenFunc, appID string) Client {
+// OAuth bearer token (see internal/oauthconn) and configRepo resolves the
+// admin-picked app ID on every call. When no app ID is picked, or tokenFn
+// reports the provider isn't connected, every call returns ErrNotConfigured.
+func New(
+	logger *slog.Logger, tokenFn oauthconn.TokenFunc, configRepo configStore,
+) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
-		logger: logger,
-		httpClient: &http.Client{
-			Timeout: apiTimeout,
-		},
-		tokenFn: tokenFn,
-		appID:   appID,
+		logger:     logger,
+		httpClient: &http.Client{Timeout: apiTimeout},
+		tokenFn:    tokenFn,
+		configRepo: configRepo,
 	}
 }
 
 func (c *client) LatestDeployment(ctx context.Context) (*Deployment, error) {
-	if c.appID == "" {
-		return nil, ErrNotConfigured
+	appID, err := c.resolveAppID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	if cached, ok := c.cachedDeployment(); ok {
@@ -77,13 +96,38 @@ func (c *client) LatestDeployment(ctx context.Context) (*Deployment, error) {
 		return nil, err
 	}
 
-	deployment, err := c.fetch(ctx, token)
+	deployment, err := c.fetch(ctx, token, appID)
 	if err != nil {
 		return nil, err
 	}
 
 	c.store(deployment)
 	return deployment, nil
+}
+
+// resolveAppID reads the admin-picked app ID from the stored connection
+// config. Returns ErrNotConfigured when the provider isn't connected or no
+// app has been picked yet.
+func (c *client) resolveAppID(ctx context.Context) (string, error) {
+	_, conn, err := c.configRepo.Get(ctx, models.OAuthProviderDigitalOcean)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return "", ErrNotConfigured
+	}
+	if err != nil {
+		return "", err
+	}
+	if len(conn.Config) == 0 {
+		return "", ErrNotConfigured
+	}
+
+	var cfg appConfig
+	if unmarshalErr := json.Unmarshal(conn.Config, &cfg); unmarshalErr != nil {
+		return "", unmarshalErr
+	}
+	if cfg.AppID == "" {
+		return "", ErrNotConfigured
+	}
+	return cfg.AppID, nil
 }
 
 func (c *client) cachedDeployment() (*Deployment, bool) {
@@ -102,8 +146,8 @@ func (c *client) store(deployment *Deployment) {
 	c.cachedAt = time.Now()
 }
 
-func (c *client) fetch(ctx context.Context, token string) (*Deployment, error) {
-	endpoint := fmt.Sprintf("%s/v2/apps/%s/deployments", baseURL, c.appID)
+func (c *client) fetch(ctx context.Context, token, appID string) (*Deployment, error) {
+	endpoint := fmt.Sprintf("%s/v2/apps/%s/deployments", baseURL, appID)
 
 	var wire deploymentsWire
 	if err := c.get(ctx, endpoint, token, &wire); err != nil {

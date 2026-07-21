@@ -17,4 +17,8 @@ type Client interface {
 	// app, or nil when the app has no deployments yet. Returns ErrNotConfigured
 	// when the token/app ID is unset.
 	LatestDeployment(ctx context.Context) (*Deployment, error)
+	// ListApps returns the apps visible to the connected account, for the
+	// admin config picker. Returns oauthconn.ErrNotConnected when no token is
+	// set — discovery must work before an app ID is picked.
+	ListApps(ctx context.Context) ([]App, error)
 }

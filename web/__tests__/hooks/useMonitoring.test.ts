@@ -3,6 +3,8 @@ import { unstable_serialize } from 'swr'
 
 const mockMutate = jest.fn()
 const mockDisconnectOAuthConnection = jest.fn()
+const mockGetProviderOptions = jest.fn()
+const mockSetProviderConfig = jest.fn()
 
 jest.mock('swr', () => ({
   __esModule: true,
@@ -20,11 +22,14 @@ jest.mock('@/lib/client', () => ({
     getSentryIssues: jest.fn(),
     getDeployStatus: jest.fn(),
     listOAuthConnections: jest.fn(),
-    disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args)
+    disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args),
+    getProviderOptions: (...args: unknown[]) => mockGetProviderOptions(...args),
+    setProviderConfig: (...args: unknown[]) => mockSetProviderConfig(...args)
   }))
 }))
 jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
-  ObservabilityService: {}
+  ObservabilityService: {},
+  ProviderConfigSchema: {}
 }))
 
 import useSWR from 'swr'
@@ -37,7 +42,9 @@ import {
   useSentryIssues,
   useDeployStatus,
   useOAuthConnections,
-  useDisconnectOAuthConnection
+  useDisconnectOAuthConnection,
+  useProviderOptions,
+  useSetProviderConfig
 } from '@/hooks/useMonitoring'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -118,5 +125,61 @@ describe('useDisconnectOAuthConnection', () => {
 
     expect(mockDisconnectOAuthConnection).toHaveBeenCalledWith({ provider: 'github' })
     expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
+  })
+})
+
+describe('useProviderOptions', () => {
+  it('fetches options for a provider with no sentry org', async () => {
+    mockGetProviderOptions.mockResolvedValue({ repos: ['o/r'] })
+    const { result } = renderHook(() => useProviderOptions())
+
+    await act(async () => {
+      await result.current('github')
+    })
+
+    expect(mockGetProviderOptions).toHaveBeenCalledWith({ provider: 'github', sentryOrg: '' })
+  })
+
+  it('passes the sentry org through when given', async () => {
+    mockGetProviderOptions.mockResolvedValue({ sentryProjects: ['p1'] })
+    const { result } = renderHook(() => useProviderOptions())
+
+    await act(async () => {
+      await result.current('sentry', 'my-org')
+    })
+
+    expect(mockGetProviderOptions).toHaveBeenCalledWith({
+      provider: 'sentry',
+      sentryOrg: 'my-org'
+    })
+  })
+})
+
+describe('useSetProviderConfig', () => {
+  it('saves the config and revalidates the connections list plus the provider data key', async () => {
+    mockSetProviderConfig.mockResolvedValue({})
+    const { result } = renderHook(() => useSetProviderConfig())
+
+    const config = { config: { case: 'github' as const, value: { repo: 'o/r' } } }
+    await act(async () => {
+      await result.current('github', config)
+    })
+
+    expect(mockSetProviderConfig).toHaveBeenCalledWith({ provider: 'github', config })
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringGithubIssues)
+  })
+
+  it('does not mutate a data key for an unrecognized provider', async () => {
+    mockSetProviderConfig.mockResolvedValue({})
+    mockMutate.mockClear()
+    const { result } = renderHook(() => useSetProviderConfig())
+
+    await act(async () => {
+      await result.current('unknown', {})
+    })
+
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
+    expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 })
