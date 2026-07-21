@@ -54,8 +54,8 @@ function makeRecent() {
         id: 2,
         name: 'Fav Game',
         completionRate: '50.00',
-        recentUnlocks: 3,
-        lastUnlockedAt: '2026-07-01'
+        playtime: 180,
+        lastPlayedAt: '2026-07-01'
       })
     ]
   })

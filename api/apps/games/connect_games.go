@@ -217,10 +217,9 @@ func protoRecentGames(games []models.RecentGame) []*gamesv1.RecentGame {
 			Id:             int32(g.ID), //nolint:gosec // int32 safe for domain values
 			Name:           g.Name,
 			CompletionRate: g.CompletionRate,
-			//nolint:gosec // safe for domain counts
-			RecentUnlocks:  int32(g.RecentUnlocks),
-			LastUnlockedAt: g.LastUnlocked.Format(models.ProgressDateFormat),
 			ImageUrl:       g.ImageURL,
+			LastPlayedAt:   g.LastPlayed.Format(models.ProgressDateFormat),
+			Playtime:       int32(g.Playtime), //nolint:gosec // safe for domain values
 		}
 	}
 	return result

@@ -7,15 +7,16 @@ import (
 )
 
 type Game struct {
-	ID             int       `json:"id"`
-	Name           string    `json:"name"`
-	IsDelisted     bool      `json:"isDelisted"`
-	CompletionRate string    `json:"completionRate"`
-	Contribution   string    `json:"contribution"`
-	Playtime       int       `json:"playtime"`
-	ImageURL       string    `json:"imageUrl"`
-	LastSyncedAt   time.Time `json:"lastSyncedAt"`
-	Favourite      bool      `json:"favourite"`
+	ID             int        `json:"id"`
+	Name           string     `json:"name"`
+	IsDelisted     bool       `json:"isDelisted"`
+	CompletionRate string     `json:"completionRate"`
+	Contribution   string     `json:"contribution"`
+	Playtime       int        `json:"playtime"`
+	ImageURL       string     `json:"imageUrl"`
+	LastSyncedAt   time.Time  `json:"lastSyncedAt"`
+	Favourite      bool       `json:"favourite"`
+	LastPlayed     *time.Time `json:"lastPlayed"`
 }
 
 type Achievement struct {
@@ -29,14 +30,14 @@ type Achievement struct {
 	GlobalPercent *float64   `json:"globalPercent"`
 }
 
-// RecentGame is a game the user recently unlocked achievements in, used by the
-// dashboard to surface what is currently being worked on.
+// RecentGame is a game the user recently played, used by the dashboard to
+// surface what is currently being worked on.
 type RecentGame struct {
 	ID             int       `json:"id"`
 	Name           string    `json:"name"`
 	CompletionRate string    `json:"completionRate"`
-	RecentUnlocks  int       `json:"recentUnlocks"`
-	LastUnlocked   time.Time `json:"lastUnlocked"`
+	Playtime       int       `json:"playtime"`
+	LastPlayed     time.Time `json:"lastPlayed"`
 	ImageURL       string    `json:"imageUrl"`
 }
 

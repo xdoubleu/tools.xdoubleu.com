@@ -21,10 +21,9 @@ import { DateInput } from '@/components/ui/date-input'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
-import { formatDateTime, oneYearAgo, today } from '@/lib/dates'
+import { formatDate, formatDateTime, oneYearAgo, today } from '@/lib/dates'
 
 function ProfileRecentGameCard({ game, href }: { game: RecentGame; href: string }) {
-  const unlockLabel = game.recentUnlocks === 1 ? 'unlock' : 'unlocks'
   return (
     <Link href={href} className={cn(interactiveCardClass, 'relative flex gap-3 p-4')}>
       <CardLinkStatus />
@@ -41,7 +40,7 @@ function ProfileRecentGameCard({ game, href }: { game: RecentGame; href: string 
         <h3 className="font-semibold truncate">{game.name}</h3>
         <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
         <p className="text-sm text-muted">
-          {game.recentUnlocks} recent {unlockLabel} &mdash; last {game.lastUnlockedAt}
+          Last played {formatDate(game.lastPlayedAt)} &mdash; {Math.round(game.playtime / 60)} hrs
         </p>
       </div>
     </Link>
@@ -108,7 +107,7 @@ export default function ProfileGamesClient({
         <div className="flex min-h-0 flex-col">
           <h2 className="mb-2 text-base font-semibold">Recently active</h2>
           {recentGames.length === 0 && (
-            <p className="text-muted text-sm">No recent achievement activity.</p>
+            <p className="text-muted text-sm">No recently played games.</p>
           )}
           {recentGames.length > 0 && (
             <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:flex-1 lg:grid-cols-1">

@@ -62,10 +62,10 @@ export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteam
           <p className="mb-4 text-muted text-sm">
             Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
           </p>
-          <GameGroup title="Favourites" games={favourites} hrefFor={ownerGameHref} />
-          <GameGroup title="In Progress" games={inProgress} hrefFor={ownerGameHref} />
-          <GameGroup title="Not Started" games={notStarted} hrefFor={ownerGameHref} />
-          <GameGroup title="Completed" games={completed} hrefFor={ownerGameHref} />
+          <GameGroup title="Favourites" games={favourites} hrefFor={ownerGameHref} showFavourite />
+          <GameGroup title="In Progress" games={inProgress} hrefFor={ownerGameHref} showFavourite />
+          <GameGroup title="Not Started" games={notStarted} hrefFor={ownerGameHref} showFavourite />
+          <GameGroup title="Completed" games={completed} hrefFor={ownerGameHref} showFavourite />
           {search.trim() &&
             inProgress.length === 0 &&
             notStarted.length === 0 &&

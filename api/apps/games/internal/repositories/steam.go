@@ -69,6 +69,7 @@ func (repo *SteamRepository) queryGames(
 			&game.ImageURL,
 			&game.LastSyncedAt,
 			&game.Favourite,
+			&game.LastPlayed,
 		)
 		if err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
@@ -90,7 +91,7 @@ func (repo *SteamRepository) GetAllGames(
 ) ([]models.Game, error) {
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url, last_synced_at, favourite
+		       playtime_forever, image_url, last_synced_at, favourite, last_played
 		FROM games.steam_games
 		WHERE user_id = $1
 	`
@@ -105,7 +106,7 @@ func (repo *SteamRepository) GetBacklog(
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
 		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
-		       sg.favourite
+		       sg.favourite, sg.last_played
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) = 0
@@ -127,7 +128,7 @@ func (repo *SteamRepository) GetInProgress(
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
 		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
-		       sg.favourite
+		       sg.favourite, sg.last_played
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) > 0
@@ -150,7 +151,7 @@ func (repo *SteamRepository) GetCompleted(
 	query := `
 		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
 		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
-		       sg.favourite
+		       sg.favourite, sg.last_played
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND sg.is_delisted = false
@@ -165,32 +166,25 @@ func (repo *SteamRepository) GetCompleted(
 	return repo.queryGames(ctx, query, userID)
 }
 
-// GetRecentlyActiveGames returns the games in which the user unlocked an
-// achievement since the given time, ordered by most recent unlock first and
-// capped at limit. recent_unlocks counts only the unlocks inside the window.
+// GetRecentlyActiveGames returns the games the user most recently played,
+// ordered by last_played descending and capped at limit. Games never played
+// (last_played IS NULL) are excluded.
 func (repo *SteamRepository) GetRecentlyActiveGames(
 	ctx context.Context,
 	userID string,
-	since time.Time,
 	limit int,
 ) ([]models.RecentGame, error) {
 	query := `
-		SELECT sg.id, sg.name, sg.completion_rate, sg.image_url,
-		       COUNT(*) AS recent_unlocks, MAX(sa.unlock_time) AS last_unlock
-		FROM games.steam_games sg
-		JOIN games.steam_achievements sa
-		    ON sa.game_id = sg.id AND sa.user_id = sg.user_id
-		WHERE sg.user_id = $1
-		    AND sa.achieved = true
-		    AND sa.unlock_time IS NOT NULL
-		    AND sa.unlock_time >= $2
-		    AND sg.is_delisted = false
-		GROUP BY sg.id, sg.name, sg.completion_rate, sg.image_url
-		ORDER BY last_unlock DESC
-		LIMIT $3
+		SELECT id, name, completion_rate, image_url, playtime_forever, last_played
+		FROM games.steam_games
+		WHERE user_id = $1
+		    AND last_played IS NOT NULL
+		    AND is_delisted = false
+		ORDER BY last_played DESC
+		LIMIT $2
 	`
 
-	rows, err := repo.db.Query(ctx, query, userID, since, limit)
+	rows, err := repo.db.Query(ctx, query, userID, limit)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -205,8 +199,8 @@ func (repo *SteamRepository) GetRecentlyActiveGames(
 			&game.Name,
 			&game.CompletionRate,
 			&game.ImageURL,
-			&game.RecentUnlocks,
-			&game.LastUnlocked,
+			&game.Playtime,
+			&game.LastPlayed,
 		)
 		if err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
@@ -237,12 +231,12 @@ func (repo *SteamRepository) UpsertGames(
 	query := `
 		INSERT INTO games.steam_games
 		    (id, user_id, name, is_delisted, completion_rate, contribution,
-		     playtime_forever, image_url, last_synced_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
+		     playtime_forever, image_url, last_synced_at, last_played)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), $9)
 		ON CONFLICT (id, user_id)
 		DO UPDATE SET name = $3, is_delisted = $4, completion_rate = $5,
 		              contribution = $6, playtime_forever = $7, image_url = $8,
-		              last_synced_at = now()
+		              last_synced_at = now(), last_played = $9
 	`
 
 	//nolint:exhaustruct //fields are optional
@@ -258,6 +252,7 @@ func (repo *SteamRepository) UpsertGames(
 			game.Contribution,
 			game.Playtime,
 			game.ImageURL,
+			game.LastPlayed,
 		)
 	}
 
@@ -364,7 +359,7 @@ func (repo *SteamRepository) GetGameByID(
 ) (*models.Game, error) {
 	query := `
 		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url, last_synced_at, favourite
+		       playtime_forever, image_url, last_synced_at, favourite, last_played
 		FROM games.steam_games
 		WHERE id = $1 AND user_id = $2
 	`
@@ -380,6 +375,7 @@ func (repo *SteamRepository) GetGameByID(
 		&game.ImageURL,
 		&game.LastSyncedAt,
 		&game.Favourite,
+		&game.LastPlayed,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

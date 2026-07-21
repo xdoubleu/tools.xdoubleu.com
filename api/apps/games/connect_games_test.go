@@ -100,8 +100,7 @@ func TestConnectGetRecentlyActiveGames(t *testing.T) {
 	for _, g := range resp.Msg.Games {
 		if g.Id == 1 {
 			found = true
-			assert.GreaterOrEqual(t, g.RecentUnlocks, int32(1))
-			assert.NotEmpty(t, g.LastUnlockedAt)
+			assert.NotEmpty(t, g.LastPlayedAt)
 		}
 	}
 	assert.True(t, found, "seeded game should appear in recent activity")
