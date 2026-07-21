@@ -44,7 +44,7 @@ export function GameCard({
         <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
       </div>
       {showFavourite && (
-        <GameFavouriteButton game={game} className="absolute right-3 top-3 z-10 text-lg" />
+        <GameFavouriteButton game={game} className="absolute right-1 top-1 z-10 p-2 text-lg" />
       )}
     </Link>
   )
