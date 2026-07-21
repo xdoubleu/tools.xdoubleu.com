@@ -15,10 +15,6 @@ jest.mock('@/hooks/useBookFeeds', () => ({
   useRefreshFeed: () => jest.fn()
 }))
 
-jest.mock('@/hooks/useAuth', () => ({
-  useCurrentUser: jest.fn()
-}))
-
 jest.mock('@/components/reading/BulkBookUploader', () => ({
   __esModule: true,
   default: () => <div data-testid="bulk-uploader" />
@@ -36,29 +32,11 @@ jest.mock('@/components/reading/KoboDevices', () => ({
 
 jest.mock('swr', () => ({ __esModule: true, mutate: jest.fn(), default: jest.fn() }))
 
-import { useCurrentUser } from '@/hooks/useAuth'
 import BooksSettingsClient from '@/components/reading/BooksSettingsClient'
-
-const mockUseCurrentUser = jest.mocked(useCurrentUser)
-
-function renderAsAdmin() {
-  // @ts-expect-error -- partial mock
-  mockUseCurrentUser.mockReturnValue({ data: { role: 'admin' }, isLoading: false })
-  return render(<BooksSettingsClient />)
-}
-
-function renderAsUser() {
-  // @ts-expect-error -- partial mock
-  mockUseCurrentUser.mockReturnValue({ data: { role: 'user' }, isLoading: false })
-  return render(<BooksSettingsClient />)
-}
 
 describe('BooksSettingsClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    // Default: non-admin user
-    // @ts-expect-error -- partial mock
-    mockUseCurrentUser.mockReturnValue({ data: { role: 'user' }, isLoading: false })
   })
 
   it('renders the Reading Settings heading', () => {
@@ -107,20 +85,5 @@ describe('BooksSettingsClient', () => {
     render(<BooksSettingsClient />)
     expect(screen.queryByTestId('resync-books-btn')).not.toBeInTheDocument()
     expect(screen.queryByTestId('find-duplicates-btn')).not.toBeInTheDocument()
-  })
-
-  it('shows Admin tools section with link for admin users', () => {
-    renderAsAdmin()
-    expect(screen.getByText('Admin tools')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open admin tools' })).toHaveAttribute(
-      'href',
-      '/reading/admin'
-    )
-  })
-
-  it('hides Admin tools section for non-admin users', () => {
-    renderAsUser()
-    expect(screen.queryByText('Admin tools')).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Open admin tools' })).not.toBeInTheDocument()
   })
 })

@@ -1,23 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useImportBooks } from '@/hooks/useBooks'
-import { useCurrentUser } from '@/hooks/useAuth'
 import BulkBookUploader from '@/components/reading/BulkBookUploader'
 import FeedManager from '@/components/reading/FeedManager'
 import KoboSetup from '@/components/reading/KoboSetup'
 import KoboDevices from '@/components/reading/KoboDevices'
 import { mutate } from 'swr'
-import { Button } from '@/components/ui/button'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 
 export default function BooksSettingsClient() {
   const importBooks = useImportBooks()
-  const { data: currentUser } = useCurrentUser()
-  const isAdmin = currentUser?.role === 'admin'
 
   const [importStatus, setImportStatus] = useState('')
 
@@ -100,20 +95,6 @@ export default function BooksSettingsClient() {
           <KoboDevices />
         </div>
       </section>
-
-      {isAdmin && (
-        <section className="mt-10 border-t border-border pt-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-            Admin tools
-          </h2>
-          <p className="mb-3 text-xs text-muted">
-            Resync metadata, selectively re-fetch individual books, and merge duplicates.
-          </p>
-          <Button asChild variant="secondary">
-            <Link href="/reading/admin">Open admin tools</Link>
-          </Button>
-        </section>
-      )}
     </PageContainer>
   )
 }

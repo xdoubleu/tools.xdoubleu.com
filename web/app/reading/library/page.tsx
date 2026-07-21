@@ -10,6 +10,7 @@ import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
 import { PageContainer } from '@/components/ui/page-container'
+import LibraryAdminButton from '@/components/reading/LibraryAdminButton'
 
 export default async function BacklogBooksLibraryPage() {
   const client = await createServerClient(LibraryService)
@@ -24,12 +25,15 @@ export default async function BacklogBooksLibraryPage() {
 
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Library</h1>
-        <Button asChild variant="ghost" size="sm" className="gap-2">
-          <Link href="/reading/settings">
-            <SettingsIcon />
-            Settings
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <LibraryAdminButton />
+          <Button asChild variant="ghost" size="sm" className="gap-2">
+            <Link href="/reading/settings">
+              <SettingsIcon />
+              Settings
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <SWRFallback fallback={library ? { [swrKeys.books]: library } : {}}>
