@@ -79,6 +79,12 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(appsResourceMetadataPath, appsPRM)
 	mux.Handle(appsMCPPath, app.appsMCPRoute())
 
+	// Browser-facing OAuth connect flow for the observability integrations
+	// (issue #440) — plain HTTP because the provider redirect can't carry
+	// Connect's protocol framing. Both legs are admin-cookie-gated.
+	mux.HandleFunc("GET /admin/oauth/{provider}/start", app.oauthStartRoute())
+	mux.HandleFunc("GET /admin/oauth/{provider}/callback", app.oauthCallbackRoute())
+
 	mux.HandleFunc("GET /api/version", app.versionHandler)
 	mux.HandleFunc("GET /health", app.healthHandler)
 

@@ -13,6 +13,10 @@ service ObservabilityService {
   rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
   rpc GetHealthOverview(GetHealthOverviewRequest)
       returns (GetHealthOverviewResponse);
+  rpc ListOAuthConnections(ListOAuthConnectionsRequest)
+      returns (ListOAuthConnectionsResponse);
+  rpc DisconnectOAuthConnection(DisconnectOAuthConnectionRequest)
+      returns (DisconnectOAuthConnectionResponse);
 }
 
 message JobStat {
@@ -156,3 +160,25 @@ message GetHealthOverviewResponse {
   GetSentryIssuesResponse sentry = 2;
   GetDeployStatusResponse deploy = 3;
 }
+
+// OAuthConnectionStatus is the admin-facing status of one provider's OAuth
+// connection (issue #440) — never the token itself.
+message OAuthConnectionStatus {
+  string provider = 1;  // "github" | "sentry" | "digitalocean"
+  bool connected = 2;
+  string connected_by = 3;  // email, empty if not connected
+  string connected_at = 4;  // RFC3339, empty if not connected
+  string expires_at = 5;    // RFC3339, empty if non-expiring or not connected
+}
+
+message ListOAuthConnectionsRequest {}
+
+message ListOAuthConnectionsResponse {
+  repeated OAuthConnectionStatus connections = 1;
+}
+
+message DisconnectOAuthConnectionRequest {
+  string provider = 1;
+}
+
+message DisconnectOAuthConnectionResponse {}

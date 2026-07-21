@@ -13,12 +13,21 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 const (
 	realBaseURL = "https://api.github.com"
 	testRepo    = "xdoubleu/tools.xdoubleu.com"
 )
+
+func stubToken(token string) oauthconn.TokenFunc {
+	return func(context.Context) (string, error) { return token, nil }
+}
+
+func stubNotConnected() oauthconn.TokenFunc {
+	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
+}
 
 func TestMain(m *testing.M) {
 	github.SetBackoffBase(1 * time.Millisecond)
@@ -37,7 +46,7 @@ func buildServer(handler http.Handler) func() {
 }
 
 func newClient() github.Client {
-	return github.New(logging.NewNopLogger(), "token", testRepo)
+	return github.New(logging.NewNopLogger(), stubToken("token"), testRepo)
 }
 
 func TestListOpenIssues_ReturnsIssuesAndSkipsPRs(t *testing.T) {
@@ -75,7 +84,7 @@ func TestListOpenIssues_SendsBearerToken(t *testing.T) {
 	assert.Equal(t, "Bearer token", authHeader)
 }
 
-func TestListOpenIssues_NotConfigured_NoToken(t *testing.T) {
+func TestListOpenIssues_NotConfigured_NotConnected(t *testing.T) {
 	called := false
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -84,14 +93,14 @@ func TestListOpenIssues_NotConfigured_NoToken(t *testing.T) {
 		}))
 	defer cleanup()
 
-	c := github.New(logging.NewNopLogger(), "", testRepo)
+	c := github.New(logging.NewNopLogger(), stubNotConnected(), testRepo)
 	_, err := c.ListOpenIssues(context.Background())
 	require.ErrorIs(t, err, github.ErrNotConfigured)
 	assert.False(t, called, "must not hit the API when unconfigured")
 }
 
 func TestListOpenIssues_NotConfigured_NoRepo(t *testing.T) {
-	c := github.New(logging.NewNopLogger(), "token", "")
+	c := github.New(logging.NewNopLogger(), stubToken("token"), "")
 	_, err := c.ListOpenIssues(context.Background())
 	require.ErrorIs(t, err, github.ErrNotConfigured)
 }

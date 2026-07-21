@@ -15,8 +15,18 @@ import (
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
+
+func stubTok(token string) oauthconn.TokenFunc {
+	return func(context.Context) (string, error) {
+		if token == "" {
+			return "", oauthconn.ErrNotConnected
+		}
+		return token, nil
+	}
+}
 
 // jsonServer starts an httptest server returning status/body and registers its
 // cleanup. Retries are sped up so upstream-error tests don't sleep.
@@ -48,7 +58,7 @@ func TestObservabilityGetGithubIssues_AsAdmin(t *testing.T) {
 	]`)
 	github.SetBaseURL(srv.URL)
 	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
-	testApp.githubClient = github.New(logging.NewNopLogger(), "tok", "o/r")
+	testApp.githubClient = github.New(logging.NewNopLogger(), stubTok("tok"), "o/r")
 
 	resp, err := callGithub(t)
 	require.NoError(t, err)
@@ -61,7 +71,7 @@ func TestObservabilityGetGithubIssues_AsAdmin(t *testing.T) {
 func TestObservabilityGetGithubIssues_NotConfigured(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
-	testApp.githubClient = github.New(logging.NewNopLogger(), "", "")
+	testApp.githubClient = github.New(logging.NewNopLogger(), stubTok(""), "")
 
 	resp, err := callGithub(t)
 	require.NoError(t, err)
@@ -76,7 +86,7 @@ func TestObservabilityGetGithubIssues_UpstreamError(t *testing.T) {
 	srv := jsonServer(t, http.StatusInternalServerError, ``)
 	github.SetBaseURL(srv.URL)
 	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
-	testApp.githubClient = github.New(logging.NewNopLogger(), "tok", "o/r")
+	testApp.githubClient = github.New(logging.NewNopLogger(), stubTok("tok"), "o/r")
 
 	resp, err := callGithub(t)
 	require.NoError(t, err) // degraded, never a failed response
@@ -112,7 +122,7 @@ func TestObservabilityGetSentryIssues_AsAdmin(t *testing.T) {
 	sentryapi.SetBaseURL(srv.URL)
 	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
 	testApp.sentryClient = sentryapi.New(
-		logging.NewNopLogger(), "org", "proj", "tok",
+		logging.NewNopLogger(), "org", "proj", stubTok("tok"),
 	)
 
 	resp, err := callSentry(t)
@@ -127,7 +137,7 @@ func TestObservabilityGetSentryIssues_AsAdmin(t *testing.T) {
 func TestObservabilityGetSentryIssues_NotConfigured(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
-	testApp.sentryClient = sentryapi.New(logging.NewNopLogger(), "", "", "")
+	testApp.sentryClient = sentryapi.New(logging.NewNopLogger(), "", "", stubTok(""))
 
 	resp, err := callSentry(t)
 	require.NoError(t, err)
@@ -162,7 +172,7 @@ func TestObservabilityGetDeployStatus_AsAdmin(t *testing.T) {
 	]}`)
 	digitalocean.SetBaseURL(srv.URL)
 	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
-	testApp.doClient = digitalocean.New(logging.NewNopLogger(), "tok", "app")
+	testApp.doClient = digitalocean.New(logging.NewNopLogger(), stubTok("tok"), "app")
 
 	resp, err := callDeploy(t)
 	require.NoError(t, err)
@@ -178,7 +188,7 @@ func TestObservabilityGetDeployStatus_NoDeployment(t *testing.T) {
 	srv := jsonServer(t, http.StatusOK, `{"deployments":[]}`)
 	digitalocean.SetBaseURL(srv.URL)
 	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
-	testApp.doClient = digitalocean.New(logging.NewNopLogger(), "tok", "app")
+	testApp.doClient = digitalocean.New(logging.NewNopLogger(), stubTok("tok"), "app")
 
 	resp, err := callDeploy(t)
 	require.NoError(t, err)
@@ -193,7 +203,7 @@ func TestObservabilityGetDeployStatus_UpstreamError(t *testing.T) {
 	srv := jsonServer(t, http.StatusBadGateway, ``)
 	digitalocean.SetBaseURL(srv.URL)
 	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
-	testApp.doClient = digitalocean.New(logging.NewNopLogger(), "tok", "app")
+	testApp.doClient = digitalocean.New(logging.NewNopLogger(), stubTok("tok"), "app")
 
 	resp, err := callDeploy(t)
 	require.NoError(t, err) // degraded, never a failed response
@@ -204,7 +214,7 @@ func TestObservabilityGetDeployStatus_UpstreamError(t *testing.T) {
 func TestObservabilityGetDeployStatus_NotConfigured(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
-	testApp.doClient = digitalocean.New(logging.NewNopLogger(), "", "")
+	testApp.doClient = digitalocean.New(logging.NewNopLogger(), stubTok(""), "")
 
 	resp, err := callDeploy(t)
 	require.NoError(t, err)
@@ -238,16 +248,16 @@ func TestObservabilityGetHealthOverview_AsAdmin(t *testing.T) {
 		`[{"number":1,"title":"x","html_url":"u","state":"open"}]`)
 	github.SetBaseURL(gh.URL)
 	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
-	testApp.githubClient = github.New(logging.NewNopLogger(), "tok", "o/r")
+	testApp.githubClient = github.New(logging.NewNopLogger(), stubTok("tok"), "o/r")
 
 	se := jsonServer(t, http.StatusInternalServerError, ``)
 	sentryapi.SetBaseURL(se.URL)
 	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
 	testApp.sentryClient = sentryapi.New(
-		logging.NewNopLogger(), "org", "proj", "tok",
+		logging.NewNopLogger(), "org", "proj", stubTok("tok"),
 	)
 
-	testApp.doClient = digitalocean.New(logging.NewNopLogger(), "", "")
+	testApp.doClient = digitalocean.New(logging.NewNopLogger(), stubTok(""), "")
 
 	req := connect.NewRequest(&observabilityv1.GetHealthOverviewRequest{})
 	setCookieOnRequest(req, accessToken)

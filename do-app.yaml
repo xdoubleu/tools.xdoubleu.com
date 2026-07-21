@@ -62,9 +62,6 @@ services:
       - key: SUPABASE_API_KEY
         scope: RUN_TIME
         type: SECRET
-      - key: GITHUB_TOKEN
-        scope: RUN_TIME
-        type: SECRET
       - key: GITHUB_REPO
         scope: RUN_TIME
         value: xdoubleu/tools.xdoubleu.com
@@ -77,17 +74,40 @@ services:
       - key: SENTRY_PROJECT
         scope: RUN_TIME
         value: tools-xdoubleu-com
-      - key: SENTRY_AUTH_TOKEN
-        scope: RUN_TIME
-        type: SECRET
-      - key: DO_ACCESS_TOKEN
-        scope: RUN_TIME
-        type: SECRET
       # Set to this app's own ID so it can read its latest deployment. Left
       # blank ships the deploy-status card disabled (degraded) until filled in.
       - key: DO_APP_ID
         scope: RUN_TIME
         value: ""
+      # OAuth app registration credentials for the admin-configurable
+      # GitHub/Sentry/DigitalOcean observability integrations (issue #440).
+      # These are the app's own OAuth client id/secret, registered once with
+      # each provider — the resulting per-connection tokens are stored
+      # encrypted in the database, not here. Until an admin connects each
+      # provider from the /monitoring page, that section stays degraded.
+      - key: GITHUB_OAUTH_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: GITHUB_OAUTH_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: SENTRY_OAUTH_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: SENTRY_OAUTH_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: DO_OAUTH_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: DO_OAUTH_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      # 32 raw bytes, base64-standard-encoded (e.g. `openssl rand -base64 32`).
+      # Encrypts stored OAuth tokens at rest (global.oauth_connections).
+      - key: OAUTH_TOKEN_ENC_KEY
+        scope: RUN_TIME
+        type: SECRET
 
   - name: web
     image:

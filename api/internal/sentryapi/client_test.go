@@ -13,10 +13,19 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
+	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 const realBaseURL = "https://sentry.io"
+
+func stubToken(token string) oauthconn.TokenFunc {
+	return func(context.Context) (string, error) { return token, nil }
+}
+
+func stubNotConnected() oauthconn.TokenFunc {
+	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
+}
 
 func TestMain(m *testing.M) {
 	sentryapi.SetBackoffBase(1 * time.Millisecond)
@@ -33,7 +42,7 @@ func buildServer(handler http.Handler) func() {
 }
 
 func newClient() sentryapi.Client {
-	return sentryapi.New(logging.NewNopLogger(), "org", "proj", "token")
+	return sentryapi.New(logging.NewNopLogger(), "org", "proj", stubToken("token"))
 }
 
 func TestListUnresolvedIssues_ParsesPayload(t *testing.T) {
@@ -75,9 +84,9 @@ func TestListUnresolvedIssues_NotConfigured(t *testing.T) {
 	defer cleanup()
 
 	cases := []sentryapi.Client{
-		sentryapi.New(logging.NewNopLogger(), "", "proj", "token"),
-		sentryapi.New(logging.NewNopLogger(), "org", "", "token"),
-		sentryapi.New(logging.NewNopLogger(), "org", "proj", ""),
+		sentryapi.New(logging.NewNopLogger(), "", "proj", stubToken("token")),
+		sentryapi.New(logging.NewNopLogger(), "org", "", stubToken("token")),
+		sentryapi.New(logging.NewNopLogger(), "org", "proj", stubNotConnected()),
 	}
 	for _, c := range cases {
 		_, err := c.ListUnresolvedIssues(context.Background())

@@ -1,9 +1,13 @@
-import { renderHook } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { unstable_serialize } from 'swr'
+
+const mockMutate = jest.fn()
+const mockDisconnectOAuthConnection = jest.fn()
 
 jest.mock('swr', () => ({
   __esModule: true,
   default: jest.fn(),
+  mutate: (...args: unknown[]) => mockMutate(...args),
   unstable_serialize: jest.requireActual('swr').unstable_serialize
 }))
 jest.mock('@/lib/client', () => ({
@@ -14,7 +18,9 @@ jest.mock('@/lib/client', () => ({
     getDatabaseStats: jest.fn(),
     getGithubIssues: jest.fn(),
     getSentryIssues: jest.fn(),
-    getDeployStatus: jest.fn()
+    getDeployStatus: jest.fn(),
+    listOAuthConnections: jest.fn(),
+    disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args)
   }))
 }))
 jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
@@ -29,7 +35,9 @@ import {
   useDatabaseStats,
   useGithubIssues,
   useSentryIssues,
-  useDeployStatus
+  useDeployStatus,
+  useOAuthConnections,
+  useDisconnectOAuthConnection
 } from '@/hooks/useMonitoring'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -84,9 +92,31 @@ describe('useMonitoring', () => {
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDeployStatus, expect.any(Function))
   })
 
+  it('keys oauth connections statically', () => {
+    renderHook(() => useOAuthConnections())
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringOAuthConnections,
+      expect.any(Function)
+    )
+  })
+
   it('distinct window keys do not collide', () => {
     expect(unstable_serialize(swrKeys.monitoringJobStats(7))).not.toBe(
       unstable_serialize(swrKeys.monitoringJobStats(30))
     )
+  })
+})
+
+describe('useDisconnectOAuthConnection', () => {
+  it('disconnects the given provider and revalidates the list', async () => {
+    mockDisconnectOAuthConnection.mockResolvedValue({})
+    const { result } = renderHook(() => useDisconnectOAuthConnection())
+
+    await act(async () => {
+      await result.current('github')
+    })
+
+    expect(mockDisconnectOAuthConnection).toHaveBeenCalledWith({ provider: 'github' })
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
   })
 })

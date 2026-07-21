@@ -23,8 +23,11 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
+	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
@@ -54,6 +57,8 @@ type Application struct {
 	githubClient      github.Client
 	sentryClient      sentryapi.Client
 	doClient          digitalocean.Client
+	oauthConnRepo     *repositories.OAuthConnectionsRepository
+	oauthState        *oauthconn.StateStore
 }
 
 //	@title			tools
@@ -121,27 +126,66 @@ func main() {
 	}
 }
 
-// warnUnset logs a warning for each external observability signal whose token
-// is missing, mirroring the STEAM_API_KEY warning. Those sources then serve a
-// degraded (empty) section instead of live data.
-func warnUnset(logger *slog.Logger, config config.Config) {
-	if config.GithubToken == "" || config.GithubRepo == "" {
+// newOAuthSealer builds the AES-GCM sealer used to encrypt stored OAuth
+// tokens (issue #440). Returns nil if OAUTH_TOKEN_ENC_KEY isn't set — the
+// observability integrations then simply can't be connected until it is; the
+// rest of the app still starts.
+func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
+	if config.OAuthTokenEncKey == "" {
 		logger.Warn(
-			"GITHUB_TOKEN/GITHUB_REPO not set — GitHub issues unavailable",
+			"OAUTH_TOKEN_ENC_KEY not set — GitHub/Sentry/DigitalOcean " +
+				"OAuth connections cannot be stored",
 		)
+		return nil
 	}
-	if config.SentryOrg == "" || config.SentryProject == "" ||
-		config.SentryAuthToken == "" {
-		logger.Warn(
-			"SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN not set — " +
-				"Sentry issues unavailable",
-		)
+	sealer, err := crypto.New(config.OAuthTokenEncKey)
+	if err != nil {
+		panic(err)
 	}
-	if config.DOAccessToken == "" || config.DOAppID == "" {
-		logger.Warn(
-			"DO_ACCESS_TOKEN/DO_APP_ID not set — deploy status unavailable",
-		)
-	}
+	return sealer
+}
+
+// newObservabilityClients builds the three external observability clients,
+// each resolving its bearer token from oauthConnRepo via oauthconn.TokenFunc
+// instead of a static config value (issue #440).
+func newObservabilityClients(
+	logger *slog.Logger,
+	config config.Config,
+	oauthConnRepo *repositories.OAuthConnectionsRepository,
+) (github.Client, sentryapi.Client, digitalocean.Client) {
+	githubClient := github.New(
+		logger,
+		oauthconn.NewTokenFunc(
+			oauthConnRepo, models.OAuthProviderGithub,
+			github.OAuthConfig(
+				config.GithubOAuthClientID, config.GithubOAuthClientSecret,
+				config.APIURL,
+			),
+		),
+		config.GithubRepo,
+	)
+	sentryClient := sentryapi.New(
+		logger, config.SentryOrg, config.SentryProject,
+		oauthconn.NewTokenFunc(
+			oauthConnRepo, models.OAuthProviderSentry,
+			sentryapi.OAuthConfig(
+				config.SentryOAuthClientID, config.SentryOAuthClientSecret,
+				config.APIURL,
+			),
+		),
+	)
+	doClient := digitalocean.New(
+		logger,
+		oauthconn.NewTokenFunc(
+			oauthConnRepo, models.OAuthProviderDigitalOcean,
+			digitalocean.OAuthConfig(
+				config.DOOAuthClientID, config.DOOAuthClientSecret,
+				config.APIURL,
+			),
+		),
+		config.DOAppID,
+	)
+	return githubClient, sentryClient, doClient
 }
 
 func NewApplication(
@@ -178,7 +222,12 @@ func NewApplication(
 	}
 	contactsSvc := contacts.New(contactsRepo, authSvc)
 
-	warnUnset(logger, config)
+	oauthConnRepo := repositories.NewOAuthConnectionsRepository(
+		db, newOAuthSealer(logger, config),
+	)
+	githubClient, sentryClient, doClient := newObservabilityClients(
+		logger, config, oauthConnRepo,
+	)
 
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
@@ -195,16 +244,11 @@ func NewApplication(
 		usageRepo:         repositories.NewUsageRepository(db),
 		storageRepo:       repositories.NewStorageSnapshotsRepository(db),
 		dbStatsRepo:       repositories.NewDBStatsRepository(db),
-		githubClient: github.New(
-			logger, config.GithubToken, config.GithubRepo,
-		),
-		sentryClient: sentryapi.New(
-			logger, config.SentryOrg, config.SentryProject,
-			config.SentryAuthToken,
-		),
-		doClient: digitalocean.New(
-			logger, config.DOAccessToken, config.DOAppID,
-		),
+		oauthConnRepo:     oauthConnRepo,
+		oauthState:        oauthconn.NewStateStore(),
+		githubClient:      githubClient,
+		sentryClient:      sentryClient,
+		doClient:          doClient,
 	}
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.

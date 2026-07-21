@@ -10,7 +10,8 @@ import {
   useDatabaseStats,
   useGithubIssues,
   useSentryIssues,
-  useDeployStatus
+  useDeployStatus,
+  useOAuthConnections
 } from '@/hooks/useMonitoring'
 import { formatBytes, formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -21,6 +22,7 @@ import UsageCard from './UsageCard'
 import GithubIssuesCard from './GithubIssuesCard'
 import SentryCard from './SentryCard'
 import DeployCard from './DeployCard'
+import OAuthConnectionsCard from './OAuthConnectionsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
 
@@ -34,6 +36,7 @@ export default function ObservabilityClient() {
   const githubIssues = useGithubIssues()
   const sentryIssues = useSentryIssues()
   const deployStatus = useDeployStatus()
+  const oauthConnections = useOAuthConnections()
 
   const latest = storageStats.data?.latest
   const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
@@ -112,6 +115,7 @@ export default function ObservabilityClient() {
         <GithubIssuesCard data={githubIssues.data} />
         <SentryCard data={sentryIssues.data} />
         <DeployCard data={deployStatus.data} />
+        <OAuthConnectionsCard data={oauthConnections.data} />
       </div>
     </PageContainer>
   )
