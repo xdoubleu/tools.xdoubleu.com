@@ -709,13 +709,8 @@ func (*TriggerStorageScanRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{11}
 }
 
-// TriggerStorageScanResponse mirrors GetStorageStatsResponse so the frontend
-// can seed its cache directly from this response — no follow-up
-// GetStorageStats call needed.
 type TriggerStorageScanResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Latest        *StorageSnapshot       `protobuf:"bytes,1,opt,name=latest,proto3" json:"latest,omitempty"`
-	History       []*StorageSnapshot     `protobuf:"bytes,2,rep,name=history,proto3" json:"history,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -748,20 +743,6 @@ func (x *TriggerStorageScanResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use TriggerStorageScanResponse.ProtoReflect.Descriptor instead.
 func (*TriggerStorageScanResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *TriggerStorageScanResponse) GetLatest() *StorageSnapshot {
-	if x != nil {
-		return x.Latest
-	}
-	return nil
-}
-
-func (x *TriggerStorageScanResponse) GetHistory() []*StorageSnapshot {
-	if x != nil {
-		return x.History
-	}
-	return nil
 }
 
 type SchemaStat struct {
@@ -2271,10 +2252,8 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x17GetStorageStatsResponse\x129\n" +
 	"\x06latest\x18\x01 \x01(\v2!.observability.v1.StorageSnapshotR\x06latest\x12;\n" +
 	"\ahistory\x18\x02 \x03(\v2!.observability.v1.StorageSnapshotR\ahistory\"\x1b\n" +
-	"\x19TriggerStorageScanRequest\"\x94\x01\n" +
-	"\x1aTriggerStorageScanResponse\x129\n" +
-	"\x06latest\x18\x01 \x01(\v2!.observability.v1.StorageSnapshotR\x06latest\x12;\n" +
-	"\ahistory\x18\x02 \x03(\v2!.observability.v1.StorageSnapshotR\ahistory\"`\n" +
+	"\x19TriggerStorageScanRequest\"\x1c\n" +
+	"\x1aTriggerStorageScanResponse\"`\n" +
 	"\n" +
 	"SchemaStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
@@ -2451,51 +2430,49 @@ var file_observability_v1_observability_proto_depIdxs = []int32{
 	7,  // 3: observability.v1.StorageSnapshot.prefix_breakdown:type_name -> observability.v1.PrefixStat
 	8,  // 4: observability.v1.GetStorageStatsResponse.latest:type_name -> observability.v1.StorageSnapshot
 	8,  // 5: observability.v1.GetStorageStatsResponse.history:type_name -> observability.v1.StorageSnapshot
-	8,  // 6: observability.v1.TriggerStorageScanResponse.latest:type_name -> observability.v1.StorageSnapshot
-	8,  // 7: observability.v1.TriggerStorageScanResponse.history:type_name -> observability.v1.StorageSnapshot
-	13, // 8: observability.v1.GetDatabaseStatsResponse.schemas:type_name -> observability.v1.SchemaStat
-	16, // 9: observability.v1.GetGithubIssuesResponse.issues:type_name -> observability.v1.GithubIssue
-	19, // 10: observability.v1.GetSentryIssuesResponse.issues:type_name -> observability.v1.SentryIssue
-	18, // 11: observability.v1.GetHealthOverviewResponse.github:type_name -> observability.v1.GetGithubIssuesResponse
-	21, // 12: observability.v1.GetHealthOverviewResponse.sentry:type_name -> observability.v1.GetSentryIssuesResponse
-	23, // 13: observability.v1.GetHealthOverviewResponse.deploy:type_name -> observability.v1.GetDeployStatusResponse
-	26, // 14: observability.v1.ProviderConfig.github:type_name -> observability.v1.GithubConfig
-	27, // 15: observability.v1.ProviderConfig.sentry:type_name -> observability.v1.SentryConfig
-	28, // 16: observability.v1.ProviderConfig.digitalocean:type_name -> observability.v1.DigitalOceanConfig
-	29, // 17: observability.v1.OAuthConnectionStatus.config:type_name -> observability.v1.ProviderConfig
-	30, // 18: observability.v1.ListOAuthConnectionsResponse.connections:type_name -> observability.v1.OAuthConnectionStatus
-	29, // 19: observability.v1.SetProviderConfigRequest.config:type_name -> observability.v1.ProviderConfig
-	2,  // 20: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
-	5,  // 21: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
-	9,  // 22: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
-	11, // 23: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
-	14, // 24: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
-	17, // 25: observability.v1.ObservabilityService.GetGithubIssues:input_type -> observability.v1.GetGithubIssuesRequest
-	20, // 26: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
-	22, // 27: observability.v1.ObservabilityService.GetDeployStatus:input_type -> observability.v1.GetDeployStatusRequest
-	24, // 28: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
-	31, // 29: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
-	33, // 30: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
-	35, // 31: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
-	37, // 32: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
-	3,  // 33: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
-	6,  // 34: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
-	10, // 35: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
-	12, // 36: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
-	15, // 37: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
-	18, // 38: observability.v1.ObservabilityService.GetGithubIssues:output_type -> observability.v1.GetGithubIssuesResponse
-	21, // 39: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
-	23, // 40: observability.v1.ObservabilityService.GetDeployStatus:output_type -> observability.v1.GetDeployStatusResponse
-	25, // 41: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
-	32, // 42: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
-	34, // 43: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
-	36, // 44: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
-	38, // 45: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
-	33, // [33:46] is the sub-list for method output_type
-	20, // [20:33] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	13, // 6: observability.v1.GetDatabaseStatsResponse.schemas:type_name -> observability.v1.SchemaStat
+	16, // 7: observability.v1.GetGithubIssuesResponse.issues:type_name -> observability.v1.GithubIssue
+	19, // 8: observability.v1.GetSentryIssuesResponse.issues:type_name -> observability.v1.SentryIssue
+	18, // 9: observability.v1.GetHealthOverviewResponse.github:type_name -> observability.v1.GetGithubIssuesResponse
+	21, // 10: observability.v1.GetHealthOverviewResponse.sentry:type_name -> observability.v1.GetSentryIssuesResponse
+	23, // 11: observability.v1.GetHealthOverviewResponse.deploy:type_name -> observability.v1.GetDeployStatusResponse
+	26, // 12: observability.v1.ProviderConfig.github:type_name -> observability.v1.GithubConfig
+	27, // 13: observability.v1.ProviderConfig.sentry:type_name -> observability.v1.SentryConfig
+	28, // 14: observability.v1.ProviderConfig.digitalocean:type_name -> observability.v1.DigitalOceanConfig
+	29, // 15: observability.v1.OAuthConnectionStatus.config:type_name -> observability.v1.ProviderConfig
+	30, // 16: observability.v1.ListOAuthConnectionsResponse.connections:type_name -> observability.v1.OAuthConnectionStatus
+	29, // 17: observability.v1.SetProviderConfigRequest.config:type_name -> observability.v1.ProviderConfig
+	2,  // 18: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
+	5,  // 19: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
+	9,  // 20: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
+	11, // 21: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
+	14, // 22: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
+	17, // 23: observability.v1.ObservabilityService.GetGithubIssues:input_type -> observability.v1.GetGithubIssuesRequest
+	20, // 24: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
+	22, // 25: observability.v1.ObservabilityService.GetDeployStatus:input_type -> observability.v1.GetDeployStatusRequest
+	24, // 26: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
+	31, // 27: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
+	33, // 28: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
+	35, // 29: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
+	37, // 30: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
+	3,  // 31: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
+	6,  // 32: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
+	10, // 33: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
+	12, // 34: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
+	15, // 35: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
+	18, // 36: observability.v1.ObservabilityService.GetGithubIssues:output_type -> observability.v1.GetGithubIssuesResponse
+	21, // 37: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
+	23, // 38: observability.v1.ObservabilityService.GetDeployStatus:output_type -> observability.v1.GetDeployStatusResponse
+	25, // 39: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
+	32, // 40: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
+	34, // 41: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
+	36, // 42: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
+	38, // 43: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
+	31, // [31:44] is the sub-list for method output_type
+	18, // [18:31] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_observability_v1_observability_proto_init() }

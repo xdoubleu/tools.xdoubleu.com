@@ -118,9 +118,8 @@ describe('useMonitoring', () => {
 })
 
 describe('useTriggerStorageScan', () => {
-  it('runs a live rescan and seeds the storage stats cache without revalidating', async () => {
-    const resp = { latest: undefined, history: [] }
-    mockTriggerStorageScan.mockResolvedValue(resp)
+  it('runs a live rescan and revalidates storage stats', async () => {
+    mockTriggerStorageScan.mockResolvedValue({})
     const { result } = renderHook(() => useTriggerStorageScan())
 
     await act(async () => {
@@ -128,7 +127,7 @@ describe('useTriggerStorageScan', () => {
     })
 
     expect(mockTriggerStorageScan).toHaveBeenCalledWith({})
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringStorageStats, resp, false)
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringStorageStats)
   })
 })
 

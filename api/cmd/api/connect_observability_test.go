@@ -10,8 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/reading"
+	"tools.xdoubleu.com/apps/reading/pkg/objectstore"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
+	"tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -144,6 +147,31 @@ func TestObservabilityGetStorageStats_AsAdmin(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Latest.PrefixBreakdown)
 }
 
+// TestRunStorageScanNow_Success covers Reading.RunStorageScanNow itself
+// (the thin wrapper TriggerStorageScan's stub tests bypass): a second
+// reading.Reading instance built with a fake object store, sharing testApp's
+// already-migrated DB, so no real R2 bucket is needed.
+func TestRunStorageScanNow_Success(t *testing.T) {
+	readingWithFakeStore := reading.NewInner(
+		mocks.NewMockedAuthService(testUserID),
+		testApp.logger,
+		testApp.config,
+		testApp.db,
+		reading.Clients{
+			UniCat:           nil,
+			Hardcover:        nil,
+			ObjectStore:      objectstore.NewFake(),
+			WebFetch:         nil,
+			Arxiv:            nil,
+			HTMLConvert:      nil,
+			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
+		},
+	)
+
+	require.NoError(t, readingWithFakeStore.RunStorageScanNow(context.Background()))
+}
+
 func TestObservabilityTriggerStorageScan_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
@@ -154,32 +182,15 @@ func TestObservabilityTriggerStorageScan_NonAdmin(t *testing.T) {
 }
 
 func TestObservabilityTriggerStorageScan_AsAdmin(t *testing.T) {
-	ctx := context.Background()
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 	withStorageScanRunner(t, &stubStorageScanRunner{err: nil})
 
-	require.NoError(t, testApp.storageRepo.Insert(ctx, models.StorageSnapshot{
-		ScannedAt:            time.Now(),
-		TotalSizeBytes:       5678,
-		ObjectCount:          9,
-		OrphanSizeBytes:      0,
-		OrphanCount:          0,
-		StaleUploadSizeBytes: 0,
-		StaleUploadCount:     0,
-		PrefixBreakdown: []models.PrefixStat{
-			{Prefix: "books", SizeBytes: 5678, Count: 9},
-		},
-	}))
-
 	client := observabilityClient(t)
 	req := connect.NewRequest(&observabilityv1.TriggerStorageScanRequest{})
 	setCookieOnRequest(req, accessToken)
-	resp, err := client.TriggerStorageScan(context.Background(), req)
+	_, err := client.TriggerStorageScan(context.Background(), req)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Latest)
-	assert.Equal(t, int64(5678), resp.Msg.Latest.TotalSizeBytes)
-	assert.NotEmpty(t, resp.Msg.Latest.PrefixBreakdown)
 }
 
 // TestObservabilityTriggerStorageScan_AsAdmin_ScanFails covers error

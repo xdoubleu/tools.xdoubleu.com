@@ -91,13 +91,7 @@ message GetStorageStatsResponse {
 
 message TriggerStorageScanRequest {}
 
-// TriggerStorageScanResponse mirrors GetStorageStatsResponse so the frontend
-// can seed its cache directly from this response — no follow-up
-// GetStorageStats call needed.
-message TriggerStorageScanResponse {
-  StorageSnapshot latest = 1;
-  repeated StorageSnapshot history = 2;
-}
+message TriggerStorageScanResponse {}
 
 message SchemaStat {
   string name = 1;

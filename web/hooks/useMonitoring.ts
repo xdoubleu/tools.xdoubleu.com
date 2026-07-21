@@ -43,12 +43,13 @@ export function useStorageStats() {
 }
 
 // useTriggerStorageScan runs a live R2 rescan (instead of just re-reading the
-// last daily-job snapshot) and seeds the SWR cache with the fresh result.
+// last daily-job snapshot), then revalidates storage stats so the fresh scan
+// shows up.
 export function useTriggerStorageScan() {
   const client = useMemo(() => createServiceClient(ObservabilityService), [])
   return useCallback(async () => {
-    const resp = await client.triggerStorageScan({})
-    await mutate(swrKeys.monitoringStorageStats, resp, false)
+    await client.triggerStorageScan({})
+    await mutate(swrKeys.monitoringStorageStats)
   }, [client])
 }
 

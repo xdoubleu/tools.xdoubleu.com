@@ -192,21 +192,13 @@ func (h *obsConnectHandler) TriggerStorageScan(
 	}
 
 	// Runs the R2 list-bucket scan inline (seconds, admin-only, low
-	// frequency) rather than via the async job queue, so the response can
-	// carry the fresh snapshot directly — no polling needed.
+	// frequency) rather than via the async job queue, so the caller can
+	// re-fetch GetStorageStats immediately after and see live data.
 	if err := h.app.readingApp.RunStorageScanNow(ctx); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	resp, err := h.storageStats(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	return connect.NewResponse(&observabilityv1.TriggerStorageScanResponse{
-		Latest:  resp.Latest,
-		History: resp.History,
-	}), nil
+	return connect.NewResponse(&observabilityv1.TriggerStorageScanResponse{}), nil
 }
 
 func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSnapshot {
