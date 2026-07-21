@@ -22,15 +22,16 @@ message ListFeedsRequest {}
 message ListFeedsResponse { repeated Feed feeds = 1; }
 
 // CreateFeed validates the URL by fetching and parsing it, then imports the
-// feed's current contents (newest first, capped) as a first batch.
+// feed's current contents (newest first, capped) as a first batch in the
+// background — the import can take longer than the request, so it is not
+// reflected in the response; poll ListFeeds/GetLibrary to see new items land.
 message CreateFeedRequest {
   string url = 1;
   bool kobo_sync = 2;
 }
 message CreateFeedResponse {
   Feed feed = 1;
-  // Items imported from the feed's current contents on subscribe.
-  int32 ingested = 2;
+  reserved 2; // was: int32 ingested (import moved to the background, #430)
 }
 
 message UpdateFeedRequest {

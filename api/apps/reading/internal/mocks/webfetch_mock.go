@@ -17,6 +17,10 @@ type MockWebFetchClient struct {
 	Errs map[string]error
 	// Calls records every requested URL in order.
 	Calls []string
+	// Gates optionally blocks Get for a URL until the channel is closed —
+	// lets tests deterministically observe state while a fetch is in flight
+	// (e.g. proving a caller doesn't block on a detached background fetch).
+	Gates map[string]chan struct{}
 }
 
 // NewMockWebFetchClient returns an empty mock (every URL 404s).
@@ -25,6 +29,7 @@ func NewMockWebFetchClient() *MockWebFetchClient {
 		Responses: map[string]*webfetch.Result{},
 		Errs:      map[string]error{},
 		Calls:     nil,
+		Gates:     nil,
 	}
 }
 
@@ -64,6 +69,9 @@ func (m *MockWebFetchClient) Get(
 	_ webfetch.Options,
 ) (*webfetch.Result, error) {
 	m.Calls = append(m.Calls, rawURL)
+	if gate, ok := m.Gates[rawURL]; ok {
+		<-gate
+	}
 	if err, ok := m.Errs[rawURL]; ok {
 		return nil, err
 	}

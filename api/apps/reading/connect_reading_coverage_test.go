@@ -134,7 +134,17 @@ func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
 		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(20), created.Msg.Ingested)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	ingestedCount := 0
+	for _, it := range items {
+		if _, bookErr := testApp.Repositories.Books.GetBookBySourceURL(
+			context.Background(), it.link,
+		); bookErr == nil {
+			ingestedCount++
+		}
+	}
+	assert.Equal(t, 20, ingestedCount)
 }
 
 func TestCreateFeed_FetchesLinkedPageWhenNoContent(t *testing.T) {
@@ -154,7 +164,7 @@ func TestCreateFeed_FetchesLinkedPageWhenNoContent(t *testing.T) {
 		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
 	)
 	require.NoError(t, err)
-	require.Equal(t, int32(1), created.Msg.Ingested)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
 
 	book, err := testApp.Repositories.Books.GetBookBySourceURL(
 		context.Background(), itemURL,
@@ -177,11 +187,12 @@ func TestPollAll_PollsEveryFeed(t *testing.T) {
 	)))
 
 	client := newBooksTestClient(t)
-	_, err := client.CreateFeed(
+	created, err := client.CreateFeed(
 		context.Background(),
 		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
 	)
 	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
 
 	// A new post appears; PollAll should pick it up across every user's feeds.
 	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
@@ -268,7 +279,7 @@ func TestCreateFeed_ItemWithAuthor(t *testing.T) {
 		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
 	)
 	require.NoError(t, err)
-	require.Equal(t, int32(1), created.Msg.Ingested)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
 
 	book, err := testApp.Repositories.Books.GetBookBySourceURL(
 		context.Background(), itemURL,

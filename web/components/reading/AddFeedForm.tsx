@@ -34,8 +34,8 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
     setBusy(true)
     setAddStatus('')
     try {
-      const resp = await createFeed(url.trim(), koboSync)
-      setAddStatus(`Subscribed — imported ${resp.ingested} item(s).`)
+      await createFeed(url.trim(), koboSync)
+      setAddStatus('Subscribed — importing items in the background.')
       setUrl('')
       setKoboSync(false)
       onAdded?.()

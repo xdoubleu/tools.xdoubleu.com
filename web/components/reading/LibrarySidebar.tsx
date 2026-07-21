@@ -29,7 +29,8 @@ export function buildShelves(library: LibraryResponse): Shelf[] {
     ...library.reading,
     ...library.wishlist,
     ...library.finished,
-    ...library.shelves.flatMap((s) => s.books)
+    ...library.shelves.flatMap((s) => s.books),
+    ...library.rss
   ]
   // The backend has no dedicated LibraryResponse field for dropped books —
   // they arrive as a generic shelf named "dropped". Pull it out and render
@@ -79,7 +80,8 @@ export function buildCategories(library: LibraryResponse): CategoryEntry[] {
     ...library.reading,
     ...library.wishlist,
     ...library.finished,
-    ...library.shelves.flatMap((s) => s.books)
+    ...library.shelves.flatMap((s) => s.books),
+    ...library.rss
   ]
   const counts = new Map<Category, number>()
   for (const ub of all) {
@@ -96,7 +98,8 @@ export function buildTags(library: LibraryResponse): TagEntry[] {
     ...library.reading,
     ...library.wishlist,
     ...library.finished,
-    ...library.shelves.flatMap((s) => s.books)
+    ...library.shelves.flatMap((s) => s.books),
+    ...library.rss
   ]
   const counts = new Map<string, number>()
   for (const ub of all) {

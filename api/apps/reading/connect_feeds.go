@@ -107,7 +107,7 @@ func (h *booksConnectHandler) CreateFeed(
 		return nil, cerr
 	}
 
-	feed, ingested, err := h.app.Services.Feeds.Create(
+	feed, err := h.app.Services.Feeds.Create(
 		ctx, user.ID, req.Msg.Url, req.Msg.KoboSync,
 	)
 	if err != nil {
@@ -115,8 +115,7 @@ func (h *booksConnectHandler) CreateFeed(
 	}
 
 	return connect.NewResponse(&readingv1.CreateFeedResponse{
-		Feed:     protoFeed(*feed),
-		Ingested: int32(ingested), //nolint:gosec // bounded by per-poll cap
+		Feed: protoFeed(*feed),
 	}), nil
 }
 

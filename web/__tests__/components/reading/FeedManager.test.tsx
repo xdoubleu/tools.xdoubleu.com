@@ -50,7 +50,7 @@ describe('FeedManager', () => {
   })
 
   it('subscribes to a new feed with kobo sync', async () => {
-    createFeed.mockResolvedValue({ ingested: 3 })
+    createFeed.mockResolvedValue({})
     render(<FeedManager />)
 
     fireEvent.change(screen.getByLabelText('Feed URL'), {
@@ -64,7 +64,9 @@ describe('FeedManager', () => {
     await waitFor(() =>
       expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true)
     )
-    expect(await screen.findByText('Subscribed — imported 3 item(s).')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Subscribed — importing items in the background.')
+    ).toBeInTheDocument()
   })
 
   it('toggles per-feed kobo sync', async () => {
