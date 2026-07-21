@@ -353,7 +353,13 @@ func (s *FeedService) ingestItemContent(
 		return s.ingestMetadataOnly(ctx, feed.UserID, content)
 	}
 
-	return s.ingest.IngestArticleContent(ctx, feed.UserID, content)
+	if feed.KoboSync {
+		return s.ingest.IngestArticleContent(ctx, feed.UserID, content)
+	}
+	// Feed not opted into Kobo sync: skip the EPUB build (Calibre subprocess)
+	// and just track the item; Add-by-URL or a later kobo_sync toggle can
+	// convert it if needed.
+	return s.ingestMetadataOnly(ctx, feed.UserID, content)
 }
 
 // enrichFromLinkedPage fills the missing content fields by fetching and

@@ -38,7 +38,7 @@ export default function BookDetailClient({ id }: { id: string }) {
 
   const userBook = useMemo(() => {
     if (!data?.library) return null
-    return flattenLibrary(data.library).find((ub) => ub.id === id) ?? null
+    return [...flattenLibrary(data.library), ...data.library.rss].find((ub) => ub.id === id) ?? null
   }, [data, id])
 
   const book = userBook?.book
@@ -48,7 +48,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   const knownTags = useMemo(() => {
     if (!data?.library) return []
     const seen = new Set<string>()
-    for (const ub of flattenLibrary(data.library)) {
+    for (const ub of [...flattenLibrary(data.library), ...data.library.rss]) {
       for (const t of ub.tags) {
         if (!SPECIAL_TAGS.has(t)) seen.add(t)
       }

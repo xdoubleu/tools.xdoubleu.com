@@ -81,6 +81,7 @@ function makeLibrary(
     wishlist?: ReturnType<typeof makeUserBook>[]
     finished?: ReturnType<typeof makeUserBook>[]
     shelves?: ReturnType<typeof create<typeof BookShelfSchema>>[]
+    rss?: ReturnType<typeof makeUserBook>[]
   } = {}
 ) {
   return create(LibraryResponseSchema, {
@@ -88,6 +89,7 @@ function makeLibrary(
     wishlist: [wishlistBook],
     finished: [finishedBook],
     shelves: [create(BookShelfSchema, { name: 'Sci-Fi', books: [shelfBook] })],
+    rss: [],
     ...overrides
   })
 }
@@ -284,6 +286,24 @@ describe('BooksLibrary', () => {
     // Should default to currently-reading (not favourites)
     const header = screen.getByRole('heading')
     expect(header.textContent).not.toMatch(/Favourites/)
+  })
+
+  it('excludes rss items from All books but shows them via the RSS category filter', () => {
+    const rssItem = create(UserBookSchema, {
+      id: 'rss1',
+      status: 'to-read',
+      tags: [],
+      formats: [],
+      book: create(BookSchema, { title: 'RSS Post', authors: ['Author'], category: 'rss' })
+    })
+    const library = makeLibrary({ rss: [rssItem] })
+    renderLibrary(library)
+
+    expect(screen.queryByText('RSS Post')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByText('RSS')[0])
+    expect(screen.getByText('RSS Post')).toBeInTheDocument()
+    expect(screen.queryByText('Dune')).not.toBeInTheDocument()
   })
 
   it('shows empty message when library has no books', () => {

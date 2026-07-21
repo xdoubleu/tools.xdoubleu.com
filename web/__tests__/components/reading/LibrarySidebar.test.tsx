@@ -88,10 +88,9 @@ describe('buildShelves', () => {
     expect(shelves.find((s) => s.id === 'dropped')).toBeUndefined()
   })
 
-  // #432: RSS items live in library.rss (separate from the reading-state
-  // shelves), but were omitted from the sidebar's source arrays entirely —
-  // they never counted toward "All books" and had no way to be filtered.
-  it('counts RSS items toward the All books shelf', () => {
+  // #475: RSS items are an auto-pulled firehose, kept out of the curated
+  // "All books" count — they remain reachable via the RSS category filter.
+  it('excludes RSS items from the All books shelf', () => {
     const library = create(LibraryResponseSchema, {
       reading: [makeBook('r1')],
       wishlist: [],
@@ -101,7 +100,7 @@ describe('buildShelves', () => {
     })
     const shelves = buildShelves(library)
     const all = shelves.find((s) => s.id === 'all')!
-    expect(all.count).toBe(3)
+    expect(all.count).toBe(1)
   })
 })
 
@@ -151,7 +150,7 @@ describe('buildTags', () => {
     expect(tags.filter((t) => t.name === 'fantasy')).toHaveLength(1)
   })
 
-  it('includes tags from RSS items', () => {
+  it('excludes tags that only exist on RSS items', () => {
     const library = create(LibraryResponseSchema, {
       reading: [],
       wishlist: [],
@@ -160,7 +159,7 @@ describe('buildTags', () => {
       rss: [makeBook('rss1', ['tech'], 'rss')]
     })
     const tags = buildTags(library)
-    expect(tags.map((t) => t.name)).toContain('tech')
+    expect(tags.map((t) => t.name)).not.toContain('tech')
   })
 })
 

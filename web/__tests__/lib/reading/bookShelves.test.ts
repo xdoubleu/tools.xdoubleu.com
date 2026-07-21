@@ -108,7 +108,7 @@ describe('flattenLibrary', () => {
     expect(flattenLibrary(null)).toEqual([])
   })
 
-  it('includes rss items alongside shelf-based books', () => {
+  it('excludes rss items from the curated backlog', () => {
     const library = create(LibraryResponseSchema, {
       reading: [userBook('reading')],
       wishlist: [userBook('wishlist')],
@@ -121,8 +121,7 @@ describe('flattenLibrary', () => {
       'reading',
       'wishlist',
       'finished',
-      'shelf',
-      'rss'
+      'shelf'
     ])
   })
 })

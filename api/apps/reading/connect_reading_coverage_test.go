@@ -159,9 +159,10 @@ func TestCreateFeed_FetchesLinkedPageWhenNoContent(t *testing.T) {
 	mockWebFetch.SetHTML(itemURL, articlePageHTML("Linked Post Body"))
 
 	client := newBooksTestClient(t)
+	// #459: EPUB conversion only happens for feeds opted into Kobo sync.
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: true}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
