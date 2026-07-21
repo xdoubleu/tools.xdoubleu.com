@@ -171,6 +171,24 @@ each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment'
 [api/CLAUDE.md](api/CLAUDE.md) for the exact rule and how to apply it. This must be
 re-applied if a bucket is recreated.
 
+**GitHub/Sentry/DigitalOcean OAuth (observability integrations, issue #440):** each
+provider needs its own OAuth App registered once, with callback URL
+`https://tools.xdoubleu.com/api/admin/oauth/{provider}/callback` (`github`, `sentry`,
+`digitalocean`). The resulting client id/secret pairs, plus a generated
+`OAUTH_TOKEN_ENC_KEY` (`openssl rand -base64 32`), are declared as `SECRET`
+placeholders in [`do-app.yaml`](do-app.yaml) but must be pushed to the *live* DO App
+explicitly — editing `do-app.yaml` alone doesn't update a running app:
+
+```bash
+doctl apps update <DO_APP_ID> --spec do-app.yaml
+# then set each secret's value via `doctl apps update --env` or the DO dashboard
+```
+
+Until all six vars are set, the api logs a startup warning per missing provider and
+its "Connect" button on `/monitoring` fails with a provider-side error instead of
+one from this app. See [api/CLAUDE.md](api/CLAUDE.md) for the full connect-flow
+mechanics.
+
 ## Contributing
 
 Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` (from `api/`) before committing.
