@@ -17,12 +17,7 @@ export default function GamesStatCard({
       <Link href={href} className={cn(interactiveCardClass, 'relative block p-3')}>
         <CardLinkStatus />
         <p className="text-xs text-muted">{label}</p>
-        <p className="text-xl font-bold mt-0.5">
-          {value}{' '}
-          <span aria-hidden className="text-sm text-muted">
-            &rarr;
-          </span>
-        </p>
+        <p className="text-xl font-bold mt-0.5">{value}</p>
       </Link>
     )
   }
