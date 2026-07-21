@@ -58,6 +58,20 @@ func configNotConnected() stubConfigStore {
 	return stubConfigStore{err: database.ErrResourceNotFound}
 }
 
+func configWithMalformedJSON() stubConfigStore {
+	return stubConfigStore{
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // test fixture
+			Config: json.RawMessage(`not json`),
+		},
+		err: nil,
+	}
+}
+
+func configGetError() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: a generic DB error
+	return stubConfigStore{err: assert.AnError}
+}
+
 func TestMain(m *testing.M) {
 	digitalocean.SetBackoffBase(1 * time.Millisecond)
 	os.Exit(m.Run())
@@ -117,6 +131,23 @@ func TestLatestDeployment_NoDeployments(t *testing.T) {
 	dep, err := newClient().LatestDeployment(context.Background())
 	require.NoError(t, err)
 	assert.Nil(t, dep)
+}
+
+func TestLatestDeployment_MalformedConfig(t *testing.T) {
+	c := digitalocean.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWithMalformedJSON(),
+	)
+	_, err := c.LatestDeployment(context.Background())
+	require.Error(t, err)
+	require.NotErrorIs(t, err, digitalocean.ErrNotConfigured)
+}
+
+func TestLatestDeployment_ConfigLookupError(t *testing.T) {
+	c := digitalocean.New(logging.NewNopLogger(), stubToken("token"), configGetError())
+	_, err := c.LatestDeployment(context.Background())
+	require.ErrorIs(t, err, assert.AnError)
 }
 
 func TestLatestDeployment_NotConfigured(t *testing.T) {

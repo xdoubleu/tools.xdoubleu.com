@@ -60,6 +60,20 @@ func configNotConnected() stubConfigStore {
 	return stubConfigStore{err: database.ErrResourceNotFound}
 }
 
+func configWithMalformedJSON() stubConfigStore {
+	return stubConfigStore{
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // test fixture
+			Config: json.RawMessage(`not json`),
+		},
+		err: nil,
+	}
+}
+
+func configGetError() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: a generic DB error
+	return stubConfigStore{err: assert.AnError}
+}
+
 func TestMain(m *testing.M) {
 	sentryapi.SetBackoffBase(1 * time.Millisecond)
 	os.Exit(m.Run())
@@ -138,6 +152,23 @@ func TestListUnresolvedIssues_MergesMultipleProjectsSortedByLastSeen(t *testing.
 	assert.Equal(t, "proj-b", issues[0].Project)
 	assert.Equal(t, "a1", issues[1].ID)
 	assert.Equal(t, "proj-a", issues[1].Project)
+}
+
+func TestListUnresolvedIssues_MalformedConfig(t *testing.T) {
+	c := sentryapi.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWithMalformedJSON(),
+	)
+	_, err := c.ListUnresolvedIssues(context.Background())
+	require.Error(t, err)
+	require.NotErrorIs(t, err, sentryapi.ErrNotConfigured)
+}
+
+func TestListUnresolvedIssues_ConfigLookupError(t *testing.T) {
+	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configGetError())
+	_, err := c.ListUnresolvedIssues(context.Background())
+	require.ErrorIs(t, err, assert.AnError)
 }
 
 func TestListUnresolvedIssues_NotConfigured(t *testing.T) {

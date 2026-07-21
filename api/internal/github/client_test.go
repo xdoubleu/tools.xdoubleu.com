@@ -61,6 +61,20 @@ func configNotConnected() stubConfigStore {
 	return stubConfigStore{err: database.ErrResourceNotFound}
 }
 
+func configWithMalformedJSON() stubConfigStore {
+	return stubConfigStore{
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // test fixture
+			Config: json.RawMessage(`not json`),
+		},
+		err: nil,
+	}
+}
+
+func configGetError() stubConfigStore {
+	//nolint:exhaustruct // conn intentionally nil: a generic DB error
+	return stubConfigStore{err: assert.AnError}
+}
+
 func TestMain(m *testing.M) {
 	github.SetBackoffBase(1 * time.Millisecond)
 	os.Exit(m.Run())
@@ -149,6 +163,23 @@ func TestListOpenIssues_NotConfigured_NoRepoPicked(t *testing.T) {
 	c := github.New(logging.NewNopLogger(), stubToken("token"), configWithRepo(""))
 	_, err := c.ListOpenIssues(context.Background())
 	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListOpenIssues_MalformedConfig(t *testing.T) {
+	c := github.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWithMalformedJSON(),
+	)
+	_, err := c.ListOpenIssues(context.Background())
+	require.Error(t, err)
+	require.NotErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListOpenIssues_ConfigLookupError(t *testing.T) {
+	c := github.New(logging.NewNopLogger(), stubToken("token"), configGetError())
+	_, err := c.ListOpenIssues(context.Background())
+	require.ErrorIs(t, err, assert.AnError)
 }
 
 func TestListOpenIssues_CachesResult(t *testing.T) {

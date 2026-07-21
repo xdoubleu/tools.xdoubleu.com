@@ -97,6 +97,59 @@ func TestGetProviderOptions_SentryOrgsThenProjects(t *testing.T) {
 	assert.Empty(t, resp.Msg.SentryOrgs)
 }
 
+func TestGetProviderOptions_SentryOrgs(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusOK, `[{"slug":"org-a"}]`)
+	sentryapi.SetBaseURL(srv.URL)
+	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"), configNotConnected(),
+	)
+
+	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+		Provider: string(models.OAuthProviderSentry),
+	})
+	setCookieOnRequest(req, accessToken)
+	resp, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"org-a"}, resp.Msg.SentryOrgs)
+}
+
+func TestGetProviderOptions_SentryOrgsError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok(""), configNotConnected(),
+	)
+
+	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+		Provider: string(models.OAuthProviderSentry),
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+func TestGetProviderOptions_SentryProjectsError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok(""), configNotConnected(),
+	)
+
+	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+		Provider:  string(models.OAuthProviderSentry),
+		SentryOrg: "org-a",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
 func TestGetProviderOptions_DigitalOcean(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -119,6 +172,22 @@ func TestGetProviderOptions_DigitalOcean(t *testing.T) {
 	resp, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"id-1 — app-one"}, resp.Msg.Apps)
+}
+
+func TestGetProviderOptions_DigitalOceanError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(), stubTok(""), configNotConnected(),
+	)
+
+	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+		Provider: string(models.OAuthProviderDigitalOcean),
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
 func TestGetProviderOptions_NotConnected(t *testing.T) {
@@ -283,6 +352,20 @@ func TestSetProviderConfig_MissingFields(t *testing.T) {
 
 	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
 		Provider: string(models.OAuthProviderGithub),
+		Config:   &observabilityv1.ProviderConfig{},
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestSetProviderConfig_UnknownProvider(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+		Provider: "not-a-provider",
 		Config:   &observabilityv1.ProviderConfig{},
 	})
 	setCookieOnRequest(req, accessToken)
