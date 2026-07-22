@@ -22,7 +22,7 @@ lint/sql: tools/lint/sql
 	sqlfluff lint --dialect postgres .
 
 tools/proto:
-	go install github.com/bufbuild/buf/cmd/buf@v1.69.0
+	go install github.com/bufbuild/buf/cmd/buf@v1.72.0
 
 lint/proto: tools/proto
 	cd ../proto && buf lint
