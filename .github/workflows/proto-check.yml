@@ -21,7 +21,7 @@ jobs:
       - name: Install buf
         env:
           # renovate: datasource=github-releases depName=bufbuild/buf
-          version: v1.69.0
+          version: v1.72.0
         run: |
           curl -sSL "https://github.com/bufbuild/buf/releases/download/${version}/buf-Linux-x86_64" \
             -o /usr/local/bin/buf
