@@ -52,7 +52,7 @@
     "jest": "30.4.2",
     "jest-environment-jsdom": "30.4.1",
     "knip": "6.27.0",
-    "postcss": "8.5.20",
+    "postcss": "8.5.21",
     "prettier": "3.8.3",
     "react-is": "19.2.7",
     "syncpack": "15.3.2",
