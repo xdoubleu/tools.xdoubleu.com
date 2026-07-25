@@ -5,6 +5,7 @@ import { useLibrary } from '@/hooks/useBooks'
 import { useFeedItemBooks } from '@/hooks/useBookFeeds'
 import FeedItemMarkReadButton from '@/components/reading/FeedItemMarkReadButton'
 import ArticleReaderDialog from '@/components/reading/ArticleReaderDialog'
+import BookCover from '@/components/reading/BookCover'
 import { Button } from '@/components/ui/button'
 import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
 
@@ -66,6 +67,7 @@ function FeedReaderRow({ userBook, feedTitle, onSettled }: FeedReaderRowProps) {
 
   return (
     <li className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card">
+      <BookCover coverUrl={book.coverUrl} title={book.title} size="thumb" />
       <div className="min-w-0 flex-1">
         <Button
           type="button"
