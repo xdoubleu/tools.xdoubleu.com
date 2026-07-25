@@ -21,6 +21,7 @@ jest.mock('@/lib/client', () => ({
     triggerStorageScan: (...args: unknown[]) => mockTriggerStorageScan(...args),
     getDatabaseStats: jest.fn(),
     getGithubIssues: jest.fn(),
+    getFailingPullRequests: jest.fn(),
     getSentryIssues: jest.fn(),
     getDeployStatus: jest.fn(),
     listOAuthConnections: jest.fn(),
@@ -42,6 +43,7 @@ import {
   useTriggerStorageScan,
   useDatabaseStats,
   useGithubIssues,
+  useFailingPullRequests,
   useSentryIssues,
   useDeployStatus,
   useOAuthConnections,
@@ -90,6 +92,14 @@ describe('useMonitoring', () => {
   it('keys github issues statically', () => {
     renderHook(() => useGithubIssues())
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringGithubIssues, expect.any(Function))
+  })
+
+  it('keys failing pull requests statically', () => {
+    renderHook(() => useFailingPullRequests())
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringFailingPullRequests,
+      expect.any(Function)
+    )
   })
 
   it('keys sentry issues statically', () => {

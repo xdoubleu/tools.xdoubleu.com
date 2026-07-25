@@ -290,6 +290,37 @@ func TestListFailingPullRequests_ReturnsOnlyPRsWithFailingChecks(t *testing.T) {
 	assert.Equal(t, "failure", prs[0].FailingChecks[0].Conclusion)
 }
 
+func TestListFailingPullRequests_CheckRunsUpstreamError(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Path {
+			case "/repos/" + testRepo + "/pulls":
+				_, _ = w.Write([]byte(`[
+					{"number":1,"title":"Fix bug","html_url":"u",
+					 "updated_at":"2026-07-01T10:00:00Z",
+					 "user":{"login":"alice"},"head":{"sha":"sha1"}}
+				]`))
+			default:
+				w.WriteHeader(http.StatusUnauthorized)
+			}
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListFailingPullRequests(context.Background())
+	require.Error(t, err)
+}
+
+func TestListFailingPullRequests_TokenLookupError(t *testing.T) {
+	c := github.New(
+		logging.NewNopLogger(),
+		func(context.Context) (string, error) { return "", assert.AnError },
+		configWithRepo(testRepo),
+	)
+	_, err := c.ListFailingPullRequests(context.Background())
+	require.ErrorIs(t, err, assert.AnError)
+}
+
 func TestListFailingPullRequests_SkipsInProgressChecks(t *testing.T) {
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
