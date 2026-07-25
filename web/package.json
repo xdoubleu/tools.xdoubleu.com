@@ -51,7 +51,7 @@
     "eslint-config-next": "16.2.11",
     "jest": "30.4.2",
     "jest-environment-jsdom": "30.4.1",
-    "knip": "6.28.0",
+    "knip": "6.29.0",
     "postcss": "8.5.22",
     "prettier": "3.8.3",
     "react-is": "19.2.8",
