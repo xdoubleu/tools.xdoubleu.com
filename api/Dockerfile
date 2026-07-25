@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -X main.Release=${RELEASE}
 # debian:12-slim is required (not distroless) because Calibre's ebook-convert
 # subprocess needs Qt/Python shared libraries. Image is significantly larger as
 # a result; the Calibre layer is cached via GitHub Actions layer caching.
-FROM debian:12-slim AS server
+FROM debian:13-slim AS server
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends calibre \
