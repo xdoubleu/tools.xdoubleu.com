@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import { mutate } from 'swr'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,7 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { useGetBookFile, useRequestKEPUBConversion, useKEPUBStatus } from '@/hooks/useBooks'
+import { swrKeys } from '@/lib/swrKeys'
 
 // react-reader uses the DOM and cannot be server-rendered.
 const ReactReader = dynamic(
@@ -41,7 +43,11 @@ export default function BookPreviewDialog({
   useEffect(() => {
     if (!open || !isKepub || triggeredRef.current) return
     triggeredRef.current = true
-    void requestKEPUBConversion(bookId)
+    // Re-fetch status after the request resolves: the response above kicks off
+    // conversion server-side without updating this dialog's SWR cache, so
+    // without this the poll below can see a stale "" status, stop polling, and
+    // never notice the conversion complete (issue #393).
+    void requestKEPUBConversion(bookId).then(() => mutate(swrKeys.kepubStatus(bookId)))
   }, [open, isKepub, bookId, requestKEPUBConversion])
 
   // Reset the trigger guard when the dialog closes.
