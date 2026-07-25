@@ -42,13 +42,7 @@ export interface DupGroup {
 // ---------------------------------------------------------------------------
 
 export type BookConflictField =
-  | 'title'
-  | 'authors'
-  | 'isbn13'
-  | 'description'
-  | 'pageCount'
-  | 'cover'
-  | 'status'
+  'title' | 'authors' | 'isbn13' | 'description' | 'pageCount' | 'cover' | 'status'
 
 export interface FieldChoice {
   /** bookId of the UserBook entry whose value wins for this field. */
