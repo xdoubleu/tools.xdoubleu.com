@@ -88,6 +88,26 @@ describe('buildShelves', () => {
     expect(shelves.find((s) => s.id === 'dropped')).toBeUndefined()
   })
 
+  it('surfaces a raw "owned" shelf as a fixed Owned entry, not duplicated in custom shelves', () => {
+    const library = create(LibraryResponseSchema, {
+      reading: [],
+      wishlist: [],
+      finished: [],
+      shelves: [create(BookShelfSchema, { name: 'owned', books: [makeBook('o1')] })]
+    })
+    const shelves = buildShelves(library)
+    const owned = shelves.filter((s) => s.id === 'owned')
+    expect(owned).toHaveLength(1)
+    expect(owned[0].label).toBe('Owned')
+    expect(owned[0].count).toBe(1)
+  })
+
+  it('omits the Owned shelf when there are no owned books', () => {
+    const library = makeLibrary()
+    const shelves = buildShelves(library)
+    expect(shelves.find((s) => s.id === 'owned')).toBeUndefined()
+  })
+
   // #475: RSS items are an auto-pulled firehose, kept out of the curated
   // "All books" count — they remain reachable via the RSS category filter.
   it('excludes RSS items from the All books shelf', () => {

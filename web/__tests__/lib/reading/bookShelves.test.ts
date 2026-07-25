@@ -30,11 +30,12 @@ describe('SPECIAL_TAGS', () => {
 })
 
 describe('BUILT_IN_STATUSES', () => {
-  it('includes the four reading states', () => {
+  it('includes the five reading states', () => {
     expect(BUILT_IN_STATUSES.has('to-read')).toBe(true)
     expect(BUILT_IN_STATUSES.has('currently-reading')).toBe(true)
     expect(BUILT_IN_STATUSES.has('read')).toBe(true)
     expect(BUILT_IN_STATUSES.has('dropped')).toBe(true)
+    expect(BUILT_IN_STATUSES.has('owned')).toBe(true)
   })
 
   it('does not include custom shelf names', () => {
@@ -43,8 +44,8 @@ describe('BUILT_IN_STATUSES', () => {
 })
 
 describe('BOOK_STATUSES', () => {
-  it('has exactly four entries', () => {
-    expect(BOOK_STATUSES).toHaveLength(4)
+  it('has exactly five entries', () => {
+    expect(BOOK_STATUSES).toHaveLength(5)
   })
 
   it('each entry has a value and label', () => {
@@ -61,6 +62,7 @@ describe('statusLabel', () => {
     expect(statusLabel('currently-reading')).toBe('Currently reading')
     expect(statusLabel('read')).toBe('Read')
     expect(statusLabel('dropped')).toBe('Dropped')
+    expect(statusLabel('owned')).toBe('Owned')
   })
 
   it('returns the raw value for unknown / custom statuses', () => {
@@ -69,11 +71,12 @@ describe('statusLabel', () => {
 })
 
 describe('isBuiltInShelfId', () => {
-  it('treats the four reading statuses and favourite as built-in', () => {
+  it('treats the five reading statuses and favourite as built-in', () => {
     expect(isBuiltInShelfId('to-read')).toBe(true)
     expect(isBuiltInShelfId('currently-reading')).toBe(true)
     expect(isBuiltInShelfId('read')).toBe(true)
     expect(isBuiltInShelfId('dropped')).toBe(true)
+    expect(isBuiltInShelfId('owned')).toBe(true)
     expect(isBuiltInShelfId('favourite')).toBe(true)
   })
 

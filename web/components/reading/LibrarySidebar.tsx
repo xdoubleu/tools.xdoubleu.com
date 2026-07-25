@@ -26,10 +26,12 @@ export interface TagEntry {
 
 export function buildShelves(library: LibraryResponse): Shelf[] {
   const allBooks = flattenLibrary(library)
-  // The backend has no dedicated LibraryResponse field for dropped books —
-  // they arrive as a generic shelf named "dropped". Pull it out and render
-  // it as a fixed shelf with a proper label instead of the raw status value.
+  // The backend has no dedicated LibraryResponse field for dropped/owned
+  // books — they arrive as generic shelves named "dropped"/"owned". Pull
+  // them out and render them as fixed shelves with proper labels instead of
+  // the raw status value.
   const droppedShelf = library.shelves.find((s) => s.name === 'dropped')
+  const ownedShelf = library.shelves.find((s) => s.name === 'owned')
   const fixed: Shelf[] = [
     {
       id: 'all',
@@ -48,10 +50,13 @@ export function buildShelves(library: LibraryResponse): Shelf[] {
       label: 'Favourites',
       count: allBooks.filter((b) => b.tags.includes('favourite')).length
     },
-    ...(droppedShelf ? [{ id: 'dropped', label: 'Dropped', count: droppedShelf.books.length }] : [])
+    ...(droppedShelf
+      ? [{ id: 'dropped', label: 'Dropped', count: droppedShelf.books.length }]
+      : []),
+    ...(ownedShelf ? [{ id: 'owned', label: 'Owned', count: ownedShelf.books.length }] : [])
   ]
   const dynamic: Shelf[] = library.shelves
-    .filter((s) => s.name !== 'dropped')
+    .filter((s) => s.name !== 'dropped' && s.name !== 'owned')
     .map((s) => ({
       id: s.name,
       label: s.name,

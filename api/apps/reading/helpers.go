@@ -34,9 +34,10 @@ func groupByStatus(
 	userBooks []models.UserBook,
 	registeredShelves []string,
 ) []bookShelf {
-	// Dropped is intentionally excluded here: unlike the other three statuses
-	// it has no dedicated LibraryResponse field, so it flows through as a
-	// shelf named "dropped" instead of disappearing from the library.
+	// Dropped and owned are intentionally excluded here: unlike the other
+	// three statuses they have no dedicated LibraryResponse field, so they
+	// flow through as shelves named "dropped"/"owned" instead of
+	// disappearing from the library.
 	standard := map[string]bool{
 		models.StatusToRead:  true,
 		models.StatusReading: true,
