@@ -299,6 +299,7 @@ var builtInStatuses = map[string]bool{
 	models.StatusReading: true,
 	models.StatusRead:    true,
 	models.StatusDropped: true,
+	models.StatusOwned:   true,
 }
 
 // ListShelves returns every custom shelf name registered for the user,

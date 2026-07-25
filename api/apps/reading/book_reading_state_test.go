@@ -380,6 +380,20 @@ func TestUpdateReadingProgress_PromotesToReading_FromDropped(t *testing.T) {
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
 }
 
+// TestUpdateReadingProgress_PromotesToReading_FromOwned verifies that an
+// owned book is promoted to "currently-reading" when progress > 0.
+func TestUpdateReadingProgress_PromotesToReading_FromOwned(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusOwned)
+
+	err := testApp.Services.Books.UpdateReadingProgress(
+		context.Background(), userID, book.ID, models.ReadingSourceKobo, 5, nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
+}
+
 // TestUpdateReadingProgress_NoPromote_AlreadyReading confirms a book already
 // "currently-reading" keeps its status unchanged.
 func TestUpdateReadingProgress_NoPromote_AlreadyReading(t *testing.T) {

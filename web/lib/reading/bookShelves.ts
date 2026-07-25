@@ -23,14 +23,21 @@ export const SPECIAL_TAGS = new Set([
   'kobo-format-pdf'
 ])
 
-// The four fixed reading-state shelves. Custom shelves are any other status value.
-export const BUILT_IN_STATUSES = new Set(['to-read', 'currently-reading', 'read', 'dropped'])
+// The five fixed reading-state shelves. Custom shelves are any other status value.
+export const BUILT_IN_STATUSES = new Set([
+  'to-read',
+  'currently-reading',
+  'read',
+  'dropped',
+  'owned'
+])
 
 export const BOOK_STATUSES: { value: string; label: string }[] = [
   { value: 'to-read', label: 'Want to read' },
   { value: 'currently-reading', label: 'Currently reading' },
   { value: 'read', label: 'Read' },
-  { value: 'dropped', label: 'Dropped' }
+  { value: 'dropped', label: 'Dropped' },
+  { value: 'owned', label: 'Owned' }
 ]
 
 // Return the display label for a built-in status, or the raw value for custom.

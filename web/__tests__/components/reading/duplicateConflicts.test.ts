@@ -221,6 +221,15 @@ describe('pickAutoStatusBookId', () => {
     ])
     expect(pickAutoStatusBookId(g)).toBe('toread-id')
   })
+
+  it('owned loses to to-read', () => {
+    const book = makeBook({ id: 'x' })
+    const g = makeGroup([
+      makeEntry('owned-id', { ...book }, 'owned'),
+      makeEntry('toread-id', { ...book }, 'to-read')
+    ])
+    expect(pickAutoStatusBookId(g)).toBe('toread-id')
+  })
 })
 
 // ---------------------------------------------------------------------------
