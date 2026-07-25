@@ -228,11 +228,25 @@ describe('BooksTable', () => {
   })
 
   it('opens the shelf/tags editor from the list row without navigating', () => {
-    const books = [makeBook('1', 'Dune', 'Frank Herbert', { status: 'to-read' })]
+    const books = [makeBook('1', 'Dune', 'Frank Herbert', { status: 'to-read', tags: ['sci-fi'] })]
     render(<BooksTable books={books} knownShelves={['owned']} knownTags={['sci-fi']} />)
-    fireEvent.click(screen.getByRole('button', { name: /Edit shelf and tags for Dune/ }))
-    expect(screen.getByText('sci-fi')).toBeInTheDocument()
+    const trigger = screen.getByRole('button', { name: /Edit shelf and tags for Dune/ })
+    // Trigger shows the current shelf and tags before it's clicked.
+    expect(trigger).toHaveTextContent('sci-fi')
+    fireEvent.click(trigger)
     expect(screen.getByText('+ Add shelf')).toBeInTheDocument()
+  })
+
+  it('falls back to a generic label for the shelf editor when the book is missing', () => {
+    const book = create(UserBookSchema, {
+      id: '1',
+      status: 'to-read',
+      tags: [],
+      formats: [],
+      addedAt: '2024-01-01T00:00:00Z'
+    })
+    render(<BooksTable books={[book]} knownShelves={[]} knownTags={[]} />)
+    expect(screen.getByRole('button', { name: 'Edit shelf and tags for book' })).toBeInTheDocument()
   })
 
   it('sorts by date added when Date added header is clicked', () => {
