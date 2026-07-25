@@ -51,6 +51,7 @@ type Application struct {
 	appUsersRepo      *repositories.AppUsersRepository
 	profileSharesRepo *repositories.ProfileSharesRepository
 	usage             *observability.UsageRecorder
+	jobRunsRepo       *repositories.JobRunsRepository
 	usageRepo         *repositories.UsageRepository
 	storageRepo       *repositories.StorageSnapshotsRepository
 	dbStatsRepo       *repositories.DBStatsRepository
@@ -267,6 +268,7 @@ func NewApplication(
 		appUsersRepo:      appUsersRepo,
 		profileSharesRepo: repositories.NewProfileSharesRepository(db),
 		usage:             observability.NewUsageRecorder(logger, db),
+		jobRunsRepo:       repositories.NewJobRunsRepository(db),
 		usageRepo:         repositories.NewUsageRepository(db),
 		storageRepo:       repositories.NewStorageSnapshotsRepository(db),
 		dbStatsRepo:       repositories.NewDBStatsRepository(db),

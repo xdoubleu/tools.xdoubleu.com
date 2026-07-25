@@ -142,7 +142,7 @@ func NewInner(
 
 func (a *Reading) Start() error {
 	if err := a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.resyncBooksJob),
+		observability.NewTrackedJob(a.resyncBooksJob, a.db),
 		a.Services.WebSocket.UpdateState,
 	); err != nil {
 		return err
@@ -150,14 +150,14 @@ func (a *Reading) Start() error {
 
 	noop := func(_ string, _ bool, _ *time.Time) {}
 	if err := a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.storageScanJob),
+		observability.NewTrackedJob(a.storageScanJob, a.db),
 		noop,
 	); err != nil {
 		return err
 	}
 
 	if err := a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.feedPollJob),
+		observability.NewTrackedJob(a.feedPollJob, a.db),
 		a.Services.WebSocket.UpdateState,
 	); err != nil {
 		return err
@@ -211,10 +211,10 @@ func renameLegacyBooksSchema(ctx context.Context, db *pgxpool.Pool) error {
 }
 
 // RunStorageScanNow runs the R2 bucket scan synchronously, wrapped in the
-// same TrackedJob used for the scheduled run so a manual trigger still sends
-// a Sentry check-in like the scheduled run does.
+// same TrackedJob used for the scheduled run so a manual trigger still shows
+// up in global.job_runs / the Jobs card.
 func (a *Reading) RunStorageScanNow(ctx context.Context) error {
-	return observability.NewTrackedJob(a.storageScanJob).Run(ctx, a.Logger)
+	return observability.NewTrackedJob(a.storageScanJob, a.db).Run(ctx, a.Logger)
 }
 
 func (a *Reading) GetName() string {

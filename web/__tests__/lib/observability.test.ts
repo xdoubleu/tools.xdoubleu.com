@@ -1,4 +1,4 @@
-import { formatBytes, formatCount } from '@/lib/observability'
+import { formatBytes, formatCount, formatDuration, successRate } from '@/lib/observability'
 
 describe('observability formatters', () => {
   it('formats bytes across units', () => {
@@ -14,5 +14,19 @@ describe('observability formatters', () => {
     expect(formatCount(0)).toBe('0')
     expect(formatCount(1234567)).toBe((1234567).toLocaleString())
     expect(formatCount(42n)).toBe('42')
+  })
+
+  it('formats durations', () => {
+    expect(formatDuration(250)).toBe('250 ms')
+    expect(formatDuration(1500)).toBe('1.5 s')
+    expect(formatDuration(90000)).toBe('1.5 min')
+    expect(formatDuration(500n)).toBe('500 ms')
+  })
+
+  it('computes success rate', () => {
+    expect(successRate(0, 0)).toBe(100)
+    expect(successRate(10, 0)).toBe(100)
+    expect(successRate(10, 5)).toBe(50)
+    expect(successRate(4n, 1n)).toBe(75)
   })
 })

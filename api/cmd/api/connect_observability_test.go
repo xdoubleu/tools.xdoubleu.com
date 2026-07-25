@@ -45,6 +45,54 @@ func observabilityClient(
 	return observabilityv1connect.NewObservabilityServiceClient(ts.Client(), ts.URL)
 }
 
+func TestObservabilityGetJobStats_AsAdmin(t *testing.T) {
+	ctx := context.Background()
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	// Seed a couple of job runs.
+	require.NoError(t, testApp.jobRunsRepo.Insert(ctx, models.JobRun{
+		JobID:      "steam",
+		StartedAt:  time.Now(),
+		DurationMs: 500,
+		Success:    true,
+		Error:      "",
+	}))
+	require.NoError(t, testApp.jobRunsRepo.Insert(ctx, models.JobRun{
+		JobID:      "steam",
+		StartedAt:  time.Now(),
+		DurationMs: 700,
+		Success:    false,
+		Error:      "boom",
+	}))
+
+	client := observabilityClient(t)
+	req := connect.NewRequest(&observabilityv1.GetJobStatsRequest{WindowDays: 7})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetJobStats(context.Background(), req)
+	require.NoError(t, err)
+
+	var steam *observabilityv1.JobStat
+	for _, s := range resp.Msg.Stats {
+		if s.JobId == "steam" {
+			steam = s
+		}
+	}
+	require.NotNil(t, steam)
+	assert.GreaterOrEqual(t, steam.TotalRuns, int64(2))
+	assert.GreaterOrEqual(t, steam.FailedRuns, int64(1))
+	assert.NotEmpty(t, resp.Msg.RecentRuns)
+}
+
+func TestObservabilityGetJobStats_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	client := observabilityClient(t)
+	req := connect.NewRequest(&observabilityv1.GetJobStatsRequest{WindowDays: 7})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.GetJobStats(context.Background(), req)
+	requirePermissionDenied(t, err)
+}
+
 func TestObservabilityGetUsageStats_AsAdmin(t *testing.T) {
 	ctx := context.Background()
 	promoteToAdmin(t)

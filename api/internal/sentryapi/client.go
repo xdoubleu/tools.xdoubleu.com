@@ -63,10 +63,6 @@ type client struct {
 	mu       sync.Mutex
 	cached   []Issue
 	cachedAt time.Time
-
-	monitorsMu       sync.Mutex
-	monitorsCached   []Monitor
-	monitorsCachedAt time.Time
 }
 
 // New creates a Sentry API client. tokenFn resolves a live OAuth bearer

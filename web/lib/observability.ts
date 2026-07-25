@@ -43,3 +43,19 @@ export function formatCount(count: number | bigint): string {
   const n = typeof count === 'bigint' ? Number(count) : count
   return n.toLocaleString()
 }
+
+// formatDuration renders a millisecond duration compactly.
+export function formatDuration(ms: number | bigint): string {
+  const n = typeof ms === 'bigint' ? Number(ms) : ms
+  if (n < 1000) return `${Math.round(n)} ms`
+  if (n < 60_000) return `${(n / 1000).toFixed(1)} s`
+  return `${(n / 60_000).toFixed(1)} min`
+}
+
+// successRate returns the fraction of successful runs as a 0–100 percentage.
+export function successRate(total: number | bigint, failed: number | bigint): number {
+  const t = typeof total === 'bigint' ? Number(total) : total
+  const f = typeof failed === 'bigint' ? Number(failed) : failed
+  if (t <= 0) return 100
+  return Math.round(((t - f) / t) * 100)
+}
