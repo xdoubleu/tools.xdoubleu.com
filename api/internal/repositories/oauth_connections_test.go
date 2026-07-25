@@ -159,6 +159,26 @@ func TestOAuthConnectionsSetConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 	assert.JSONEq(t, `{"repo":"o/r"}`, string(list[0].Config))
+
+	// Sentry configs carry a repeated "projects" field — regression coverage
+	// for the []byte-vs-jsonb bind pitfall (see comment in SetConfig).
+	require.NoError(t, repo.Upsert(
+		t.Context(),
+		models.OAuthProviderSentry,
+		&oauth2.Token{ //nolint:exhaustruct // other token fields unused in test
+			AccessToken: "sentry-token",
+		},
+		"admin",
+	))
+	require.NoError(t, repo.SetConfig(
+		t.Context(),
+		models.OAuthProviderSentry,
+		[]byte(`{"org":"o","projects":["a","b"]}`),
+	))
+
+	_, conn, err = repo.Get(t.Context(), models.OAuthProviderSentry)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"org":"o","projects":["a","b"]}`, string(conn.Config))
 }
 
 func TestOAuthConnectionsSetConfigRejectsInvalidJSON(t *testing.T) {
