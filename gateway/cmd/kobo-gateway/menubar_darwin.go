@@ -84,6 +84,7 @@ func runUI(
 	stop <-chan struct{},
 	koboEvents <-chan kobogateway.KoboEvent,
 	homeDir, execPath string,
+	firstLaunch bool,
 ) {
 	macos.RunApp(func(app appkit.Application, _ *appkit.ApplicationDelegate) {
 		// Accessory: no Dock icon, no app switcher entry — just the status item.
@@ -91,6 +92,15 @@ func runUI(
 
 		buildStatusItem(release, homeDir, execPath)
 		requestNotificationAuth(execPath)
+
+		// requestNotificationAuth's OS prompt is silent/unreliable in
+		// practice (#456 — it can error out with no visible sign to the
+		// user, see gateway/CLAUDE.md). On a genuine first install, back it
+		// up with our own alert that can't be missed and links straight to
+		// the System Settings pane if the OS one didn't land.
+		if firstLaunch && runningInAppBundle(execPath) {
+			promptEnableNotifications()
+		}
 
 		// macOS can drop a status item's on-screen presence across
 		// sleep/wake even though the Go-side reference (and the retained
@@ -183,6 +193,38 @@ func buildStatusItem(release, homeDir, execPath string) {
 	statusItem.SetMenu(menu)
 
 	applyKoboEvent(lastKoboEvent, release, false)
+}
+
+// notificationSettingsURL deep-links straight to System Settings' Notifications
+// pane — the documented URL scheme for opening a specific settings pane
+// programmatically (there's no public API to jump to a single app's page
+// within it, so this lands one level up).
+const notificationSettingsURL = "x-apple.systempreferences:com.apple.preference.notifications"
+
+// promptEnableNotifications shows a first-launch alert steering the user to
+// enable notifications, backing up requestNotificationAuth's OS prompt —
+// that one can silently error with no visible sign at all (#456, see
+// gateway/CLAUDE.md), so this alert is the guaranteed-visible fallback that
+// actually satisfies "the user was asked." Runs its own nested run loop
+// (Alert.RunModal), safe to call from runUI's setup callback before the
+// main run loop starts spinning.
+func promptEnableNotifications() {
+	defer guard("promptEnableNotifications")
+
+	alert := appkit.NewAlert()
+	alert.SetMessageText("Enable Notifications for Kobo Gateway?")
+	alert.SetInformativeText(
+		"Kobo Gateway can notify you when your Kobo connects or " +
+			"disconnects, and when it updates itself. Enable notifications " +
+			"in System Settings to see these.",
+	)
+	alert.AddButtonWithTitle("Open System Settings")
+	alert.AddButtonWithTitle("Not Now")
+
+	if alert.RunModal() == appkit.AlertFirstButtonReturn {
+		appkit.Workspace_SharedWorkspace().
+			OpenURL(foundation.URL_URLWithString(notificationSettingsURL))
+	}
 }
 
 func refreshLoginItemState(item appkit.MenuItem, homeDir string) {

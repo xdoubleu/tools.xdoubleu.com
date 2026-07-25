@@ -256,6 +256,11 @@ func serve(
 	defer cancelWatch()
 	koboEvents := kobogateway.Watch(watchCtx, cfg.VolumesRoot, koboPollInterval)
 
+	// Read before EnsureInitialLoginItem, which creates the marker this
+	// checks — must capture "never run before" ahead of that call, and
+	// before the headless branch below so go test still exercises it.
+	firstLaunch := kobogateway.IsFirstLaunch(certsDir)
+
 	if headless {
 		<-stop
 	} else {
@@ -273,7 +278,7 @@ func serve(
 			}
 		}
 
-		runUI(cfg.Release, stop, koboEvents, homeDir, execPath)
+		runUI(cfg.Release, stop, koboEvents, homeDir, execPath, firstLaunch)
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(

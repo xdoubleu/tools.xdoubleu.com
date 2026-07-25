@@ -119,6 +119,19 @@ func TestEnsureInitialLoginItemRegistersOnce(t *testing.T) {
 	assert.False(t, kobogateway.LoginItemEnabled(home))
 }
 
+func TestIsFirstLaunch(t *testing.T) {
+	markerDir := t.TempDir()
+	home := t.TempDir()
+
+	assert.True(t, kobogateway.IsFirstLaunch(markerDir))
+
+	require.NoError(t, kobogateway.EnsureInitialLoginItem(
+		markerDir, home, "/usr/local/bin/kobo-gateway",
+	))
+
+	assert.False(t, kobogateway.IsFirstLaunch(markerDir))
+}
+
 func TestEnsureInitialLoginItemMarkerPersists(t *testing.T) {
 	home := t.TempDir()
 	markerDir := t.TempDir()

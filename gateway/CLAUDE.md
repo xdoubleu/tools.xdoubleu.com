@@ -85,6 +85,26 @@ bundle proxy, which is the case for a raw dev binary run outside
 `KoboGateway.app`. `KoboTooltip` prefixes the tooltip with the running
 release so the version is visible on hover without opening the menu.
 
+The OS permission request is not just silent-on-denial but can silently
+*error* with no visible sign at all (#456 — confirmed via `log stream`
+against `com.apple.UserNotifications`: `didGrant: 0 hasError: 1` with no
+completion handler to observe it, no system prompt the user could act on).
+`runUI` backs this up with `promptEnableNotifications` (an `appkit.Alert`,
+gated by `kobogateway.IsFirstLaunch` so it only shows on the very first
+launch — same one-shot marker as `EnsureInitialLoginItem`, read before that
+call creates it): a modal the user can't miss, with a button that opens
+System Settings' Notifications pane directly (`x-apple.systempreferences:`
+URL scheme, the documented way to deep-link a settings pane) via
+`NSWorkspace`.
+
+`server.go`'s self-update lifecycle also notifies through this path —
+`Server.notify` (installed via `SetNotifier`, defaulting to a no-op so
+`internal/kobogateway` itself never depends on AppKit) posts when `POST
+/update` starts and if it fails, since the menu-bar icon disappearing during
+a restart otherwise looks identical to a crash (#456). `cmd/kobo-gateway`
+wires it through a package-level `notify` func var (`notify.go`, nil by
+default) that `menubar_darwin.go`'s `init` points at `postNotification`.
+
 `internal/kobogateway/loginitem.go` manages a `~/Library/LaunchAgents`
 plist (a plain LaunchAgent, not `SMAppService` — the latter needs macOS 13,
 this app's `LSMinimumSystemVersion` is 12.0) so the gateway starts at login.
@@ -116,9 +136,15 @@ bad event doesn't take the whole app down, and reports it to Sentry.
 `reportAndRepanic` (deferred once, in `main`) instead reports then
 re-panics — swallowing a main-thread panic would leave the app running in a
 broken, un-relaunched state, whereas re-panicking exits non-zero and lets
-`KeepAlive` relaunch a fresh process. Neither helper catches the darwinkit
-`SIGABRT` — that's a native abort that bypasses Go's panic machinery
-entirely, and stays covered by `KeepAlive`, not by recovery or reporting.
+`KeepAlive` relaunch a fresh process. `reportFatal` covers the other fatal
+path: a plain error `run()` returns (e.g. a bind failure from a stale
+duplicate process, #562) previously only went to stderr, invisible on a
+console-less menu-bar app — `main` now also reports it to Sentry before
+`os.Exit(1)`, since a returned error is not a panic and `reportAndRepanic`
+never sees it. Neither `guard`/`reportAndRepanic` nor `reportFatal` catches
+the darwinkit `SIGABRT` — that's a native abort that bypasses Go's panic
+machinery entirely, and stays covered by `KeepAlive`, not by recovery or
+reporting.
 
 Crash reporting goes to Sentry (`github.com/getsentry/sentry-go`, the same
 org `web/` already reports to), initialized in `main.go`'s `initSentry` from
@@ -128,9 +154,10 @@ flag), `initSentry` skips `sentry.Init` entirely, so nothing is ever sent
 off a dev machine. `build-gateway.yml` passes the real DSN from the
 `GATEWAY_SENTRY_DSN` repo secret into `make dist`. A Sentry DSN is a
 publishable, send-only key, so baking it into the distributed binary is
-standard for a client app. Scope: Sentry only ever sees pure Go panics
-(everything `guard`/`reportAndRepanic` catch) — never the darwinkit
-`SIGABRT`, which is why `KeepAlive` remains the fix for that class rather
+standard for a client app. Scope: Sentry sees Go panics
+(`guard`/`reportAndRepanic`) and fatal returned errors (`reportFatal`) —
+never the darwinkit `SIGABRT`, which is why `KeepAlive` remains the fix for
+that class rather
 than an enhancement to reporting.
 
 ## Building
