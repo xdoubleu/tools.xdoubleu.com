@@ -195,36 +195,33 @@ jobs:
       # codecov.yml sets `manual_trigger: true`, so Codecov posts no statuses/comment
       # until we tell it to here — once every test job has uploaded. This avoids the
       # stale carried-forward status Codecov used to post off the first upload (#403).
-      # Guarded like the wait below: nothing to trigger when no test job ran.
-      - name: Trigger Codecov notifications
+      # `send-notifications` accepting the call doesn't guarantee Codecov's backend
+      # actually creates the check-runs — it occasionally no-ops (#540) — so this
+      # re-sends the trigger periodically while polling instead of firing it once.
+      # Guarded so there's nothing to trigger or wait for when no test job ran.
+      - name: Trigger and wait for Codecov to report
         if: |
           needs.api-test.result == 'success' ||
           needs.web-test.result == 'success' ||
           needs.gateway-test.result == 'success'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          # PRs: notify on the head commit, not the merge commit github.sha exposes.
+          # PRs: notify/wait on the head commit, not the merge commit github.sha exposes.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           pip install --quiet codecov-cli
-          codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
 
-      - name: Wait for Codecov to report
-        # Only the test jobs upload coverage, so only wait when one of them ran.
-        # If all were skipped, Codecov never posts a status and there is nothing to wait for.
-        if: |
-          needs.api-test.result == 'success' ||
-          needs.web-test.result == 'success' ||
-          needs.gateway-test.result == 'success'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          # PRs: Codecov reports on the head commit, not the merge commit github.sha exposes.
-          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
+          send_notifications() {
+            codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
+          }
+
           # Codecov reports via the Checks API (codecov/patch, codecov/project),
           # not the legacy commit-status API, so poll check-runs.
+          send_notifications
+          last_trigger=$(date +%s)
+          retry_interval=200
           echo "Waiting for Codecov checks on $SHA"
           deadline=$(( $(date +%s) + 600 ))
           while true; do
@@ -233,6 +230,11 @@ jobs:
 
             if [[ -z "$checks" ]]; then
               echo "No Codecov checks yet; waiting..."
+              if (( $(date +%s) - last_trigger >= retry_interval )); then
+                echo "Re-sending Codecov notify trigger..."
+                send_notifications
+                last_trigger=$(date +%s)
+              fi
             else
               echo "$checks"
               if echo "$checks" | grep -qv '=completed:'; then
