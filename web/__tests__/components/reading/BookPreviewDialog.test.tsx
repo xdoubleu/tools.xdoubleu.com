@@ -1,10 +1,16 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 
 const mockUseGetBookFile = jest.fn()
 const mockUseKEPUBStatus = jest.fn()
 const mockRequestConversion = jest.fn()
 const mockUseRequestKEPUBConversion = jest.fn(() => mockRequestConversion)
+const mockMutate = jest.fn()
+
+jest.mock('swr', () => ({
+  ...jest.requireActual('swr'),
+  mutate: (...args: unknown[]) => mockMutate(...args)
+}))
 
 jest.mock('next/dynamic', () => () => {
   // Return a stub component synchronously so tests don't need async import resolution.
@@ -61,6 +67,7 @@ describe('BookPreviewDialog', () => {
     mockUseKEPUBStatus.mockReset()
     mockRequestConversion.mockReset()
     mockUseRequestKEPUBConversion.mockClear()
+    mockMutate.mockReset()
     setupPdfEpubMocks()
   })
 
@@ -279,6 +286,24 @@ describe('BookPreviewDialog', () => {
         />
       )
       expect(mockUseKEPUBStatus).toHaveBeenCalledWith(BOOK_ID)
+    })
+
+    it('revalidates KEPUB status once conversion request resolves, so the poll picks up completion (#393)', async () => {
+      mockUseKEPUBStatus.mockReturnValue({ data: { kepubStatus: '' } })
+      mockUseGetBookFile.mockReturnValue({ data: null, error: null })
+      render(
+        <BookPreviewDialog
+          bookId={BOOK_ID}
+          format="kepub"
+          title={TITLE}
+          open={true}
+          onOpenChange={jest.fn()}
+        />
+      )
+      await waitFor(() => expect(mockRequestConversion).toHaveBeenCalledWith(BOOK_ID))
+      await waitFor(() =>
+        expect(mockMutate).toHaveBeenCalledWith(['/reading/kepub-status', BOOK_ID])
+      )
     })
 
     it('passes null to useKEPUBStatus when dialog is closed', () => {
