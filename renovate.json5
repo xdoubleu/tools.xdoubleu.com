@@ -81,6 +81,15 @@
         'connectrpc/connect-go',
       ],
     },
+    {
+      groupName: 'typescript',
+      matchDepNames: [
+        'typescript',
+        'typescript-eslint',
+        '@typescript-eslint/eslint-plugin',
+        '@typescript-eslint/parser',
+      ],
+    },
   ],
   timezone: 'Europe/Brussels',
   labels: [
@@ -91,6 +100,7 @@
   ],
   minimumReleaseAge: '3 days',
   internalChecksFilter: 'strict',
+  constraintsFiltering: 'strict',
   automerge: true,
   automergeType: 'pr',
   platformAutomerge: true,
