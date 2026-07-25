@@ -74,7 +74,15 @@ test/pprof:
 
 test/cov/report:
 	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
-	cat coverage.out.tmp | grep -v "_mock.go" | grep -v "/gen/" > coverage.out
+	cat coverage.out.tmp | grep -v "_mock.go" | grep -v "/gen/" > coverage.out.filtered
+	echo "mode: set" > coverage.out
+	# -coverpkg spans every package, so most test binaries never execute
+	# cmd/api/internal code and each writes a duplicate count=0 block for the
+	# same lines the owning package's binary reports count=1 for. go tool cover
+	# OR-merges duplicates locally, but Codecov's parser doesn't, so it
+	# misreports genuinely covered lines as partial/missed. Keep the highest
+	# count per line before uploading.
+	tail -n +2 coverage.out.filtered | sort -t' ' -k1,1 -k3,3rn | awk '!seen[$$1]++' >> coverage.out
 
 test/cov: test/cov/report
 	go tool cover -html=coverage.out -o=coverage.html
