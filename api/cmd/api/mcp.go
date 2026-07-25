@@ -173,9 +173,9 @@ func (app *Application) newMonitoringMCPServer() *mcp.Server {
 	}, nil)
 
 	addObsTool(srv, "get_job_stats",
-		"Background job cron-monitor status via Sentry Cron Monitoring.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.jobStats(ctx), nil
+		"Background job run statistics and recent runs (global.job_runs).",
+		func(ctx context.Context, a windowArgs) (proto.Message, error) {
+			return h.jobStats(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_usage_stats",
 		"Per-day request counts by app and endpoint (global.usage_daily).",

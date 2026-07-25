@@ -7,49 +7,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
+
+	"tools.xdoubleu.com/internal/models"
 )
 
-// fakeTransport captures every event sentry.Client would otherwise send, so
-// tests can assert on the check-ins TrackedJob produces without a network
-// call.
-type fakeTransport struct {
-	events []*sentry.Event
+type fakeInserter struct {
+	runs      []models.JobRun
+	insertErr error
 }
 
-func (f *fakeTransport) Flush(time.Duration) bool              { return true }
-func (f *fakeTransport) FlushWithContext(context.Context) bool { return true }
-func (f *fakeTransport) Configure(sentry.ClientOptions)        {}
-func (f *fakeTransport) Close()                                {}
-func (f *fakeTransport) SendEvent(event *sentry.Event) {
-	f.events = append(f.events, event)
-}
-
-// checkIns returns the CheckIn payload of every captured event, in order.
-func (f *fakeTransport) checkIns() []*sentry.CheckIn {
-	checkIns := make([]*sentry.CheckIn, 0, len(f.events))
-	for _, e := range f.events {
-		checkIns = append(checkIns, e.CheckIn)
-	}
-	return checkIns
-}
-
-// testHubContext builds a context carrying a hub bound to a fake transport,
-// so TrackedJob's check-ins are captured instead of sent over the network.
-func testHubContext(t *testing.T) (context.Context, *fakeTransport) {
-	t.Helper()
-	transport := &fakeTransport{events: nil}
-	//nolint:exhaustruct // only Dsn/Transport matter for this test client
-	client, err := sentry.NewClient(sentry.ClientOptions{
-		Dsn:       "https://public@example.com/1",
-		Transport: transport,
-	})
-	require.NoError(t, err)
-	hub := sentry.NewHub(client, sentry.NewScope())
-	return sentry.SetHubOnContext(t.Context(), hub), transport
+func (f *fakeInserter) Insert(_ context.Context, run models.JobRun) error {
+	f.runs = append(f.runs, run)
+	return f.insertErr
 }
 
 type fakeJob struct {
@@ -68,62 +40,62 @@ func (f fakeJob) Run(_ context.Context, _ *slog.Logger) error {
 	return f.err
 }
 
+func newTestTrackedJob(inner fakeJob, repo *fakeInserter) *TrackedJob {
+	return &TrackedJob{inner: inner, repo: repo}
+}
+
 func TestTrackedJobDelegates(t *testing.T) {
-	job := NewTrackedJob(fakeJob{err: nil, panics: false})
+	job := newTestTrackedJob(
+		fakeJob{err: nil, panics: false},
+		&fakeInserter{runs: nil, insertErr: nil},
+	)
 
 	assert.Equal(t, "fake", job.ID())
 	assert.Equal(t, time.Hour, job.RunEvery())
 }
 
 func TestTrackedJobRecordsSuccess(t *testing.T) {
-	ctx, transport := testHubContext(t)
-	job := NewTrackedJob(fakeJob{err: nil, panics: false})
+	repo := &fakeInserter{runs: nil, insertErr: nil}
+	job := newTestTrackedJob(fakeJob{err: nil, panics: false}, repo)
 
-	err := job.Run(ctx, logging.NewNopLogger())
+	err := job.Run(t.Context(), logging.NewNopLogger())
 	require.NoError(t, err)
 
-	checkIns := transport.checkIns()
-	require.Len(t, checkIns, 2, "in_progress, then ok")
-	assert.Equal(t, sentry.CheckInStatusInProgress, checkIns[0].Status)
-	assert.Equal(t, sentry.CheckInStatusOK, checkIns[1].Status)
-	assert.Equal(t, "fake", checkIns[1].MonitorSlug)
-	assert.Equal(
-		t,
-		checkIns[0].ID,
-		checkIns[1].ID,
-		"second check-in must link to the first",
-	)
+	require.Len(t, repo.runs, 1)
+	assert.Equal(t, "fake", repo.runs[0].JobID)
+	assert.True(t, repo.runs[0].Success)
+	assert.Empty(t, repo.runs[0].Error)
+	assert.WithinDuration(t, time.Now(), repo.runs[0].StartedAt, time.Second)
 }
 
 func TestTrackedJobRecordsFailure(t *testing.T) {
-	ctx, transport := testHubContext(t)
-	job := NewTrackedJob(fakeJob{err: errors.New("boom"), panics: false})
+	repo := &fakeInserter{runs: nil, insertErr: nil}
+	job := newTestTrackedJob(fakeJob{err: errors.New("boom"), panics: false}, repo)
 
-	err := job.Run(ctx, logging.NewNopLogger())
+	err := job.Run(t.Context(), logging.NewNopLogger())
 	require.EqualError(t, err, "boom")
 
-	checkIns := transport.checkIns()
-	require.Len(t, checkIns, 2)
-	assert.Equal(t, sentry.CheckInStatusError, checkIns[1].Status)
+	require.Len(t, repo.runs, 1)
+	assert.False(t, repo.runs[0].Success)
+	assert.Equal(t, "boom", repo.runs[0].Error)
 }
 
 func TestTrackedJobRecoversPanic(t *testing.T) {
-	ctx, transport := testHubContext(t)
-	job := NewTrackedJob(fakeJob{err: nil, panics: true})
+	repo := &fakeInserter{runs: nil, insertErr: nil}
+	job := newTestTrackedJob(fakeJob{err: nil, panics: true}, repo)
 
-	err := job.Run(ctx, logging.NewNopLogger())
+	err := job.Run(t.Context(), logging.NewNopLogger())
 	require.ErrorContains(t, err, "kaboom")
 
-	checkIns := transport.checkIns()
-	require.Len(t, checkIns, 2)
-	assert.Equal(t, sentry.CheckInStatusError, checkIns[1].Status)
+	require.Len(t, repo.runs, 1)
+	assert.False(t, repo.runs[0].Success)
+	assert.Contains(t, repo.runs[0].Error, "kaboom")
 }
 
-func TestTrackedJobNoHubInContext(t *testing.T) {
-	job := NewTrackedJob(fakeJob{err: nil, panics: false})
+func TestTrackedJobInsertFailureDoesNotFailJob(t *testing.T) {
+	repo := &fakeInserter{runs: nil, insertErr: errors.New("db down")}
+	job := newTestTrackedJob(fakeJob{err: nil, panics: false}, repo)
 
-	// No hub on ctx and no global client configured: CaptureCheckIn is a
-	// no-op both times, including the nil-ID second call — must not panic.
-	err := job.Run(context.Background(), logging.NewNopLogger())
-	require.NoError(t, err)
+	err := job.Run(t.Context(), logging.NewNopLogger())
+	assert.NoError(t, err)
 }

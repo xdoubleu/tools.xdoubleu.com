@@ -28,34 +28,38 @@ jest.mock('recharts', () => {
 })
 
 describe('JobsCard', () => {
-  it('renders job monitor status', () => {
+  it('renders job stats and recent failures', () => {
     const data = create(GetJobStatsResponseSchema, {
-      monitors: [
+      stats: [
         {
-          slug: 'steam',
-          status: 'error',
-          lastCheckIn: '2026-01-01T10:00:00Z',
-          nextCheckIn: '2026-01-01T11:00:00Z'
+          jobId: 'steam',
+          totalRuns: 10n,
+          failedRuns: 2n,
+          avgDurationMs: 1200n,
+          lastRunAt: '2026-01-01T10:00:00Z'
         }
       ],
-      configured: true,
-      failingCount: 1
+      recentRuns: [
+        {
+          jobId: 'steam',
+          startedAt: '2026-01-01T10:00:00Z',
+          durationMs: 1200n,
+          success: false,
+          error: 'steam api unreachable'
+        }
+      ]
     })
 
     render(<JobsCard data={data} />)
-    expect(screen.getByText('steam')).toBeInTheDocument()
-    expect(screen.getByText('error')).toBeInTheDocument()
-  })
-
-  it('shows a not-configured state', () => {
-    const data = create(GetJobStatsResponseSchema, { configured: false })
-    render(<JobsCard data={data} />)
-    expect(screen.getByText('Sentry is not configured.')).toBeInTheDocument()
+    // "steam" appears in both the stats table and the failures list.
+    expect(screen.getAllByText('steam').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('steam api unreachable')).toBeInTheDocument()
+    expect(screen.getByText('80%')).toBeInTheDocument()
   })
 
   it('shows an empty state without data', () => {
     render(<JobsCard data={undefined} />)
-    expect(screen.getByText('No job monitors recorded.')).toBeInTheDocument()
+    expect(screen.getByText('No job runs recorded.')).toBeInTheDocument()
   })
 })
 

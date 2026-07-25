@@ -2,6 +2,25 @@ package models
 
 import "time"
 
+// JobRun is one execution of a background job.
+type JobRun struct {
+	JobID      string
+	StartedAt  time.Time
+	DurationMs int64
+	Success    bool
+	// Error is empty when the run succeeded.
+	Error string
+}
+
+// JobStats aggregates the runs of one job over a time window.
+type JobStats struct {
+	JobID         string
+	TotalRuns     int64
+	FailedRuns    int64
+	AvgDurationMs int64
+	LastRunAt     time.Time
+}
+
 // UsageEntry is one (day, app, endpoint) request counter.
 type UsageEntry struct {
 	Day      time.Time

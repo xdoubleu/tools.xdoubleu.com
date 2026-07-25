@@ -23,7 +23,7 @@ const mockUseDeployStatus = jest.fn()
 const mockUseOAuthConnections = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
-  useJobStats: () => mockUseJobStats(),
+  useJobStats: (d: number) => mockUseJobStats(d),
   useUsageStats: (d: number) => mockUseUsageStats(d),
   useStorageStats: () => mockUseStorageStats(),
   useTriggerStorageScan: () => mockTriggerStorageScan,
@@ -52,7 +52,7 @@ beforeEach(() => {
   mockMutate.mockResolvedValue(undefined)
   mockTriggerStorageScan.mockResolvedValue(undefined)
   mockUseJobStats.mockReturnValue({
-    data: create(GetJobStatsResponseSchema, { monitors: [], configured: true, failingCount: 0 }),
+    data: create(GetJobStatsResponseSchema, { stats: [], recentRuns: [] }),
     mutate: mockMutate
   })
   mockUseUsageStats.mockReturnValue({ data: undefined, mutate: mockMutate })
@@ -129,11 +129,12 @@ describe('ObservabilityClient', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3)
   })
 
-  it('refetches usage stats when the window changes', () => {
+  it('refetches job/usage stats when the window changes', () => {
     render(<ObservabilityClient />)
-    expect(mockUseUsageStats).toHaveBeenCalledWith(30)
+    expect(mockUseJobStats).toHaveBeenCalledWith(30)
 
     fireEvent.change(screen.getByLabelText('Time window'), { target: { value: '7' } })
+    expect(mockUseJobStats).toHaveBeenCalledWith(7)
     expect(mockUseUsageStats).toHaveBeenCalledWith(7)
   })
 
