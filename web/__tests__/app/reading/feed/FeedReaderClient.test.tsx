@@ -26,11 +26,12 @@ jest.mock('swr', () => ({
 }))
 
 import FeedReaderClient from '@/app/reading/feed/FeedReaderClient'
-import { useLibrary } from '@/hooks/useBooks'
+import { useLibrary, useGetBookContent } from '@/hooks/useBooks'
 import { useFeedItemBooks } from '@/hooks/useBookFeeds'
 
 const mockUseLibrary = jest.mocked(useLibrary)
 const mockUseFeedItemBooks = jest.mocked(useFeedItemBooks)
+const mockUseGetBookContent = jest.mocked(useGetBookContent)
 
 function rssItem(id: string, title: string, status = 'to-read', addedAt = '2026-01-01T00:00:00Z') {
   return create(UserBookSchema, {
@@ -40,7 +41,12 @@ function rssItem(id: string, title: string, status = 'to-read', addedAt = '2026-
     addedAt,
     tags: [],
     formats: [],
-    book: create(BookSchema, { title, authors: [], sourceUrl: `https://example.com/${id}` })
+    book: create(BookSchema, {
+      id: `book-${id}`,
+      title,
+      authors: [],
+      sourceUrl: `https://example.com/${id}`
+    })
   })
 }
 
@@ -158,5 +164,14 @@ describe('FeedReaderClient', () => {
     mockData([noSource])
     render(<FeedReaderClient />)
     expect(screen.getByText('No Source Post').tagName).toBe('BUTTON')
+  })
+
+  it('opens the in-app reader dialog when the title is clicked', () => {
+    mockData([rssItem('1', 'Click Me Post')])
+    render(<FeedReaderClient />)
+
+    expect(mockUseGetBookContent).toHaveBeenCalledWith(null)
+    fireEvent.click(screen.getByRole('button', { name: 'Click Me Post' }))
+    expect(mockUseGetBookContent).toHaveBeenCalledWith('book-1')
   })
 })

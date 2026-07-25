@@ -115,8 +115,10 @@ jest.mock('swr', () => ({
 }))
 
 import BookDetailClient from '@/app/reading/[id]/BookDetailClient'
-import { useLibrary } from '@/hooks/useBooks'
+import { useLibrary, useGetBookContent } from '@/hooks/useBooks'
 import { useCurrentUser } from '@/hooks/useAuth'
+
+const mockUseGetBookContent = jest.mocked(useGetBookContent)
 
 const mockBook = create(BookSchema, {
   id: 'book-1',
@@ -434,5 +436,25 @@ describe('BookDetailClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove from library' }))
     fireEvent.click(screen.getByText('Confirm remove'))
     expect(mockRouterPush).toHaveBeenCalledWith('/reading/library')
+  })
+
+  it('opens the in-app article reader when Read in app is clicked', () => {
+    const rssBook = create(UserBookSchema, {
+      ...mockUserBook,
+      book: create(BookSchema, { ...mockBook, sourceUrl: 'https://example.com/article' })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([rssBook]),
+      isLoading: false,
+      error: undefined
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseGetBookContent.mockReturnValue({ data: undefined, error: undefined })
+    render(<BookDetailClient id="ub-1" />)
+
+    expect(mockUseGetBookContent).toHaveBeenCalledWith(null)
+    fireEvent.click(screen.getByRole('button', { name: 'Read in app' }))
+    expect(mockUseGetBookContent).toHaveBeenCalledWith('book-1')
   })
 })
