@@ -61,6 +61,13 @@ var (
 	lastKoboEvent kobogateway.KoboEvent
 )
 
+// init wires the platform-agnostic notify seam (see notify.go) to the real
+// UNUserNotificationCenter call, so server.go's self-update lifecycle
+// notifications (#456) actually reach the menu bar on macOS.
+func init() {
+	notify = postNotification
+}
+
 // notifyAuthOnce guards requesting notification authorization: it only
 // needs to happen once per process, regardless of how many times the status
 // item is rebuilt.

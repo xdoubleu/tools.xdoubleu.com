@@ -56,6 +56,7 @@ type Server struct {
 	cfg     Config
 	updater UpdateRunner
 	restart chan struct{}
+	notify  func(title, body string)
 }
 
 // NewServer builds a Server; updater handles POST /update.
@@ -64,6 +65,19 @@ func NewServer(cfg Config, updater UpdateRunner) *Server {
 		cfg:     cfg,
 		updater: updater,
 		restart: make(chan struct{}, 1),
+		notify:  func(string, string) {},
+	}
+}
+
+// SetNotifier installs fn to surface self-update lifecycle events as
+// menu-bar notifications (see cmd/kobo-gateway's notify var) — otherwise a
+// user watching the reading settings page only sees the menu-bar icon
+// vanish during the restart with no indication whether that's expected or a
+// crash (#456). A nil fn is ignored, leaving the no-op default from
+// NewServer in place.
+func (s *Server) SetNotifier(fn func(title, body string)) {
+	if fn != nil {
+		s.notify = fn
 	}
 }
 
@@ -247,8 +261,11 @@ func (s *Server) updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.notify("Kobo Gateway", "Updating to the latest version…")
+
 	err := s.updater.SelfUpdate(r.Context(), origin)
 	if err != nil {
+		s.notify("Kobo Gateway", fmt.Sprintf("Update failed: %v", err))
 		writeError(w, http.StatusInternalServerError, err.Error())
 
 		return

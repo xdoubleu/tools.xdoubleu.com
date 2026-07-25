@@ -61,6 +61,12 @@ func main() {
 
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		// A menu-bar app has no visible console, so without this a fatal
+		// exit (e.g. a bind failure from a stale duplicate process — #562)
+		// leaves zero trace anywhere the user or developer can see. Distinct
+		// from reportAndRepanic: this is a plain error return, not a panic.
+		sentry.CurrentHub().CaptureException(err)
+		sentry.Flush(sentryFlushTimeout)
 		os.Exit(1)
 	}
 }
@@ -154,7 +160,10 @@ func run(args []string, stdout io.Writer) error {
 		Release:     Release,
 	}
 
-	return serve(kobogateway.NewServer(cfg, updater), cfg, stdout)
+	gateway := kobogateway.NewServer(cfg, updater)
+	gateway.SetNotifier(notify)
+
+	return serve(gateway, cfg, stdout)
 }
 
 func update(updater *kobogateway.Updater, origin string, stdout io.Writer) error {
