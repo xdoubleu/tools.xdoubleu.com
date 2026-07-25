@@ -98,7 +98,7 @@ a **read-only** MCP server (streamable-HTTP) at `/monitoring/mcp`. The tools wra
 only the `ObservabilityService` read methods — no write RPC is reachable, so the
 server is read-only by construction. Tools: `get_job_stats`, `get_usage_stats`,
 `get_storage_stats`, `get_database_stats`, `get_github_issues`,
-`get_sentry_issues`, `get_deploy_status`.
+`get_failing_pull_requests`, `get_sentry_issues`, `get_deploy_status`.
 
 Point a local Claude Code at it (OAuth is handled automatically — no header):
 

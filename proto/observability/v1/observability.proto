@@ -11,6 +11,8 @@ service ObservabilityService {
   rpc GetDatabaseStats(GetDatabaseStatsRequest)
       returns (GetDatabaseStatsResponse);
   rpc GetGithubIssues(GetGithubIssuesRequest) returns (GetGithubIssuesResponse);
+  rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
+      returns (GetFailingPullRequestsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
   rpc GetHealthOverview(GetHealthOverviewRequest)
@@ -124,6 +126,35 @@ message GetGithubIssuesResponse {
   repeated GithubIssue issues = 1;
   bool configured = 2;
   int32 open_count = 3;
+}
+
+// FailingCheck is a single non-passing CI check run on a pull request's head
+// commit.
+message FailingCheck {
+  string name = 1;
+  string conclusion = 2;  // "failure" | "timed_out" | "cancelled" | "action_required"
+  string url = 3;
+}
+
+// FailingPullRequest is an open pull request with at least one failing check.
+message FailingPullRequest {
+  int64 number = 1;
+  string title = 2;
+  string url = 3;
+  string author = 4;
+  string updated_at = 5;  // RFC3339
+  repeated FailingCheck failing_checks = 6;
+}
+
+message GetFailingPullRequestsRequest {}
+
+// GetFailingPullRequestsResponse carries the failing pull requests. configured
+// is false when no GitHub token/repo is set — the section is degraded, not
+// failed.
+message GetFailingPullRequestsResponse {
+  repeated FailingPullRequest pull_requests = 1;
+  bool configured = 2;
+  int32 failing_count = 3;
 }
 
 // SentryIssue is a single unresolved issue on one of the configured

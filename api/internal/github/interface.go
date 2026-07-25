@@ -11,11 +11,15 @@ import (
 var ErrNotConfigured = errors.New("github: not configured")
 
 // Client is the subset of the GitHub REST API used for observability: the list
-// of open issues on the configured repository.
+// of open issues and failing pull requests on the configured repository.
 type Client interface {
 	// ListOpenIssues returns the open issues (pull requests excluded) of the
 	// configured repository. Returns ErrNotConfigured when no token/repo is set.
 	ListOpenIssues(ctx context.Context) ([]Issue, error)
+	// ListFailingPullRequests returns the open pull requests that have at
+	// least one failing CI check run on their head commit. Returns
+	// ErrNotConfigured when no token/repo is set.
+	ListFailingPullRequests(ctx context.Context) ([]PullRequest, error)
 	// ListRepos returns the repositories visible to the connected account,
 	// for the admin config picker. Returns oauthconn.ErrNotConnected when no
 	// token is set — discovery must work before a repo is picked.

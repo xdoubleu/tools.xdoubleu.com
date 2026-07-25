@@ -153,6 +153,99 @@ func callGithub(
 	return observabilityClient(t).GetGithubIssues(context.Background(), req)
 }
 
+// --- Failing pull requests ---
+
+func TestObservabilityGetFailingPullRequests_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Path {
+			case "/repos/o/r/pulls":
+				_, _ = w.Write([]byte(`[
+					{"number":3,"title":"Broken","html_url":"u",
+					 "updated_at":"2026-07-01T00:00:00Z",
+					 "user":{"login":"alice"},"head":{"sha":"sha1"}}
+				]`))
+			case "/repos/o/r/commits/sha1/check-runs":
+				_, _ = w.Write([]byte(`{"check_runs":[
+					{"name":"ci-pass","status":"completed","conclusion":"failure",
+					 "html_url":"u"}
+				]}`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callFailingPullRequests(t)
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Configured)
+	require.Len(t, resp.Msg.PullRequests, 1)
+	assert.Equal(t, int64(3), resp.Msg.PullRequests[0].Number)
+	assert.Equal(t, "alice", resp.Msg.PullRequests[0].Author)
+	require.Len(t, resp.Msg.PullRequests[0].FailingChecks, 1)
+	assert.Equal(t, int32(1), resp.Msg.FailingCount)
+}
+
+func TestObservabilityGetFailingPullRequests_NotConfigured(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		configNotConnected(),
+	)
+
+	resp, err := callFailingPullRequests(t)
+	require.NoError(t, err)
+	assert.False(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.PullRequests)
+}
+
+func TestObservabilityGetFailingPullRequests_UpstreamError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusInternalServerError, ``)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callFailingPullRequests(t)
+	require.NoError(t, err) // degraded, never a failed response
+	assert.True(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.PullRequests)
+}
+
+func TestObservabilityGetFailingPullRequests_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callFailingPullRequests(t)
+	requirePermissionDenied(t, err)
+}
+
+func callFailingPullRequests(
+	t *testing.T,
+) (*connect.Response[observabilityv1.GetFailingPullRequestsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetFailingPullRequestsRequest{})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetFailingPullRequests(context.Background(), req)
+}
+
 // --- Sentry ---
 
 func TestObservabilityGetSentryIssues_AsAdmin(t *testing.T) {
