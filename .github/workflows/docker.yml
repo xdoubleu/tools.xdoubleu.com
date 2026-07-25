@@ -38,7 +38,7 @@ jobs:
     outputs:
       built: ${{ steps.build.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v3
 
@@ -82,7 +82,7 @@ jobs:
     outputs:
       built: ${{ steps.build.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # kobo-gateway.dmg + the raw binary, built on macOS by build-gateway
       # above (see gateway/cmd/kobo-gateway/menubar_darwin.go for why). The
