@@ -33,6 +33,8 @@ jobs:
               - 'web/**'
             proto:
               - 'proto/**'
+              - 'api/buf.gen.yaml'
+              - 'web/buf.gen.yaml'
             workflows:
               - '.github/workflows/**'
             # The kobo-gateway binary ships inside the WEB image (served as
