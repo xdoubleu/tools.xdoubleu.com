@@ -4,6 +4,8 @@ import { useCallback, useMemo, useState } from 'react'
 import { useLibrary } from '@/hooks/useBooks'
 import { useFeedItemBooks } from '@/hooks/useBookFeeds'
 import FeedItemMarkReadButton from '@/components/reading/FeedItemMarkReadButton'
+import ArticleReaderDialog from '@/components/reading/ArticleReaderDialog'
+import { Button } from '@/components/ui/button'
 import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
 
 export default function FeedReaderClient() {
@@ -59,27 +61,32 @@ interface FeedReaderRowProps {
 
 function FeedReaderRow({ userBook, feedTitle, onSettled }: FeedReaderRowProps) {
   const book = userBook.book
+  const [readerOpen, setReaderOpen] = useState(false)
   if (!book) return null
 
   return (
     <li className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card">
       <div className="min-w-0 flex-1">
-        {book.sourceUrl ? (
-          <a
-            href={book.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-sm leading-snug hover:text-accent"
-          >
-            {book.title}
-          </a>
-        ) : (
-          <span className="font-semibold text-sm leading-snug">{book.title}</span>
-        )}
+        <Button
+          type="button"
+          variant="link"
+          onClick={() => setReaderOpen(true)}
+          className="h-auto p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
+        >
+          {book.title}
+        </Button>
         {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
       </div>
 
       <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />
+
+      <ArticleReaderDialog
+        bookId={book.id}
+        title={book.title}
+        sourceUrl={book.sourceUrl}
+        open={readerOpen}
+        onOpenChange={setReaderOpen}
+      />
     </li>
   )
 }

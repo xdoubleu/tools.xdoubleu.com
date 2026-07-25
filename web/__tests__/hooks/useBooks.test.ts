@@ -22,6 +22,7 @@ jest.mock('@/lib/client', () => ({
     listKoboDevices: jest.fn().mockResolvedValue({ devices: [] }),
     disconnectKoboDevice: jest.fn().mockResolvedValue({}),
     getBookFile: jest.fn().mockResolvedValue({ url: 'https://r2.example.com/file.pdf' }),
+    getBookContent: jest.fn().mockResolvedValue({ html: '<p>Body</p>' }),
     searchLibrary: jest.fn().mockResolvedValue({ books: [] }),
     searchExternal: jest.fn().mockResolvedValue({ results: [] }),
     setBookISBN: jest.fn().mockResolvedValue({}),
@@ -62,6 +63,7 @@ import {
   useRequestKEPUBConversion,
   useKEPUBStatus,
   useGetBookFile,
+  useGetBookContent,
   useRegisterKoboDevice,
   useListKoboDevices,
   useDisconnectKoboDevice,
@@ -657,6 +659,28 @@ describe('useGetBookFile', () => {
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockGetFile).toHaveBeenCalledWith({ bookId: 'book-xyz', format: 'epub' })
+  })
+})
+
+describe('useGetBookContent', () => {
+  it('uses null key when bookId is null', () => {
+    renderHook(() => useGetBookContent(null))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+  })
+
+  it('uses the book content key when bookId is provided', () => {
+    renderHook(() => useGetBookContent('book-abc'))
+    expect(mockUseSWR).toHaveBeenCalledWith(['/reading/content', 'book-abc'], expect.any(Function))
+  })
+
+  it('fetcher calls client.getBookContent with bookId', async () => {
+    const mockGetContent = jest.fn().mockResolvedValue({ html: '<p>Body</p>' })
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ getBookContent: mockGetContent })
+    renderHook(() => useGetBookContent('book-abc'))
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockGetContent).toHaveBeenCalledWith({ bookId: 'book-abc' })
   })
 })
 

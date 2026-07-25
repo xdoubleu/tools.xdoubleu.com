@@ -16,7 +16,8 @@ jest.mock('@/hooks/useBookFeeds', () => ({
 const mockUpdateBookStatus = jest.fn()
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
-  useUpdateBookStatus: () => mockUpdateBookStatus
+  useUpdateBookStatus: () => mockUpdateBookStatus,
+  useGetBookContent: jest.fn(() => ({ data: undefined, error: undefined }))
 }))
 
 jest.mock('swr', () => ({
@@ -25,11 +26,12 @@ jest.mock('swr', () => ({
 }))
 
 import FeedReaderClient from '@/app/reading/feed/FeedReaderClient'
-import { useLibrary } from '@/hooks/useBooks'
+import { useLibrary, useGetBookContent } from '@/hooks/useBooks'
 import { useFeedItemBooks } from '@/hooks/useBookFeeds'
 
 const mockUseLibrary = jest.mocked(useLibrary)
 const mockUseFeedItemBooks = jest.mocked(useFeedItemBooks)
+const mockUseGetBookContent = jest.mocked(useGetBookContent)
 
 function rssItem(id: string, title: string, status = 'to-read', addedAt = '2026-01-01T00:00:00Z') {
   return create(UserBookSchema, {
@@ -39,7 +41,12 @@ function rssItem(id: string, title: string, status = 'to-read', addedAt = '2026-
     addedAt,
     tags: [],
     formats: [],
-    book: create(BookSchema, { title, authors: [], sourceUrl: `https://example.com/${id}` })
+    book: create(BookSchema, {
+      id: `book-${id}`,
+      title,
+      authors: [],
+      sourceUrl: `https://example.com/${id}`
+    })
   })
 }
 
@@ -101,7 +108,7 @@ describe('FeedReaderClient', () => {
       rssItem('2', 'Newer Post', 'to-read', '2026-01-02T00:00:00Z')
     ])
     render(<FeedReaderClient />)
-    const titles = screen.getAllByRole('link').map((el) => el.textContent)
+    const titles = screen.getAllByRole('button', { name: /Post/ }).map((el) => el.textContent)
     expect(titles).toEqual(['Newer Post', 'Older Post'])
   })
 
@@ -151,11 +158,20 @@ describe('FeedReaderClient', () => {
     jest.useRealTimers()
   })
 
-  it('renders a non-linked title when the item has no source URL', () => {
+  it('renders the title as an in-app reader button even without a source URL', () => {
     const noSource = rssItem('1', 'No Source Post')
     noSource.book!.sourceUrl = ''
     mockData([noSource])
     render(<FeedReaderClient />)
-    expect(screen.getByText('No Source Post').tagName).toBe('SPAN')
+    expect(screen.getByText('No Source Post').tagName).toBe('BUTTON')
+  })
+
+  it('opens the in-app reader dialog when the title is clicked', () => {
+    mockData([rssItem('1', 'Click Me Post')])
+    render(<FeedReaderClient />)
+
+    expect(mockUseGetBookContent).toHaveBeenCalledWith(null)
+    fireEvent.click(screen.getByRole('button', { name: 'Click Me Post' }))
+    expect(mockUseGetBookContent).toHaveBeenCalledWith('book-1')
   })
 })

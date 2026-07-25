@@ -362,13 +362,26 @@ func (s *FeedService) ingestItemContent(
 		return s.ingestMetadataOnly(ctx, feed.UserID, content)
 	}
 
+	var ub *models.UserBook
 	if feed.KoboSync {
-		return s.ingest.IngestArticleContent(ctx, feed.UserID, content)
+		ub, err = s.ingest.IngestArticleContent(ctx, feed.UserID, content)
+	} else {
+		// Feed not opted into Kobo sync: skip the EPUB build (Calibre
+		// subprocess) and just track the item; Add-by-URL or a later
+		// kobo_sync toggle can convert it if needed.
+		ub, err = s.ingestMetadataOnly(ctx, feed.UserID, content)
 	}
-	// Feed not opted into Kobo sync: skip the EPUB build (Calibre subprocess)
-	// and just track the item; Add-by-URL or a later kobo_sync toggle can
-	// convert it if needed.
-	return s.ingestMetadataOnly(ctx, feed.UserID, content)
+	if err != nil {
+		return nil, err
+	}
+
+	// Persist the extracted HTML for in-app reading regardless of whether an
+	// EPUB was built — the EPUB pipeline only ever used it transiently.
+	if setErr := s.books.SetContentHTML(ctx, ub.BookID, content.HTML); setErr != nil {
+		s.logger.WarnContext(ctx, "failed to store article content html",
+			"bookID", ub.BookID, "error", setErr)
+	}
+	return ub, nil
 }
 
 // enrichFromLinkedPage fills the missing content fields by fetching and

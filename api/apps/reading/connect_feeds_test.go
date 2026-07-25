@@ -171,6 +171,14 @@ func TestCreateFeed_ImportsCurrentContents(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.False(t, statusResult.HasEPUB)
+
+	// #563: the extracted HTML is persisted for in-app reading even though
+	// no EPUB was built.
+	html, err := testApp.Services.Books.GetContentHTML(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.Contains(t, html, "Lorem ipsum")
 }
 
 func TestCreateFeed_DuplicateAndInvalid(t *testing.T) {
@@ -286,6 +294,14 @@ func TestCreateFeed_KoboSync_EndToEnd(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "feed item must appear in the Kobo sync library")
+
+	// #563: the extracted HTML is also persisted for in-app reading,
+	// independent of the EPUB built above.
+	html, err := testApp.Services.Books.GetContentHTML(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.Contains(t, html, "Lorem ipsum")
 }
 
 func TestUpdateListDeleteFeed(t *testing.T) {
@@ -628,4 +644,10 @@ func TestFeedItemWithoutContent_TracksMetadataOnly(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, statusResult.HasEPUB)
 	assert.False(t, statusResult.HasPDF)
+
+	html, err := testApp.Services.Books.GetContentHTML(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.Empty(t, html)
 }

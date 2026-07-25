@@ -409,3 +409,33 @@ func (h *booksConnectHandler) GetReadingState(
 		State: protoState,
 	}), nil
 }
+
+func (h *booksConnectHandler) GetBookContent(
+	ctx context.Context,
+	req *connect.Request[readingv1.GetBookContentRequest],
+) (*connect.Response[readingv1.GetBookContentResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	html, err := h.app.Services.Books.GetContentHTML(ctx, user.ID, bookID)
+	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&readingv1.GetBookContentResponse{
+		Html: html,
+	}), nil
+}

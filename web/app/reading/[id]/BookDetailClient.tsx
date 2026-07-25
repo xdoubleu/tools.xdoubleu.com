@@ -19,6 +19,7 @@ import BookOwnershipToggles from '@/components/reading/BookOwnershipToggles'
 import BookShelfTagFields from '@/components/reading/BookShelfTagFields'
 import KoboSyncToggle from '@/components/reading/KoboSyncToggle'
 import BookPreviewDialog from '@/components/reading/BookPreviewDialog'
+import ArticleReaderDialog from '@/components/reading/ArticleReaderDialog'
 import RemoveBookDialog from '@/components/reading/RemoveBookDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   const isAdmin = currentUser?.role === 'admin'
   const [previewFormat, setPreviewFormat] = useState<'pdf' | 'epub' | 'kepub' | null>(null)
   const [removeOpen, setRemoveOpen] = useState(false)
+  const [readerOpen, setReaderOpen] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const query = searchParams.get('q')
@@ -107,7 +109,16 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
               {book.sourceUrl && (
-                <p className="mt-2 text-xs text-muted">
+                <p className="mt-2 flex items-center gap-3 text-xs text-muted">
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => setReaderOpen(true)}
+                    className="h-auto p-0 text-xs"
+                  >
+                    Read in app
+                  </Button>
                   <a
                     href={book.sourceUrl}
                     target="_blank"
@@ -252,6 +263,16 @@ export default function BookDetailClient({ id }: { id: string }) {
           title={book?.title ?? 'Book Preview'}
           open={!!previewFormat}
           onOpenChange={(open) => !open && setPreviewFormat(null)}
+        />
+      )}
+
+      {userBook && book && (
+        <ArticleReaderDialog
+          bookId={userBook.bookId}
+          title={book.title}
+          sourceUrl={book.sourceUrl}
+          open={readerOpen}
+          onOpenChange={setReaderOpen}
         />
       )}
 

@@ -656,6 +656,33 @@ func (s *BookService) GetReadingState(
 	return s.readingState.Get(ctx, userID, bookID)
 }
 
+// SetContentHTML stores the readability-extracted article body for a book,
+// enabling in-app reading independent of any EPUB file.
+func (s *BookService) SetContentHTML(
+	ctx context.Context,
+	bookID uuid.UUID,
+	html string,
+) error {
+	return s.books.SetBookContentHTML(ctx, bookID, html)
+}
+
+// GetContentHTML returns the stored article HTML for a book in the caller's
+// own library, or "" if none was ever stored for it.
+func (s *BookService) GetContentHTML(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (string, error) {
+	html, err := s.books.GetBookContentHTML(ctx, userID, bookID)
+	if err != nil {
+		return "", err
+	}
+	if html == nil {
+		return "", nil
+	}
+	return *html, nil
+}
+
 // ListReadingStates returns all reading states for the user, indexed by
 // book ID. Use this instead of per-book GetReadingState when processing a
 // batch of books to avoid N+1 queries.

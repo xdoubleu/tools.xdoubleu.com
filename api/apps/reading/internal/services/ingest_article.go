@@ -127,6 +127,14 @@ func (s *IngestService) IngestArticleContent(
 		return nil, err
 	}
 
+	// Persist the extracted HTML for in-app reading, independent of the EPUB
+	// built below.
+	setErr := s.booksRepo.SetBookContentHTML(ctx, saved.ID, content.HTML)
+	if setErr != nil {
+		s.logger.WarnContext(ctx, "failed to store article content html",
+			"bookID", saved.ID, "error", setErr)
+	}
+
 	art := &extractedArticle{
 		Title:    content.Title,
 		Byline:   content.Byline,
