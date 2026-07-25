@@ -5,11 +5,13 @@
 package observabilityv1connect
 
 import (
-	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
 	http "net/http"
 	strings "strings"
+
+	connect "connectrpc.com/connect"
+
 	v1 "tools.xdoubleu.com/gen/observability/v1"
 )
 
@@ -51,6 +53,9 @@ const (
 	// ObservabilityServiceGetGithubIssuesProcedure is the fully-qualified name of the
 	// ObservabilityService's GetGithubIssues RPC.
 	ObservabilityServiceGetGithubIssuesProcedure = "/observability.v1.ObservabilityService/GetGithubIssues"
+	// ObservabilityServiceGetFailingPullRequestsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetFailingPullRequests RPC.
+	ObservabilityServiceGetFailingPullRequestsProcedure = "/observability.v1.ObservabilityService/GetFailingPullRequests"
 	// ObservabilityServiceGetSentryIssuesProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSentryIssues RPC.
 	ObservabilityServiceGetSentryIssuesProcedure = "/observability.v1.ObservabilityService/GetSentryIssues"
@@ -82,6 +87,7 @@ type ObservabilityServiceClient interface {
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error)
+	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
@@ -138,6 +144,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("GetGithubIssues")),
 			connect.WithClientOptions(opts...),
 		),
+		getFailingPullRequests: connect.NewClient[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetFailingPullRequestsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetFailingPullRequests")),
+			connect.WithClientOptions(opts...),
+		),
 		getSentryIssues: connect.NewClient[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse](
 			httpClient,
 			baseURL+ObservabilityServiceGetSentryIssuesProcedure,
@@ -191,6 +203,7 @@ type observabilityServiceClient struct {
 	triggerStorageScan        *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
 	getDatabaseStats          *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
 	getGithubIssues           *connect.Client[v1.GetGithubIssuesRequest, v1.GetGithubIssuesResponse]
+	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	getDeployStatus           *connect.Client[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse]
 	getHealthOverview         *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
@@ -228,6 +241,11 @@ func (c *observabilityServiceClient) GetDatabaseStats(ctx context.Context, req *
 // GetGithubIssues calls observability.v1.ObservabilityService.GetGithubIssues.
 func (c *observabilityServiceClient) GetGithubIssues(ctx context.Context, req *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error) {
 	return c.getGithubIssues.CallUnary(ctx, req)
+}
+
+// GetFailingPullRequests calls observability.v1.ObservabilityService.GetFailingPullRequests.
+func (c *observabilityServiceClient) GetFailingPullRequests(ctx context.Context, req *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {
+	return c.getFailingPullRequests.CallUnary(ctx, req)
 }
 
 // GetSentryIssues calls observability.v1.ObservabilityService.GetSentryIssues.
@@ -274,6 +292,7 @@ type ObservabilityServiceHandler interface {
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error)
+	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
@@ -324,6 +343,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetGithubIssuesProcedure,
 		svc.GetGithubIssues,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetGithubIssues")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceGetFailingPullRequestsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetFailingPullRequestsProcedure,
+		svc.GetFailingPullRequests,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetFailingPullRequests")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetSentryIssuesHandler := connect.NewUnaryHandler(
@@ -382,6 +407,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetDatabaseStatsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetGithubIssuesProcedure:
 			observabilityServiceGetGithubIssuesHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetFailingPullRequestsProcedure:
+			observabilityServiceGetFailingPullRequestsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSentryIssuesProcedure:
 			observabilityServiceGetSentryIssuesHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDeployStatusProcedure:
@@ -427,6 +454,10 @@ func (UnimplementedObservabilityServiceHandler) GetDatabaseStats(context.Context
 
 func (UnimplementedObservabilityServiceHandler) GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetGithubIssues is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetFailingPullRequests is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error) {

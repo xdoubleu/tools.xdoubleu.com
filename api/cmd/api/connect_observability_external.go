@@ -65,6 +65,60 @@ func (h *obsConnectHandler) githubIssues(
 	return resp
 }
 
+func (h *obsConnectHandler) GetFailingPullRequests(
+	ctx context.Context,
+	_ *connect.Request[observabilityv1.GetFailingPullRequestsRequest],
+) (*connect.Response[observabilityv1.GetFailingPullRequestsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(h.failingPullRequests(ctx)), nil
+}
+
+func (h *obsConnectHandler) failingPullRequests(
+	ctx context.Context,
+) *observabilityv1.GetFailingPullRequestsResponse {
+	resp := &observabilityv1.GetFailingPullRequestsResponse{
+		PullRequests: []*observabilityv1.FailingPullRequest{},
+		Configured:   true,
+		FailingCount: 0,
+	}
+
+	prs, err := h.app.githubClient.ListFailingPullRequests(ctx)
+	if err != nil {
+		if errors.Is(err, github.ErrNotConfigured) {
+			resp.Configured = false
+		} else {
+			h.app.logger.WarnContext(ctx, "failing pull requests unavailable",
+				slog.Any("error", err))
+		}
+		return resp
+	}
+
+	protoPRs := make([]*observabilityv1.FailingPullRequest, len(prs))
+	for i, pr := range prs {
+		checks := make([]*observabilityv1.FailingCheck, len(pr.FailingChecks))
+		for j, chk := range pr.FailingChecks {
+			checks[j] = &observabilityv1.FailingCheck{
+				Name:       chk.Name,
+				Conclusion: chk.Conclusion,
+				Url:        chk.URL,
+			}
+		}
+		protoPRs[i] = &observabilityv1.FailingPullRequest{
+			Number:        pr.Number,
+			Title:         pr.Title,
+			Url:           pr.URL,
+			Author:        pr.Author,
+			UpdatedAt:     pr.UpdatedAt.Format(time.RFC3339),
+			FailingChecks: checks,
+		}
+	}
+	resp.PullRequests = protoPRs
+	resp.FailingCount = int32(len(prs)) //nolint:gosec // count fits int32
+	return resp
+}
+
 func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSentryIssuesRequest],

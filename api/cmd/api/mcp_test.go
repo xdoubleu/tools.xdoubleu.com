@@ -18,7 +18,7 @@ import (
 )
 
 // mcpToolCount is the number of read-only observability tools the server exposes.
-const mcpToolCount = 7
+const mcpToolCount = 8
 
 // bearerRoundTripper attaches a Bearer token to every MCP client request,
 // standing in for the OAuth access token a real client would send.
@@ -143,8 +143,8 @@ func TestMonitoringMCPCallEveryTool(t *testing.T) {
 	session := mcpSession(t, accessToken.Value)
 	tools := []string{
 		"get_job_stats", "get_usage_stats", "get_storage_stats",
-		"get_database_stats", "get_github_issues", "get_sentry_issues",
-		"get_deploy_status",
+		"get_database_stats", "get_github_issues", "get_failing_pull_requests",
+		"get_sentry_issues", "get_deploy_status",
 	}
 	for _, name := range tools {
 		//nolint:exhaustruct // only the tool name is required to call it

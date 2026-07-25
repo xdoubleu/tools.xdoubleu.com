@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetGithubIssuesResponseSchema,
+  GetFailingPullRequestsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetDeployStatusResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
@@ -13,6 +14,7 @@ import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
 import DatabaseCard from '@/components/monitoring/DatabaseCard'
 import GithubIssuesCard from '@/components/monitoring/GithubIssuesCard'
+import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequestsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
 import DeployCard from '@/components/monitoring/DeployCard'
 
@@ -168,6 +170,51 @@ describe('GithubIssuesCard', () => {
 
   it('shows a loading state without data', () => {
     render(<GithubIssuesCard data={undefined} />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+})
+
+describe('FailingPullRequestsCard', () => {
+  it('renders failing pull requests with their checks', () => {
+    const data = create(GetFailingPullRequestsResponseSchema, {
+      configured: true,
+      failingCount: 1,
+      pullRequests: [
+        {
+          number: 12n,
+          title: 'Broken build',
+          url: 'https://github.com/x/y/pull/12',
+          author: 'alice',
+          updatedAt: '2026-01-01T00:00:00Z',
+          failingChecks: [{ name: 'ci-pass', conclusion: 'failure', url: 'https://gh/checks/1' }]
+        }
+      ]
+    })
+
+    render(<FailingPullRequestsCard data={data} />)
+    expect(screen.getByText('Broken build')).toBeInTheDocument()
+    expect(screen.getByText('#12')).toBeInTheDocument()
+    expect(screen.getByText('ci-pass')).toBeInTheDocument()
+    expect(screen.getByText(/alice/)).toBeInTheDocument()
+  })
+
+  it('degrades when not configured', () => {
+    const data = create(GetFailingPullRequestsResponseSchema, { configured: false })
+    render(<FailingPullRequestsCard data={data} />)
+    expect(screen.getByText('GitHub is not configured.')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when configured with no failing pull requests', () => {
+    const data = create(GetFailingPullRequestsResponseSchema, {
+      configured: true,
+      failingCount: 0
+    })
+    render(<FailingPullRequestsCard data={data} />)
+    expect(screen.getByText('No failing pull requests.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<FailingPullRequestsCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 })

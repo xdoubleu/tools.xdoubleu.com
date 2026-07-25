@@ -58,9 +58,11 @@ type client struct {
 	tokenFn    oauthconn.TokenFunc
 	configRepo configStore
 
-	mu       sync.Mutex
-	cached   []Issue
-	cachedAt time.Time
+	mu         sync.Mutex
+	cached     []Issue
+	cachedAt   time.Time
+	cachedPRs  []PullRequest
+	cachedPRAt time.Time
 }
 
 // New creates a GitHub client. tokenFn resolves a live OAuth bearer token
@@ -105,6 +107,33 @@ func (c *client) ListOpenIssues(ctx context.Context) ([]Issue, error) {
 	return issues, nil
 }
 
+func (c *client) ListFailingPullRequests(ctx context.Context) ([]PullRequest, error) {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if cached, ok := c.cachedPullRequests(); ok {
+		return cached, nil
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	prs, err := c.fetchFailingPullRequests(ctx, token, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	c.storePullRequests(prs)
+	return prs, nil
+}
+
 // resolveRepo reads the admin-picked repo from the stored connection config.
 // Returns ErrNotConfigured when the provider isn't connected or no repo has
 // been picked yet.
@@ -146,6 +175,22 @@ func (c *client) store(issues []Issue) {
 	c.cachedAt = time.Now()
 }
 
+func (c *client) cachedPullRequests() ([]PullRequest, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cachedPRs != nil && time.Since(c.cachedPRAt) < cacheTTL {
+		return c.cachedPRs, true
+	}
+	return nil, false
+}
+
+func (c *client) storePullRequests(prs []PullRequest) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cachedPRs = prs
+	c.cachedPRAt = time.Now()
+}
+
 func (c *client) fetch(ctx context.Context, token, repo string) ([]Issue, error) {
 	endpoint := fmt.Sprintf("%s/repos/%s/issues?state=open", baseURL, repo)
 
@@ -162,6 +207,65 @@ func (c *client) fetch(ctx context.Context, token, repo string) ([]Issue, error)
 		issues = append(issues, w.toIssue())
 	}
 	return issues, nil
+}
+
+// fetchFailingPullRequests lists the repo's open pull requests and, for each,
+// fetches the check runs on its head commit. Only pull requests with at least
+// one failing check run are returned.
+func (c *client) fetchFailingPullRequests(
+	ctx context.Context, token, repo string,
+) ([]PullRequest, error) {
+	endpoint := fmt.Sprintf("%s/repos/%s/pulls?state=open", baseURL, repo)
+
+	var wires []prWire
+	if err := c.get(ctx, endpoint, token, &wires); err != nil {
+		return nil, err
+	}
+
+	prs := make([]PullRequest, 0, len(wires))
+	for _, w := range wires {
+		checks, err := c.fetchFailingChecks(ctx, token, repo, w.Head.SHA)
+		if err != nil {
+			return nil, err
+		}
+		if len(checks) == 0 {
+			continue
+		}
+		prs = append(prs, PullRequest{
+			Number:        w.Number,
+			Title:         w.Title,
+			URL:           w.HTMLURL,
+			Author:        w.User.Login,
+			UpdatedAt:     w.UpdatedAt,
+			FailingChecks: checks,
+		})
+	}
+	return prs, nil
+}
+
+// fetchFailingChecks returns the non-passing, completed check runs on sha.
+func (c *client) fetchFailingChecks(
+	ctx context.Context, token, repo, sha string,
+) ([]FailingCheck, error) {
+	endpoint := fmt.Sprintf("%s/repos/%s/commits/%s/check-runs", baseURL, repo, sha)
+
+	var wire checkRunsWire
+	if err := c.get(ctx, endpoint, token, &wire); err != nil {
+		return nil, err
+	}
+
+	checks := make([]FailingCheck, 0, len(wire.CheckRuns))
+	for _, run := range wire.CheckRuns {
+		if run.Status != "completed" || !failingConclusions[run.Conclusion] {
+			continue
+		}
+		checks = append(checks, FailingCheck{
+			Name:       run.Name,
+			Conclusion: run.Conclusion,
+			URL:        run.HTMLURL,
+		})
+	}
+	return checks, nil
 }
 
 func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {

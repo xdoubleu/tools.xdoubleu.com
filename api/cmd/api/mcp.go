@@ -197,6 +197,11 @@ func (app *Application) newMonitoringMCPServer() *mcp.Server {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.githubIssues(ctx), nil
 		})
+	addObsTool(srv, "get_failing_pull_requests",
+		"Open pull requests with at least one failing CI check.",
+		func(ctx context.Context, _ noArgs) (proto.Message, error) {
+			return h.failingPullRequests(ctx), nil
+		})
 	addObsTool(srv, "get_sentry_issues",
 		"Unresolved Sentry issues for the project.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {

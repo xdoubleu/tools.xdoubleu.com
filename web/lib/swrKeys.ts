@@ -13,6 +13,7 @@ export const swrKeys = {
   monitoringStorageStats: '/monitoring/storage-stats',
   monitoringDatabaseStats: '/monitoring/database-stats',
   monitoringGithubIssues: '/monitoring/github-issues',
+  monitoringFailingPullRequests: '/monitoring/failing-pull-requests',
   monitoringSentryIssues: '/monitoring/sentry-issues',
   monitoringDeployStatus: '/monitoring/deploy-status',
   monitoringOAuthConnections: '/monitoring/oauth-connections',

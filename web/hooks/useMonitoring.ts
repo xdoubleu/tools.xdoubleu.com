@@ -12,6 +12,7 @@ import type {
   GetStorageStatsResponse,
   GetDatabaseStatsResponse,
   GetGithubIssuesResponse,
+  GetFailingPullRequestsResponse,
   GetSentryIssuesResponse,
   GetDeployStatusResponse,
   ListOAuthConnectionsResponse,
@@ -64,6 +65,13 @@ export function useGithubIssues() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetGithubIssuesResponse, Error>(swrKeys.monitoringGithubIssues, () =>
     client.getGithubIssues({})
+  )
+}
+
+export function useFailingPullRequests() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetFailingPullRequestsResponse, Error>(swrKeys.monitoringFailingPullRequests, () =>
+    client.getFailingPullRequests({})
   )
 }
 
