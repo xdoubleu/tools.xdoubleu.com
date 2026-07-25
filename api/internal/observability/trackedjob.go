@@ -1,6 +1,6 @@
 // Package observability provides shared instrumentation: a job wrapper that
-// records every run in global.job_runs and a request-usage recorder backing
-// the admin dashboard.
+// sends Sentry Cron Monitor check-ins for every run and a request-usage
+// recorder backing the admin dashboard.
 package observability
 
 import (
@@ -9,37 +9,25 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+	"github.com/getsentry/sentry-go"
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 	"github.com/xdoubleu/essentia/v4/pkg/threading"
-
-	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/repositories"
 )
 
-// jobRunsInserter is the slice of JobRunsRepository TrackedJob needs.
-type jobRunsInserter interface {
-	Insert(ctx context.Context, run models.JobRun) error
-}
-
 // TrackedJob decorates a threading.Job so every run — including ones the
-// JobQueue would silently discard the error of — is recorded in
-// global.job_runs and failures are logged at Error level (which the Sentry
-// log handler forwards). Panics are captured as failed runs instead of
-// killing the worker. The inner job's ID is preserved, so progress
-// WebSocket topics and ForceRun keep working.
+// JobQueue would silently discard the error of — sends a Sentry Cron Monitor
+// check-in (in_progress, then ok/error) and failures are logged at Error
+// level (which the Sentry log handler forwards). Panics are captured as
+// failed runs instead of killing the worker. The inner job's ID is
+// preserved, so progress WebSocket topics and ForceRun keep working.
 type TrackedJob struct {
 	inner threading.Job
-	repo  jobRunsInserter
 }
 
 var _ threading.Job = (*TrackedJob)(nil)
 
-func NewTrackedJob(inner threading.Job, db postgres.DB) *TrackedJob {
-	return &TrackedJob{
-		inner: inner,
-		repo:  repositories.NewJobRunsRepository(db),
-	}
+func NewTrackedJob(inner threading.Job) *TrackedJob {
+	return &TrackedJob{inner: inner}
 }
 
 func (j *TrackedJob) ID() string {
@@ -52,48 +40,61 @@ func (j *TrackedJob) RunEvery() time.Duration {
 
 func (j *TrackedJob) Run(ctx context.Context, logger *slog.Logger) (err error) {
 	start := time.Now()
+	slug := j.inner.ID()
+	//nolint:exhaustruct // margin/timeout/timezone/thresholds use Sentry defaults
+	monitorConfig := &sentry.MonitorConfig{
+		Schedule: sentry.IntervalSchedule(
+			int64(j.inner.RunEvery()/time.Minute), sentry.MonitorScheduleUnitMinute,
+		),
+	}
+
+	hub := hubFromContext(ctx)
+	//nolint:exhaustruct // ID/Duration are unset for the in_progress check-in
+	checkInID := hub.CaptureCheckIn(&sentry.CheckIn{
+		MonitorSlug: slug,
+		Status:      sentry.CheckInStatusInProgress,
+	}, monitorConfig)
 
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("job panicked: %v", r)
 		}
-		j.record(ctx, logger, start, err)
+
+		status := sentry.CheckInStatusOK
+		if err != nil {
+			status = sentry.CheckInStatusError
+			logger.ErrorContext(
+				ctx,
+				"job failed",
+				slog.String("job", slug),
+				essentialogger.ErrAttr(err),
+			)
+		}
+
+		// checkInID is nil when no Sentry client is configured (e.g. local
+		// dev without SENTRY_DSN) — the in_progress check-in above is then a
+		// no-op, so leaving CheckIn.ID zero here just gets the same no-op.
+		//nolint:exhaustruct // ID is set conditionally below
+		checkIn := &sentry.CheckIn{
+			MonitorSlug: slug,
+			Status:      status,
+			Duration:    time.Since(start),
+		}
+		if checkInID != nil {
+			checkIn.ID = *checkInID
+		}
+		hub.CaptureCheckIn(checkIn, monitorConfig)
 	}()
 
 	return j.inner.Run(ctx, logger)
 }
 
-func (j *TrackedJob) record(
-	ctx context.Context,
-	logger *slog.Logger,
-	start time.Time,
-	err error,
-) {
-	run := models.JobRun{
-		JobID:      j.inner.ID(),
-		StartedAt:  start,
-		DurationMs: time.Since(start).Milliseconds(),
-		Success:    err == nil,
-		Error:      "",
+// hubFromContext returns the Sentry hub threaded onto ctx (see
+// sentry.SetHubOnContext in cmd/api/main.go), falling back to the current
+// hub if the context carries none.
+func hubFromContext(ctx context.Context) *sentry.Hub {
+	if hub := sentry.GetHubFromContext(ctx); hub != nil {
+		return hub
 	}
-
-	if err != nil {
-		run.Error = err.Error()
-		logger.ErrorContext(
-			ctx,
-			"job failed",
-			slog.String("job", run.JobID),
-			essentialogger.ErrAttr(err),
-		)
-	}
-
-	// Recording is best-effort: a failed insert must never fail the job.
-	if insertErr := j.repo.Insert(ctx, run); insertErr != nil {
-		logger.ErrorContext(
-			ctx,
-			"failed to record job run",
-			slog.String("job", run.JobID),
-			essentialogger.ErrAttr(insertErr),
-		)
-	}
+	return sentry.CurrentHub()
 }

@@ -32,7 +32,7 @@ export default function ObservabilityClient() {
   const [windowDays, setWindowDays] = useState(30)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const jobStats = useJobStats(windowDays)
+  const jobStats = useJobStats()
   const usageStats = useUsageStats(windowDays)
   const storageStats = useStorageStats()
   const triggerStorageScan = useTriggerStorageScan()
@@ -58,7 +58,7 @@ export default function ObservabilityClient() {
   }
 
   const latest = storageStats.data?.latest
-  const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
+  const failingJobs = jobStats.data?.configured ? Number(jobStats.data.failingCount) : 0
 
   const github = githubIssues.data
   const sentry = sentryIssues.data
@@ -83,7 +83,7 @@ export default function ObservabilityClient() {
     },
     {
       label: 'Jobs failing',
-      value: formatCount(failingJobs),
+      value: jobStats.data?.configured ? formatCount(failingJobs) : '—',
       tone: failingJobs > 0 ? ('danger' as const) : ('default' as const)
     },
     {

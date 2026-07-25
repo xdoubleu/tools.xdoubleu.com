@@ -52,10 +52,7 @@ func New(
 
 	a.repos = repositories.New(db)
 	a.services = services.New(a.Logger, a.repos, authService)
-	a.archiveJob = observability.NewTrackedJob(
-		jobs.NewArchiveJob(a.repos.Tasks),
-		db,
-	)
+	a.archiveJob = observability.NewTrackedJob(jobs.NewArchiveJob(a.repos.Tasks))
 
 	return a
 }

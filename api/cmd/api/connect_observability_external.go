@@ -65,6 +65,65 @@ func (h *obsConnectHandler) githubIssues(
 	return resp
 }
 
+func (h *obsConnectHandler) GetJobStats(
+	ctx context.Context,
+	_ *connect.Request[observabilityv1.GetJobStatsRequest],
+) (*connect.Response[observabilityv1.GetJobStatsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(h.jobStats(ctx)), nil
+}
+
+// jobStats is shared by the Connect handler above and the MCP tool; neither
+// the admin check nor the connect wrapping lives here.
+func (h *obsConnectHandler) jobStats(
+	ctx context.Context,
+) *observabilityv1.GetJobStatsResponse {
+	resp := &observabilityv1.GetJobStatsResponse{
+		Monitors:     []*observabilityv1.JobMonitor{},
+		Configured:   true,
+		FailingCount: 0,
+	}
+
+	monitors, err := h.app.sentryClient.ListMonitors(ctx)
+	if err != nil {
+		if errors.Is(err, sentryapi.ErrNotConfigured) {
+			resp.Configured = false
+		} else {
+			h.app.logger.WarnContext(ctx, "job monitors unavailable",
+				slog.Any("error", err))
+		}
+		return resp
+	}
+
+	protoMonitors := make([]*observabilityv1.JobMonitor, len(monitors))
+	failing := 0
+	for i, m := range monitors {
+		protoMonitors[i] = &observabilityv1.JobMonitor{
+			Slug:        m.Slug,
+			Status:      m.Status,
+			LastCheckIn: formatOrEmpty(m.LastCheckIn),
+			NextCheckIn: formatOrEmpty(m.NextCheckIn),
+		}
+		if m.Status != "ok" {
+			failing++
+		}
+	}
+	resp.Monitors = protoMonitors
+	resp.FailingCount = int32(failing)
+	return resp
+}
+
+// formatOrEmpty formats t as RFC3339, or returns "" for the zero value —
+// Sentry omits lastCheckIn/nextCheckIn for a monitor that has never run.
+func formatOrEmpty(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339)
+}
+
 func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSentryIssuesRequest],

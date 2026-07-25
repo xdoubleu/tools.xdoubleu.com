@@ -153,6 +153,76 @@ func callGithub(
 	return observabilityClient(t).GetGithubIssues(context.Background(), req)
 }
 
+// --- Job monitors ---
+
+func TestObservabilityGetJobStats_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusOK, `[
+		{"slug":"steam","status":"ok","environments":[
+			{"status":"ok","lastCheckIn":"2026-07-25T09:00:00Z",
+			 "nextCheckIn":"2026-07-26T09:00:00Z"}
+		]},
+		{"slug":"archive","status":"error","environments":[
+			{"status":"error","lastCheckIn":"2026-07-25T09:00:00Z"}
+		]}
+	]`)
+	sentryapi.SetBaseURL(srv.URL)
+	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
+	)
+
+	resp, err := callJobStats(t)
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Configured)
+	require.Len(t, resp.Msg.Monitors, 2)
+	assert.Equal(t, int32(1), resp.Msg.FailingCount)
+
+	var steam *observabilityv1.JobMonitor
+	for _, m := range resp.Msg.Monitors {
+		if m.Slug == "steam" {
+			steam = m
+		}
+	}
+	require.NotNil(t, steam)
+	assert.Equal(t, "ok", steam.Status)
+	assert.NotEmpty(t, steam.LastCheckIn)
+	assert.NotEmpty(t, steam.NextCheckIn)
+}
+
+func TestObservabilityGetJobStats_NotConfigured(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		configNotConnected(),
+	)
+
+	resp, err := callJobStats(t)
+	require.NoError(t, err)
+	assert.False(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Monitors)
+}
+
+func TestObservabilityGetJobStats_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callJobStats(t)
+	requirePermissionDenied(t, err)
+}
+
+func callJobStats(
+	t *testing.T,
+) (*connect.Response[observabilityv1.GetJobStatsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetJobStatsRequest{})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetJobStats(context.Background(), req)
+}
+
 // --- Sentry ---
 
 func TestObservabilityGetSentryIssues_AsAdmin(t *testing.T) {

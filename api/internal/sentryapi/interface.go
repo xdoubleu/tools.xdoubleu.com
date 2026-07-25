@@ -23,4 +23,8 @@ type Client interface {
 	// ListProjects returns the projects within org visible to the connected
 	// account, for the admin config picker.
 	ListProjects(ctx context.Context, org string) ([]Project, error)
+	// ListMonitors returns the Cron Monitor status of every monitor in the
+	// configured org (TrackedJob upserts one monitor per job slug on its
+	// first check-in). Returns ErrNotConfigured when org/token is unset.
+	ListMonitors(ctx context.Context) ([]Monitor, error)
 }
