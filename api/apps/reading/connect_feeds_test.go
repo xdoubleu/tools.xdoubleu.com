@@ -505,6 +505,98 @@ func TestCreateFeed_UnknownArxivItem_IsSkipped(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestListFeedItems_LabelsBooksByFeed proves #476: an ingested item is
+// labeled with the feed it came from.
+func TestListFeedItems_LabelsBooksByFeed(t *testing.T) {
+	base := uniqueBlogBase()
+	feedURL := base + "/feed-items.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"Items Blog",
+		rssItem{"Post One", base + "/one", "i1", itemContent},
+	)))
+
+	client := newBooksTestClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	feedID := created.Msg.Feed.Id
+	waitForFeedImport(t, client, feedID)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), base+"/one",
+	)
+	require.NoError(t, err)
+
+	resp, err := client.ListFeedItems(
+		context.Background(), feedReq(t, &readingv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+
+	var got *readingv1.FeedItemBook
+	for _, item := range resp.Msg.Items {
+		if item.BookId == book.ID.String() {
+			got = item
+		}
+	}
+	require.NotNil(t, got, "ingested book must be labeled with its feed")
+	assert.Equal(t, feedID, got.FeedId)
+	assert.Equal(t, "Items Blog", got.FeedTitle)
+}
+
+// TestListFeedItems_OmitsBooksFromDeletedFeeds proves that once a feed is
+// deleted, its feed_items rows cascade away — so a kept (read/favourited)
+// item no longer carries a feed label, even though the book itself survives.
+func TestListFeedItems_OmitsBooksFromDeletedFeeds(t *testing.T) {
+	base := uniqueBlogBase()
+	feedURL := base + "/feed-items-deleted.xml"
+	readItem := base + "/kept"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"Deleted Blog",
+		rssItem{"Kept", readItem, "d1", itemContent},
+	)))
+
+	client := newBooksTestClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), readItem,
+	)
+	require.NoError(t, err)
+
+	_, err = client.UpdateBookStatus(context.Background(), feedReq(t,
+		&readingv1.UpdateBookStatusRequest{
+			BookId: book.ID.String(), Status: models.StatusRead,
+		}))
+	require.NoError(t, err)
+
+	_, err = client.DeleteFeed(
+		context.Background(),
+		feedReq(t, &readingv1.DeleteFeedRequest{FeedId: created.Msg.Feed.Id}),
+	)
+	require.NoError(t, err)
+
+	// The book survives (read item), but the deleted feed's items row is gone.
+	_, err = testApp.Repositories.Books.GetUserBook(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+
+	resp, err := client.ListFeedItems(
+		context.Background(), feedReq(t, &readingv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	for _, item := range resp.Msg.Items {
+		assert.NotEqual(t, book.ID.String(), item.BookId)
+	}
+}
+
 func TestFeedItemWithoutContent_TracksMetadataOnly(t *testing.T) {
 	base := uniqueBlogBase()
 	feedURL := base + "/feed-nocontent.xml"

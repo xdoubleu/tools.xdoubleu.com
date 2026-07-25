@@ -42,6 +42,7 @@ export const swrKeys = {
   gatewayStatus: '/reading/kobo/gateway-status',
   koboDeviceLogs: (id: string) => ['/reading/kobo/logs', id] as const,
   bookFeeds: '/reading/feeds',
+  bookFeedItems: '/reading/feed-items',
   bookDuplicates: '/reading/duplicates',
   resyncProposals: '/reading/resync-proposals',
   bookSources: (bookId: string, overrideTitle = '', overrideAuthor = '') =>

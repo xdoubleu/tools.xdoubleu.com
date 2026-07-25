@@ -180,3 +180,28 @@ func (h *booksConnectHandler) RefreshFeed(
 		Ingested: int32(ingested), //nolint:gosec // bounded by per-poll cap
 	}), nil
 }
+
+func (h *booksConnectHandler) ListFeedItems(
+	ctx context.Context,
+	_ *connect.Request[readingv1.ListFeedItemsRequest],
+) (*connect.Response[readingv1.ListFeedItemsResponse], error) {
+	user, cerr := feedUser(ctx)
+	if cerr != nil {
+		return nil, cerr
+	}
+
+	items, err := h.app.Services.Feeds.ListItemBooks(ctx, user.ID)
+	if err != nil {
+		return nil, feedErrorToConnect(err)
+	}
+
+	out := make([]*readingv1.FeedItemBook, len(items))
+	for i, item := range items {
+		out[i] = &readingv1.FeedItemBook{
+			BookId:    item.BookID.String(),
+			FeedId:    item.FeedID.String(),
+			FeedTitle: item.FeedTitle,
+		}
+	}
+	return connect.NewResponse(&readingv1.ListFeedItemsResponse{Items: out}), nil
+}

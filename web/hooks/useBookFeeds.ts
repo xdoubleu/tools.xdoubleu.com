@@ -3,7 +3,7 @@ import useSWR, { mutate } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { FeedService } from '@/lib/gen/reading/v1/feeds_pb'
-import type { ListFeedsResponse } from '@/lib/gen/reading/v1/feeds_pb'
+import type { ListFeedsResponse, ListFeedItemsResponse } from '@/lib/gen/reading/v1/feeds_pb'
 
 // RSS/Atom feed subscriptions for the reading library. Mutations invalidate
 // the feed list; anything that can change library contents (ingest or
@@ -12,6 +12,13 @@ import type { ListFeedsResponse } from '@/lib/gen/reading/v1/feeds_pb'
 export function useFeeds() {
   const client = createServiceClient(FeedService)
   return useSWR<ListFeedsResponse, Error>(swrKeys.bookFeeds, () => client.listFeeds({}))
+}
+
+// useFeedItemBooks labels rss library items with the feed they came from, for
+// the ad hoc feed-reader page (issue #476).
+export function useFeedItemBooks() {
+  const client = createServiceClient(FeedService)
+  return useSWR<ListFeedItemsResponse, Error>(swrKeys.bookFeedItems, () => client.listFeedItems({}))
 }
 
 export function useCreateFeed() {

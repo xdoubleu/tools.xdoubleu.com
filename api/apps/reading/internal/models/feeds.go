@@ -26,3 +26,11 @@ type Feed struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+// FeedItemBook links a library book to the feed it was ingested from, for
+// labeling the ad hoc feed-reader view (issue #476).
+type FeedItemBook struct {
+	BookID    uuid.UUID
+	FeedID    uuid.UUID
+	FeedTitle string
+}

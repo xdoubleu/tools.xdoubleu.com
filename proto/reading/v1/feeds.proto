@@ -51,10 +51,23 @@ message DeleteFeedResponse {}
 message RefreshFeedRequest { string feed_id = 1; }
 message RefreshFeedResponse { int32 ingested = 1; }
 
+// FeedItemBook links a library book to the feed it was ingested from, for
+// labeling the ad hoc feed-reader view. Omitted for rss items whose feed was
+// later deleted (kept because the user engaged with them).
+message FeedItemBook {
+  string book_id = 1;
+  string feed_id = 2;
+  string feed_title = 3;
+}
+
+message ListFeedItemsRequest {}
+message ListFeedItemsResponse { repeated FeedItemBook items = 1; }
+
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
   rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
   rpc UpdateFeed(UpdateFeedRequest) returns (UpdateFeedResponse);
   rpc DeleteFeed(DeleteFeedRequest) returns (DeleteFeedResponse);
   rpc RefreshFeed(RefreshFeedRequest) returns (RefreshFeedResponse);
+  rpc ListFeedItems(ListFeedItemsRequest) returns (ListFeedItemsResponse);
 }
