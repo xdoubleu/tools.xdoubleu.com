@@ -87,10 +87,7 @@ func NewInner(
 
 func (a *Games) Start() error {
 	if err := a.jobQueue.AddJob(
-		observability.NewTrackedJob(
-			jobs.NewSteamJob(a.Services.Auth, a.Services.Steam),
-			a.db,
-		),
+		observability.NewTrackedJob(jobs.NewSteamJob(a.Services.Auth, a.Services.Steam)),
 		a.Services.WebSocket.UpdateState,
 	); err != nil {
 		return err

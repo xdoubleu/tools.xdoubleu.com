@@ -67,9 +67,9 @@ afterEach(() => {
 })
 
 describe('useMonitoring', () => {
-  it('keys job stats by window', () => {
-    renderHook(() => useJobStats(7))
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringJobStats(7), expect.any(Function))
+  it('keys job stats statically', () => {
+    renderHook(() => useJobStats())
+    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringJobStats, expect.any(Function))
   })
 
   it('keys usage stats by window', () => {
@@ -111,8 +111,8 @@ describe('useMonitoring', () => {
   })
 
   it('distinct window keys do not collide', () => {
-    expect(unstable_serialize(swrKeys.monitoringJobStats(7))).not.toBe(
-      unstable_serialize(swrKeys.monitoringJobStats(30))
+    expect(unstable_serialize(swrKeys.monitoringUsageStats(7))).not.toBe(
+      unstable_serialize(swrKeys.monitoringUsageStats(30))
     )
   })
 })

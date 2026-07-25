@@ -21,10 +21,10 @@ import { swrKeys } from '@/lib/swrKeys'
 
 export type ProviderConfigInput = MessageInitShape<typeof ProviderConfigSchema>
 
-export function useJobStats(windowDays: number) {
+export function useJobStats() {
   const client = createServiceClient(ObservabilityService)
-  return useSWR<GetJobStatsResponse, Error>(swrKeys.monitoringJobStats(windowDays), () =>
-    client.getJobStats({ windowDays })
+  return useSWR<GetJobStatsResponse, Error>(swrKeys.monitoringJobStats, () =>
+    client.getJobStats({})
   )
 }
 

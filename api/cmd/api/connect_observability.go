@@ -27,78 +27,12 @@ var _ observabilityv1connect.ObservabilityServiceHandler = (*obsConnectHandler)(
 // defaultWindowDays is used when a stats request omits window_days.
 const defaultWindowDays = 30
 
-// recentRunsLimit caps how many individual job runs are returned for the
-// timeline / failure list.
-const recentRunsLimit = 100
-
 func windowSince(windowDays int32) time.Time {
 	days := int(windowDays)
 	if days <= 0 {
 		days = defaultWindowDays
 	}
 	return time.Now().AddDate(0, 0, -days)
-}
-
-func (h *obsConnectHandler) GetJobStats(
-	ctx context.Context,
-	req *connect.Request[observabilityv1.GetJobStatsRequest],
-) (*connect.Response[observabilityv1.GetJobStatsResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	resp, err := h.jobStats(ctx, req.Msg.WindowDays)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	return connect.NewResponse(resp), nil
-}
-
-// jobStats runs the job-stats query and builds the response. It is shared by
-// the Connect handler above and the MCP tool; neither the admin check nor the
-// connect wrapping lives here.
-func (h *obsConnectHandler) jobStats(
-	ctx context.Context,
-	windowDays int32,
-) (*observabilityv1.GetJobStatsResponse, error) {
-	since := windowSince(windowDays)
-
-	stats, err := h.app.jobRunsRepo.Stats(ctx, since)
-	if err != nil {
-		return nil, err
-	}
-	runs, err := h.app.jobRunsRepo.ListRecent(ctx, since, recentRunsLimit)
-	if err != nil {
-		return nil, err
-	}
-
-	protoStats := make([]*observabilityv1.JobStat, len(stats))
-	for i, s := range stats {
-		protoStats[i] = &observabilityv1.JobStat{
-			JobId:         s.JobID,
-			TotalRuns:     s.TotalRuns,
-			FailedRuns:    s.FailedRuns,
-			AvgDurationMs: s.AvgDurationMs,
-			LastRunAt:     s.LastRunAt.Format(time.RFC3339),
-		}
-	}
-
-	protoRuns := make([]*observabilityv1.JobRun, len(runs))
-	for i, r := range runs {
-		protoRuns[i] = &observabilityv1.JobRun{
-			JobId:      r.JobID,
-			StartedAt:  r.StartedAt.Format(time.RFC3339),
-			DurationMs: r.DurationMs,
-			Success:    r.Success,
-			Error:      r.Error,
-		}
-	}
-
-	return &observabilityv1.GetJobStatsResponse{
-		Stats:      protoStats,
-		RecentRuns: protoRuns,
-	}, nil
 }
 
 func (h *obsConnectHandler) GetUsageStats(
