@@ -127,6 +127,17 @@ func LoginItemEnabled(homeDir string) bool {
 	return err == nil
 }
 
+// IsFirstLaunch reports whether the gateway has never run before on this
+// machine (the same marker file EnsureInitialLoginItem writes). Callers must
+// check this before EnsureInitialLoginItem, which creates the marker — used
+// to gate the one-time "enable notifications" prompt (#456) onto the actual
+// install/first-launch moment, not every subsequent run.
+func IsFirstLaunch(markerDir string) bool {
+	_, err := os.Stat(filepath.Join(markerDir, loginItemMarkerFile))
+
+	return os.IsNotExist(err)
+}
+
 // EnsureInitialLoginItem registers the login item exactly once, the first
 // time the gateway ever runs (tracked by a marker file in markerDir,
 // alongside the TLS cert). After that first run, the user's own choice via

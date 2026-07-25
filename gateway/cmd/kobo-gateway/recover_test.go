@@ -1,6 +1,15 @@
 package main
 
-import "testing"
+import (
+	"errors"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestReportFatalDoesNotPanic(t *testing.T) {
+	assert.NotPanics(t, func() { reportFatal(errors.New("boom")) })
+}
 
 func TestGuardSwallowsPanic(t *testing.T) {
 	func() {

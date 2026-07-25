@@ -436,6 +436,9 @@ func TestUpdate(t *testing.T) {
 	updater := &stubUpdater{err: nil, origin: "", called: false}
 	gateway := newTestServer(t.TempDir(), updater)
 
+	var notifications []string
+	gateway.SetNotifier(func(_, body string) { notifications = append(notifications, body) })
+
 	rec := doRequest(gateway.Handler(), http.MethodPost, "/update", testOrigin, `{}`)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -443,6 +446,7 @@ func TestUpdate(t *testing.T) {
 	assert.True(t, res.Updating)
 	assert.True(t, updater.called)
 	assert.Equal(t, testOrigin, updater.origin)
+	assert.Equal(t, []string{"Updating to the latest version…"}, notifications)
 
 	select {
 	case <-gateway.Restart():
@@ -459,13 +463,40 @@ func TestUpdateFailure(t *testing.T) {
 	}
 	gateway := newTestServer(t.TempDir(), updater)
 
+	var notifications []string
+	gateway.SetNotifier(func(_, body string) { notifications = append(notifications, body) })
+
 	rec := doRequest(gateway.Handler(), http.MethodPost, "/update", testOrigin, `{}`)
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, []string{
+		"Updating to the latest version…",
+		"Update failed: download failed",
+	}, notifications)
 
 	select {
 	case <-gateway.Restart():
 		t.Fatal("no restart signal expected after a failed update")
 	default:
 	}
+}
+
+func TestUpdateWithoutNotifierDoesNotPanic(t *testing.T) {
+	// SetNotifier is optional — NewServer's default no-op must be safe to
+	// call, covering callers (e.g. the "update" CLI subcommand) that never
+	// install one.
+	gateway := newTestServer(t.TempDir(), nil)
+
+	assert.NotPanics(t, func() {
+		doRequest(gateway.Handler(), http.MethodPost, "/update", testOrigin, `{}`)
+	})
+}
+
+func TestSetNotifierIgnoresNil(t *testing.T) {
+	gateway := newTestServer(t.TempDir(), nil)
+	gateway.SetNotifier(nil)
+
+	assert.NotPanics(t, func() {
+		doRequest(gateway.Handler(), http.MethodPost, "/update", testOrigin, `{}`)
+	})
 }

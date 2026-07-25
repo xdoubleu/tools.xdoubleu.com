@@ -12,6 +12,7 @@ func runUI(
 	stop <-chan struct{},
 	_ <-chan kobogateway.KoboEvent,
 	_, _ string,
+	_ bool,
 ) {
 	<-stop
 }

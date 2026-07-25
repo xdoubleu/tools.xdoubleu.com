@@ -61,6 +61,7 @@ func main() {
 
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		reportFatal(err)
 		os.Exit(1)
 	}
 }
@@ -154,7 +155,10 @@ func run(args []string, stdout io.Writer) error {
 		Release:     Release,
 	}
 
-	return serve(kobogateway.NewServer(cfg, updater), cfg, stdout)
+	gateway := kobogateway.NewServer(cfg, updater)
+	gateway.SetNotifier(notify)
+
+	return serve(gateway, cfg, stdout)
 }
 
 func update(updater *kobogateway.Updater, origin string, stdout io.Writer) error {
@@ -252,6 +256,11 @@ func serve(
 	defer cancelWatch()
 	koboEvents := kobogateway.Watch(watchCtx, cfg.VolumesRoot, koboPollInterval)
 
+	// Read before EnsureInitialLoginItem, which creates the marker this
+	// checks — must capture "never run before" ahead of that call, and
+	// before the headless branch below so go test still exercises it.
+	firstLaunch := kobogateway.IsFirstLaunch(certsDir)
+
 	if headless {
 		<-stop
 	} else {
@@ -269,7 +278,7 @@ func serve(
 			}
 		}
 
-		runUI(cfg.Release, stop, koboEvents, homeDir, execPath)
+		runUI(cfg.Release, stop, koboEvents, homeDir, execPath, firstLaunch)
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(

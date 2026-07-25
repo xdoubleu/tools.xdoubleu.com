@@ -15,7 +15,7 @@ func TestRunUIStubReturnsOnStop(t *testing.T) {
 	events := make(chan kobogateway.KoboEvent)
 
 	go func() {
-		runUI("dev", stop, events, "/home/test", "/usr/local/bin/kobo-gateway")
+		runUI("dev", stop, events, "/home/test", "/usr/local/bin/kobo-gateway", true)
 		close(done)
 	}()
 
