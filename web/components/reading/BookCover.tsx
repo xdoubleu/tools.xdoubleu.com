@@ -7,7 +7,8 @@ import { cn } from '@/lib/cn'
 const SIZES = {
   sm: { width: 40, height: 60, text: 'text-[10px]' },
   md: { width: 48, height: 72, text: 'text-xs' },
-  lg: { width: 128, height: 192, text: 'text-base' }
+  lg: { width: 128, height: 192, text: 'text-base' },
+  thumb: { width: 64, height: 64, text: 'text-xs' }
 } as const
 
 type Size = keyof typeof SIZES

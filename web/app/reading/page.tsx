@@ -6,6 +6,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { LibraryService } from '@/lib/gen/reading/v1/library_pb'
 import { FeedService } from '@/lib/gen/reading/v1/feeds_pb'
 import BooksDashboard from '@/components/reading/BooksDashboard'
+import FeedButton from '@/components/reading/FeedButton'
 import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
 import { PageContainer } from '@/components/ui/page-container'
@@ -19,27 +20,25 @@ export default async function BacklogBooksPage() {
 
   return (
     <PageContainer className="p-6 lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden lg:p-4">
-      <div className="mb-4 flex items-center justify-between gap-4 lg:mb-3">
-        <h1 className="text-3xl font-bold lg:text-2xl">Reading</h1>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/reading/feed">Feed</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="gap-2">
-            <Link href="/reading/settings">
-              <SettingsIcon />
-              Settings
-            </Link>
-          </Button>
-        </div>
-      </div>
-
       <SWRFallback
         fallback={{
           ...(library ? { [swrKeys.books]: library } : {}),
           ...(feeds ? { [swrKeys.bookFeeds]: feeds } : {})
         }}
       >
+        <div className="mb-4 flex items-center justify-between gap-4 lg:mb-3">
+          <h1 className="text-3xl font-bold lg:text-2xl">Reading</h1>
+          <div className="flex items-center gap-2">
+            <FeedButton />
+            <Button asChild variant="ghost" size="sm" className="gap-2">
+              <Link href="/reading/settings">
+                <SettingsIcon />
+                Settings
+              </Link>
+            </Button>
+          </div>
+        </div>
+
         <BooksDashboard />
       </SWRFallback>
     </PageContainer>

@@ -9,6 +9,11 @@ jest.mock('next/link', () => {
 
 jest.mock('@/components/reading/BooksDashboard', () => () => <div data-testid="books-dashboard" />)
 
+jest.mock('@/components/reading/FeedButton', () => {
+  const Link = jest.requireMock('next/link')
+  return () => <Link href="/reading/feed">Feed</Link>
+})
+
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({}))
 }))
@@ -34,6 +39,12 @@ describe('BacklogBooksPage', () => {
     render(await BacklogBooksPage())
     const link = screen.getByRole('link', { name: /settings/i })
     expect(link).toHaveAttribute('href', '/reading/settings')
+  })
+
+  it('renders a feed link pointing to /reading/feed', async () => {
+    render(await BacklogBooksPage())
+    const link = screen.getByRole('link', { name: /feed/i })
+    expect(link).toHaveAttribute('href', '/reading/feed')
   })
 
   it('renders the BooksDashboard', async () => {
