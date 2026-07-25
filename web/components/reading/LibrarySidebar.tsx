@@ -6,12 +6,7 @@ import { SPECIAL_TAGS, flattenLibrary, statusLabel } from '@/lib/reading/bookShe
 import { categoryLabel, categoryOf, type Category } from '@/lib/reading/categories'
 
 export type ShelfId =
-  | 'all'
-  | 'favourite'
-  | 'currently-reading'
-  | 'to-read'
-  | 'read'
-  | (string & Record<never, never>)
+  'all' | 'favourite' | 'currently-reading' | 'to-read' | 'read' | (string & Record<never, never>)
 
 export interface Shelf {
   id: ShelfId

@@ -23,14 +23,7 @@ export type ColumnKey =
   | 'read'
 
 export type SortKey =
-  | 'title'
-  | 'author'
-  | 'pages'
-  | 'rating'
-  | 'favourite'
-  | 'shelf'
-  | 'added'
-  | 'read'
+  'title' | 'author' | 'pages' | 'rating' | 'favourite' | 'shelf' | 'added' | 'read'
 
 export interface SortState {
   key: SortKey
