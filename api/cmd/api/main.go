@@ -19,6 +19,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
+	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -26,9 +27,11 @@ import (
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/observability"
+	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
@@ -60,6 +63,8 @@ type Application struct {
 	doClient          digitalocean.Client
 	oauthConnRepo     *repositories.OAuthConnectionsRepository
 	oauthState        *oauthconn.StateStore
+	issueNotifierJob  *jobs.IssueNotifierJob
+	globalJobQueue    *threading.JobQueue
 }
 
 //	@title			tools
@@ -82,6 +87,10 @@ const (
 	// usageFlushInterval is how often accumulated request counts are
 	// written to global.usage_daily.
 	usageFlushInterval = time.Minute
+	// globalJobQueueWorkers/globalJobQueueSize size the job queue backing
+	// cross-app jobs (currently just the issue notifier, issue #561).
+	globalJobQueueWorkers = 1
+	globalJobQueueSize    = 10
 )
 
 // migrationLockTimeout bounds how long a starting replica waits for the
@@ -257,6 +266,16 @@ func NewApplication(
 		logger, config, oauthConnRepo,
 	)
 
+	mailClient := mailer.New(
+		config.ResendAPIKey,
+		config.EmailFrom,
+		config.NotifyEmailTo,
+	)
+	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
+	issueNotifierJob := jobs.NewIssueNotifierJob(
+		sentryClient, doClient, mailClient, notifiedIssuesRepo,
+	)
+
 	//nolint:exhaustruct //other fields are optional
 	app := &Application{
 		ctx:               ctx,
@@ -277,6 +296,10 @@ func NewApplication(
 		githubClient:      githubClient,
 		sentryClient:      sentryClient,
 		doClient:          doClient,
+		issueNotifierJob:  issueNotifierJob,
+		globalJobQueue: threading.NewJobQueue(
+			ctx, logger, globalJobQueueWorkers, globalJobQueueSize,
+		),
 	}
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
@@ -291,6 +314,13 @@ func NewApplication(
 	// Flush accumulated request counts to global.usage_daily periodically;
 	// the loop lives for the process lifetime (ctx is context.Background).
 	app.usage.Start(ctx, usageFlushInterval)
+
+	noopCallback := func(_ string, _ bool, _ *time.Time) {}
+	if err = app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.issueNotifierJob, app.db), noopCallback,
+	); err != nil {
+		panic(err)
+	}
 
 	for _, a := range *app.apps {
 		err = a.Start()

@@ -82,6 +82,11 @@ func TestMain(m *testing.M) {
 			updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
 			config        JSONB
 		)`,
+		// Mirrors cmd/api/migrations/00011_notified_issues.sql.
+		`CREATE TABLE IF NOT EXISTS global.notified_issues (
+			key TEXT PRIMARY KEY,
+			notified_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := postgresDB.Exec(ctx, stmt); err != nil {

@@ -42,6 +42,13 @@ type Config struct {
 	// EncryptionKey is a base64-standard-encoded 32-byte AES-256 key used
 	// to encrypt stored OAuth tokens at rest (see internal/crypto).
 	EncryptionKey string
+
+	// Resend credentials for the new-issue notification emails (issue #561):
+	// ResendAPIKey/EmailFrom identify the sender, NotifyEmailTo is the single
+	// admin address that gets notified.
+	ResendAPIKey  string
+	EmailFrom     string
+	NotifyEmailTo string
 }
 
 func New(logger *slog.Logger) Config {
@@ -80,6 +87,10 @@ func New(logger *slog.Logger) Config {
 	cfg.DOOAuthClientID = parser.EnvStr("DO_OAUTH_CLIENT_ID", "")
 	cfg.DOOAuthClientSecret = parser.EnvStr("DO_OAUTH_CLIENT_SECRET", "")
 	cfg.EncryptionKey = parser.EnvStr("ENCRYPTION_KEY", "")
+
+	cfg.ResendAPIKey = parser.EnvStr("RESEND_API_KEY", "")
+	cfg.EmailFrom = parser.EnvStr("EMAIL_FROM", "")
+	cfg.NotifyEmailTo = parser.EnvStr("NOTIFY_EMAIL_TO", "")
 
 	return cfg
 }

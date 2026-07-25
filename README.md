@@ -189,6 +189,13 @@ its "Connect" button on `/monitoring` fails with a provider-side error instead o
 one from this app. See [api/CLAUDE.md](api/CLAUDE.md) for the full connect-flow
 mechanics.
 
+**New-issue notification emails (issue #561):** a background job (`notify-new-issues`,
+runs every 5 minutes) emails an admin the first time a new unresolved Sentry issue or a
+failed DigitalOcean deployment is seen, via the [Resend](https://resend.com) API (free
+tier). Set `RESEND_API_KEY`, `EMAIL_FROM`, and `NOTIFY_EMAIL_TO` (also `SECRET`
+placeholders in [`do-app.yaml`](do-app.yaml), pushed the same way as above). Any unset
+var makes the job a no-op — it still runs and records nothing, rather than failing.
+
 ## Contributing
 
 Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` (from `api/`) before committing.
