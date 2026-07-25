@@ -154,6 +154,12 @@ message UpdateReadingProgressResponse {}
 message GetReadingStateRequest { string book_id = 1; }
 message GetReadingStateResponse { BookReadingStateData state = 1; }
 
+// GetBookContent returns the readability-extracted article body stored for a
+// book (paper/article/rss categories), for in-app reading instead of linking
+// out to the source URL. html is empty when no content was ever extracted.
+message GetBookContentRequest { string book_id = 1; }
+message GetBookContentResponse { string html = 1; }
+
 // AddBookByURL ingests a paper or web article from a pasted URL: arXiv URLs
 // become papers (metadata + PDF from the arXiv API), anything else is fetched
 // and readability-extracted into an EPUB article. Pasting a URL that is
@@ -198,6 +204,7 @@ service LibraryService {
   rpc RemoveBook(RemoveBookRequest) returns (RemoveBookResponse);
   rpc UpdateReadingProgress(UpdateReadingProgressRequest) returns (UpdateReadingProgressResponse);
   rpc GetReadingState(GetReadingStateRequest) returns (GetReadingStateResponse);
+  rpc GetBookContent(GetBookContentRequest) returns (GetBookContentResponse);
   rpc CreateShelf(CreateShelfRequest) returns (CreateShelfResponse);
   rpc RenameShelf(RenameShelfRequest) returns (RenameShelfResponse);
   rpc DeleteShelf(DeleteShelfRequest) returns (DeleteShelfResponse);

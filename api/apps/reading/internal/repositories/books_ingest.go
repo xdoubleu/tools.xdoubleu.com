@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
@@ -81,4 +82,49 @@ func (repo *BooksRepository) SetBookCategory(
 	query := `UPDATE reading.books SET category = $2 WHERE id = $1`
 	_, err := repo.db.Exec(ctx, query, bookID, category)
 	return postgres.PgxErrorToHTTPError(err)
+}
+
+// SetBookContentHTML stores the readability-extracted article body for an
+// in-app read, independent of any EPUB file that may or may not exist.
+func (repo *BooksRepository) SetBookContentHTML(
+	ctx context.Context,
+	bookID uuid.UUID,
+	html string,
+) error {
+	query := `UPDATE reading.books SET content_html = $2 WHERE id = $1`
+	_, err := repo.db.Exec(ctx, query, bookID, html)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// GetBookContentHTML returns the stored article HTML for a book in the
+// caller's own library. Returns database.ErrResourceNotFound if the book
+// isn't in the user's library; the returned pointer is nil if no content was
+// ever stored for it.
+func (repo *BooksRepository) GetBookContentHTML(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (*string, error) {
+	query := `
+		SELECT b.content_html
+		FROM reading.user_books ub
+		JOIN reading.books b ON b.id = ub.book_id
+		WHERE ub.user_id = $1 AND ub.book_id = $2
+	`
+
+	rows, err := repo.db.Query(ctx, query, userID, bookID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, database.ErrResourceNotFound
+	}
+
+	var html *string
+	if err = rows.Scan(&html); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return html, nil
 }

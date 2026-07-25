@@ -20,6 +20,7 @@ import type {
   SearchLibraryResponse,
   SearchExternalResponse,
   GetExternalBookResponse,
+  GetBookContentResponse,
   Book
 } from '@/lib/gen/reading/v1/library_pb'
 import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/reading/v1/files_pb'
@@ -381,6 +382,13 @@ export function useGetBookFile(bookId: string | null, format: string | null) {
   return useSWR<GetBookFileResponse, Error>(
     bookId && format ? swrKeys.bookFile(bookId, format) : null,
     () => client.getBookFile({ bookId: bookId!, format: format! })
+  )
+}
+
+export function useGetBookContent(bookId: string | null) {
+  const client = createServiceClient(LibraryService)
+  return useSWR<GetBookContentResponse, Error>(bookId ? swrKeys.bookContent(bookId) : null, () =>
+    client.getBookContent({ bookId: bookId! })
   )
 }
 

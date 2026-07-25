@@ -13,7 +13,8 @@ jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
   useUpdateBookStatus: () => jest.fn().mockResolvedValue({}),
   useToggleTag: () => jest.fn().mockResolvedValue({}),
-  useUpdateFinishedAt: () => jest.fn().mockResolvedValue({})
+  useUpdateFinishedAt: () => jest.fn().mockResolvedValue({}),
+  useGetBookContent: jest.fn(() => ({ data: undefined, error: undefined }))
 }))
 
 const mockRouterPush = jest.fn()

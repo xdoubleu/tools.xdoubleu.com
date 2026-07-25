@@ -16,7 +16,8 @@ jest.mock('@/hooks/useBookFeeds', () => ({
 const mockUpdateBookStatus = jest.fn()
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
-  useUpdateBookStatus: () => mockUpdateBookStatus
+  useUpdateBookStatus: () => mockUpdateBookStatus,
+  useGetBookContent: jest.fn(() => ({ data: undefined, error: undefined }))
 }))
 
 jest.mock('swr', () => ({
@@ -101,7 +102,7 @@ describe('FeedReaderClient', () => {
       rssItem('2', 'Newer Post', 'to-read', '2026-01-02T00:00:00Z')
     ])
     render(<FeedReaderClient />)
-    const titles = screen.getAllByRole('link').map((el) => el.textContent)
+    const titles = screen.getAllByRole('button', { name: /Post/ }).map((el) => el.textContent)
     expect(titles).toEqual(['Newer Post', 'Older Post'])
   })
 
@@ -151,11 +152,11 @@ describe('FeedReaderClient', () => {
     jest.useRealTimers()
   })
 
-  it('renders a non-linked title when the item has no source URL', () => {
+  it('renders the title as an in-app reader button even without a source URL', () => {
     const noSource = rssItem('1', 'No Source Post')
     noSource.book!.sourceUrl = ''
     mockData([noSource])
     render(<FeedReaderClient />)
-    expect(screen.getByText('No Source Post').tagName).toBe('SPAN')
+    expect(screen.getByText('No Source Post').tagName).toBe('BUTTON')
   })
 })

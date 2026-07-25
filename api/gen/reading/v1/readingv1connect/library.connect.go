@@ -5,11 +5,13 @@
 package readingv1connect
 
 import (
-	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
 	http "net/http"
 	strings "strings"
+
+	connect "connectrpc.com/connect"
+
 	v1 "tools.xdoubleu.com/gen/reading/v1"
 )
 
@@ -75,6 +77,9 @@ const (
 	// LibraryServiceGetReadingStateProcedure is the fully-qualified name of the LibraryService's
 	// GetReadingState RPC.
 	LibraryServiceGetReadingStateProcedure = "/reading.v1.LibraryService/GetReadingState"
+	// LibraryServiceGetBookContentProcedure is the fully-qualified name of the LibraryService's
+	// GetBookContent RPC.
+	LibraryServiceGetBookContentProcedure = "/reading.v1.LibraryService/GetBookContent"
 	// LibraryServiceCreateShelfProcedure is the fully-qualified name of the LibraryService's
 	// CreateShelf RPC.
 	LibraryServiceCreateShelfProcedure = "/reading.v1.LibraryService/CreateShelf"
@@ -108,6 +113,7 @@ type LibraryServiceClient interface {
 	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
+	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
 	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
 	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
@@ -210,6 +216,12 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(libraryServiceMethods.ByName("GetReadingState")),
 			connect.WithClientOptions(opts...),
 		),
+		getBookContent: connect.NewClient[v1.GetBookContentRequest, v1.GetBookContentResponse](
+			httpClient,
+			baseURL+LibraryServiceGetBookContentProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("GetBookContent")),
+			connect.WithClientOptions(opts...),
+		),
 		createShelf: connect.NewClient[v1.CreateShelfRequest, v1.CreateShelfResponse](
 			httpClient,
 			baseURL+LibraryServiceCreateShelfProcedure,
@@ -259,6 +271,7 @@ type libraryServiceClient struct {
 	removeBook            *connect.Client[v1.RemoveBookRequest, v1.RemoveBookResponse]
 	updateReadingProgress *connect.Client[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse]
 	getReadingState       *connect.Client[v1.GetReadingStateRequest, v1.GetReadingStateResponse]
+	getBookContent        *connect.Client[v1.GetBookContentRequest, v1.GetBookContentResponse]
 	createShelf           *connect.Client[v1.CreateShelfRequest, v1.CreateShelfResponse]
 	renameShelf           *connect.Client[v1.RenameShelfRequest, v1.RenameShelfResponse]
 	deleteShelf           *connect.Client[v1.DeleteShelfRequest, v1.DeleteShelfResponse]
@@ -336,6 +349,11 @@ func (c *libraryServiceClient) GetReadingState(ctx context.Context, req *connect
 	return c.getReadingState.CallUnary(ctx, req)
 }
 
+// GetBookContent calls reading.v1.LibraryService.GetBookContent.
+func (c *libraryServiceClient) GetBookContent(ctx context.Context, req *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {
+	return c.getBookContent.CallUnary(ctx, req)
+}
+
 // CreateShelf calls reading.v1.LibraryService.CreateShelf.
 func (c *libraryServiceClient) CreateShelf(ctx context.Context, req *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error) {
 	return c.createShelf.CallUnary(ctx, req)
@@ -377,6 +395,7 @@ type LibraryServiceHandler interface {
 	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
+	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
 	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
 	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
@@ -475,6 +494,12 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		connect.WithSchema(libraryServiceMethods.ByName("GetReadingState")),
 		connect.WithHandlerOptions(opts...),
 	)
+	libraryServiceGetBookContentHandler := connect.NewUnaryHandler(
+		LibraryServiceGetBookContentProcedure,
+		svc.GetBookContent,
+		connect.WithSchema(libraryServiceMethods.ByName("GetBookContent")),
+		connect.WithHandlerOptions(opts...),
+	)
 	libraryServiceCreateShelfHandler := connect.NewUnaryHandler(
 		LibraryServiceCreateShelfProcedure,
 		svc.CreateShelf,
@@ -535,6 +560,8 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceUpdateReadingProgressHandler.ServeHTTP(w, r)
 		case LibraryServiceGetReadingStateProcedure:
 			libraryServiceGetReadingStateHandler.ServeHTTP(w, r)
+		case LibraryServiceGetBookContentProcedure:
+			libraryServiceGetBookContentHandler.ServeHTTP(w, r)
 		case LibraryServiceCreateShelfProcedure:
 			libraryServiceCreateShelfHandler.ServeHTTP(w, r)
 		case LibraryServiceRenameShelfProcedure:
@@ -608,6 +635,10 @@ func (UnimplementedLibraryServiceHandler) UpdateReadingProgress(context.Context,
 
 func (UnimplementedLibraryServiceHandler) GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("reading.v1.LibraryService.GetReadingState is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("reading.v1.LibraryService.GetBookContent is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error) {
