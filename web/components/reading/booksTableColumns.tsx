@@ -6,6 +6,8 @@ import BookCover from '@/components/reading/BookCover'
 import BookRatingStars from '@/components/reading/BookRatingStars'
 import BookFavouriteButton from '@/components/reading/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/reading/BookOwnershipToggles'
+import BookShelfTagFields from '@/components/reading/BookShelfTagFields'
+import { Popover, PopoverTrigger } from '@/components/ui/popover'
 import { displayTags, statusLabel } from '@/lib/reading/bookShelves'
 import { formatDate } from '@/lib/dates'
 
@@ -190,15 +192,31 @@ export const ALL_COLUMNS: BookColumn[] = [
     label: 'Shelf & tags',
     sortKey: 'shelf',
     cellClassName: 'max-w-44',
-    renderCell: (ub) => (
-      <>
-        <span className="text-sm">{statusLabel(ub.status)}</span>
-        {displayTags(ub.tags).length > 0 && (
-          <div className="mt-0.5 text-xs text-muted truncate">
-            {displayTags(ub.tags).join(', ')}
-          </div>
+    renderCell: (ub, ctx) => (
+      <Popover
+        align="left"
+        trigger={({ onClick }) => (
+          <PopoverTrigger
+            onClick={onClick}
+            className="block w-full text-left px-1 py-0.5 -mx-1 -my-0.5"
+            aria-label={`Edit shelf and tags for ${ub.book?.title ?? 'book'}`}
+          >
+            <span className="text-sm">{statusLabel(ub.status)}</span>
+            {displayTags(ub.tags).length > 0 && (
+              <div className="mt-0.5 text-xs text-muted truncate">
+                {displayTags(ub.tags).join(', ')}
+              </div>
+            )}
+          </PopoverTrigger>
         )}
-      </>
+      >
+        <BookShelfTagFields
+          userBook={ub}
+          knownShelves={ctx.knownShelves}
+          knownTags={ctx.knownTags}
+          onSaved={ctx.onSaved}
+        />
+      </Popover>
     )
   },
   {
