@@ -6,6 +6,8 @@ service ObservabilityService {
   rpc GetJobStats(GetJobStatsRequest) returns (GetJobStatsResponse);
   rpc GetUsageStats(GetUsageStatsRequest) returns (GetUsageStatsResponse);
   rpc GetStorageStats(GetStorageStatsRequest) returns (GetStorageStatsResponse);
+  rpc TriggerStorageScan(TriggerStorageScanRequest)
+      returns (TriggerStorageScanResponse);
   rpc GetDatabaseStats(GetDatabaseStatsRequest)
       returns (GetDatabaseStatsResponse);
   rpc GetGithubIssues(GetGithubIssuesRequest) returns (GetGithubIssuesResponse);
@@ -86,6 +88,10 @@ message GetStorageStatsResponse {
   StorageSnapshot latest = 1;
   repeated StorageSnapshot history = 2;
 }
+
+message TriggerStorageScanRequest {}
+
+message TriggerStorageScanResponse {}
 
 message SchemaStat {
   string name = 1;

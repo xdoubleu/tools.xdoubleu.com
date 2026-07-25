@@ -44,14 +44,15 @@ func NewApps(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-) *Apps {
+) (*Apps, *reading.Reading) {
 	var apps Apps = []App{}
 
 	// Migrations run sequentially in registration order: books must adopt its
 	// tables from the former backlog schema before games' final migration
 	// drops that schema, so books registers before games (this also matches
 	// the alphabetical package order used by `go test -p 1 ./...`).
-	apps.addApp(reading.New(authService, logger, cfg, db))
+	readingApp := reading.New(authService, logger, cfg, db)
+	apps.addApp(readingApp)
 	apps.addApp(games.New(authService, logger, cfg, db))
 	apps.addApp(watchparty.New(authService, logger, cfg))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db))
@@ -60,7 +61,7 @@ func NewApps(
 	apps.addApp(shoppinglist.New(authService, logger, cfg, db))
 	apps.addApp(todos.New(authService, logger, cfg, db))
 
-	return &apps
+	return &apps, readingApp
 }
 
 func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

@@ -8,6 +8,7 @@ import {
   useJobStats,
   useUsageStats,
   useStorageStats,
+  useTriggerStorageScan,
   useDatabaseStats,
   useGithubIssues,
   useSentryIssues,
@@ -34,6 +35,7 @@ export default function ObservabilityClient() {
   const jobStats = useJobStats(windowDays)
   const usageStats = useUsageStats(windowDays)
   const storageStats = useStorageStats()
+  const triggerStorageScan = useTriggerStorageScan()
   const databaseStats = useDatabaseStats()
   const githubIssues = useGithubIssues()
   const sentryIssues = useSentryIssues()
@@ -45,7 +47,7 @@ export default function ObservabilityClient() {
     await Promise.all([
       jobStats.mutate(),
       usageStats.mutate(),
-      storageStats.mutate(),
+      triggerStorageScan(),
       databaseStats.mutate(),
       githubIssues.mutate(),
       sentryIssues.mutate(),

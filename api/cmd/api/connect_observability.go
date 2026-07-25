@@ -15,6 +15,13 @@ type obsConnectHandler struct {
 	app *Application
 }
 
+// storageScanRunner is the slice of *reading.Reading TriggerStorageScan
+// needs, narrow so tests can substitute a stub instead of depending on a
+// real R2 bucket.
+type storageScanRunner interface {
+	RunStorageScanNow(ctx context.Context) error
+}
+
 var _ observabilityv1connect.ObservabilityServiceHandler = (*obsConnectHandler)(nil)
 
 // defaultWindowDays is used when a stats request omits window_days.
@@ -174,6 +181,24 @@ func (h *obsConnectHandler) storageStats(
 		Latest:  protoStorageSnapshot(latest),
 		History: protoHistory,
 	}, nil
+}
+
+func (h *obsConnectHandler) TriggerStorageScan(
+	ctx context.Context,
+	_ *connect.Request[observabilityv1.TriggerStorageScanRequest],
+) (*connect.Response[observabilityv1.TriggerStorageScanResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	// Runs the R2 list-bucket scan inline (seconds, admin-only, low
+	// frequency) rather than via the async job queue, so the caller can
+	// re-fetch GetStorageStats immediately after and see live data.
+	if err := h.app.readingApp.RunStorageScanNow(ctx); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&observabilityv1.TriggerStorageScanResponse{}), nil
 }
 
 func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSnapshot {
