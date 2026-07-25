@@ -26,7 +26,7 @@ jobs:
           cache-dependency-path: './gateway/go.sum'
       - run: make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
         working-directory: './gateway'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gateway-dist
           path: gateway/dist/gateway/
