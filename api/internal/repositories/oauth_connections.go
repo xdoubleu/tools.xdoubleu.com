@@ -136,11 +136,14 @@ func (r *OAuthConnectionsRepository) SetConfig(
 		return ErrInvalidConfig
 	}
 
+	// Bind as string, not []byte: under the simple query protocol (used by the
+	// production connection pooler) a []byte is encoded as bytea hex, which a
+	// JSONB column rejects with "invalid input syntax for type json".
 	tag, err := r.db.Exec(ctx, `
 		UPDATE global.oauth_connections
 		SET config = $2, updated_at = now()
 		WHERE provider = $1
-	`, provider, config)
+	`, provider, string(config))
 	if err != nil {
 		return err
 	}
