@@ -92,6 +92,19 @@ services:
       - key: ENCRYPTION_KEY
         scope: RUN_TIME
         type: SECRET
+      # New-issue notification emails (issue #561): the notify-new-issues job
+      # emails NOTIFY_EMAIL_TO via the Resend API when a new Sentry issue or
+      # failed DigitalOcean deployment is seen. Unset means the job runs but
+      # never sends (mailer.ErrNotConfigured).
+      - key: RESEND_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: EMAIL_FROM
+        scope: RUN_TIME
+        type: SECRET
+      - key: NOTIFY_EMAIL_TO
+        scope: RUN_TIME
+        type: SECRET
 
   - name: web
     image:
