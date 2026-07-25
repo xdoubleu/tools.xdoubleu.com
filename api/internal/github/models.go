@@ -95,7 +95,9 @@ type checkRunWire struct {
 // failingConclusions are the check-run conclusions treated as "failing" for
 // the observability dashboard. In-progress/queued runs (empty conclusion) are
 // not failing yet, just not done.
-var failingConclusions = map[string]bool{ //nolint:gochecknoglobals // static lookup table
+//
+//nolint:gochecknoglobals // static lookup table
+var failingConclusions = map[string]bool{
 	"failure":         true,
 	"timed_out":       true,
 	"cancelled":       true,
