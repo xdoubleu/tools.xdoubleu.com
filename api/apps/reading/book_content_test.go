@@ -75,6 +75,16 @@ func TestBookContentRepo_Get_UnknownBookID_ReturnsNotFound(t *testing.T) {
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 }
 
+func TestBookContentRepo_Get_QueryError_ReturnsErr(t *testing.T) {
+	book := seedContentBookInLibrary(t, userID)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := testApp.Repositories.Books.GetBookContentHTML(ctx, userID, book.ID)
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, database.ErrResourceNotFound)
+}
+
 // --- service-level tests ---
 
 func TestBookService_GetContentHTML_EmptyWhenNeverSet(t *testing.T) {
@@ -85,6 +95,16 @@ func TestBookService_GetContentHTML_EmptyWhenNeverSet(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Empty(t, html)
+}
+
+func TestBookService_GetContentHTML_PropagatesRepoError(t *testing.T) {
+	book := seedContentBookInLibrary(t, userID)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := testApp.Services.Books.GetContentHTML(ctx, userID, book.ID)
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, database.ErrResourceNotFound)
 }
 
 // --- handler-level tests ---
