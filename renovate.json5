@@ -90,6 +90,12 @@
         '@typescript-eslint/parser',
       ],
     },
+    {
+      // typescript-eslint's peerDependencies cap typescript at <6.1.0 (as of
+      // 8.65.0); remove this once it declares support for typescript 7.
+      matchDepNames: ['typescript'],
+      allowedVersions: '<6.1.0',
+    },
   ],
   timezone: 'Europe/Brussels',
   labels: [
