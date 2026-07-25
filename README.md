@@ -122,6 +122,14 @@ enable **dynamic client registration**, and confirm the **Site URL** is
 [`do-app.yaml`](do-app.yaml)). Until this is configured the endpoint returns a
 401 challenge but the flow cannot complete.
 
+The access token lifetime for this flow is **not** set in this repo — it's the
+project's JWT expiry (dashboard → **Authentication → Sessions** → "Access token
+(JWT) expiry limit", 3600s by default). If Claude Code is prompting for the
+browser consent screen more often than expected, raise that limit; the
+`mcpTokenTTL` constant in `cmd/api/mcp.go` is an unrelated per-request nominal
+value for the go-sdk's bearer check and has no effect on how often reauth is
+needed.
+
 ## Apps MCP server
 
 The apps' own **read-only** data is exposed to a locally-running Claude CLI over a

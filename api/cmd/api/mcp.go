@@ -32,7 +32,11 @@ const (
 	mcpUserExtraKey = "user"
 
 	// mcpTokenTTL is the nominal freshness window reported to the go-sdk bearer
-	// middleware for a token we just validated against Supabase.
+	// middleware for a token we just validated against Supabase. It only has to
+	// be non-zero and in the future to pass the immediate per-request check in
+	// RequireBearerToken (go-sdk/auth); it is not cached or reused across
+	// requests, so it does not control real reauth frequency. That's the
+	// Supabase project's JWT expiry (dashboard → Authentication → Sessions).
 	mcpTokenTTL = time.Hour
 
 	monitoringMCPPath = "/monitoring/mcp"
