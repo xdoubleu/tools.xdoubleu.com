@@ -44,6 +44,16 @@ func recoverGo(where string, fn func()) {
 	fn()
 }
 
+// reportFatal reports a fatal, non-panic error (a plain error returned from
+// run(), e.g. a bind failure from a stale duplicate process) to Sentry
+// before main exits. A menu-bar app has no visible console, so without this
+// such an exit (see #562) leaves zero trace anywhere the user or developer
+// can see — unlike reportAndRepanic, there's no panic here to recover from.
+func reportFatal(err error) {
+	sentry.CurrentHub().CaptureException(err)
+	sentry.Flush(sentryFlushTimeout)
+}
+
 // reportAndRepanic recovers a panic on the main thread, reports it to
 // Sentry, and re-panics. Unlike guard, it does not swallow the panic:
 // silently continuing past a broken AppKit run loop would leave the app

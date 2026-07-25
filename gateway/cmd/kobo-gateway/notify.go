@@ -4,9 +4,11 @@
 // internal/kobogateway has no AppKit dependency.
 package main
 
-// notify shows a best-effort menu-bar notification. Overridden by
-// menubar_darwin.go's init to the real UNUserNotificationCenter call; stays
-// a no-op on non-darwin builds, which have no menu bar to show it from.
+// notify shows a best-effort menu-bar notification. nil until
+// menubar_darwin.go's init assigns the real UNUserNotificationCenter call;
+// stays nil on non-darwin builds, which have no menu bar to show it from.
+// Server.SetNotifier (see server.go) already ignores a nil notifier, so
+// callers pass this straight through without a nil check of their own.
 //
 //nolint:gochecknoglobals // platform seam, see menubar_darwin.go's init.
-var notify = func(title, body string) {}
+var notify func(title, body string)

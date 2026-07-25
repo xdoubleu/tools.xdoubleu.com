@@ -61,12 +61,7 @@ func main() {
 
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		// A menu-bar app has no visible console, so without this a fatal
-		// exit (e.g. a bind failure from a stale duplicate process — #562)
-		// leaves zero trace anywhere the user or developer can see. Distinct
-		// from reportAndRepanic: this is a plain error return, not a panic.
-		sentry.CurrentHub().CaptureException(err)
-		sentry.Flush(sentryFlushTimeout)
+		reportFatal(err)
 		os.Exit(1)
 	}
 }
