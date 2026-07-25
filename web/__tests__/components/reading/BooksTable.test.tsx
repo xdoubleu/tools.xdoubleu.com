@@ -35,6 +35,15 @@ jest.mock('@/components/reading/BookOwnershipToggles', () => {
   }
 })
 
+jest.mock('@/hooks/useBooks', () => ({
+  useUpdateBookStatus: () => jest.fn(),
+  useToggleTag: () => jest.fn()
+}))
+
+jest.mock('swr', () => ({
+  mutate: jest.fn()
+}))
+
 function makeBook(id: string, title: string, author = 'Author', overrides = {}) {
   return create(UserBookSchema, {
     id,
@@ -216,6 +225,14 @@ describe('BooksTable', () => {
     const cells = screen.getAllByRole('cell')
     const titles = cells.map((c) => c.textContent).filter((t) => t === 'Z Book' || t === 'A Book')
     expect(titles[0]).toBe('A Book')
+  })
+
+  it('opens the shelf/tags editor from the list row without navigating', () => {
+    const books = [makeBook('1', 'Dune', 'Frank Herbert', { status: 'to-read' })]
+    render(<BooksTable books={books} knownShelves={['owned']} knownTags={['sci-fi']} />)
+    fireEvent.click(screen.getByRole('button', { name: /Edit shelf and tags for Dune/ }))
+    expect(screen.getByText('sci-fi')).toBeInTheDocument()
+    expect(screen.getByText('+ Add shelf')).toBeInTheDocument()
   })
 
   it('sorts by date added when Date added header is clicked', () => {
