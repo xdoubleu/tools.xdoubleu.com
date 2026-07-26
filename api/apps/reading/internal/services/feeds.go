@@ -337,7 +337,7 @@ func (s *FeedService) ingestItemContent(
 		Category:  models.CategoryRSS,
 		Title:     item.Title,
 		Byline:    itemAuthor(item),
-		HTML:      item.Content,
+		HTML:      feedItemHTML(item),
 	}
 	if item.Description != "" {
 		content.Excerpt = item.Description
@@ -395,11 +395,20 @@ func (s *FeedService) enrichFromLinkedPage(
 		ctx, content.SourceURL,
 		fetchOptions(maxArticleBytes, "text/html,application/xhtml+xml"),
 	)
-	if err != nil || !isHTMLContentType(res.ContentType) {
+	if err != nil {
+		s.logger.WarnContext(ctx, "feed item content fetch failed",
+			"url", content.SourceURL, "error", err)
+		return
+	}
+	if !isHTMLContentType(res.ContentType) {
+		s.logger.WarnContext(ctx, "feed item content fetch returned non-HTML",
+			"url", content.SourceURL, "contentType", res.ContentType)
 		return
 	}
 	art, err := extractReadable(res.FinalURL, res.Body)
 	if err != nil {
+		s.logger.WarnContext(ctx, "feed item readability extraction failed",
+			"url", content.SourceURL, "error", err)
 		return
 	}
 
@@ -534,6 +543,17 @@ func itemGUID(item *gofeed.Item) string {
 		return item.GUID
 	}
 	return item.Link
+}
+
+// feedItemHTML returns the item's embedded full content, if any. gofeed only
+// maps <content:encoded> into item.Content when it resolves the "content"
+// namespace prefix; feeds that declare it non-standardly still carry the
+// value in item.Custom["encoded"] instead.
+func feedItemHTML(item *gofeed.Item) string {
+	if item.Content != "" {
+		return item.Content
+	}
+	return item.Custom["encoded"]
 }
 
 func itemAuthor(item *gofeed.Item) string {
