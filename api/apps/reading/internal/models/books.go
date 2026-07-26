@@ -71,6 +71,11 @@ type Book struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
+	// HasContent is true once article/RSS/paper content extraction succeeded
+	// and content_html is non-empty. Always false for plain "book" category
+	// items.
+	HasContent bool
+
 	// Resync status — populated during BuildResyncProposals scans.
 	// Nil means the book has never been processed by a resync run.
 	UniCatFound    *bool

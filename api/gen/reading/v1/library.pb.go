@@ -33,7 +33,11 @@ type Book struct {
 	// Fixed item category: "book" | "paper" | "article" | "rss".
 	Category string `protobuf:"bytes,10,opt,name=category,proto3" json:"category,omitempty"`
 	// Canonical origin URL for paper/article/rss items; empty for books.
-	SourceUrl     string `protobuf:"bytes,11,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
+	SourceUrl string `protobuf:"bytes,11,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
+	// True once article/RSS/paper content extraction succeeded and in-app
+	// content is stored; false for plain "book" category items or ones where
+	// extraction failed/found nothing.
+	HasContent    bool `protobuf:"varint,12,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,6 +133,13 @@ func (x *Book) GetSourceUrl() string {
 		return x.SourceUrl
 	}
 	return ""
+}
+
+func (x *Book) GetHasContent() bool {
+	if x != nil {
+		return x.HasContent
+	}
+	return false
 }
 
 type UserBook struct {
@@ -2562,7 +2573,7 @@ var File_reading_v1_library_proto protoreflect.FileDescriptor
 const file_reading_v1_library_proto_rawDesc = "" +
 	"\n" +
 	"\x18reading/v1/library.proto\x12\n" +
-	"reading.v1\"\x9a\x02\n" +
+	"reading.v1\"\xbb\x02\n" +
 	"\x04Book\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -2575,7 +2586,9 @@ const file_reading_v1_library_proto_rawDesc = "" +
 	"\bcategory\x18\n" +
 	" \x01(\tR\bcategory\x12\x1d\n" +
 	"\n" +
-	"source_url\x18\v \x01(\tR\tsourceUrlJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"source_url\x18\v \x01(\tR\tsourceUrl\x12\x1f\n" +
+	"\vhas_content\x18\f \x01(\bR\n" +
+	"hasContentJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"R\x06isbn10R\rexternal_refs\"\xa4\x03\n" +
 	"\bUserBook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +

@@ -60,6 +60,15 @@ func containsBook(books []*readingv1.UserBook, bookID string) bool {
 	return false
 }
 
+func findUserBook(books []*readingv1.UserBook, bookID string) *readingv1.UserBook {
+	for _, ub := range books {
+		if ub.BookId == bookID {
+			return ub
+		}
+	}
+	return nil
+}
+
 // TestGetLibrary_SeparatesRSS proves #408: RSS items are returned in the
 // dedicated `rss` field and kept out of the reading-state shelves, while
 // deliberately-added papers/articles stay in the shelves with books.
@@ -106,4 +115,40 @@ func TestGetFinishedDates_ExcludesRSS(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Len(t, afterRSS, len(afterBook))
+}
+
+// TestGetLibrary_HasContentReflectsExtractedContent proves #592: the feed
+// reader needs to tell apart RSS items with in-app content from ones where
+// extraction failed, without a per-item content fetch.
+func TestGetLibrary_HasContentReflectsExtractedContent(t *testing.T) {
+	withContent := addTestItem(
+		t,
+		models.CategoryRSS,
+		models.StatusToRead,
+		"Has Content Item",
+	)
+	require.NoError(t, testApp.Repositories.Books.SetBookContentHTML(
+		context.Background(), withContent.ID, "<p>body</p>",
+	))
+	withoutContent := addTestItem(
+		t,
+		models.CategoryRSS,
+		models.StatusToRead,
+		"No Content Item",
+	)
+
+	client := newBooksTestClient(t)
+	req := connect.NewRequest(&readingv1.GetLibraryRequest{})
+	req.Header().Set("Cookie", accessToken.String())
+	resp, err := client.GetLibrary(context.Background(), req)
+	require.NoError(t, err)
+	lib := resp.Msg.Library
+
+	withContentUB := findUserBook(lib.Rss, withContent.ID.String())
+	require.NotNil(t, withContentUB)
+	assert.True(t, withContentUB.Book.HasContent)
+
+	withoutContentUB := findUserBook(lib.Rss, withoutContent.ID.String())
+	require.NotNil(t, withoutContentUB)
+	assert.False(t, withoutContentUB.Book.HasContent)
 }

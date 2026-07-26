@@ -16,6 +16,10 @@ message Book {
   string category = 10;
   // Canonical origin URL for paper/article/rss items; empty for books.
   string source_url = 11;
+  // True once article/RSS/paper content extraction succeeded and in-app
+  // content is stored; false for plain "book" category items or ones where
+  // extraction failed/found nothing.
+  bool has_content = 12;
 }
 
 message UserBook {
