@@ -222,6 +222,33 @@ func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
 	assert.True(t, found, "dropped shelf should persist after being emptied")
 }
 
+// TestConnectLibrary_DroppedOwnedAlwaysPresent covers the retroactive half of
+// issue #593: a shelf already emptied before the shelves registry existed
+// (or simply never touched) has no reading.shelves row and no user_books row
+// to derive one from, so GetLibrary must surface "dropped"/"owned" as fixed
+// shelves regardless of registry or book-history state.
+func TestConnectLibrary_DroppedOwnedAlwaysPresent(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	libReq := connect.NewRequest(&readingv1.GetLibraryRequest{})
+	libReq.Header().Set("Cookie", accessToken.String())
+	libResp, err := client.GetLibrary(ctx, libReq)
+	require.NoError(t, err)
+
+	names := make(map[string]bool)
+	for _, shelf := range libResp.Msg.Library.Shelves {
+		names[shelf.Name] = true
+	}
+	assert.True(
+		t,
+		names[models.StatusDropped],
+		"dropped shelf should always be present",
+	)
+	assert.True(t, names[models.StatusOwned], "owned shelf should always be present")
+}
+
 func TestConnectRenameShelf_Success(t *testing.T) {
 	book := addTestBook(t, "RenameShelfBook")
 	require.NotNil(t, book)
