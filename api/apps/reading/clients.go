@@ -19,8 +19,8 @@ type Clients struct {
 	// Arxiv resolves arXiv ids to paper metadata.
 	Arxiv arxiv.Client
 	// HTMLConvert overrides the article HTML→EPUB converter. Leave nil for
-	// the default (Calibre ebook-convert subprocess); tests inject a fake
-	// since the binary is not available there.
+	// the default pure-Go builder; tests can inject a fake to assert on the
+	// inputs passed to conversion without building a real EPUB.
 	HTMLConvert services.HTMLConverter
 	// KoboStoreBaseURL is the upstream Kobo store base URL used for proxy/merge.
 	// Override in tests to point at a stub upstream.

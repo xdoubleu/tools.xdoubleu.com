@@ -70,7 +70,7 @@ type IngestService struct {
 }
 
 // NewIngestService constructs an IngestService. Pass nil for htmlConvert to
-// use the default Calibre-backed converter.
+// use the default pure-Go converter.
 func NewIngestService(
 	logger *slog.Logger,
 	books *BookService,
@@ -81,7 +81,7 @@ func NewIngestService(
 	htmlConvert HTMLConverter,
 ) *IngestService {
 	if htmlConvert == nil {
-		htmlConvert = calibreHTMLConverter
+		htmlConvert = goHTMLConverter
 	}
 	return &IngestService{
 		logger:      logger,

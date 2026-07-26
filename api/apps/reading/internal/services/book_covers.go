@@ -104,7 +104,7 @@ func (s *BookService) cacheCoverFromURL(
 
 	contentType := resp.Header.Get("Content-Type")
 	if contentType == "" {
-		contentType = "image/jpeg"
+		contentType = contentTypeJPEG
 	}
 
 	return s.objectStore.Put(

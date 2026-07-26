@@ -75,7 +75,7 @@ func New(
 		objectStore,
 		webFetchClient,
 		arxivClient,
-		htmlConvert, // nil defaults to calibreHTMLConverter
+		htmlConvert, // nil defaults to goHTMLConverter
 	)
 
 	feedsSvc := NewFeedService(
