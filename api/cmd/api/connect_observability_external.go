@@ -19,52 +19,6 @@ import (
 // logged and downgraded to an empty section, so one broken source never fails
 // the whole response.
 
-func (h *obsConnectHandler) GetGithubIssues(
-	ctx context.Context,
-	_ *connect.Request[observabilityv1.GetGithubIssuesRequest],
-) (*connect.Response[observabilityv1.GetGithubIssuesResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(h.githubIssues(ctx)), nil
-}
-
-func (h *obsConnectHandler) githubIssues(
-	ctx context.Context,
-) *observabilityv1.GetGithubIssuesResponse {
-	resp := &observabilityv1.GetGithubIssuesResponse{
-		Issues:     []*observabilityv1.GithubIssue{},
-		Configured: true,
-		OpenCount:  0,
-	}
-
-	issues, err := h.app.githubClient.ListOpenIssues(ctx)
-	if err != nil {
-		if errors.Is(err, github.ErrNotConfigured) {
-			resp.Configured = false
-		} else {
-			h.app.logger.WarnContext(ctx, "github issues unavailable",
-				slog.Any("error", err))
-		}
-		return resp
-	}
-
-	protoIssues := make([]*observabilityv1.GithubIssue, len(issues))
-	for i, is := range issues {
-		protoIssues[i] = &observabilityv1.GithubIssue{
-			Number:    is.Number,
-			Title:     is.Title,
-			Url:       is.URL,
-			State:     is.State,
-			CreatedAt: is.CreatedAt.Format(time.RFC3339),
-			Labels:    is.Labels,
-		}
-	}
-	resp.Issues = protoIssues
-	resp.OpenCount = int32(len(issues)) //nolint:gosec // issue count fits int32
-	return resp
-}
-
 func (h *obsConnectHandler) GetFailingPullRequests(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetFailingPullRequestsRequest],
@@ -221,7 +175,6 @@ func (h *obsConnectHandler) GetHealthOverview(
 	}
 
 	return connect.NewResponse(&observabilityv1.GetHealthOverviewResponse{
-		Github: h.githubIssues(ctx),
 		Sentry: h.sentryIssues(ctx),
 		Deploy: h.deployStatus(ctx),
 	}), nil

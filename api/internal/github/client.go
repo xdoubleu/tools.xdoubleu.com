@@ -33,9 +33,9 @@ const apiTimeout = 15 * time.Second
 const (
 	// maxAttempts is the total number of tries for a retryable request.
 	maxAttempts = 4
-	// cacheTTL is how long a fetched issue list is served from memory before
-	// the next call re-fetches. Keeps the admin dashboard off the API rate
-	// limit while staying fresh enough for observability.
+	// cacheTTL is how long a fetched pull-request list is served from memory
+	// before the next call re-fetches. Keeps the admin dashboard off the API
+	// rate limit while staying fresh enough for observability.
 	cacheTTL = 45 * time.Second
 )
 
@@ -59,8 +59,6 @@ type client struct {
 	configRepo configStore
 
 	mu         sync.Mutex
-	cached     []Issue
-	cachedAt   time.Time
 	cachedPRs  []PullRequest
 	cachedPRAt time.Time
 }
@@ -78,33 +76,6 @@ func New(
 		tokenFn:    tokenFn,
 		configRepo: configRepo,
 	}
-}
-
-func (c *client) ListOpenIssues(ctx context.Context) ([]Issue, error) {
-	repo, err := c.resolveRepo(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if cached, ok := c.cachedIssues(); ok {
-		return cached, nil
-	}
-
-	token, err := c.tokenFn(ctx)
-	if errors.Is(err, oauthconn.ErrNotConnected) {
-		return nil, ErrNotConfigured
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	issues, err := c.fetch(ctx, token, repo)
-	if err != nil {
-		return nil, err
-	}
-
-	c.store(issues)
-	return issues, nil
 }
 
 func (c *client) ListFailingPullRequests(ctx context.Context) ([]PullRequest, error) {
@@ -159,22 +130,6 @@ func (c *client) resolveRepo(ctx context.Context) (string, error) {
 	return cfg.Repo, nil
 }
 
-func (c *client) cachedIssues() ([]Issue, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.cached != nil && time.Since(c.cachedAt) < cacheTTL {
-		return c.cached, true
-	}
-	return nil, false
-}
-
-func (c *client) store(issues []Issue) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.cached = issues
-	c.cachedAt = time.Now()
-}
-
 func (c *client) cachedPullRequests() ([]PullRequest, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -189,24 +144,6 @@ func (c *client) storePullRequests(prs []PullRequest) {
 	defer c.mu.Unlock()
 	c.cachedPRs = prs
 	c.cachedPRAt = time.Now()
-}
-
-func (c *client) fetch(ctx context.Context, token, repo string) ([]Issue, error) {
-	endpoint := fmt.Sprintf("%s/repos/%s/issues?state=open", baseURL, repo)
-
-	var wires []issueWire
-	if err := c.get(ctx, endpoint, token, &wires); err != nil {
-		return nil, err
-	}
-
-	issues := make([]Issue, 0, len(wires))
-	for _, w := range wires {
-		if w.PullRequest != nil {
-			continue // the /issues endpoint returns PRs too — skip them
-		}
-		issues = append(issues, w.toIssue())
-	}
-	return issues, nil
 }
 
 // fetchFailingPullRequests lists the repo's open pull requests and, for each,

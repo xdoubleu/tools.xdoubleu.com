@@ -17,7 +17,6 @@ export default async function MonitoringPage() {
     usageStats,
     storageStats,
     databaseStats,
-    githubIssues,
     sentryIssues,
     deployStatus,
     oauthConnections
@@ -26,7 +25,6 @@ export default async function MonitoringPage() {
     fetchOrNull(() => client.getUsageStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getStorageStats({})),
     fetchOrNull(() => client.getDatabaseStats({})),
-    fetchOrNull(() => client.getGithubIssues({})),
     fetchOrNull(() => client.getSentryIssues({})),
     fetchOrNull(() => client.getDeployStatus({})),
     fetchOrNull(() => client.listOAuthConnections({}))
@@ -35,7 +33,6 @@ export default async function MonitoringPage() {
   const fallback: Record<string, unknown> = {}
   if (storageStats) fallback[swrKeys.monitoringStorageStats] = storageStats
   if (databaseStats) fallback[swrKeys.monitoringDatabaseStats] = databaseStats
-  if (githubIssues) fallback[swrKeys.monitoringGithubIssues] = githubIssues
   if (sentryIssues) fallback[swrKeys.monitoringSentryIssues] = sentryIssues
   if (deployStatus) fallback[swrKeys.monitoringDeployStatus] = deployStatus
   if (oauthConnections) fallback[swrKeys.monitoringOAuthConnections] = oauthConnections

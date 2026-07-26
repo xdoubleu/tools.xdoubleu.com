@@ -210,17 +210,16 @@ func (s *BookService) UpdateStatus(
 	return s.registerCustomShelf(ctx, userID, ub.Status)
 }
 
-// registerCustomShelf records a status in the shelves registry so it
-// persists even after its last book is moved off it. Only the three statuses
-// with a dedicated LibraryResponse field are skipped — they can never
-// disappear on their own. Dropped and owned have no such field (they flow
-// through groupByStatus as ordinary named shelves, like a custom shelf), so
-// they must be registered here too or they vanish once emptied (issue #593).
+// registerCustomShelf records a custom (non-built-in) status in the shelves
+// registry so it persists even after its last book is moved off it. Built-in
+// statuses are never stored — dropped/owned are always shown regardless of
+// the registry (see groupByStatus), and the other three have their own
+// dedicated LibraryResponse field and can never disappear either way.
 func (s *BookService) registerCustomShelf(
 	ctx context.Context,
 	userID, status string,
 ) error {
-	if dedicatedFieldStatuses[status] {
+	if builtInStatuses[status] {
 		return nil
 	}
 	return s.books.EnsureShelf(ctx, userID, status)
@@ -303,18 +302,6 @@ var builtInStatuses = map[string]bool{
 	models.StatusRead:    true,
 	models.StatusDropped: true,
 	models.StatusOwned:   true,
-}
-
-// dedicatedFieldStatuses map to their own LibraryResponse field (reading/
-// wishlist/finished) and can never disappear, so they never need a shelves
-// registry row. Dropped and owned, unlike these three, have no dedicated
-// field, so registerCustomShelf must still register them.
-//
-//nolint:gochecknoglobals // effectively a constant set
-var dedicatedFieldStatuses = map[string]bool{
-	models.StatusToRead:  true,
-	models.StatusReading: true,
-	models.StatusRead:    true,
 }
 
 // ListShelves returns every custom shelf name registered for the user,

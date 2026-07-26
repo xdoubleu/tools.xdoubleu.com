@@ -79,7 +79,7 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 8 read-only admin observability
+// registerObservabilityMCPTools registers the 7 read-only admin observability
 // tools. Each wraps a shared internal ObservabilityService read method — no
 // write RPC is reachable, so the tools are read-only by construction.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -104,11 +104,6 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		"Total database size and per-schema sizes (live pg_* queries).",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.databaseStats(ctx)
-		})
-	addObsTool(srv, "get_github_issues",
-		"Open GitHub issues for the repository.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.githubIssues(ctx), nil
 		})
 	addObsTool(srv, "get_failing_pull_requests",
 		"Open pull requests with at least one failing CI check.",

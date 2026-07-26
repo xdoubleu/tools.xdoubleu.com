@@ -10,7 +10,6 @@ service ObservabilityService {
       returns (TriggerStorageScanResponse);
   rpc GetDatabaseStats(GetDatabaseStatsRequest)
       returns (GetDatabaseStatsResponse);
-  rpc GetGithubIssues(GetGithubIssuesRequest) returns (GetGithubIssuesResponse);
   rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
       returns (GetFailingPullRequestsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
@@ -108,26 +107,6 @@ message GetDatabaseStatsResponse {
   repeated SchemaStat schemas = 2;
 }
 
-// GithubIssue is a single open issue on the configured repository.
-message GithubIssue {
-  int64 number = 1;
-  string title = 2;
-  string url = 3;
-  string state = 4;
-  string created_at = 5;  // RFC3339
-  repeated string labels = 6;
-}
-
-message GetGithubIssuesRequest {}
-
-// GetGithubIssuesResponse carries the open issues. configured is false when no
-// GitHub token/repo is set — the section is degraded, not failed.
-message GetGithubIssuesResponse {
-  repeated GithubIssue issues = 1;
-  bool configured = 2;
-  int32 open_count = 3;
-}
-
 // FailingCheck is a single non-passing CI check run on a pull request's head
 // commit.
 message FailingCheck {
@@ -196,10 +175,9 @@ message GetDeployStatusResponse {
 
 message GetHealthOverviewRequest {}
 
-// GetHealthOverviewResponse rolls up the three external signals into one call,
-// each section degrading independently.
+// GetHealthOverviewResponse rolls up external signals into one call, each
+// section degrading independently.
 message GetHealthOverviewResponse {
-  GetGithubIssuesResponse github = 1;
   GetSentryIssuesResponse sentry = 2;
   GetDeployStatusResponse deploy = 3;
 }
