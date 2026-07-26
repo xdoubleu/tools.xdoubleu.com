@@ -101,10 +101,10 @@ risk. Every tool wraps an existing **read** RPC of an app (games, reading,
 recipes, mealplans, shoppinglist, todos, icsproxy) or an `ObservabilityService`
 read method — no write RPC is reachable, so the server is read-only by
 construction. App tools are named `<app>_<rpc>` (e.g. `games_get_steam`,
-`reading_search_library`, `todos_list_tasks`); the 8 observability tools are
+`reading_search_library`, `todos_list_tasks`); the 7 observability tools are
 unprefixed (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
-`get_database_stats`, `get_github_issues`, `get_failing_pull_requests`,
-`get_sentry_issues`, `get_deploy_status`).
+`get_database_stats`, `get_failing_pull_requests`, `get_sentry_issues`,
+`get_deploy_status`).
 
 Point a local Claude Code at it (OAuth is handled automatically — no header):
 

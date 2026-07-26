@@ -19,7 +19,7 @@ type repoWire struct {
 }
 
 // ListRepos returns the repositories visible to the connected account
-// (`repo` OAuth scope), for the admin config picker. Unlike ListOpenIssues,
+// (`repo` OAuth scope), for the admin config picker. Unlike ListFailingPullRequests,
 // this must work before any repo is picked, so a missing token is reported
 // as ErrNotConnected, not ErrNotConfigured.
 func (c *client) ListRepos(ctx context.Context) ([]Repo, error) {

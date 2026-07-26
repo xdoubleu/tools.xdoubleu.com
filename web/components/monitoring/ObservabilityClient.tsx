@@ -10,7 +10,6 @@ import {
   useStorageStats,
   useTriggerStorageScan,
   useDatabaseStats,
-  useGithubIssues,
   useFailingPullRequests,
   useSentryIssues,
   useDeployStatus,
@@ -22,7 +21,6 @@ import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
 import UsageCard from './UsageCard'
-import GithubIssuesCard from './GithubIssuesCard'
 import FailingPullRequestsCard from './FailingPullRequestsCard'
 import SentryCard from './SentryCard'
 import DeployCard from './DeployCard'
@@ -39,7 +37,6 @@ export default function ObservabilityClient() {
   const storageStats = useStorageStats()
   const triggerStorageScan = useTriggerStorageScan()
   const databaseStats = useDatabaseStats()
-  const githubIssues = useGithubIssues()
   const failingPullRequests = useFailingPullRequests()
   const sentryIssues = useSentryIssues()
   const deployStatus = useDeployStatus()
@@ -52,7 +49,6 @@ export default function ObservabilityClient() {
       usageStats.mutate(),
       triggerStorageScan(),
       databaseStats.mutate(),
-      githubIssues.mutate(),
       failingPullRequests.mutate(),
       sentryIssues.mutate(),
       deployStatus.mutate(),
@@ -64,11 +60,9 @@ export default function ObservabilityClient() {
   const latest = storageStats.data?.latest
   const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
 
-  const github = githubIssues.data
   const failingPRs = failingPullRequests.data
   const sentry = sentryIssues.data
   const deploy = deployStatus.data
-  const openIssues = github?.configured ? github.openCount : 0
   const failingCount = failingPRs?.configured ? failingPRs.failingCount : 0
   const unresolvedErrors = sentry?.configured ? sentry.unresolvedCount : 0
   const deployPhase = deploy?.configured ? deploy.phase : ''
@@ -91,11 +85,6 @@ export default function ObservabilityClient() {
       label: 'Jobs failing',
       value: formatCount(failingJobs),
       tone: failingJobs > 0 ? ('danger' as const) : ('default' as const)
-    },
-    {
-      label: 'Open issues',
-      value: github?.configured ? formatCount(openIssues) : '—',
-      tone: openIssues > 0 ? ('danger' as const) : ('default' as const)
     },
     {
       label: 'Failing PRs',
@@ -147,7 +136,6 @@ export default function ObservabilityClient() {
         <DatabaseCard data={databaseStats.data} />
         <JobsCard data={jobStats.data} />
         <UsageCard data={usageStats.data} />
-        <GithubIssuesCard data={githubIssues.data} />
         <FailingPullRequestsCard data={failingPullRequests.data} />
         <SentryCard data={sentryIssues.data} />
         <DeployCard data={deployStatus.data} />

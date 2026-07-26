@@ -12,7 +12,6 @@ export const swrKeys = {
   monitoringUsageStats: (windowDays: number) => ['/monitoring/usage-stats', windowDays] as const,
   monitoringStorageStats: '/monitoring/storage-stats',
   monitoringDatabaseStats: '/monitoring/database-stats',
-  monitoringGithubIssues: '/monitoring/github-issues',
   monitoringFailingPullRequests: '/monitoring/failing-pull-requests',
   monitoringSentryIssues: '/monitoring/sentry-issues',
   monitoringDeployStatus: '/monitoring/deploy-status',

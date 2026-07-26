@@ -20,7 +20,6 @@ jest.mock('@/lib/client', () => ({
     getStorageStats: jest.fn(),
     triggerStorageScan: (...args: unknown[]) => mockTriggerStorageScan(...args),
     getDatabaseStats: jest.fn(),
-    getGithubIssues: jest.fn(),
     getFailingPullRequests: jest.fn(),
     getSentryIssues: jest.fn(),
     getDeployStatus: jest.fn(),
@@ -42,7 +41,6 @@ import {
   useStorageStats,
   useTriggerStorageScan,
   useDatabaseStats,
-  useGithubIssues,
   useFailingPullRequests,
   useSentryIssues,
   useDeployStatus,
@@ -87,11 +85,6 @@ describe('useMonitoring', () => {
   it('keys database stats statically', () => {
     renderHook(() => useDatabaseStats())
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDatabaseStats, expect.any(Function))
-  })
-
-  it('keys github issues statically', () => {
-    renderHook(() => useGithubIssues())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringGithubIssues, expect.any(Function))
   })
 
   it('keys failing pull requests statically', () => {
@@ -194,7 +187,7 @@ describe('useSetProviderConfig', () => {
 
     expect(mockSetProviderConfig).toHaveBeenCalledWith({ provider: 'github', config })
     expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringGithubIssues)
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringFailingPullRequests)
   })
 
   it('does not mutate a data key for an unrecognized provider', async () => {
