@@ -12,6 +12,12 @@ const (
 	gutterMinWidthFraction = 0.04
 	gutterMidLow           = 0.35
 	gutterMidHigh          = 0.65
+	// midpointDivisor halves a (left, right) or (start, end) pair to find its
+	// center — used for both the gutter's midpoint and column-assignment
+	// midpoints below.
+	midpointDivisor = 2
+	// roundHalfUp nudges a truncating int conversion into round-half-up.
+	roundHalfUp = 0.5
 )
 
 // findGutter locates the widest vertical strip of the page that contains no
@@ -21,7 +27,7 @@ const (
 func findGutter(
 	chars []pdfChar,
 	pageWidth, pageHeight float64,
-) (left, right float64, twoColumn bool) {
+) (float64, float64, bool) {
 	if pageWidth <= 0 || pageHeight <= 0 || len(chars) == 0 {
 		return 0, 0, false
 	}
@@ -60,7 +66,7 @@ func findGutter(
 		return 0, 0, false
 	}
 
-	midFrac := (gutterLeft + gutterRight) / 2 / pageWidth
+	midFrac := (gutterLeft + gutterRight) / midpointDivisor / pageWidth
 	if midFrac < gutterMidLow || midFrac > gutterMidHigh {
 		return 0, 0, false
 	}
@@ -68,19 +74,19 @@ func findGutter(
 	return gutterLeft, gutterRight, true
 }
 
-func clampBin(v, max int) int {
+func clampBin(v, upper int) int {
 	if v < 0 {
 		return 0
 	}
-	if v >= max {
-		return max - 1
+	if v >= upper {
+		return upper - 1
 	}
 	return v
 }
 
 // widestEmptyRun returns the [start,end) x-bin range of the widest run of
 // columns empty for at least gutterMinEmptyFraction of the page's rows.
-func widestEmptyRun(occupied [][]bool) (start, end int) {
+func widestEmptyRun(occupied [][]bool) (int, int) {
 	xBins := len(occupied[0])
 	yBins := len(occupied)
 
@@ -122,7 +128,7 @@ type colStats struct {
 
 func computeColStats(lines []pdfLine) colStats {
 	if len(lines) == 0 {
-		return colStats{}
+		return colStats{rightEdge: 0, modalXStart: 0}
 	}
 
 	rightEdge := lines[0].right
@@ -143,7 +149,7 @@ func computeColStats(lines []pdfLine) colStats {
 }
 
 func roundTo(v float64, step float64) float64 {
-	return float64(int(v/step+0.5)) * step
+	return float64(int(v/step+roundHalfUp)) * step
 }
 
 // assignColumns splits lines into left/right columns (step 3: reading
@@ -152,11 +158,13 @@ func roundTo(v float64, step float64) float64 {
 // column and right is empty.
 func assignColumns(
 	lines []pdfLine, gutterLeft, gutterRight float64, twoColumn bool,
-) (left, right []pdfLine) {
+) ([]pdfLine, []pdfLine) {
+	var left, right []pdfLine
+
 	if !twoColumn {
 		left = append(left, lines...)
 	} else {
-		gutterMid := (gutterLeft + gutterRight) / 2
+		gutterMid := (gutterLeft + gutterRight) / midpointDivisor
 		for _, l := range lines {
 			if l.xMid() < gutterMid {
 				left = append(left, l)

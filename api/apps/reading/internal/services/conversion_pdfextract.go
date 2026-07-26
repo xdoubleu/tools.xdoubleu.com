@@ -33,18 +33,21 @@ var pdfSem = make(chan struct{}, 1)
 var (
 	pdfiumPoolOnce sync.Once
 	pdfiumPool     pdfium.Pool
-	pdfiumPoolErr  error
+	//nolint:errname // cached init error, not a sentinel
+	pdfiumPoolErr error
 )
 
 const pdfiumInstanceTimeout = 30 * time.Second
 
 func getPDFiumPool() (pdfium.Pool, error) {
 	pdfiumPoolOnce.Do(func() {
-		pdfiumPool, pdfiumPoolErr = webassembly.Init(webassembly.Config{
-			MinIdle:  0,
-			MaxIdle:  1,
-			MaxTotal: 1,
-		})
+		pdfiumPool, pdfiumPoolErr = webassembly.Init(
+			webassembly.Config{ //nolint:exhaustruct // zero-value defaults are correct
+				MinIdle:  0,
+				MaxIdle:  1,
+				MaxTotal: 1,
+			},
+		)
 	})
 	return pdfiumPool, pdfiumPoolErr
 }
@@ -78,7 +81,11 @@ func goPDFConverter(ctx context.Context, inPath, outPath string) error {
 		return fmt.Errorf("read pdf: %w", err)
 	}
 
-	docResp, err := instance.OpenDocument(&requests.OpenDocument{File: &pdfBytes})
+	docResp, err := instance.OpenDocument(
+		&requests.OpenDocument{ //nolint:exhaustruct // only loading from bytes
+			File: &pdfBytes,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("open pdf: %w", err)
 	}

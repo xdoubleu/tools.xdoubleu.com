@@ -1,3 +1,4 @@
+//nolint:testpackage // testing unexported service helpers
 package services
 
 import (
@@ -56,6 +57,16 @@ func fixtureText(pdf *fpdf.Fpdf, x, y, size float64, s string) {
 	pdf.Text(x, y, s)
 }
 
+// pngImageOptions is the shared fpdf.ImageOptions used by every fixture
+// image below — plain PNG, no DPI metadata, no negative-position override.
+//
+//nolint:gochecknoglobals // read-only shared test fixture config
+var pngImageOptions = fpdf.ImageOptions{
+	ImageType:             "PNG",
+	ReadDpi:               false,
+	AllowNegativePosition: false,
+}
+
 // solidPNG generates a small solid-color PNG in-code (no binary fixture is
 // committed): a plain filled rectangle is enough to exercise bitmap
 // extraction/encoding without needing real image content.
@@ -77,22 +88,8 @@ func fixtureImage(
 ) {
 	t.Helper()
 	data := solidPNG(t, 120, 100, c)
-	pdf.RegisterImageOptionsReader(
-		name,
-		fpdf.ImageOptions{ImageType: "PNG"},
-		bytes.NewReader(data),
-	)
-	pdf.ImageOptions(
-		name,
-		x,
-		y,
-		w,
-		h,
-		false,
-		fpdf.ImageOptions{ImageType: "PNG"},
-		0,
-		"",
-	)
+	pdf.RegisterImageOptionsReader(name, pngImageOptions, bytes.NewReader(data))
+	pdf.ImageOptions(name, x, y, w, h, false, pngImageOptions, 0, "")
 }
 
 func savePDF(t *testing.T, pdf *fpdf.Fpdf, name string) string {
@@ -113,11 +110,12 @@ const (
 	twoColParaA       = "Left paragraph of body text content here"
 	twoColParaBL1     = "This word right here becomes assess-"
 	twoColParaBL2     = "ment and it continues onward nicely"
-	twoColParaBJoined = "This word right here becomes assessment and it continues onward nicely"
-	twoColParaC       = "Final paragraph closes out the column now"
-	twoColParaD       = "Right column paragraph opens the second column nicely"
-	twoColParaE       = "Second column paragraph wraps up this page for good"
-	twoColFigName     = "fixture-two-col-fig.png"
+	twoColParaBJoined = "This word right here becomes assessment and it " +
+		"continues onward nicely"
+	twoColParaC   = "Final paragraph closes out the column now"
+	twoColParaD   = "Right column paragraph opens the second column nicely"
+	twoColParaE   = "Second column paragraph wraps up this page for good"
+	twoColFigName = "fixture-two-col-fig.png"
 )
 
 // makeTwoColumnPDF builds a single two-column page: a heading, a figure
@@ -175,12 +173,14 @@ func makeTwoColumnPDF(t *testing.T) string {
 const (
 	singleColHeading = "HEADING"
 	singleColParaA   = "Opening paragraph of the single column body text goes here"
-	singleColParaB   = "Second paragraph of the single column body text follows after a gap"
+	singleColParaB   = "Second paragraph of the single column body text follows " +
+		"after a gap"
 	// singleColParaC pads the page's total extractable-character count past
 	// the 200-character image-only-page threshold — without it this fixture
 	// would (correctly, per that rule) get rendered as a full-page fallback
 	// image instead of exercising the paragraph/heading path this test wants.
-	singleColParaC = "Extra closing paragraph of body text adds more length for this section now and then some more words follow"
+	singleColParaC = "Extra closing paragraph of body text adds more length " +
+		"for this section now and then some more words follow"
 )
 
 // makeSingleColumnPDF builds a single-column page with one heading and three
@@ -243,21 +243,23 @@ func makeLogoRepeatedPDF(t *testing.T) string {
 			"A second short paragraph adds a bit more extractable text as well")
 
 		logoName := "logo-page.png"
-		pdf.RegisterImageOptionsReader(
-			logoName, fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(logo),
-		)
+		pdf.RegisterImageOptionsReader(logoName, pngImageOptions, bytes.NewReader(logo))
 		pdf.ImageOptions(
-			logoName, fixtureLeftX, 300, 80, 80, false,
-			fpdf.ImageOptions{ImageType: "PNG"}, 0, "",
+			logoName,
+			fixtureLeftX,
+			300,
+			80,
+			80,
+			false,
+			pngImageOptions,
+			0,
+			"",
 		)
 
 		tinyName := "tiny-page.png"
-		pdf.RegisterImageOptionsReader(
-			tinyName, fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(tiny),
-		)
+		pdf.RegisterImageOptionsReader(tinyName, pngImageOptions, bytes.NewReader(tiny))
 		pdf.ImageOptions(
-			tinyName, fixtureLeftX+150, 300, 20, 20, false,
-			fpdf.ImageOptions{ImageType: "PNG"}, 0, "",
+			tinyName, fixtureLeftX+150, 300, 20, 20, false, pngImageOptions, 0, "",
 		)
 	}
 

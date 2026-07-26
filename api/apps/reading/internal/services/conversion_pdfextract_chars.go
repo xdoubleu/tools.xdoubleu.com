@@ -28,7 +28,10 @@ type pdfLine struct {
 	col int
 }
 
+//nolint:mnd // midpoint of a bounding box
 func (l pdfLine) yMid() float64 { return (l.top + l.bottom) / 2 }
+
+//nolint:mnd // midpoint of a bounding box
 func (l pdfLine) xMid() float64 { return (l.left + l.right) / 2 }
 
 // pdfiumSoftHyphenMarker is the Unicode value (U+0002) PDFium's text-page
@@ -38,7 +41,7 @@ func (l pdfLine) xMid() float64 { return (l.left + l.right) / 2 }
 // which leaks into the per-character Unicode reported here. The glyph
 // actually rendered is a normal hyphen, so it's mapped back to "-" to let our
 // own hyphenation join (step 5) decide, rather than losing the character.
-const pdfiumSoftHyphenMarker = ""
+const pdfiumSoftHyphenMarker = "\x02"
 
 // extractChars converts a structured-text response into pdfChars, dropping
 // control characters (empty text) and whitespace — line/paragraph spacing is
@@ -63,6 +66,17 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 	}
 	return chars
 }
+
+// lineGroupYMidRatio/lineSpaceGapRatio implement step 1 (lines): characters
+// join a line when their y-midpoint is within this fraction of the page's
+// median character height of the line's running midpoint, and a space is
+// inserted within a line when the horizontal gap between consecutive
+// character boxes exceeds this fraction of the line's median character
+// height.
+const (
+	lineGroupYMidRatio = 0.5
+	lineSpaceGapRatio  = 0.25
+)
 
 // median returns the middle value of a sorted-in-place copy of vs, or 0 for
 // an empty input.
@@ -128,7 +142,8 @@ func groupLines(chars []pdfChar) []pdfLine {
 		mid := c.yMid()
 		if len(group) > 0 {
 			avg := midSum / float64(len(group))
-			if diff := avg - mid; diff > 0.5*medH || diff < -0.5*medH {
+			threshold := lineGroupYMidRatio * medH
+			if diff := avg - mid; diff > threshold || diff < -threshold {
 				flush()
 			}
 		}
@@ -140,6 +155,7 @@ func groupLines(chars []pdfChar) []pdfLine {
 	return lines
 }
 
+//nolint:mnd // midpoint of a bounding box
 func (c pdfChar) yMid() float64 { return (c.top + c.bottom) / 2 }
 
 // buildLine sorts a line's characters left-to-right, joins their text
@@ -162,7 +178,7 @@ func buildLine(chars []pdfChar) pdfLine {
 	top, bottom := chars[0].top, chars[0].bottom
 
 	for i, c := range chars {
-		if i > 0 && c.left-chars[i-1].right > 0.25*medH {
+		if i > 0 && c.left-chars[i-1].right > lineSpaceGapRatio*medH {
 			b.WriteByte(' ')
 		}
 		b.WriteString(c.text)
@@ -173,7 +189,8 @@ func buildLine(chars []pdfChar) pdfLine {
 		bottom = min(bottom, c.bottom)
 	}
 
-	return pdfLine{
+	// colRightEdge/colModalXStart/col are set later by assignColumns.
+	return pdfLine{ //nolint:exhaustruct // set later by assignColumns
 		text:             b.String(),
 		left:             left,
 		top:              top,

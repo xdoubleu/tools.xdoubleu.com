@@ -20,6 +20,17 @@ type pageResult struct {
 	medCharWidth  float64
 }
 
+// noPageResult is the zero-value pageResult returned alongside every error
+// below — a plain zero-value var (not a composite literal) so it needs no
+// exhaustruct suppression.
+//
+//nolint:gochecknoglobals // deliberately the zero value; read-only
+var noPageResult pageResult
+
+// charHeightBucketSize is the granularity computeModalCharHeight rounds
+// character heights to before finding the most common (modal) value.
+const charHeightBucketSize = 0.5
+
 // extractPage runs the full per-page pipeline: text/position extraction,
 // figure extraction, the image-only-page fallback, line grouping, column
 // detection, and reading-order stream assembly.
@@ -27,34 +38,39 @@ func extractPage(
 	instance pdfium.Pdfium, doc references.FPDF_DOCUMENT, index int,
 	workDir string, tracker *figureTracker,
 ) (pageResult, error) {
-	page := requests.Page{ByIndex: &requests.PageByIndex{Document: doc, Index: index}}
+	page := requests.Page{ //nolint:exhaustruct // page is addressed by index, not reference
+		ByIndex: &requests.PageByIndex{Document: doc, Index: index},
+	}
 
 	sizeResp, err := instance.GetPageSize(&requests.GetPageSize{Page: page})
 	if err != nil {
-		return pageResult{}, fmt.Errorf("get page size: %w", err)
+		return noPageResult, fmt.Errorf("get page size: %w", err)
 	}
 	pageArea := sizeResp.Width * sizeResp.Height
 
-	textResp, err := instance.GetPageTextStructured(&requests.GetPageTextStructured{
+	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no font info/pixel positions needed
 		Page: page,
 		Mode: requests.GetPageTextStructuredModeChars,
-	})
+	}
+	textResp, err := instance.GetPageTextStructured(&textReq)
 	if err != nil {
-		return pageResult{}, fmt.Errorf("get page text: %w", err)
+		return noPageResult, fmt.Errorf("get page text: %w", err)
 	}
 	chars := extractChars(textResp)
 
 	rawFigures, err := extractPageImages(instance, page, pageArea)
 	if err != nil {
-		return pageResult{}, fmt.Errorf("extract page images: %w", err)
+		return noPageResult, fmt.Errorf("extract page images: %w", err)
 	}
 
 	if len(chars) < imageOnlyPageMaxChars && len(rawFigures) == 0 {
 		fileName, renderErr := renderFullPage(instance, page, index, workDir)
 		if renderErr != nil {
-			return pageResult{}, renderErr
+			return noPageResult, renderErr
 		}
-		return pageResult{fullPageImage: fileName}, nil
+		return pageResult{ //nolint:exhaustruct // no text stream for an image-only page
+			fullPageImage: fileName,
+		}, nil
 	}
 
 	lines := groupLines(chars)
@@ -73,7 +89,7 @@ func extractPage(
 		workDir,
 	)
 	if err != nil {
-		return pageResult{}, err
+		return noPageResult, err
 	}
 
 	items := buildPageStream(lines, figures, gutterLeft, gutterRight, twoColumn)
@@ -85,6 +101,7 @@ func extractPage(
 
 	return pageResult{
 		items:         items,
+		fullPageImage: "",
 		medLineHeight: median(lineHeights),
 		medCharWidth:  medianCharWidth(chars),
 	}, nil
@@ -126,7 +143,8 @@ func extractDocument(
 		if p.fullPageImage != "" {
 			blocks = append(blocks, htmlBlock{
 				html: fmt.Sprintf(`<img src="%s"/>`, escapeXMLText(p.fullPageImage)),
-				tag:  "img",
+				tag:  imgTag,
+				text: "",
 			})
 			continue
 		}
@@ -144,8 +162,8 @@ func extractDocument(
 }
 
 // computeModalCharHeight finds the document's most common line character
-// height (bucketed to the nearest 0.5pt), used as the "body text" baseline
-// for heading detection.
+// height (bucketed to the nearest charHeightBucketSize), used as the "body
+// text" baseline for heading detection.
 func computeModalCharHeight(pages []pageResult) float64 {
 	freq := map[float64]int{}
 	for _, p := range pages {
@@ -153,7 +171,9 @@ func computeModalCharHeight(pages []pageResult) float64 {
 			if item.line == nil {
 				continue
 			}
-			bucket := math.Round(item.line.medianCharHeight*2) / 2
+			bucket := math.Round(
+				item.line.medianCharHeight/charHeightBucketSize,
+			) * charHeightBucketSize
 			freq[bucket]++
 		}
 	}

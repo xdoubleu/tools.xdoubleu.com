@@ -26,6 +26,12 @@ const (
 	imageOnlyPageMaxChars = 200
 )
 
+// noFigure is the zero-value rawFigure returned alongside ok=false by every
+// rejected candidate below.
+//
+//nolint:exhaustruct,gochecknoglobals // deliberately the zero value; read-only
+var noFigure = rawFigure{}
+
 // rawFigure is a candidate figure image that has passed the per-object
 // filters but not yet the document-level dedupe/cap.
 type rawFigure struct {
@@ -41,6 +47,7 @@ type pdfFigure struct {
 	fullWidth                bool
 }
 
+//nolint:mnd // midpoint of a bounding box
 func (f pdfFigure) xMid() float64 { return (f.left + f.right) / 2 }
 
 // figureTracker dedupes figures by the SHA-256 of their encoded PNG across
@@ -51,7 +58,7 @@ type figureTracker struct {
 }
 
 func newFigureTracker() *figureTracker {
-	return &figureTracker{seen: map[[32]byte]bool{}}
+	return &figureTracker{seen: map[[32]byte]bool{}, count: 0}
 }
 
 // accept returns the filename to use for pngData and true if it should be
@@ -85,26 +92,26 @@ func extractPageImages(
 
 	var figures []rawFigure
 	for i := range countResp.Count {
-		objResp, err := instance.FPDFPage_GetObject(
+		objResp, getErr := instance.FPDFPage_GetObject(
 			&requests.FPDFPage_GetObject{Page: page, Index: i},
 		)
-		if err != nil {
-			return nil, fmt.Errorf("get page object %d: %w", i, err)
+		if getErr != nil {
+			return nil, fmt.Errorf("get page object %d: %w", i, getErr)
 		}
 
-		typeResp, err := instance.FPDFPageObj_GetType(
+		typeResp, typeErr := instance.FPDFPageObj_GetType(
 			&requests.FPDFPageObj_GetType{PageObject: objResp.PageObject},
 		)
-		if err != nil {
-			return nil, fmt.Errorf("get page object type %d: %w", i, err)
+		if typeErr != nil {
+			return nil, fmt.Errorf("get page object type %d: %w", i, typeErr)
 		}
 		if typeResp.Type != enums.FPDF_PAGEOBJ_IMAGE {
 			continue
 		}
 
-		fig, ok, err := extractImageObject(instance, objResp.PageObject, pageArea)
-		if err != nil {
-			return nil, fmt.Errorf("extract image object %d: %w", i, err)
+		fig, ok, figErr := extractImageObject(instance, objResp.PageObject, pageArea)
+		if figErr != nil {
+			return nil, fmt.Errorf("extract image object %d: %w", i, figErr)
 		}
 		if ok {
 			figures = append(figures, fig)
@@ -120,28 +127,28 @@ func extractImageObject(
 		&requests.FPDFImageObj_GetImagePixelSize{ImageObject: obj},
 	)
 	if err != nil {
-		return rawFigure{}, false, fmt.Errorf("get image pixel size: %w", err)
+		return noFigure, false, fmt.Errorf("get image pixel size: %w", err)
 	}
 	if sizeResp.Width < figureMinPixels || sizeResp.Height < figureMinPixels {
-		return rawFigure{}, false, nil
+		return noFigure, false, nil
 	}
 
 	boundsResp, err := instance.FPDFPageObj_GetBounds(
 		&requests.FPDFPageObj_GetBounds{PageObject: obj},
 	)
 	if err != nil {
-		return rawFigure{}, false, fmt.Errorf("get image bounds: %w", err)
+		return noFigure, false, fmt.Errorf("get image bounds: %w", err)
 	}
 	left, bottom := float64(boundsResp.Left), float64(boundsResp.Bottom)
 	right, top := float64(boundsResp.Right), float64(boundsResp.Top)
 	area := (right - left) * (top - bottom)
 	if pageArea <= 0 || area < figureMinAreaFraction*pageArea {
-		return rawFigure{}, false, nil
+		return noFigure, false, nil
 	}
 
 	pngData, err := renderImageObjectPNG(instance, obj)
 	if err != nil {
-		return rawFigure{}, false, err
+		return noFigure, false, err
 	}
 
 	return rawFigure{
@@ -183,7 +190,7 @@ func placeFigures(
 	raw []rawFigure, gutterLeft, gutterRight float64, twoColumn bool,
 	tracker *figureTracker, workDir string,
 ) ([]pdfFigure, error) {
-	gutterMid := (gutterLeft + gutterRight) / 2
+	gutterMid := (gutterLeft + gutterRight) / midpointDivisor
 
 	var figures []pdfFigure
 	for _, r := range raw {
@@ -196,10 +203,12 @@ func placeFigures(
 		}
 
 		fig := pdfFigure{
-			fileName: name, left: r.left, top: r.top, right: r.right, bottom: r.bottom,
-		}
-		if twoColumn && r.left < gutterMid && r.right > gutterMid {
-			fig.fullWidth = true
+			fileName:  name,
+			left:      r.left,
+			top:       r.top,
+			right:     r.right,
+			bottom:    r.bottom,
+			fullWidth: twoColumn && r.left < gutterMid && r.right > gutterMid,
 		}
 		figures = append(figures, fig)
 	}
@@ -213,7 +222,10 @@ func renderFullPage(
 	instance pdfium.Pdfium, page requests.Page, index int, workDir string,
 ) (string, error) {
 	renderResp, err := instance.RenderPageInDPI(
-		&requests.RenderPageInDPI{Page: page, DPI: fullPageRenderDPI},
+		&requests.RenderPageInDPI{ //nolint:exhaustruct // defaults suit a plain page render
+			Page: page,
+			DPI:  fullPageRenderDPI,
+		},
 	)
 	if err != nil {
 		return "", fmt.Errorf("render full page: %w", err)

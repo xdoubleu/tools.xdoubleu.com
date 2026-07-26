@@ -55,12 +55,15 @@ func mergeColumn(lines []pdfLine, figures []pdfFigure) []streamItem {
 	figIdx := 0
 	for i := range lines {
 		for figIdx < len(figures) && linesBefore[figIdx] == i {
+			//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
 			items = append(items, streamItem{figure: &figures[figIdx]})
 			figIdx++
 		}
+		//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
 		items = append(items, streamItem{line: &lines[i]})
 	}
 	for figIdx < len(figures) {
+		//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
 		items = append(items, streamItem{figure: &figures[figIdx]})
 		figIdx++
 	}
@@ -79,7 +82,7 @@ func buildPageStream(
 ) []streamItem {
 	leftLines, rightLines := assignColumns(lines, gutterLeft, gutterRight, twoColumn)
 
-	gutterMid := (gutterLeft + gutterRight) / 2
+	gutterMid := (gutterLeft + gutterRight) / midpointDivisor
 	var leftFigs, rightFigs, fullWidthFigs []pdfFigure
 	for _, f := range figures {
 		switch {
@@ -94,6 +97,7 @@ func buildPageStream(
 
 	leftStream := mergeColumn(leftLines, leftFigs)
 	for i := range fullWidthFigs {
+		//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
 		leftStream = append(leftStream, streamItem{figure: &fullWidthFigs[i]})
 	}
 	rightStream := mergeColumn(rightLines, rightFigs)
@@ -126,7 +130,8 @@ func buildPageBlocks(
 					`<img src="%s"/>`,
 					escapeXMLText(item.figure.fileName),
 				),
-				tag: "img",
+				tag:  imgTag,
+				text: "",
 			})
 			continue
 		}

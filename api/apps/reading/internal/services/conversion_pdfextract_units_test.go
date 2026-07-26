@@ -1,3 +1,4 @@
+//nolint:testpackage // testing unexported service helpers
 package services
 
 import (
@@ -103,6 +104,9 @@ func TestFindGutter_DegenerateInputs(t *testing.T) {
 	require.Zero(t, l)
 	require.Zero(t, r)
 
-	_, _, ok = findGutter([]pdfChar{{left: 0, right: 10, top: 10, bottom: 0}}, 0, 100)
+	oneChar := []pdfChar{ //nolint:exhaustruct // text unused by findGutter
+		{left: 0, right: 10, top: 10, bottom: 0},
+	}
+	_, _, ok = findGutter(oneChar, 0, 100)
 	require.False(t, ok)
 }
