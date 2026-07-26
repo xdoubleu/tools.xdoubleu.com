@@ -66,7 +66,8 @@ func groupByStatus(
 	// regardless of the registry: a shelf already emptied before the shelves
 	// registry existed has no user_books row left to register it from, so
 	// depending on the registry alone can never recover it (issue #593).
-	for _, name := range []string{models.StatusDropped, models.StatusOwned} {
+	alwaysShown := []string{models.StatusDropped, models.StatusOwned}
+	for _, name := range alwaysShown {
 		if _, ok := seen[name]; !ok {
 			seen[name] = nil
 			order = append(order, name)
