@@ -188,13 +188,15 @@ describe('FeedReaderClient', () => {
     expect(screen.getByText('05/03/2026')).toBeInTheDocument()
   })
 
-  it('links out to the source instead of opening the dialog when there is no in-app content', () => {
+  it('still opens the in-app reader dialog when there is no in-app content', () => {
     mockData([rssItem('1', 'No Content Post', 'to-read', '2026-01-01T00:00:00Z', false)])
     render(<FeedReaderClient />)
 
     expect(screen.getByText('No in-app content')).toBeInTheDocument()
-    const link = screen.getByText('No Content Post')
-    expect(link.tagName).toBe('A')
-    expect(link).toHaveAttribute('href', 'https://example.com/1')
+    const button = screen.getByRole('button', { name: 'No Content Post' })
+    expect(button.tagName).toBe('BUTTON')
+
+    fireEvent.click(button)
+    expect(mockUseGetBookContent).toHaveBeenCalledWith('book-1')
   })
 })

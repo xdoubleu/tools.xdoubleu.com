@@ -73,25 +73,14 @@ function FeedReaderCard({ userBook, feedTitle, onSettled }: FeedReaderCardProps)
       <div className="flex items-start gap-3">
         <BookCover coverUrl={book.coverUrl} title={book.title} size="thumb" />
         <div className="min-w-0 flex-1">
-          {noContent && book.sourceUrl ? (
-            <a
-              href={book.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-sm leading-snug text-fg hover:text-accent"
-            >
-              {book.title}
-            </a>
-          ) : (
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => setReaderOpen(true)}
-              className="h-auto p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
-            >
-              {book.title}
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="link"
+            onClick={() => setReaderOpen(true)}
+            className="h-auto p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
+          >
+            {book.title}
+          </Button>
           {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
           <p className="text-xs text-muted">{formatDate(userBook.addedAt)}</p>
           {noContent && <p className="text-xs text-subtle">No in-app content</p>}
