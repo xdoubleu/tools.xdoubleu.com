@@ -49,6 +49,7 @@ func protoBook(book *models.Book, coverBaseURL string) *readingv1.Book {
 		PageCount:   int32FromIntPtr(book.PageCount),
 		Category:    category,
 		SourceUrl:   stringPtr(book.SourceURL),
+		HasContent:  book.HasContent,
 	}
 }
 

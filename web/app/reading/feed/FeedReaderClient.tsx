@@ -7,6 +7,7 @@ import FeedItemMarkReadButton from '@/components/reading/FeedItemMarkReadButton'
 import ArticleReaderDialog from '@/components/reading/ArticleReaderDialog'
 import BookCover from '@/components/reading/BookCover'
 import { Button } from '@/components/ui/button'
+import { formatDate } from '@/lib/dates'
 import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
 
 export default function FeedReaderClient() {
@@ -41,46 +42,65 @@ export default function FeedReaderClient() {
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {unread.map((userBook) => (
-        <FeedReaderRow
+        <FeedReaderCard
           key={userBook.id}
           userBook={userBook}
           feedTitle={feedTitleByBookId.get(userBook.bookId)}
           onSettled={handleSettled}
         />
       ))}
-    </ul>
+    </div>
   )
 }
 
-interface FeedReaderRowProps {
+interface FeedReaderCardProps {
   userBook: UserBook
   feedTitle?: string
   onSettled: (bookId: string) => void
 }
 
-function FeedReaderRow({ userBook, feedTitle, onSettled }: FeedReaderRowProps) {
+function FeedReaderCard({ userBook, feedTitle, onSettled }: FeedReaderCardProps) {
   const book = userBook.book
   const [readerOpen, setReaderOpen] = useState(false)
   if (!book) return null
 
+  const noContent = !book.hasContent
+
   return (
-    <li className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card">
-      <BookCover coverUrl={book.coverUrl} title={book.title} size="thumb" />
-      <div className="min-w-0 flex-1">
-        <Button
-          type="button"
-          variant="link"
-          onClick={() => setReaderOpen(true)}
-          className="h-auto p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
-        >
-          {book.title}
-        </Button>
-        {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
+    <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3 shadow-card">
+      <div className="flex items-start gap-3">
+        <BookCover coverUrl={book.coverUrl} title={book.title} size="thumb" />
+        <div className="min-w-0 flex-1">
+          {noContent && book.sourceUrl ? (
+            <a
+              href={book.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-sm leading-snug text-fg hover:text-accent"
+            >
+              {book.title}
+            </a>
+          ) : (
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => setReaderOpen(true)}
+              className="h-auto p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
+            >
+              {book.title}
+            </Button>
+          )}
+          {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
+          <p className="text-xs text-muted">{formatDate(userBook.addedAt)}</p>
+          {noContent && <p className="text-xs text-subtle">No in-app content</p>}
+        </div>
       </div>
 
-      <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />
+      <div className="flex justify-end">
+        <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />
+      </div>
 
       <ArticleReaderDialog
         bookId={book.id}
@@ -89,6 +109,6 @@ function FeedReaderRow({ userBook, feedTitle, onSettled }: FeedReaderRowProps) {
         open={readerOpen}
         onOpenChange={setReaderOpen}
       />
-    </li>
+    </div>
   )
 }

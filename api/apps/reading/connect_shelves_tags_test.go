@@ -178,6 +178,50 @@ func TestConnectShelf_PersistsWhenEmptied(t *testing.T) {
 	assert.True(t, found, "temporary-shelf should persist after being emptied")
 }
 
+// TestConnectShelf_DroppedPersistsWhenEmptied covers issue #593: dropped/
+// owned have no dedicated LibraryResponse field (they flow through as
+// ordinary named shelves), so they must be registered like a custom shelf or
+// they vanish once their last book is moved off.
+func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
+	book := addTestBook(t, "DroppedShelfBook")
+	require.NotNil(t, book)
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	statusReq := connect.NewRequest(&readingv1.UpdateBookStatusRequest{
+		BookId: book.BookID.String(),
+		Status: models.StatusDropped,
+	})
+	statusReq.Header().Set("Cookie", accessToken.String())
+	_, err := client.UpdateBookStatus(ctx, statusReq)
+	require.NoError(t, err)
+
+	// Move the book back off the shelf.
+	backReq := connect.NewRequest(&readingv1.UpdateBookStatusRequest{
+		BookId: book.BookID.String(),
+		Status: models.StatusToRead,
+	})
+	backReq.Header().Set("Cookie", accessToken.String())
+	_, err = client.UpdateBookStatus(ctx, backReq)
+	require.NoError(t, err)
+
+	libReq := connect.NewRequest(&readingv1.GetLibraryRequest{})
+	libReq.Header().Set("Cookie", accessToken.String())
+	libResp, err := client.GetLibrary(ctx, libReq)
+	require.NoError(t, err)
+
+	found := false
+	for _, shelf := range libResp.Msg.Library.Shelves {
+		if shelf.Name == models.StatusDropped {
+			found = true
+			assert.Empty(t, shelf.Books)
+		}
+	}
+	assert.True(t, found, "dropped shelf should persist after being emptied")
+}
+
 func TestConnectRenameShelf_Success(t *testing.T) {
 	book := addTestBook(t, "RenameShelfBook")
 	require.NotNil(t, book)

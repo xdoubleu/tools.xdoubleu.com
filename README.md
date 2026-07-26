@@ -91,19 +91,25 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 
 Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).
 
-## Monitoring MCP server
+## Apps MCP server
 
-The admin observability signals are exposed to a locally-running Claude CLI over
-a **read-only** MCP server (streamable-HTTP) at `/monitoring/mcp`. The tools wrap
-only the `ObservabilityService` read methods — no write RPC is reachable, so the
-server is read-only by construction. Tools: `get_job_stats`, `get_usage_stats`,
-`get_storage_stats`, `get_database_stats`, `get_failing_pull_requests`,
-`get_sentry_issues`, `get_deploy_status`.
+Every app's own **read-only** data — plus the admin observability signals — is
+exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
+server at `/apps/mcp`, so production domain data and system health can be
+pulled in as read-only context for testing/verifying changes with no mutation
+risk. Every tool wraps an existing **read** RPC of an app (games, reading,
+recipes, mealplans, shoppinglist, todos, icsproxy) or an `ObservabilityService`
+read method — no write RPC is reachable, so the server is read-only by
+construction. App tools are named `<app>_<rpc>` (e.g. `games_get_steam`,
+`reading_search_library`, `todos_list_tasks`); the 7 observability tools are
+unprefixed (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
+`get_database_stats`, `get_failing_pull_requests`, `get_sentry_issues`,
+`get_deploy_status`).
 
 Point a local Claude Code at it (OAuth is handled automatically — no header):
 
 ```bash
-claude mcp add --transport http tools-obs https://tools.xdoubleu.com/api/monitoring/mcp
+claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp
 ```
 
 Auth is **MCP OAuth 2.1**: the api is the OAuth resource server (it verifies the
@@ -111,7 +117,10 @@ Bearer token and advertises protected-resource metadata), **Supabase Auth is the
 authorization server**, and the `/oauth/consent` page (web) shows the approval
 screen. On first use Claude Code discovers the metadata, dynamically registers,
 runs the PKCE flow against Supabase (a browser consent screen opens), and then
-calls the server with the issued token. Every tool additionally requires the
+calls the server with the issued token. Authorization differs per tool: the app
+tools are gated by the **caller's own per-app access** (admin, or the app in
+their app-access list) and return only that signed-in user's own data, exactly
+what they can already see over HTTP; the observability tools require the
 signed-in user to be an **admin**.
 
 **One-time Supabase setup** (dashboard → **Authentication → OAuth Server**):
@@ -121,26 +130,6 @@ enable **dynamic client registration**, and confirm the **Site URL** is
 (`https://<project-ref>.supabase.co`) and `SUPABASE_ANON_KEY` (see
 [`do-app.yaml`](do-app.yaml)). Until this is configured the endpoint returns a
 401 challenge but the flow cannot complete.
-
-## Apps MCP server
-
-The apps' own **read-only** data is exposed to a locally-running Claude CLI over a
-second streamable-HTTP MCP server at `/apps/mcp`, so production domain data can be
-pulled in as read-only context for testing/verifying changes with no mutation
-risk. Every tool wraps an existing **read** RPC of an app (games, reading,
-recipes, mealplans, shoppinglist, todos, icsproxy) — no write RPC is reachable,
-so the server is read-only by construction. Tools are named `<app>_<rpc>` (e.g.
-`games_get_steam`, `reading_search_library`, `todos_list_tasks`).
-
-```bash
-claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp
-```
-
-It reuses the **same MCP OAuth 2.1** flow and Supabase setup as the monitoring
-server above (nothing extra to configure). The difference is authorization: each
-tool is gated by the **caller's own per-app access** (admin, or the app in their
-app-access list) — never a blanket admin gate — and every tool returns only that
-signed-in user's own data, exactly what they can already see over HTTP.
 
 ## Adding a New Tool
 

@@ -978,7 +978,8 @@ func (repo *BooksRepository) GetCatalogWithUserOverlay(
 		    COALESCE(ub.added_at, b.created_at),
 		    COALESCE(ub.updated_at, b.updated_at),
 		    b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
-		    b.page_count, b.category, b.source_url, b.created_at, b.updated_at
+		    b.page_count, b.category, b.source_url, b.created_at, b.updated_at,
+		    b.content_html IS NOT NULL AND b.content_html <> ''
 		FROM reading.books b
 		LEFT JOIN reading.user_books ub
 		    ON ub.book_id = b.id AND ub.user_id = $1
