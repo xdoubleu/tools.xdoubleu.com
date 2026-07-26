@@ -32,7 +32,7 @@ func (f *fakeEPUBConverter) Convert(_ context.Context, _ []byte) ([]byte, error)
 
 // newTestConversionService constructs a ConversionService using the real DB
 // repository from testApp, a fresh fake objectstore, and controlled converters.
-// Pass nil for convertPDF to use the default (calibrePDFConverter), or supply a
+// Pass nil for convertPDF to use the default (goPDFConverter), or supply a
 // fake for tests that exercise the PDF path.
 func newTestConversionService(
 	converter services.EPUBConverter,

@@ -2,3 +2,4 @@ bin/
 *.out
 coverage.html
 coverage.out*
+apps/reading/internal/services/testdata/pdf.local/

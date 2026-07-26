@@ -11,22 +11,16 @@ COPY api/ .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -X main.Release=${RELEASE}" -o ./bin/api ./cmd/api
 
-# debian:12-slim is required (not distroless) because Calibre's ebook-convert
-# subprocess needs Qt/Python shared libraries. Image is significantly larger as
-# a result; the Calibre layer is cached via GitHub Actions layer caching.
-FROM debian:13-slim AS server
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends calibre \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd --gid 65532 nonroot && useradd --uid 65532 --gid 65532 --no-create-home nonroot
+# distroless/static: PDF→EPUB conversion no longer shells out to Calibre's
+# ebook-convert (Qt/Python) — it's pure Go, using go-pdfium's WebAssembly
+# backend (embedded via go:embed, runs under wazero, no CGO, no runtime
+# files to ship). CGO_ENABLED=0 above and this static base together drop the
+# image from ~700 MB to ~20 MB. "nonroot" already runs as uid/gid 65532.
+FROM gcr.io/distroless/static-debian12:nonroot AS server
 
 WORKDIR /app
 
 COPY --from=builder /app/bin/api ./bin/api
-
-USER nonroot:nonroot
 
 EXPOSE 8000
 
