@@ -38,7 +38,7 @@ func extractPage(
 	instance pdfium.Pdfium, doc references.FPDF_DOCUMENT, index int,
 	workDir string, tracker *figureTracker,
 ) (pageResult, error) {
-	page := requests.Page{ //nolint:exhaustruct // page is addressed by index, not reference
+	page := requests.Page{ //nolint:exhaustruct // by index
 		ByIndex: &requests.PageByIndex{Document: doc, Index: index},
 	}
 
@@ -48,7 +48,7 @@ func extractPage(
 	}
 	pageArea := sizeResp.Width * sizeResp.Height
 
-	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no font info/pixel positions needed
+	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no font/pixel info
 		Page: page,
 		Mode: requests.GetPageTextStructuredModeChars,
 	}
