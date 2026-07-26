@@ -33,7 +33,13 @@ const mockUseLibrary = jest.mocked(useLibrary)
 const mockUseFeedItemBooks = jest.mocked(useFeedItemBooks)
 const mockUseGetBookContent = jest.mocked(useGetBookContent)
 
-function rssItem(id: string, title: string, status = 'to-read', addedAt = '2026-01-01T00:00:00Z') {
+function rssItem(
+  id: string,
+  title: string,
+  status = 'to-read',
+  addedAt = '2026-01-01T00:00:00Z',
+  hasContent = true
+) {
   return create(UserBookSchema, {
     id,
     bookId: `book-${id}`,
@@ -45,7 +51,8 @@ function rssItem(id: string, title: string, status = 'to-read', addedAt = '2026-
       id: `book-${id}`,
       title,
       authors: [],
-      sourceUrl: `https://example.com/${id}`
+      sourceUrl: `https://example.com/${id}`,
+      hasContent
     })
   })
 }
@@ -173,5 +180,21 @@ describe('FeedReaderClient', () => {
     expect(mockUseGetBookContent).toHaveBeenCalledWith(null)
     fireEvent.click(screen.getByRole('button', { name: 'Click Me Post' }))
     expect(mockUseGetBookContent).toHaveBeenCalledWith('book-1')
+  })
+
+  it('shows the date the item was added', () => {
+    mockData([rssItem('1', 'Dated Post', 'to-read', '2026-03-05T00:00:00Z')])
+    render(<FeedReaderClient />)
+    expect(screen.getByText('05/03/2026')).toBeInTheDocument()
+  })
+
+  it('links out to the source instead of opening the dialog when there is no in-app content', () => {
+    mockData([rssItem('1', 'No Content Post', 'to-read', '2026-01-01T00:00:00Z', false)])
+    render(<FeedReaderClient />)
+
+    expect(screen.getByText('No in-app content')).toBeInTheDocument()
+    const link = screen.getByText('No Content Post')
+    expect(link.tagName).toBe('A')
+    expect(link).toHaveAttribute('href', 'https://example.com/1')
   })
 })

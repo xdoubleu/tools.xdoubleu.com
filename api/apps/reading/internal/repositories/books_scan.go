@@ -14,7 +14,8 @@ import (
 const bookColumns = `id, title, authors, isbn13, cover_url, description,
 	page_count, category, source_url, created_at, updated_at,
 	unicat_found, hardcover_found,
-	last_resync_at, metadata_source`
+	last_resync_at, metadata_source,
+	content_html IS NOT NULL AND content_html <> ''`
 
 // userBookColumns is the joined column list for user_book selects. The order must
 // match scanUserBookWithBook (user_book columns first, then the joined book).
@@ -22,7 +23,8 @@ const userBookColumns = `ub.id, ub.user_id, ub.book_id, ub.status, ub.tags,
 	ub.shelf_positions, ub.rating, ub.finished_at, ub.progress_mode,
 	ub.current_page, ub.progress_percent, ub.added_at, ub.updated_at,
 	b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
-	b.page_count, b.category, b.source_url, b.created_at, b.updated_at`
+	b.page_count, b.category, b.source_url, b.created_at, b.updated_at,
+	b.content_html IS NOT NULL AND b.content_html <> ''`
 
 func nullTime(t time.Time) *time.Time {
 	if t.IsZero() {
@@ -50,6 +52,7 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 		&book.HardcoverFound,
 		&book.LastResyncAt,
 		&book.MetadataSource,
+		&book.HasContent,
 	)
 	if err != nil {
 		return nil, err
@@ -88,6 +91,7 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&book.SourceURL,
 		&book.CreatedAt,
 		&book.UpdatedAt,
+		&book.HasContent,
 	)
 	if err != nil {
 		return models.UserBook{}, err
