@@ -17,7 +17,7 @@ export default async function FeedReaderPage() {
   const feedItems = await fetchOrNull(() => feedsClient.listFeedItems({}))
 
   return (
-    <PageContainer className="p-6" size="narrow">
+    <PageContainer className="p-6">
       <Breadcrumb
         className="mb-6"
         items={[{ label: 'Reading', href: '/reading' }, { label: 'Feed' }]}
