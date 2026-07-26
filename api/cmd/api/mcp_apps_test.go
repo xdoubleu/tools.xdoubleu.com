@@ -11,10 +11,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v4/pkg/logging"
+
+	"tools.xdoubleu.com/internal/digitalocean"
+	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 // appsToolNames lists every read-only tool the combined /apps/mcp server
-// registers, grouped by app. Keep in sync with each apps/<app>/mcp.go.
+// registers, grouped by app, plus the admin observability tools.
+// Keep in sync with each apps/<app>/mcp.go and registerObservabilityMCPTools.
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsToolNames = []string{
@@ -43,6 +49,10 @@ var appsToolNames = []string{
 	"todos_list_tasks", "todos_get_task", "todos_search_tasks", "todos_get_settings",
 	// icsproxy (3)
 	"icsproxy_list_configs", "icsproxy_get_config", "icsproxy_preview_events",
+	// observability (8, admin-gated)
+	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
+	"get_github_issues", "get_failing_pull_requests", "get_sentry_issues",
+	"get_deploy_status",
 }
 
 // appsNetworkTools reach out to external providers, so the call tests skip them
@@ -54,6 +64,25 @@ var appsNetworkTools = map[string]bool{
 	"reading_get_external_book": true,
 	"reading_get_book_sources":  true,
 	"icsproxy_preview_events":   true,
+	"get_github_issues":         true,
+	"get_failing_pull_requests": true,
+	"get_sentry_issues":         true,
+	"get_deploy_status":         true,
+}
+
+// bearerRoundTripper attaches a Bearer token to every MCP client request,
+// standing in for the OAuth access token a real client would send.
+type bearerRoundTripper struct {
+	token string
+	base  http.RoundTripper
+}
+
+func (b bearerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	if b.token != "" {
+		r = r.Clone(r.Context())
+		r.Header.Set("Authorization", "Bearer "+b.token)
+	}
+	return b.base.RoundTrip(r)
 }
 
 func appsMCPSession(t *testing.T, token string) *mcp.ClientSession {
@@ -169,12 +198,26 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
+	// Unconfigured external observability clients degrade gracefully; the
+	// DB-backed observability tools run against the (empty) test schema.
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(), stubTok(""), configNotConnected(),
+	)
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok(""), configNotConnected(),
+	)
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(), stubTok(""), configNotConnected(),
+	)
+
 	session := appsMCPSession(t, accessToken.Value)
 	tools := []string{
 		"games_get_recently_active_games", "reading_get_library",
 		"reading_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
 		"shoppinglist_list_accessible_lists", "todos_list_tasks",
-		"icsproxy_list_configs",
+		"icsproxy_list_configs", "get_job_stats", "get_usage_stats",
+		"get_storage_stats", "get_database_stats", "get_github_issues",
+		"get_failing_pull_requests", "get_sentry_issues", "get_deploy_status",
 	}
 	for _, name := range tools {
 		//nolint:exhaustruct // only the tool name is required to call it
@@ -191,8 +234,8 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 
 // TestAppsMCPCallAllToolsAsAdmin exercises every (hermetic) tool as an admin.
 // Some calls return an error result for the dummy ids — that is fine; the point
-// is that the per-app access gate never denies an admin, and every producer
-// runs.
+// is that the per-app/admin access gate never denies an admin, and every
+// producer runs.
 func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -267,4 +310,61 @@ func TestAppsMCPAccessGate(t *testing.T) {
 		assert.Containsf(t, strings.ToLower(toolMessage(res, callErr)),
 			"access to", "expected %s to be denied", name)
 	}
+}
+
+// TestAppsMCPObservabilityToolNonAdmin is the admin-only-gate constraint for
+// the observability tools folded into the combined server: a regular app user
+// (not an admin) must be denied even with no special app access checked.
+func TestAppsMCPObservabilityToolNonAdmin(t *testing.T) {
+	demoteToUser(t)
+
+	session := appsMCPSession(t, accessToken.Value)
+	//nolint:exhaustruct // only the tool name is required to call it
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: "get_job_stats",
+	})
+
+	// A handler error surfaces as an error result the model can see, not a
+	// protocol-level failure; accept either shape but require the denial.
+	if err != nil {
+		assert.Contains(t, strings.ToLower(err.Error()), "admin")
+		return
+	}
+	require.True(t, res.IsError)
+	require.Len(t, res.Content, 1)
+	text, ok := res.Content[0].(*mcp.TextContent)
+	require.True(t, ok)
+	assert.Contains(t, strings.ToLower(text.Text), "admin")
+}
+
+// TestAppsMCPObservabilityToolReturnsData proves an observability tool wired
+// into the combined server returns real data end-to-end.
+func TestAppsMCPObservabilityToolReturnsData(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusOK, `[
+		{"number":7,"title":"MCPBug","html_url":"u","state":"open",
+		 "created_at":"2026-07-01T00:00:00Z","labels":[{"name":"bug"}]}
+	]`)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	session := appsMCPSession(t, accessToken.Value)
+	//nolint:exhaustruct // only the tool name is required to call it
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: "get_github_issues",
+	})
+	require.NoError(t, err)
+	assert.False(t, res.IsError)
+
+	require.Len(t, res.Content, 1)
+	text, ok := res.Content[0].(*mcp.TextContent)
+	require.True(t, ok)
+	assert.Contains(t, text.Text, "MCPBug")
+	assert.Contains(t, text.Text, `"configured":true`)
 }
