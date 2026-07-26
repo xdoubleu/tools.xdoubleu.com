@@ -62,6 +62,16 @@ func groupByStatus(
 			order = append(order, name)
 		}
 	}
+	// Dropped/owned are always shown, exactly like a fixed built-in shelf,
+	// regardless of the registry: a shelf already emptied before the shelves
+	// registry existed has no user_books row left to register it from, so
+	// depending on the registry alone can never recover it (issue #593).
+	for _, name := range []string{models.StatusDropped, models.StatusOwned} {
+		if _, ok := seen[name]; !ok {
+			seen[name] = nil
+			order = append(order, name)
+		}
+	}
 	slices.Sort(order)
 	shelves := make([]bookShelf, 0, len(order))
 	for _, name := range order {
