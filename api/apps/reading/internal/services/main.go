@@ -65,7 +65,7 @@ func New(
 		repositories.BookFiles,
 		objectStore,
 		nil, // converter: defaults to kepubify
-		nil, // convertPDF: defaults to calibrePDFConverter (ebook-convert subprocess)
+		nil, // convertPDF: defaults to goPDFConverter (pure-Go, go-pdfium)
 	)
 
 	ingestSvc := NewIngestService(

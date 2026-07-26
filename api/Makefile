@@ -69,6 +69,13 @@ test/v:
 test/race:
 	go test -p 1 ./... -race -v
 
+# Converts every PDF in apps/reading/internal/services/testdata/pdf.local/
+# (gitignored, populated locally) to EPUB in a scratch dir alongside it, for
+# manual inspection of real-world PDF→EPUB conversion quality. No-op if that
+# directory doesn't exist or is empty.
+pdf/check:
+	go test ./apps/reading/internal/services/... -run TestPDFCheck -v -count=1
+
 test/pprof:
 	go test -p 1 ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
 

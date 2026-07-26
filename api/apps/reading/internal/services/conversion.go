@@ -27,7 +27,8 @@ type EPUBConverter interface {
 }
 
 // PDFConverter converts a PDF file at inPath to an EPUB file at outPath.
-// The interface exists for test injection; production shells out to ebook-convert.
+// The interface exists for test injection; production uses goPDFConverter, a
+// pure-Go pipeline built on go-pdfium (see conversion_pdfextract.go).
 type PDFConverter func(ctx context.Context, inPath, outPath string) error
 
 // ConversionService produces KEPUBs from stored EPUBs or PDFs.
@@ -42,7 +43,7 @@ type ConversionService struct {
 
 // NewConversionService constructs a ConversionService. Pass nil for converter
 // or convertPDF to use the default implementations (kepubify and
-// calibrePDFConverter respectively).
+// goPDFConverter respectively).
 func NewConversionService(
 	logger *slog.Logger,
 	bookFiles *repositories.BookFilesRepository,
@@ -54,7 +55,7 @@ func NewConversionService(
 		converter = newKepubifyConverter()
 	}
 	if convertPDF == nil {
-		convertPDF = calibrePDFConverter
+		convertPDF = goPDFConverter
 	}
 	return &ConversionService{
 		logger:      logger,

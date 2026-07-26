@@ -34,15 +34,32 @@ make proto/generate
 
 ## Docker Image
 
-The api image uses `debian:12-slim` (not distroless) as the final stage because the
-**reading conversion features** shell out to Calibre's `ebook-convert` binary to
-convert PDFs to EPUB before kepubification. (Article/RSS HTML→EPUB conversion is a
-pure-Go builder — `conversion_epubbuild.go` — and no longer needs Calibre.) Calibre
-requires Qt and Python shared libraries that distroless cannot provide.
+The api image's final stage is `gcr.io/distroless/static-debian12:nonroot` — no
+Calibre. All reading conversion paths are pure Go:
 
-This makes the image significantly larger than a distroless build (~700 MB vs ~20 MB).
-The Calibre layer is cached via `type=gha` GitHub Actions layer caching, so CI rebuild
-times are only affected when `apt-get install calibre` would pull a new version.
+- Article/RSS HTML→EPUB: `conversion_epubbuild.go`.
+- PDF→EPUB: `conversion_pdfextract.go` and friends, built on
+  [`go-pdfium`](https://github.com/klippa-app/go-pdfium)'s WebAssembly backend
+  (PDFium compiled to wasm, embedded via `go:embed`, run under
+  [wazero](https://wazero.io/) — no CGO, no external runtime files). PDF text is
+  reconstructed into reading-order HTML (line grouping, column-gutter detection,
+  paragraph/heading/hyphenation heuristics — see `conversion_pdfextract_*.go`)
+  and figures are extracted per-page, then both go through the same
+  `goHTMLConverter` EPUB assembly as articles.
+
+Wazero doesn't return memory to the OS until an instance is closed, so a
+package-level `pdfSem` (mirroring the old `calibreSem`) limits PDF extraction to
+one conversion at a time, and each conversion borrows a fresh pool instance and
+closes it when done rather than holding one long-lived.
+
+`make pdf/check` converts every PDF dropped into
+`apps/reading/internal/services/testdata/pdf.local/` (gitignored — never commit
+a PDF there) to EPUB in a scratch subdirectory, for manually inspecting
+real-world conversion quality (reading order, figure placement, headings)
+against actual documents that synthetic test fixtures can't reproduce.
+
+This makes the image ~20 MB instead of the ~700 MB the Calibre-based `debian:13-slim`
+stage used to be.
 
 ## R2 Bucket CORS
 
