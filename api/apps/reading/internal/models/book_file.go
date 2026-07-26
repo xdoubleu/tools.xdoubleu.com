@@ -42,6 +42,7 @@ type BookFile struct {
 	OriginalFilename *string
 	Status           string
 	SourceFileID     *uuid.UUID
+	ConverterVersion int16
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }

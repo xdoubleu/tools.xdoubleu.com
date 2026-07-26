@@ -31,8 +31,17 @@ type EPUBConverter interface {
 // pure-Go pipeline built on go-pdfium (see conversion_pdfextract.go).
 type PDFConverter func(ctx context.Context, inPath, outPath string) error
 
+// currentKEPUBConverterVersion identifies the current KEPUB conversion
+// pipeline (goPDFConverter + kepubify usage). Bump it by hand whenever a
+// change to either would produce different output for existing content —
+// EnsureKEPUB then treats any book_files row stamped with an older version
+// as stale and regenerates it on next access (issue #594).
+const currentKEPUBConverterVersion int16 = 1
+
 // ConversionService produces KEPUBs from stored EPUBs or PDFs.
-// Callers must use EnsureKEPUB; internal conversion is lazy and idempotent.
+// Callers must use EnsureKEPUB; internal conversion is lazy and idempotent,
+// except that a KEPUB stamped with an older currentKEPUBConverterVersion is
+// treated as stale and regenerated rather than returned as-is.
 type ConversionService struct {
 	logger      *slog.Logger
 	bookFiles   *repositories.BookFilesRepository
@@ -74,14 +83,20 @@ func (s *ConversionService) EnsureKEPUB(
 	userID string,
 	bookID uuid.UUID,
 ) (*models.BookFile, error) {
-	// Return existing KEPUB (covers idempotency / concurrent callers).
+	// Return existing KEPUB (covers idempotency / concurrent callers), unless
+	// it was produced by an older converter version — then delete it and fall
+	// through to regenerate, same as the not-found case.
 	existing, err := s.bookFiles.GetByBookAndFormat(
 		ctx, userID, bookID, models.FileFormatKEPUB,
 	)
 	if err == nil {
-		return existing, nil
-	}
-	if !errors.Is(err, database.ErrResourceNotFound) {
+		if existing.ConverterVersion >= currentKEPUBConverterVersion {
+			return existing, nil
+		}
+		if delErr := s.bookFiles.Delete(ctx, existing.ID); delErr != nil {
+			return nil, delErr
+		}
+	} else if !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, err
 	}
 
@@ -165,7 +180,7 @@ func (s *ConversionService) EnsureKEPUB(
 	}
 
 	if updateErr := s.bookFiles.UpdateAfterConversion(
-		ctx, kepubRow.ID, key, int64(len(kepubData)),
+		ctx, kepubRow.ID, key, int64(len(kepubData)), currentKEPUBConverterVersion,
 	); updateErr != nil {
 		return nil, updateErr
 	}
@@ -173,6 +188,7 @@ func (s *ConversionService) EnsureKEPUB(
 	kepubRow.StorageKey = key
 	kepubRow.SizeBytes = int64(len(kepubData))
 	kepubRow.Status = models.FileStatusReady
+	kepubRow.ConverterVersion = currentKEPUBConverterVersion
 	return kepubRow, nil
 }
 
@@ -201,19 +217,24 @@ func (s *ConversionService) resolveCanonicalKEPUB(
 	if err != nil {
 		return nil, "", err
 	}
+	if globalRow.ConverterVersion < currentKEPUBConverterVersion {
+		// The shared blob itself is stale; don't hand it to more users.
+		return nil, canonicalKey, nil
+	}
 
 	// Hit: insert a ready row for this user pointing at the shared canonical blob.
 	sourceID := sourceFile.ID
 	row, insertErr := s.bookFiles.Insert(
 		ctx,
 		models.BookFile{ //nolint:exhaustruct //optional fields not applicable here
-			BookID:       bookID,
-			UserID:       userID,
-			Format:       models.FileFormatKEPUB,
-			StorageKey:   canonicalKey,
-			SizeBytes:    globalRow.SizeBytes,
-			Status:       models.FileStatusReady,
-			SourceFileID: &sourceID,
+			BookID:           bookID,
+			UserID:           userID,
+			Format:           models.FileFormatKEPUB,
+			StorageKey:       canonicalKey,
+			SizeBytes:        globalRow.SizeBytes,
+			Status:           models.FileStatusReady,
+			SourceFileID:     &sourceID,
+			ConverterVersion: globalRow.ConverterVersion,
 		},
 	)
 	return row, canonicalKey, insertErr

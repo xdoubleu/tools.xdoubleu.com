@@ -106,10 +106,17 @@ func medianCharWidth(chars []pdfChar) float64 {
 	return median(widths)
 }
 
-// groupLines clusters chars into lines by y-midpoint proximity (step 1 of the
-// text algorithm): sort characters by descending y, then join a character to
-// the line being built when its midpoint is within 0.5 * the page's median
-// character height of that line's running average midpoint.
+// groupLines clusters chars into lines by baseline proximity (step 1 of the
+// text algorithm): sort characters by descending bottom edge, then join a
+// character to the line being built when its bottom is within 0.5 * the
+// page's median character height of that line's running average bottom.
+// The bottom edge (not the box midpoint) is the clustering key because
+// punctuation that hangs below the baseline — commas, semicolons — and
+// descenders (g/j/p/q/y) report a much shorter, lower-set bounding box than
+// the cap-height/x-height letters around them on the same visual line;
+// midpoint clustering puts their yMid far enough from the line's average to
+// split them into a spurious one-character line, which then renders as a
+// stray comma when the paragraph is rejoined.
 func groupLines(chars []pdfChar) []pdfLine {
 	if len(chars) == 0 {
 		return nil
@@ -122,12 +129,12 @@ func groupLines(chars []pdfChar) []pdfLine {
 	sorted := make([]pdfChar, len(chars))
 	copy(sorted, chars)
 	sort.SliceStable(sorted, func(i, j int) bool {
-		return sorted[i].yMid() > sorted[j].yMid()
+		return sorted[i].bottom > sorted[j].bottom
 	})
 
 	var lines []pdfLine
 	var group []pdfChar
-	var midSum float64
+	var baselineSum float64
 
 	flush := func() {
 		if len(group) == 0 {
@@ -135,28 +142,25 @@ func groupLines(chars []pdfChar) []pdfLine {
 		}
 		lines = append(lines, buildLine(group))
 		group = nil
-		midSum = 0
+		baselineSum = 0
 	}
 
 	for _, c := range sorted {
-		mid := c.yMid()
+		baseline := c.bottom
 		if len(group) > 0 {
-			avg := midSum / float64(len(group))
+			avg := baselineSum / float64(len(group))
 			threshold := lineGroupYMidRatio * medH
-			if diff := avg - mid; diff > threshold || diff < -threshold {
+			if diff := avg - baseline; diff > threshold || diff < -threshold {
 				flush()
 			}
 		}
 		group = append(group, c)
-		midSum += mid
+		baselineSum += baseline
 	}
 	flush()
 
 	return lines
 }
-
-//nolint:mnd // midpoint of a bounding box
-func (c pdfChar) yMid() float64 { return (c.top + c.bottom) / 2 }
 
 // buildLine sorts a line's characters left-to-right, joins their text
 // (inserting a space where the horizontal gap between consecutive character
