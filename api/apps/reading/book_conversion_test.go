@@ -513,6 +513,44 @@ func TestEnsureKEPUB_CrossUserDedup_SkipsConversion(t *testing.T) {
 	assert.Equal(t, models.FileStatusReady, result2.Status)
 }
 
+// TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser covers issue #594:
+// when the shared canonical KEPUB blob itself was produced by an older
+// converter, a second user hitting the dedup path must not be handed that
+// stale blob — the conversion must run again and the canonical blob refreshed.
+func TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser(t *testing.T) {
+	book := addUniqueBook(t)
+	checksum := book.ID.String()
+	counter := &countingConverter{
+		calls: 0,
+		out:   []byte("refreshed canonical kepub"),
+		err:   nil,
+	}
+	conv, store := newTestConversionService(counter, nil)
+
+	seedEPUBFileForUser(t, store, book.ID, userID, checksum)
+	seedEPUBFileForUser(t, store, book.ID, user2ID, checksum)
+
+	canonical, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, counter.calls)
+
+	// Simulate a canonical blob produced by an older converter.
+	require.NoError(t, testApp.Repositories.BookFiles.UpdateAfterConversion(
+		context.Background(), canonical.ID, canonical.StorageKey, canonical.SizeBytes, 0,
+	))
+
+	// A second user must not be handed the stale canonical blob; conversion
+	// must run again and refresh the canonical content.
+	result2, err := conv.EnsureKEPUB(context.Background(), user2ID, book.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 2, counter.calls, "converter must run again for the stale blob")
+
+	stored, ok := store.GetContent(result2.StorageKey)
+	assert.True(t, ok)
+	assert.Equal(t, []byte("refreshed canonical kepub"), stored)
+	assert.Positive(t, result2.ConverterVersion)
+}
+
 func TestEnsureKEPUB_StorePutFails_MarksFailedStatus(t *testing.T) {
 	book := addUniqueBook(t)
 	inner := objectstore.NewFake()
