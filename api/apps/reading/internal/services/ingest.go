@@ -328,6 +328,7 @@ func (s *IngestService) addWebItem(
 			Category:  category,
 			Title:     art.Title,
 			Byline:    art.Byline,
+			Authors:   nil,
 			Excerpt:   art.Excerpt,
 			CoverURL:  art.ImageURL,
 			HTML:      art.HTML,
