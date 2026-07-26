@@ -7,6 +7,7 @@ package webfetch
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var (
@@ -20,6 +21,21 @@ var (
 	// transport level — DNS, connect, TLS, timeout.
 	ErrNetwork = errors.New("webfetch: request failed")
 )
+
+// StatusError is returned on a non-2xx response. It unwraps to ErrStatus, so
+// existing errors.Is(err, ErrStatus) checks keep working; callers that need
+// the exact code can errors.As for it.
+type StatusError struct {
+	Code int
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("%s: %d", ErrStatus, e.Code)
+}
+
+func (e *StatusError) Unwrap() error {
+	return ErrStatus
+}
 
 // Options tunes a single Get.
 type Options struct {

@@ -2,6 +2,7 @@ package reading_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"testing"
@@ -100,6 +101,70 @@ func TestAddBookByURL_ArxivPaper(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.True(t, statusResult.HasPDF)
+}
+
+// TestAddBookByURL_ArxivPaper_HTMLPreferred covers #587: when arXiv's HTML
+// rendition is available, it is used to build an EPUB instead of the PDF.
+func TestAddBookByURL_ArxivPaper_HTMLPreferred(t *testing.T) {
+	id := uniqueArxivID()
+	registerMockPaper(id, "HTML-Rendered Paper", "Ada Lovelace", "Alan Turing")
+	mockArxiv.HTML[id] = []byte(articlePageHTML("HTML-Rendered Paper"))
+
+	msg, err := addByURL(t, arxiv.AbsURL(id), "")
+	require.NoError(t, err)
+	require.NotNil(t, msg.UserBook)
+	assert.False(t, msg.AlreadyInLibrary)
+
+	book := msg.UserBook.Book
+	require.NotNil(t, book)
+	assert.Equal(t, models.CategoryPaper, book.Category)
+	assert.Equal(t, arxiv.AbsURL(id), book.SourceUrl)
+	assert.ElementsMatch(t, []string{"Ada Lovelace", "Alan Turing"}, book.Authors)
+
+	// The EPUB must be built from HTML; no PDF is fetched or stored.
+	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, mustUUID(t, msg.UserBook.BookId),
+	)
+	require.NoError(t, err)
+	assert.True(t, statusResult.HasEPUB)
+	assert.False(t, statusResult.HasPDF)
+}
+
+// TestAddBookByURL_ArxivPaper_HTMLTransportError_FallsBackToPDF covers #587:
+// a non-404 GetHTML failure must not abort ingestion, only skip the HTML path.
+func TestAddBookByURL_ArxivPaper_HTMLTransportError_FallsBackToPDF(t *testing.T) {
+	id := uniqueArxivID()
+	registerMockPaper(id, "Transport Error Paper", "Ada Lovelace")
+	mockArxiv.HTMLErr[id] = errors.New("boom")
+
+	msg, err := addByURL(t, arxiv.AbsURL(id), "")
+	require.NoError(t, err)
+
+	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, mustUUID(t, msg.UserBook.BookId),
+	)
+	require.NoError(t, err)
+	assert.True(t, statusResult.HasPDF)
+	assert.False(t, statusResult.HasEPUB)
+}
+
+// TestAddBookByURL_ArxivPaper_UnreadableHTML_FallsBackToPDF covers #587: HTML
+// that readability can't extract content from (e.g. LaTeXML conversion
+// errors) must not abort ingestion either.
+func TestAddBookByURL_ArxivPaper_UnreadableHTML_FallsBackToPDF(t *testing.T) {
+	id := uniqueArxivID()
+	registerMockPaper(id, "Unreadable HTML Paper", "Ada Lovelace")
+	mockArxiv.HTML[id] = []byte("<html><body></body></html>")
+
+	msg, err := addByURL(t, arxiv.AbsURL(id), "")
+	require.NoError(t, err)
+
+	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, mustUUID(t, msg.UserBook.BookId),
+	)
+	require.NoError(t, err)
+	assert.True(t, statusResult.HasPDF)
+	assert.False(t, statusResult.HasEPUB)
 }
 
 func TestAddBookByURL_ArxivDuplicateFromPDFURL(t *testing.T) {

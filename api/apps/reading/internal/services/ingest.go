@@ -55,9 +55,10 @@ func fetchOptions(maxBytes int64, accept string) webfetch.Options {
 }
 
 // IngestService turns pasted URLs and feed items into library entries with
-// stored files: arXiv papers become PDF book_files (converted to KEPUB by the
-// existing lazy pipeline), web articles are readability-extracted and built
-// into EPUBs.
+// stored files: arXiv papers prefer an EPUB built from arXiv's HTML
+// rendition, falling back to a PDF book_file (converted to KEPUB by the
+// existing lazy pipeline) when no HTML rendition is available; web articles
+// are readability-extracted and built into EPUBs.
 type IngestService struct {
 	logger      *slog.Logger
 	books       *BookService
@@ -140,8 +141,9 @@ func (s *IngestService) IngestArxivByID(
 	return res.UserBook, nil
 }
 
-// addPaper ingests an arXiv paper: metadata from the API, the PDF stored as
-// a ready book_file (KEPUB conversion stays lazy, via the PDF path).
+// addPaper ingests an arXiv paper: metadata from the API, then its content
+// as an HTML-derived EPUB when available (see addPaperFromHTML), falling
+// back to the PDF (addPaperFromPDF) otherwise.
 func (s *IngestService) addPaper(
 	ctx context.Context,
 	userID, arxivID string,
@@ -151,6 +153,85 @@ func (s *IngestService) addPaper(
 		return nil, err
 	}
 
+	if result, ok := s.addPaperFromHTML(ctx, userID, paper); ok {
+		return result, nil
+	}
+
+	return s.addPaperFromPDF(ctx, userID, paper)
+}
+
+// addPaperFromHTML is the preferred path (#587): arXiv's LaTeXML HTML
+// rendition converts to a far better EPUB than PDF text extraction. This is
+// best-effort — roughly 97% of TeX/LaTeX submissions produce some HTML, but
+// only ~75% convert without LaTeXML errors, ~10% of arXiv has no TeX source
+// at all, and papers before Dec 2023 are largely not backfilled — so any
+// failure along this path (missing HTML, fetch error, unreadable content,
+// build error) is logged and falls back to addPaperFromPDF; it must never
+// abort ingestion.
+func (s *IngestService) addPaperFromHTML(
+	ctx context.Context,
+	userID string,
+	paper *arxiv.Paper,
+) (*AddByURLResult, bool) {
+	body, err := s.arxiv.GetHTML(ctx, paper.ID)
+	if err != nil {
+		if !errors.Is(err, arxiv.ErrNotFound) {
+			s.logger.WarnContext(ctx, "arxiv html fetch failed",
+				"arxivID", paper.ID, "error", err)
+		}
+		return nil, false
+	}
+
+	htmlURL := arxiv.HTMLURL(paper.ID)
+	art, err := extractReadable(htmlURL, body)
+	if err != nil {
+		s.logger.WarnContext(ctx, "arxiv html extraction failed",
+			"arxivID", paper.ID, "error", err)
+		return nil, false
+	}
+
+	existed := s.alreadyInLibrary(ctx, userID, paper.AbsURL)
+	ub, err := s.IngestArticleContent(ctx, userID, ArticleContent{
+		SourceURL: paper.AbsURL,
+		BaseURL:   htmlURL,
+		Category:  models.CategoryPaper,
+		Title:     paper.Title,
+		Byline:    "",
+		Authors:   paper.Authors,
+		Excerpt:   paper.Abstract,
+		CoverURL:  "",
+		HTML:      art.HTML,
+	})
+	if err != nil {
+		s.logger.WarnContext(ctx, "arxiv html ingest failed",
+			"arxivID", paper.ID, "error", err)
+		return nil, false
+	}
+	return &AddByURLResult{UserBook: ub, AlreadyInLibrary: existed}, true
+}
+
+// alreadyInLibrary reports whether userID already has a user_book for the
+// catalog row at sourceURL.
+func (s *IngestService) alreadyInLibrary(
+	ctx context.Context,
+	userID, sourceURL string,
+) bool {
+	book, err := s.booksRepo.GetBookBySourceURL(ctx, sourceURL)
+	if err != nil {
+		return false
+	}
+	_, err = s.booksRepo.GetUserBook(ctx, userID, book.ID)
+	return err == nil
+}
+
+// addPaperFromPDF is the PDF ingestion path: used directly when no HTML
+// rendition is available (addPaperFromHTML), and by rebuildFile's repair
+// path via ensurePaperPDF.
+func (s *IngestService) addPaperFromPDF(
+	ctx context.Context,
+	userID string,
+	paper *arxiv.Paper,
+) (*AddByURLResult, error) {
 	abs := paper.AbsURL
 	//nolint:exhaustruct // catalog metadata only; the rest is DB-owned
 	book, err := s.booksRepo.UpsertBookBySourceURL(ctx, models.Book{
@@ -247,6 +328,7 @@ func (s *IngestService) addWebItem(
 			Category:  category,
 			Title:     art.Title,
 			Byline:    art.Byline,
+			Authors:   nil,
 			Excerpt:   art.Excerpt,
 			CoverURL:  art.ImageURL,
 			HTML:      art.HTML,

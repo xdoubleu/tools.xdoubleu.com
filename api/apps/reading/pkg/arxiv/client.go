@@ -3,6 +3,7 @@ package arxiv
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,11 +11,15 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"tools.xdoubleu.com/apps/reading/pkg/webfetch"
 )
 
 const (
 	apiBaseURL     = "https://export.arxiv.org/api/query"
+	htmlBaseURL    = "https://arxiv.org/html"
 	requestTimeout = 30 * time.Second
+	maxHTMLBytes   = int64(25 << 20)
 )
 
 // idPattern matches both id styles, with an optional version suffix:
@@ -76,23 +81,36 @@ func PDFURL(id string) string {
 	return "https://arxiv.org/pdf/" + id
 }
 
+// HTMLURL returns the canonical LaTeXML HTML rendition URL for an id.
+func HTMLURL(id string) string {
+	return "https://arxiv.org/html/" + id
+}
+
 type client struct {
-	logger  *slog.Logger
-	http    *http.Client
-	baseURL string
+	logger      *slog.Logger
+	http        *http.Client
+	baseURL     string
+	htmlBaseURL string
+	webFetch    webfetch.Client
 }
 
 // New returns the production Client.
-func New(logger *slog.Logger) Client {
-	return NewWithBaseURL(logger, apiBaseURL)
+func New(logger *slog.Logger, webFetch webfetch.Client) Client {
+	return NewWithBaseURL(logger, webFetch, apiBaseURL, htmlBaseURL)
 }
 
-// NewWithBaseURL returns a Client against a custom API endpoint (tests).
-func NewWithBaseURL(logger *slog.Logger, baseURL string) Client {
+// NewWithBaseURL returns a Client against custom API/HTML endpoints (tests).
+func NewWithBaseURL(
+	logger *slog.Logger,
+	webFetch webfetch.Client,
+	apiBaseURL, htmlBaseURL string,
+) Client {
 	return &client{
-		logger:  logger,
-		http:    &http.Client{Timeout: requestTimeout},
-		baseURL: baseURL,
+		logger:      logger,
+		http:        &http.Client{Timeout: requestTimeout},
+		baseURL:     apiBaseURL,
+		htmlBaseURL: htmlBaseURL,
+		webFetch:    webFetch,
 	}
 }
 
@@ -162,6 +180,27 @@ func (c *client) GetByID(ctx context.Context, id string) (*Paper, error) {
 		paper.Published = t
 	}
 	return paper, nil
+}
+
+// GetHTML fetches the LaTeXML HTML rendition of a paper through the
+// size-capped webfetch client. Returns ErrNotFound on a 404 — arXiv doesn't
+// publish HTML for every paper (see the caveat on addPaperFromHTML).
+func (c *client) GetHTML(ctx context.Context, id string) ([]byte, error) {
+	reqURL := c.htmlBaseURL + "/" + id
+	res, err := c.webFetch.Get(ctx, reqURL, webfetch.Options{
+		ETag:         "",
+		LastModified: "",
+		MaxBytes:     maxHTMLBytes,
+		Accept:       "text/html",
+	})
+	if err != nil {
+		var statusErr *webfetch.StatusError
+		if errors.As(err, &statusErr) && statusErr.Code == http.StatusNotFound {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return res.Body, nil
 }
 
 // collapseWhitespace flattens the newline-wrapped text arXiv returns into a

@@ -466,6 +466,45 @@ func TestCreateFeed_ArxivItemsBecomePapers(t *testing.T) {
 	assert.True(t, statusResult.HasPDF)
 }
 
+// TestCreateFeed_ArxivItemWithHTML_UsesHTMLPath covers #587: a feed item
+// linking to an arXiv paper with an available HTML rendition is ingested via
+// the HTML->EPUB path, still as category "paper".
+func TestCreateFeed_ArxivItemWithHTML_UsesHTMLPath(t *testing.T) {
+	id := uniqueArxivID()
+	registerMockPaper(id, "A Feed-Ingested HTML Paper", "Grace Hopper")
+	mockArxiv.HTML[id] = []byte(articlePageHTML("A Feed-Ingested HTML Paper"))
+
+	base := uniqueBlogBase()
+	feedURL := base + "/arxiv-html-feed.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"arXiv HTML Feed",
+		rssItem{
+			"A Feed-Ingested HTML Paper", arxiv.AbsURL(id), arxiv.AbsURL(id), "",
+		},
+	)))
+
+	client := newBooksTestClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, resp.Msg.Feed.Id)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), arxiv.AbsURL(id),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, models.CategoryPaper, book.Category)
+
+	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.True(t, statusResult.HasEPUB)
+	assert.False(t, statusResult.HasPDF)
+}
+
 // TestCreateFeed_ArxivFromGUID covers the GUID fallback in arxivIDFromItem:
 // the item's <link> is a normal URL but its <guid> is an arXiv id.
 func TestCreateFeed_ArxivFromGUID(t *testing.T) {

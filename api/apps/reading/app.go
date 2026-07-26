@@ -69,6 +69,7 @@ func New(
 	}
 
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
+	webFetchClient := webfetch.New(logger)
 
 	clients := Clients{
 		UniCat:    unicat.New(logger),
@@ -79,8 +80,8 @@ func New(
 			cfg.R2SecretKey,
 			cfg.R2Bucket,
 		),
-		WebFetch:         webfetch.New(logger),
-		Arxiv:            arxiv.New(logger),
+		WebFetch:         webFetchClient,
+		Arxiv:            arxiv.New(logger, webFetchClient),
 		HTMLConvert:      nil, // default pure-Go converter
 		KoboStoreBaseURL: "https://storeapi.kobo.com",
 		PublicAPIBaseURL: cfg.APIURL,
