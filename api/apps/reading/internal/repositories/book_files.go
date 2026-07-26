@@ -13,7 +13,8 @@ import (
 )
 
 const bookFileColumns = `id, book_id, user_id, format, storage_key, size_bytes,
-	checksum, original_filename, status, source_file_id, created_at, updated_at`
+	checksum, original_filename, status, source_file_id, converter_version,
+	created_at, updated_at`
 
 type BookFilesRepository struct {
 	db postgres.DB
@@ -26,8 +27,8 @@ func (r *BookFilesRepository) Insert(
 	query := `
 		INSERT INTO reading.book_files
 		    (book_id, user_id, format, storage_key, size_bytes,
-		     checksum, original_filename, status, source_file_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		     checksum, original_filename, status, source_file_id, converter_version)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING ` + bookFileColumns
 
 	row := r.db.QueryRow(ctx, query,
@@ -40,6 +41,7 @@ func (r *BookFilesRepository) Insert(
 		f.OriginalFilename,
 		f.Status,
 		f.SourceFileID,
+		f.ConverterVersion,
 	)
 
 	return scanBookFile(row)
@@ -200,13 +202,17 @@ func (r *BookFilesRepository) UpdateAfterConversion(
 	id uuid.UUID,
 	storageKey string,
 	sizeBytes int64,
+	converterVersion int16,
 ) error {
 	query := `
 		UPDATE reading.book_files
-		SET storage_key = $2, size_bytes = $3, status = $4, updated_at = now()
+		SET storage_key = $2, size_bytes = $3, status = $4,
+		    converter_version = $5, updated_at = now()
 		WHERE id = $1
 	`
-	_, err := r.db.Exec(ctx, query, id, storageKey, sizeBytes, models.FileStatusReady)
+	_, err := r.db.Exec(
+		ctx, query, id, storageKey, sizeBytes, models.FileStatusReady, converterVersion,
+	)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
@@ -442,6 +448,7 @@ func scanBookFile(row pgx.Row) (*models.BookFile, error) {
 		&f.OriginalFilename,
 		&f.Status,
 		&f.SourceFileID,
+		&f.ConverterVersion,
 		&f.CreatedAt,
 		&f.UpdatedAt,
 	)

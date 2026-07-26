@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
 	"tools.xdoubleu.com/apps/reading/internal/services"
@@ -169,6 +170,58 @@ func TestEnsureKEPUB_Idempotent(t *testing.T) {
 	assert.Equal(t, first.ID, second.ID)
 }
 
+// TestEnsureKEPUB_StaleConverterVersion_Regenerates covers issue #594: a
+// KEPUB row produced by an older converter (ConverterVersion 0, the
+// migration default for pre-existing rows) must be regenerated rather than
+// returned as-is, so a converter fix reaches already-converted books.
+func TestEnsureKEPUB_StaleConverterVersion_Regenerates(t *testing.T) {
+	book := addUniqueBook(t)
+	conv, store := newTestConversionService(
+		&fakeEPUBConverter{out: []byte("fresh kepub content"), err: nil},
+		nil,
+	)
+	source := seedEPUBFile(t, store, book.ID)
+
+	sourceID := source.ID
+	staleKey := fmt.Sprintf("users/%s/books/%s/stale.kepub", userID, book.ID)
+	require.NoError(t, store.Put(
+		context.Background(), staleKey,
+		bytes.NewReader([]byte("stale kepub content")), 20, "application/epub+zip",
+	))
+	stale, err := testApp.Repositories.BookFiles.Insert(
+		context.Background(),
+		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
+			BookID:       book.ID,
+			UserID:       userID,
+			Format:       models.FileFormatKEPUB,
+			StorageKey:   staleKey,
+			SizeBytes:    20,
+			Status:       models.FileStatusReady,
+			SourceFileID: &sourceID,
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, int16(0), stale.ConverterVersion)
+
+	result, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, stale.ID, result.ID, "stale row should be replaced, not reused")
+	assert.Positive(t, result.ConverterVersion)
+
+	stored, ok := store.GetContent(result.StorageKey)
+	assert.True(t, ok, "regenerated kepub should be in objectstore")
+	assert.Equal(t, []byte("fresh kepub content"), stored)
+
+	_, getErr := testApp.Repositories.BookFiles.GetByID(context.Background(), stale.ID)
+	assert.ErrorIs(
+		t,
+		getErr,
+		database.ErrResourceNotFound,
+		"stale row should be deleted",
+	)
+}
+
 // seedPDFFile stores a minimal PDF in the given store and inserts a book_files
 // row so EnsureKEPUB has a PDF source to convert.
 func seedPDFFile(
@@ -319,9 +372,10 @@ func TestBooksFilesRepo_UpdateAfterConversion(t *testing.T) {
 
 	const newKey = "users/test/books/kepub/done.kepub"
 	const newSize = int64(9999)
+	const newVersion = int16(1)
 
 	err = testApp.Repositories.BookFiles.UpdateAfterConversion(
-		context.Background(), inserted.ID, newKey, newSize,
+		context.Background(), inserted.ID, newKey, newSize, newVersion,
 	)
 	require.NoError(t, err)
 
@@ -333,6 +387,7 @@ func TestBooksFilesRepo_UpdateAfterConversion(t *testing.T) {
 	assert.Equal(t, newKey, got.StorageKey)
 	assert.Equal(t, newSize, got.SizeBytes)
 	assert.Equal(t, models.FileStatusReady, got.Status)
+	assert.Equal(t, newVersion, got.ConverterVersion)
 }
 
 // user2ID is a second user for cross-user deduplication tests.
