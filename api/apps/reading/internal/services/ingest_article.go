@@ -23,7 +23,8 @@ type ArticleMeta struct {
 }
 
 // HTMLConverter converts the HTML file at inPath into an EPUB at outPath.
-// Mirrors PDFConverter for test injection; production shells out to Calibre.
+// Mirrors PDFConverter for test injection; production uses a pure-Go
+// builder (goHTMLConverter).
 type HTMLConverter func(
 	ctx context.Context, inPath, outPath string, meta ArticleMeta,
 ) error

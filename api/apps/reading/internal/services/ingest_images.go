@@ -16,15 +16,24 @@ const (
 	maxArticleImages = 20
 	// maxImageBytes caps a single downloaded image.
 	maxImageBytes = int64(5 << 20)
+
+	// imgTag is the <img> element tag name, shared by the localization pass
+	// here and the EPUB-build sanitization pass (conversion_epubbuild_xhtml.go).
+	imgTag = "img"
+	// srcAttr is the img src attribute name, shared the same way.
+	srcAttr = "src"
+
+	contentTypeJPEG = "image/jpeg"
+	contentTypePNG  = "image/png"
 )
 
 // imageExtensions maps image content types to file extensions; anything else
-// is skipped (Calibre needs an extension it recognizes).
+// is skipped (readers need an extension they recognize).
 //
 //nolint:gochecknoglobals // static lookup table
 var imageExtensions = map[string]string{
-	"image/jpeg":    ".jpg",
-	"image/png":     ".png",
+	contentTypeJPEG: ".jpg",
+	contentTypePNG:  ".png",
 	"image/gif":     ".gif",
 	"image/webp":    ".webp",
 	"image/svg+xml": ".svg",
@@ -54,7 +63,7 @@ func (s *IngestService) localizeImages(
 	walk = func(n *xhtml.Node) {
 		for child := n.FirstChild; child != nil; {
 			next := child.NextSibling
-			if child.Type == xhtml.ElementNode && child.Data == "img" {
+			if child.Type == xhtml.ElementNode && child.Data == imgTag {
 				if !s.localizeImg(ctx, dir, base, child, &count) {
 					n.RemoveChild(child)
 				}
@@ -84,7 +93,7 @@ func (s *IngestService) localizeImg(
 ) bool {
 	src := ""
 	for _, attr := range node.Attr {
-		if attr.Key == "src" {
+		if attr.Key == srcAttr {
 			src = attr.Val
 			break
 		}
@@ -103,7 +112,7 @@ func (s *IngestService) localizeImg(
 	)
 	if err != nil {
 		s.logger.DebugContext(ctx, "skipping article image",
-			"src", resolved.String(), "error", err)
+			srcAttr, resolved.String(), "error", err)
 		return false
 	}
 	ext, ok := imageExtensions[res.ContentType]
@@ -119,7 +128,7 @@ func (s *IngestService) localizeImg(
 	*count++
 
 	for i := range node.Attr {
-		if node.Attr[i].Key == "src" {
+		if node.Attr[i].Key == srcAttr {
 			node.Attr[i].Val = name
 		}
 	}

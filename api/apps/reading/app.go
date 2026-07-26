@@ -81,7 +81,7 @@ func New(
 		),
 		WebFetch:         webfetch.New(logger),
 		Arxiv:            arxiv.New(logger),
-		HTMLConvert:      nil, // default Calibre converter
+		HTMLConvert:      nil, // default pure-Go converter
 		KoboStoreBaseURL: "https://storeapi.kobo.com",
 		PublicAPIBaseURL: cfg.APIURL,
 	}
