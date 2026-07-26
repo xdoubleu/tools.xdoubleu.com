@@ -61,22 +61,15 @@ func (app *Application) Routes() http.Handler {
 		app.auth.Access(profileHandler.ServeHTTP),
 	)
 
-	// Observability MCP server (read-only) behind OAuth 2.1 Bearer auth. The
-	// protected-resource metadata is public (unauthenticated) for client
-	// discovery; the MCP endpoint itself verifies the Bearer token.
-	prm := mcpauth.ProtectedResourceMetadataHandler(
-		app.mcpResourceMetadata(),
-	)
-	mux.Handle(resourceMetadataPath, prm)
-	mux.Handle(rootResourceMetadataPath, prm)
-	mux.Handle(monitoringMCPPath, app.monitoringMCPRoute())
-
-	// Apps MCP server (read-only) — each app's read RPCs behind the same OAuth
-	// 2.1 Bearer auth, gated per tool by the caller's own per-app access.
+	// MCP server (read-only) behind OAuth 2.1 Bearer auth — every app's own
+	// read RPCs plus the admin observability tools. The protected-resource
+	// metadata is public (unauthenticated) for client discovery; the MCP
+	// endpoint itself verifies the Bearer token.
 	appsPRM := mcpauth.ProtectedResourceMetadataHandler(
 		app.mcpResourceMetadataFor(appsMCPPath, "tools.xdoubleu.com apps"),
 	)
 	mux.Handle(appsResourceMetadataPath, appsPRM)
+	mux.Handle(rootResourceMetadataPath, appsPRM)
 	mux.Handle(appsMCPPath, app.appsMCPRoute())
 
 	// Browser-facing OAuth connect flow for the observability integrations
