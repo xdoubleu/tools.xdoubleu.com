@@ -14,11 +14,23 @@ type MockArxivClient struct {
 	Err error
 	// Calls records every requested id.
 	Calls []string
+	// HTML maps arXiv id -> HTML rendition bytes for GetHTML. Ids not
+	// present in either HTML or HTMLErr return arxiv.ErrNotFound.
+	HTML map[string][]byte
+	// HTMLErr maps arXiv id -> an error GetHTML returns instead of
+	// arxiv.ErrNotFound (simulates a non-404 upstream failure).
+	HTMLErr map[string]error
 }
 
 // NewMockArxivClient returns an empty mock (every id is not found).
 func NewMockArxivClient() *MockArxivClient {
-	return &MockArxivClient{Papers: map[string]*arxiv.Paper{}, Err: nil, Calls: nil}
+	return &MockArxivClient{
+		Papers:  map[string]*arxiv.Paper{},
+		Err:     nil,
+		Calls:   nil,
+		HTML:    map[string][]byte{},
+		HTMLErr: map[string]error{},
+	}
 }
 
 func (m *MockArxivClient) GetByID(
@@ -34,4 +46,20 @@ func (m *MockArxivClient) GetByID(
 		return nil, arxiv.ErrNotFound
 	}
 	return paper, nil
+}
+
+func (m *MockArxivClient) GetHTML(
+	_ context.Context,
+	id string,
+) ([]byte, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	if err, ok := m.HTMLErr[id]; ok {
+		return nil, err
+	}
+	if html, ok := m.HTML[id]; ok {
+		return html, nil
+	}
+	return nil, arxiv.ErrNotFound
 }

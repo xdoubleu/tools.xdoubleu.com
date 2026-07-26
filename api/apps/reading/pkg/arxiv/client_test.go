@@ -11,6 +11,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
+	"tools.xdoubleu.com/apps/reading/pkg/webfetch"
 )
 
 func TestParseID(t *testing.T) {
@@ -83,7 +84,9 @@ func TestGetByID(t *testing.T) {
 	))
 	t.Cleanup(ts.Close)
 
-	c := arxiv.NewWithBaseURL(logging.NewNopLogger(), ts.URL)
+	c := arxiv.NewWithBaseURL(
+		logging.NewNopLogger(), webfetch.New(logging.NewNopLogger()), ts.URL, ts.URL,
+	)
 	paper, err := c.GetByID(context.Background(), "2401.12345")
 	require.NoError(t, err)
 
@@ -113,7 +116,12 @@ func TestGetByID_NotFound(t *testing.T) {
 			))
 			t.Cleanup(ts.Close)
 
-			c := arxiv.NewWithBaseURL(logging.NewNopLogger(), ts.URL)
+			c := arxiv.NewWithBaseURL(
+				logging.NewNopLogger(),
+				webfetch.New(logging.NewNopLogger()),
+				ts.URL,
+				ts.URL,
+			)
 			_, err := c.GetByID(context.Background(), "9999.99999")
 			assert.ErrorIs(t, err, arxiv.ErrNotFound)
 		})
@@ -128,8 +136,58 @@ func TestGetByID_UpstreamError(t *testing.T) {
 	))
 	t.Cleanup(ts.Close)
 
-	c := arxiv.NewWithBaseURL(logging.NewNopLogger(), ts.URL)
+	c := arxiv.NewWithBaseURL(
+		logging.NewNopLogger(), webfetch.New(logging.NewNopLogger()), ts.URL, ts.URL,
+	)
 	_, err := c.GetByID(context.Background(), "2401.12345")
+	assert.Error(t, err)
+	assert.NotErrorIs(t, err, arxiv.ErrNotFound)
+}
+
+func TestGetHTML(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/2401.12345", r.URL.Path)
+			_, _ = w.Write([]byte("<html><body><p>paper</p></body></html>"))
+		},
+	))
+	t.Cleanup(ts.Close)
+
+	c := arxiv.NewWithBaseURL(
+		logging.NewNopLogger(), webfetch.New(logging.NewNopLogger()), ts.URL, ts.URL,
+	)
+	body, err := c.GetHTML(context.Background(), "2401.12345")
+	require.NoError(t, err)
+	assert.Contains(t, string(body), "<p>paper</p>")
+}
+
+func TestGetHTML_NotFound(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		},
+	))
+	t.Cleanup(ts.Close)
+
+	c := arxiv.NewWithBaseURL(
+		logging.NewNopLogger(), webfetch.New(logging.NewNopLogger()), ts.URL, ts.URL,
+	)
+	_, err := c.GetHTML(context.Background(), "9999.99999")
+	assert.ErrorIs(t, err, arxiv.ErrNotFound)
+}
+
+func TestGetHTML_ServerError(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		},
+	))
+	t.Cleanup(ts.Close)
+
+	c := arxiv.NewWithBaseURL(
+		logging.NewNopLogger(), webfetch.New(logging.NewNopLogger()), ts.URL, ts.URL,
+	)
+	_, err := c.GetHTML(context.Background(), "2401.12345")
 	assert.Error(t, err)
 	assert.NotErrorIs(t, err, arxiv.ErrNotFound)
 }

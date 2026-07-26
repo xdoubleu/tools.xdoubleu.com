@@ -78,7 +78,10 @@ type ArticleContent struct {
 	BaseURL  string
 	Category string
 	Title    string
+	// Byline is a single-string author line from readability extraction.
+	// Authors takes precedence when set (e.g. arXiv's full author list).
 	Byline   string
+	Authors  []string
 	Excerpt  string
 	CoverURL string
 	HTML     string
@@ -91,8 +94,8 @@ func (s *IngestService) IngestArticleContent(
 	userID string,
 	content ArticleContent,
 ) (*models.UserBook, error) {
-	var authors []string
-	if content.Byline != "" {
+	authors := content.Authors
+	if authors == nil && content.Byline != "" {
 		authors = []string{content.Byline}
 	}
 

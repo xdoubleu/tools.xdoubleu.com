@@ -11,7 +11,10 @@ import (
 // ErrNotFound is returned when the id does not resolve to a paper.
 var ErrNotFound = errors.New("arxiv: paper not found")
 
-// Client fetches paper metadata by arXiv id.
+// Client fetches paper metadata and content by arXiv id.
 type Client interface {
 	GetByID(ctx context.Context, id string) (*Paper, error)
+	// GetHTML fetches the LaTeXML HTML rendition of a paper. Returns
+	// ErrNotFound when no HTML rendition exists for id.
+	GetHTML(ctx context.Context, id string) ([]byte, error)
 }

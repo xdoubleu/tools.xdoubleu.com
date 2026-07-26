@@ -92,7 +92,7 @@ func (c *client) Get(
 		return result, nil
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return nil, fmt.Errorf("%w: %d", ErrStatus, resp.StatusCode)
+		return nil, &StatusError{Code: resp.StatusCode}
 	}
 
 	maxBytes := opts.MaxBytes
