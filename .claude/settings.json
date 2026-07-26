@@ -1,6 +1,7 @@
 {
-  "model": "opusplan",
+  "model": "sonnet",
   "permissions": {
+    "defaultMode": "plan",
     "allow": [
       "Bash(go test *)",
       "Bash(npm run test:cov *)",
