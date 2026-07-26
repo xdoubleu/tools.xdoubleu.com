@@ -5,7 +5,6 @@ import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
-  GetGithubIssuesResponseSchema,
   GetFailingPullRequestsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetDeployStatusResponseSchema
@@ -13,7 +12,6 @@ import {
 import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
 import DatabaseCard from '@/components/monitoring/DatabaseCard'
-import GithubIssuesCard from '@/components/monitoring/GithubIssuesCard'
 import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequestsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
 import DeployCard from '@/components/monitoring/DeployCard'
@@ -130,47 +128,6 @@ describe('DatabaseCard', () => {
     render(<DatabaseCard data={data} />)
     expect(screen.getByText('books')).toBeInTheDocument()
     expect(screen.getByText('global')).toBeInTheDocument()
-  })
-})
-
-describe('GithubIssuesCard', () => {
-  it('renders open issues with labels', () => {
-    const data = create(GetGithubIssuesResponseSchema, {
-      configured: true,
-      openCount: 1,
-      issues: [
-        {
-          number: 42n,
-          title: 'Something is broken',
-          url: 'https://github.com/x/y/issues/42',
-          state: 'open',
-          createdAt: '2026-01-01T00:00:00Z',
-          labels: ['bug']
-        }
-      ]
-    })
-
-    render(<GithubIssuesCard data={data} />)
-    expect(screen.getByText('Something is broken')).toBeInTheDocument()
-    expect(screen.getByText('#42')).toBeInTheDocument()
-    expect(screen.getByText('bug')).toBeInTheDocument()
-  })
-
-  it('degrades when not configured', () => {
-    const data = create(GetGithubIssuesResponseSchema, { configured: false })
-    render(<GithubIssuesCard data={data} />)
-    expect(screen.getByText('GitHub is not configured.')).toBeInTheDocument()
-  })
-
-  it('shows an empty state when configured with no issues', () => {
-    const data = create(GetGithubIssuesResponseSchema, { configured: true, openCount: 0 })
-    render(<GithubIssuesCard data={data} />)
-    expect(screen.getByText('No open issues.')).toBeInTheDocument()
-  })
-
-  it('shows a loading state without data', () => {
-    render(<GithubIssuesCard data={undefined} />)
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 })
 

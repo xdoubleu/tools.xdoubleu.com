@@ -5,7 +5,6 @@ import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
-  GetGithubIssuesResponseSchema,
   GetFailingPullRequestsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetDeployStatusResponseSchema,
@@ -18,7 +17,6 @@ const mockUseUsageStats = jest.fn()
 const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
-const mockUseGithubIssues = jest.fn()
 const mockUseFailingPullRequests = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseDeployStatus = jest.fn()
@@ -30,7 +28,6 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useStorageStats: () => mockUseStorageStats(),
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: () => mockUseDatabaseStats(),
-  useGithubIssues: () => mockUseGithubIssues(),
   useFailingPullRequests: () => mockUseFailingPullRequests(),
   useSentryIssues: () => mockUseSentryIssues(),
   useDeployStatus: () => mockUseDeployStatus(),
@@ -79,10 +76,6 @@ beforeEach(() => {
     data: create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 2097152n, schemas: [] }),
     mutate: mockMutate
   })
-  mockUseGithubIssues.mockReturnValue({
-    data: create(GetGithubIssuesResponseSchema, { configured: true, openCount: 3, issues: [] }),
-    mutate: mockMutate
-  })
   mockUseFailingPullRequests.mockReturnValue({
     data: create(GetFailingPullRequestsResponseSchema, {
       configured: true,
@@ -118,7 +111,6 @@ describe('ObservabilityClient', () => {
     // Orphaned bytes tile reflects the snapshot.
     expect(screen.getByText('2.0 KB')).toBeInTheDocument()
     // External-signal tiles render from their hook data.
-    expect(screen.getByText('Open issues')).toBeInTheDocument()
     expect(screen.getByText('Failing PRs')).toBeInTheDocument()
     expect(screen.getByText('Unresolved errors')).toBeInTheDocument()
     expect(screen.getByText('Deploy')).toBeInTheDocument()
@@ -126,9 +118,6 @@ describe('ObservabilityClient', () => {
   })
 
   it('degrades external tiles when their sources are unconfigured', () => {
-    mockUseGithubIssues.mockReturnValue({
-      data: create(GetGithubIssuesResponseSchema, { configured: false })
-    })
     mockUseFailingPullRequests.mockReturnValue({
       data: create(GetFailingPullRequestsResponseSchema, { configured: false })
     })
@@ -140,9 +129,8 @@ describe('ObservabilityClient', () => {
     })
 
     render(<ObservabilityClient />)
-    // Open issues / Failing PRs / Unresolved errors / Deploy tiles all fall
-    // back to a dash.
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(4)
+    // Failing PRs / Unresolved errors / Deploy tiles all fall back to a dash.
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3)
   })
 
   it('refetches job/usage stats when the window changes', () => {
@@ -161,8 +149,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 8 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(8)
+    // instead of a plain mutate(), so mockMutate covers the other 7 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(7)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

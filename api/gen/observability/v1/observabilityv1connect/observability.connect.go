@@ -48,9 +48,6 @@ const (
 	// ObservabilityServiceGetDatabaseStatsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetDatabaseStats RPC.
 	ObservabilityServiceGetDatabaseStatsProcedure = "/observability.v1.ObservabilityService/GetDatabaseStats"
-	// ObservabilityServiceGetGithubIssuesProcedure is the fully-qualified name of the
-	// ObservabilityService's GetGithubIssues RPC.
-	ObservabilityServiceGetGithubIssuesProcedure = "/observability.v1.ObservabilityService/GetGithubIssues"
 	// ObservabilityServiceGetFailingPullRequestsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetFailingPullRequests RPC.
 	ObservabilityServiceGetFailingPullRequestsProcedure = "/observability.v1.ObservabilityService/GetFailingPullRequests"
@@ -84,7 +81,6 @@ type ObservabilityServiceClient interface {
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
-	GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
@@ -134,12 +130,6 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetDatabaseStatsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseStats")),
-			connect.WithClientOptions(opts...),
-		),
-		getGithubIssues: connect.NewClient[v1.GetGithubIssuesRequest, v1.GetGithubIssuesResponse](
-			httpClient,
-			baseURL+ObservabilityServiceGetGithubIssuesProcedure,
-			connect.WithSchema(observabilityServiceMethods.ByName("GetGithubIssues")),
 			connect.WithClientOptions(opts...),
 		),
 		getFailingPullRequests: connect.NewClient[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse](
@@ -200,7 +190,6 @@ type observabilityServiceClient struct {
 	getStorageStats           *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
 	triggerStorageScan        *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
 	getDatabaseStats          *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
-	getGithubIssues           *connect.Client[v1.GetGithubIssuesRequest, v1.GetGithubIssuesResponse]
 	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	getDeployStatus           *connect.Client[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse]
@@ -234,11 +223,6 @@ func (c *observabilityServiceClient) TriggerStorageScan(ctx context.Context, req
 // GetDatabaseStats calls observability.v1.ObservabilityService.GetDatabaseStats.
 func (c *observabilityServiceClient) GetDatabaseStats(ctx context.Context, req *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error) {
 	return c.getDatabaseStats.CallUnary(ctx, req)
-}
-
-// GetGithubIssues calls observability.v1.ObservabilityService.GetGithubIssues.
-func (c *observabilityServiceClient) GetGithubIssues(ctx context.Context, req *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error) {
-	return c.getGithubIssues.CallUnary(ctx, req)
 }
 
 // GetFailingPullRequests calls observability.v1.ObservabilityService.GetFailingPullRequests.
@@ -289,7 +273,6 @@ type ObservabilityServiceHandler interface {
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
-	GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
@@ -335,12 +318,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetDatabaseStatsProcedure,
 		svc.GetDatabaseStats,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	observabilityServiceGetGithubIssuesHandler := connect.NewUnaryHandler(
-		ObservabilityServiceGetGithubIssuesProcedure,
-		svc.GetGithubIssues,
-		connect.WithSchema(observabilityServiceMethods.ByName("GetGithubIssues")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetFailingPullRequestsHandler := connect.NewUnaryHandler(
@@ -403,8 +380,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceTriggerStorageScanHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDatabaseStatsProcedure:
 			observabilityServiceGetDatabaseStatsHandler.ServeHTTP(w, r)
-		case ObservabilityServiceGetGithubIssuesProcedure:
-			observabilityServiceGetGithubIssuesHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetFailingPullRequestsProcedure:
 			observabilityServiceGetFailingPullRequestsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSentryIssuesProcedure:
@@ -448,10 +423,6 @@ func (UnimplementedObservabilityServiceHandler) TriggerStorageScan(context.Conte
 
 func (UnimplementedObservabilityServiceHandler) GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDatabaseStats is not implemented"))
-}
-
-func (UnimplementedObservabilityServiceHandler) GetGithubIssues(context.Context, *connect.Request[v1.GetGithubIssuesRequest]) (*connect.Response[v1.GetGithubIssuesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetGithubIssues is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {

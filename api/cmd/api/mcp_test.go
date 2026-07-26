@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 )
 
 // mcpToolCount is the number of read-only observability tools the server exposes.
-const mcpToolCount = 8
+const mcpToolCount = 7
 
 // bearerRoundTripper attaches a Bearer token to every MCP client request,
 // standing in for the OAuth access token a real client would send.
@@ -114,7 +115,7 @@ func TestMonitoringMCPListToolsAsAdmin(t *testing.T) {
 	}
 	assert.Len(t, names, mcpToolCount)
 	assert.Contains(t, names, "get_job_stats")
-	assert.Contains(t, names, "get_github_issues")
+	assert.Contains(t, names, "get_failing_pull_requests")
 	assert.Contains(t, names, "get_deploy_status")
 }
 
@@ -143,7 +144,7 @@ func TestMonitoringMCPCallEveryTool(t *testing.T) {
 	session := mcpSession(t, accessToken.Value)
 	tools := []string{
 		"get_job_stats", "get_usage_stats", "get_storage_stats",
-		"get_database_stats", "get_github_issues", "get_failing_pull_requests",
+		"get_database_stats", "get_failing_pull_requests",
 		"get_sentry_issues", "get_deploy_status",
 	}
 	for _, name := range tools {
@@ -180,10 +181,26 @@ func TestMonitoringMCPCallToolReturnsData(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	srv := jsonServer(t, http.StatusOK, `[
-		{"number":7,"title":"MCPBug","html_url":"u","state":"open",
-		 "created_at":"2026-07-01T00:00:00Z","labels":[{"name":"bug"}]}
-	]`)
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Path {
+			case "/repos/o/r/pulls":
+				_, _ = w.Write([]byte(`[
+					{"number":3,"title":"MCPBroken","html_url":"u",
+					 "updated_at":"2026-07-01T00:00:00Z",
+					 "user":{"login":"alice"},"head":{"sha":"sha1"}}
+				]`))
+			case "/repos/o/r/commits/sha1/check-runs":
+				_, _ = w.Write([]byte(`{"check_runs":[
+					{"name":"ci-pass","status":"completed","conclusion":"failure",
+					 "html_url":"u"}
+				]}`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
 	github.SetBaseURL(srv.URL)
 	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
 	testApp.githubClient = github.New(
@@ -194,7 +211,7 @@ func TestMonitoringMCPCallToolReturnsData(t *testing.T) {
 	session := mcpSession(t, accessToken.Value)
 	//nolint:exhaustruct // only the tool name is required to call it
 	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-		Name: "get_github_issues",
+		Name: "get_failing_pull_requests",
 	})
 	require.NoError(t, err)
 	assert.False(t, res.IsError)
@@ -202,7 +219,7 @@ func TestMonitoringMCPCallToolReturnsData(t *testing.T) {
 	require.Len(t, res.Content, 1)
 	text, ok := res.Content[0].(*mcp.TextContent)
 	require.True(t, ok)
-	assert.Contains(t, text.Text, "MCPBug")
+	assert.Contains(t, text.Text, "MCPBroken")
 	assert.Contains(t, text.Text, `"configured":true`)
 }
 

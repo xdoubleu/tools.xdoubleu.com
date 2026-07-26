@@ -192,11 +192,6 @@ func (app *Application) newMonitoringMCPServer() *mcp.Server {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.databaseStats(ctx)
 		})
-	addObsTool(srv, "get_github_issues",
-		"Open GitHub issues for the repository.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.githubIssues(ctx), nil
-		})
 	addObsTool(srv, "get_failing_pull_requests",
 		"Open pull requests with at least one failing CI check.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {

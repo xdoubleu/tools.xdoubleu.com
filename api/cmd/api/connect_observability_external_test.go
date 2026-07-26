@@ -77,82 +77,6 @@ func jsonServer(t *testing.T, status int, body string) *httptest.Server {
 	return srv
 }
 
-// --- GitHub ---
-
-func TestObservabilityGetGithubIssues_AsAdmin(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-
-	srv := jsonServer(t, http.StatusOK, `[
-		{"number":7,"title":"Bug","html_url":"u","state":"open",
-		 "created_at":"2026-07-01T00:00:00Z","labels":[{"name":"bug"}]},
-		{"number":8,"title":"PR","html_url":"p","pull_request":{"url":"x"}}
-	]`)
-	github.SetBaseURL(srv.URL)
-	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
-	testApp.githubClient = github.New(
-		logging.NewNopLogger(),
-		stubTok("tok"),
-		testConfigJSON(t, map[string]string{"repo": "o/r"}),
-	)
-
-	resp, err := callGithub(t)
-	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Issues, 1)
-	assert.Equal(t, int64(7), resp.Msg.Issues[0].Number)
-	assert.Equal(t, int32(1), resp.Msg.OpenCount)
-}
-
-func TestObservabilityGetGithubIssues_NotConfigured(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-	testApp.githubClient = github.New(
-		logging.NewNopLogger(),
-		stubTok("tok"),
-		configNotConnected(),
-	)
-
-	resp, err := callGithub(t)
-	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Issues)
-}
-
-func TestObservabilityGetGithubIssues_UpstreamError(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-
-	srv := jsonServer(t, http.StatusInternalServerError, ``)
-	github.SetBaseURL(srv.URL)
-	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
-	testApp.githubClient = github.New(
-		logging.NewNopLogger(),
-		stubTok("tok"),
-		testConfigJSON(t, map[string]string{"repo": "o/r"}),
-	)
-
-	resp, err := callGithub(t)
-	require.NoError(t, err) // degraded, never a failed response
-	assert.True(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Issues)
-}
-
-func TestObservabilityGetGithubIssues_NonAdmin(t *testing.T) {
-	demoteToUser(t)
-	_, err := callGithub(t)
-	requirePermissionDenied(t, err)
-}
-
-func callGithub(
-	t *testing.T,
-) (*connect.Response[observabilityv1.GetGithubIssuesResponse], error) {
-	t.Helper()
-	req := connect.NewRequest(&observabilityv1.GetGithubIssuesRequest{})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetGithubIssues(context.Background(), req)
-}
-
 // --- Failing pull requests ---
 
 func TestObservabilityGetFailingPullRequests_AsAdmin(t *testing.T) {
@@ -400,18 +324,8 @@ func TestObservabilityGetHealthOverview_AsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	// GitHub configured & healthy; Sentry configured but upstream fails;
-	// deploy unconfigured — each section degrades independently.
-	gh := jsonServer(t, http.StatusOK,
-		`[{"number":1,"title":"x","html_url":"u","state":"open"}]`)
-	github.SetBaseURL(gh.URL)
-	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
-	testApp.githubClient = github.New(
-		logging.NewNopLogger(),
-		stubTok("tok"),
-		testConfigJSON(t, map[string]string{"repo": "o/r"}),
-	)
-
+	// Sentry configured but upstream fails; deploy unconfigured — each
+	// section degrades independently.
 	se := jsonServer(t, http.StatusInternalServerError, ``)
 	sentryapi.SetBaseURL(se.URL)
 	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
@@ -432,8 +346,6 @@ func TestObservabilityGetHealthOverview_AsAdmin(t *testing.T) {
 		context.Background(), req,
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Github.Configured)
-	assert.Len(t, resp.Msg.Github.Issues, 1)
 	assert.True(t, resp.Msg.Sentry.Configured) // configured, upstream failed
 	assert.Empty(t, resp.Msg.Sentry.Issues)
 	assert.False(t, resp.Msg.Deploy.Configured)
