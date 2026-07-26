@@ -26,9 +26,20 @@ Next.js 16 App Router application built as a standalone Node server (`output: 's
 - `app/oauth/consent/` — server-rendered OAuth 2.1 consent screen for the apps MCP server (`/apps/mcp` on the api, which also serves the admin observability tools). Supabase (the authorization server) redirects here with an `authorization_id`; the page reads the HttpOnly `accessToken` cookie server-side (`lib/supabase/oauthServer.ts`, `@supabase/supabase-js`), calls `supabase.auth.oauth.getAuthorizationDetails`, and the `approve`/`deny` server actions record the decision and redirect back. Needs `SUPABASE_URL` + `SUPABASE_ANON_KEY` (`do-app.yaml`, web component). See root `README.md` for the Supabase OAuth-server setup.
 - `lib/reading/gatewayClient.ts` — Client for the local kobo-gateway (macOS menu-bar app at `https://127.0.0.1:41132`, self-signed cert trusted on first launch; Go source in `gateway/internal/kobogateway`, its own module — see `gateway/CLAUDE.md`). `KoboSetup` polls it via `useGatewayStatus` (`hooks/useKoboGateway.ts`) and shows `KoboGatewaySetup` once found, or `KoboGatewayDownload` otherwise — Kobo setup is gateway-only, there is no in-browser fallback. `REQUIRED_GATEWAY_VERSION` here must track `GatewayVersion` in the Go code (a floor for genuine protocol breaks — routine releases don't bump it). `gatewayNeedsUpdate` also compares `status.release` against `getRelease()` (both stamped with the same `github.sha` by CI), which is what actually triggers self-update on routine releases; see `gateway/CLAUDE.md`'s "Self-update" section.
 
+## Docker Image
+
+`web/` has no Dockerfile or image of its own (issue #558 — merged with `api`
+into a single DigitalOcean App Platform component). The root `Dockerfile`
+builds this app's standalone Next.js output in a `web-builder` stage and
+copies it into the same final image as the Go binary; at runtime it's served
+behind the Go binary's reverse proxy (`api/cmd/api/frontend_proxy.go`) as a
+supervised `node server.js` child process (`api/cmd/api/web_process.go`),
+not its own container/component. `npm run dev` and `npm run build` are
+unaffected — this only changes how the production build is packaged and run.
+
 ## Static Downloads
 
-`web/public/` does not exist in the repo. The kobo-gateway `.dmg` and raw binary are built on macOS by `build-gateway.yml` (see `gateway/CLAUDE.md`) and downloaded by `docker.yml` into `web/public/downloads/` before `docker build` runs — `web/Dockerfile` just `COPY`s them from there into `public/downloads/` next to `server.js`. Next standalone only serves `public/` assembled that way, so the download 404s under `npm run dev` unless you build `gateway/` locally first and copy the artifacts in yourself. If `web/public/` ever gains other committed files, `web/Dockerfile` needs an extra `COPY web/public ./public`.
+`web/public/` does not exist in the repo. The kobo-gateway `.dmg` and raw binary are built on macOS by `build-gateway.yml` (see `gateway/CLAUDE.md`) and downloaded by `docker.yml` into `web/public/downloads/` before `docker build` runs — the root `Dockerfile` just `COPY`s them from there into `web/public/downloads/` next to `server.js`. Next standalone only serves `public/` assembled that way, so the download 404s under `npm run dev` unless you build `gateway/` locally first and copy the artifacts in yourself. If `web/public/` ever gains other committed files, the root `Dockerfile` needs an extra `COPY`.
 
 ## Data Flow (RSC + SWR)
 

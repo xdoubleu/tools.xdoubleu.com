@@ -34,8 +34,19 @@ make proto/generate
 
 ## Docker Image
 
-The api image's final stage is `gcr.io/distroless/static-debian12:nonroot` — no
-Calibre. All reading conversion paths are pure Go:
+The api and web components are built and deployed together as one image from
+the root `Dockerfile` (issue #558 — merged into a single DigitalOcean App
+Platform component to avoid paying for two instances). The final stage is
+`node:24-alpine`, **not** distroless — the image now has to carry the Node
+runtime for the bundled Next.js standalone server regardless of what the Go
+binary needs, so distroless no longer buys anything at the image-size level.
+The Go binary itself is still `CGO_ENABLED=0` static with no Calibre — that
+win now shows up as a **memory** win (no Qt/Python peak competing with the
+Node child for RAM inside the shared 512 MB instance) rather than an
+image-size one. See root `CLAUDE.md`'s "Deploy shape" note,
+`api/cmd/api/web_process.go` (spawns `node server.js` as a supervised child)
+and `api/cmd/api/frontend_proxy.go` (the reverse proxy front door). All
+reading conversion paths are pure Go:
 
 - Article/RSS HTML→EPUB: `conversion_epubbuild.go`.
 - PDF→EPUB: `conversion_pdfextract.go` and friends, built on
@@ -58,8 +69,11 @@ a PDF there) to EPUB in a scratch subdirectory, for manually inspecting
 real-world conversion quality (reading order, figure placement, headings)
 against actual documents that synthetic test fixtures can't reproduce.
 
-This makes the image ~20 MB instead of the ~700 MB the Calibre-based `debian:13-slim`
-stage used to be.
+Before the merge, this made the standalone api image ~20 MB (distroless)
+instead of the ~700 MB the Calibre-based `debian:13-slim` stage used to be.
+Removing Calibre is what made the merged image's memory footprint small
+enough to consider fitting both api and web in the same 512 MB instance in
+the first place — see the "Docker Image" section above.
 
 ## R2 Bucket CORS
 

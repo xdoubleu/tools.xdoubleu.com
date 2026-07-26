@@ -2,8 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import Footer from '@/components/Footer'
 
 jest.mock('@/lib/env', () => ({
-  getRelease: jest.fn(),
-  getApiUrl: jest.fn(() => 'http://localhost:4000')
+  getRelease: jest.fn()
 }))
 
 import { getRelease } from '@/lib/env'
@@ -13,9 +12,6 @@ const mockGetRelease = jest.mocked(getRelease)
 beforeEach(() => {
   jest.clearAllMocks()
   mockGetRelease.mockReturnValue('')
-  global.fetch = jest.fn().mockResolvedValue({
-    json: () => Promise.resolve({ release: '' })
-  })
 })
 
 describe('Footer', () => {
@@ -47,58 +43,29 @@ describe('Footer', () => {
     })
   })
 
-  it('renders web release hash when available', async () => {
+  it('renders the release hash when available', async () => {
     mockGetRelease.mockReturnValue('abc123def456')
 
     render(<Footer />)
 
     await waitFor(() => {
-      expect(screen.getByText('web:abc123d')).toBeInTheDocument()
+      expect(screen.getByText('abc123d')).toBeInTheDocument()
     })
   })
 
-  it('renders api release hash fetched from server', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      json: () => Promise.resolve({ release: 'deadbeef1234' })
-    })
-
-    render(<Footer />)
-
-    await waitFor(() => {
-      expect(screen.getByText('api:deadbee')).toBeInTheDocument()
-    })
-  })
-
-  it('renders both web and api hashes when both available', async () => {
-    mockGetRelease.mockReturnValue('abc123def456')
-    global.fetch = jest.fn().mockResolvedValue({
-      json: () => Promise.resolve({ release: 'deadbeef1234' })
-    })
-
-    render(<Footer />)
-
-    await waitFor(() => {
-      expect(screen.getByText('web:abc123d')).toBeInTheDocument()
-      expect(screen.getByText('api:deadbee')).toBeInTheDocument()
-    })
-  })
-
-  it('truncates release hashes to 7 characters', async () => {
+  it('truncates the release hash to 7 characters', async () => {
     mockGetRelease.mockReturnValue('abc123def456ghi789')
 
     render(<Footer />)
 
     await waitFor(() => {
-      expect(screen.getByText('web:abc123d')).toBeInTheDocument()
+      expect(screen.getByText('abc123d')).toBeInTheDocument()
       expect(screen.queryByText('abc123def456ghi789')).not.toBeInTheDocument()
     })
   })
 
-  it('does not render version block when both releases are empty', async () => {
+  it('does not render a release badge when release is empty', async () => {
     mockGetRelease.mockReturnValue('')
-    global.fetch = jest.fn().mockResolvedValue({
-      json: () => Promise.resolve({ release: '' })
-    })
 
     render(<Footer />)
 
@@ -106,27 +73,11 @@ describe('Footer', () => {
       expect(screen.getByText(/xdoubleu/)).toBeInTheDocument()
     })
 
-    expect(screen.queryByText(/^(web|api):/)).not.toBeInTheDocument()
-  })
-
-  it('handles fetch failure gracefully', async () => {
-    mockGetRelease.mockReturnValue('abc123def456')
-    global.fetch = jest.fn().mockRejectedValue(new Error('network error'))
-
-    render(<Footer />)
-
-    await waitFor(() => {
-      expect(screen.getByText('web:abc123d')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByText(/^api:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^[0-9a-f]{7}$/)).not.toBeInTheDocument()
   })
 
   it('renders all footer elements together', async () => {
     mockGetRelease.mockReturnValue('abc123def456')
-    global.fetch = jest.fn().mockResolvedValue({
-      json: () => Promise.resolve({ release: 'deadbeef1234' })
-    })
 
     const { container } = render(<Footer />)
 
@@ -134,8 +85,7 @@ describe('Footer', () => {
       const footer = container.querySelector('footer')
       expect(footer).toBeInTheDocument()
       expect(footer).toHaveClass('border-t', 'bg-glass', 'backdrop-blur-xl')
-      expect(screen.getByText('web:abc123d')).toBeInTheDocument()
-      expect(screen.getByText('api:deadbee')).toBeInTheDocument()
+      expect(screen.getByText('abc123d')).toBeInTheDocument()
     })
 
     const year = new Date().getFullYear()
@@ -160,7 +110,7 @@ describe('Footer', () => {
     )
   })
 
-  it('displays versions with monospace font', async () => {
+  it('displays the release hash with monospace font', async () => {
     mockGetRelease.mockReturnValue('abc123def456')
 
     const { container } = render(<Footer />)
@@ -168,15 +118,7 @@ describe('Footer', () => {
     await waitFor(() => {
       const monoElement = container.querySelector('.font-mono')
       expect(monoElement).toBeInTheDocument()
-      expect(monoElement).toHaveTextContent('web:abc123d')
-    })
-  })
-
-  it('fetches api version from correct endpoint', async () => {
-    render(<Footer />)
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('http://localhost:4000/api/version')
+      expect(monoElement).toHaveTextContent('abc123d')
     })
   })
 })
