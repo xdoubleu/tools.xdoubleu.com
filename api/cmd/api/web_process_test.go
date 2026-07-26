@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,16 +29,14 @@ func writeStubScript(t *testing.T, body string) string {
 
 	path := filepath.Join(t.TempDir(), "stub.sh")
 	script := "#!/bin/sh\n" + body
-	require.NoError(
-		t,
-		os.WriteFile(path, []byte(script), 0o755),
-	) //nolint:gosec //test fixture
+	require.NoError(t, os.WriteFile(path, []byte(script), 0o755))
 
 	return path
 }
 
 func testWebConfig(t *testing.T, script string) config.Config {
 	t.Helper()
+	//nolint:exhaustruct //only the fields startWebProcess/webProcessEnv read are needed
 	return config.Config{
 		WebNodeBin:      script,
 		WebServerJS:     "unused",
@@ -53,7 +52,7 @@ func TestStartWebProcess_StartAndStop(t *testing.T) {
 	script := writeStubScript(t, "while :; do :; done\n")
 	cfg := testWebConfig(t, script)
 
-	w, err := startWebProcess(logging.NewNopLogger(), cfg)
+	w, err := startWebProcess(context.Background(), logging.NewNopLogger(), cfg)
 	require.NoError(t, err)
 
 	require.NotNil(t, w.cmd.Process)
@@ -75,7 +74,7 @@ func TestStartWebProcess_UnexpectedExitTriggersShutdown(t *testing.T) {
 	script := writeStubScript(t, "exit 0\n")
 	cfg := testWebConfig(t, script)
 
-	w, err := startWebProcess(logging.NewNopLogger(), cfg)
+	w, err := startWebProcess(context.Background(), logging.NewNopLogger(), cfg)
 	require.NoError(t, err)
 
 	select {
@@ -97,7 +96,7 @@ func TestStartWebProcess_StopSuppressesShutdownSignal(t *testing.T) {
 	script := writeStubScript(t, "while :; do :; done\n")
 	cfg := testWebConfig(t, script)
 
-	w, err := startWebProcess(logging.NewNopLogger(), cfg)
+	w, err := startWebProcess(context.Background(), logging.NewNopLogger(), cfg)
 	require.NoError(t, err)
 
 	w.Stop()
@@ -108,7 +107,7 @@ func TestStartWebProcess_StopSuppressesShutdownSignal(t *testing.T) {
 func TestStartWebProcess_StartFailureReturnsError(t *testing.T) {
 	cfg := testWebConfig(t, filepath.Join(t.TempDir(), "does-not-exist"))
 
-	_, err := startWebProcess(logging.NewNopLogger(), cfg)
+	_, err := startWebProcess(context.Background(), logging.NewNopLogger(), cfg)
 
 	require.Error(t, err)
 }
@@ -121,7 +120,7 @@ func TestStop_EscalatesToKillWhenChildIgnoresSigterm(t *testing.T) {
 	script := writeStubScript(t, "trap '' TERM\nwhile :; do :; done\n")
 	cfg := testWebConfig(t, script)
 
-	w, err := startWebProcess(logging.NewNopLogger(), cfg)
+	w, err := startWebProcess(context.Background(), logging.NewNopLogger(), cfg)
 	require.NoError(t, err)
 	// Give the child shell time to actually execute the `trap` line before
 	// Stop sends SIGTERM — otherwise SIGTERM can race ahead of trap
@@ -143,7 +142,8 @@ func TestStop_EscalatesToKillWhenChildIgnoresSigterm(t *testing.T) {
 }
 
 func TestStop_NilProcessIsANoop(t *testing.T) {
-	w := &webProcess{cmd: &exec.Cmd{}, done: make(chan struct{})} //nolint:exhaustruct //zero cmd is the point
+	//nolint:exhaustruct //zero-value cmd (nil Process) is the point of this test
+	w := &webProcess{cmd: &exec.Cmd{}, done: make(chan struct{})}
 
 	require.NotPanics(t, w.Stop)
 }

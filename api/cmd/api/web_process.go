@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -42,11 +43,11 @@ type webProcess struct {
 
 // startWebProcess launches cfg.WebServerJS with cfg.WebNodeBin. It returns
 // once the process has started, not once it's ready to accept connections.
-func startWebProcess(logger *slog.Logger, cfg config.Config) (*webProcess, error) {
-	cmd := exec.Command(
-		cfg.WebNodeBin,
-		cfg.WebServerJS,
-	) //nolint:gosec //server-owned config
+func startWebProcess(
+	ctx context.Context, logger *slog.Logger, cfg config.Config,
+) (*webProcess, error) {
+	//nolint:gosec // WebNodeBin/WebServerJS are server-owned config, not user input
+	cmd := exec.CommandContext(ctx, cfg.WebNodeBin, cfg.WebServerJS)
 	cmd.Env = webProcessEnv(cfg)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -55,6 +56,7 @@ func startWebProcess(logger *slog.Logger, cfg config.Config) (*webProcess, error
 		return nil, err
 	}
 
+	//nolint:exhaustruct //stopping zero-values to false, which is correct here
 	w := &webProcess{cmd: cmd, done: make(chan struct{})}
 	go w.waitAndSignalOnUnexpectedExit(logger)
 

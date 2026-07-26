@@ -43,7 +43,7 @@ func (app *Application) frontendProxy(apiHandler http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.URL.Path == "/health":
+		case r.URL.Path == healthPath:
 			apiHandler.ServeHTTP(w, r)
 		case r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/"):
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")

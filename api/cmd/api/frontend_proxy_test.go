@@ -137,6 +137,7 @@ func TestFrontendProxy_VersionQuirkAgainstRealMux(t *testing.T) {
 	))
 	proxied := &Application{ //nolint:exhaustruct //other fields unused here
 		logger: testApp.logger,
+		//nolint:exhaustruct //other fields unused here
 		config: config.Config{WebPort: port, Release: testApp.config.Release},
 	}
 

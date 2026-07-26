@@ -137,7 +137,7 @@ func main() {
 
 	handler := app.Routes()
 	if cfg.WebEnabled {
-		web, webErr := startWebProcess(logger, cfg)
+		web, webErr := startWebProcess(app.ctx, logger, cfg)
 		if webErr != nil {
 			panic(webErr)
 		}
