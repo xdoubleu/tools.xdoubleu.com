@@ -393,6 +393,90 @@ func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 	assert.Error(t, err, "a failed Resend fetch must not ingest anything")
 }
 
+// TestEmailInbound_IgnoredEventType_NoOp proves that a webhook event other
+// than "email.received" (the only one this endpoint is subscribed to) is
+// acked 200 and ignored, rather than erroring — so the same endpoint can be
+// reused for other Resend event types later without breaking delivery.
+func TestEmailInbound_IgnoredEventType_NoOp(t *testing.T) {
+	mux, _ := emailWebhookApp(t)
+	_, token := createEmailFeedFor(t, mux)
+
+	to := "reading+" + token + "@mail.test.example"
+	payload, _ := json.Marshal(map[string]any{
+		"type": "email.bounced",
+		"data": map[string]any{
+			"email_id": "email-ignored",
+			"to":       []string{to},
+		},
+	})
+	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-ignored", payload)
+
+	rec := postWebhook(mux, payload, headers)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+// TestEmailInbound_MissingMessageID_FallsBackToEmailID proves the dedup key
+// falls back to Resend's email_id when message_id is absent from the
+// payload — some inbound sources may not always populate it.
+func TestEmailInbound_MissingMessageID_FallsBackToEmailID(t *testing.T) {
+	mux, app := emailWebhookApp(t)
+	feedID, token := createEmailFeedFor(t, mux)
+	stub := newResendReceivingStub(t)
+	stub.html = "<p>No message id in payload</p>"
+
+	to := "reading+" + token + "@mail.test.example"
+	payload, _ := json.Marshal(map[string]any{
+		"type": "email.received",
+		"data": map[string]any{
+			"email_id": "email-no-msgid",
+			"to":       []string{to},
+			"subject":  "No message id",
+		},
+	})
+	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-no-msgid", payload)
+
+	rec := postWebhook(mux, payload, headers)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	book, err := app.Repositories.Books.GetBookBySourceURL(
+		context.Background(), "mailto:"+feedID+"/email-no-msgid",
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "No message id", book.Title)
+}
+
+// TestEmailInbound_SkipsNonMatchingToAddress proves resolveEmailFeed keeps
+// scanning the "to" list past an address that isn't a "reading+<token>@…"
+// alias (or doesn't resolve to any feed) instead of bailing out on the first
+// candidate.
+func TestEmailInbound_SkipsNonMatchingToAddress(t *testing.T) {
+	mux, app := emailWebhookApp(t)
+	feedID, token := createEmailFeedFor(t, mux)
+	stub := newResendReceivingStub(t)
+	stub.html = "<p>Found on the second address</p>"
+
+	to := "reading+" + token + "@mail.test.example"
+	payload, _ := json.Marshal(map[string]any{
+		"type": "email.received",
+		"data": map[string]any{
+			"email_id":   "email-multi-to",
+			"message_id": messageIDFor("email-multi-to"),
+			"to":         []string{"not-an-alias@example.com", to},
+			"subject":    "Multiple recipients",
+		},
+	})
+	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-multi-to", payload)
+
+	rec := postWebhook(mux, payload, headers)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	book, err := app.Repositories.Books.GetBookBySourceURL(
+		context.Background(), "mailto:"+feedID+"/"+messageIDFor("email-multi-to"),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "Multiple recipients", book.Title)
+}
+
 func mustParseUUID(t *testing.T, s string) uuid.UUID {
 	t.Helper()
 	id, err := uuid.Parse(s)

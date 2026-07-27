@@ -1,15 +1,19 @@
 package reading
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const testWebhookSecret = "whsec_dGVzdC1zZWNyZXQtdGVzdC1zZWNyZXQ="
@@ -73,6 +77,117 @@ func TestVerifyResendSignature_MissingHeaders(t *testing.T) {
 		t,
 		verifyResendSignature(testWebhookSecret, http.Header{}, []byte("{}")),
 	)
+}
+
+func TestVerifyResendSignature_MalformedSecret(t *testing.T) {
+	body := []byte(`{"type":"email.received"}`)
+	headers := signedResendHeaders(string(body), time.Now())
+
+	assert.False(
+		t,
+		verifyResendSignature("whsec_not-valid-base64!!!", headers, body),
+	)
+}
+
+func TestVerifyResendSignature_MalformedTimestamp(t *testing.T) {
+	body := []byte(`{"type":"email.received"}`)
+	h := http.Header{}
+	h.Set("svix-id", "msg_1")
+	h.Set("svix-timestamp", "not-a-number")
+	h.Set("svix-signature", "v1,doesnotmatter")
+
+	assert.False(t, verifyResendSignature(testWebhookSecret, h, body))
+}
+
+func TestVerifyResendSignature_MalformedSignatureField(t *testing.T) {
+	body := []byte(`{"type":"email.received"}`)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	h := http.Header{}
+	h.Set("svix-id", "msg_1")
+	h.Set("svix-timestamp", timestamp)
+	// No comma separating the version prefix from the signature — the
+	// per-part parse loop must skip it (and any following valid part)
+	// rather than panicking on strings.Cut's second return.
+	h.Set("svix-signature", "no-comma-here")
+
+	assert.False(t, verifyResendSignature(testWebhookSecret, h, body))
+}
+
+func TestParseUnixTimestamp_Invalid(t *testing.T) {
+	_, err := parseUnixTimestamp("not-a-timestamp")
+	require.Error(t, err)
+}
+
+func TestFetchReceivedEmailHTML_ConnectionError(t *testing.T) {
+	SetResendAPIBaseURL("http://127.0.0.1:1")
+	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
+
+	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
+	require.Error(t, err)
+}
+
+func TestFetchReceivedEmailHTML_NonOKStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("upstream error"))
+		},
+	))
+	t.Cleanup(server.Close)
+	SetResendAPIBaseURL(server.URL)
+	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
+
+	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "upstream error")
+}
+
+func TestFetchReceivedEmailHTML_MalformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("not json"))
+		},
+	))
+	t.Cleanup(server.Close)
+	SetResendAPIBaseURL(server.URL)
+	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
+
+	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
+	require.Error(t, err)
+}
+
+func TestFetchReceivedEmailHTML_TextFallback(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"text": "plain text body",
+			})
+		},
+	))
+	t.Cleanup(server.Close)
+	SetResendAPIBaseURL(server.URL)
+	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
+
+	html, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
+	require.NoError(t, err)
+	assert.Equal(t, "<pre>plain text body</pre>", html)
+}
+
+func TestFetchReceivedEmailHTML_NoHTMLOrText(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{})
+		},
+	))
+	t.Cleanup(server.Close)
+	SetResendAPIBaseURL(server.URL)
+	t.Cleanup(func() { SetResendAPIBaseURL("https://api.resend.com") })
+
+	_, err := fetchReceivedEmailHTML(context.Background(), "key", "email-1")
+	require.Error(t, err)
 }
 
 func TestInboundTokenFromAddress(t *testing.T) {

@@ -131,6 +131,25 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 	}
 }
 
+// TestCreateFeed_Email_GenericErrorMapped proves that a CreateEmail failure
+// other than ErrEmailFeedsNotConfigured (e.g. a DB error) is mapped through
+// feedErrorToConnect rather than always being read as "not configured".
+func TestCreateFeed_Email_GenericErrorMapped(t *testing.T) {
+	client, _ := newEmailConfiguredTestClient(t, "whsec_dGVzdA==", "mail.test.example")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.CreateFeed(
+		ctx,
+		feedReq(
+			t,
+			&readingv1.CreateFeedRequest{Kind: readingv1.FeedKind_FEED_KIND_EMAIL},
+		),
+	)
+	require.Error(t, err)
+	assert.NotEqual(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
 // TestRefreshFeed_EmailFeed_NoOp proves that RefreshFeed is a no-op for an
 // email feed — it is push-only (Resend webhook), so polling it must never
 // touch the web-fetch client.
