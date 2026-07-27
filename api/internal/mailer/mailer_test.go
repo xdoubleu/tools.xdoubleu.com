@@ -75,3 +75,54 @@ func TestSendReturnsErrorOnNonOKStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "401")
 }
+
+func TestSendToNotConfigured(t *testing.T) {
+	tests := []struct {
+		name   string
+		apiKey string
+		from   string
+		to     string
+	}{
+		{name: "no api key", apiKey: "", from: "a@b.com", to: "c@d.com"},
+		{name: "no from", apiKey: "key", from: "", to: "c@d.com"},
+		{name: "no to", apiKey: "key", from: "a@b.com", to: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// New's own to is left empty/irrelevant — SendTo ignores it.
+			client := mailer.New(tt.apiKey, tt.from, "")
+			err := client.SendTo(t.Context(), tt.to, "subject", "body")
+			assert.ErrorIs(t, err, mailer.ErrNotConfigured)
+		})
+	}
+}
+
+func TestSendToPostsExpectedRequest(t *testing.T) {
+	var gotBody map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer server.Close()
+	mailer.SetBaseURL(server.URL)
+	defer mailer.SetBaseURL("https://api.resend.com")
+
+	// New's to is a different address than SendTo's — the posted "to" must
+	// reflect the SendTo argument, not New's fixed recipient.
+	client := mailer.New("test-key", "from@example.com", "fixed-to@example.com")
+	err := client.SendTo(
+		t.Context(),
+		"dynamic-to@example.com",
+		"New contact request",
+		"details",
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, []any{"dynamic-to@example.com"}, gotBody["to"])
+	assert.Equal(t, "New contact request", gotBody["subject"])
+	assert.Equal(t, "details", gotBody["text"])
+}

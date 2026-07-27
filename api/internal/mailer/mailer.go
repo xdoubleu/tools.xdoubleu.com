@@ -23,9 +23,13 @@ var baseURL = "https://api.resend.com"
 
 const apiTimeout = 10 * time.Second
 
-// Client sends a single-recipient notification email.
+// Client sends notification emails.
 type Client interface {
+	// Send sends to the fixed recipient configured via New.
 	Send(ctx context.Context, subject, body string) error
+	// SendTo sends to an arbitrary recipient, independent of the recipient
+	// passed to New (e.g. a user-facing transactional email).
+	SendTo(ctx context.Context, to, subject, body string) error
 }
 
 type resendClient struct {
@@ -54,13 +58,21 @@ type sendRequest struct {
 }
 
 func (c *resendClient) Send(ctx context.Context, subject, body string) error {
-	if c.apiKey == "" || c.from == "" || c.to == "" {
+	return c.sendTo(ctx, c.to, subject, body)
+}
+
+func (c *resendClient) SendTo(ctx context.Context, to, subject, body string) error {
+	return c.sendTo(ctx, to, subject, body)
+}
+
+func (c *resendClient) sendTo(ctx context.Context, to, subject, body string) error {
+	if c.apiKey == "" || c.from == "" || to == "" {
 		return ErrNotConfigured
 	}
 
 	payload, err := json.Marshal(sendRequest{
 		From:    c.from,
-		To:      []string{c.to},
+		To:      []string{to},
 		Subject: subject,
 		Text:    body,
 	})
