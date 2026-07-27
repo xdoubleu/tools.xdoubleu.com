@@ -159,9 +159,12 @@ func TestDeploymentLogs_LogChunkNonRetryableError(t *testing.T) {
 		[]string{"api"},
 		map[string][]string{"api:BUILD": {"missing-chunk"}},
 	)
-	mux.HandleFunc("/log-chunk/missing-chunk", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
+	mux.HandleFunc(
+		"/log-chunk/missing-chunk",
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		},
+	)
 	cleanup := buildServer(mux)
 	defer cleanup()
 
@@ -177,10 +180,13 @@ func TestDeploymentLogs_LogChunkServerError_Retries(t *testing.T) {
 		[]string{"api"},
 		map[string][]string{"api:BUILD": {"flaky-chunk"}},
 	)
-	mux.HandleFunc("/log-chunk/flaky-chunk", func(w http.ResponseWriter, _ *http.Request) {
-		attempts++
-		w.WriteHeader(http.StatusBadGateway)
-	})
+	mux.HandleFunc(
+		"/log-chunk/flaky-chunk",
+		func(w http.ResponseWriter, _ *http.Request) {
+			attempts++
+			w.WriteHeader(http.StatusBadGateway)
+		},
+	)
 	cleanup := buildServer(mux)
 	defer cleanup()
 
