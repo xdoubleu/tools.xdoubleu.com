@@ -105,6 +105,18 @@ services:
       - key: NOTIFY_EMAIL_TO
         scope: RUN_TIME
         type: SECRET
+      # Email-relay newsletter feeds (issue #595): EMAIL_INBOUND_DOMAIN builds
+      # each feed's "reading+<token>@domain" inbound alias; EMAIL_INBOUND_SECRET
+      # verifies the Resend inbound-webhook signature. Either unset disables
+      # the feature (CreateFeed(kind=EMAIL) fails, the webhook rejects all
+      # requests). Also requires RESEND_API_KEY (above) to fetch each
+      # received email's body.
+      - key: EMAIL_INBOUND_DOMAIN
+        scope: RUN_TIME
+        type: SECRET
+      - key: EMAIL_INBOUND_SECRET
+        scope: RUN_TIME
+        type: SECRET
 
   - name: web
     image:

@@ -17,17 +17,21 @@ type FeedsRepository struct {
 	db postgres.DB
 }
 
-const feedColumns = `id, user_id, url, title, kobo_sync, etag, last_modified,
-	last_fetched_at, last_error, created_at, updated_at`
+const feedColumns = `id, user_id, url, title, kobo_sync, source_type,
+	inbound_token, etag, last_modified, last_fetched_at, last_error,
+	created_at, updated_at`
 
 func scanFeed(row pgx.Row) (*models.Feed, error) {
 	var f models.Feed
+	var url *string
 	err := row.Scan(
 		&f.ID,
 		&f.UserID,
-		&f.URL,
+		&url,
 		&f.Title,
 		&f.KoboSync,
+		&f.SourceType,
+		&f.InboundToken,
 		&f.ETag,
 		&f.LastModified,
 		&f.LastFetchedAt,
@@ -37,6 +41,9 @@ func scanFeed(row pgx.Row) (*models.Feed, error) {
 	)
 	if err != nil {
 		return nil, err
+	}
+	if url != nil {
+		f.URL = *url
 	}
 	return &f, nil
 }
@@ -56,11 +63,13 @@ func (repo *FeedsRepository) List(
 	return repo.queryFeeds(ctx, query, userID)
 }
 
-// ListAll returns every feed across all users, for the background poll job.
+// ListAll returns every pollable (rss) feed across all users, for the
+// background poll job — email feeds are push-only and never polled.
 func (repo *FeedsRepository) ListAll(ctx context.Context) ([]models.Feed, error) {
 	query := `
 		SELECT ` + feedColumns + `
 		FROM reading.feeds
+		WHERE source_type = 'rss'
 		ORDER BY user_id, title, url
 	`
 	return repo.queryFeeds(ctx, query)
@@ -111,19 +120,52 @@ func (repo *FeedsRepository) GetByID(
 }
 
 // Insert creates a feed. A duplicate (user_id, url) maps to
-// database.ErrResourceConflict via the unique constraint.
+// database.ErrResourceConflict via the unique constraint; for email feeds
+// (url is empty) a duplicate inbound_token hash maps to the same error via
+// the feeds_inbound_token_idx unique index.
 func (repo *FeedsRepository) Insert(
 	ctx context.Context,
 	feed models.Feed,
 ) (*models.Feed, error) {
+	var url *string
+	if feed.URL != "" {
+		url = &feed.URL
+	}
+	sourceType := feed.SourceType
+	if sourceType == "" {
+		sourceType = models.FeedSourceRSS
+	}
+
 	query := `
-		INSERT INTO reading.feeds (user_id, url, title, kobo_sync)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO reading.feeds
+			(user_id, url, title, kobo_sync, source_type, inbound_token)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING ` + feedColumns
 
 	f, err := scanFeed(repo.db.QueryRow(
-		ctx, query, feed.UserID, feed.URL, feed.Title, feed.KoboSync,
+		ctx, query,
+		feed.UserID, url, feed.Title, feed.KoboSync, sourceType, feed.InboundToken,
 	))
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return f, nil
+}
+
+// GetByInboundTokenHash resolves an email feed by its inbound alias token's
+// SHA-256 hash, for the unauthenticated Resend webhook handler — there is no
+// user_id to scope by at that point.
+// Returns database.ErrResourceNotFound when no feed matches.
+func (repo *FeedsRepository) GetByInboundTokenHash(
+	ctx context.Context,
+	hash string,
+) (*models.Feed, error) {
+	query := `
+		SELECT ` + feedColumns + `
+		FROM reading.feeds
+		WHERE inbound_token = $1
+	`
+	f, err := scanFeed(repo.db.QueryRow(ctx, query, hash))
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}

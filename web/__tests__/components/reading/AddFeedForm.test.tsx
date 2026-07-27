@@ -5,6 +5,9 @@ const createFeed = jest.fn()
 jest.mock('@/hooks/useBookFeeds', () => ({
   useCreateFeed: () => createFeed
 }))
+jest.mock('@/lib/gen/reading/v1/feeds_pb', () => ({
+  FeedKind: { RSS: 1, EMAIL: 2 }
+}))
 
 import AddFeedForm from '@/components/reading/AddFeedForm'
 
@@ -25,7 +28,7 @@ describe('AddFeedForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() => {
-      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true)
+      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1)
       expect(
         screen.getByText('Subscribed — importing items in the background.')
       ).toBeInTheDocument()
@@ -45,5 +48,20 @@ describe('AddFeedForm', () => {
     await waitFor(() => {
       expect(screen.getByText('You are already subscribed to this feed.')).toBeInTheDocument()
     })
+  })
+
+  it('mints and displays a one-time inbound address for email mode', async () => {
+    createFeed.mockResolvedValue({ feed: { inboundAddress: 'reading+abc123@mail.example.com' } })
+    render(<AddFeedForm />)
+
+    fireEvent.click(screen.getByLabelText('Email newsletter'))
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
+
+    await waitFor(() => {
+      expect(createFeed).toHaveBeenCalledWith('', false, 2)
+      expect(screen.getByDisplayValue('reading+abc123@mail.example.com')).toBeInTheDocument()
+    })
+    // The URL input is not applicable in email mode.
+    expect(screen.queryByLabelText('Feed URL')).not.toBeInTheDocument()
   })
 })

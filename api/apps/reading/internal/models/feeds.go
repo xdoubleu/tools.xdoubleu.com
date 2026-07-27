@@ -6,15 +6,30 @@ import (
 	"github.com/google/uuid"
 )
 
-// Feed is an RSS/Atom subscription (reading.feeds). Items ingested from a
-// feed become regular catalog rows with CategoryRSS; KoboSync auto-enables
-// Kobo sync for every newly ingested item.
+// FeedSourceRSS/FeedSourceEmail are the Feed.SourceType values. RSS feeds are
+// polled (pkg gofeed, hourly poll-feeds job); email feeds are populated by
+// the Resend inbound-webhook push (issue #595) and are never polled.
+const (
+	FeedSourceRSS   = "rss"
+	FeedSourceEmail = "email"
+)
+
+// Feed is an RSS/Atom subscription or an email-relay newsletter subscription
+// (reading.feeds). Items ingested from a feed become regular catalog rows
+// with CategoryRSS; KoboSync auto-enables Kobo sync for every newly ingested
+// item.
 type Feed struct {
 	ID       uuid.UUID
 	UserID   string
 	URL      string
 	Title    string
 	KoboSync bool
+	// SourceType is FeedSourceRSS or FeedSourceEmail.
+	SourceType string
+	// InboundToken is the SHA-256 hash of the per-feed inbound email alias's
+	// token; nil for rss feeds. The plaintext token is never stored — it is
+	// returned to the caller once, at creation time.
+	InboundToken *string
 	// ETag / LastModified are the conditional-GET validators from the last
 	// successful fetch; nil until the feed has been fetched once.
 	ETag          *string

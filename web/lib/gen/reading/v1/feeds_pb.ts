@@ -2,15 +2,15 @@
 // @generated from file reading/v1/feeds.proto (package reading.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file reading/v1/feeds.proto.
  */
 export const file_reading_v1_feeds: GenFile = /*@__PURE__*/
-  fileDesc("ChZyZWFkaW5nL3YxL2ZlZWRzLnByb3RvEgpyZWFkaW5nLnYxIoIBCgRGZWVkEgoKAmlkGAEgASgJEgsKA3VybBgCIAEoCRINCgV0aXRsZRgDIAEoCRIRCglrb2JvX3N5bmMYBCABKAgSFwoPbGFzdF9mZXRjaGVkX2F0GAUgASgJEhIKCmxhc3RfZXJyb3IYBiABKAkSEgoKY3JlYXRlZF9hdBgHIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjQKEUxpc3RGZWVkc1Jlc3BvbnNlEh8KBWZlZWRzGAEgAygLMhAucmVhZGluZy52MS5GZWVkIjMKEUNyZWF0ZUZlZWRSZXF1ZXN0EgsKA3VybBgBIAEoCRIRCglrb2JvX3N5bmMYAiABKAgiOgoSQ3JlYXRlRmVlZFJlc3BvbnNlEh4KBGZlZWQYASABKAsyEC5yZWFkaW5nLnYxLkZlZWRKBAgCEAMiRgoRVXBkYXRlRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIRCglrb2JvX3N5bmMYAyABKAgiFAoSVXBkYXRlRmVlZFJlc3BvbnNlIiQKEURlbGV0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkiFAoSRGVsZXRlRmVlZFJlc3BvbnNlIiUKElJlZnJlc2hGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIicKE1JlZnJlc2hGZWVkUmVzcG9uc2USEAoIaW5nZXN0ZWQYASABKAUiRAoMRmVlZEl0ZW1Cb29rEg8KB2Jvb2tfaWQYASABKAkSDwoHZmVlZF9pZBgCIAEoCRISCgpmZWVkX3RpdGxlGAMgASgJIhYKFExpc3RGZWVkSXRlbXNSZXF1ZXN0IkAKFUxpc3RGZWVkSXRlbXNSZXNwb25zZRInCgVpdGVtcxgBIAMoCzIYLnJlYWRpbmcudjEuRmVlZEl0ZW1Cb29rMuQDCgtGZWVkU2VydmljZRJICglMaXN0RmVlZHMSHC5yZWFkaW5nLnYxLkxpc3RGZWVkc1JlcXVlc3QaHS5yZWFkaW5nLnYxLkxpc3RGZWVkc1Jlc3BvbnNlEksKCkNyZWF0ZUZlZWQSHS5yZWFkaW5nLnYxLkNyZWF0ZUZlZWRSZXF1ZXN0Gh4ucmVhZGluZy52MS5DcmVhdGVGZWVkUmVzcG9uc2USSwoKVXBkYXRlRmVlZBIdLnJlYWRpbmcudjEuVXBkYXRlRmVlZFJlcXVlc3QaHi5yZWFkaW5nLnYxLlVwZGF0ZUZlZWRSZXNwb25zZRJLCgpEZWxldGVGZWVkEh0ucmVhZGluZy52MS5EZWxldGVGZWVkUmVxdWVzdBoeLnJlYWRpbmcudjEuRGVsZXRlRmVlZFJlc3BvbnNlEk4KC1JlZnJlc2hGZWVkEh4ucmVhZGluZy52MS5SZWZyZXNoRmVlZFJlcXVlc3QaHy5yZWFkaW5nLnYxLlJlZnJlc2hGZWVkUmVzcG9uc2USVAoNTGlzdEZlZWRJdGVtcxIgLnJlYWRpbmcudjEuTGlzdEZlZWRJdGVtc1JlcXVlc3QaIS5yZWFkaW5nLnYxLkxpc3RGZWVkSXRlbXNSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL3JlYWRpbmcvdjE7cmVhZGluZ3YxYgZwcm90bzM");
+  fileDesc("ChZyZWFkaW5nL3YxL2ZlZWRzLnByb3RvEgpyZWFkaW5nLnYxIrABCgRGZWVkEgoKAmlkGAEgASgJEgsKA3VybBgCIAEoCRINCgV0aXRsZRgDIAEoCRIRCglrb2JvX3N5bmMYBCABKAgSFwoPbGFzdF9mZXRjaGVkX2F0GAUgASgJEhIKCmxhc3RfZXJyb3IYBiABKAkSEgoKY3JlYXRlZF9hdBgHIAEoCRITCgtzb3VyY2VfdHlwZRgIIAEoCRIXCg9pbmJvdW5kX2FkZHJlc3MYCSABKAkiEgoQTGlzdEZlZWRzUmVxdWVzdCI0ChFMaXN0RmVlZHNSZXNwb25zZRIfCgVmZWVkcxgBIAMoCzIQLnJlYWRpbmcudjEuRmVlZCJXChFDcmVhdGVGZWVkUmVxdWVzdBILCgN1cmwYASABKAkSEQoJa29ib19zeW5jGAIgASgIEiIKBGtpbmQYAyABKA4yFC5yZWFkaW5nLnYxLkZlZWRLaW5kIjoKEkNyZWF0ZUZlZWRSZXNwb25zZRIeCgRmZWVkGAEgASgLMhAucmVhZGluZy52MS5GZWVkSgQIAhADIkYKEVVwZGF0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEQoJa29ib19zeW5jGAMgASgIIhQKElVwZGF0ZUZlZWRSZXNwb25zZSIkChFEZWxldGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIhQKEkRlbGV0ZUZlZWRSZXNwb25zZSIlChJSZWZyZXNoRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCSInChNSZWZyZXNoRmVlZFJlc3BvbnNlEhAKCGluZ2VzdGVkGAEgASgFIkQKDEZlZWRJdGVtQm9vaxIPCgdib29rX2lkGAEgASgJEg8KB2ZlZWRfaWQYAiABKAkSEgoKZmVlZF90aXRsZRgDIAEoCSIWChRMaXN0RmVlZEl0ZW1zUmVxdWVzdCJAChVMaXN0RmVlZEl0ZW1zUmVzcG9uc2USJwoFaXRlbXMYASADKAsyGC5yZWFkaW5nLnYxLkZlZWRJdGVtQm9vaypNCghGZWVkS2luZBIZChVGRUVEX0tJTkRfVU5TUEVDSUZJRUQQABIRCg1GRUVEX0tJTkRfUlNTEAESEwoPRkVFRF9LSU5EX0VNQUlMEAIy5AMKC0ZlZWRTZXJ2aWNlEkgKCUxpc3RGZWVkcxIcLnJlYWRpbmcudjEuTGlzdEZlZWRzUmVxdWVzdBodLnJlYWRpbmcudjEuTGlzdEZlZWRzUmVzcG9uc2USSwoKQ3JlYXRlRmVlZBIdLnJlYWRpbmcudjEuQ3JlYXRlRmVlZFJlcXVlc3QaHi5yZWFkaW5nLnYxLkNyZWF0ZUZlZWRSZXNwb25zZRJLCgpVcGRhdGVGZWVkEh0ucmVhZGluZy52MS5VcGRhdGVGZWVkUmVxdWVzdBoeLnJlYWRpbmcudjEuVXBkYXRlRmVlZFJlc3BvbnNlEksKCkRlbGV0ZUZlZWQSHS5yZWFkaW5nLnYxLkRlbGV0ZUZlZWRSZXF1ZXN0Gh4ucmVhZGluZy52MS5EZWxldGVGZWVkUmVzcG9uc2USTgoLUmVmcmVzaEZlZWQSHi5yZWFkaW5nLnYxLlJlZnJlc2hGZWVkUmVxdWVzdBofLnJlYWRpbmcudjEuUmVmcmVzaEZlZWRSZXNwb25zZRJUCg1MaXN0RmVlZEl0ZW1zEiAucmVhZGluZy52MS5MaXN0RmVlZEl0ZW1zUmVxdWVzdBohLnJlYWRpbmcudjEuTGlzdEZlZWRJdGVtc1Jlc3BvbnNlQi1aK3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vcmVhZGluZy92MTtyZWFkaW5ndjFiBnByb3RvMw");
 
 /**
  * Feed is an RSS/Atom subscription. Its items are ingested into the library
@@ -60,6 +60,24 @@ export type Feed = Message<"reading.v1.Feed"> & {
    * @generated from field: string created_at = 7;
    */
   createdAt: string;
+
+  /**
+   * "rss" or "email". Email feeds (issue #595) are populated by a Resend
+   * inbound-webhook push, not polling — RefreshFeed is a no-op for them.
+   *
+   * @generated from field: string source_type = 8;
+   */
+  sourceType: string;
+
+  /**
+   * The address to give the newsletter as its subscription address. Only
+   * set once, on the CreateFeedResponse for a newly created email feed —
+   * it is never persisted in plaintext, so it cannot be shown again later
+   * and is never returned by ListFeeds.
+   *
+   * @generated from field: string inbound_address = 9;
+   */
+  inboundAddress: string;
 };
 
 /**
@@ -100,10 +118,14 @@ export const ListFeedsResponseSchema: GenMessage<ListFeedsResponse> = /*@__PURE_
   messageDesc(file_reading_v1_feeds, 2);
 
 /**
- * CreateFeed validates the URL by fetching and parsing it, then imports the
- * feed's current contents (newest first, capped) as a first batch in the
- * background — the import can take longer than the request, so it is not
- * reflected in the response; poll ListFeeds/GetLibrary to see new items land.
+ * CreateFeed with kind RSS (the default) validates the URL by fetching and
+ * parsing it, then imports the feed's current contents (newest first,
+ * capped) as a first batch in the background — the import can take longer
+ * than the request, so it is not reflected in the response; poll
+ * ListFeeds/GetLibrary to see new items land.
+ *
+ * CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
+ * (url must be empty); items land as mail arrives via the Resend webhook.
  *
  * @generated from message reading.v1.CreateFeedRequest
  */
@@ -117,6 +139,11 @@ export type CreateFeedRequest = Message<"reading.v1.CreateFeedRequest"> & {
    * @generated from field: bool kobo_sync = 2;
    */
   koboSync: boolean;
+
+  /**
+   * @generated from field: reading.v1.FeedKind kind = 3;
+   */
+  kind: FeedKind;
 };
 
 /**
@@ -313,6 +340,34 @@ export type ListFeedItemsResponse = Message<"reading.v1.ListFeedItemsResponse"> 
  */
 export const ListFeedItemsResponseSchema: GenMessage<ListFeedItemsResponse> = /*@__PURE__*/
   messageDesc(file_reading_v1_feeds, 13);
+
+/**
+ * @generated from enum reading.v1.FeedKind
+ */
+export enum FeedKind {
+  /**
+   * treated as RSS
+   *
+   * @generated from enum value: FEED_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: FEED_KIND_RSS = 1;
+   */
+  RSS = 1,
+
+  /**
+   * @generated from enum value: FEED_KIND_EMAIL = 2;
+   */
+  EMAIL = 2,
+}
+
+/**
+ * Describes the enum reading.v1.FeedKind.
+ */
+export const FeedKindSchema: GenEnum<FeedKind> = /*@__PURE__*/
+  enumDesc(file_reading_v1_feeds, 0);
 
 /**
  * @generated from service reading.v1.FeedService

@@ -185,6 +185,24 @@ tier). Set `RESEND_API_KEY`, `EMAIL_FROM`, and `NOTIFY_EMAIL_TO` (also `SECRET`
 placeholders in [`do-app.yaml`](do-app.yaml), pushed the same way as above). Any unset
 var makes the job a no-op — it still runs and records nothing, rather than failing.
 
+**Email-relay newsletter feeds (issue #595):** lets a user subscribe a newsletter that
+has no public RSS feed (or is paywalled, e.g. Substack) by giving it a per-feed inbound
+email address instead of a feed URL; mail sent to that address is ingested into the
+library the same way RSS items are. Reuses the Resend account above (inbound webhooks,
+not a new provider) — one-time setup:
+
+1. Add a **receiving** domain (e.g. `mail.tools.xdoubleu.com`) in the Resend dashboard —
+   separate from the existing *sending* domain, with its own DNS MX/TXT records.
+2. Register an inbound webhook endpoint (`https://tools.xdoubleu.com/api/reading/email/inbound`)
+   subscribed to the `email.received` event; copy its signing secret into
+   `EMAIL_INBOUND_SECRET`.
+3. Set `EMAIL_INBOUND_DOMAIN` to the receiving domain from step 1 (also `SECRET`
+   placeholders in [`do-app.yaml`](do-app.yaml), pushed the same way as above).
+
+Either var unset disables the feature: `CreateFeed(kind=EMAIL)` refuses to mint an
+address, and the webhook endpoint rejects every request rather than accepting unsigned
+mail.
+
 ## Contributing
 
 Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` (from `api/`) before committing.

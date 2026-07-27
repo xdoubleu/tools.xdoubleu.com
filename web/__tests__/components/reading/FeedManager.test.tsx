@@ -18,6 +18,9 @@ jest.mock('@/hooks/useBookFeeds', () => ({
   useDeleteFeed: () => deleteFeed,
   useRefreshFeed: () => refreshFeed
 }))
+jest.mock('@/lib/gen/reading/v1/feeds_pb', () => ({
+  FeedKind: { RSS: 1, EMAIL: 2 }
+}))
 
 const feed = {
   id: 'feed-1',
@@ -26,7 +29,8 @@ const feed = {
   koboSync: false,
   lastFetchedAt: '2026-07-17T08:00:00Z',
   lastError: '',
-  createdAt: '2026-07-01T08:00:00Z'
+  createdAt: '2026-07-01T08:00:00Z',
+  sourceType: 'rss'
 }
 
 describe('FeedManager', () => {
@@ -62,7 +66,7 @@ describe('FeedManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() =>
-      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true)
+      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1)
     )
     expect(
       await screen.findByText('Subscribed — importing items in the background.')
@@ -88,6 +92,15 @@ describe('FeedManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
     await waitFor(() => expect(deleteFeed).toHaveBeenCalledWith('feed-1'))
+  })
+
+  it('hides Refresh for an email feed (push-only, never polled)', () => {
+    feedsData.data = {
+      feeds: [{ ...feed, url: '', title: 'Email newsletter', sourceType: 'email' }]
+    }
+    render(<FeedManager />)
+    expect(screen.getAllByText('Email newsletter').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument()
   })
 
   it('shows the empty state', () => {

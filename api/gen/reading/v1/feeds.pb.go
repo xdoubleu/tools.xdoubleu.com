@@ -7,11 +7,12 @@
 package readingv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -20,6 +21,55 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+type FeedKind int32
+
+const (
+	FeedKind_FEED_KIND_UNSPECIFIED FeedKind = 0 // treated as RSS
+	FeedKind_FEED_KIND_RSS         FeedKind = 1
+	FeedKind_FEED_KIND_EMAIL       FeedKind = 2
+)
+
+// Enum value maps for FeedKind.
+var (
+	FeedKind_name = map[int32]string{
+		0: "FEED_KIND_UNSPECIFIED",
+		1: "FEED_KIND_RSS",
+		2: "FEED_KIND_EMAIL",
+	}
+	FeedKind_value = map[string]int32{
+		"FEED_KIND_UNSPECIFIED": 0,
+		"FEED_KIND_RSS":         1,
+		"FEED_KIND_EMAIL":       2,
+	}
+)
+
+func (x FeedKind) Enum() *FeedKind {
+	p := new(FeedKind)
+	*p = x
+	return p
+}
+
+func (x FeedKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FeedKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_reading_v1_feeds_proto_enumTypes[0].Descriptor()
+}
+
+func (FeedKind) Type() protoreflect.EnumType {
+	return &file_reading_v1_feeds_proto_enumTypes[0]
+}
+
+func (x FeedKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FeedKind.Descriptor instead.
+func (FeedKind) EnumDescriptor() ([]byte, []int) {
+	return file_reading_v1_feeds_proto_rawDescGZIP(), []int{0}
+}
 
 // Feed is an RSS/Atom subscription. Its items are ingested into the library
 // as regular catalog entries with category "rss".
@@ -34,10 +84,18 @@ type Feed struct {
 	// RFC3339; empty when the feed has never been fetched.
 	LastFetchedAt string `protobuf:"bytes,5,opt,name=last_fetched_at,json=lastFetchedAt,proto3" json:"last_fetched_at,omitempty"`
 	// The most recent poll failure; empty when the last poll succeeded.
-	LastError     string `protobuf:"bytes,6,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
-	CreatedAt     string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	LastError string `protobuf:"bytes,6,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	CreatedAt string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// "rss" or "email". Email feeds (issue #595) are populated by a Resend
+	// inbound-webhook push, not polling — RefreshFeed is a no-op for them.
+	SourceType string `protobuf:"bytes,8,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"`
+	// The address to give the newsletter as its subscription address. Only
+	// set once, on the CreateFeedResponse for a newly created email feed —
+	// it is never persisted in plaintext, so it cannot be shown again later
+	// and is never returned by ListFeeds.
+	InboundAddress string `protobuf:"bytes,9,opt,name=inbound_address,json=inboundAddress,proto3" json:"inbound_address,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Feed) Reset() {
@@ -115,6 +173,20 @@ func (x *Feed) GetLastError() string {
 func (x *Feed) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Feed) GetSourceType() string {
+	if x != nil {
+		return x.SourceType
+	}
+	return ""
+}
+
+func (x *Feed) GetInboundAddress() string {
+	if x != nil {
+		return x.InboundAddress
 	}
 	return ""
 }
@@ -199,14 +271,19 @@ func (x *ListFeedsResponse) GetFeeds() []*Feed {
 	return nil
 }
 
-// CreateFeed validates the URL by fetching and parsing it, then imports the
-// feed's current contents (newest first, capped) as a first batch in the
-// background — the import can take longer than the request, so it is not
-// reflected in the response; poll ListFeeds/GetLibrary to see new items land.
+// CreateFeed with kind RSS (the default) validates the URL by fetching and
+// parsing it, then imports the feed's current contents (newest first,
+// capped) as a first batch in the background — the import can take longer
+// than the request, so it is not reflected in the response; poll
+// ListFeeds/GetLibrary to see new items land.
+//
+// CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
+// (url must be empty); items land as mail arrives via the Resend webhook.
 type CreateFeedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	KoboSync      bool                   `protobuf:"varint,2,opt,name=kobo_sync,json=koboSync,proto3" json:"kobo_sync,omitempty"`
+	Kind          FeedKind               `protobuf:"varint,3,opt,name=kind,proto3,enum=reading.v1.FeedKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -253,6 +330,13 @@ func (x *CreateFeedRequest) GetKoboSync() bool {
 		return x.KoboSync
 	}
 	return false
+}
+
+func (x *CreateFeedRequest) GetKind() FeedKind {
+	if x != nil {
+		return x.Kind
+	}
+	return FeedKind_FEED_KIND_UNSPECIFIED
 }
 
 type CreateFeedResponse struct {
@@ -715,7 +799,7 @@ var File_reading_v1_feeds_proto protoreflect.FileDescriptor
 const file_reading_v1_feeds_proto_rawDesc = "" +
 	"\n" +
 	"\x16reading/v1/feeds.proto\x12\n" +
-	"reading.v1\"\xc1\x01\n" +
+	"reading.v1\"\x8b\x02\n" +
 	"\x04Feed\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n" +
@@ -725,13 +809,17 @@ const file_reading_v1_feeds_proto_rawDesc = "" +
 	"\n" +
 	"last_error\x18\x06 \x01(\tR\tlastError\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\a \x01(\tR\tcreatedAt\"\x12\n" +
+	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1f\n" +
+	"\vsource_type\x18\b \x01(\tR\n" +
+	"sourceType\x12'\n" +
+	"\x0finbound_address\x18\t \x01(\tR\x0einboundAddress\"\x12\n" +
 	"\x10ListFeedsRequest\";\n" +
 	"\x11ListFeedsResponse\x12&\n" +
-	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds\"B\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds\"l\n" +
 	"\x11CreateFeedRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1b\n" +
-	"\tkobo_sync\x18\x02 \x01(\bR\bkoboSync\"@\n" +
+	"\tkobo_sync\x18\x02 \x01(\bR\bkoboSync\x12(\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x14.reading.v1.FeedKindR\x04kind\"@\n" +
 	"\x12CreateFeedResponse\x12$\n" +
 	"\x04feed\x18\x01 \x01(\v2\x10.reading.v1.FeedR\x04feedJ\x04\b\x02\x10\x03\"_\n" +
 	"\x11UpdateFeedRequest\x12\x17\n" +
@@ -753,7 +841,11 @@ const file_reading_v1_feeds_proto_rawDesc = "" +
 	"feed_title\x18\x03 \x01(\tR\tfeedTitle\"\x16\n" +
 	"\x14ListFeedItemsRequest\"G\n" +
 	"\x15ListFeedItemsResponse\x12.\n" +
-	"\x05items\x18\x01 \x03(\v2\x18.reading.v1.FeedItemBookR\x05items2\xe4\x03\n" +
+	"\x05items\x18\x01 \x03(\v2\x18.reading.v1.FeedItemBookR\x05items*M\n" +
+	"\bFeedKind\x12\x19\n" +
+	"\x15FEED_KIND_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rFEED_KIND_RSS\x10\x01\x12\x13\n" +
+	"\x0fFEED_KIND_EMAIL\x10\x022\xe4\x03\n" +
 	"\vFeedService\x12H\n" +
 	"\tListFeeds\x12\x1c.reading.v1.ListFeedsRequest\x1a\x1d.reading.v1.ListFeedsResponse\x12K\n" +
 	"\n" +
@@ -777,44 +869,47 @@ func file_reading_v1_feeds_proto_rawDescGZIP() []byte {
 	return file_reading_v1_feeds_proto_rawDescData
 }
 
+var file_reading_v1_feeds_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_reading_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_reading_v1_feeds_proto_goTypes = []any{
-	(*Feed)(nil),                  // 0: reading.v1.Feed
-	(*ListFeedsRequest)(nil),      // 1: reading.v1.ListFeedsRequest
-	(*ListFeedsResponse)(nil),     // 2: reading.v1.ListFeedsResponse
-	(*CreateFeedRequest)(nil),     // 3: reading.v1.CreateFeedRequest
-	(*CreateFeedResponse)(nil),    // 4: reading.v1.CreateFeedResponse
-	(*UpdateFeedRequest)(nil),     // 5: reading.v1.UpdateFeedRequest
-	(*UpdateFeedResponse)(nil),    // 6: reading.v1.UpdateFeedResponse
-	(*DeleteFeedRequest)(nil),     // 7: reading.v1.DeleteFeedRequest
-	(*DeleteFeedResponse)(nil),    // 8: reading.v1.DeleteFeedResponse
-	(*RefreshFeedRequest)(nil),    // 9: reading.v1.RefreshFeedRequest
-	(*RefreshFeedResponse)(nil),   // 10: reading.v1.RefreshFeedResponse
-	(*FeedItemBook)(nil),          // 11: reading.v1.FeedItemBook
-	(*ListFeedItemsRequest)(nil),  // 12: reading.v1.ListFeedItemsRequest
-	(*ListFeedItemsResponse)(nil), // 13: reading.v1.ListFeedItemsResponse
+	(FeedKind)(0),                 // 0: reading.v1.FeedKind
+	(*Feed)(nil),                  // 1: reading.v1.Feed
+	(*ListFeedsRequest)(nil),      // 2: reading.v1.ListFeedsRequest
+	(*ListFeedsResponse)(nil),     // 3: reading.v1.ListFeedsResponse
+	(*CreateFeedRequest)(nil),     // 4: reading.v1.CreateFeedRequest
+	(*CreateFeedResponse)(nil),    // 5: reading.v1.CreateFeedResponse
+	(*UpdateFeedRequest)(nil),     // 6: reading.v1.UpdateFeedRequest
+	(*UpdateFeedResponse)(nil),    // 7: reading.v1.UpdateFeedResponse
+	(*DeleteFeedRequest)(nil),     // 8: reading.v1.DeleteFeedRequest
+	(*DeleteFeedResponse)(nil),    // 9: reading.v1.DeleteFeedResponse
+	(*RefreshFeedRequest)(nil),    // 10: reading.v1.RefreshFeedRequest
+	(*RefreshFeedResponse)(nil),   // 11: reading.v1.RefreshFeedResponse
+	(*FeedItemBook)(nil),          // 12: reading.v1.FeedItemBook
+	(*ListFeedItemsRequest)(nil),  // 13: reading.v1.ListFeedItemsRequest
+	(*ListFeedItemsResponse)(nil), // 14: reading.v1.ListFeedItemsResponse
 }
 var file_reading_v1_feeds_proto_depIdxs = []int32{
-	0,  // 0: reading.v1.ListFeedsResponse.feeds:type_name -> reading.v1.Feed
-	0,  // 1: reading.v1.CreateFeedResponse.feed:type_name -> reading.v1.Feed
-	11, // 2: reading.v1.ListFeedItemsResponse.items:type_name -> reading.v1.FeedItemBook
-	1,  // 3: reading.v1.FeedService.ListFeeds:input_type -> reading.v1.ListFeedsRequest
-	3,  // 4: reading.v1.FeedService.CreateFeed:input_type -> reading.v1.CreateFeedRequest
-	5,  // 5: reading.v1.FeedService.UpdateFeed:input_type -> reading.v1.UpdateFeedRequest
-	7,  // 6: reading.v1.FeedService.DeleteFeed:input_type -> reading.v1.DeleteFeedRequest
-	9,  // 7: reading.v1.FeedService.RefreshFeed:input_type -> reading.v1.RefreshFeedRequest
-	12, // 8: reading.v1.FeedService.ListFeedItems:input_type -> reading.v1.ListFeedItemsRequest
-	2,  // 9: reading.v1.FeedService.ListFeeds:output_type -> reading.v1.ListFeedsResponse
-	4,  // 10: reading.v1.FeedService.CreateFeed:output_type -> reading.v1.CreateFeedResponse
-	6,  // 11: reading.v1.FeedService.UpdateFeed:output_type -> reading.v1.UpdateFeedResponse
-	8,  // 12: reading.v1.FeedService.DeleteFeed:output_type -> reading.v1.DeleteFeedResponse
-	10, // 13: reading.v1.FeedService.RefreshFeed:output_type -> reading.v1.RefreshFeedResponse
-	13, // 14: reading.v1.FeedService.ListFeedItems:output_type -> reading.v1.ListFeedItemsResponse
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	1,  // 0: reading.v1.ListFeedsResponse.feeds:type_name -> reading.v1.Feed
+	0,  // 1: reading.v1.CreateFeedRequest.kind:type_name -> reading.v1.FeedKind
+	1,  // 2: reading.v1.CreateFeedResponse.feed:type_name -> reading.v1.Feed
+	12, // 3: reading.v1.ListFeedItemsResponse.items:type_name -> reading.v1.FeedItemBook
+	2,  // 4: reading.v1.FeedService.ListFeeds:input_type -> reading.v1.ListFeedsRequest
+	4,  // 5: reading.v1.FeedService.CreateFeed:input_type -> reading.v1.CreateFeedRequest
+	6,  // 6: reading.v1.FeedService.UpdateFeed:input_type -> reading.v1.UpdateFeedRequest
+	8,  // 7: reading.v1.FeedService.DeleteFeed:input_type -> reading.v1.DeleteFeedRequest
+	10, // 8: reading.v1.FeedService.RefreshFeed:input_type -> reading.v1.RefreshFeedRequest
+	13, // 9: reading.v1.FeedService.ListFeedItems:input_type -> reading.v1.ListFeedItemsRequest
+	3,  // 10: reading.v1.FeedService.ListFeeds:output_type -> reading.v1.ListFeedsResponse
+	5,  // 11: reading.v1.FeedService.CreateFeed:output_type -> reading.v1.CreateFeedResponse
+	7,  // 12: reading.v1.FeedService.UpdateFeed:output_type -> reading.v1.UpdateFeedResponse
+	9,  // 13: reading.v1.FeedService.DeleteFeed:output_type -> reading.v1.DeleteFeedResponse
+	11, // 14: reading.v1.FeedService.RefreshFeed:output_type -> reading.v1.RefreshFeedResponse
+	14, // 15: reading.v1.FeedService.ListFeedItems:output_type -> reading.v1.ListFeedItemsResponse
+	10, // [10:16] is the sub-list for method output_type
+	4,  // [4:10] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_reading_v1_feeds_proto_init() }
@@ -827,13 +922,14 @@ func file_reading_v1_feeds_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reading_v1_feeds_proto_rawDesc), len(file_reading_v1_feeds_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_reading_v1_feeds_proto_goTypes,
 		DependencyIndexes: file_reading_v1_feeds_proto_depIdxs,
+		EnumInfos:         file_reading_v1_feeds_proto_enumTypes,
 		MessageInfos:      file_reading_v1_feeds_proto_msgTypes,
 	}.Build()
 	File_reading_v1_feeds_proto = out.File

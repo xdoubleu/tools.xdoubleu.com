@@ -27,12 +27,16 @@ function FeedRow({ feed }: { feed: Feed }) {
     }
   }
 
+  const isEmailFeed = feed.sourceType === 'email'
+
   return (
     <li className="rounded-2xl border border-border bg-card p-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{feed.title || feed.url}</p>
-          <p className="truncate text-xs text-muted">{feed.url}</p>
+          <p className="truncate text-sm font-medium">
+            {feed.title || feed.url || 'Email newsletter'}
+          </p>
+          {!isEmailFeed && <p className="truncate text-xs text-muted">{feed.url}</p>}
         </div>
         <label className="flex items-center gap-1.5 text-xs text-subtle">
           <Checkbox
@@ -42,19 +46,21 @@ function FeedRow({ feed }: { feed: Feed }) {
           />
           Kobo sync
         </label>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={busy}
-          onClick={() =>
-            void run(async () => {
-              const resp = await refreshFeed(feed.id)
-              return `Ingested ${resp.ingested} item(s).`
-            })
-          }
-        >
-          Refresh
-        </Button>
+        {!isEmailFeed && (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const resp = await refreshFeed(feed.id)
+                return `Ingested ${resp.ingested} item(s).`
+              })
+            }
+          >
+            Refresh
+          </Button>
+        )}
         <Button
           size="sm"
           variant="destructive"
