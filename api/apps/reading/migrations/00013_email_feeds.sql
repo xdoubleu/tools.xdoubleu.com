@@ -9,7 +9,7 @@ ALTER TABLE reading.feeds ALTER COLUMN url DROP NOT NULL;
 ALTER TABLE reading.feeds ADD COLUMN source_type TEXT NOT NULL DEFAULT 'rss';
 ALTER TABLE reading.feeds ADD COLUMN inbound_token TEXT;
 CREATE UNIQUE INDEX feeds_inbound_token_idx ON reading.feeds (inbound_token)
-    WHERE inbound_token IS NOT NULL;
+WHERE inbound_token IS NOT NULL;
 -- +goose StatementEnd
 
 -- +goose Down
