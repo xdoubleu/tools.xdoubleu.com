@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import useSWR, { mutate } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
-import { FeedService } from '@/lib/gen/reading/v1/feeds_pb'
+import { FeedService, FeedKind } from '@/lib/gen/reading/v1/feeds_pb'
 import type { ListFeedsResponse, ListFeedItemsResponse } from '@/lib/gen/reading/v1/feeds_pb'
 
 // RSS/Atom feed subscriptions for the reading library. Mutations invalidate
@@ -24,8 +24,8 @@ export function useFeedItemBooks() {
 export function useCreateFeed() {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
-    async (url: string, koboSync: boolean) => {
-      const resp = await client.createFeed({ url, koboSync })
+    async (url: string, koboSync: boolean, kind: FeedKind = FeedKind.RSS) => {
+      const resp = await client.createFeed({ url, koboSync, kind })
       await mutate(swrKeys.bookFeeds)
       // The initial import runs in the background (#430), so how many items
       // it will ingest is unknown here. Revalidate the library anyway — a

@@ -34,6 +34,7 @@ func protoFeed(f models.Feed) *readingv1.Feed {
 		LastFetchedAt: lastFetched,
 		LastError:     lastError,
 		CreatedAt:     f.CreatedAt.Format(time.RFC3339),
+		SourceType:    f.SourceType,
 	}
 }
 
@@ -107,6 +108,10 @@ func (h *booksConnectHandler) CreateFeed(
 		return nil, cerr
 	}
 
+	if req.Msg.Kind == readingv1.FeedKind_FEED_KIND_EMAIL {
+		return h.createEmailFeed(ctx, user.ID, req.Msg)
+	}
+
 	feed, err := h.app.Services.Feeds.Create(
 		ctx, user.ID, req.Msg.Url, req.Msg.KoboSync,
 	)
@@ -117,6 +122,33 @@ func (h *booksConnectHandler) CreateFeed(
 	return connect.NewResponse(&readingv1.CreateFeedResponse{
 		Feed: protoFeed(*feed),
 	}), nil
+}
+
+func (h *booksConnectHandler) createEmailFeed(
+	ctx context.Context,
+	userID string,
+	req *readingv1.CreateFeedRequest,
+) (*connect.Response[readingv1.CreateFeedResponse], error) {
+	if req.Url != "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("url must be empty for an email feed"),
+		)
+	}
+
+	feed, address, err := h.app.Services.Feeds.CreateEmail(
+		ctx, userID, req.KoboSync,
+	)
+	if err != nil {
+		if errors.Is(err, services.ErrEmailFeedsNotConfigured) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		return nil, feedErrorToConnect(err)
+	}
+
+	proto := protoFeed(*feed)
+	proto.InboundAddress = address
+	return connect.NewResponse(&readingv1.CreateFeedResponse{Feed: proto}), nil
 }
 
 func (h *booksConnectHandler) UpdateFeed(

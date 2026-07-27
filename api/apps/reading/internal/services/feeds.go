@@ -3,6 +3,10 @@ package services
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,22 +24,38 @@ import (
 // ErrInvalidFeed is returned when a subscribed URL does not parse as RSS/Atom.
 var ErrInvalidFeed = errors.New("url is not a valid RSS/Atom feed")
 
+// ErrEmailFeedsNotConfigured is returned by CreateEmail when
+// EMAIL_INBOUND_DOMAIN is unset — minting an inbound address without a
+// receiving domain would produce one that can never receive mail.
+var ErrEmailFeedsNotConfigured = errors.New(
+	"email feeds are not configured (EMAIL_INBOUND_DOMAIN unset)",
+)
+
+// emailTokenBytes is the number of random bytes for an email feed's inbound
+// alias token. Mirrors koboTokenBytes (kobo.go) — same high-entropy,
+// hash-before-storing pattern.
+const emailTokenBytes = 32
+
 // maxItemsPerPoll caps how many new items one poll ingests per feed (newest
 // first); older overflow is marked seen without ingesting.
 const maxItemsPerPoll = 20
 
-// FeedService manages RSS/Atom subscriptions and ingests their items into
-// the library (category "rss") via IngestService.
+// FeedService manages RSS/Atom subscriptions and email-relay newsletter
+// subscriptions (issue #595), ingesting their items into the library
+// (category "rss") via IngestService.
 type FeedService struct {
-	logger     *slog.Logger
-	feeds      *repositories.FeedsRepository
-	ingest     *IngestService
-	books      *BookService
-	conversion *ConversionService
-	webFetch   webfetch.Client
+	logger        *slog.Logger
+	feeds         *repositories.FeedsRepository
+	ingest        *IngestService
+	books         *BookService
+	conversion    *ConversionService
+	webFetch      webfetch.Client
+	inboundDomain string
 }
 
-// NewFeedService constructs a FeedService.
+// NewFeedService constructs a FeedService. inboundDomain is the
+// EMAIL_INBOUND_DOMAIN used to build email feeds' inbound addresses; empty
+// disables CreateEmail (see ErrEmailFeedsNotConfigured).
 func NewFeedService(
 	logger *slog.Logger,
 	feeds *repositories.FeedsRepository,
@@ -43,14 +63,16 @@ func NewFeedService(
 	books *BookService,
 	conversion *ConversionService,
 	webFetchClient webfetch.Client,
+	inboundDomain string,
 ) *FeedService {
 	return &FeedService{
-		logger:     logger,
-		feeds:      feeds,
-		ingest:     ingest,
-		books:      books,
-		conversion: conversion,
-		webFetch:   webFetchClient,
+		logger:        logger,
+		feeds:         feeds,
+		ingest:        ingest,
+		books:         books,
+		conversion:    conversion,
+		webFetch:      webFetchClient,
+		inboundDomain: inboundDomain,
 	}
 }
 
@@ -121,6 +143,100 @@ func (s *FeedService) Create(
 	return feed, nil
 }
 
+// CreateEmail mints a per-feed inbound email alias and stores the feed
+// (source_type "email"). Returns the feed plus the plaintext inbound
+// address — the only time it is ever available in plaintext, since only its
+// hash is persisted (mirrors the Kobo device-token pattern, kobo.go).
+// Unlike Create, there is no background import: content only arrives as
+// mail is received via the Resend webhook.
+func (s *FeedService) CreateEmail(
+	ctx context.Context,
+	userID string,
+	koboSync bool,
+) (*models.Feed, string, error) {
+	if s.inboundDomain == "" {
+		return nil, "", ErrEmailFeedsNotConfigured
+	}
+
+	raw := make([]byte, emailTokenBytes)
+	if _, err := rand.Read(raw); err != nil {
+		return nil, "", err
+	}
+	token := base64.RawURLEncoding.EncodeToString(raw)
+	h := sha256.Sum256([]byte(token))
+	hash := hex.EncodeToString(h[:])
+
+	//nolint:exhaustruct // fetch state starts empty; ids are DB-owned
+	feed, err := s.feeds.Insert(ctx, models.Feed{
+		UserID:       userID,
+		Title:        "Email newsletter",
+		KoboSync:     koboSync,
+		SourceType:   models.FeedSourceEmail,
+		InboundToken: &hash,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	address := "reading+" + token + "@" + s.inboundDomain
+	return feed, address, nil
+}
+
+// GetByInboundTokenHash resolves an email feed by its inbound alias token's
+// SHA-256 hash, for the unauthenticated Resend inbound-webhook handler.
+func (s *FeedService) GetByInboundTokenHash(
+	ctx context.Context,
+	hash string,
+) (*models.Feed, error) {
+	return s.feeds.GetByInboundTokenHash(ctx, hash)
+}
+
+// IngestEmail ingests one inbound email as a library item for the given
+// email feed (issue #595) — the webhook-push counterpart to ingestItem for
+// polled RSS items. messageID is Resend's email id, used to build a stable
+// dedup SourceURL alongside the feed ID; BaseURL is left empty since an
+// email has no fetchable page to resolve relative image links against (most
+// newsletter HTML already uses absolute CDN image URLs — localizeImages
+// simply drops any that don't resolve, ingest_images.go). Best-effort: any
+// ingest failure is recorded on the feed (visible in the UI's last-error)
+// rather than returned, since the caller must still ack the webhook so
+// Resend doesn't retry a permanently-broken email forever.
+func (s *FeedService) IngestEmail(
+	ctx context.Context,
+	feed models.Feed,
+	messageID, subject, htmlBody string,
+) {
+	content := ArticleContent{ //nolint:exhaustruct // no byline/excerpt/cover
+		SourceURL: "mailto:" + feed.ID.String() + "/" + messageID,
+		BaseURL:   "",
+		Category:  models.CategoryRSS,
+		Title:     subject,
+		HTML:      htmlBody,
+	}
+
+	ub, err := s.ingest.IngestArticleContent(ctx, feed.UserID, content)
+	if err != nil {
+		s.logger.WarnContext(ctx, "email feed ingest failed",
+			"feedID", feed.ID, "messageID", messageID, "error", err)
+		errStr := err.Error()
+		if setErr := s.feeds.SetFetchResult(
+			ctx, feed.ID, nil, nil, &errStr,
+		); setErr != nil {
+			s.logger.WarnContext(ctx, "email feed fetch-result update failed",
+				"feedID", feed.ID, "error", setErr)
+		}
+		return
+	}
+
+	if feed.KoboSync {
+		s.autoEnableKoboSync(ctx, feed.UserID, ub.BookID)
+	}
+	if setErr := s.feeds.SetFetchResult(ctx, feed.ID, nil, nil, nil); setErr != nil {
+		s.logger.WarnContext(ctx, "email feed fetch-result update failed",
+			"feedID", feed.ID, "error", setErr)
+	}
+}
+
 // Update changes the feed's title and kobo-sync flag.
 func (s *FeedService) Update(
 	ctx context.Context,
@@ -154,6 +270,7 @@ func (s *FeedService) Delete(
 }
 
 // Refresh polls one feed synchronously. Returns how many items it ingested.
+// Email feeds are push-only (Resend webhook), so this is a no-op for them.
 func (s *FeedService) Refresh(
 	ctx context.Context,
 	userID string,
@@ -162,6 +279,9 @@ func (s *FeedService) Refresh(
 	feed, err := s.feeds.GetByID(ctx, userID, id)
 	if err != nil {
 		return 0, err
+	}
+	if feed.SourceType == models.FeedSourceEmail {
+		return 0, nil
 	}
 	return s.pollFeed(ctx, *feed)
 }

@@ -49,6 +49,14 @@ type Config struct {
 	ResendAPIKey  string
 	EmailFrom     string
 	NotifyEmailTo string
+
+	// Email-relay newsletter feeds (issue #595): EmailInboundDomain is the
+	// Resend receiving domain used to build a feed's "reading+<token>@domain"
+	// inbound alias; EmailInboundSecret verifies the Resend inbound webhook's
+	// signature. Either empty disables the feature (FeedService.CreateEmail
+	// refuses, the webhook handler rejects all requests).
+	EmailInboundDomain string
+	EmailInboundSecret string
 }
 
 func New(logger *slog.Logger) Config {
@@ -91,6 +99,9 @@ func New(logger *slog.Logger) Config {
 	cfg.ResendAPIKey = parser.EnvStr("RESEND_API_KEY", "")
 	cfg.EmailFrom = parser.EnvStr("EMAIL_FROM", "")
 	cfg.NotifyEmailTo = parser.EnvStr("NOTIFY_EMAIL_TO", "")
+
+	cfg.EmailInboundDomain = parser.EnvStr("EMAIL_INBOUND_DOMAIN", "")
+	cfg.EmailInboundSecret = parser.EnvStr("EMAIL_INBOUND_SECRET", "")
 
 	return cfg
 }
