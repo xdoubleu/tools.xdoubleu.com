@@ -10,6 +10,7 @@ import "tools.xdoubleu.com/gateway/internal/kobogateway"
 func runUI(
 	_ string,
 	stop <-chan struct{},
+	_ func() bool,
 	_ <-chan kobogateway.KoboEvent,
 	_, _ string,
 	_ bool,
