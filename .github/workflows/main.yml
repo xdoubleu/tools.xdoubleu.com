@@ -263,8 +263,10 @@ jobs:
     name: Docker Build & Push Workflow
     uses: ./.github/workflows/docker.yml
     with:
-      build_api: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.workflows == 'true' }}
-      build_web: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true' }}
+      # Union of both former conditions (api ∨ web) — one merged image
+      # (issue #558) means any change that would have rebuilt either
+      # component now rebuilds the single one.
+      build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
 
   deploy:
@@ -274,7 +276,7 @@ jobs:
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       needs.docker.result == 'success' &&
-      (needs.docker.outputs.api_built == 'true' || needs.docker.outputs.web_built == 'true')
+      needs.docker.outputs.app_built == 'true'
     name: Deploy to Digital Ocean
     runs-on: ubuntu-latest
     steps:
