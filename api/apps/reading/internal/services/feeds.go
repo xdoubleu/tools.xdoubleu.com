@@ -548,6 +548,34 @@ func (s *FeedService) enrichFromLinkedPage(
 	}
 }
 
+// BackfillContentHTML lazily fetches and stores the readability-extracted
+// body for a book that has none yet — either ingested before content_html
+// existed, or hit a since-fixed extraction bug. Returns the HTML it stored,
+// or "" if it still couldn't get any; the caller falls back to the existing
+// "no content" UI.
+func (s *FeedService) BackfillContentHTML(
+	ctx context.Context,
+	book *models.Book,
+) string {
+	if book.SourceURL == nil || *book.SourceURL == "" {
+		return ""
+	}
+
+	url := *book.SourceURL
+	//nolint:exhaustruct // only the fields enrichFromLinkedPage reads/fills
+	content := ArticleContent{SourceURL: url, BaseURL: url}
+	s.enrichFromLinkedPage(ctx, &content)
+	if content.HTML == "" {
+		return ""
+	}
+
+	if err := s.books.SetContentHTML(ctx, book.ID, content.HTML); err != nil {
+		s.logger.WarnContext(ctx, "failed to store backfilled article content html",
+			"bookID", book.ID, "error", err)
+	}
+	return content.HTML
+}
+
 // ingestMetadataOnly creates the catalog row and user_book for a feed item
 // whose content could not be fetched — the item is still tracked in the
 // library, just without a stored file.

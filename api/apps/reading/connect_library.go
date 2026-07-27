@@ -435,6 +435,21 @@ func (h *booksConnectHandler) GetBookContent(
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+
+	if html == "" {
+		// Ownership was already confirmed by GetContentHTML above, so a
+		// failure here is unexpected rather than a legitimate not-found.
+		ub, ubErr := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
+		if ubErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, ubErr)
+		}
+		isBackfillable := ub.Book.Category == models.CategoryRSS ||
+			ub.Book.Category == models.CategoryArticle
+		if isBackfillable {
+			html = h.app.Services.Feeds.BackfillContentHTML(ctx, ub.Book)
+		}
+	}
+
 	return connect.NewResponse(&readingv1.GetBookContentResponse{
 		Html: html,
 	}), nil
