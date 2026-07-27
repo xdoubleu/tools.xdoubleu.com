@@ -65,6 +65,12 @@ func (f fakeDOClient) ListApps(_ context.Context) ([]digitalocean.App, error) {
 	return nil, nil
 }
 
+func (f fakeDOClient) DeploymentLogs(
+	_ context.Context, _ string,
+) ([]digitalocean.ComponentLog, error) {
+	return nil, nil
+}
+
 func doDeployment(id, phase string) *digitalocean.Deployment {
 	return &digitalocean.Deployment{
 		ID:        id,
@@ -85,6 +91,10 @@ func (f *fakeMailer) Send(_ context.Context, subject, _ string) error {
 		return f.err
 	}
 	f.sent = append(f.sent, subject)
+	return nil
+}
+
+func (f *fakeMailer) SendTo(_ context.Context, _, _, _ string) error {
 	return nil
 }
 

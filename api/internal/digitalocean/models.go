@@ -29,3 +29,41 @@ type deploymentWire struct {
 func (w deploymentWire) toDeployment() Deployment {
 	return Deployment(w)
 }
+
+// LogType is a DigitalOcean App Platform deployment log phase. Only BUILD and
+// DEPLOY are fetched — RUN/RUN_RESTARTED are runtime logs, a different and
+// much noisier concern than "why did this deploy fail".
+type LogType string
+
+const (
+	LogTypeBuild  LogType = "BUILD"
+	LogTypeDeploy LogType = "DEPLOY"
+)
+
+// ComponentLog is one service component's log text for one LogType of one
+// deployment. Truncated is set when the log exceeded the size cap applied
+// while fetching it.
+type ComponentLog struct {
+	Component string
+	Type      LogType
+	Content   string
+	Truncated bool
+}
+
+// deploymentDetailWire is the subset of the single-deployment-get payload
+// used to discover the app's service component names.
+type deploymentDetailWire struct {
+	Deployment struct {
+		Spec struct {
+			Services []struct {
+				Name string `json:"name"`
+			} `json:"services"`
+		} `json:"spec"`
+	} `json:"deployment"`
+}
+
+// deployLogsWire is the /logs endpoint's payload. HistoricURLs are
+// pre-signed plain-GET URLs pointing at the actual log text, oldest first.
+type deployLogsWire struct {
+	HistoricURLs []string `json:"historic_urls"`
+}

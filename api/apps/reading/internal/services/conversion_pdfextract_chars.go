@@ -32,6 +32,9 @@ type pdfLine struct {
 func (l pdfLine) yMid() float64 { return (l.top + l.bottom) / 2 }
 
 //nolint:mnd // midpoint of a bounding box
+func (c pdfChar) yMid() float64 { return (c.top + c.bottom) / 2 }
+
+//nolint:mnd // midpoint of a bounding box
 func (l pdfLine) xMid() float64 { return (l.left + l.right) / 2 }
 
 // pdfiumSoftHyphenMarker is the Unicode value (U+0002) PDFium's text-page
@@ -106,17 +109,26 @@ func medianCharWidth(chars []pdfChar) float64 {
 	return median(widths)
 }
 
-// groupLines clusters chars into lines by baseline proximity (step 1 of the
-// text algorithm): sort characters by descending bottom edge, then join a
-// character to the line being built when its bottom is within 0.5 * the
-// page's median character height of that line's running average bottom.
-// The bottom edge (not the box midpoint) is the clustering key because
-// punctuation that hangs below the baseline — commas, semicolons — and
-// descenders (g/j/p/q/y) report a much shorter, lower-set bounding box than
-// the cap-height/x-height letters around them on the same visual line;
-// midpoint clustering puts their yMid far enough from the line's average to
-// split them into a spurious one-character line, which then renders as a
-// stray comma when the paragraph is rejoined.
+// normalCharHeightRatio distinguishes an ordinary letter — whose box spans
+// most of the page's median character height — from small punctuation
+// (commas, apostrophes, quotation marks, ...) whose box is much shorter and
+// sits off to one side of the baseline: low for commas/descenders, high for
+// apostrophes/quotes. Only normal-height characters take part in line
+// clustering (clusterNormalChars); small characters are attached afterwards
+// to whichever established line they're vertically closest to
+// (attachSmallChars). Letting punctuation's own off-center box influence
+// clustering is what caused #594 (commas split into their own line) and
+// #618 (apostrophes/quotes did the same, the opposite direction) — and
+// widening the clustering window to tolerate both directions at once (tried
+// while fixing #618) let unrelated lines merge into one, scrambling reading
+// order within the merged group.
+const normalCharHeightRatio = 0.7
+
+// groupLines clusters chars into lines (step 1 of the text algorithm): the
+// normal-height characters are clustered by y-midpoint proximity first
+// (clusterNormalChars), then every short-box punctuation character is
+// attached to its nearest resulting line (attachSmallChars) rather than
+// being allowed to shift where lines split.
 func groupLines(chars []pdfChar) []pdfLine {
 	if len(chars) == 0 {
 		return nil
@@ -126,40 +138,133 @@ func groupLines(chars []pdfChar) []pdfLine {
 		medH = 1
 	}
 
+	var normal, small []pdfChar
+	for _, c := range chars {
+		if c.top-c.bottom >= normalCharHeightRatio*medH {
+			normal = append(normal, c)
+		} else {
+			small = append(small, c)
+		}
+	}
+	if len(normal) == 0 {
+		// Degenerate page (every character is "small") — cluster everything
+		// so a page like this still produces output.
+		normal, small = chars, nil
+	}
+
+	groups := clusterNormalChars(normal, medH)
+	groups = attachSmallChars(groups, small, medH)
+
+	// clusterNormalChars produces groups in descending y-midpoint (top to
+	// bottom) order; attachSmallChars can append a new group past the end
+	// when no existing line is close enough, so restore that order before
+	// building lines.
+	sort.SliceStable(groups, func(i, j int) bool {
+		return groupYMid(groups[i]) > groupYMid(groups[j])
+	})
+
+	lines := make([]pdfLine, len(groups))
+	for i, g := range groups {
+		lines[i] = buildLine(g)
+	}
+	return lines
+}
+
+// clusterNormalChars groups normal-height characters into lines by
+// y-midpoint proximity: sort by descending midpoint, then join a character
+// to the line being built when its midpoint is within lineGroupYMidRatio *
+// medH of that line's running average midpoint.
+func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
 	sorted := make([]pdfChar, len(chars))
 	copy(sorted, chars)
 	sort.SliceStable(sorted, func(i, j int) bool {
-		return sorted[i].bottom > sorted[j].bottom
+		return sorted[i].yMid() > sorted[j].yMid()
 	})
 
-	var lines []pdfLine
+	var groups [][]pdfChar
 	var group []pdfChar
-	var baselineSum float64
+	var midSum float64
+	threshold := lineGroupYMidRatio * medH
 
 	flush := func() {
 		if len(group) == 0 {
 			return
 		}
-		lines = append(lines, buildLine(group))
+		groups = append(groups, group)
 		group = nil
-		baselineSum = 0
+		midSum = 0
 	}
 
 	for _, c := range sorted {
-		baseline := c.bottom
+		mid := c.yMid()
 		if len(group) > 0 {
-			avg := baselineSum / float64(len(group))
-			threshold := lineGroupYMidRatio * medH
-			if diff := avg - baseline; diff > threshold || diff < -threshold {
+			avg := midSum / float64(len(group))
+			if diff := avg - mid; diff > threshold || diff < -threshold {
 				flush()
 			}
 		}
 		group = append(group, c)
-		baselineSum += baseline
+		midSum += mid
 	}
 	flush()
 
-	return lines
+	return groups
+}
+
+// attachSmallChars assigns each short-box character to a group by
+// vertical-interval overlap, not by distance from a single point: a small
+// character joins the group whose [bottom, top] envelope — computed once
+// from that group's normal-height characters, before any small characters
+// are attached, so it can't grow across attachments — overlaps the
+// character's own [bottom, top] box within lineGroupYMidRatio * medH.
+// Overlap tolerates punctuation sitting on either side of the baseline
+// (comma low, apostrophe high); among multiple overlapping groups the one
+// whose y-midpoint is closest wins. A small character with no overlapping
+// group starts its own group, so a page of pure punctuation still produces
+// output.
+func attachSmallChars(groups [][]pdfChar, small []pdfChar, medH float64) [][]pdfChar {
+	margin := lineGroupYMidRatio * medH
+
+	envelopes := make([]pdfLine, len(groups))
+	for i, g := range groups {
+		envelopes[i] = buildLine(append([]pdfChar(nil), g...))
+	}
+
+	for _, c := range small {
+		best := -1
+		var bestDist float64
+
+		for i, env := range envelopes {
+			if c.bottom > env.top+margin || c.top < env.bottom-margin {
+				continue
+			}
+			dist := groupYMid(groups[i]) - c.yMid()
+			if dist < 0 {
+				dist = -dist
+			}
+			if best == -1 || dist < bestDist {
+				best = i
+				bestDist = dist
+			}
+		}
+
+		if best == -1 {
+			groups = append(groups, []pdfChar{c})
+			continue
+		}
+		groups[best] = append(groups[best], c)
+	}
+
+	return groups
+}
+
+// groupYMid returns the average y-midpoint of a group of characters.
+func groupYMid(g []pdfChar) float64 {
+	var sum float64
+	for _, c := range g {
+		sum += c.yMid()
+	}
+	return sum / float64(len(g))
 }
 
 // buildLine sorts a line's characters left-to-right, joins their text

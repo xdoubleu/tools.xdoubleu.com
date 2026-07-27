@@ -6,6 +6,7 @@ const mockDisconnectOAuthConnection = jest.fn()
 const mockGetProviderOptions = jest.fn()
 const mockSetProviderConfig = jest.fn()
 const mockTriggerStorageScan = jest.fn()
+const mockGetDeployLogs = jest.fn()
 
 jest.mock('swr', () => ({
   __esModule: true,
@@ -23,6 +24,7 @@ jest.mock('@/lib/client', () => ({
     getFailingPullRequests: jest.fn(),
     getSentryIssues: jest.fn(),
     getDeployStatus: jest.fn(),
+    getDeployLogs: (...args: unknown[]) => mockGetDeployLogs(...args),
     listOAuthConnections: jest.fn(),
     disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args),
     getProviderOptions: (...args: unknown[]) => mockGetProviderOptions(...args),
@@ -44,6 +46,7 @@ import {
   useFailingPullRequests,
   useSentryIssues,
   useDeployStatus,
+  useDeployLogs,
   useOAuthConnections,
   useDisconnectOAuthConnection,
   useProviderOptions,
@@ -145,6 +148,30 @@ describe('useDisconnectOAuthConnection', () => {
 
     expect(mockDisconnectOAuthConnection).toHaveBeenCalledWith({ provider: 'github' })
     expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
+  })
+})
+
+describe('useDeployLogs', () => {
+  it('fetches logs for the latest deployment when no id is given', async () => {
+    mockGetDeployLogs.mockResolvedValue({ configured: true, logs: [] })
+    const { result } = renderHook(() => useDeployLogs())
+
+    await act(async () => {
+      await result.current()
+    })
+
+    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: '' })
+  })
+
+  it('fetches logs for an explicit deployment id', async () => {
+    mockGetDeployLogs.mockResolvedValue({ configured: true, logs: [] })
+    const { result } = renderHook(() => useDeployLogs())
+
+    await act(async () => {
+      await result.current('deploy-123')
+    })
+
+    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: 'deploy-123' })
   })
 })
 

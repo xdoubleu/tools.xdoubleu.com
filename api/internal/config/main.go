@@ -64,6 +64,14 @@ type Config struct {
 	// credentials.
 	SupabaseURL     string
 	SupabaseAnonKey string
+
+	// Email-relay newsletter feeds (issue #595): EmailInboundDomain is the
+	// Resend receiving domain used to build a feed's "reading+<token>@domain"
+	// inbound alias; EmailInboundSecret verifies the Resend inbound webhook's
+	// signature. Either empty disables the feature (FeedService.CreateEmail
+	// refuses, the webhook handler rejects all requests).
+	EmailInboundDomain string
+	EmailInboundSecret string
 }
 
 func New(logger *slog.Logger) Config {
@@ -113,6 +121,9 @@ func New(logger *slog.Logger) Config {
 	cfg.WebServerJS = parser.EnvStr("WEB_SERVER_JS", "/app/web/server.js")
 	cfg.SupabaseURL = parser.EnvStr("SUPABASE_URL", "")
 	cfg.SupabaseAnonKey = parser.EnvStr("SUPABASE_ANON_KEY", "")
+
+	cfg.EmailInboundDomain = parser.EnvStr("EMAIL_INBOUND_DOMAIN", "")
+	cfg.EmailInboundSecret = parser.EnvStr("EMAIL_INBOUND_SECRET", "")
 
 	return cfg
 }

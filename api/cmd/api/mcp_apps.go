@@ -38,6 +38,12 @@ type windowArgs struct {
 
 type noArgs struct{}
 
+// deployLogsArgs is the input for get_deploy_logs. DeploymentID empty means
+// "the latest deployment".
+type deployLogsArgs struct {
+	DeploymentID string `json:"deployment_id,omitempty" jsonschema:"optional, latest"`
+}
+
 func (app *Application) appsResourceMetadataURL() string {
 	return app.config.APIURL + appsResourceMetadataPath
 }
@@ -79,7 +85,7 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 7 read-only admin observability
+// registerObservabilityMCPTools registers the 8 read-only admin observability
 // tools. Each wraps a shared internal ObservabilityService read method — no
 // write RPC is reachable, so the tools are read-only by construction.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -119,6 +125,11 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		"Phase and health of the latest DigitalOcean deployment.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.deployStatus(ctx), nil
+		})
+	addObsTool(srv, "get_deploy_logs",
+		"Build/deploy log text for a DigitalOcean deployment (default: the latest).",
+		func(ctx context.Context, a deployLogsArgs) (proto.Message, error) {
+			return h.deployLogs(ctx, a.DeploymentID), nil
 		})
 }
 

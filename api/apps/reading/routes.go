@@ -75,4 +75,5 @@ func (a *Reading) Routes(prefix string, mux *http.ServeMux) {
 	a.booksRoutes(prefix, mux)
 	a.coverRoutes(prefix, mux)
 	a.koboRoutes(prefix, mux)
+	a.emailRoutes(prefix, mux)
 }

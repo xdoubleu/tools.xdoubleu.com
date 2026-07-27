@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { GetDeployStatusResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { formatDateTime } from '@/lib/dates'
+import DeployLogsDialog from './DeployLogsDialog'
 
 function phaseVariant(phase: string): 'success' | 'danger' | 'warn' {
   switch (phase.toUpperCase()) {
@@ -27,6 +30,8 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 export default function DeployCard({ data }: { data?: GetDeployStatusResponse }) {
+  const [logsOpen, setLogsOpen] = useState(false)
+
   return (
     <Card>
       <CardHeader>
@@ -55,6 +60,16 @@ export default function DeployCard({ data }: { data?: GetDeployStatusResponse })
                 {data.deploymentId}
               </span>
             </div>
+            <div className="flex justify-end">
+              <Button variant="secondary" size="sm" onClick={() => setLogsOpen(true)}>
+                View logs
+              </Button>
+            </div>
+            <DeployLogsDialog
+              deploymentId={data.deploymentId}
+              open={logsOpen}
+              onOpenChange={setLogsOpen}
+            />
           </div>
         )}
       </CardContent>

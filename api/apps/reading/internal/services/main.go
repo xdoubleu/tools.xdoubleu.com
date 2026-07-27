@@ -85,6 +85,7 @@ func New(
 		booksSvc,
 		conversionSvc,
 		webFetchClient,
+		config.EmailInboundDomain,
 	)
 
 	return &Services{

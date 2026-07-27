@@ -5,11 +5,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
 	"github.com/stretchr/testify/assert"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/reading/internal/mocks"
+	"tools.xdoubleu.com/apps/reading/internal/models"
 )
 
 func TestFeedItemHTML(t *testing.T) {
@@ -105,5 +107,22 @@ func TestEnrichFromLinkedPage(t *testing.T) {
 		s.enrichFromLinkedPage(context.Background(), content)
 
 		assert.Empty(t, content.HTML)
+	})
+}
+
+func TestBackfillContentHTML_NoSourceURL(t *testing.T) {
+	s := newTestFeedService(mocks.NewMockWebFetchClient())
+
+	t.Run("nil source URL", func(t *testing.T) {
+		//nolint:exhaustruct // only SourceURL/ID matter here
+		book := &models.Book{ID: uuid.New()}
+		assert.Empty(t, s.BackfillContentHTML(context.Background(), book))
+	})
+
+	t.Run("empty source URL", func(t *testing.T) {
+		empty := ""
+		//nolint:exhaustruct // only SourceURL/ID matter here
+		book := &models.Book{ID: uuid.New(), SourceURL: &empty}
+		assert.Empty(t, s.BackfillContentHTML(context.Background(), book))
 	})
 }

@@ -7,6 +7,7 @@ import BookRatingStars from '@/components/reading/BookRatingStars'
 import BookFavouriteButton from '@/components/reading/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/reading/BookOwnershipToggles'
 import BookShelfTagFields from '@/components/reading/BookShelfTagFields'
+import BookRemoveAction from '@/components/reading/BookRemoveAction'
 import { Popover, PopoverTrigger } from '@/components/ui/popover'
 import { displayTags, statusLabel } from '@/lib/reading/bookShelves'
 import { formatDate } from '@/lib/dates'
@@ -23,6 +24,7 @@ export type ColumnKey =
   | 'shelf'
   | 'added'
   | 'read'
+  | 'actions'
 
 export type SortKey =
   'title' | 'author' | 'pages' | 'rating' | 'favourite' | 'shelf' | 'added' | 'read'
@@ -97,7 +99,7 @@ export function sortBooks(books: UserBook[], sort: SortState): UserBook[] {
   })
 }
 
-/** All 11 columns. Order here is the display order in the table. */
+/** All 12 columns. Order here is the display order in the table. */
 export const ALL_COLUMNS: BookColumn[] = [
   {
     key: 'cover',
@@ -229,6 +231,13 @@ export const ALL_COLUMNS: BookColumn[] = [
         {formatDate(latestFinishedAt(ub))}
       </span>
     )
+  },
+  {
+    key: 'actions',
+    label: '',
+    alwaysVisible: true,
+    cellClassName: 'w-10',
+    renderCell: (ub, ctx) => <BookRemoveAction userBook={ub} onSaved={ctx.onSaved} />
   }
 ]
 
@@ -244,5 +253,6 @@ export const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = [
   'owned',
   'shelf',
   'added',
-  'read'
+  'read',
+  'actions'
 ]

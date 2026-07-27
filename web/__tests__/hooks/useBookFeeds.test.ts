@@ -18,7 +18,10 @@ const clientMocks = {
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => clientMocks)
 }))
-jest.mock('@/lib/gen/reading/v1/feeds_pb', () => ({ FeedService: {} }))
+jest.mock('@/lib/gen/reading/v1/feeds_pb', () => ({
+  FeedService: {},
+  FeedKind: { UNSPECIFIED: 0, RSS: 1, EMAIL: 2 }
+}))
 
 import useSWR from 'swr'
 import {
@@ -52,10 +55,21 @@ describe('useBookFeeds', () => {
     await result.current('https://example.com/feed.xml', true)
     expect(clientMocks.createFeed).toHaveBeenCalledWith({
       url: 'https://example.com/feed.xml',
-      koboSync: true
+      koboSync: true,
+      kind: 1
     })
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.bookFeeds)
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.books)
+  })
+
+  it('useCreateFeed passes through an explicit kind (email feeds)', async () => {
+    const { result } = renderHook(() => useCreateFeed())
+    await result.current('', false, 2)
+    expect(clientMocks.createFeed).toHaveBeenCalledWith({
+      url: '',
+      koboSync: false,
+      kind: 2
+    })
   })
 
   it('useUpdateFeed updates and invalidates feeds', async () => {

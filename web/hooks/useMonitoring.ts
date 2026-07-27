@@ -14,6 +14,7 @@ import type {
   GetFailingPullRequestsResponse,
   GetSentryIssuesResponse,
   GetDeployStatusResponse,
+  GetDeployLogsResponse,
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
@@ -78,6 +79,17 @@ export function useDeployStatus() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetDeployStatusResponse, Error>(swrKeys.monitoringDeployStatus, () =>
     client.getDeployStatus({})
+  )
+}
+
+// useDeployLogs fetches on demand (not via SWR): logs are only pulled when
+// the admin asks, not polled alongside the rest of the dashboard.
+export function useDeployLogs() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    (deploymentId?: string): Promise<GetDeployLogsResponse> =>
+      client.getDeployLogs({ deploymentId: deploymentId ?? '' }),
+    [client]
   )
 }
 

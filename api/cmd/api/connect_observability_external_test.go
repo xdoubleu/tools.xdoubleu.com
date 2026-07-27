@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -316,6 +317,157 @@ func callDeploy(
 	req := connect.NewRequest(&observabilityv1.GetDeployStatusRequest{})
 	setCookieOnRequest(req, accessToken)
 	return observabilityClient(t).GetDeployStatus(context.Background(), req)
+}
+
+// --- Deploy logs ---
+
+// deployLogsMux builds a fake DigitalOcean server serving the deployments
+// list (for LatestDeployment), one deployment's detail (service component
+// names), its /logs endpoint, and the log-chunk content those URLs point at.
+func deployLogsMux(latestID string, components []string, chunk string) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc(
+		"/v2/apps/app/deployments",
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(
+				`{"deployments":[{"id":"` + latestID + `","phase":"ACTIVE"}]}`,
+			))
+		},
+	)
+	names := make([]string, len(components))
+	for i, c := range components {
+		names[i] = `{"name":"` + c + `"}`
+	}
+	mux.HandleFunc(
+		"/v2/apps/app/deployments/"+latestID,
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(
+				`{"deployment":{"spec":{"services":[` + strings.Join(
+					names,
+					",",
+				) + `]}}}`,
+			))
+		},
+	)
+	mux.HandleFunc(
+		"/v2/apps/app/deployments/"+latestID+"/logs",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			if r.URL.Query().Get("type") != "BUILD" {
+				_, _ = w.Write([]byte(`{"historic_urls":[]}`))
+				return
+			}
+			_, _ = w.Write([]byte(
+				`{"historic_urls":["http://` + r.Host + `/log-chunk"]}`,
+			))
+		},
+	)
+	mux.HandleFunc("/log-chunk", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(chunk))
+	})
+	return mux
+}
+
+func TestObservabilityGetDeployLogs_LatestDeployment(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	digitalocean.SetBackoffBase(time.Millisecond)
+
+	srv := httptest.NewServer(deployLogsMux("d1", []string{"api"}, "building\n"))
+	t.Cleanup(srv.Close)
+	digitalocean.SetBaseURL(srv.URL)
+	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"app_id": "app"}),
+	)
+
+	resp, err := callDeployLogs(t, "")
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Configured)
+	assert.Equal(t, "d1", resp.Msg.DeploymentId)
+	require.Len(t, resp.Msg.Logs, 1)
+	assert.Equal(t, "api", resp.Msg.Logs[0].Component)
+	assert.Equal(t, "BUILD", resp.Msg.Logs[0].LogType)
+	assert.Equal(t, "building\n", resp.Msg.Logs[0].Content)
+	assert.False(t, resp.Msg.Logs[0].Truncated)
+}
+
+func TestObservabilityGetDeployLogs_ExplicitDeploymentId(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	digitalocean.SetBackoffBase(time.Millisecond)
+
+	srv := httptest.NewServer(deployLogsMux("d2", []string{"web"}, "deploying\n"))
+	t.Cleanup(srv.Close)
+	digitalocean.SetBaseURL(srv.URL)
+	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"app_id": "app"}),
+	)
+
+	resp, err := callDeployLogs(t, "d2")
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Configured)
+	assert.Equal(t, "d2", resp.Msg.DeploymentId)
+	require.Len(t, resp.Msg.Logs, 1)
+	assert.Equal(t, "web", resp.Msg.Logs[0].Component)
+}
+
+func TestObservabilityGetDeployLogs_UpstreamError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusBadGateway, ``)
+	digitalocean.SetBaseURL(srv.URL)
+	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"app_id": "app"}),
+	)
+
+	resp, err := callDeployLogs(t, "d1")
+	require.NoError(t, err) // degraded, never a failed response
+	assert.True(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Logs)
+}
+
+func TestObservabilityGetDeployLogs_NotConfigured(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		configNotConnected(),
+	)
+
+	resp, err := callDeployLogs(t, "")
+	require.NoError(t, err)
+	assert.False(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Logs)
+}
+
+func TestObservabilityGetDeployLogs_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callDeployLogs(t, "")
+	requirePermissionDenied(t, err)
+}
+
+func callDeployLogs(
+	t *testing.T, deploymentID string,
+) (*connect.Response[observabilityv1.GetDeployLogsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetDeployLogsRequest{
+		DeploymentId: deploymentID,
+	})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetDeployLogs(context.Background(), req)
 }
 
 // --- Health overview (mixed states) ---

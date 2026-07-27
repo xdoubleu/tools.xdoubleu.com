@@ -2,11 +2,16 @@ package contacts
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
+	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/repositories"
 )
@@ -23,12 +28,27 @@ type Service interface {
 }
 
 type contactsService struct {
-	repo *repositories.ContactsRepository
-	auth auth.Service
+	repo   *repositories.ContactsRepository
+	auth   auth.Service
+	mail   mailer.Client
+	webURL string
+	logger *slog.Logger
 }
 
-func New(repo *repositories.ContactsRepository, authService auth.Service) Service {
-	return &contactsService{repo: repo, auth: authService}
+func New(
+	repo *repositories.ContactsRepository,
+	authService auth.Service,
+	mail mailer.Client,
+	webURL string,
+	logger *slog.Logger,
+) Service {
+	return &contactsService{
+		repo:   repo,
+		auth:   authService,
+		mail:   mail,
+		webURL: webURL,
+		logger: logger,
+	}
 }
 
 func (s *contactsService) List(
@@ -61,17 +81,51 @@ func (s *contactsService) AddByEmail(
 		return err
 	}
 
-	for _, u := range users {
+	var recipient *models.User
+	senderEmail := ownerUserID
+	for i, u := range users {
 		if u.Email == email {
-			name := displayName
-			if name == "" {
-				name = email
-			}
-			return s.repo.Add(ctx, ownerUserID, u.ID, name)
+			recipient = &users[i]
+		}
+		if u.ID == ownerUserID {
+			senderEmail = u.Email
 		}
 	}
+	if recipient == nil {
+		return &notFoundError{}
+	}
 
-	return &notFoundError{}
+	name := displayName
+	if name == "" {
+		name = email
+	}
+	if err = s.repo.Add(ctx, ownerUserID, recipient.ID, name); err != nil {
+		return err
+	}
+
+	s.sendContactRequestEmail(ctx, recipient.Email, senderEmail)
+	return nil
+}
+
+// sendContactRequestEmail notifies the recipient by email; failures never
+// fail the contact request itself — the request is already persisted, and
+// email delivery is a secondary notification, matching how IssueNotifierJob
+// treats mailer.ErrNotConfigured as a degraded (not failed) state.
+func (s *contactsService) sendContactRequestEmail(
+	ctx context.Context,
+	to, senderEmail string,
+) {
+	subject := fmt.Sprintf("%s wants to add you as a contact", senderEmail)
+	body := fmt.Sprintf(
+		"%s sent you a contact request on tools.xdoubleu.com.\n\n"+
+			"Accept or decline it here: %s/contacts",
+		senderEmail, s.webURL,
+	)
+	if err := s.mail.SendTo(ctx, to, subject, body); err != nil &&
+		!errors.Is(err, mailer.ErrNotConfigured) {
+		s.logger.ErrorContext(ctx, "contacts: failed to send contact request email",
+			essentialogger.ErrAttr(err))
+	}
 }
 
 func (s *contactsService) Accept(

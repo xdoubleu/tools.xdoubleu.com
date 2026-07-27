@@ -166,6 +166,87 @@ func (h *obsConnectHandler) deployStatus(
 	return resp
 }
 
+func (h *obsConnectHandler) GetDeployLogs(
+	ctx context.Context,
+	req *connect.Request[observabilityv1.GetDeployLogsRequest],
+) (*connect.Response[observabilityv1.GetDeployLogsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(h.deployLogs(ctx, req.Msg.GetDeploymentId())), nil
+}
+
+// deployLogs resolves deploymentID to the latest deployment when empty, then
+// fetches its BUILD/DEPLOY component logs. Guards its source the same way
+// deployStatus does: an unset token yields configured=false and an upstream
+// failure is logged and downgraded to an empty section.
+func (h *obsConnectHandler) deployLogs(
+	ctx context.Context, deploymentID string,
+) *observabilityv1.GetDeployLogsResponse {
+	resp := &observabilityv1.GetDeployLogsResponse{
+		Configured:   true,
+		DeploymentId: deploymentID,
+		Logs:         []*observabilityv1.DeployComponentLog{},
+	}
+
+	if deploymentID == "" {
+		resolved, ok := h.resolveLatestDeploymentID(ctx, resp)
+		if !ok {
+			return resp
+		}
+		deploymentID = resolved
+		resp.DeploymentId = deploymentID
+	}
+
+	logs, err := h.app.doClient.DeploymentLogs(ctx, deploymentID)
+	if err != nil {
+		h.degradeDeployLogs(ctx, resp, err)
+		return resp
+	}
+
+	protoLogs := make([]*observabilityv1.DeployComponentLog, len(logs))
+	for i, l := range logs {
+		protoLogs[i] = &observabilityv1.DeployComponentLog{
+			Component: l.Component,
+			LogType:   string(l.Type),
+			Content:   l.Content,
+			Truncated: l.Truncated,
+		}
+	}
+	resp.Logs = protoLogs
+	return resp
+}
+
+// resolveLatestDeploymentID looks up the latest deployment's ID for a
+// deploymentID-less GetDeployLogs call. ok is false when resp has already
+// been finalized — either degraded (upstream error) or left at its
+// zero-logs default (configured, but no deployment yet).
+func (h *obsConnectHandler) resolveLatestDeploymentID(
+	ctx context.Context, resp *observabilityv1.GetDeployLogsResponse,
+) (string, bool) {
+	latest, err := h.app.doClient.LatestDeployment(ctx)
+	if err != nil {
+		h.degradeDeployLogs(ctx, resp, err)
+		return "", false
+	}
+	if latest == nil {
+		return "", false // configured, but no deployment yet
+	}
+	return latest.ID, true
+}
+
+// degradeDeployLogs downgrades resp on an upstream digitalocean error,
+// mirroring deployStatus's degrade-independently convention.
+func (h *obsConnectHandler) degradeDeployLogs(
+	ctx context.Context, resp *observabilityv1.GetDeployLogsResponse, err error,
+) {
+	if errors.Is(err, digitalocean.ErrNotConfigured) {
+		resp.Configured = false
+		return
+	}
+	h.app.logger.WarnContext(ctx, "deploy logs unavailable", slog.Any("error", err))
+}
+
 func (h *obsConnectHandler) GetHealthOverview(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetHealthOverviewRequest],

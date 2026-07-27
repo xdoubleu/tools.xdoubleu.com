@@ -177,6 +177,23 @@ func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	return sealer
 }
 
+// newContactsService wires the contacts service to the Resend mailer (issue
+// #383) so a contact request emails its recipient; mailClient is also
+// returned for reuse by IssueNotifierJob.
+func newContactsService(
+	logger *slog.Logger,
+	config config.Config,
+	repo *repositories.ContactsRepository,
+	authSvc auth.Service,
+) (contacts.Service, mailer.Client) {
+	mailClient := mailer.New(
+		config.ResendAPIKey,
+		config.EmailFrom,
+		config.NotifyEmailTo,
+	)
+	return contacts.New(repo, authSvc, mailClient, config.WebURL, logger), mailClient
+}
+
 // newObservabilityClients builds the three external observability clients,
 // each resolving its bearer token from oauthConnRepo via oauthconn.TokenFunc
 // instead of a static config value (issue #440).
@@ -268,7 +285,8 @@ func NewApplication(
 	) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
-	contactsSvc := contacts.New(contactsRepo, authSvc)
+
+	contactsSvc, mailClient := newContactsService(logger, config, contactsRepo, authSvc)
 
 	oauthConnRepo := repositories.NewOAuthConnectionsRepository(
 		db, newOAuthSealer(logger, config),
@@ -277,11 +295,6 @@ func NewApplication(
 		logger, config, oauthConnRepo,
 	)
 
-	mailClient := mailer.New(
-		config.ResendAPIKey,
-		config.EmailFrom,
-		config.NotifyEmailTo,
-	)
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
 		sentryClient, doClient, mailClient, notifiedIssuesRepo,

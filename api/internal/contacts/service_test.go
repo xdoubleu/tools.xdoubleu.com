@@ -2,12 +2,14 @@ package contacts_test
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/contacts"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/mocks"
 )
 
@@ -16,7 +18,8 @@ import (
 func TestNotFoundError_Error(t *testing.T) {
 	// The mock auth service only knows one user (email "user@example.com").
 	// Searching for a different email triggers the notFoundError path.
-	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"))
+	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"),
+		mailer.New("", "", ""), "http://localhost:3000", slog.Default())
 	err := svc.AddByEmail(
 		context.Background(),
 		"test-user",
@@ -30,7 +33,8 @@ func TestNotFoundError_Error(t *testing.T) {
 // TestAddByEmail_UserNotFound confirms AddByEmail returns an error when the
 // email does not match any user known to the auth service.
 func TestAddByEmail_UserNotFound(t *testing.T) {
-	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"))
+	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"),
+		mailer.New("", "", ""), "http://localhost:3000", slog.Default())
 
 	err := svc.AddByEmail(
 		context.Background(),
@@ -47,7 +51,8 @@ func TestNotFoundError_HTTPStatus(t *testing.T) {
 	type httpStatuser interface {
 		HTTPStatus() int
 	}
-	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"))
+	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"),
+		mailer.New("", "", ""), "http://localhost:3000", slog.Default())
 	err := svc.AddByEmail(
 		context.Background(),
 		"test-user",
