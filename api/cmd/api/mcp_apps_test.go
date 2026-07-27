@@ -50,9 +50,10 @@ var appsToolNames = []string{
 	"todos_list_tasks", "todos_get_task", "todos_search_tasks", "todos_get_settings",
 	// icsproxy (3)
 	"icsproxy_list_configs", "icsproxy_get_config", "icsproxy_preview_events",
-	// observability (7, admin-gated)
+	// observability (8, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_sentry_issues", "get_deploy_status",
+	"get_deploy_logs",
 }
 
 // appsNetworkTools reach out to external providers, so the call tests skip them
@@ -67,6 +68,7 @@ var appsNetworkTools = map[string]bool{
 	"get_failing_pull_requests": true,
 	"get_sentry_issues":         true,
 	"get_deploy_status":         true,
+	"get_deploy_logs":           true,
 }
 
 // bearerRoundTripper attaches a Bearer token to every MCP client request,
@@ -217,6 +219,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"icsproxy_list_configs", "get_job_stats", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",
 		"get_failing_pull_requests", "get_sentry_issues", "get_deploy_status",
+		"get_deploy_logs",
 	}
 	for _, name := range tools {
 		//nolint:exhaustruct // only the tool name is required to call it
