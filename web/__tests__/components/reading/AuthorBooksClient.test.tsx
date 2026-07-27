@@ -37,7 +37,8 @@ jest.mock('@/components/reading/BookFavouriteButton', () => {
 
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
-  useToggleTag: () => jest.fn()
+  useToggleTag: () => jest.fn(),
+  useRemoveBook: () => jest.fn()
 }))
 
 jest.mock('swr', () => ({

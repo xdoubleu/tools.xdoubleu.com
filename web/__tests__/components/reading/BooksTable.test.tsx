@@ -35,6 +35,12 @@ jest.mock('@/components/reading/BookOwnershipToggles', () => {
   }
 })
 
+jest.mock('@/components/reading/BookRemoveAction', () => {
+  return function MockRemoveAction() {
+    return <div data-testid="remove-action" />
+  }
+})
+
 jest.mock('@/hooks/useBooks', () => ({
   useUpdateBookStatus: () => jest.fn(),
   useToggleTag: () => jest.fn()
@@ -94,6 +100,12 @@ describe('BooksTable', () => {
     const books = [makeBook('1', 'Dune'), makeBook('2', 'Hyperion')]
     render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
     expect(screen.getAllByTestId('ownership-toggles')).toHaveLength(2)
+  })
+
+  it('renders a remove action for each book row', () => {
+    const books = [makeBook('1', 'Dune'), makeBook('2', 'Hyperion')]
+    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    expect(screen.getAllByTestId('remove-action')).toHaveLength(2)
   })
 
   it('renders books in rows', () => {
@@ -337,11 +349,11 @@ describe('BooksTable', () => {
     })
 
     it('empty-state colSpan matches visible column count', () => {
-      // Hide all optional columns — only cover + title remain (2)
+      // Hide all optional columns — only cover + title + actions remain (3)
       localStorage.setItem('backlog:library:columns', JSON.stringify([]))
       render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
       const emptyCell = screen.getByText('No books match the current filters.').closest('td')
-      expect(emptyCell).toHaveAttribute('colspan', '2')
+      expect(emptyCell).toHaveAttribute('colspan', '3')
     })
   })
 
