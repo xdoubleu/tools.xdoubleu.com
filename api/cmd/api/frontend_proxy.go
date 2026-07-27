@@ -41,13 +41,11 @@ func (app *Application) frontendProxy(apiHandler http.Handler) http.Handler {
 		Host:   fmt.Sprintf("127.0.0.1:%d", app.config.WebPort),
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
-	base, ok := http.DefaultTransport.(*http.Transport)
-	if !ok {
-		base = &http.Transport{}
+	// Loopback target (the Next child), so the zero-value Transport's defaults
+	// are fine — we only need the ResponseHeaderTimeout cap.
+	proxy.Transport = &http.Transport{
+		ResponseHeaderTimeout: webResponseHeaderTimeout,
 	}
-	transport := base.Clone()
-	transport.ResponseHeaderTimeout = webResponseHeaderTimeout
-	proxy.Transport = transport
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		app.logger.Error(
 			"web process unreachable",
