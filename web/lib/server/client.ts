@@ -37,6 +37,16 @@ const getTransport = cache(async () => {
   return createConnectTransport({
     baseUrl: getApiUrl(),
     useBinaryFormat: true,
+    // Cap every SSR api call: without this, a hung api response never rejects
+    // (Node fetch has no default timeout), so the whole force-dynamic render
+    // (e.g. layout.tsx awaiting getCurrentUser) blocks forever with nothing
+    // logged. On timeout Connect throws DeadlineExceeded — fetchOrNull returns
+    // null, the page renders degraded, and the client SWR fetch recovers.
+    // Connect also sends this as connect-timeout-ms (allowlisted server-side),
+    // so the api handler's context is cancelled and its pool conn released.
+    // Browser transport (lib/client.ts) stays uncapped on purpose so slow
+    // uploads / arXiv-PDF conversions are not cut off.
+    defaultTimeoutMs: 10000,
     fetch: serverFetch(cookieHeader)
   })
 })
