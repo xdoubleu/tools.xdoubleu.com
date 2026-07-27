@@ -28,7 +28,7 @@ func deploymentDetailHandler(components ...string) http.HandlerFunc {
 		names[i] = fmt.Sprintf(`{"name":%q}`, c)
 	}
 	body := fmt.Sprintf(
-		`{"deployment":{"spec":{"services":[%s]}}}`, strings.Join(names, ","),
+		`{"deployment":{"services":[%s]}}`, strings.Join(names, ","),
 	)
 	return func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

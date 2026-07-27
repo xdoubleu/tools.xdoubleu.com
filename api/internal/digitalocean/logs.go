@@ -67,7 +67,8 @@ func (c *client) DeploymentLogs(
 }
 
 // serviceComponents reads the deployment's service component names off its
-// spec, so DeploymentLogs knows which component_name values to query.
+// top-level services list, so DeploymentLogs knows which component_name values
+// to query. Only services carry BUILD/DEPLOY logs; workers/jobs are omitted.
 func (c *client) serviceComponents(
 	ctx context.Context, token, appID, deploymentID string,
 ) ([]string, error) {
@@ -80,8 +81,8 @@ func (c *client) serviceComponents(
 		return nil, err
 	}
 
-	names := make([]string, 0, len(wire.Deployment.Spec.Services))
-	for _, svc := range wire.Deployment.Spec.Services {
+	names := make([]string, 0, len(wire.Deployment.Services))
+	for _, svc := range wire.Deployment.Services {
 		names = append(names, svc.Name)
 	}
 	return names, nil
