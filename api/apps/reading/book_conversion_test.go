@@ -536,7 +536,11 @@ func TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser(t *testing.T) {
 
 	// Simulate a canonical blob produced by an older converter.
 	require.NoError(t, testApp.Repositories.BookFiles.UpdateAfterConversion(
-		context.Background(), canonical.ID, canonical.StorageKey, canonical.SizeBytes, 0,
+		context.Background(),
+		canonical.ID,
+		canonical.StorageKey,
+		canonical.SizeBytes,
+		0,
 	))
 
 	// A second user must not be handed the stale canonical blob; conversion
