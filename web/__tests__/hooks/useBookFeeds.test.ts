@@ -56,7 +56,8 @@ describe('useBookFeeds', () => {
     expect(clientMocks.createFeed).toHaveBeenCalledWith({
       url: 'https://example.com/feed.xml',
       koboSync: true,
-      kind: 1
+      kind: 1,
+      title: ''
     })
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.bookFeeds)
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.books)
@@ -68,7 +69,19 @@ describe('useBookFeeds', () => {
     expect(clientMocks.createFeed).toHaveBeenCalledWith({
       url: '',
       koboSync: false,
-      kind: 2
+      kind: 2,
+      title: ''
+    })
+  })
+
+  it('useCreateFeed passes through an optional title (email newsletter name)', async () => {
+    const { result } = renderHook(() => useCreateFeed())
+    await result.current('', false, 2, 'My Substack')
+    expect(clientMocks.createFeed).toHaveBeenCalledWith({
+      url: '',
+      koboSync: false,
+      kind: 2,
+      title: 'My Substack'
     })
   })
 

@@ -47,6 +47,9 @@ message CreateFeedRequest {
   string url = 1;
   bool kobo_sync = 2;
   FeedKind kind = 3;
+  // Optional; only used for kind=EMAIL. Ignored for RSS, whose title is
+  // parsed from the feed itself.
+  string title = 4;
 }
 message CreateFeedResponse {
   Feed feed = 1;

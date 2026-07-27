@@ -66,7 +66,7 @@ describe('FeedManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() =>
-      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1)
+      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1, '')
     )
     expect(
       await screen.findByText('Subscribed — importing items in the background.')
