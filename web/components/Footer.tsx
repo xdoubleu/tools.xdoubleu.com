@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getRelease } from '@/lib/env'
+import { getRelease, getApiUrl } from '@/lib/env'
 
 export default function Footer() {
-  const [release, setRelease] = useState<string>('')
+  const [webRelease, setWebRelease] = useState<string>('')
+  const [apiRelease, setApiRelease] = useState<string>('')
 
   useEffect(() => {
-    setRelease(getRelease())
+    setWebRelease(getRelease())
+
+    fetch(`${getApiUrl()}/api/version`)
+      .then((res) => res.json())
+      .then((data: { release?: string }) => setApiRelease(data.release ?? ''))
+      .catch(() => {})
   }, [])
 
   const year = new Date().getFullYear()
@@ -23,7 +29,12 @@ export default function Footer() {
           </Link>
         </div>
 
-        {release && <span className="font-mono text-xs text-muted">{release.substring(0, 7)}</span>}
+        {(webRelease || apiRelease) && (
+          <div className="flex gap-2 font-mono text-xs text-muted">
+            {webRelease && <span>{`web:${webRelease.substring(0, 7)}`}</span>}
+            {apiRelease && <span>{`api:${apiRelease.substring(0, 7)}`}</span>}
+          </div>
+        )}
       </div>
     </footer>
   )
