@@ -88,6 +88,10 @@ func (f *fakeMailer) Send(_ context.Context, subject, _ string) error {
 	return nil
 }
 
+func (f *fakeMailer) SendTo(_ context.Context, _, _, _ string) error {
+	return nil
+}
+
 type fakeNotifiedRepo struct {
 	keys map[string]bool
 }
