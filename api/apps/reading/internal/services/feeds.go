@@ -441,11 +441,9 @@ func (s *FeedService) BackfillContentHTML(
 		return ""
 	}
 
+	url := *book.SourceURL
 	//nolint:exhaustruct // only the fields enrichFromLinkedPage reads/fills
-	content := ArticleContent{
-		SourceURL: *book.SourceURL,
-		BaseURL:   *book.SourceURL,
-	}
+	content := ArticleContent{SourceURL: url, BaseURL: url}
 	s.enrichFromLinkedPage(ctx, &content)
 	if content.HTML == "" {
 		return ""

@@ -443,8 +443,9 @@ func (h *booksConnectHandler) GetBookContent(
 		if ubErr != nil {
 			return nil, connect.NewError(connect.CodeInternal, ubErr)
 		}
-		if ub.Book.Category == models.CategoryRSS ||
-			ub.Book.Category == models.CategoryArticle {
+		isBackfillable := ub.Book.Category == models.CategoryRSS ||
+			ub.Book.Category == models.CategoryArticle
+		if isBackfillable {
 			html = h.app.Services.Feeds.BackfillContentHTML(ctx, ub.Book)
 		}
 	}
