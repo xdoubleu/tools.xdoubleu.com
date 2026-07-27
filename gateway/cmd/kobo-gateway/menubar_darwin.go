@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"syscall"
 
 	"github.com/progrium/darwinkit/dispatch"
 	"github.com/progrium/darwinkit/helper/action"
@@ -131,7 +132,7 @@ func runUI(
 				// tail (main.go) is unreachable from here (#627) — exec the
 				// updated binary ourselves instead of asking AppKit to
 				// terminate.
-				if err := execUpdatedBinary(os.Stdout); err != nil {
+				if err := execUpdatedBinary(); err != nil {
 					fmt.Fprintln(os.Stderr, err)
 				}
 			}
@@ -143,6 +144,26 @@ func runUI(
 
 		go watchKobos(koboEvents, release)
 	})
+}
+
+// execUpdatedBinary re-execs the running process into the binary that
+// self-update just wrote to disk. Duplicates serve()'s own restart tail
+// (main.go) rather than sharing it: that tail is only ever reached from the
+// headless test path and stays covered there, whereas this whole file is
+// already excluded from coverage (see codecov.yml) as untestable AppKit
+// code — sharing a function would turn main.go's already-uncovered lines
+// into a "new" diff every time this file changes, failing patch coverage
+// for no behavioral reason.
+func execUpdatedBinary() error {
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("could not resolve executable to restart: %w", err)
+	}
+
+	fmt.Fprintln(os.Stdout, "updated, restarting into the new binary…")
+
+	//nolint:gosec //re-execs our own path as reported by os.Executable
+	return syscall.Exec(executable, os.Args, os.Environ())
 }
 
 // buildStatusItem creates a fresh NSStatusItem (icon, tooltip, menu) and

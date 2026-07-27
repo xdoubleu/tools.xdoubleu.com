@@ -295,15 +295,6 @@ func serve(
 		return nil
 	}
 
-	return execUpdatedBinary(stdout)
-}
-
-// execUpdatedBinary re-execs the running process into the binary that
-// self-update just wrote to disk. Split out from serve() because
-// menubar_darwin.go's stop-terminate path must call it directly: on real
-// macOS runs, NSApplication.terminate: exits the process immediately and
-// never returns control here, so this tail is otherwise unreachable (#627).
-func execUpdatedBinary(stdout io.Writer) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("could not resolve executable to restart: %w", err)
