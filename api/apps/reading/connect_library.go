@@ -437,14 +437,10 @@ func (h *booksConnectHandler) GetBookContent(
 	}
 
 	if html == "" {
+		// Ownership was already confirmed by GetContentHTML above, so a
+		// failure here is unexpected rather than a legitimate not-found.
 		ub, ubErr := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
 		if ubErr != nil {
-			if errors.Is(ubErr, database.ErrResourceNotFound) {
-				return nil, connect.NewError(
-					connect.CodeNotFound,
-					errors.New("not found"),
-				)
-			}
 			return nil, connect.NewError(connect.CodeInternal, ubErr)
 		}
 		if ub.Book.Category == models.CategoryRSS ||
