@@ -20,10 +20,13 @@ const logContentCap = 200 * 1024 // 200 KB
 // error message when a log-fetch request fails.
 const errBodyCap = 4096
 
-// logTypes is every log phase DeploymentLogs fetches, in display order.
+// logTypes is every log phase DeploymentLogs fetches, in display order:
+// build/deploy phases first, then the component's runtime logs.
 //
 //nolint:gochecknoglobals // read-only constant list, mirrors a Go array literal
-var logTypes = []LogType{LogTypeBuild, LogTypeDeploy}
+var logTypes = []LogType{
+	LogTypeBuild, LogTypeDeploy, LogTypeRun, LogTypeRunRestarted,
+}
 
 func (c *client) DeploymentLogs(
 	ctx context.Context, deploymentID string,

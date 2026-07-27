@@ -7,11 +7,12 @@
 package observabilityv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -1511,7 +1512,7 @@ func (x *GetDeployLogsRequest) GetDeploymentId() string {
 type DeployComponentLog struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Component     string                 `protobuf:"bytes,1,opt,name=component,proto3" json:"component,omitempty"`
-	LogType       string                 `protobuf:"bytes,2,opt,name=log_type,json=logType,proto3" json:"log_type,omitempty"` // "BUILD" | "DEPLOY"
+	LogType       string                 `protobuf:"bytes,2,opt,name=log_type,json=logType,proto3" json:"log_type,omitempty"` // "BUILD" | "DEPLOY" | "RUN" | "RUN_RESTARTED"
 	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	Truncated     bool                   `protobuf:"varint,4,opt,name=truncated,proto3" json:"truncated,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1576,10 +1577,10 @@ func (x *DeployComponentLog) GetTruncated() bool {
 	return false
 }
 
-// GetDeployLogsResponse carries per-component build/deploy log text for one
-// deployment. configured is false when no DigitalOcean token/app ID is set —
-// the section is degraded. logs is empty when configured is false or the
-// deployment has no logs yet for either phase.
+// GetDeployLogsResponse carries per-component build/deploy/runtime log text
+// for one deployment. configured is false when no DigitalOcean token/app ID
+// is set — the section is degraded. logs is empty when configured is false or
+// the deployment has no logs yet for any phase.
 type GetDeployLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Configured    bool                   `protobuf:"varint,1,opt,name=configured,proto3" json:"configured,omitempty"`

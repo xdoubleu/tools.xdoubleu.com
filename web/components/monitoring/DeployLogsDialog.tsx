@@ -60,7 +60,9 @@ export default function DeployLogsDialog({
         <DialogHeader>
           <div>
             <DialogTitle>Deploy logs</DialogTitle>
-            <DialogDescription>Build and deploy output for this deployment.</DialogDescription>
+            <DialogDescription>
+              Build, deploy, and runtime output for this deployment.
+            </DialogDescription>
           </div>
           <DialogClose aria-label="Close">x</DialogClose>
         </DialogHeader>
