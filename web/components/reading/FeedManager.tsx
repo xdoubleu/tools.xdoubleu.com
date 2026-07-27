@@ -72,11 +72,20 @@ function FeedRow({ feed }: { feed: Feed }) {
       </div>
       <div className="mt-1 space-y-0.5">
         {feed.lastError && (
-          <p className="text-xs text-danger">Last poll failed: {feed.lastError}</p>
+          <p className="text-xs text-danger">
+            {isEmailFeed ? 'Last email failed' : 'Last poll failed'}: {feed.lastError}
+          </p>
         )}
         {feed.lastFetchedAt && !feed.lastError && (
           <p className="text-xs text-muted">
-            Last fetched {new Date(feed.lastFetchedAt).toLocaleString()}
+            {isEmailFeed ? 'Verified — last email received' : 'Last fetched'}{' '}
+            {new Date(feed.lastFetchedAt).toLocaleString()}
+          </p>
+        )}
+        {isEmailFeed && !feed.lastFetchedAt && !feed.lastError && (
+          <p className="text-xs text-muted">
+            Waiting for your first email — give the address above to the newsletter, then check back
+            here.
           </p>
         )}
         {status && <p className="text-xs text-muted">{status}</p>}
