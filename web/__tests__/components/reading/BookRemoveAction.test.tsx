@@ -56,4 +56,19 @@ describe('BookRemoveAction', () => {
     await waitFor(() => expect(mockRemoveBook).toHaveBeenCalledWith('book-1'))
     expect(onSaved).toHaveBeenCalled()
   })
+
+  it('falls back to a generic label when the book is missing', () => {
+    const userBook = create(UserBookSchema, {
+      id: '1',
+      bookId: 'book-1',
+      status: 'to-read',
+      tags: [],
+      formats: [],
+      addedAt: '2024-01-01T00:00:00Z'
+    })
+    render(<BookRemoveAction userBook={userBook} />)
+    expect(screen.getByRole('button', { name: 'Remove book from library' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove book from library' }))
+    expect(screen.getByText('this book')).toBeInTheDocument()
+  })
 })
