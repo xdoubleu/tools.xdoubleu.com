@@ -11,28 +11,22 @@ domains:
 
 ingress:
   rules:
-    # Route /api/* to the api service, stripping the /api prefix before forwarding.
-    # The api binary receives requests at their original paths (e.g. /auth.v1.AuthService/...).
-    # Set NEXT_PUBLIC_API_URL=https://tools.xdoubleu.com/api in GitHub Variables.
+    # Everything goes to the single merged component now (issue #558) — the
+    # component's own frontend proxy (api/cmd/api/frontend_proxy.go)
+    # replicates the /api-stripping and /health routing these two ingress
+    # rules used to do.
     - component:
-        name: api
-        preserve_path_prefix: false
-      match:
-        path:
-          prefix: /api
-    # All other traffic goes to the web service.
-    - component:
-        name: web
+        name: app
       match:
         path:
           prefix: /
 
 services:
-  - name: api
+  - name: app
     image:
       registry_type: GHCR
       registry: ghcr.io
-      repository: xdoubleu/tools.xdoubleu.com/api
+      repository: xdoubleu/tools.xdoubleu.com/app
       tag: latest
     http_port: 8000
     health_check:
@@ -50,6 +44,19 @@ services:
       - key: API_URL
         scope: RUN_TIME
         value: https://tools.xdoubleu.com/api
+      # WEB_ENABLED starts the bundled Next.js standalone server as a child
+      # process and front-doors it (api/internal/config, cmd/api/main.go) —
+      # only the merged image sets this.
+      - key: WEB_ENABLED
+        scope: RUN_TIME
+        value: "true"
+      # Soft ceiling so the Go GC doesn't crowd out the Node child before it
+      # can allocate, paired with web_process.go's
+      # NODE_OPTIONS=--max-old-space-size=192. Tune alongside the 512 MB
+      # memory go/no-go check (see api/CLAUDE.md).
+      - key: GOMEMLIMIT
+        scope: RUN_TIME
+        value: 300MiB
       - key: DB_DSN
         scope: RUN_TIME
         type: SECRET
@@ -60,6 +67,16 @@ services:
         scope: RUN_TIME
         type: SECRET
       - key: SENTRY_DSN
+        scope: RUN_TIME
+        type: SECRET
+      # Used server-side by the OAuth 2.1 consent page (/oauth/consent) to
+      # drive the Supabase authorization endpoints, and passed through to the
+      # Next.js child (cmd/api/web_process.go). SUPABASE_URL is
+      # https://<SUPABASE_PROJ_REF>.supabase.co; the anon key is publishable.
+      - key: SUPABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: SUPABASE_ANON_KEY
         scope: RUN_TIME
         type: SECRET
       # OAuth app registration credentials for the admin-configurable
@@ -115,29 +132,5 @@ services:
         scope: RUN_TIME
         type: SECRET
       - key: EMAIL_INBOUND_SECRET
-        scope: RUN_TIME
-        type: SECRET
-
-  - name: web
-    image:
-      registry_type: GHCR
-      registry: ghcr.io
-      repository: xdoubleu/tools.xdoubleu.com/web
-      tag: latest
-    http_port: 3000
-    envs:
-      - key: API_URL
-        scope: RUN_TIME
-        value: https://tools.xdoubleu.com/api
-      - key: SENTRY_DSN
-        scope: RUN_TIME
-        type: SECRET
-      # Used server-side by the OAuth 2.1 consent page (/oauth/consent) to drive
-      # the Supabase authorization endpoints. SUPABASE_URL is
-      # https://<SUPABASE_PROJ_REF>.supabase.co; the anon key is publishable.
-      - key: SUPABASE_URL
-        scope: RUN_TIME
-        type: SECRET
-      - key: SUPABASE_ANON_KEY
         scope: RUN_TIME
         type: SECRET

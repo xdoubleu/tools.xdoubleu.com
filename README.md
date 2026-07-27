@@ -91,6 +91,16 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 
 Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).
 
+**Deploy shape:** `api` and `web` build into one Docker image (root
+`Dockerfile`) and run as a single DigitalOcean App Platform component
+(issue #558 — App Platform bills per component, and both used to run on
+separate smallest-tier instances). The Go binary is PID 1; it spawns the
+Next.js standalone server as a child process (`WEB_ENABLED=true`,
+`api/cmd/api/web_process.go`) and reverse-proxies every request
+(`api/cmd/api/frontend_proxy.go`), stripping `/api` for the Go mux and
+routing everything else to the Next child — the same split the two-component
+DO ingress used to provide.
+
 ## Apps MCP server
 
 Every app's own **read-only** data — plus the admin observability signals — is
@@ -153,6 +163,20 @@ After scaffolding:
 5. Run `cd api && make build` to verify
 
 ## Deploy Notes
+
+**Merged single-component deploy (issue #558):** the api and web env vars now
+live on one `app` component in [`do-app.yaml`](do-app.yaml). Four env vars
+are new/relevant to the merge: `WEB_ENABLED=true` (starts the Next.js child),
+`WEB_PORT`/`WEB_NODE_BIN`/`WEB_SERVER_JS` (default `3000`/`node`/
+`/app/web/server.js` — only need overriding for local debugging, not in
+production), and `GOMEMLIMIT=300MiB` (a soft ceiling so the Go GC doesn't
+crowd out the Node child's `NODE_OPTIONS=--max-old-space-size=192` inside the
+shared 512 MB instance). The merge is only cost-neutral-or-better if peak
+memory (steady-state plus a PDF→EPUB conversion) stays under the 512 MB
+instance; if `docker stats` on the deployed image shows it running close to
+that ceiling, move `do-app.yaml`'s `app` component to the 1 GB tier rather
+than let it OOM — at that point the ~$5/mo saving from merging is gone and
+the two-component shape (revert this change) is no worse.
 
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin

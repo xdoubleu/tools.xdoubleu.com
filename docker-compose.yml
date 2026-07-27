@@ -1,21 +1,10 @@
 services:
-  api:
+  app:
     build:
       context: .
-      dockerfile: api/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        RELEASE: ${RELEASE:-dev}
     env_file: .env
     ports:
       - "8000:8000"
-
-  web:
-    build:
-      context: .
-      dockerfile: web/Dockerfile
-      args:
-        RELEASE: ${RELEASE:-dev}
-    environment:
-      API_URL: ${API_URL:-http://localhost:8000}
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api

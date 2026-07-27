@@ -79,7 +79,7 @@ func (app *Application) Routes() http.Handler {
 	mux.HandleFunc("GET /admin/oauth/{provider}/callback", app.oauthCallbackRoute())
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)
-	mux.HandleFunc("GET /health", app.healthHandler)
+	mux.HandleFunc("GET "+healthPath, app.healthHandler)
 
 	app.apps.Routes(mux)
 
