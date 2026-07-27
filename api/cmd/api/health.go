@@ -10,10 +10,6 @@ import (
 
 const healthCheckTimeout = 5 * time.Second
 
-// healthPath is shared with frontend_proxy.go, which must route it to
-// apiHandler unstripped rather than proxying it to the Next.js child.
-const healthPath = "/health"
-
 func (app *Application) healthHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), healthCheckTimeout)
 	defer cancel()

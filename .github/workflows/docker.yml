@@ -4,34 +4,76 @@ on:
   workflow_dispatch:
   workflow_call:
     inputs:
-      build_app:
+      build_api:
+        type: boolean
+        default: false
+      build_web:
         type: boolean
         default: false
     outputs:
-      app_built:
-        value: ${{ jobs.docker-app.outputs.built }}
+      api_built:
+        value: ${{ jobs.docker-api.outputs.built }}
+      web_built:
+        value: ${{ jobs.docker-web.outputs.built }}
 
 jobs:
-  # kobo-gateway ships inside the merged image but needs cgo + AppKit (can't
-  # build in the Linux docker-app job below) — built separately on macOS and
-  # handed off as an artifact. Always runs when docker-app will, regardless
-  # of whether gateway sources themselves changed or the push only touched
-  # api/, since the merged image always bundles this artifact (issue #558 —
-  # accepted cost of not changing the auto-update path's release stamping).
+  # kobo-gateway ships inside the web image but needs cgo + AppKit (can't
+  # build in the Linux docker-web job below) — built separately on macOS and
+  # handed off as an artifact. Always runs when docker-web will, regardless
+  # of whether gateway sources themselves changed, since the web image
+  # always bundles this artifact.
   build-gateway:
-    if: github.event_name == 'workflow_dispatch' || inputs.build_app
+    if: github.event_name == 'workflow_dispatch' || inputs.build_web
     name: Build Gateway
     uses: ./.github/workflows/build-gateway.yml
-    permissions:
-      contents: read
     secrets: inherit
 
-  docker-app:
-    name: Docker Build & Push App
+  docker-api:
+    name: Docker Build & Push API
+    if: github.event_name == 'workflow_dispatch' || inputs.build_api
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      built: ${{ steps.build.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/api
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - uses: docker/build-push-action@v7
+        id: build
+        with:
+          context: .
+          file: api/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+          build-args: |
+            RELEASE=${{ github.sha }}
+
+  docker-web:
+    name: Docker Build & Push Web
     needs: build-gateway
     if: |
       always() &&
-      (github.event_name == 'workflow_dispatch' || inputs.build_app) &&
+      (github.event_name == 'workflow_dispatch' || inputs.build_web) &&
       needs.build-gateway.result == 'success'
     runs-on: ubuntu-latest
     permissions:
@@ -44,7 +86,7 @@ jobs:
 
       # kobo-gateway.dmg + the raw binary, built on macOS by build-gateway
       # above (see gateway/cmd/kobo-gateway/menubar_darwin.go for why). The
-      # root Dockerfile COPYs these straight into web/public/downloads/.
+      # Dockerfile COPYs these straight into public/downloads/.
       - uses: actions/download-artifact@v8
         with:
           name: gateway-dist
@@ -61,7 +103,7 @@ jobs:
       - uses: docker/metadata-action@v6
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}/app
+          images: ghcr.io/${{ github.repository }}/web
           tags: |
             type=sha,prefix=
             type=raw,value=latest
@@ -70,11 +112,11 @@ jobs:
         id: build
         with:
           context: .
-          file: Dockerfile
+          file: web/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha,scope=app
-          cache-to: type=gha,scope=app,mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
           build-args: |
             RELEASE=${{ github.sha }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
