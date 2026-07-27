@@ -1,15 +1,27 @@
-import { ConnectError } from '@connectrpc/connect'
+import { Code, ConnectError } from '@connectrpc/connect'
+import { captureException } from '@sentry/nextjs'
+
+// Expected during normal degradation, so not reported: an expired access token
+// (401 here, recovered by the browser's SWR refresh) or missing app access.
+const EXPECTED_CODES = new Set([Code.Unauthenticated, Code.PermissionDenied])
 
 // fetchOrNull makes server-side prefetching strictly best-effort: any API
 // rejection (expired access token awaiting browser-side refresh, missing
 // permissions, transient upstream failure) returns null so the page renders
 // and the client component's own SWR fetch takes over — exactly the pre-RSC
 // behavior. Non-Connect errors are real bugs and propagate to app/error.tsx.
+//
+// Unexpected ConnectErrors (DeadlineExceeded from a hung/slow api, Unavailable,
+// Internal) are still swallowed to null but reported to Sentry first — a hung
+// api used to leave no trace at all (see issue #634).
 export async function fetchOrNull<T>(fn: () => Promise<T>): Promise<T | null> {
   try {
     return await fn()
   } catch (err) {
     if (err instanceof ConnectError) {
+      if (!EXPECTED_CODES.has(err.code)) {
+        captureException(err)
+      }
       return null
     }
     throw err
