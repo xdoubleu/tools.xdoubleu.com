@@ -435,6 +435,24 @@ func (h *booksConnectHandler) GetBookContent(
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+
+	if html == "" {
+		ub, ubErr := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
+		if ubErr != nil {
+			if errors.Is(ubErr, database.ErrResourceNotFound) {
+				return nil, connect.NewError(
+					connect.CodeNotFound,
+					errors.New("not found"),
+				)
+			}
+			return nil, connect.NewError(connect.CodeInternal, ubErr)
+		}
+		if ub.Book.Category == models.CategoryRSS ||
+			ub.Book.Category == models.CategoryArticle {
+			html = h.app.Services.Feeds.BackfillContentHTML(ctx, ub.Book)
+		}
+	}
+
 	return connect.NewResponse(&readingv1.GetBookContentResponse{
 		Html: html,
 	}), nil
