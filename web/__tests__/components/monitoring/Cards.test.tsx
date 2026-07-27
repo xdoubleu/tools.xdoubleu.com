@@ -1,6 +1,6 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
@@ -15,6 +15,15 @@ import DatabaseCard from '@/components/monitoring/DatabaseCard'
 import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequestsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
 import DeployCard from '@/components/monitoring/DeployCard'
+
+const mockGetDeployLogs = jest.fn()
+jest.mock('@/hooks/useMonitoring', () => ({
+  useDeployLogs: () => mockGetDeployLogs
+}))
+
+beforeEach(() => {
+  mockGetDeployLogs.mockReset()
+})
 
 // recharts needs a non-zero layout size that jsdom does not provide.
 jest.mock('recharts', () => {
@@ -300,5 +309,23 @@ describe('DeployCard', () => {
   it('shows a loading state without data', () => {
     render(<DeployCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+
+  it('opens the logs dialog and fetches logs for the deployment', async () => {
+    mockGetDeployLogs.mockResolvedValue({
+      logs: [{ component: 'api', logType: 'BUILD', content: 'building api\n', truncated: false }]
+    })
+    const data = create(GetDeployStatusResponseSchema, {
+      configured: true,
+      phase: 'ACTIVE',
+      deploymentId: 'deploy-123'
+    })
+
+    render(<DeployCard data={data} />)
+    fireEvent.click(screen.getByRole('button', { name: 'View logs' }))
+
+    expect(mockGetDeployLogs).toHaveBeenCalledWith('deploy-123')
+    await waitFor(() => expect(screen.getByText('building api')).toBeInTheDocument())
+    expect(screen.getByText('BUILD')).toBeInTheDocument()
   })
 })

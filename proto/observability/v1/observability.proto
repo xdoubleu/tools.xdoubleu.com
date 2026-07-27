@@ -14,6 +14,7 @@ service ObservabilityService {
       returns (GetFailingPullRequestsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
+  rpc GetDeployLogs(GetDeployLogsRequest) returns (GetDeployLogsResponse);
   rpc GetHealthOverview(GetHealthOverviewRequest)
       returns (GetHealthOverviewResponse);
   rpc ListOAuthConnections(ListOAuthConnectionsRequest)
@@ -171,6 +172,29 @@ message GetDeployStatusResponse {
   string created_at = 4;  // RFC3339
   string updated_at = 5;  // RFC3339
   string deployment_id = 6;
+}
+
+// GetDeployLogsRequest fetches logs for one deployment. deployment_id empty
+// means "the latest deployment".
+message GetDeployLogsRequest {
+  string deployment_id = 1;
+}
+
+message DeployComponentLog {
+  string component = 1;
+  string log_type = 2;  // "BUILD" | "DEPLOY"
+  string content = 3;
+  bool truncated = 4;
+}
+
+// GetDeployLogsResponse carries per-component build/deploy log text for one
+// deployment. configured is false when no DigitalOcean token/app ID is set —
+// the section is degraded. logs is empty when configured is false or the
+// deployment has no logs yet for either phase.
+message GetDeployLogsResponse {
+  bool configured = 1;
+  string deployment_id = 2;
+  repeated DeployComponentLog logs = 3;
 }
 
 message GetHealthOverviewRequest {}

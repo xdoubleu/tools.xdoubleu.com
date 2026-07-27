@@ -57,6 +57,9 @@ const (
 	// ObservabilityServiceGetDeployStatusProcedure is the fully-qualified name of the
 	// ObservabilityService's GetDeployStatus RPC.
 	ObservabilityServiceGetDeployStatusProcedure = "/observability.v1.ObservabilityService/GetDeployStatus"
+	// ObservabilityServiceGetDeployLogsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetDeployLogs RPC.
+	ObservabilityServiceGetDeployLogsProcedure = "/observability.v1.ObservabilityService/GetDeployLogs"
 	// ObservabilityServiceGetHealthOverviewProcedure is the fully-qualified name of the
 	// ObservabilityService's GetHealthOverview RPC.
 	ObservabilityServiceGetHealthOverviewProcedure = "/observability.v1.ObservabilityService/GetHealthOverview"
@@ -84,6 +87,7 @@ type ObservabilityServiceClient interface {
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
+	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
@@ -150,6 +154,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("GetDeployStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		getDeployLogs: connect.NewClient[v1.GetDeployLogsRequest, v1.GetDeployLogsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetDeployLogsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetDeployLogs")),
+			connect.WithClientOptions(opts...),
+		),
 		getHealthOverview: connect.NewClient[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse](
 			httpClient,
 			baseURL+ObservabilityServiceGetHealthOverviewProcedure,
@@ -193,6 +203,7 @@ type observabilityServiceClient struct {
 	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	getDeployStatus           *connect.Client[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse]
+	getDeployLogs             *connect.Client[v1.GetDeployLogsRequest, v1.GetDeployLogsResponse]
 	getHealthOverview         *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
 	listOAuthConnections      *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
 	disconnectOAuthConnection *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
@@ -240,6 +251,11 @@ func (c *observabilityServiceClient) GetDeployStatus(ctx context.Context, req *c
 	return c.getDeployStatus.CallUnary(ctx, req)
 }
 
+// GetDeployLogs calls observability.v1.ObservabilityService.GetDeployLogs.
+func (c *observabilityServiceClient) GetDeployLogs(ctx context.Context, req *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error) {
+	return c.getDeployLogs.CallUnary(ctx, req)
+}
+
 // GetHealthOverview calls observability.v1.ObservabilityService.GetHealthOverview.
 func (c *observabilityServiceClient) GetHealthOverview(ctx context.Context, req *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error) {
 	return c.getHealthOverview.CallUnary(ctx, req)
@@ -276,6 +292,7 @@ type ObservabilityServiceHandler interface {
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
+	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
@@ -338,6 +355,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("GetDeployStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceGetDeployLogsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetDeployLogsProcedure,
+		svc.GetDeployLogs,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetDeployLogs")),
+		connect.WithHandlerOptions(opts...),
+	)
 	observabilityServiceGetHealthOverviewHandler := connect.NewUnaryHandler(
 		ObservabilityServiceGetHealthOverviewProcedure,
 		svc.GetHealthOverview,
@@ -386,6 +409,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetSentryIssuesHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDeployStatusProcedure:
 			observabilityServiceGetDeployStatusHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetDeployLogsProcedure:
+			observabilityServiceGetDeployLogsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetHealthOverviewProcedure:
 			observabilityServiceGetHealthOverviewHandler.ServeHTTP(w, r)
 		case ObservabilityServiceListOAuthConnectionsProcedure:
@@ -435,6 +460,10 @@ func (UnimplementedObservabilityServiceHandler) GetSentryIssues(context.Context,
 
 func (UnimplementedObservabilityServiceHandler) GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDeployStatus is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDeployLogs is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error) {
