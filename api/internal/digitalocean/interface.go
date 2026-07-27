@@ -21,8 +21,9 @@ type Client interface {
 	// admin config picker. Returns oauthconn.ErrNotConnected when no token is
 	// set — discovery must work before an app ID is picked.
 	ListApps(ctx context.Context) ([]App, error)
-	// DeploymentLogs returns the BUILD and DEPLOY log text for every service
-	// component of the given deployment, so a failed deploy can be analyzed.
+	// DeploymentLogs returns the BUILD, DEPLOY, RUN, and RUN_RESTARTED log
+	// text for every service component of the given deployment, so both a
+	// failed deploy and the component's runtime behavior can be analyzed.
 	// A component/type pair with no logs yet is omitted rather than erroring.
 	// Returns ErrNotConfigured when the token/app ID is unset.
 	DeploymentLogs(ctx context.Context, deploymentID string) ([]ComponentLog, error)

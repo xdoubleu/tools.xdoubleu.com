@@ -30,14 +30,16 @@ func (w deploymentWire) toDeployment() Deployment {
 	return Deployment(w)
 }
 
-// LogType is a DigitalOcean App Platform deployment log phase. Only BUILD and
-// DEPLOY are fetched — RUN/RUN_RESTARTED are runtime logs, a different and
-// much noisier concern than "why did this deploy fail".
+// LogType is a DigitalOcean App Platform deployment log phase. BUILD and
+// DEPLOY cover "why did this deploy fail"; RUN and RUN_RESTARTED are the
+// component's runtime logs, fetched the same way.
 type LogType string
 
 const (
-	LogTypeBuild  LogType = "BUILD"
-	LogTypeDeploy LogType = "DEPLOY"
+	LogTypeBuild        LogType = "BUILD"
+	LogTypeDeploy       LogType = "DEPLOY"
+	LogTypeRun          LogType = "RUN"
+	LogTypeRunRestarted LogType = "RUN_RESTARTED"
 )
 
 // ComponentLog is one service component's log text for one LogType of one

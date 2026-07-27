@@ -177,9 +177,9 @@ func (h *obsConnectHandler) GetDeployLogs(
 }
 
 // deployLogs resolves deploymentID to the latest deployment when empty, then
-// fetches its BUILD/DEPLOY component logs. Guards its source the same way
-// deployStatus does: an unset token yields configured=false and an upstream
-// failure is logged and downgraded to an empty section.
+// fetches its BUILD/DEPLOY/RUN/RUN_RESTARTED component logs. Guards its source
+// the same way deployStatus does: an unset token yields configured=false and
+// an upstream failure is logged and downgraded to an empty section.
 func (h *obsConnectHandler) deployLogs(
 	ctx context.Context, deploymentID string,
 ) *observabilityv1.GetDeployLogsResponse {

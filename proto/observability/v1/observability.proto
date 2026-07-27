@@ -182,15 +182,15 @@ message GetDeployLogsRequest {
 
 message DeployComponentLog {
   string component = 1;
-  string log_type = 2;  // "BUILD" | "DEPLOY"
+  string log_type = 2;  // "BUILD" | "DEPLOY" | "RUN" | "RUN_RESTARTED"
   string content = 3;
   bool truncated = 4;
 }
 
-// GetDeployLogsResponse carries per-component build/deploy log text for one
-// deployment. configured is false when no DigitalOcean token/app ID is set —
-// the section is degraded. logs is empty when configured is false or the
-// deployment has no logs yet for either phase.
+// GetDeployLogsResponse carries per-component build/deploy/runtime log text
+// for one deployment. configured is false when no DigitalOcean token/app ID
+// is set — the section is degraded. logs is empty when configured is false or
+// the deployment has no logs yet for any phase.
 message GetDeployLogsResponse {
   bool configured = 1;
   string deployment_id = 2;

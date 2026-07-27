@@ -68,16 +68,18 @@ func TestDeploymentLogs_HappyPath(t *testing.T) {
 		map[string][]string{
 			"api:BUILD":  {"api-build"},
 			"web:DEPLOY": {"web-deploy"},
+			"api:RUN":    {"api-run"},
 		},
 	)
 	mux.HandleFunc("/log-chunk/api-build", textHandler("building api\n"))
 	mux.HandleFunc("/log-chunk/web-deploy", textHandler("deploying web\n"))
+	mux.HandleFunc("/log-chunk/api-run", textHandler("running api\n"))
 	cleanup := buildServer(mux)
 	defer cleanup()
 
 	logs, err := newClient().DeploymentLogs(context.Background(), "dep-1")
 	require.NoError(t, err)
-	require.Len(t, logs, 2)
+	require.Len(t, logs, 3)
 
 	byKey := map[string]digitalocean.ComponentLog{}
 	for _, l := range logs {
@@ -92,6 +94,10 @@ func TestDeploymentLogs_HappyPath(t *testing.T) {
 	webDeploy, ok := byKey["web:DEPLOY"]
 	require.True(t, ok)
 	assert.Equal(t, "deploying web\n", webDeploy.Content)
+
+	apiRun, ok := byKey["api:RUN"]
+	require.True(t, ok)
+	assert.Equal(t, "running api\n", apiRun.Content)
 }
 
 func TestDeploymentLogs_SkipsMissingPhases(t *testing.T) {

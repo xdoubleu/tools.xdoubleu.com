@@ -720,7 +720,7 @@ export type DeployComponentLog = Message<"observability.v1.DeployComponentLog"> 
   component: string;
 
   /**
-   * "BUILD" | "DEPLOY"
+   * "BUILD" | "DEPLOY" | "RUN" | "RUN_RESTARTED"
    *
    * @generated from field: string log_type = 2;
    */
@@ -745,10 +745,10 @@ export const DeployComponentLogSchema: GenMessage<DeployComponentLog> = /*@__PUR
   messageDesc(file_observability_v1_observability, 26);
 
 /**
- * GetDeployLogsResponse carries per-component build/deploy log text for one
- * deployment. configured is false when no DigitalOcean token/app ID is set —
- * the section is degraded. logs is empty when configured is false or the
- * deployment has no logs yet for either phase.
+ * GetDeployLogsResponse carries per-component build/deploy/runtime log text
+ * for one deployment. configured is false when no DigitalOcean token/app ID
+ * is set — the section is degraded. logs is empty when configured is false or
+ * the deployment has no logs yet for any phase.
  *
  * @generated from message observability.v1.GetDeployLogsResponse
  */

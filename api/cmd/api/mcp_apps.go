@@ -126,11 +126,14 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.deployStatus(ctx), nil
 		})
-	addObsTool(srv, "get_deploy_logs",
-		"Build/deploy log text for a DigitalOcean deployment (default: the latest).",
+	addObsTool(
+		srv,
+		"get_deploy_logs",
+		"Build/deploy/runtime log text for a DigitalOcean deployment (default: the latest).",
 		func(ctx context.Context, a deployLogsArgs) (proto.Message, error) {
 			return h.deployLogs(ctx, a.DeploymentID), nil
-		})
+		},
+	)
 }
 
 // addObsTool registers one read-only observability tool. It applies the admin
