@@ -103,6 +103,47 @@ describe('FeedManager', () => {
     expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument()
   })
 
+  it('shows a pending-verification message for an email feed with no mail yet', () => {
+    feedsData.data = {
+      feeds: [
+        {
+          ...feed,
+          url: '',
+          title: 'Email newsletter',
+          sourceType: 'email',
+          lastFetchedAt: '',
+          lastError: ''
+        }
+      ]
+    }
+    render(<FeedManager />)
+    expect(screen.getByText(/Waiting for your first email/)).toBeInTheDocument()
+  })
+
+  it('shows a verified message for an email feed once mail has arrived', () => {
+    feedsData.data = {
+      feeds: [{ ...feed, url: '', title: 'Email newsletter', sourceType: 'email' }]
+    }
+    render(<FeedManager />)
+    expect(screen.getByText(/Verified — last email received/)).toBeInTheDocument()
+  })
+
+  it('shows the last email error for a failed email feed', () => {
+    feedsData.data = {
+      feeds: [
+        {
+          ...feed,
+          url: '',
+          title: 'Email newsletter',
+          sourceType: 'email',
+          lastError: 'ingest failed'
+        }
+      ]
+    }
+    render(<FeedManager />)
+    expect(screen.getByText(/Last email failed: ingest failed/)).toBeInTheDocument()
+  })
+
   it('shows the empty state', () => {
     feedsData.data = { feeds: [] }
     render(<FeedManager />)
