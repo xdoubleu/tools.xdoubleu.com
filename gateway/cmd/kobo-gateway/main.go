@@ -41,6 +41,16 @@ var SentryDSN = ""
 //nolint:gochecknoglobals // test seam, see main_test.go's TestMain
 var headless = false
 
+// restarting is set (in serve's select goroutine, before stop closes) when a
+// self-update requested a restart rather than a plain quit. Package-level so
+// menubar_darwin.go's stop-terminate goroutine can read it directly after
+// <-stop without runUI needing a parameter for it — same happens-before as
+// documented on that goroutine in serve() below applies here too. serve()
+// resets it to false on entry since tests call it more than once per process.
+//
+//nolint:gochecknoglobals // cross-file signal between serve and runUI, see above.
+var restarting bool
+
 const (
 	readTimeout = 5 * time.Second
 	// writeTimeout covers POST /update, which downloads the new binary
@@ -193,6 +203,8 @@ func serve(
 	cfg kobogateway.Config,
 	stdout io.Writer,
 ) error {
+	restarting = false
+
 	certsDir, err := certDir()
 	if err != nil {
 		return fmt.Errorf("resolve cert dir: %w", err)
@@ -238,7 +250,6 @@ func serve(
 	// only synchronization needed (happens-before via Go's memory model).
 	stop := make(chan struct{})
 	var serveErr error
-	var restarting bool
 	go func() {
 		select {
 		case serveErr = <-errCh:
