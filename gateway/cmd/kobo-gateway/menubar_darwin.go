@@ -83,7 +83,6 @@ var notifyAuthOnce sync.Once
 func runUI(
 	release string,
 	stop <-chan struct{},
-	restarting func() bool,
 	koboEvents <-chan kobogateway.KoboEvent,
 	homeDir, execPath string,
 	firstLaunch bool,
@@ -126,7 +125,7 @@ func runUI(
 		go recoverGo("stop-terminate", func() {
 			<-stop
 
-			if restarting() {
+			if restarting {
 				// NSApplication.terminate: below exits the process directly
 				// and never returns control to serve(), so its restart/exec
 				// tail (main.go) is unreachable from here (#627) — exec the
