@@ -28,7 +28,7 @@ describe('AddFeedForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() => {
-      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1)
+      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1, '')
       expect(
         screen.getByText('Subscribed — importing items in the background.')
       ).toBeInTheDocument()
@@ -55,10 +55,13 @@ describe('AddFeedForm', () => {
     render(<AddFeedForm />)
 
     fireEvent.click(screen.getByLabelText('Email newsletter'))
+    fireEvent.change(screen.getByLabelText('Newsletter name'), {
+      target: { value: 'My Substack' }
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() => {
-      expect(createFeed).toHaveBeenCalledWith('', false, 2)
+      expect(createFeed).toHaveBeenCalledWith('', false, 2, 'My Substack')
       expect(screen.getByDisplayValue('reading+abc123@mail.example.com')).toBeInTheDocument()
     })
     // The URL input is not applicable in email mode.

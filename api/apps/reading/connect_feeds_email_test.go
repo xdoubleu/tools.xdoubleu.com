@@ -56,10 +56,9 @@ func newEmailConfiguredApp(
 
 func newEmailConfiguredTestClient(
 	t *testing.T,
-	secret, domain string,
 ) (booksTestClient, *mocks.MockWebFetchClient) {
 	t.Helper()
-	app, webFetch := newEmailConfiguredApp(t, secret, domain)
+	app, webFetch := newEmailConfiguredApp(t, "whsec_dGVzdA==", "mail.test.example")
 	ts := httptest.NewServer(testhelper.BuildMux(app))
 	t.Cleanup(ts.Close)
 	return newBooksClientFor(ts.URL, connect.WithHTTPGet()), webFetch
@@ -101,7 +100,7 @@ func TestCreateFeed_Email_RejectsURL(t *testing.T) {
 // inbound domain, CreateFeed(kind=EMAIL) mints a "reading+<token>@domain"
 // address and marks the feed source_type "email".
 func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
-	client, _ := newEmailConfiguredTestClient(t, "whsec_dGVzdA==", "mail.test.example")
+	client, _ := newEmailConfiguredTestClient(t)
 
 	resp, err := client.CreateFeed(
 		context.Background(),
@@ -130,6 +129,39 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 			assert.Empty(t, f.InboundAddress)
 		}
 	}
+}
+
+// TestCreateFeed_Email_CustomTitle proves that a title passed on
+// CreateFeed(kind=EMAIL) is stored on the feed (issue #629 — newsletters
+// were always hardcoded to "Email newsletter" with no way to name them).
+func TestCreateFeed_Email_CustomTitle(t *testing.T) {
+	client, _ := newEmailConfiguredTestClient(t)
+
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{
+			Kind:  readingv1.FeedKind_FEED_KIND_EMAIL,
+			Title: "My Substack",
+		}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "My Substack", resp.Msg.Feed.Title)
+}
+
+// TestCreateFeed_Email_DefaultTitle proves that an empty title still falls
+// back to "Email newsletter" rather than storing a blank title.
+func TestCreateFeed_Email_DefaultTitle(t *testing.T) {
+	client, _ := newEmailConfiguredTestClient(t)
+
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(
+			t,
+			&readingv1.CreateFeedRequest{Kind: readingv1.FeedKind_FEED_KIND_EMAIL},
+		),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "Email newsletter", resp.Msg.Feed.Title)
 }
 
 // TestCreateFeed_Email_GenericErrorMapped proves that a CreateEmail failure
@@ -172,11 +204,7 @@ func TestCreateFeed_Email_GenericErrorMapped(t *testing.T) {
 // email feed — it is push-only (Resend webhook), so polling it must never
 // touch the web-fetch client.
 func TestRefreshFeed_EmailFeed_NoOp(t *testing.T) {
-	client, webFetch := newEmailConfiguredTestClient(
-		t,
-		"whsec_dGVzdA==",
-		"mail.test.example",
-	)
+	client, webFetch := newEmailConfiguredTestClient(t)
 
 	created, err := client.CreateFeed(
 		context.Background(),
