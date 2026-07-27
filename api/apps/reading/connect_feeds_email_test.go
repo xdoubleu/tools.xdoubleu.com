@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
@@ -133,14 +134,31 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 
 // TestCreateFeed_Email_GenericErrorMapped proves that a CreateEmail failure
 // other than ErrEmailFeedsNotConfigured (e.g. a DB error) is mapped through
-// feedErrorToConnect rather than always being read as "not configured".
+// feedErrorToConnect rather than always being read as "not configured". Uses
+// an app wired to an unreachable DB (port 1, immediate connection refusal)
+// so the Insert call genuinely fails — everything before it (auth, the
+// inboundDomain check) still succeeds normally.
 func TestCreateFeed_Email_GenericErrorMapped(t *testing.T) {
-	client, _ := newEmailConfiguredTestClient(t, "whsec_dGVzdA==", "mail.test.example")
+	brokenDB, err := pgxpool.New(context.Background(), "postgres://u:p@127.0.0.1:1/db")
+	require.NoError(t, err)
+	t.Cleanup(brokenDB.Close)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err := client.CreateFeed(
-		ctx,
+	cfg := testCfg
+	cfg.EmailInboundDomain = "mail.test.example"
+	app := reading.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(),
+		cfg,
+		brokenDB,
+		//nolint:exhaustruct // unused by CreateEmail's DB-only failure path
+		reading.Clients{},
+	)
+	ts := httptest.NewServer(testhelper.BuildMux(app))
+	t.Cleanup(ts.Close)
+	client := newBooksClientFor(ts.URL, connect.WithHTTPGet())
+
+	_, err = client.CreateFeed(
+		context.Background(),
 		feedReq(
 			t,
 			&readingv1.CreateFeedRequest{Kind: readingv1.FeedKind_FEED_KIND_EMAIL},
