@@ -195,6 +195,24 @@ func TestConnectGetBookContent_BackfillsMissingContentForRSSItem(t *testing.T) {
 	assert.Contains(t, *stored, "Lorem ipsum")
 }
 
+func TestBackfillContentHTML_LogsWhenPersistFails(t *testing.T) {
+	url := fmt.Sprintf("https://blog.example.com/persist-fail-%s", uuid.NewString())
+	book := seedSourcedBookInLibrary(t, userID, models.CategoryRSS, url)
+	mockWebFetch.SetHTML(url, articlePageHTML("Unpersisted Post"))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	html := testApp.Services.Feeds.BackfillContentHTML(ctx, book)
+	assert.Contains(t, html, "Lorem ipsum")
+
+	stored, err := testApp.Repositories.Books.GetBookContentHTML(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.Nil(t, stored)
+}
+
 func TestConnectGetBookContent_NoBackfillWhenFetchFails(t *testing.T) {
 	client := newBooksTestClient(t)
 	url := fmt.Sprintf("https://blog.example.com/missing-%s", uuid.NewString())
