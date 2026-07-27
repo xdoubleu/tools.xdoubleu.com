@@ -194,14 +194,15 @@ so swapping in a redesigned asset needs no other change.
 ## Distribution
 
 `kobo-gateway.dmg` (download button) and `kobo-gateway-darwin-arm64` (raw
-binary, self-update target) both ship inside the **web** Docker image,
-served at `/downloads/kobo-gateway.dmg` and
-`/downloads/kobo-gateway-darwin-arm64`. Since this module can't build on the
-Linux runner that builds the web image, `.github/workflows/build-gateway.yml`
-builds and packages it on a `macos-14` runner and hands both files to
-`docker.yml` as an `actions/upload-artifact` artifact; `web/Dockerfile`
-`COPY`s them in directly (there is no gateway build stage in that Dockerfile).
-See the root `CLAUDE.md` CI section for the full wiring.
+binary, self-update target) both ship inside the single merged **app** Docker
+image (issue #558 — api and web build into one image), served at
+`/downloads/kobo-gateway.dmg` and `/downloads/kobo-gateway-darwin-arm64`.
+Since this module can't build on the Linux runner that builds the app image,
+`.github/workflows/build-gateway.yml` builds and packages it on a `macos-14`
+runner and hands both files to `docker.yml` as an `actions/upload-artifact`
+artifact; the root `Dockerfile` `COPY`s them in directly (there is no gateway
+build stage in that Dockerfile). See the root `CLAUDE.md` CI section for the
+full wiring.
 
 ## Self-update
 
