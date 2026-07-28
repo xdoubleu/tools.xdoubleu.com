@@ -53,14 +53,15 @@ type ComponentLog struct {
 }
 
 // deploymentDetailWire is the subset of the single-deployment-get payload
-// used to discover the app's service component names.
+// used to discover the app's service component names. Names come from the
+// top-level "services" array, not "spec.services": DO returns spec as
+// omitempty and does not reliably include it on the deployment-detail
+// endpoint, whereas the top-level services list is always present.
 type deploymentDetailWire struct {
 	Deployment struct {
-		Spec struct {
-			Services []struct {
-				Name string `json:"name"`
-			} `json:"services"`
-		} `json:"spec"`
+		Services []struct {
+			Name string `json:"name"`
+		} `json:"services"`
 	} `json:"deployment"`
 }
 

@@ -279,10 +279,13 @@ func (x *ListFeedsResponse) GetFeeds() []*Feed {
 // CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
 // (url must be empty); items land as mail arrives via the Resend webhook.
 type CreateFeedRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	KoboSync      bool                   `protobuf:"varint,2,opt,name=kobo_sync,json=koboSync,proto3" json:"kobo_sync,omitempty"`
-	Kind          FeedKind               `protobuf:"varint,3,opt,name=kind,proto3,enum=reading.v1.FeedKind" json:"kind,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Url      string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	KoboSync bool                   `protobuf:"varint,2,opt,name=kobo_sync,json=koboSync,proto3" json:"kobo_sync,omitempty"`
+	Kind     FeedKind               `protobuf:"varint,3,opt,name=kind,proto3,enum=reading.v1.FeedKind" json:"kind,omitempty"`
+	// Optional; only used for kind=EMAIL. Ignored for RSS, whose title is
+	// parsed from the feed itself.
+	Title         string `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -336,6 +339,13 @@ func (x *CreateFeedRequest) GetKind() FeedKind {
 		return x.Kind
 	}
 	return FeedKind_FEED_KIND_UNSPECIFIED
+}
+
+func (x *CreateFeedRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
 }
 
 type CreateFeedResponse struct {
@@ -814,11 +824,12 @@ const file_reading_v1_feeds_proto_rawDesc = "" +
 	"\x0finbound_address\x18\t \x01(\tR\x0einboundAddress\"\x12\n" +
 	"\x10ListFeedsRequest\";\n" +
 	"\x11ListFeedsResponse\x12&\n" +
-	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds\"l\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds\"\x82\x01\n" +
 	"\x11CreateFeedRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1b\n" +
 	"\tkobo_sync\x18\x02 \x01(\bR\bkoboSync\x12(\n" +
-	"\x04kind\x18\x03 \x01(\x0e2\x14.reading.v1.FeedKindR\x04kind\"@\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x14.reading.v1.FeedKindR\x04kind\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\"@\n" +
 	"\x12CreateFeedResponse\x12$\n" +
 	"\x04feed\x18\x01 \x01(\v2\x10.reading.v1.FeedR\x04feedJ\x04\b\x02\x10\x03\"_\n" +
 	"\x11UpdateFeedRequest\x12\x17\n" +

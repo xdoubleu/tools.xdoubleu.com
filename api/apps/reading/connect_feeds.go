@@ -137,7 +137,7 @@ func (h *booksConnectHandler) createEmailFeed(
 	}
 
 	feed, address, err := h.app.Services.Feeds.CreateEmail(
-		ctx, userID, req.KoboSync,
+		ctx, userID, req.KoboSync, req.Title,
 	)
 	if err != nil {
 		if errors.Is(err, services.ErrEmailFeedsNotConfigured) {

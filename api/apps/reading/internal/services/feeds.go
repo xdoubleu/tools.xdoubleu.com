@@ -153,9 +153,14 @@ func (s *FeedService) CreateEmail(
 	ctx context.Context,
 	userID string,
 	koboSync bool,
+	title string,
 ) (*models.Feed, string, error) {
 	if s.inboundDomain == "" {
 		return nil, "", ErrEmailFeedsNotConfigured
+	}
+
+	if title == "" {
+		title = "Email newsletter"
 	}
 
 	raw := make([]byte, emailTokenBytes)
@@ -169,7 +174,7 @@ func (s *FeedService) CreateEmail(
 	//nolint:exhaustruct // fetch state starts empty; ids are DB-owned
 	feed, err := s.feeds.Insert(ctx, models.Feed{
 		UserID:       userID,
-		Title:        "Email newsletter",
+		Title:        title,
 		KoboSync:     koboSync,
 		SourceType:   models.FeedSourceEmail,
 		InboundToken: &hash,

@@ -33,6 +33,7 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
   const createFeed = useCreateFeed()
   const [mode, setMode] = useState<Mode>('rss')
   const [url, setUrl] = useState('')
+  const [title, setTitle] = useState('')
   const [koboSync, setKoboSync] = useState(false)
   const [busy, setBusy] = useState(false)
   const [addStatus, setAddStatus] = useState('')
@@ -47,7 +48,8 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
       const resp = await createFeed(
         mode === 'rss' ? url.trim() : '',
         koboSync,
-        mode === 'rss' ? FeedKind.RSS : FeedKind.EMAIL
+        mode === 'rss' ? FeedKind.RSS : FeedKind.EMAIL,
+        mode === 'email' ? title.trim() : ''
       )
       if (mode === 'email') {
         setInboundAddress(resp.feed?.inboundAddress ?? '')
@@ -55,6 +57,7 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
         setAddStatus('Subscribed — importing items in the background.')
       }
       setUrl('')
+      setTitle('')
       setKoboSync(false)
       onAdded?.()
     } catch (err) {
@@ -95,6 +98,16 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             aria-label="Feed URL"
+            className="w-auto min-w-0 flex-1"
+          />
+        )}
+        {mode === 'email' && (
+          <Input
+            type="text"
+            placeholder="Newsletter name (optional)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label="Newsletter name"
             className="w-auto min-w-0 flex-1"
           />
         )}

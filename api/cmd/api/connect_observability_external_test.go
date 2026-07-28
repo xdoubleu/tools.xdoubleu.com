@@ -344,10 +344,10 @@ func deployLogsMux(latestID string, components []string, chunk string) *http.Ser
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(
-				`{"deployment":{"spec":{"services":[` + strings.Join(
+				`{"deployment":{"services":[` + strings.Join(
 					names,
 					",",
-				) + `]}}}`,
+				) + `]}}`,
 			))
 		},
 	)

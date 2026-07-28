@@ -24,8 +24,8 @@ export function useFeedItemBooks() {
 export function useCreateFeed() {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
-    async (url: string, koboSync: boolean, kind: FeedKind = FeedKind.RSS) => {
-      const resp = await client.createFeed({ url, koboSync, kind })
+    async (url: string, koboSync: boolean, kind: FeedKind = FeedKind.RSS, title = '') => {
+      const resp = await client.createFeed({ url, koboSync, kind, title })
       await mutate(swrKeys.bookFeeds)
       // The initial import runs in the background (#430), so how many items
       // it will ingest is unknown here. Revalidate the library anyway — a

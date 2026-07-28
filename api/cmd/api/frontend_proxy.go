@@ -7,9 +7,18 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 )
+
+// webResponseHeaderTimeout caps how long the proxy waits for the Next.js child
+// to start sending response headers. A wedged child (alive, socket listening,
+// event loop blocked) otherwise hangs the proxy forever with nothing logged;
+// exceeding this fires ErrorHandler below (logged 503). Kept above the 10s SSR
+// api timeout (web/lib/server/client.ts) so a slow-but-recovering render still
+// completes before the proxy gives up. See issue #634.
+const webResponseHeaderTimeout = 15 * time.Second
 
 // frontendProxy front-doors every request in the merged single-container
 // deploy shape (issue #558), replicating the two DO App Platform ingress
@@ -32,6 +41,11 @@ func (app *Application) frontendProxy(apiHandler http.Handler) http.Handler {
 		Host:   fmt.Sprintf("127.0.0.1:%d", app.config.WebPort),
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	// Loopback target (the Next child), so the zero-value Transport's defaults
+	// are fine — we only need the ResponseHeaderTimeout cap.
+	proxy.Transport = &http.Transport{
+		ResponseHeaderTimeout: webResponseHeaderTimeout,
+	}
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		app.logger.Error(
 			"web process unreachable",
