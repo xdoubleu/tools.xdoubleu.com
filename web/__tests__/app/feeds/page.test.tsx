@@ -1,15 +1,9 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  )
-})
-
 jest.mock('@/components/reading/FeedReaderClient', () => () => <div data-testid="feed-reader" />)
 
-jest.mock('@/components/reading/ManageFeedsSection', () => () => <div data-testid="manage-feeds" />)
+jest.mock('@/components/reading/FeedsHeader', () => () => <div data-testid="feeds-header" />)
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({}))
@@ -27,14 +21,9 @@ jest.mock('@/components/SWRFallback', () => ({
 import FeedsPage from '@/app/feeds/page'
 
 describe('FeedsPage', () => {
-  it('renders the Feeds heading', async () => {
+  it('renders the feeds header', async () => {
     render(await FeedsPage())
-    expect(screen.getByRole('heading', { name: 'Feeds' })).toBeInTheDocument()
-  })
-
-  it('renders a link back to /reading', async () => {
-    render(await FeedsPage())
-    expect(screen.getByRole('link', { name: /reading/i })).toHaveAttribute('href', '/reading')
+    expect(screen.getByTestId('feeds-header')).toBeInTheDocument()
   })
 
   it('renders the feed reader', async () => {
@@ -42,8 +31,8 @@ describe('FeedsPage', () => {
     expect(screen.getByTestId('feed-reader')).toBeInTheDocument()
   })
 
-  it('renders the manage feeds section', async () => {
+  it('renders no link back to /reading', async () => {
     render(await FeedsPage())
-    expect(screen.getByTestId('manage-feeds')).toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })
