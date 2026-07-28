@@ -156,7 +156,7 @@ func (c *client) serviceComponents(
 
 	var wire deploymentDetailWire
 	if err := c.get(ctx, endpoint, token, &wire); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("service components: %w", err)
 	}
 
 	names := make([]string, 0, len(wire.Deployment.Services))
@@ -216,7 +216,9 @@ func (c *client) componentLog(
 	var wire deployLogsWire
 	err := c.get(ctx, scope.endpoint+"?"+query.Encode(), token, &wire)
 	if err != nil {
-		return ComponentLog{}, false, err
+		return ComponentLog{}, false, fmt.Errorf(
+			"component %s type %s: %w", component, logType, err,
+		)
 	}
 
 	content, truncated, err := c.fetchLogContent(ctx, wire.HistoricURLs)

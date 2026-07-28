@@ -250,7 +250,7 @@ func (h *obsConnectHandler) degradeDeployLogs(
 		resp.Configured = false
 		return
 	}
-	h.app.logger.WarnContext(ctx, "deploy logs unavailable", slog.Any("error", err))
+	h.app.logger.ErrorContext(ctx, "deploy logs unavailable", slog.Any("error", err))
 }
 
 func (h *obsConnectHandler) GetHealthOverview(
