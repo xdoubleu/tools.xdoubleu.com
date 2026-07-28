@@ -242,6 +242,23 @@ func (s *FeedService) IngestEmail(
 	}
 }
 
+// RecordEmailFetchFailure persists a fetch failure for an email feed when
+// the inbound webhook itself couldn't retrieve the email body (e.g.
+// Resend's receiving API erroring) — before IngestEmail is ever reached.
+// Mirrors IngestEmail's own error branch so this failure is visible in the
+// UI's last-error the same way an ingest failure already is.
+func (s *FeedService) RecordEmailFetchFailure(
+	ctx context.Context,
+	feedID uuid.UUID,
+	fetchErr error,
+) {
+	errStr := fetchErr.Error()
+	if err := s.feeds.SetFetchResult(ctx, feedID, nil, nil, &errStr); err != nil {
+		s.logger.WarnContext(ctx, "email feed fetch-result update failed",
+			"feedID", feedID, "error", err)
+	}
+}
+
 // Update changes the feed's title and kobo-sync flag.
 func (s *FeedService) Update(
 	ctx context.Context,

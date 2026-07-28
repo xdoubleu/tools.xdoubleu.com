@@ -372,7 +372,9 @@ func TestEmailInbound_KoboSyncFeed_EnablesSync(t *testing.T) {
 // TestEmailInbound_ResendFetchFails_NoOp proves that when the follow-up
 // "retrieve received email" call to Resend fails (e.g. Resend having an
 // outage), the webhook still acks 200 rather than surfacing the failure to
-// Resend as a delivery error, and nothing is ingested.
+// Resend as a delivery error, nothing is ingested, and the failure is
+// recorded as the feed's last_error so the user isn't left staring at
+// "Waiting for your first email…" with no diagnostic at all.
 func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 	mux, app := emailWebhookApp(t)
 	feedID, token := createEmailFeedFor(t, mux)
@@ -391,6 +393,32 @@ func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 		"mailto:"+feedID+"/"+messageIDFor("email-fetchfail"),
 	)
 	assert.Error(t, err, "a failed Resend fetch must not ingest anything")
+
+	feed, err := app.Repositories.Feeds.GetByID(
+		context.Background(), userID, mustParseUUID(t, feedID),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, feed.LastError)
+	assert.Contains(t, *feed.LastError, "500")
+}
+
+// TestRecordEmailFetchFailure_DBErrors_LogsWithoutPanicking proves
+// RecordEmailFetchFailure's own best-effort persistence never panics or
+// blocks the caller when the SetFetchResult write itself fails (e.g. an
+// already-canceled context) — it only logs, mirroring IngestEmail's
+// identical defensive branch.
+func TestRecordEmailFetchFailure_DBErrors_LogsWithoutPanicking(t *testing.T) {
+	mux, app := emailWebhookApp(t)
+	feedID, _ := createEmailFeedFor(t, mux)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	assert.NotPanics(t, func() {
+		app.Services.Feeds.RecordEmailFetchFailure(
+			ctx, mustParseUUID(t, feedID), errors.New("boom"),
+		)
+	})
 }
 
 // TestEmailInbound_IgnoredEventType_NoOp proves that a webhook event other

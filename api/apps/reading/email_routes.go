@@ -106,8 +106,9 @@ func (app *Reading) emailInboundHandler(w http.ResponseWriter, r *http.Request) 
 		r.Context(), app.Config.ResendAPIKey, payload.Data.EmailID,
 	)
 	if err != nil {
-		app.Logger.WarnContext(r.Context(), "email inbound: fetch body failed",
+		app.Logger.ErrorContext(r.Context(), "email inbound: fetch body failed",
 			"feedID", feed.ID, "emailID", payload.Data.EmailID, "error", err)
+		app.Services.Feeds.RecordEmailFetchFailure(r.Context(), feed.ID, err)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
