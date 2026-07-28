@@ -178,7 +178,7 @@ func (s *FeedService) CreateEmail(
 		return nil, "", err
 	}
 
-	address := "reading+" + token + "@" + s.inboundDomain
+	address := token + "@" + s.inboundDomain
 	return feed, address, nil
 }
 

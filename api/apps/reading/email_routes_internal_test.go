@@ -198,9 +198,11 @@ func TestInboundTokenFromAddress(t *testing.T) {
 		wantOK    bool
 	}{
 		{"valid alias", "reading+abc123@mail.example.com", "abc123", true},
-		{"no plus", "reading@mail.example.com", "", false},
+		// New format (issue #667): no "+" required, whole local part is the token.
+		{"no plus", "abc123@mail.example.com", "abc123", true},
 		{"no at", "reading+abc123", "", false},
-		{"empty token", "reading+@mail.example.com", "", false},
+		{"empty token after plus", "reading+@mail.example.com", "", false},
+		{"empty local part", "@mail.example.com", "", false},
 		// A relay lowercasing the recipient local-part shouldn't break
 		// lookup (issue #661) — the token is folded to lowercase.
 		{
