@@ -59,7 +59,12 @@ type resendInboundPayload struct {
 		MessageID string   `json:"message_id"`
 		From      string   `json:"from"`
 		To        []string `json:"to"`
-		Subject   string   `json:"subject"`
+		// ReceivedFor is the address the inbound route actually matched —
+		// distinct from To when the alias was bcc'd/cc'd or the envelope
+		// recipient differs from the To: header. Checked as a fallback
+		// candidate alongside To in resolveEmailFeed.
+		ReceivedFor []string `json:"received_for"`
+		Subject     string   `json:"subject"`
 	} `json:"data"`
 }
 
@@ -67,22 +72,38 @@ const resendEventEmailReceived = "email.received"
 
 func (app *Reading) emailInboundHandler(w http.ResponseWriter, r *http.Request) {
 	if app.Config.EmailInboundSecret == "" || app.Config.ResendAPIKey == "" {
+		app.Logger.ErrorContext(r.Context(),
+			"email inbound: not configured (EMAIL_INBOUND_SECRET/RESEND_API_KEY unset)")
 		http.Error(w, "not configured", http.StatusServiceUnavailable)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		app.Logger.WarnContext(r.Context(), "email inbound: body read failed",
+			"error", err)
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 	if !verifyResendSignature(app.Config.EmailInboundSecret, r.Header, body) {
+		app.Logger.WarnContext(
+			r.Context(),
+			"email inbound: signature verification failed",
+			"hasSvixID",
+			r.Header.Get("svix-id") != "",
+			"hasSvixTimestamp",
+			r.Header.Get("svix-timestamp") != "",
+			"hasSvixSignature",
+			r.Header.Get("svix-signature") != "",
+		)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var payload resendInboundPayload
 	if err = json.Unmarshal(body, &payload); err != nil {
+		app.Logger.WarnContext(r.Context(), "email inbound: malformed body",
+			"error", err)
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
@@ -94,10 +115,13 @@ func (app *Reading) emailInboundHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	feed := app.resolveEmailFeed(r.Context(), payload.Data.To)
+	candidates := append(
+		append([]string{}, payload.Data.To...), payload.Data.ReceivedFor...,
+	)
+	feed := app.resolveEmailFeed(r.Context(), candidates)
 	if feed == nil {
 		app.Logger.WarnContext(r.Context(), "email inbound: unknown alias",
-			"to", payload.Data.To)
+			"to", payload.Data.To, "receivedFor", payload.Data.ReceivedFor)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -124,8 +148,8 @@ func (app *Reading) emailInboundHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // resolveEmailFeed extracts the "reading+<token>@…" alias token from each
-// candidate "to" address and returns the first one that resolves to a known
-// email feed, or nil if none does.
+// candidate address (drawn from both "to" and "received_for") and returns
+// the first one that resolves to a known email feed, or nil if none does.
 func (app *Reading) resolveEmailFeed(
 	ctx context.Context,
 	to []string,
