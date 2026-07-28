@@ -50,7 +50,7 @@ describe('AddFeedForm', () => {
   })
 
   it('mints and displays a one-time inbound address for email mode', async () => {
-    createFeed.mockResolvedValue({ feed: { inboundAddress: 'reading+abc123@mail.example.com' } })
+    createFeed.mockResolvedValue({ feed: { inboundAddress: 'abc123@mail.example.com' } })
     render(<AddFeedForm />)
 
     fireEvent.click(screen.getByLabelText('Email newsletter'))
@@ -61,7 +61,7 @@ describe('AddFeedForm', () => {
 
     await waitFor(() => {
       expect(createFeed).toHaveBeenCalledWith('', 2, 'My Substack')
-      expect(screen.getByDisplayValue('reading+abc123@mail.example.com')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('abc123@mail.example.com')).toBeInTheDocument()
     })
     // The URL input is not applicable in email mode.
     expect(screen.queryByLabelText('Feed URL')).not.toBeInTheDocument()
@@ -84,16 +84,16 @@ describe('AddFeedForm', () => {
   it('copies the inbound address to the clipboard', async () => {
     const writeText = jest.fn()
     Object.assign(navigator, { clipboard: { writeText } })
-    createFeed.mockResolvedValue({ feed: { inboundAddress: 'reading+abc123@mail.example.com' } })
+    createFeed.mockResolvedValue({ feed: { inboundAddress: 'abc123@mail.example.com' } })
     render(<AddFeedForm />)
 
     fireEvent.click(screen.getByLabelText('Email newsletter'))
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
     await waitFor(() => {
-      expect(screen.getByDisplayValue('reading+abc123@mail.example.com')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('abc123@mail.example.com')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }))
-    expect(writeText).toHaveBeenCalledWith('reading+abc123@mail.example.com')
+    expect(writeText).toHaveBeenCalledWith('abc123@mail.example.com')
   })
 })

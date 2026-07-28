@@ -97,8 +97,9 @@ func TestCreateFeed_Email_RejectsURL(t *testing.T) {
 }
 
 // TestCreateFeed_Email_MintsInboundAddress proves that, configured with an
-// inbound domain, CreateFeed(kind=EMAIL) mints a "reading+<token>@domain"
-// address and marks the feed source_type "email".
+// inbound domain, CreateFeed(kind=EMAIL) mints a "<token>@domain" address
+// (issue #667: no "+" required, so newsletter forms that reject one still
+// work) and marks the feed source_type "email".
 func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 	client, _ := newEmailConfiguredTestClient(t)
 
@@ -111,7 +112,6 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "email", resp.Msg.Feed.SourceType)
-	assert.True(t, strings.HasPrefix(resp.Msg.Feed.InboundAddress, "reading+"))
 	assert.True(
 		t,
 		strings.HasSuffix(resp.Msg.Feed.InboundAddress, "@mail.test.example"),
@@ -120,7 +120,7 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 	// The token must be lowercase hex (issue #661) — an alphabet with no
 	// case ambiguity for a mail relay to mangle in transit.
 	token := strings.TrimSuffix(
-		strings.TrimPrefix(resp.Msg.Feed.InboundAddress, "reading+"),
+		resp.Msg.Feed.InboundAddress,
 		"@mail.test.example",
 	)
 	assert.Regexp(t, "^[0-9a-f]{64}$", token)

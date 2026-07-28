@@ -140,9 +140,7 @@ func createEmailFeedFor(t *testing.T, mux http.Handler) (string, string) {
 	addr := resp.Msg.Feed.InboundAddress
 	local, _, ok := strings.Cut(addr, "@")
 	require.True(t, ok, "inbound address must contain @: %s", addr)
-	_, tok, ok := strings.Cut(local, "+")
-	require.True(t, ok, "inbound address local part must contain +: %s", addr)
-	return resp.Msg.Feed.Id, tok
+	return resp.Msg.Feed.Id, local
 }
 
 func postWebhook(
@@ -344,8 +342,7 @@ func TestEmailInbound_NeverEnablesKoboSync(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	local, _, _ := strings.Cut(resp.Msg.Feed.InboundAddress, "@")
-	_, token, _ := strings.Cut(local, "+")
+	token, _, _ := strings.Cut(resp.Msg.Feed.InboundAddress, "@")
 
 	stub := newResendReceivingStub(t)
 	stub.html = "<p>Kobo-synced newsletter</p>"

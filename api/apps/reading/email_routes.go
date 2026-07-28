@@ -147,9 +147,9 @@ func (app *Reading) emailInboundHandler(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-// resolveEmailFeed extracts the "reading+<token>@…" alias token from each
-// candidate address (drawn from both "to" and "received_for") and returns
-// the first one that resolves to a known email feed, or nil if none does.
+// resolveEmailFeed extracts the alias token from each candidate address
+// (drawn from both "to" and "received_for") and returns the first one that
+// resolves to a known email feed, or nil if none does.
 func (app *Reading) resolveEmailFeed(
 	ctx context.Context,
 	to []string,
@@ -173,21 +173,26 @@ func (app *Reading) resolveEmailFeed(
 	return nil
 }
 
-// inboundTokenFromAddress extracts the token from a "reading+<token>@domain"
-// address's local part. Lowercased before returning: some mail relays
-// lowercase the recipient local-part in transit, and the token is generated
-// as lowercase hex (issue #661), so folding case here makes lookup
-// insensitive to that mangling without weakening the token itself.
+// inboundTokenFromAddress extracts the token from a "<token>@domain" address's
+// local part, or from the legacy "reading+<token>@domain" form (issue #667:
+// some newsletter signup forms reject "+" in an email address, so new aliases
+// are issued without one, but previously-issued "reading+..." aliases must
+// keep resolving). Lowercased before returning: some mail relays lowercase
+// the recipient local-part in transit, and the token is generated as
+// lowercase hex (issue #661), so folding case here makes lookup insensitive
+// to that mangling without weakening the token itself.
 func inboundTokenFromAddress(addr string) (string, bool) {
 	local, _, ok := strings.Cut(addr, "@")
-	if !ok {
+	if !ok || local == "" {
 		return "", false
 	}
-	_, token, ok := strings.Cut(local, "+")
-	if !ok || token == "" {
+	if idx := strings.LastIndex(local, "+"); idx != -1 {
+		local = local[idx+1:]
+	}
+	if local == "" {
 		return "", false
 	}
-	return strings.ToLower(token), true
+	return strings.ToLower(local), true
 }
 
 // verifyResendSignature verifies a Resend inbound webhook using the Svix
