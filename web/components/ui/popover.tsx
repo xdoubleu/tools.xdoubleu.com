@@ -147,7 +147,7 @@ export function PopoverTrigger({ className, ...props }: ButtonHTMLAttributes<HTM
       type="button"
       className={cn(
         'flex items-center justify-center rounded-lg px-2 py-1 text-sm text-subtle',
-        'transition-colors hover:bg-hover hover:text-fg',
+        'transition-colors hover:bg-hover hover:text-fg active:bg-hover active:text-fg',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         className
       )}

@@ -44,7 +44,7 @@ export default function GameFavouriteButton({ game, className }: GameFavouriteBu
       className={cn(
         'text-sm leading-none transition-colors',
         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
-        favourite ? 'text-amber-500' : 'text-border hover:text-amber-400',
+        favourite ? 'text-amber-500' : 'text-border hover:text-amber-400 active:text-amber-400',
         className
       )}
     >

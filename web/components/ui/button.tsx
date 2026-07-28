@@ -13,11 +13,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  default: 'bg-accent text-white hover:bg-accent-hover focus-visible:ring-accent/50 shadow-sm',
-  secondary: 'bg-surface border border-border text-fg hover:bg-hover focus-visible:ring-border',
-  ghost: 'text-fg hover:bg-hover focus-visible:ring-border',
-  destructive: 'bg-danger text-white hover:opacity-90 focus-visible:ring-danger/50 shadow-sm',
-  link: 'text-accent underline-offset-4 hover:underline focus-visible:ring-accent/50'
+  default:
+    'bg-accent text-white hover:bg-accent-hover active:bg-accent-hover focus-visible:ring-accent/50 shadow-sm',
+  secondary:
+    'bg-surface border border-border text-fg hover:bg-hover active:bg-hover focus-visible:ring-border',
+  ghost: 'text-fg hover:bg-hover active:bg-hover focus-visible:ring-border',
+  destructive:
+    'bg-danger text-white hover:opacity-90 active:opacity-90 focus-visible:ring-danger/50 shadow-sm',
+  link: 'text-accent underline-offset-4 hover:underline active:underline focus-visible:ring-accent/50'
 }
 
 const sizeClasses: Record<Size, string> = {
@@ -35,7 +38,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center font-medium transition-colors cursor-pointer',
+          'inline-flex items-center justify-center font-medium cursor-pointer',
+          'transition-[color,background-color,box-shadow,transform] active:scale-[0.98]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
           'disabled:pointer-events-none disabled:opacity-50',
           variantClasses[variant],

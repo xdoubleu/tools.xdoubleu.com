@@ -52,7 +52,7 @@ export function LabelPicker({
         >
           {filtered.map((label) => (
             <li key={label} role="option" aria-selected={value.includes(label)}>
-              <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-hover">
+              <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-hover active:bg-hover">
                 <input
                   type="checkbox"
                   checked={value.includes(label)}

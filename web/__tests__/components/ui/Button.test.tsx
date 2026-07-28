@@ -41,6 +41,17 @@ describe('Button', () => {
     expect(btn).toHaveClass('h-6', 'w-6', 'rounded-lg')
   })
 
+  it('gives touch devices a pressed state via active: classes, not just hover:', () => {
+    render(<Button>Save</Button>)
+    const btn = screen.getByRole('button', { name: 'Save' })
+    expect(btn).toHaveClass('active:bg-accent-hover', 'active:scale-[0.98]')
+  })
+
+  it('pairs the ghost variant hover with a matching active state', () => {
+    render(<Button variant="ghost">Save</Button>)
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('active:bg-hover')
+  })
+
   it('lets className override conflicting variant utilities', () => {
     render(
       <Button variant="ghost" className="text-danger">

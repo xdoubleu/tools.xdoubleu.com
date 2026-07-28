@@ -52,7 +52,7 @@ export default function BooksSettingsClient() {
           Import your library from a Goodreads (or compatible) CSV export.
         </p>
         <div className="flex items-center gap-2">
-          <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover">
+          <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover active:bg-hover">
             Import CSV
             <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
           </label>
