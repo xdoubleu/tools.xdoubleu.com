@@ -7,14 +7,6 @@ jest.mock('@/hooks/useBooks', () => ({
   useImportBooks: () => mockImportBooks
 }))
 
-jest.mock('@/hooks/useBookFeeds', () => ({
-  useFeeds: () => ({ data: { feeds: [] }, error: undefined, isLoading: false }),
-  useCreateFeed: () => jest.fn(),
-  useUpdateFeed: () => jest.fn(),
-  useDeleteFeed: () => jest.fn(),
-  useRefreshFeed: () => jest.fn()
-}))
-
 jest.mock('@/components/reading/BulkBookUploader', () => ({
   __esModule: true,
   default: () => <div data-testid="bulk-uploader" />
@@ -85,5 +77,10 @@ describe('BooksSettingsClient', () => {
     render(<BooksSettingsClient />)
     expect(screen.queryByTestId('resync-books-btn')).not.toBeInTheDocument()
     expect(screen.queryByTestId('find-duplicates-btn')).not.toBeInTheDocument()
+  })
+
+  it('does not show an RSS feeds section (feed management moved to /feeds)', () => {
+    render(<BooksSettingsClient />)
+    expect(screen.queryByText('RSS feeds')).not.toBeInTheDocument()
   })
 })

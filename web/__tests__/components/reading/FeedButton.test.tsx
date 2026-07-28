@@ -39,11 +39,11 @@ describe('FeedButton', () => {
     // @ts-expect-error -- partial SWRResponse for test purposes
     mockUseLibrary.mockReturnValue({ data: undefined })
     render(<FeedButton />)
-    expect(screen.getByRole('link', { name: /feed/i })).toHaveAttribute('href', '/reading/feed')
+    expect(screen.getByRole('link', { name: /feed/i })).toHaveAttribute('href', '/feeds')
     expect(screen.queryByText(/^\d+$/)).not.toBeInTheDocument()
   })
 
-  it('renders a link to /reading/feed without a badge when there are no unread items', () => {
+  it('renders a link to /feeds without a badge when there are no unread items', () => {
     // @ts-expect-error -- partial SWRResponse for test purposes
     mockUseLibrary.mockReturnValue({
       data: create(GetLibraryResponseSchema, {
@@ -52,7 +52,7 @@ describe('FeedButton', () => {
     })
     render(<FeedButton />)
     const link = screen.getByRole('link', { name: /feed/i })
-    expect(link).toHaveAttribute('href', '/reading/feed')
+    expect(link).toHaveAttribute('href', '/feeds')
     expect(screen.queryByText(/^\d+$/)).not.toBeInTheDocument()
   })
 

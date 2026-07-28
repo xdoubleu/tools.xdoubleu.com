@@ -39,7 +39,7 @@ describe('SubscribedFeedsCard', () => {
   it('lists subscribed feeds and links to settings', () => {
     render(<SubscribedFeedsCard />)
     expect(screen.getByText('Example Blog')).toBeInTheDocument()
-    expect(screen.getByText('Manage').closest('a')).toHaveAttribute('href', '/reading/settings')
+    expect(screen.getByText('Manage').closest('a')).toHaveAttribute('href', '/feeds')
   })
 
   it('shows an empty state when there are no feeds', () => {

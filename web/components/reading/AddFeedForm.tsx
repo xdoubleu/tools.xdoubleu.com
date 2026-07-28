@@ -26,7 +26,7 @@ type Mode = 'rss' | 'email'
 // AddFeedForm subscribes to an RSS/Atom feed, or mints a per-feed inbound
 // email alias for newsletters with no public feed (issue #595). New items
 // land in the library as "rss" items either way; RSS items never sync to
-// Kobo devices (issue #640). Shared by the settings FeedManager and the
+// Kobo devices (issue #640). Shared by the /feeds page's FeedManager and the
 // unified add dialog.
 export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
   const createFeed = useCreateFeed()

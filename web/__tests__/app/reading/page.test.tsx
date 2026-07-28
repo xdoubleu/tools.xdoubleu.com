@@ -11,7 +11,7 @@ jest.mock('@/components/reading/BooksDashboard', () => () => <div data-testid="b
 
 jest.mock('@/components/reading/FeedButton', () => {
   const Link = jest.requireMock('next/link')
-  return () => <Link href="/reading/feed">Feed</Link>
+  return () => <Link href="/feeds">Feed</Link>
 })
 
 jest.mock('@/lib/server/client', () => ({
@@ -41,10 +41,10 @@ describe('BacklogBooksPage', () => {
     expect(link).toHaveAttribute('href', '/reading/settings')
   })
 
-  it('renders a feed link pointing to /reading/feed', async () => {
+  it('renders a feed link pointing to /feeds', async () => {
     render(await BacklogBooksPage())
     const link = screen.getByRole('link', { name: /feed/i })
-    expect(link).toHaveAttribute('href', '/reading/feed')
+    expect(link).toHaveAttribute('href', '/feeds')
   })
 
   it('renders the BooksDashboard', async () => {

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import FeedList from '@/components/reading/FeedList'
 
 // SubscribedFeedsCard is a compact, read-only view of the user's RSS/Atom
-// subscriptions for the dashboard. Managing feeds (add/remove/kobo-sync) lives
-// on the settings page.
+// subscriptions for the dashboard. Managing feeds (add/remove) lives on the
+// /feeds page.
 export default function SubscribedFeedsCard() {
   const { data, error, isLoading } = useFeeds()
   const feeds = data?.feeds ?? []
@@ -18,7 +18,7 @@ export default function SubscribedFeedsCard() {
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Subscribed feeds</h2>
         <Button asChild variant="ghost" size="sm">
-          <Link href="/reading/settings">Manage</Link>
+          <Link href="/feeds">Manage</Link>
         </Button>
       </div>
 

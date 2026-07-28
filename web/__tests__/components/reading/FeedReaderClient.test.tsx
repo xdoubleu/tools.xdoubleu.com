@@ -25,7 +25,7 @@ jest.mock('swr', () => ({
   mutate: jest.fn()
 }))
 
-import FeedReaderClient from '@/app/reading/feed/FeedReaderClient'
+import FeedReaderClient from '@/components/reading/FeedReaderClient'
 import { useLibrary, useGetBookContent } from '@/hooks/useBooks'
 import { useFeedItemBooks } from '@/hooks/useBookFeeds'
 
