@@ -68,7 +68,7 @@ export default function BookRatingStars({
             readOnly ? 'cursor-default' : 'cursor-pointer',
             star <= displayed ? 'text-amber-400' : 'text-border',
             !readOnly &&
-              'hover:text-amber-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent'
+              'hover:text-amber-400 active:text-amber-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent'
           )}
         >
           ★

@@ -130,8 +130,8 @@ export default function MealPlanMealChip({
         isSwapping
           ? 'bg-accent/20 ring-2 ring-accent'
           : excluded
-            ? 'bg-surface hover:bg-hover'
-            : 'bg-accent/10 hover:bg-accent/20'
+            ? 'bg-surface hover:bg-hover active:bg-hover'
+            : 'bg-accent/10 hover:bg-accent/20 active:bg-accent/20'
       }`}
     >
       <div className="min-w-0 flex-1">
