@@ -331,20 +331,17 @@ func TestDeploymentLogs_DeploymentDetailError(t *testing.T) {
 // A failure fetching the /logs endpoint itself (as opposed to a historic-URL
 // chunk) must name the component/type it was fetching for, since that
 // endpoint is called once per component/type pair and the bare upstream
-// error alone doesn't say which one failed.
+// error alone doesn't say which one failed. Only the BUILD pair is made to
+// fail here (the others succeed) so the assertion stays deterministic even
+// though component/type pairs are now fetched concurrently.
 func TestDeploymentLogs_ComponentLogEndpointError(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.HandleFunc(
-		"/v2/apps/app-123/deployments/dep-1",
-		deploymentDetailHandler("api"),
-	)
-	mux.HandleFunc(
-		"/v2/apps/app-123/deployments/dep-1/logs",
-		func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusUnauthorized)
-		},
-	)
-	cleanup := buildServer(mux)
+	//nolint:exhaustruct // only the failing BUILD pair matters here
+	server := &doServer{
+		components: []string{"api"},
+		activeID:   "dep-1",
+		errStatus:  map[string]int{"api:BUILD": http.StatusUnauthorized},
+	}
+	cleanup := buildServer(server.mux())
 	defer cleanup()
 
 	_, err := newClient().DeploymentLogs(context.Background(), "dep-1", 0)

@@ -98,6 +98,64 @@ func TestCORSPreflight_ConnectProtocolVersion(t *testing.T) {
 	assert.Contains(t, allowHeaders, "connect-protocol-version")
 }
 
+// deadlineSettingRecorder wraps httptest.ResponseRecorder to additionally
+// implement http.ResponseController's SetWriteDeadline, which
+// ResponseRecorder alone does not — withExtendedDeadline falls back to a
+// no-op when the underlying writer doesn't support it, so exercising the
+// "deadline actually applied" branch needs a writer that does.
+type deadlineSettingRecorder struct {
+	*httptest.ResponseRecorder
+	deadline time.Time
+}
+
+//nolint:unparam // satisfies http.ResponseController's interface signature
+func (r *deadlineSettingRecorder) SetWriteDeadline(t time.Time) error {
+	r.deadline = t
+	return nil
+}
+
+// TestWithExtendedDeadline_AppliesWriteAndContextDeadline verifies that, when
+// the ResponseWriter supports it, withExtendedDeadline both sets the
+// response write deadline and gives the downstream handler's request context
+// a matching deadline — the mechanism GetDeployLogs relies on to survive past
+// the server's global 10s httpWriteTimeout (see routes.go).
+func TestWithExtendedDeadline_AppliesWriteAndContextDeadline(t *testing.T) {
+	//nolint:exhaustruct // deadline is set by the handler under test, not the fixture
+	rec := &deadlineSettingRecorder{ResponseRecorder: httptest.NewRecorder()}
+
+	var gotDeadline time.Time
+	var gotOK bool
+	handler := withExtendedDeadline(
+		30*time.Second,
+		func(_ http.ResponseWriter, r *http.Request) {
+			gotDeadline, gotOK = r.Context().Deadline()
+		},
+	)
+
+	before := time.Now()
+	handler(rec, httptest.NewRequest(http.MethodPost, "/x", nil))
+
+	require.True(t, gotOK, "downstream handler must see a context deadline")
+	assert.WithinDuration(t, before.Add(30*time.Second), gotDeadline, time.Second)
+	assert.WithinDuration(t, before.Add(30*time.Second), rec.deadline, time.Second)
+}
+
+// TestWithExtendedDeadline_FallsBackWhenUnsupported verifies that a
+// ResponseWriter without SetWriteDeadline support (e.g. a plain
+// httptest.ResponseRecorder) still reaches the downstream handler instead of
+// erroring out.
+func TestWithExtendedDeadline_FallsBackWhenUnsupported(t *testing.T) {
+	called := false
+	handler := withExtendedDeadline(
+		30*time.Second,
+		func(_ http.ResponseWriter, _ *http.Request) { called = true },
+	)
+
+	handler(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/x", nil))
+
+	assert.True(t, called)
+}
+
 // throttledRoutes builds a Routes() handler from an Application configured
 // with Throttle enabled.
 func throttledRoutes(t *testing.T) http.Handler {

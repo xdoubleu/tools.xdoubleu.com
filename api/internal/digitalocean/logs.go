@@ -11,8 +11,15 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/sync/errgroup"
+
 	"tools.xdoubleu.com/internal/oauthconn"
 )
+
+// collectLogsConcurrency bounds how many component/type log fetches run at
+// once, so a deployment with many components can't open dozens of
+// simultaneous connections (including live-socket reads) to DigitalOcean.
+const collectLogsConcurrency = 4
 
 // logContentCap bounds how much of a single component/type's log text is
 // kept, so one huge log can't blow up the Connect response or the MCP tool
@@ -125,21 +132,51 @@ func (c *client) activeRuntimeLogs(
 	return logs
 }
 
-// collectLogs fetches every component/type pair of one scope, skipping the
-// pairs that produced no text at all.
+// collectLogs fetches every component/type pair of one scope concurrently
+// (bounded by collectLogsConcurrency), skipping the pairs that produced no
+// text at all. Results are returned in the same component/type order they
+// were requested in, regardless of fetch completion order.
 func (c *client) collectLogs(
 	ctx context.Context, token string, scope logScope, types []LogType, tail int,
 ) ([]ComponentLog, error) {
-	logs := make([]ComponentLog, 0, len(scope.components)*len(types))
+	type slot struct {
+		log ComponentLog
+		ok  bool
+	}
+
+	slots := make([]slot, 0, len(scope.components)*len(types))
+	for range scope.components {
+		for range types {
+			slots = append(slots, slot{}) //nolint:exhaustruct // filled below
+		}
+	}
+
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(collectLogsConcurrency)
+
+	i := 0
 	for _, component := range scope.components {
 		for _, logType := range types {
-			log, ok, err := c.componentLog(ctx, token, scope, component, logType, tail)
-			if err != nil {
-				return nil, err
-			}
-			if ok {
-				logs = append(logs, log)
-			}
+			idx, comp, lt := i, component, logType
+			i++
+			group.Go(func() error {
+				log, ok, err := c.componentLog(groupCtx, token, scope, comp, lt, tail)
+				if err != nil {
+					return err
+				}
+				slots[idx] = slot{log: log, ok: ok}
+				return nil
+			})
+		}
+	}
+	if err := group.Wait(); err != nil {
+		return nil, err
+	}
+
+	logs := make([]ComponentLog, 0, len(slots))
+	for _, s := range slots {
+		if s.ok {
+			logs = append(logs, s.log)
 		}
 	}
 	return logs, nil
