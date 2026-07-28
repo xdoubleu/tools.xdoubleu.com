@@ -53,6 +53,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
       expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
@@ -262,6 +263,7 @@ describe('HomeClient', () => {
     await waitFor(() => {
       expect(screen.getByText('Steam backlog, progress and distribution.')).toBeInTheDocument()
       expect(screen.getByText('Search, library and reading progress.')).toBeInTheDocument()
+      expect(screen.getByText('Unread RSS and newsletter articles.')).toBeInTheDocument()
       expect(screen.getByText('WebRTC screen sharing')).toBeInTheDocument()
       expect(screen.getByText('Calendar feed filtering')).toBeInTheDocument()
       expect(screen.getByText('Recipe management')).toBeInTheDocument()
@@ -289,6 +291,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
       expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Contacts')).toBeInTheDocument()
@@ -300,6 +303,28 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('heading', { name: 'Tools' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Food' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
+  })
+
+  it('shows Feeds for a non-admin user with only reading access', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, {
+        role: 'user',
+        appAccess: ['reading']
+      }),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<HomeClient />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Feeds')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('Games')).not.toBeInTheDocument()
+    expect(screen.queryByText('Todos')).not.toBeInTheDocument()
   })
 
   it('renders all apps for admin user including admin-only and always-visible', async () => {
@@ -320,6 +345,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
       expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
@@ -348,6 +374,7 @@ describe('HomeClient', () => {
 
     expect(screen.queryByText('Games')).not.toBeInTheDocument()
     expect(screen.queryByText('Reading')).not.toBeInTheDocument()
+    expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
     expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()

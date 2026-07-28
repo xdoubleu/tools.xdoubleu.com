@@ -12,7 +12,7 @@ export default function FeedButton() {
 
   return (
     <Button asChild variant="ghost" size="sm" className="gap-2">
-      <Link href="/reading/feed">
+      <Link href="/feeds">
         <RssIcon />
         Feed
         {unreadCount > 0 && <Badge variant="default">{unreadCount}</Badge>}

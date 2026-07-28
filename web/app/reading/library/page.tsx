@@ -28,7 +28,7 @@ export default async function BacklogBooksLibraryPage() {
         <div className="flex items-center gap-2">
           <LibraryAdminButton />
           <Button asChild variant="ghost" size="sm">
-            <Link href="/reading/feed">Feed</Link>
+            <Link href="/feeds">Feed</Link>
           </Button>
           <Button asChild variant="ghost" size="sm" className="gap-2">
             <Link href="/reading/settings">

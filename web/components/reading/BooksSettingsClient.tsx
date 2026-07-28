@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useImportBooks } from '@/hooks/useBooks'
 import BulkBookUploader from '@/components/reading/BulkBookUploader'
-import FeedManager from '@/components/reading/FeedManager'
 import KoboSetup from '@/components/reading/KoboSetup'
 import KoboDevices from '@/components/reading/KoboDevices'
 import { mutate } from 'swr'
@@ -69,15 +68,6 @@ export default function BooksSettingsClient() {
           own-digital.
         </p>
         <BulkBookUploader />
-      </section>
-
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">RSS feeds</h2>
-        <p className="mb-3 text-xs text-muted">
-          Subscribe to blogs and news feeds. New posts are converted to EPUB and added to your
-          library; feeds with Kobo sync enabled push every new post to your Kobo automatically.
-        </p>
-        <FeedManager />
       </section>
 
       <section className="mt-10 border-t border-border pt-8">
