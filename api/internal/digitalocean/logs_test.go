@@ -290,6 +290,32 @@ func TestDeploymentLogs_DeploymentDetailError(t *testing.T) {
 	_, err := newClient().DeploymentLogs(context.Background(), "dep-1", 0)
 	require.Error(t, err)
 	require.NotErrorIs(t, err, digitalocean.ErrNotConfigured)
+	assert.Contains(t, err.Error(), "service components")
+}
+
+// A failure fetching the /logs endpoint itself (as opposed to a historic-URL
+// chunk) must name the component/type it was fetching for, since that
+// endpoint is called once per component/type pair and the bare upstream
+// error alone doesn't say which one failed.
+func TestDeploymentLogs_ComponentLogEndpointError(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc(
+		"/v2/apps/app-123/deployments/dep-1",
+		deploymentDetailHandler("api"),
+	)
+	mux.HandleFunc(
+		"/v2/apps/app-123/deployments/dep-1/logs",
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		},
+	)
+	cleanup := buildServer(mux)
+	defer cleanup()
+
+	_, err := newClient().DeploymentLogs(context.Background(), "dep-1", 0)
+	require.Error(t, err)
+	require.NotErrorIs(t, err, digitalocean.ErrNotConfigured)
+	assert.Contains(t, err.Error(), "component api type BUILD")
 }
 
 // tail_lines has to be on the query or DigitalOcean replays no backlog at all
