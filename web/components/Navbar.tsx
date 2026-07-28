@@ -24,7 +24,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-glass backdrop-blur-xl backdrop-saturate-150 shadow-glass">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-glass pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 shadow-glass">
       <nav className="mx-auto flex items-center justify-between px-4 py-2 sm:px-6 lg:px-10">
         <Link
           href="/"
