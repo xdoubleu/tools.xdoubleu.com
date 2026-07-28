@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/justinas/alice"
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
@@ -17,6 +18,38 @@ import (
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
 )
+
+// deployLogsWriteDeadline bounds how long the GetDeployLogs response is
+// allowed to take. It fetches BUILD/DEPLOY/RUN/RUN_RESTARTED logs per
+// service component from DigitalOcean and routinely exceeds the server's
+// global 10s httpWriteTimeout (main.go): that timeout doesn't cancel the
+// handler, it just makes the eventual response write silently fail once the
+// deadline has passed, so the request looked "successful but slow" while
+// producing no error, no log line, and no Sentry event. This route gets its
+// own longer write deadline and a matching context timeout so a genuinely
+// stuck upstream call fails loudly instead of hanging past it.
+const deployLogsWriteDeadline = 60 * time.Second
+
+// withExtendedDeadline raises the response write deadline (net/http's
+// ResponseController) and the request context's deadline together for one
+// slow route, without touching the server-wide httpWriteTimeout that every
+// other (fast) route relies on.
+func withExtendedDeadline(d time.Duration, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := http.NewResponseController(w).SetWriteDeadline(
+			time.Now().Add(d),
+		); err != nil {
+			// Not all ResponseWriters support deadlines (e.g. in tests using
+			// httptest.ResponseRecorder) — fall back to the ambient deadline.
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), d)
+		defer cancel()
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+}
 
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -41,6 +74,14 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(
 		"POST "+obsPath,
 		app.auth.Access(obsHandler.ServeHTTP),
+	)
+	// More specific than the prefix registration above, so net/http's mux
+	// routes this one procedure through the extended deadline instead.
+	mux.Handle(
+		"POST "+observabilityv1connect.ObservabilityServiceGetDeployLogsProcedure,
+		app.auth.Access(
+			withExtendedDeadline(deployLogsWriteDeadline, obsHandler.ServeHTTP),
+		),
 	)
 
 	contactsPath, contactsHandler := contactsv1connect.NewContactsServiceHandler(
