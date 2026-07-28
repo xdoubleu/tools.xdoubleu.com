@@ -28,7 +28,7 @@ function DialogOverlay() {
 interface DialogContentProps {
   children: ReactNode
   className?: string
-  side?: 'center' | 'right'
+  side?: 'center' | 'right' | 'fullscreen'
 }
 
 const centerContentClass = [
@@ -48,6 +48,21 @@ const rightContentClass = [
   'data-[state=open]:slide-in-from-right'
 ]
 
+// Full-screen on mobile (no floating popup box), centered modal from `sm` up.
+const fullscreenContentClass = [
+  'inset-0 h-full w-full rounded-none p-0',
+  'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:w-[calc(100%-2rem)]',
+  'sm:max-w-2xl sm:max-h-[85vh] sm:-translate-x-1/2 sm:-translate-y-1/2',
+  'sm:rounded-2xl sm:p-5',
+  'data-[state=closed]:sm:zoom-out-95 data-[state=open]:sm:zoom-in-95'
+]
+
+const sideContentClass = {
+  center: centerContentClass,
+  right: rightContentClass,
+  fullscreen: fullscreenContentClass
+}
+
 function DialogContent({ children, className = '', side = 'center' }: DialogContentProps) {
   return (
     <RadixDialog.Portal>
@@ -60,7 +75,7 @@ function DialogContent({ children, className = '', side = 'center' }: DialogCont
           'focus:outline-none',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-          side === 'right' ? rightContentClass : centerContentClass,
+          sideContentClass[side],
           className
         )}
       >

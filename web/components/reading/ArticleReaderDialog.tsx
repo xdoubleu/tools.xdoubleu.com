@@ -30,20 +30,27 @@ export default function ArticleReaderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="leading-tight">{title}</DialogTitle>
-          {sourceUrl && (
-            <a
-              href={sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-accent underline-offset-4 hover:underline"
-            >
-              View original ↗
-            </a>
-          )}
-          <DialogClose aria-label="Close reader">X</DialogClose>
+      <DialogContent side="fullscreen" className="p-4 sm:p-5 max-w-2xl sm:h-[85vh] flex flex-col">
+        <DialogHeader className="items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <DialogTitle className="leading-tight">{title}</DialogTitle>
+            {sourceUrl && (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block py-1 text-xs text-accent underline-offset-4 hover:underline"
+              >
+                View original ↗
+              </a>
+            )}
+          </div>
+          <DialogClose
+            aria-label="Close reader"
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-lg"
+          >
+            X
+          </DialogClose>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
