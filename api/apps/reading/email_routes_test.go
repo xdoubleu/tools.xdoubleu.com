@@ -471,6 +471,40 @@ func TestEmailInbound_MissingMessageID_FallsBackToEmailID(t *testing.T) {
 	assert.Equal(t, "No message id", book.Title)
 }
 
+// TestEmailInbound_ReceivedForFallback_IngestsBook proves resolveEmailFeed
+// also checks "received_for" when the alias isn't in "to" — the case where
+// Resend's inbound route matched a recipient that differs from the To:
+// header (e.g. bcc'd or envelope/header mismatch).
+func TestEmailInbound_ReceivedForFallback_IngestsBook(t *testing.T) {
+	mux, app := emailWebhookApp(t)
+	feedID, token := createEmailFeedFor(t, mux)
+	stub := newResendReceivingStub(t)
+	stub.html = "<p>Found via received_for</p>"
+
+	to := "reading+" + token + "@mail.test.example"
+	payload, _ := json.Marshal(map[string]any{
+		"type": "email.received",
+		"data": map[string]any{
+			"email_id":     "email-received-for",
+			"message_id":   messageIDFor("email-received-for"),
+			"to":           []string{"someone-else@example.com"},
+			"received_for": []string{to},
+			"subject":      "Via received_for",
+		},
+	})
+	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-received-for", payload)
+
+	rec := postWebhook(mux, payload, headers)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	book, err := app.Repositories.Books.GetBookBySourceURL(
+		context.Background(),
+		"mailto:"+feedID+"/"+messageIDFor("email-received-for"),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "Via received_for", book.Title)
+}
+
 // TestEmailInbound_SkipsNonMatchingToAddress proves resolveEmailFeed keeps
 // scanning the "to" list past an address that isn't a "reading+<token>@…"
 // alias (or doesn't resolve to any feed) instead of bailing out on the first
