@@ -24,7 +24,14 @@ type Client interface {
 	// DeploymentLogs returns the BUILD, DEPLOY, RUN, and RUN_RESTARTED log
 	// text for every service component of the given deployment, so both a
 	// failed deploy and the component's runtime behavior can be analyzed.
-	// A component/type pair with no logs yet is omitted rather than erroring.
-	// Returns ErrNotConfigured when the token/app ID is unset.
-	DeploymentLogs(ctx context.Context, deploymentID string) ([]ComponentLog, error)
+	// When the requested deployment is not the one currently serving traffic,
+	// the app's active deployment's runtime logs are appended too — that is
+	// the only place a failed deploy's "what is the app actually doing"
+	// answer lives. tailLines bounds the live backlog replayed per component;
+	// 0 picks the default. A component/type pair with no logs is omitted
+	// rather than erroring. Returns ErrNotConfigured when the token/app ID is
+	// unset.
+	DeploymentLogs(
+		ctx context.Context, deploymentID string, tailLines int,
+	) ([]ComponentLog, error)
 }

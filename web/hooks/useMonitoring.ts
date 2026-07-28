@@ -83,12 +83,13 @@ export function useDeployStatus() {
 }
 
 // useDeployLogs fetches on demand (not via SWR): logs are only pulled when
-// the admin asks, not polled alongside the rest of the dashboard.
+// the admin asks, not polled alongside the rest of the dashboard. tailLines
+// bounds the live backlog replayed per component; 0 takes the server default.
 export function useDeployLogs() {
   const client = useMemo(() => createServiceClient(ObservabilityService), [])
   return useCallback(
-    (deploymentId?: string): Promise<GetDeployLogsResponse> =>
-      client.getDeployLogs({ deploymentId: deploymentId ?? '' }),
+    (deploymentId?: string, tailLines = 0): Promise<GetDeployLogsResponse> =>
+      client.getDeployLogs({ deploymentId: deploymentId ?? '', tailLines }),
     [client]
   )
 }

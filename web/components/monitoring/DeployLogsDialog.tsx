@@ -19,12 +19,17 @@ interface DeployLogsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-function LogSection({ log }: { log: DeployComponentLog }) {
+function LogSection({ log, deploymentId }: { log: DeployComponentLog; deploymentId: string }) {
+  // Runtime logs come from the deployment actually serving traffic, which is
+  // a different one whenever the requested deploy failed — say which.
+  const foreign = log.deploymentId !== '' && log.deploymentId !== deploymentId
+
   return (
     <div className="rounded-xl border border-border bg-surface p-3">
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-sm font-medium text-fg">{log.component}</span>
         <Badge variant="secondary">{log.logType}</Badge>
+        {foreign && <Badge variant="secondary">deployment {log.deploymentId}</Badge>}
         {log.truncated && <Badge variant="warn">truncated</Badge>}
       </div>
       <div className="max-h-64 overflow-auto rounded-lg bg-card p-2">
@@ -61,7 +66,8 @@ export default function DeployLogsDialog({
           <div>
             <DialogTitle>Deploy logs</DialogTitle>
             <DialogDescription>
-              Build, deploy, and runtime output for this deployment.
+              Build and deploy output for this deployment, plus the runtime output of the deployment
+              currently serving traffic.
             </DialogDescription>
           </div>
           <DialogClose aria-label="Close">x</DialogClose>
@@ -76,7 +82,11 @@ export default function DeployLogsDialog({
         ) : (
           <div className="space-y-3">
             {logs.map((log) => (
-              <LogSection key={`${log.component}-${log.logType}`} log={log} />
+              <LogSection
+                key={`${log.deploymentId}-${log.component}-${log.logType}`}
+                log={log}
+                deploymentId={deploymentId}
+              />
             ))}
           </div>
         )}

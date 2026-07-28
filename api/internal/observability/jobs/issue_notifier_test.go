@@ -66,7 +66,7 @@ func (f fakeDOClient) ListApps(_ context.Context) ([]digitalocean.App, error) {
 }
 
 func (f fakeDOClient) DeploymentLogs(
-	_ context.Context, _ string,
+	_ context.Context, _ string, _ int,
 ) ([]digitalocean.ComponentLog, error) {
 	return nil, nil
 }

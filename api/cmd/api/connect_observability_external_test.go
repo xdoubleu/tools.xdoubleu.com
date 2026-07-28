@@ -364,6 +364,13 @@ func deployLogsMux(latestID string, components []string, chunk string) *http.Ser
 			))
 		},
 	)
+	mux.HandleFunc("/v2/apps/app", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(
+			`{"app":{"active_deployment":{"id":"` + latestID + `","services":[` +
+				strings.Join(names, ",") + `]}}}`,
+		))
+	})
 	mux.HandleFunc("/log-chunk", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(chunk))
 	})
@@ -385,7 +392,7 @@ func TestObservabilityGetDeployLogs_LatestDeployment(t *testing.T) {
 		testConfigJSON(t, map[string]string{"app_id": "app"}),
 	)
 
-	resp, err := callDeployLogs(t, "")
+	resp, err := callDeployLogs(t, "", 0)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Configured)
 	assert.Equal(t, "d1", resp.Msg.DeploymentId)
@@ -411,12 +418,45 @@ func TestObservabilityGetDeployLogs_ExplicitDeploymentId(t *testing.T) {
 		testConfigJSON(t, map[string]string{"app_id": "app"}),
 	)
 
-	resp, err := callDeployLogs(t, "d2")
+	resp, err := callDeployLogs(t, "d2", 0)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Configured)
 	assert.Equal(t, "d2", resp.Msg.DeploymentId)
 	require.Len(t, resp.Msg.Logs, 1)
 	assert.Equal(t, "web", resp.Msg.Logs[0].Component)
+}
+
+// tail_lines has to reach DigitalOcean, and every block has to name the
+// deployment it came from — runtime logs may come from the active deployment
+// rather than the requested one.
+func TestObservabilityGetDeployLogs_ForwardsTailLines(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	digitalocean.SetBackoffBase(time.Millisecond)
+
+	var seen string
+	mux := deployLogsMux("d1", []string{"app"}, "building\n")
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/v2/apps/app/deployments/d1/logs" {
+				seen = r.URL.Query().Get("tail_lines")
+			}
+			mux.ServeHTTP(w, r)
+		}))
+	t.Cleanup(srv.Close)
+	digitalocean.SetBaseURL(srv.URL)
+	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"app_id": "app"}),
+	)
+
+	resp, err := callDeployLogs(t, "", 250)
+	require.NoError(t, err)
+	assert.Equal(t, "250", seen)
+	require.Len(t, resp.Msg.Logs, 1)
+	assert.Equal(t, "d1", resp.Msg.Logs[0].DeploymentId)
 }
 
 func TestObservabilityGetDeployLogs_UpstreamError(t *testing.T) {
@@ -432,7 +472,7 @@ func TestObservabilityGetDeployLogs_UpstreamError(t *testing.T) {
 		testConfigJSON(t, map[string]string{"app_id": "app"}),
 	)
 
-	resp, err := callDeployLogs(t, "d1")
+	resp, err := callDeployLogs(t, "d1", 0)
 	require.NoError(t, err) // degraded, never a failed response
 	assert.True(t, resp.Msg.Configured)
 	assert.Empty(t, resp.Msg.Logs)
@@ -447,7 +487,7 @@ func TestObservabilityGetDeployLogs_NotConfigured(t *testing.T) {
 		configNotConnected(),
 	)
 
-	resp, err := callDeployLogs(t, "")
+	resp, err := callDeployLogs(t, "", 0)
 	require.NoError(t, err)
 	assert.False(t, resp.Msg.Configured)
 	assert.Empty(t, resp.Msg.Logs)
@@ -455,16 +495,17 @@ func TestObservabilityGetDeployLogs_NotConfigured(t *testing.T) {
 
 func TestObservabilityGetDeployLogs_NonAdmin(t *testing.T) {
 	demoteToUser(t)
-	_, err := callDeployLogs(t, "")
+	_, err := callDeployLogs(t, "", 0)
 	requirePermissionDenied(t, err)
 }
 
 func callDeployLogs(
-	t *testing.T, deploymentID string,
+	t *testing.T, deploymentID string, tailLines int32,
 ) (*connect.Response[observabilityv1.GetDeployLogsResponse], error) {
 	t.Helper()
 	req := connect.NewRequest(&observabilityv1.GetDeployLogsRequest{
 		DeploymentId: deploymentID,
+		TailLines:    tailLines,
 	})
 	setCookieOnRequest(req, accessToken)
 	return observabilityClient(t).GetDeployLogs(context.Background(), req)

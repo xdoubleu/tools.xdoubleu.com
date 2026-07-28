@@ -39,9 +39,10 @@ type windowArgs struct {
 type noArgs struct{}
 
 // deployLogsArgs is the input for get_deploy_logs. DeploymentID empty means
-// "the latest deployment".
+// "the latest deployment"; TailLines 0 takes the server's default backlog.
 type deployLogsArgs struct {
 	DeploymentID string `json:"deployment_id,omitempty" jsonschema:"optional, latest"`
+	TailLines    int    `json:"tail_lines,omitempty"    jsonschema:"optional, 1000"`
 }
 
 func (app *Application) appsResourceMetadataURL() string {
@@ -129,9 +130,10 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	addObsTool(
 		srv,
 		"get_deploy_logs",
-		"Build/deploy/runtime log text for a DigitalOcean deployment (default: the latest).",
+		"Build/deploy/runtime log text for a DigitalOcean deployment (default: "+
+			"the latest). Runtime logs come from the app's active deployment.",
 		func(ctx context.Context, a deployLogsArgs) (proto.Message, error) {
-			return h.deployLogs(ctx, a.DeploymentID), nil
+			return h.deployLogs(ctx, a.DeploymentID, a.TailLines), nil
 		},
 	)
 }

@@ -1463,10 +1463,12 @@ func (x *GetDeployStatusResponse) GetDeploymentId() string {
 }
 
 // GetDeployLogsRequest fetches logs for one deployment. deployment_id empty
-// means "the latest deployment".
+// means "the latest deployment". tail_lines bounds how much of a running
+// component's live log backlog is replayed; 0 means the server default.
 type GetDeployLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	TailLines     int32                  `protobuf:"varint,2,opt,name=tail_lines,json=tailLines,proto3" json:"tail_lines,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1508,12 +1510,24 @@ func (x *GetDeployLogsRequest) GetDeploymentId() string {
 	return ""
 }
 
+func (x *GetDeployLogsRequest) GetTailLines() int32 {
+	if x != nil {
+		return x.TailLines
+	}
+	return 0
+}
+
+// DeployComponentLog is one component's log text for one phase. deployment_id
+// says which deployment it came from: runtime logs are sourced from the app's
+// *active* deployment, which differs from the requested one when the latest
+// deploy failed and the previous one is still serving traffic.
 type DeployComponentLog struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Component     string                 `protobuf:"bytes,1,opt,name=component,proto3" json:"component,omitempty"`
 	LogType       string                 `protobuf:"bytes,2,opt,name=log_type,json=logType,proto3" json:"log_type,omitempty"` // "BUILD" | "DEPLOY" | "RUN" | "RUN_RESTARTED"
 	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	Truncated     bool                   `protobuf:"varint,4,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	DeploymentId  string                 `protobuf:"bytes,5,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1574,6 +1588,13 @@ func (x *DeployComponentLog) GetTruncated() bool {
 		return x.Truncated
 	}
 	return false
+}
+
+func (x *DeployComponentLog) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
 }
 
 // GetDeployLogsResponse carries per-component build/deploy/runtime log text
@@ -2546,14 +2567,17 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x05 \x01(\tR\tupdatedAt\x12#\n" +
-	"\rdeployment_id\x18\x06 \x01(\tR\fdeploymentId\";\n" +
+	"\rdeployment_id\x18\x06 \x01(\tR\fdeploymentId\"Z\n" +
 	"\x14GetDeployLogsRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x85\x01\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12\x1d\n" +
+	"\n" +
+	"tail_lines\x18\x02 \x01(\x05R\ttailLines\"\xaa\x01\n" +
 	"\x12DeployComponentLog\x12\x1c\n" +
 	"\tcomponent\x18\x01 \x01(\tR\tcomponent\x12\x19\n" +
 	"\blog_type\x18\x02 \x01(\tR\alogType\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12\x1c\n" +
-	"\ttruncated\x18\x04 \x01(\bR\ttruncated\"\x96\x01\n" +
+	"\ttruncated\x18\x04 \x01(\bR\ttruncated\x12#\n" +
+	"\rdeployment_id\x18\x05 \x01(\tR\fdeploymentId\"\x96\x01\n" +
 	"\x15GetDeployLogsResponse\x12\x1e\n" +
 	"\n" +
 	"configured\x18\x01 \x01(\bR\n" +

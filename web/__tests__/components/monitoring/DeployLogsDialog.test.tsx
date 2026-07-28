@@ -21,8 +21,20 @@ describe('DeployLogsDialog', () => {
   it('fetches and renders per-component logs when opened', async () => {
     mockGetDeployLogs.mockResolvedValue({
       logs: [
-        { component: 'api', logType: 'BUILD', content: 'building api\n', truncated: false },
-        { component: 'web', logType: 'DEPLOY', content: 'deploying web\n', truncated: true }
+        {
+          component: 'api',
+          logType: 'BUILD',
+          content: 'building api\n',
+          truncated: false,
+          deploymentId: 'd1'
+        },
+        {
+          component: 'web',
+          logType: 'DEPLOY',
+          content: 'deploying web\n',
+          truncated: true,
+          deploymentId: 'd1'
+        }
       ]
     })
 
@@ -34,6 +46,32 @@ describe('DeployLogsDialog', () => {
     expect(screen.getByText('api')).toBeInTheDocument()
     expect(screen.getByText('web')).toBeInTheDocument()
     expect(screen.getByText('truncated')).toBeInTheDocument()
+  })
+
+  it('labels a log block that came from a different deployment', async () => {
+    mockGetDeployLogs.mockResolvedValue({
+      logs: [
+        {
+          component: 'api',
+          logType: 'BUILD',
+          content: 'build failed\n',
+          truncated: false,
+          deploymentId: 'd1'
+        },
+        {
+          component: 'api',
+          logType: 'RUN',
+          content: 'still serving\n',
+          truncated: false,
+          deploymentId: 'd0'
+        }
+      ]
+    })
+
+    render(<DeployLogsDialog deploymentId="d1" open={true} onOpenChange={jest.fn()} />)
+
+    await waitFor(() => expect(screen.getByText('deployment d0')).toBeInTheDocument())
+    expect(screen.queryByText('deployment d1')).not.toBeInTheDocument()
   })
 
   it('shows an empty state when there are no logs yet', async () => {

@@ -55,6 +55,7 @@ type appConfig struct {
 type client struct {
 	logger     *slog.Logger
 	httpClient *http.Client
+	wsClient   *http.Client
 	tokenFn    oauthconn.TokenFunc
 	configRepo configStore
 
@@ -73,6 +74,10 @@ func New(
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
 		logger:     logger,
 		httpClient: &http.Client{Timeout: apiTimeout},
+		// wsClient deliberately has no Timeout: coder/websocket turns one
+		// into a deadline on the whole connection, and the live log read
+		// bounds itself with liveLogDeadline instead.
+		wsClient:   &http.Client{},
 		tokenFn:    tokenFn,
 		configRepo: configRepo,
 	}
