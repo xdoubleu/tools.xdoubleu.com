@@ -28,6 +28,18 @@ var backoffBase = 500 * time.Millisecond
 //nolint:gochecknoglobals // overridable in tests
 var backoffCap = 30 * time.Second
 
+// apiError is a non-2xx response from the DigitalOcean API, kept structured
+// so callers can distinguish specific known-benign error bodies (e.g. a log
+// phase that never ran) from real failures via errors.As.
+type apiError struct {
+	status int
+	body   string
+}
+
+func (e *apiError) Error() string {
+	return fmt.Sprintf("digitalocean API returned %d: %s", e.status, e.body)
+}
+
 const apiTimeout = 15 * time.Second
 
 const (
@@ -195,10 +207,7 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 		if resp.StatusCode < http.StatusOK ||
 			resp.StatusCode >= http.StatusMultipleChoices {
 			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"digitalocean API returned %d: %s",
-				resp.StatusCode, string(raw),
-			)
+			return false, &apiError{status: resp.StatusCode, body: string(raw)}
 		}
 
 		return false, json.NewDecoder(resp.Body).Decode(dst)

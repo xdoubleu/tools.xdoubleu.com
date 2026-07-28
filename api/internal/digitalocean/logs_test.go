@@ -57,6 +57,11 @@ type doServer struct {
 	appLive     map[string]string
 	// appDetailStatus, when set, makes the app-detail endpoint fail with it.
 	appDetailStatus int
+	// errStatus/errBody, keyed like chunks/live, make a specific
+	// component:TYPE pair fail the /logs request with that status/body
+	// instead of returning a normal payload.
+	errStatus map[string]int
+	errBody   map[string]string
 
 	mu      sync.Mutex
 	queries []url.Values
@@ -87,6 +92,13 @@ func (s *doServer) logsHandler(
 		s.mu.Unlock()
 
 		key := query.Get("component_name") + ":" + query.Get("type")
+
+		if status, ok := s.errStatus[key]; ok {
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(s.errBody[key]))
+			return
+		}
+
 		urls := make([]string, 0, len(chunks[key]))
 		for _, k := range chunks[key] {
 			urls = append(urls, fmt.Sprintf("http://%s/log-chunk/%s", r.Host, k))
@@ -187,6 +199,29 @@ func TestDeploymentLogs_SkipsMissingPhases(t *testing.T) {
 	logs, err := newClient().DeploymentLogs(context.Background(), "dep-1", 0)
 	require.NoError(t, err)
 	assert.Empty(t, logs)
+}
+
+func TestDeploymentLogs_SkipsBuildLogTaskSkipped(t *testing.T) {
+	//nolint:exhaustruct // the active-deployment fields are exercised separately
+	server := &doServer{
+		components: []string{"api"},
+		chunks:     map[string][]string{"api:DEPLOY": {"api-deploy"}},
+		activeID:   "dep-1",
+		errStatus:  map[string]int{"api:BUILD": http.StatusBadRequest},
+		errBody: map[string]string{
+			"api:BUILD": `{"id":"bad_request","message":"cannot get build ` +
+				`logs for component app with log task status skipped"}`,
+		},
+	}
+	mux := server.mux()
+	mux.HandleFunc("/log-chunk/api-deploy", textHandler("deploying api\n"))
+	cleanup := buildServer(mux)
+	defer cleanup()
+
+	logs, err := newClient().DeploymentLogs(context.Background(), "dep-1", 0)
+	require.NoError(t, err)
+	require.Len(t, logs, 1)
+	assert.Equal(t, digitalocean.LogTypeDeploy, logs[0].Type)
 }
 
 func TestDeploymentLogs_ConcatenatesAndTruncatesChunks(t *testing.T) {
@@ -364,6 +399,8 @@ func TestDeploymentLogs_AppendsActiveDeploymentRuntimeLogs(t *testing.T) {
 		appChunks:       map[string][]string{"api:RUN": {"active-run"}},
 		appLive:         nil,
 		appDetailStatus: 0,
+		errStatus:       nil,
+		errBody:         nil,
 		mu:              sync.Mutex{},
 		queries:         nil,
 	}

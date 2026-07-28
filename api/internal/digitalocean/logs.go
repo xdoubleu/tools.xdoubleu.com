@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"tools.xdoubleu.com/internal/oauthconn"
 )
@@ -216,6 +217,10 @@ func (c *client) componentLog(
 	var wire deployLogsWire
 	err := c.get(ctx, scope.endpoint+"?"+query.Encode(), token, &wire)
 	if err != nil {
+		if isSkippedLogTaskErr(err) {
+			//nolint:exhaustruct // phase never ran, not an error
+			return ComponentLog{}, false, nil
+		}
 		return ComponentLog{}, false, fmt.Errorf(
 			"component %s type %s: %w", component, logType, err,
 		)
@@ -243,6 +248,15 @@ func (c *client) componentLog(
 		Content:      content,
 		Truncated:    truncated,
 	}, true, nil
+}
+
+// isSkippedLogTaskErr reports whether err is DigitalOcean's 400 for a
+// component/type pair whose phase never ran (e.g. a deploy that reused a
+// prior build) — a normal, expected state rather than a real failure.
+func isSkippedLogTaskErr(err error) bool {
+	var apiErr *apiError
+	return errors.As(err, &apiErr) && apiErr.status == http.StatusBadRequest &&
+		strings.Contains(apiErr.body, "log task status skipped")
 }
 
 // clampTailLines keeps a caller-supplied backlog size inside sane bounds; 0
