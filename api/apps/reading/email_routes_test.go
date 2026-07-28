@@ -402,6 +402,25 @@ func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 	assert.Contains(t, *feed.LastError, "500")
 }
 
+// TestRecordEmailFetchFailure_DBErrors_LogsWithoutPanicking proves
+// RecordEmailFetchFailure's own best-effort persistence never panics or
+// blocks the caller when the SetFetchResult write itself fails (e.g. an
+// already-canceled context) — it only logs, mirroring IngestEmail's
+// identical defensive branch.
+func TestRecordEmailFetchFailure_DBErrors_LogsWithoutPanicking(t *testing.T) {
+	mux, app := emailWebhookApp(t)
+	feedID, _ := createEmailFeedFor(t, mux)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	assert.NotPanics(t, func() {
+		app.Services.Feeds.RecordEmailFetchFailure(
+			ctx, mustParseUUID(t, feedID), errors.New("boom"),
+		)
+	})
+}
+
 // TestEmailInbound_IgnoredEventType_NoOp proves that a webhook event other
 // than "email.received" (the only one this endpoint is subscribed to) is
 // acked 200 and ignored, rather than erroring — so the same endpoint can be
