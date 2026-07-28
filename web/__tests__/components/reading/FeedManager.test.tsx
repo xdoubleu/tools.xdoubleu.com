@@ -7,14 +7,12 @@ const feedsData: { data?: unknown; error?: Error; isLoading: boolean } = {
   isLoading: false
 }
 const createFeed = jest.fn()
-const updateFeed = jest.fn()
 const deleteFeed = jest.fn()
 const refreshFeed = jest.fn()
 
 jest.mock('@/hooks/useBookFeeds', () => ({
   useFeeds: () => feedsData,
   useCreateFeed: () => createFeed,
-  useUpdateFeed: () => updateFeed,
   useDeleteFeed: () => deleteFeed,
   useRefreshFeed: () => refreshFeed
 }))
@@ -26,7 +24,6 @@ const feed = {
   id: 'feed-1',
   url: 'https://blog.example.com/feed.xml',
   title: 'Example Blog',
-  koboSync: false,
   lastFetchedAt: '2026-07-17T08:00:00Z',
   lastError: '',
   createdAt: '2026-07-01T08:00:00Z',
@@ -53,32 +50,21 @@ describe('FeedManager', () => {
     expect(screen.getByText(/Last poll failed: fetch failed/)).toBeInTheDocument()
   })
 
-  it('subscribes to a new feed with kobo sync', async () => {
+  it('subscribes to a new feed', async () => {
     createFeed.mockResolvedValue({})
     render(<FeedManager />)
 
     fireEvent.change(screen.getByLabelText('Feed URL'), {
       target: { value: 'https://news.example.com/rss' }
     })
-    // Two "Kobo sync" checkboxes exist (add-form + row); the first belongs
-    // to the add form.
-    fireEvent.click(screen.getAllByRole('checkbox')[0])
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() =>
-      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1, '')
+      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', 1, '')
     )
     expect(
       await screen.findByText('Subscribed — importing items in the background.')
     ).toBeInTheDocument()
-  })
-
-  it('toggles per-feed kobo sync', async () => {
-    updateFeed.mockResolvedValue(undefined)
-    render(<FeedManager />)
-
-    fireEvent.click(screen.getAllByRole('checkbox')[1])
-    await waitFor(() => expect(updateFeed).toHaveBeenCalledWith('feed-1', 'Example Blog', true))
   })
 
   it('refreshes and removes a feed', async () => {

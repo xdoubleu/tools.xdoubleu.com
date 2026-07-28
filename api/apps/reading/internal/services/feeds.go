@@ -48,7 +48,6 @@ type FeedService struct {
 	feeds         *repositories.FeedsRepository
 	ingest        *IngestService
 	books         *BookService
-	conversion    *ConversionService
 	webFetch      webfetch.Client
 	inboundDomain string
 }
@@ -61,7 +60,6 @@ func NewFeedService(
 	feeds *repositories.FeedsRepository,
 	ingest *IngestService,
 	books *BookService,
-	conversion *ConversionService,
 	webFetchClient webfetch.Client,
 	inboundDomain string,
 ) *FeedService {
@@ -70,7 +68,6 @@ func NewFeedService(
 		feeds:         feeds,
 		ingest:        ingest,
 		books:         books,
-		conversion:    conversion,
 		webFetch:      webFetchClient,
 		inboundDomain: inboundDomain,
 	}
@@ -104,7 +101,6 @@ func (s *FeedService) ListItemBooks(
 func (s *FeedService) Create(
 	ctx context.Context,
 	userID, rawURL string,
-	koboSync bool,
 ) (*models.Feed, error) {
 	canonical, err := canonicalURL(rawURL)
 	if err != nil {
@@ -122,10 +118,9 @@ func (s *FeedService) Create(
 
 	//nolint:exhaustruct // fetch state starts empty; ids are DB-owned
 	feed, err := s.feeds.Insert(ctx, models.Feed{
-		UserID:   userID,
-		URL:      canonical,
-		Title:    parsed.Title,
-		KoboSync: koboSync,
+		UserID: userID,
+		URL:    canonical,
+		Title:  parsed.Title,
 	})
 	if err != nil {
 		return nil, err
@@ -152,7 +147,6 @@ func (s *FeedService) Create(
 func (s *FeedService) CreateEmail(
 	ctx context.Context,
 	userID string,
-	koboSync bool,
 	title string,
 ) (*models.Feed, string, error) {
 	if s.inboundDomain == "" {
@@ -175,7 +169,6 @@ func (s *FeedService) CreateEmail(
 	feed, err := s.feeds.Insert(ctx, models.Feed{
 		UserID:       userID,
 		Title:        title,
-		KoboSync:     koboSync,
 		SourceType:   models.FeedSourceEmail,
 		InboundToken: &hash,
 	})
@@ -219,7 +212,7 @@ func (s *FeedService) IngestEmail(
 		HTML:      htmlBody,
 	}
 
-	ub, err := s.ingest.IngestArticleContent(ctx, feed.UserID, content)
+	_, err := s.ingest.IngestArticleContent(ctx, feed.UserID, content)
 	if err != nil {
 		s.logger.WarnContext(ctx, "email feed ingest failed",
 			"feedID", feed.ID, "messageID", messageID, "error", err)
@@ -233,9 +226,6 @@ func (s *FeedService) IngestEmail(
 		return
 	}
 
-	if feed.KoboSync {
-		s.autoEnableKoboSync(ctx, feed.UserID, ub.BookID)
-	}
 	if setErr := s.feeds.SetFetchResult(ctx, feed.ID, nil, nil, nil); setErr != nil {
 		s.logger.WarnContext(ctx, "email feed fetch-result update failed",
 			"feedID", feed.ID, "error", setErr)
@@ -259,15 +249,14 @@ func (s *FeedService) RecordEmailFetchFailure(
 	}
 }
 
-// Update changes the feed's title and kobo-sync flag.
+// Update changes the feed's title.
 func (s *FeedService) Update(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 	title string,
-	koboSync bool,
 ) error {
-	return s.feeds.Update(ctx, userID, id, title, koboSync)
+	return s.feeds.Update(ctx, userID, id, title)
 }
 
 // Delete removes the subscription and the library items it ingested, except
@@ -445,10 +434,6 @@ func (s *FeedService) ingestItem(
 	}
 
 	s.markSeen(ctx, feed.ID, guid, &ub.BookID, "")
-
-	if feed.KoboSync {
-		s.autoEnableKoboSync(ctx, feed.UserID, ub.BookID)
-	}
 	return true
 }
 
@@ -504,15 +489,10 @@ func (s *FeedService) ingestItemContent(
 		return s.ingestMetadataOnly(ctx, feed.UserID, content)
 	}
 
-	var ub *models.UserBook
-	if feed.KoboSync {
-		ub, err = s.ingest.IngestArticleContent(ctx, feed.UserID, content)
-	} else {
-		// Feed not opted into Kobo sync: skip the EPUB build (Calibre
-		// subprocess) and just track the item; Add-by-URL or a later
-		// kobo_sync toggle can convert it if needed.
-		ub, err = s.ingestMetadataOnly(ctx, feed.UserID, content)
-	}
+	// RSS items never sync to Kobo (#640), so skip the EPUB build here and
+	// just track the item; it's still readable in-app via content_html
+	// below, and Add-by-URL can build a file later if needed.
+	ub, err := s.ingestMetadataOnly(ctx, feed.UserID, content)
 	if err != nil {
 		return nil, err
 	}
@@ -628,25 +608,6 @@ func (s *FeedService) ingestMetadataOnly(
 		return nil, err
 	}
 	return s.ingest.booksRepo.GetUserBook(ctx, userID, saved.ID)
-}
-
-// autoEnableKoboSync opts a freshly ingested item into Kobo sync and eagerly
-// converts its EPUB to KEPUB (we are already on a background worker).
-// Failures are logged; the standard retriable failed-kepub state applies.
-func (s *FeedService) autoEnableKoboSync(
-	ctx context.Context,
-	userID string,
-	bookID uuid.UUID,
-) {
-	if err := s.books.EnableKoboSync(ctx, userID, bookID); err != nil {
-		s.logger.WarnContext(ctx, "feed kobo-sync enable failed",
-			"bookID", bookID, "error", err)
-		return
-	}
-	if _, err := s.conversion.EnsureKEPUB(ctx, userID, bookID); err != nil {
-		s.logger.WarnContext(ctx, "feed kepub conversion failed",
-			"bookID", bookID, "error", err)
-	}
 }
 
 func (s *FeedService) markSeen(

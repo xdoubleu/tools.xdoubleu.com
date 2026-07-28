@@ -249,7 +249,7 @@ func TestGetSharedFeeds_Success(t *testing.T) {
 	feedURL := uniqueBlogBase() + "/feed.xml"
 	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML("Public Feed")))
 	feed, err := testApp.Services.Feeds.Create(
-		context.Background(), publicUserID, feedURL, false,
+		context.Background(), publicUserID, feedURL,
 	)
 	require.NoError(t, err)
 

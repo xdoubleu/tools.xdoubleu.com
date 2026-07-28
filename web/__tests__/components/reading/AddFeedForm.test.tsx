@@ -24,11 +24,10 @@ describe('AddFeedForm', () => {
     fireEvent.change(screen.getByLabelText('Feed URL'), {
       target: { value: 'https://news.example.com/rss' }
     })
-    fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() => {
-      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', true, 1, '')
+      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', 1, '')
       expect(
         screen.getByText('Subscribed — importing items in the background.')
       ).toBeInTheDocument()
@@ -61,7 +60,7 @@ describe('AddFeedForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() => {
-      expect(createFeed).toHaveBeenCalledWith('', false, 2, 'My Substack')
+      expect(createFeed).toHaveBeenCalledWith('', 2, 'My Substack')
       expect(screen.getByDisplayValue('reading+abc123@mail.example.com')).toBeInTheDocument()
     })
     // The URL input is not applicable in email mode.

@@ -11,6 +11,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
+	"tools.xdoubleu.com/apps/reading/internal/services"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -35,6 +36,9 @@ func (h *booksConnectHandler) EnableKoboSync(
 		)
 	}
 	if err = h.app.Services.Books.EnableKoboSync(ctx, user.ID, bookID); err != nil {
+		if errors.Is(err, services.ErrKoboSyncNotAllowedForRSS) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)

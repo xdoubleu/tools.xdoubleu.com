@@ -329,10 +329,9 @@ func TestEmailInbound_IngestFailure_RecordsLastError(t *testing.T) {
 	assert.Contains(t, *feed.LastError, "boom: converter unavailable")
 }
 
-// TestEmailInbound_KoboSyncFeed_EnablesSync proves that an email feed created
-// with kobo_sync=true opts newly ingested items into Kobo sync, mirroring
-// the same auto-enable behaviour polled RSS feeds already have.
-func TestEmailInbound_KoboSyncFeed_EnablesSync(t *testing.T) {
+// TestEmailInbound_NeverEnablesKoboSync proves that an email-relay feed's
+// ingested items are RSS-category and never carry the kobo-sync tag (#640).
+func TestEmailInbound_NeverEnablesKoboSync(t *testing.T) {
 	mux, app := emailWebhookApp(t)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
@@ -341,8 +340,7 @@ func TestEmailInbound_KoboSyncFeed_EnablesSync(t *testing.T) {
 	resp, err := client.CreateFeed(
 		context.Background(),
 		feedReq(t, &readingv1.CreateFeedRequest{
-			Kind:     readingv1.FeedKind_FEED_KIND_EMAIL,
-			KoboSync: true,
+			Kind: readingv1.FeedKind_FEED_KIND_EMAIL,
 		}),
 	)
 	require.NoError(t, err)
@@ -366,7 +364,7 @@ func TestEmailInbound_KoboSyncFeed_EnablesSync(t *testing.T) {
 	require.NoError(t, err)
 	ub, err := app.Repositories.Books.GetUserBook(context.Background(), userID, book.ID)
 	require.NoError(t, err)
-	assert.Contains(t, ub.Tags, models.TagKoboSync)
+	assert.NotContains(t, ub.Tags, models.TagKoboSync)
 }
 
 // TestEmailInbound_ResendFetchFails_NoOp proves that when the follow-up

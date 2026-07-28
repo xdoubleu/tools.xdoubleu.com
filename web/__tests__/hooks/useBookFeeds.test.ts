@@ -52,10 +52,9 @@ describe('useBookFeeds', () => {
 
   it('useCreateFeed creates and invalidates feeds + library', async () => {
     const { result } = renderHook(() => useCreateFeed())
-    await result.current('https://example.com/feed.xml', true)
+    await result.current('https://example.com/feed.xml')
     expect(clientMocks.createFeed).toHaveBeenCalledWith({
       url: 'https://example.com/feed.xml',
-      koboSync: true,
       kind: 1,
       title: ''
     })
@@ -65,10 +64,9 @@ describe('useBookFeeds', () => {
 
   it('useCreateFeed passes through an explicit kind (email feeds)', async () => {
     const { result } = renderHook(() => useCreateFeed())
-    await result.current('', false, 2)
+    await result.current('', 2)
     expect(clientMocks.createFeed).toHaveBeenCalledWith({
       url: '',
-      koboSync: false,
       kind: 2,
       title: ''
     })
@@ -76,10 +74,9 @@ describe('useBookFeeds', () => {
 
   it('useCreateFeed passes through an optional title (email newsletter name)', async () => {
     const { result } = renderHook(() => useCreateFeed())
-    await result.current('', false, 2, 'My Substack')
+    await result.current('', 2, 'My Substack')
     expect(clientMocks.createFeed).toHaveBeenCalledWith({
       url: '',
-      koboSync: false,
       kind: 2,
       title: 'My Substack'
     })
@@ -87,11 +84,10 @@ describe('useBookFeeds', () => {
 
   it('useUpdateFeed updates and invalidates feeds', async () => {
     const { result } = renderHook(() => useUpdateFeed())
-    await result.current('f1', 'Title', false)
+    await result.current('f1', 'Title')
     expect(clientMocks.updateFeed).toHaveBeenCalledWith({
       feedId: 'f1',
-      title: 'Title',
-      koboSync: false
+      title: 'Title'
     })
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.bookFeeds)
   })

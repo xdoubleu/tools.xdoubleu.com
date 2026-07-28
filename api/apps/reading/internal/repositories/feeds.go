@@ -17,7 +17,7 @@ type FeedsRepository struct {
 	db postgres.DB
 }
 
-const feedColumns = `id, user_id, url, title, kobo_sync, source_type,
+const feedColumns = `id, user_id, url, title, source_type,
 	inbound_token, etag, last_modified, last_fetched_at, last_error,
 	created_at, updated_at`
 
@@ -29,7 +29,6 @@ func scanFeed(row pgx.Row) (*models.Feed, error) {
 		&f.UserID,
 		&url,
 		&f.Title,
-		&f.KoboSync,
 		&f.SourceType,
 		&f.InboundToken,
 		&f.ETag,
@@ -138,13 +137,13 @@ func (repo *FeedsRepository) Insert(
 
 	query := `
 		INSERT INTO reading.feeds
-			(user_id, url, title, kobo_sync, source_type, inbound_token)
-		VALUES ($1, $2, $3, $4, $5, $6)
+			(user_id, url, title, source_type, inbound_token)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING ` + feedColumns
 
 	f, err := scanFeed(repo.db.QueryRow(
 		ctx, query,
-		feed.UserID, url, feed.Title, feed.KoboSync, sourceType, feed.InboundToken,
+		feed.UserID, url, feed.Title, sourceType, feed.InboundToken,
 	))
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -172,20 +171,19 @@ func (repo *FeedsRepository) GetByInboundTokenHash(
 	return f, nil
 }
 
-// Update changes the user-editable fields (title, kobo_sync).
+// Update changes the user-editable fields (title).
 func (repo *FeedsRepository) Update(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 	title string,
-	koboSync bool,
 ) error {
 	query := `
 		UPDATE reading.feeds
-		SET title = $3, kobo_sync = $4
+		SET title = $3
 		WHERE user_id = $1 AND id = $2
 	`
-	tag, err := repo.db.Exec(ctx, query, userID, id, title, koboSync)
+	tag, err := repo.db.Exec(ctx, query, userID, id, title)
 	if err != nil {
 		return postgres.PgxErrorToHTTPError(err)
 	}

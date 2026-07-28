@@ -338,6 +338,22 @@ describe('BookDetailClient', () => {
     expect(screen.getByTestId('kobo-sync-toggle')).toBeInTheDocument()
   })
 
+  it('hides Kobo sync toggle for an rss item even with a syncable format', () => {
+    // RSS items never sync to Kobo devices (issue #640), regardless of format.
+    const rssBook = create(UserBookSchema, {
+      ...mockUserBook,
+      book: create(BookSchema, { ...mockBook, category: 'rss' })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([rssBook]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByTestId('kobo-sync-toggle')).not.toBeInTheDocument()
+  })
+
   it('shows Kobo sync toggle when book has a pdf format', () => {
     const pdfBook = create(UserBookSchema, { ...mockUserBook, formats: ['pdf'] })
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes

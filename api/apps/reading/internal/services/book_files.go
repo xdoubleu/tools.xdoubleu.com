@@ -39,6 +39,12 @@ var ErrUploadMissing = errors.New("upload missing: retry the upload")
 // The upload is rejected and the temp object is removed from the bucket.
 var ErrUnrecognizedBook = errors.New("book could not be recognized from metadata")
 
+// ErrKoboSyncNotAllowedForRSS is returned by EnableKoboSync when the target
+// book is an RSS-ingested item — RSS never syncs to Kobo devices (#640).
+var ErrKoboSyncNotAllowedForRSS = errors.New(
+	"kobo sync is not available for RSS items",
+)
+
 // MaxUploadBytes is the server-side cap on a single raw upload (250 MB).
 // Keep in sync with MAX_UPLOAD_BYTES in web/lib/backlog/zipFiles.ts.
 const MaxUploadBytes = 250 * 1024 * 1024
@@ -648,12 +654,20 @@ func (s *BookService) GetKoboFileFormat(
 }
 
 // EnableKoboSync idempotently adds the kobo-sync tag to the user's book.
+// RSS items are never eligible (#640).
 func (s *BookService) EnableKoboSync(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 ) error {
-	if err := s.ensureTag(ctx, userID, bookID, models.TagKoboSync); err != nil {
+	book, err := s.books.GetBookByID(ctx, bookID)
+	if err != nil {
+		return err
+	}
+	if book.Category == models.CategoryRSS {
+		return ErrKoboSyncNotAllowedForRSS
+	}
+	if err = s.ensureTag(ctx, userID, bookID, models.TagKoboSync); err != nil {
 		return err
 	}
 	// Clear any stale removal tombstone from a prior disable.

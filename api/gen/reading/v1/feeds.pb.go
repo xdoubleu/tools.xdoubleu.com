@@ -77,9 +77,6 @@ type Feed struct {
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Url   string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
 	Title string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	// When true, every newly ingested item is auto-opted-in to Kobo sync
-	// (kobo-sync tag + KEPUB conversion).
-	KoboSync bool `protobuf:"varint,4,opt,name=kobo_sync,json=koboSync,proto3" json:"kobo_sync,omitempty"`
 	// RFC3339; empty when the feed has never been fetched.
 	LastFetchedAt string `protobuf:"bytes,5,opt,name=last_fetched_at,json=lastFetchedAt,proto3" json:"last_fetched_at,omitempty"`
 	// The most recent poll failure; empty when the last poll succeeded.
@@ -146,13 +143,6 @@ func (x *Feed) GetTitle() string {
 		return x.Title
 	}
 	return ""
-}
-
-func (x *Feed) GetKoboSync() bool {
-	if x != nil {
-		return x.KoboSync
-	}
-	return false
 }
 
 func (x *Feed) GetLastFetchedAt() string {
@@ -279,10 +269,9 @@ func (x *ListFeedsResponse) GetFeeds() []*Feed {
 // CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
 // (url must be empty); items land as mail arrives via the Resend webhook.
 type CreateFeedRequest struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Url      string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	KoboSync bool                   `protobuf:"varint,2,opt,name=kobo_sync,json=koboSync,proto3" json:"kobo_sync,omitempty"`
-	Kind     FeedKind               `protobuf:"varint,3,opt,name=kind,proto3,enum=reading.v1.FeedKind" json:"kind,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Kind  FeedKind               `protobuf:"varint,3,opt,name=kind,proto3,enum=reading.v1.FeedKind" json:"kind,omitempty"`
 	// Optional; only used for kind=EMAIL. Ignored for RSS, whose title is
 	// parsed from the feed itself.
 	Title         string `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
@@ -325,13 +314,6 @@ func (x *CreateFeedRequest) GetUrl() string {
 		return x.Url
 	}
 	return ""
-}
-
-func (x *CreateFeedRequest) GetKoboSync() bool {
-	if x != nil {
-		return x.KoboSync
-	}
-	return false
 }
 
 func (x *CreateFeedRequest) GetKind() FeedKind {
@@ -396,7 +378,6 @@ type UpdateFeedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FeedId        string                 `protobuf:"bytes,1,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	KoboSync      bool                   `protobuf:"varint,3,opt,name=kobo_sync,json=koboSync,proto3" json:"kobo_sync,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -443,13 +424,6 @@ func (x *UpdateFeedRequest) GetTitle() string {
 		return x.Title
 	}
 	return ""
-}
-
-func (x *UpdateFeedRequest) GetKoboSync() bool {
-	if x != nil {
-		return x.KoboSync
-	}
-	return false
 }
 
 type UpdateFeedResponse struct {
@@ -808,12 +782,11 @@ var File_reading_v1_feeds_proto protoreflect.FileDescriptor
 const file_reading_v1_feeds_proto_rawDesc = "" +
 	"\n" +
 	"\x16reading/v1/feeds.proto\x12\n" +
-	"reading.v1\"\x8b\x02\n" +
+	"reading.v1\"\xff\x01\n" +
 	"\x04Feed\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n" +
-	"\x05title\x18\x03 \x01(\tR\x05title\x12\x1b\n" +
-	"\tkobo_sync\x18\x04 \x01(\bR\bkoboSync\x12&\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12&\n" +
 	"\x0flast_fetched_at\x18\x05 \x01(\tR\rlastFetchedAt\x12\x1d\n" +
 	"\n" +
 	"last_error\x18\x06 \x01(\tR\tlastError\x12\x1d\n" +
@@ -821,21 +794,19 @@ const file_reading_v1_feeds_proto_rawDesc = "" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1f\n" +
 	"\vsource_type\x18\b \x01(\tR\n" +
 	"sourceType\x12'\n" +
-	"\x0finbound_address\x18\t \x01(\tR\x0einboundAddress\"\x12\n" +
+	"\x0finbound_address\x18\t \x01(\tR\x0einboundAddressJ\x04\b\x04\x10\x05R\tkobo_sync\"\x12\n" +
 	"\x10ListFeedsRequest\";\n" +
 	"\x11ListFeedsResponse\x12&\n" +
-	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds\"\x82\x01\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x10.reading.v1.FeedR\x05feeds\"v\n" +
 	"\x11CreateFeedRequest\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1b\n" +
-	"\tkobo_sync\x18\x02 \x01(\bR\bkoboSync\x12(\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12(\n" +
 	"\x04kind\x18\x03 \x01(\x0e2\x14.reading.v1.FeedKindR\x04kind\x12\x14\n" +
-	"\x05title\x18\x04 \x01(\tR\x05title\"@\n" +
+	"\x05title\x18\x04 \x01(\tR\x05titleJ\x04\b\x02\x10\x03R\tkobo_sync\"@\n" +
 	"\x12CreateFeedResponse\x12$\n" +
-	"\x04feed\x18\x01 \x01(\v2\x10.reading.v1.FeedR\x04feedJ\x04\b\x02\x10\x03\"_\n" +
+	"\x04feed\x18\x01 \x01(\v2\x10.reading.v1.FeedR\x04feedJ\x04\b\x02\x10\x03\"S\n" +
 	"\x11UpdateFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1b\n" +
-	"\tkobo_sync\x18\x03 \x01(\bR\bkoboSync\"\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05titleJ\x04\b\x03\x10\x04R\tkobo_sync\"\x14\n" +
 	"\x12UpdateFeedResponse\",\n" +
 	"\x11DeleteFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\"\x14\n" +

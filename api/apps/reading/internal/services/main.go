@@ -83,7 +83,6 @@ func New(
 		repositories.Feeds,
 		ingestSvc,
 		booksSvc,
-		conversionSvc,
 		webFetchClient,
 		config.EmailInboundDomain,
 	)
