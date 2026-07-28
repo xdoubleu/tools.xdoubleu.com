@@ -175,16 +175,23 @@ message GetDeployStatusResponse {
 }
 
 // GetDeployLogsRequest fetches logs for one deployment. deployment_id empty
-// means "the latest deployment".
+// means "the latest deployment". tail_lines bounds how much of a running
+// component's live log backlog is replayed; 0 means the server default.
 message GetDeployLogsRequest {
   string deployment_id = 1;
+  int32 tail_lines = 2;
 }
 
+// DeployComponentLog is one component's log text for one phase. deployment_id
+// says which deployment it came from: runtime logs are sourced from the app's
+// *active* deployment, which differs from the requested one when the latest
+// deploy failed and the previous one is still serving traffic.
 message DeployComponentLog {
   string component = 1;
   string log_type = 2;  // "BUILD" | "DEPLOY" | "RUN" | "RUN_RESTARTED"
   string content = 3;
   bool truncated = 4;
+  string deployment_id = 5;
 }
 
 // GetDeployLogsResponse carries per-component build/deploy/runtime log text

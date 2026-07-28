@@ -160,7 +160,7 @@ describe('useDeployLogs', () => {
       await result.current()
     })
 
-    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: '' })
+    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: '', tailLines: 0 })
   })
 
   it('fetches logs for an explicit deployment id', async () => {
@@ -171,7 +171,21 @@ describe('useDeployLogs', () => {
       await result.current('deploy-123')
     })
 
-    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: 'deploy-123' })
+    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: 'deploy-123', tailLines: 0 })
+  })
+
+  it('forwards an explicit tail size', async () => {
+    mockGetDeployLogs.mockResolvedValue({ configured: true, logs: [] })
+    const { result } = renderHook(() => useDeployLogs())
+
+    await act(async () => {
+      await result.current('deploy-123', 2000)
+    })
+
+    expect(mockGetDeployLogs).toHaveBeenCalledWith({
+      deploymentId: 'deploy-123',
+      tailLines: 2000
+    })
   })
 })
 

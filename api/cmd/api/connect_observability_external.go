@@ -173,15 +173,20 @@ func (h *obsConnectHandler) GetDeployLogs(
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(h.deployLogs(ctx, req.Msg.GetDeploymentId())), nil
+	return connect.NewResponse(h.deployLogs(
+		ctx, req.Msg.GetDeploymentId(), int(req.Msg.GetTailLines()),
+	)), nil
 }
 
 // deployLogs resolves deploymentID to the latest deployment when empty, then
-// fetches its BUILD/DEPLOY/RUN/RUN_RESTARTED component logs. Guards its source
-// the same way deployStatus does: an unset token yields configured=false and
-// an upstream failure is logged and downgraded to an empty section.
+// fetches its BUILD/DEPLOY/RUN/RUN_RESTARTED component logs — plus the
+// runtime logs of the app's active deployment when that is a different one.
+// tailLines bounds the live backlog replayed per component; 0 takes the
+// client's default. Guards its source the same way deployStatus does: an
+// unset token yields configured=false and an upstream failure is logged and
+// downgraded to an empty section.
 func (h *obsConnectHandler) deployLogs(
-	ctx context.Context, deploymentID string,
+	ctx context.Context, deploymentID string, tailLines int,
 ) *observabilityv1.GetDeployLogsResponse {
 	resp := &observabilityv1.GetDeployLogsResponse{
 		Configured:   true,
@@ -198,7 +203,7 @@ func (h *obsConnectHandler) deployLogs(
 		resp.DeploymentId = deploymentID
 	}
 
-	logs, err := h.app.doClient.DeploymentLogs(ctx, deploymentID)
+	logs, err := h.app.doClient.DeploymentLogs(ctx, deploymentID, tailLines)
 	if err != nil {
 		h.degradeDeployLogs(ctx, resp, err)
 		return resp
@@ -207,10 +212,11 @@ func (h *obsConnectHandler) deployLogs(
 	protoLogs := make([]*observabilityv1.DeployComponentLog, len(logs))
 	for i, l := range logs {
 		protoLogs[i] = &observabilityv1.DeployComponentLog{
-			Component: l.Component,
-			LogType:   string(l.Type),
-			Content:   l.Content,
-			Truncated: l.Truncated,
+			Component:    l.Component,
+			LogType:      string(l.Type),
+			DeploymentId: l.DeploymentID,
+			Content:      l.Content,
+			Truncated:    l.Truncated,
 		}
 	}
 	resp.Logs = protoLogs
