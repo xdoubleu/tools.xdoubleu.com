@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import AddFeedForm from '@/components/reading/AddFeedForm'
-import { useFeeds, useUpdateFeed, useDeleteFeed, useRefreshFeed } from '@/hooks/useBookFeeds'
+import { useFeeds, useDeleteFeed, useRefreshFeed } from '@/hooks/useBookFeeds'
 import type { Feed } from '@/lib/gen/reading/v1/feeds_pb'
 
 function FeedRow({ feed }: { feed: Feed }) {
-  const updateFeed = useUpdateFeed()
   const deleteFeed = useDeleteFeed()
   const refreshFeed = useRefreshFeed()
   const [busy, setBusy] = useState(false)
@@ -38,14 +36,6 @@ function FeedRow({ feed }: { feed: Feed }) {
           </p>
           {!isEmailFeed && <p className="truncate text-xs text-muted">{feed.url}</p>}
         </div>
-        <label className="flex items-center gap-1.5 text-xs text-subtle">
-          <Checkbox
-            checked={feed.koboSync}
-            disabled={busy}
-            onChange={(e) => void run(() => updateFeed(feed.id, feed.title, e.target.checked))}
-          />
-          Kobo sync
-        </label>
         {!isEmailFeed && (
           <Button
             size="sm"
@@ -95,8 +85,8 @@ function FeedRow({ feed }: { feed: Feed }) {
 }
 
 // FeedManager lists the user's RSS/Atom subscriptions. New items from each
-// feed land in the library as "rss" items; the per-feed Kobo sync checkbox
-// auto-opts new items into Kobo syncing.
+// feed land in the library as "rss" items, which never sync to Kobo devices
+// (issue #640).
 export default function FeedManager() {
   const { data, error, isLoading } = useFeeds()
 

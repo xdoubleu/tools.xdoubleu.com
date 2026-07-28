@@ -98,7 +98,7 @@ func TestRefreshFeed_NotModified_IngestsNothing(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 
@@ -131,7 +131,7 @@ func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
@@ -159,10 +159,11 @@ func TestCreateFeed_FetchesLinkedPageWhenNoContent(t *testing.T) {
 	mockWebFetch.SetHTML(itemURL, articlePageHTML("Linked Post Body"))
 
 	client := newBooksTestClient(t)
-	// #459: EPUB conversion only happens for feeds opted into Kobo sync.
+	// #640: RSS items never build an EPUB (no Kobo sync path), regardless of
+	// where their content came from.
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: true}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
@@ -171,12 +172,18 @@ func TestCreateFeed_FetchesLinkedPageWhenNoContent(t *testing.T) {
 		context.Background(), itemURL,
 	)
 	require.NoError(t, err)
-	// Content came from the linked page, so a real EPUB was built and stored.
 	status, err := testApp.Services.Books.GetKEPUBStatus(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
-	assert.True(t, status.HasEPUB)
+	assert.False(t, status.HasEPUB)
+
+	// The linked page's content is still persisted for in-app reading.
+	html, err := testApp.Services.Books.GetContentHTML(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.Contains(t, html, "Lorem ipsum")
 }
 
 func TestPollAll_PollsEveryFeed(t *testing.T) {
@@ -190,7 +197,7 @@ func TestPollAll_PollsEveryFeed(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
@@ -277,7 +284,7 @@ func TestCreateFeed_ItemWithAuthor(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)

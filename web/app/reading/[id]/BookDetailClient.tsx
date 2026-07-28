@@ -180,18 +180,20 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {/* Kobo sync — only shown when a syncable file exists (same
                   check the preview buttons below use), not the own-digital
-                  tag, which can drift out of sync with the actual files */}
-              {(userBook.formats.includes('epub') || userBook.formats.includes('pdf')) && (
-                <div>
-                  <p className="text-xs text-muted mb-1">Kobo sync</p>
-                  <KoboSyncToggle
-                    bookId={userBook.bookId}
-                    enabled={userBook.tags.includes('kobo-sync')}
-                    tags={userBook.tags}
-                    onChanged={handleSaved}
-                  />
-                </div>
-              )}
+                  tag, which can drift out of sync with the actual files.
+                  RSS items never sync to Kobo devices (issue #640). */}
+              {book.category !== 'rss' &&
+                (userBook.formats.includes('epub') || userBook.formats.includes('pdf')) && (
+                  <div>
+                    <p className="text-xs text-muted mb-1">Kobo sync</p>
+                    <KoboSyncToggle
+                      bookId={userBook.bookId}
+                      enabled={userBook.tags.includes('kobo-sync')}
+                      tags={userBook.tags}
+                      onChanged={handleSaved}
+                    />
+                  </div>
+                )}
 
               {/* File preview buttons */}
               {(userBook.formats.includes('pdf') || userBook.formats.includes('epub')) && (

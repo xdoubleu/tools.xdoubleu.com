@@ -30,7 +30,6 @@ func protoFeed(f models.Feed) *readingv1.Feed {
 		Id:            f.ID.String(),
 		Url:           f.URL,
 		Title:         f.Title,
-		KoboSync:      f.KoboSync,
 		LastFetchedAt: lastFetched,
 		LastError:     lastError,
 		CreatedAt:     f.CreatedAt.Format(time.RFC3339),
@@ -112,9 +111,7 @@ func (h *booksConnectHandler) CreateFeed(
 		return h.createEmailFeed(ctx, user.ID, req.Msg)
 	}
 
-	feed, err := h.app.Services.Feeds.Create(
-		ctx, user.ID, req.Msg.Url, req.Msg.KoboSync,
-	)
+	feed, err := h.app.Services.Feeds.Create(ctx, user.ID, req.Msg.Url)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
 	}
@@ -136,9 +133,7 @@ func (h *booksConnectHandler) createEmailFeed(
 		)
 	}
 
-	feed, address, err := h.app.Services.Feeds.CreateEmail(
-		ctx, userID, req.KoboSync, req.Title,
-	)
+	feed, address, err := h.app.Services.Feeds.CreateEmail(ctx, userID, req.Title)
 	if err != nil {
 		if errors.Is(err, services.ErrEmailFeedsNotConfigured) {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -165,7 +160,7 @@ func (h *booksConnectHandler) UpdateFeed(
 	}
 
 	if err := h.app.Services.Feeds.Update(
-		ctx, user.ID, feedID, req.Msg.Title, req.Msg.KoboSync,
+		ctx, user.ID, feedID, req.Msg.Title,
 	); err != nil {
 		return nil, feedErrorToConnect(err)
 	}

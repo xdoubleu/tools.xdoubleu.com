@@ -105,8 +105,7 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 	resp, err := client.CreateFeed(
 		context.Background(),
 		feedReq(t, &readingv1.CreateFeedRequest{
-			Kind:     readingv1.FeedKind_FEED_KIND_EMAIL,
-			KoboSync: true,
+			Kind: readingv1.FeedKind_FEED_KIND_EMAIL,
 		}),
 	)
 	require.NoError(t, err)
@@ -117,7 +116,6 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 		t,
 		strings.HasSuffix(resp.Msg.Feed.InboundAddress, "@mail.test.example"),
 	)
-	assert.True(t, resp.Msg.Feed.KoboSync)
 
 	// ListFeeds must never re-expose the inbound address in plaintext.
 	list, err := client.ListFeeds(

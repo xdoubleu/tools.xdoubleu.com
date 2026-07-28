@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
+	"tools.xdoubleu.com/apps/reading/internal/services"
 	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
 )
@@ -111,7 +112,7 @@ func TestCreateFeed_ReturnsBeforeImportCompletes(t *testing.T) {
 	start := time.Now()
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	assert.Less(t, time.Since(start), 2*time.Second,
@@ -145,7 +146,7 @@ func TestCreateFeed_ImportsCurrentContents(t *testing.T) {
 	client := newBooksTestClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	assert.Equal(t, "Import Blog", resp.Msg.Feed.Title)
@@ -164,7 +165,7 @@ func TestCreateFeed_ImportsCurrentContents(t *testing.T) {
 	assert.Equal(t, models.StatusToRead, ub.Status)
 	assert.NotContains(t, ub.Tags, models.TagKoboSync)
 
-	// #459: a feed not opted into Kobo sync must not pay for EPUB conversion,
+	// #640: RSS items never pay for EPUB conversion (no Kobo sync path),
 	// even though the item has full HTML content available.
 	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
 		context.Background(), userID, book.ID,
@@ -190,13 +191,13 @@ func TestCreateFeed_DuplicateAndInvalid(t *testing.T) {
 	client := newBooksTestClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 
 	_, err = client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
@@ -205,7 +206,7 @@ func TestCreateFeed_DuplicateAndInvalid(t *testing.T) {
 	mockWebFetch.SetHTML(notAFeed, "<html><body>not xml</body></html>")
 	_, err = client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: notAFeed, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: notAFeed}),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -222,7 +223,7 @@ func TestRefreshFeed_IngestsOnlyNewItems(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	feedID := created.Msg.Feed.Id
@@ -251,10 +252,10 @@ func TestRefreshFeed_IngestsOnlyNewItems(t *testing.T) {
 	assert.Equal(t, int32(0), again.Msg.Ingested)
 }
 
-// TestCreateFeed_KoboSync_EndToEnd proves the plan's core claim: an item
-// ingested from a kobo-sync feed ends up in ListKoboSyncBooks with a ready
-// KEPUB, without any change to the Kobo sync layer.
-func TestCreateFeed_KoboSync_EndToEnd(t *testing.T) {
+// TestCreateFeed_RSS_NeverSyncsToKobo proves #640: an RSS-ingested item never
+// carries the kobo-sync tag and is excluded from ListKoboSyncBooks even if
+// manually tagged, and EnableKoboSync rejects it outright.
+func TestCreateFeed_RSS_NeverSyncsToKobo(t *testing.T) {
 	base := uniqueBlogBase()
 	feedURL := base + "/feed-kobo.xml"
 	itemURL := base + "/kobo-post"
@@ -266,7 +267,7 @@ func TestCreateFeed_KoboSync_EndToEnd(t *testing.T) {
 	client := newBooksTestClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: true}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, resp.Msg.Feed.Id)
@@ -280,23 +281,37 @@ func TestCreateFeed_KoboSync_EndToEnd(t *testing.T) {
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
-	assert.Contains(t, ub.Tags, models.TagKoboSync)
+	assert.NotContains(t, ub.Tags, models.TagKoboSync)
+
+	// EnableKoboSync must reject RSS items even if called directly.
+	err = testApp.Services.Books.EnableKoboSync(
+		context.Background(), userID, book.ID,
+	)
+	require.ErrorIs(t, err, services.ErrKoboSyncNotAllowedForRSS)
+
+	// Even a manually tagged RSS item must not surface in the Kobo sync
+	// query — the query itself filters by category, not just the tag.
+	err = testApp.Repositories.Books.UpdateTags(
+		context.Background(), userID, book.ID,
+		[]string{models.TagKoboSync}, true,
+	)
+	require.NoError(t, err)
 
 	syncBooks, err := testApp.Repositories.Books.ListKoboSyncBooks(
 		context.Background(), userID,
 	)
 	require.NoError(t, err)
-	found := false
 	for _, sb := range syncBooks {
-		if sb.BookID == book.ID {
-			found = true
-			assert.Equal(t, models.FileFormatKEPUB, sb.Format)
-		}
+		assert.NotEqual(t, book.ID, sb.BookID,
+			"RSS item must never appear in the Kobo sync library")
 	}
-	assert.True(t, found, "feed item must appear in the Kobo sync library")
 
-	// #563: the extracted HTML is also persisted for in-app reading,
-	// independent of the EPUB built above.
+	_, err = testApp.Repositories.Books.GetKoboSyncBook(
+		context.Background(), userID, book.ID,
+	)
+	assert.Error(t, err)
+
+	// #563: the extracted HTML is still persisted for in-app reading.
 	html, err := testApp.Services.Books.GetContentHTML(
 		context.Background(), userID, book.ID,
 	)
@@ -313,7 +328,7 @@ func TestUpdateListDeleteFeed(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	feedID := created.Msg.Feed.Id
@@ -322,9 +337,8 @@ func TestUpdateListDeleteFeed(t *testing.T) {
 	_, err = client.UpdateFeed(
 		context.Background(),
 		feedReq(t, &readingv1.UpdateFeedRequest{
-			FeedId:   feedID,
-			Title:    "Renamed Blog",
-			KoboSync: true,
+			FeedId: feedID,
+			Title:  "Renamed Blog",
 		}),
 	)
 	require.NoError(t, err)
@@ -341,7 +355,6 @@ func TestUpdateListDeleteFeed(t *testing.T) {
 	}
 	require.NotNil(t, got)
 	assert.Equal(t, "Renamed Blog", got.Title)
-	assert.True(t, got.KoboSync)
 	assert.NotEmpty(t, got.LastFetchedAt)
 	assert.Empty(t, got.LastError)
 
@@ -377,7 +390,7 @@ func TestDeleteFeed_RemovesUntouchedItems(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
@@ -447,7 +460,7 @@ func TestCreateFeed_ArxivItemsBecomePapers(t *testing.T) {
 	client := newBooksTestClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, resp.Msg.Feed.Id)
@@ -486,7 +499,7 @@ func TestCreateFeed_ArxivItemWithHTML_UsesHTMLPath(t *testing.T) {
 	client := newBooksTestClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, resp.Msg.Feed.Id)
@@ -521,7 +534,7 @@ func TestCreateFeed_ArxivFromGUID(t *testing.T) {
 	client := newBooksTestClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, resp.Msg.Feed.Id)
@@ -549,7 +562,7 @@ func TestCreateFeed_UnknownArxivItem_IsSkipped(t *testing.T) {
 	client := newBooksTestClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, resp.Msg.Feed.Id)
@@ -573,7 +586,7 @@ func TestListFeedItems_LabelsBooksByFeed(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	feedID := created.Msg.Feed.Id
@@ -615,7 +628,7 @@ func TestListFeedItems_OmitsBooksFromDeletedFeeds(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
@@ -665,7 +678,7 @@ func TestFeedItemWithoutContent_TracksMetadataOnly(t *testing.T) {
 	client := newBooksTestClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, resp.Msg.Feed.Id)

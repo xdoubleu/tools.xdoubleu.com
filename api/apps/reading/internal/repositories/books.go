@@ -636,7 +636,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
 		        ELSE 'kepub'
 		    END
-		WHERE ub.user_id = $1 AND 'kobo-sync' = ANY(ub.tags)
+		WHERE ub.user_id = $1 AND 'kobo-sync' = ANY(ub.tags) AND b.category <> 'rss'
 		ORDER BY b.title
 	`
 
@@ -1255,6 +1255,7 @@ func (repo *BooksRepository) GetKoboSyncBook(
 		        ELSE 'kepub'
 		    END
 		WHERE ub.user_id = $1 AND ub.book_id = $2 AND 'kobo-sync' = ANY(ub.tags)
+		    AND b.category <> 'rss'
 	`
 
 	var b models.KoboSyncBook

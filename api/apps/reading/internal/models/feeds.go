@@ -16,14 +16,12 @@ const (
 
 // Feed is an RSS/Atom subscription or an email-relay newsletter subscription
 // (reading.feeds). Items ingested from a feed become regular catalog rows
-// with CategoryRSS; KoboSync auto-enables Kobo sync for every newly ingested
-// item.
+// with CategoryRSS. RSS items never sync to Kobo devices (issue #640).
 type Feed struct {
-	ID       uuid.UUID
-	UserID   string
-	URL      string
-	Title    string
-	KoboSync bool
+	ID     uuid.UUID
+	UserID string
+	URL    string
+	Title  string
 	// SourceType is FeedSourceRSS or FeedSourceEmail.
 	SourceType string
 	// InboundToken is the SHA-256 hash of the per-feed inbound email alias's

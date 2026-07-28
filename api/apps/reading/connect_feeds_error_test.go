@@ -20,7 +20,7 @@ func TestUpdateFeed_InvalidID(t *testing.T) {
 	_, err := client.UpdateFeed(
 		context.Background(),
 		feedReq(t, &readingv1.UpdateFeedRequest{
-			FeedId: "not-a-uuid", Title: "x", KoboSync: false,
+			FeedId: "not-a-uuid", Title: "x",
 		}),
 	)
 	require.Error(t, err)
@@ -42,7 +42,7 @@ func TestUpdateFeed_UnknownFeed_NotFound(t *testing.T) {
 	_, err := client.UpdateFeed(
 		context.Background(),
 		feedReq(t, &readingv1.UpdateFeedRequest{
-			FeedId: uuid.NewString(), Title: "x", KoboSync: true,
+			FeedId: uuid.NewString(), Title: "x",
 		}),
 	)
 	require.Error(t, err)
@@ -67,7 +67,7 @@ func TestCreateFeed_FetchError_InvalidArgument(t *testing.T) {
 	client := newBooksTestClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -86,7 +86,7 @@ func TestRefreshFeed_FetchError_RecordsLastError(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	feedID := created.Msg.Feed.Id
@@ -132,7 +132,7 @@ func TestCreateFeed_ItemWithoutLink(t *testing.T) {
 	client := newBooksTestClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL, KoboSync: false}),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)

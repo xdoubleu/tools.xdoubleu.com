@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useCreateFeed } from '@/hooks/useBookFeeds'
 import { FeedKind } from '@/lib/gen/reading/v1/feeds_pb'
@@ -26,15 +25,14 @@ type Mode = 'rss' | 'email'
 
 // AddFeedForm subscribes to an RSS/Atom feed, or mints a per-feed inbound
 // email alias for newsletters with no public feed (issue #595). New items
-// land in the library as "rss" items either way; the Kobo-sync checkbox
-// auto-opts new items into Kobo syncing. Shared by the settings FeedManager
-// and the unified add dialog.
+// land in the library as "rss" items either way; RSS items never sync to
+// Kobo devices (issue #640). Shared by the settings FeedManager and the
+// unified add dialog.
 export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
   const createFeed = useCreateFeed()
   const [mode, setMode] = useState<Mode>('rss')
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
-  const [koboSync, setKoboSync] = useState(false)
   const [busy, setBusy] = useState(false)
   const [addStatus, setAddStatus] = useState('')
   const [inboundAddress, setInboundAddress] = useState('')
@@ -47,7 +45,6 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
     try {
       const resp = await createFeed(
         mode === 'rss' ? url.trim() : '',
-        koboSync,
         mode === 'rss' ? FeedKind.RSS : FeedKind.EMAIL,
         mode === 'email' ? title.trim() : ''
       )
@@ -58,7 +55,6 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
       }
       setUrl('')
       setTitle('')
-      setKoboSync(false)
       onAdded?.()
     } catch (err) {
       setAddStatus(createErrorMessage(err))
@@ -111,10 +107,6 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
             className="w-auto min-w-0 flex-1"
           />
         )}
-        <label className="flex items-center gap-1.5 text-xs text-subtle">
-          <Checkbox checked={koboSync} onChange={(e) => setKoboSync(e.target.checked)} />
-          Kobo sync
-        </label>
         <Button type="submit" disabled={busy || (mode === 'rss' && !url.trim())}>
           {busy ? 'Subscribing…' : 'Subscribe'}
         </Button>
