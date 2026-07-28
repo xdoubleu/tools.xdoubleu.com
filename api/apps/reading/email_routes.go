@@ -174,7 +174,10 @@ func (app *Reading) resolveEmailFeed(
 }
 
 // inboundTokenFromAddress extracts the token from a "reading+<token>@domain"
-// address's local part.
+// address's local part. Lowercased before returning: some mail relays
+// lowercase the recipient local-part in transit, and the token is generated
+// as lowercase hex (issue #661), so folding case here makes lookup
+// insensitive to that mangling without weakening the token itself.
 func inboundTokenFromAddress(addr string) (string, bool) {
 	local, _, ok := strings.Cut(addr, "@")
 	if !ok {
@@ -184,7 +187,7 @@ func inboundTokenFromAddress(addr string) (string, bool) {
 	if !ok || token == "" {
 		return "", false
 	}
-	return token, true
+	return strings.ToLower(token), true
 }
 
 // verifyResendSignature verifies a Resend inbound webhook using the Svix

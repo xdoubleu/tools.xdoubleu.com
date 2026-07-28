@@ -201,6 +201,14 @@ func TestInboundTokenFromAddress(t *testing.T) {
 		{"no plus", "reading@mail.example.com", "", false},
 		{"no at", "reading+abc123", "", false},
 		{"empty token", "reading+@mail.example.com", "", false},
+		// A relay lowercasing the recipient local-part shouldn't break
+		// lookup (issue #661) — the token is folded to lowercase.
+		{
+			"mixed case folded to lowercase",
+			"reading+AbC123@mail.example.com",
+			"abc123",
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

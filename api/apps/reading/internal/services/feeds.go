@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -161,7 +160,10 @@ func (s *FeedService) CreateEmail(
 	if _, err := rand.Read(raw); err != nil {
 		return nil, "", err
 	}
-	token := base64.RawURLEncoding.EncodeToString(raw)
+	// lowercase hex, not base64: some mail relays lowercase the recipient
+	// local-part in transit, which silently breaks a mixed-case token
+	// (issue #661) — hex has no case ambiguity to mangle in the first place.
+	token := hex.EncodeToString(raw)
 	h := sha256.Sum256([]byte(token))
 	hash := hex.EncodeToString(h[:])
 
