@@ -5,11 +5,14 @@ import { useFeeds } from '@/hooks/useBookFeeds'
 import FeedManager from '@/components/reading/FeedManager'
 import { Button } from '@/components/ui/button'
 
-// Feed management is secondary to reading unread items, so it starts
-// collapsed — unless there are no feeds yet, in which case subscribing is the
-// user's only next step. useFeeds() is a no-op extra request: FeedManager
-// already calls it and SWR dedupes on the shared swrKeys.bookFeeds key.
-export default function ManageFeedsSection() {
+// The page header doubles as the entry point to feed management: the toggle is
+// the page's only real action, so it sits next to the title rather than below
+// the reader. Management is still secondary to reading unread items, so the
+// panel starts collapsed — unless there are no feeds yet, in which case
+// subscribing is the user's only next step. useFeeds() is a no-op extra
+// request: FeedManager already calls it and SWR dedupes on the shared
+// swrKeys.bookFeeds key.
+export default function FeedsHeader() {
   const { data } = useFeeds()
   const [open, setOpen] = useState(false)
   const [touched, setTouched] = useState(false)
@@ -19,9 +22,9 @@ export default function ManageFeedsSection() {
   }, [touched, data])
 
   return (
-    <div className="mt-10 border-t border-border pt-8">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Manage feeds</h2>
+    <>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Feeds</h1>
         <Button
           variant="secondary"
           size="sm"
@@ -37,7 +40,7 @@ export default function ManageFeedsSection() {
       </div>
 
       {open && (
-        <div id="manage-feeds-panel">
+        <div id="manage-feeds-panel" className="mb-6 border-b border-border pb-6">
           <p className="mb-3 text-xs text-muted">
             Subscribe to blogs, news feeds, and email newsletters. New posts are converted to EPUB
             and added to your reading library.
@@ -45,6 +48,6 @@ export default function ManageFeedsSection() {
           <FeedManager />
         </div>
       )}
-    </div>
+    </>
   )
 }
