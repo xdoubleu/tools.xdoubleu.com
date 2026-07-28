@@ -117,6 +117,14 @@ func TestCreateFeed_Email_MintsInboundAddress(t *testing.T) {
 		strings.HasSuffix(resp.Msg.Feed.InboundAddress, "@mail.test.example"),
 	)
 
+	// The token must be lowercase hex (issue #661) — an alphabet with no
+	// case ambiguity for a mail relay to mangle in transit.
+	token := strings.TrimSuffix(
+		strings.TrimPrefix(resp.Msg.Feed.InboundAddress, "reading+"),
+		"@mail.test.example",
+	)
+	assert.Regexp(t, "^[0-9a-f]{64}$", token)
+
 	// ListFeeds must never re-expose the inbound address in plaintext.
 	list, err := client.ListFeeds(
 		context.Background(), feedReq(t, &readingv1.ListFeedsRequest{}),
