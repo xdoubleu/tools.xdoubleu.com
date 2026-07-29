@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useLibrary } from '@/hooks/useBooks'
 import { useFeedItemBooks } from '@/hooks/useBookFeeds'
 import FeedItemMarkReadButton from '@/components/reading/FeedItemMarkReadButton'
+import BookRemoveAction from '@/components/reading/BookRemoveAction'
 import ArticleReaderDialog from '@/components/reading/ArticleReaderDialog'
 import BookCover from '@/components/reading/BookCover'
 import { Button } from '@/components/ui/button'
@@ -87,7 +88,8 @@ function FeedReaderCard({ userBook, feedTitle, onSettled }: FeedReaderCardProps)
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-1">
+        <BookRemoveAction userBook={userBook} onSaved={() => onSettled(userBook.bookId)} />
         <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />
       </div>
 

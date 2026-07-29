@@ -14,9 +14,11 @@ jest.mock('@/hooks/useBookFeeds', () => ({
 }))
 
 const mockUpdateBookStatus = jest.fn()
+const mockRemoveBook = jest.fn()
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
   useUpdateBookStatus: () => mockUpdateBookStatus,
+  useRemoveBook: () => mockRemoveBook,
   useGetBookContent: jest.fn(() => ({ data: undefined, error: undefined }))
 }))
 
@@ -83,6 +85,7 @@ describe('FeedReaderClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUpdateBookStatus.mockResolvedValue({})
+    mockRemoveBook.mockResolvedValue({})
   })
 
   it('shows a loading state', () => {
@@ -115,7 +118,7 @@ describe('FeedReaderClient', () => {
       rssItem('2', 'Newer Post', 'to-read', '2026-01-02T00:00:00Z')
     ])
     render(<FeedReaderClient />)
-    const titles = screen.getAllByRole('button', { name: /Post/ }).map((el) => el.textContent)
+    const titles = screen.getAllByRole('button', { name: /Post$/ }).map((el) => el.textContent)
     expect(titles).toEqual(['Newer Post', 'Older Post'])
   })
 
@@ -163,6 +166,20 @@ describe('FeedReaderClient', () => {
     })
     expect(screen.getByText('No unread feed items.')).toBeInTheDocument()
     jest.useRealTimers()
+  })
+
+  it('removes an item from the list when Remove is confirmed, without marking it read', async () => {
+    mockData([rssItem('1', 'Unwanted Post')])
+    render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Unwanted Post from library' }))
+    fireEvent.click(screen.getByTestId('remove-book-confirm-btn'))
+
+    await waitFor(() => expect(mockRemoveBook).toHaveBeenCalledWith('book-1'))
+    await waitFor(() => {
+      expect(screen.queryByText('Unwanted Post')).not.toBeInTheDocument()
+    })
+    expect(mockUpdateBookStatus).not.toHaveBeenCalled()
   })
 
   it('renders the title as an in-app reader button even without a source URL', () => {
