@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
@@ -192,15 +193,16 @@ func (s *IngestService) addPaperFromHTML(
 
 	existed := s.alreadyInLibrary(ctx, userID, paper.AbsURL)
 	ub, err := s.IngestArticleContent(ctx, userID, ArticleContent{
-		SourceURL: paper.AbsURL,
-		BaseURL:   htmlURL,
-		Category:  models.CategoryPaper,
-		Title:     paper.Title,
-		Byline:    "",
-		Authors:   paper.Authors,
-		Excerpt:   paper.Abstract,
-		CoverURL:  "",
-		HTML:      art.HTML,
+		SourceURL:   paper.AbsURL,
+		BaseURL:     htmlURL,
+		Category:    models.CategoryPaper,
+		Title:       paper.Title,
+		Byline:      "",
+		Authors:     paper.Authors,
+		Excerpt:     paper.Abstract,
+		CoverURL:    "",
+		HTML:        art.HTML,
+		PublishedAt: time.Time{},
 	})
 	if err != nil {
 		s.logger.WarnContext(ctx, "arxiv html ingest failed",
@@ -245,7 +247,7 @@ func (s *IngestService) addPaperFromPDF(
 		return nil, err
 	}
 
-	existed, err := s.ensureUserBook(ctx, userID, book.ID)
+	existed, err := s.ensureUserBook(ctx, userID, book.ID, time.Time{})
 	if err != nil {
 		return nil, err
 	}
@@ -323,15 +325,16 @@ func (s *IngestService) addWebItem(
 			return nil, extractErr
 		}
 		ub, ingestErr := s.IngestArticleContent(ctx, userID, ArticleContent{
-			SourceURL: canonical,
-			BaseURL:   res.FinalURL,
-			Category:  category,
-			Title:     art.Title,
-			Byline:    art.Byline,
-			Authors:   nil,
-			Excerpt:   art.Excerpt,
-			CoverURL:  art.ImageURL,
-			HTML:      art.HTML,
+			SourceURL:   canonical,
+			BaseURL:     res.FinalURL,
+			Category:    category,
+			Title:       art.Title,
+			Byline:      art.Byline,
+			Authors:     nil,
+			Excerpt:     art.Excerpt,
+			CoverURL:    art.ImageURL,
+			HTML:        art.HTML,
+			PublishedAt: time.Time{},
 		})
 		if ingestErr != nil {
 			return nil, ingestErr
@@ -365,7 +368,7 @@ func (s *IngestService) addFetchedPDF(
 	if err != nil {
 		return nil, err
 	}
-	if _, err = s.ensureUserBook(ctx, userID, book.ID); err != nil {
+	if _, err = s.ensureUserBook(ctx, userID, book.ID, time.Time{}); err != nil {
 		return nil, err
 	}
 	if err = s.storeReadyFile(
@@ -390,7 +393,7 @@ func (s *IngestService) attachExisting(
 	book *models.Book,
 	canonical string,
 ) (*AddByURLResult, error) {
-	existed, err := s.ensureUserBook(ctx, userID, book.ID)
+	existed, err := s.ensureUserBook(ctx, userID, book.ID, time.Time{})
 	if err != nil {
 		return nil, err
 	}
@@ -470,11 +473,14 @@ func (s *IngestService) rebuildFile(
 }
 
 // ensureUserBook adds the book to the user's library with StatusToRead when
-// missing. Returns whether the user already had it.
+// missing. Returns whether the user already had it. addedAt overrides the
+// library-add timestamp (e.g. a feed item's published date) when non-zero;
+// zero leaves it to UpsertUserBook's now() default.
 func (s *IngestService) ensureUserBook(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
+	addedAt time.Time,
 ) (bool, error) {
 	_, err := s.booksRepo.GetUserBook(ctx, userID, bookID)
 	if err == nil {
@@ -490,6 +496,7 @@ func (s *IngestService) ensureUserBook(
 		Status:         models.StatusToRead,
 		Tags:           []string{},
 		ShelfPositions: map[string]int{},
+		AddedAt:        addedAt,
 	}
 	if err = s.booksRepo.UpsertUserBook(ctx, ub); err != nil {
 		return false, err

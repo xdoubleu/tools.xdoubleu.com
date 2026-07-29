@@ -474,6 +474,9 @@ func (s *FeedService) ingestItemContent(
 	if item.Image != nil {
 		content.CoverURL = item.Image.URL
 	}
+	if item.PublishedParsed != nil {
+		content.PublishedAt = *item.PublishedParsed
+	}
 
 	if content.HTML == "" {
 		s.enrichFromLinkedPage(ctx, &content)
@@ -606,7 +609,9 @@ func (s *FeedService) ingestMetadataOnly(
 	if err != nil {
 		return nil, err
 	}
-	if _, err = s.ingest.ensureUserBook(ctx, userID, saved.ID); err != nil {
+	if _, err = s.ingest.ensureUserBook(
+		ctx, userID, saved.ID, content.PublishedAt,
+	); err != nil {
 		return nil, err
 	}
 	return s.ingest.booksRepo.GetUserBook(ctx, userID, saved.ID)

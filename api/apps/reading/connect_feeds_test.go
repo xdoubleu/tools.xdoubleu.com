@@ -182,6 +182,46 @@ func TestCreateFeed_ImportsCurrentContents(t *testing.T) {
 	assert.Contains(t, html, "Lorem ipsum")
 }
 
+// TestCreateFeed_UsesItemPublishedDate proves #676: a feed item's library
+// "added" timestamp is the item's own pubDate from the feed, not the moment
+// it was ingested — built directly (not via rssXML/rssItem, which have no
+// pubDate field) so the fixed, well-in-the-past date is unambiguous against
+// "now".
+func TestCreateFeed_UsesItemPublishedDate(t *testing.T) {
+	base := uniqueBlogBase()
+	feedURL := base + "/feed-pubdate.xml"
+	itemURL := base + "/old-post"
+	published := time.Now().Add(-30 * 24 * time.Hour).Truncate(time.Second)
+
+	body := `<?xml version="1.0"?><rss version="2.0"><channel>` +
+		`<title>Pubdate Blog</title><item>` +
+		`<title>Old Post</title><link>` + itemURL + `</link>` +
+		`<guid>p1</guid><pubDate>` +
+		published.Format(time.RFC1123Z) +
+		`</pubDate><description>` + itemContent + `</description>` +
+		`</item></channel></rss>`
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(body))
+
+	client := newBooksTestClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, resp.Msg.Feed.Id)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), itemURL,
+	)
+	require.NoError(t, err)
+	ub, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.WithinDuration(t, published, ub.AddedAt, time.Second,
+		"added_at must be the item's pubDate, not the ingest time")
+}
+
 func TestCreateFeed_DuplicateAndInvalid(t *testing.T) {
 	feedURL := uniqueBlogBase() + "/feed-dup.xml"
 	mockWebFetch.SetBody(
