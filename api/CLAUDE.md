@@ -142,6 +142,7 @@ The `Service` interface and its `GoTrueService` implementation (Supabase, via `s
 
 - Every auth method doing I/O takes a `context.Context` first. auth-go v1.5.0 has no context support, so propagation stops at the GoTrue boundary; the DB enrichment queries and the cache do consume it.
 - The middleware (`Access`/`TemplateAccess`/…) resolves users through a **per-token TTL cache** (`AUTH_CACHE_TTL` seconds, default 60, `0` disables — tests use 0 via `testhelper.NewTestConfig`). A cache hit skips the GoTrue round-trip and both enrichment queries, so role/app-access changes and the `last_seen` upsert can lag by up to the TTL.
+- `enrichUser` overlays the DB-managed `Role`/`AppAccess` onto the raw GoTrue user (which always resolves to `RoleUser` with no app access on its own, per `models.UserFromTypesUser`). A DB failure there is returned, not swallowed (issue #673): silently falling back to the unenriched user would be indistinguishable from "this user has no access" to `AdminAccess`/`AppAccess`, and `resolveUser`/`refreshTokens` would cache that wrong identity for the rest of the TTL instead of retrying on the next request — worst right after a deploy, when a cold cache forces every session through enrichment at once.
 - Tokens are evicted on SignOut, UpdatePassword, VerifyMFA, and UnenrollTOTP. Anything that mutates roles or app access for *other* sessions (admin `SetRole`/`SetAppAccess`) must call `InvalidateUserCache()` (clear-all) afterwards.
 - `SignInRenderer` is injected post-construction from `cmd/api` (the templ sign-in page lives there).
 

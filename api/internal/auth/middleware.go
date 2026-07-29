@@ -103,36 +103,44 @@ func (service *GoTrueService) resolveUser(
 		return nil, err
 	}
 
-	enriched := service.enrichUser(ctx, *user)
+	enriched, err := service.enrichUser(ctx, *user)
+	if err != nil {
+		return nil, err
+	}
 	service.userCache.set(accessToken, enriched)
 	return &enriched, nil
 }
 
 // enrichUser records the user in global.app_users and overlays the DB role
-// and app access; on any failure it falls back to the GoTrue user unchanged.
+// and app access. A DB failure is returned rather than swallowed: the
+// unenriched GoTrue user always carries Role: RoleUser and no AppAccess (see
+// models.UserFromTypesUser), so silently falling back to it would look
+// indistinguishable from "this user genuinely has no access" to callers like
+// AdminAccess/AppAccess — and resolveUser/refreshTokens would then cache that
+// wrong identity for the full TTL instead of retrying on the next request.
 func (service *GoTrueService) enrichUser(
 	ctx context.Context,
 	user models.User,
-) models.User {
+) (models.User, error) {
 	if service.appUsersRepo == nil {
-		return user
+		return user, nil
 	}
 
 	if err := service.appUsersRepo.Upsert(ctx, user.ID, user.Email); err != nil {
 		slog.Default().ErrorContext(ctx, "failed to upsert app user", "error", err)
-		return user
+		return user, err
 	}
 
 	enriched, err := service.appUsersRepo.GetByID(ctx, user.ID)
 	if err != nil {
 		slog.Default().ErrorContext(ctx, "failed to enrich user from db", "error", err)
-		return user
+		return user, err
 	}
 
 	if enriched != nil {
-		return *enriched
+		return *enriched, nil
 	}
-	return user
+	return user, nil
 }
 
 func (service *GoTrueService) refreshTokens(
@@ -160,7 +168,10 @@ func (service *GoTrueService) refreshTokens(
 		return nil
 	}
 
-	enriched := service.enrichUser(r.Context(), *user)
+	enriched, err := service.enrichUser(r.Context(), *user)
+	if err != nil {
+		return nil
+	}
 	service.userCache.set(accessCookie.Value, enriched)
 	return &enriched
 }
@@ -193,6 +204,11 @@ func (service *GoTrueService) AdminAccess(next http.HandlerFunc) http.HandlerFun
 	})
 }
 
+// AppAccess only ever guards ConnectRPC service handlers (see every
+// apps/*/routes.go call site), never an HTML page, so a denial responds with
+// a plain 403 rather than AdminAccess's redirect: a fetch()-based RPC client
+// follows a 30x transparently to "/" and fails opaquely instead of surfacing
+// a clean error.
 func (service *GoTrueService) AppAccess(
 	appName string,
 	next http.HandlerFunc,
@@ -200,13 +216,13 @@ func (service *GoTrueService) AppAccess(
 	return service.TemplateAccess(func(w http.ResponseWriter, r *http.Request) {
 		user, ok := r.Context().Value(constants.UserContextKey).(models.User)
 		if !ok {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		if user.Role == models.RoleAdmin || slices.Contains(user.AppAccess, appName) {
 			next(w, r)
 			return
 		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Error(w, "forbidden", http.StatusForbidden)
 	})
 }

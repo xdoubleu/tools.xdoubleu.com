@@ -67,6 +67,27 @@ func TestAppAccess_AdminGrantedPath(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 }
 
+// TestAppAccess_DeniedReturns403 covers the AppAccess "denied" branch: every
+// AppAccess call site guards a ConnectRPC POST handler (see apps/*/routes.go),
+// never an HTML page, so a denial must respond with a plain 403 rather than
+// AdminAccess's redirect — a fetch()-based RPC client follows a 30x
+// transparently and would otherwise get back the home page's HTML instead of
+// a usable error (issue #673).
+func TestAppAccess_DeniedReturns403(t *testing.T) {
+	demoteToUser(t)
+	revokeAppAccess(t, testUserID, "todos")
+
+	rr := doInProcess(
+		t,
+		http.MethodPost,
+		"/todos.v1.TaskService/ListTasks",
+		"{}",
+		"application/json",
+		&accessToken,
+	)
+	require.Equal(t, http.StatusForbidden, rr.Code, rr.Body.String())
+}
+
 // TestRoutes_ThrottleEnabled verifies the full middleware chain (rate limiter,
 // CORS, Sentry) is constructed when Throttle is true and still serves requests
 // with security headers applied.
