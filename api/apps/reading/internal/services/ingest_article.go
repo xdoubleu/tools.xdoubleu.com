@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	readability "github.com/go-shiori/go-readability"
 
@@ -85,6 +86,10 @@ type ArticleContent struct {
 	Excerpt  string
 	CoverURL string
 	HTML     string
+	// PublishedAt is the item's true publish date (e.g. a feed item's
+	// PublishedParsed), used as the library-add timestamp instead of
+	// ingest time. Zero leaves the add time as now().
+	PublishedAt time.Time
 }
 
 // IngestArticleContent is the shared "have HTML → library entry + EPUB" tail
@@ -127,7 +132,9 @@ func (s *IngestService) IngestArticleContent(
 		}
 	}
 
-	if _, err = s.ensureUserBook(ctx, userID, saved.ID); err != nil {
+	if _, err = s.ensureUserBook(
+		ctx, userID, saved.ID, content.PublishedAt,
+	); err != nil {
 		return nil, err
 	}
 
