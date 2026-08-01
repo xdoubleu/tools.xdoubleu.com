@@ -415,7 +415,51 @@ func (s *FeedService) processItems(
 			ingested++
 		}
 	}
+
+	s.resyncAddedAt(ctx, feed, guids, newGUIDs, byGUID)
 	return ingested
+}
+
+// resyncAddedAt corrects added_at for items ingested before #679 taught
+// ensureUserBook to use the feed item's own pubDate: for every guid already
+// in feed_items (i.e. not in newGUIDs), it pushes the freshly re-parsed
+// PublishedParsed into the matching user_book. Best-effort — a lookup or
+// update failure is logged and skipped, never fails the poll/refresh.
+func (s *FeedService) resyncAddedAt(
+	ctx context.Context,
+	feed models.Feed,
+	guids, newGUIDs []string,
+	byGUID map[string]*gofeed.Item,
+) {
+	newSet := make(map[string]bool, len(newGUIDs))
+	for _, g := range newGUIDs {
+		newSet[g] = true
+	}
+	existingGUIDs := make([]string, 0, len(guids))
+	for _, g := range guids {
+		if !newSet[g] {
+			existingGUIDs = append(existingGUIDs, g)
+		}
+	}
+
+	bookIDs, err := s.feeds.GetBookIDsByGUIDs(ctx, feed.ID, existingGUIDs)
+	if err != nil {
+		s.logger.WarnContext(ctx, "feed added_at resync lookup failed",
+			"feedID", feed.ID, "error", err)
+		return
+	}
+	for guid, bookID := range bookIDs {
+		item := byGUID[guid]
+		if item.PublishedParsed == nil {
+			continue
+		}
+		if err = s.books.SetAddedAt(
+			ctx, feed.UserID, bookID, *item.PublishedParsed,
+		); err != nil {
+			s.logger.WarnContext(ctx, "feed added_at resync failed",
+				"feedID", feed.ID, "bookID", bookID, "error", err)
+		}
+	}
 }
 
 // ingestItem ingests one feed item; reports whether it produced a library

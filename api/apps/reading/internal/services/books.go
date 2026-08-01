@@ -668,6 +668,17 @@ func (s *BookService) SetContentHTML(
 	return s.books.SetBookContentHTML(ctx, bookID, html)
 }
 
+// SetAddedAt overwrites a user's library-add timestamp for a book — used to
+// retroactively correct RSS items' added_at against the feed's own pubDate.
+func (s *BookService) SetAddedAt(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	addedAt time.Time,
+) error {
+	return s.books.UpdateUserBookAddedAt(ctx, userID, bookID, addedAt)
+}
+
 // GetContentHTML returns the stored article HTML for a book in the caller's
 // own library, or "" if none was ever stored for it.
 func (s *BookService) GetContentHTML(

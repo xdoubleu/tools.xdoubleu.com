@@ -347,6 +347,43 @@ func (repo *FeedsRepository) FilterNewGUIDs(
 	return out, nil
 }
 
+// GetBookIDsByGUIDs returns the book each already-seen guid ingested, for
+// guids that have a feed_items row with a non-null book_id. Used to
+// retroactively correct added_at on a resync — items whose ingest never
+// produced a book (e.g. metadata-only failures) are simply absent.
+func (repo *FeedsRepository) GetBookIDsByGUIDs(
+	ctx context.Context,
+	feedID uuid.UUID,
+	guids []string,
+) (map[string]uuid.UUID, error) {
+	if len(guids) == 0 {
+		return map[string]uuid.UUID{}, nil
+	}
+	query := `
+		SELECT guid, book_id FROM reading.feed_items
+		WHERE feed_id = $1 AND guid = ANY($2) AND book_id IS NOT NULL
+	`
+	rows, err := repo.db.Query(ctx, query, feedID, guids)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	out := make(map[string]uuid.UUID, len(guids))
+	for rows.Next() {
+		var guid string
+		var bookID uuid.UUID
+		if scanErr := rows.Scan(&guid, &bookID); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out[guid] = bookID
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
 // MarkItemSeen records a guid as processed for the feed, with either the
 // ingested book or the per-item ingest error. Seen items are never retried
 // by polling (Add-by-URL is the manual retry path), so this is a no-op on
