@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -82,7 +84,27 @@ func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
 		return fmt.Errorf("could not replace running binary: %w", err)
 	}
 
+	if err = resignBundle(executable); err != nil {
+		return fmt.Errorf("could not re-sign updated app bundle: %w", err)
+	}
+
 	return nil
+}
+
+// resignBundle re-applies the ad-hoc code signature package.sh puts on the
+// .app bundle at build time. That signature covers Contents/MacOS/kobo-gateway
+// (per package.sh's own comment, it must be the last edit to the bundle
+// before signing), so overwriting the binary above invalidates the seal
+// unless it's redone here. A raw dev binary run outside a bundle has nothing
+// to re-sign.
+func resignBundle(executable string) error {
+	appDir := filepath.Dir(filepath.Dir(filepath.Dir(executable))) // .../KoboGateway.app
+	if filepath.Ext(appDir) != ".app" {
+		return nil
+	}
+
+	//nolint:gosec //re-signs the bundle we just updated in place, no user input
+	return exec.Command("codesign", "--force", "--sign", "-", appDir).Run()
 }
 
 func (u *Updater) download(ctx context.Context, downloadURL string) ([]byte, error) {
