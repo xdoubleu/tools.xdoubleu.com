@@ -68,10 +68,16 @@ Never read generated or mock files — the warning in "Proto Code Generation" ap
 ## Starting a Task — Traceability
 
 Before changing any code, make sure a GitHub issue exists for the work
-(`gh issue list` / `gh issue view`). If none does, create one
-(`gh issue create`) describing what's changing and why. This keeps every
-change traceable back to a tracked reason — don't start editing on a hunch
-with no issue behind it.
+(`gh issue list` / `gh issue view`). If none does, invoke the `refine-issue`
+skill to create and refine it — summary, type/app labels, Priority, and added
+to the "Main Project" board — rather than a bare `gh issue create`. This keeps
+every change traceable back to a tracked, prioritized reason — don't start
+editing on a hunch with no issue behind it.
+
+Once a plan is finalized (e.g. on exiting plan mode), invoke `refine-issue`
+again to record it in the issue's `## Plan` section. When development
+actually starts (first code edit), invoke `refine-issue` once more to move
+the issue's Status to `In progress`.
 
 ## Starting a Task — Branch Setup
 

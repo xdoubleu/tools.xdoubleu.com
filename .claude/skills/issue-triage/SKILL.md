@@ -12,22 +12,12 @@ several pieces of work into linked sub-issues.
 
 ## Config
 
-- repo: `xdoubleu/tools.xdoubleu.com` (default; accept an `owner/repo` argument to override)
-- project board: "Main Project" — `gh project list --owner xdoubleu` if the number below ever stops matching
-  - project number: `8`, owner: `xdoubleu`
-  - has `Status` (Backlog / Ready / In progress / In review / Done) and `Priority` (P0 / P1 / P2) single-select fields — don't recreate these, look up their current field/option ids each run with `gh project field-list 8 --owner xdoubleu --format json`, since ids aren't worth hardcoding in a doc that can drift.
+Repo/project-board config, the type/app label lists, and the Priority rule (P0/P1/P2)
+are defined once in `refine-issue` (`.claude/skills/refine-issue/SKILL.md`) — read
+them from there, don't redefine them here. This skill additionally uses:
+
 - marker label: `triaged` — create once if it doesn't exist yet:
   `gh label create triaged --repo <repo> --color ededed --description "Reviewed by issue-triage skill"`
-
-## Priority rule
-
-This is the user's own ordering, always apply it over any other instinct:
-
-- **P0** — fixes or restores something that already works today but is currently broken.
-- **P1** — improves existing, working functionality.
-- **P2** — brand-new features that don't exist yet.
-
-A shiny new feature never outranks a broken thing. When an issue is ambiguous, ask which bucket it means rather than guessing.
 
 ## Steps
 
@@ -38,9 +28,8 @@ A shiny new feature never outranks a broken thing. When an issue is ambiguous, a
 2. **Read all of it yourself and reason about it.** Don't write a similarity script — spotting "these two are the same underlying ask" is exactly the kind of judgment call an LLM is better at than fuzzy string matching. For each untriaged issue decide:
    - Duplicate of another open issue? (same underlying problem/request — not just same area of the code)
    - A one-line summary of what it's actually asking for
-   - Type label: `bug` / `enhancement` / `feature` / `chore` / `documentation` — whichever already-existing label fits; the repo has these, don't invent new ones
-   - App label if scoped to one app: `books` / `games` / `recipes` / `mealplans` / `shoppinglist` / `todos`, otherwise `platform` or `infra`
-   - Priority per the rule above
+   - Type and app label per the label lists in `refine-issue`
+   - Priority per the rule in `refine-issue`
    - Whether it actually bundles 2+ separable pieces of work — if so, list candidate subtask titles. Only propose a split when the pieces would plausibly ship as separate PRs. If the pieces touch the same file(s)/component and would naturally get fixed together in one pass, they're multiple small fixes to the same code area, not separate work — keep them as one issue. When unsure, prefer keeping it as one issue.
 
 3. **Show the plan, then wait.** A short table: issue# → duplicate-of/keep, summary, labels, priority, proposed subtasks. Closing issues and rewriting bodies is hard to undo, so get a go-ahead before executing even though the general behavior (auto-comment-and-close dupes, rewrite descriptions) is pre-approved — the *plan* is what needs a look, not the mechanism.
