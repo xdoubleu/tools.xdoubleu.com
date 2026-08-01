@@ -138,8 +138,8 @@ func (r *deadlineSettingRecorder) SetWriteDeadline(t time.Time) error {
 // TestWithExtendedDeadline_AppliesWriteAndContextDeadline verifies that, when
 // the ResponseWriter supports it, withExtendedDeadline both sets the
 // response write deadline and gives the downstream handler's request context
-// a matching deadline — the mechanism GetDeployLogs relies on to survive past
-// the server's global 10s httpWriteTimeout (see routes.go).
+// its own, shorter deadline — the mechanism GetDeployLogs relies on to
+// survive past the server's global 10s httpWriteTimeout (see routes.go).
 func TestWithExtendedDeadline_AppliesWriteAndContextDeadline(t *testing.T) {
 	//nolint:exhaustruct // deadline is set by the handler under test, not the fixture
 	rec := &deadlineSettingRecorder{ResponseRecorder: httptest.NewRecorder()}
@@ -148,6 +148,7 @@ func TestWithExtendedDeadline_AppliesWriteAndContextDeadline(t *testing.T) {
 	var gotOK bool
 	handler := withExtendedDeadline(
 		30*time.Second,
+		20*time.Second,
 		func(_ http.ResponseWriter, r *http.Request) {
 			gotDeadline, gotOK = r.Context().Deadline()
 		},
@@ -157,8 +158,17 @@ func TestWithExtendedDeadline_AppliesWriteAndContextDeadline(t *testing.T) {
 	handler(rec, httptest.NewRequest(http.MethodPost, "/x", nil))
 
 	require.True(t, gotOK, "downstream handler must see a context deadline")
-	assert.WithinDuration(t, before.Add(30*time.Second), gotDeadline, time.Second)
+	assert.WithinDuration(t, before.Add(20*time.Second), gotDeadline, time.Second)
 	assert.WithinDuration(t, before.Add(30*time.Second), rec.deadline, time.Second)
+}
+
+// TestWithExtendedDeadline_CtxTimeoutHasMarginUnderWriteDeadline guards
+// against issue #672 recurring: if the context timeout and the write
+// deadline were ever set equal (or the context timeout were left longer),
+// the handler would have zero time to flush a response after the context
+// cancels, reproducing the original "hangs, then fails silently" bug.
+func TestWithExtendedDeadline_CtxTimeoutHasMarginUnderWriteDeadline(t *testing.T) {
+	require.Less(t, deployLogsCtxTimeout, deployLogsWriteDeadline)
 }
 
 // TestWithExtendedDeadline_FallsBackWhenUnsupported verifies that a
@@ -169,6 +179,7 @@ func TestWithExtendedDeadline_FallsBackWhenUnsupported(t *testing.T) {
 	called := false
 	handler := withExtendedDeadline(
 		30*time.Second,
+		20*time.Second,
 		func(_ http.ResponseWriter, _ *http.Request) { called = true },
 	)
 
