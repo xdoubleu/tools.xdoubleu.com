@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -105,6 +106,89 @@ func TestSelfUpdateUnreachableServer(t *testing.T) {
 	)
 
 	assert.ErrorContains(t, err, "could not download update")
+}
+
+func TestSelfUpdateSkipsResignOutsideBundle(t *testing.T) {
+	// writeFakeExecutable puts the binary directly in t.TempDir(), so its
+	// grandparent-grandparent dir is not a ".app" — resignBundle must be a
+	// no-op and SelfUpdate must succeed without codesign being available.
+	downloads := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(machO64Header("new"))
+		},
+	))
+	defer downloads.Close()
+
+	executable := writeFakeExecutable(t)
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+
+	require.NoError(t, updater.SelfUpdate(context.Background(), downloads.URL))
+}
+
+func TestSelfUpdateFailsWhenResignFails(t *testing.T) {
+	if _, err := exec.LookPath("codesign"); err != nil {
+		t.Skip("codesign not available")
+	}
+
+	// No Info.plist, so codesign rejects this as an unrecognized bundle
+	// format — exercises SelfUpdate's resignBundle error path.
+	appDir := filepath.Join(t.TempDir(), "KoboGateway.app")
+	macOSDir := filepath.Join(appDir, "Contents", "MacOS")
+	require.NoError(t, os.MkdirAll(macOSDir, 0o755))
+	executable := filepath.Join(macOSDir, "kobo-gateway")
+	require.NoError(t, os.WriteFile(executable, machO64Header("old"), 0o755))
+
+	downloads := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(machO64Header("new"))
+		},
+	))
+	defer downloads.Close()
+
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	err := updater.SelfUpdate(context.Background(), downloads.URL)
+
+	assert.ErrorContains(t, err, "could not re-sign updated app bundle")
+}
+
+func TestSelfUpdateResignsAppBundle(t *testing.T) {
+	if _, err := exec.LookPath("codesign"); err != nil {
+		t.Skip("codesign not available")
+	}
+
+	appDir := filepath.Join(t.TempDir(), "KoboGateway.app")
+	macOSDir := filepath.Join(appDir, "Contents", "MacOS")
+	require.NoError(t, os.MkdirAll(macOSDir, 0o755))
+	executable := filepath.Join(macOSDir, "kobo-gateway")
+	require.NoError(t, os.WriteFile(executable, machO64Header("old"), 0o755))
+
+	// codesign requires a minimal Info.plist to recognize this as a bundle
+	// at all ("bundle format unrecognized" otherwise).
+	infoPlist := `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+	<key>CFBundleIdentifier</key><string>com.example.test</string>
+	<key>CFBundleExecutable</key><string>kobo-gateway</string>
+</dict></plist>`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(appDir, "Contents", "Info.plist"),
+		[]byte(infoPlist),
+		0o644,
+	))
+
+	downloads := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(machO64Header("new"))
+		},
+	))
+	defer downloads.Close()
+
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	require.NoError(t, updater.SelfUpdate(context.Background(), downloads.URL))
+
+	verify := exec.Command("codesign", "--verify", "--strict", appDir)
+	out, err := verify.CombinedOutput()
+	assert.NoError(t, err, string(out))
 }
 
 func TestSelfUpdateAcceptsFatBinary(t *testing.T) {
