@@ -53,6 +53,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/reflect-claudemd.sh\"",
+            "statusMessage": "Reflecting on CLAUDE.md/tooling improvements..."
+          }
+        ]
+      }
     ]
   }
 }
