@@ -33,7 +33,7 @@ A shiny new feature never outranks a broken thing. When an issue is ambiguous, a
 ## Labels
 
 - Type label: `bug` / `enhancement` / `feature` / `chore` / `documentation` — whichever already-existing label fits; the repo has these, don't invent new ones.
-- App label if scoped to one app: `books` / `games` / `recipes` / `mealplans` / `shoppinglist` / `todos`, otherwise `platform` or `infra`.
+- App label if scoped to one app: `reading` / `games` / `recipes` / `mealplans` / `shoppinglist` / `todos`, otherwise `platform` or `infra`.
 
 ## Steps — create or refine an issue
 
@@ -42,7 +42,7 @@ A shiny new feature never outranks a broken thing. When an issue is ambiguous, a
    ```
    gh issue edit <num> --repo <repo> --body "$(printf '**Summary:** %s\n\n---\n\n%s' "$SUMMARY" "$ORIGINAL_BODY")"
    ```
-3. Apply the type label and app label: `gh issue edit <num> --repo <repo> --add-label "bug,books"`.
+3. Apply the type label and app label: `gh issue edit <num> --repo <repo> --add-label "bug,reading"`.
 4. Add to the project board if not already on it, capture the item id:
    `gh project item-add 8 --owner xdoubleu --url <issue-url> --format json --jq .id`
 5. Set Priority and Status using the field/option ids looked up in Config. Status on
