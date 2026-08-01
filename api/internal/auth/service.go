@@ -14,12 +14,22 @@ import (
 
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/repositories"
 )
 
 // SignInRenderFunc is called by TemplateAccess when the user is not authenticated.
 // It receives the redirect URL so the sign-in page can redirect back after login.
 type SignInRenderFunc func(w http.ResponseWriter, r *http.Request, redirectURL string)
+
+// appUsersStore is the subset of *repositories.AppUsersRepository that
+// GoTrueService needs. Narrowed to an interface (rather than the concrete
+// type) so tests can fake individual failures — e.g. GetByID failing while
+// Upsert succeeds — that aren't reachable by cancelling a context shared
+// across both calls.
+type appUsersStore interface {
+	Upsert(ctx context.Context, id, email string) error
+	GetByID(ctx context.Context, id string) (*models.User, error)
+	GetAll(ctx context.Context) ([]models.User, error)
+}
 
 // GoTrueService is the Supabase GoTrue-backed implementation of Service.
 type GoTrueService struct {
@@ -30,7 +40,7 @@ type GoTrueService struct {
 	useSecureCookies bool
 	accessExpiry     string
 	refreshExpiry    string
-	appUsersRepo     *repositories.AppUsersRepository
+	appUsersRepo     appUsersStore
 	userCache        *userCache
 	// SignInRenderer is set by cmd/api after construction to avoid a
 	// circular import between this package and package main (which owns the
@@ -43,7 +53,7 @@ var _ Service = (*GoTrueService)(nil)
 func NewService(
 	cfg config.Config,
 	supabaseClient gotrue.Client,
-	appUsersRepo *repositories.AppUsersRepository,
+	appUsersRepo appUsersStore,
 ) *GoTrueService {
 	return &GoTrueService{
 		client:           supabaseClient,
