@@ -127,3 +127,30 @@ func TestResolveToken_GetByIDFailure(t *testing.T) {
 	_, err := svc.ResolveToken(context.Background(), accessToken.Value)
 	require.Error(t, err)
 }
+
+// TestFakeAppUsersStore_SuccessPaths exercises FakeAppUsersStore's success
+// paths (GetByID returning the configured user, GetAll) that the failure
+// tests above don't reach, so the fake itself isn't dragging down coverage.
+func TestFakeAppUsersStore_SuccessPaths(t *testing.T) {
+	//nolint:exhaustruct //UpsertErr/GetByIDErr default to nil (success)
+	store := &mocks.FakeAppUsersStore{
+		User: models.User{
+			ID:        testUserID,
+			Role:      models.RoleAdmin,
+			AppAccess: []string{},
+		},
+	}
+	svc := auth.NewService(
+		testhelper.NewTestConfig(),
+		mocks.NewMockedGoTrueClient(),
+		store,
+	)
+
+	user, err := svc.ResolveToken(context.Background(), accessToken.Value)
+	require.NoError(t, err)
+	assert.Equal(t, models.RoleAdmin, user.Role)
+
+	all, err := svc.GetAllUsers(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, all, 1)
+}
