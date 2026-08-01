@@ -210,7 +210,17 @@ full wiring.
 `Updater.SelfUpdate`, which downloads `kobo-gateway-darwin-arm64` from the
 requesting/configured origin and atomically replaces the running executable
 (inside an app bundle, that's `Contents/MacOS/kobo-gateway`), then signals a
-restart — `main.go` re-execs via `syscall.Exec`.
+restart. `menubar_darwin.go`'s `execUpdatedBinary` relaunches through `open
+-n <bundle>` when running inside a real `.app` (`kobogateway.AppBundlePath`),
+falling back to a raw `syscall.Exec` only for a dev binary with no bundle to
+open. The `open -n` relaunch matters, not just cosmetically: a bare
+`syscall.Exec` keeps the same PID and replaces the process image in place
+without going through LaunchServices, so WindowServer never re-registers the
+process as a fresh app launch under the newly-updated (and re-signed, see
+`resignBundle` below) binary — `NSStatusItem` and `UNUserNotificationCenter`
+both depend on that registration, and silently stop working post-restart
+without it (#669). `open -n` performs a real LaunchServices launch, then the
+old process exits cleanly via its existing `app.Terminate` call.
 
 The web UI (`KoboGatewaySetup.tsx`) decides *when* to trigger this via
 `gatewayNeedsUpdate` (`web/lib/reading/gatewayClient.ts`), which compares two
