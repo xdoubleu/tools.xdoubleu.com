@@ -26,18 +26,31 @@ import (
 // handler, it just makes the eventual response write silently fail once the
 // deadline has passed, so the request looked "successful but slow" while
 // producing no error, no log line, and no Sentry event. This route gets its
-// own longer write deadline and a matching context timeout so a genuinely
+// own longer write deadline and a shorter context timeout so a genuinely
 // stuck upstream call fails loudly instead of hanging past it.
-const deployLogsWriteDeadline = 60 * time.Second
+//
+// deployLogsCtxTimeout must stay below deployLogsWriteDeadline by a real
+// margin (issue #672): the context deadline is what aborts the slow
+// DigitalOcean calls, but the handler still needs time afterward to unwind,
+// marshal a degraded/error response, and write it. Setting both to the same
+// value reproduces the exact bug this pair fixes — the write deadline
+// expires at the same instant the context does, so the eventual write
+// silently fails just like the original global-10s-timeout case.
+const (
+	deployLogsWriteDeadline = 60 * time.Second
+	deployLogsCtxTimeout    = 50 * time.Second
+)
 
 // withExtendedDeadline raises the response write deadline (net/http's
-// ResponseController) and the request context's deadline together for one
-// slow route, without touching the server-wide httpWriteTimeout that every
-// other (fast) route relies on.
-func withExtendedDeadline(d time.Duration, next http.HandlerFunc) http.HandlerFunc {
+// ResponseController) and gives the request context its own, shorter
+// timeout, for one slow route — without touching the server-wide
+// httpWriteTimeout that every other (fast) route relies on.
+func withExtendedDeadline(
+	writeDeadline, ctxTimeout time.Duration, next http.HandlerFunc,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := http.NewResponseController(w).SetWriteDeadline(
-			time.Now().Add(d),
+			time.Now().Add(writeDeadline),
 		); err != nil {
 			// Not all ResponseWriters support deadlines (e.g. in tests using
 			// httptest.ResponseRecorder) — fall back to the ambient deadline.
@@ -45,7 +58,7 @@ func withExtendedDeadline(d time.Duration, next http.HandlerFunc) http.HandlerFu
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(r.Context(), d)
+		ctx, cancel := context.WithTimeout(r.Context(), ctxTimeout)
 		defer cancel()
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
@@ -80,7 +93,9 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(
 		"POST "+observabilityv1connect.ObservabilityServiceGetDeployLogsProcedure,
 		app.auth.Access(
-			withExtendedDeadline(deployLogsWriteDeadline, obsHandler.ServeHTTP),
+			withExtendedDeadline(
+				deployLogsWriteDeadline, deployLogsCtxTimeout, obsHandler.ServeHTTP,
+			),
 		),
 	)
 
