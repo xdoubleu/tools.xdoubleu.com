@@ -9,6 +9,8 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { useGetBookContent } from '@/hooks/useBooks'
+import FeedItemMarkReadButton from '@/components/reading/FeedItemMarkReadButton'
+import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
 
 interface ArticleReaderDialogProps {
   bookId: string
@@ -16,6 +18,9 @@ interface ArticleReaderDialogProps {
   sourceUrl?: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** When set (with `onSettled`), shows a Mark read control for feed items. */
+  userBook?: UserBook
+  onSettled?: (bookId: string) => void
 }
 
 export default function ArticleReaderDialog({
@@ -23,7 +28,9 @@ export default function ArticleReaderDialog({
   title,
   sourceUrl,
   open,
-  onOpenChange
+  onOpenChange,
+  userBook,
+  onSettled
 }: ArticleReaderDialogProps) {
   const { data, error } = useGetBookContent(open ? bookId : null)
   const html = data?.html ?? ''
@@ -45,6 +52,9 @@ export default function ArticleReaderDialog({
               </a>
             )}
           </div>
+          {userBook && onSettled && (
+            <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />
+          )}
           <DialogClose
             aria-label="Close reader"
             className="flex h-11 w-11 shrink-0 items-center justify-center text-lg"
