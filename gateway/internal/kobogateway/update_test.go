@@ -125,6 +125,32 @@ func TestSelfUpdateSkipsResignOutsideBundle(t *testing.T) {
 	require.NoError(t, updater.SelfUpdate(context.Background(), downloads.URL))
 }
 
+func TestSelfUpdateFailsWhenResignFails(t *testing.T) {
+	if _, err := exec.LookPath("codesign"); err != nil {
+		t.Skip("codesign not available")
+	}
+
+	// No Info.plist, so codesign rejects this as an unrecognized bundle
+	// format — exercises SelfUpdate's resignBundle error path.
+	appDir := filepath.Join(t.TempDir(), "KoboGateway.app")
+	macOSDir := filepath.Join(appDir, "Contents", "MacOS")
+	require.NoError(t, os.MkdirAll(macOSDir, 0o755))
+	executable := filepath.Join(macOSDir, "kobo-gateway")
+	require.NoError(t, os.WriteFile(executable, machO64Header("old"), 0o755))
+
+	downloads := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(machO64Header("new"))
+		},
+	))
+	defer downloads.Close()
+
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	err := updater.SelfUpdate(context.Background(), downloads.URL)
+
+	assert.ErrorContains(t, err, "could not re-sign updated app bundle")
+}
+
 func TestSelfUpdateResignsAppBundle(t *testing.T) {
 	if _, err := exec.LookPath("codesign"); err != nil {
 		t.Skip("codesign not available")
