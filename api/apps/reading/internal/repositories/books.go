@@ -219,6 +219,24 @@ func (repo *BooksRepository) UpsertUserBook(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// UpdateUserBookAddedAt overwrites added_at on an already-existing user_book
+// row — used to retroactively correct RSS items ingested before #679 taught
+// UpsertUserBook to set it from the feed item's own pubDate (its ON CONFLICT
+// clause never touches added_at, so re-upserting can't fix existing rows).
+func (repo *BooksRepository) UpdateUserBookAddedAt(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	addedAt time.Time,
+) error {
+	query := `
+		UPDATE reading.user_books SET added_at = $3
+		WHERE user_id = $1 AND book_id = $2
+	`
+	_, err := repo.db.Exec(ctx, query, userID, bookID, addedAt)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 func (repo *BooksRepository) GetByStatus(
 	ctx context.Context,
 	userID string,

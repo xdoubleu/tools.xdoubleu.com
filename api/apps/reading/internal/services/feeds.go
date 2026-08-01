@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
@@ -49,6 +50,48 @@ type FeedService struct {
 	books         *BookService
 	webFetch      webfetch.Client
 	inboundDomain string
+	// guidLookup/addedAtSetter override feeds/books for the resyncAddedAt
+	// path in unit tests. Nil in production — the resolvers below fall back
+	// to the real repository/service.
+	guidLookup    feedsGUIDLookup
+	addedAtSetter addedAtSetter
+}
+
+// feedsGUIDLookup is the narrow subset of FeedsRepository used by
+// resyncAddedAt. Defined as an interface so tests can stub a failure
+// without a real DB.
+type feedsGUIDLookup interface {
+	GetBookIDsByGUIDs(
+		ctx context.Context,
+		feedID uuid.UUID,
+		guids []string,
+	) (map[string]uuid.UUID, error)
+}
+
+// addedAtSetter is the narrow subset of BookService used by resyncAddedAt.
+type addedAtSetter interface {
+	SetAddedAt(
+		ctx context.Context,
+		userID string,
+		bookID uuid.UUID,
+		addedAt time.Time,
+	) error
+}
+
+// guidLookupSource returns the GUID-to-book lookup to use for resyncAddedAt.
+func (s *FeedService) guidLookupSource() feedsGUIDLookup {
+	if s.guidLookup != nil {
+		return s.guidLookup
+	}
+	return s.feeds
+}
+
+// addedAtSetterSource returns the added_at setter to use for resyncAddedAt.
+func (s *FeedService) addedAtSetterSource() addedAtSetter {
+	if s.addedAtSetter != nil {
+		return s.addedAtSetter
+	}
+	return s.books
 }
 
 // NewFeedService constructs a FeedService. inboundDomain is the
@@ -69,6 +112,8 @@ func NewFeedService(
 		books:         books,
 		webFetch:      webFetchClient,
 		inboundDomain: inboundDomain,
+		guidLookup:    nil,
+		addedAtSetter: nil,
 	}
 }
 
@@ -415,7 +460,53 @@ func (s *FeedService) processItems(
 			ingested++
 		}
 	}
+
+	s.resyncAddedAt(ctx, feed, guids, newGUIDs, byGUID)
 	return ingested
+}
+
+// resyncAddedAt corrects added_at for items ingested before #679 taught
+// ensureUserBook to use the feed item's own pubDate: for every guid already
+// in feed_items (i.e. not in newGUIDs), it pushes the freshly re-parsed
+// PublishedParsed into the matching user_book. Best-effort — a lookup or
+// update failure is logged and skipped, never fails the poll/refresh.
+func (s *FeedService) resyncAddedAt(
+	ctx context.Context,
+	feed models.Feed,
+	guids, newGUIDs []string,
+	byGUID map[string]*gofeed.Item,
+) {
+	newSet := make(map[string]bool, len(newGUIDs))
+	for _, g := range newGUIDs {
+		newSet[g] = true
+	}
+	existingGUIDs := make([]string, 0, len(guids))
+	for _, g := range guids {
+		if !newSet[g] {
+			existingGUIDs = append(existingGUIDs, g)
+		}
+	}
+
+	bookIDs, err := s.guidLookupSource().GetBookIDsByGUIDs(
+		ctx, feed.ID, existingGUIDs,
+	)
+	if err != nil {
+		s.logger.WarnContext(ctx, "feed added_at resync lookup failed",
+			"feedID", feed.ID, "error", err)
+		return
+	}
+	for guid, bookID := range bookIDs {
+		item := byGUID[guid]
+		if item.PublishedParsed == nil {
+			continue
+		}
+		if err = s.addedAtSetterSource().SetAddedAt(
+			ctx, feed.UserID, bookID, *item.PublishedParsed,
+		); err != nil {
+			s.logger.WarnContext(ctx, "feed added_at resync failed",
+				"feedID", feed.ID, "bookID", bookID, "error", err)
+		}
+	}
 }
 
 // ingestItem ingests one feed item; reports whether it produced a library

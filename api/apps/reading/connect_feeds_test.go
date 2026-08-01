@@ -222,6 +222,63 @@ func TestCreateFeed_UsesItemPublishedDate(t *testing.T) {
 		"added_at must be the item's pubDate, not the ingest time")
 }
 
+// TestRefreshFeed_CorrectsAddedAtForExistingItems proves #686: an item
+// ingested before #679 (or otherwise carrying a wrong added_at — simulated
+// here by overwriting it after import) gets its added_at corrected back to
+// the feed's own pubDate on the next refresh, even though the item itself
+// is already seen and nothing new is ingested.
+func TestRefreshFeed_CorrectsAddedAtForExistingItems(t *testing.T) {
+	base := uniqueBlogBase()
+	feedURL := base + "/feed-resync.xml"
+	itemURL := base + "/resync-post"
+	published := time.Now().Add(-30 * 24 * time.Hour).Truncate(time.Second)
+
+	body := `<?xml version="1.0"?><rss version="2.0"><channel>` +
+		`<title>Resync Blog</title><item>` +
+		`<title>Resync Post</title><link>` + itemURL + `</link>` +
+		`<guid>rs1</guid><pubDate>` +
+		published.Format(time.RFC1123Z) +
+		`</pubDate><description>` + itemContent + `</description>` +
+		`</item></channel></rss>`
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(body))
+
+	client := newBooksTestClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		feedReq(t, &readingv1.CreateFeedRequest{Url: feedURL}),
+	)
+	require.NoError(t, err)
+	feedID := created.Msg.Feed.Id
+	waitForFeedImport(t, client, feedID)
+
+	book, err := testApp.Repositories.Books.GetBookBySourceURL(
+		context.Background(), itemURL,
+	)
+	require.NoError(t, err)
+
+	// Simulate a pre-#679 row: overwrite added_at to the ingest-time value
+	// #679's fix no longer produces.
+	require.NoError(t, testApp.Repositories.Books.UpdateUserBookAddedAt(
+		context.Background(), userID, book.ID, time.Now(),
+	))
+
+	// The feed is unchanged (same guid, same pubDate), so refreshing ingests
+	// nothing new — the correction must happen for the already-seen item.
+	refreshed, err := client.RefreshFeed(
+		context.Background(),
+		feedReq(t, &readingv1.RefreshFeedRequest{FeedId: feedID}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(0), refreshed.Msg.Ingested)
+
+	ub, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.WithinDuration(t, published, ub.AddedAt, time.Second,
+		"refresh must correct added_at back to the feed's pubDate")
+}
+
 func TestCreateFeed_DuplicateAndInvalid(t *testing.T) {
 	feedURL := uniqueBlogBase() + "/feed-dup.xml"
 	mockWebFetch.SetBody(
