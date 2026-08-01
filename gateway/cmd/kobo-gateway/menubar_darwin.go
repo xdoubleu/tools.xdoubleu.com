@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"sync"
 	"syscall"
 
@@ -145,18 +146,34 @@ func runUI(
 	})
 }
 
-// execUpdatedBinary re-execs the running process into the binary that
-// self-update just wrote to disk. Duplicates serve()'s own restart tail
-// (main.go) rather than sharing it: that tail is only ever reached from the
-// headless test path and stays covered there, whereas this whole file is
-// already excluded from coverage (see codecov.yml) as untestable AppKit
-// code — sharing a function would turn main.go's already-uncovered lines
-// into a "new" diff every time this file changes, failing patch coverage
-// for no behavioral reason.
+// execUpdatedBinary restarts into the binary that self-update just wrote to
+// disk. Inside a real .app bundle, it relaunches through `open -n` — a
+// bare syscall.Exec keeps the same PID and replaces the process image
+// in-place, bypassing LaunchServices entirely, so WindowServer never
+// re-registers the process as a fresh app launch under the new (re-signed)
+// binary's identity. That's what silently breaks NSStatusItem and
+// UNUserNotificationCenter after a self-update restart (#669) even though
+// the process comes back up — both depend on a proper LaunchServices launch.
+// `open -n` performs exactly that, then the caller's existing app.Terminate
+// cleanly exits this process. A raw dev binary has no bundle to open, so it
+// falls back to the previous in-place exec.
+//
+// Duplicates serve()'s own restart tail (main.go) rather than sharing it:
+// that tail is only ever reached from the headless test path and stays
+// covered there, whereas this whole file is already excluded from coverage
+// (see codecov.yml) as untestable AppKit code — sharing a function would
+// turn main.go's already-uncovered lines into a "new" diff every time this
+// file changes, failing patch coverage for no behavioral reason.
 func execUpdatedBinary() error {
 	executable, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("could not resolve executable to restart: %w", err)
+	}
+
+	if appDir := kobogateway.AppBundlePath(executable); appDir != "" {
+		fmt.Fprintln(os.Stdout, "updated, relaunching app bundle…")
+
+		return exec.Command("open", "-n", appDir).Start()
 	}
 
 	fmt.Fprintln(os.Stdout, "updated, restarting into the new binary…")

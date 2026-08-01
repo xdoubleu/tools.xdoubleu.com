@@ -98,13 +98,26 @@ func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
 // unless it's redone here. A raw dev binary run outside a bundle has nothing
 // to re-sign.
 func resignBundle(executable string) error {
-	appDir := filepath.Dir(filepath.Dir(filepath.Dir(executable))) // .../KoboGateway.app
-	if filepath.Ext(appDir) != ".app" {
+	appDir := AppBundlePath(executable)
+	if appDir == "" {
 		return nil
 	}
 
 	//nolint:gosec //re-signs the bundle we just updated in place, no user input
 	return exec.Command("codesign", "--force", "--sign", "-", appDir).Run()
+}
+
+// AppBundlePath returns the .app bundle directory containing executable
+// (e.g. executable=".../KoboGateway.app/Contents/MacOS/kobo-gateway" returns
+// ".../KoboGateway.app"), or "" if it isn't running inside one — e.g. a raw
+// dev binary built by `make build` rather than packaged by `make dist`.
+func AppBundlePath(executable string) string {
+	appDir := filepath.Dir(filepath.Dir(filepath.Dir(executable))) // .../KoboGateway.app
+	if filepath.Ext(appDir) != ".app" {
+		return ""
+	}
+
+	return appDir
 }
 
 func (u *Updater) download(ctx context.Context, downloadURL string) ([]byte, error) {

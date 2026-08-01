@@ -191,6 +191,17 @@ func TestSelfUpdateResignsAppBundle(t *testing.T) {
 	assert.NoError(t, err, string(out))
 }
 
+func TestAppBundlePath(t *testing.T) {
+	rawExecutable := writeFakeExecutable(t)
+	assert.Equal(t, "", kobogateway.AppBundlePath(rawExecutable))
+
+	appDir := filepath.Join(t.TempDir(), "KoboGateway.app")
+	macOSDir := filepath.Join(appDir, "Contents", "MacOS")
+	require.NoError(t, os.MkdirAll(macOSDir, 0o755))
+	bundledExecutable := filepath.Join(macOSDir, "kobo-gateway")
+	assert.Equal(t, appDir, kobogateway.AppBundlePath(bundledExecutable))
+}
+
 func TestSelfUpdateAcceptsFatBinary(t *testing.T) {
 	fat := append([]byte{0xca, 0xfe, 0xba, 0xbe}, []byte("universal")...)
 	downloads := httptest.NewServer(http.HandlerFunc(
