@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -106,4 +107,23 @@ func TestResolveToken_NoAppUsersRepo(t *testing.T) {
 	user, err := svc.ResolveToken(context.Background(), accessToken.Value)
 	require.NoError(t, err)
 	assert.Equal(t, models.RoleUser, user.Role)
+}
+
+// TestResolveToken_GetByIDFailure covers enrichUser's GetByID-specific error
+// branch: Upsert succeeds but the enrichment read fails. A shared canceled
+// context can't isolate this from an Upsert failure (see the tests above),
+// so this uses a fake store with independently configurable errors instead.
+func TestResolveToken_GetByIDFailure(t *testing.T) {
+	//nolint:exhaustruct //only GetByIDErr matters for this test
+	store := &mocks.FakeAppUsersStore{
+		GetByIDErr: errors.New("db read failed"),
+	}
+	svc := auth.NewService(
+		testhelper.NewTestConfig(),
+		mocks.NewMockedGoTrueClient(),
+		store,
+	)
+
+	_, err := svc.ResolveToken(context.Background(), accessToken.Value)
+	require.Error(t, err)
 }

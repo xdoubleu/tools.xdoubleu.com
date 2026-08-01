@@ -137,10 +137,7 @@ func (service *GoTrueService) enrichUser(
 		return user, err
 	}
 
-	if enriched != nil {
-		return *enriched, nil
-	}
-	return user, nil
+	return *enriched, nil
 }
 
 func (service *GoTrueService) refreshTokens(
