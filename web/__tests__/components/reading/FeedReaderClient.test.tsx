@@ -14,11 +14,9 @@ jest.mock('@/hooks/useBookFeeds', () => ({
 }))
 
 const mockUpdateBookStatus = jest.fn()
-const mockRemoveBook = jest.fn()
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
   useUpdateBookStatus: () => mockUpdateBookStatus,
-  useRemoveBook: () => mockRemoveBook,
   useGetBookContent: jest.fn(() => ({ data: undefined, error: undefined }))
 }))
 
@@ -85,7 +83,6 @@ describe('FeedReaderClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUpdateBookStatus.mockResolvedValue({})
-    mockRemoveBook.mockResolvedValue({})
   })
 
   it('shows a loading state', () => {
@@ -135,25 +132,22 @@ describe('FeedReaderClient', () => {
     expect(screen.getByText('Cool Blog')).toBeInTheDocument()
   })
 
-  it('reverts to the row instead of removing it when Undo is clicked', async () => {
+  it('has no card-level remove or mark-read controls', () => {
     mockData([rssItem('1', 'To Be Read')])
     render(<FeedReaderClient />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
-    await waitFor(() => expect(mockUpdateBookStatus).toHaveBeenCalled())
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Mark read' })).toBeInTheDocument()
-    })
-    expect(screen.getByText('To Be Read')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mark read' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Remove To Be Read from library' })
+    ).not.toBeInTheDocument()
   })
 
-  it('removes an item from the list once mark-read settles', async () => {
+  it('removes an item from the list once mark-read settles in the reader dialog', async () => {
     jest.useFakeTimers({ advanceTimers: true })
     mockData([rssItem('1', 'To Be Read')])
     render(<FeedReaderClient />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'To Be Read' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
     await waitFor(() => expect(mockUpdateBookStatus).toHaveBeenCalled())
 
@@ -162,24 +156,9 @@ describe('FeedReaderClient', () => {
     })
 
     await waitFor(() => {
-      expect(screen.queryByText('To Be Read')).not.toBeInTheDocument()
+      expect(screen.queryByText('No unread feed items.')).toBeInTheDocument()
     })
-    expect(screen.getByText('No unread feed items.')).toBeInTheDocument()
     jest.useRealTimers()
-  })
-
-  it('removes an item from the list when Remove is confirmed, without marking it read', async () => {
-    mockData([rssItem('1', 'Unwanted Post')])
-    render(<FeedReaderClient />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Unwanted Post from library' }))
-    fireEvent.click(screen.getByTestId('remove-book-confirm-btn'))
-
-    await waitFor(() => expect(mockRemoveBook).toHaveBeenCalledWith('book-1'))
-    await waitFor(() => {
-      expect(screen.queryByText('Unwanted Post')).not.toBeInTheDocument()
-    })
-    expect(mockUpdateBookStatus).not.toHaveBeenCalled()
   })
 
   it('renders the title as an in-app reader button even without a source URL', () => {

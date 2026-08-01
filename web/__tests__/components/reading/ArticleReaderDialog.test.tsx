@@ -1,10 +1,19 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
+import { create } from '@bufbuild/protobuf'
+import { UserBookSchema, BookSchema } from '@/lib/gen/reading/v1/library_pb'
 
 const mockUseGetBookContent = jest.fn()
+const mockUpdateBookStatus = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
-  useGetBookContent: (...args: unknown[]) => mockUseGetBookContent(...args)
+  useGetBookContent: (...args: unknown[]) => mockUseGetBookContent(...args),
+  useUpdateBookStatus: () => mockUpdateBookStatus
+}))
+
+jest.mock('swr', () => ({
+  ...jest.requireActual('swr'),
+  mutate: jest.fn()
 }))
 
 jest.mock('@/components/ui/dialog', () => ({
@@ -26,9 +35,21 @@ const BOOK_ID = 'book-uuid-1234'
 const TITLE = 'How to Read Things'
 const SOURCE_URL = 'https://example.com/article'
 
+function makeUserBook() {
+  return create(UserBookSchema, {
+    id: 'ub-1',
+    bookId: BOOK_ID,
+    status: 'to-read',
+    tags: [],
+    formats: [],
+    book: create(BookSchema, { id: BOOK_ID, title: TITLE, authors: [] })
+  })
+}
+
 describe('ArticleReaderDialog', () => {
   beforeEach(() => {
     mockUseGetBookContent.mockReset()
+    mockUpdateBookStatus.mockReset()
   })
 
   it('does not render when open is false', () => {
@@ -130,5 +151,28 @@ describe('ArticleReaderDialog', () => {
       <ArticleReaderDialog bookId={BOOK_ID} title={TITLE} open={true} onOpenChange={jest.fn()} />
     )
     expect(screen.getByText(TITLE)).toBeInTheDocument()
+  })
+
+  it('does not show a mark-read control when no userBook/onSettled is provided', () => {
+    mockUseGetBookContent.mockReturnValue({ data: { html: '<p>Body</p>' }, error: null })
+    render(
+      <ArticleReaderDialog bookId={BOOK_ID} title={TITLE} open={true} onOpenChange={jest.fn()} />
+    )
+    expect(screen.queryByRole('button', { name: 'Mark read' })).not.toBeInTheDocument()
+  })
+
+  it('shows a mark-read control when userBook and onSettled are provided', () => {
+    mockUseGetBookContent.mockReturnValue({ data: { html: '<p>Body</p>' }, error: null })
+    render(
+      <ArticleReaderDialog
+        bookId={BOOK_ID}
+        title={TITLE}
+        open={true}
+        onOpenChange={jest.fn()}
+        userBook={makeUserBook()}
+        onSettled={jest.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Mark read' })).toBeInTheDocument()
   })
 })
