@@ -259,6 +259,15 @@ func SetBaseURL(u string) { baseURL = u }
 // tests only so retry tests run without real wall-clock sleeps.
 func SetBackoffBase(d time.Duration) { backoffBase = d }
 
+// SetLiveLogDeadline overrides the per-component live-log read deadline.
+// Intended for tests only, so the never-closing-socket path can be driven
+// without a multi-second wait. Returns the previous value to restore.
+func SetLiveLogDeadline(d time.Duration) time.Duration {
+	prev := liveLogDeadline
+	liveLogDeadline = d
+	return prev
+}
+
 func backoffDelay(attempt int) time.Duration {
 	d := backoffBase * (1 << attempt)
 	if d > backoffCap {

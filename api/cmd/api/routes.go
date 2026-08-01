@@ -21,14 +21,20 @@ import (
 
 // deployLogsWriteDeadline bounds how long the GetDeployLogs response is
 // allowed to take. It fetches BUILD/DEPLOY/RUN/RUN_RESTARTED logs per
-// service component from DigitalOcean and routinely exceeds the server's
-// global 10s httpWriteTimeout (main.go): that timeout doesn't cancel the
-// handler, it just makes the eventual response write silently fail once the
-// deadline has passed, so the request looked "successful but slow" while
-// producing no error, no log line, and no Sentry event. This route gets its
-// own longer write deadline and a matching context timeout so a genuinely
-// stuck upstream call fails loudly instead of hanging past it.
-const deployLogsWriteDeadline = 60 * time.Second
+// service component from DigitalOcean and exceeds the server's global 10s
+// httpWriteTimeout (main.go): that timeout doesn't cancel the handler, it
+// just makes the eventual response write silently fail once the deadline has
+// passed. This route gets its own longer write deadline and a matching
+// context timeout so a genuinely stuck upstream call cancels the handler and
+// fails loudly instead of hanging past it.
+//
+// Kept under DigitalOcean App Platform's own ~25s edge request timeout
+// (issue #672): a value above it let the edge reset the upstream connection
+// (503 UC) before this deadline fired, which is a silent failure — no log
+// line, no Sentry event. Firing first turns that into a logged, Sentry-
+// reported error. The healthy path completes in well under this (live reads
+// are bounded by liveLogDeadline), so it only bites a genuinely stuck call.
+const deployLogsWriteDeadline = 20 * time.Second
 
 // withExtendedDeadline raises the response write deadline (net/http's
 // ResponseController) and the request context's deadline together for one

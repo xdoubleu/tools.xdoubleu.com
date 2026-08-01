@@ -13,7 +13,18 @@ import (
 // liveLogDeadline hard-bounds one component's live log read. DigitalOcean
 // closes the socket itself once it has replayed tail_lines (follow is off),
 // but a socket that never closes must not hold a Connect request open.
-const liveLogDeadline = 20 * time.Second
+//
+// Kept well under DigitalOcean App Platform's own ~25s edge request timeout
+// (issue #672): concurrent live reads for a running component were hitting
+// the old 20s fallback, pushing total wall-clock past the edge, which then
+// reset the upstream connection (503 UC) before any byte was written — a
+// silent failure with no log line or Sentry event. The read still degrades
+// to whatever text arrived before the deadline, so a lower bound only costs
+// a stuck socket, never a healthy one (DO replays the backlog immediately on
+// connect). A var, not a const, so tests can drive the deadline path fast.
+//
+//nolint:gochecknoglobals // test seam, mirrors backoffBase in client.go
+var liveLogDeadline = 8 * time.Second
 
 // liveFrameLimit is the largest single websocket frame accepted. The default
 // (32 KB) is a plausible size for one log chunk, so it is raised rather than
