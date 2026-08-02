@@ -95,7 +95,7 @@ Before editing, always create a tracking GitHub issue for the work via the `refi
    git push -u origin HEAD
    gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
    ```
-   Never push to `main` directly; never open as `--draft`. Reference the tracking issue from "Starting a Task" in the PR body.
+   Never push to `main` directly; never open as `--draft`. Reference the tracking issue from "Starting a Task" in the PR body using a closing keyword (e.g. `Fixes #123`, `Closes #123`) so the issue auto-closes on merge — a bare `#123` or "Related to #123" leaves the issue open even after merge (this happened with issue #727 / PR #728).
    - **Code-only changes** (no `CLAUDE.md`, `Makefile`/npm-script, lint config, CI workflow, or script edits): enable auto-merge right away, in the same breath as creating the PR — `gh pr merge --auto --squash` only merges once checks pass, so there's no reason to wait for green first: `gh pr create --fill --base main && gh pr merge --auto --squash`.
    - **Tooling/harness changes** (anything touching `CLAUDE.md`, Makefile targets, lint config, `.github/workflows/*`, scripts, or hooks): do **not** enable auto-merge — these need the user's own review.
 5. **Monitor CI until green, fixing it yourself if it isn't**:
