@@ -73,7 +73,7 @@ npm run generate                          # Regenerate lib/gen/ from proto defin
 ## UI Standards
 
 - **Mobile-first and responsive**: use Tailwind responsive breakpoints (`sm:`, `md:`, `lg:`) and relative units. No fixed-pixel widths.
-- **Server Components by default**: use Client Components only where interactivity (`useState`, `useEffect`, event handlers) is required.
+- **Server Components by default**: use Client Components only where interactivity (`useState`, `useEffect`, event handlers) is required. A Server Component must never import from a file that pulls in client-only hooks — even for an unrelated shared constant — Next.js's build-time server/client boundary check rejects it (`next build` catches this; `tsc`/ESLint/Jest do not, see #707). Put constants shared across the boundary in a plain `lib/` module with no React imports (e.g. `lib/pagination.ts`).
 - **Minimal friction**: prefer SWR / React state updates over full page reloads. Use optimistic UI where appropriate; avoid unnecessary loading states.
 - **shadcn/ui primitives**: every interactive control must use a `components/ui/` primitive — `Button`, `Input`, `Select`, `Textarea`, `MenuItem` (dropdown rows), `Badge`, `Card`, `Dialog`. Do **not** hand-style raw `<button>`/`<input>`/`<select>`/`<textarea>`. The only sanctioned raw elements are genuinely different patterns: ARIA `role="tab"` strips, sidebar nav lists, and native checkbox/color/file inputs.
 - **Consistent shape**: interactive controls are `rounded-xl` (buttons, inputs, selects, textareas), small/tiny controls `rounded-lg`, containers (cards, dialogs, dropdown panels) `rounded-2xl`, status badges `rounded-full`. Never use bare `rounded` — always pick a value from the scale.

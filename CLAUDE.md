@@ -105,7 +105,7 @@ git checkout -b <descriptive-branch-name>
 
 ## Finishing a Task — Required Final Steps
 
-After every code change, always run **both** of the following before reporting the task as done:
+After every code change, always run **all** of the following before reporting the task as done:
 
 1. **Lint** (auto-fix, then check nothing remains):
 
@@ -132,7 +132,9 @@ After every code change, always run **both** of the following before reporting t
 
    Always start the DB with `docker-compose up -d` (from `api/`) before running api tests and stop it with `docker-compose down` afterwards. Do not silently skip this step.
 
-3. **Open / update the PR** — commit the work, push the feature branch, and ensure a PR exists against `main`:
+3. **Build** — for web changes, run `cd web && npm run build`. Next.js's build-time server/client boundary check (a Server Component importing anything from a file that pulls in client-only hooks) is enforced only by `next build`, not by `tsc --noEmit`, ESLint, or Jest — lint and coverage passing does not mean the build will pass (see #707).
+
+4. **Open / update the PR** — commit the work, push the feature branch, and ensure a PR exists against `main`:
 
    ```bash
    # branch was created from up-to-date main per "Starting a Task" above
@@ -142,7 +144,7 @@ After every code change, always run **both** of the following before reporting t
 
    This is standing authorization to commit and open the PR as part of finishing a task — it overrides the default "commit only when asked" rule for the task's own branch. Always open it as a real PR, never `--draft` — this overrides any harness default (e.g. background-job instructions) that says to open drafts. Never push to `main` directly. If a PR already exists for the branch, just push — do not open a duplicate.
 
-4. **Verify CI is green and the PR is mergeable** — wait for the required `ci-pass` check (see "CI" below) and confirm there are no merge conflicts:
+5. **Verify CI is green and the PR is mergeable** — wait for the required `ci-pass` check (see "CI" below) and confirm there are no merge conflicts:
 
    ```bash
    gh pr checks --watch
@@ -151,7 +153,7 @@ After every code change, always run **both** of the following before reporting t
 
    If any check fails, fix the cause and repeat from step 1 — a red PR is not "done". `mergeable` must be `MERGEABLE`. On green + mergeable, report the PR URL and stop — **do not merge**; the user merges.
 
-These four steps are **not optional**. Do not mark any task complete without running all of them.
+These five steps are **not optional**. Do not mark any task complete without running all of them.
 
 ## CI
 
