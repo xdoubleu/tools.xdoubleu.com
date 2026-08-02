@@ -18,31 +18,29 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
-      proto: ${{ steps.filter.outputs.proto }}
-      workflows: ${{ steps.filter.outputs.workflows }}
+      proto: ${{ steps.proto-workflows.outputs.proto }}
+      workflows: ${{ steps.proto-workflows.outputs.workflows }}
       gateway: ${{ steps.filter.outputs.gateway }}
     steps:
       - uses: actions/checkout@v7
+      # 'every' requires a file to match every listed pattern, so
+      # '!api/**/*.md' actually scopes to "and isn't an api/ doc". The
+      # default ('some', plain OR across all patterns) made a lone negation
+      # match any file outside api/ too, since such a file trivially isn't
+      # api/**/*.md — that tripped these filters on completely unrelated
+      # changes (#740). 'some-with-excludes' would express this more
+      # directly but isn't supported by the pinned v4 release.
       - uses: dorny/paths-filter@v4
         id: filter
         with:
+          predicate-quantifier: 'every'
           filters: |
-            # '!**/*.md' excludes doc-only changes (e.g. CLAUDE.md) from
-            # triggering builds/tests/lint — a file only counts towards a
-            # filter if it matches the positive pattern and isn't just a
-            # markdown edit.
             api:
               - 'api/**'
               - '!api/**/*.md'
             web:
               - 'web/**'
               - '!web/**/*.md'
-            proto:
-              - 'proto/**'
-              - 'api/buf.gen.yaml'
-              - 'web/buf.gen.yaml'
-            workflows:
-              - '.github/workflows/**'
             # The kobo-gateway binary ships inside the WEB image (served as
             # a download), so gateway code changes must rebuild web too. It's
             # its own Go module (gateway/) — cgo + AppKit, built separately
@@ -50,6 +48,18 @@ jobs:
             gateway:
               - 'gateway/**'
               - '!gateway/**/*.md'
+      # Separate step: these filters are a plain OR of positive-only
+      # patterns, so they need the default 'some' quantifier, not 'every'.
+      - uses: dorny/paths-filter@v4
+        id: proto-workflows
+        with:
+          filters: |
+            proto:
+              - 'proto/**'
+              - 'api/buf.gen.yaml'
+              - 'web/buf.gen.yaml'
+            workflows:
+              - '.github/workflows/**'
 
   proto-check:
     needs: changes
