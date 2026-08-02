@@ -27,10 +27,16 @@ jobs:
         id: filter
         with:
           filters: |
+            # '!**/*.md' excludes doc-only changes (e.g. CLAUDE.md) from
+            # triggering builds/tests/lint — a file only counts towards a
+            # filter if it matches the positive pattern and isn't just a
+            # markdown edit.
             api:
               - 'api/**'
+              - '!api/**/*.md'
             web:
               - 'web/**'
+              - '!web/**/*.md'
             proto:
               - 'proto/**'
               - 'api/buf.gen.yaml'
@@ -43,6 +49,7 @@ jobs:
             # on macOS (see build-gateway.yml), not part of api/.
             gateway:
               - 'gateway/**'
+              - '!gateway/**/*.md'
 
   proto-check:
     needs: changes
