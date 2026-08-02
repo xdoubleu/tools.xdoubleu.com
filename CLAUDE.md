@@ -18,7 +18,7 @@ Apps: **games**, **reading** (formerly books — Go package `apps/reading`, sche
 
 **Deploy shape (issue #558):** `api` and `web` build into a single Docker image (root `Dockerfile`) and deploy as one DigitalOcean App Platform component. The Go binary is PID 1, spawns the Next.js standalone server as a child process (`api/cmd/api/web_process.go`), and front-doors it with a reverse proxy (`api/cmd/api/frontend_proxy.go`) that replicates the previous two-component ingress split (`/api/*` stripped to the api mux, `/health` to the api mux, everything else to the Next child) — `web/` needed no routing changes since `API_URL` was already an absolute URL. Merged because DigitalOcean bills per component and both services were already on the smallest instance tier — see #558 for the full option analysis.
 
-**Edge request timeout (~25s):** DigitalOcean App Platform's own edge (Envoy) resets any upstream request that runs past ~25s — the client sees a `503 UC` (`upstream_reset_before_response_started{connection_termination}`) with no server log and no Sentry event, since the reset lands *before* the handler writes a byte. Any API handler must therefore finish (or start streaming) within this ceiling: a write/context deadline set **above** ~25s never fires — the edge kills the connection first — so it looks like a silent failure, not a timeout. This bit the `GetDeployLogs` handler twice (issue #672): two fixes set deadlines above the ceiling before PR #703 lowered them under it, and it's now also a server-streaming Connect RPC so the first byte flows well before the ceiling regardless — see `api/CLAUDE.md`'s `GetDeployLogs` paragraph. The ceiling is DO-side and not configurable.
+**Edge request timeout (~25s):** DigitalOcean App Platform's own edge (Envoy) resets any upstream request that runs past ~25s — the client sees a `503 UC` (`upstream_reset_before_response_started{connection_termination}`) with no server log and no Sentry event, since the reset lands *before* the handler writes a byte. Any API handler must therefore finish (or start streaming) within this ceiling: a write/context deadline set **above** ~25s never fires — the edge kills the connection first — so it looks like a silent failure, not a timeout. This bit the `GetDeployLogs` handler twice (issue #672): two fixes set deadlines above the ceiling before PR #703 lowered them under it. The ceiling is DO-side and not configurable. Note this is enforced only by convention today — `deployLogsCtxTimeout`/`liveLogDeadline` (`api/cmd/api/routes.go`, `api/internal/digitalocean/logs_live.go`) have no test asserting they stay under this ~25s figure, only comments; see #711 before touching either constant.
 
 A read-only **MCP server** at `/apps/mcp` (behind MCP OAuth 2.1, Supabase as the authorization server) exposes each app's own read RPCs as `<app>_<rpc>` tools, so a local Claude CLI can query production domain data. Apps contribute tools by implementing `MCPToolProvider` (`api/cmd/api/apps.go`); the shared gate + marshaling live in `api/internal/mcptools`, and each tool is gated by the caller's own per-app access (not admin-only), returning only that user's data. The same server also exposes admin observability (`observability.v1`) as 8 unprefixed, admin-gated tools so a local Claude CLI can pull production signals as read-only context — including `get_deploy_logs`, which returns the running app's own DigitalOcean runtime output, not just its build/deploy transcript. See the "Apps MCP server" section in [`README.md`](README.md).
 
@@ -105,7 +105,7 @@ git checkout -b <descriptive-branch-name>
 
 ## Finishing a Task — Required Final Steps
 
-After every code change, always run **both** of the following before reporting the task as done:
+After every code change, always run **all** of the following before reporting the task as done:
 
 1. **Lint** (auto-fix, then check nothing remains):
 
@@ -132,7 +132,9 @@ After every code change, always run **both** of the following before reporting t
 
    Always start the DB with `docker-compose up -d` (from `api/`) before running api tests and stop it with `docker-compose down` afterwards. Do not silently skip this step.
 
-3. **Open / update the PR** — commit the work, push the feature branch, and ensure a PR exists against `main`:
+3. **Build** — for web changes, run `cd web && npm run build`. Next.js's build-time server/client boundary check (a Server Component importing anything from a file that pulls in client-only hooks) is enforced only by `next build`, not by `tsc --noEmit`, ESLint, or Jest — lint and coverage passing does not mean the build will pass (see #707).
+
+4. **Open / update the PR** — commit the work, push the feature branch, and ensure a PR exists against `main`:
 
    ```bash
    # branch was created from up-to-date main per "Starting a Task" above
@@ -142,7 +144,7 @@ After every code change, always run **both** of the following before reporting t
 
    This is standing authorization to commit and open the PR as part of finishing a task — it overrides the default "commit only when asked" rule for the task's own branch. Always open it as a real PR, never `--draft` — this overrides any harness default (e.g. background-job instructions) that says to open drafts. Never push to `main` directly. If a PR already exists for the branch, just push — do not open a duplicate.
 
-4. **Verify CI is green and the PR is mergeable** — wait for the required `ci-pass` check (see "CI" below) and confirm there are no merge conflicts:
+5. **Verify CI is green and the PR is mergeable** — wait for the required `ci-pass` check (see "CI" below) and confirm there are no merge conflicts:
 
    ```bash
    gh pr checks --watch
@@ -151,7 +153,7 @@ After every code change, always run **both** of the following before reporting t
 
    If any check fails, fix the cause and repeat from step 1 — a red PR is not "done". `mergeable` must be `MERGEABLE`. On green + mergeable, report the PR URL and stop — **do not merge**; the user merges.
 
-These four steps are **not optional**. Do not mark any task complete without running all of them.
+These five steps are **not optional**. Do not mark any task complete without running all of them.
 
 ## CI
 
