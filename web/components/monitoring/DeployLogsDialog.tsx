@@ -54,13 +54,32 @@ export default function DeployLogsDialog({
     if (!open) return
     setError('')
     setLoading(true)
-    fetchDeployLogs(deploymentId)
-      .then((resp) => setLogs(resp.logs))
-      .catch((err) => {
+    setLogs([])
+
+    let cancelled = false
+    async function run() {
+      try {
+        for await (const log of fetchDeployLogs(deploymentId)) {
+          if (cancelled) return
+          // Each component's log renders as soon as it arrives instead of
+          // waiting for the whole stream, so the dialog stops looking stuck
+          // the moment anything shows up.
+          setLogs((prev) => [...prev, log])
+          setLoading(false)
+        }
+      } catch (err) {
+        if (cancelled) return
         Sentry.captureException(err)
         setError('Failed to load deploy logs.')
-      })
-      .finally(() => setLoading(false))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void run()
+
+    return () => {
+      cancelled = true
+    }
   }, [open, deploymentId, fetchDeployLogs])
 
   return (

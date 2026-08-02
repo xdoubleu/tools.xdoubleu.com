@@ -14,7 +14,12 @@ service ObservabilityService {
       returns (GetFailingPullRequestsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
-  rpc GetDeployLogs(GetDeployLogsRequest) returns (GetDeployLogsResponse);
+  // Server-streaming: each component's log is sent as soon as it resolves,
+  // rather than one response after every component finishes, so the first
+  // byte reaches the client well under DigitalOcean App Platform's ~25s edge
+  // request timeout regardless of how long the slowest component takes
+  // (issue #672 — see api/cmd/api/routes.go).
+  rpc GetDeployLogs(GetDeployLogsRequest) returns (stream DeployComponentLog);
   rpc GetHealthOverview(GetHealthOverviewRequest)
       returns (GetHealthOverviewResponse);
   rpc ListOAuthConnections(ListOAuthConnectionsRequest)
@@ -195,8 +200,11 @@ message DeployComponentLog {
 }
 
 // GetDeployLogsResponse carries per-component build/deploy/runtime log text
-// for one deployment. configured is false when no DigitalOcean token/app ID
-// is set — the section is degraded. logs is empty when configured is false or
+// for one deployment. Not the GetDeployLogs RPC's wire type (that streams
+// DeployComponentLog directly) — used internally to hand the same aggregated
+// data to the get_deploy_logs MCP tool, which needs one JSON result rather
+// than a stream. configured is false when no DigitalOcean token/app ID is
+// set — the section is degraded. logs is empty when configured is false or
 // the deployment has no logs yet for any phase.
 message GetDeployLogsResponse {
   bool configured = 1;

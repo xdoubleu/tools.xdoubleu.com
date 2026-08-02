@@ -392,15 +392,14 @@ func TestObservabilityGetDeployLogs_LatestDeployment(t *testing.T) {
 		testConfigJSON(t, map[string]string{"app_id": "app"}),
 	)
 
-	resp, err := callDeployLogs(t, "", 0)
+	logs, err := callDeployLogs(t, "", 0)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	assert.Equal(t, "d1", resp.Msg.DeploymentId)
-	require.Len(t, resp.Msg.Logs, 1)
-	assert.Equal(t, "api", resp.Msg.Logs[0].Component)
-	assert.Equal(t, "BUILD", resp.Msg.Logs[0].LogType)
-	assert.Equal(t, "building\n", resp.Msg.Logs[0].Content)
-	assert.False(t, resp.Msg.Logs[0].Truncated)
+	require.Len(t, logs, 1)
+	assert.Equal(t, "api", logs[0].Component)
+	assert.Equal(t, "BUILD", logs[0].LogType)
+	assert.Equal(t, "d1", logs[0].DeploymentId)
+	assert.Equal(t, "building\n", logs[0].Content)
+	assert.False(t, logs[0].Truncated)
 }
 
 func TestObservabilityGetDeployLogs_ExplicitDeploymentId(t *testing.T) {
@@ -418,12 +417,11 @@ func TestObservabilityGetDeployLogs_ExplicitDeploymentId(t *testing.T) {
 		testConfigJSON(t, map[string]string{"app_id": "app"}),
 	)
 
-	resp, err := callDeployLogs(t, "d2", 0)
+	logs, err := callDeployLogs(t, "d2", 0)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	assert.Equal(t, "d2", resp.Msg.DeploymentId)
-	require.Len(t, resp.Msg.Logs, 1)
-	assert.Equal(t, "web", resp.Msg.Logs[0].Component)
+	require.Len(t, logs, 1)
+	assert.Equal(t, "web", logs[0].Component)
+	assert.Equal(t, "d2", logs[0].DeploymentId)
 }
 
 // tail_lines has to reach DigitalOcean, and every block has to name the
@@ -452,11 +450,11 @@ func TestObservabilityGetDeployLogs_ForwardsTailLines(t *testing.T) {
 		testConfigJSON(t, map[string]string{"app_id": "app"}),
 	)
 
-	resp, err := callDeployLogs(t, "", 250)
+	logs, err := callDeployLogs(t, "", 250)
 	require.NoError(t, err)
 	assert.Equal(t, "250", seen)
-	require.Len(t, resp.Msg.Logs, 1)
-	assert.Equal(t, "d1", resp.Msg.Logs[0].DeploymentId)
+	require.Len(t, logs, 1)
+	assert.Equal(t, "d1", logs[0].DeploymentId)
 }
 
 func TestObservabilityGetDeployLogs_UpstreamError(t *testing.T) {
@@ -472,10 +470,9 @@ func TestObservabilityGetDeployLogs_UpstreamError(t *testing.T) {
 		testConfigJSON(t, map[string]string{"app_id": "app"}),
 	)
 
-	resp, err := callDeployLogs(t, "d1", 0)
+	logs, err := callDeployLogs(t, "d1", 0)
 	require.NoError(t, err) // degraded, never a failed response
-	assert.True(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Logs)
+	assert.Empty(t, logs)
 }
 
 func TestObservabilityGetDeployLogs_NotConfigured(t *testing.T) {
@@ -487,10 +484,9 @@ func TestObservabilityGetDeployLogs_NotConfigured(t *testing.T) {
 		configNotConnected(),
 	)
 
-	resp, err := callDeployLogs(t, "", 0)
+	logs, err := callDeployLogs(t, "", 0)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Logs)
+	assert.Empty(t, logs)
 }
 
 func TestObservabilityGetDeployLogs_NonAdmin(t *testing.T) {
@@ -499,16 +495,31 @@ func TestObservabilityGetDeployLogs_NonAdmin(t *testing.T) {
 	requirePermissionDenied(t, err)
 }
 
+// callDeployLogs drains the GetDeployLogs stream and returns every message
+// it sent, in receive order (not request order — components resolve
+// concurrently). err is the stream's terminal error, e.g. permission denied
+// for a non-admin caller.
 func callDeployLogs(
 	t *testing.T, deploymentID string, tailLines int32,
-) (*connect.Response[observabilityv1.GetDeployLogsResponse], error) {
+) ([]*observabilityv1.DeployComponentLog, error) {
 	t.Helper()
 	req := connect.NewRequest(&observabilityv1.GetDeployLogsRequest{
 		DeploymentId: deploymentID,
 		TailLines:    tailLines,
 	})
 	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetDeployLogs(context.Background(), req)
+
+	stream, err := observabilityClient(t).GetDeployLogs(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+	defer stream.Close()
+
+	var logs []*observabilityv1.DeployComponentLog
+	for stream.Receive() {
+		logs = append(logs, stream.Msg())
+	}
+	return logs, stream.Err()
 }
 
 // --- Health overview (mixed states) ---

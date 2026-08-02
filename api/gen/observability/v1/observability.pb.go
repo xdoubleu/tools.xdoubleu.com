@@ -1598,8 +1598,11 @@ func (x *DeployComponentLog) GetDeploymentId() string {
 }
 
 // GetDeployLogsResponse carries per-component build/deploy/runtime log text
-// for one deployment. configured is false when no DigitalOcean token/app ID
-// is set — the section is degraded. logs is empty when configured is false or
+// for one deployment. Not the GetDeployLogs RPC's wire type (that streams
+// DeployComponentLog directly) — used internally to hand the same aggregated
+// data to the get_deploy_logs MCP tool, which needs one JSON result rather
+// than a stream. configured is false when no DigitalOcean token/app ID is
+// set — the section is degraded. logs is empty when configured is false or
 // the deployment has no logs yet for any phase.
 type GetDeployLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2627,7 +2630,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x18SetProviderConfigRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x128\n" +
 	"\x06config\x18\x02 \x01(\v2 .observability.v1.ProviderConfigR\x06config\"\x1b\n" +
-	"\x19SetProviderConfigResponse2\x92\f\n" +
+	"\x19SetProviderConfigResponse2\x91\f\n" +
 	"\x14ObservabilityService\x12Z\n" +
 	"\vGetJobStats\x12$.observability.v1.GetJobStatsRequest\x1a%.observability.v1.GetJobStatsResponse\x12`\n" +
 	"\rGetUsageStats\x12&.observability.v1.GetUsageStatsRequest\x1a'.observability.v1.GetUsageStatsResponse\x12f\n" +
@@ -2636,8 +2639,8 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x10GetDatabaseStats\x12).observability.v1.GetDatabaseStatsRequest\x1a*.observability.v1.GetDatabaseStatsResponse\x12{\n" +
 	"\x16GetFailingPullRequests\x12/.observability.v1.GetFailingPullRequestsRequest\x1a0.observability.v1.GetFailingPullRequestsResponse\x12f\n" +
 	"\x0fGetSentryIssues\x12(.observability.v1.GetSentryIssuesRequest\x1a).observability.v1.GetSentryIssuesResponse\x12f\n" +
-	"\x0fGetDeployStatus\x12(.observability.v1.GetDeployStatusRequest\x1a).observability.v1.GetDeployStatusResponse\x12`\n" +
-	"\rGetDeployLogs\x12&.observability.v1.GetDeployLogsRequest\x1a'.observability.v1.GetDeployLogsResponse\x12l\n" +
+	"\x0fGetDeployStatus\x12(.observability.v1.GetDeployStatusRequest\x1a).observability.v1.GetDeployStatusResponse\x12_\n" +
+	"\rGetDeployLogs\x12&.observability.v1.GetDeployLogsRequest\x1a$.observability.v1.DeployComponentLog0\x01\x12l\n" +
 	"\x11GetHealthOverview\x12*.observability.v1.GetHealthOverviewRequest\x1a+.observability.v1.GetHealthOverviewResponse\x12u\n" +
 	"\x14ListOAuthConnections\x12-.observability.v1.ListOAuthConnectionsRequest\x1a..observability.v1.ListOAuthConnectionsResponse\x12\x84\x01\n" +
 	"\x19DisconnectOAuthConnection\x122.observability.v1.DisconnectOAuthConnectionRequest\x1a3.observability.v1.DisconnectOAuthConnectionResponse\x12o\n" +
@@ -2744,7 +2747,7 @@ var file_observability_v1_observability_proto_depIdxs = []int32{
 	19, // 38: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
 	22, // 39: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
 	24, // 40: observability.v1.ObservabilityService.GetDeployStatus:output_type -> observability.v1.GetDeployStatusResponse
-	27, // 41: observability.v1.ObservabilityService.GetDeployLogs:output_type -> observability.v1.GetDeployLogsResponse
+	26, // 41: observability.v1.ObservabilityService.GetDeployLogs:output_type -> observability.v1.DeployComponentLog
 	29, // 42: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
 	36, // 43: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
 	38, // 44: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse

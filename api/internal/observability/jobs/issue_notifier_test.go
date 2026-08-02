@@ -71,6 +71,12 @@ func (f fakeDOClient) DeploymentLogs(
 	return nil, nil
 }
 
+func (f fakeDOClient) DeploymentLogsStream(
+	_ context.Context, _ string, _ int, _ func(digitalocean.ComponentLog) error,
+) error {
+	return nil
+}
+
 func doDeployment(id, phase string) *digitalocean.Deployment {
 	return &digitalocean.Deployment{
 		ID:        id,

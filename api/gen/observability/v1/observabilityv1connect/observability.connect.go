@@ -87,7 +87,12 @@ type ObservabilityServiceClient interface {
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
-	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error)
+	// Server-streaming: each component's log is sent as soon as it resolves,
+	// rather than one response after every component finishes, so the first
+	// byte reaches the client well under DigitalOcean App Platform's ~25s edge
+	// request timeout regardless of how long the slowest component takes
+	// (issue #672 — see api/cmd/api/routes.go).
+	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.ServerStreamForClient[v1.DeployComponentLog], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
@@ -154,7 +159,7 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("GetDeployStatus")),
 			connect.WithClientOptions(opts...),
 		),
-		getDeployLogs: connect.NewClient[v1.GetDeployLogsRequest, v1.GetDeployLogsResponse](
+		getDeployLogs: connect.NewClient[v1.GetDeployLogsRequest, v1.DeployComponentLog](
 			httpClient,
 			baseURL+ObservabilityServiceGetDeployLogsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetDeployLogs")),
@@ -203,7 +208,7 @@ type observabilityServiceClient struct {
 	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	getDeployStatus           *connect.Client[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse]
-	getDeployLogs             *connect.Client[v1.GetDeployLogsRequest, v1.GetDeployLogsResponse]
+	getDeployLogs             *connect.Client[v1.GetDeployLogsRequest, v1.DeployComponentLog]
 	getHealthOverview         *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
 	listOAuthConnections      *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
 	disconnectOAuthConnection *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
@@ -252,8 +257,8 @@ func (c *observabilityServiceClient) GetDeployStatus(ctx context.Context, req *c
 }
 
 // GetDeployLogs calls observability.v1.ObservabilityService.GetDeployLogs.
-func (c *observabilityServiceClient) GetDeployLogs(ctx context.Context, req *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error) {
-	return c.getDeployLogs.CallUnary(ctx, req)
+func (c *observabilityServiceClient) GetDeployLogs(ctx context.Context, req *connect.Request[v1.GetDeployLogsRequest]) (*connect.ServerStreamForClient[v1.DeployComponentLog], error) {
+	return c.getDeployLogs.CallServerStream(ctx, req)
 }
 
 // GetHealthOverview calls observability.v1.ObservabilityService.GetHealthOverview.
@@ -292,7 +297,12 @@ type ObservabilityServiceHandler interface {
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
-	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error)
+	// Server-streaming: each component's log is sent as soon as it resolves,
+	// rather than one response after every component finishes, so the first
+	// byte reaches the client well under DigitalOcean App Platform's ~25s edge
+	// request timeout regardless of how long the slowest component takes
+	// (issue #672 — see api/cmd/api/routes.go).
+	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest], *connect.ServerStream[v1.DeployComponentLog]) error
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
@@ -355,7 +365,7 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("GetDeployStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
-	observabilityServiceGetDeployLogsHandler := connect.NewUnaryHandler(
+	observabilityServiceGetDeployLogsHandler := connect.NewServerStreamHandler(
 		ObservabilityServiceGetDeployLogsProcedure,
 		svc.GetDeployLogs,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetDeployLogs")),
@@ -462,8 +472,8 @@ func (UnimplementedObservabilityServiceHandler) GetDeployStatus(context.Context,
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDeployStatus is not implemented"))
 }
 
-func (UnimplementedObservabilityServiceHandler) GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.Response[v1.GetDeployLogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDeployLogs is not implemented"))
+func (UnimplementedObservabilityServiceHandler) GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest], *connect.ServerStream[v1.DeployComponentLog]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDeployLogs is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error) {

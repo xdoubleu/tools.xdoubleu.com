@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -100,6 +101,54 @@ func (c *client) DeploymentLogs(
 	return append(logs, runtime...), nil
 }
 
+// DeploymentLogsStream is DeploymentLogs' incremental counterpart: yield is
+// called once per component/type pair as soon as it resolves, rather than
+// collecting everything before returning. It exists so a caller like a
+// Connect server stream can flush data to its client long before
+// DigitalOcean's edge timeout, instead of racing a single slow response
+// against it (issue #672, second pass). yield is never called concurrently.
+// A yield error aborts any fetches still in flight and is returned as-is;
+// callers that only want the main scope's failures to be fatal should treat
+// the same degrade rules as DeploymentLogs.
+func (c *client) DeploymentLogsStream(
+	ctx context.Context,
+	deploymentID string,
+	tailLines int,
+	yield func(ComponentLog) error,
+) error {
+	appID, err := c.resolveAppID(ctx)
+	if err != nil {
+		return err
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return ErrNotConfigured
+	}
+	if err != nil {
+		return err
+	}
+
+	components, err := c.serviceComponents(ctx, token, appID, deploymentID)
+	if err != nil {
+		return err
+	}
+
+	tail := clampTailLines(tailLines)
+	err = c.collectLogsStream(ctx, token, logScope{
+		endpoint: fmt.Sprintf(
+			"%s/v2/apps/%s/deployments/%s/logs", baseURL, appID, deploymentID,
+		),
+		deploymentID: deploymentID,
+		components:   components,
+	}, logTypes, tail, yield)
+	if err != nil {
+		return err
+	}
+
+	return c.activeRuntimeLogsStream(ctx, token, appID, deploymentID, tail, yield)
+}
+
 // activeRuntimeLogs fetches the runtime logs of the deployment that is
 // actually serving traffic, when that isn't the deployment being asked about
 // — the case where the latest deploy failed and the previous one kept
@@ -130,6 +179,38 @@ func (c *client) activeRuntimeLogs(
 		return nil
 	}
 	return logs
+}
+
+// activeRuntimeLogsStream is activeRuntimeLogs' incremental counterpart,
+// yielding each component/type pair as it resolves instead of returning a
+// slice. It degrades the same way activeRuntimeLogs does: any failure —
+// including a yield error from a client that has gone away — is logged and
+// swallowed, since the requested deployment's logs (already streamed by the
+// time this runs) are worth having on their own.
+func (c *client) activeRuntimeLogsStream(
+	ctx context.Context, token, appID, deploymentID string, tail int,
+	yield func(ComponentLog) error,
+) error {
+	active, err := c.activeDeployment(ctx, token, appID)
+	if err != nil {
+		c.logger.WarnContext(ctx, "digitalocean active deployment unavailable",
+			slog.Any("error", err))
+		return nil
+	}
+	if active.id == "" || active.id == deploymentID {
+		return nil
+	}
+
+	err = c.collectLogsStream(ctx, token, logScope{
+		endpoint:     fmt.Sprintf("%s/v2/apps/%s/logs", baseURL, appID),
+		deploymentID: active.id,
+		components:   active.components,
+	}, runtimeLogTypes, tail, yield)
+	if err != nil {
+		c.logger.WarnContext(ctx, "digitalocean runtime logs unavailable",
+			slog.String("deployment_id", active.id), slog.Any("error", err))
+	}
+	return nil
 }
 
 // collectLogs fetches every component/type pair of one scope concurrently
@@ -180,6 +261,43 @@ func (c *client) collectLogs(
 		}
 	}
 	return logs, nil
+}
+
+// collectLogsStream is collectLogs' incremental counterpart: it calls yield
+// for each component/type pair as its fetch completes rather than collecting
+// results into a slice, so a slow scope doesn't hold back the ones that
+// already finished. yield is serialized by mu — connect.ServerStream.Send
+// (its usual destination) is not safe for concurrent calls — but fetches
+// still run with the same collectLogsConcurrency-bounded concurrency as
+// collectLogs. Completion order therefore isn't request order, unlike
+// collectLogs.
+func (c *client) collectLogsStream(
+	ctx context.Context, token string, scope logScope, types []LogType, tail int,
+	yield func(ComponentLog) error,
+) error {
+	var mu sync.Mutex
+
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(collectLogsConcurrency)
+
+	for _, component := range scope.components {
+		for _, logType := range types {
+			comp, lt := component, logType
+			group.Go(func() error {
+				log, ok, err := c.componentLog(groupCtx, token, scope, comp, lt, tail)
+				if err != nil {
+					return err
+				}
+				if !ok {
+					return nil
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				return yield(log)
+			})
+		}
+	}
+	return group.Wait()
 }
 
 // serviceComponents reads the deployment's service component names off its

@@ -3,6 +3,7 @@ package digitalocean_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -189,6 +190,96 @@ func TestDeploymentLogs_HappyPath(t *testing.T) {
 	apiRun, ok := byKey["api:RUN"]
 	require.True(t, ok)
 	assert.Equal(t, "running api\n", apiRun.Content)
+}
+
+func TestDeploymentLogsStream_HappyPath(t *testing.T) {
+	mux := newLogsMux(
+		[]string{"api", "web"},
+		map[string][]string{
+			"api:BUILD":  {"api-build"},
+			"web:DEPLOY": {"web-deploy"},
+			"api:RUN":    {"api-run"},
+		},
+	)
+	mux.HandleFunc("/log-chunk/api-build", textHandler("building api\n"))
+	mux.HandleFunc("/log-chunk/web-deploy", textHandler("deploying web\n"))
+	mux.HandleFunc("/log-chunk/api-run", textHandler("running api\n"))
+	cleanup := buildServer(mux)
+	defer cleanup()
+
+	var mu sync.Mutex
+	byKey := map[string]digitalocean.ComponentLog{}
+	err := newClient().DeploymentLogsStream(
+		context.Background(), "dep-1", 0,
+		func(log digitalocean.ComponentLog) error {
+			mu.Lock()
+			defer mu.Unlock()
+			byKey[log.Component+":"+string(log.Type)] = log
+			return nil
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, byKey, 3)
+
+	apiBuild, ok := byKey["api:BUILD"]
+	require.True(t, ok)
+	assert.Equal(t, "building api\n", apiBuild.Content)
+	assert.False(t, apiBuild.Truncated)
+
+	webDeploy, ok := byKey["web:DEPLOY"]
+	require.True(t, ok)
+	assert.Equal(t, "deploying web\n", webDeploy.Content)
+
+	apiRun, ok := byKey["api:RUN"]
+	require.True(t, ok)
+	assert.Equal(t, "running api\n", apiRun.Content)
+}
+
+func TestDeploymentLogsStream_YieldErrorAbortsAndIsReturned(t *testing.T) {
+	mux := newLogsMux(
+		[]string{"api"},
+		map[string][]string{"api:BUILD": {"api-build"}},
+	)
+	mux.HandleFunc("/log-chunk/api-build", textHandler("building api\n"))
+	cleanup := buildServer(mux)
+	defer cleanup()
+
+	yieldErr := errors.New("client gone")
+	err := newClient().DeploymentLogsStream(
+		context.Background(), "dep-1", 0,
+		func(digitalocean.ComponentLog) error {
+			return yieldErr
+		},
+	)
+	require.ErrorIs(t, err, yieldErr)
+}
+
+func TestDeploymentLogsStream_NotConfigured(t *testing.T) {
+	called := false
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			called = true
+			w.WriteHeader(http.StatusOK)
+		}))
+	defer cleanup()
+
+	client := digitalocean.New(
+		logging.NewNopLogger(),
+		stubNotConnected(),
+		configWithAppID("app-123"),
+	)
+
+	yielded := false
+	err := client.DeploymentLogsStream(
+		context.Background(), "dep-1", 0,
+		func(digitalocean.ComponentLog) error {
+			yielded = true
+			return nil
+		},
+	)
+	require.ErrorIs(t, err, digitalocean.ErrNotConfigured)
+	assert.False(t, yielded)
+	assert.False(t, called)
 }
 
 func TestDeploymentLogs_SkipsMissingPhases(t *testing.T) {

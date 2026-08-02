@@ -14,7 +14,7 @@ import type {
   GetFailingPullRequestsResponse,
   GetSentryIssuesResponse,
   GetDeployStatusResponse,
-  GetDeployLogsResponse,
+  DeployComponentLog,
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
@@ -84,11 +84,14 @@ export function useDeployStatus() {
 
 // useDeployLogs fetches on demand (not via SWR): logs are only pulled when
 // the admin asks, not polled alongside the rest of the dashboard. tailLines
-// bounds the live backlog replayed per component; 0 takes the server default.
+// bounds the live backlog replayed per component; 0 takes the server
+// default. GetDeployLogs is server-streaming (issue #672, second pass): each
+// component's log arrives as soon as it resolves rather than the caller
+// waiting for a single response assembled after every component finishes.
 export function useDeployLogs() {
   const client = useMemo(() => createServiceClient(ObservabilityService), [])
   return useCallback(
-    (deploymentId?: string, tailLines = 0): Promise<GetDeployLogsResponse> =>
+    (deploymentId?: string, tailLines = 0): AsyncIterable<DeployComponentLog> =>
       client.getDeployLogs({ deploymentId: deploymentId ?? '', tailLines }),
     [client]
   )
