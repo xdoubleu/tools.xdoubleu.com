@@ -124,3 +124,23 @@ html {
 button:not([disabled]) {
   cursor: pointer;
 }
+
+/*
+ * Feed items ingested from raw HTML (e.g. email-sourced RSS) can carry
+ * fixed-width tables/images that would otherwise overflow the `prose`
+ * container and force horizontal page scroll (#715).
+ */
+.prose {
+  overflow-wrap: anywhere;
+}
+
+.prose img,
+.prose pre {
+  max-width: 100%;
+}
+
+.prose table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
