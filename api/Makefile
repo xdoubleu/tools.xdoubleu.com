@@ -30,6 +30,7 @@ lint/proto: tools/proto
 lint: tools/lint
 	golangci-lint run
 	make lint/sql
+	make lint/proto
 
 lint/pkg: tools/lint
 	golangci-lint run ./$(PKG)/...
@@ -39,6 +40,7 @@ lint/fix: tools/lint
 	golangci-lint run --fix
 	gci write --skip-generated -s standard -s default -s "prefix(tools.xdoubleu.com)" .
 	sqlfluff fix --dialect postgres .
+	make lint/proto
 
 lint/go/ci:
 	golangci-lint run

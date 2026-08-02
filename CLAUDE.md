@@ -48,12 +48,13 @@ When a `.proto` file changes, **both** generators must run — a change without 
 ```bash
 # From api/
 make proto/generate     # regenerates api/gen/ Go stubs
+make lint/proto          # runs `buf lint` — also part of `make lint`/`make lint/fix`
 
 # From web/
 npm run generate        # regenerates web/lib/gen/ TypeScript clients
 ```
 
-Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed; CI regenerates them automatically via `build.yml`.
+Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed; CI regenerates them automatically via `build.yml`. CI's Proto Staleness Check Workflow also runs `buf lint` (naming/style rules, e.g. RPC response types must be named `<Method>Response`) — run `make lint/proto` (from `api/`) locally before pushing so a lint-only failure doesn't cost a round trip through CI.
 
 **Do not read `api/gen/`, `api/internal/mocks/`, `api/apps/*/internal/mocks/`, or `web/lib/gen/`** to discover field names, message types, RPC signatures, or mock method signatures. Read the corresponding `.proto` file in `proto/` or the interface definition in the source package instead — it is much smaller and is the source of truth. Use `ast-grep` on `.proto` files for navigation.
 
