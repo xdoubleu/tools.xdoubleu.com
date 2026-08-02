@@ -96,14 +96,14 @@ Before editing, always create a tracking GitHub issue for the work via the `refi
    gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
    ```
    Never push to `main` directly; never open as `--draft`. Reference the tracking issue from "Starting a Task" in the PR body.
+   - **Code-only changes** (no `CLAUDE.md`, `Makefile`/npm-script, lint config, CI workflow, or script edits): enable auto-merge right away, in the same breath as creating the PR — `gh pr merge --auto --squash` only merges once checks pass, so there's no reason to wait for green first: `gh pr create --fill --base main && gh pr merge --auto --squash`.
+   - **Tooling/harness changes** (anything touching `CLAUDE.md`, Makefile targets, lint config, `.github/workflows/*`, scripts, or hooks): do **not** enable auto-merge — these need the user's own review.
 5. **Monitor CI until green, fixing it yourself if it isn't**:
    ```bash
    gh pr checks --watch
    gh pr view --json mergeable,mergeStateStatus,statusCheckRollup
    ```
-   A red PR or non-`MERGEABLE` state is not "done" — diagnose the actual failure (don't just re-run blindly) and repeat from step 1. On green + mergeable:
-   - **Code-only changes** (no `CLAUDE.md`, `Makefile`/npm-script, lint config, CI workflow, or script edits): enable auto-merge yourself (`gh pr merge --auto --squash`) and report the PR URL.
-   - **Tooling/harness changes** (anything touching `CLAUDE.md`, Makefile targets, lint config, `.github/workflows/*`, scripts, or hooks): do **not** enable auto-merge — these need the user's own review. Report the PR URL and stop.
+   A red PR or non-`MERGEABLE` state is not "done" — diagnose the actual failure (don't just re-run blindly) and repeat from step 1. Once green + mergeable, report the PR URL (auto-merge was already armed in step 4 for code-only changes; for tooling/harness changes, stop here and wait for review).
 6. **Reflect on whether this change exposed a doc/tooling gap** — once CI is green, look back at the commit range for this task and ask: (a) would a CLAUDE.md addition/correction, a new Make/npm target, a lint rule, a CI workflow tweak, or a script have made this specific change faster or safer to implement; (b) did the PR need more than one push to go green (check `gh pr checks`/`gh run list` and the commit log for fixup commits), and if so, what local check would have caught the failure before pushing. Only flag something concrete tied to what actually happened — not speculative "would be nice" additions. If nothing is worth flagging, stop here. If something is: in a **separate** fresh worktree off `main`, open a tracking issue, edit only `CLAUDE.md`/tooling files, and open an independent, non-draft PR referencing it (never stacked on the original PR) — following this same checklist for that PR too.
 
 ## CI
