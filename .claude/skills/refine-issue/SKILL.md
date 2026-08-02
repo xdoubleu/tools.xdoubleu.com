@@ -42,7 +42,7 @@ A shiny new feature never outranks a broken thing. When an issue is ambiguous, a
    ```
    gh issue edit <num> --repo <repo> --body "$(printf '**Summary:** %s\n\n---\n\n%s' "$SUMMARY" "$ORIGINAL_BODY")"
    ```
-3. Apply the type label and app label: `gh issue edit <num> --repo <repo> --add-label "bug,reading"`.
+3. Apply the type label, app label, and `triaged` (this skill's own review marker, same as `issue-triage`'s): `gh issue edit <num> --repo <repo> --add-label "bug,reading,triaged"`.
 4. Add to the project board if not already on it, capture the item id:
    `gh project item-add 8 --owner xdoubleu --url <issue-url> --format json --jq .id`
 5. Set Priority and Status using the field/option ids looked up in Config. Status on
