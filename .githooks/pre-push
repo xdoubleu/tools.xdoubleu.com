@@ -1,0 +1,22 @@
+#!/bin/sh
+# Blocks `git push` directly to main. CLAUDE.md's "CI" section explains why:
+# pushes to main skip lint/build/proto-check (PR's green checks are trusted)
+# and go straight to deploy, so a direct push gets LESS verification than a
+# PR, not the same amount. Always merge via a PR instead.
+#
+# Enable with: git config core.hooksPath .githooks
+# One-time bypass (you know what you're doing): ALLOW_MAIN_PUSH=1 git push
+
+remote="$1"
+protected_branch='refs/heads/main'
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "$protected_branch" ] && [ -z "$ALLOW_MAIN_PUSH" ]; then
+    echo "error: direct push to 'main' is blocked (remote: $remote)." >&2
+    echo "Open a PR instead — see CLAUDE.md's 'Finishing a Task' steps." >&2
+    echo "Override (rare, e.g. reverting a broken main): ALLOW_MAIN_PUSH=1 git push" >&2
+    exit 1
+  fi
+done
+
+exit 0
