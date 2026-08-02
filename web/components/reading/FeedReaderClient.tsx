@@ -5,6 +5,7 @@ import { useLibrary } from '@/hooks/useBooks'
 import { useFeedItemBooks } from '@/hooks/useBookFeeds'
 import ArticleReaderDialog from '@/components/reading/ArticleReaderDialog'
 import BookCover from '@/components/reading/BookCover'
+import BookFavouriteButton from '@/components/reading/BookFavouriteButton'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
@@ -72,14 +73,17 @@ function FeedReaderCard({ userBook, feedTitle, onSettled }: FeedReaderCardProps)
       <div className="flex items-start gap-3">
         <BookCover coverUrl={book.coverUrl} title={book.title} size="thumb" />
         <div className="min-w-0 flex-1">
-          <Button
-            type="button"
-            variant="link"
-            onClick={() => setReaderOpen(true)}
-            className="h-auto p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
-          >
-            {book.title}
-          </Button>
+          <div className="flex items-start justify-between gap-2">
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => setReaderOpen(true)}
+              className="h-auto p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
+            >
+              {book.title}
+            </Button>
+            <BookFavouriteButton userBook={userBook} />
+          </div>
           {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
           <p className="text-xs text-muted">{formatDate(userBook.addedAt)}</p>
           {noContent && <p className="text-xs text-subtle">No in-app content</p>}

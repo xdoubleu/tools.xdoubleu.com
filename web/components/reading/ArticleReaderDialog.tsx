@@ -9,6 +9,7 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { useGetBookContent } from '@/hooks/useBooks'
+import BookFavouriteButton from '@/components/reading/BookFavouriteButton'
 import FeedItemMarkReadButton from '@/components/reading/FeedItemMarkReadButton'
 import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
 
@@ -52,8 +53,11 @@ export default function ArticleReaderDialog({
               </a>
             )}
           </div>
-          {userBook && onSettled && (
-            <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />
+          {userBook && (
+            <div className="flex shrink-0 items-center gap-2">
+              <BookFavouriteButton userBook={userBook} />
+              {onSettled && <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />}
+            </div>
           )}
           <DialogClose
             aria-label="Close reader"
