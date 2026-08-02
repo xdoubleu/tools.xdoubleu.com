@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
@@ -166,6 +167,46 @@ func TestDeploymentLogs_LiveDialFailureDegrades(t *testing.T) {
 	require.Len(t, logs, 1)
 	assert.Equal(t, digitalocean.LogTypeBuild, logs[0].Type)
 	assert.Equal(t, "built\n", logs[0].Content)
+}
+
+// A live socket that DigitalOcean never closes (it kept streaming, or ignored
+// follow=false) must not hold the request open past liveLogDeadline — the
+// production hang behind issue #672, where concurrent live reads ran the full
+// fallback and pushed total wall-clock past DO's ~25s edge timeout, silently
+// resetting the connection. The read is bounded and returns what arrived,
+// flagged truncated.
+func TestDeploymentLogs_LiveNeverClosesIsBounded(t *testing.T) {
+	restore := digitalocean.SetLiveLogDeadline(300 * time.Millisecond)
+	defer digitalocean.SetLiveLogDeadline(restore)
+
+	mux := newLiveMux(
+		[]string{"api"},
+		map[string]string{"api:RUN": "/live/api-run"},
+		nil,
+	)
+	mux.HandleFunc("/live/api-run", func(w http.ResponseWriter, r *http.Request) {
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.CloseNow() }()
+
+		frame, _ := json.Marshal(map[string]string{"data": "still serving\n"})
+		_ = conn.Write(r.Context(), websocket.MessageText, frame)
+		<-r.Context().Done() // never close on our own — force the deadline
+	})
+	cleanup := buildServer(mux)
+	defer cleanup()
+
+	start := time.Now()
+	logs, err := newClient().DeploymentLogs(context.Background(), "dep-1", 0)
+	elapsed := time.Since(start)
+
+	require.NoError(t, err)
+	assert.Less(t, elapsed, 5*time.Second, "must not wait out a real deadline")
+	require.Len(t, logs, 1)
+	assert.Equal(t, "still serving\n", logs[0].Content)
+	assert.True(t, logs[0].Truncated)
 }
 
 // An abrupt close mid-stream keeps what was read and flags it truncated.

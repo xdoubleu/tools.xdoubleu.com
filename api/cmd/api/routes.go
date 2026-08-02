@@ -36,9 +36,17 @@ import (
 // value reproduces the exact bug this pair fixes — the write deadline
 // expires at the same instant the context does, so the eventual write
 // silently fails just like the original global-10s-timeout case.
+//
+// deployLogsCtxTimeout must also stay under DigitalOcean App Platform's own
+// ~25s edge request timeout (issue #672, second pass): at 50s the edge reset
+// the upstream connection (503 UC) at ~25s before the context deadline ever
+// fired, which is a silent failure — no log line, no Sentry event. Firing
+// first turns that into a logged, Sentry-reported error. The healthy path
+// completes in well under this (live reads are bounded by liveLogDeadline),
+// so it only bites a genuinely stuck call.
 const (
 	deployLogsWriteDeadline = 60 * time.Second
-	deployLogsCtxTimeout    = 50 * time.Second
+	deployLogsCtxTimeout    = 20 * time.Second
 )
 
 // withExtendedDeadline raises the response write deadline (net/http's
