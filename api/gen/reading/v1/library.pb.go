@@ -7,11 +7,12 @@
 package readingv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -2023,17 +2024,16 @@ func (x *GetBookContentResponse) GetHtml() string {
 	return ""
 }
 
-// AddBookByURL ingests a paper or web article from a pasted URL: arXiv URLs
-// become papers (metadata + PDF from the arXiv API), anything else is fetched
-// and readability-extracted into an EPUB article. Pasting a URL that is
+// AddBookByURL ingests a web article from a pasted URL: fetched and
+// readability-extracted into an EPUB article. Pasting a URL that is
 // already in the catalog is not an error — the item is attached to the
 // caller's library (already_in_library reports whether it was there before)
 // and a missing file is rebuilt.
 type AddBookByURLRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	// Optional category override: "paper" | "article". Empty auto-detects
-	// (arXiv URLs → paper, everything else → article).
+	// Optional category override: "paper" | "article". Empty defaults to
+	// "article".
 	Category      string `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -28,7 +28,6 @@ func buildCoverApp(t *testing.T) (*reading.Reading, *objectstore.FakeClient) {
 	clients := reading.Clients{
 		UniCat:           nil,
 		WebFetch:         nil,
-		Arxiv:            nil,
 		HTMLConvert:      nil,
 		Hardcover:        nil,
 		ObjectStore:      store,

@@ -17,7 +17,6 @@ import (
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
 	"tools.xdoubleu.com/apps/reading/internal/repositories"
-	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	"tools.xdoubleu.com/apps/reading/pkg/ebookmeta"
 	"tools.xdoubleu.com/apps/reading/pkg/objectstore"
 	"tools.xdoubleu.com/apps/reading/pkg/webfetch"
@@ -37,8 +36,6 @@ var (
 const (
 	// maxArticleBytes caps a fetched article page.
 	maxArticleBytes = int64(25 << 20)
-	// maxPaperPDFBytes caps a downloaded paper PDF.
-	maxPaperPDFBytes = int64(100 << 20)
 
 	contentTypePDF = "application/pdf"
 	// articleAccept asks for HTML first but tolerates directly-linked PDFs.
@@ -56,10 +53,7 @@ func fetchOptions(maxBytes int64, accept string) webfetch.Options {
 }
 
 // IngestService turns pasted URLs and feed items into library entries with
-// stored files: arXiv papers prefer an EPUB built from arXiv's HTML
-// rendition, falling back to a PDF book_file (converted to KEPUB by the
-// existing lazy pipeline) when no HTML rendition is available; web articles
-// are readability-extracted and built into EPUBs.
+// stored files: web articles are readability-extracted and built into EPUBs.
 type IngestService struct {
 	logger      *slog.Logger
 	books       *BookService
@@ -67,7 +61,6 @@ type IngestService struct {
 	bookFiles   *repositories.BookFilesRepository
 	objectStore objectstore.Client
 	webFetch    webfetch.Client
-	arxiv       arxiv.Client
 	htmlConvert HTMLConverter
 }
 
@@ -79,7 +72,6 @@ func NewIngestService(
 	repos *repositories.Repositories,
 	objectStore objectstore.Client,
 	webFetchClient webfetch.Client,
-	arxivClient arxiv.Client,
 	htmlConvert HTMLConverter,
 ) *IngestService {
 	if htmlConvert == nil {
@@ -92,7 +84,6 @@ func NewIngestService(
 		bookFiles:   repos.BookFiles,
 		objectStore: objectStore,
 		webFetch:    webFetchClient,
-		arxiv:       arxivClient,
 		htmlConvert: htmlConvert,
 	}
 }
@@ -111,11 +102,6 @@ func (s *IngestService) AddByURL(
 	ctx context.Context,
 	userID, rawURL, categoryOverride string,
 ) (*AddByURLResult, error) {
-	if id, ok := arxiv.ParseID(rawURL); ok &&
-		categoryOverride != models.CategoryArticle {
-		return s.addPaper(ctx, userID, id)
-	}
-
 	canonical, err := canonicalURL(rawURL)
 	if err != nil {
 		return nil, err
@@ -127,174 +113,7 @@ func (s *IngestService) AddByURL(
 	return s.addWebItem(ctx, userID, canonical, category)
 }
 
-// IngestArxivByID ingests an arXiv paper (metadata + PDF) into the user's
-// library and returns the resulting user_book. Used by the feed pipeline when
-// a feed item links to an arXiv paper, so it lands as a "paper" with a PDF
-// rather than a readability-extracted "rss" article.
-func (s *IngestService) IngestArxivByID(
-	ctx context.Context,
-	userID, arxivID string,
-) (*models.UserBook, error) {
-	res, err := s.addPaper(ctx, userID, arxivID)
-	if err != nil {
-		return nil, err
-	}
-	return res.UserBook, nil
-}
-
-// addPaper ingests an arXiv paper: metadata from the API, then its content
-// as an HTML-derived EPUB when available (see addPaperFromHTML), falling
-// back to the PDF (addPaperFromPDF) otherwise.
-func (s *IngestService) addPaper(
-	ctx context.Context,
-	userID, arxivID string,
-) (*AddByURLResult, error) {
-	paper, err := s.arxiv.GetByID(ctx, arxivID)
-	if err != nil {
-		return nil, err
-	}
-
-	if result, ok := s.addPaperFromHTML(ctx, userID, paper); ok {
-		return result, nil
-	}
-
-	return s.addPaperFromPDF(ctx, userID, paper)
-}
-
-// addPaperFromHTML is the preferred path (#587): arXiv's LaTeXML HTML
-// rendition converts to a far better EPUB than PDF text extraction. This is
-// best-effort — roughly 97% of TeX/LaTeX submissions produce some HTML, but
-// only ~75% convert without LaTeXML errors, ~10% of arXiv has no TeX source
-// at all, and papers before Dec 2023 are largely not backfilled — so any
-// failure along this path (missing HTML, fetch error, unreadable content,
-// build error) is logged and falls back to addPaperFromPDF; it must never
-// abort ingestion.
-func (s *IngestService) addPaperFromHTML(
-	ctx context.Context,
-	userID string,
-	paper *arxiv.Paper,
-) (*AddByURLResult, bool) {
-	body, err := s.arxiv.GetHTML(ctx, paper.ID)
-	if err != nil {
-		if !errors.Is(err, arxiv.ErrNotFound) {
-			s.logger.WarnContext(ctx, "arxiv html fetch failed",
-				"arxivID", paper.ID, "error", err)
-		}
-		return nil, false
-	}
-
-	htmlURL := arxiv.HTMLURL(paper.ID)
-	art, err := extractReadable(htmlURL, body)
-	if err != nil {
-		s.logger.WarnContext(ctx, "arxiv html extraction failed",
-			"arxivID", paper.ID, "error", err)
-		return nil, false
-	}
-
-	existed := s.alreadyInLibrary(ctx, userID, paper.AbsURL)
-	ub, err := s.IngestArticleContent(ctx, userID, ArticleContent{
-		SourceURL:   paper.AbsURL,
-		BaseURL:     htmlURL,
-		Category:    models.CategoryPaper,
-		Title:       paper.Title,
-		Byline:      "",
-		Authors:     paper.Authors,
-		Excerpt:     paper.Abstract,
-		CoverURL:    "",
-		HTML:        art.HTML,
-		PublishedAt: time.Time{},
-	})
-	if err != nil {
-		s.logger.WarnContext(ctx, "arxiv html ingest failed",
-			"arxivID", paper.ID, "error", err)
-		return nil, false
-	}
-	return &AddByURLResult{UserBook: ub, AlreadyInLibrary: existed}, true
-}
-
-// alreadyInLibrary reports whether userID already has a user_book for the
-// catalog row at sourceURL.
-func (s *IngestService) alreadyInLibrary(
-	ctx context.Context,
-	userID, sourceURL string,
-) bool {
-	book, err := s.booksRepo.GetBookBySourceURL(ctx, sourceURL)
-	if err != nil {
-		return false
-	}
-	_, err = s.booksRepo.GetUserBook(ctx, userID, book.ID)
-	return err == nil
-}
-
-// addPaperFromPDF is the PDF ingestion path: used directly when no HTML
-// rendition is available (addPaperFromHTML), and by rebuildFile's repair
-// path via ensurePaperPDF.
-func (s *IngestService) addPaperFromPDF(
-	ctx context.Context,
-	userID string,
-	paper *arxiv.Paper,
-) (*AddByURLResult, error) {
-	abs := paper.AbsURL
-	//nolint:exhaustruct // catalog metadata only; the rest is DB-owned
-	book, err := s.booksRepo.UpsertBookBySourceURL(ctx, models.Book{
-		Title:       paper.Title,
-		Authors:     paper.Authors,
-		Description: &paper.Abstract,
-		Category:    models.CategoryPaper,
-		SourceURL:   &abs,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	existed, err := s.ensureUserBook(ctx, userID, book.ID, time.Time{})
-	if err != nil {
-		return nil, err
-	}
-
-	if err = s.ensurePaperPDF(ctx, userID, book.ID, paper.PDFURL); err != nil {
-		return nil, err
-	}
-
-	ub, err := s.booksRepo.GetUserBook(ctx, userID, book.ID)
-	if err != nil {
-		return nil, err
-	}
-	return &AddByURLResult{UserBook: ub, AlreadyInLibrary: existed}, nil
-}
-
-// ensurePaperPDF downloads and stores the paper's PDF unless the user
-// already has a ready PDF for the book.
-func (s *IngestService) ensurePaperPDF(
-	ctx context.Context,
-	userID string,
-	bookID uuid.UUID,
-	pdfURL string,
-) error {
-	_, err := s.bookFiles.GetByBookAndFormat(
-		ctx, userID, bookID, models.FileFormatPDF,
-	)
-	if err == nil {
-		return nil
-	}
-	if !errors.Is(err, database.ErrResourceNotFound) {
-		return err
-	}
-
-	res, err := s.webFetch.Get(
-		ctx, pdfURL, fetchOptions(maxPaperPDFBytes, contentTypePDF),
-	)
-	if err != nil {
-		return fmt.Errorf("download pdf: %w", err)
-	}
-	if ebookmeta.DetectFormatFromMagic(res.Body) != models.FileFormatPDF {
-		return ErrNotAPDF
-	}
-
-	return s.storeReadyFile(ctx, userID, bookID, res.Body, models.FileFormatPDF)
-}
-
-// addWebItem ingests a non-arXiv URL: PDFs are stored directly, HTML pages
+// addWebItem ingests a pasted URL: PDFs are stored directly, HTML pages
 // are readability-extracted and built into an EPUB.
 func (s *IngestService) addWebItem(
 	ctx context.Context,
@@ -435,12 +254,6 @@ func (s *IngestService) rebuildFile(
 	book *models.Book,
 	canonical string,
 ) error {
-	if book.Category == models.CategoryPaper {
-		if id, ok := arxiv.ParseID(canonical); ok {
-			return s.ensurePaperPDF(ctx, userID, book.ID, arxiv.PDFURL(id))
-		}
-	}
-
 	res, err := s.webFetch.Get(
 		ctx, canonical, fetchOptions(maxArticleBytes, articleAccept),
 	)

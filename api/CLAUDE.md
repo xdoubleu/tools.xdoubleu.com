@@ -111,7 +111,7 @@ apps/<name>/
 ### Apps
 
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress/distribution, favourites, per-user Steam settings. Background sync job + WebSocket live updates. Schema `games` (adopted from the former `backlog` schema).
-- **reading** (formerly **books** — package `apps/reading`, schema `reading`, proto `reading.v1`) — books/papers/articles/RSS/email-newsletter library and Kobo e-reader companion. Pure-Go PDF/HTML→EPUB conversion (no Calibre), hourly RSS polling, arXiv ingestion, dual metadata enrichment (UniCat + Hardcover). Serves the raw Kobo sync protocol. Background jobs + WebSocket live updates.
+- **reading** (formerly **books** — package `apps/reading`, schema `reading`, proto `reading.v1`) — books/papers/articles/RSS/email-newsletter library and Kobo e-reader companion. Pure-Go PDF/HTML→EPUB conversion (no Calibre), hourly RSS polling, dual metadata enrichment (UniCat + Hardcover). Serves the raw Kobo sync protocol. Background jobs + WebSocket live updates.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no jobs, own custom domain (`watchparty.xdoubleu.com`).
 - **icsproxy** — ICS calendar feed filtering/proxying. Schema `icsproxy`.
 - **recipes** — recipe management: fraction parsing, iCal export, whole-recipe-book sharing. Schema `recipes`.

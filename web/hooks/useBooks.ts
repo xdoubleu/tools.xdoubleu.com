@@ -86,9 +86,8 @@ export function useExternalBook(provider: string | null, providerId: string | nu
   )
 }
 
-// useAddBookByURL ingests a pasted URL: arXiv links become papers, other
-// pages become readability-extracted articles. category is '' (auto),
-// 'paper', or 'article'.
+// useAddBookByURL ingests a pasted URL, readability-extracted into an
+// article. category is '' (defaults to article), 'paper', or 'article'.
 export function useAddBookByURL() {
   const client = useMemo(() => createServiceClient(LibraryService), [])
   return useCallback(

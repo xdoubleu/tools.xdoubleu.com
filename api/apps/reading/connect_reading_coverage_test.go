@@ -11,7 +11,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
-	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
 )
 
@@ -224,46 +223,6 @@ func TestPollAll_PollsEveryFeed(t *testing.T) {
 		context.Background(), base+"/fresh",
 	)
 	require.NoError(t, err)
-}
-
-// --- Ingest branches (ingest.go) ---
-
-func TestAddBookByURL_ArxivPDFNotAPDF(t *testing.T) {
-	id := uniqueArxivID()
-	registerMockPaper(id, "Bad PDF Paper", "Ada Lovelace")
-	// Override: the "PDF" download actually returns an HTML error page.
-	mockWebFetch.SetBody(
-		arxiv.PDFURL(id), "application/pdf", []byte("<html>nope</html>"),
-	)
-
-	_, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-}
-
-func TestAddBookByURL_RebuildsMissingPaperPDF(t *testing.T) {
-	id := uniqueArxivID()
-	registerMockPaper(id, "Rebuild Paper", "Ada Lovelace")
-
-	first, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.NoError(t, err)
-	bookID := mustUUID(t, first.UserBook.BookId)
-
-	// Drop the stored PDF so the re-add must re-download it via the paper path.
-	_, err = testApp.Repositories.BookFiles.DeleteByUserBook(
-		context.Background(), userID, bookID,
-	)
-	require.NoError(t, err)
-
-	again, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.NoError(t, err)
-	assert.True(t, again.AlreadyInLibrary)
-
-	status, err := testApp.Services.Books.GetKEPUBStatus(
-		context.Background(), userID, bookID,
-	)
-	require.NoError(t, err)
-	assert.True(t, status.HasPDF, "missing paper PDF should be rebuilt on re-add")
 }
 
 // TestCreateFeed_ItemWithAuthor covers the byline path: an RSS item with an

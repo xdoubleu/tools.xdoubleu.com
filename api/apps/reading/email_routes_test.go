@@ -103,7 +103,6 @@ func emailWebhookAppFailingIngest(t *testing.T) (http.Handler, *reading.Reading)
 		Hardcover:   mocks.NewMockHardcoverClient(),
 		ObjectStore: objectstore.NewFake(),
 		WebFetch:    mocks.NewMockWebFetchClient(),
-		Arxiv:       mocks.NewMockArxivClient(),
 		HTMLConvert: func(
 			_ context.Context, _, _ string, _ services.ArticleMeta,
 		) error {

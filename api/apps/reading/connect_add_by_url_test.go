@@ -2,9 +2,6 @@ package reading_test
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"math/rand/v2"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -13,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
-	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
 )
 
@@ -41,25 +37,6 @@ func mustUUID(t *testing.T, s string) uuid.UUID {
 	return id
 }
 
-// uniqueArxivID returns a per-run unique id in arXiv's new-style format —
-// fixed ids would dedup against catalog rows persisted by earlier runs.
-func uniqueArxivID() string {
-	return fmt.Sprintf("2401.%05d", rand.IntN(100000))
-}
-
-// registerMockPaper wires a paper and its PDF into the arXiv/webfetch mocks.
-func registerMockPaper(id, title string, authors ...string) {
-	//nolint:exhaustruct // Abstract/Published unused by most tests
-	mockArxiv.Papers[id] = &arxiv.Paper{
-		ID:      id,
-		Title:   title,
-		Authors: authors,
-		PDFURL:  arxiv.PDFURL(id),
-		AbsURL:  arxiv.AbsURL(id),
-	}
-	mockWebFetch.SetBody(arxiv.PDFURL(id), "application/pdf", fakePDFBytes())
-}
-
 func addByURL(
 	t *testing.T,
 	url, category string,
@@ -76,110 +53,6 @@ func addByURL(
 		return nil, err
 	}
 	return resp.Msg, nil
-}
-
-func TestAddBookByURL_ArxivPaper(t *testing.T) {
-	id := uniqueArxivID()
-	registerMockPaper(id, "Attention Is Not All You Need", "Ada Lovelace")
-	mockArxiv.Papers[id].Abstract = "We revisit the transformer."
-
-	msg, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.NoError(t, err)
-	require.NotNil(t, msg.UserBook)
-	assert.False(t, msg.AlreadyInLibrary)
-	assert.Equal(t, models.StatusToRead, msg.UserBook.Status)
-
-	book := msg.UserBook.Book
-	require.NotNil(t, book)
-	assert.Equal(t, "Attention Is Not All You Need", book.Title)
-	assert.Equal(t, models.CategoryPaper, book.Category)
-	assert.Equal(t, arxiv.AbsURL(id), book.SourceUrl)
-
-	// The PDF must be stored and ready.
-	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
-		context.Background(), userID, mustUUID(t, msg.UserBook.BookId),
-	)
-	require.NoError(t, err)
-	assert.True(t, statusResult.HasPDF)
-}
-
-// TestAddBookByURL_ArxivPaper_HTMLPreferred covers #587: when arXiv's HTML
-// rendition is available, it is used to build an EPUB instead of the PDF.
-func TestAddBookByURL_ArxivPaper_HTMLPreferred(t *testing.T) {
-	id := uniqueArxivID()
-	registerMockPaper(id, "HTML-Rendered Paper", "Ada Lovelace", "Alan Turing")
-	mockArxiv.HTML[id] = []byte(articlePageHTML("HTML-Rendered Paper"))
-
-	msg, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.NoError(t, err)
-	require.NotNil(t, msg.UserBook)
-	assert.False(t, msg.AlreadyInLibrary)
-
-	book := msg.UserBook.Book
-	require.NotNil(t, book)
-	assert.Equal(t, models.CategoryPaper, book.Category)
-	assert.Equal(t, arxiv.AbsURL(id), book.SourceUrl)
-	assert.ElementsMatch(t, []string{"Ada Lovelace", "Alan Turing"}, book.Authors)
-
-	// The EPUB must be built from HTML; no PDF is fetched or stored.
-	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
-		context.Background(), userID, mustUUID(t, msg.UserBook.BookId),
-	)
-	require.NoError(t, err)
-	assert.True(t, statusResult.HasEPUB)
-	assert.False(t, statusResult.HasPDF)
-}
-
-// TestAddBookByURL_ArxivPaper_HTMLTransportError_FallsBackToPDF covers #587:
-// a non-404 GetHTML failure must not abort ingestion, only skip the HTML path.
-func TestAddBookByURL_ArxivPaper_HTMLTransportError_FallsBackToPDF(t *testing.T) {
-	id := uniqueArxivID()
-	registerMockPaper(id, "Transport Error Paper", "Ada Lovelace")
-	mockArxiv.HTMLErr[id] = errors.New("boom")
-
-	msg, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.NoError(t, err)
-
-	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
-		context.Background(), userID, mustUUID(t, msg.UserBook.BookId),
-	)
-	require.NoError(t, err)
-	assert.True(t, statusResult.HasPDF)
-	assert.False(t, statusResult.HasEPUB)
-}
-
-// TestAddBookByURL_ArxivPaper_UnreadableHTML_FallsBackToPDF covers #587: HTML
-// that readability can't extract content from (e.g. LaTeXML conversion
-// errors) must not abort ingestion either.
-func TestAddBookByURL_ArxivPaper_UnreadableHTML_FallsBackToPDF(t *testing.T) {
-	id := uniqueArxivID()
-	registerMockPaper(id, "Unreadable HTML Paper", "Ada Lovelace")
-	mockArxiv.HTML[id] = []byte("<html><body></body></html>")
-
-	msg, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.NoError(t, err)
-
-	statusResult, err := testApp.Services.Books.GetKEPUBStatus(
-		context.Background(), userID, mustUUID(t, msg.UserBook.BookId),
-	)
-	require.NoError(t, err)
-	assert.True(t, statusResult.HasPDF)
-	assert.False(t, statusResult.HasEPUB)
-}
-
-func TestAddBookByURL_ArxivDuplicateFromPDFURL(t *testing.T) {
-	id := uniqueArxivID()
-	registerMockPaper(id, "Duplicate Paper", "Ada Lovelace")
-
-	first, err := addByURL(t, arxiv.AbsURL(id), "")
-	require.NoError(t, err)
-	assert.False(t, first.AlreadyInLibrary)
-
-	// The /pdf/ form of the same paper dedups onto the same catalog row.
-	second, err := addByURL(t, "https://arxiv.org/pdf/"+id+"v3", "")
-	require.NoError(t, err)
-	assert.True(t, second.AlreadyInLibrary)
-	assert.Equal(t, first.UserBook.BookId, second.UserBook.BookId)
 }
 
 func TestAddBookByURL_Article(t *testing.T) {
@@ -242,8 +115,6 @@ func TestAddBookByURL_Errors(t *testing.T) {
 		{"bad scheme", "ftp://example.com/x", "", connect.CodeInvalidArgument},
 		{"bad category", "https://example.com/x", "rss",
 			connect.CodeInvalidArgument},
-		{"unknown arxiv id", "https://arxiv.org/abs/2409.99999", "",
-			connect.CodeNotFound},
 		{"unreachable page", "https://gone.example.com/404", "",
 			connect.CodeUnavailable},
 	}

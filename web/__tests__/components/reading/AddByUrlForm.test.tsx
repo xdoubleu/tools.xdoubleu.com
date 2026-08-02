@@ -21,12 +21,12 @@ describe('AddByUrlForm', () => {
     render(<AddByUrlForm onAdded={onAdded} onDone={onDone} />)
 
     fireEvent.change(screen.getByLabelText('URL'), {
-      target: { value: 'https://arxiv.org/abs/2401.00001' }
+      target: { value: 'https://blog.example.com/posts/why-tests-matter' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => {
-      expect(addByURL).toHaveBeenCalledWith('https://arxiv.org/abs/2401.00001', '')
+      expect(addByURL).toHaveBeenCalledWith('https://blog.example.com/posts/why-tests-matter', '')
       expect(onAdded).toHaveBeenCalled()
       expect(onDone).toHaveBeenCalled()
     })

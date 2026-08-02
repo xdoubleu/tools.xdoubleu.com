@@ -52,7 +52,6 @@ func newAdminBooksTestClient(t *testing.T) booksTestClient {
 		reading.Clients{
 			UniCat:           nil,
 			WebFetch:         nil,
-			Arxiv:            nil,
 			HTMLConvert:      nil,
 			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),
