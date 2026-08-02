@@ -83,25 +83,27 @@ git checkout main && git pull
 git worktree add ../<descriptive-branch-name> -b <descriptive-branch-name> main
 ```
 
-Before editing, make sure a GitHub issue exists for the work (`gh issue list`/`gh issue view`); if not, use the `refine-issue` skill rather than a bare `gh issue create`, so Priority/Status/labels get set. Record a finalized plan back into the issue's `## Plan` section, and move Status to "In progress" on the first edit.
+Before editing, always create a tracking GitHub issue for the work via the `refine-issue` skill (not a bare `gh issue create`), so Priority/Status/labels get set — do this even for work that wasn't explicitly requested as an "issue", e.g. tooling/doc changes. If a finalized plan exists (from plan mode or otherwise), record it in the issue's `## Plan` section before the first edit, and move Status to "In progress" at that point.
 
 ## Finishing a Task — Required Final Steps
 
 1. **Lint** — `cd api && make lint/fix` and/or `cd web && npm run lint` (whichever area changed); `cd gateway && make lint/fix` for gateway changes.
 2. **Coverage** — target ≥80% on changed code. API: `cd api && docker-compose up -d && make test/cov/report && docker-compose down` (always stop the DB after). Web: `cd web && npm run test:cov`.
 3. **Build** (web changes only) — `cd web && npm run build`. Next.js's server/client boundary check (a Server Component importing anything from a file that pulls in client-only hooks) is enforced **only** by `next build`, not `tsc --noEmit`, ESLint, or Jest — lint/coverage passing does not mean the build passes. Put constants shared across the boundary in a plain `lib/` module with no React imports.
-4. **Open/update the PR**:
+4. **Open the PR yourself** — don't wait to be asked:
    ```bash
    git push -u origin HEAD
    gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
    ```
-   Never push to `main` directly; never open as `--draft`.
-5. **Verify CI is green and mergeable**:
+   Never push to `main` directly; never open as `--draft`. Reference the tracking issue from "Starting a Task" in the PR body.
+5. **Monitor CI until green, fixing it yourself if it isn't**:
    ```bash
    gh pr checks --watch
    gh pr view --json mergeable,mergeStateStatus,statusCheckRollup
    ```
-   A red PR or non-`MERGEABLE` state means repeat from step 1. On green + mergeable, report the PR URL and stop — do not merge yourself.
+   A red PR or non-`MERGEABLE` state is not "done" — diagnose the actual failure (don't just re-run blindly) and repeat from step 1. On green + mergeable:
+   - **Code-only changes** (no `CLAUDE.md`, `Makefile`/npm-script, lint config, CI workflow, or script edits): enable auto-merge yourself (`gh pr merge --auto --squash`) and report the PR URL.
+   - **Tooling/harness changes** (anything touching `CLAUDE.md`, Makefile targets, lint config, `.github/workflows/*`, scripts, or hooks): do **not** enable auto-merge — these need the user's own review. Report the PR URL and stop.
 
 ## CI
 
