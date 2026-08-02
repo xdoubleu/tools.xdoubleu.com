@@ -5,7 +5,7 @@ import type { MessageInitShape } from '@bufbuild/protobuf'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { createServiceClient } from '@/lib/client'
 import { sha256Hex } from '@/lib/reading/checksum'
-import { DEFAULT_PAGE_SIZE } from '@/hooks/usePaginatedList'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import {
   LibraryService,
   CreateBookRequestSchema,

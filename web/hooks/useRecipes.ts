@@ -14,7 +14,7 @@ import type {
   GetRecipeResponse,
   ListRecipeBookSharesResponse
 } from '@/lib/gen/recipes/v1/recipes_pb'
-import { DEFAULT_PAGE_SIZE } from '@/hooks/usePaginatedList'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
 export type CreateRecipeInput = MessageInitShape<typeof CreateRecipeRequestSchema>
 export type UpdateRecipeInput = MessageInitShape<typeof UpdateRecipeRequestSchema>

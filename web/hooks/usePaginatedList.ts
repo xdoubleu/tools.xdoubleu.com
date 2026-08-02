@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export const DEFAULT_PAGE_SIZE = 50
-
 interface Page<T> {
   items: T[]
   hasMore: boolean
