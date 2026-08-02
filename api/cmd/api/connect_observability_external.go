@@ -166,16 +166,82 @@ func (h *obsConnectHandler) deployStatus(
 	return resp
 }
 
+// deployLogsMsg is a short alias for the long name buf's standard naming
+// lint forces on GetDeployLogs' streamed message (observability.proto),
+// purely to keep parameter lines under the linter's line length.
+type deployLogsMsg = observabilityv1.ObservabilityServiceGetDeployLogsResponse
+
 func (h *obsConnectHandler) GetDeployLogs(
 	ctx context.Context,
 	req *connect.Request[observabilityv1.GetDeployLogsRequest],
-) (*connect.Response[observabilityv1.GetDeployLogsResponse], error) {
+	stream *connect.ServerStream[deployLogsMsg],
+) error {
 	if err := requireAdmin(ctx); err != nil {
-		return nil, err
+		return err
 	}
-	return connect.NewResponse(h.deployLogs(
-		ctx, req.Msg.GetDeploymentId(), int(req.Msg.GetTailLines()),
-	)), nil
+	return h.deployLogsStream(
+		ctx, req.Msg.GetDeploymentId(), int(req.Msg.GetTailLines()), stream,
+	)
+}
+
+// deployLogsStream is GetDeployLogs' handler body: it resolves deploymentID
+// to the latest deployment when empty, then streams each of its
+// BUILD/DEPLOY/RUN/RUN_RESTARTED component logs to the client as soon as it
+// resolves, rather than assembling one response after every component
+// finishes (issue #672, second pass — see routes.go's deployLogsCtxTimeout
+// comment for why: DigitalOcean App Platform's edge resets the connection
+// ~25s after the request starts if no byte has been written yet, a ceiling
+// no server-side deadline above it can beat). Streaming means the first
+// component's log reaches the client well under that, regardless of how long
+// slower components take. Guards its source the same way deployStatus does:
+// an unset token ends the stream with nothing sent, and an upstream failure
+// is logged and the stream ends with whatever was already sent — never a
+// hard RPC error, so one broken source never breaks the dialog.
+func (h *obsConnectHandler) deployLogsStream(
+	ctx context.Context,
+	deploymentID string,
+	tailLines int,
+	stream *connect.ServerStream[deployLogsMsg],
+) error {
+	if deploymentID == "" {
+		latest, err := h.app.doClient.LatestDeployment(ctx)
+		if err != nil {
+			h.logDeployLogsErr(ctx, err)
+			return nil
+		}
+		if latest == nil {
+			return nil // configured, but no deployment yet
+		}
+		deploymentID = latest.ID
+	}
+
+	err := h.app.doClient.DeploymentLogsStream(ctx, deploymentID, tailLines,
+		func(log digitalocean.ComponentLog) error {
+			return stream.Send(&deployLogsMsg{
+				Log: &observabilityv1.DeployComponentLog{
+					Component:    log.Component,
+					LogType:      string(log.Type),
+					DeploymentId: log.DeploymentID,
+					Content:      log.Content,
+					Truncated:    log.Truncated,
+				},
+			})
+		},
+	)
+	if err != nil {
+		h.logDeployLogsErr(ctx, err)
+	}
+	return nil
+}
+
+// logDeployLogsErr logs a genuine upstream failure, mirroring
+// degradeDeployLogs's convention. An unset token is a normal degraded state,
+// not something worth logging.
+func (h *obsConnectHandler) logDeployLogsErr(ctx context.Context, err error) {
+	if errors.Is(err, digitalocean.ErrNotConfigured) {
+		return
+	}
+	h.app.logger.ErrorContext(ctx, "deploy logs unavailable", slog.Any("error", err))
 }
 
 // deployLogs resolves deploymentID to the latest deployment when empty, then
@@ -250,7 +316,7 @@ func (h *obsConnectHandler) degradeDeployLogs(
 		resp.Configured = false
 		return
 	}
-	h.app.logger.ErrorContext(ctx, "deploy logs unavailable", slog.Any("error", err))
+	h.logDeployLogsErr(ctx, err)
 }
 
 func (h *obsConnectHandler) GetHealthOverview(

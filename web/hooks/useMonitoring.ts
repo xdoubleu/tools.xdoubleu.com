@@ -14,7 +14,8 @@ import type {
   GetFailingPullRequestsResponse,
   GetSentryIssuesResponse,
   GetDeployStatusResponse,
-  GetDeployLogsResponse,
+  DeployComponentLog,
+  ObservabilityServiceGetDeployLogsResponse,
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
@@ -84,14 +85,33 @@ export function useDeployStatus() {
 
 // useDeployLogs fetches on demand (not via SWR): logs are only pulled when
 // the admin asks, not polled alongside the rest of the dashboard. tailLines
-// bounds the live backlog replayed per component; 0 takes the server default.
+// bounds the live backlog replayed per component; 0 takes the server
+// default. GetDeployLogs is server-streaming (issue #672, second pass): each
+// component's log arrives as soon as it resolves rather than the caller
+// waiting for a single response assembled after every component finishes.
+// The wire type wraps each DeployComponentLog in a response envelope only to
+// satisfy a proto lint rule (see the .proto file) — unwrapped here so
+// callers just iterate DeployComponentLog directly.
 export function useDeployLogs() {
   const client = useMemo(() => createServiceClient(ObservabilityService), [])
   return useCallback(
-    (deploymentId?: string, tailLines = 0): Promise<GetDeployLogsResponse> =>
-      client.getDeployLogs({ deploymentId: deploymentId ?? '', tailLines }),
+    (deploymentId?: string, tailLines = 0): AsyncIterable<DeployComponentLog> => {
+      // Calling getDeployLogs here (not inside unwrapDeployLogs) starts the
+      // request as soon as this function is invoked, same as the unary call
+      // it replaced — an async generator's body doesn't run until iterated.
+      const stream = client.getDeployLogs({ deploymentId: deploymentId ?? '', tailLines })
+      return unwrapDeployLogs(stream)
+    },
     [client]
   )
+}
+
+async function* unwrapDeployLogs(
+  stream: AsyncIterable<ObservabilityServiceGetDeployLogsResponse>
+): AsyncGenerator<DeployComponentLog> {
+  for await (const resp of stream) {
+    if (resp.log) yield resp.log
+  }
 }
 
 export function useOAuthConnections() {

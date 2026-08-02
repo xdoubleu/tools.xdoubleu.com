@@ -7,7 +7,8 @@ import {
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
   GetSentryIssuesResponseSchema,
-  GetDeployStatusResponseSchema
+  GetDeployStatusResponseSchema,
+  DeployComponentLogSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
@@ -312,8 +313,15 @@ describe('DeployCard', () => {
   })
 
   it('opens the logs dialog and fetches logs for the deployment', async () => {
-    mockGetDeployLogs.mockResolvedValue({
-      logs: [{ component: 'api', logType: 'BUILD', content: 'building api\n', truncated: false }]
+    mockGetDeployLogs.mockReturnValue({
+      async *[Symbol.asyncIterator]() {
+        yield create(DeployComponentLogSchema, {
+          component: 'api',
+          logType: 'BUILD',
+          content: 'building api\n',
+          truncated: false
+        })
+      }
     })
     const data = create(GetDeployStatusResponseSchema, {
       configured: true,

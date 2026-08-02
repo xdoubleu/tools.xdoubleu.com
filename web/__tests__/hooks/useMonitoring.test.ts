@@ -151,35 +151,44 @@ describe('useDisconnectOAuthConnection', () => {
   })
 })
 
+// emptyStream stands in for the async iterable GetDeployLogs' streaming
+// client returns — the hook just forwards it, so an empty stream is enough
+// to exercise the call.
+function emptyStream() {
+  return {
+    async *[Symbol.asyncIterator]() {}
+  }
+}
+
 describe('useDeployLogs', () => {
-  it('fetches logs for the latest deployment when no id is given', async () => {
-    mockGetDeployLogs.mockResolvedValue({ configured: true, logs: [] })
+  it('fetches logs for the latest deployment when no id is given', () => {
+    mockGetDeployLogs.mockReturnValue(emptyStream())
     const { result } = renderHook(() => useDeployLogs())
 
-    await act(async () => {
-      await result.current()
+    act(() => {
+      result.current()
     })
 
     expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: '', tailLines: 0 })
   })
 
-  it('fetches logs for an explicit deployment id', async () => {
-    mockGetDeployLogs.mockResolvedValue({ configured: true, logs: [] })
+  it('fetches logs for an explicit deployment id', () => {
+    mockGetDeployLogs.mockReturnValue(emptyStream())
     const { result } = renderHook(() => useDeployLogs())
 
-    await act(async () => {
-      await result.current('deploy-123')
+    act(() => {
+      result.current('deploy-123')
     })
 
     expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: 'deploy-123', tailLines: 0 })
   })
 
-  it('forwards an explicit tail size', async () => {
-    mockGetDeployLogs.mockResolvedValue({ configured: true, logs: [] })
+  it('forwards an explicit tail size', () => {
+    mockGetDeployLogs.mockReturnValue(emptyStream())
     const { result } = renderHook(() => useDeployLogs())
 
-    await act(async () => {
-      await result.current('deploy-123', 2000)
+    act(() => {
+      result.current('deploy-123', 2000)
     })
 
     expect(mockGetDeployLogs).toHaveBeenCalledWith({
