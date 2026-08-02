@@ -4,7 +4,8 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockClient = {
   listRecipeBookShares: jest.fn().mockResolvedValue({ shares: [] }),
   shareRecipeBook: jest.fn().mockResolvedValue({}),
-  unshareRecipeBook: jest.fn().mockResolvedValue({})
+  unshareRecipeBook: jest.fn().mockResolvedValue({}),
+  listRecipes: jest.fn().mockResolvedValue({ recipes: [{ id: 'r-1' }], hasMore: true })
 }
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
@@ -22,7 +23,8 @@ import {
   useDeleteRecipe,
   useRecipeBookShares,
   useShareRecipeBook,
-  useUnshareRecipeBook
+  useUnshareRecipeBook,
+  useFetchRecipesPage
 } from '@/hooks/useRecipes'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -93,5 +95,14 @@ describe('mutation hooks return functions', () => {
   it('useRecipeBookShares uses /recipes/book-shares as key', () => {
     renderHook(() => useRecipeBookShares())
     expect(mockUseSWR).toHaveBeenCalledWith('/recipes/book-shares', expect.any(Function))
+  })
+})
+
+describe('useFetchRecipesPage', () => {
+  it('fetches a page at the given offset and maps the response', async () => {
+    const { result } = renderHook(() => useFetchRecipesPage())
+    const page = await result.current(50)
+    expect(mockClient.listRecipes).toHaveBeenCalledWith({ limit: 50, offset: 50 })
+    expect(page).toEqual({ items: [{ id: 'r-1' }], hasMore: true })
   })
 })

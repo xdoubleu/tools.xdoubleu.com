@@ -12,7 +12,7 @@ import (
 
 func (h *recipesConnectHandler) ListRecipes(
 	ctx context.Context,
-	_ *connect.Request[recipesv1.ListRecipesRequest],
+	req *connect.Request[recipesv1.ListRecipesRequest],
 ) (*connect.Response[recipesv1.ListRecipesResponse], error) {
 	user := getUser(ctx)
 	if user == nil {
@@ -22,13 +22,16 @@ func (h *recipesConnectHandler) ListRecipes(
 		)
 	}
 
-	list, err := h.app.services.Recipes.List(ctx, user.ID)
+	list, hasMore, err := h.app.services.Recipes.List(
+		ctx, user.ID, req.Msg.Limit, req.Msg.Offset,
+	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
 	return connect.NewResponse(&recipesv1.ListRecipesResponse{
 		Recipes: protoRecipes(list),
+		HasMore: hasMore,
 	}), nil
 }
 

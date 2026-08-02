@@ -215,6 +215,8 @@ func (x *EventInfo) GetHasRecurrenceId() bool {
 
 type ListConfigsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,9 +251,24 @@ func (*ListConfigsRequest) Descriptor() ([]byte, []int) {
 	return file_icsproxy_v1_proxy_proto_rawDescGZIP(), []int{2}
 }
 
+func (x *ListConfigsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListConfigsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListConfigsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Configs       []*FilterConfig        `protobuf:"bytes,1,rep,name=configs,proto3" json:"configs,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -291,6 +308,13 @@ func (x *ListConfigsResponse) GetConfigs() []*FilterConfig {
 		return x.Configs
 	}
 	return nil
+}
+
+func (x *ListConfigsResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 type PreviewEventsRequest struct {
@@ -702,10 +726,13 @@ const file_icsproxy_v1_proxy_proto_rawDesc = "" +
 	"\x05rrule\x18\a \x01(\tR\x05rrule\x12\x1d\n" +
 	"\n" +
 	"series_key\x18\b \x01(\tR\tseriesKey\x12*\n" +
-	"\x11has_recurrence_id\x18\t \x01(\bR\x0fhasRecurrenceId\"\x14\n" +
-	"\x12ListConfigsRequest\"J\n" +
+	"\x11has_recurrence_id\x18\t \x01(\bR\x0fhasRecurrenceId\"B\n" +
+	"\x12ListConfigsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\"e\n" +
 	"\x13ListConfigsResponse\x123\n" +
-	"\aconfigs\x18\x01 \x03(\v2\x19.icsproxy.v1.FilterConfigR\aconfigs\"5\n" +
+	"\aconfigs\x18\x01 \x03(\v2\x19.icsproxy.v1.FilterConfigR\aconfigs\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"5\n" +
 	"\x14PreviewEventsRequest\x12\x1d\n" +
 	"\n" +
 	"source_url\x18\x01 \x01(\tR\tsourceUrl\"G\n" +

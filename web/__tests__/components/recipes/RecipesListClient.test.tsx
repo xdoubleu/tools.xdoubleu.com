@@ -5,7 +5,8 @@ jest.mock('@/hooks/useRecipes', () => ({
   useRecipes: jest.fn(),
   useRecipeBookShares: jest.fn(() => ({ data: undefined, mutate: jest.fn() })),
   useShareRecipeBook: jest.fn(() => jest.fn()),
-  useUnshareRecipeBook: jest.fn(() => jest.fn())
+  useUnshareRecipeBook: jest.fn(() => jest.fn()),
+  useFetchRecipesPage: jest.fn(() => jest.fn())
 }))
 
 jest.mock('next/link', () => {

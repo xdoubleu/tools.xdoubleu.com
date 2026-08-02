@@ -37,8 +37,14 @@ message PlanSharedUser {
   string display_name = 3;
 }
 
-message ListPlansRequest {}
-message ListPlansResponse { repeated Plan plans = 1; }
+message ListPlansRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+message ListPlansResponse {
+  repeated Plan plans = 1;
+  bool has_more = 2;
+}
 
 message GetPlanRequest {
   string id = 1;

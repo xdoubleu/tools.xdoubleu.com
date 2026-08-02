@@ -283,6 +283,8 @@ func (x *Recipe) GetBatchServings() int32 {
 
 type ListRecipesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -317,9 +319,24 @@ func (*ListRecipesRequest) Descriptor() ([]byte, []int) {
 	return file_recipes_v1_recipes_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *ListRecipesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListRecipesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListRecipesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Recipes       []*Recipe              `protobuf:"bytes,1,rep,name=recipes,proto3" json:"recipes,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -359,6 +376,13 @@ func (x *ListRecipesResponse) GetRecipes() []*Recipe {
 		return x.Recipes
 	}
 	return nil
+}
+
+func (x *ListRecipesResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 type GetRecipeRequest struct {
@@ -1203,10 +1227,13 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x0ebatch_servings\x18\n" +
 	" \x01(\x05H\x00R\rbatchServings\x88\x01\x01B\x11\n" +
 	"\x0f_batch_servingsJ\x04\b\t\x10\n" +
-	"\"\x14\n" +
-	"\x12ListRecipesRequest\"C\n" +
+	"\"B\n" +
+	"\x12ListRecipesRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\"^\n" +
 	"\x13ListRecipesResponse\x12,\n" +
-	"\arecipes\x18\x01 \x03(\v2\x12.recipes.v1.RecipeR\arecipes\">\n" +
+	"\arecipes\x18\x01 \x03(\v2\x12.recipes.v1.RecipeR\arecipes\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\">\n" +
 	"\x10GetRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bservings\x18\x02 \x01(\x05R\bservings\"\xde\x01\n" +

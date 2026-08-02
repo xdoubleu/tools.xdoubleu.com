@@ -32,6 +32,62 @@ func TestListTasks_FiltersByWorkspaceID(t *testing.T) {
 	assert.NotContains(t, ids, outside)
 }
 
+// TestListTasks_Pagination verifies Limit/Offset bound the open-tasks page
+// and HasMore reflects whether more rows exist beyond it. It creates its own
+// uniquely-named workspace rather than using getDefaultWorkspaceID: that
+// helper matches workspaces by a shared fixed name (CreateWorkspaceResponse
+// carries no ID), so concurrent tests sharing that name can be handed back
+// the same pre-existing workspace and see each other's tasks — fatal for a
+// test asserting exact page counts.
+func TestListTasks_Pagination(t *testing.T) {
+	settingsClient := newSettingsClient(t)
+	_, err := settingsClient.CreateWorkspace(
+		t.Context(),
+		connect.NewRequest(&todosv1.CreateWorkspaceRequest{Name: "ws-pagination-test"}),
+	)
+	require.NoError(t, err)
+	settings, err := settingsClient.GetSettings(
+		t.Context(), connect.NewRequest(&todosv1.GetSettingsRequest{}),
+	)
+	require.NoError(t, err)
+	var wsID string
+	for _, w := range settings.Msg.Workspaces {
+		if w.Name == "ws-pagination-test" {
+			wsID = w.Id
+		}
+	}
+	require.NotEmpty(t, wsID)
+
+	createTaskInWorkspace(t, "paginated task one", wsID)
+	createTaskInWorkspace(t, "paginated task two", wsID)
+	createTaskInWorkspace(t, "paginated task three", wsID)
+
+	client := newTaskClient(t)
+
+	firstPage, err := client.ListTasks(
+		t.Context(),
+		connect.NewRequest(&todosv1.ListTasksRequest{
+			WorkspaceId: wsID,
+			Limit:       2,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, firstPage.Msg.Tasks, 2)
+	assert.True(t, firstPage.Msg.HasMore)
+
+	secondPage, err := client.ListTasks(
+		t.Context(),
+		connect.NewRequest(&todosv1.ListTasksRequest{
+			WorkspaceId: wsID,
+			Limit:       2,
+			Offset:      2,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, secondPage.Msg.Tasks, 1)
+	assert.False(t, secondPage.Msg.HasMore)
+}
+
 // TestListTasks_FiltersBySectionID verifies the SectionId filter returns only
 // tasks placed in that section.
 func TestListTasks_FiltersBySectionID(t *testing.T) {

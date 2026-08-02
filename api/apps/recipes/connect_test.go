@@ -510,6 +510,55 @@ func TestListRecipes_WithItems(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Recipes)
 }
 
+// TestListRecipes_Pagination verifies Limit/Offset bound the page and
+// HasMore reflects whether more rows exist beyond it. Recipe names are
+// prefixed to sort after every other recipe this shared-fixture suite may
+// have already created for userID, so the three new rows land contiguously
+// at the end of the alphabetical order used by ListForUser.
+func TestListRecipes_Pagination(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ID: userID}, //nolint:exhaustruct // only ID needed
+	)
+
+	baseline, err := client.ListRecipes(
+		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{Limit: 1000}),
+	)
+	require.NoError(t, err)
+	existing := int32(len(baseline.Msg.Recipes))
+
+	for _, name := range []string{
+		"zzz_paginated_one", "zzz_paginated_two", "zzz_paginated_three",
+	} {
+		_, err = client.CreateRecipe(
+			ctx,
+			connect.NewRequest(&recipesv1.CreateRecipeRequest{
+				Name: name, Steps: []string{"step"}, BaseServings: 2,
+			}),
+		)
+		require.NoError(t, err)
+	}
+
+	firstPage, err := client.ListRecipes(
+		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{
+			Limit: 2, Offset: existing,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, firstPage.Msg.Recipes, 2)
+	assert.True(t, firstPage.Msg.HasMore)
+
+	secondPage, err := client.ListRecipes(
+		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{
+			Limit: 2, Offset: existing + 2,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, secondPage.Msg.Recipes, 1)
+	assert.False(t, secondPage.Msg.HasMore)
+}
+
 func TestDeleteRecipe_NotFound(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(

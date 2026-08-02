@@ -5,6 +5,7 @@ import type { MessageInitShape } from '@bufbuild/protobuf'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { createServiceClient } from '@/lib/client'
 import { sha256Hex } from '@/lib/reading/checksum'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import {
   LibraryService,
   CreateBookRequestSchema,
@@ -56,7 +57,12 @@ export function useBooksProgress(dateStart?: string, dateEnd?: string) {
 export function useSearchLibrary() {
   const client = useMemo(() => createServiceClient(LibraryService), [])
   return useCallback(
-    (query: string) => client.searchLibrary({ query }).then((r: SearchLibraryResponse) => r),
+    (query: string) =>
+      // A type-ahead widget (BookSearchBar), not a listing page — bounding
+      // the match count is enough, no "load more" UI needed here.
+      client
+        .searchLibrary({ query, limit: DEFAULT_PAGE_SIZE })
+        .then((r: SearchLibraryResponse) => r),
     [client]
   )
 }

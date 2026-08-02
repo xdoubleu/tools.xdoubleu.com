@@ -30,8 +30,10 @@ func (s *CalendarService) LoadConfig(
 func (s *CalendarService) ListConfigs(
 	ctx context.Context,
 	userID string,
-) ([]models.FilterConfig, error) {
-	return s.repo.ListFilterConfigs(ctx, userID)
+	limit int32,
+	offset int32,
+) ([]models.FilterConfig, bool, error) {
+	return s.repo.ListFilterConfigs(ctx, userID, limit, offset)
 }
 
 func (s *CalendarService) ListConfigSummaries(

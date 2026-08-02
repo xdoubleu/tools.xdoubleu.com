@@ -16,7 +16,9 @@ const errNotRecipeOwner = "You do not own this recipe"
 // repositories.RecipesRepository and by fakes in unit tests, so the ownership
 // and sharing rules can be tested without a database.
 type recipesStore interface {
-	ListForUser(ctx context.Context, userID string) ([]models.Recipe, error)
+	ListForUser(
+		ctx context.Context, userID string, limit, offset int32,
+	) ([]models.Recipe, bool, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Recipe, error)
 	GetBookAccess(
 		ctx context.Context,
@@ -46,8 +48,10 @@ type RecipeService struct {
 func (s *RecipeService) List(
 	ctx context.Context,
 	userID string,
-) ([]models.Recipe, error) {
-	return s.repo.ListForUser(ctx, userID)
+	limit int32,
+	offset int32,
+) ([]models.Recipe, bool, error) {
+	return s.repo.ListForUser(ctx, userID, limit, offset)
 }
 
 // Get returns a recipe the user owns or has book access to, along with whether

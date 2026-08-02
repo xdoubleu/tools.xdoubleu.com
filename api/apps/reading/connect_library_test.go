@@ -158,6 +158,37 @@ func TestConnectSearchLibrary_WithResults(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Books)
 }
 
+func TestConnectSearchLibrary_Pagination(t *testing.T) {
+	addTestBookNoISBN(t, "PaginatedBookOne")
+	addTestBookNoISBN(t, "PaginatedBookTwo")
+	addTestBookNoISBN(t, "PaginatedBookThree")
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	firstPage := connect.NewRequest(&readingv1.SearchLibraryRequest{
+		Query: "PaginatedBook",
+		Limit: 2,
+	})
+	firstPage.Header().Set("Cookie", accessToken.String())
+	resp, err := client.SearchLibrary(ctx, firstPage)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Msg.Books, 2)
+	assert.True(t, resp.Msg.HasMore)
+
+	secondPage := connect.NewRequest(&readingv1.SearchLibraryRequest{
+		Query:  "PaginatedBook",
+		Limit:  2,
+		Offset: 2,
+	})
+	secondPage.Header().Set("Cookie", accessToken.String())
+	resp, err = client.SearchLibrary(ctx, secondPage)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Msg.Books, 1)
+	assert.False(t, resp.Msg.HasMore)
+}
+
 func TestConnectSearchExternal_Empty(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())

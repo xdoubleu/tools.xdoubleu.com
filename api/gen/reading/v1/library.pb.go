@@ -828,6 +828,8 @@ func (x *GetBooksProgressResponse) GetProgress() *BooksProgressResponse {
 type SearchLibraryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -869,9 +871,24 @@ func (x *SearchLibraryRequest) GetQuery() string {
 	return ""
 }
 
+func (x *SearchLibraryRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *SearchLibraryRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type SearchLibraryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Books         []*UserBook            `protobuf:"bytes,1,rep,name=books,proto3" json:"books,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -911,6 +928,13 @@ func (x *SearchLibraryResponse) GetBooks() []*UserBook {
 		return x.Books
 	}
 	return nil
+}
+
+func (x *SearchLibraryResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 type SearchExternalRequest struct {
@@ -2646,11 +2670,14 @@ const file_reading_v1_library_proto_rawDesc = "" +
 	"date_start\x18\x01 \x01(\tR\tdateStart\x12\x19\n" +
 	"\bdate_end\x18\x02 \x01(\tR\adateEnd\"Y\n" +
 	"\x18GetBooksProgressResponse\x12=\n" +
-	"\bprogress\x18\x01 \x01(\v2!.reading.v1.BooksProgressResponseR\bprogress\",\n" +
+	"\bprogress\x18\x01 \x01(\v2!.reading.v1.BooksProgressResponseR\bprogress\"Z\n" +
 	"\x14SearchLibraryRequest\x12\x14\n" +
-	"\x05query\x18\x01 \x01(\tR\x05query\"C\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"^\n" +
 	"\x15SearchLibraryResponse\x12*\n" +
-	"\x05books\x18\x01 \x03(\v2\x14.reading.v1.UserBookR\x05books\"-\n" +
+	"\x05books\x18\x01 \x03(\v2\x14.reading.v1.UserBookR\x05books\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"-\n" +
 	"\x15SearchExternalRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"R\n" +
 	"\x16SearchExternalResponse\x128\n" +

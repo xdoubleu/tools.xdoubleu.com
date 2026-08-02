@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/todos/internal/models"
+	"tools.xdoubleu.com/internal/pagination"
 )
 
 func (r *TasksRepository) ListOpen(
@@ -15,7 +16,11 @@ func (r *TasksRepository) ListOpen(
 	userID string,
 	sectionID *uuid.UUID,
 	workspaceID *uuid.UUID,
-) ([]models.Task, error) {
+	limit int32,
+	offset int32,
+) ([]models.Task, bool, error) {
+	safeLimit, sqlLimit := pagination.Clamp(limit)
+
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.owner_user_id, t.title, t.description,
 		       t.labels, t.status, t.priority, t.sort_order,
@@ -30,14 +35,20 @@ func (r *TasksRepository) ListOpen(
 		  AND (t.workspace_id = $2 OR ($2::uuid IS NULL AND t.workspace_id IS NULL))
 		  AND (t.section_id  = $3 OR ($3::uuid IS NULL AND t.section_id  IS NULL))
 		GROUP BY t.id
-		ORDER BY t.sort_order ASC, t.created_at ASC`,
-		userID, workspaceID, sectionID,
+		ORDER BY t.sort_order ASC, t.created_at ASC, t.id ASC
+		LIMIT $4 OFFSET $5`,
+		userID, workspaceID, sectionID, sqlLimit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer rows.Close()
-	return scanTasks(rows)
+	tasks, err := scanTasks(rows)
+	if err != nil {
+		return nil, false, err
+	}
+	page, hasMore := pagination.Split(tasks, safeLimit)
+	return page, hasMore, nil
 }
 
 func (r *TasksRepository) CountOpenPerSection(

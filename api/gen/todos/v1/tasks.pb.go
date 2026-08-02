@@ -470,6 +470,8 @@ type ListTasksRequest struct {
 	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	SectionId     string                 `protobuf:"bytes,2,opt,name=section_id,json=sectionId,proto3" json:"section_id,omitempty"`
 	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -525,9 +527,24 @@ func (x *ListTasksRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListTasksRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListTasksRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListTasksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tasks         []*Task                `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -567,6 +584,13 @@ func (x *ListTasksResponse) GetTasks() []*Task {
 		return x.Tasks
 	}
 	return nil
+}
+
+func (x *ListTasksResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 type GetTaskRequest struct {
@@ -1751,14 +1775,17 @@ const file_todos_v1_tasks_proto_rawDesc = "" +
 	"\x05links\x18\x13 \x03(\v2\x12.todos.v1.TaskLinkR\x05links\x12-\n" +
 	"\bsubtasks\x18\x14 \x03(\v2\x11.todos.v1.SubtaskR\bsubtasks\x12!\n" +
 	"\fsubtask_done\x18\x15 \x01(\x05R\vsubtaskDone\x12#\n" +
-	"\rsubtask_total\x18\x16 \x01(\x05R\fsubtaskTotal\"l\n" +
+	"\rsubtask_total\x18\x16 \x01(\x05R\fsubtaskTotal\"\x9a\x01\n" +
 	"\x10ListTasksRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"section_id\x18\x02 \x01(\tR\tsectionId\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\"9\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x05 \x01(\x05R\x06offset\"T\n" +
 	"\x11ListTasksResponse\x12$\n" +
-	"\x05tasks\x18\x01 \x03(\v2\x0e.todos.v1.TaskR\x05tasks\" \n" +
+	"\x05tasks\x18\x01 \x03(\v2\x0e.todos.v1.TaskR\x05tasks\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\" \n" +
 	"\x0eGetTaskRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"5\n" +
 	"\x0fGetTaskResponse\x12\"\n" +

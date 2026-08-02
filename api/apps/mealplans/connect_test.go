@@ -103,6 +103,49 @@ func TestListPlans_ReturnsExistingPlan(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Plans)
 }
 
+// TestListPlans_Pagination verifies Limit/Offset bound the page and HasMore
+// reflects whether more rows exist beyond it. The mock auth service resolves
+// every request to the same fixed userID regardless of contextWithUser (it
+// ignores the request entirely — see MockedAuthService), so this shares a
+// fixture with every other test in the file. Plan names are prefixed to sort
+// after anything else, and a Limit:1000 baseline establishes the existing
+// count, so the three new plans land contiguously at the end.
+func TestListPlans_Pagination(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ID: userID}, //nolint:exhaustruct // only ID needed
+	)
+
+	baseline, err := client.ListPlans(
+		ctx, connect.NewRequest(&mealplansv1.ListPlansRequest{Limit: 1000}),
+	)
+	require.NoError(t, err)
+	existing := int32(len(baseline.Msg.Plans))
+
+	createPlanInDB(t, "zzz_paginated_plan_one")
+	createPlanInDB(t, "zzz_paginated_plan_two")
+	createPlanInDB(t, "zzz_paginated_plan_three")
+
+	firstPage, err := client.ListPlans(
+		ctx, connect.NewRequest(&mealplansv1.ListPlansRequest{
+			Limit: 2, Offset: existing,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, firstPage.Msg.Plans, 2)
+	assert.True(t, firstPage.Msg.HasMore)
+
+	secondPage, err := client.ListPlans(
+		ctx, connect.NewRequest(&mealplansv1.ListPlansRequest{
+			Limit: 2, Offset: existing + 2,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, secondPage.Msg.Plans, 1)
+	assert.False(t, secondPage.Msg.HasMore)
+}
+
 func TestGetPlan_Success(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(

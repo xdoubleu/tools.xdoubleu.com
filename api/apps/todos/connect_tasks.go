@@ -32,8 +32,9 @@ func (h *taskConnectHandler) ListTasks(
 	}
 
 	var (
-		tasks []models.Task
-		err   error
+		tasks   []models.Task
+		hasMore bool
+		err     error
 	)
 
 	switch req.Msg.Status {
@@ -47,14 +48,17 @@ func (h *taskConnectHandler) ListTasks(
 	case "archived":
 		tasks, err = h.app.services.Tasks.Search(ctx, userID, "", workspaceID)
 	default:
-		tasks, err = h.app.services.Tasks.ListOpen(ctx, userID, sectionID, workspaceID)
+		tasks, hasMore, err = h.app.services.Tasks.ListOpen(
+			ctx, userID, sectionID, workspaceID, req.Msg.Limit, req.Msg.Offset,
+		)
 	}
 	if err != nil {
 		return nil, connectErr(err)
 	}
 
 	return connect.NewResponse(&todosv1.ListTasksResponse{
-		Tasks: protoTasks(tasks),
+		Tasks:   protoTasks(tasks),
+		HasMore: hasMore,
 	}), nil
 }
 

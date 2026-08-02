@@ -27,9 +27,9 @@ type fakeRecipesStore struct {
 }
 
 func (f *fakeRecipesStore) ListForUser(
-	_ context.Context, _ string,
-) ([]models.Recipe, error) {
-	return nil, nil
+	_ context.Context, _ string, _, _ int32,
+) ([]models.Recipe, bool, error) {
+	return nil, false, nil
 }
 
 func (f *fakeRecipesStore) GetByID(

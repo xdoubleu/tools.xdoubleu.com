@@ -57,8 +57,13 @@ message ListTasksRequest {
   string workspace_id = 1;
   string section_id = 2;
   string status = 3;
+  int32 limit = 4;
+  int32 offset = 5;
 }
-message ListTasksResponse { repeated Task tasks = 1; }
+message ListTasksResponse {
+  repeated Task tasks = 1;
+  bool has_more = 2;
+}
 
 message GetTaskRequest { string id = 1; }
 message GetTaskResponse { Task task = 1; }

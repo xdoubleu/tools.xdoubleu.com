@@ -310,6 +310,8 @@ func (x *PlanSharedUser) GetDisplayName() string {
 
 type ListPlansRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -344,9 +346,24 @@ func (*ListPlansRequest) Descriptor() ([]byte, []int) {
 	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *ListPlansRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListPlansRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListPlansResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Plans         []*Plan                `protobuf:"bytes,1,rep,name=plans,proto3" json:"plans,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -386,6 +403,13 @@ func (x *ListPlansResponse) GetPlans() []*Plan {
 		return x.Plans
 	}
 	return nil
+}
+
+func (x *ListPlansResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 type GetPlanRequest struct {
@@ -1354,10 +1378,13 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x0ePlanSharedUser\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
 	"\bcan_edit\x18\x02 \x01(\bR\acanEdit\x12!\n" +
-	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"\x12\n" +
-	"\x10ListPlansRequest\"=\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"@\n" +
+	"\x10ListPlansRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\"X\n" +
 	"\x11ListPlansResponse\x12(\n" +
-	"\x05plans\x18\x01 \x03(\v2\x12.mealplans.v1.PlanR\x05plans\"8\n" +
+	"\x05plans\x18\x01 \x03(\v2\x12.mealplans.v1.PlanR\x05plans\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"8\n" +
 	"\x0eGetPlanRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\"\xf8\x02\n" +

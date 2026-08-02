@@ -52,11 +52,14 @@ func (h *mealplansConnectHandler) mcpListPlans(
 			connect.CodeUnauthenticated, errors.New("user not authenticated"),
 		)
 	}
-	list, err := h.app.services.Plans.List(ctx, user.ID)
+	list, hasMore, err := h.app.services.Plans.List(ctx, user.ID, 0, 0)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &mealplansv1.ListPlansResponse{Plans: protoPlans(list)}, nil
+	return &mealplansv1.ListPlansResponse{
+		Plans:   protoPlans(list),
+		HasMore: hasMore,
+	}, nil
 }
 
 func (h *mealplansConnectHandler) mcpGetPlan(

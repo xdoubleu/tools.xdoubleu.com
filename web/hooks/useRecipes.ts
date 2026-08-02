@@ -1,4 +1,5 @@
 import useSWR from 'swr'
+import { useCallback, useMemo } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
@@ -13,6 +14,7 @@ import type {
   GetRecipeResponse,
   ListRecipeBookSharesResponse
 } from '@/lib/gen/recipes/v1/recipes_pb'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
 export type CreateRecipeInput = MessageInitShape<typeof CreateRecipeRequestSchema>
 export type UpdateRecipeInput = MessageInitShape<typeof UpdateRecipeRequestSchema>
@@ -20,7 +22,20 @@ export type DeleteRecipeInput = MessageInitShape<typeof DeleteRecipeRequestSchem
 
 export function useRecipes() {
   const client = createServiceClient(RecipesService)
-  return useSWR<ListRecipesResponse, Error>(swrKeys.recipes, () => client.listRecipes({}))
+  return useSWR<ListRecipesResponse, Error>(swrKeys.recipes, () =>
+    client.listRecipes({ limit: DEFAULT_PAGE_SIZE })
+  )
+}
+
+export function useFetchRecipesPage() {
+  const client = useMemo(() => createServiceClient(RecipesService), [])
+  return useCallback(
+    (offset: number) =>
+      client
+        .listRecipes({ limit: DEFAULT_PAGE_SIZE, offset })
+        .then((r) => ({ items: r.recipes, hasMore: r.hasMore })),
+    [client]
+  )
 }
 
 export function useRecipe(id: string, servings?: number) {

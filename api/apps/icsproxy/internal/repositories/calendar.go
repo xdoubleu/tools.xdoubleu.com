@@ -9,6 +9,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
+	"tools.xdoubleu.com/internal/pagination"
 )
 
 type CalendarRepository struct {
@@ -115,15 +116,20 @@ func (r *CalendarRepository) GetFilterConfig(
 func (r *CalendarRepository) ListFilterConfigs(
 	ctx context.Context,
 	userID string,
-) ([]models.FilterConfig, error) {
+	limit int32,
+	offset int32,
+) ([]models.FilterConfig, bool, error) {
+	safeLimit, sqlLimit := pagination.Clamp(limit)
+
 	rows, err := r.db.Query(ctx, `
 		SELECT token_hash, user_id, source_url, hide_event_uids, holiday_uids, hide_series
 		FROM icsproxy.feeds
 		WHERE user_id = $1
-		ORDER BY created_at DESC
-	`, userID)
+		ORDER BY created_at DESC, token_hash
+		LIMIT $2 OFFSET $3
+	`, userID, sqlLimit, offset)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer rows.Close()
 
@@ -141,7 +147,7 @@ func (r *CalendarRepository) ListFilterConfigs(
 			&cfg.HolidayUIDs,
 			&seriesJSON,
 		); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		if len(seriesJSON) > 0 {
@@ -152,8 +158,12 @@ func (r *CalendarRepository) ListFilterConfigs(
 
 		configs = append(configs, cfg)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, false, err
+	}
 
-	return configs, rows.Err()
+	page, hasMore := pagination.Split(configs, safeLimit)
+	return page, hasMore, nil
 }
 
 // =====================================================
