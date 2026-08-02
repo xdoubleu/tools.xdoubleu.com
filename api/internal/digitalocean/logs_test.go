@@ -511,6 +511,94 @@ func TestDeploymentLogs_AppendsActiveDeploymentRuntimeLogs(t *testing.T) {
 	assert.Equal(t, "still serving\n", logs[1].Content)
 }
 
+func TestDeploymentLogsStream_ServiceComponentsError(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		}))
+	defer cleanup()
+
+	err := newClient().DeploymentLogsStream(
+		context.Background(), "dep-1", 0,
+		func(digitalocean.ComponentLog) error { return nil },
+	)
+	require.Error(t, err)
+	require.NotErrorIs(t, err, digitalocean.ErrNotConfigured)
+	assert.Contains(t, err.Error(), "service components")
+}
+
+func TestDeploymentLogsStream_AppendsActiveDeploymentRuntimeLogs(t *testing.T) {
+	server := &doServer{
+		components:      []string{"api"},
+		chunks:          map[string][]string{"api:BUILD": {"failed-build"}},
+		live:            nil,
+		activeID:        "dep-0",
+		activeComps:     []string{"api"},
+		appChunks:       map[string][]string{"api:RUN": {"active-run"}},
+		appLive:         nil,
+		appDetailStatus: 0,
+		errStatus:       nil,
+		errBody:         nil,
+		mu:              sync.Mutex{},
+		queries:         nil,
+	}
+	mux := server.mux()
+	mux.HandleFunc("/log-chunk/failed-build", textHandler("build failed\n"))
+	mux.HandleFunc("/log-chunk/active-run", textHandler("still serving\n"))
+	cleanup := buildServer(mux)
+	defer cleanup()
+
+	var mu sync.Mutex
+	byKey := map[string]digitalocean.ComponentLog{}
+	err := newClient().DeploymentLogsStream(
+		context.Background(), "dep-1", 0,
+		func(log digitalocean.ComponentLog) error {
+			mu.Lock()
+			defer mu.Unlock()
+			byKey[log.DeploymentID+":"+string(log.Type)] = log
+			return nil
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, byKey, 2)
+
+	build, ok := byKey["dep-1:BUILD"]
+	require.True(t, ok)
+	assert.Equal(t, "build failed\n", build.Content)
+
+	run, ok := byKey["dep-0:RUN"]
+	require.True(t, ok)
+	assert.Equal(t, "still serving\n", run.Content)
+}
+
+// The app-detail lookup is an addition, so losing it must not cost the
+// caller the logs already streamed for the requested deployment.
+func TestDeploymentLogsStream_ActiveDeploymentErrorDegrades(t *testing.T) {
+	//nolint:exhaustruct // only the failing app-detail path matters here
+	server := &doServer{
+		components:      []string{"api"},
+		chunks:          map[string][]string{"api:BUILD": {"b"}},
+		appDetailStatus: http.StatusInternalServerError,
+	}
+	mux := server.mux()
+	mux.HandleFunc("/log-chunk/b", textHandler("build output\n"))
+	digitalocean.SetBackoffBase(time.Millisecond)
+	cleanup := buildServer(mux)
+	defer cleanup()
+
+	var logs []digitalocean.ComponentLog
+	err := newClient().DeploymentLogsStream(
+		context.Background(), "dep-1", 0,
+		func(log digitalocean.ComponentLog) error {
+			logs = append(logs, log)
+			return nil
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, logs, 1)
+	assert.Equal(t, "build output\n", logs[0].Content)
+}
+
 // The app-detail lookup is an addition, so losing it must not cost the caller
 // the logs already collected for the requested deployment.
 func TestDeploymentLogs_ActiveDeploymentErrorDegrades(t *testing.T) {

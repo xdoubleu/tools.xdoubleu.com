@@ -522,6 +522,64 @@ func callDeployLogs(
 	return logs, stream.Err()
 }
 
+// --- Deploy logs (unary, MCP path) ---
+//
+// deployLogs/resolveLatestDeploymentID/degradeDeployLogs back the
+// get_deploy_logs MCP tool directly (mcp_apps.go), not through Connect, so
+// they need their own coverage now that GetDeployLogs itself streams.
+
+func TestDeployLogsUnary_LatestDeployment(t *testing.T) {
+	digitalocean.SetBackoffBase(time.Millisecond)
+	srv := httptest.NewServer(deployLogsMux("d1", []string{"worker"}, "building\n"))
+	t.Cleanup(srv.Close)
+	digitalocean.SetBaseURL(srv.URL)
+	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
+
+	h := &obsConnectHandler{app: testApp}
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"app_id": "app"}),
+	)
+
+	resp := h.deployLogs(context.Background(), "", 0)
+	assert.True(t, resp.GetConfigured())
+	assert.Equal(t, "d1", resp.GetDeploymentId())
+	require.Len(t, resp.GetLogs(), 1)
+	assert.Equal(t, "worker", resp.GetLogs()[0].GetComponent())
+	assert.Equal(t, "building\n", resp.GetLogs()[0].GetContent())
+}
+
+func TestDeployLogsUnary_NotConfigured(t *testing.T) {
+	h := &obsConnectHandler{app: testApp}
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok(""),
+		configNotConnected(),
+	)
+
+	resp := h.deployLogs(context.Background(), "", 0)
+	assert.False(t, resp.GetConfigured())
+	assert.Empty(t, resp.GetLogs())
+}
+
+func TestDeployLogsUnary_UpstreamErrorDegrades(t *testing.T) {
+	srv := jsonServer(t, http.StatusBadGateway, ``)
+	digitalocean.SetBaseURL(srv.URL)
+	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
+
+	h := &obsConnectHandler{app: testApp}
+	testApp.doClient = digitalocean.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"app_id": "app"}),
+	)
+
+	resp := h.deployLogs(context.Background(), "d1", 0)
+	assert.True(t, resp.GetConfigured()) // degraded, never a failed response
+	assert.Empty(t, resp.GetLogs())
+}
+
 // --- Health overview (mixed states) ---
 
 func TestObservabilityGetHealthOverview_AsAdmin(t *testing.T) {
