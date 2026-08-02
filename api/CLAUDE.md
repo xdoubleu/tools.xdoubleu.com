@@ -30,6 +30,7 @@ make lint/pkg PKG=apps/recipes  # Lint a single package
 
 # Proto code generation (also run `npm run generate` from web/ — they're paired)
 make proto/generate
+make lint/proto              # `buf lint` — also runs as part of `make lint`/`make lint/fix`
 ```
 
 ## Docker Image
