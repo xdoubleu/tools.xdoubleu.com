@@ -1,18 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   useRecipes,
   useRecipeBookShares,
   useShareRecipeBook,
-  useUnshareRecipeBook
+  useUnshareRecipeBook,
+  useFetchRecipesPage
 } from '@/hooks/useRecipes'
+import { usePaginatedList } from '@/hooks/usePaginatedList'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
+import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import ShareModal from '@/components/recipes/ShareModal'
 import { PageContainer } from '@/components/ui/page-container'
 
@@ -32,6 +35,18 @@ export default function RecipesListClient() {
   const shareBook = useShareRecipeBook()
   const unshareBook = useUnshareRecipeBook()
   const [showShareModal, setShowShareModal] = useState(false)
+
+  const fetchPage = useFetchRecipesPage()
+  const initialPage = useMemo(
+    () => ({ items: data?.recipes ?? [], hasMore: data?.hasMore ?? false }),
+    [data]
+  )
+  const {
+    items: recipes,
+    hasMore,
+    loading: loadingMore,
+    loadMore
+  } = usePaginatedList(initialPage, fetchPage)
 
   const handleShare = async (contactUserId: string, canEdit: boolean) => {
     await shareBook(contactUserId, canEdit)
@@ -59,15 +74,18 @@ export default function RecipesListClient() {
 
       {isLoading && <p className="text-muted">Loading recipes…</p>}
       {error && <p className="text-danger">Failed to load recipes.</p>}
-      {data && data.recipes.length === 0 && (
+      {data && recipes.length === 0 && (
         <p className="text-muted">No recipes yet. Create your first one!</p>
       )}
-      {data && data.recipes.length > 0 && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.recipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
-          ))}
-        </div>
+      {data && recipes.length > 0 && (
+        <>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recipes.map((recipe) => (
+              <RecipeCard key={recipe.id} recipe={recipe} />
+            ))}
+          </div>
+          {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
+        </>
       )}
 
       {showShareModal && (

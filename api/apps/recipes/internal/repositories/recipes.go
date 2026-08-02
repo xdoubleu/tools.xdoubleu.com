@@ -9,6 +9,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
+	"tools.xdoubleu.com/internal/pagination"
 )
 
 type RecipesRepository struct {
@@ -18,7 +19,11 @@ type RecipesRepository struct {
 func (r *RecipesRepository) ListForUser(
 	ctx context.Context,
 	userID string,
-) ([]models.Recipe, error) {
+	limit int32,
+	offset int32,
+) ([]models.Recipe, bool, error) {
+	safeLimit, sqlLimit := pagination.Clamp(limit)
+
 	rows, err := r.db.Query(ctx, `
 		SELECT r.id, r.user_id, r.name,
 		       r.instructions, r.base_servings, r.created_at, r.updated_at
@@ -28,11 +33,12 @@ func (r *RecipesRepository) ListForUser(
 		       SELECT owner_user_id FROM recipes.recipebook_access
 		       WHERE user_id = $1
 		   )
-		ORDER BY r.name`,
-		userID,
+		ORDER BY r.name, r.id
+		LIMIT $2 OFFSET $3`,
+		userID, sqlLimit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer rows.Close()
 
@@ -44,11 +50,16 @@ func (r *RecipesRepository) ListForUser(
 			&recipe.Instructions, &recipe.BaseServings,
 			&recipe.CreatedAt, &recipe.UpdatedAt,
 		); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		result = append(result, recipe)
 	}
-	return result, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, false, err
+	}
+
+	page, hasMore := pagination.Split(result, safeLimit)
+	return page, hasMore, nil
 }
 
 func (r *RecipesRepository) GetByID(

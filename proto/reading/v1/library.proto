@@ -89,8 +89,15 @@ message GetBooksProgressRequest {
 }
 message GetBooksProgressResponse { BooksProgressResponse progress = 1; }
 
-message SearchLibraryRequest { string query = 1; }
-message SearchLibraryResponse { repeated UserBook books = 1; }
+message SearchLibraryRequest {
+  string query = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message SearchLibraryResponse {
+  repeated UserBook books = 1;
+  bool has_more = 2;
+}
 
 message SearchExternalRequest { string query = 1; }
 message SearchExternalResponse { repeated ExternalBookResult results = 1; }

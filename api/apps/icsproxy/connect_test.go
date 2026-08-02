@@ -65,6 +65,42 @@ func TestListConfigs_WithConfigs(t *testing.T) {
 	assert.Equal(t, token, resp.Msg.Config.Token)
 }
 
+// TestListConfigs_Pagination verifies Limit/Offset bound the page and
+// HasMore reflects whether more rows exist beyond it. Configs are ordered
+// created_at DESC, so the three freshly-saved configs sort ahead of anything
+// other tests may have already created, landing them at offset 0.
+func TestListConfigs_Pagination(t *testing.T) {
+	client := newConnectClient(t)
+	ctx := context.Background()
+
+	srv := calendarServer(t)
+	defer srv.Close()
+
+	for range 3 {
+		_, err := client.SaveConfig(
+			ctx,
+			connect.NewRequest(&icsproxyv1.SaveConfigRequest{
+				Token:     uuid.NewString(),
+				SourceUrl: srv.URL,
+			}),
+		)
+		require.NoError(t, err)
+	}
+
+	firstPage, err := client.ListConfigs(
+		ctx, connect.NewRequest(&icsproxyv1.ListConfigsRequest{Limit: 2}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, firstPage.Msg.Configs, 2)
+	assert.True(t, firstPage.Msg.HasMore)
+
+	secondPage, err := client.ListConfigs(
+		ctx, connect.NewRequest(&icsproxyv1.ListConfigsRequest{Limit: 2, Offset: 2}),
+	)
+	require.NoError(t, err)
+	assert.NotEmpty(t, secondPage.Msg.Configs)
+}
+
 // ── PreviewEvents ────────────────────────────────────────────────────────────
 
 func TestPreviewEvents_ValidURL(t *testing.T) {

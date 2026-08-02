@@ -88,16 +88,19 @@ func (h *booksConnectHandler) SearchLibrary(
 			Books: []*readingv1.UserBook{},
 		}), nil
 	}
-	libraryResults, err := h.app.Services.Books.SearchLibrary(
+	libraryResults, hasMore, err := h.app.Services.Books.SearchLibrary(
 		ctx,
 		user.ID,
 		req.Msg.Query,
+		req.Msg.Limit,
+		req.Msg.Offset,
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&readingv1.SearchLibraryResponse{
-		Books: protoUserBooks(libraryResults, h.app.clients.PublicAPIBaseURL),
+		Books:   protoUserBooks(libraryResults, h.app.clients.PublicAPIBaseURL),
+		HasMore: hasMore,
 	}), nil
 }
 

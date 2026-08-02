@@ -17,7 +17,10 @@ export default async function TodosPage({
     createServerClient(SettingsService)
   ])
   const [tasks, settings] = await Promise.all([
-    fetchOrNull(() => tasksClient.listTasks({ workspaceId: w ?? '', sectionId: '', status: '' })),
+    // limit: 200 mirrors useTodos' OPEN_TASKS_LIMIT — see its comment.
+    fetchOrNull(() =>
+      tasksClient.listTasks({ workspaceId: w ?? '', sectionId: '', status: '', limit: 200 })
+    ),
     fetchOrNull(() => settingsClient.getSettings({}))
   ])
 

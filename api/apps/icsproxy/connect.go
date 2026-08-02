@@ -29,14 +29,16 @@ func (h *icsProxyConnectHandler) currentUserID(ctx context.Context) string {
 // ListConfigs returns all filter configs for the current user.
 func (h *icsProxyConnectHandler) ListConfigs(
 	ctx context.Context,
-	_ *connect.Request[icsproxyv1.ListConfigsRequest],
+	req *connect.Request[icsproxyv1.ListConfigsRequest],
 ) (*connect.Response[icsproxyv1.ListConfigsResponse], error) {
 	userID := h.currentUserID(ctx)
 	if userID == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	}
 
-	configs, _ := h.app.services.Calendar.ListConfigs(ctx, userID)
+	configs, hasMore, _ := h.app.services.Calendar.ListConfigs(
+		ctx, userID, req.Msg.Limit, req.Msg.Offset,
+	)
 
 	protoConfigs := make([]*icsproxyv1.FilterConfig, len(configs))
 	for i, cfg := range configs {
@@ -45,6 +47,7 @@ func (h *icsProxyConnectHandler) ListConfigs(
 
 	return connect.NewResponse(&icsproxyv1.ListConfigsResponse{
 		Configs: protoConfigs,
+		HasMore: hasMore,
 	}), nil
 }
 

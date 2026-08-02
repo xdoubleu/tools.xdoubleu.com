@@ -22,20 +22,29 @@ func (s *TaskService) ListOpen(
 	userID string,
 	sectionID *uuid.UUID,
 	workspaceID *uuid.UUID,
-) ([]models.Task, error) {
-	tasks, err := s.tasks.ListOpen(ctx, userID, sectionID, workspaceID)
+	limit int32,
+	offset int32,
+) ([]models.Task, bool, error) {
+	tasks, hasMore, err := s.tasks.ListOpen(
+		ctx,
+		userID,
+		sectionID,
+		workspaceID,
+		limit,
+		offset,
+	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	tasks, err = s.attachSubtasks(ctx, tasks)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	tasks, err = s.attachLinks(ctx, tasks)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return s.enrichWithShortcuts(ctx, userID, workspaceID, tasks), nil
+	return s.enrichWithShortcuts(ctx, userID, workspaceID, tasks), hasMore, nil
 }
 
 func (s *TaskService) CountOpenPerSection(

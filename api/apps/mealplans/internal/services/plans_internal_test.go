@@ -28,9 +28,9 @@ type fakePlansStore struct {
 }
 
 func (f *fakePlansStore) ListForUser(
-	_ context.Context, _ string,
-) ([]models.Plan, error) {
-	return nil, nil
+	_ context.Context, _ string, _, _ int32,
+) ([]models.Plan, bool, error) {
+	return nil, false, nil
 }
 
 func (f *fakePlansStore) GetByID(

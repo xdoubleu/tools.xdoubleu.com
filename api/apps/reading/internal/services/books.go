@@ -55,8 +55,10 @@ func (s *BookService) SearchLibrary(
 	ctx context.Context,
 	userID string,
 	query string,
-) ([]models.UserBook, error) {
-	return s.books.SearchLibrary(ctx, userID, query)
+	limit int32,
+	offset int32,
+) ([]models.UserBook, bool, error) {
+	return s.books.SearchLibrary(ctx, userID, query, limit, offset)
 }
 
 // SearchExternal searches every configured provider (Hardcover, UniCat) for

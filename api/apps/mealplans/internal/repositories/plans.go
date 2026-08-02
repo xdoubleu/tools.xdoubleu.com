@@ -9,6 +9,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
+	"tools.xdoubleu.com/internal/pagination"
 )
 
 type PlansRepository struct {
@@ -18,7 +19,11 @@ type PlansRepository struct {
 func (r *PlansRepository) ListForUser(
 	ctx context.Context,
 	userID string,
-) ([]models.Plan, error) {
+	limit int32,
+	offset int32,
+) ([]models.Plan, bool, error) {
+	safeLimit, sqlLimit := pagination.Clamp(limit)
+
 	rows, err := r.db.Query(ctx, `
 		SELECT p.id, p.owner_user_id, p.name,
 		       p.ical_token, p.created_at, p.updated_at,
@@ -27,11 +32,12 @@ func (r *PlansRepository) ListForUser(
 		FROM mealplans.plans p
 		LEFT JOIN mealplans.plan_access pa ON pa.plan_id = p.id AND pa.user_id = $1
 		WHERE p.owner_user_id = $1 OR pa.user_id = $1
-		ORDER BY p.name`,
-		userID,
+		ORDER BY p.name, p.id
+		LIMIT $2 OFFSET $3`,
+		userID, sqlLimit, offset,
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer rows.Close()
 
@@ -43,11 +49,16 @@ func (r *PlansRepository) ListForUser(
 			&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt, &plan.CanEdit,
 			&plan.ICalHideSlots, &plan.ICalHidePast,
 		); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		result = append(result, plan)
 	}
-	return result, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, false, err
+	}
+
+	page, hasMore := pagination.Split(result, safeLimit)
+	return page, hasMore, nil
 }
 
 func (r *PlansRepository) GetByID(

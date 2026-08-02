@@ -17,7 +17,9 @@ const errNoEditAccess = "You do not have edit access to this plan"
 // repositories.PlansRepository and by fakes in unit tests, so the ownership
 // and edit-access rules can be tested without a database.
 type plansStore interface {
-	ListForUser(ctx context.Context, userID string) ([]models.Plan, error)
+	ListForUser(
+		ctx context.Context, userID string, limit, offset int32,
+	) ([]models.Plan, bool, error)
 	GetByID(ctx context.Context, id uuid.UUID, userID string) (*models.Plan, error)
 	GetSharedWith(
 		ctx context.Context,
@@ -64,8 +66,10 @@ type PlanService struct {
 func (s *PlanService) List(
 	ctx context.Context,
 	userID string,
-) ([]models.Plan, error) {
-	return s.repo.ListForUser(ctx, userID)
+	limit int32,
+	offset int32,
+) ([]models.Plan, bool, error) {
+	return s.repo.ListForUser(ctx, userID, limit, offset)
 }
 
 func (s *PlanService) Get(

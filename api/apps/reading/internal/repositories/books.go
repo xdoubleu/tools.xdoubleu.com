@@ -14,6 +14,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
+	"tools.xdoubleu.com/internal/pagination"
 )
 
 type BooksRepository struct {
@@ -489,7 +490,11 @@ func (repo *BooksRepository) SearchLibrary(
 	ctx context.Context,
 	userID string,
 	query string,
-) ([]models.UserBook, error) {
+	limit int32,
+	offset int32,
+) ([]models.UserBook, bool, error) {
+	safeLimit, sqlLimit := pagination.Clamp(limit)
+
 	q := `
 		SELECT ` + userBookColumns + `
 		FROM reading.user_books ub
@@ -501,10 +506,17 @@ func (repo *BooksRepository) SearchLibrary(
 		            SELECT 1 FROM UNNEST(b.authors) a WHERE a ILIKE '%' || $2 || '%'
 		        )
 		  )
-		ORDER BY b.title
+		ORDER BY b.title, b.id
+		LIMIT $3 OFFSET $4
 	`
 
-	return repo.queryUserBooks(ctx, q, userID, query)
+	rows, err := repo.queryUserBooks(ctx, q, userID, query, sqlLimit, offset)
+	if err != nil {
+		return nil, false, err
+	}
+
+	page, hasMore := pagination.Split(rows, safeLimit)
+	return page, hasMore, nil
 }
 
 // FindUserBookByISBN13 finds the user's library entry for a book with the given ISBN13.

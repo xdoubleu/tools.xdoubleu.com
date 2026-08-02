@@ -15,7 +15,7 @@ import (
 
 func (h *mealplansConnectHandler) ListPlans(
 	ctx context.Context,
-	_ *connect.Request[mealplansv1.ListPlansRequest],
+	req *connect.Request[mealplansv1.ListPlansRequest],
 ) (*connect.Response[mealplansv1.ListPlansResponse], error) {
 	user := getUser(ctx)
 	if user == nil {
@@ -25,12 +25,16 @@ func (h *mealplansConnectHandler) ListPlans(
 		)
 	}
 
-	list, err := h.app.services.Plans.List(ctx, user.ID)
+	list, hasMore, err := h.app.services.Plans.List(
+		ctx, user.ID, req.Msg.Limit, req.Msg.Offset,
+	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	if len(list) == 0 {
+	// Only the first page can legitimately be empty for an account with no
+	// plans yet; an empty later page just means the offset overshot.
+	if len(list) == 0 && req.Msg.Offset == 0 {
 		created, createErr := h.app.services.Plans.Create(
 			ctx,
 			user.ID,
@@ -46,7 +50,8 @@ func (h *mealplansConnectHandler) ListPlans(
 	}
 
 	return connect.NewResponse(&mealplansv1.ListPlansResponse{
-		Plans: protoPlans(list),
+		Plans:   protoPlans(list),
+		HasMore: hasMore,
 	}), nil
 }
 
