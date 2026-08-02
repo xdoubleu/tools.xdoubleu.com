@@ -88,13 +88,16 @@ func Watch(
 ) <-chan KoboEvent {
 	events := make(chan KoboEvent)
 
+	// Snapshot synchronously before starting the goroutine, so callers get a
+	// deterministic starting point instead of racing whatever filesystem
+	// change they make right after calling Watch.
+	prev, _ := FindKobos(volumesRoot)
+
 	go func() {
 		defer close(events)
 
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
-
-		prev, _ := FindKobos(volumesRoot)
 
 		for {
 			select {
