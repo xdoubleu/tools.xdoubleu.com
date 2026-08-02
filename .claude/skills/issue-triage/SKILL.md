@@ -48,7 +48,7 @@ them from there, don't redefine them here. This skill additionally uses:
      gh issue edit <num> --repo <repo> --body "$(printf '**Summary:** %s\n\n---\n\n%s' "$SUMMARY" "$ORIGINAL_BODY")"
      ```
    - Apply type label + app label + the `triaged` marker in one call:
-     `gh issue edit <num> --repo <repo> --add-label "bug,books,triaged"`
+     `gh issue edit <num> --repo <repo> --add-label "bug,reading,triaged"`
    - Add to the project (if not already on it) and capture the item id:
      `gh project item-add 8 --owner xdoubleu --url <issue-url> --format json --jq .id`
    - Set Priority and Status using the field/option ids you looked up in step 0. Status mapping: P0/P1 → `Ready`, P2 → `Backlog` (new features wait; "Ready" implies someone could pick it up now, which isn't true for a feature that hasn't earned a slot yet).
