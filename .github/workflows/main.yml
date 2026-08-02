@@ -26,6 +26,13 @@ jobs:
       - uses: dorny/paths-filter@v4
         id: filter
         with:
+          # 'some-with-excludes': a file must match a positive pattern AND
+          # not match any '!'-prefixed pattern. The default ('some', plain
+          # OR across all patterns) makes a lone negation like
+          # '!api/**/*.md' match any file outside api/ too, since such a
+          # file trivially isn't api/**/*.md — that tripped the api/web/
+          # gateway filters on completely unrelated changes (#740).
+          predicate-quantifier: 'some-with-excludes'
           filters: |
             # '!**/*.md' excludes doc-only changes (e.g. CLAUDE.md) from
             # triggering builds/tests/lint — a file only counts towards a
