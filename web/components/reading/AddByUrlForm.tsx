@@ -11,7 +11,6 @@ import { swrKeys } from '@/lib/swrKeys'
 
 const ADD_BY_URL_ERRORS: Partial<Record<Code, string>> = {
   [Code.InvalidArgument]: 'That page has no readable article content (or the URL is invalid).',
-  [Code.NotFound]: 'No arXiv paper found for that id.',
   [Code.Unavailable]: 'The page could not be fetched — it may be down or paywalled.',
   [Code.ResourceExhausted]: 'The file behind that URL is too large.'
 }
@@ -23,10 +22,9 @@ function errorMessage(err: unknown): string {
   return 'Adding the URL failed. Please try again.'
 }
 
-// AddByUrlForm ingests a pasted URL as a library item: arXiv links become
-// papers (metadata + PDF), other pages become readability-extracted article
-// EPUBs. Pasting something already in the library is not an error — it just
-// reports so. Shared by the unified "Add to library" dialog.
+// AddByUrlForm ingests a pasted URL as a library item, readability-extracted
+// into an article EPUB. Pasting something already in the library is not an
+// error — it just reports so. Shared by the unified "Add to library" dialog.
 export default function AddByUrlForm({
   onAdded,
   onDone
@@ -77,7 +75,7 @@ export default function AddByUrlForm({
       <Input
         type="url"
         required
-        placeholder="https://arxiv.org/abs/… or an article URL"
+        placeholder="Paste an article URL"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         aria-label="URL"

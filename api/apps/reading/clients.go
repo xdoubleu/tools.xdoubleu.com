@@ -2,7 +2,6 @@ package reading
 
 import (
 	"tools.xdoubleu.com/apps/reading/internal/services"
-	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	"tools.xdoubleu.com/apps/reading/pkg/hardcover"
 	"tools.xdoubleu.com/apps/reading/pkg/objectstore"
 	"tools.xdoubleu.com/apps/reading/pkg/unicat"
@@ -16,8 +15,6 @@ type Clients struct {
 	// WebFetch fetches external web content (articles, RSS bodies, PDFs,
 	// images) with size caps and conditional-GET support.
 	WebFetch webfetch.Client
-	// Arxiv resolves arXiv ids to paper metadata.
-	Arxiv arxiv.Client
 	// HTMLConvert overrides the article HTML→EPUB converter. Leave nil for
 	// the default pure-Go builder; tests can inject a fake to assert on the
 	// inputs passed to conversion without building a real EPUB.

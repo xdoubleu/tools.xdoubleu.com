@@ -10,16 +10,16 @@ import (
 
 	"tools.xdoubleu.com/apps/reading/internal/models"
 	"tools.xdoubleu.com/apps/reading/internal/services"
-	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	"tools.xdoubleu.com/apps/reading/pkg/webfetch"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
 	"tools.xdoubleu.com/internal/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-// AddBookByURL ingests a pasted URL as a paper (arXiv) or article (anything
-// else). Duplicates are not an error: the item is attached to the caller's
-// library and already_in_library reports whether it was there before.
+// AddBookByURL ingests a pasted URL as an article: the page is fetched and
+// readability-extracted into an EPUB. Duplicates are not an error: the item
+// is attached to the caller's library and already_in_library reports
+// whether it was there before.
 func (h *booksConnectHandler) AddBookByURL(
 	ctx context.Context,
 	req *connect.Request[readingv1.AddBookByURLRequest],
@@ -71,8 +71,6 @@ func ingestErrorToConnect(err error) *connect.Error {
 		errors.Is(err, services.ErrNotAPDF),
 		errors.Is(err, webfetch.ErrScheme):
 		return connect.NewError(connect.CodeInvalidArgument, err)
-	case errors.Is(err, arxiv.ErrNotFound):
-		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, webfetch.ErrTooLarge):
 		return connect.NewError(connect.CodeResourceExhausted, err)
 	case errors.Is(err, webfetch.ErrStatus),

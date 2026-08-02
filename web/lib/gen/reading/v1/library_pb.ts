@@ -916,9 +916,8 @@ export const GetBookContentResponseSchema: GenMessage<GetBookContentResponse> = 
   messageDesc(file_reading_v1_library, 34);
 
 /**
- * AddBookByURL ingests a paper or web article from a pasted URL: arXiv URLs
- * become papers (metadata + PDF from the arXiv API), anything else is fetched
- * and readability-extracted into an EPUB article. Pasting a URL that is
+ * AddBookByURL ingests a web article from a pasted URL: fetched and
+ * readability-extracted into an EPUB article. Pasting a URL that is
  * already in the catalog is not an error — the item is attached to the
  * caller's library (already_in_library reports whether it was there before)
  * and a missing file is rebuilt.
@@ -932,8 +931,8 @@ export type AddBookByURLRequest = Message<"reading.v1.AddBookByURLRequest"> & {
   url: string;
 
   /**
-   * Optional category override: "paper" | "article". Empty auto-detects
-   * (arXiv URLs → paper, everything else → article).
+   * Optional category override: "paper" | "article". Empty defaults to
+   * "article".
    *
    * @generated from field: string category = 2;
    */

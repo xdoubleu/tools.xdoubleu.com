@@ -45,7 +45,7 @@ const getTransport = cache(async () => {
     // Connect also sends this as connect-timeout-ms (allowlisted server-side),
     // so the api handler's context is cancelled and its pool conn released.
     // Browser transport (lib/client.ts) stays uncapped on purpose so slow
-    // uploads / arXiv-PDF conversions are not cut off.
+    // uploads / PDF conversions are not cut off.
     defaultTimeoutMs: 10000,
     fetch: serverFetch(cookieHeader)
   })

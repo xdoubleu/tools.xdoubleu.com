@@ -42,14 +42,11 @@ var accessToken = http.Cookie{
 // Tests can Put bytes directly then call FinalizeUpload to simulate R2 uploads.
 var fakeStore *objectstore.FakeClient //nolint:gochecknoglobals //needed for tests
 
-// mockWebFetch / mockArxiv are testApp's external-content clients; ingest and
-// feed tests register canned responses on them.
+// mockWebFetch is testApp's external-content client; ingest and feed tests
+// register canned responses on it.
 //
 //nolint:gochecknoglobals //needed for tests
 var mockWebFetch *mocks.MockWebFetchClient
-
-//nolint:gochecknoglobals //needed for tests
-var mockArxiv *mocks.MockArxivClient
 
 func TestMain(m *testing.M) {
 	var err error
@@ -61,13 +58,11 @@ func TestMain(m *testing.M) {
 
 	fakeStore = objectstore.NewFake()
 	mockWebFetch = mocks.NewMockWebFetchClient()
-	mockArxiv = mocks.NewMockArxivClient()
 	clients := reading.Clients{
 		UniCat:      nil,
 		Hardcover:   mocks.NewMockHardcoverClient(),
 		ObjectStore: fakeStore,
 		WebFetch:    mockWebFetch,
-		Arxiv:       mockArxiv,
 		// Calibre is not available in tests; produce a real (minimal) EPUB so
 		// downstream KEPUB conversion still works on the result.
 		HTMLConvert: func(
@@ -115,7 +110,6 @@ func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 		Hardcover:        mocks.NewMockHardcoverClient(),
 		ObjectStore:      objectstore.NewFake(),
 		WebFetch:         nil,
-		Arxiv:            nil,
 		HTMLConvert:      nil,
 		KoboStoreBaseURL: upstreamURL,
 		PublicAPIBaseURL: "",

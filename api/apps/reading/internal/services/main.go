@@ -7,7 +7,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/reading/internal/repositories"
-	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	"tools.xdoubleu.com/apps/reading/pkg/hardcover"
 	"tools.xdoubleu.com/apps/reading/pkg/objectstore"
 	"tools.xdoubleu.com/apps/reading/pkg/unicat"
@@ -39,7 +38,6 @@ func New(
 	hardcoverClient hardcover.Client,
 	objectStore objectstore.Client,
 	webFetchClient webfetch.Client,
-	arxivClient arxiv.Client,
 	htmlConvert HTMLConverter,
 	authService auth.Service,
 ) *Services {
@@ -74,7 +72,6 @@ func New(
 		repositories,
 		objectStore,
 		webFetchClient,
-		arxivClient,
 		htmlConvert, // nil defaults to goHTMLConverter
 	)
 

@@ -13,7 +13,6 @@ import (
 	"tools.xdoubleu.com/apps/reading/internal/jobs"
 	"tools.xdoubleu.com/apps/reading/internal/repositories"
 	"tools.xdoubleu.com/apps/reading/internal/services"
-	"tools.xdoubleu.com/apps/reading/pkg/arxiv"
 	"tools.xdoubleu.com/apps/reading/pkg/hardcover"
 	"tools.xdoubleu.com/apps/reading/pkg/objectstore"
 	"tools.xdoubleu.com/apps/reading/pkg/unicat"
@@ -81,7 +80,6 @@ func New(
 			cfg.R2Bucket,
 		),
 		WebFetch:         webFetchClient,
-		Arxiv:            arxiv.New(logger, webFetchClient),
 		HTMLConvert:      nil, // default pure-Go converter
 		KoboStoreBaseURL: "https://storeapi.kobo.com",
 		PublicAPIBaseURL: cfg.APIURL,
@@ -120,7 +118,6 @@ func NewInner(
 		clients.Hardcover,
 		clients.ObjectStore,
 		clients.WebFetch,
-		clients.Arxiv,
 		clients.HTMLConvert,
 		authService,
 	)

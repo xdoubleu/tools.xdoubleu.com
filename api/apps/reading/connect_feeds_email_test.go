@@ -39,7 +39,6 @@ func newEmailConfiguredApp(
 		Hardcover:        mocks.NewMockHardcoverClient(),
 		ObjectStore:      objectstore.NewFake(),
 		WebFetch:         webFetch,
-		Arxiv:            mocks.NewMockArxivClient(),
 		HTMLConvert:      nil,
 		KoboStoreBaseURL: "",
 		PublicAPIBaseURL: "",
