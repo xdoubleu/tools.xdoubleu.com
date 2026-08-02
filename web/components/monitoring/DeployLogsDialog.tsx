@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect, useState } from 'react'
 import { useDeployLogs } from '@/hooks/useMonitoring'
 import type { DeployComponentLog } from '@/lib/gen/observability/v1/observability_pb'
@@ -55,7 +56,10 @@ export default function DeployLogsDialog({
     setLoading(true)
     fetchDeployLogs(deploymentId)
       .then((resp) => setLogs(resp.logs))
-      .catch(() => setError('Failed to load deploy logs.'))
+      .catch((err) => {
+        Sentry.captureException(err)
+        setError('Failed to load deploy logs.')
+      })
       .finally(() => setLoading(false))
   }, [open, deploymentId, fetchDeployLogs])
 

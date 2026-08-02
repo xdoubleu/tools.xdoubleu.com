@@ -7,8 +7,17 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useDeployLogs: () => mockGetDeployLogs
 }))
 
+jest.mock('@sentry/nextjs', () => ({
+  captureException: jest.fn()
+}))
+
+import * as Sentry from '@sentry/nextjs'
+
+const mockCaptureException = jest.mocked(Sentry.captureException)
+
 beforeEach(() => {
   mockGetDeployLogs.mockReset()
+  mockCaptureException.mockReset()
 })
 
 describe('DeployLogsDialog', () => {
@@ -82,11 +91,14 @@ describe('DeployLogsDialog', () => {
     await waitFor(() => expect(screen.getByText('No logs available yet.')).toBeInTheDocument())
   })
 
-  it('shows an error state when the fetch fails', async () => {
-    mockGetDeployLogs.mockRejectedValue(new Error('boom'))
+  it('shows an error state and reports to Sentry when the fetch fails', async () => {
+    const error = new Error('boom')
+    mockGetDeployLogs.mockRejectedValue(error)
 
     render(<DeployLogsDialog deploymentId="d1" open={true} onOpenChange={jest.fn()} />)
 
     await waitFor(() => expect(screen.getByText('Failed to load deploy logs.')).toBeInTheDocument())
+    expect(mockCaptureException).toHaveBeenCalledTimes(1)
+    expect(mockCaptureException).toHaveBeenCalledWith(error)
   })
 })
