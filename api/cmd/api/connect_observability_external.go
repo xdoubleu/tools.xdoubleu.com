@@ -166,10 +166,15 @@ func (h *obsConnectHandler) deployStatus(
 	return resp
 }
 
+// deployLogsMsg is a short alias for the long name buf's standard naming
+// lint forces on GetDeployLogs' streamed message (observability.proto),
+// purely to keep parameter lines under the linter's line length.
+type deployLogsMsg = observabilityv1.ObservabilityServiceGetDeployLogsResponse
+
 func (h *obsConnectHandler) GetDeployLogs(
 	ctx context.Context,
 	req *connect.Request[observabilityv1.GetDeployLogsRequest],
-	stream *connect.ServerStream[observabilityv1.DeployComponentLog],
+	stream *connect.ServerStream[deployLogsMsg],
 ) error {
 	if err := requireAdmin(ctx); err != nil {
 		return err
@@ -193,8 +198,10 @@ func (h *obsConnectHandler) GetDeployLogs(
 // is logged and the stream ends with whatever was already sent — never a
 // hard RPC error, so one broken source never breaks the dialog.
 func (h *obsConnectHandler) deployLogsStream(
-	ctx context.Context, deploymentID string, tailLines int,
-	stream *connect.ServerStream[observabilityv1.DeployComponentLog],
+	ctx context.Context,
+	deploymentID string,
+	tailLines int,
+	stream *connect.ServerStream[deployLogsMsg],
 ) error {
 	if deploymentID == "" {
 		latest, err := h.app.doClient.LatestDeployment(ctx)
@@ -210,12 +217,14 @@ func (h *obsConnectHandler) deployLogsStream(
 
 	err := h.app.doClient.DeploymentLogsStream(ctx, deploymentID, tailLines,
 		func(log digitalocean.ComponentLog) error {
-			return stream.Send(&observabilityv1.DeployComponentLog{
-				Component:    log.Component,
-				LogType:      string(log.Type),
-				DeploymentId: log.DeploymentID,
-				Content:      log.Content,
-				Truncated:    log.Truncated,
+			return stream.Send(&deployLogsMsg{
+				Log: &observabilityv1.DeployComponentLog{
+					Component:    log.Component,
+					LogType:      string(log.Type),
+					DeploymentId: log.DeploymentID,
+					Content:      log.Content,
+					Truncated:    log.Truncated,
+				},
 			})
 		},
 	)

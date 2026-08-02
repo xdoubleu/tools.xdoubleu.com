@@ -517,7 +517,7 @@ func callDeployLogs(
 
 	var logs []*observabilityv1.DeployComponentLog
 	for stream.Receive() {
-		logs = append(logs, stream.Msg())
+		logs = append(logs, stream.Msg().GetLog())
 	}
 	return logs, stream.Err()
 }

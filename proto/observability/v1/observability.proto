@@ -19,7 +19,8 @@ service ObservabilityService {
   // byte reaches the client well under DigitalOcean App Platform's ~25s edge
   // request timeout regardless of how long the slowest component takes
   // (issue #672 — see api/cmd/api/routes.go).
-  rpc GetDeployLogs(GetDeployLogsRequest) returns (stream DeployComponentLog);
+  rpc GetDeployLogs(GetDeployLogsRequest)
+      returns (stream ObservabilityServiceGetDeployLogsResponse);
   rpc GetHealthOverview(GetHealthOverviewRequest)
       returns (GetHealthOverviewResponse);
   rpc ListOAuthConnections(ListOAuthConnectionsRequest)
@@ -199,13 +200,23 @@ message DeployComponentLog {
   string deployment_id = 5;
 }
 
+// ObservabilityServiceGetDeployLogsResponse is one message of the
+// GetDeployLogs stream, wrapping a single DeployComponentLog — the wrapper
+// (rather than streaming DeployComponentLog directly) exists only so the
+// RPC's response type satisfies buf's standard naming lint; the
+// service-qualified name is needed because GetDeployLogsResponse below is
+// already taken by an unrelated, non-streamed message.
+message ObservabilityServiceGetDeployLogsResponse {
+  DeployComponentLog log = 1;
+}
+
 // GetDeployLogsResponse carries per-component build/deploy/runtime log text
 // for one deployment. Not the GetDeployLogs RPC's wire type (that streams
-// DeployComponentLog directly) — used internally to hand the same aggregated
-// data to the get_deploy_logs MCP tool, which needs one JSON result rather
-// than a stream. configured is false when no DigitalOcean token/app ID is
-// set — the section is degraded. logs is empty when configured is false or
-// the deployment has no logs yet for any phase.
+// ObservabilityServiceGetDeployLogsResponse) — used internally to hand the
+// same aggregated data to the get_deploy_logs MCP tool, which needs one JSON
+// result rather than a stream. configured is false when no DigitalOcean
+// token/app ID is set — the section is degraded. logs is empty when
+// configured is false or the deployment has no logs yet for any phase.
 message GetDeployLogsResponse {
   bool configured = 1;
   string deployment_id = 2;
