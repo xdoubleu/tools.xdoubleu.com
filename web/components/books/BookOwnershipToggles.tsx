@@ -51,8 +51,8 @@ export default function BookOwnershipToggles({
           active={ownPhysical}
           onClick={() => handleToggle(ownPhysical)}
         />
-        {hasPdf && <Badge variant="secondary">PDF</Badge>}
-        {hasEpub && <Badge variant="secondary">EPUB</Badge>}
+        {hasPdf && <Badge variant="default">PDF</Badge>}
+        {hasEpub && <Badge variant="default">EPUB</Badge>}
       </div>
     </div>
   )
