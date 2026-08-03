@@ -61,6 +61,20 @@ func rssXML(feedTitle string, items ...rssItem) string {
 	return body
 }
 
+// countSeenRows returns how many feeds.items rows (including error/skip
+// dedup markers, which ListFeedItems no longer surfaces) exist for feedID.
+func countSeenRows(t *testing.T, feedID string) int {
+	t.Helper()
+	var count int
+	err := testDB.QueryRow(
+		context.Background(),
+		"SELECT count(*) FROM feeds.items WHERE feed_id = $1",
+		feedID,
+	).Scan(&count)
+	require.NoError(t, err)
+	return count
+}
+
 // waitForFeedImport polls ListFeedItems until the feed's background import
 // (kicked off by CreateFeed) has landed at least one item, or fails the test
 // after a timeout.
@@ -208,42 +222,31 @@ func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
 
 	// Every guid is marked seen even when capped (as an error-only row with
 	// no content), so wait for all 25 to land before asserting the cap.
-	var resp *connect.Response[feedsv1.ListFeedItemsResponse]
 	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		var listErr error
-		resp, listErr = client.ListFeedItems(
-			context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
-		)
-		require.NoError(t, listErr)
-		total := 0
-		for _, item := range resp.Msg.Items {
-			if item.FeedId == created.Msg.Feed.Id {
-				total++
-			}
-		}
-		if total >= len(items) {
-			break
-		}
+	for time.Now().Before(deadline) && countSeenRows(t, created.Msg.Feed.Id) < len(items) {
 		time.Sleep(20 * time.Millisecond)
 	}
+	require.Equal(
+		t, len(items), countSeenRows(t, created.Msg.Feed.Id),
+		"every guid should be marked seen",
+	)
 
-	withContent, seen := 0, 0
+	resp, err := client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	withContent := 0
 	for _, item := range resp.Msg.Items {
 		if item.FeedId != created.Msg.Feed.Id {
 			continue
 		}
-		seen++
-		if item.ContentHtml != "" {
-			withContent++
-		}
+		withContent++
 	}
-	require.Equal(t, len(items), seen, "every guid should be marked seen")
 	assert.Equal(
 		t,
 		20,
 		withContent,
-		"only the per-poll cap's worth should have content",
+		"only the per-poll cap's worth should be listed",
 	)
 }
 
@@ -391,21 +394,26 @@ func TestCreateFeed_Scrape_ContentFetchFails(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) && countSeenRows(t, created.Msg.Feed.Id) < 1 {
+		time.Sleep(20 * time.Millisecond)
+	}
+	require.Equal(
+		t, 1, countSeenRows(t, created.Msg.Feed.Id),
+		"failed link should still be marked seen",
+	)
 
 	items, err := client.ListFeedItems(
 		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
 	)
 	require.NoError(t, err)
-	found := false
 	for _, item := range items.Msg.Items {
-		if item.FeedId == created.Msg.Feed.Id {
-			found = true
-			assert.NotEmpty(t, item.IngestError)
-			assert.Empty(t, item.SourceUrl)
-		}
+		assert.NotEqual(
+			t, created.Msg.Feed.Id, item.FeedId,
+			"error/skip dedup marker should not be user-visible",
+		)
 	}
-	assert.True(t, found, "failed link should still be marked seen")
 }
 
 func TestRefreshFeed_Scrape_NotModified(t *testing.T) {
@@ -543,42 +551,32 @@ func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	var resp *connect.Response[feedsv1.ListFeedItemsResponse]
 	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		var listErr error
-		resp, listErr = client.ListFeedItems(
-			context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
-		)
-		require.NoError(t, listErr)
-		total := 0
-		for _, item := range resp.Msg.Items {
-			if item.FeedId == created.Msg.Feed.Id {
-				total++
-			}
-		}
-		if total >= len(postURLs) {
-			break
-		}
+	for time.Now().Before(deadline) &&
+		countSeenRows(t, created.Msg.Feed.Id) < len(postURLs) {
 		time.Sleep(20 * time.Millisecond)
 	}
+	require.Equal(
+		t, len(postURLs), countSeenRows(t, created.Msg.Feed.Id),
+		"every discovered link should be marked seen",
+	)
 
-	withContent, seen := 0, 0
+	resp, err := client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	withContent := 0
 	for _, item := range resp.Msg.Items {
 		if item.FeedId != created.Msg.Feed.Id {
 			continue
 		}
-		seen++
-		if item.ContentHtml != "" {
-			withContent++
-		}
+		withContent++
 	}
-	require.Equal(t, len(postURLs), seen, "every discovered link should be marked seen")
 	assert.Equal(
 		t,
 		20,
 		withContent,
-		"only the per-poll cap's worth should have content",
+		"only the per-poll cap's worth should be listed",
 	)
 }
 
