@@ -53,15 +53,6 @@ func (a *Reading) booksRoutes(prefix string, mux *http.ServeMux) {
 		a.Services.Auth.AppAccess(prefix, catalogHandler.ServeHTTP),
 	)
 
-	feedsPath, feedsHandler := readingv1connect.NewFeedServiceHandler(
-		handler,
-		scrub,
-	)
-	mux.Handle(
-		"POST "+feedsPath,
-		a.Services.Auth.AppAccess(prefix, feedsHandler.ServeHTTP),
-	)
-
 	// Public shareable-profile RPCs — deliberately NOT wrapped in auth
 	// middleware; access is gated by the profile share token instead.
 	publicPath, publicHandler := readingv1connect.NewPublicLibraryServiceHandler(
@@ -75,5 +66,4 @@ func (a *Reading) Routes(prefix string, mux *http.ServeMux) {
 	a.booksRoutes(prefix, mux)
 	a.coverRoutes(prefix, mux)
 	a.koboRoutes(prefix, mux)
-	a.emailRoutes(prefix, mux)
 }

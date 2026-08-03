@@ -6,7 +6,7 @@ const feedsData: { data?: unknown; error?: Error; isLoading: boolean } = {
   isLoading: false
 }
 
-jest.mock('@/hooks/useBookFeeds', () => ({
+jest.mock('@/hooks/useFeeds', () => ({
   useFeeds: () => feedsData
 }))
 

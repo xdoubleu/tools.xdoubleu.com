@@ -39,7 +39,6 @@ type Reading struct {
 	jobQueue       *threading.JobQueue
 	resyncBooksJob *jobs.ResyncMetadataJob
 	storageScanJob *jobs.StorageScanJob
-	feedPollJob    *jobs.FeedPollJob
 }
 
 func New(
@@ -130,10 +129,6 @@ func NewInner(
 		a.Repositories.BookFiles,
 		sharedrepos.NewStorageSnapshotsRepository(db),
 	)
-	a.feedPollJob = jobs.NewFeedPollJob(
-		a.Services.Feeds,
-		a.Services.WebSocket,
-	)
 
 	return a
 }
@@ -150,13 +145,6 @@ func (a *Reading) Start() error {
 	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.storageScanJob, a.db),
 		noop,
-	); err != nil {
-		return err
-	}
-
-	if err := a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.feedPollJob, a.db),
-		a.Services.WebSocket.UpdateState,
 	); err != nil {
 		return err
 	}

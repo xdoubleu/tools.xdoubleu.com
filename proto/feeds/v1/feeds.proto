@@ -1,0 +1,107 @@
+syntax = "proto3";
+package feeds.v1;
+option go_package = "tools.xdoubleu.com/gen/feeds/v1;feedsv1";
+
+// Feed is an RSS/Atom subscription or an email-relay newsletter subscription.
+message Feed {
+  string id = 1;
+  string url = 2;
+  string title = 3;
+  // RFC3339; empty when the feed has never been fetched.
+  string last_fetched_at = 4;
+  // The most recent poll failure; empty when the last poll succeeded.
+  string last_error = 5;
+  string created_at = 6;
+  // "rss" or "email". Email feeds are populated by a Resend inbound-webhook
+  // push, not polling — RefreshFeed is a no-op for them.
+  string source_type = 7;
+  // The address to give the newsletter as its subscription address. Only
+  // set once, on the CreateFeedResponse for a newly created email feed — it
+  // is never persisted in plaintext, so it cannot be shown again later and
+  // is never returned by ListFeeds.
+  string inbound_address = 8;
+}
+
+message ListFeedsRequest {}
+message ListFeedsResponse { repeated Feed feeds = 1; }
+
+enum FeedKind {
+  FEED_KIND_UNSPECIFIED = 0; // treated as RSS
+  FEED_KIND_RSS = 1;
+  FEED_KIND_EMAIL = 2;
+}
+
+// CreateFeed with kind RSS (the default) validates the URL by fetching and
+// parsing it, then imports the feed's current contents (newest first,
+// capped) as a first batch in the background — the import can take longer
+// than the request, so it is not reflected in the response; poll
+// ListFeeds/ListFeedItems to see new items land.
+//
+// CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
+// (url must be empty); items land as mail arrives via the Resend webhook.
+message CreateFeedRequest {
+  string url = 1;
+  FeedKind kind = 2;
+  // Optional; only used for kind=EMAIL. Ignored for RSS, whose title is
+  // parsed from the feed itself.
+  string title = 3;
+}
+message CreateFeedResponse { Feed feed = 1; }
+
+message UpdateFeedRequest {
+  string feed_id = 1;
+  string title = 2;
+}
+message UpdateFeedResponse {}
+
+// DeleteFeed removes the subscription and every item it ingested.
+message DeleteFeedRequest { string feed_id = 1; }
+message DeleteFeedResponse {}
+
+// RefreshFeed polls the feed synchronously and ingests new items.
+message RefreshFeedRequest { string feed_id = 1; }
+message RefreshFeedResponse { int32 ingested = 1; }
+
+// Item is one ingested feed entry, self-contained (no library/book
+// linkage) — a feed and its items only ever belong to one user.
+message Item {
+  string id = 1;
+  string feed_id = 2;
+  string title = 3;
+  string source_url = 4;
+  string content_html = 5;
+  // RFC3339; the item's true publish date from the feed/email, not ingest
+  // time.
+  string published_at = 6;
+  // RFC3339; empty when unread.
+  string read_at = 7;
+  bool dismissed = 8;
+  bool favourite = 9;
+  // The most recent ingest failure for this item, if any.
+  string ingest_error = 10;
+  string created_at = 11;
+}
+
+message ListFeedItemsRequest {}
+message ListFeedItemsResponse { repeated Item items = 1; }
+
+// UpdateItem partially updates an item's read/dismissed/favourite state —
+// only fields explicitly set are applied; unset fields are left unchanged.
+// read sets read_at to now() when true, clears it when false.
+message UpdateItemRequest {
+  string item_id = 1;
+  optional bool read = 2;
+  optional bool dismissed = 3;
+  optional bool favourite = 4;
+}
+message UpdateItemResponse { Item item = 1; }
+
+service FeedService {
+  rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
+  rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
+  rpc UpdateFeed(UpdateFeedRequest) returns (UpdateFeedResponse);
+  rpc DeleteFeed(DeleteFeedRequest) returns (DeleteFeedResponse);
+  rpc RefreshFeed(RefreshFeedRequest) returns (RefreshFeedResponse);
+  rpc ListFeedItems(ListFeedItemsRequest) returns (ListFeedItemsResponse);
+  rpc UpdateItem(UpdateItemRequest) returns (UpdateItemResponse);
+}

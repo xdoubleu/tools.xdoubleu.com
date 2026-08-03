@@ -1,9 +1,9 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-jest.mock('@/components/reading/FeedReaderClient', () => () => <div data-testid="feed-reader" />)
+jest.mock('@/components/feeds/FeedReaderClient', () => () => <div data-testid="feed-reader" />)
 
-jest.mock('@/components/reading/FeedsHeader', () => () => <div data-testid="feeds-header" />)
+jest.mock('@/components/feeds/FeedsHeader', () => () => <div data-testid="feeds-header" />)
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({}))

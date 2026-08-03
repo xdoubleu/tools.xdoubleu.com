@@ -10,7 +10,7 @@ jest.mock('@/components/reading/AddByUrlForm', () => {
     return <div data-testid="add-by-url-form" />
   }
 })
-jest.mock('@/components/reading/AddFeedForm', () => {
+jest.mock('@/components/feeds/AddFeedForm', () => {
   return function MockAddFeedForm() {
     return <div data-testid="add-feed-form" />
   }

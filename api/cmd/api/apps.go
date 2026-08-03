@@ -9,6 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
+	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/mealplans"
@@ -50,9 +51,14 @@ func NewApps(
 	// Migrations run sequentially in registration order: books must adopt its
 	// tables from the former backlog schema before games' final migration
 	// drops that schema, so books registers before games (this also matches
-	// the alphabetical package order used by `go test -p 1 ./...`).
+	// the alphabetical package order used by `go test -p 1 ./...`). feeds
+	// registers immediately after reading because its own migration copies
+	// feed/item data out of reading.feeds/reading.feed_items/reading.books/
+	// reading.user_books before dropping the reading-side tables (issue
+	// #734) — those tables must still exist when feeds' migration runs.
 	readingApp := reading.New(authService, logger, cfg, db)
 	apps.addApp(readingApp)
+	apps.addApp(feeds.New(authService, logger, cfg, db))
 	apps.addApp(games.New(authService, logger, cfg, db))
 	apps.addApp(watchparty.New(authService, logger, cfg))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db))

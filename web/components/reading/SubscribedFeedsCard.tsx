@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useFeeds } from '@/hooks/useBookFeeds'
+import { useFeeds } from '@/hooks/useFeeds'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import FeedList from '@/components/reading/FeedList'
+import FeedList from '@/components/feeds/FeedList'
 
 // SubscribedFeedsCard is a compact, read-only view of the user's RSS/Atom
 // subscriptions for the dashboard. Managing feeds (add/remove) lives on the

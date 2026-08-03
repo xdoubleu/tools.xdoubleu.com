@@ -4,7 +4,6 @@ import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { LibraryService } from '@/lib/gen/reading/v1/library_pb'
-import { FeedService } from '@/lib/gen/reading/v1/feeds_pb'
 import BooksDashboard from '@/components/reading/BooksDashboard'
 import FeedButton from '@/components/reading/FeedButton'
 import { Button } from '@/components/ui/button'
@@ -15,15 +14,11 @@ export default async function BacklogBooksPage() {
   const client = await createServerClient(LibraryService)
   const library = await fetchOrNull(() => client.getLibrary({}))
 
-  const feedsClient = await createServerClient(FeedService)
-  const feeds = await fetchOrNull(() => feedsClient.listFeeds({}))
-
   return (
     <PageContainer className="p-6 lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden lg:p-4">
       <SWRFallback
         fallback={{
-          ...(library ? { [swrKeys.books]: library } : {}),
-          ...(feeds ? { [swrKeys.bookFeeds]: feeds } : {})
+          ...(library ? { [swrKeys.books]: library } : {})
         }}
       >
         <div className="mb-4 flex items-center justify-between gap-4 lg:mb-3">

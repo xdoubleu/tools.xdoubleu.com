@@ -278,7 +278,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, {
         role: 'user',
-        appAccess: ['games', 'reading', 'todos']
+        appAccess: ['games', 'reading', 'feeds', 'todos']
       }),
       isLoading: false,
       error: undefined
@@ -305,7 +305,7 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
-  it('shows Feeds for a non-admin user with only reading access', async () => {
+  it('hides Feeds for a non-admin user with only reading access', async () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, {
@@ -320,11 +320,31 @@ describe('HomeClient', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Reading')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
+    expect(screen.queryByText('Games')).not.toBeInTheDocument()
+    expect(screen.queryByText('Todos')).not.toBeInTheDocument()
+  })
+
+  it('shows Feeds for a non-admin user granted feeds access independently', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, {
+        role: 'user',
+        appAccess: ['feeds']
+      }),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<HomeClient />)
+
+    await waitFor(() => {
       expect(screen.getByText('Feeds')).toBeInTheDocument()
     })
 
-    expect(screen.queryByText('Games')).not.toBeInTheDocument()
-    expect(screen.queryByText('Todos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Reading')).not.toBeInTheDocument()
   })
 
   it('renders all apps for admin user including admin-only and always-visible', async () => {

@@ -29,7 +29,6 @@ type booksTestClient struct {
 	readingv1connect.BookFilesServiceClient
 	readingv1connect.KoboServiceClient
 	readingv1connect.CatalogServiceClient
-	readingv1connect.FeedServiceClient
 }
 
 // newBooksClientFor builds a composite client against the given base URL.
@@ -45,9 +44,6 @@ func newBooksClientFor(url string, opts ...connect.ClientOption) booksTestClient
 			http.DefaultClient, url, opts...,
 		),
 		CatalogServiceClient: readingv1connect.NewCatalogServiceClient(
-			http.DefaultClient, url, opts...,
-		),
-		FeedServiceClient: readingv1connect.NewFeedServiceClient(
 			http.DefaultClient, url, opts...,
 		),
 	}
