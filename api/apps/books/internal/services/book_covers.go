@@ -31,10 +31,13 @@ type GetBookCoverResult struct {
 	ExpiresAt time.Time
 }
 
-// GetBookCover resolves a book cover purely from R2 — covers are fetched
-// eagerly into R2 whenever a book's CoverURL is set or changes (see
-// cacheCoverFromURL and its call sites in books.go / book_resync.go), so the
-// read path here never reaches out to an external source.
+// GetBookCover resolves a book cover from R2 — covers are fetched eagerly
+// into R2 whenever a book's CoverURL is set or changes (see
+// cacheCoverFromURL and its call sites in books.go / book_resync.go). On a
+// cache miss, it retries that eager fetch once here: the eager fetch is
+// best-effort and swallows errors, so a transient failure (timeout, 429)
+// otherwise leaves a book with a CoverURL but no R2 object until the next
+// full resync or a manual metadata sync.
 func (s *BookService) GetBookCover(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -46,7 +49,13 @@ func (s *BookService) GetBookCover(
 		return nil, fmt.Errorf("check cover cache: %w", err)
 	}
 	if !exists {
-		return nil, ErrCoverNotFound
+		book, bookErr := s.books.GetBookByID(ctx, bookID)
+		if bookErr != nil || book.CoverURL == nil || *book.CoverURL == "" {
+			return nil, ErrCoverNotFound
+		}
+		if cacheErr := s.cacheCoverFromURL(ctx, bookID, *book.CoverURL); cacheErr != nil {
+			return nil, ErrCoverNotFound
+		}
 	}
 
 	return s.presignCover(ctx, coverKey)
