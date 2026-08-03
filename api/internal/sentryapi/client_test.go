@@ -306,12 +306,49 @@ func TestResolveIssue_NotConfigured(t *testing.T) {
 	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
 }
 
+func TestResolveIssue_TokenNotConnected(t *testing.T) {
+	c := sentryapi.New(
+		logging.NewNopLogger(), stubNotConnected(), configWith("org", "proj"),
+	)
+	err := c.ResolveIssue(context.Background(), "42")
+	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
+}
+
+func TestResolveIssue_TokenError(t *testing.T) {
+	tokenErr := func(context.Context) (string, error) { return "", assert.AnError }
+	c := sentryapi.New(logging.NewNopLogger(), tokenErr, configWith("org", "proj"))
+	err := c.ResolveIssue(context.Background(), "42")
+	require.ErrorIs(t, err, assert.AnError)
+}
+
 func TestResolveIssue_ServerError(t *testing.T) {
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 	defer cleanup()
+
+	err := newClient().ResolveIssue(context.Background(), "42")
+	require.Error(t, err)
+}
+
+func TestResolveIssue_NonRetryable4xx(t *testing.T) {
+	attempts := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			attempts++
+			w.WriteHeader(http.StatusForbidden)
+		}))
+	defer cleanup()
+
+	err := newClient().ResolveIssue(context.Background(), "42")
+	require.Error(t, err)
+	assert.Equal(t, 1, attempts)
+}
+
+func TestResolveIssue_NetworkError(t *testing.T) {
+	sentryapi.SetBaseURL("http://127.0.0.1:1")
+	defer sentryapi.SetBaseURL(realBaseURL)
 
 	err := newClient().ResolveIssue(context.Background(), "42")
 	require.Error(t, err)
