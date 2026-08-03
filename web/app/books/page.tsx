@@ -5,7 +5,6 @@ import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { LibraryService } from '@/lib/gen/books/v1/library_pb'
 import BooksDashboard from '@/components/books/BooksDashboard'
-import FeedButton from '@/components/books/FeedButton'
 import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
 import { PageContainer } from '@/components/ui/page-container'
@@ -24,7 +23,6 @@ export default async function BacklogBooksPage() {
         <div className="mb-4 flex items-center justify-between gap-4 lg:mb-3">
           <h1 className="text-3xl font-bold lg:text-2xl">Books</h1>
           <div className="flex items-center gap-2">
-            <FeedButton />
             <Button asChild variant="ghost" size="sm" className="gap-2">
               <Link href="/books/settings">
                 <SettingsIcon />
