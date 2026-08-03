@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import type { LibraryResponse, UserBook, ExternalBookResult } from '@/lib/gen/reading/v1/library_pb'
 import LibrarySidebar, {
-  buildCategories,
   buildShelves,
   buildTags,
   type ShelfId
@@ -14,12 +13,8 @@ import ExternalBookCard from '@/components/reading/ExternalBookCard'
 import ManageShelvesTagsDialog from '@/components/reading/ManageShelvesTagsDialog'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/reading/bookShelves'
-import { categoryLabel, categoryOf, type Category } from '@/lib/reading/categories'
 
-type Selection =
-  | { kind: 'shelf'; id: ShelfId }
-  | { kind: 'tag'; tag: string }
-  | { kind: 'category'; category: Category }
+type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'all') return flattenLibrary(library)
@@ -47,7 +42,6 @@ export default function BooksLibrary({
 }: BooksLibraryProps) {
   const shelves = buildShelves(library)
   const allTags = buildTags(library)
-  const categories = buildCategories(library)
 
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [manageOpen, setManageOpen] = useState(false)
@@ -69,23 +63,9 @@ export default function BooksLibrary({
     })
   }, [])
 
-  const handleSelectCategory = useCallback((category: Category) => {
-    setSelection((prev) => {
-      if (prev.kind === 'category' && prev.category === category) {
-        return { kind: 'shelf', id: 'all' }
-      }
-      return { kind: 'category', category }
-    })
-  }, [])
-
   const shelfBooks = useMemo(() => {
     if (selection.kind === 'tag') {
       return flattenLibrary(library).filter((b) => b.tags.includes(selection.tag))
-    }
-    if (selection.kind === 'category') {
-      return [...flattenLibrary(library), ...library.rss].filter(
-        (b) => categoryOf(b.book?.category) === selection.category
-      )
     }
     return booksForShelf(library, selection.id)
   }, [library, selection])
@@ -152,9 +132,7 @@ export default function BooksLibrary({
     ? 'Search results'
     : selection.kind === 'tag'
       ? selection.tag
-      : selection.kind === 'category'
-        ? categoryLabel(selection.category)
-        : (currentShelf?.label ?? '')
+      : (currentShelf?.label ?? '')
   const resultCount = filteredBooks.length + externalResults.length
 
   return (
@@ -163,13 +141,10 @@ export default function BooksLibrary({
         <LibrarySidebar
           shelves={shelves}
           allTags={allTags}
-          categories={categories}
           selectedShelfId={selection.kind === 'shelf' ? selection.id : null}
           selectedTag={selection.kind === 'tag' ? selection.tag : null}
-          selectedCategory={selection.kind === 'category' ? selection.category : null}
           onSelectShelf={handleSelectShelf}
           onSelectTag={handleSelectTag}
-          onSelectCategory={handleSelectCategory}
           onManage={() => setManageOpen(true)}
         />
 

@@ -29,9 +29,8 @@ func (repo *BooksRepository) UpsertBook(
 	query := `
 		INSERT INTO reading.books
 		    (title, authors, isbn13, cover_url, description, page_count,
-		     metadata_source, category, source_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7,
-		        COALESCE(NULLIF($8, ''), 'book'), $9)
+		     metadata_source, source_url)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET
 		    title         = EXCLUDED.title,
@@ -53,7 +52,6 @@ func (repo *BooksRepository) UpsertBook(
 		book.Description,
 		book.PageCount,
 		book.MetadataSource,
-		book.Category,
 		book.SourceURL,
 	)
 
@@ -140,8 +138,7 @@ func (repo *BooksRepository) UpdateBookByID(
 		    cover_url     = $5,
 		    description   = $6,
 		    page_count    = $7,
-		    category      = COALESCE(NULLIF($8, ''), category),
-		    source_url    = COALESCE($9, source_url),
+		    source_url    = COALESCE($8, source_url),
 		    updated_at    = now()
 		WHERE id = $1
 	`
@@ -154,7 +151,6 @@ func (repo *BooksRepository) UpdateBookByID(
 		book.CoverURL,
 		book.Description,
 		book.PageCount,
-		book.Category,
 		book.SourceURL,
 	)
 
@@ -273,13 +269,10 @@ func (repo *BooksRepository) GetFinishedDates(
 	ctx context.Context,
 	userID string,
 ) ([]time.Time, error) {
-	// RSS-feed items are counted separately from deliberate reading, so the
-	// read-progress graph excludes them (books, papers, and articles count).
 	query := `
 		SELECT UNNEST(ub.finished_at) AS finished_date
 		FROM reading.user_books ub
-		JOIN reading.books b ON b.id = ub.book_id
-		WHERE ub.user_id = $1 AND ub.status = 'read' AND b.category <> 'rss'
+		WHERE ub.user_id = $1 AND ub.status = 'read'
 		ORDER BY finished_date
 	`
 
@@ -666,7 +659,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
 		        ELSE 'kepub'
 		    END
-		WHERE ub.user_id = $1 AND 'kobo-sync' = ANY(ub.tags) AND b.category <> 'rss'
+		WHERE ub.user_id = $1 AND 'kobo-sync' = ANY(ub.tags)
 		ORDER BY b.title
 	`
 
@@ -868,13 +861,13 @@ func (repo *BooksRepository) UpdateResyncScanStatus(
 func (repo *BooksRepository) ListCatalogBooks(
 	ctx context.Context,
 ) ([]models.Book, error) {
-	// Non-book items (papers, articles, RSS posts) have no ISBN and generic
-	// titles — scanning them against the book metadata sources would only
-	// produce garbage proposals and burn the rate-limited request budget.
+	// URL-ingested items have no ISBN and generic titles — scanning them
+	// against the book metadata sources would only produce garbage proposals
+	// and burn the rate-limited request budget.
 	query := `
 		SELECT ` + bookColumns + `
 		FROM reading.books
-		WHERE category = 'book'
+		WHERE source_url IS NULL
 		ORDER BY (
 			(unicat_found IS TRUE)::int +
 			(hardcover_found IS TRUE)::int
@@ -1008,12 +1001,12 @@ func (repo *BooksRepository) GetCatalogWithUserOverlay(
 		    COALESCE(ub.added_at, b.created_at),
 		    COALESCE(ub.updated_at, b.updated_at),
 		    b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
-		    b.page_count, b.category, b.source_url, b.created_at, b.updated_at,
+		    b.page_count, b.source_url, b.created_at, b.updated_at,
 		    b.content_html IS NOT NULL AND b.content_html <> ''
 		FROM reading.books b
 		LEFT JOIN reading.user_books ub
 		    ON ub.book_id = b.id AND ub.user_id = $1
-		WHERE b.category = 'book'
+		WHERE b.source_url IS NULL
 		ORDER BY b.title
 	`
 	return repo.queryUserBooks(ctx, query, userID)
@@ -1285,7 +1278,6 @@ func (repo *BooksRepository) GetKoboSyncBook(
 		        ELSE 'kepub'
 		    END
 		WHERE ub.user_id = $1 AND ub.book_id = $2 AND 'kobo-sync' = ANY(ub.tags)
-		    AND b.category <> 'rss'
 	`
 
 	var b models.KoboSyncBook

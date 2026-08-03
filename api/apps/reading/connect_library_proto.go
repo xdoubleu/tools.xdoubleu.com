@@ -34,11 +34,6 @@ func protoBook(book *models.Book, coverBaseURL string) *readingv1.Book {
 		proxyURL = coverProxyURL(book.ID, coverBaseURL)
 	}
 
-	category := book.Category
-	if category == "" {
-		category = models.CategoryBook
-	}
-
 	return &readingv1.Book{
 		Id:          book.ID.String(),
 		Title:       book.Title,
@@ -47,7 +42,6 @@ func protoBook(book *models.Book, coverBaseURL string) *readingv1.Book {
 		CoverUrl:    proxyURL,
 		Description: stringPtr(book.Description),
 		PageCount:   int32FromIntPtr(book.PageCount),
-		Category:    category,
 		SourceUrl:   stringPtr(book.SourceURL),
 		HasContent:  book.HasContent,
 	}

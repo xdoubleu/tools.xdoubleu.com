@@ -12,7 +12,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	"github.com/xdoubleu/essentia/v4/pkg/database"
 
-	"tools.xdoubleu.com/apps/reading/internal/models"
 	"tools.xdoubleu.com/apps/reading/internal/repositories"
 	"tools.xdoubleu.com/apps/reading/internal/services"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
@@ -344,33 +343,6 @@ func (h *booksConnectHandler) SetBookISBN(
 	}
 
 	return connect.NewResponse(&readingv1.SetBookISBNResponse{}), nil
-}
-
-// SetBookCategory re-categorizes a catalog row (e.g. an uploaded paper that
-// landed as the default "book"). Same admin gate as the other catalog-row
-// mutations.
-func (h *booksConnectHandler) SetBookCategory(
-	ctx context.Context,
-	req *connect.Request[readingv1.SetBookCategoryRequest],
-) (*connect.Response[readingv1.SetBookCategoryResponse], error) {
-	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
-	if err != nil {
-		return nil, err
-	}
-
-	if !models.IsValidCategory(req.Msg.Category) {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			errors.New(`category must be one of "book", "paper", "article", "rss"`),
-		)
-	}
-
-	if setErr := h.app.Repositories.Books.SetBookCategory(
-		ctx, bookID, req.Msg.Category,
-	); setErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, setErr)
-	}
-	return connect.NewResponse(&readingv1.SetBookCategoryResponse{}), nil
 }
 
 // Source name constants shared across the source-stats and exact-sources

@@ -76,9 +76,8 @@ type ArticleContent struct {
 	SourceURL string
 	// BaseURL resolves relative image links inside HTML (usually the
 	// post-redirect page URL, or the feed item link).
-	BaseURL  string
-	Category string
-	Title    string
+	BaseURL string
+	Title   string
 	// Byline is a single-string author line from readability extraction.
 	// Authors takes precedence when set (e.g. arXiv's full author list).
 	Byline   string
@@ -108,7 +107,6 @@ func (s *IngestService) IngestArticleContent(
 	book := models.Book{ //nolint:exhaustruct // catalog metadata only
 		Title:     content.Title,
 		Authors:   authors,
-		Category:  content.Category,
 		SourceURL: &sourceURL,
 	}
 	if content.Excerpt != "" {
@@ -170,8 +168,7 @@ func (s *IngestService) IngestArticleContent(
 // body for a book that has none yet — either ingested before content_html
 // existed, or hit a since-fixed extraction bug. Returns the HTML it stored,
 // or "" if it still couldn't get any; the caller falls back to the existing
-// "no content" UI. Used for category=article and (historically) category=rss
-// books; feed-ingested items now live in the standalone feeds app instead.
+// "no content" UI. Feed-ingested items now live in the standalone feeds app.
 func (s *IngestService) BackfillContentHTML(
 	ctx context.Context,
 	book *models.Book,

@@ -7,7 +7,6 @@ import BookProgressEditor from '@/components/reading/BookProgressEditor'
 import BookRatingStars from '@/components/reading/BookRatingStars'
 import BookFavouriteButton from '@/components/reading/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/reading/BookOwnershipToggles'
-import CategoryBadge from '@/components/reading/CategoryBadge'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
@@ -48,7 +47,6 @@ export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
           <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-subtle capitalize">
             {userBook.status.replace(/-/g, ' ')}
           </span>
-          <CategoryBadge category={book.category} />
 
           {/* Rating (read-only here — edit on the book detail page) + favourite */}
           {isRead && (

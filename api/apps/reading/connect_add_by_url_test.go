@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/reading/internal/models"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
 )
 
@@ -39,13 +38,12 @@ func mustUUID(t *testing.T, s string) uuid.UUID {
 
 func addByURL(
 	t *testing.T,
-	url, category string,
+	url string,
 ) (*readingv1.AddBookByURLResponse, error) {
 	t.Helper()
 	client := newBooksTestClient(t)
 	req := connect.NewRequest(&readingv1.AddBookByURLRequest{
-		Url:      url,
-		Category: category,
+		Url: url,
 	})
 	req.Header().Set("Cookie", accessToken.String())
 	resp, err := client.AddBookByURL(context.Background(), req)
@@ -60,11 +58,10 @@ func TestAddBookByURL_Article(t *testing.T) {
 		"/why-tests-matter"
 	mockWebFetch.SetHTML(url, articlePageHTML("Why Tests Matter"))
 
-	msg, err := addByURL(t, url, "")
+	msg, err := addByURL(t, url)
 	require.NoError(t, err)
 	require.NotNil(t, msg.UserBook.Book)
 	assert.False(t, msg.AlreadyInLibrary)
-	assert.Equal(t, models.CategoryArticle, msg.UserBook.Book.Category)
 	assert.Equal(t, url, msg.UserBook.Book.SourceUrl)
 	assert.Contains(t, msg.UserBook.Book.Title, "Why Tests Matter")
 
@@ -76,7 +73,7 @@ func TestAddBookByURL_Article(t *testing.T) {
 	assert.True(t, statusResult.HasEPUB)
 
 	// Pasting the same URL again reports already-in-library.
-	again, err := addByURL(t, url, "")
+	again, err := addByURL(t, url)
 	require.NoError(t, err)
 	assert.True(t, again.AlreadyInLibrary)
 	assert.Equal(t, msg.UserBook.BookId, again.UserBook.BookId)
@@ -87,41 +84,27 @@ func TestAddBookByURL_DirectPDFLink(t *testing.T) {
 		"/consensus.pdf"
 	mockWebFetch.SetBody(url, "application/pdf", fakePDFBytes())
 
-	msg, err := addByURL(t, url, "")
+	msg, err := addByURL(t, url)
 	require.NoError(t, err)
-	assert.Equal(t, models.CategoryArticle, msg.UserBook.Book.Category)
 	// Fallback title comes from the URL's last path segment.
 	assert.Equal(t, "consensus", msg.UserBook.Book.Title)
-}
-
-func TestAddBookByURL_PaperOverrideOnPlainPDF(t *testing.T) {
-	url := "https://example.com/papers/" + uuid.NewString() +
-		"/quantum-methods.pdf"
-	mockWebFetch.SetBody(url, "application/pdf", fakePDFBytes())
-
-	msg, err := addByURL(t, url, models.CategoryPaper)
-	require.NoError(t, err)
-	assert.Equal(t, models.CategoryPaper, msg.UserBook.Book.Category)
 }
 
 func TestAddBookByURL_Errors(t *testing.T) {
 	tests := []struct {
 		name     string
 		url      string
-		category string
 		wantCode connect.Code
 	}{
-		{"empty url", "", "", connect.CodeInvalidArgument},
-		{"bad scheme", "ftp://example.com/x", "", connect.CodeInvalidArgument},
-		{"bad category", "https://example.com/x", "rss",
-			connect.CodeInvalidArgument},
-		{"unreachable page", "https://gone.example.com/404", "",
+		{"empty url", "", connect.CodeInvalidArgument},
+		{"bad scheme", "ftp://example.com/x", connect.CodeInvalidArgument},
+		{"unreachable page", "https://gone.example.com/404",
 			connect.CodeUnavailable},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := addByURL(t, tt.url, tt.category)
+			_, err := addByURL(t, tt.url)
 			require.Error(t, err)
 			assert.Equal(t, tt.wantCode, connect.CodeOf(err))
 		})
@@ -132,7 +115,32 @@ func TestAddBookByURL_NonHTMLNonPDF(t *testing.T) {
 	url := "https://example.com/" + uuid.NewString() + "/archive.zip"
 	mockWebFetch.SetBody(url, "application/zip", []byte("PK\x03\x04zip"))
 
-	_, err := addByURL(t, url, "")
+	_, err := addByURL(t, url)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestAddBookByURL_RebuildsMissingFile(t *testing.T) {
+	url := "https://blog.example.com/posts/" + uuid.NewString() + "/rebuild-me"
+	mockWebFetch.SetHTML(url, articlePageHTML("Rebuild Me"))
+
+	first, err := addByURL(t, url)
+	require.NoError(t, err)
+	bookID := mustUUID(t, first.UserBook.BookId)
+
+	// Drop the stored EPUB so the re-add must rebuild it.
+	_, err = testApp.Repositories.BookFiles.DeleteByUserBook(
+		context.Background(), userID, bookID,
+	)
+	require.NoError(t, err)
+
+	again, err := addByURL(t, url)
+	require.NoError(t, err)
+	assert.True(t, again.AlreadyInLibrary)
+
+	status, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, bookID,
+	)
+	require.NoError(t, err)
+	assert.True(t, status.HasEPUB, "missing file should be rebuilt on re-add")
 }

@@ -110,15 +110,6 @@ message SetBookISBNRequest {
 }
 message SetBookISBNResponse {}
 
-// SetBookCategory re-categorizes a catalog item (e.g. an uploaded paper that
-// landed as the default "book").
-message SetBookCategoryRequest {
-  string book_id = 1;
-  // One of "book" | "paper" | "article" | "rss".
-  string category = 2;
-}
-message SetBookCategoryResponse {}
-
 // GetBookSources live-fetches one book's candidates from every configured
 // source, for the admin book-page source selector. Unlike
 // ListResyncProposals, this works on any book on demand — it doesn't require
@@ -212,7 +203,6 @@ service CatalogService {
   rpc ListResyncProposals(ListResyncProposalsRequest) returns (ListResyncProposalsResponse);
   rpc ApplyResyncChoice(ApplyResyncChoiceRequest) returns (ApplyResyncChoiceResponse);
   rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);
-  rpc SetBookCategory(SetBookCategoryRequest) returns (SetBookCategoryResponse);
   rpc GetBookSources(GetBookSourcesRequest) returns (GetBookSourcesResponse);
   rpc ApplyBookSource(ApplyBookSourceRequest) returns (ApplyBookSourceResponse);
   rpc GetSourceStats(GetSourceStatsRequest) returns (GetSourceStatsResponse);

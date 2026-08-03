@@ -1,7 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import LibrarySidebar, {
-  buildCategories,
   buildShelves,
   buildTags,
   type Shelf,
@@ -15,12 +14,12 @@ import {
   BookShelfSchema
 } from '@/lib/gen/reading/v1/library_pb'
 
-function makeBook(id: string, tags: string[] = [], category = 'book') {
+function makeBook(id: string, tags: string[] = []) {
   return create(UserBookSchema, {
     id,
     status: 'to-read',
     tags,
-    book: create(BookSchema, { title: `Book ${id}`, authors: [], category })
+    book: create(BookSchema, { title: `Book ${id}`, authors: [] })
   })
 }
 
@@ -107,37 +106,6 @@ describe('buildShelves', () => {
     const shelves = buildShelves(library)
     expect(shelves.find((s) => s.id === 'owned')).toBeUndefined()
   })
-
-  // #475: RSS items are an auto-pulled firehose, kept out of the curated
-  // "All books" count — they remain reachable via the RSS category filter.
-  it('excludes RSS items from the All books shelf', () => {
-    const library = create(LibraryResponseSchema, {
-      reading: [makeBook('r1')],
-      wishlist: [],
-      finished: [],
-      shelves: [],
-      rss: [makeBook('rss1', [], 'rss'), makeBook('rss2', [], 'rss')]
-    })
-    const shelves = buildShelves(library)
-    const all = shelves.find((s) => s.id === 'all')!
-    expect(all.count).toBe(1)
-  })
-})
-
-describe('buildCategories', () => {
-  it('includes an RSS entry when the library has RSS items', () => {
-    const library = create(LibraryResponseSchema, {
-      reading: [makeBook('r1')],
-      wishlist: [],
-      finished: [],
-      shelves: [],
-      rss: [makeBook('rss1', [], 'rss')]
-    })
-    const categories = buildCategories(library)
-    const rss = categories.find((c) => c.id === 'rss')
-    expect(rss).toBeDefined()
-    expect(rss!.count).toBe(1)
-  })
 })
 
 describe('buildTags', () => {
@@ -168,18 +136,6 @@ describe('buildTags', () => {
     })
     const tags = buildTags(library)
     expect(tags.filter((t) => t.name === 'fantasy')).toHaveLength(1)
-  })
-
-  it('excludes tags that only exist on RSS items', () => {
-    const library = create(LibraryResponseSchema, {
-      reading: [],
-      wishlist: [],
-      finished: [],
-      shelves: [],
-      rss: [makeBook('rss1', ['tech'], 'rss')]
-    })
-    const tags = buildTags(library)
-    expect(tags.map((t) => t.name)).not.toContain('tech')
   })
 })
 

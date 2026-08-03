@@ -30,13 +30,10 @@ type Book struct {
 	CoverUrl    string                 `protobuf:"bytes,5,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
 	Description string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
 	PageCount   int32                  `protobuf:"varint,7,opt,name=page_count,json=pageCount,proto3" json:"page_count,omitempty"`
-	// Fixed item category: "book" | "paper" | "article" | "rss".
-	Category string `protobuf:"bytes,10,opt,name=category,proto3" json:"category,omitempty"`
-	// Canonical origin URL for paper/article/rss items; empty for books.
+	// Canonical origin URL for URL-ingested items; empty for books.
 	SourceUrl string `protobuf:"bytes,11,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
-	// True once article/RSS/paper content extraction succeeded and in-app
-	// content is stored; false for plain "book" category items or ones where
-	// extraction failed/found nothing.
+	// True once content extraction succeeded and in-app content is stored;
+	// false for plain books or ones where extraction failed/found nothing.
 	HasContent    bool `protobuf:"varint,12,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -119,13 +116,6 @@ func (x *Book) GetPageCount() int32 {
 		return x.PageCount
 	}
 	return 0
-}
-
-func (x *Book) GetCategory() string {
-	if x != nil {
-		return x.Category
-	}
-	return ""
 }
 
 func (x *Book) GetSourceUrl() string {
@@ -343,15 +333,11 @@ func (x *BookShelf) GetBooks() []*UserBook {
 }
 
 type LibraryResponse struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Reading  []*UserBook            `protobuf:"bytes,1,rep,name=reading,proto3" json:"reading,omitempty"`
-	Wishlist []*UserBook            `protobuf:"bytes,2,rep,name=wishlist,proto3" json:"wishlist,omitempty"`
-	Finished []*UserBook            `protobuf:"bytes,3,rep,name=finished,proto3" json:"finished,omitempty"`
-	Shelves  []*BookShelf           `protobuf:"bytes,4,rep,name=shelves,proto3" json:"shelves,omitempty"`
-	// RSS-feed items, kept out of the reading-state shelves above: they are an
-	// auto-pulled firehose, not deliberately-added reading. Papers and articles
-	// (added on purpose) stay in the shelves with books.
-	Rss           []*UserBook `protobuf:"bytes,5,rep,name=rss,proto3" json:"rss,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reading       []*UserBook            `protobuf:"bytes,1,rep,name=reading,proto3" json:"reading,omitempty"`
+	Wishlist      []*UserBook            `protobuf:"bytes,2,rep,name=wishlist,proto3" json:"wishlist,omitempty"`
+	Finished      []*UserBook            `protobuf:"bytes,3,rep,name=finished,proto3" json:"finished,omitempty"`
+	Shelves       []*BookShelf           `protobuf:"bytes,4,rep,name=shelves,proto3" json:"shelves,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -410,13 +396,6 @@ func (x *LibraryResponse) GetFinished() []*UserBook {
 func (x *LibraryResponse) GetShelves() []*BookShelf {
 	if x != nil {
 		return x.Shelves
-	}
-	return nil
-}
-
-func (x *LibraryResponse) GetRss() []*UserBook {
-	if x != nil {
-		return x.Rss
 	}
 	return nil
 }
@@ -1933,8 +1912,8 @@ func (x *GetReadingStateResponse) GetState() *BookReadingStateData {
 }
 
 // GetBookContent returns the readability-extracted article body stored for a
-// book (paper/article/rss categories), for in-app reading instead of linking
-// out to the source URL. html is empty when no content was ever extracted.
+// URL-ingested book, for in-app reading instead of linking out to the source
+// URL. html is empty when no content was ever extracted.
 type GetBookContentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
@@ -2029,11 +2008,8 @@ func (x *GetBookContentResponse) GetHtml() string {
 // caller's library (already_in_library reports whether it was there before)
 // and a missing file is rebuilt.
 type AddBookByURLRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	// Optional category override: "paper" | "article". Empty defaults to
-	// "article".
-	Category      string `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2071,13 +2047,6 @@ func (*AddBookByURLRequest) Descriptor() ([]byte, []int) {
 func (x *AddBookByURLRequest) GetUrl() string {
 	if x != nil {
 		return x.Url
-	}
-	return ""
-}
-
-func (x *AddBookByURLRequest) GetCategory() string {
-	if x != nil {
-		return x.Category
 	}
 	return ""
 }
@@ -2596,7 +2565,7 @@ var File_reading_v1_library_proto protoreflect.FileDescriptor
 const file_reading_v1_library_proto_rawDesc = "" +
 	"\n" +
 	"\x18reading/v1/library.proto\x12\n" +
-	"reading.v1\"\xbb\x02\n" +
+	"reading.v1\"\xaf\x02\n" +
 	"\x04Book\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -2605,14 +2574,13 @@ const file_reading_v1_library_proto_rawDesc = "" +
 	"\tcover_url\x18\x05 \x01(\tR\bcoverUrl\x12 \n" +
 	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
-	"page_count\x18\a \x01(\x05R\tpageCount\x12\x1a\n" +
-	"\bcategory\x18\n" +
-	" \x01(\tR\bcategory\x12\x1d\n" +
+	"page_count\x18\a \x01(\x05R\tpageCount\x12\x1d\n" +
 	"\n" +
 	"source_url\x18\v \x01(\tR\tsourceUrl\x12\x1f\n" +
 	"\vhas_content\x18\f \x01(\bR\n" +
 	"hasContentJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"R\x06isbn10R\rexternal_refs\"\xa4\x03\n" +
+	"J\x04\b\n" +
+	"\x10\vR\x06isbn10R\rexternal_refsR\bcategory\"\xa4\x03\n" +
 	"\bUserBook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
@@ -2633,13 +2601,12 @@ const file_reading_v1_library_proto_rawDesc = "" +
 	"\aformats\x18\x0f \x03(\tR\aformatsJ\x04\b\b\x10\t\"K\n" +
 	"\tBookShelf\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12*\n" +
-	"\x05books\x18\x02 \x03(\v2\x14.reading.v1.UserBookR\x05books\"\xfe\x01\n" +
+	"\x05books\x18\x02 \x03(\v2\x14.reading.v1.UserBookR\x05books\"\xe1\x01\n" +
 	"\x0fLibraryResponse\x12.\n" +
 	"\areading\x18\x01 \x03(\v2\x14.reading.v1.UserBookR\areading\x120\n" +
 	"\bwishlist\x18\x02 \x03(\v2\x14.reading.v1.UserBookR\bwishlist\x120\n" +
 	"\bfinished\x18\x03 \x03(\v2\x14.reading.v1.UserBookR\bfinished\x12/\n" +
-	"\ashelves\x18\x04 \x03(\v2\x15.reading.v1.BookShelfR\ashelves\x12&\n" +
-	"\x03rss\x18\x05 \x03(\v2\x14.reading.v1.UserBookR\x03rss\"\x81\x01\n" +
+	"\ashelves\x18\x04 \x03(\v2\x15.reading.v1.BookShelfR\ashelvesJ\x04\b\x05\x10\x06R\x03rss\"\x81\x01\n" +
 	"\x15BooksProgressResponse\x12\x16\n" +
 	"\x06labels\x18\x01 \x03(\tR\x06labels\x12\x16\n" +
 	"\x06values\x18\x02 \x03(\tR\x06values\x12\x1d\n" +
@@ -2739,10 +2706,9 @@ const file_reading_v1_library_proto_rawDesc = "" +
 	"\x15GetBookContentRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\",\n" +
 	"\x16GetBookContentResponse\x12\x12\n" +
-	"\x04html\x18\x01 \x01(\tR\x04html\"C\n" +
+	"\x04html\x18\x01 \x01(\tR\x04html\"7\n" +
 	"\x13AddBookByURLRequest\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1a\n" +
-	"\bcategory\x18\x02 \x01(\tR\bcategory\"w\n" +
+	"\x03url\x18\x01 \x01(\tR\x03urlJ\x04\b\x02\x10\x03R\bcategory\"w\n" +
 	"\x14AddBookByURLResponse\x121\n" +
 	"\tuser_book\x18\x01 \x01(\v2\x14.reading.v1.UserBookR\buserBook\x12,\n" +
 	"\x12already_in_library\x18\x02 \x01(\bR\x10alreadyInLibrary\"(\n" +
@@ -2863,59 +2829,58 @@ var file_reading_v1_library_proto_depIdxs = []int32{
 	1,  // 3: reading.v1.LibraryResponse.wishlist:type_name -> reading.v1.UserBook
 	1,  // 4: reading.v1.LibraryResponse.finished:type_name -> reading.v1.UserBook
 	2,  // 5: reading.v1.LibraryResponse.shelves:type_name -> reading.v1.BookShelf
-	1,  // 6: reading.v1.LibraryResponse.rss:type_name -> reading.v1.UserBook
-	3,  // 7: reading.v1.GetLibraryResponse.library:type_name -> reading.v1.LibraryResponse
-	4,  // 8: reading.v1.GetBooksProgressResponse.progress:type_name -> reading.v1.BooksProgressResponse
-	1,  // 9: reading.v1.SearchLibraryResponse.books:type_name -> reading.v1.UserBook
-	5,  // 10: reading.v1.SearchExternalResponse.results:type_name -> reading.v1.ExternalBookResult
-	5,  // 11: reading.v1.GetExternalBookResponse.result:type_name -> reading.v1.ExternalBookResult
-	6,  // 12: reading.v1.GetReadingStateResponse.state:type_name -> reading.v1.BookReadingStateData
-	1,  // 13: reading.v1.AddBookByURLResponse.user_book:type_name -> reading.v1.UserBook
-	7,  // 14: reading.v1.LibraryService.GetLibrary:input_type -> reading.v1.GetLibraryRequest
-	9,  // 15: reading.v1.LibraryService.GetBooksProgress:input_type -> reading.v1.GetBooksProgressRequest
-	11, // 16: reading.v1.LibraryService.SearchLibrary:input_type -> reading.v1.SearchLibraryRequest
-	13, // 17: reading.v1.LibraryService.SearchExternal:input_type -> reading.v1.SearchExternalRequest
-	15, // 18: reading.v1.LibraryService.GetExternalBook:input_type -> reading.v1.GetExternalBookRequest
-	17, // 19: reading.v1.LibraryService.CreateBook:input_type -> reading.v1.CreateBookRequest
-	35, // 20: reading.v1.LibraryService.AddBookByURL:input_type -> reading.v1.AddBookByURLRequest
-	19, // 21: reading.v1.LibraryService.UpdateBookStatus:input_type -> reading.v1.UpdateBookStatusRequest
-	25, // 22: reading.v1.LibraryService.UpdateFinishedAt:input_type -> reading.v1.UpdateFinishedAtRequest
-	27, // 23: reading.v1.LibraryService.UpdateProgress:input_type -> reading.v1.UpdateProgressRequest
-	21, // 24: reading.v1.LibraryService.ToggleTag:input_type -> reading.v1.ToggleTagRequest
-	23, // 25: reading.v1.LibraryService.RemoveBook:input_type -> reading.v1.RemoveBookRequest
-	29, // 26: reading.v1.LibraryService.UpdateReadingProgress:input_type -> reading.v1.UpdateReadingProgressRequest
-	31, // 27: reading.v1.LibraryService.GetReadingState:input_type -> reading.v1.GetReadingStateRequest
-	33, // 28: reading.v1.LibraryService.GetBookContent:input_type -> reading.v1.GetBookContentRequest
-	37, // 29: reading.v1.LibraryService.CreateShelf:input_type -> reading.v1.CreateShelfRequest
-	39, // 30: reading.v1.LibraryService.RenameShelf:input_type -> reading.v1.RenameShelfRequest
-	41, // 31: reading.v1.LibraryService.DeleteShelf:input_type -> reading.v1.DeleteShelfRequest
-	43, // 32: reading.v1.LibraryService.RenameTag:input_type -> reading.v1.RenameTagRequest
-	45, // 33: reading.v1.LibraryService.DeleteTag:input_type -> reading.v1.DeleteTagRequest
-	8,  // 34: reading.v1.LibraryService.GetLibrary:output_type -> reading.v1.GetLibraryResponse
-	10, // 35: reading.v1.LibraryService.GetBooksProgress:output_type -> reading.v1.GetBooksProgressResponse
-	12, // 36: reading.v1.LibraryService.SearchLibrary:output_type -> reading.v1.SearchLibraryResponse
-	14, // 37: reading.v1.LibraryService.SearchExternal:output_type -> reading.v1.SearchExternalResponse
-	16, // 38: reading.v1.LibraryService.GetExternalBook:output_type -> reading.v1.GetExternalBookResponse
-	18, // 39: reading.v1.LibraryService.CreateBook:output_type -> reading.v1.CreateBookResponse
-	36, // 40: reading.v1.LibraryService.AddBookByURL:output_type -> reading.v1.AddBookByURLResponse
-	20, // 41: reading.v1.LibraryService.UpdateBookStatus:output_type -> reading.v1.UpdateBookStatusResponse
-	26, // 42: reading.v1.LibraryService.UpdateFinishedAt:output_type -> reading.v1.UpdateFinishedAtResponse
-	28, // 43: reading.v1.LibraryService.UpdateProgress:output_type -> reading.v1.UpdateProgressResponse
-	22, // 44: reading.v1.LibraryService.ToggleTag:output_type -> reading.v1.ToggleTagResponse
-	24, // 45: reading.v1.LibraryService.RemoveBook:output_type -> reading.v1.RemoveBookResponse
-	30, // 46: reading.v1.LibraryService.UpdateReadingProgress:output_type -> reading.v1.UpdateReadingProgressResponse
-	32, // 47: reading.v1.LibraryService.GetReadingState:output_type -> reading.v1.GetReadingStateResponse
-	34, // 48: reading.v1.LibraryService.GetBookContent:output_type -> reading.v1.GetBookContentResponse
-	38, // 49: reading.v1.LibraryService.CreateShelf:output_type -> reading.v1.CreateShelfResponse
-	40, // 50: reading.v1.LibraryService.RenameShelf:output_type -> reading.v1.RenameShelfResponse
-	42, // 51: reading.v1.LibraryService.DeleteShelf:output_type -> reading.v1.DeleteShelfResponse
-	44, // 52: reading.v1.LibraryService.RenameTag:output_type -> reading.v1.RenameTagResponse
-	46, // 53: reading.v1.LibraryService.DeleteTag:output_type -> reading.v1.DeleteTagResponse
-	34, // [34:54] is the sub-list for method output_type
-	14, // [14:34] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	3,  // 6: reading.v1.GetLibraryResponse.library:type_name -> reading.v1.LibraryResponse
+	4,  // 7: reading.v1.GetBooksProgressResponse.progress:type_name -> reading.v1.BooksProgressResponse
+	1,  // 8: reading.v1.SearchLibraryResponse.books:type_name -> reading.v1.UserBook
+	5,  // 9: reading.v1.SearchExternalResponse.results:type_name -> reading.v1.ExternalBookResult
+	5,  // 10: reading.v1.GetExternalBookResponse.result:type_name -> reading.v1.ExternalBookResult
+	6,  // 11: reading.v1.GetReadingStateResponse.state:type_name -> reading.v1.BookReadingStateData
+	1,  // 12: reading.v1.AddBookByURLResponse.user_book:type_name -> reading.v1.UserBook
+	7,  // 13: reading.v1.LibraryService.GetLibrary:input_type -> reading.v1.GetLibraryRequest
+	9,  // 14: reading.v1.LibraryService.GetBooksProgress:input_type -> reading.v1.GetBooksProgressRequest
+	11, // 15: reading.v1.LibraryService.SearchLibrary:input_type -> reading.v1.SearchLibraryRequest
+	13, // 16: reading.v1.LibraryService.SearchExternal:input_type -> reading.v1.SearchExternalRequest
+	15, // 17: reading.v1.LibraryService.GetExternalBook:input_type -> reading.v1.GetExternalBookRequest
+	17, // 18: reading.v1.LibraryService.CreateBook:input_type -> reading.v1.CreateBookRequest
+	35, // 19: reading.v1.LibraryService.AddBookByURL:input_type -> reading.v1.AddBookByURLRequest
+	19, // 20: reading.v1.LibraryService.UpdateBookStatus:input_type -> reading.v1.UpdateBookStatusRequest
+	25, // 21: reading.v1.LibraryService.UpdateFinishedAt:input_type -> reading.v1.UpdateFinishedAtRequest
+	27, // 22: reading.v1.LibraryService.UpdateProgress:input_type -> reading.v1.UpdateProgressRequest
+	21, // 23: reading.v1.LibraryService.ToggleTag:input_type -> reading.v1.ToggleTagRequest
+	23, // 24: reading.v1.LibraryService.RemoveBook:input_type -> reading.v1.RemoveBookRequest
+	29, // 25: reading.v1.LibraryService.UpdateReadingProgress:input_type -> reading.v1.UpdateReadingProgressRequest
+	31, // 26: reading.v1.LibraryService.GetReadingState:input_type -> reading.v1.GetReadingStateRequest
+	33, // 27: reading.v1.LibraryService.GetBookContent:input_type -> reading.v1.GetBookContentRequest
+	37, // 28: reading.v1.LibraryService.CreateShelf:input_type -> reading.v1.CreateShelfRequest
+	39, // 29: reading.v1.LibraryService.RenameShelf:input_type -> reading.v1.RenameShelfRequest
+	41, // 30: reading.v1.LibraryService.DeleteShelf:input_type -> reading.v1.DeleteShelfRequest
+	43, // 31: reading.v1.LibraryService.RenameTag:input_type -> reading.v1.RenameTagRequest
+	45, // 32: reading.v1.LibraryService.DeleteTag:input_type -> reading.v1.DeleteTagRequest
+	8,  // 33: reading.v1.LibraryService.GetLibrary:output_type -> reading.v1.GetLibraryResponse
+	10, // 34: reading.v1.LibraryService.GetBooksProgress:output_type -> reading.v1.GetBooksProgressResponse
+	12, // 35: reading.v1.LibraryService.SearchLibrary:output_type -> reading.v1.SearchLibraryResponse
+	14, // 36: reading.v1.LibraryService.SearchExternal:output_type -> reading.v1.SearchExternalResponse
+	16, // 37: reading.v1.LibraryService.GetExternalBook:output_type -> reading.v1.GetExternalBookResponse
+	18, // 38: reading.v1.LibraryService.CreateBook:output_type -> reading.v1.CreateBookResponse
+	36, // 39: reading.v1.LibraryService.AddBookByURL:output_type -> reading.v1.AddBookByURLResponse
+	20, // 40: reading.v1.LibraryService.UpdateBookStatus:output_type -> reading.v1.UpdateBookStatusResponse
+	26, // 41: reading.v1.LibraryService.UpdateFinishedAt:output_type -> reading.v1.UpdateFinishedAtResponse
+	28, // 42: reading.v1.LibraryService.UpdateProgress:output_type -> reading.v1.UpdateProgressResponse
+	22, // 43: reading.v1.LibraryService.ToggleTag:output_type -> reading.v1.ToggleTagResponse
+	24, // 44: reading.v1.LibraryService.RemoveBook:output_type -> reading.v1.RemoveBookResponse
+	30, // 45: reading.v1.LibraryService.UpdateReadingProgress:output_type -> reading.v1.UpdateReadingProgressResponse
+	32, // 46: reading.v1.LibraryService.GetReadingState:output_type -> reading.v1.GetReadingStateResponse
+	34, // 47: reading.v1.LibraryService.GetBookContent:output_type -> reading.v1.GetBookContentResponse
+	38, // 48: reading.v1.LibraryService.CreateShelf:output_type -> reading.v1.CreateShelfResponse
+	40, // 49: reading.v1.LibraryService.RenameShelf:output_type -> reading.v1.RenameShelfResponse
+	42, // 50: reading.v1.LibraryService.DeleteShelf:output_type -> reading.v1.DeleteShelfResponse
+	44, // 51: reading.v1.LibraryService.RenameTag:output_type -> reading.v1.RenameTagResponse
+	46, // 52: reading.v1.LibraryService.DeleteTag:output_type -> reading.v1.DeleteTagResponse
+	33, // [33:53] is the sub-list for method output_type
+	13, // [13:33] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_reading_v1_library_proto_init() }
