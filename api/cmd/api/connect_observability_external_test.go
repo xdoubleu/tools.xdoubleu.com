@@ -227,6 +227,62 @@ func callSentry(
 	return observabilityClient(t).GetSentryIssues(context.Background(), req)
 }
 
+func TestObservabilityResolveSentryIssue_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	var gotMethod, gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			gotMethod = r.Method
+			gotPath = r.URL.Path
+			w.WriteHeader(http.StatusOK)
+		}))
+	t.Cleanup(srv.Close)
+	sentryapi.SetBaseURL(srv.URL)
+	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
+	)
+
+	_, err := callResolveSentryIssue(t, "42")
+	require.NoError(t, err)
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.True(t, strings.HasSuffix(gotPath, "/api/0/issues/42/"))
+}
+
+func TestObservabilityResolveSentryIssue_NotConfigured(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		configNotConnected(),
+	)
+
+	_, err := callResolveSentryIssue(t, "42")
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+func TestObservabilityResolveSentryIssue_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callResolveSentryIssue(t, "42")
+	requirePermissionDenied(t, err)
+}
+
+func callResolveSentryIssue(
+	t *testing.T, issueID string,
+) (*connect.Response[observabilityv1.ResolveSentryIssueResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.ResolveSentryIssueRequest{
+		IssueId: issueID,
+	})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).ResolveSentryIssue(context.Background(), req)
+}
+
 // --- Deploy status ---
 
 func TestObservabilityGetDeployStatus_AsAdmin(t *testing.T) {
