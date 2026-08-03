@@ -255,6 +255,23 @@ func serve(
 		case serveErr = <-errCh:
 		case <-gateway.Restart():
 			restarting = true
+
+			// Release the port here, before runUI's stop-terminate goroutine
+			// relaunches into the updated binary (#669): that relaunch spawns
+			// a genuinely separate process via `open -n`, which binds this
+			// same loopback port on startup. If this process is still
+			// listening at that moment the new process's bind fails, it
+			// exits before ever building a menu bar or requesting
+			// notifications, and this process tears down anyway right
+			// after — no gateway survives the update at all. Safe to shut
+			// down this early: updateHandler (server.go) already wrote the
+			// /update response before signalling this restart.
+			shutdownCtx, cancel := context.WithTimeout(
+				context.Background(),
+				shutdownTimeout,
+			)
+			_ = server.Shutdown(shutdownCtx)
+			cancel()
 		}
 		close(stop)
 	}()
