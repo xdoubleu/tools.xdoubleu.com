@@ -25,6 +25,13 @@ const coverPresignTTL = 24 * time.Hour
 // against a misbehaving or malicious source returning something huge.
 const maxCoverBytes = 20 * 1024 * 1024
 
+// coverFetchTimeout bounds outbound cover downloads. GetBookCover's read-time
+// self-heal (added for #760) calls cacheCoverFromURL inline in the public
+// cover handler, so a slow/dead source must fail fast into ErrCoverNotFound
+// rather than hang past the server's write timeout and leave the browser
+// with neither an image nor a clean 404 to fall back to.
+const coverFetchTimeout = 5 * time.Second
+
 // GetBookCoverResult holds the outcome of a successful GetBookCover call.
 type GetBookCoverResult struct {
 	URL       string
@@ -92,7 +99,7 @@ func (s *BookService) cacheCoverFromURL(
 		return fmt.Errorf("build cover request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := (&http.Client{Timeout: coverFetchTimeout}).Do(req)
 	if err != nil {
 		return fmt.Errorf("fetch cover: %w", err)
 	}
