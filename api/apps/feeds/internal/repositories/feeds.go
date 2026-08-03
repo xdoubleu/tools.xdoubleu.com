@@ -62,13 +62,13 @@ func (repo *FeedsRepository) List(
 	return repo.queryFeeds(ctx, query, userID)
 }
 
-// ListAll returns every pollable (rss) feed across all users, for the
+// ListAll returns every pollable (rss/scrape) feed across all users, for the
 // background poll job — email feeds are push-only and never polled.
 func (repo *FeedsRepository) ListAll(ctx context.Context) ([]models.Feed, error) {
 	query := `
 		SELECT ` + feedColumns + `
 		FROM feeds.feeds
-		WHERE source_type = 'rss'
+		WHERE source_type IN ('rss', 'scrape')
 		ORDER BY user_id, title, url
 	`
 	return repo.queryFeeds(ctx, query)

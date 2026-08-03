@@ -247,6 +247,171 @@ func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
 	)
 }
 
+// ── CreateFeed (scrape) ─────────────────────────────────────────────────────
+
+// blogIndexHTML builds a minimal index page with one post-like link, for the
+// scrape source type's link-discovery heuristic.
+func blogIndexHTML(postURL, postTitle string) string {
+	return `<!DOCTYPE html><html><head><title>Scraped Blog</title></head><body>` +
+		`<nav><a href="/">Home</a></nav>` +
+		`<article><a href="` + postURL + `">` + postTitle + `</a></article>` +
+		`</body></html>`
+}
+
+func TestCreateFeed_Scrape_Success(t *testing.T) {
+	base := uniqueBlogBase()
+	indexURL := base + "/blog"
+	postURL := base + "/posts/announcing-something-new"
+	mockWebFetch.SetHTML(
+		indexURL, blogIndexHTML(postURL, "Announcing something brand new today"),
+	)
+	mockWebFetch.SetHTML(postURL, articlePageHTML("Announcing Something New"))
+
+	client := newFeedsClient(t)
+	resp, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{
+			Url:  indexURL,
+			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
+		}),
+	)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Feed.Id)
+	assert.Equal(t, "Scraped Blog", resp.Msg.Feed.Title)
+	assert.Equal(t, "scrape", resp.Msg.Feed.SourceType)
+
+	waitForFeedImport(t, client, resp.Msg.Feed.Id)
+
+	items, err := client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	found := false
+	for _, item := range items.Msg.Items {
+		if item.SourceUrl == postURL {
+			found = true
+			assert.Contains(t, item.ContentHtml, "Lorem ipsum")
+		}
+	}
+	assert.True(t, found, "discovered post should be imported")
+}
+
+func TestCreateFeed_Scrape_NoPostsFound(t *testing.T) {
+	indexURL := uniqueBlogBase() + "/blog"
+	mockWebFetch.SetHTML(
+		indexURL, `<html><body><a href="/about">About</a></body></html>`,
+	)
+
+	client := newFeedsClient(t)
+	_, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{
+			Url:  indexURL,
+			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestCreateFeed_Scrape_ContentFetchFails(t *testing.T) {
+	base := uniqueBlogBase()
+	indexURL := base + "/blog-unreachable"
+	postURL := base + "/posts/unreachable-post-with-a-long-title"
+	mockWebFetch.SetHTML(
+		indexURL, blogIndexHTML(postURL, "Unreachable post with a long title"),
+	)
+	// postURL is intentionally never registered, so its content fetch 404s
+	// and ingestDiscoveredLink drops the item (marked seen, never retried).
+
+	client := newFeedsClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{
+			Url:  indexURL,
+			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
+		}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	items, err := client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	found := false
+	for _, item := range items.Msg.Items {
+		if item.FeedId == created.Msg.Feed.Id {
+			found = true
+			assert.NotEmpty(t, item.IngestError)
+			assert.Empty(t, item.SourceUrl)
+		}
+	}
+	assert.True(t, found, "failed link should still be marked seen")
+}
+
+func TestRefreshFeed_Scrape_NotModified(t *testing.T) {
+	base := uniqueBlogBase()
+	indexURL := base + "/blog-nm"
+	postURL := base + "/posts/nm-post-with-a-long-title"
+	mockWebFetch.SetHTML(indexURL, blogIndexHTML(postURL, "NM post with a long title"))
+	mockWebFetch.SetHTML(postURL, articlePageHTML("NM Post"))
+
+	client := newFeedsClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{
+			Url:  indexURL,
+			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
+		}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	mockWebFetch.SetNotModified(indexURL)
+	refreshed, err := client.RefreshFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(0), refreshed.Msg.Ingested)
+}
+
+func TestRefreshFeed_Scrape_NewPost_Ingests(t *testing.T) {
+	base := uniqueBlogBase()
+	indexURL := base + "/blog-refresh"
+	seedURL := base + "/posts/seed-post-with-a-long-title"
+	mockWebFetch.SetHTML(
+		indexURL,
+		blogIndexHTML(seedURL, "Seed post with a long title"),
+	)
+	mockWebFetch.SetHTML(seedURL, articlePageHTML("Seed Post"))
+
+	client := newFeedsClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{
+			Url:  indexURL,
+			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
+		}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	newURL := base + "/posts/new-post-with-a-long-title-too"
+	mockWebFetch.SetHTML(
+		indexURL, blogIndexHTML(newURL, "New post with a long title too"),
+	)
+	mockWebFetch.SetHTML(newURL, articlePageHTML("New Post"))
+
+	refreshed, err := client.RefreshFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), refreshed.Msg.Ingested)
+}
+
 // ── RefreshFeed ──────────────────────────────────────────────────────────
 
 func TestRefreshFeed_InvalidID(t *testing.T) {

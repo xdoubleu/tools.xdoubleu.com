@@ -6,12 +6,16 @@ import (
 	"github.com/google/uuid"
 )
 
-// FeedSourceRSS/FeedSourceEmail are the Feed.SourceType values. RSS feeds are
-// polled (pkg gofeed, hourly poll-feeds job); email feeds are populated by
-// the Resend inbound-webhook push (issue #595) and are never polled.
+// FeedSourceRSS/FeedSourceEmail/FeedSourceScrape are the Feed.SourceType
+// values. RSS and scrape feeds are both polled (hourly poll-feeds job) —
+// scrape feeds have no real feed at their URL, so posts are discovered by
+// heuristically scanning the page instead of parsing RSS/Atom (issue #751).
+// Email feeds are populated by the Resend inbound-webhook push (issue #595)
+// and are never polled.
 const (
-	FeedSourceRSS   = "rss"
-	FeedSourceEmail = "email"
+	FeedSourceRSS    = "rss"
+	FeedSourceEmail  = "email"
+	FeedSourceScrape = "scrape"
 )
 
 // Feed is an RSS/Atom subscription or an email-relay newsletter subscription
