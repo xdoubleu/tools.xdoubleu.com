@@ -338,24 +338,24 @@ func (s *FeedService) ingestDiscoveredLinks(
 }
 
 // ingestDiscoveredLink fetches and readability-extracts one discovered
-// post's content. Unlike an RSS item there is no feed-supplied description
-// to fall back to, so a failed fetch/extraction drops the item (marked seen
-// via markSeenError, never retried by polling — same as ingestItem's error
-// path).
+// post's content, using the discovered anchor text as its title (always
+// non-empty, per discoverPostLinks' minPostLinkTextLen filter — extraction
+// can't improve on it, since extractReadable itself falls back to the URL
+// when a page has no <title>). Unlike an RSS item there is no feed-supplied
+// description to fall back to for content, so a failed fetch/extraction
+// drops the item (marked seen via markSeenError, never retried by polling —
+// same as ingestItem's error path).
 func (s *FeedService) ingestDiscoveredLink(
 	ctx context.Context,
 	feed models.Feed,
 	link discoveredLink,
 	guid string,
 ) bool {
-	title := ""
+	title := link.Title
 	body := s.fetchLinkedPageHTML(ctx, guid, &title)
 	if body == "" {
 		s.markSeenError(ctx, feed.ID, guid, "content fetch failed")
 		return false
-	}
-	if title == "" {
-		title = link.Title
 	}
 
 	//nolint:exhaustruct // read/dismissed/favourite/ingest_error start empty

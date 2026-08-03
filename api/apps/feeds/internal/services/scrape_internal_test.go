@@ -88,6 +88,30 @@ func TestDiscoverPostLinksCapsAtMax(t *testing.T) {
 	assert.Len(t, links, maxDiscoveredLinks)
 }
 
+func TestDiscoverPostLinksBadPageURL(t *testing.T) {
+	_, err := discoverPostLinks("http://[::1]:namedport", []byte(blogIndexHTML))
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrNoPostsFound))
+}
+
+func TestCandidatePostURLRejections(t *testing.T) {
+	html := `
+	<html><body><main>
+		<a>No href attribute at all, just a long title</a>
+		<a href="">Empty href with an otherwise long title</a>
+		<a href="#">Bare fragment link with a long title too</a>
+		<a href="%zz">Malformed href escape with a long title</a>
+		<a href="mailto:hello@example.com">Mailto link with a fairly long title</a>
+		<a href="javascript:void(0)">Javascript link with a fairly long title</a>
+		<a href="/posts/only-real-post-here">The only real post on this page</a>
+	</main></body></html>
+	`
+	links, err := discoverPostLinks("https://example.com/blog", []byte(html))
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+	assert.Equal(t, "https://example.com/posts/only-real-post-here", links[0].URL)
+}
+
 func TestPageTitle(t *testing.T) {
 	title := pageTitle([]byte(blogIndexHTML))
 	assert.Equal(t, "Example Blog", title)
