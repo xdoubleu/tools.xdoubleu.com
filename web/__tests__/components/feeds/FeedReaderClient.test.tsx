@@ -18,7 +18,10 @@ jest.mock(
 
 import FeedReaderClient from '@/components/feeds/FeedReaderClient'
 
-function item(id: string, overrides: Partial<{ readAt: string; dismissed: boolean }> = {}) {
+function item(
+  id: string,
+  overrides: Partial<{ readAt: string; dismissed: boolean; createdAt: string }> = {}
+) {
   return create(ItemSchema, {
     id,
     feedId: 'feed-1',
@@ -34,6 +37,7 @@ function item(id: string, overrides: Partial<{ readAt: string; dismissed: boolea
 describe('FeedReaderClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
     mockUseFeeds.mockReturnValue({
       data: { feeds: [create(FeedSchema, { id: 'feed-1', title: 'Example Blog' })] }
     })
@@ -91,6 +95,24 @@ describe('FeedReaderClient', () => {
     render(<FeedReaderClient />)
 
     expect(screen.getByText('No in-app content')).toBeInTheDocument()
+  })
+
+  it('badges items ingested since the last visit as New, but not older unread ones', () => {
+    window.localStorage.setItem('feeds:lastVisit', '1782000000000') // 2026-06-19T...
+    mockUseFeedItems.mockReturnValue({
+      data: {
+        items: [
+          item('1', { createdAt: '2020-01-01T00:00:00Z' }),
+          item('2', { createdAt: '2030-01-01T00:00:00Z' })
+        ]
+      },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    expect(screen.queryByText('New')).toBeInTheDocument()
+    expect(screen.getAllByText('New')).toHaveLength(1)
   })
 
   it('opens the reader dialog when an item title is clicked', () => {

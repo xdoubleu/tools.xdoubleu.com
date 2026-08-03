@@ -4,14 +4,29 @@ import { useCallback, useMemo, useState } from 'react'
 import { useFeeds, useFeedItems } from '@/hooks/useFeeds'
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
 import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/cn'
 import { formatDate } from '@/lib/dates'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
+
+const LAST_VISIT_KEY = 'feeds:lastVisit'
+
+// Items ingested after the visitor's previous visit are "new"; older unread
+// items have just been sitting there already seen. Tracked client-side via
+// localStorage since the backend has no per-visit read receipt.
+function readAndBumpLastVisit(): number {
+  if (typeof window === 'undefined') return Date.now()
+  const stored = window.localStorage.getItem(LAST_VISIT_KEY)
+  window.localStorage.setItem(LAST_VISIT_KEY, String(Date.now()))
+  return stored ? Number(stored) : Date.now()
+}
 
 export default function FeedReaderClient() {
   const { data: feedsData } = useFeeds()
   const { data: itemsData, error, isLoading } = useFeedItems()
   const [settled, setSettled] = useState<Set<string>>(new Set())
+  const [lastVisit] = useState(readAndBumpLastVisit)
 
   const feedTitleById = useMemo(() => {
     const map = new Map<string, string>()
@@ -44,6 +59,7 @@ export default function FeedReaderClient() {
           key={item.id}
           item={item}
           feedTitle={feedTitleById.get(item.feedId)}
+          isNew={new Date(item.createdAt).getTime() > lastVisit}
           onSettled={handleSettled}
         />
       ))}
@@ -54,15 +70,21 @@ export default function FeedReaderClient() {
 interface FeedReaderCardProps {
   item: Item
   feedTitle?: string
+  isNew: boolean
   onSettled: (itemId: string) => void
 }
 
-function FeedReaderCard({ item, feedTitle, onSettled }: FeedReaderCardProps) {
+function FeedReaderCard({ item, feedTitle, isNew, onSettled }: FeedReaderCardProps) {
   const [readerOpen, setReaderOpen] = useState(false)
   const noContent = !item.contentHtml
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3 shadow-card">
+    <div
+      className={cn(
+        'flex flex-col gap-2 rounded-2xl border border-border bg-card p-3 shadow-card',
+        isNew && 'border-accent'
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
@@ -74,7 +96,10 @@ function FeedReaderCard({ item, feedTitle, onSettled }: FeedReaderCardProps) {
             >
               {item.title}
             </Button>
-            <FeedFavouriteButton itemId={item.id} favourite={item.favourite} />
+            <div className="flex shrink-0 items-center gap-2">
+              {isNew && <Badge variant="default">New</Badge>}
+              <FeedFavouriteButton itemId={item.id} favourite={item.favourite} />
+            </div>
           </div>
           {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
           <p className="text-xs text-muted">{formatDate(item.publishedAt)}</p>
