@@ -27,6 +27,10 @@ func (f fakeSentryClient) ListUnresolvedIssues(
 	return f.issues, f.err
 }
 
+func (f fakeSentryClient) ResolveIssue(_ context.Context, _ string) error {
+	return nil
+}
+
 func (f fakeSentryClient) ListOrgs(_ context.Context) ([]sentryapi.Org, error) {
 	return nil, nil
 }

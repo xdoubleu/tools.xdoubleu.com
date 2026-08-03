@@ -18,12 +18,16 @@ import SentryCard from '@/components/monitoring/SentryCard'
 import DeployCard from '@/components/monitoring/DeployCard'
 
 const mockGetDeployLogs = jest.fn()
+const mockResolveSentryIssue = jest.fn()
 jest.mock('@/hooks/useMonitoring', () => ({
-  useDeployLogs: () => mockGetDeployLogs
+  useDeployLogs: () => mockGetDeployLogs,
+  useResolveSentryIssue: () => mockResolveSentryIssue
 }))
 
 beforeEach(() => {
   mockGetDeployLogs.mockReset()
+  mockResolveSentryIssue.mockReset()
+  mockResolveSentryIssue.mockResolvedValue(undefined)
 })
 
 // recharts needs a non-zero layout size that jsdom does not provide.

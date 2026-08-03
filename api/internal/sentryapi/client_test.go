@@ -3,6 +3,7 @@ package sentryapi_test
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -252,5 +253,66 @@ func TestListUnresolvedIssues_NetworkError(t *testing.T) {
 	defer sentryapi.SetBaseURL(realBaseURL)
 
 	_, err := newClient().ListUnresolvedIssues(context.Background())
+	require.Error(t, err)
+}
+
+func TestResolveIssue_SendsResolvePUT(t *testing.T) {
+	var gotMethod, gotPath, gotBody, authHeader string
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			gotMethod = r.Method
+			gotPath = r.URL.Path
+			raw, _ := io.ReadAll(r.Body)
+			gotBody = string(raw)
+			authHeader = r.Header.Get("Authorization")
+			w.WriteHeader(http.StatusOK)
+		}))
+	defer cleanup()
+
+	err := newClient().ResolveIssue(context.Background(), "42")
+	require.NoError(t, err)
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.True(t, strings.HasSuffix(gotPath, "/api/0/issues/42/"))
+	assert.JSONEq(t, `{"status":"resolved"}`, gotBody)
+	assert.Equal(t, "Bearer token", authHeader)
+}
+
+func TestResolveIssue_InvalidatesCache(t *testing.T) {
+	requests := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPut {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			requests++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id":"1","title":"x","count":"1"}]`))
+		}))
+	defer cleanup()
+
+	c := newClient()
+	_, err := c.ListUnresolvedIssues(context.Background())
+	require.NoError(t, err)
+	require.NoError(t, c.ResolveIssue(context.Background(), "1"))
+	_, err = c.ListUnresolvedIssues(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 2, requests, "resolving must invalidate the cached list")
+}
+
+func TestResolveIssue_NotConfigured(t *testing.T) {
+	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
+	err := c.ResolveIssue(context.Background(), "42")
+	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
+}
+
+func TestResolveIssue_ServerError(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+	defer cleanup()
+
+	err := newClient().ResolveIssue(context.Background(), "42")
 	require.Error(t, err)
 }
