@@ -6,7 +6,7 @@ jest.mock('@/hooks/useFeeds', () => ({
   useCreateFeed: () => createFeed
 }))
 jest.mock('@/lib/gen/feeds/v1/feeds_pb', () => ({
-  FeedKind: { RSS: 1, EMAIL: 2 }
+  FeedKind: { RSS: 1, EMAIL: 2, SCRAPE: 3 }
 }))
 
 import AddFeedForm from '@/components/feeds/AddFeedForm'
@@ -59,8 +59,34 @@ describe('AddFeedForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
 
     await waitFor(() => {
-      expect(screen.getByText('That URL is not a valid RSS/Atom feed.')).toBeInTheDocument()
+      expect(
+        screen.getByText('That URL did not work — check it and try again.')
+      ).toBeInTheDocument()
     })
+  })
+
+  it('subscribes in scrape mode and reports that the import is in progress', async () => {
+    createFeed.mockResolvedValue({})
+    render(<AddFeedForm />)
+
+    fireEvent.click(screen.getByLabelText('No RSS feed'))
+    fireEvent.change(screen.getByLabelText('Feed URL'), {
+      target: { value: 'https://blog.example.com' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
+
+    await waitFor(() => {
+      expect(createFeed).toHaveBeenCalledWith('https://blog.example.com', 3, '')
+      expect(
+        screen.getByText('Subscribed — importing items in the background.')
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('shows a scrape-mode hint before submitting', () => {
+    render(<AddFeedForm />)
+    fireEvent.click(screen.getByLabelText('No RSS feed'))
+    expect(screen.getByText(/Scans the page for post links/)).toBeInTheDocument()
   })
 
   it('shows a friendly message when email newsletters are not configured', async () => {

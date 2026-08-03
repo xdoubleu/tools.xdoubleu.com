@@ -12,8 +12,10 @@ message Feed {
   // The most recent poll failure; empty when the last poll succeeded.
   string last_error = 5;
   string created_at = 6;
-  // "rss" or "email". Email feeds are populated by a Resend inbound-webhook
-  // push, not polling — RefreshFeed is a no-op for them.
+  // "rss", "email", or "scrape". Email feeds are populated by a Resend
+  // inbound-webhook push, not polling — RefreshFeed is a no-op for them.
+  // Scrape feeds have no real feed at their URL; posts are discovered by
+  // heuristically scanning the page for post-like links.
   string source_type = 7;
   // The address to give the newsletter as its subscription address. Only
   // set once, on the CreateFeedResponse for a newly created email feed — it
@@ -29,6 +31,7 @@ enum FeedKind {
   FEED_KIND_UNSPECIFIED = 0; // treated as RSS
   FEED_KIND_RSS = 1;
   FEED_KIND_EMAIL = 2;
+  FEED_KIND_SCRAPE = 3;
 }
 
 // CreateFeed with kind RSS (the default) validates the URL by fetching and
@@ -39,6 +42,10 @@ enum FeedKind {
 //
 // CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
 // (url must be empty); items land as mail arrives via the Resend webhook.
+//
+// CreateFeed with kind SCRAPE treats url as a page with no real feed (e.g. a
+// blog index) and heuristically discovers post links on it instead of
+// parsing RSS/Atom; best-effort, may find nothing on unusual page layouts.
 message CreateFeedRequest {
   string url = 1;
   FeedKind kind = 2;

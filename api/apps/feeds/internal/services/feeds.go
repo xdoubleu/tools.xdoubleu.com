@@ -318,11 +318,16 @@ func (s *FeedService) PollAll(
 	return nil
 }
 
-// pollFeed fetches one feed (conditional GET) and ingests its new items.
+// pollFeed fetches one feed (conditional GET) and ingests its new items,
+// dispatching on source type — scrape feeds have no RSS/Atom body to parse.
 func (s *FeedService) pollFeed(
 	ctx context.Context,
 	feed models.Feed,
 ) (int, error) {
+	if feed.SourceType == models.FeedSourceScrape {
+		return s.pollScrapeFeed(ctx, feed)
+	}
+
 	opts := fetchOptions(0, "")
 	if feed.ETag != nil {
 		opts.ETag = *feed.ETag

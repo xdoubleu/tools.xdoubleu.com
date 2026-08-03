@@ -106,7 +106,8 @@ func feedErrorToConnect(err error) *connect.Error {
 			errors.New("feed already exists"),
 		)
 	case errors.Is(err, services.ErrInvalidFeed),
-		errors.Is(err, services.ErrUnsupportedURL):
+		errors.Is(err, services.ErrUnsupportedURL),
+		errors.Is(err, services.ErrNoPostsFound):
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	default:
 		return connect.NewError(connect.CodeInternal, err)
@@ -145,6 +146,15 @@ func (h *feedsConnectHandler) CreateFeed(
 
 	if req.Msg.Kind == feedsv1.FeedKind_FEED_KIND_EMAIL {
 		return h.createEmailFeed(ctx, user.ID, req.Msg)
+	}
+	if req.Msg.Kind == feedsv1.FeedKind_FEED_KIND_SCRAPE {
+		feed, err := h.app.Services.Feeds.CreateScrape(ctx, user.ID, req.Msg.Url)
+		if err != nil {
+			return nil, feedErrorToConnect(err)
+		}
+		return connect.NewResponse(&feedsv1.CreateFeedResponse{
+			Feed: protoFeed(*feed),
+		}), nil
 	}
 
 	feed, err := h.app.Services.Feeds.Create(ctx, user.ID, req.Msg.Url)

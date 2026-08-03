@@ -10,7 +10,7 @@ import { FeedKind } from '@/lib/gen/feeds/v1/feeds_pb'
 
 const CREATE_FEED_ERRORS: Partial<Record<Code, string>> = {
   [Code.AlreadyExists]: 'You are already subscribed to this feed.',
-  [Code.InvalidArgument]: 'That URL is not a valid RSS/Atom feed.',
+  [Code.InvalidArgument]: 'That URL did not work — check it and try again.',
   [Code.FailedPrecondition]: 'Email newsletters are not configured on this server.'
 }
 
@@ -21,12 +21,23 @@ function createErrorMessage(err: unknown): string {
   return 'Subscribing failed. Please try again.'
 }
 
-type Mode = 'rss' | 'email'
+type Mode = 'rss' | 'email' | 'scrape'
 
-// AddFeedForm subscribes to an RSS/Atom feed, or mints a per-feed inbound
-// email alias for newsletters with no public feed (issue #595). Shared by
-// the /feeds page's FeedManager and the reading library's unified add
-// dialog.
+const MODE_KIND: Record<Mode, FeedKind> = {
+  rss: FeedKind.RSS,
+  email: FeedKind.EMAIL,
+  scrape: FeedKind.SCRAPE
+}
+
+const URL_PLACEHOLDER: Record<'rss' | 'scrape', string> = {
+  rss: 'https://example.com/feed.xml',
+  scrape: 'https://example.com/blog'
+}
+
+// AddFeedForm subscribes to an RSS/Atom feed, mints a per-feed inbound email
+// alias for newsletters with no public feed (issue #595), or scrapes a page
+// with no real feed for post-like links (issue #751). Shared by the /feeds
+// page's FeedManager and the reading library's unified add dialog.
 export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
   const createFeed = useCreateFeed()
   const [mode, setMode] = useState<Mode>('rss')
@@ -37,14 +48,14 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
   const [inboundAddress, setInboundAddress] = useState('')
 
   const submit = async () => {
-    if ((mode === 'rss' && !url.trim()) || busy) return
+    if ((mode !== 'email' && !url.trim()) || busy) return
     setBusy(true)
     setAddStatus('')
     setInboundAddress('')
     try {
       const resp = await createFeed(
-        mode === 'rss' ? url.trim() : '',
-        mode === 'rss' ? FeedKind.RSS : FeedKind.EMAIL,
+        mode === 'email' ? '' : url.trim(),
+        MODE_KIND[mode],
         mode === 'email' ? title.trim() : ''
       )
       if (mode === 'email') {
@@ -68,7 +79,7 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
         name="feed-mode"
         value={mode}
         onChange={(v) => {
-          setMode(v === 'email' ? 'email' : 'rss')
+          setMode(v === 'email' || v === 'scrape' ? v : 'rss')
           setAddStatus('')
           setInboundAddress('')
         }}
@@ -76,6 +87,7 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
       >
         <RadioGroupItem value="rss" label="RSS feed" />
         <RadioGroupItem value="email" label="Email newsletter" />
+        <RadioGroupItem value="scrape" label="No RSS feed" />
       </RadioGroup>
 
       <form
@@ -85,11 +97,11 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
           void submit()
         }}
       >
-        {mode === 'rss' && (
+        {(mode === 'rss' || mode === 'scrape') && (
           <Input
             type="url"
             required
-            placeholder="https://example.com/feed.xml"
+            placeholder={URL_PLACEHOLDER[mode]}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             aria-label="Feed URL"
@@ -106,10 +118,15 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
             className="w-auto min-w-0 flex-1"
           />
         )}
-        <Button type="submit" disabled={busy || (mode === 'rss' && !url.trim())}>
+        <Button type="submit" disabled={busy || (mode !== 'email' && !url.trim())}>
           {busy ? 'Subscribing…' : 'Subscribe'}
         </Button>
       </form>
+      {mode === 'scrape' && !addStatus && (
+        <p className="mt-2 text-xs text-subtle">
+          Scans the page for post links — best-effort, may miss posts on unusual layouts.
+        </p>
+      )}
       {addStatus && <p className="mt-2 text-xs text-muted">{addStatus}</p>}
       {inboundAddress && (
         <div className="mt-2">

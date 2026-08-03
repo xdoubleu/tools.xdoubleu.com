@@ -27,6 +27,7 @@ const (
 	FeedKind_FEED_KIND_UNSPECIFIED FeedKind = 0 // treated as RSS
 	FeedKind_FEED_KIND_RSS         FeedKind = 1
 	FeedKind_FEED_KIND_EMAIL       FeedKind = 2
+	FeedKind_FEED_KIND_SCRAPE      FeedKind = 3
 )
 
 // Enum value maps for FeedKind.
@@ -35,11 +36,13 @@ var (
 		0: "FEED_KIND_UNSPECIFIED",
 		1: "FEED_KIND_RSS",
 		2: "FEED_KIND_EMAIL",
+		3: "FEED_KIND_SCRAPE",
 	}
 	FeedKind_value = map[string]int32{
 		"FEED_KIND_UNSPECIFIED": 0,
 		"FEED_KIND_RSS":         1,
 		"FEED_KIND_EMAIL":       2,
+		"FEED_KIND_SCRAPE":      3,
 	}
 )
 
@@ -81,8 +84,10 @@ type Feed struct {
 	// The most recent poll failure; empty when the last poll succeeded.
 	LastError string `protobuf:"bytes,5,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
 	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	// "rss" or "email". Email feeds are populated by a Resend inbound-webhook
-	// push, not polling — RefreshFeed is a no-op for them.
+	// "rss", "email", or "scrape". Email feeds are populated by a Resend
+	// inbound-webhook push, not polling — RefreshFeed is a no-op for them.
+	// Scrape feeds have no real feed at their URL; posts are discovered by
+	// heuristically scanning the page for post-like links.
 	SourceType string `protobuf:"bytes,7,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"`
 	// The address to give the newsletter as its subscription address. Only
 	// set once, on the CreateFeedResponse for a newly created email feed — it
@@ -267,6 +272,10 @@ func (x *ListFeedsResponse) GetFeeds() []*Feed {
 //
 // CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
 // (url must be empty); items land as mail arrives via the Resend webhook.
+//
+// CreateFeed with kind SCRAPE treats url as a page with no real feed (e.g. a
+// blog index) and heuristically discovers post links on it instead of
+// parsing RSS/Atom; best-effort, may find nothing on unusual page layouts.
 type CreateFeedRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
@@ -1022,11 +1031,12 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\n" +
 	"_favourite\"8\n" +
 	"\x12UpdateItemResponse\x12\"\n" +
-	"\x04item\x18\x01 \x01(\v2\x0e.feeds.v1.ItemR\x04item*M\n" +
+	"\x04item\x18\x01 \x01(\v2\x0e.feeds.v1.ItemR\x04item*c\n" +
 	"\bFeedKind\x12\x19\n" +
 	"\x15FEED_KIND_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rFEED_KIND_RSS\x10\x01\x12\x13\n" +
-	"\x0fFEED_KIND_EMAIL\x10\x022\x95\x04\n" +
+	"\x0fFEED_KIND_EMAIL\x10\x02\x12\x14\n" +
+	"\x10FEED_KIND_SCRAPE\x10\x032\x95\x04\n" +
 	"\vFeedService\x12D\n" +
 	"\tListFeeds\x12\x1a.feeds.v1.ListFeedsRequest\x1a\x1b.feeds.v1.ListFeedsResponse\x12G\n" +
 	"\n" +
