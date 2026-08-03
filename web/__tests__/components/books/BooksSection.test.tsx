@@ -2,8 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 
 jest.mock('@/hooks/useBooks', () => ({
-  useLibrary: jest.fn(),
-  useAddBookByURL: () => jest.fn()
+  useLibrary: jest.fn()
 }))
 
 // The query lives in ?q= (see BooksSection), not component state, so the

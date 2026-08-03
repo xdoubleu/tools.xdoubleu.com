@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { mutate } from 'swr'
 import { useLibrary, useBooksProgress } from '@/hooks/useBooks'
@@ -9,7 +8,6 @@ import BookCover from '@/components/books/BookCover'
 import BookSearchBar from '@/components/books/BookSearchBar'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import BooksDashboardView from '@/components/books/BooksDashboardView'
-import AddToLibraryDialog from '@/components/books/AddToLibraryDialog'
 import ProfileShareButton from '@/components/profile/ProfileShareButton'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
@@ -43,7 +41,6 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
 }
 
 export default function BooksDashboard() {
-  const [addOpen, setAddOpen] = useState(false)
   const chart = useDashboardChartState<'ytd' | 'all'>('ytd')
 
   const { data: libraryData, error: libError, isLoading: libLoading } = useLibrary()
@@ -68,26 +65,22 @@ export default function BooksDashboard() {
   if (!library) return null
 
   return (
-    <>
-      <AddToLibraryDialog open={addOpen} onOpenChange={setAddOpen} onAdded={handleRefresh} />
-      <BooksDashboardView
-        library={library}
-        chart={chart}
-        allTimeChartData={allTimeChartData}
-        renderReadingCard={(ub) => <ReadingBookCard userBook={ub} />}
-        actions={
-          <>
-            <div className="mr-auto w-full max-w-md">
-              <BookSearchBar onAdded={handleRefresh} />
-            </div>
-            <Button onClick={() => setAddOpen(true)}>Add to library</Button>
-            <ProfileShareButton app="books" />
-            <Button asChild variant="secondary">
-              <Link href="/books/library">Browse full library</Link>
-            </Button>
-          </>
-        }
-      />
-    </>
+    <BooksDashboardView
+      library={library}
+      chart={chart}
+      allTimeChartData={allTimeChartData}
+      renderReadingCard={(ub) => <ReadingBookCard userBook={ub} />}
+      actions={
+        <>
+          <div className="mr-auto w-full max-w-md">
+            <BookSearchBar onAdded={handleRefresh} />
+          </div>
+          <ProfileShareButton app="books" />
+          <Button asChild variant="secondary">
+            <Link href="/books/library">Browse full library</Link>
+          </Button>
+        </>
+      }
+    />
   )
 }

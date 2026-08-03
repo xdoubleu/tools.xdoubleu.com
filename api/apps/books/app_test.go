@@ -59,23 +59,10 @@ func TestMain(m *testing.M) {
 	fakeStore = objectstore.NewFake()
 	mockWebFetch = mocks.NewMockWebFetchClient()
 	clients := books.Clients{
-		UniCat:      nil,
-		Hardcover:   mocks.NewMockHardcoverClient(),
-		ObjectStore: fakeStore,
-		WebFetch:    mockWebFetch,
-		// Calibre is not available in tests; produce a real (minimal) EPUB so
-		// downstream KEPUB conversion still works on the result.
-		HTMLConvert: func(
-			_ context.Context, _, outPath string, meta services.ArticleMeta,
-		) error {
-			author := ""
-			if len(meta.Authors) > 0 {
-				author = meta.Authors[0]
-			}
-			return os.WriteFile(
-				outPath, buildEPUBBytes(meta.Title, author, ""), 0o600,
-			)
-		},
+		UniCat:           nil,
+		Hardcover:        mocks.NewMockHardcoverClient(),
+		ObjectStore:      fakeStore,
+		WebFetch:         mockWebFetch,
 		KoboStoreBaseURL: "",
 		PublicAPIBaseURL: "",
 	}
@@ -110,7 +97,6 @@ func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 		Hardcover:        mocks.NewMockHardcoverClient(),
 		ObjectStore:      objectstore.NewFake(),
 		WebFetch:         nil,
-		HTMLConvert:      nil,
 		KoboStoreBaseURL: upstreamURL,
 		PublicAPIBaseURL: "",
 	}

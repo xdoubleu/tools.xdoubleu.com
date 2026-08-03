@@ -42,7 +42,6 @@ func newAdminBooksTestClientWithMockSources(
 		books.Clients{
 			UniCat:           mocks.NewMockEmptyUniCatClient(),
 			WebFetch:         nil,
-			HTMLConvert:      nil,
 			Hardcover:        mocks.NewMockHardcoverClient(),
 			ObjectStore:      objectstore.NewFake(),
 			PublicAPIBaseURL: "",
@@ -70,7 +69,6 @@ func newAdminBooksTestClientWithTwoSources(
 		books.Clients{
 			UniCat:           mocks.NewMockUniCatClient(),
 			WebFetch:         nil,
-			HTMLConvert:      nil,
 			Hardcover:        mocks.NewMockHardcoverClient(),
 			ObjectStore:      objectstore.NewFake(),
 			PublicAPIBaseURL: "",

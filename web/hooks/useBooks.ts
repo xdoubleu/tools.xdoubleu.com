@@ -83,12 +83,6 @@ export function useExternalBook(provider: string | null, providerId: string | nu
   )
 }
 
-// useAddBookByURL ingests a pasted URL, readability-extracted into an article.
-export function useAddBookByURL() {
-  const client = useMemo(() => createServiceClient(LibraryService), [])
-  return useCallback((url: string) => client.addBookByURL({ url }), [client])
-}
-
 export function useCreateBook() {
   const client = createServiceClient(LibraryService)
   return (req: CreateBookInput) => client.createBook(req)
