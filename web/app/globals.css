@@ -134,8 +134,7 @@ button:not([disabled]) {
   overflow-wrap: anywhere;
 }
 
-.prose img,
-.prose pre {
+.prose * {
   max-width: 100%;
 }
 

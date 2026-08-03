@@ -70,7 +70,7 @@ function DialogContent({ children, className = '', side = 'center' }: DialogCont
       <RadixDialog.Content
         onInteractOutside={side === 'right' ? (e) => e.preventDefault() : undefined}
         className={cn(
-          'fixed z-50 overflow-y-auto',
+          'fixed z-50 overflow-x-hidden overflow-y-auto',
           'border border-border bg-card shadow-elevated',
           'focus:outline-none',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',

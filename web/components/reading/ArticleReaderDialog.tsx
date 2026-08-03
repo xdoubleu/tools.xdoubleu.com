@@ -57,7 +57,7 @@ export default function ArticleReaderDialog({
           </DialogClose>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-w-0 flex-1 overflow-y-auto">
           {error && <p className="text-sm text-danger p-4">Failed to load article.</p>}
 
           {!error && !data && <p className="text-sm text-muted p-4">Loading…</p>}
