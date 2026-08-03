@@ -64,8 +64,8 @@ func TestGetBookCover_CacheHit(t *testing.T) {
 	assert.Contains(t, result.URL, coverKey)
 }
 
-// TestGetBookCover_NotCached verifies that a book with no cached R2 cover
-// returns ErrCoverNotFound — GetBookCover never live-fetches.
+// TestGetBookCover_NotCached verifies that a book with no CoverURL and no
+// cached R2 cover returns ErrCoverNotFound.
 func TestGetBookCover_NotCached(t *testing.T) {
 	ub := addTestBook(t, "CoverNotCachedBook")
 	app, _ := buildCoverApp(t)
@@ -73,6 +73,48 @@ func TestGetBookCover_NotCached(t *testing.T) {
 	_, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, services.ErrCoverNotFound)
+}
+
+// TestGetBookCover_SelfHealsOnMiss verifies that when a book has a CoverURL
+// but the R2 object is missing (e.g. the eager fetch at write time
+// transiently failed), GetBookCover retries the fetch instead of permanently
+// 404ing.
+func TestGetBookCover_SelfHealsOnMiss(t *testing.T) {
+	imgServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write([]byte("self-healed-cover-bytes"))
+		},
+	))
+	defer imgServer.Close()
+
+	app, store := buildCoverApp(t)
+	ub, err := app.Services.Books.AddToLibrary(
+		context.Background(),
+		userID,
+		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
+			Source:   "manual",
+			Title:    "SelfHealCoverBook",
+			Authors:  []string{"Test Author"},
+			CoverURL: imgServer.URL,
+		},
+		"to-read",
+		[]string{},
+	)
+	require.NoError(t, err)
+
+	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
+	require.NoError(t, store.Delete(context.Background(), coverKey))
+	_, cached := store.GetContent(coverKey)
+	require.False(t, cached, "precondition: cache should be empty after delete")
+
+	result, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
+	require.NoError(t, err)
+	assert.Contains(t, result.URL, coverKey)
+
+	data, cached := store.GetContent(coverKey)
+	require.True(t, cached, "cover should be re-cached after self-heal")
+	assert.Equal(t, "self-healed-cover-bytes", string(data))
 }
 
 // TestGetBookCover_UnknownBook verifies that a non-existent book ID returns
