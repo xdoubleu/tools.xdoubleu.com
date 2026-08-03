@@ -14,7 +14,7 @@ const APPS_MCP: McpCommand = {
   key: 'apps',
   title: 'Apps MCP',
   description:
-    "Read-only access to this app's own domain data (games, reading, recipes, meal plans, shopping list, todos), gated by your own per-app access.",
+    "Read-only access to this app's own domain data (games, books, recipes, meal plans, shopping list, todos), gated by your own per-app access.",
   command: 'claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp'
 }
 

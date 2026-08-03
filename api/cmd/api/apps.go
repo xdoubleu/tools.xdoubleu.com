@@ -9,11 +9,11 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
+	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/mealplans"
-	"tools.xdoubleu.com/apps/reading"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/apps/todos"
@@ -45,19 +45,19 @@ func NewApps(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-) (*Apps, *reading.Reading) {
+) (*Apps, *books.Books) {
 	var apps Apps = []App{}
 
 	// Migrations run sequentially in registration order: books must adopt its
 	// tables from the former backlog schema before games' final migration
 	// drops that schema, so books registers before games (this also matches
 	// the alphabetical package order used by `go test -p 1 ./...`). feeds
-	// registers immediately after reading because its own migration copies
-	// feed/item data out of reading.feeds/reading.feed_items/reading.books/
-	// reading.user_books before dropping the reading-side tables (issue
-	// #734) — those tables must still exist when feeds' migration runs.
-	readingApp := reading.New(authService, logger, cfg, db)
-	apps.addApp(readingApp)
+	// registers immediately after books because its own migration copies
+	// feed/item data out of books.feeds/books.feed_items/books.books/
+	// books.user_books before dropping the reading-era tables (issue #734)
+	// — those tables must still exist when feeds' migration runs.
+	booksApp := books.New(authService, logger, cfg, db)
+	apps.addApp(booksApp)
 	apps.addApp(feeds.New(authService, logger, cfg, db))
 	apps.addApp(games.New(authService, logger, cfg, db))
 	apps.addApp(watchparty.New(authService, logger, cfg))
@@ -67,7 +67,7 @@ func NewApps(
 	apps.addApp(shoppinglist.New(authService, logger, cfg, db))
 	apps.addApp(todos.New(authService, logger, cfg, db))
 
-	return &apps, readingApp
+	return &apps, booksApp
 }
 
 func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

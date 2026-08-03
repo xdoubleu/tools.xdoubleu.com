@@ -28,14 +28,14 @@ var appsToolNames = []string{
 	// games (5)
 	"games_get_steam", "games_get_steam_game", "games_get_steam_distribution",
 	"games_get_recently_active_games", "games_get_integrations",
-	// reading (15)
-	"reading_get_library", "reading_get_books_progress", "reading_search_library",
-	"reading_search_external", "reading_get_external_book",
-	"reading_get_reading_state",
-	"reading_list_resync_proposals", "reading_get_book_sources",
-	"reading_get_source_stats", "reading_list_books_in_exact_sources",
-	"reading_find_duplicates", "reading_get_book_file", "reading_get_kepub_status",
-	"reading_list_kobo_devices", "reading_get_kobo_device_logs",
+	// books (15)
+	"books_get_library", "books_get_books_progress", "books_search_library",
+	"books_search_external", "books_get_external_book",
+	"books_get_reading_state",
+	"books_list_resync_proposals", "books_get_book_sources",
+	"books_get_source_stats", "books_list_books_in_exact_sources",
+	"books_find_duplicates", "books_get_book_file", "books_get_kepub_status",
+	"books_list_kobo_devices", "books_get_kobo_device_logs",
 	// feeds (2)
 	"feeds_list_feeds", "feeds_list_items",
 	// recipes (3)
@@ -63,9 +63,9 @@ var appsToolNames = []string{
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsNetworkTools = map[string]bool{
-	"reading_search_external":   true,
-	"reading_get_external_book": true,
-	"reading_get_book_sources":  true,
+	"books_search_external":     true,
+	"books_get_external_book":   true,
+	"books_get_book_sources":    true,
 	"icsproxy_preview_events":   true,
 	"get_failing_pull_requests": true,
 	"get_sentry_issues":         true,
@@ -215,7 +215,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 
 	session := appsMCPSession(t, accessToken.Value)
 	tools := []string{
-		"games_get_recently_active_games", "reading_get_library",
+		"games_get_recently_active_games", "books_get_library",
 		"feeds_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
 		"shoppinglist_list_accessible_lists", "todos_list_tasks",
 		"icsproxy_list_configs", "get_job_stats", "get_usage_stats",
@@ -246,16 +246,16 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 
 	uid := uuid.NewString()
 	args := map[string]any{
-		"games_get_steam_game":      map[string]any{"game_id": 1},
-		"reading_search_library":    map[string]any{"query": "x"},
-		"reading_get_reading_state": map[string]any{"book_id": uid},
-		"reading_get_book_file": map[string]any{
+		"games_get_steam_game":    map[string]any{"game_id": 1},
+		"books_search_library":    map[string]any{"query": "x"},
+		"books_get_reading_state": map[string]any{"book_id": uid},
+		"books_get_book_file": map[string]any{
 			"book_id": uid,
 			"format":  "epub",
 		},
-		"reading_get_kepub_status":     map[string]any{"book_id": uid},
-		"reading_get_kobo_device_logs": map[string]any{"id": uid},
-		"reading_list_books_in_exact_sources": map[string]any{
+		"books_get_kepub_status":     map[string]any{"book_id": uid},
+		"books_get_kobo_device_logs": map[string]any{"id": uid},
+		"books_list_books_in_exact_sources": map[string]any{
 			"sources": []string{"unicat"},
 		},
 		"recipes_get_recipe": map[string]any{"id": uid},
@@ -308,7 +308,7 @@ func TestAppsMCPAccessGate(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, allowed.IsError, "user with games access was denied")
 
-	for _, name := range []string{"reading_get_library", "todos_list_tasks"} {
+	for _, name := range []string{"books_get_library", "todos_list_tasks"} {
 		//nolint:exhaustruct // only the tool name is required to call it
 		res, callErr := session.CallTool(ctx, &mcp.CallToolParams{Name: name})
 		assert.Containsf(t, strings.ToLower(toolMessage(res, callErr)),

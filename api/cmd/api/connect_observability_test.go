@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/reading"
-	"tools.xdoubleu.com/apps/reading/pkg/objectstore"
+	"tools.xdoubleu.com/apps/books"
+	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	"tools.xdoubleu.com/internal/mocks"
@@ -28,13 +28,13 @@ func (s *stubStorageScanRunner) RunStorageScanNow(_ context.Context) error {
 	return s.err
 }
 
-// withStorageScanRunner swaps testApp's reading app for a stub for the
+// withStorageScanRunner swaps testApp's books app for a stub for the
 // duration of the test.
 func withStorageScanRunner(t *testing.T, runner storageScanRunner) {
 	t.Helper()
-	orig := testApp.readingApp
-	testApp.readingApp = runner
-	t.Cleanup(func() { testApp.readingApp = orig })
+	orig := testApp.booksApp
+	testApp.booksApp = runner
+	t.Cleanup(func() { testApp.booksApp = orig })
 }
 
 func observabilityClient(
@@ -99,7 +99,7 @@ func TestObservabilityGetUsageStats_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	require.NoError(t, testApp.usageRepo.Flush(ctx, []models.UsageEntry{
-		{Day: time.Now(), App: "reading", Endpoint: "root", Count: 3},
+		{Day: time.Now(), App: "books", Endpoint: "root", Count: 3},
 	}))
 
 	client := observabilityClient(t)
@@ -147,17 +147,17 @@ func TestObservabilityGetStorageStats_AsAdmin(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Latest.PrefixBreakdown)
 }
 
-// TestRunStorageScanNow_Success covers Reading.RunStorageScanNow itself
+// TestRunStorageScanNow_Success covers Books.RunStorageScanNow itself
 // (the thin wrapper TriggerStorageScan's stub tests bypass): a second
-// reading.Reading instance built with a fake object store, sharing testApp's
+// books.Books instance built with a fake object store, sharing testApp's
 // already-migrated DB, so no real R2 bucket is needed.
 func TestRunStorageScanNow_Success(t *testing.T) {
-	readingWithFakeStore := reading.NewInner(
+	booksWithFakeStore := books.NewInner(
 		mocks.NewMockedAuthService(testUserID),
 		testApp.logger,
 		testApp.config,
 		testApp.db,
-		reading.Clients{
+		books.Clients{
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),
@@ -168,7 +168,7 @@ func TestRunStorageScanNow_Success(t *testing.T) {
 		},
 	)
 
-	require.NoError(t, readingWithFakeStore.RunStorageScanNow(context.Background()))
+	require.NoError(t, booksWithFakeStore.RunStorageScanNow(context.Background()))
 }
 
 func TestObservabilityTriggerStorageScan_NonAdmin(t *testing.T) {

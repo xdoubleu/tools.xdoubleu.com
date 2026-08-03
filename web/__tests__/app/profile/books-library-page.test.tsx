@@ -4,7 +4,7 @@ import { create } from '@bufbuild/protobuf'
 import {
   GetSharedLibraryResponseSchema,
   type GetSharedLibraryResponse
-} from '@/lib/gen/reading/v1/public_pb'
+} from '@/lib/gen/books/v1/public_pb'
 
 jest.mock('next/link', () => {
   return ({ children, href }: { children: React.ReactNode; href: string }) => (
@@ -33,7 +33,7 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-import ProfileBooksLibraryPage, { metadata } from '@/app/profile/reading/[token]/library/page'
+import ProfileBooksLibraryPage, { metadata } from '@/app/profile/books/[token]/library/page'
 
 describe('ProfileBooksLibraryPage', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -50,7 +50,7 @@ describe('ProfileBooksLibraryPage', () => {
     render(await ProfileBooksLibraryPage({ params: Promise.resolve({ token: 'tok-1' }) }))
     expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute(
       'href',
-      '/profile/reading/tok-1'
+      '/profile/books/tok-1'
     )
   })
 
@@ -61,7 +61,7 @@ describe('ProfileBooksLibraryPage', () => {
     render(await ProfileBooksLibraryPage({ params: Promise.resolve({ token: 'tok-1' }) }))
     expect(screen.getByRole('link', { name: "Alice's books" })).toHaveAttribute(
       'href',
-      '/profile/reading/tok-1'
+      '/profile/books/tok-1'
     )
   })
 

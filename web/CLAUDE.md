@@ -6,9 +6,9 @@ server.js`). Run all `npm` commands from this directory.
 
 ## Layout
 
-- `app/` — one route folder per app/domain, matching the API's service boundaries (`games/`, `reading/`, `recipes/`, `mealplans/`, `shoppinglist/`, `todos/`, `icsproxy/`, `watchparty/`, plus `auth/`, `contacts/`, `monitoring/`, `profile/`, `settings/`, `sharing/`, `user-management/`, `oauth/consent/`).
+- `app/` — one route folder per app/domain, matching the API's service boundaries (`games/`, `books/`, `recipes/`, `mealplans/`, `shoppinglist/`, `todos/`, `icsproxy/`, `watchparty/`, plus `auth/`, `contacts/`, `monitoring/`, `profile/`, `settings/`, `sharing/`, `user-management/`, `oauth/consent/`).
 - `components/` — shared cross-app components at the root (`Navbar.tsx`, `HomeClient.tsx`, `SWRFallback.tsx`, `SWRProvider.tsx`, …) plus one subfolder per domain mirroring `app/`, and `components/ui/` for shadcn-style primitives.
-- `lib/` — `client.ts` (browser ConnectRPC transport), `server/` (RSC-only transport + fetchers), `swrKeys.ts` (SWR cache key registry), `env.ts`, `cn.ts`, `gen/` (generated ConnectRPC clients — read the `.proto` source instead), plus one subfolder per domain (`reading/`, `recipes/`, `games/`, `todos/`, `watchparty/`, `supabase/`).
+- `lib/` — `client.ts` (browser ConnectRPC transport), `server/` (RSC-only transport + fetchers), `swrKeys.ts` (SWR cache key registry), `env.ts`, `cn.ts`, `gen/` (generated ConnectRPC clients — read the `.proto` source instead), plus one subfolder per domain (`books/`, `recipes/`, `games/`, `todos/`, `watchparty/`, `supabase/`).
 - `hooks/` — one SWR data-fetching hook file per domain.
 
 ## Data Flow (RSC + SWR)
@@ -48,7 +48,7 @@ npm run generate                            # buf generate — regenerate lib/ge
 - **Tailwind v4, CSS-first theme**: no `tailwind.config.ts` anywhere — `app/globals.css` defines RGB-triple CSS variables per light/dark (`prefers-color-scheme`), exposed as utilities via `@theme inline`, plus a separate `@theme` block for shadow/radius tokens. Colors track the active scheme at runtime.
 - **Async states**: page-level loading is `<p className="text-muted">Loading…</p>`; page-level errors are `<p className="text-danger">Failed to load X.</p>`. Buttons swap their label to a `…`-suffixed present-participle string while a mutation is pending (`Saving…`, `Updating…`). Always the typographic ellipsis `…`, never `...`.
 
-## kobo-gateway Client (`lib/reading/gatewayClient.ts`)
+## kobo-gateway Client (`lib/books/gatewayClient.ts`)
 
 Client for the local kobo-gateway macOS menu-bar helper (`https://127.0.0.1:41132`, self-signed cert trusted on first launch; server implementation in `gateway/internal/kobogateway`, its own Go module — see `gateway/CLAUDE.md`). The browser makes all authenticated API calls itself and only hands the gateway a resulting sync URL; the gateway patches the USB-mounted Kobo's config file directly. `REQUIRED_GATEWAY_VERSION` is a floor for genuine protocol breaks — bump it alongside `GatewayVersion` in the Go code only then. `gatewayNeedsUpdate` also compares the gateway's `release` build stamp against the web app's own `getRelease()` (both stamped with the same `github.sha` by CI) — that comparison is what actually delivers *routine* releases (bug fixes that don't touch the protocol) to installed gateways.
 

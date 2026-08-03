@@ -2,16 +2,16 @@
 
 import { useMemo, useState } from 'react'
 import { useSharedLibrary } from '@/hooks/useProfile'
-import type { GetSharedLibraryResponse } from '@/lib/gen/reading/v1/public_pb'
-import type { LibraryResponse, UserBook } from '@/lib/gen/reading/v1/library_pb'
+import type { GetSharedLibraryResponse } from '@/lib/gen/books/v1/public_pb'
+import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import LibrarySidebar, {
   buildShelves,
   buildTags,
   type ShelfId
-} from '@/components/reading/LibrarySidebar'
+} from '@/components/books/LibrarySidebar'
 import ProfileBookCard from '@/components/profile/ProfileBookCard'
 import { Input } from '@/components/ui/input'
-import { flattenLibrary } from '@/lib/reading/bookShelves'
+import { flattenLibrary } from '@/lib/books/bookShelves'
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'all') return flattenLibrary(library)
@@ -26,7 +26,7 @@ function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
 // Read-only shared library: the same shelf/tag sidebar and book grid as the
-// owner's /reading/library, but without any editing affordances.
+// owner's /books/library, but without any editing affordances.
 export default function ProfileBooksLibrary({
   token,
   initialData

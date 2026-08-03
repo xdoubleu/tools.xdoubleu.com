@@ -1,6 +1,6 @@
 # gateway/ — kobo-gateway macOS app
 
-A menu-bar macOS helper that the reading page (`web/`) drives to configure a
+A menu-bar macOS helper that the books page (`web/`) drives to configure a
 USB-mounted Kobo e-reader. It's a **separate Go module** (`module
 tools.xdoubleu.com/gateway`, its own `go.sum`) because its menu bar needs cgo
 and the real AppKit/Xcode SDK ([`darwinkit`](https://github.com/progrium/darwinkit))
@@ -27,7 +27,7 @@ gateway/
 that actually talks to the Kobo and the browser. Setup is gateway-only: the
 browser never reads the Kobo's conf file itself, so `conf.go` is the only
 place that parses/serializes `Kobo eReader.conf` (mirrors
-`web/lib/reading/koboConf.ts`, which only keeps simple string checks).
+`web/lib/books/koboConf.ts`, which only keeps simple string checks).
 
 ## HTTP Server (`internal/kobogateway/server.go`)
 
@@ -40,7 +40,7 @@ Loopback-only HTTPS on `127.0.0.1:41132` (`DefaultPort`): `GET /status`,
 - **CORS + Chrome Private Network Access** — sets `Access-Control-Allow-Origin`/`Vary: Origin`, and on an `OPTIONS` preflight with `Access-Control-Request-Private-Network: true` also sets `Access-Control-Allow-Private-Network: true` — required because the calling page is public HTTPS reaching a private/loopback target.
 - POSTs must be `Content-Type: application/json`; `/update` re-validates Origin independently before calling `SelfUpdate`.
 
-HTTPS (not HTTP) is required because Safari blocks a secure page (the reading
+HTTPS (not HTTP) is required because Safari blocks a secure page (the books
 page is always `https://`) from fetching a plain-HTTP loopback URL — Chrome
 exempts loopback from that check, Safari doesn't.
 
@@ -125,7 +125,7 @@ PID and skip LaunchServices, leaving `NSStatusItem`/`UNUserNotificationCenter`
 unregistered after the swap — falling back to `syscall.Exec` only for a
 bundle-less dev binary.
 
-The web UI (`gatewayNeedsUpdate` in `web/lib/reading/gatewayClient.ts`)
+The web UI (`gatewayNeedsUpdate` in `web/lib/books/gatewayClient.ts`)
 decides *when* to trigger this by comparing two independent things: the
 gateway's `GatewayVersion` against a required floor (bump only on a real
 protocol break), and its `release` build stamp against the web app's own —

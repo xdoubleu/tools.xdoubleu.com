@@ -6,8 +6,8 @@ import {
   UserBookSchema,
   BookSchema,
   BookShelfSchema
-} from '@/lib/gen/reading/v1/library_pb'
-import { GetSharedLibraryResponseSchema } from '@/lib/gen/reading/v1/public_pb'
+} from '@/lib/gen/books/v1/library_pb'
+import { GetSharedLibraryResponseSchema } from '@/lib/gen/books/v1/public_pb'
 
 const mockUseSharedLibrary = jest.fn()
 const mockUseSharedBooksProgress = jest.fn()
@@ -17,7 +17,7 @@ jest.mock('@/hooks/useProfile', () => ({
   useSharedBooksProgress: () => mockUseSharedBooksProgress()
 }))
 
-jest.mock('@/components/reading/BooksProgressChart', () => () => (
+jest.mock('@/components/books/BooksProgressChart', () => () => (
   <div data-testid="books-progress-chart" />
 ))
 
@@ -90,7 +90,7 @@ describe('ProfileBooksClient', () => {
     render(<ProfileBooksClient token="tok-1" />)
 
     const link = screen.getByRole('link', { name: 'Browse full library' })
-    expect(link).toHaveAttribute('href', '/profile/reading/tok-1/library')
+    expect(link).toHaveAttribute('href', '/profile/books/tok-1/library')
 
     // The inline library (search + shelf sidebar) now lives on its own route.
     expect(screen.queryByPlaceholderText('Search books…')).not.toBeInTheDocument()

@@ -68,7 +68,7 @@ func startWebProcess(
 // the parent's own PORT (config.Config reads PORT too) must never leak to
 // the child, and RELEASE must always reach it — without it getRelease()
 // returns 'dev' in the browser and gatewayNeedsUpdate
-// (web/lib/reading/gatewayClient.ts) silently stops detecting installed
+// (web/lib/books/gatewayClient.ts) silently stops detecting installed
 // kobo-gateway updates for every user.
 func webProcessEnv(cfg config.Config) []string {
 	return []string{

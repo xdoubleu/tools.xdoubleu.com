@@ -15,7 +15,7 @@ type obsConnectHandler struct {
 	app *Application
 }
 
-// storageScanRunner is the slice of *reading.Reading TriggerStorageScan
+// storageScanRunner is the slice of *books.Books TriggerStorageScan
 // needs, narrow so tests can substitute a stub instead of depending on a
 // real R2 bucket.
 type storageScanRunner interface {
@@ -194,7 +194,7 @@ func (h *obsConnectHandler) TriggerStorageScan(
 	// Runs the R2 list-bucket scan inline (seconds, admin-only, low
 	// frequency) rather than via the async job queue, so the caller can
 	// re-fetch GetStorageStats immediately after and see live data.
-	if err := h.app.readingApp.RunStorageScanNow(ctx); err != nil {
+	if err := h.app.booksApp.RunStorageScanNow(ctx); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 

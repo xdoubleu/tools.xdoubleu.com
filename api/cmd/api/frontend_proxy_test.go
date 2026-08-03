@@ -82,7 +82,7 @@ func TestFrontendProxy_RoutesToAPIHandler(t *testing.T) {
 }
 
 func TestFrontendProxy_ProxiesEverythingElse(t *testing.T) {
-	tests := []string{"/", "/reading/123", "/release", "/games/distribution/1"}
+	tests := []string{"/", "/books/123", "/release", "/games/distribution/1"}
 
 	for _, path := range tests {
 		t.Run(path, func(t *testing.T) {

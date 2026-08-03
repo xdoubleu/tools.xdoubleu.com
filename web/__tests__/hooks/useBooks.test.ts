@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 // Return a stable fake checksum so tests don't depend on real crypto.subtle.
-jest.mock('@/lib/reading/checksum', () => ({
+jest.mock('@/lib/books/checksum', () => ({
   sha256Hex: jest.fn().mockResolvedValue('aabbccdd')
 }))
 jest.mock('@/lib/client', () => ({
@@ -35,15 +35,15 @@ jest.mock('@/lib/client', () => ({
     cancelResync: jest.fn().mockResolvedValue({})
   }))
 }))
-jest.mock('@/lib/gen/reading/v1/library_pb', () => ({
+jest.mock('@/lib/gen/books/v1/library_pb', () => ({
   LibraryService: {},
   CreateBookRequestSchema: {},
   UpdateBookStatusRequestSchema: {},
   UpdateProgressRequestSchema: {}
 }))
-jest.mock('@/lib/gen/reading/v1/files_pb', () => ({ BookFilesService: {} }))
-jest.mock('@/lib/gen/reading/v1/kobo_pb', () => ({ KoboService: {} }))
-jest.mock('@/lib/gen/reading/v1/catalog_pb', () => ({ CatalogService: {} }))
+jest.mock('@/lib/gen/books/v1/files_pb', () => ({ BookFilesService: {} }))
+jest.mock('@/lib/gen/books/v1/kobo_pb', () => ({ KoboService: {} }))
+jest.mock('@/lib/gen/books/v1/catalog_pb', () => ({ CatalogService: {} }))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'https://api.test' }))
 
 import useSWR from 'swr'
@@ -90,9 +90,9 @@ beforeEach(() => {
 })
 
 describe('useLibrary', () => {
-  it('uses /reading as key', () => {
+  it('uses /books as key', () => {
     renderHook(() => useLibrary())
-    expect(mockUseSWR).toHaveBeenCalledWith('/reading', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/books', expect.any(Function))
   })
 })
 
@@ -100,7 +100,7 @@ describe('useBooksProgress', () => {
   it('uses correct key with date range', () => {
     renderHook(() => useBooksProgress('2024-01-01', '2024-12-31'))
     const [key] = mockUseSWR.mock.calls[0]
-    expect(key).toEqual(['/reading/progress', '2024-01-01', '2024-12-31'])
+    expect(key).toEqual(['/books/progress', '2024-01-01', '2024-12-31'])
   })
 
   it('passes null as key when no dates provided', () => {
@@ -212,9 +212,9 @@ describe('useCancelResync', () => {
 })
 
 describe('useResyncProposals', () => {
-  it('uses /reading/resync-proposals as SWR key', () => {
+  it('uses /books/resync-proposals as SWR key', () => {
     renderHook(() => useResyncProposals())
-    expect(mockUseSWR).toHaveBeenCalledWith('/reading/resync-proposals', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/books/resync-proposals', expect.any(Function))
   })
 
   it('fetcher calls client.listResyncProposals', async () => {
@@ -253,7 +253,7 @@ describe('useBookSources', () => {
   it('uses the bookSources key when enabled', () => {
     renderHook(() => useBookSources('book-1', true))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/reading/sources', 'book-1', '', ''],
+      ['/books/sources', 'book-1', '', ''],
       expect.any(Function)
     )
   })
@@ -261,7 +261,7 @@ describe('useBookSources', () => {
   it('includes the override terms in the key', () => {
     renderHook(() => useBookSources('book-1', true, { title: 'T', author: 'A' }))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/reading/sources', 'book-1', 'T', 'A'],
+      ['/books/sources', 'book-1', 'T', 'A'],
       expect.any(Function)
     )
   })
@@ -307,7 +307,7 @@ describe('useExternalBook', () => {
   it('uses the externalBook key when both are provided', () => {
     renderHook(() => useExternalBook('hardcover', 'OL1W'))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/reading/external', 'hardcover', 'OL1W'],
+      ['/books/external', 'hardcover', 'OL1W'],
       expect.any(Function)
     )
   })
@@ -366,7 +366,7 @@ describe('useSourceStats', () => {
     // @ts-expect-error -- mock client returns partial shape
     mockCreateServiceClient.mockReturnValueOnce({ getSourceStats: mockGet })
     renderHook(() => useSourceStats())
-    expect(mockUseSWR).toHaveBeenCalledWith('/reading/source-stats', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/books/source-stats', expect.any(Function))
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockGet).toHaveBeenCalledWith({})
@@ -564,9 +564,9 @@ describe('useRegisterKoboDevice', () => {
 })
 
 describe('useListKoboDevices', () => {
-  it('uses /reading/kobo/devices as SWR key', () => {
+  it('uses /books/kobo/devices as SWR key', () => {
     renderHook(() => useListKoboDevices())
-    expect(mockUseSWR).toHaveBeenCalledWith('/reading/kobo/devices', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/books/kobo/devices', expect.any(Function))
   })
 
   it('fetcher calls client.listKoboDevices', async () => {
@@ -605,7 +605,7 @@ describe('useKEPUBStatus', () => {
   it('uses composite key when bookId is provided', () => {
     renderHook(() => useKEPUBStatus('book-abc'))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/reading/kepub-status', 'book-abc'],
+      ['/books/kepub-status', 'book-abc'],
       expect.any(Function),
       expect.any(Object)
     )
@@ -636,7 +636,7 @@ describe('useGetBookFile', () => {
   it('uses composite key when both bookId and format are provided', () => {
     renderHook(() => useGetBookFile('book-abc', 'pdf'))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/reading/file', 'book-abc', 'pdf'],
+      ['/books/file', 'book-abc', 'pdf'],
       expect.any(Function)
     )
   })
@@ -670,7 +670,7 @@ describe('useGetBookContent', () => {
 
   it('uses the book content key when bookId is provided', () => {
     renderHook(() => useGetBookContent('book-abc'))
-    expect(mockUseSWR).toHaveBeenCalledWith(['/reading/content', 'book-abc'], expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(['/books/content', 'book-abc'], expect.any(Function))
   })
 
   it('fetcher calls client.getBookContent with bookId', async () => {

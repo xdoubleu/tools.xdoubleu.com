@@ -22,7 +22,7 @@ make proto/generate                # regenerate api/gen/ from proto/ (pair with 
 make lint/proto                    # buf lint — also part of make lint / lint/fix
 make scaffold NAME=x [DB=true] [JOBS=true]   # generate a new app skeleton
 
-go test ./apps/reading/... -run TestFunctionName   # single test
+go test ./apps/books/... -run TestFunctionName   # single test
 ```
 
 ## Architecture
@@ -31,10 +31,9 @@ All apps are registered in `cmd/api/apps.go` and share one HTTP mux routed by
 URL prefix. `main.go` wraps the shared pgx pool in `postgres.NewSpanDB` once
 (so every app's queries emit tracing spans; migrations use the raw pool
 instead) and calls `NewApps`, which registers 8 apps in a fixed order —
-`reading` before `games`, because `games`' final migration drops the
-leftover `backlog` schema only after `reading` (formerly `books`) has
-adopted its tables out of it. Apps expose ConnectRPC endpoints consumed by
-`web/`.
+`books` before `games`, because `games`' final migration drops the
+leftover `backlog` schema only after `books` has adopted its tables out of
+it. Apps expose ConnectRPC endpoints consumed by `web/`.
 
 The `App` interface (`cmd/api/apps.go`):
 
@@ -63,7 +62,7 @@ Each app lives in `apps/<name>/`:
 ```
 apps/<name>/
 ├── app.go              # struct embedding app.Base (logger/config/auth), implements App
-│                       # games/reading/todos/watchparty export Services/Repositories
+│                       # games/books/todos/watchparty export Services/Repositories
 │                       # (not private) so integration tests can seed data through
 │                       # the real service layer
 ├── routes.go           # registers the ConnectRPC handler, wrapped in the app's own
@@ -103,7 +102,7 @@ apps/<name>/
 - **`oauthconn`** — shared plumbing for the admin-configurable OAuth connections (GitHub/Sentry/DigitalOcean): token refresh via `oauth2.Config.TokenSource`, single-use CSRF `StateStore` for the browser redirect leg. Tokens are stored encrypted in `global.oauth_connections`; a `NULL` `config` column means "connected but not yet configured" — a distinct degraded state each provider's fetch path checks.
 - **`observability`** — `TrackedJob` (times/records every job run in `global.job_runs`, recovers panics, logs failures at Error so they reach Sentry), `UsageRecorder` (per-endpoint request counts, flushed to `global.usage_daily`), and `jobs.IssueNotifierJob` (cross-app, registered directly on `main.go`'s own job queue since it isn't scoped to one app — polls Sentry/DO every 5 minutes and emails an admin the first time an issue/failed deploy is seen, deduped via `global.notified_issues`).
 - **`progressws`** — WebSocket service broadcasting background-job progress ("X of N") keyed by job-ID topics.
-- **`progresshistory`** — generic cumulative-progress storage with carry-forward reads (games/reading progress graphs).
+- **`progresshistory`** — generic cumulative-progress storage with carry-forward reads (games/books progress graphs).
 - **`repositories`** — shared DB repos over the `global` schema (users, contacts, the observability tables, `oauth_connections`, `profile_shares`).
 - **`mcptools`** — `RequireAppAccess` (per-app MCP gate, mirrors `auth.AppAccess`), `AddReadTool`, `Unwrap`/`Result`.
 - **`testhelper`** — `ConnectTestDB` for integration tests, `NewTestConfig` (auth cache TTL 0), `BuildMux` for a test handler from any `Routes`/`GetName` app.
@@ -111,7 +110,7 @@ apps/<name>/
 ### Apps
 
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress/distribution, favourites, per-user Steam settings. Background sync job + WebSocket live updates. Schema `games` (adopted from the former `backlog` schema).
-- **reading** (formerly **books** — package `apps/reading`, schema `reading`, proto `reading.v1`) — books/papers/articles/RSS/email-newsletter library and Kobo e-reader companion. Pure-Go PDF/HTML→EPUB conversion (no Calibre), hourly RSS polling, dual metadata enrichment (UniCat + Hardcover). Serves the raw Kobo sync protocol. Background jobs + WebSocket live updates.
+- **books** — book library and Kobo e-reader companion. Pure-Go PDF/HTML→EPUB conversion (no Calibre), dual metadata enrichment (UniCat + Hardcover). Serves the raw Kobo sync protocol. Background jobs + WebSocket live updates. Schema `books`.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no jobs, own custom domain (`watchparty.xdoubleu.com`).
 - **icsproxy** — ICS calendar feed filtering/proxying. Schema `icsproxy`.
 - **recipes** — recipe management: fraction parsing, iCal export, whole-recipe-book sharing. Schema `recipes`.
@@ -142,7 +141,7 @@ Supabase access token), Supabase is the authorization server, and the web
 
 ### Public Profile Sharing
 
-`reading.v1.PublicLibraryService` and `games.v1.PublicGamesService` (each
+`books.v1.PublicLibraryService` and `games.v1.PublicGamesService` (each
 app's `connect_public.go`) are registered **without** any auth middleware —
 every request carries an opaque share token (`global.profile_shares`, keyed
 by `(user_id, app)`) that resolves to the owning user. Public handlers must

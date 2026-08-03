@@ -1,8 +1,8 @@
-import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
-import BookCover from '@/components/reading/BookCover'
-import BookProgressBar from '@/components/reading/BookProgressBar'
+import type { UserBook } from '@/lib/gen/books/v1/library_pb'
+import BookCover from '@/components/books/BookCover'
+import BookProgressBar from '@/components/books/BookProgressBar'
 import { Card } from '@/components/ui/card'
-import { statusLabel, displayTags } from '@/lib/reading/bookShelves'
+import { statusLabel, displayTags } from '@/lib/books/bookShelves'
 
 // Read-only book card: no link (book detail pages are owner-only), no
 // favourite toggle or status editing.

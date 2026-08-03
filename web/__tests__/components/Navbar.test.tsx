@@ -73,7 +73,7 @@ describe('Navbar', () => {
       error: undefined
     })
     mockUseSignOut.mockReturnValue(jest.fn())
-    mockUsePathname.mockReturnValue('/profile/reading/some-token')
+    mockUsePathname.mockReturnValue('/profile/books/some-token')
 
     const { container } = render(<Navbar />)
     expect(container.firstChild).toBeNull()
