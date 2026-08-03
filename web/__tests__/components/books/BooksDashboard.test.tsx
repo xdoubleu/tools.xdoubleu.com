@@ -38,12 +38,6 @@ jest.mock('@/components/profile/ProfileShareButton', () => {
   }
 })
 
-jest.mock('@/components/books/SubscribedFeedsCard', () => {
-  return function MockSubscribedFeedsCard() {
-    return <div data-testid="subscribed-feeds-card" />
-  }
-})
-
 jest.mock('@/components/books/AddToLibraryDialog', () => {
   return function MockAddToLibraryDialog() {
     return <div data-testid="add-to-library-dialog" />
