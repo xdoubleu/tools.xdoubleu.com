@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 const ROUTES = [
   'games',
-  'reading',
+  'books',
   'feeds',
   'todos',
   'recipes/list',

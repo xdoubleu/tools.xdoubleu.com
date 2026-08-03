@@ -52,7 +52,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Books')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
@@ -65,7 +65,7 @@ describe('HomeClient', () => {
     })
 
     expect(screen.getByRole('link', { name: /Games/ })).toHaveAttribute('href', '/games')
-    expect(screen.getByRole('link', { name: /Reading/ })).toHaveAttribute('href', '/reading')
+    expect(screen.getByRole('link', { name: /Books/ })).toHaveAttribute('href', '/books')
     expect(screen.getByRole('link', { name: /Watch Party/ })).toHaveAttribute('href', '/watchparty')
     expect(screen.getByRole('link', { name: /ICS Proxy/ })).toHaveAttribute('href', '/icsproxy')
     expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/list')
@@ -278,7 +278,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, {
         role: 'user',
-        appAccess: ['games', 'reading', 'feeds', 'todos']
+        appAccess: ['games', 'books', 'feeds', 'todos']
       }),
       isLoading: false,
       error: undefined
@@ -290,7 +290,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Books')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
@@ -305,12 +305,12 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
-  it('hides Feeds for a non-admin user with only reading access', async () => {
+  it('hides Feeds for a non-admin user with only books access', async () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, {
         role: 'user',
-        appAccess: ['reading']
+        appAccess: ['books']
       }),
       isLoading: false,
       error: undefined
@@ -319,7 +319,7 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
-      expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Books')).toBeInTheDocument()
     })
 
     expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
@@ -344,7 +344,7 @@ describe('HomeClient', () => {
       expect(screen.getByText('Feeds')).toBeInTheDocument()
     })
 
-    expect(screen.queryByText('Reading')).not.toBeInTheDocument()
+    expect(screen.queryByText('Books')).not.toBeInTheDocument()
   })
 
   it('renders all apps for admin user including admin-only and always-visible', async () => {
@@ -364,7 +364,7 @@ describe('HomeClient', () => {
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Reading')).toBeInTheDocument()
+      expect(screen.getByText('Books')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
       expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
@@ -393,7 +393,7 @@ describe('HomeClient', () => {
     })
 
     expect(screen.queryByText('Games')).not.toBeInTheDocument()
-    expect(screen.queryByText('Reading')).not.toBeInTheDocument()
+    expect(screen.queryByText('Books')).not.toBeInTheDocument()
     expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
     expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
@@ -404,8 +404,8 @@ describe('HomeClient', () => {
 
   describe('safeNext (#446 next-redirect validation)', () => {
     it('returns a same-origin next param unchanged', () => {
-      window.history.pushState({}, '', '/?next=%2Freading')
-      expect(safeNext()).toBe('/reading')
+      window.history.pushState({}, '', '/?next=%2Fbooks')
+      expect(safeNext()).toBe('/books')
     })
 
     it('rejects a protocol-relative //evil.com next param', () => {

@@ -1,0 +1,77 @@
+import React from 'react'
+import { render, screen } from '@testing-library/react'
+
+jest.mock('next/link', () => {
+  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  )
+})
+
+jest.mock('@/components/books/BooksSection', () => () => <div data-testid="books-section" />)
+
+jest.mock('@/lib/server/client', () => ({
+  createServerClient: jest.fn(async () => ({}))
+}))
+
+jest.mock('@/lib/server/fetchers', () => ({
+  fetchOrNull: jest.fn(async () => null)
+}))
+
+jest.mock('@/components/SWRFallback', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
+}))
+
+jest.mock('@/hooks/useAuth', () => ({
+  useCurrentUser: jest.fn()
+}))
+
+import { useCurrentUser } from '@/hooks/useAuth'
+import BacklogBooksLibraryPage from '@/app/books/library/page'
+
+const mockUseCurrentUser = jest.mocked(useCurrentUser)
+
+describe('BacklogBooksLibraryPage', () => {
+  beforeEach(() => {
+    // @ts-expect-error -- partial mock
+    mockUseCurrentUser.mockReturnValue({ data: { role: 'user' }, isLoading: false })
+  })
+
+  it('renders the Library heading', async () => {
+    render(await BacklogBooksLibraryPage())
+    expect(screen.getByRole('heading', { name: 'Library' })).toBeInTheDocument()
+  })
+
+  it('renders a breadcrumb link back to /books', async () => {
+    render(await BacklogBooksLibraryPage())
+    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books')
+  })
+
+  it('renders the BooksSection', async () => {
+    render(await BacklogBooksLibraryPage())
+    expect(screen.getByTestId('books-section')).toBeInTheDocument()
+  })
+
+  it('renders a settings link', async () => {
+    render(await BacklogBooksLibraryPage())
+    expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute(
+      'href',
+      '/books/settings'
+    )
+  })
+
+  it('shows an Admin tools link for admin users', async () => {
+    // @ts-expect-error -- partial mock
+    mockUseCurrentUser.mockReturnValue({ data: { role: 'admin' }, isLoading: false })
+    render(await BacklogBooksLibraryPage())
+    expect(screen.getByRole('link', { name: 'Admin tools' })).toHaveAttribute(
+      'href',
+      '/books/admin'
+    )
+  })
+
+  it('hides the Admin tools link for non-admin users', async () => {
+    render(await BacklogBooksLibraryPage())
+    expect(screen.queryByRole('link', { name: 'Admin tools' })).not.toBeInTheDocument()
+  })
+})

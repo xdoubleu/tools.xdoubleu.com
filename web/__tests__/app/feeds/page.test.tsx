@@ -31,7 +31,7 @@ describe('FeedsPage', () => {
     expect(screen.getByTestId('feed-reader')).toBeInTheDocument()
   })
 
-  it('renders no link back to /reading', async () => {
+  it('renders no link back to /books', async () => {
     render(await FeedsPage())
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })

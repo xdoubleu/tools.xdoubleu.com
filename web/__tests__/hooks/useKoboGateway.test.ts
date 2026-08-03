@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
-jest.mock('@/lib/reading/gatewayClient', () => ({
+jest.mock('@/lib/books/gatewayClient', () => ({
   probeGateway: jest.fn()
 }))
 

@@ -26,7 +26,7 @@ describe('FeedsHeader', () => {
     expect(screen.getByRole('heading', { name: 'Feeds' })).toBeInTheDocument()
   })
 
-  it('does not link back to /reading', () => {
+  it('does not link back to /books', () => {
     render(<FeedsHeader />)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })

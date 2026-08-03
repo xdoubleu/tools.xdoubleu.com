@@ -6,8 +6,8 @@ import {
   UserBookSchema,
   BookSchema,
   BookShelfSchema
-} from '@/lib/gen/reading/v1/library_pb'
-import { GetSharedLibraryResponseSchema } from '@/lib/gen/reading/v1/public_pb'
+} from '@/lib/gen/books/v1/library_pb'
+import { GetSharedLibraryResponseSchema } from '@/lib/gen/books/v1/public_pb'
 
 const mockUseSharedLibrary = jest.fn()
 

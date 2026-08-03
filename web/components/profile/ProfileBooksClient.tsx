@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { useSharedLibrary, useSharedBooksProgress } from '@/hooks/useProfile'
-import type { GetSharedLibraryResponse } from '@/lib/gen/reading/v1/public_pb'
+import type { GetSharedLibraryResponse } from '@/lib/gen/books/v1/public_pb'
 import ProfileBookCard from '@/components/profile/ProfileBookCard'
-import BooksDashboardView from '@/components/reading/BooksDashboardView'
+import BooksDashboardView from '@/components/books/BooksDashboardView'
 import { Button } from '@/components/ui/button'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { formatDateTime } from '@/lib/dates'
@@ -55,7 +55,7 @@ export default function ProfileBooksClient({
             <span className="mr-auto" />
           )}
           <Button asChild variant="secondary">
-            <Link href={`/profile/reading/${token}/library`}>Browse full library</Link>
+            <Link href={`/profile/books/${token}/library`}>Browse full library</Link>
           </Button>
         </>
       }

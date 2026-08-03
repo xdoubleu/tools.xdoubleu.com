@@ -71,7 +71,7 @@ func NewServer(cfg Config, updater UpdateRunner) *Server {
 
 // SetNotifier installs fn to surface self-update lifecycle events as
 // menu-bar notifications (see cmd/kobo-gateway's notify var) — otherwise a
-// user watching the reading settings page only sees the menu-bar icon
+// user watching the books settings page only sees the menu-bar icon
 // vanish during the restart with no indication whether that's expected or a
 // crash (#456). A nil fn is ignored, leaving the no-op default from
 // NewServer in place.

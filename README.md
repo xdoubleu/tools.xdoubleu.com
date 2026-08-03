@@ -9,7 +9,7 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 ## Tools
 
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress and distribution, favourite games, with background sync jobs and WebSocket live updates.
-- **reading** (formerly **books**) — Reading library and e-reader companion for books, papers, web articles, and RSS posts. Each item carries a fixed category (`book`/`paper`/`article`/`rss`). Books get external metadata sync (UniCat, Hardcover) and EPUB/PDF uploads; papers and articles are pasted URLs readability-extracted into EPUBs; RSS subscriptions are polled hourly and new posts land in the library automatically, with a per-feed toggle that auto-syncs every new post to a Kobo. Everything with a stored file converts to KEPUB and syncs to Kobo devices per-item. Devices sync against `/reading/kobo/<token>/…`; devices set up under an older prefix (`/books/kobo/…` or `/backlog/kobo/…`) must re-run the setup flow. Setup is entirely driven by **kobo-gateway** (`gateway/`), a downloadable macOS menu-bar app the reading page drives over a loopback-only HTTP API — built on a macOS CI runner (its menu bar needs cgo + AppKit) and served as a `.dmg` at `/downloads/kobo-gateway.dmg`, so gateway code changes rebuild the *web* image too (see the `gateway` path filter in `main.yml`).
+- **books** — Book library and e-reader companion. External metadata sync (UniCat, Hardcover) and EPUB/PDF uploads, converted to KEPUB and synced to Kobo devices per-item. Devices sync against `/books/kobo/<token>/…`; devices set up under an older prefix (`/reading/kobo/…` or `/backlog/kobo/…`) must re-run the setup flow. Setup is entirely driven by **kobo-gateway** (`gateway/`), a downloadable macOS menu-bar app the books page drives over a loopback-only HTTP API — built on a macOS CI runner (its menu bar needs cgo + AppKit) and served as a `.dmg` at `/downloads/kobo-gateway.dmg`, so gateway code changes rebuild the *web* image too (see the `gateway` path filter in `main.yml`).
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
@@ -107,11 +107,11 @@ Every app's own **read-only** data — plus the admin observability signals — 
 exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
 server at `/apps/mcp`, so production domain data and system health can be
 pulled in as read-only context for testing/verifying changes with no mutation
-risk. Every tool wraps an existing **read** RPC of an app (games, reading,
+risk. Every tool wraps an existing **read** RPC of an app (games, books,
 recipes, mealplans, shoppinglist, todos, icsproxy) or an `ObservabilityService`
 read method — no write RPC is reachable, so the server is read-only by
 construction. App tools are named `<app>_<rpc>` (e.g. `games_get_steam`,
-`reading_search_library`, `todos_list_tasks`); the 8 observability tools are
+`books_search_library`, `todos_list_tasks`); the 8 observability tools are
 unprefixed (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_sentry_issues`,
 `get_deploy_status`, `get_deploy_logs`).
@@ -217,7 +217,7 @@ not a new provider) — one-time setup:
 
 1. Add a **receiving** domain (e.g. `mail.tools.xdoubleu.com`) in the Resend dashboard —
    separate from the existing *sending* domain, with its own DNS MX/TXT records.
-2. Register an inbound webhook endpoint (`https://tools.xdoubleu.com/api/reading/email/inbound`)
+2. Register an inbound webhook endpoint (`https://tools.xdoubleu.com/api/feeds/email/inbound`)
    subscribed to the `email.received` event; copy its signing secret into
    `EMAIL_INBOUND_SECRET`.
 3. Set `EMAIL_INBOUND_DOMAIN` to the receiving domain from step 1 (also `SECRET`
