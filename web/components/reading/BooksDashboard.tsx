@@ -10,7 +10,6 @@ import BookSearchBar from '@/components/reading/BookSearchBar'
 import BookProgressBar from '@/components/reading/BookProgressBar'
 import BooksDashboardView from '@/components/reading/BooksDashboardView'
 import AddToLibraryDialog from '@/components/reading/AddToLibraryDialog'
-import SubscribedFeedsCard from '@/components/reading/SubscribedFeedsCard'
 import ProfileShareButton from '@/components/profile/ProfileShareButton'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
@@ -76,7 +75,6 @@ export default function BooksDashboard() {
         chart={chart}
         allTimeChartData={allTimeChartData}
         renderReadingCard={(ub) => <ReadingBookCard userBook={ub} />}
-        feedsSlot={<SubscribedFeedsCard />}
         actions={
           <>
             <div className="mr-auto w-full max-w-md">

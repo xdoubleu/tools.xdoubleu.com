@@ -15,22 +15,20 @@ import type { DashboardChartState } from '@/hooks/useDashboardChartState'
 /**
  * Presentational books dashboard shared by the private (`BooksDashboard`) and
  * public (`ProfileBooksClient`) wrappers so their cards/charts can't drift.
- * The wrappers supply data, the reading-card renderer, an optional feeds slot,
- * and owner actions; the public one passes no mutating controls.
+ * The wrappers supply data, the reading-card renderer, and owner actions; the
+ * public one passes no mutating controls.
  */
 export default function BooksDashboardView({
   library,
   chart,
   allTimeChartData,
   renderReadingCard,
-  feedsSlot,
   actions
 }: {
   library: LibraryResponse
   chart: DashboardChartState<'ytd' | 'all'>
   allTimeChartData: { label: string; value: number }[]
   renderReadingCard: (ub: UserBook) => ReactNode
-  feedsSlot?: ReactNode
   actions: ReactNode
 }) {
   const { view, setView, start, setStart, end, setEnd } = chart
@@ -65,7 +63,6 @@ export default function BooksDashboardView({
               </div>
             )}
           </div>
-          {feedsSlot && <div className="shrink-0 lg:max-h-56 lg:overflow-y-auto">{feedsSlot}</div>}
         </div>
 
         <div className="flex min-h-0 flex-col">

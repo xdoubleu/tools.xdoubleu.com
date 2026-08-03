@@ -54,15 +54,9 @@ describe('BooksDashboardView', () => {
     expect(screen.getByText('Read this year')).toBeInTheDocument()
   })
 
-  it('renders the supplied reading card and feeds slot', () => {
-    renderView({ feedsSlot: <div data-testid="feeds" /> })
-    expect(screen.getByText('card-ub-1')).toBeInTheDocument()
-    expect(screen.getByTestId('feeds')).toBeInTheDocument()
-  })
-
-  it('omits the feeds region when no slot is supplied', () => {
+  it('renders the supplied reading card', () => {
     renderView()
-    expect(screen.queryByTestId('feeds')).not.toBeInTheDocument()
+    expect(screen.getByText('card-ub-1')).toBeInTheDocument()
   })
 
   it('requests a view change when the All time tab is clicked', () => {
