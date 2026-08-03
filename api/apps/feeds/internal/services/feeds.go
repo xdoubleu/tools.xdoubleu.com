@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -200,7 +201,7 @@ func (s *FeedService) IngestEmail(
 	item := models.Item{
 		FeedID:      feed.ID,
 		GUID:        guid,
-		Title:       subject,
+		Title:       titleOrDefault(subject, "Email newsletter"),
 		SourceURL:   guid,
 		ContentHTML: htmlBody,
 		PublishedAt: time.Now(),
@@ -466,9 +467,7 @@ func (s *FeedService) buildItem(
 		// Last resort: the RSS description as the item body.
 		html = item.Description
 	}
-	if title == "" {
-		title = canonical
-	}
+	title = titleOrDefault(title, canonical)
 
 	var publishedAt time.Time
 	if item.PublishedParsed != nil {
@@ -515,10 +514,19 @@ func (s *FeedService) fetchLinkedPageHTML(
 		return ""
 	}
 
-	if *title == "" {
+	if strings.TrimSpace(*title) == "" {
 		*title = art.Title
 	}
 	return art.HTML
+}
+
+// titleOrDefault trims title and returns fallback if it is empty or
+// whitespace-only.
+func titleOrDefault(title, fallback string) string {
+	if t := strings.TrimSpace(title); t != "" {
+		return t
+	}
+	return fallback
 }
 
 func (s *FeedService) markSeenError(

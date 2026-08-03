@@ -174,6 +174,27 @@ func TestEmailInbound_ValidSignature_IngestsItem(t *testing.T) {
 	assert.Contains(t, item.ContentHtml, "Fresh newsletter content")
 }
 
+// TestEmailInbound_BlankSubject_DefaultsTitle proves a whitespace-only
+// subject doesn't land as a blank item title (issue #763) — it falls back to
+// the same default CreateEmail uses for a blank feed title.
+func TestEmailInbound_BlankSubject_DefaultsTitle(t *testing.T) {
+	mux := getRoutes()
+	feedID, token, client := createEmailFeedFor(t, mux)
+	newResendReceivingStub(t)
+
+	to := token + "@mail.example.com"
+	body := inboundPayload(to, "   ", "email-blank-subject")
+	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-blank", body)
+
+	rec := postWebhook(mux, body, headers)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	sourceURL := "mailto:" + feedID + "/" + messageIDFor("email-blank-subject")
+	item := itemBySourceURL(t, client, sourceURL)
+	require.NotNil(t, item)
+	assert.Equal(t, "Email newsletter", item.Title)
+}
+
 func TestEmailInbound_InvalidSignature_Rejected(t *testing.T) {
 	mux := getRoutes()
 	_, token, client := createEmailFeedFor(t, mux)
