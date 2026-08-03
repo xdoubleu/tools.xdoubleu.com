@@ -13,6 +13,8 @@ service ObservabilityService {
   rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
       returns (GetFailingPullRequestsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
+  rpc ResolveSentryIssue(ResolveSentryIssueRequest)
+      returns (ResolveSentryIssueResponse);
   rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
   // Server-streaming: each component's log is sent as soon as it resolves,
   // rather than one response after every component finishes, so the first
@@ -165,6 +167,12 @@ message GetSentryIssuesResponse {
   bool configured = 2;
   int32 unresolved_count = 3;
 }
+
+message ResolveSentryIssueRequest {
+  string issue_id = 1;
+}
+
+message ResolveSentryIssueResponse {}
 
 message GetDeployStatusRequest {}
 

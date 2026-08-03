@@ -76,6 +76,17 @@ export function useSentryIssues() {
   )
 }
 
+export function useResolveSentryIssue() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    async (issueId: string) => {
+      await client.resolveSentryIssue({ issueId })
+      await mutate(swrKeys.monitoringSentryIssues)
+    },
+    [client]
+  )
+}
+
 export function useDeployStatus() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetDeployStatusResponse, Error>(swrKeys.monitoringDeployStatus, () =>

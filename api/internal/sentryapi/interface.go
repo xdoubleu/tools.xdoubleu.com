@@ -16,6 +16,9 @@ type Client interface {
 	// ListUnresolvedIssues returns the unresolved issues of the configured
 	// project. Returns ErrNotConfigured when org/project/token is unset.
 	ListUnresolvedIssues(ctx context.Context) ([]Issue, error)
+	// ResolveIssue marks the given Sentry issue (by its Issue.ID) as
+	// resolved. Returns ErrNotConfigured when org/project/token is unset.
+	ResolveIssue(ctx context.Context, issueID string) error
 	// ListOrgs returns the organizations visible to the connected account,
 	// for the admin config picker. Returns oauthconn.ErrNotConnected when no
 	// token is set — discovery must work before an org/project is picked.

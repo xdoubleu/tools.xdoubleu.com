@@ -52,10 +52,10 @@ var appsToolNames = []string{
 	"todos_list_tasks", "todos_get_task", "todos_search_tasks", "todos_get_settings",
 	// icsproxy (3)
 	"icsproxy_list_configs", "icsproxy_get_config", "icsproxy_preview_events",
-	// observability (8, admin-gated)
+	// observability (9, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
-	"get_failing_pull_requests", "get_sentry_issues", "get_deploy_status",
-	"get_deploy_logs",
+	"get_failing_pull_requests", "get_sentry_issues", "resolve_sentry_issue",
+	"get_deploy_status", "get_deploy_logs",
 }
 
 // appsNetworkTools reach out to external providers, so the call tests skip them
@@ -268,6 +268,7 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"shoppinglist_get_meal_plan_export_items": map[string]any{"plan_id": uid},
 		"shoppinglist_get_plan_ingredient_groups": map[string]any{"plan_id": uid},
 		"shoppinglist_get_store_categories":       map[string]any{"store_id": uid},
+		"resolve_sentry_issue":                    map[string]any{"issue_id": uid},
 		"todos_get_task":                          map[string]any{"id": uid},
 		"todos_search_tasks":                      map[string]any{"query": "x"},
 		"icsproxy_get_config":                     map[string]any{"token": "x"},

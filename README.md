@@ -106,15 +106,17 @@ DO ingress used to provide.
 Every app's own **read-only** data — plus the admin observability signals — is
 exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
 server at `/apps/mcp`, so production domain data and system health can be
-pulled in as read-only context for testing/verifying changes with no mutation
-risk. Every tool wraps an existing **read** RPC of an app (games, books,
-recipes, mealplans, shoppinglist, todos, icsproxy) or an `ObservabilityService`
-read method — no write RPC is reachable, so the server is read-only by
-construction. App tools are named `<app>_<rpc>` (e.g. `games_get_steam`,
-`books_search_library`, `todos_list_tasks`); the 8 observability tools are
-unprefixed (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
+pulled in as context for testing/verifying changes. Every app tool wraps an
+existing **read** RPC of an app (games, books, recipes, mealplans,
+shoppinglist, todos, icsproxy) — no per-app tool ever mutates. App tools are
+named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
+`todos_list_tasks`); the 9 observability tools are unprefixed
+(`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_sentry_issues`,
-`get_deploy_status`, `get_deploy_logs`).
+`resolve_sentry_issue`, `get_deploy_status`, `get_deploy_logs`). One of those,
+`resolve_sentry_issue`, is a deliberate exception to read-only: it marks a
+Sentry issue resolved, so an admin-authenticated agent can close out an issue
+it just filed a fix for.
 
 Point a local Claude Code at it (OAuth is handled automatically — no header):
 

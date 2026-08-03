@@ -1,10 +1,20 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { GetSentryIssuesResponseSchema } from '@/lib/gen/observability/v1/observability_pb'
 import SentryCard from '@/components/monitoring/SentryCard'
 
+const mockResolveSentryIssue = jest.fn()
+jest.mock('@/hooks/useMonitoring', () => ({
+  useResolveSentryIssue: () => mockResolveSentryIssue
+}))
+
 describe('SentryCard', () => {
+  beforeEach(() => {
+    mockResolveSentryIssue.mockReset()
+    mockResolveSentryIssue.mockResolvedValue(undefined)
+  })
+
   it('shows a loading state without data', () => {
     render(<SentryCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
@@ -53,5 +63,29 @@ describe('SentryCard', () => {
     expect(screen.getByText('proj-a')).toBeInTheDocument()
     expect(screen.getByText('Boom B')).toBeInTheDocument()
     expect(screen.getByText('proj-b')).toBeInTheDocument()
+  })
+
+  it('resolves an issue when its Resolve button is clicked', async () => {
+    const data = create(GetSentryIssuesResponseSchema, {
+      configured: true,
+      unresolvedCount: 1,
+      issues: [
+        {
+          id: '1',
+          title: 'Boom A',
+          culprit: '',
+          permalink: 'https://s/1',
+          count: 3n,
+          lastSeen: '2026-07-10T00:00:00Z',
+          level: 'error',
+          project: 'proj-a'
+        }
+      ]
+    })
+
+    render(<SentryCard data={data} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Resolve' }))
+
+    await waitFor(() => expect(mockResolveSentryIssue).toHaveBeenCalledWith('1'))
   })
 })

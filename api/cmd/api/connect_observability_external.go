@@ -121,6 +121,32 @@ func (h *obsConnectHandler) sentryIssues(
 	return resp
 }
 
+func (h *obsConnectHandler) ResolveSentryIssue(
+	ctx context.Context,
+	req *connect.Request[observabilityv1.ResolveSentryIssueRequest],
+) (*connect.Response[observabilityv1.ResolveSentryIssueResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	resp, err := h.resolveSentryIssue(ctx, req.Msg.GetIssueId())
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *obsConnectHandler) resolveSentryIssue(
+	ctx context.Context, issueID string,
+) (*observabilityv1.ResolveSentryIssueResponse, error) {
+	if err := h.app.sentryClient.ResolveIssue(ctx, issueID); err != nil {
+		if errors.Is(err, sentryapi.ErrNotConfigured) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return &observabilityv1.ResolveSentryIssueResponse{}, nil
+}
+
 func (h *obsConnectHandler) GetDeployStatus(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetDeployStatusRequest],

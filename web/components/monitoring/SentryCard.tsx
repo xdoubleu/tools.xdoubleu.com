@@ -1,13 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type {
   SentryIssue,
   GetSentryIssuesResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { formatCount } from '@/lib/observability'
 import { formatDateTime } from '@/lib/dates'
+import { useResolveSentryIssue } from '@/hooks/useMonitoring'
 
 function levelVariant(level: string): 'danger' | 'warn' | 'secondary' {
   switch (level.toLowerCase()) {
@@ -23,6 +26,18 @@ function levelVariant(level: string): 'danger' | 'warn' | 'secondary' {
 }
 
 function IssueRow({ issue }: { issue: SentryIssue }) {
+  const resolveSentryIssue = useResolveSentryIssue()
+  const [isResolving, setIsResolving] = useState(false)
+
+  async function handleResolve() {
+    setIsResolving(true)
+    try {
+      await resolveSentryIssue(issue.id)
+    } finally {
+      setIsResolving(false)
+    }
+  }
+
   return (
     <li className="rounded-lg border border-border bg-surface p-3 text-sm">
       <div className="flex items-start justify-between gap-2">
@@ -45,6 +60,15 @@ function IssueRow({ issue }: { issue: SentryIssue }) {
       <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
         <span>{formatCount(issue.count)} events</span>
         <span>{formatDateTime(issue.lastSeen)}</span>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="ml-auto"
+          onClick={handleResolve}
+          disabled={isResolving}
+        >
+          {isResolving ? 'Resolving…' : 'Resolve'}
+        </Button>
       </div>
     </li>
   )

@@ -6,6 +6,7 @@ const mockDisconnectOAuthConnection = jest.fn()
 const mockGetProviderOptions = jest.fn()
 const mockSetProviderConfig = jest.fn()
 const mockTriggerStorageScan = jest.fn()
+const mockResolveSentryIssue = jest.fn()
 const mockGetDeployLogs = jest.fn()
 
 jest.mock('swr', () => ({
@@ -23,6 +24,7 @@ jest.mock('@/lib/client', () => ({
     getDatabaseStats: jest.fn(),
     getFailingPullRequests: jest.fn(),
     getSentryIssues: jest.fn(),
+    resolveSentryIssue: (...args: unknown[]) => mockResolveSentryIssue(...args),
     getDeployStatus: jest.fn(),
     getDeployLogs: (...args: unknown[]) => mockGetDeployLogs(...args),
     listOAuthConnections: jest.fn(),
@@ -45,6 +47,7 @@ import {
   useDatabaseStats,
   useFailingPullRequests,
   useSentryIssues,
+  useResolveSentryIssue,
   useDeployStatus,
   useDeployLogs,
   useOAuthConnections,
@@ -134,6 +137,20 @@ describe('useTriggerStorageScan', () => {
 
     expect(mockTriggerStorageScan).toHaveBeenCalledWith({})
     expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringStorageStats)
+  })
+})
+
+describe('useResolveSentryIssue', () => {
+  it('resolves the given issue and revalidates the sentry issues list', async () => {
+    mockResolveSentryIssue.mockResolvedValue({})
+    const { result } = renderHook(() => useResolveSentryIssue())
+
+    await act(async () => {
+      await result.current('42')
+    })
+
+    expect(mockResolveSentryIssue).toHaveBeenCalledWith({ issueId: '42' })
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringSentryIssues)
   })
 })
 

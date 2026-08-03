@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -107,6 +108,37 @@ func (c *client) ListUnresolvedIssues(ctx context.Context) ([]Issue, error) {
 	return issues, nil
 }
 
+// ResolveIssue marks the given issue as resolved. Sentry's issue-detail
+// endpoint is keyed by issue ID alone (no org/project in the path), but
+// resolveConfig is still checked first so an unconfigured connection fails
+// the same way ListUnresolvedIssues does, rather than leaking a stale token.
+func (c *client) ResolveIssue(ctx context.Context, issueID string) error {
+	if _, err := c.resolveConfig(ctx); err != nil {
+		return err
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return ErrNotConfigured
+	}
+	if err != nil {
+		return err
+	}
+
+	endpoint := fmt.Sprintf("%s/api/0/issues/%s/", baseURL, issueID)
+	if putErr := c.put(ctx, endpoint, token, resolveIssueBody); putErr != nil {
+		return putErr
+	}
+
+	// Invalidate the cached issue list so the next ListUnresolvedIssues call
+	// reflects the resolve immediately instead of serving up to cacheTTL of
+	// stale (still-unresolved) data.
+	c.mu.Lock()
+	c.cached = nil
+	c.mu.Unlock()
+	return nil
+}
+
 // resolveConfig reads the admin-picked org/projects from the stored
 // connection config. Returns ErrNotConfigured when the provider isn't
 // connected or no org/projects have been picked yet.
@@ -193,6 +225,10 @@ func (c *client) fetch(
 	return issues, nil
 }
 
+// resolveIssueBody is the fixed request body for a resolve-issue PUT — the
+// only status transition this client makes.
+const resolveIssueBody = `{"status":"resolved"}`
+
 func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
 	return c.doWithRetry(ctx, func() (bool, error) {
 		req, reqErr := http.NewRequestWithContext(
@@ -226,6 +262,44 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 		}
 
 		return false, json.NewDecoder(resp.Body).Decode(dst)
+	})
+}
+
+func (c *client) put(ctx context.Context, endpoint, token, body string) error {
+	return c.doWithRetry(ctx, func() (bool, error) {
+		req, reqErr := http.NewRequestWithContext(
+			ctx, http.MethodPut, endpoint, strings.NewReader(body),
+		)
+		if reqErr != nil {
+			return false, reqErr
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		resp, doErr := c.httpClient.Do(req)
+		if doErr != nil {
+			return isTransientErr(doErr), doErr
+		}
+		defer resp.Body.Close()
+
+		if isRetryableStatus(resp.StatusCode) {
+			raw, _ := io.ReadAll(resp.Body)
+			return true, fmt.Errorf(
+				"sentry API returned %d: %s", resp.StatusCode, string(raw),
+			)
+		}
+
+		if resp.StatusCode < http.StatusOK ||
+			resp.StatusCode >= http.StatusMultipleChoices {
+			raw, _ := io.ReadAll(resp.Body)
+			return false, fmt.Errorf(
+				"sentry API returned %d: %s", resp.StatusCode, string(raw),
+			)
+		}
+
+		_, _ = io.Copy(io.Discard, resp.Body)
+		return false, nil
 	})
 }
 

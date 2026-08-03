@@ -128,13 +128,16 @@ apps/<name>/
 ### Apps MCP Server
 
 Every app's own read RPCs, plus admin observability, are exposed to a local
-Claude CLI over a read-only MCP server at `/apps/mcp`
+Claude CLI over a largely read-only MCP server at `/apps/mcp`
 (`cmd/api/mcp_apps.go`). Apps opt in via the `MCPToolProvider` interface
 (`RegisterMCPTools(srv *mcp.Server)`, `cmd/api/apps.go`) — each implementing
 app has its own `apps/<name>/mcp.go` wrapping only its **read** Connect
-handlers, so nothing mutating is ever reachable. `registerObservabilityMCPTools`
-adds the 8 unprefixed admin-gated observability tools on top, sharing the
-exact same internal read methods the Connect handlers use. Auth is MCP OAuth
+handlers, so no per-app tool is ever mutating. `registerObservabilityMCPTools`
+adds the 9 unprefixed admin-gated observability tools on top, sharing the
+exact same internal methods the Connect handlers use — 8 are read, plus
+`resolve_sentry_issue`, the one deliberate mutation (marks a Sentry issue
+resolved via `sentryapi.Client.ResolveIssue`), letting an admin-authenticated
+agent close out an issue it just filed a fix for. Auth is MCP OAuth
 2.1: the api is the resource server (`auth.RequireBearerToken` verifies a
 Supabase access token), Supabase is the authorization server, and the web
 `/oauth/consent` page drives the approval. See root `README.md` for setup.
