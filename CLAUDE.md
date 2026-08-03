@@ -16,6 +16,8 @@ Shared Go code lives in `api/internal/` (auth, config, encryption, contacts, obs
 
 A largely read-only **MCP server** at `/apps/mcp` (MCP OAuth 2.1, Supabase as the authorization server) exposes each app's own read RPCs as `<app>_<rpc>` tools plus 9 unprefixed admin observability tools, so a local Claude CLI can pull production domain data and system health as context. Apps opt in by implementing `MCPToolProvider` (`api/cmd/api/apps.go`); shared gating/marshaling lives in `api/internal/mcptools`. App tools are gated by the caller's own per-app access and return only that user's data; observability tools require admin. One observability tool, `resolve_sentry_issue`, is a deliberate exception to "read-only" — it lets an admin-authenticated agent close out a Sentry issue it just filed a fix for. See the "Apps MCP server" section in `README.md` for the full auth flow and setup.
 
+**MCP coverage gaps:** if the user describes a production issue and there's no MCP tool that surfaces it, or an existing tool returns wrong/incomplete data, fix that gap first (add/correct the tool) before investigating the issue itself — otherwise the same blind spot just recurs next time. Note the gap and fix in this file when it happens.
+
 ## Code Navigation (ast-grep)
 
 **Prefer `ast-grep` over `grep`/`rg` for code searches** — it understands syntax trees, so results are exact (no false positives from comments/strings). Reserve `grep`/`rg` for non-code files (logs, configs, docs).
