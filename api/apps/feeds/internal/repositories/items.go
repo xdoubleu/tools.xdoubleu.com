@@ -143,8 +143,10 @@ func (repo *ItemsRepository) Update(
 	return item, nil
 }
 
-// ListByUser returns every item ingested by any of userID's feeds, newest
-// first.
+// ListByUser returns every successfully ingested item from any of userID's
+// feeds, newest first. Error/skip dedup markers (ingest_error set, no title
+// or content) are excluded — they exist only so polling doesn't retry a
+// guid, not for display.
 func (repo *ItemsRepository) ListByUser(
 	ctx context.Context,
 	userID string,
@@ -153,7 +155,7 @@ func (repo *ItemsRepository) ListByUser(
 		SELECT ` + itemColumns + `
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
-		WHERE f.user_id = $1
+		WHERE f.user_id = $1 AND i.ingest_error IS NULL
 		ORDER BY i.published_at DESC, i.created_at DESC
 	`
 	rows, err := repo.db.Query(ctx, query, userID)
