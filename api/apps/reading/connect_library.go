@@ -39,7 +39,6 @@ func (h *booksConnectHandler) GetLibrary(
 			Wishlist: protoUserBooks(data.Wishlist, base),
 			Finished: protoUserBooks(data.Finished, base),
 			Shelves:  protoBookshelves(data.Shelves, base),
-			Rss:      protoUserBooks(data.RSS, base),
 		},
 	}), nil
 }
@@ -446,11 +445,7 @@ func (h *booksConnectHandler) GetBookContent(
 		if ubErr != nil {
 			return nil, connect.NewError(connect.CodeInternal, ubErr)
 		}
-		isBackfillable := ub.Book.Category == models.CategoryRSS ||
-			ub.Book.Category == models.CategoryArticle
-		if isBackfillable {
-			html = h.app.Services.Ingest.BackfillContentHTML(ctx, ub.Book)
-		}
+		html = h.app.Services.Ingest.BackfillContentHTML(ctx, ub.Book)
 	}
 
 	return connect.NewResponse(&readingv1.GetBookContentResponse{

@@ -111,13 +111,12 @@ describe('flattenLibrary', () => {
     expect(flattenLibrary(null)).toEqual([])
   })
 
-  it('excludes rss items from the curated backlog', () => {
+  it('combines reading, wishlist, finished, and shelved books', () => {
     const library = create(LibraryResponseSchema, {
       reading: [userBook('reading')],
       wishlist: [userBook('wishlist')],
       finished: [userBook('finished')],
-      shelves: [create(BookShelfSchema, { name: 'Sci-Fi', books: [userBook('shelf')] })],
-      rss: [userBook('rss')]
+      shelves: [create(BookShelfSchema, { name: 'Sci-Fi', books: [userBook('shelf')] })]
     })
 
     expect(flattenLibrary(library).map((ub) => ub.id)).toEqual([

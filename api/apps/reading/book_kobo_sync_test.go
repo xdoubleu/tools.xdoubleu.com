@@ -235,25 +235,6 @@ func TestConnectEnableKoboSync_PDFOnly_ReturnsConverting(t *testing.T) {
 	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
 }
 
-func TestConnectEnableKoboSync_RSSItem_FailedPrecondition(t *testing.T) {
-	client := newBooksTestClient(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	book := addTestItem(t, models.CategoryRSS, models.StatusToRead, "RSS Kobo Reject")
-
-	req := connect.NewRequest(&readingv1.EnableKoboSyncRequest{
-		BookId: book.ID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
-
-	_, err := client.EnableKoboSync(ctx, req)
-	require.Error(t, err)
-	var connectErr *connect.Error
-	require.ErrorAs(t, err, &connectErr)
-	assert.Equal(t, connect.CodeFailedPrecondition, connectErr.Code())
-}
-
 func TestConnectEnableKoboSync_InvalidBookID(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())

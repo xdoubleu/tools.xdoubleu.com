@@ -161,27 +161,6 @@ describe('BooksDashboard', () => {
     expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
   })
 
-  it('shows RSS stat cards when the library has rss items', () => {
-    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
-    mockUseBacklogLibrary.mockReturnValue({
-      data: create(GetLibraryResponseSchema, {
-        library: create(LibraryResponseSchema, {
-          rss: [
-            create(UserBookSchema, { id: 'r1', status: 'read' }),
-            create(UserBookSchema, { id: 'r2', status: 'to-read' })
-          ]
-        })
-      }),
-      error: undefined,
-      isLoading: false
-    })
-    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
-    mockUseBooksProgress.mockReturnValue({ data: undefined })
-    render(<BooksDashboard />)
-    expect(screen.getByText('RSS items')).toBeInTheDocument()
-    expect(screen.getByText('RSS read')).toBeInTheDocument()
-  })
-
   it('shows an error state', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBacklogLibrary.mockReturnValue({

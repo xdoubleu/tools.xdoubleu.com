@@ -81,7 +81,6 @@ func (h *publicConnectHandler) GetSharedLibrary(
 			Wishlist: protoUserBooks(data.Wishlist, base),
 			Finished: protoUserBooks(data.Finished, base),
 			Shelves:  protoBookshelves(data.Shelves, base),
-			Rss:      protoUserBooks(data.RSS, base),
 		},
 		LastSyncedAt: lastSyncedAt,
 		DisplayName:  displayName,

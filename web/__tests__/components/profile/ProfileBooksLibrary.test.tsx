@@ -51,14 +51,6 @@ function makeLibrary() {
             })
           ]
         })
-      ],
-      rss: [
-        create(UserBookSchema, {
-          id: 'ub-rss',
-          status: 'read',
-          tags: [],
-          book: create(BookSchema, { title: 'RSS Post', authors: ['Author D'], category: 'rss' })
-        })
       ]
     }),
     lastSyncedAt: '2026-07-01T10:00:00Z'

@@ -86,14 +86,10 @@ export function useExternalBook(provider: string | null, providerId: string | nu
   )
 }
 
-// useAddBookByURL ingests a pasted URL, readability-extracted into an
-// article. category is '' (defaults to article), 'paper', or 'article'.
+// useAddBookByURL ingests a pasted URL, readability-extracted into an article.
 export function useAddBookByURL() {
   const client = useMemo(() => createServiceClient(LibraryService), [])
-  return useCallback(
-    (url: string, category: string) => client.addBookByURL({ url, category }),
-    [client]
-  )
+  return useCallback((url: string) => client.addBookByURL({ url }), [client])
 }
 
 export function useCreateBook() {

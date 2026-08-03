@@ -96,28 +96,23 @@ type AddByURLResult struct {
 	AlreadyInLibrary bool
 }
 
-// AddByURL is the manual-ingest entry point. categoryOverride is "" (auto),
-// models.CategoryPaper, or models.CategoryArticle.
+// AddByURL is the manual-ingest entry point.
 func (s *IngestService) AddByURL(
 	ctx context.Context,
-	userID, rawURL, categoryOverride string,
+	userID, rawURL string,
 ) (*AddByURLResult, error) {
 	canonical, err := canonicalURL(rawURL)
 	if err != nil {
 		return nil, err
 	}
-	category := models.CategoryArticle
-	if categoryOverride != "" {
-		category = categoryOverride
-	}
-	return s.addWebItem(ctx, userID, canonical, category)
+	return s.addWebItem(ctx, userID, canonical)
 }
 
 // addWebItem ingests a pasted URL: PDFs are stored directly, HTML pages
 // are readability-extracted and built into an EPUB.
 func (s *IngestService) addWebItem(
 	ctx context.Context,
-	userID, canonical, category string,
+	userID, canonical string,
 ) (*AddByURLResult, error) {
 	// Dedup: a catalog row for this URL may already exist (this user or
 	// another). Attach the caller and rebuild a missing file instead of
@@ -137,7 +132,7 @@ func (s *IngestService) addWebItem(
 
 	switch {
 	case res.ContentType == contentTypePDF:
-		return s.addFetchedPDF(ctx, userID, canonical, category, res.Body)
+		return s.addFetchedPDF(ctx, userID, canonical, res.Body)
 	case isHTMLContentType(res.ContentType):
 		art, extractErr := extractReadable(res.FinalURL, res.Body)
 		if extractErr != nil {
@@ -146,7 +141,6 @@ func (s *IngestService) addWebItem(
 		ub, ingestErr := s.IngestArticleContent(ctx, userID, ArticleContent{
 			SourceURL:   canonical,
 			BaseURL:     res.FinalURL,
-			Category:    category,
 			Title:       art.Title,
 			Byline:      art.Byline,
 			Authors:     nil,
@@ -169,7 +163,7 @@ func (s *IngestService) addWebItem(
 // addFetchedPDF stores a directly-linked PDF as a library item.
 func (s *IngestService) addFetchedPDF(
 	ctx context.Context,
-	userID, canonical, category string,
+	userID, canonical string,
 	data []byte,
 ) (*AddByURLResult, error) {
 	if ebookmeta.DetectFormatFromMagic(data) != models.FileFormatPDF {
@@ -181,7 +175,6 @@ func (s *IngestService) addFetchedPDF(
 	book, err := s.booksRepo.UpsertBookBySourceURL(ctx, models.Book{
 		Title:     title,
 		Authors:   []string{},
-		Category:  category,
 		SourceURL: &canonical,
 	})
 	if err != nil {

@@ -26,7 +26,7 @@ describe('AddByUrlForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => {
-      expect(addByURL).toHaveBeenCalledWith('https://blog.example.com/posts/why-tests-matter', '')
+      expect(addByURL).toHaveBeenCalledWith('https://blog.example.com/posts/why-tests-matter')
       expect(onAdded).toHaveBeenCalled()
       expect(onDone).toHaveBeenCalled()
     })
@@ -59,21 +59,6 @@ describe('AddByUrlForm', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/no readable article content/i)).toBeInTheDocument()
-    })
-  })
-
-  it('passes the chosen category override', async () => {
-    addByURL.mockResolvedValue({ alreadyInLibrary: false })
-    render(<AddByUrlForm />)
-
-    fireEvent.change(screen.getByLabelText('URL'), {
-      target: { value: 'https://example.com/paper' }
-    })
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'paper' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-
-    await waitFor(() => {
-      expect(addByURL).toHaveBeenCalledWith('https://example.com/paper', 'paper')
     })
   })
 })

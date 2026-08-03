@@ -19,10 +19,8 @@ func (repo *BooksRepository) UpsertBookBySourceURL(
 ) (*models.Book, error) {
 	query := `
 		INSERT INTO reading.books
-		    (title, authors, cover_url, description, page_count,
-		     category, source_url)
-		VALUES ($1, COALESCE($2, '{}'::text[]), $3, $4, $5,
-		        COALESCE(NULLIF($6, ''), 'book'), $7)
+		    (title, authors, cover_url, description, page_count, source_url)
+		VALUES ($1, COALESCE($2, '{}'::text[]), $3, $4, $5, $6)
 		ON CONFLICT (source_url) WHERE source_url IS NOT NULL
 		DO UPDATE SET
 		    title       = EXCLUDED.title,
@@ -41,7 +39,6 @@ func (repo *BooksRepository) UpsertBookBySourceURL(
 		book.CoverURL,
 		book.Description,
 		book.PageCount,
-		book.Category,
 		book.SourceURL,
 	)
 
@@ -70,18 +67,6 @@ func (repo *BooksRepository) GetBookBySourceURL(
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	return book, nil
-}
-
-// SetBookCategory re-categorizes a catalog row. category must already be
-// validated against models.IsValidCategory.
-func (repo *BooksRepository) SetBookCategory(
-	ctx context.Context,
-	bookID uuid.UUID,
-	category string,
-) error {
-	query := `UPDATE reading.books SET category = $2 WHERE id = $1`
-	_, err := repo.db.Exec(ctx, query, bookID, category)
-	return postgres.PgxErrorToHTTPError(err)
 }
 
 // SetBookContentHTML stores the readability-extracted article body for an

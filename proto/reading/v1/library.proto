@@ -10,15 +10,12 @@ message Book {
   string cover_url = 5;
   string description = 6;
   int32 page_count = 7;
-  reserved 8, 9;
-  reserved "isbn10", "external_refs";
-  // Fixed item category: "book" | "paper" | "article" | "rss".
-  string category = 10;
-  // Canonical origin URL for paper/article/rss items; empty for books.
+  reserved 8, 9, 10;
+  reserved "isbn10", "external_refs", "category";
+  // Canonical origin URL for URL-ingested items; empty for books.
   string source_url = 11;
-  // True once article/RSS/paper content extraction succeeded and in-app
-  // content is stored; false for plain "book" category items or ones where
-  // extraction failed/found nothing.
+  // True once content extraction succeeded and in-app content is stored;
+  // false for plain books or ones where extraction failed/found nothing.
   bool has_content = 12;
 }
 
@@ -50,10 +47,8 @@ message LibraryResponse {
   repeated UserBook wishlist = 2;
   repeated UserBook finished = 3;
   repeated BookShelf shelves = 4;
-  // RSS-feed items, kept out of the reading-state shelves above: they are an
-  // auto-pulled firehose, not deliberately-added reading. Papers and articles
-  // (added on purpose) stay in the shelves with books.
-  repeated UserBook rss = 5;
+  reserved 5;
+  reserved "rss";
 }
 
 message BooksProgressResponse {
@@ -166,8 +161,8 @@ message GetReadingStateRequest { string book_id = 1; }
 message GetReadingStateResponse { BookReadingStateData state = 1; }
 
 // GetBookContent returns the readability-extracted article body stored for a
-// book (paper/article/rss categories), for in-app reading instead of linking
-// out to the source URL. html is empty when no content was ever extracted.
+// URL-ingested book, for in-app reading instead of linking out to the source
+// URL. html is empty when no content was ever extracted.
 message GetBookContentRequest { string book_id = 1; }
 message GetBookContentResponse { string html = 1; }
 
@@ -178,9 +173,8 @@ message GetBookContentResponse { string html = 1; }
 // and a missing file is rebuilt.
 message AddBookByURLRequest {
   string url = 1;
-  // Optional category override: "paper" | "article". Empty defaults to
-  // "article".
-  string category = 2;
+  reserved 2;
+  reserved "category";
 }
 message AddBookByURLResponse {
   UserBook user_book = 1;

@@ -33,11 +33,11 @@ func seedContentBookInLibrary(t *testing.T, ownerID string) *models.Book {
 	return book
 }
 
-// seedSourcedBookInLibrary adds a catalog book with the given category and
-// source URL to ownerID's library, for tests exercising the GetBookContent
-// lazy-backfill path.
+// seedSourcedBookInLibrary adds a catalog book with the given source URL to
+// ownerID's library, for tests exercising the GetBookContent lazy-backfill
+// path.
 func seedSourcedBookInLibrary(
-	t *testing.T, ownerID, category, sourceURL string,
+	t *testing.T, ownerID, sourceURL string,
 ) *models.Book {
 	t.Helper()
 	book, err := testApp.Repositories.Books.UpsertBook(
@@ -45,7 +45,6 @@ func seedSourcedBookInLibrary(
 		models.Book{ //nolint:exhaustruct //only required fields
 			Title:     fmt.Sprintf("unique-sourced-book-%s", uuid.NewString()),
 			Authors:   []string{"Test Author"},
-			Category:  category,
 			SourceURL: &sourceURL,
 		},
 	)
@@ -172,10 +171,10 @@ func TestConnectGetBookContent_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connectErr.Code())
 }
 
-func TestConnectGetBookContent_BackfillsMissingContentForRSSItem(t *testing.T) {
+func TestConnectGetBookContent_BackfillsMissingContentForSourcedItem(t *testing.T) {
 	client := newBooksTestClient(t)
 	url := fmt.Sprintf("https://blog.example.com/backfill-%s", uuid.NewString())
-	book := seedSourcedBookInLibrary(t, userID, models.CategoryRSS, url)
+	book := seedSourcedBookInLibrary(t, userID, url)
 	mockWebFetch.SetHTML(url, articlePageHTML("Backfilled Post"))
 
 	req := connect.NewRequest(&readingv1.GetBookContentRequest{
@@ -197,7 +196,7 @@ func TestConnectGetBookContent_BackfillsMissingContentForRSSItem(t *testing.T) {
 
 func TestBackfillContentHTML_LogsWhenPersistFails(t *testing.T) {
 	url := fmt.Sprintf("https://blog.example.com/persist-fail-%s", uuid.NewString())
-	book := seedSourcedBookInLibrary(t, userID, models.CategoryRSS, url)
+	book := seedSourcedBookInLibrary(t, userID, url)
 	mockWebFetch.SetHTML(url, articlePageHTML("Unpersisted Post"))
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -216,7 +215,7 @@ func TestBackfillContentHTML_LogsWhenPersistFails(t *testing.T) {
 func TestConnectGetBookContent_NoBackfillWhenFetchFails(t *testing.T) {
 	client := newBooksTestClient(t)
 	url := fmt.Sprintf("https://blog.example.com/missing-%s", uuid.NewString())
-	book := seedSourcedBookInLibrary(t, userID, models.CategoryArticle, url)
+	book := seedSourcedBookInLibrary(t, userID, url)
 	// No mockWebFetch entry for url: fetch fails, so the empty-state response
 	// must be returned as-is rather than erroring.
 
@@ -230,11 +229,9 @@ func TestConnectGetBookContent_NoBackfillWhenFetchFails(t *testing.T) {
 	assert.Empty(t, resp.Msg.Html)
 }
 
-func TestConnectGetBookContent_NoBackfillForBookCategory(t *testing.T) {
+func TestConnectGetBookContent_NoBackfillWithoutSourceURL(t *testing.T) {
 	client := newBooksTestClient(t)
-	url := fmt.Sprintf("https://blog.example.com/should-not-fetch-%s", uuid.NewString())
-	book := seedSourcedBookInLibrary(t, userID, models.CategoryBook, url)
-	mockWebFetch.SetHTML(url, articlePageHTML("Should Not Appear"))
+	book := seedContentBookInLibrary(t, userID)
 
 	req := connect.NewRequest(&readingv1.GetBookContentRequest{
 		BookId: book.ID.String(),

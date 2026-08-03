@@ -19,11 +19,7 @@ function makeLibrary() {
       })
     ],
     wishlist: [create(UserBookSchema, { id: 'ub-2', status: 'to-read' })],
-    finished: [create(UserBookSchema, { id: 'ub-3', status: 'read' })],
-    rss: [
-      create(UserBookSchema, { id: 'r1', status: 'read' }),
-      create(UserBookSchema, { id: 'r2', status: 'to-read' })
-    ]
+    finished: [create(UserBookSchema, { id: 'ub-3', status: 'read' })]
   })
 }
 
@@ -52,12 +48,10 @@ function renderView(overrides: Partial<Parameters<typeof BooksDashboardView>[0]>
 }
 
 describe('BooksDashboardView', () => {
-  it('renders stat cards derived from the library, including RSS cards', () => {
+  it('renders stat cards derived from the library', () => {
     renderView()
     expect(screen.getByText('Total books')).toBeInTheDocument()
     expect(screen.getByText('Read this year')).toBeInTheDocument()
-    expect(screen.getByText('RSS items')).toBeInTheDocument()
-    expect(screen.getByText('RSS read')).toBeInTheDocument()
   })
 
   it('renders the supplied reading card and feeds slot', () => {

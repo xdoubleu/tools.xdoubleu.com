@@ -23,7 +23,7 @@ type ResyncProposalRow struct {
 // table — see GetCatalogWithUserOverlay for the same pattern) joined with the
 // stored proposals blob.
 const resyncProposalColumns = `b.id, b.title, b.authors, b.isbn13, b.cover_url,
-	b.description, b.page_count, b.category, b.source_url,
+	b.description, b.page_count, b.source_url,
 	b.created_at, b.updated_at,
 	b.unicat_found, b.hardcover_found,
 	b.last_resync_at, b.metadata_source,
@@ -41,7 +41,6 @@ func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
 		&book.CoverURL,
 		&book.Description,
 		&book.PageCount,
-		&book.Category,
 		&book.SourceURL,
 		&book.CreatedAt,
 		&book.UpdatedAt,
@@ -198,7 +197,7 @@ const sourceStatsQuery = `
 		        AND NOT COALESCE(hardcover_found, false)),
 		    count(*) FILTER (WHERE last_resync_at IS NULL)
 		FROM reading.books
-		WHERE category = 'book'
+		WHERE source_url IS NULL
 	`
 
 // GetSourceStats computes SourceStats in a single aggregate query.

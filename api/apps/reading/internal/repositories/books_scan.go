@@ -12,7 +12,7 @@ import (
 // bookColumns is the standalone column list for reading.books selects. The order
 // must match scanBook.
 const bookColumns = `id, title, authors, isbn13, cover_url, description,
-	page_count, category, source_url, created_at, updated_at,
+	page_count, source_url, created_at, updated_at,
 	unicat_found, hardcover_found,
 	last_resync_at, metadata_source,
 	content_html IS NOT NULL AND content_html <> ''`
@@ -23,7 +23,7 @@ const userBookColumns = `ub.id, ub.user_id, ub.book_id, ub.status, ub.tags,
 	ub.shelf_positions, ub.rating, ub.finished_at, ub.progress_mode,
 	ub.current_page, ub.progress_percent, ub.added_at, ub.updated_at,
 	b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
-	b.page_count, b.category, b.source_url, b.created_at, b.updated_at,
+	b.page_count, b.source_url, b.created_at, b.updated_at,
 	b.content_html IS NOT NULL AND b.content_html <> ''`
 
 func nullTime(t time.Time) *time.Time {
@@ -44,7 +44,6 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 		&book.CoverURL,
 		&book.Description,
 		&book.PageCount,
-		&book.Category,
 		&book.SourceURL,
 		&book.CreatedAt,
 		&book.UpdatedAt,
@@ -87,7 +86,6 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&book.CoverURL,
 		&book.Description,
 		&book.PageCount,
-		&book.Category,
 		&book.SourceURL,
 		&book.CreatedAt,
 		&book.UpdatedAt,

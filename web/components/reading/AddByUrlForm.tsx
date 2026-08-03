@@ -5,7 +5,6 @@ import { mutate } from 'swr'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { useAddBookByURL } from '@/hooks/useBooks'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -36,7 +35,6 @@ export default function AddByUrlForm({
 }) {
   const addByURL = useAddBookByURL()
   const [url, setUrl] = useState('')
-  const [category, setCategory] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -47,14 +45,13 @@ export default function AddByUrlForm({
     setError('')
     setNotice('')
     try {
-      const resp = await addByURL(url.trim(), category)
+      const resp = await addByURL(url.trim())
       await mutate(swrKeys.books)
       onAdded?.()
       if (resp.alreadyInLibrary) {
         setNotice('Already in your library.')
       } else {
         setUrl('')
-        setCategory('')
         onDone?.()
       }
     } catch (err) {
@@ -80,11 +77,6 @@ export default function AddByUrlForm({
         onChange={(e) => setUrl(e.target.value)}
         aria-label="URL"
       />
-      <Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
-        <option value="">Auto-detect category</option>
-        <option value="paper">Paper</option>
-        <option value="article">Article</option>
-      </Select>
       {error && <p className="text-sm text-danger">{error}</p>}
       {notice && <p className="text-sm text-muted">{notice}</p>}
       <div className="flex justify-end">

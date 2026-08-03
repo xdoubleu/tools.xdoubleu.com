@@ -8,7 +8,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 
-	"tools.xdoubleu.com/apps/reading/internal/models"
 	"tools.xdoubleu.com/apps/reading/internal/services"
 	"tools.xdoubleu.com/apps/reading/pkg/webfetch"
 	readingv1 "tools.xdoubleu.com/gen/reading/v1"
@@ -39,16 +38,7 @@ func (h *booksConnectHandler) AddBookByURL(
 			errors.New("url is required"),
 		)
 	}
-	override := req.Msg.Category
-	if override != "" && override != models.CategoryPaper &&
-		override != models.CategoryArticle {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			errors.New(`category must be "paper" or "article"`),
-		)
-	}
-
-	result, err := h.app.Services.Ingest.AddByURL(ctx, user.ID, rawURL, override)
+	result, err := h.app.Services.Ingest.AddByURL(ctx, user.ID, rawURL)
 	if err != nil {
 		return nil, ingestErrorToConnect(err)
 	}

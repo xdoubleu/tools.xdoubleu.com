@@ -9,7 +9,6 @@ import { useLibrary } from '@/hooks/useBooks'
 import { useCurrentUser } from '@/hooks/useAuth'
 import BookCover from '@/components/reading/BookCover'
 import BookSourceSync from '@/components/reading/BookSourceSync'
-import CategoryBadge from '@/components/reading/CategoryBadge'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/reading/bookShelves'
 import BookProgressEditor from '@/components/reading/BookProgressEditor'
 import BookRatingStars from '@/components/reading/BookRatingStars'
@@ -40,7 +39,7 @@ export default function BookDetailClient({ id }: { id: string }) {
 
   const userBook = useMemo(() => {
     if (!data?.library) return null
-    return [...flattenLibrary(data.library), ...data.library.rss].find((ub) => ub.id === id) ?? null
+    return flattenLibrary(data.library).find((ub) => ub.id === id) ?? null
   }, [data, id])
 
   const book = userBook?.book
@@ -50,7 +49,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   const knownTags = useMemo(() => {
     if (!data?.library) return []
     const seen = new Set<string>()
-    for (const ub of [...flattenLibrary(data.library), ...data.library.rss]) {
+    for (const ub of flattenLibrary(data.library)) {
       for (const t of ub.tags) {
         if (!SPECIAL_TAGS.has(t)) seen.add(t)
       }
@@ -95,7 +94,6 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {/* Rating + favourite + page count */}
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <CategoryBadge category={book.category} />
                 {userBook.status === 'read' && (
                   <>
                     <BookRatingStars userBook={userBook} size="md" onSaved={handleSaved} />
@@ -180,20 +178,18 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {/* Kobo sync — only shown when a syncable file exists (same
                   check the preview buttons below use), not the own-digital
-                  tag, which can drift out of sync with the actual files.
-                  RSS items never sync to Kobo devices (issue #640). */}
-              {book.category !== 'rss' &&
-                (userBook.formats.includes('epub') || userBook.formats.includes('pdf')) && (
-                  <div>
-                    <p className="text-xs text-muted mb-1">Kobo sync</p>
-                    <KoboSyncToggle
-                      bookId={userBook.bookId}
-                      enabled={userBook.tags.includes('kobo-sync')}
-                      tags={userBook.tags}
-                      onChanged={handleSaved}
-                    />
-                  </div>
-                )}
+                  tag, which can drift out of sync with the actual files. */}
+              {(userBook.formats.includes('epub') || userBook.formats.includes('pdf')) && (
+                <div>
+                  <p className="text-xs text-muted mb-1">Kobo sync</p>
+                  <KoboSyncToggle
+                    bookId={userBook.bookId}
+                    enabled={userBook.tags.includes('kobo-sync')}
+                    tags={userBook.tags}
+                    onChanged={handleSaved}
+                  />
+                </div>
+              )}
 
               {/* File preview buttons */}
               {(userBook.formats.includes('pdf') || userBook.formats.includes('epub')) && (

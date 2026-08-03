@@ -150,11 +150,10 @@ function makeLibraryData(
   reading: ReturnType<typeof create<typeof UserBookSchema>>[] = [mockUserBook],
   wishlist: ReturnType<typeof create<typeof UserBookSchema>>[] = [],
   finished: ReturnType<typeof create<typeof UserBookSchema>>[] = [],
-  shelves: ReturnType<typeof create<typeof BookShelfSchema>>[] = [],
-  rss: ReturnType<typeof create<typeof UserBookSchema>>[] = []
+  shelves: ReturnType<typeof create<typeof BookShelfSchema>>[] = []
 ) {
   return create(GetLibraryResponseSchema, {
-    library: create(LibraryResponseSchema, { reading, wishlist, finished, shelves, rss })
+    library: create(LibraryResponseSchema, { reading, wishlist, finished, shelves })
   })
 }
 
@@ -196,23 +195,6 @@ describe('BookDetailClient', () => {
   it('shows not found when id has no match', () => {
     render(<BookDetailClient id="ub-unknown" />)
     expect(screen.getByText('Book not found.')).toBeInTheDocument()
-  })
-
-  it('renders an rss item (not just reading/wishlist/finished/shelf books)', () => {
-    const rssBook = create(UserBookSchema, {
-      ...mockUserBook,
-      id: 'ub-rss',
-      book: create(BookSchema, { ...mockBook, title: 'RSS Article' })
-    })
-    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
-    jest.mocked(useLibrary).mockReturnValue({
-      data: makeLibraryData([], [], [], [], [rssBook]),
-      isLoading: false,
-      error: undefined
-    })
-    render(<BookDetailClient id="ub-rss" />)
-    expect(screen.getByRole('heading', { name: 'RSS Article' })).toBeInTheDocument()
-    expect(screen.queryByText('Book not found.')).not.toBeInTheDocument()
   })
 
   it('renders title and author', () => {
@@ -336,22 +318,6 @@ describe('BookDetailClient', () => {
     // drift out of sync with the book's actual files — only on formats.
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('kobo-sync-toggle')).toBeInTheDocument()
-  })
-
-  it('hides Kobo sync toggle for an rss item even with a syncable format', () => {
-    // RSS items never sync to Kobo devices (issue #640), regardless of format.
-    const rssBook = create(UserBookSchema, {
-      ...mockUserBook,
-      book: create(BookSchema, { ...mockBook, category: 'rss' })
-    })
-    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
-    jest.mocked(useLibrary).mockReturnValue({
-      data: makeLibraryData([rssBook]),
-      isLoading: false,
-      error: undefined
-    })
-    render(<BookDetailClient id="ub-1" />)
-    expect(screen.queryByTestId('kobo-sync-toggle')).not.toBeInTheDocument()
   })
 
   it('shows Kobo sync toggle when book has a pdf format', () => {

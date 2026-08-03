@@ -28,24 +28,6 @@ const (
 	ProgressModePercent = "percent"
 )
 
-// Fixed item categories. Every catalog row has exactly one; "book" is the
-// default for uploads and provider-search additions.
-const (
-	CategoryBook    = "book"
-	CategoryPaper   = "paper"
-	CategoryArticle = "article"
-	CategoryRSS     = "rss"
-)
-
-// IsValidCategory reports whether c is one of the fixed item categories.
-func IsValidCategory(c string) bool {
-	switch c {
-	case CategoryBook, CategoryPaper, CategoryArticle, CategoryRSS:
-		return true
-	}
-	return false
-}
-
 // MaxProgressPercent is the upper bound for a reading-progress percentage.
 const MaxProgressPercent = 100
 
@@ -62,18 +44,14 @@ type Book struct {
 	CoverURL    *string
 	Description *string
 	PageCount   *int
-	// Category is one of the Category* constants; empty is normalized to
-	// CategoryBook on write.
-	Category string
-	// SourceURL is the canonical origin URL for paper/article/rss items
-	// (dedup key — unique where set). Nil for books.
+	// SourceURL is the canonical origin URL for URL-ingested items (dedup
+	// key — unique where set). Nil for books.
 	SourceURL *string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
-	// HasContent is true once article/RSS/paper content extraction succeeded
-	// and content_html is non-empty. Always false for plain "book" category
-	// items.
+	// HasContent is true once content extraction succeeded and content_html
+	// is non-empty. Always false for plain uploaded books.
 	HasContent bool
 
 	// Resync status — populated during BuildResyncProposals scans.

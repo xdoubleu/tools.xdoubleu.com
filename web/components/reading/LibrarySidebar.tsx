@@ -3,7 +3,6 @@
 import { cn } from '@/lib/cn'
 import type { LibraryResponse } from '@/lib/gen/reading/v1/library_pb'
 import { SPECIAL_TAGS, flattenLibrary, statusLabel } from '@/lib/reading/bookShelves'
-import { categoryLabel, categoryOf, type Category } from '@/lib/reading/categories'
 
 export type ShelfId =
   'all' | 'favourite' | 'currently-reading' | 'to-read' | 'read' | (string & Record<never, never>)
@@ -60,27 +59,6 @@ export function buildShelves(library: LibraryResponse): Shelf[] {
   return [...fixed, ...dynamic]
 }
 
-export interface CategoryEntry {
-  id: Category
-  label: string
-  count: number
-}
-
-// buildCategories returns the categories present in the library. A pure book
-// library yields a single 'book' entry, which the sidebar treats as "nothing
-// to filter" and hides the section entirely.
-export function buildCategories(library: LibraryResponse): CategoryEntry[] {
-  const all = [...flattenLibrary(library), ...library.rss]
-  const counts = new Map<Category, number>()
-  for (const ub of all) {
-    const cat = categoryOf(ub.book?.category)
-    counts.set(cat, (counts.get(cat) ?? 0) + 1)
-  }
-  return Array.from(counts.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([id, count]) => ({ id, label: categoryLabel(id), count }))
-}
-
 export function buildTags(library: LibraryResponse): TagEntry[] {
   const all = flattenLibrary(library)
   const counts = new Map<string, number>()
@@ -99,17 +77,10 @@ export function buildTags(library: LibraryResponse): TagEntry[] {
 interface LibrarySidebarProps {
   shelves: Shelf[]
   allTags: TagEntry[]
-  /**
-   * Categories present in the library. Omit (or pass only 'book') to hide
-   * the section — a pure book library needs no category filter.
-   */
-  categories?: CategoryEntry[]
   selectedShelfId: ShelfId | null
   selectedTag: string | null
-  selectedCategory?: Category | null
   onSelectShelf: (id: ShelfId) => void
   onSelectTag: (tag: string) => void
-  onSelectCategory?: (category: Category) => void
   /** Omit on read-only views (public profile) to hide shelf/tag editing. */
   onManage?: () => void
 }
@@ -145,22 +116,12 @@ function NavItem({
 export default function LibrarySidebar({
   shelves,
   allTags,
-  categories,
   selectedShelfId,
   selectedTag,
-  selectedCategory,
   onSelectShelf,
   onSelectTag,
-  onSelectCategory,
   onManage
 }: LibrarySidebarProps) {
-  // Only offer the filter when there is something other than books to
-  // filter by — zero UI change for pure book libraries.
-  const showCategories =
-    !!onSelectCategory &&
-    (categories ?? []).some((c) => c.id !== 'book') &&
-    (categories ?? []).length > 1
-  const shownCategories = showCategories ? (categories ?? []) : []
   return (
     <>
       {/* Desktop: vertical sidebar */}
@@ -180,24 +141,6 @@ export default function LibrarySidebar({
             count={shelf.count}
           />
         ))}
-
-        {shownCategories.length > 0 && (
-          <>
-            <div className="my-1 h-px bg-border" />
-            <p className="px-3 py-1 text-xs font-semibold text-muted uppercase tracking-wide">
-              Categories
-            </p>
-            {shownCategories.map((cat) => (
-              <NavItem
-                key={cat.id}
-                active={selectedCategory === cat.id}
-                onClick={() => onSelectCategory?.(cat.id)}
-                label={cat.label}
-                count={cat.count}
-              />
-            ))}
-          </>
-        )}
 
         {allTags.length > 0 && (
           <>
@@ -256,25 +199,6 @@ export default function LibrarySidebar({
             </button>
           ))}
         </div>
-        {shownCategories.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            {shownCategories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => onSelectCategory?.(cat.id)}
-                className={cn(
-                  'flex items-center gap-1 shrink-0 px-2 py-1 rounded-full text-xs whitespace-nowrap transition-colors border',
-                  selectedCategory === cat.id
-                    ? 'bg-accent/10 text-accent border-accent/30 font-medium'
-                    : 'bg-surface text-subtle border-border hover:text-foreground'
-                )}
-              >
-                {cat.label}
-                <span className="opacity-60">{cat.count}</span>
-              </button>
-            ))}
-          </div>
-        )}
         {allTags.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {allTags.map((tag) => (

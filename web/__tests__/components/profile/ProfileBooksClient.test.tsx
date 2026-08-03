@@ -64,14 +64,6 @@ function makeLibrary() {
             })
           ]
         })
-      ],
-      rss: [
-        create(UserBookSchema, {
-          id: 'ub-rss',
-          status: 'read',
-          tags: [],
-          book: create(BookSchema, { title: 'RSS Post', authors: ['Author D'], category: 'rss' })
-        })
       ]
     }),
     lastSyncedAt: '2026-07-01T10:00:00Z'
@@ -82,13 +74,6 @@ describe('ProfileBooksClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseSharedBooksProgress.mockReturnValue({ data: undefined })
-  })
-
-  it('renders separate RSS stat cards', () => {
-    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
-    render(<ProfileBooksClient token="tok-1" />)
-    expect(screen.getByText('RSS items')).toBeInTheDocument()
-    expect(screen.getByText('RSS read')).toBeInTheDocument()
   })
 
   it('renders stat cards and last synced state', () => {

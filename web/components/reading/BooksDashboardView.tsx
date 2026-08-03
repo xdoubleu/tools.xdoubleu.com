@@ -35,8 +35,6 @@ export default function BooksDashboardView({
 }) {
   const { view, setView, start, setStart, end, setEnd } = chart
   const reading = library.reading
-  const rss = library.rss
-  const rssRead = rss.filter((ub) => ub.status === 'read').length
   const ytd = ytdProgress(library.finished)
 
   return (
@@ -53,13 +51,6 @@ export default function BooksDashboardView({
         <GamesStatCard label="Read this year" value={ytd.total} />
         <GamesStatCard label={statusLabel('to-read')} value={library.wishlist.length} />
       </div>
-
-      {rss.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <GamesStatCard label="RSS items" value={rss.length} />
-          <GamesStatCard label="RSS read" value={rssRead} />
-        </div>
-      )}
 
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="flex min-h-0 flex-col gap-3">
