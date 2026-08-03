@@ -59,7 +59,7 @@ export default function ArticleReaderDialog({
           </DialogClose>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-w-0 flex-1 overflow-y-auto">
           {!html && (
             <p className="text-sm text-muted p-4">
               No in-app content stored for this item.
