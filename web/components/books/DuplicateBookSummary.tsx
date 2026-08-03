@@ -110,7 +110,7 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
             {ub.status}
           </span>
           {hasPhysical && <Badge variant="secondary">Physical</Badge>}
-          {hasDigital && <Badge variant="secondary">Digital</Badge>}
+          {hasDigital && <Badge variant="default">Digital</Badge>}
           {hasPdf && <Badge variant="default">PDF</Badge>}
           {hasEpub && <Badge variant="default">EPUB</Badge>}
           {hasKepub && <Badge variant="default">KEPUB</Badge>}
