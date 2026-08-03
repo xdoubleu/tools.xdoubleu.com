@@ -6,8 +6,7 @@ import type { GetProfileShareResponse } from '@/lib/gen/profile/v1/profile_pb'
 import { PublicLibraryService } from '@/lib/gen/reading/v1/public_pb'
 import type {
   GetSharedLibraryResponse,
-  GetSharedBooksProgressResponse,
-  GetSharedFeedsResponse
+  GetSharedBooksProgressResponse
 } from '@/lib/gen/reading/v1/public_pb'
 import { PublicGamesService } from '@/lib/gen/games/v1/public_pb'
 import type {
@@ -60,14 +59,6 @@ export function useSharedBooksProgress(token: string, dateStart?: string, dateEn
   return useSWR<GetSharedBooksProgressResponse, Error>(
     token ? swrKeys.profileBooksProgress(token, dateStart, dateEnd) : null,
     () => client.getSharedBooksProgress({ token, dateStart, dateEnd })
-  )
-}
-
-export function useSharedFeeds(token: string) {
-  const client = createServiceClient(PublicLibraryService)
-  return useSWR<GetSharedFeedsResponse, Error>(
-    token ? swrKeys.profileBooksFeeds(token) : null,
-    () => client.getSharedFeeds({ token })
   )
 }
 

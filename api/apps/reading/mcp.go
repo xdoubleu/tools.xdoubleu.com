@@ -73,8 +73,6 @@ func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
 		h.mcpGetExternalBook)
 	mcptools.AddReadTool(srv, mcpAppName, "reading_get_reading_state",
 		"The latest reading position for a book.", h.mcpGetReadingState)
-	mcptools.AddReadTool(srv, mcpAppName, "reading_list_feeds",
-		"The user's RSS/Atom feed subscriptions.", h.mcpListFeeds)
 }
 
 func registerReadingCatalogTools(srv *mcp.Server, h *booksConnectHandler) {
@@ -163,14 +161,6 @@ func (h *booksConnectHandler) mcpGetReadingState(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetReadingState(ctx, connect.NewRequest(
 		&readingv1.GetReadingStateRequest{BookId: args.BookID},
-	)))
-}
-
-func (h *booksConnectHandler) mcpListFeeds(
-	ctx context.Context, _ mcptools.NoArgs,
-) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListFeeds(ctx, connect.NewRequest(
-		&readingv1.ListFeedsRequest{},
 	)))
 }
 

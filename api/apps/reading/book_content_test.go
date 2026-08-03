@@ -203,7 +203,7 @@ func TestBackfillContentHTML_LogsWhenPersistFails(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	html := testApp.Services.Feeds.BackfillContentHTML(ctx, book)
+	html := testApp.Services.Ingest.BackfillContentHTML(ctx, book)
 	assert.Contains(t, html, "Lorem ipsum")
 
 	stored, err := testApp.Repositories.Books.GetBookContentHTML(

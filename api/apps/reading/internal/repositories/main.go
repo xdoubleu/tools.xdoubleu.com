@@ -24,7 +24,6 @@ type Repositories struct {
 	ReadingState *BookReadingStateRepository
 	Progress     *ProgressRepository
 	KoboDevices  *KoboDevicesRepository
-	Feeds        *FeedsRepository
 }
 
 func New(db postgres.DB) *Repositories {
@@ -34,6 +33,5 @@ func New(db postgres.DB) *Repositories {
 		ReadingState: &BookReadingStateRepository{db: db},
 		Progress:     &ProgressRepository{db: db},
 		KoboDevices:  &KoboDevicesRepository{db: db},
-		Feeds:        &FeedsRepository{db: db},
 	}
 }

@@ -9,9 +9,6 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { useGetBookContent } from '@/hooks/useBooks'
-import BookFavouriteButton from '@/components/reading/BookFavouriteButton'
-import FeedItemMarkReadButton from '@/components/reading/FeedItemMarkReadButton'
-import type { UserBook } from '@/lib/gen/reading/v1/library_pb'
 
 interface ArticleReaderDialogProps {
   bookId: string
@@ -19,19 +16,18 @@ interface ArticleReaderDialogProps {
   sourceUrl?: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** When set (with `onSettled`), shows a Mark read control for feed items. */
-  userBook?: UserBook
-  onSettled?: (bookId: string) => void
 }
 
+// In-app reader for a library book's stored content (paper/article ingests
+// with content_html). RSS feed items have their own reader in
+// components/feeds/ArticleReaderDialog.tsx, backed by the standalone feeds
+// app (issue #734) — this one stays library/bookId-based.
 export default function ArticleReaderDialog({
   bookId,
   title,
   sourceUrl,
   open,
-  onOpenChange,
-  userBook,
-  onSettled
+  onOpenChange
 }: ArticleReaderDialogProps) {
   const { data, error } = useGetBookContent(open ? bookId : null)
   const html = data?.html ?? ''
@@ -53,12 +49,6 @@ export default function ArticleReaderDialog({
               </a>
             )}
           </div>
-          {userBook && (
-            <div className="flex shrink-0 items-center gap-2">
-              <BookFavouriteButton userBook={userBook} />
-              {onSettled && <FeedItemMarkReadButton userBook={userBook} onSettled={onSettled} />}
-            </div>
-          )}
           <DialogClose
             aria-label="Close reader"
             className="flex h-11 w-11 shrink-0 items-center justify-center text-lg"
@@ -82,7 +72,7 @@ export default function ArticleReaderDialog({
           {html && (
             <div
               className="prose prose-sm max-w-none text-foreground p-1"
-              // The HTML originates from third-party RSS feeds — always
+              // Content originates from ingested third-party HTML — always
               // sanitize before rendering.
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
             />

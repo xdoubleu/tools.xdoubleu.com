@@ -11,6 +11,7 @@ import { swrKeys } from '@/lib/swrKeys'
 const APP_NAMES = [
   'games',
   'reading',
+  'feeds',
   'icsproxy',
   'mealplans',
   'recipes',

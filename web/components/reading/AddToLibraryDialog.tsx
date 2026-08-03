@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import BookSearchBar from '@/components/reading/BookSearchBar'
 import AddByUrlForm from '@/components/reading/AddByUrlForm'
-import AddFeedForm from '@/components/reading/AddFeedForm'
+import AddFeedForm from '@/components/feeds/AddFeedForm'
 
 type Mode = 'book' | 'url' | 'rss'
 

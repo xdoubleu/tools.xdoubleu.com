@@ -28,14 +28,16 @@ var appsToolNames = []string{
 	// games (5)
 	"games_get_steam", "games_get_steam_game", "games_get_steam_distribution",
 	"games_get_recently_active_games", "games_get_integrations",
-	// reading (16)
+	// reading (15)
 	"reading_get_library", "reading_get_books_progress", "reading_search_library",
 	"reading_search_external", "reading_get_external_book",
-	"reading_get_reading_state", "reading_list_feeds",
+	"reading_get_reading_state",
 	"reading_list_resync_proposals", "reading_get_book_sources",
 	"reading_get_source_stats", "reading_list_books_in_exact_sources",
 	"reading_find_duplicates", "reading_get_book_file", "reading_get_kepub_status",
 	"reading_list_kobo_devices", "reading_get_kobo_device_logs",
+	// feeds (2)
+	"feeds_list_feeds", "feeds_list_items",
 	// recipes (3)
 	"recipes_list_recipes", "recipes_get_recipe", "recipes_list_recipe_book_shares",
 	// mealplans (3)
@@ -214,7 +216,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	session := appsMCPSession(t, accessToken.Value)
 	tools := []string{
 		"games_get_recently_active_games", "reading_get_library",
-		"reading_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
+		"feeds_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
 		"shoppinglist_list_accessible_lists", "todos_list_tasks",
 		"icsproxy_list_configs", "get_job_stats", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",

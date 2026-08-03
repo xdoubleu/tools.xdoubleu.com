@@ -48,7 +48,7 @@ const ALL_APPS: AppLink[] = [
     label: 'Feeds',
     href: '/feeds',
     description: 'Unread RSS and newsletter articles.',
-    accessKey: 'reading'
+    accessKey: 'feeds'
   },
   { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' },
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },

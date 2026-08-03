@@ -166,6 +166,46 @@ func (s *IngestService) IngestArticleContent(
 	return s.booksRepo.GetUserBook(ctx, userID, saved.ID)
 }
 
+// BackfillContentHTML lazily fetches and stores the readability-extracted
+// body for a book that has none yet — either ingested before content_html
+// existed, or hit a since-fixed extraction bug. Returns the HTML it stored,
+// or "" if it still couldn't get any; the caller falls back to the existing
+// "no content" UI. Used for category=article and (historically) category=rss
+// books; feed-ingested items now live in the standalone feeds app instead.
+func (s *IngestService) BackfillContentHTML(
+	ctx context.Context,
+	book *models.Book,
+) string {
+	if book.SourceURL == nil || *book.SourceURL == "" {
+		return ""
+	}
+
+	url := *book.SourceURL
+	res, err := s.webFetch.Get(
+		ctx, url, fetchOptions(maxArticleBytes, articleAccept),
+	)
+	if err != nil {
+		s.logger.WarnContext(ctx, "backfill content fetch failed",
+			"bookID", book.ID, "url", url, "error", err)
+		return ""
+	}
+	if !isHTMLContentType(res.ContentType) {
+		return ""
+	}
+	art, err := extractReadable(res.FinalURL, res.Body)
+	if err != nil {
+		s.logger.WarnContext(ctx, "backfill readability extraction failed",
+			"bookID", book.ID, "url", url, "error", err)
+		return ""
+	}
+
+	if setErr := s.booksRepo.SetBookContentHTML(ctx, book.ID, art.HTML); setErr != nil {
+		s.logger.WarnContext(ctx, "failed to store backfilled article content html",
+			"bookID", book.ID, "error", setErr)
+	}
+	return art.HTML
+}
+
 // buildArticleEPUB assembles a standalone HTML document (images downloaded
 // and rewritten to local files) in a temp dir and converts it to EPUB.
 func (s *IngestService) buildArticleEPUB(

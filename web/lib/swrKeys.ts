@@ -26,7 +26,6 @@ export const swrKeys = {
   profileBooks: (token: string) => `/profile/reading/${token}`,
   profileBooksProgress: (token: string, dateStart?: string, dateEnd?: string) =>
     ['/profile/reading-progress', token, dateStart, dateEnd] as const,
-  profileBooksFeeds: (token: string) => `/profile/reading/${token}/feeds`,
   profileGames: (token: string) => `/profile/games/${token}`,
   profileGamesProgress: (token: string, dateStart?: string, dateEnd?: string) =>
     ['/profile/games-progress', token, dateStart, dateEnd] as const,
@@ -41,8 +40,6 @@ export const swrKeys = {
   // helper's /status — see lib/reading/gatewayClient.ts.
   gatewayStatus: '/reading/kobo/gateway-status',
   koboDeviceLogs: (id: string) => ['/reading/kobo/logs', id] as const,
-  bookFeeds: '/reading/feeds',
-  bookFeedItems: '/reading/feed-items',
   bookDuplicates: '/reading/duplicates',
   resyncProposals: '/reading/resync-proposals',
   bookSources: (bookId: string, overrideTitle = '', overrideAuthor = '') =>
@@ -63,6 +60,9 @@ export const swrKeys = {
     ['/games/progress', dateStart, dateEnd] as const,
   gamesRecent: '/games/recent',
   gamesIntegrations: '/games/integrations',
+
+  feeds: '/feeds',
+  feedItems: '/feeds/items',
 
   icsFeeds: '/icsproxy',
   icsPreview: (sourceUrl: string) => `/icsproxy/preview?url=${encodeURIComponent(sourceUrl)}`,

@@ -24,7 +24,6 @@ type Services struct {
 	Kobo       *KoboService
 	KoboLog    *KoboLogStore
 	Ingest     *IngestService
-	Feeds      *FeedService
 	WebSocket  *progressws.Service
 }
 
@@ -75,15 +74,6 @@ func New(
 		htmlConvert, // nil defaults to goHTMLConverter
 	)
 
-	feedsSvc := NewFeedService(
-		logger,
-		repositories.Feeds,
-		ingestSvc,
-		booksSvc,
-		webFetchClient,
-		config.EmailInboundDomain,
-	)
-
 	return &Services{
 		Auth:       authService,
 		Books:      booksSvc,
@@ -92,7 +82,6 @@ func New(
 		Kobo:       kobo,
 		KoboLog:    koboLog,
 		Ingest:     ingestSvc,
-		Feeds:      feedsSvc,
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

@@ -3,16 +3,18 @@ package reading.v1;
 option go_package = "tools.xdoubleu.com/gen/reading/v1;readingv1";
 
 import "reading/v1/library.proto";
-import "reading/v1/feeds.proto";
 
 // PublicLibraryService serves the read-only shareable profile. It is
 // registered WITHOUT auth middleware: requests are authorized solely by the
 // opaque profile share token (see profile.v1.ProfileService), which resolves
 // to the owning user. Unknown tokens return CodeNotFound.
+//
+// Feed subscriptions moved to the standalone feeds app (issue #734) and are
+// no longer part of the reading public profile — GetSharedFeeds was removed
+// here along with it.
 service PublicLibraryService {
   rpc GetSharedLibrary(GetSharedLibraryRequest) returns (GetSharedLibraryResponse);
   rpc GetSharedBooksProgress(GetSharedBooksProgressRequest) returns (GetSharedBooksProgressResponse);
-  rpc GetSharedFeeds(GetSharedFeedsRequest) returns (GetSharedFeedsResponse);
 }
 
 message GetSharedLibraryRequest { string token = 1; }
@@ -31,6 +33,3 @@ message GetSharedBooksProgressRequest {
   string date_end = 3;
 }
 message GetSharedBooksProgressResponse { BooksProgressResponse progress = 1; }
-
-message GetSharedFeedsRequest { string token = 1; }
-message GetSharedFeedsResponse { repeated Feed feeds = 1; }

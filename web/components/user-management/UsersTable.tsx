@@ -12,6 +12,7 @@ interface UsersTableProps {
 const APPS = [
   'games',
   'reading',
+  'feeds',
   'todos',
   'recipes',
   'mealplans',
