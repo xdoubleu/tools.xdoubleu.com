@@ -28,7 +28,6 @@ func buildCoverApp(t *testing.T) (*books.Books, *objectstore.FakeClient) {
 	clients := books.Clients{
 		UniCat:           nil,
 		WebFetch:         nil,
-		HTMLConvert:      nil,
 		Hardcover:        nil,
 		ObjectStore:      store,
 		KoboStoreBaseURL: "",

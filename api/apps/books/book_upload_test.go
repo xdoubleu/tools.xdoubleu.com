@@ -532,7 +532,6 @@ func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
 		books.Clients{
 			UniCat:           nil,
 			WebFetch:         nil,
-			HTMLConvert:      nil,
 			Hardcover:        mocks.NewMockHardcoverClient(),
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",
@@ -870,7 +869,6 @@ func noExternalMatchApp(t *testing.T, isolatedUser string) *books.Books {
 		books.Clients{
 			UniCat:           nil,
 			WebFetch:         nil,
-			HTMLConvert:      nil,
 			Hardcover:        mocks.NewMockEmptyHardcoverClient(),
 			ObjectStore:      fakeStore,
 			KoboStoreBaseURL: "",

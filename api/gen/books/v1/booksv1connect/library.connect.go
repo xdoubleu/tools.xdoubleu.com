@@ -51,9 +51,6 @@ const (
 	// LibraryServiceCreateBookProcedure is the fully-qualified name of the LibraryService's CreateBook
 	// RPC.
 	LibraryServiceCreateBookProcedure = "/books.v1.LibraryService/CreateBook"
-	// LibraryServiceAddBookByURLProcedure is the fully-qualified name of the LibraryService's
-	// AddBookByURL RPC.
-	LibraryServiceAddBookByURLProcedure = "/books.v1.LibraryService/AddBookByURL"
 	// LibraryServiceUpdateBookStatusProcedure is the fully-qualified name of the LibraryService's
 	// UpdateBookStatus RPC.
 	LibraryServiceUpdateBookStatusProcedure = "/books.v1.LibraryService/UpdateBookStatus"
@@ -103,7 +100,6 @@ type LibraryServiceClient interface {
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
 	GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error)
 	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
-	AddBookByURL(context.Context, *connect.Request[v1.AddBookByURLRequest]) (*connect.Response[v1.AddBookByURLResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
 	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
@@ -164,12 +160,6 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+LibraryServiceCreateBookProcedure,
 			connect.WithSchema(libraryServiceMethods.ByName("CreateBook")),
-			connect.WithClientOptions(opts...),
-		),
-		addBookByURL: connect.NewClient[v1.AddBookByURLRequest, v1.AddBookByURLResponse](
-			httpClient,
-			baseURL+LibraryServiceAddBookByURLProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("AddBookByURL")),
 			connect.WithClientOptions(opts...),
 		),
 		updateBookStatus: connect.NewClient[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse](
@@ -261,7 +251,6 @@ type libraryServiceClient struct {
 	searchExternal        *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
 	getExternalBook       *connect.Client[v1.GetExternalBookRequest, v1.GetExternalBookResponse]
 	createBook            *connect.Client[v1.CreateBookRequest, v1.CreateBookResponse]
-	addBookByURL          *connect.Client[v1.AddBookByURLRequest, v1.AddBookByURLResponse]
 	updateBookStatus      *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
 	updateFinishedAt      *connect.Client[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse]
 	updateProgress        *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
@@ -305,11 +294,6 @@ func (c *libraryServiceClient) GetExternalBook(ctx context.Context, req *connect
 // CreateBook calls books.v1.LibraryService.CreateBook.
 func (c *libraryServiceClient) CreateBook(ctx context.Context, req *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error) {
 	return c.createBook.CallUnary(ctx, req)
-}
-
-// AddBookByURL calls books.v1.LibraryService.AddBookByURL.
-func (c *libraryServiceClient) AddBookByURL(ctx context.Context, req *connect.Request[v1.AddBookByURLRequest]) (*connect.Response[v1.AddBookByURLResponse], error) {
-	return c.addBookByURL.CallUnary(ctx, req)
 }
 
 // UpdateBookStatus calls books.v1.LibraryService.UpdateBookStatus.
@@ -385,7 +369,6 @@ type LibraryServiceHandler interface {
 	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
 	GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error)
 	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
-	AddBookByURL(context.Context, *connect.Request[v1.AddBookByURLRequest]) (*connect.Response[v1.AddBookByURLResponse], error)
 	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
 	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
 	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
@@ -442,12 +425,6 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		LibraryServiceCreateBookProcedure,
 		svc.CreateBook,
 		connect.WithSchema(libraryServiceMethods.ByName("CreateBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceAddBookByURLHandler := connect.NewUnaryHandler(
-		LibraryServiceAddBookByURLProcedure,
-		svc.AddBookByURL,
-		connect.WithSchema(libraryServiceMethods.ByName("AddBookByURL")),
 		connect.WithHandlerOptions(opts...),
 	)
 	libraryServiceUpdateBookStatusHandler := connect.NewUnaryHandler(
@@ -542,8 +519,6 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceGetExternalBookHandler.ServeHTTP(w, r)
 		case LibraryServiceCreateBookProcedure:
 			libraryServiceCreateBookHandler.ServeHTTP(w, r)
-		case LibraryServiceAddBookByURLProcedure:
-			libraryServiceAddBookByURLHandler.ServeHTTP(w, r)
 		case LibraryServiceUpdateBookStatusProcedure:
 			libraryServiceUpdateBookStatusHandler.ServeHTTP(w, r)
 		case LibraryServiceUpdateFinishedAtProcedure:
@@ -601,10 +576,6 @@ func (UnimplementedLibraryServiceHandler) GetExternalBook(context.Context, *conn
 
 func (UnimplementedLibraryServiceHandler) CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.CreateBook is not implemented"))
-}
-
-func (UnimplementedLibraryServiceHandler) AddBookByURL(context.Context, *connect.Request[v1.AddBookByURLRequest]) (*connect.Response[v1.AddBookByURLResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.AddBookByURL is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error) {

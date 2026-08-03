@@ -32,7 +32,6 @@ func TestStart_RegistersJobs(t *testing.T) {
 		books.Clients{
 			UniCat:           nil,
 			WebFetch:         nil,
-			HTMLConvert:      nil,
 			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),
 			KoboStoreBaseURL: "",

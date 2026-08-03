@@ -1,7 +1,6 @@
 package books
 
 import (
-	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -15,10 +14,6 @@ type Clients struct {
 	// WebFetch fetches external web content (articles, RSS bodies, PDFs,
 	// images) with size caps and conditional-GET support.
 	WebFetch webfetch.Client
-	// HTMLConvert overrides the article HTML→EPUB converter. Leave nil for
-	// the default pure-Go builder; tests can inject a fake to assert on the
-	// inputs passed to conversion without building a real EPUB.
-	HTMLConvert services.HTMLConverter
 	// KoboStoreBaseURL is the upstream Kobo store base URL used for proxy/merge.
 	// Override in tests to point at a stub upstream.
 	KoboStoreBaseURL string

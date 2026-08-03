@@ -12,8 +12,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	// imgTag is the <img> element tag name, shared by the EPUB-build
+	// sanitization pass and the PDF-extract HTML rendering.
+	imgTag = "img"
+	// srcAttr is the img src attribute name, shared the same way.
+	srcAttr = "src"
+
+	contentTypeJPEG = "image/jpeg"
+	contentTypePNG  = "image/png"
+)
+
 // imageMediaTypes maps image file extensions to their EPUB OPF manifest
-// media-type — the inverse of imageExtensions (ingest_images.go).
+// media-type.
 //
 //nolint:gochecknoglobals // static lookup table
 var imageMediaTypes = map[string]string{
@@ -36,7 +47,7 @@ type epubImage struct {
 
 // goHTMLConverter builds a standalone EPUB 3 file at outPath from the HTML
 // document at inPath, without shelling out to Calibre. Images already
-// localized next to inPath by localizeImages are embedded automatically.
+// present alongside inPath are embedded automatically.
 func goHTMLConverter(
 	ctx context.Context, inPath, outPath string, meta ArticleMeta,
 ) error {

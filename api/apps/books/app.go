@@ -79,7 +79,6 @@ func New(
 			cfg.R2Bucket,
 		),
 		WebFetch:         webFetchClient,
-		HTMLConvert:      nil, // default pure-Go converter
 		KoboStoreBaseURL: "https://storeapi.kobo.com",
 		PublicAPIBaseURL: cfg.APIURL,
 	}
@@ -117,7 +116,6 @@ func NewInner(
 		clients.Hardcover,
 		clients.ObjectStore,
 		clients.WebFetch,
-		clients.HTMLConvert,
 		authService,
 	)
 	a.resyncBooksJob = jobs.NewResyncMetadataJob(

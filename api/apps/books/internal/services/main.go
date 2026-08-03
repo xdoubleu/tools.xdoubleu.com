@@ -37,7 +37,6 @@ func New(
 	hardcoverClient hardcover.Client,
 	objectStore objectstore.Client,
 	webFetchClient webfetch.Client,
-	htmlConvert HTMLConverter,
 	authService auth.Service,
 ) *Services {
 	kobo := &KoboService{
@@ -67,11 +66,8 @@ func New(
 
 	ingestSvc := NewIngestService(
 		logger,
-		booksSvc,
 		repositories,
-		objectStore,
 		webFetchClient,
-		htmlConvert, // nil defaults to goHTMLConverter
 	)
 
 	return &Services{

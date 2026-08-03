@@ -162,7 +162,6 @@ func TestRunStorageScanNow_Success(t *testing.T) {
 			Hardcover:        nil,
 			ObjectStore:      objectstore.NewFake(),
 			WebFetch:         nil,
-			HTMLConvert:      nil,
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
 		},

@@ -15,6 +15,18 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
+// articlePageHTML builds an HTML page with enough content for readability
+// extraction to accept it.
+func articlePageHTML(title string) string {
+	const para = `<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
+minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit
+esse cillum dolore eu fugiat nulla pariatur.</p>`
+	return `<html><head><title>` + title + `</title></head><body><article><h1>` +
+		title + `</h1>` + para + para + para + `</article></body></html>`
+}
+
 // seedContentBookInLibrary adds a fresh catalog book to userID's library, for
 // tests exercising SetBookContentHTML/GetBookContentHTML/GetBookContent.
 func seedContentBookInLibrary(t *testing.T, ownerID string) *models.Book {
