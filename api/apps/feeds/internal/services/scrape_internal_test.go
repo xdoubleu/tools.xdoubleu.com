@@ -154,6 +154,29 @@ func TestDiscoverPostLinksHeadingCardPrefersHeadingOverDateAndExcerpt(t *testing
 	assert.True(t, links[0].PublishedAt.IsZero())
 }
 
+func TestDiscoverPostLinksExcludesBareShortCategoryPills(t *testing.T) {
+	html := `
+	<html><body>
+	<div class="filters">
+		<a href="/research/frontier-red-team">Frontier red team</a>
+		<a href="/research/societal-impacts">Societal impacts</a>
+		<a href="/research/interpretability">Interpretability</a>
+		<a href="/research/economic-research">Economic research</a>
+	</div>
+	<main>
+		<a href="/research/some-actual-report">
+			<time>Jun 16, 2026</time>
+			<span>A real research report with a proper title</span>
+		</a>
+	</main>
+	</body></html>
+	`
+	links, err := discoverPostLinks("https://example.com/research", []byte(html))
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+	assert.Equal(t, "https://example.com/research/some-actual-report", links[0].URL)
+}
+
 func TestPageTitle(t *testing.T) {
 	title := pageTitle([]byte(blogIndexHTML))
 	assert.Equal(t, "Example Blog", title)

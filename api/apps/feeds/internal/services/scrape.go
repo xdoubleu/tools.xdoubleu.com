@@ -27,6 +27,13 @@ const maxDiscoveredLinks = 30
 // title-like rather than a nav/utility link ("Home", "More", "Sign in").
 const minPostLinkTextLen = 15
 
+// minBarePostLinkTextLen is the higher title-length bar applied to an anchor
+// with no nested <time>/heading element — short topic/category filter pills
+// ("Interpretability", "Economic research") clear minPostLinkTextLen but
+// have no other structural signal (issue #835) distinguishing them from a
+// real post link, unlike a card with a <time> or heading (issue #829).
+const minBarePostLinkTextLen = 25
+
 // excludedPathSegments are URL path segments that mark a link as a listing
 // or utility page rather than a post, even when its anchor text is
 // title-like.
@@ -77,8 +84,10 @@ type discoveredLink struct {
 // real RSS/Atom feed: it skips nav/header/footer/aside/script/style
 // subtrees, then keeps same-domain <a> elements whose title text (a nested
 // heading if present, else the full anchor text minus any <time> element)
-// is title-like (length ≥ minPostLinkTextLen) and whose path doesn't look
-// like a listing/utility page. There is no per-site configuration — this is
+// is title-like — length ≥ minPostLinkTextLen when a nested <time>/heading
+// gives some structural signal the anchor is an article card, else the
+// higher minBarePostLinkTextLen bar — and whose path doesn't look like a
+// listing/utility page. There is no per-site configuration — this is
 // best-effort and will miss or misfire on unusual page layouts.
 func discoverPostLinks(pageURL string, body []byte) ([]discoveredLink, error) {
 	base, err := url.Parse(pageURL)
@@ -131,7 +140,10 @@ func collectPostLinks(
 // title-like anchor text. The title prefers a nested heading (h1-h6) over
 // the anchor's full text, and a nested <time> element's text (parsed with
 // datePublishedLayout) becomes the link's PublishedAt and is excluded from
-// the title when there's no heading to prefer instead.
+// the title when there's no heading to prefer instead. An anchor with
+// neither a nested <time> nor heading — no structural signal it's an
+// article card rather than a plain nav/filter link — must clear the higher
+// minBarePostLinkTextLen bar instead of minPostLinkTextLen.
 func candidateLink(n *html.Node, base *url.URL) (discoveredLink, bool) {
 	resolved, ok := candidatePostURL(n, base)
 	if !ok {
@@ -142,16 +154,22 @@ func candidateLink(n *html.Node, base *url.URL) (discoveredLink, bool) {
 	timeNode := findNode(n, func(c *html.Node) bool {
 		return c.Type == html.ElementNode && c.Data == "time"
 	})
+	heading := findNode(n, func(c *html.Node) bool {
+		return c.Type == html.ElementNode && headingTags[c.Data]
+	})
 
 	var title string
-	if heading := findNode(n, func(c *html.Node) bool {
-		return c.Type == html.ElementNode && headingTags[c.Data]
-	}); heading != nil {
+	if heading != nil {
 		title = strings.Join(strings.Fields(nodeText(heading)), " ")
 	} else {
 		title = strings.Join(strings.Fields(nodeTextExcluding(n, timeNode)), " ")
 	}
-	if len(title) < minPostLinkTextLen {
+
+	minLen := minPostLinkTextLen
+	if timeNode == nil && heading == nil {
+		minLen = minBarePostLinkTextLen
+	}
+	if len(title) < minLen {
 		//nolint:exhaustruct // rejection sentinel; caller only reads ok
 		return discoveredLink{}, false
 	}
