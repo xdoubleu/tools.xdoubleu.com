@@ -63,6 +63,18 @@ describe('useFeeds', () => {
     expect(clientMocks.listFeedItems).toHaveBeenCalledWith({ limit: 50, unreadOnly: true })
   })
 
+  it('useFeedItems threads an optional feedId into the key and request', async () => {
+    renderHook(() => useFeedItems(true, 'feed-1'))
+    const [key, fetcher] = mockUseSWR.mock.calls[0]!
+    expect(key).toBe(swrKeys.feedItems(true, 'feed-1'))
+    await fetcher!()
+    expect(clientMocks.listFeedItems).toHaveBeenCalledWith({
+      limit: 50,
+      unreadOnly: true,
+      feedId: 'feed-1'
+    })
+  })
+
   it('useFetchFeedItemsPage fetches a page at the given offset', async () => {
     clientMocks.listFeedItems.mockResolvedValueOnce({ items: [{ id: 'i1' }], hasMore: true })
     const { result } = renderHook(() => useFetchFeedItemsPage(false))
@@ -73,6 +85,18 @@ describe('useFeeds', () => {
       unreadOnly: false
     })
     expect(page).toEqual({ items: [{ id: 'i1' }], hasMore: true })
+  })
+
+  it('useFetchFeedItemsPage threads an optional feedId through', async () => {
+    clientMocks.listFeedItems.mockResolvedValueOnce({ items: [], hasMore: false })
+    const { result } = renderHook(() => useFetchFeedItemsPage(false, 'feed-1'))
+    await result.current(0)
+    expect(clientMocks.listFeedItems).toHaveBeenCalledWith({
+      limit: 50,
+      offset: 0,
+      unreadOnly: false,
+      feedId: 'feed-1'
+    })
   })
 
   it('useCreateFeed creates and invalidates feeds', async () => {

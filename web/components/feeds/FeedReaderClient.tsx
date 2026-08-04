@@ -8,6 +8,7 @@ import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
+import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/cn'
 import { formatDate } from '@/lib/dates'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
@@ -27,10 +28,11 @@ function readAndBumpLastVisit(): number {
 export default function FeedReaderClient() {
   const [showRead, setShowRead] = useState(false)
   const unreadOnly = !showRead
+  const [selectedFeedId, setSelectedFeedId] = useState<string | undefined>(undefined)
 
   const { data: feedsData } = useFeeds()
-  const { data: itemsData, error, isLoading } = useFeedItems(unreadOnly)
-  const fetchPage = useFetchFeedItemsPage(unreadOnly)
+  const { data: itemsData, error, isLoading } = useFeedItems(unreadOnly, selectedFeedId)
+  const fetchPage = useFetchFeedItemsPage(unreadOnly, selectedFeedId)
   const initialPage = useMemo(
     () => ({ items: itemsData?.items ?? [], hasMore: itemsData?.hasMore ?? false }),
     [itemsData]
@@ -82,7 +84,19 @@ export default function FeedReaderClient() {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        <Select
+          value={selectedFeedId ?? ''}
+          onChange={(e) => setSelectedFeedId(e.target.value || undefined)}
+          className="w-auto"
+        >
+          <option value="">All feeds</option>
+          {(feedsData?.feeds ?? []).map((feed) => (
+            <option key={feed.id} value={feed.id}>
+              {feed.title || feed.url}
+            </option>
+          ))}
+        </Select>
         <Button variant="secondary" size="sm" onClick={() => setShowRead((v) => !v)}>
           {showRead ? 'Show unread only' : 'Show read items'}
         </Button>
