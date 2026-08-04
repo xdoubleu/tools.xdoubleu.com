@@ -171,6 +171,13 @@ manages both apps' tokens independently through `profile.v1.ProfileService`
 
 `golangci-lint` (40+ linters). Key constraints: max line length 88 (`golines`), import order standard → default → `prefix(tools.xdoubleu.com)` (`gci`), max function length 100 lines/50 statements (`funlen`), max cyclomatic complexity 30 (`cyclop`). `nolintlint` requires an explanation on every `//nolint` except `funlen`/`gocognit`/`lll`. Always run `make lint/fix` as the final step; fix anything the auto-fixer can't resolve manually. Exception: if a `.proto` file changed this session, `make proto/generate` must run *after* `make lint/fix` — `gci` reformats generated files' import grouping too, which then fails CI's proto-staleness check (see root `CLAUDE.md`).
 
+**sqlfluff version drift (SQL migrations):** the Makefile installs `sqlfluff` via `brew` (whatever's latest — currently 4.2.2), but CI's `API Lint Workflow` pins `pip install sqlfluff==3.3.0`. The two disagree on some layout rules (e.g. `LT02` continuation-line indent, how long expressions get wrapped), so a migration `make lint/fix` reports clean locally can still fail CI's SQL Lint job (hit on PR #830). If a migration's formatting looks borderline, verify against the pinned version directly instead of trusting local brew:
+```bash
+python3 -m venv /tmp/sqlfluff-venv
+/tmp/sqlfluff-venv/bin/pip install -q sqlfluff==3.3.0
+/tmp/sqlfluff-venv/bin/sqlfluff lint --dialect postgres <path>
+```
+
 ## Testing Notes
 
 - Mock injection for unit tests; mocks live in `internal/mocks/` or an app's own `internal/mocks/`.
