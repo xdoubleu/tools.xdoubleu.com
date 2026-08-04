@@ -874,6 +874,39 @@ func createItem(t *testing.T, client feedsv1connect.FeedServiceClient) string {
 	return ""
 }
 
+// createItemAndFeed is createItem plus the feed ID, for tests that need to
+// distinguish items across multiple feeds.
+func createItemAndFeed(
+	t *testing.T, client feedsv1connect.FeedServiceClient,
+) (string, string) {
+	t.Helper()
+	base := uniqueBlogBase()
+	feedURL := base + "/feed.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"Item Blog",
+		rssItem{"Post", base + "/one", "guid-" + uuid.NewString(), itemContent},
+	)))
+
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	items, err := client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	for _, item := range items.Msg.Items {
+		if item.FeedId == created.Msg.Feed.Id {
+			return item.Id, created.Msg.Feed.Id
+		}
+	}
+	t.Fatal("created item not found")
+	return "", ""
+}
+
 func TestUpdateItem_MarkRead(t *testing.T) {
 	client := newFeedsClient(t)
 	itemID := createItem(t, client)
@@ -1030,6 +1063,28 @@ func TestListFeedItems_Pagination(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, resp.Msg.Items, total)
 	assert.False(t, resp.Msg.HasMore)
+}
+
+// TestListFeedItems_FeedIDFilter creates items on two different feeds and
+// asserts feed_id restricts results to just one of them.
+func TestListFeedItems_FeedIDFilter(t *testing.T) {
+	client := newFeedsClient(t)
+	itemA, feedA := createItemAndFeed(t, client)
+	itemB, feedB := createItemAndFeed(t, client)
+	require.NotEqual(t, feedA, feedB)
+
+	resp, err := client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
+			Limit: pagination.MaxLimit, FeedId: &feedA,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Contains(t, itemIDs(resp.Msg.Items), itemA)
+	assert.NotContains(t, itemIDs(resp.Msg.Items), itemB)
+	for _, item := range resp.Msg.Items {
+		assert.Equal(t, feedA, item.FeedId)
+	}
 }
 
 func itemIDs(items []*feedsv1.Item) []string {

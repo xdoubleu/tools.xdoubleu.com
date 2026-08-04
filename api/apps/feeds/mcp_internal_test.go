@@ -9,6 +9,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/feeds/internal/mocks"
+	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -47,6 +48,20 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 	_, err := h.mcpListFeeds(ctx, mcptools.NoArgs{})
 	require.NoError(t, err)
 
-	_, err = h.mcpListItems(ctx, mcptools.NoArgs{})
+	//nolint:exhaustruct // zero-value args, exercising the "no filters" path
+	_, err = h.mcpListItems(ctx, mcpListItemsArgs{})
 	require.NoError(t, err)
+
+	// A feed_id forwarded to a request that matches nothing still succeeds
+	// (empty result), proving the arg reaches the underlying RPC rather than
+	// being silently dropped like the old NoArgs wrapper did.
+	msg, err := h.mcpListItems(
+		ctx,
+		//nolint:exhaustruct // only FeedID matters for this assertion
+		mcpListItemsArgs{FeedID: "00000000-0000-0000-0000-000000000000"},
+	)
+	require.NoError(t, err)
+	resp, ok := msg.(*feedsv1.ListFeedItemsResponse)
+	require.True(t, ok)
+	require.Empty(t, resp.Items)
 }

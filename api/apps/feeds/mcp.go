@@ -13,6 +13,13 @@ import (
 
 const mcpAppName = "feeds"
 
+type mcpListItemsArgs struct {
+	FeedID     string `json:"feed_id,omitempty"     jsonschema:"restrict to one feed"`
+	Limit      int32  `json:"limit,omitempty"       jsonschema:"page size, 0 for default"`
+	Offset     int32  `json:"offset,omitempty"      jsonschema:"page offset"`
+	UnreadOnly bool   `json:"unread_only,omitempty" jsonschema:"exclude read items"`
+}
+
 // RegisterMCPTools exposes the feeds app's read-only RPCs on the combined
 // apps MCP server. Every tool returns the calling user's own feed data.
 func (a *Feeds) RegisterMCPTools(srv *mcp.Server) {
@@ -34,9 +41,15 @@ func (h *feedsConnectHandler) mcpListFeeds(
 }
 
 func (h *feedsConnectHandler) mcpListItems(
-	ctx context.Context, _ mcptools.NoArgs,
+	ctx context.Context, args mcpListItemsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListFeedItems(ctx, connect.NewRequest(
-		&feedsv1.ListFeedItemsRequest{},
-	)))
+	req := &feedsv1.ListFeedItemsRequest{
+		Limit:      args.Limit,
+		Offset:     args.Offset,
+		UnreadOnly: proto.Bool(args.UnreadOnly),
+	}
+	if args.FeedID != "" {
+		req.FeedId = proto.String(args.FeedID)
+	}
+	return mcptools.Unwrap(h.ListFeedItems(ctx, connect.NewRequest(req)))
 }

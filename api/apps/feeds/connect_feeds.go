@@ -263,8 +263,18 @@ func (h *feedsConnectHandler) ListFeedItems(
 		return nil, cerr
 	}
 
+	var feedID *uuid.UUID
+	if req.Msg.FeedId != nil {
+		parsed, perr := parseFeedID(req.Msg.GetFeedId())
+		if perr != nil {
+			return nil, perr
+		}
+		feedID = &parsed
+	}
+
 	items, hasMore, err := h.app.Services.Feeds.ListItems(
 		ctx, user.ID, req.Msg.Limit, req.Msg.Offset, req.Msg.GetUnreadOnly(),
+		feedID,
 	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
