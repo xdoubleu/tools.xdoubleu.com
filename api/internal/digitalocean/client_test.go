@@ -238,3 +238,51 @@ func TestLatestDeployment_NetworkError(t *testing.T) {
 	_, err := newClient().LatestDeployment(context.Background())
 	require.Error(t, err)
 }
+
+func TestIsTransientAPIError_Unauthorized(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		}))
+	defer cleanup()
+
+	_, err := newClient().LatestDeployment(context.Background())
+	require.Error(t, err)
+	assert.True(t, digitalocean.IsTransientAPIError(err))
+}
+
+func TestIsTransientAPIError_ServerError(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+		}))
+	defer cleanup()
+
+	_, err := newClient().LatestDeployment(context.Background())
+	require.Error(t, err)
+	assert.False(t, digitalocean.IsTransientAPIError(err))
+}
+
+func TestIsTransientAPIError_Timeout(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(_ http.ResponseWriter, _ *http.Request) {
+			time.Sleep(50 * time.Millisecond)
+		}))
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	_, err := newClient().LatestDeployment(ctx)
+	require.Error(t, err)
+	assert.True(t, digitalocean.IsTransientAPIError(err))
+}
+
+func TestIsTransientAPIError_ConnectionRefused(t *testing.T) {
+	digitalocean.SetBaseURL("http://127.0.0.1:1")
+	defer digitalocean.SetBaseURL(realBaseURL)
+
+	_, err := newClient().LatestDeployment(context.Background())
+	require.Error(t, err)
+	assert.False(t, digitalocean.IsTransientAPIError(err))
+}

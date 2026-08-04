@@ -282,6 +282,18 @@ func isRetryableStatus(status int) bool {
 		(status >= http.StatusInternalServerError && status < 600)
 }
 
+// IsTransientAPIError reports whether err is a known-benign, self-healing
+// failure (a 401 — DO-edge wording for an mTLS blip, not our own cert config
+// — or a timeout) rather than a real bug, so callers polling on an interval
+// can log it at a lower level than a persistent failure.
+func IsTransientAPIError(err error) bool {
+	var apiErr *apiError
+	if errors.As(err, &apiErr) && apiErr.status == http.StatusUnauthorized {
+		return true
+	}
+	return isTransientErr(err)
+}
+
 func isTransientErr(err error) bool {
 	if errors.Is(err, context.Canceled) {
 		return false

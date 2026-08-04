@@ -256,6 +256,45 @@ func TestListUnresolvedIssues_NetworkError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestIsTransientAPIError_ServerError(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListUnresolvedIssues(context.Background())
+	require.Error(t, err)
+	assert.True(t, sentryapi.IsTransientAPIError(err))
+}
+
+func TestIsTransientAPIError_NonRetryable4xx(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusForbidden)
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListUnresolvedIssues(context.Background())
+	require.Error(t, err)
+	assert.False(t, sentryapi.IsTransientAPIError(err))
+}
+
+func TestIsTransientAPIError_Timeout(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(_ http.ResponseWriter, _ *http.Request) {
+			time.Sleep(50 * time.Millisecond)
+		}))
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	_, err := newClient().ListUnresolvedIssues(ctx)
+	require.Error(t, err)
+	assert.True(t, sentryapi.IsTransientAPIError(err))
+}
+
 func TestResolveIssue_SendsResolvePUT(t *testing.T) {
 	var gotMethod, gotPath, gotBody, authHeader string
 	cleanup := buildServer(http.HandlerFunc(

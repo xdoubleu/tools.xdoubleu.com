@@ -84,8 +84,8 @@ func (j *IssueNotifierJob) notifySentry(
 		return nil
 	}
 	if err != nil {
-		logger.ErrorContext(ctx, "issue-notifier: failed to list sentry issues",
-			essentialogger.ErrAttr(err))
+		logAPIErr(ctx, logger, "issue-notifier: failed to list sentry issues",
+			err, sentryapi.IsTransientAPIError(err))
 		return nil
 	}
 
@@ -112,8 +112,8 @@ func (j *IssueNotifierJob) notifyDigitalOcean(
 		return nil
 	}
 	if err != nil {
-		logger.ErrorContext(ctx, "issue-notifier: failed to get latest deployment",
-			essentialogger.ErrAttr(err))
+		logAPIErr(ctx, logger, "issue-notifier: failed to get latest deployment",
+			err, digitalocean.IsTransientAPIError(err))
 		return nil
 	}
 	if deployment == nil || deployment.Phase != deploymentErrorPhase {
@@ -128,6 +128,19 @@ func (j *IssueNotifierJob) notifyDigitalOcean(
 		deployment.Cause,
 	)
 	return j.notifyOnce(ctx, key, subject, body)
+}
+
+// logAPIErr logs a poll failure at Warn (transient, self-heals on the next
+// 5-minute poll) or Error (reaches Sentry, needs a look) depending on
+// whether the client classified the error as a known-benign shape.
+func logAPIErr(
+	ctx context.Context, logger *slog.Logger, msg string, err error, transient bool,
+) {
+	if transient {
+		logger.WarnContext(ctx, msg, essentialogger.ErrAttr(err))
+		return
+	}
+	logger.ErrorContext(ctx, msg, essentialogger.ErrAttr(err))
 }
 
 // notifyOnce sends subject/body and records key as notified, unless key was

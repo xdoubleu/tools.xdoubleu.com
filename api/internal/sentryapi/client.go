@@ -30,6 +30,18 @@ var backoffBase = 500 * time.Millisecond
 //nolint:gochecknoglobals // overridable in tests
 var backoffCap = 30 * time.Second
 
+// apiError is a non-2xx response from the Sentry API, kept structured so
+// callers can distinguish known-transient statuses (5xx) from real failures
+// via errors.As.
+type apiError struct {
+	status int
+	body   string
+}
+
+func (e *apiError) Error() string {
+	return fmt.Sprintf("sentry API returned %d: %s", e.status, e.body)
+}
+
 const apiTimeout = 15 * time.Second
 
 const (
@@ -251,17 +263,13 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 
 		if isRetryableStatus(resp.StatusCode) {
 			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
-				"sentry API returned %d: %s", resp.StatusCode, string(raw),
-			)
+			return true, &apiError{status: resp.StatusCode, body: string(raw)}
 		}
 
 		if resp.StatusCode < http.StatusOK ||
 			resp.StatusCode >= http.StatusMultipleChoices {
 			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"sentry API returned %d: %s", resp.StatusCode, string(raw),
-			)
+			return false, &apiError{status: resp.StatusCode, body: string(raw)}
 		}
 
 		return false, json.NewDecoder(resp.Body).Decode(dst)
@@ -288,17 +296,13 @@ func (c *client) put(ctx context.Context, endpoint, token, body string) error {
 
 		if isRetryableStatus(resp.StatusCode) {
 			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
-				"sentry API returned %d: %s", resp.StatusCode, string(raw),
-			)
+			return true, &apiError{status: resp.StatusCode, body: string(raw)}
 		}
 
 		if resp.StatusCode < http.StatusOK ||
 			resp.StatusCode >= http.StatusMultipleChoices {
 			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"sentry API returned %d: %s", resp.StatusCode, string(raw),
-			)
+			return false, &apiError{status: resp.StatusCode, body: string(raw)}
 		}
 
 		_, _ = io.Copy(io.Discard, resp.Body)
@@ -362,6 +366,17 @@ func backoffDelay(attempt int) time.Duration {
 func isRetryableStatus(status int) bool {
 	return status == http.StatusTooManyRequests ||
 		(status >= http.StatusInternalServerError && status < 600)
+}
+
+// IsTransientAPIError reports whether err is a known-benign, self-healing
+// failure (a 5xx or a timeout) rather than a real bug, so callers polling on
+// an interval can log it at a lower level than a persistent failure.
+func IsTransientAPIError(err error) bool {
+	var apiErr *apiError
+	if errors.As(err, &apiErr) && apiErr.status >= http.StatusInternalServerError {
+		return true
+	}
+	return isTransientErr(err)
 }
 
 func isTransientErr(err error) bool {

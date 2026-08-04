@@ -126,7 +126,13 @@ func (f *fakeNotifiedRepo) Insert(_ context.Context, key string) error {
 }
 
 func testLogger() *slog.Logger {
-	return slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil))
+	logger, _ := testLoggerWithBuf()
+	return logger
+}
+
+func testLoggerWithBuf() (*slog.Logger, *bytes.Buffer) {
+	buf := &bytes.Buffer{}
+	return slog.New(slog.NewTextHandler(buf, nil)), buf
 }
 
 func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
@@ -208,6 +214,60 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 
 	assert.False(t, notified.keys["sentry:1"])
+}
+
+func TestIssueNotifierLogsWarnForTransientDOError(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	do := fakeDOClient{deployment: nil, err: context.DeadlineExceeded}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	logger, buf := testLoggerWithBuf()
+
+	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.Contains(t, buf.String(), "level=WARN")
+	assert.NotContains(t, buf.String(), "level=ERROR")
+}
+
+func TestIssueNotifierLogsErrorForNonTransientDOError(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	do := fakeDOClient{deployment: nil, err: assert.AnError}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	logger, buf := testLoggerWithBuf()
+
+	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.Contains(t, buf.String(), "level=ERROR")
+}
+
+func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: context.DeadlineExceeded}
+	do := fakeDOClient{deployment: nil, err: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	logger, buf := testLoggerWithBuf()
+
+	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.Contains(t, buf.String(), "level=WARN")
+	assert.NotContains(t, buf.String(), "level=ERROR")
+}
+
+func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: assert.AnError}
+	do := fakeDOClient{deployment: nil, err: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	logger, buf := testLoggerWithBuf()
+
+	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.Contains(t, buf.String(), "level=ERROR")
 }
 
 func TestIssueNotifierIDAndRunEvery(t *testing.T) {
