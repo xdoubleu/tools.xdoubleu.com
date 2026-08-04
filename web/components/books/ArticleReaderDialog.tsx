@@ -1,6 +1,5 @@
 'use client'
 
-import DOMPurify from 'dompurify'
 import {
   Dialog,
   DialogContent,
@@ -9,6 +8,7 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import { useGetBookContent } from '@/hooks/useBooks'
+import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 
 interface ArticleReaderDialogProps {
   bookId: string
@@ -74,7 +74,7 @@ export default function ArticleReaderDialog({
               className="prose prose-sm max-w-none text-foreground p-1"
               // Content originates from ingested third-party HTML — always
               // sanitize before rendering.
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}
             />
           )}
         </div>

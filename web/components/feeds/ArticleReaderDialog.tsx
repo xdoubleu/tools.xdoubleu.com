@@ -1,6 +1,5 @@
 'use client'
 
-import DOMPurify from 'dompurify'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,7 @@ import {
 import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
 import FeedItemMarkReadButton from '@/components/feeds/FeedItemMarkReadButton'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
+import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 
 interface ArticleReaderDialogProps {
   item: Item
@@ -79,7 +79,7 @@ export default function ArticleReaderDialog({
               className="prose prose-sm max-w-none text-foreground p-1"
               // The HTML originates from third-party RSS feeds — always
               // sanitize before rendering.
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}
             />
           )}
         </div>
