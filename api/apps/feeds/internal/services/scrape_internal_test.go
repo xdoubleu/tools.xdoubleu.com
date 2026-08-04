@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,6 +111,47 @@ func TestCandidatePostURLRejections(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, links, 1)
 	assert.Equal(t, "https://example.com/posts/only-real-post-here", links[0].URL)
+}
+
+func TestDiscoverPostLinksTimeOnlyCardStripsDateFromTitle(t *testing.T) {
+	html := `
+	<html><body><main>
+		<a href="/research/some-report">
+			<time>Jun 16, 2026</time>
+			<span>Economic Research</span>
+			<span>Agentic coding and persistent returns to expertise</span>
+		</a>
+	</main></body></html>
+	`
+	links, err := discoverPostLinks("https://example.com", []byte(html))
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+	assert.Equal(
+		t,
+		"Economic Research Agentic coding and persistent returns to expertise",
+		links[0].Title,
+	)
+	assert.True(
+		t,
+		time.Date(2026, time.June, 16, 0, 0, 0, 0, time.UTC).
+			Equal(links[0].PublishedAt),
+	)
+}
+
+func TestDiscoverPostLinksHeadingCardPrefersHeadingOverDateAndExcerpt(t *testing.T) {
+	html := `
+	<html><body><main>
+		<a href="/engineering/some-post">
+			<h3>A postmortem of three recent issues</h3>
+			<div>Sep 17, 2025</div>
+		</a>
+	</main></body></html>
+	`
+	links, err := discoverPostLinks("https://example.com", []byte(html))
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+	assert.Equal(t, "A postmortem of three recent issues", links[0].Title)
+	assert.True(t, links[0].PublishedAt.IsZero())
 }
 
 func TestPageTitle(t *testing.T) {
