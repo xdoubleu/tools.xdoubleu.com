@@ -5,6 +5,12 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/books/checksum', () => ({
   sha256Hex: jest.fn().mockResolvedValue('aabbccdd')
 }))
+// The real limiter paces at 3 req/s — no-op it so retry/backoff tests (which
+// use real timers) stay fast and their timing assertions stay about the
+// retry backoff, not this pacing.
+jest.mock('@/lib/books/rateLimiter', () => ({
+  createRateLimiter: () => async () => {}
+}))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({
     getBooksProgress: jest.fn().mockResolvedValue({}),
