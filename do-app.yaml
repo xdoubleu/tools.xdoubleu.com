@@ -69,6 +69,13 @@ services:
       - key: SENTRY_DSN
         scope: RUN_TIME
         type: SECRET
+      # DSN for the bundled Next.js child's own Sentry project — kept separate
+      # from SENTRY_DSN (the api's) so frontend and backend errors don't land
+      # in the same project. Forwarded to the child as its own SENTRY_DSN env
+      # var by web_process.go.
+      - key: SENTRY_DSN_WEB
+        scope: RUN_TIME
+        type: SECRET
       # Used server-side by the OAuth 2.1 consent page (/oauth/consent) to
       # drive the Supabase authorization endpoints, and passed through to the
       # Next.js child (cmd/api/web_process.go). SUPABASE_URL is

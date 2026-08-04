@@ -14,6 +14,7 @@ type Config struct {
 	WebURL          string
 	APIURL          string
 	SentryDsn       string
+	SentryDsnWeb    string
 	SampleRate      float64
 	AccessExpiry    string
 	RefreshExpiry   string
@@ -85,6 +86,7 @@ func New(logger *slog.Logger) Config {
 	cfg.WebURL = parser.EnvStr("WEB_URL", "http://localhost:3000")
 	cfg.APIURL = parser.EnvStr("API_URL", "http://localhost:8000")
 	cfg.SentryDsn = parser.EnvStr("SENTRY_DSN", "")
+	cfg.SentryDsnWeb = parser.EnvStr("SENTRY_DSN_WEB", "")
 	cfg.SampleRate = parser.EnvFloat("SAMPLE_RATE", 1.0)
 	cfg.AccessExpiry = parser.EnvStr("ACCESS_EXPIRY", "1h")
 	cfg.RefreshExpiry = parser.EnvStr("REFRESH_EXPIRY", "7d")

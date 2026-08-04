@@ -77,7 +77,7 @@ func webProcessEnv(cfg config.Config) []string {
 		"NODE_ENV=production",
 		"NODE_OPTIONS=--max-old-space-size=192",
 		"API_URL=" + cfg.APIURL,
-		"SENTRY_DSN=" + cfg.SentryDsn,
+		"SENTRY_DSN=" + cfg.SentryDsnWeb,
 		"SUPABASE_URL=" + cfg.SupabaseURL,
 		"SUPABASE_ANON_KEY=" + cfg.SupabaseAnonKey,
 		"RELEASE=" + cfg.Release,
