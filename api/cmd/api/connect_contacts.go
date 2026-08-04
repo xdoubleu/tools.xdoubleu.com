@@ -12,6 +12,7 @@ import (
 	contactsv1 "tools.xdoubleu.com/gen/contacts/v1"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -109,6 +110,9 @@ func (h *contactsConnectHandler) CreateContact(
 	if err := h.app.contacts.AddByEmail(
 		ctx, userID, req.Msg.Email, req.Msg.DisplayName,
 	); err != nil {
+		if contacts.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
