@@ -20,11 +20,10 @@ SET
     ))
 FROM (
     SELECT
-        items.id,
-        (regexp_match(items.title, '[A-Z][a-z]{2} \d{1,2}, \d{4}'))[1]
-            AS date_text
-    FROM feeds.items AS items
-    INNER JOIN feeds.feeds AS f ON items.feed_id = f.id
+        si.id,
+        (regexp_match(si.title, '[A-Z][a-z]{2} \d{1,2}, \d{4}'))[1] AS date_text
+    FROM feeds.items AS si
+    INNER JOIN feeds.feeds AS f ON si.feed_id = f.id
     WHERE f.source_type = 'scrape'
 ) AS m
 WHERE i.id = m.id AND m.date_text IS NOT NULL;
