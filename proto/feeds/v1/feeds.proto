@@ -95,6 +95,9 @@ message ListFeedItemsRequest {
   // Excludes items with a set read_at when true. Unset/false returns both
   // read and unread items.
   optional bool unread_only = 3;
+  // Restricts results to one feed. Unset returns items from any of the
+  // caller's feeds.
+  optional string feed_id = 4;
 }
 message ListFeedItemsResponse {
   repeated Item items = 1;

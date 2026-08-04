@@ -153,11 +153,13 @@ func (repo *ItemsRepository) Update(
 // pagination.Clamp). Error/skip dedup markers (ingest_error set, no title or
 // content) are excluded — they exist only so polling doesn't retry a guid,
 // not for display. unreadOnly, when true, excludes items with a set read_at.
+// feedID, when non-nil, restricts results to that one feed.
 func (repo *ItemsRepository) ListByUser(
 	ctx context.Context,
 	userID string,
 	limit, offset int32,
 	unreadOnly bool,
+	feedID *uuid.UUID,
 ) ([]models.Item, bool, error) {
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
@@ -167,10 +169,13 @@ func (repo *ItemsRepository) ListByUser(
 		JOIN feeds.feeds f ON f.id = i.feed_id
 		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
 		  AND ($4::bool = false OR i.read_at IS NULL)
+		  AND ($5::uuid IS NULL OR i.feed_id = $5)
 		ORDER BY i.published_at DESC, i.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
-	rows, err := repo.db.Query(ctx, query, userID, sqlLimit, offset, unreadOnly)
+	rows, err := repo.db.Query(
+		ctx, query, userID, sqlLimit, offset, unreadOnly, feedID,
+	)
 	if err != nil {
 		return nil, false, postgres.PgxErrorToHTTPError(err)
 	}

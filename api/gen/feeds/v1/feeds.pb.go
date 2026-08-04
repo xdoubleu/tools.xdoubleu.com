@@ -7,11 +7,12 @@
 package feedsv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -776,7 +777,10 @@ type ListFeedItemsRequest struct {
 	Offset int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	// Excludes items with a set read_at when true. Unset/false returns both
 	// read and unread items.
-	UnreadOnly    *bool `protobuf:"varint,3,opt,name=unread_only,json=unreadOnly,proto3,oneof" json:"unread_only,omitempty"`
+	UnreadOnly *bool `protobuf:"varint,3,opt,name=unread_only,json=unreadOnly,proto3,oneof" json:"unread_only,omitempty"`
+	// Restricts results to one feed. Unset returns items from any of the
+	// caller's feeds.
+	FeedId        *string `protobuf:"bytes,4,opt,name=feed_id,json=feedId,proto3,oneof" json:"feed_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -830,6 +834,13 @@ func (x *ListFeedItemsRequest) GetUnreadOnly() bool {
 		return *x.UnreadOnly
 	}
 	return false
+}
+
+func (x *ListFeedItemsRequest) GetFeedId() string {
+	if x != nil && x.FeedId != nil {
+		return *x.FeedId
+	}
+	return ""
 }
 
 type ListFeedItemsResponse struct {
@@ -1050,13 +1061,16 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\fingest_error\x18\n" +
 	" \x01(\tR\vingestError\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\v \x01(\tR\tcreatedAt\"z\n" +
+	"created_at\x18\v \x01(\tR\tcreatedAt\"\xa4\x01\n" +
 	"\x14ListFeedItemsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12$\n" +
 	"\vunread_only\x18\x03 \x01(\bH\x00R\n" +
-	"unreadOnly\x88\x01\x01B\x0e\n" +
-	"\f_unread_only\"X\n" +
+	"unreadOnly\x88\x01\x01\x12\x1c\n" +
+	"\afeed_id\x18\x04 \x01(\tH\x01R\x06feedId\x88\x01\x01B\x0e\n" +
+	"\f_unread_onlyB\n" +
+	"\n" +
+	"\b_feed_id\"X\n" +
 	"\x15ListFeedItemsResponse\x12$\n" +
 	"\x05items\x18\x01 \x03(\v2\x0e.feeds.v1.ItemR\x05items\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xb0\x01\n" +
