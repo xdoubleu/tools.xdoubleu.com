@@ -169,3 +169,11 @@ func (e *notFoundError) Error() string {
 func (e *notFoundError) HTTPStatus() int {
 	return http.StatusNotFound
 }
+
+// IsNotFound reports whether err is (or wraps) the "no user found" error
+// AddByEmail returns for expected user input, distinguishing it from real
+// internal failures so callers don't report it as one.
+func IsNotFound(err error) bool {
+	var nfErr *notFoundError
+	return errors.As(err, &nfErr)
+}

@@ -63,6 +63,9 @@ func TestCreateContact_NotFound(t *testing.T) {
 	setCookieOnRequest(req, accessToken)
 	_, err := client.CreateContact(context.Background(), req)
 	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeNotFound, connectErr.Code())
 }
 
 func TestAcceptContact_InvalidUUID(t *testing.T) {
