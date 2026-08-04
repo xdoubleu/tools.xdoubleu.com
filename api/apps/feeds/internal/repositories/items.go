@@ -9,6 +9,7 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/internal/pagination"
 )
 
 // ItemsRepository stores ingested feed entries (feeds.items) — a feed's own
@@ -143,24 +144,31 @@ func (repo *ItemsRepository) Update(
 	return item, nil
 }
 
-// ListByUser returns every successfully ingested item from any of userID's
-// feeds, newest first. Error/skip dedup markers (ingest_error set, no title
-// or content) are excluded — they exist only so polling doesn't retry a
-// guid, not for display.
+// ListByUser returns non-dismissed, successfully ingested items from any of
+// userID's feeds, newest first, paginated by limit/offset (see
+// pagination.Clamp). Error/skip dedup markers (ingest_error set, no title or
+// content) are excluded — they exist only so polling doesn't retry a guid,
+// not for display. unreadOnly, when true, excludes items with a set read_at.
 func (repo *ItemsRepository) ListByUser(
 	ctx context.Context,
 	userID string,
-) ([]models.Item, error) {
+	limit, offset int32,
+	unreadOnly bool,
+) ([]models.Item, bool, error) {
+	safeLimit, sqlLimit := pagination.Clamp(limit)
+
 	query := `
 		SELECT ` + itemColumns + `
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
-		WHERE f.user_id = $1 AND i.ingest_error IS NULL
+		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
+		  AND ($4::bool = false OR i.read_at IS NULL)
 		ORDER BY i.published_at DESC, i.created_at DESC
+		LIMIT $2 OFFSET $3
 	`
-	rows, err := repo.db.Query(ctx, query, userID)
+	rows, err := repo.db.Query(ctx, query, userID, sqlLimit, offset, unreadOnly)
 	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
+		return nil, false, postgres.PgxErrorToHTTPError(err)
 	}
 	defer rows.Close()
 
@@ -168,12 +176,14 @@ func (repo *ItemsRepository) ListByUser(
 	for rows.Next() {
 		item, scanErr := scanItem(rows)
 		if scanErr != nil {
-			return nil, postgres.PgxErrorToHTTPError(scanErr)
+			return nil, false, postgres.PgxErrorToHTTPError(scanErr)
 		}
 		out = append(out, *item)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
+		return nil, false, postgres.PgxErrorToHTTPError(err)
 	}
-	return out, nil
+
+	page, hasMore := pagination.Split(out, safeLimit)
+	return page, hasMore, nil
 }

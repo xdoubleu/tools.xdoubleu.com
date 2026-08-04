@@ -77,12 +77,14 @@ func (s *FeedService) List(
 	return s.feeds.List(ctx, userID)
 }
 
-// ListItems returns every item ingested by any of the user's feeds.
+// ListItems returns a page of items ingested by any of the user's feeds.
 func (s *FeedService) ListItems(
 	ctx context.Context,
 	userID string,
-) ([]models.Item, error) {
-	return s.items.ListByUser(ctx, userID)
+	limit, offset int32,
+	unreadOnly bool,
+) ([]models.Item, bool, error) {
+	return s.items.ListByUser(ctx, userID, limit, offset, unreadOnly)
 }
 
 // Create validates the URL by fetching and parsing it and stores the feed

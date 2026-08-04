@@ -256,14 +256,16 @@ func (h *feedsConnectHandler) RefreshFeed(
 
 func (h *feedsConnectHandler) ListFeedItems(
 	ctx context.Context,
-	_ *connect.Request[feedsv1.ListFeedItemsRequest],
+	req *connect.Request[feedsv1.ListFeedItemsRequest],
 ) (*connect.Response[feedsv1.ListFeedItemsResponse], error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
 
-	items, err := h.app.Services.Feeds.ListItems(ctx, user.ID)
+	items, hasMore, err := h.app.Services.Feeds.ListItems(
+		ctx, user.ID, req.Msg.Limit, req.Msg.Offset, req.Msg.GetUnreadOnly(),
+	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
 	}
@@ -272,7 +274,10 @@ func (h *feedsConnectHandler) ListFeedItems(
 	for i, item := range items {
 		out[i] = protoItem(item)
 	}
-	return connect.NewResponse(&feedsv1.ListFeedItemsResponse{Items: out}), nil
+	return connect.NewResponse(&feedsv1.ListFeedItemsResponse{
+		Items:   out,
+		HasMore: hasMore,
+	}), nil
 }
 
 func (h *feedsConnectHandler) UpdateItem(

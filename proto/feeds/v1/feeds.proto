@@ -89,8 +89,17 @@ message Item {
   string created_at = 11;
 }
 
-message ListFeedItemsRequest {}
-message ListFeedItemsResponse { repeated Item items = 1; }
+message ListFeedItemsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  // Excludes items with a set read_at when true. Unset/false returns both
+  // read and unread items.
+  optional bool unread_only = 3;
+}
+message ListFeedItemsResponse {
+  repeated Item items = 1;
+  bool has_more = 2;
+}
 
 // UpdateItem partially updates an item's read/dismissed/favourite state —
 // only fields explicitly set are applied; unset fields are left unchanged.

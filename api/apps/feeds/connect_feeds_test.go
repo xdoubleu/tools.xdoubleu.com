@@ -14,6 +14,7 @@ import (
 
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
+	"tools.xdoubleu.com/internal/pagination"
 )
 
 func newFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {
@@ -935,6 +936,108 @@ func TestUpdateItem_Favourite(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Item.Favourite)
+}
+
+func TestListFeedItems_ExcludesDismissed(t *testing.T) {
+	client := newFeedsClient(t)
+	itemID := createItem(t, client)
+
+	dismissed := true
+	_, err := client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(
+			&feedsv1.UpdateItemRequest{ItemId: itemID, Dismissed: &dismissed},
+		),
+	)
+	require.NoError(t, err)
+
+	resp, err := client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	for _, item := range resp.Msg.Items {
+		assert.NotEqual(t, itemID, item.Id, "dismissed item must not be listed")
+	}
+}
+
+func TestListFeedItems_UnreadOnly(t *testing.T) {
+	client := newFeedsClient(t)
+	itemID := createItem(t, client)
+
+	read := true
+	_, err := client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read}),
+	)
+	require.NoError(t, err)
+
+	unreadOnly := true
+	resp, err := client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(&feedsv1.ListFeedItemsRequest{UnreadOnly: &unreadOnly}),
+	)
+	require.NoError(t, err)
+	for _, item := range resp.Msg.Items {
+		assert.NotEqual(
+			t,
+			itemID,
+			item.Id,
+			"read item must not be listed when unread_only",
+		)
+	}
+
+	resp, err = client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	assert.Contains(
+		t,
+		itemIDs(resp.Msg.Items),
+		itemID,
+		"unset unread_only returns read items too",
+	)
+}
+
+// Other tests in this package share the same test user/DB (see app_test.go),
+// so the item count here is relative to whatever already accumulated rather
+// than an absolute number.
+func TestListFeedItems_Pagination(t *testing.T) {
+	client := newFeedsClient(t)
+	createItem(t, client)
+	createItem(t, client)
+	createItem(t, client)
+
+	all, err := client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(&feedsv1.ListFeedItemsRequest{Limit: pagination.MaxLimit}),
+	)
+	require.NoError(t, err)
+	total := len(all.Msg.Items)
+	require.GreaterOrEqual(t, total, 3)
+
+	resp, err := client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(&feedsv1.ListFeedItemsRequest{Limit: int32(total - 1)}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, resp.Msg.Items, total-1)
+	assert.True(t, resp.Msg.HasMore)
+
+	resp, err = client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(&feedsv1.ListFeedItemsRequest{Limit: int32(total)}),
+	)
+	require.NoError(t, err)
+	assert.Len(t, resp.Msg.Items, total)
+	assert.False(t, resp.Msg.HasMore)
+}
+
+func itemIDs(items []*feedsv1.Item) []string {
+	out := make([]string, len(items))
+	for i, item := range items {
+		out[i] = item.Id
+	}
+	return out
 }
 
 func TestUpdateItem_InvalidID(t *testing.T) {

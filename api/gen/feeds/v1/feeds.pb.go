@@ -7,11 +7,12 @@
 package feedsv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -771,7 +772,12 @@ func (x *Item) GetCreatedAt() string {
 }
 
 type ListFeedItemsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Limit  int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	// Excludes items with a set read_at when true. Unset/false returns both
+	// read and unread items.
+	UnreadOnly    *bool `protobuf:"varint,3,opt,name=unread_only,json=unreadOnly,proto3,oneof" json:"unread_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -806,9 +812,31 @@ func (*ListFeedItemsRequest) Descriptor() ([]byte, []int) {
 	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{12}
 }
 
+func (x *ListFeedItemsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListFeedItemsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *ListFeedItemsRequest) GetUnreadOnly() bool {
+	if x != nil && x.UnreadOnly != nil {
+		return *x.UnreadOnly
+	}
+	return false
+}
+
 type ListFeedItemsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []*Item                `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -848,6 +876,13 @@ func (x *ListFeedItemsResponse) GetItems() []*Item {
 		return x.Items
 	}
 	return nil
+}
+
+func (x *ListFeedItemsResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 // UpdateItem partially updates an item's read/dismissed/favourite state —
@@ -1016,10 +1051,16 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\fingest_error\x18\n" +
 	" \x01(\tR\vingestError\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\v \x01(\tR\tcreatedAt\"\x16\n" +
-	"\x14ListFeedItemsRequest\"=\n" +
+	"created_at\x18\v \x01(\tR\tcreatedAt\"z\n" +
+	"\x14ListFeedItemsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12$\n" +
+	"\vunread_only\x18\x03 \x01(\bH\x00R\n" +
+	"unreadOnly\x88\x01\x01B\x0e\n" +
+	"\f_unread_only\"X\n" +
 	"\x15ListFeedItemsResponse\x12$\n" +
-	"\x05items\x18\x01 \x03(\v2\x0e.feeds.v1.ItemR\x05items\"\xb0\x01\n" +
+	"\x05items\x18\x01 \x03(\v2\x0e.feeds.v1.ItemR\x05items\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xb0\x01\n" +
 	"\x11UpdateItemRequest\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x17\n" +
 	"\x04read\x18\x02 \x01(\bH\x00R\x04read\x88\x01\x01\x12!\n" +
@@ -1115,6 +1156,7 @@ func file_feeds_v1_feeds_proto_init() {
 	if File_feeds_v1_feeds_proto != nil {
 		return
 	}
+	file_feeds_v1_feeds_proto_msgTypes[12].OneofWrappers = []any{}
 	file_feeds_v1_feeds_proto_msgTypes[14].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

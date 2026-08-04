@@ -12,7 +12,7 @@ export default async function FeedsPage() {
   const feedsClient = await createServerClient(FeedService)
 
   const [feedItems, feeds] = await Promise.all([
-    fetchOrNull(() => feedsClient.listFeedItems({})),
+    fetchOrNull(() => feedsClient.listFeedItems({ unreadOnly: true })),
     fetchOrNull(() => feedsClient.listFeeds({}))
   ])
 
@@ -20,7 +20,7 @@ export default async function FeedsPage() {
     <PageContainer className="p-6">
       <SWRFallback
         fallback={{
-          ...(feedItems ? { [swrKeys.feedItems]: feedItems } : {}),
+          ...(feedItems ? { [swrKeys.feedItems(true)]: feedItems } : {}),
           ...(feeds ? { [swrKeys.feeds]: feeds } : {})
         }}
       >

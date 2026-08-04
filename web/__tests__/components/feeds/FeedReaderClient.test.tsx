@@ -1,13 +1,15 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { ItemSchema, FeedSchema } from '@/lib/gen/feeds/v1/feeds_pb'
 
 const mockUseFeeds = jest.fn()
 const mockUseFeedItems = jest.fn()
+const mockUseFetchFeedItemsPage = jest.fn()
 
 jest.mock('@/hooks/useFeeds', () => ({
   useFeeds: () => mockUseFeeds(),
-  useFeedItems: () => mockUseFeedItems(),
+  useFeedItems: (unreadOnly: boolean) => mockUseFeedItems(unreadOnly),
+  useFetchFeedItemsPage: (unreadOnly: boolean) => mockUseFetchFeedItemsPage(unreadOnly),
   useUpdateItem: () => jest.fn()
 }))
 
@@ -46,6 +48,7 @@ describe('FeedReaderClient', () => {
     mockUseFeeds.mockReturnValue({
       data: { feeds: [create(FeedSchema, { id: 'feed-1', title: 'Example Blog' })] }
     })
+    mockUseFetchFeedItemsPage.mockReturnValue(jest.fn())
   })
 
   it('shows a loading state', () => {
@@ -65,35 +68,41 @@ describe('FeedReaderClient', () => {
   })
 
   it('shows an empty state when there are no unread items', () => {
-    mockUseFeedItems.mockReturnValue({ data: { items: [] }, error: undefined, isLoading: false })
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
     render(<FeedReaderClient />)
     expect(screen.getByText('No unread feed items.')).toBeInTheDocument()
   })
 
-  it('lists unread items with their feed title, filtering out read/dismissed ones', () => {
+  it('defaults to querying unread-only items', () => {
     mockUseFeedItems.mockReturnValue({
-      data: {
-        items: [
-          item('1'),
-          item('2', { readAt: '2026-07-02T00:00:00Z' }),
-          item('3', { dismissed: true })
-        ]
-      },
+      data: { items: [], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+    expect(mockUseFeedItems).toHaveBeenCalledWith(true)
+  })
+
+  it('lists items with their feed title (server already filters read/dismissed)', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
       error: undefined,
       isLoading: false
     })
     render(<FeedReaderClient />)
 
     expect(screen.getByText('Item 1')).toBeInTheDocument()
-    expect(screen.queryByText('Item 2')).not.toBeInTheDocument()
-    expect(screen.queryByText('Item 3')).not.toBeInTheDocument()
     expect(screen.getByText('Example Blog')).toBeInTheDocument()
   })
 
   it('shows a no-content hint for items without stored HTML', () => {
     const noContentItem = create(ItemSchema, { id: '4', title: 'Item 4', contentHtml: '' })
     mockUseFeedItems.mockReturnValue({
-      data: { items: [noContentItem] },
+      data: { items: [noContentItem], hasMore: false },
       error: undefined,
       isLoading: false
     })
@@ -109,7 +118,8 @@ describe('FeedReaderClient', () => {
         items: [
           item('1', { createdAt: '2020-01-01T00:00:00Z' }),
           item('2', { createdAt: '2030-01-01T00:00:00Z' })
-        ]
+        ],
+        hasMore: false
       },
       error: undefined,
       isLoading: false
@@ -122,7 +132,7 @@ describe('FeedReaderClient', () => {
 
   it('opens the reader dialog when an item title is clicked', () => {
     mockUseFeedItems.mockReturnValue({
-      data: { items: [item('1')] },
+      data: { items: [item('1')], hasMore: false },
       error: undefined,
       isLoading: false
     })
@@ -135,7 +145,7 @@ describe('FeedReaderClient', () => {
 
   it('keeps an item visible after marking read, before the undo window elapses', () => {
     mockUseFeedItems.mockReturnValue({
-      data: { items: [item('1')] },
+      data: { items: [item('1')], hasMore: false },
       error: undefined,
       isLoading: false
     })
@@ -144,15 +154,47 @@ describe('FeedReaderClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
 
-    // Simulate the SWR revalidation triggered by the mutation resolving,
-    // which now reflects the item as read server-side.
+    // Simulate the SWR revalidation triggered by the mutation resolving: the
+    // unread-only fetch no longer includes this item server-side.
     mockUseFeedItems.mockReturnValue({
-      data: { items: [item('1', { readAt: '2026-07-02T00:00:00Z' })] },
+      data: { items: [], hasMore: false },
       error: undefined,
       isLoading: false
     })
     rerender(<FeedReaderClient />)
 
     expect(screen.getByText('Item 1')).toBeInTheDocument()
+  })
+
+  it('toggles to show read items and back, switching the unread_only query', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show unread only' }))
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true)
+  })
+
+  it('loads the next page on Load more', async () => {
+    const fetchPage = jest.fn().mockResolvedValue({ items: [item('2')], hasMore: false })
+    mockUseFetchFeedItemsPage.mockReturnValue(fetchPage)
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: true },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    expect(screen.getByText('Item 1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+
+    await waitFor(() => expect(screen.getByText('Item 2')).toBeInTheDocument())
+    expect(fetchPage).toHaveBeenCalledWith(1)
   })
 })
