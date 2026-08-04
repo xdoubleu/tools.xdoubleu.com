@@ -26,7 +26,7 @@ export default function BookRemoveAction({ userBook, onSaved }: BookRemoveAction
         ✕
       </Button>
       <RemoveBookDialog
-        bookId={userBook.bookId}
+        userBook={userBook}
         title={userBook.book?.title ?? 'this book'}
         open={open}
         onOpenChange={setOpen}

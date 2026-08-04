@@ -5,10 +5,12 @@ import { UserBookSchema, BookSchema } from '@/lib/gen/books/v1/library_pb'
 import BookRemoveAction from '@/components/books/BookRemoveAction'
 
 const mockRemoveBook = jest.fn()
+const mockUpdateBookStatus = jest.fn()
 const mockMutate = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
-  useRemoveBook: () => mockRemoveBook
+  useRemoveBook: () => mockRemoveBook,
+  useUpdateBookStatus: () => mockUpdateBookStatus
 }))
 
 jest.mock('swr', () => ({

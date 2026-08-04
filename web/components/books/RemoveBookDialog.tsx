@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
-import { useRemoveBook } from '@/hooks/useBooks'
+import type { UserBook } from '@/lib/gen/books/v1/library_pb'
+import { useRemoveBook, useUpdateBookStatus } from '@/hooks/useBooks'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { swrKeys } from '@/lib/swrKeys'
 
 interface RemoveBookDialogProps {
-  bookId: string
+  userBook: UserBook
   title: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -16,15 +17,20 @@ interface RemoveBookDialogProps {
 }
 
 export default function RemoveBookDialog({
-  bookId,
+  userBook,
   title,
   open,
   onOpenChange,
   onRemoved
 }: RemoveBookDialogProps) {
   const removeBook = useRemoveBook()
+  const updateBookStatus = useUpdateBookStatus()
   const [removing, setRemoving] = useState(false)
+  const [markingOwned, setMarkingOwned] = useState(false)
   const [error, setError] = useState('')
+
+  const owned = userBook.tags.includes('own-physical') || userBook.tags.includes('own-digital')
+  const suggestOwned = owned && userBook.status !== 'owned'
 
   function handleOpenChange(next: boolean) {
     if (!next) setError('')
@@ -35,7 +41,7 @@ export default function RemoveBookDialog({
     setRemoving(true)
     setError('')
     try {
-      await removeBook(bookId)
+      await removeBook(userBook.bookId)
       await mutate(swrKeys.books)
       onOpenChange(false)
       onRemoved()
@@ -44,6 +50,21 @@ export default function RemoveBookDialog({
       setRemoving(false)
     }
   }
+
+  async function handleMarkOwned() {
+    setMarkingOwned(true)
+    setError('')
+    try {
+      await updateBookStatus({ bookId: userBook.bookId, status: 'owned' })
+      await mutate(swrKeys.books)
+      onOpenChange(false)
+    } catch {
+      setError('Failed to update book. Please try again.')
+      setMarkingOwned(false)
+    }
+  }
+
+  const busy = removing || markingOwned
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -55,6 +76,8 @@ export default function RemoveBookDialog({
         <p className="text-sm text-muted">
           Remove <span className="font-semibold text-fg">{title}</span> from your library? Your
           reading progress and any uploaded files for this book will be deleted.
+          {suggestOwned &&
+            " You've marked this book as owned — removing it will lose that too. You can mark it Owned instead to keep it without tracking reading progress."}
         </p>
 
         {error && (
@@ -63,13 +86,23 @@ export default function RemoveBookDialog({
           </p>
         )}
 
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" disabled={removing} onClick={() => handleOpenChange(false)}>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <Button variant="ghost" disabled={busy} onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
+          {suggestOwned && (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={handleMarkOwned}
+              data-testid="remove-book-mark-owned-btn"
+            >
+              {markingOwned ? 'Marking as owned…' : 'Mark as owned instead'}
+            </Button>
+          )}
           <Button
             variant="destructive"
-            disabled={removing}
+            disabled={busy}
             onClick={handleConfirm}
             data-testid="remove-book-confirm-btn"
           >

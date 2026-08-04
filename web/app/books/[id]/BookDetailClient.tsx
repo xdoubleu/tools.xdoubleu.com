@@ -276,7 +276,7 @@ export default function BookDetailClient({ id }: { id: string }) {
 
       {userBook && (
         <RemoveBookDialog
-          bookId={userBook.bookId}
+          userBook={userBook}
           title={book?.title ?? 'this book'}
           open={removeOpen}
           onOpenChange={setRemoveOpen}
