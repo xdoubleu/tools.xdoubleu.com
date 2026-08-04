@@ -131,6 +131,23 @@ export type UploadBookFileOverride = {
   authorOverride?: string
 }
 
+// withRateLimitRetry retries a Connect RPC on Code.ResourceExhausted (the
+// mapping of the API's HTTP 429), which BulkBookUploader's concurrent
+// create+finalize calls can trip under a large import (issue #824) even
+// though each is a legitimate request. Backs off instead of failing the file.
+async function withRateLimitRetry<T>(call: () => Promise<T>): Promise<T> {
+  const maxAttempts = 4
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await call()
+    } catch (err) {
+      const limited = err instanceof ConnectError && err.code === Code.ResourceExhausted
+      if (!limited || attempt === maxAttempts - 1) throw err
+      await new Promise((resolve) => setTimeout(resolve, 200 * 2 ** attempt))
+    }
+  }
+}
+
 export function useUploadBookFile() {
   const client = createServiceClient(BookFilesService)
   return async (file: File, override?: UploadBookFileOverride): Promise<UploadBookFileResult> => {
@@ -140,12 +157,14 @@ export function useUploadBookFile() {
     // 1. Ask the server whether the content already exists.
     //    When alreadyExists is true the server already has the blob, so the
     //    client skips the PUT and goes straight to Finalize.
-    const { uploadId, url, alreadyExists } = await client.createBookUpload({
-      filename: file.name,
-      contentType: file.type || 'application/octet-stream',
-      size: BigInt(file.size),
-      checksum
-    })
+    const { uploadId, url, alreadyExists } = await withRateLimitRetry(() =>
+      client.createBookUpload({
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+        size: BigInt(file.size),
+        checksum
+      })
+    )
 
     if (!alreadyExists) {
       // 2. PUT the file directly to R2, bypassing the API server and DO ingress.
@@ -164,14 +183,16 @@ export function useUploadBookFile() {
     //    (race condition); retry the full flow once without the checksum shortcut
     //    so the client uploads the bytes this time.
     try {
-      const result = await client.finalizeBookUpload({
-        uploadId,
-        filename: file.name,
-        contentType: file.type || 'application/octet-stream',
-        checksum,
-        titleOverride: override?.titleOverride ?? '',
-        authorOverride: override?.authorOverride ?? ''
-      })
+      const result = await withRateLimitRetry(() =>
+        client.finalizeBookUpload({
+          uploadId,
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          checksum,
+          titleOverride: override?.titleOverride ?? '',
+          authorOverride: override?.authorOverride ?? ''
+        })
+      )
       return {
         matchedExisting: result.matchedExisting,
         recognizedTitle: result.recognizedTitle
@@ -179,12 +200,14 @@ export function useUploadBookFile() {
     } catch (err) {
       if (alreadyExists && err instanceof ConnectError && err.code === Code.FailedPrecondition) {
         // The canonical blob was deleted between Create and Finalize; upload now.
-        const retry = await client.createBookUpload({
-          filename: file.name,
-          contentType: file.type || 'application/octet-stream',
-          size: BigInt(file.size)
-          // No checksum: force a fresh upload URL.
-        })
+        const retry = await withRateLimitRetry(() =>
+          client.createBookUpload({
+            filename: file.name,
+            contentType: file.type || 'application/octet-stream',
+            size: BigInt(file.size)
+            // No checksum: force a fresh upload URL.
+          })
+        )
         const putResp = await fetch(retry.url, {
           method: 'PUT',
           body: file,
@@ -195,14 +218,16 @@ export function useUploadBookFile() {
             cause: err
           })
         }
-        const retryResult = await client.finalizeBookUpload({
-          uploadId: retry.uploadId,
-          filename: file.name,
-          contentType: file.type || 'application/octet-stream',
-          checksum,
-          titleOverride: override?.titleOverride ?? '',
-          authorOverride: override?.authorOverride ?? ''
-        })
+        const retryResult = await withRateLimitRetry(() =>
+          client.finalizeBookUpload({
+            uploadId: retry.uploadId,
+            filename: file.name,
+            contentType: file.type || 'application/octet-stream',
+            checksum,
+            titleOverride: override?.titleOverride ?? '',
+            authorOverride: override?.authorOverride ?? ''
+          })
+        )
         return {
           matchedExisting: retryResult.matchedExisting,
           recognizedTitle: retryResult.recognizedTitle

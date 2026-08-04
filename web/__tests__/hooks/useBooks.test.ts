@@ -47,6 +47,7 @@ jest.mock('@/lib/gen/books/v1/catalog_pb', () => ({ CatalogService: {} }))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'https://api.test' }))
 
 import useSWR from 'swr'
+import { ConnectError, Code } from '@connectrpc/connect'
 import {
   useLibrary,
   useBooksProgress,
@@ -491,6 +492,34 @@ describe('useUploadBookFile', () => {
     })
   })
 
+  it('falls back to application/octet-stream when the file has no type', async () => {
+    const mockCreate = jest.fn().mockResolvedValue({
+      uploadId: 'users/u1/uploads/uuid',
+      url: 'https://r2.example.com/put',
+      alreadyExists: false
+    })
+    const mockFinalize = jest.fn().mockResolvedValue({})
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book')
+    await result.current(file)
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ contentType: 'application/octet-stream' })
+    )
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://r2.example.com/put',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/octet-stream' } })
+    )
+    expect(mockFinalize).toHaveBeenCalledWith(
+      expect.objectContaining({ contentType: 'application/octet-stream' })
+    )
+  })
+
   it('forwards a title/author override to finalizeBookUpload', async () => {
     const mockCreate = jest.fn().mockResolvedValue({
       uploadId: 'users/u1/uploads/uuid.pdf',
@@ -537,6 +566,100 @@ describe('useUploadBookFile', () => {
     expect(mockFinalize).toHaveBeenCalledWith(expect.objectContaining({ checksum: 'aabbccdd' }))
   })
 
+  it('re-uploads the blob and retries finalize on FailedPrecondition after alreadyExists', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockResolvedValueOnce({ uploadId: '', url: '', alreadyExists: true })
+      .mockResolvedValueOnce({
+        uploadId: 'users/u1/uploads/uuid-retry.epub',
+        url: 'https://r2.example.com/put-retry',
+        alreadyExists: false
+      })
+    const mockFinalize = jest
+      .fn()
+      .mockRejectedValueOnce(new ConnectError('blob missing', Code.FailedPrecondition))
+      .mockResolvedValueOnce({ matchedExisting: false, recognizedTitle: 'Recovered Title' })
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    // No explicit type: also exercises the application/octet-stream fallback
+    // on the retry path.
+    const file = new File(['data'], 'book.epub')
+    const uploadResult = await result.current(file)
+
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+    // The retry create call skips the checksum shortcut to force a fresh URL.
+    expect(mockCreate).toHaveBeenLastCalledWith({
+      filename: 'book.epub',
+      contentType: 'application/octet-stream',
+      size: BigInt(file.size)
+    })
+    expect(global.fetch).toHaveBeenCalledWith('https://r2.example.com/put-retry', {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': 'application/octet-stream' }
+    })
+    expect(mockFinalize).toHaveBeenCalledTimes(2)
+    expect(mockFinalize).toHaveBeenLastCalledWith(
+      expect.objectContaining({ uploadId: 'users/u1/uploads/uuid-retry.epub' })
+    )
+    expect(uploadResult).toEqual({ matchedExisting: false, recognizedTitle: 'Recovered Title' })
+  })
+
+  it('throws when the blob-recovery PUT fails on FailedPrecondition retry', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockResolvedValueOnce({ uploadId: '', url: '', alreadyExists: true })
+      .mockResolvedValueOnce({
+        uploadId: 'users/u1/uploads/uuid-retry.epub',
+        url: 'https://r2.example.com/put-retry',
+        alreadyExists: false
+      })
+    const mockFinalize = jest
+      .fn()
+      .mockRejectedValueOnce(new ConnectError('blob missing', Code.FailedPrecondition))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('Upload to storage failed on retry (500)')
+  })
+
+  it('does not retry a non-Connect error from createBookUpload', async () => {
+    const mockCreate = jest.fn().mockRejectedValue(new Error('network down'))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: jest.fn() }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('network down')
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('rethrows a non-rate-limit finalize error unchanged', async () => {
+    const mockCreate = jest.fn().mockResolvedValue({
+      uploadId: 'users/u1/uploads/uuid.epub',
+      url: 'https://r2.example.com/put',
+      alreadyExists: false
+    })
+    const mockFinalize = jest.fn().mockRejectedValue(new ConnectError('malformed epub'))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('malformed epub')
+  })
+
   it('throws when the R2 PUT fails', async () => {
     const mockCreate = jest.fn().mockResolvedValue({
       uploadId: 'users/u1/uploads/uuid.epub',
@@ -551,6 +674,43 @@ describe('useUploadBookFile', () => {
     const { result } = renderHook(() => useUploadBookFile())
     const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
     await expect(result.current(file)).rejects.toThrow('Upload to storage failed (403)')
+  })
+
+  it('retries after a ResourceExhausted (rate-limited) response and succeeds', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockRejectedValueOnce(new ConnectError('rate limit exceeded', Code.ResourceExhausted))
+      .mockResolvedValueOnce({
+        uploadId: 'users/u1/uploads/uuid.epub',
+        url: 'https://r2.example.com/put',
+        alreadyExists: false
+      })
+    const mockFinalize = jest.fn().mockResolvedValue({})
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await result.current(file)
+
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+    expect(mockFinalize).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives up after repeated ResourceExhausted responses', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockRejectedValue(new ConnectError('rate limit exceeded', Code.ResourceExhausted))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: jest.fn() }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('rate limit exceeded')
+    expect(mockCreate).toHaveBeenCalledTimes(4)
   })
 })
 
