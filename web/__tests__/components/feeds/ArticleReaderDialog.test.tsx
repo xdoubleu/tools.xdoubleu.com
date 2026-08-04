@@ -19,7 +19,15 @@ describe('ArticleReaderDialog', () => {
       contentHtml: '<p>Body <script>alert(1)</script></p>',
       sourceUrl: 'https://example.com/a'
     })
-    render(<ArticleReaderDialog item={item} open onOpenChange={jest.fn()} onSettled={jest.fn()} />)
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
 
     expect(screen.getByText('Hello World')).toBeInTheDocument()
     expect(screen.getByText('Body')).toBeInTheDocument()
@@ -38,7 +46,15 @@ describe('ArticleReaderDialog', () => {
       contentHtml: '',
       sourceUrl: 'https://example.com/a'
     })
-    render(<ArticleReaderDialog item={item} open onOpenChange={jest.fn()} onSettled={jest.fn()} />)
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
 
     expect(screen.getByText(/No in-app content stored/)).toBeInTheDocument()
   })
@@ -50,7 +66,15 @@ describe('ArticleReaderDialog', () => {
       contentHtml: '<p>Body</p>',
       sourceUrl: ''
     })
-    render(<ArticleReaderDialog item={item} open onOpenChange={jest.fn()} onSettled={jest.fn()} />)
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
 
     expect(screen.queryByRole('link', { name: /View original/ })).not.toBeInTheDocument()
   })

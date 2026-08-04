@@ -26,6 +26,7 @@ export default function FeedReaderClient() {
   const { data: feedsData } = useFeeds()
   const { data: itemsData, error, isLoading } = useFeedItems()
   const [settled, setSettled] = useState<Set<string>>(new Set())
+  const [pendingRead, setPendingRead] = useState<Set<string>>(new Set())
   const [lastVisit] = useState(readAndBumpLastVisit)
 
   const feedTitleById = useMemo(() => {
@@ -36,10 +37,20 @@ export default function FeedReaderClient() {
     return map
   }, [feedsData])
 
+  // Marking read revalidates feedItems immediately, so readAt flips server-side
+  // well before the undo window elapses — pendingRead keeps the card (and its
+  // still-open Undo affordance) visible until handleSettled fires.
   const unread = useMemo(() => {
     const items = itemsData?.items ?? []
-    return items.filter((item) => !item.readAt && !item.dismissed && !settled.has(item.id))
-  }, [itemsData, settled])
+    return items.filter(
+      (item) =>
+        !item.dismissed && !settled.has(item.id) && (!item.readAt || pendingRead.has(item.id))
+    )
+  }, [itemsData, settled, pendingRead])
+
+  const handleMarkRead = useCallback((itemId: string) => {
+    setPendingRead((prev) => new Set(prev).add(itemId))
+  }, [])
 
   const handleSettled = useCallback((itemId: string) => {
     setSettled((prev) => new Set(prev).add(itemId))
@@ -60,6 +71,7 @@ export default function FeedReaderClient() {
           item={item}
           feedTitle={feedTitleById.get(item.feedId)}
           isNew={new Date(item.createdAt).getTime() > lastVisit}
+          onMarkRead={handleMarkRead}
           onSettled={handleSettled}
         />
       ))}
@@ -71,10 +83,11 @@ interface FeedReaderCardProps {
   item: Item
   feedTitle?: string
   isNew: boolean
+  onMarkRead: (itemId: string) => void
   onSettled: (itemId: string) => void
 }
 
-function FeedReaderCard({ item, feedTitle, isNew, onSettled }: FeedReaderCardProps) {
+function FeedReaderCard({ item, feedTitle, isNew, onMarkRead, onSettled }: FeedReaderCardProps) {
   const [readerOpen, setReaderOpen] = useState(false)
   const noContent = !item.contentHtml
 
@@ -111,6 +124,7 @@ function FeedReaderCard({ item, feedTitle, isNew, onSettled }: FeedReaderCardPro
         item={item}
         open={readerOpen}
         onOpenChange={setReaderOpen}
+        onMarkRead={onMarkRead}
         onSettled={onSettled}
       />
     </div>

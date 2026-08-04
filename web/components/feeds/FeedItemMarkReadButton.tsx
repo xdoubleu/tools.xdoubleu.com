@@ -8,6 +8,8 @@ const UNDO_WINDOW_MS = 4000
 
 interface FeedItemMarkReadButtonProps {
   itemId: string
+  /** Called synchronously on click, before the read state is persisted. */
+  onMarkRead: (itemId: string) => void
   /** Called once the undo window has elapsed without the user reverting. */
   onSettled: (itemId: string) => void
 }
@@ -15,7 +17,11 @@ interface FeedItemMarkReadButtonProps {
 // FeedItemMarkReadButton marks an item read with a brief Undo window
 // (issue #476), now against the item's own persisted read_at (issue #734)
 // instead of a library book's status.
-export default function FeedItemMarkReadButton({ itemId, onSettled }: FeedItemMarkReadButtonProps) {
+export default function FeedItemMarkReadButton({
+  itemId,
+  onMarkRead,
+  onSettled
+}: FeedItemMarkReadButtonProps) {
   const [justRead, setJustRead] = useState(false)
   const updateItem = useUpdateItem()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -28,6 +34,7 @@ export default function FeedItemMarkReadButton({ itemId, onSettled }: FeedItemMa
 
   const handleMarkRead = async () => {
     setJustRead(true)
+    onMarkRead(itemId)
     try {
       await updateItem(itemId, { read: true })
       timeoutRef.current = setTimeout(() => onSettled(itemId), UNDO_WINDOW_MS)
