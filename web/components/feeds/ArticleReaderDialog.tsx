@@ -16,6 +16,8 @@ interface ArticleReaderDialogProps {
   item: Item
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Called synchronously when the user clicks Mark read. */
+  onMarkRead: (itemId: string) => void
   /** Called once the mark-read undo window elapses. */
   onSettled: (itemId: string) => void
 }
@@ -26,6 +28,7 @@ export default function ArticleReaderDialog({
   item,
   open,
   onOpenChange,
+  onMarkRead,
   onSettled
 }: ArticleReaderDialogProps) {
   const html = item.contentHtml
@@ -49,7 +52,11 @@ export default function ArticleReaderDialog({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <FeedFavouriteButton itemId={item.id} favourite={item.favourite} />
-            <FeedItemMarkReadButton itemId={item.id} onSettled={onSettled} />
+            <FeedItemMarkReadButton
+              itemId={item.id}
+              onMarkRead={onMarkRead}
+              onSettled={onSettled}
+            />
           </div>
           <DialogClose
             aria-label="Close reader"

@@ -20,12 +20,12 @@ describe('FeedItemMarkReadButton', () => {
   })
 
   it('renders a "Mark read" button', () => {
-    render(<FeedItemMarkReadButton itemId="item-1" onSettled={jest.fn()} />)
+    render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={jest.fn()} onSettled={jest.fn()} />)
     expect(screen.getByRole('button', { name: 'Mark read' })).toBeInTheDocument()
   })
 
   it('marks the item read and shows an Undo affordance', async () => {
-    render(<FeedItemMarkReadButton itemId="item-1" onSettled={jest.fn()} />)
+    render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={jest.fn()} onSettled={jest.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
 
@@ -35,9 +35,18 @@ describe('FeedItemMarkReadButton', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
   })
 
+  it('calls onMarkRead synchronously on click, before the mutation resolves', () => {
+    const onMarkRead = jest.fn()
+    render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={onMarkRead} onSettled={jest.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+
+    expect(onMarkRead).toHaveBeenCalledWith('item-1')
+  })
+
   it('calls onSettled once the undo window elapses', async () => {
     const onSettled = jest.fn()
-    render(<FeedItemMarkReadButton itemId="item-1" onSettled={onSettled} />)
+    render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={jest.fn()} onSettled={onSettled} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
     await waitFor(() => screen.getByRole('button', { name: 'Undo' }))
@@ -49,7 +58,7 @@ describe('FeedItemMarkReadButton', () => {
 
   it('reverts to the prior state and never settles when Undo is clicked', async () => {
     const onSettled = jest.fn()
-    render(<FeedItemMarkReadButton itemId="item-1" onSettled={onSettled} />)
+    render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={jest.fn()} onSettled={onSettled} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
     await waitFor(() => screen.getByRole('button', { name: 'Undo' }))
@@ -67,7 +76,7 @@ describe('FeedItemMarkReadButton', () => {
 
   it('reverts to the button on error', async () => {
     mockUpdateItem.mockRejectedValueOnce(new Error('fail'))
-    render(<FeedItemMarkReadButton itemId="item-1" onSettled={jest.fn()} />)
+    render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={jest.fn()} onSettled={jest.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
 

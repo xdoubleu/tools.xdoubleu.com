@@ -13,7 +13,12 @@ jest.mock('@/hooks/useFeeds', () => ({
 
 jest.mock(
   '@/components/feeds/ArticleReaderDialog',
-  () => (props: { open: boolean }) => (props.open ? <div data-testid="reader-open" /> : null)
+  () => (props: { open: boolean; item: { id: string }; onMarkRead: (itemId: string) => void }) =>
+    props.open ? (
+      <div data-testid="reader-open">
+        <button onClick={() => props.onMarkRead(props.item.id)}>Mark read</button>
+      </div>
+    ) : null
 )
 
 import FeedReaderClient from '@/components/feeds/FeedReaderClient'
@@ -126,5 +131,28 @@ describe('FeedReaderClient', () => {
     expect(screen.queryByTestId('reader-open')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
     expect(screen.getByTestId('reader-open')).toBeInTheDocument()
+  })
+
+  it('keeps an item visible after marking read, before the undo window elapses', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')] },
+      error: undefined,
+      isLoading: false
+    })
+    const { rerender } = render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+
+    // Simulate the SWR revalidation triggered by the mutation resolving,
+    // which now reflects the item as read server-side.
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1', { readAt: '2026-07-02T00:00:00Z' })] },
+      error: undefined,
+      isLoading: false
+    })
+    rerender(<FeedReaderClient />)
+
+    expect(screen.getByText('Item 1')).toBeInTheDocument()
   })
 })
