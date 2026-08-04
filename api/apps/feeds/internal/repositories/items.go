@@ -86,8 +86,10 @@ func (repo *ItemsRepository) FilterNewGUIDs(
 
 // Insert stores one ingested item (or a metadata-only/error row when ingest
 // failed — content_html/source_url/title may be empty and ingest_error set).
-// A duplicate (feed_id, guid) is a no-op: seen items are never retried by
-// polling.
+// A duplicate (feed_id, guid) re-opens the existing item (clears read/
+// dismissed) instead of inserting — polling never retries a seen guid (it
+// pre-filters via FilterNewGUIDs), but resending the same email reuses the
+// same guid and is the intended way to bring a dismissed/read item back.
 func (repo *ItemsRepository) Insert(
 	ctx context.Context,
 	item models.Item,
@@ -102,7 +104,9 @@ func (repo *ItemsRepository) Insert(
 			(feed_id, guid, title, source_url, content_html, published_at,
 			 ingest_error)
 		VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), $7)
-		ON CONFLICT (feed_id, guid) DO NOTHING
+		ON CONFLICT (feed_id, guid) DO UPDATE SET
+			read_at = NULL,
+			dismissed = false
 	`
 	_, err := repo.db.Exec(
 		ctx, query,

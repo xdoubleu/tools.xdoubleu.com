@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	"tools.xdoubleu.com/apps/feeds"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
@@ -286,6 +287,44 @@ func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 	}
 	require.NotNil(t, found)
 	assert.Contains(t, found.LastError, "500")
+}
+
+// TestEmailInbound_Resend_RestoresDismissedItem proves that re-sending the
+// same email (same message_id, so same dedup guid) un-dismisses an item that
+// was previously dismissed — the ON CONFLICT path on the (feed_id, guid)
+// unique index must restore visibility rather than no-op (issue #801).
+func TestEmailInbound_Resend_RestoresDismissedItem(t *testing.T) {
+	mux := getRoutes()
+	feedID, token, client := createEmailFeedFor(t, mux)
+	stub := newResendReceivingStub(t)
+	stub.html = "<p>Computer club newsletter</p>"
+
+	to := token + "@mail.example.com"
+	body := inboundPayload(to, "Issue #1", "email-resend")
+	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-resend-1", body)
+	rec := postWebhook(mux, body, headers)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	sourceURL := "mailto:" + feedID + "/" + messageIDFor("email-resend")
+	item := itemBySourceURL(t, client, sourceURL)
+	require.NotNil(t, item)
+
+	_, err := client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.UpdateItemRequest{
+			ItemId:    item.Id,
+			Dismissed: proto.Bool(true),
+		}),
+	)
+	require.NoError(t, err)
+
+	rec = postWebhook(mux, body, headers)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	restored := itemBySourceURL(t, client, sourceURL)
+	require.NotNil(t, restored)
+	assert.False(t, restored.Dismissed)
+	assert.Empty(t, restored.ReadAt)
 }
 
 func TestRecordEmailFetchFailure_DBErrors_LogsWithoutPanicking(t *testing.T) {
