@@ -36,7 +36,7 @@ lint/pkg: tools/lint
 	golangci-lint run ./$(PKG)/...
 
 lint/fix: tools/lint
-	golines . -m 88 -w
+	golines . -m 88 -w --ignore-generated
 	golangci-lint run --fix
 	gci write --skip-generated -s standard -s default -s "prefix(tools.xdoubleu.com)" .
 	sqlfluff fix --dialect postgres .
