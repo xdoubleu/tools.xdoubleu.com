@@ -28,4 +28,9 @@ type OAuthConnection struct {
 	// opaque JSON — nil means "connected but not yet configured". Parsing
 	// into a provider-specific shape happens at the client/handler layer.
 	Config json.RawMessage
+	// GrantedScope is the space-separated `scope` the provider returned with
+	// the token (empty if the provider didn't echo one back). Compared
+	// against a provider's currently configured oauth2.Config.Scopes to
+	// detect a connection authorized before a required scope was added.
+	GrantedScope string
 }

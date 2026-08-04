@@ -43,12 +43,20 @@ func NewTokenFunc(
 	repo connectionStore, provider models.OAuthProvider, conf *oauth2.Config,
 ) TokenFunc {
 	return func(ctx context.Context) (string, error) {
-		tok, _, err := repo.Get(ctx, provider)
+		tok, conn, err := repo.Get(ctx, provider)
 		if errors.Is(err, database.ErrResourceNotFound) {
 			return "", ErrNotConnected
 		}
 		if err != nil {
 			return "", err
+		}
+		if !HasScopes(conn.GrantedScope, conf.Scopes) {
+			// The stored token predates a scope conf now requires. A refresh
+			// grant can't add scopes Sentry/GitHub/DO didn't already grant,
+			// so this only clears once an admin re-authorizes via the
+			// existing Connect flow (oauth_admin.go), which overwrites the
+			// connection with a fresh, fully-scoped token.
+			return "", ErrNotConnected
 		}
 
 		fresh, err := conf.TokenSource(ctx, tok).Token()

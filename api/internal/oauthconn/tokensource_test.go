@@ -55,11 +55,34 @@ func TestNewTokenFunc_NotConnected(t *testing.T) {
 	assert.ErrorIs(t, err, oauthconn.ErrNotConnected)
 }
 
+func TestNewTokenFunc_StaleScope_TreatedAsNotConnected(t *testing.T) {
+	store := &stubStore{ //nolint:exhaustruct // other fields unused in test
+		tok: &oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+			AccessToken: "abc",
+		},
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // other fields unused in test
+			GrantedScope: "org:read",
+		},
+	}
+	conf := &oauth2.Config{ //nolint:exhaustruct // other fields unused in test
+		Scopes: []string{"org:read", "event:write"},
+	}
+	fn := oauthconn.NewTokenFunc(store, models.OAuthProviderSentry, conf)
+
+	_, err := fn(context.Background())
+	assert.ErrorIs(t, err, oauthconn.ErrNotConnected)
+	assert.Equal(
+		t, 0, store.updateCalls,
+		"a stale-scope connection must not be refreshed/persisted",
+	)
+}
+
 func TestNewTokenFunc_NonExpiringToken_NoRefreshCall(t *testing.T) {
 	store := &stubStore{ //nolint:exhaustruct // other fields unused in test
 		tok: &oauth2.Token{ //nolint:exhaustruct // other fields unused in test
 			AccessToken: "abc",
 		},
+		conn: &models.OAuthConnection{}, //nolint:exhaustruct // other fields unused in test
 	}
 	fn := oauthconn.NewTokenFunc(
 		store,
@@ -95,6 +118,7 @@ func TestNewTokenFunc_ExpiredToken_RefreshesAndPersists(t *testing.T) {
 			RefreshToken: "refresh-token",
 			Expiry:       time.Now().Add(-time.Hour),
 		},
+		conn: &models.OAuthConnection{}, //nolint:exhaustruct // other fields unused in test
 	}
 	conf := &oauth2.Config{ //nolint:exhaustruct // other fields unused in test
 		//nolint:exhaustruct // other fields unused in test

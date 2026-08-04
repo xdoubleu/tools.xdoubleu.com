@@ -63,6 +63,7 @@ func TestOAuthConnectionsRoundTrip(t *testing.T) {
 	assert.Equal(t, "admin-user", conn.ConnectedBy)
 	require.NotNil(t, conn.ExpiresAt)
 	assert.True(t, expiry.Equal(*conn.ExpiresAt))
+	assert.Empty(t, conn.GrantedScope, "no scope was ever returned by the provider")
 
 	// UpdateToken rotates the token but keeps connected_by/connected_at.
 	require.NoError(
@@ -89,6 +90,31 @@ func TestOAuthConnectionsRoundTrip(t *testing.T) {
 	require.NoError(t, repo.Delete(t.Context(), models.OAuthProviderGithub))
 	_, _, err = repo.Get(t.Context(), models.OAuthProviderGithub)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
+}
+
+func TestOAuthConnectionsUpsertStoresGrantedScope(t *testing.T) {
+	clearOAuthConnections(t)
+	repo := repositories.NewOAuthConnectionsRepository(testDB, testSealer(t))
+
+	tok := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+		AccessToken: "access-1",
+	}).WithExtra(map[string]any{"scope": "org:read project:read"})
+	require.NoError(t, repo.Upsert(t.Context(), models.OAuthProviderSentry, tok, "admin"))
+
+	_, conn, err := repo.Get(t.Context(), models.OAuthProviderSentry)
+	require.NoError(t, err)
+	assert.Equal(t, "org:read project:read", conn.GrantedScope)
+
+	// A later Upsert with a wider granted scope (e.g. after a reconnect)
+	// overwrites the stored value rather than merging with the old one.
+	tok2 := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+		AccessToken: "access-2",
+	}).WithExtra(map[string]any{"scope": "org:read project:read event:write"})
+	require.NoError(t, repo.Upsert(t.Context(), models.OAuthProviderSentry, tok2, "admin"))
+
+	_, conn, err = repo.Get(t.Context(), models.OAuthProviderSentry)
+	require.NoError(t, err)
+	assert.Equal(t, "org:read project:read event:write", conn.GrantedScope)
 }
 
 func TestOAuthConnectionsIndependentPerProvider(t *testing.T) {

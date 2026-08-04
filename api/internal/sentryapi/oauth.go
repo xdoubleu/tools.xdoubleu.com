@@ -19,7 +19,9 @@ func OAuthConfig(clientID, clientSecret, apiURL string) *oauth2.Config {
 		RedirectURL: apiURL + "/admin/oauth/sentry/callback",
 		// org:read is required by GET /api/0/organizations/, which the admin
 		// config picker calls first to list orgs (project:read/event:read
-		// cover the projects and issues endpoints).
-		Scopes: []string{"org:read", "project:read", "event:read"},
+		// cover the projects and issues endpoints). event:write is required by
+		// PUT /api/0/issues/{id}/, which ResolveIssue uses to mark an issue
+		// resolved.
+		Scopes: []string{"org:read", "project:read", "event:read", "event:write"},
 	}
 }
