@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,17 @@ import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
 import FeedItemMarkReadButton, {
   type FeedItemMarkReadHandle
 } from '@/components/feeds/FeedItemMarkReadButton'
+import { useUpdateItem } from '@/hooks/useFeeds'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 
 // How close to the bottom (px) counts as "reached the end" (issue #716).
 const AUTO_READ_THRESHOLD_PX = 24
+
+// How long to wait after the last scroll event before persisting the
+// furthest-reached read-progress percentage (issue #798) — avoids a
+// network call on every scroll tick.
+const PROGRESS_DEBOUNCE_MS = 1000
 
 interface ArticleReaderDialogProps {
   item: Item
@@ -39,11 +45,45 @@ export default function ArticleReaderDialog({
 }: ArticleReaderDialogProps) {
   const html = item.contentHtml
   const markReadRef = useRef<FeedItemMarkReadHandle>(null)
+  const updateItem = useUpdateItem()
+
+  // Furthest scroll percentage reached this session, seeded from the item's
+  // already-persisted value so re-reaching a prior position never re-sends.
+  const maxPctRef = useRef(item.readProgressPct)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    maxPctRef.current = item.readProgressPct
+  }, [item.id, item.readProgressPct])
+
+  // Flush on item change or unmount — the debounce alone wouldn't fire if
+  // the dialog closes/switches items mid-timer.
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (maxPctRef.current > 0) {
+        void updateItem(item.id, { readProgressPct: maxPctRef.current })
+      }
+    }
+  }, [item.id, updateItem])
+
+  const reportProgress = (pct: number) => {
+    if (pct <= maxPctRef.current) return
+    maxPctRef.current = pct
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null
+      void updateItem(item.id, { readProgressPct: maxPctRef.current })
+    }, PROGRESS_DEBOUNCE_MS)
+  }
 
   // Auto-mark-read once the reader is scrolled to the end of the content
   // (issue #716); the button's own undo window still lets the user revert.
   const checkAutoRead = (el: HTMLDivElement | null) => {
     if (!el || !html || el.clientHeight === 0) return
+    reportProgress(
+      Math.min(100, Math.round(((el.scrollTop + el.clientHeight) / el.scrollHeight) * 100))
+    )
     if (el.scrollHeight - el.scrollTop - el.clientHeight <= AUTO_READ_THRESHOLD_PX) {
       markReadRef.current?.markRead()
     }

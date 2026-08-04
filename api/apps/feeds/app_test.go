@@ -12,7 +12,9 @@ import (
 
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/feeds/internal/mocks"
+	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	sharedrepos "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -31,6 +33,16 @@ var testDB postgres.DB
 //nolint:gochecknoglobals //needed for tests
 var mockWebFetch *mocks.MockWebFetchClient
 
+// appUsersRepo backs the issue #799 problem-email alert's owner-email
+// lookup; exported for other test files in this package to seed a user.
+//
+//nolint:gochecknoglobals //needed for tests
+var appUsersRepo *sharedrepos.AppUsersRepository
+
+// userEmail is userID's address in global.app_users, seeded by
+// ensureGlobalAppUsers below.
+const userEmail = "feeds-test-user@example.com"
+
 func TestMain(m *testing.M) {
 	cfg := testhelper.NewTestConfig()
 	cfg.EmailInboundDomain = "mail.example.com"
@@ -41,13 +53,21 @@ func TestMain(m *testing.M) {
 	testDB = postgresDB
 	auth := sharedmocks.NewMockedAuthService(userID)
 
+	ensureGlobalAppUsers(postgresDB)
+	appUsersRepo = sharedrepos.NewAppUsersRepository(postgresDB)
+
 	mockWebFetch = mocks.NewMockWebFetchClient()
+	// Not-configured mailer for the shared testApp — existing tests don't
+	// expect any email to actually send; dedicated notify tests build their
+	// own FeedService with an httptest-backed mailer instead.
 	testApp = feeds.NewInner(
 		auth,
 		logging.NewNopLogger(),
 		cfg,
 		postgresDB,
 		mockWebFetch,
+		mailer.New("", "", ""),
+		appUsersRepo,
 	)
 
 	if _, err := postgresDB.Exec(
@@ -61,6 +81,41 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(m.Run())
+}
+
+// ensureGlobalAppUsers mirrors cmd/api/migrations/00001_init.sql so this
+// package's tests can run before the cmd/api package has applied the global
+// migrations (same pattern as apps/books/connect_public_test.go), then
+// seeds userID with an email for the notify-email lookup.
+func ensureGlobalAppUsers(db postgres.DB) {
+	ctx := context.Background()
+	stmts := []string{
+		"CREATE SCHEMA IF NOT EXISTS global",
+		`CREATE TABLE IF NOT EXISTS global.app_users (
+			id           TEXT PRIMARY KEY,
+			email        TEXT NOT NULL,
+			last_seen    TIMESTAMPTZ NOT NULL DEFAULT now(),
+			role         TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
+			display_name TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS global.app_access (
+			user_id  TEXT NOT NULL,
+			app_name TEXT NOT NULL,
+			PRIMARY KEY (user_id, app_name)
+		)`,
+	}
+	for _, stmt := range stmts {
+		if _, err := db.Exec(ctx, stmt); err != nil {
+			panic(err)
+		}
+	}
+	if _, err := db.Exec(ctx, `
+		INSERT INTO global.app_users (id, email)
+		VALUES ($1, $2)
+		ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
+	`, userID, userEmail); err != nil {
+		panic(err)
+	}
 }
 
 func getRoutes() http.Handler {

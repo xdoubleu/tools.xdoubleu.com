@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useFeeds } from '@/hooks/useFeeds'
 import FeedManager from '@/components/feeds/FeedManager'
@@ -25,18 +26,26 @@ export default function FeedsHeader() {
     <>
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Feeds</h1>
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-expanded={open}
-          aria-controls="manage-feeds-panel"
-          onClick={() => {
-            setTouched(true)
-            setOpen((v) => !v)
-          }}
-        >
-          {open ? 'Hide' : 'Manage feeds'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/feeds/stats"
+            className="text-sm text-accent underline-offset-4 hover:underline"
+          >
+            Stats
+          </Link>
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-expanded={open}
+            aria-controls="manage-feeds-panel"
+            onClick={() => {
+              setTouched(true)
+              setOpen((v) => !v)
+            }}
+          >
+            {open ? 'Hide' : 'Manage feeds'}
+          </Button>
+        </div>
       </div>
 
       {open && (

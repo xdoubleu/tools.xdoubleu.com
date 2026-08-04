@@ -28,7 +28,12 @@ describe('FeedsHeader', () => {
 
   it('does not link back to /books', () => {
     render(<FeedsHeader />)
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /books/i })).not.toBeInTheDocument()
+  })
+
+  it('links to the feed stats page', () => {
+    render(<FeedsHeader />)
+    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/feeds/stats')
   })
 
   it('starts collapsed when the user already has feeds', () => {

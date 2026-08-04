@@ -87,6 +87,9 @@ message Item {
   // The most recent ingest failure for this item, if any.
   string ingest_error = 10;
   string created_at = 11;
+  // Furthest scroll position reached in the reader, 0-100. Monotonic:
+  // re-opening and scrolling less never lowers it.
+  int32 read_progress_pct = 12;
 }
 
 message ListFeedItemsRequest {
@@ -104,16 +107,49 @@ message ListFeedItemsResponse {
   bool has_more = 2;
 }
 
-// UpdateItem partially updates an item's read/dismissed/favourite state —
-// only fields explicitly set are applied; unset fields are left unchanged.
-// read sets read_at to now() when true, clears it when false.
+// UpdateItem partially updates an item's read/dismissed/favourite/
+// read-progress state — only fields explicitly set are applied; unset
+// fields are left unchanged. read sets read_at to now() when true, clears
+// it when false. read_progress_pct is clamped to [0,100] and only ever
+// increases (re-opening and scrolling less never lowers it).
 message UpdateItemRequest {
   string item_id = 1;
   optional bool read = 2;
   optional bool dismissed = 3;
   optional bool favourite = 4;
+  optional int32 read_progress_pct = 5;
 }
 message UpdateItemResponse { Item item = 1; }
+
+// FeedStats aggregates one feed's posting cadence and read/completion
+// metrics (issue #798).
+message FeedStats {
+  string feed_id = 1;
+  string feed_title = 2;
+  int32 item_count = 3;
+  // Mean hours between consecutive items' published_at; 0 when the feed has
+  // fewer than 2 items.
+  double avg_interval_hours = 4;
+  // Fraction (0-1) of items with read_at set.
+  double read_rate = 5;
+  // Mean furthest-scroll-reached across items (0-100).
+  double avg_read_progress_pct = 6;
+}
+
+// One day's ingested-item count, for the "when do new items appear"
+// histogram (issue #798).
+message DayCount {
+  // RFC3339 (midnight UTC).
+  string day = 1;
+  int32 count = 2;
+}
+
+message GetFeedStatsRequest {}
+message GetFeedStatsResponse {
+  repeated FeedStats stats = 1;
+  // Trailing-90-day histogram across all of the caller's feeds.
+  repeated DayCount items_per_day = 2;
+}
 
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
@@ -123,4 +159,5 @@ service FeedService {
   rpc RefreshFeed(RefreshFeedRequest) returns (RefreshFeedResponse);
   rpc ListFeedItems(ListFeedItemsRequest) returns (ListFeedItemsResponse);
   rpc UpdateItem(UpdateItemRequest) returns (UpdateItemResponse);
+  rpc GetFeedStats(GetFeedStatsRequest) returns (GetFeedStatsResponse);
 }

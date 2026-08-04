@@ -48,6 +48,9 @@ const (
 	FeedServiceListFeedItemsProcedure = "/feeds.v1.FeedService/ListFeedItems"
 	// FeedServiceUpdateItemProcedure is the fully-qualified name of the FeedService's UpdateItem RPC.
 	FeedServiceUpdateItemProcedure = "/feeds.v1.FeedService/UpdateItem"
+	// FeedServiceGetFeedStatsProcedure is the fully-qualified name of the FeedService's GetFeedStats
+	// RPC.
+	FeedServiceGetFeedStatsProcedure = "/feeds.v1.FeedService/GetFeedStats"
 )
 
 // FeedServiceClient is a client for the feeds.v1.FeedService service.
@@ -59,6 +62,7 @@ type FeedServiceClient interface {
 	RefreshFeed(context.Context, *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error)
 	ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error)
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
+	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
 }
 
 // NewFeedServiceClient constructs a client for the feeds.v1.FeedService service. By default, it
@@ -114,6 +118,12 @@ func NewFeedServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(feedServiceMethods.ByName("UpdateItem")),
 			connect.WithClientOptions(opts...),
 		),
+		getFeedStats: connect.NewClient[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse](
+			httpClient,
+			baseURL+FeedServiceGetFeedStatsProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("GetFeedStats")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -126,6 +136,7 @@ type feedServiceClient struct {
 	refreshFeed   *connect.Client[v1.RefreshFeedRequest, v1.RefreshFeedResponse]
 	listFeedItems *connect.Client[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse]
 	updateItem    *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
+	getFeedStats  *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
 }
 
 // ListFeeds calls feeds.v1.FeedService.ListFeeds.
@@ -163,6 +174,11 @@ func (c *feedServiceClient) UpdateItem(ctx context.Context, req *connect.Request
 	return c.updateItem.CallUnary(ctx, req)
 }
 
+// GetFeedStats calls feeds.v1.FeedService.GetFeedStats.
+func (c *feedServiceClient) GetFeedStats(ctx context.Context, req *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error) {
+	return c.getFeedStats.CallUnary(ctx, req)
+}
+
 // FeedServiceHandler is an implementation of the feeds.v1.FeedService service.
 type FeedServiceHandler interface {
 	ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error)
@@ -172,6 +188,7 @@ type FeedServiceHandler interface {
 	RefreshFeed(context.Context, *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error)
 	ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error)
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
+	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
 }
 
 // NewFeedServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -223,6 +240,12 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(feedServiceMethods.ByName("UpdateItem")),
 		connect.WithHandlerOptions(opts...),
 	)
+	feedServiceGetFeedStatsHandler := connect.NewUnaryHandler(
+		FeedServiceGetFeedStatsProcedure,
+		svc.GetFeedStats,
+		connect.WithSchema(feedServiceMethods.ByName("GetFeedStats")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/feeds.v1.FeedService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case FeedServiceListFeedsProcedure:
@@ -239,6 +262,8 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 			feedServiceListFeedItemsHandler.ServeHTTP(w, r)
 		case FeedServiceUpdateItemProcedure:
 			feedServiceUpdateItemHandler.ServeHTTP(w, r)
+		case FeedServiceGetFeedStatsProcedure:
+			feedServiceGetFeedStatsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -274,4 +299,8 @@ func (UnimplementedFeedServiceHandler) ListFeedItems(context.Context, *connect.R
 
 func (UnimplementedFeedServiceHandler) UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.UpdateItem is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetFeedStats is not implemented"))
 }

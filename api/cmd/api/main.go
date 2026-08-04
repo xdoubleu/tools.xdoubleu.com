@@ -328,7 +328,9 @@ func NewApplication(
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
 	spanDB := postgres.NewSpanDB(db)
-	app.apps, app.booksApp = NewApps(app.auth, logger, config, spanDB)
+	app.apps, app.booksApp = NewApps(
+		app.auth, logger, config, spanDB, mailClient, appUsersRepo,
+	)
 
 	err = app.ApplyMigrations(db)
 	if err != nil {

@@ -7,7 +7,8 @@ import { FeedService, FeedKind } from '@/lib/gen/feeds/v1/feeds_pb'
 import type {
   ListFeedsResponse,
   ListFeedItemsResponse,
-  UpdateItemResponse
+  UpdateItemResponse,
+  GetFeedStatsResponse
 } from '@/lib/gen/feeds/v1/feeds_pb'
 
 // RSS/Atom and email-newsletter feed subscriptions, standalone from the
@@ -84,10 +85,12 @@ export interface UpdateItemInput {
   read?: boolean
   dismissed?: boolean
   favourite?: boolean
+  readProgressPct?: number
 }
 
-// useUpdateItem partially updates an item's read/dismissed/favourite state
-// (proto3 field-presence, so unset keys are left unchanged server-side).
+// useUpdateItem partially updates an item's read/dismissed/favourite/
+// read-progress state (proto3 field-presence, so unset keys are left
+// unchanged server-side).
 export function useUpdateItem() {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
@@ -98,4 +101,11 @@ export function useUpdateItem() {
     },
     [client]
   )
+}
+
+// useFeedStats fetches issue #798's per-feed posting-cadence/read-completion
+// stats plus the trailing-90-day items-per-day histogram.
+export function useFeedStats() {
+  const client = createServiceClient(FeedService)
+  return useSWR<GetFeedStatsResponse, Error>(swrKeys.feedStats, () => client.getFeedStats({}))
 }

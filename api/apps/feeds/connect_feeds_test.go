@@ -1121,6 +1121,87 @@ func TestUpdateItem_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
+// TestUpdateItem_ReadProgressClampsAndMonotonic covers issue #798's
+// read-completion signal: values are clamped to [0,100] and never lowered
+// by a later, smaller update.
+func TestUpdateItem_ReadProgressClampsAndMonotonic(t *testing.T) {
+	client := newFeedsClient(t)
+	itemID := createItem(t, client)
+
+	over := int32(150)
+	resp, err := client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.UpdateItemRequest{
+			ItemId: itemID, ReadProgressPct: &over,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(100), resp.Msg.Item.ReadProgressPct)
+
+	under := int32(-10)
+	resp, err = client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.UpdateItemRequest{
+			ItemId: itemID, ReadProgressPct: &under,
+		}),
+	)
+	require.NoError(t, err)
+	// Clamped to 0, but GREATEST against the existing 100 keeps it at 100.
+	assert.Equal(t, int32(100), resp.Msg.Item.ReadProgressPct)
+}
+
+// TestGetFeedStats_Basic proves GetFeedStats aggregates item count and read
+// rate for the caller's feeds (issue #798); cadence/histogram computation
+// (isFeedQuiet) has its own dedicated unit tests.
+func TestGetFeedStats_Basic(t *testing.T) {
+	client := newFeedsClient(t)
+	base := uniqueBlogBase()
+	feedURL := base + "/feed.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"Stats Blog", rssItem{"Post One", base + "/one", "guid-1", itemContent},
+	)))
+
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	read := true
+	items, err := client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	var itemID string
+	for _, item := range items.Msg.Items {
+		if item.FeedId == created.Msg.Feed.Id {
+			itemID = item.Id
+		}
+	}
+	require.NotEmpty(t, itemID)
+	_, err = client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read}),
+	)
+	require.NoError(t, err)
+
+	stats, err := client.GetFeedStats(
+		context.Background(), connect.NewRequest(&feedsv1.GetFeedStatsRequest{}),
+	)
+	require.NoError(t, err)
+
+	var found *feedsv1.FeedStats
+	for _, s := range stats.Msg.Stats {
+		if s.FeedId == created.Msg.Feed.Id {
+			found = s
+		}
+	}
+	require.NotNil(t, found)
+	assert.Equal(t, int32(1), found.ItemCount)
+	assert.InDelta(t, 1.0, found.ReadRate, 0.001)
+}
+
 func TestRefreshFeed_EmailFeed_NoOp(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
