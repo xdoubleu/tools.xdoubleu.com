@@ -101,6 +101,7 @@ export default function FeedReaderClient() {
                 item={item}
                 feedTitle={feedTitleById.get(item.feedId)}
                 isNew={new Date(item.createdAt).getTime() > lastVisit}
+                isRead={Boolean(item.readAt) || pendingRead.has(item.id)}
                 onMarkRead={handleMarkRead}
                 onSettled={handleSettled}
               />
@@ -117,11 +118,19 @@ interface FeedReaderCardProps {
   item: Item
   feedTitle?: string
   isNew: boolean
+  isRead: boolean
   onMarkRead: (item: Item) => void
   onSettled: (itemId: string) => void
 }
 
-function FeedReaderCard({ item, feedTitle, isNew, onMarkRead, onSettled }: FeedReaderCardProps) {
+function FeedReaderCard({
+  item,
+  feedTitle,
+  isNew,
+  isRead,
+  onMarkRead,
+  onSettled
+}: FeedReaderCardProps) {
   const [readerOpen, setReaderOpen] = useState(false)
   const noContent = !item.contentHtml
   const handleMarkRead = useCallback(() => onMarkRead(item), [onMarkRead, item])
@@ -130,7 +139,8 @@ function FeedReaderCard({ item, feedTitle, isNew, onMarkRead, onSettled }: FeedR
     <div
       className={cn(
         'flex flex-col gap-2 rounded-2xl border border-border bg-card p-3 shadow-card',
-        isNew && 'border-accent'
+        isNew && 'border-accent',
+        isRead && 'opacity-60'
       )}
     >
       <div className="flex items-start gap-3">

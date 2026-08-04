@@ -166,6 +166,42 @@ describe('FeedReaderClient', () => {
     expect(screen.getByText('Item 1')).toBeInTheDocument()
   })
 
+  it('dims already-read items but not unread ones', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: {
+        items: [item('1', { readAt: '2026-07-02T00:00:00Z' }), item('2')],
+        hasMore: false
+      },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    expect(screen.getByText('Item 1').closest('.rounded-2xl')).toHaveClass('opacity-60')
+    expect(screen.getByText('Item 2').closest('.rounded-2xl')).not.toHaveClass('opacity-60')
+  })
+
+  it('dims an item as soon as it is marked read, before the undo window elapses', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    const { rerender } = render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    rerender(<FeedReaderClient />)
+
+    expect(screen.getByText('Item 1').closest('.rounded-2xl')).toHaveClass('opacity-60')
+  })
+
   it('toggles to show read items and back, switching the unread_only query', () => {
     mockUseFeedItems.mockReturnValue({
       data: { items: [item('1')], hasMore: false },
