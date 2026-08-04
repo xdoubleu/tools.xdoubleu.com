@@ -160,9 +160,15 @@ type FinalizeBookUploadRequest struct {
 	Filename    string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
 	ContentType string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
 	// SHA-256 hex digest matching what was sent in CreateBookUploadRequest.
-	Checksum      string `protobuf:"bytes,4,opt,name=checksum,proto3" json:"checksum,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Checksum string `protobuf:"bytes,4,opt,name=checksum,proto3" json:"checksum,omitempty"`
+	// Explicit title/author, used when a prior attempt without them failed
+	// with "book could not be recognized from metadata" (e.g. a PDF with no
+	// embedded title). Takes precedence over any metadata extracted from the
+	// file itself.
+	TitleOverride  string `protobuf:"bytes,5,opt,name=title_override,json=titleOverride,proto3" json:"title_override,omitempty"`
+	AuthorOverride string `protobuf:"bytes,6,opt,name=author_override,json=authorOverride,proto3" json:"author_override,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *FinalizeBookUploadRequest) Reset() {
@@ -219,6 +225,20 @@ func (x *FinalizeBookUploadRequest) GetContentType() string {
 func (x *FinalizeBookUploadRequest) GetChecksum() string {
 	if x != nil {
 		return x.Checksum
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadRequest) GetTitleOverride() string {
+	if x != nil {
+		return x.TitleOverride
+	}
+	return ""
+}
+
+func (x *FinalizeBookUploadRequest) GetAuthorOverride() string {
+	if x != nil {
+		return x.AuthorOverride
 	}
 	return ""
 }
@@ -616,12 +636,14 @@ const file_books_v1_files_proto_rawDesc = "" +
 	"\x18CreateBookUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12%\n" +
-	"\x0ealready_exists\x18\x03 \x01(\bR\ralreadyExists\"\x93\x01\n" +
+	"\x0ealready_exists\x18\x03 \x01(\bR\ralreadyExists\"\xe3\x01\n" +
 	"\x19FinalizeBookUploadRequest\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12!\n" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12\x1a\n" +
-	"\bchecksum\x18\x04 \x01(\tR\bchecksum\"\xbc\x01\n" +
+	"\bchecksum\x18\x04 \x01(\tR\bchecksum\x12%\n" +
+	"\x0etitle_override\x18\x05 \x01(\tR\rtitleOverride\x12'\n" +
+	"\x0fauthor_override\x18\x06 \x01(\tR\x0eauthorOverride\"\xbc\x01\n" +
 	"\x1aFinalizeBookUploadResponse\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x17\n" +
 	"\afile_id\x18\x02 \x01(\tR\x06fileId\x12)\n" +

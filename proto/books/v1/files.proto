@@ -25,6 +25,12 @@ message FinalizeBookUploadRequest {
   string content_type = 3;
   // SHA-256 hex digest matching what was sent in CreateBookUploadRequest.
   string checksum = 4;
+  // Explicit title/author, used when a prior attempt without them failed
+  // with "book could not be recognized from metadata" (e.g. a PDF with no
+  // embedded title). Takes precedence over any metadata extracted from the
+  // file itself.
+  string title_override = 5;
+  string author_override = 6;
 }
 message FinalizeBookUploadResponse {
   string book_id = 1;

@@ -126,9 +126,14 @@ export type UploadBookFileResult = {
   recognizedTitle: string
 }
 
+export type UploadBookFileOverride = {
+  titleOverride?: string
+  authorOverride?: string
+}
+
 export function useUploadBookFile() {
   const client = createServiceClient(BookFilesService)
-  return async (file: File): Promise<UploadBookFileResult> => {
+  return async (file: File, override?: UploadBookFileOverride): Promise<UploadBookFileResult> => {
     // 0. Compute file hash so the server can skip a duplicate upload.
     const checksum = await sha256Hex(file)
 
@@ -163,7 +168,9 @@ export function useUploadBookFile() {
         uploadId,
         filename: file.name,
         contentType: file.type || 'application/octet-stream',
-        checksum
+        checksum,
+        titleOverride: override?.titleOverride ?? '',
+        authorOverride: override?.authorOverride ?? ''
       })
       return {
         matchedExisting: result.matchedExisting,
@@ -192,7 +199,9 @@ export function useUploadBookFile() {
           uploadId: retry.uploadId,
           filename: file.name,
           contentType: file.type || 'application/octet-stream',
-          checksum
+          checksum,
+          titleOverride: override?.titleOverride ?? '',
+          authorOverride: override?.authorOverride ?? ''
         })
         return {
           matchedExisting: retryResult.matchedExisting,

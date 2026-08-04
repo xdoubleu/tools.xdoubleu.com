@@ -206,6 +206,8 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 		req.Msg.Filename,
 		req.Msg.ContentType,
 		req.Msg.Checksum,
+		req.Msg.TitleOverride,
+		req.Msg.AuthorOverride,
 	)
 	if err != nil {
 		switch {

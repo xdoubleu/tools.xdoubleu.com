@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -142,6 +143,8 @@ func (s *BookService) FinalizeUpload(
 	filename string,
 	_ string,
 	checksum string,
+	titleOverride string,
+	authorOverride string,
 ) (*UploadFileResult, error) {
 	// Fast path: the content already has a canonical blob in the store.
 	existing, err := s.bookFiles.FindByChecksumGlobal(ctx, checksum)
@@ -153,7 +156,9 @@ func (s *BookService) FinalizeUpload(
 	}
 
 	// Slow path: new content — bytes must be in R2 under the upload key.
-	return s.finalizeNew(ctx, userID, uploadID, filename, checksum)
+	return s.finalizeNew(
+		ctx, userID, uploadID, filename, checksum, titleOverride, authorOverride,
+	)
 }
 
 // finalizeDuplicate handles an upload where a canonical blob for the checksum
@@ -314,6 +319,8 @@ func (s *BookService) finalizeNew(
 	uploadID string,
 	filename string,
 	_ string,
+	titleOverride string,
+	authorOverride string,
 ) (*UploadFileResult, error) {
 	// 1. Ownership: upload_id must be under this user's uploads/ prefix.
 	prefix := fmt.Sprintf("users/%s/uploads/", userID)
@@ -338,8 +345,22 @@ func (s *BookService) finalizeNew(
 		filename = filename[:maxFilenameBytes]
 	}
 
+	// A caller-supplied title/author (from the "unrecognized book" recovery
+	// UI) always wins; otherwise fall back to a filename-derived title when
+	// the file's own metadata has none (common for PDFs with no /Info
+	// dictionary Title set — see issue #394).
+	meta := uf.meta
+	if titleOverride != "" {
+		meta.Title = titleOverride
+	} else if meta.Title == "" {
+		meta.Title = titleFromFilename(filename)
+	}
+	if authorOverride != "" {
+		meta.Authors = []string{authorOverride}
+	}
+
 	// 7. Match existing user_book or upsert a new one.
-	ub, matchedExisting, err := s.recognizeBook(ctx, userID, uf.meta)
+	ub, matchedExisting, err := s.recognizeBook(ctx, userID, meta)
 	if err != nil {
 		if errors.Is(err, ErrUnrecognizedBook) {
 			_ = s.objectStore.Delete(context.WithoutCancel(ctx), uploadID)
@@ -399,6 +420,16 @@ func (s *BookService) finalizeNew(
 		UserBook:        ub,
 		MatchedExisting: matchedExisting,
 	}, nil
+}
+
+// titleFromFilename derives a best-effort title from an uploaded file's
+// original filename, for use when the file's own metadata has none (e.g. a
+// PDF with no /Info dictionary Title set). Strips the extension and turns
+// "-"/"_" separators into spaces; does nothing to split run-together words.
+func titleFromFilename(filename string) string {
+	base := strings.TrimSuffix(filename, filepath.Ext(filename))
+	base = strings.NewReplacer("-", " ", "_", " ").Replace(base)
+	return strings.TrimSpace(base)
 }
 
 // cleanupTempUpload deletes a temp upload object if one was uploaded (i.e.

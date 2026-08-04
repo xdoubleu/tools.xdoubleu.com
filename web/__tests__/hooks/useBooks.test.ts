@@ -485,8 +485,34 @@ describe('useUploadBookFile', () => {
       uploadId: 'users/u1/uploads/uuid.epub',
       filename: 'book.epub',
       contentType: 'application/epub+zip',
-      checksum: 'aabbccdd'
+      checksum: 'aabbccdd',
+      titleOverride: '',
+      authorOverride: ''
     })
+  })
+
+  it('forwards a title/author override to finalizeBookUpload', async () => {
+    const mockCreate = jest.fn().mockResolvedValue({
+      uploadId: 'users/u1/uploads/uuid.pdf',
+      url: 'https://r2.example.com/put',
+      alreadyExists: false
+    })
+    const mockFinalize = jest.fn().mockResolvedValue({})
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'no-meta.pdf', { type: 'application/pdf' })
+    await result.current(file, { titleOverride: 'Black Hat Go', authorOverride: 'Tom Steele' })
+
+    expect(mockFinalize).toHaveBeenCalledWith(
+      expect.objectContaining({
+        titleOverride: 'Black Hat Go',
+        authorOverride: 'Tom Steele'
+      })
+    )
   })
 
   it('skips the PUT when server reports alreadyExists', async () => {

@@ -4,13 +4,25 @@ import { useState, DragEvent } from 'react'
 import { useUploadBookFile } from '@/hooks/useBooks'
 import type { UploadBookFileResult } from '@/hooks/useBooks'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/cn'
 import { isBookFile, filesFromDataTransfer, MAX_UPLOAD_BYTES } from '@/lib/books/zipFiles'
 import { runPool } from '@/lib/books/pool'
 
+// A file whose metadata couldn't be recognized (rather than any other
+// upload error) can be retried with a manually typed title/author — see
+// issue #394. Matched by message text since the server maps every
+// FinalizeBookUpload failure reason to the same CodeInvalidArgument.
+const UNRECOGNIZED_BOOK_TEXT = 'could not be recognized from metadata'
+
 // ---------------------------------------------------------------------------
 // Upload phase state
 // ---------------------------------------------------------------------------
+
+type FailedUpload = {
+  file: File
+  message: string
+}
 
 type UploadProgress = {
   processed: number
@@ -18,7 +30,7 @@ type UploadProgress = {
   total: number
   linked: number
   added: number
-  errors: string[]
+  errors: FailedUpload[]
 }
 
 type UploadPhase =
@@ -60,7 +72,7 @@ export default function BulkBookUploader() {
         const limitMB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))
         progress.errors = [
           ...progress.errors,
-          `${file.name}: file is too large (max ${limitMB} MB)`
+          { file, message: `file is too large (max ${limitMB} MB)` }
         ]
         setPhase({ kind: 'uploading', progress: { ...progress } })
         return
@@ -76,12 +88,49 @@ export default function BulkBookUploader() {
       } catch (err) {
         progress.failed++
         const msg = err instanceof Error ? err.message : 'Upload failed'
-        progress.errors = [...progress.errors, `${file.name}: ${msg}`]
+        progress.errors = [...progress.errors, { file, message: msg }]
       }
       setPhase({ kind: 'uploading', progress: { ...progress } })
     })
 
     setPhase({ kind: 'done', progress: { ...progress } })
+  }
+
+  async function retryFailedUpload(item: FailedUpload, title: string, author: string) {
+    try {
+      const result = await uploadBookFile(item.file, {
+        titleOverride: title,
+        authorOverride: author
+      })
+      setPhase((prev) => {
+        if (prev.kind !== 'done') return prev
+        return {
+          kind: 'done',
+          progress: {
+            ...prev.progress,
+            failed: prev.progress.failed - 1,
+            processed: prev.progress.processed + 1,
+            linked: prev.progress.linked + (result.matchedExisting ? 1 : 0),
+            added: prev.progress.added + (result.matchedExisting ? 0 : 1),
+            errors: prev.progress.errors.filter((e) => e !== item)
+          }
+        }
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Upload failed'
+      setPhase((prev) => {
+        if (prev.kind !== 'done') return prev
+        return {
+          kind: 'done',
+          progress: {
+            ...prev.progress,
+            errors: prev.progress.errors.map((e) =>
+              e === item ? { file: item.file, message: msg } : e
+            )
+          }
+        }
+      })
+    }
   }
 
   async function handleDrop(e: DragEvent<HTMLDivElement>) {
@@ -151,7 +200,11 @@ export default function BulkBookUploader() {
       </div>
 
       {(phase.kind === 'uploading' || phase.kind === 'done') && (
-        <UploadProgressDisplay progress={phase.progress} done={phase.kind === 'done'} />
+        <UploadProgressDisplay
+          progress={phase.progress}
+          done={phase.kind === 'done'}
+          onRetry={retryFailedUpload}
+        />
       )}
       {phase.kind === 'error' && <p className="text-sm text-danger">{phase.message}</p>}
 
@@ -191,9 +244,10 @@ export default function BulkBookUploader() {
 interface UploadProgressDisplayProps {
   progress: UploadProgress
   done: boolean
+  onRetry: (item: FailedUpload, title: string, author: string) => Promise<void>
 }
 
-function UploadProgressDisplay({ progress, done }: UploadProgressDisplayProps) {
+function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDisplayProps) {
   const { processed, failed, total, linked, added, errors } = progress
   const allFailed = done && failed === total
 
@@ -218,14 +272,72 @@ function UploadProgressDisplay({ progress, done }: UploadProgressDisplayProps) {
       )}
 
       {errors.length > 0 && (
-        <ul className="space-y-0.5">
-          {errors.map((e, i) => (
-            <li key={i} className="truncate text-xs text-danger">
-              {e}
+        <ul className="space-y-2">
+          {errors.map((item, i) => (
+            <li key={i}>
+              <p className="truncate text-xs text-danger">
+                {item.file.name}: {item.message}
+              </p>
+              {done && item.message.includes(UNRECOGNIZED_BOOK_TEXT) && (
+                <FailedFileRecovery item={item} onRetry={onRetry} />
+              )}
             </li>
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// FailedFileRecovery — lets the user retry an unrecognized upload with a
+// manually typed title/author (issue #394).
+// ---------------------------------------------------------------------------
+
+interface FailedFileRecoveryProps {
+  item: FailedUpload
+  onRetry: (item: FailedUpload, title: string, author: string) => Promise<void>
+}
+
+function FailedFileRecovery({ item, onRetry }: FailedFileRecoveryProps) {
+  const [title, setTitle] = useState('')
+  const [author, setAuthor] = useState('')
+  const [retrying, setRetrying] = useState(false)
+
+  async function handleRetry() {
+    setRetrying(true)
+    try {
+      await onRetry(item, title, author)
+    } finally {
+      setRetrying(false)
+    }
+  }
+
+  return (
+    <div className="mt-1 flex flex-col gap-1 sm:flex-row">
+      <Input
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="h-8 text-xs"
+        disabled={retrying}
+      />
+      <Input
+        placeholder="Author (optional)"
+        value={author}
+        onChange={(e) => setAuthor(e.target.value)}
+        className="h-8 text-xs"
+        disabled={retrying}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        disabled={retrying || title.trim() === ''}
+        onClick={handleRetry}
+      >
+        {retrying ? 'Retrying…' : 'Retry'}
+      </Button>
     </div>
   )
 }
