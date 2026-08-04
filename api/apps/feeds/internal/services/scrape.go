@@ -48,20 +48,38 @@ var skippedContainerTags = map[string]bool{
 	"script": true, "style": true,
 }
 
+// headingTags mark an element whose text, if present in a candidate link's
+// subtree, is preferred as the post title over the anchor's full
+// concatenated text — some card layouts wrap a heading alongside a
+// <time>/category/excerpt in the same <a>, and using the heading alone
+// avoids pulling that surrounding text into the title (issue #829).
+//
+//nolint:gochecknoglobals // static lookup table, read-only after init
+var headingTags = map[string]bool{
+	"h1": true, "h2": true, "h3": true, "h4": true, "h5": true, "h6": true,
+}
+
+// datePublishedLayout is the "Mon D, YYYY" format a scraped card's <time>
+// text is parsed with (e.g. "Jun 16, 2026").
+const datePublishedLayout = "Jan 2, 2006"
+
 // discoveredLink is one candidate post found on an index page, in page (DOM)
 // order.
 type discoveredLink struct {
 	URL   string
 	Title string
+	// PublishedAt is the zero time when the card had no parseable <time>
+	// element.
+	PublishedAt time.Time
 }
 
 // discoverPostLinks heuristically finds post-like links on a page with no
 // real RSS/Atom feed: it skips nav/header/footer/aside/script/style
-// subtrees, then keeps same-domain <a> elements whose full text (including
-// any nested heading) is title-like (length ≥ minPostLinkTextLen) and whose
-// path doesn't look like a listing/utility page. There is no per-site
-// configuration — this is best-effort and will miss or misfire on unusual
-// page layouts.
+// subtrees, then keeps same-domain <a> elements whose title text (a nested
+// heading if present, else the full anchor text minus any <time> element)
+// is title-like (length ≥ minPostLinkTextLen) and whose path doesn't look
+// like a listing/utility page. There is no per-site configuration — this is
+// best-effort and will miss or misfire on unusual page layouts.
 func discoverPostLinks(pageURL string, body []byte) ([]discoveredLink, error) {
 	base, err := url.Parse(pageURL)
 	if err != nil {
@@ -110,7 +128,10 @@ func collectPostLinks(
 
 // candidateLink checks whether an <a> node looks like a post link: a
 // same-domain http(s) URL, not pointing at a listing/utility path, with
-// title-like anchor text.
+// title-like anchor text. The title prefers a nested heading (h1-h6) over
+// the anchor's full text, and a nested <time> element's text (parsed with
+// datePublishedLayout) becomes the link's PublishedAt and is excluded from
+// the title when there's no heading to prefer instead.
 func candidateLink(n *html.Node, base *url.URL) (discoveredLink, bool) {
 	resolved, ok := candidatePostURL(n, base)
 	if !ok {
@@ -118,13 +139,32 @@ func candidateLink(n *html.Node, base *url.URL) (discoveredLink, bool) {
 		return discoveredLink{}, false
 	}
 
-	title := strings.Join(strings.Fields(nodeText(n)), " ")
+	timeNode := findNode(n, func(c *html.Node) bool {
+		return c.Type == html.ElementNode && c.Data == "time"
+	})
+
+	var title string
+	if heading := findNode(n, func(c *html.Node) bool {
+		return c.Type == html.ElementNode && headingTags[c.Data]
+	}); heading != nil {
+		title = strings.Join(strings.Fields(nodeText(heading)), " ")
+	} else {
+		title = strings.Join(strings.Fields(nodeTextExcluding(n, timeNode)), " ")
+	}
 	if len(title) < minPostLinkTextLen {
 		//nolint:exhaustruct // rejection sentinel; caller only reads ok
 		return discoveredLink{}, false
 	}
 
-	return discoveredLink{URL: resolved.String(), Title: title}, true
+	//nolint:exhaustruct // PublishedAt filled in below only when parseable
+	link := discoveredLink{URL: resolved.String(), Title: title}
+	if timeNode != nil {
+		dateText := strings.TrimSpace(nodeText(timeNode))
+		if t, err := time.Parse(datePublishedLayout, dateText); err == nil {
+			link.PublishedAt = t
+		}
+	}
+	return link, true
 }
 
 // candidatePostURL resolves an <a> node's href and checks it against the
@@ -163,15 +203,38 @@ func candidatePostURL(n *html.Node, base *url.URL) (*url.URL, bool) {
 
 // nodeText concatenates all text within n's subtree, space-separated.
 func nodeText(n *html.Node) string {
+	return nodeTextExcluding(n, nil)
+}
+
+// nodeTextExcluding is nodeText, skipping exclude's entire subtree (a nil
+// exclude skips nothing).
+func nodeTextExcluding(n, exclude *html.Node) string {
+	if n == exclude {
+		return ""
+	}
 	if n.Type == html.TextNode {
 		return n.Data
 	}
 	var sb strings.Builder
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		sb.WriteString(nodeText(c))
+		sb.WriteString(nodeTextExcluding(c, exclude))
 		sb.WriteString(" ")
 	}
 	return sb.String()
+}
+
+// findNode returns the first node in n's subtree (n included, DOM order)
+// for which match returns true, or nil.
+func findNode(n *html.Node, match func(*html.Node) bool) *html.Node {
+	if match(n) {
+		return n
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if found := findNode(c, match); found != nil {
+			return found
+		}
+	}
+	return nil
 }
 
 func nodeAttr(n *html.Node, key string) string {
@@ -292,8 +355,9 @@ func (s *FeedService) pollScrapeFeed(
 }
 
 // ingestDiscoveredLinks ingests the not-yet-seen discovered links, capped at
-// maxItemsPerPoll — the scrape counterpart to processItems. Discovered links
-// carry no publish date, so overflow ordering is just page (DOM) order
+// maxItemsPerPoll — the scrape counterpart to processItems. Most discovered
+// links carry no publish date (only cards with a parseable <time> element
+// do, see candidateLink), so overflow ordering is just page (DOM) order
 // rather than newest-first.
 func (s *FeedService) ingestDiscoveredLinks(
 	ctx context.Context,
@@ -358,6 +422,11 @@ func (s *FeedService) ingestDiscoveredLink(
 		return false
 	}
 
+	publishedAt := time.Now()
+	if !link.PublishedAt.IsZero() {
+		publishedAt = link.PublishedAt
+	}
+
 	//nolint:exhaustruct // read/dismissed/favourite/ingest_error start empty
 	item := models.Item{
 		FeedID:      feed.ID,
@@ -365,7 +434,7 @@ func (s *FeedService) ingestDiscoveredLink(
 		Title:       title,
 		SourceURL:   guid,
 		ContentHTML: body,
-		PublishedAt: time.Now(),
+		PublishedAt: publishedAt,
 	}
 	if err := s.items.Insert(ctx, item); err != nil {
 		s.logger.WarnContext(ctx, "scrape feed item store failed",
