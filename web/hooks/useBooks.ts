@@ -5,6 +5,7 @@ import type { MessageInitShape } from '@bufbuild/protobuf'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { createServiceClient } from '@/lib/client'
 import { sha256Hex } from '@/lib/books/checksum'
+import { createRateLimiter } from '@/lib/books/rateLimiter'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import {
   LibraryService,
@@ -131,6 +132,12 @@ export type UploadBookFileOverride = {
   authorOverride?: string
 }
 
+// Paces requests below the API's global per-IP limiter (10 req/s, burst 30,
+// shared across all site traffic) so bulk imports don't outrun it — see
+// issue #824/#828/#833. withRateLimitRetry's backoff below stays as a
+// secondary safety net for whatever it doesn't fully absorb.
+const uploadLimiter = createRateLimiter(3, 6)
+
 // withRateLimitRetry retries a Connect RPC on Code.ResourceExhausted (the
 // mapping of the API's HTTP 429), which BulkBookUploader's concurrent
 // create+finalize calls can trip under a large import (issue #824) even
@@ -138,6 +145,7 @@ export type UploadBookFileOverride = {
 async function withRateLimitRetry<T>(call: () => Promise<T>): Promise<T> {
   const maxAttempts = 4
   for (let attempt = 0; ; attempt++) {
+    await uploadLimiter()
     try {
       return await call()
     } catch (err) {
