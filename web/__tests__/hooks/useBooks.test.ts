@@ -492,6 +492,34 @@ describe('useUploadBookFile', () => {
     })
   })
 
+  it('falls back to application/octet-stream when the file has no type', async () => {
+    const mockCreate = jest.fn().mockResolvedValue({
+      uploadId: 'users/u1/uploads/uuid',
+      url: 'https://r2.example.com/put',
+      alreadyExists: false
+    })
+    const mockFinalize = jest.fn().mockResolvedValue({})
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book')
+    await result.current(file)
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ contentType: 'application/octet-stream' })
+    )
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://r2.example.com/put',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/octet-stream' } })
+    )
+    expect(mockFinalize).toHaveBeenCalledWith(
+      expect.objectContaining({ contentType: 'application/octet-stream' })
+    )
+  })
+
   it('forwards a title/author override to finalizeBookUpload', async () => {
     const mockCreate = jest.fn().mockResolvedValue({
       uploadId: 'users/u1/uploads/uuid.pdf',
@@ -557,20 +585,22 @@ describe('useUploadBookFile', () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true })
 
     const { result } = renderHook(() => useUploadBookFile())
-    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    // No explicit type: also exercises the application/octet-stream fallback
+    // on the retry path.
+    const file = new File(['data'], 'book.epub')
     const uploadResult = await result.current(file)
 
     expect(mockCreate).toHaveBeenCalledTimes(2)
     // The retry create call skips the checksum shortcut to force a fresh URL.
     expect(mockCreate).toHaveBeenLastCalledWith({
       filename: 'book.epub',
-      contentType: 'application/epub+zip',
+      contentType: 'application/octet-stream',
       size: BigInt(file.size)
     })
     expect(global.fetch).toHaveBeenCalledWith('https://r2.example.com/put-retry', {
       method: 'PUT',
       body: file,
-      headers: { 'Content-Type': 'application/epub+zip' }
+      headers: { 'Content-Type': 'application/octet-stream' }
     })
     expect(mockFinalize).toHaveBeenCalledTimes(2)
     expect(mockFinalize).toHaveBeenLastCalledWith(
@@ -599,6 +629,18 @@ describe('useUploadBookFile', () => {
     const { result } = renderHook(() => useUploadBookFile())
     const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
     await expect(result.current(file)).rejects.toThrow('Upload to storage failed on retry (500)')
+  })
+
+  it('does not retry a non-Connect error from createBookUpload', async () => {
+    const mockCreate = jest.fn().mockRejectedValue(new Error('network down'))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: jest.fn() }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('network down')
+    expect(mockCreate).toHaveBeenCalledTimes(1)
   })
 
   it('rethrows a non-rate-limit finalize error unchanged', async () => {
