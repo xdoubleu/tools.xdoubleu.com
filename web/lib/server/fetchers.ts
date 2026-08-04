@@ -19,11 +19,21 @@ export async function fetchOrNull<T>(fn: () => Promise<T>): Promise<T | null> {
     return await fn()
   } catch (err) {
     if (err instanceof ConnectError) {
-      if (!EXPECTED_CODES.has(err.code)) {
+      if (!EXPECTED_CODES.has(err.code) && !isTransientNetworkFailure(err)) {
         captureException(err)
       }
       return null
     }
     throw err
   }
+}
+
+// connect-web wraps a raw fetch failure (e.g. Safari's "TypeError: Load
+// failed" on a dropped connection) into a ConnectError with code Unknown and
+// the original TypeError as `cause` — there was never a server response to
+// signal anything with (unlike a real Unknown from the server, or
+// DeadlineExceeded/Unavailable). Treat it the same as the expected codes:
+// nothing to report, the page's null fallback already covers it.
+function isTransientNetworkFailure(err: ConnectError): boolean {
+  return err.code === Code.Unknown && err.cause instanceof TypeError
 }

@@ -50,6 +50,24 @@ describe('fetchOrNull', () => {
     expect(mockCaptureException).toHaveBeenCalledWith(err)
   })
 
+  it('returns null without reporting a ConnectError wrapping a raw fetch failure', async () => {
+    const err = new ConnectError(
+      'Load failed',
+      Code.Unknown,
+      undefined,
+      undefined,
+      new TypeError('Load failed')
+    )
+    await expect(fetchOrNull(async () => Promise.reject(err))).resolves.toBeNull()
+    expect(mockCaptureException).not.toHaveBeenCalled()
+  })
+
+  it('reports a ConnectError with code Unknown that is not a wrapped fetch failure', async () => {
+    const err = new ConnectError('server said unknown', Code.Unknown)
+    await expect(fetchOrNull(async () => Promise.reject(err))).resolves.toBeNull()
+    expect(mockCaptureException).toHaveBeenCalledWith(err)
+  })
+
   it('rethrows non-Connect errors', async () => {
     await expect(
       fetchOrNull(async () => {
