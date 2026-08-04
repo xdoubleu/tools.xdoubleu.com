@@ -10,6 +10,14 @@ import (
 // handlers return an empty section instead of an error.
 var ErrNotConfigured = errors.New("sentryapi: not configured")
 
+// ErrReauthRequired is returned by ResolveIssue when the connection is
+// already configured (org/projects picked) but the stored token's granted
+// scope no longer covers what's required — i.e. an admin needs to
+// reauthorize via the existing Connect flow, not "not connected" at all.
+var ErrReauthRequired = errors.New(
+	"sentryapi: sentry connection needs to be reauthorized (missing a required scope)",
+)
+
 // Client is the subset of the Sentry REST API used for observability: the list
 // of unresolved issues on the configured project.
 type Client interface {
@@ -17,7 +25,8 @@ type Client interface {
 	// project. Returns ErrNotConfigured when org/project/token is unset.
 	ListUnresolvedIssues(ctx context.Context) ([]Issue, error)
 	// ResolveIssue marks the given Sentry issue (by its Issue.ID) as
-	// resolved. Returns ErrNotConfigured when org/project/token is unset.
+	// resolved. Returns ErrNotConfigured when org/project/token is unset, or
+	// ErrReauthRequired when configured but the granted OAuth scope is stale.
 	ResolveIssue(ctx context.Context, issueID string) error
 	// ListOrgs returns the organizations visible to the connected account,
 	// for the admin config picker. Returns oauthconn.ErrNotConnected when no

@@ -139,6 +139,12 @@ func (h *obsConnectHandler) resolveSentryIssue(
 	ctx context.Context, issueID string,
 ) (*observabilityv1.ResolveSentryIssueResponse, error) {
 	if err := h.app.sentryClient.ResolveIssue(ctx, issueID); err != nil {
+		if errors.Is(err, sentryapi.ErrReauthRequired) {
+			// Distinct from ErrNotConfigured/CodeFailedPrecondition below: the
+			// web UI uses this code to prompt an explicit reconnect instead of
+			// silently treating the connection as unconfigured (issue #791).
+			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		}
 		if errors.Is(err, sentryapi.ErrNotConfigured) {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 		}

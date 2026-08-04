@@ -1,9 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import { ConnectError, Code } from '@connectrpc/connect'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose
+} from '@/components/ui/dialog'
 import type {
   SentryIssue,
   GetSentryIssuesResponse
@@ -11,6 +20,7 @@ import type {
 import { formatCount } from '@/lib/observability'
 import { formatDateTime } from '@/lib/dates'
 import { useResolveSentryIssue } from '@/hooks/useMonitoring'
+import { getApiUrl } from '@/lib/env'
 
 function levelVariant(level: string): 'danger' | 'warn' | 'secondary' {
   switch (level.toLowerCase()) {
@@ -25,7 +35,13 @@ function levelVariant(level: string): 'danger' | 'warn' | 'secondary' {
   }
 }
 
-function IssueRow({ issue }: { issue: SentryIssue }) {
+function IssueRow({
+  issue,
+  onReauthRequired
+}: {
+  issue: SentryIssue
+  onReauthRequired: () => void
+}) {
   const resolveSentryIssue = useResolveSentryIssue()
   const [isResolving, setIsResolving] = useState(false)
 
@@ -33,6 +49,10 @@ function IssueRow({ issue }: { issue: SentryIssue }) {
     setIsResolving(true)
     try {
       await resolveSentryIssue(issue.id)
+    } catch (err) {
+      if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+        onReauthRequired()
+      }
     } finally {
       setIsResolving(false)
     }
@@ -76,6 +96,7 @@ function IssueRow({ issue }: { issue: SentryIssue }) {
 
 export default function SentryCard({ data }: { data?: GetSentryIssuesResponse }) {
   const issues = data?.issues ?? []
+  const [reauthRequired, setReauthRequired] = useState(false)
 
   return (
     <Card>
@@ -93,11 +114,36 @@ export default function SentryCard({ data }: { data?: GetSentryIssuesResponse })
         ) : (
           <ul className="space-y-2">
             {issues.map((issue) => (
-              <IssueRow key={issue.id} issue={issue} />
+              <IssueRow
+                key={issue.id}
+                issue={issue}
+                onReauthRequired={() => setReauthRequired(true)}
+              />
             ))}
           </ul>
         )}
       </CardContent>
+
+      <Dialog open={reauthRequired} onOpenChange={setReauthRequired}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sentry needs to be reconnected</DialogTitle>
+            <DialogClose aria-label="Close">x</DialogClose>
+          </DialogHeader>
+          <DialogDescription>
+            This action failed because the Sentry connection is missing a permission it now
+            requires. Reconnect to grant it — your org/project selection is kept.
+          </DialogDescription>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setReauthRequired(false)}>
+              Close
+            </Button>
+            <Button asChild>
+              <a href={`${getApiUrl()}/admin/oauth/sentry/start`}>Reconnect Sentry</a>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
