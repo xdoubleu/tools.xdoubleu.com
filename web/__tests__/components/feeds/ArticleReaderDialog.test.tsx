@@ -1,17 +1,80 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { forwardRef, useImperativeHandle } from 'react'
 import { create } from '@bufbuild/protobuf'
 import { ItemSchema } from '@/lib/gen/feeds/v1/feeds_pb'
+
+const markRead = jest.fn()
 
 jest.mock('@/components/feeds/FeedFavouriteButton', () => () => (
   <div data-testid="favourite-button" />
 ))
-jest.mock('@/components/feeds/FeedItemMarkReadButton', () => () => (
-  <div data-testid="mark-read-button" />
-))
+jest.mock('@/components/feeds/FeedItemMarkReadButton', () => ({
+  __esModule: true,
+  default: forwardRef(function MockMarkReadButton(_props: unknown, ref) {
+    useImperativeHandle(ref, () => ({ markRead }))
+    return <div data-testid="mark-read-button" />
+  })
+}))
 
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
 
 describe('ArticleReaderDialog', () => {
+  beforeEach(() => {
+    markRead.mockReset()
+  })
+
+  it('auto-marks the item read once scrolled to the end of the content', () => {
+    const item = create(ItemSchema, {
+      id: 'item-1',
+      title: 'Long Article',
+      contentHtml: '<p>Body</p>'
+    })
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    const content = screen.getByText('Body').parentElement!.parentElement!
+    Object.defineProperty(content, 'scrollHeight', { value: 1000, configurable: true })
+    Object.defineProperty(content, 'clientHeight', { value: 300, configurable: true })
+
+    fireEvent.scroll(content, { target: { scrollTop: 400 } })
+    expect(markRead).not.toHaveBeenCalled()
+
+    fireEvent.scroll(content, { target: { scrollTop: 690 } })
+    expect(markRead).toHaveBeenCalledTimes(1)
+  })
+
+  it('auto-marks read on mount when the content already fits without scrolling', () => {
+    const clientHeight = jest
+      .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
+      .mockReturnValue(300)
+    const scrollHeight = jest
+      .spyOn(HTMLElement.prototype, 'scrollHeight', 'get')
+      .mockReturnValue(200)
+
+    const item = create(ItemSchema, { id: 'item-1', title: 'Short', contentHtml: '<p>Body</p>' })
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    expect(markRead).toHaveBeenCalledTimes(1)
+
+    clientHeight.mockRestore()
+    scrollHeight.mockRestore()
+  })
+
   it('renders the title and sanitized content', () => {
     const item = create(ItemSchema, {
       id: 'item-1',

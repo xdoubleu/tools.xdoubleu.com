@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -8,9 +9,14 @@ import {
   DialogClose
 } from '@/components/ui/dialog'
 import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
-import FeedItemMarkReadButton from '@/components/feeds/FeedItemMarkReadButton'
+import FeedItemMarkReadButton, {
+  type FeedItemMarkReadHandle
+} from '@/components/feeds/FeedItemMarkReadButton'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
+
+// How close to the bottom (px) counts as "reached the end" (issue #716).
+const AUTO_READ_THRESHOLD_PX = 24
 
 interface ArticleReaderDialogProps {
   item: Item
@@ -32,6 +38,16 @@ export default function ArticleReaderDialog({
   onSettled
 }: ArticleReaderDialogProps) {
   const html = item.contentHtml
+  const markReadRef = useRef<FeedItemMarkReadHandle>(null)
+
+  // Auto-mark-read once the reader is scrolled to the end of the content
+  // (issue #716); the button's own undo window still lets the user revert.
+  const checkAutoRead = (el: HTMLDivElement | null) => {
+    if (!el || !html || el.clientHeight === 0) return
+    if (el.scrollHeight - el.scrollTop - el.clientHeight <= AUTO_READ_THRESHOLD_PX) {
+      markReadRef.current?.markRead()
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -53,6 +69,7 @@ export default function ArticleReaderDialog({
           <div className="flex shrink-0 items-center gap-2">
             <FeedFavouriteButton itemId={item.id} favourite={item.favourite} />
             <FeedItemMarkReadButton
+              ref={markReadRef}
               itemId={item.id}
               onMarkRead={onMarkRead}
               onSettled={onSettled}
@@ -66,7 +83,11 @@ export default function ArticleReaderDialog({
           </DialogClose>
         </DialogHeader>
 
-        <div className="min-w-0 flex-1 overflow-y-auto">
+        <div
+          className="min-w-0 flex-1 overflow-y-auto"
+          ref={checkAutoRead}
+          onScroll={(e) => checkAutoRead(e.currentTarget)}
+        >
           {!html && (
             <p className="text-sm text-muted p-4">
               No in-app content stored for this item.
