@@ -49,6 +49,7 @@ type oauthConnectionRow struct {
 	connectedAt  time.Time
 	updatedAt    time.Time
 	config       []byte
+	scope        *string
 }
 
 // Get returns the decrypted token plus connection metadata for provider, or
@@ -59,12 +60,13 @@ func (r *OAuthConnectionsRepository) Get(
 	var row oauthConnectionRow
 	err := r.db.QueryRow(ctx, `
 		SELECT access_token, refresh_token, expires_at, connected_by,
-		       connected_at, updated_at, config
+		       connected_at, updated_at, config, scope
 		FROM global.oauth_connections
 		WHERE provider = $1
 	`, provider).Scan(
 		&row.accessToken, &row.refreshToken, &row.expiresAt,
 		&row.connectedBy, &row.connectedAt, &row.updatedAt, &row.config,
+		&row.scope,
 	)
 	if err != nil {
 		return nil, nil, postgres.PgxErrorToHTTPError(err)
@@ -91,18 +93,21 @@ func (r *OAuthConnectionsRepository) Upsert(
 		return err
 	}
 
+	scope, _ := tok.Extra("scope").(string)
+
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO global.oauth_connections
-			(provider, access_token, refresh_token, expires_at, connected_by)
-		VALUES ($1, $2, $3, $4, $5)
+			(provider, access_token, refresh_token, expires_at, connected_by, scope)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (provider) DO UPDATE SET
 			access_token  = EXCLUDED.access_token,
 			refresh_token = EXCLUDED.refresh_token,
 			expires_at    = EXCLUDED.expires_at,
 			connected_by  = EXCLUDED.connected_by,
 			connected_at  = now(),
-			updated_at    = now()
-	`, provider, access, refresh, expiryPtr(tok), connectedBy)
+			updated_at    = now(),
+			scope         = EXCLUDED.scope
+	`, provider, access, refresh, expiryPtr(tok), connectedBy, nullIfEmpty(scope))
 	return err
 }
 
@@ -169,7 +174,7 @@ func (r *OAuthConnectionsRepository) List(
 ) ([]models.OAuthConnection, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT provider, expires_at, connected_by, connected_at, updated_at,
-		       config
+		       config, scope
 		FROM global.oauth_connections
 		ORDER BY provider
 	`)
@@ -186,7 +191,7 @@ func (r *OAuthConnectionsRepository) List(
 		)
 		if scanErr := rows.Scan(
 			&provider, &row.expiresAt, &row.connectedBy,
-			&row.connectedAt, &row.updatedAt, &row.config,
+			&row.connectedAt, &row.updatedAt, &row.config, &row.scope,
 		); scanErr != nil {
 			return nil, scanErr
 		}
@@ -251,13 +256,19 @@ func (r *OAuthConnectionsRepository) decryptToken(
 func rowToConnection(
 	provider models.OAuthProvider, row oauthConnectionRow,
 ) *models.OAuthConnection {
+	var scope string
+	if row.scope != nil {
+		scope = *row.scope
+	}
+
 	return &models.OAuthConnection{
-		Provider:    provider,
-		ConnectedBy: row.connectedBy,
-		ConnectedAt: row.connectedAt,
-		UpdatedAt:   row.updatedAt,
-		ExpiresAt:   row.expiresAt,
-		Config:      row.config,
+		Provider:     provider,
+		ConnectedBy:  row.connectedBy,
+		ConnectedAt:  row.connectedAt,
+		UpdatedAt:    row.updatedAt,
+		ExpiresAt:    row.expiresAt,
+		Config:       row.config,
+		GrantedScope: scope,
 	}
 }
 
@@ -266,4 +277,11 @@ func expiryPtr(tok *oauth2.Token) *time.Time {
 		return nil
 	}
 	return &tok.Expiry
+}
+
+func nullIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }

@@ -49,7 +49,7 @@ func (h *obsConnectHandler) ListOAuthConnections(
 	statuses := make([]*observabilityv1.OAuthConnectionStatus, len(allOAuthProviders))
 	for i, provider := range allOAuthProviders {
 		conn, ok := byProvider[provider]
-		if !ok {
+		if !ok || h.scopeIsStale(provider, conn.GrantedScope) {
 			statuses[i] = &observabilityv1.OAuthConnectionStatus{
 				Provider:  string(provider),
 				Connected: false,
@@ -69,6 +69,21 @@ func (h *obsConnectHandler) ListOAuthConnections(
 	return connect.NewResponse(&observabilityv1.ListOAuthConnectionsResponse{
 		Connections: statuses,
 	}), nil
+}
+
+// scopeIsStale reports whether a stored connection's granted scope no longer
+// covers what provider's oauth2.Config currently requires — e.g. an admin
+// connected before a required scope was added. Such a connection is shown as
+// not-connected so the existing "Connect" button in the admin UI is the
+// reconnect path, rather than the admin discovering it via a runtime 403.
+func (h *obsConnectHandler) scopeIsStale(
+	provider models.OAuthProvider, grantedScope string,
+) bool {
+	def, ok := oauthProviders[string(provider)]
+	if !ok {
+		return false
+	}
+	return !oauthconn.HasScopes(grantedScope, def.conf(h.app).Scopes)
 }
 
 // resolveConnectedBy maps a stored user ID to their email, falling back to

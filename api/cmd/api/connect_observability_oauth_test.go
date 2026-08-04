@@ -65,6 +65,33 @@ func TestListOAuthConnections_AsAdmin_OneConnected(t *testing.T) {
 	}
 }
 
+func TestListOAuthConnections_AsAdmin_StaleScope(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	clearOAuthConnections(t)
+
+	tok := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+		AccessToken: "tok",
+	}).WithExtra(map[string]any{"scope": "org:read"})
+	require.NoError(t, testApp.oauthConnRepo.Upsert(
+		t.Context(), models.OAuthProviderSentry, tok, testUserID,
+	))
+
+	req := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
+	require.NoError(t, err)
+
+	for _, c := range resp.Msg.Connections {
+		if c.Provider == string(models.OAuthProviderSentry) {
+			assert.False(
+				t, c.Connected,
+				"a connection missing a currently-required scope must show as not connected",
+			)
+		}
+	}
+}
+
 func TestListOAuthConnections_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 
