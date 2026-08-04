@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -64,4 +65,16 @@ func TestScrubInternalErrorsPassesThroughOtherCodes(t *testing.T) {
 func TestScrubInternalErrorsPassesThroughSuccess(t *testing.T) {
 	err := callScrubbed(t, nil)
 	assert.NoError(t, err)
+}
+
+func TestScrubInternalErrorsContextCanceled(t *testing.T) {
+	wrapped := connect.NewError(
+		connect.CodeInternal,
+		fmt.Errorf("query failed: %w", context.Canceled),
+	)
+	err := callScrubbed(t, wrapped)
+
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeCanceled, connect.CodeOf(err))
+	assert.ErrorIs(t, err, context.Canceled)
 }

@@ -27,6 +27,10 @@ func scrubInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
 				return resp, nil
 			}
 
+			if errors.Is(err, context.Canceled) {
+				return resp, connect.NewError(connect.CodeCanceled, err)
+			}
+
 			code := connect.CodeOf(err)
 			if code != connect.CodeInternal && code != connect.CodeUnknown {
 				return resp, err
