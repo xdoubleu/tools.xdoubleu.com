@@ -538,6 +538,86 @@ describe('useUploadBookFile', () => {
     expect(mockFinalize).toHaveBeenCalledWith(expect.objectContaining({ checksum: 'aabbccdd' }))
   })
 
+  it('re-uploads the blob and retries finalize on FailedPrecondition after alreadyExists', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockResolvedValueOnce({ uploadId: '', url: '', alreadyExists: true })
+      .mockResolvedValueOnce({
+        uploadId: 'users/u1/uploads/uuid-retry.epub',
+        url: 'https://r2.example.com/put-retry',
+        alreadyExists: false
+      })
+    const mockFinalize = jest
+      .fn()
+      .mockRejectedValueOnce(new ConnectError('blob missing', Code.FailedPrecondition))
+      .mockResolvedValueOnce({ matchedExisting: false, recognizedTitle: 'Recovered Title' })
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    const uploadResult = await result.current(file)
+
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+    // The retry create call skips the checksum shortcut to force a fresh URL.
+    expect(mockCreate).toHaveBeenLastCalledWith({
+      filename: 'book.epub',
+      contentType: 'application/epub+zip',
+      size: BigInt(file.size)
+    })
+    expect(global.fetch).toHaveBeenCalledWith('https://r2.example.com/put-retry', {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': 'application/epub+zip' }
+    })
+    expect(mockFinalize).toHaveBeenCalledTimes(2)
+    expect(mockFinalize).toHaveBeenLastCalledWith(
+      expect.objectContaining({ uploadId: 'users/u1/uploads/uuid-retry.epub' })
+    )
+    expect(uploadResult).toEqual({ matchedExisting: false, recognizedTitle: 'Recovered Title' })
+  })
+
+  it('throws when the blob-recovery PUT fails on FailedPrecondition retry', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockResolvedValueOnce({ uploadId: '', url: '', alreadyExists: true })
+      .mockResolvedValueOnce({
+        uploadId: 'users/u1/uploads/uuid-retry.epub',
+        url: 'https://r2.example.com/put-retry',
+        alreadyExists: false
+      })
+    const mockFinalize = jest
+      .fn()
+      .mockRejectedValueOnce(new ConnectError('blob missing', Code.FailedPrecondition))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('Upload to storage failed on retry (500)')
+  })
+
+  it('rethrows a non-rate-limit finalize error unchanged', async () => {
+    const mockCreate = jest.fn().mockResolvedValue({
+      uploadId: 'users/u1/uploads/uuid.epub',
+      url: 'https://r2.example.com/put',
+      alreadyExists: false
+    })
+    const mockFinalize = jest.fn().mockRejectedValue(new ConnectError('malformed epub'))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('malformed epub')
+  })
+
   it('throws when the R2 PUT fails', async () => {
     const mockCreate = jest.fn().mockResolvedValue({
       uploadId: 'users/u1/uploads/uuid.epub',
