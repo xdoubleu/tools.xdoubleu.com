@@ -28,6 +28,7 @@ import useSWR from 'swr'
 import {
   useFeeds,
   useFeedItems,
+  useFetchFeedItemsPage,
   useCreateFeed,
   useDeleteFeed,
   useRefreshFeed,
@@ -52,12 +53,24 @@ describe('useFeeds', () => {
     expect(clientMocks.listFeeds).toHaveBeenCalledWith({})
   })
 
-  it('useFeedItems queries the feed items key', async () => {
-    renderHook(() => useFeedItems())
+  it('useFeedItems queries the feed items key for the requested unread filter', async () => {
+    renderHook(() => useFeedItems(true))
     const [key, fetcher] = mockUseSWR.mock.calls[0]!
-    expect(key).toBe(swrKeys.feedItems)
+    expect(key).toBe(swrKeys.feedItems(true))
     await fetcher!()
-    expect(clientMocks.listFeedItems).toHaveBeenCalledWith({})
+    expect(clientMocks.listFeedItems).toHaveBeenCalledWith({ limit: 50, unreadOnly: true })
+  })
+
+  it('useFetchFeedItemsPage fetches a page at the given offset', async () => {
+    clientMocks.listFeedItems.mockResolvedValueOnce({ items: [{ id: 'i1' }], hasMore: true })
+    const { result } = renderHook(() => useFetchFeedItemsPage(false))
+    const page = await result.current(50)
+    expect(clientMocks.listFeedItems).toHaveBeenCalledWith({
+      limit: 50,
+      offset: 50,
+      unreadOnly: false
+    })
+    expect(page).toEqual({ items: [{ id: 'i1' }], hasMore: true })
   })
 
   it('useCreateFeed creates and invalidates feeds', async () => {
@@ -96,7 +109,7 @@ describe('useFeeds', () => {
     await result.current('f1')
     expect(clientMocks.deleteFeed).toHaveBeenCalledWith({ feedId: 'f1' })
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.feeds)
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedItems)
+    expect(mutateMock).toHaveBeenCalledWith(expect.any(Function))
   })
 
   it('useRefreshFeed skips the items invalidation when nothing was ingested', async () => {
@@ -104,20 +117,28 @@ describe('useFeeds', () => {
     await result.current('f1')
     expect(clientMocks.refreshFeed).toHaveBeenCalledWith({ feedId: 'f1' })
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.feeds)
-    expect(mutateMock).not.toHaveBeenCalledWith(swrKeys.feedItems)
+    expect(mutateMock).toHaveBeenCalledTimes(1)
   })
 
   it('useRefreshFeed invalidates items when items were ingested', async () => {
     clientMocks.refreshFeed.mockResolvedValueOnce({ ingested: 3 })
     const { result } = renderHook(() => useRefreshFeed())
     await result.current('f1')
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedItems)
+    expect(mutateMock).toHaveBeenCalledWith(expect.any(Function))
   })
 
   it('useUpdateItem partially updates an item and invalidates items', async () => {
     const { result } = renderHook(() => useUpdateItem())
     await result.current('item-1', { read: true })
     expect(clientMocks.updateItem).toHaveBeenCalledWith({ itemId: 'item-1', read: true })
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedItems)
+    expect(mutateMock).toHaveBeenCalledWith(expect.any(Function))
+
+    // The invalidation matcher must catch both unread-only and all-items
+    // page keys, since a mutation doesn't know which variant is on-screen.
+    const matcher = mutateMock.mock.calls[0]![0]
+    if (typeof matcher !== 'function') throw new Error('expected a matcher function')
+    expect(matcher(swrKeys.feedItems(true))).toBe(true)
+    expect(matcher(swrKeys.feedItems(false))).toBe(true)
+    expect(matcher(swrKeys.feeds)).toBe(false)
   })
 })

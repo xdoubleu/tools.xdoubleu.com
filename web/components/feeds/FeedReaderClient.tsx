@@ -1,11 +1,13 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { useFeeds, useFeedItems } from '@/hooks/useFeeds'
+import { useFeeds, useFeedItems, useFetchFeedItemsPage } from '@/hooks/useFeeds'
+import { usePaginatedList } from '@/hooks/usePaginatedList'
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
 import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { cn } from '@/lib/cn'
 import { formatDate } from '@/lib/dates'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
@@ -23,10 +25,35 @@ function readAndBumpLastVisit(): number {
 }
 
 export default function FeedReaderClient() {
+  const [showRead, setShowRead] = useState(false)
+  const unreadOnly = !showRead
+
   const { data: feedsData } = useFeeds()
-  const { data: itemsData, error, isLoading } = useFeedItems()
-  const [settled, setSettled] = useState<Set<string>>(new Set())
-  const [pendingRead, setPendingRead] = useState<Set<string>>(new Set())
+  const { data: itemsData, error, isLoading } = useFeedItems(unreadOnly)
+  const fetchPage = useFetchFeedItemsPage(unreadOnly)
+  const initialPage = useMemo(
+    () => ({ items: itemsData?.items ?? [], hasMore: itemsData?.hasMore ?? false }),
+    [itemsData]
+  )
+  const {
+    items: page,
+    hasMore,
+    loading: loadingMore,
+    loadMore
+  } = usePaginatedList(initialPage, fetchPage)
+
+  // Marking read revalidates feedItems immediately, so an unread-only fetch
+  // drops the item server-side well before the undo window elapses —
+  // pendingRead pins the last-known item so its card (and still-open Undo
+  // affordance) stays visible until handleSettled removes the pin.
+  const [pendingRead, setPendingRead] = useState<Map<string, Item>>(new Map())
+
+  const items = useMemo(() => {
+    if (!unreadOnly || pendingRead.size === 0) return page
+    const extra = [...pendingRead.values()].filter((p) => !page.some((i) => i.id === p.id))
+    return [...page, ...extra]
+  }, [page, pendingRead, unreadOnly])
+
   const [lastVisit] = useState(readAndBumpLastVisit)
 
   const feedTitleById = useMemo(() => {
@@ -37,44 +64,51 @@ export default function FeedReaderClient() {
     return map
   }, [feedsData])
 
-  // Marking read revalidates feedItems immediately, so readAt flips server-side
-  // well before the undo window elapses — pendingRead keeps the card (and its
-  // still-open Undo affordance) visible until handleSettled fires.
-  const unread = useMemo(() => {
-    const items = itemsData?.items ?? []
-    return items.filter(
-      (item) =>
-        !item.dismissed && !settled.has(item.id) && (!item.readAt || pendingRead.has(item.id))
-    )
-  }, [itemsData, settled, pendingRead])
-
-  const handleMarkRead = useCallback((itemId: string) => {
-    setPendingRead((prev) => new Set(prev).add(itemId))
+  const handleMarkRead = useCallback((item: Item) => {
+    setPendingRead((prev) => new Map(prev).set(item.id, item))
   }, [])
 
   const handleSettled = useCallback((itemId: string) => {
-    setSettled((prev) => new Set(prev).add(itemId))
+    setPendingRead((prev) => {
+      if (!prev.has(itemId)) return prev
+      const next = new Map(prev)
+      next.delete(itemId)
+      return next
+    })
   }, [])
 
   if (isLoading) return <p className="text-muted">Loading…</p>
   if (error) return <p className="text-danger">Failed to load feed items.</p>
 
-  if (unread.length === 0) {
-    return <p className="py-16 text-center text-sm text-muted">No unread feed items.</p>
-  }
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {unread.map((item) => (
-        <FeedReaderCard
-          key={item.id}
-          item={item}
-          feedTitle={feedTitleById.get(item.feedId)}
-          isNew={new Date(item.createdAt).getTime() > lastVisit}
-          onMarkRead={handleMarkRead}
-          onSettled={handleSettled}
-        />
-      ))}
+    <div>
+      <div className="mb-4 flex justify-end">
+        <Button variant="secondary" size="sm" onClick={() => setShowRead((v) => !v)}>
+          {showRead ? 'Show unread only' : 'Show read items'}
+        </Button>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="py-16 text-center text-sm text-muted">
+          {showRead ? 'No feed items.' : 'No unread feed items.'}
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {items.map((item) => (
+              <FeedReaderCard
+                key={item.id}
+                item={item}
+                feedTitle={feedTitleById.get(item.feedId)}
+                isNew={new Date(item.createdAt).getTime() > lastVisit}
+                onMarkRead={handleMarkRead}
+                onSettled={handleSettled}
+              />
+            ))}
+          </div>
+          {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
+        </>
+      )}
     </div>
   )
 }
@@ -83,13 +117,14 @@ interface FeedReaderCardProps {
   item: Item
   feedTitle?: string
   isNew: boolean
-  onMarkRead: (itemId: string) => void
+  onMarkRead: (item: Item) => void
   onSettled: (itemId: string) => void
 }
 
 function FeedReaderCard({ item, feedTitle, isNew, onMarkRead, onSettled }: FeedReaderCardProps) {
   const [readerOpen, setReaderOpen] = useState(false)
   const noContent = !item.contentHtml
+  const handleMarkRead = useCallback(() => onMarkRead(item), [onMarkRead, item])
 
   return (
     <div
@@ -124,7 +159,7 @@ function FeedReaderCard({ item, feedTitle, isNew, onMarkRead, onSettled }: FeedR
         item={item}
         open={readerOpen}
         onOpenChange={setReaderOpen}
-        onMarkRead={onMarkRead}
+        onMarkRead={handleMarkRead}
         onSettled={onSettled}
       />
     </div>

@@ -62,7 +62,7 @@ export const swrKeys = {
   gamesIntegrations: '/games/integrations',
 
   feeds: '/feeds',
-  feedItems: '/feeds/items',
+  feedItems: (unreadOnly: boolean) => `/feeds/items?unread=${unreadOnly}`,
 
   icsFeeds: '/icsproxy',
   icsPreview: (sourceUrl: string) => `/icsproxy/preview?url=${encodeURIComponent(sourceUrl)}`,

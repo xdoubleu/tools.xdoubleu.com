@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import useSWR, { mutate } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { createServiceClient } from '@/lib/client'
 import { FeedService, FeedKind } from '@/lib/gen/feeds/v1/feeds_pb'
 import type {
@@ -13,14 +14,33 @@ import type {
 // reading library (issue #734) — items are self-contained, so mutations
 // only ever invalidate feeds-scoped keys.
 
+// Items are paginated per unreadOnly variant (two independent SWR keys), so
+// a mutation invalidates both rather than tracking which one is on-screen.
+function mutateFeedItems() {
+  return mutate((key) => typeof key === 'string' && key.startsWith('/feeds/items'))
+}
+
 export function useFeeds() {
   const client = createServiceClient(FeedService)
   return useSWR<ListFeedsResponse, Error>(swrKeys.feeds, () => client.listFeeds({}))
 }
 
-export function useFeedItems() {
+export function useFeedItems(unreadOnly: boolean) {
   const client = createServiceClient(FeedService)
-  return useSWR<ListFeedItemsResponse, Error>(swrKeys.feedItems, () => client.listFeedItems({}))
+  return useSWR<ListFeedItemsResponse, Error>(swrKeys.feedItems(unreadOnly), () =>
+    client.listFeedItems({ limit: DEFAULT_PAGE_SIZE, unreadOnly })
+  )
+}
+
+export function useFetchFeedItemsPage(unreadOnly: boolean) {
+  const client = useMemo(() => createServiceClient(FeedService), [])
+  return useCallback(
+    (offset: number) =>
+      client
+        .listFeedItems({ limit: DEFAULT_PAGE_SIZE, offset, unreadOnly })
+        .then((r) => ({ items: r.items, hasMore: r.hasMore })),
+    [client, unreadOnly]
+  )
 }
 
 export function useCreateFeed() {
@@ -41,7 +61,7 @@ export function useDeleteFeed() {
     async (feedId: string) => {
       await client.deleteFeed({ feedId })
       await mutate(swrKeys.feeds)
-      await mutate(swrKeys.feedItems)
+      await mutateFeedItems()
     },
     [client]
   )
@@ -53,7 +73,7 @@ export function useRefreshFeed() {
     async (feedId: string) => {
       const resp = await client.refreshFeed({ feedId })
       await mutate(swrKeys.feeds)
-      if (resp.ingested > 0) await mutate(swrKeys.feedItems)
+      if (resp.ingested > 0) await mutateFeedItems()
       return resp
     },
     [client]
@@ -73,7 +93,7 @@ export function useUpdateItem() {
   return useCallback(
     async (itemId: string, updates: UpdateItemInput): Promise<UpdateItemResponse> => {
       const resp = await client.updateItem({ itemId, ...updates })
-      await mutate(swrKeys.feedItems)
+      await mutateFeedItems()
       return resp
     },
     [client]
