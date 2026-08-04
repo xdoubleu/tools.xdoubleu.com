@@ -47,6 +47,7 @@ jest.mock('@/lib/gen/books/v1/catalog_pb', () => ({ CatalogService: {} }))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'https://api.test' }))
 
 import useSWR from 'swr'
+import { ConnectError, Code } from '@connectrpc/connect'
 import {
   useLibrary,
   useBooksProgress,
@@ -551,6 +552,43 @@ describe('useUploadBookFile', () => {
     const { result } = renderHook(() => useUploadBookFile())
     const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
     await expect(result.current(file)).rejects.toThrow('Upload to storage failed (403)')
+  })
+
+  it('retries after a ResourceExhausted (rate-limited) response and succeeds', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockRejectedValueOnce(new ConnectError('rate limit exceeded', Code.ResourceExhausted))
+      .mockResolvedValueOnce({
+        uploadId: 'users/u1/uploads/uuid.epub',
+        url: 'https://r2.example.com/put',
+        alreadyExists: false
+      })
+    const mockFinalize = jest.fn().mockResolvedValue({})
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: mockFinalize }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+    global.fetch = jest.fn().mockResolvedValue({ ok: true })
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await result.current(file)
+
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+    expect(mockFinalize).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives up after repeated ResourceExhausted responses', async () => {
+    const mockCreate = jest
+      .fn()
+      .mockRejectedValue(new ConnectError('rate limit exceeded', Code.ResourceExhausted))
+    const partialClient = { createBookUpload: mockCreate, finalizeBookUpload: jest.fn() }
+    // @ts-expect-error -- partial mock client; only upload methods needed for this test
+    mockCreateServiceClient.mockReturnValueOnce(partialClient)
+
+    const { result } = renderHook(() => useUploadBookFile())
+    const file = new File(['data'], 'book.epub', { type: 'application/epub+zip' })
+    await expect(result.current(file)).rejects.toThrow('rate limit exceeded')
+    expect(mockCreate).toHaveBeenCalledTimes(4)
   })
 })
 
