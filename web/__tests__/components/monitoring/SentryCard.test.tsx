@@ -1,5 +1,6 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
+import { ConnectError, Code } from '@connectrpc/connect'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { GetSentryIssuesResponseSchema } from '@/lib/gen/observability/v1/observability_pb'
 import SentryCard from '@/components/monitoring/SentryCard'
@@ -87,5 +88,57 @@ describe('SentryCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Resolve' }))
 
     await waitFor(() => expect(mockResolveSentryIssue).toHaveBeenCalledWith('1'))
+  })
+
+  it('shows a reconnect popup when resolving fails with Unauthenticated', async () => {
+    mockResolveSentryIssue.mockRejectedValue(new ConnectError('needs reauth', Code.Unauthenticated))
+    const data = create(GetSentryIssuesResponseSchema, {
+      configured: true,
+      unresolvedCount: 1,
+      issues: [
+        {
+          id: '1',
+          title: 'Boom A',
+          culprit: '',
+          permalink: 'https://s/1',
+          count: 3n,
+          lastSeen: '2026-07-10T00:00:00Z',
+          level: 'error',
+          project: 'proj-a'
+        }
+      ]
+    })
+
+    render(<SentryCard data={data} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Resolve' }))
+
+    expect(await screen.findByText('Sentry needs to be reconnected')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Reconnect Sentry' })).toBeInTheDocument()
+  })
+
+  it('does not show the reconnect popup for other resolve failures', async () => {
+    mockResolveSentryIssue.mockRejectedValue(new ConnectError('boom', Code.Internal))
+    const data = create(GetSentryIssuesResponseSchema, {
+      configured: true,
+      unresolvedCount: 1,
+      issues: [
+        {
+          id: '1',
+          title: 'Boom A',
+          culprit: '',
+          permalink: 'https://s/1',
+          count: 3n,
+          lastSeen: '2026-07-10T00:00:00Z',
+          level: 'error',
+          project: 'proj-a'
+        }
+      ]
+    })
+
+    render(<SentryCard data={data} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Resolve' }))
+
+    await waitFor(() => expect(mockResolveSentryIssue).toHaveBeenCalledWith('1'))
+    expect(screen.queryByText('Sentry needs to be reconnected')).not.toBeInTheDocument()
   })
 })

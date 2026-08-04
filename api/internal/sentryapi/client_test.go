@@ -307,11 +307,13 @@ func TestResolveIssue_NotConfigured(t *testing.T) {
 }
 
 func TestResolveIssue_TokenNotConnected(t *testing.T) {
+	// Config resolves fine (a connection+config row exists), so the token
+	// func's ErrNotConnected here can only mean a stale granted scope.
 	c := sentryapi.New(
 		logging.NewNopLogger(), stubNotConnected(), configWith("org", "proj"),
 	)
 	err := c.ResolveIssue(context.Background(), "42")
-	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
+	require.ErrorIs(t, err, sentryapi.ErrReauthRequired)
 }
 
 func TestResolveIssue_TokenError(t *testing.T) {

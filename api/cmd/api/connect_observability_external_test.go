@@ -283,6 +283,24 @@ func TestObservabilityResolveSentryIssue_NotConfigured(t *testing.T) {
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
+func TestObservabilityResolveSentryIssue_ReauthRequired(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	// Config resolves (a connection+config row exists) but the token func
+	// reports ErrNotConnected — i.e. a stale granted scope, not "never
+	// connected" — which must surface as CodeUnauthenticated, not
+	// CodeFailedPrecondition (issue #791).
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(),
+		stubTok(""),
+		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
+	)
+
+	_, err := callResolveSentryIssue(t)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
+
 func TestObservabilityResolveSentryIssue_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	_, err := callResolveSentryIssue(t)

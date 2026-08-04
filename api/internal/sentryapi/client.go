@@ -119,7 +119,10 @@ func (c *client) ResolveIssue(ctx context.Context, issueID string) error {
 
 	token, err := c.tokenFn(ctx)
 	if errors.Is(err, oauthconn.ErrNotConnected) {
-		return ErrNotConfigured
+		// resolveConfig above already proved a connection+config row exists,
+		// so tokenFn can only be refusing it here over a stale granted
+		// scope (see oauthconn.NewTokenFunc) — never "no connection at all".
+		return ErrReauthRequired
 	}
 	if err != nil {
 		return err
