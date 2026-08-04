@@ -8,8 +8,9 @@ const mockUseFetchFeedItemsPage = jest.fn()
 
 jest.mock('@/hooks/useFeeds', () => ({
   useFeeds: () => mockUseFeeds(),
-  useFeedItems: (unreadOnly: boolean) => mockUseFeedItems(unreadOnly),
-  useFetchFeedItemsPage: (unreadOnly: boolean) => mockUseFetchFeedItemsPage(unreadOnly),
+  useFeedItems: (unreadOnly: boolean, feedId?: string) => mockUseFeedItems(unreadOnly, feedId),
+  useFetchFeedItemsPage: (unreadOnly: boolean, feedId?: string) =>
+    mockUseFetchFeedItemsPage(unreadOnly, feedId),
   useUpdateItem: () => jest.fn()
 }))
 
@@ -84,7 +85,22 @@ describe('FeedReaderClient', () => {
       isLoading: false
     })
     render(<FeedReaderClient />)
-    expect(mockUseFeedItems).toHaveBeenCalledWith(true)
+    expect(mockUseFeedItems).toHaveBeenCalledWith(true, undefined)
+  })
+
+  it('filters by the selected feed', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'feed-1' } })
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, 'feed-1')
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } })
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined)
   })
 
   it('lists items with their feed title (server already filters read/dismissed)', () => {
@@ -96,7 +112,8 @@ describe('FeedReaderClient', () => {
     render(<FeedReaderClient />)
 
     expect(screen.getByText('Item 1')).toBeInTheDocument()
-    expect(screen.getByText('Example Blog')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Example Blog' })).toBeInTheDocument()
+    expect(screen.getAllByText('Example Blog')).toHaveLength(2)
   })
 
   it('shows a no-content hint for items without stored HTML', () => {
@@ -175,10 +192,10 @@ describe('FeedReaderClient', () => {
     render(<FeedReaderClient />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false)
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined)
 
     fireEvent.click(screen.getByRole('button', { name: 'Show unread only' }))
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true)
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined)
   })
 
   it('loads the next page on Load more', async () => {

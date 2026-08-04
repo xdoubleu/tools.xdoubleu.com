@@ -26,21 +26,21 @@ export function useFeeds() {
   return useSWR<ListFeedsResponse, Error>(swrKeys.feeds, () => client.listFeeds({}))
 }
 
-export function useFeedItems(unreadOnly: boolean) {
+export function useFeedItems(unreadOnly: boolean, feedId?: string) {
   const client = createServiceClient(FeedService)
-  return useSWR<ListFeedItemsResponse, Error>(swrKeys.feedItems(unreadOnly), () =>
-    client.listFeedItems({ limit: DEFAULT_PAGE_SIZE, unreadOnly })
+  return useSWR<ListFeedItemsResponse, Error>(swrKeys.feedItems(unreadOnly, feedId), () =>
+    client.listFeedItems({ limit: DEFAULT_PAGE_SIZE, unreadOnly, feedId })
   )
 }
 
-export function useFetchFeedItemsPage(unreadOnly: boolean) {
+export function useFetchFeedItemsPage(unreadOnly: boolean, feedId?: string) {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
     (offset: number) =>
       client
-        .listFeedItems({ limit: DEFAULT_PAGE_SIZE, offset, unreadOnly })
+        .listFeedItems({ limit: DEFAULT_PAGE_SIZE, offset, unreadOnly, feedId })
         .then((r) => ({ items: r.items, hasMore: r.hasMore })),
-    [client, unreadOnly]
+    [client, unreadOnly, feedId]
   )
 }
 
