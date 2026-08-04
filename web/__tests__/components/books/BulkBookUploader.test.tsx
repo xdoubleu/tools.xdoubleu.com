@@ -198,6 +198,127 @@ describe('BulkBookUploader', () => {
     expect(mockUploadBookFile).toHaveBeenCalledWith(expect.objectContaining({ name: 'small.epub' }))
   })
 
+  it('shows a title/author retry form for an unrecognized-book failure', async () => {
+    mockUploadBookFile.mockRejectedValueOnce(
+      new Error('[invalid_argument] book could not be recognized from metadata')
+    )
+
+    render(<BulkBookUploader />)
+    const input = screen.getByTestId('file-input') as HTMLInputElement
+    Object.defineProperty(input, 'files', {
+      value: [makeFile('no-meta.pdf', 'application/pdf')],
+      configurable: true
+    })
+
+    await act(async () => {
+      fireEvent.change(input)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Title')).toBeInTheDocument()
+    })
+    expect(screen.getByPlaceholderText('Author (optional)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDisabled()
+  })
+
+  it('does not show a retry form for a non-recognition failure', async () => {
+    mockUploadBookFile.mockRejectedValueOnce(new Error('unsupported format'))
+
+    render(<BulkBookUploader />)
+    const input = screen.getByTestId('file-input') as HTMLInputElement
+    Object.defineProperty(input, 'files', {
+      value: [makeFile('bad.epub')],
+      configurable: true
+    })
+
+    await act(async () => {
+      fireEvent.change(input)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('bad.epub: unsupported format')).toBeInTheDocument()
+    })
+    expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument()
+  })
+
+  it('retries an unrecognized upload with the typed title/author and clears the error', async () => {
+    mockUploadBookFile
+      .mockRejectedValueOnce(new Error('book could not be recognized from metadata'))
+      .mockResolvedValueOnce({ matchedExisting: false })
+
+    render(<BulkBookUploader />)
+    const input = screen.getByTestId('file-input') as HTMLInputElement
+    Object.defineProperty(input, 'files', {
+      value: [makeFile('no-meta.pdf', 'application/pdf')],
+      configurable: true
+    })
+
+    await act(async () => {
+      fireEvent.change(input)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Title')).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Title'), {
+      target: { value: 'Black Hat Go' }
+    })
+    fireEvent.change(screen.getByPlaceholderText('Author (optional)'), {
+      target: { value: 'Tom Steele' }
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument()
+    })
+    expect(mockUploadBookFile).toHaveBeenLastCalledWith(
+      expect.objectContaining({ name: 'no-meta.pdf' }),
+      { titleOverride: 'Black Hat Go', authorOverride: 'Tom Steele' }
+    )
+    expect(screen.getByText(/1 \/ 1 uploaded/)).toBeInTheDocument()
+  })
+
+  it('shows the new error and keeps the retry form when a retry itself fails', async () => {
+    mockUploadBookFile
+      .mockRejectedValueOnce(new Error('book could not be recognized from metadata'))
+      .mockRejectedValueOnce(new Error('still could not be recognized from metadata'))
+
+    render(<BulkBookUploader />)
+    const input = screen.getByTestId('file-input') as HTMLInputElement
+    Object.defineProperty(input, 'files', {
+      value: [makeFile('no-meta.pdf', 'application/pdf')],
+      configurable: true
+    })
+
+    await act(async () => {
+      fireEvent.change(input)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Title')).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Title'), {
+      target: { value: 'Wrong Title' }
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('no-meta.pdf: still could not be recognized from metadata')
+      ).toBeInTheDocument()
+    })
+    // The retry form must still be present so the user can try again.
+    expect(screen.getByPlaceholderText('Title')).toBeInTheDocument()
+  })
+
   it('accepts drag-and-drop files and uploads each', async () => {
     mockUploadBookFile.mockResolvedValue({})
 

@@ -101,6 +101,8 @@ func simulateUpload(
 		filename,
 		contentType,
 		"",
+		"",
+		"",
 	)
 }
 
@@ -162,12 +164,17 @@ func TestUploadFile_UnsupportedFormat_ShortData(t *testing.T) {
 }
 
 // TestUploadFile_PDF_NoMetadata_Rejected verifies that a PDF with no Info-dict
-// metadata (no title, no author) is rejected because the book cannot be
-// recognized, and the temp upload object is removed from the bucket.
+// metadata (no title, no author) and a filename that matches no provider
+// result is still rejected because the book cannot be recognized, and the
+// temp upload object is removed from the bucket. Uses noExternalMatchApp
+// since testApp's mock Hardcover client matches any query.
 func TestUploadFile_PDF_NoMetadata_Rejected(t *testing.T) {
+	const isolatedUser = "pdf-no-meta-user"
+	app2 := noExternalMatchApp(t, isolatedUser)
+
 	data := minimalPDFData()
-	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
-		context.Background(), userID, "no-meta.pdf", "application/pdf",
+	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+		context.Background(), isolatedUser, "no-meta.pdf", "application/pdf",
 		int64(len(data)), "",
 	)
 	require.NoError(t, err)
@@ -175,8 +182,9 @@ func TestUploadFile_PDF_NoMetadata_Rejected(t *testing.T) {
 		context.Background(), uploadID,
 		bytes.NewReader(data), int64(len(data)), "application/pdf",
 	))
-	_, err = testApp.Services.Books.FinalizeUpload(
-		context.Background(), userID, uploadID, "no-meta.pdf", "application/pdf", "",
+	_, err = app2.Services.Books.FinalizeUpload(
+		context.Background(), isolatedUser, uploadID, "no-meta.pdf",
+		"application/pdf", "", "", "",
 	)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook)
@@ -185,6 +193,46 @@ func TestUploadFile_PDF_NoMetadata_Rejected(t *testing.T) {
 	exists, existsErr := fakeStore.Exists(context.Background(), uploadID)
 	require.NoError(t, existsErr)
 	assert.False(t, exists, "temp upload object must be deleted on rejection")
+}
+
+// TestUploadFile_PDF_NoMetadata_FilenameFallback_Matches verifies that when a
+// PDF has no Info-dict title, the filename-derived fallback title is used
+// and can still resolve a match via external search (issue #394).
+func TestUploadFile_PDF_NoMetadata_FilenameFallback_Matches(t *testing.T) {
+	fakeStore := fakeStore
+	data := minimalPDFData()
+	result, err := simulateUpload(
+		context.Background(), t, userID,
+		"Black Hat Go.pdf", "application/pdf", data, fakeStore,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.False(t, result.MatchedExisting)
+}
+
+// TestUploadFile_PDF_NoMetadata_TitleOverride_Matches verifies that an
+// explicit title override lets a PDF with no usable metadata resolve a match
+// via external search, even when the filename itself is not usable as a
+// title (issue #394's manual-entry recovery path).
+func TestUploadFile_PDF_NoMetadata_TitleOverride_Matches(t *testing.T) {
+	data := minimalPDFData()
+	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
+		context.Background(), userID, "learnyousomeerlangforgreatgood.pdf",
+		"application/pdf", int64(len(data)), "",
+	)
+	require.NoError(t, err)
+	require.NoError(t, fakeStore.Put(
+		context.Background(), uploadID,
+		bytes.NewReader(data), int64(len(data)), "application/pdf",
+	))
+	result, err := testApp.Services.Books.FinalizeUpload(
+		context.Background(), userID, uploadID,
+		"learnyousomeerlangforgreatgood.pdf", "application/pdf", "",
+		"Learn You Some Erlang for Great Good", "Fred Hébert",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.False(t, result.MatchedExisting)
 }
 
 func TestUploadFile_EPUB_MatchByISBN(t *testing.T) {
@@ -359,7 +407,7 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 	checksum := *r1.BookFile.Checksum
 	r2, err := testApp.Services.Books.FinalizeUpload(
 		context.Background(), userB, "", "cross-user.epub", "application/epub+zip",
-		checksum,
+		checksum, "", "",
 	)
 	require.NoError(t, err)
 	require.NotNil(t, r2)
@@ -555,7 +603,7 @@ func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
 	))
 	result, err := app2.Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
-		"hc-fallback.epub", "application/epub+zip", "",
+		"hc-fallback.epub", "application/epub+zip", "", "", "",
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -601,7 +649,7 @@ func TestUploadFile_OwnershipRejected(t *testing.T) {
 	_, err := testApp.Services.Books.FinalizeUpload(
 		context.Background(), userID,
 		"users/other-user/uploads/uuid.epub",
-		"file.epub", "application/epub+zip", "",
+		"file.epub", "application/epub+zip", "", "", "",
 	)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrInvalidUploadID)
@@ -738,9 +786,15 @@ func TestConnectFinalizeBookUpload_OK(t *testing.T) {
 }
 
 // TestConnectFinalizeBookUpload_PDF_NoMetadata verifies that a PDF with no
-// Info-dict metadata is rejected with CodeInvalidArgument.
+// Info-dict metadata, and a filename-derived fallback title that matches no
+// provider result either, is rejected with CodeInvalidArgument. Uses an
+// isolated app since testApp's mock Hardcover client matches any query.
 func TestConnectFinalizeBookUpload_PDF_NoMetadata(t *testing.T) {
-	client := newBooksTestClient(t)
+	const isolatedUser = "handler-pdf-no-meta-user"
+	app2 := noExternalMatchApp(t, isolatedUser)
+	ts := httptest.NewServer(testhelper.BuildMux(app2))
+	t.Cleanup(ts.Close)
+	client := newBooksClientFor(ts.URL, connect.WithHTTPGet())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -824,13 +878,17 @@ func TestConnectFinalizeBookUpload_WrongOwner_ReturnsPermissionDenied(t *testing
 }
 
 // TestUploadFile_Unrecognized_EmptyMetadata_Rejected uploads an EPUB whose OPF
-// metadata has empty title, author, and no ISBN. With no library match and an
-// empty title (so no external lookup is attempted), the service must return
-// ErrUnrecognizedBook and clean up the temp upload object.
+// metadata has empty title, author, and no ISBN, and whose filename-derived
+// fallback title matches no provider result either. The service must return
+// ErrUnrecognizedBook and clean up the temp upload object. Uses
+// noExternalMatchApp since testApp's mock Hardcover client matches any query.
 func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
+	const isolatedUser = "empty-metadata-user"
+	app2 := noExternalMatchApp(t, isolatedUser)
+
 	data := buildEPUBBytes("", "", "")
-	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
-		context.Background(), userID, "empty.epub", "application/epub+zip",
+	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+		context.Background(), isolatedUser, "empty.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
 	require.NoError(t, err)
@@ -839,12 +897,14 @@ func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	_, err = testApp.Services.Books.FinalizeUpload(
+	_, err = app2.Services.Books.FinalizeUpload(
 		context.Background(),
-		userID,
+		isolatedUser,
 		uploadID,
 		"empty.epub",
 		"application/epub+zip",
+		"",
+		"",
 		"",
 	)
 	require.Error(t, err)
@@ -902,6 +962,8 @@ func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 		"no-match.epub",
 		"application/epub+zip",
 		"",
+		"",
+		"",
 	)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook)
@@ -945,7 +1007,7 @@ func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 
 	result, err := app2.Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
-		"silm.epub", "application/epub+zip", "",
+		"silm.epub", "application/epub+zip", "", "", "",
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -985,7 +1047,7 @@ func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 
 	result, err := app2.Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
-		"ttt.epub", "application/epub+zip", "",
+		"ttt.epub", "application/epub+zip", "", "", "",
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -1025,7 +1087,7 @@ func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *test
 
 	_, err = app2.Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
-		"hamlet.epub", "application/epub+zip", "",
+		"hamlet.epub", "application/epub+zip", "", "", "",
 	)
 	// With no external match, expect ErrUnrecognizedBook.
 	require.Error(t, err)
