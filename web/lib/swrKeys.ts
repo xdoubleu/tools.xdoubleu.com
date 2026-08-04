@@ -63,6 +63,7 @@ export const swrKeys = {
 
   feeds: '/feeds',
   feedItems: (unreadOnly: boolean) => `/feeds/items?unread=${unreadOnly}`,
+  feedStats: '/feeds/stats',
 
   icsFeeds: '/icsproxy',
   icsPreview: (sourceUrl: string) => `/icsproxy/preview?url=${encodeURIComponent(sourceUrl)}`,

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file feeds/v1/feeds.proto.
  */
 export const file_feeds_v1_feeds: GenFile = /*@__PURE__*/
-  fileDesc("ChRmZWVkcy92MS9mZWVkcy5wcm90bxIIZmVlZHMudjEinQEKBEZlZWQSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg0KBXRpdGxlGAMgASgJEhcKD2xhc3RfZmV0Y2hlZF9hdBgEIAEoCRISCgpsYXN0X2Vycm9yGAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEwoLc291cmNlX3R5cGUYByABKAkSFwoPaW5ib3VuZF9hZGRyZXNzGAggASgJIhIKEExpc3RGZWVkc1JlcXVlc3QiMgoRTGlzdEZlZWRzUmVzcG9uc2USHQoFZmVlZHMYASADKAsyDi5mZWVkcy52MS5GZWVkIlEKEUNyZWF0ZUZlZWRSZXF1ZXN0EgsKA3VybBgBIAEoCRIgCgRraW5kGAIgASgOMhIuZmVlZHMudjEuRmVlZEtpbmQSDQoFdGl0bGUYAyABKAkiMgoSQ3JlYXRlRmVlZFJlc3BvbnNlEhwKBGZlZWQYASABKAsyDi5mZWVkcy52MS5GZWVkIjMKEVVwZGF0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkSDQoFdGl0bGUYAiABKAkiFAoSVXBkYXRlRmVlZFJlc3BvbnNlIiQKEURlbGV0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkiFAoSRGVsZXRlRmVlZFJlc3BvbnNlIiUKElJlZnJlc2hGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIicKE1JlZnJlc2hGZWVkUmVzcG9uc2USEAoIaW5nZXN0ZWQYASABKAUi0wEKBEl0ZW0SCgoCaWQYASABKAkSDwoHZmVlZF9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRISCgpzb3VyY2VfdXJsGAQgASgJEhQKDGNvbnRlbnRfaHRtbBgFIAEoCRIUCgxwdWJsaXNoZWRfYXQYBiABKAkSDwoHcmVhZF9hdBgHIAEoCRIRCglkaXNtaXNzZWQYCCABKAgSEQoJZmF2b3VyaXRlGAkgASgIEhQKDGluZ2VzdF9lcnJvchgKIAEoCRISCgpjcmVhdGVkX2F0GAsgASgJIoEBChRMaXN0RmVlZEl0ZW1zUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUSGAoLdW5yZWFkX29ubHkYAyABKAhIAIgBARIUCgdmZWVkX2lkGAQgASgJSAGIAQFCDgoMX3VucmVhZF9vbmx5QgoKCF9mZWVkX2lkIkgKFUxpc3RGZWVkSXRlbXNSZXNwb25zZRIdCgVpdGVtcxgBIAMoCzIOLmZlZWRzLnYxLkl0ZW0SEAoIaGFzX21vcmUYAiABKAgijAEKEVVwZGF0ZUl0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkSEQoEcmVhZBgCIAEoCEgAiAEBEhYKCWRpc21pc3NlZBgDIAEoCEgBiAEBEhYKCWZhdm91cml0ZRgEIAEoCEgCiAEBQgcKBV9yZWFkQgwKCl9kaXNtaXNzZWRCDAoKX2Zhdm91cml0ZSIyChJVcGRhdGVJdGVtUmVzcG9uc2USHAoEaXRlbRgBIAEoCzIOLmZlZWRzLnYxLkl0ZW0qYwoIRmVlZEtpbmQSGQoVRkVFRF9LSU5EX1VOU1BFQ0lGSUVEEAASEQoNRkVFRF9LSU5EX1JTUxABEhMKD0ZFRURfS0lORF9FTUFJTBACEhQKEEZFRURfS0lORF9TQ1JBUEUQAzKVBAoLRmVlZFNlcnZpY2USRAoJTGlzdEZlZWRzEhouZmVlZHMudjEuTGlzdEZlZWRzUmVxdWVzdBobLmZlZWRzLnYxLkxpc3RGZWVkc1Jlc3BvbnNlEkcKCkNyZWF0ZUZlZWQSGy5mZWVkcy52MS5DcmVhdGVGZWVkUmVxdWVzdBocLmZlZWRzLnYxLkNyZWF0ZUZlZWRSZXNwb25zZRJHCgpVcGRhdGVGZWVkEhsuZmVlZHMudjEuVXBkYXRlRmVlZFJlcXVlc3QaHC5mZWVkcy52MS5VcGRhdGVGZWVkUmVzcG9uc2USRwoKRGVsZXRlRmVlZBIbLmZlZWRzLnYxLkRlbGV0ZUZlZWRSZXF1ZXN0GhwuZmVlZHMudjEuRGVsZXRlRmVlZFJlc3BvbnNlEkoKC1JlZnJlc2hGZWVkEhwuZmVlZHMudjEuUmVmcmVzaEZlZWRSZXF1ZXN0Gh0uZmVlZHMudjEuUmVmcmVzaEZlZWRSZXNwb25zZRJQCg1MaXN0RmVlZEl0ZW1zEh4uZmVlZHMudjEuTGlzdEZlZWRJdGVtc1JlcXVlc3QaHy5mZWVkcy52MS5MaXN0RmVlZEl0ZW1zUmVzcG9uc2USRwoKVXBkYXRlSXRlbRIbLmZlZWRzLnYxLlVwZGF0ZUl0ZW1SZXF1ZXN0GhwuZmVlZHMudjEuVXBkYXRlSXRlbVJlc3BvbnNlQilaJ3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vZmVlZHMvdjE7ZmVlZHN2MWIGcHJvdG8z");
+  fileDesc("ChRmZWVkcy92MS9mZWVkcy5wcm90bxIIZmVlZHMudjEinQEKBEZlZWQSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg0KBXRpdGxlGAMgASgJEhcKD2xhc3RfZmV0Y2hlZF9hdBgEIAEoCRISCgpsYXN0X2Vycm9yGAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEwoLc291cmNlX3R5cGUYByABKAkSFwoPaW5ib3VuZF9hZGRyZXNzGAggASgJIhIKEExpc3RGZWVkc1JlcXVlc3QiMgoRTGlzdEZlZWRzUmVzcG9uc2USHQoFZmVlZHMYASADKAsyDi5mZWVkcy52MS5GZWVkIlEKEUNyZWF0ZUZlZWRSZXF1ZXN0EgsKA3VybBgBIAEoCRIgCgRraW5kGAIgASgOMhIuZmVlZHMudjEuRmVlZEtpbmQSDQoFdGl0bGUYAyABKAkiMgoSQ3JlYXRlRmVlZFJlc3BvbnNlEhwKBGZlZWQYASABKAsyDi5mZWVkcy52MS5GZWVkIjMKEVVwZGF0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkSDQoFdGl0bGUYAiABKAkiFAoSVXBkYXRlRmVlZFJlc3BvbnNlIiQKEURlbGV0ZUZlZWRSZXF1ZXN0Eg8KB2ZlZWRfaWQYASABKAkiFAoSRGVsZXRlRmVlZFJlc3BvbnNlIiUKElJlZnJlc2hGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIicKE1JlZnJlc2hGZWVkUmVzcG9uc2USEAoIaW5nZXN0ZWQYASABKAUi7gEKBEl0ZW0SCgoCaWQYASABKAkSDwoHZmVlZF9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRISCgpzb3VyY2VfdXJsGAQgASgJEhQKDGNvbnRlbnRfaHRtbBgFIAEoCRIUCgxwdWJsaXNoZWRfYXQYBiABKAkSDwoHcmVhZF9hdBgHIAEoCRIRCglkaXNtaXNzZWQYCCABKAgSEQoJZmF2b3VyaXRlGAkgASgIEhQKDGluZ2VzdF9lcnJvchgKIAEoCRISCgpjcmVhdGVkX2F0GAsgASgJEhkKEXJlYWRfcHJvZ3Jlc3NfcGN0GAwgASgFIoEBChRMaXN0RmVlZEl0ZW1zUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUSGAoLdW5yZWFkX29ubHkYAyABKAhIAIgBARIUCgdmZWVkX2lkGAQgASgJSAGIAQFCDgoMX3VucmVhZF9vbmx5QgoKCF9mZWVkX2lkIkgKFUxpc3RGZWVkSXRlbXNSZXNwb25zZRIdCgVpdGVtcxgBIAMoCzIOLmZlZWRzLnYxLkl0ZW0SEAoIaGFzX21vcmUYAiABKAgiwgEKEVVwZGF0ZUl0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkSEQoEcmVhZBgCIAEoCEgAiAEBEhYKCWRpc21pc3NlZBgDIAEoCEgBiAEBEhYKCWZhdm91cml0ZRgEIAEoCEgCiAEBEh4KEXJlYWRfcHJvZ3Jlc3NfcGN0GAUgASgFSAOIAQFCBwoFX3JlYWRCDAoKX2Rpc21pc3NlZEIMCgpfZmF2b3VyaXRlQhQKEl9yZWFkX3Byb2dyZXNzX3BjdCIyChJVcGRhdGVJdGVtUmVzcG9uc2USHAoEaXRlbRgBIAEoCzIOLmZlZWRzLnYxLkl0ZW0ikgEKCUZlZWRTdGF0cxIPCgdmZWVkX2lkGAEgASgJEhIKCmZlZWRfdGl0bGUYAiABKAkSEgoKaXRlbV9jb3VudBgDIAEoBRIaChJhdmdfaW50ZXJ2YWxfaG91cnMYBCABKAESEQoJcmVhZF9yYXRlGAUgASgBEh0KFWF2Z19yZWFkX3Byb2dyZXNzX3BjdBgGIAEoASImCghEYXlDb3VudBILCgNkYXkYASABKAkSDQoFY291bnQYAiABKAUiFQoTR2V0RmVlZFN0YXRzUmVxdWVzdCJlChRHZXRGZWVkU3RhdHNSZXNwb25zZRIiCgVzdGF0cxgBIAMoCzITLmZlZWRzLnYxLkZlZWRTdGF0cxIpCg1pdGVtc19wZXJfZGF5GAIgAygLMhIuZmVlZHMudjEuRGF5Q291bnQqYwoIRmVlZEtpbmQSGQoVRkVFRF9LSU5EX1VOU1BFQ0lGSUVEEAASEQoNRkVFRF9LSU5EX1JTUxABEhMKD0ZFRURfS0lORF9FTUFJTBACEhQKEEZFRURfS0lORF9TQ1JBUEUQAzLkBAoLRmVlZFNlcnZpY2USRAoJTGlzdEZlZWRzEhouZmVlZHMudjEuTGlzdEZlZWRzUmVxdWVzdBobLmZlZWRzLnYxLkxpc3RGZWVkc1Jlc3BvbnNlEkcKCkNyZWF0ZUZlZWQSGy5mZWVkcy52MS5DcmVhdGVGZWVkUmVxdWVzdBocLmZlZWRzLnYxLkNyZWF0ZUZlZWRSZXNwb25zZRJHCgpVcGRhdGVGZWVkEhsuZmVlZHMudjEuVXBkYXRlRmVlZFJlcXVlc3QaHC5mZWVkcy52MS5VcGRhdGVGZWVkUmVzcG9uc2USRwoKRGVsZXRlRmVlZBIbLmZlZWRzLnYxLkRlbGV0ZUZlZWRSZXF1ZXN0GhwuZmVlZHMudjEuRGVsZXRlRmVlZFJlc3BvbnNlEkoKC1JlZnJlc2hGZWVkEhwuZmVlZHMudjEuUmVmcmVzaEZlZWRSZXF1ZXN0Gh0uZmVlZHMudjEuUmVmcmVzaEZlZWRSZXNwb25zZRJQCg1MaXN0RmVlZEl0ZW1zEh4uZmVlZHMudjEuTGlzdEZlZWRJdGVtc1JlcXVlc3QaHy5mZWVkcy52MS5MaXN0RmVlZEl0ZW1zUmVzcG9uc2USRwoKVXBkYXRlSXRlbRIbLmZlZWRzLnYxLlVwZGF0ZUl0ZW1SZXF1ZXN0GhwuZmVlZHMudjEuVXBkYXRlSXRlbVJlc3BvbnNlEk0KDEdldEZlZWRTdGF0cxIdLmZlZWRzLnYxLkdldEZlZWRTdGF0c1JlcXVlc3QaHi5mZWVkcy52MS5HZXRGZWVkU3RhdHNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2ZlZWRzL3YxO2ZlZWRzdjFiBnByb3RvMw");
 
 /**
  * Feed is an RSS/Atom subscription or an email-relay newsletter subscription.
@@ -341,6 +341,14 @@ export type Item = Message<"feeds.v1.Item"> & {
    * @generated from field: string created_at = 11;
    */
   createdAt: string;
+
+  /**
+   * Furthest scroll position reached in the reader, 0-100. Monotonic:
+   * re-opening and scrolling less never lowers it.
+   *
+   * @generated from field: int32 read_progress_pct = 12;
+   */
+  readProgressPct: number;
 };
 
 /**
@@ -411,9 +419,11 @@ export const ListFeedItemsResponseSchema: GenMessage<ListFeedItemsResponse> = /*
   messageDesc(file_feeds_v1_feeds, 13);
 
 /**
- * UpdateItem partially updates an item's read/dismissed/favourite state —
- * only fields explicitly set are applied; unset fields are left unchanged.
- * read sets read_at to now() when true, clears it when false.
+ * UpdateItem partially updates an item's read/dismissed/favourite/
+ * read-progress state — only fields explicitly set are applied; unset
+ * fields are left unchanged. read sets read_at to now() when true, clears
+ * it when false. read_progress_pct is clamped to [0,100] and only ever
+ * increases (re-opening and scrolling less never lowers it).
  *
  * @generated from message feeds.v1.UpdateItemRequest
  */
@@ -437,6 +447,11 @@ export type UpdateItemRequest = Message<"feeds.v1.UpdateItemRequest"> & {
    * @generated from field: optional bool favourite = 4;
    */
   favourite?: boolean | undefined;
+
+  /**
+   * @generated from field: optional int32 read_progress_pct = 5;
+   */
+  readProgressPct?: number | undefined;
 };
 
 /**
@@ -462,6 +477,122 @@ export type UpdateItemResponse = Message<"feeds.v1.UpdateItemResponse"> & {
  */
 export const UpdateItemResponseSchema: GenMessage<UpdateItemResponse> = /*@__PURE__*/
   messageDesc(file_feeds_v1_feeds, 15);
+
+/**
+ * FeedStats aggregates one feed's posting cadence and read/completion
+ * metrics (issue #798).
+ *
+ * @generated from message feeds.v1.FeedStats
+ */
+export type FeedStats = Message<"feeds.v1.FeedStats"> & {
+  /**
+   * @generated from field: string feed_id = 1;
+   */
+  feedId: string;
+
+  /**
+   * @generated from field: string feed_title = 2;
+   */
+  feedTitle: string;
+
+  /**
+   * @generated from field: int32 item_count = 3;
+   */
+  itemCount: number;
+
+  /**
+   * Mean hours between consecutive items' published_at; 0 when the feed has
+   * fewer than 2 items.
+   *
+   * @generated from field: double avg_interval_hours = 4;
+   */
+  avgIntervalHours: number;
+
+  /**
+   * Fraction (0-1) of items with read_at set.
+   *
+   * @generated from field: double read_rate = 5;
+   */
+  readRate: number;
+
+  /**
+   * Mean furthest-scroll-reached across items (0-100).
+   *
+   * @generated from field: double avg_read_progress_pct = 6;
+   */
+  avgReadProgressPct: number;
+};
+
+/**
+ * Describes the message feeds.v1.FeedStats.
+ * Use `create(FeedStatsSchema)` to create a new message.
+ */
+export const FeedStatsSchema: GenMessage<FeedStats> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 16);
+
+/**
+ * One day's ingested-item count, for the "when do new items appear"
+ * histogram (issue #798).
+ *
+ * @generated from message feeds.v1.DayCount
+ */
+export type DayCount = Message<"feeds.v1.DayCount"> & {
+  /**
+   * RFC3339 (midnight UTC).
+   *
+   * @generated from field: string day = 1;
+   */
+  day: string;
+
+  /**
+   * @generated from field: int32 count = 2;
+   */
+  count: number;
+};
+
+/**
+ * Describes the message feeds.v1.DayCount.
+ * Use `create(DayCountSchema)` to create a new message.
+ */
+export const DayCountSchema: GenMessage<DayCount> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 17);
+
+/**
+ * @generated from message feeds.v1.GetFeedStatsRequest
+ */
+export type GetFeedStatsRequest = Message<"feeds.v1.GetFeedStatsRequest"> & {
+};
+
+/**
+ * Describes the message feeds.v1.GetFeedStatsRequest.
+ * Use `create(GetFeedStatsRequestSchema)` to create a new message.
+ */
+export const GetFeedStatsRequestSchema: GenMessage<GetFeedStatsRequest> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 18);
+
+/**
+ * @generated from message feeds.v1.GetFeedStatsResponse
+ */
+export type GetFeedStatsResponse = Message<"feeds.v1.GetFeedStatsResponse"> & {
+  /**
+   * @generated from field: repeated feeds.v1.FeedStats stats = 1;
+   */
+  stats: FeedStats[];
+
+  /**
+   * Trailing-90-day histogram across all of the caller's feeds.
+   *
+   * @generated from field: repeated feeds.v1.DayCount items_per_day = 2;
+   */
+  itemsPerDay: DayCount[];
+};
+
+/**
+ * Describes the message feeds.v1.GetFeedStatsResponse.
+ * Use `create(GetFeedStatsResponseSchema)` to create a new message.
+ */
+export const GetFeedStatsResponseSchema: GenMessage<GetFeedStatsResponse> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 19);
 
 /**
  * @generated from enum feeds.v1.FeedKind
@@ -555,6 +686,14 @@ export const FeedService: GenService<{
     methodKind: "unary";
     input: typeof UpdateItemRequestSchema;
     output: typeof UpdateItemResponseSchema;
+  },
+  /**
+   * @generated from rpc feeds.v1.FeedService.GetFeedStats
+   */
+  getFeedStats: {
+    methodKind: "unary";
+    input: typeof GetFeedStatsRequestSchema;
+    output: typeof GetFeedStatsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_feeds_v1_feeds, 0);

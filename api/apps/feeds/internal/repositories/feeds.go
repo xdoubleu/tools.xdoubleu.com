@@ -19,7 +19,7 @@ type FeedsRepository struct {
 
 const feedColumns = `id, user_id, url, title, source_type,
 	inbound_token, etag, last_modified, last_fetched_at, last_error,
-	created_at, updated_at`
+	consecutive_failures, notified_at, created_at, updated_at`
 
 func scanFeed(row pgx.Row) (*models.Feed, error) {
 	var f models.Feed
@@ -35,6 +35,8 @@ func scanFeed(row pgx.Row) (*models.Feed, error) {
 		&f.LastModified,
 		&f.LastFetchedAt,
 		&f.LastError,
+		&f.ConsecutiveFailures,
+		&f.NotifiedAt,
 		&f.CreatedAt,
 		&f.UpdatedAt,
 	)
@@ -217,19 +219,49 @@ func (repo *FeedsRepository) Delete(
 // validators on success (fetchErr nil), or the error message on failure
 // (validators kept so an intermittently failing feed still short-circuits
 // once it recovers unchanged). last_fetched_at is always bumped.
+// consecutive_failures increments on failure and resets to 0 on success —
+// the returned row lets the caller act on the post-update streak (issue
+// #799) without a second round trip.
 func (repo *FeedsRepository) SetFetchResult(
 	ctx context.Context,
 	id uuid.UUID,
 	etag, lastModified, fetchErr *string,
-) error {
+) (*models.Feed, error) {
 	query := `
 		UPDATE feeds.feeds
 		SET etag          = COALESCE($2, etag),
 		    last_modified = COALESCE($3, last_modified),
-		    last_error    = $4,
+		    last_error    = $4::text,
+		    consecutive_failures = CASE
+		        WHEN $4::text IS NULL THEN 0
+		        ELSE consecutive_failures + 1
+		    END,
 		    last_fetched_at = now()
 		WHERE id = $1
-	`
-	_, err := repo.db.Exec(ctx, query, id, etag, lastModified, fetchErr)
+		RETURNING ` + feedColumns
+	f, err := scanFeed(repo.db.QueryRow(ctx, query, id, etag, lastModified, fetchErr))
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return f, nil
+}
+
+// MarkNotified records that a problem email has been sent for this feed, so
+// SetFetchResult's caller doesn't re-send while the problem persists (issue
+// #799). Only called after mailer.Client.SendTo succeeds — a failed send is
+// retried on the next poll.
+func (repo *FeedsRepository) MarkNotified(ctx context.Context, id uuid.UUID) error {
+	_, err := repo.db.Exec(
+		ctx, `UPDATE feeds.feeds SET notified_at = now() WHERE id = $1`, id,
+	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// ClearNotified clears a feed's outstanding-problem marker once it recovers
+// (issue #799).
+func (repo *FeedsRepository) ClearNotified(ctx context.Context, id uuid.UUID) error {
+	_, err := repo.db.Exec(
+		ctx, `UPDATE feeds.feeds SET notified_at = NULL WHERE id = $1`, id,
+	)
 	return postgres.PgxErrorToHTTPError(err)
 }

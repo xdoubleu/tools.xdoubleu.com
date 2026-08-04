@@ -40,8 +40,15 @@ type Feed struct {
 	// LastError holds the most recent poll failure, nil when the last poll
 	// succeeded.
 	LastError *string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	// ConsecutiveFailures counts unbroken poll failures; reset to 0 on any
+	// success (issue #799).
+	ConsecutiveFailures int
+	// NotifiedAt marks an unresolved problem email already sent for this
+	// feed (error streak or quiet-feed detection); cleared on recovery so
+	// at most one notification is outstanding at a time (issue #799).
+	NotifiedAt *time.Time
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // Item is one ingested feed entry (feeds.items). A feed and its items only
@@ -62,9 +69,35 @@ type Item struct {
 	// Dismissed hides the item from the default view without deleting it.
 	Dismissed bool
 	Favourite bool
+	// ReadProgressPct is the furthest scroll position reached in the reader
+	// (0-100), monotonic — re-opening and scrolling less never lowers it
+	// (issue #798).
+	ReadProgressPct int
 	// IngestError holds the most recent ingest failure for this item, if any
 	// (e.g. its linked page could not be fetched/extracted); the item is
 	// still tracked (guid marked seen) so it is never retried automatically.
 	IngestError *string
 	CreatedAt   time.Time
+}
+
+// FeedStats aggregates one feed's posting cadence and read/completion
+// metrics (issue #798).
+type FeedStats struct {
+	FeedID    uuid.UUID
+	FeedTitle string
+	ItemCount int
+	// AvgIntervalHours is the mean gap between consecutive items' published_at,
+	// 0 when the feed has fewer than 2 items.
+	AvgIntervalHours float64
+	// ReadRate is the fraction (0-1) of items with read_at set.
+	ReadRate float64
+	// AvgReadProgressPct is the mean furthest-scroll-reached across items.
+	AvgReadProgressPct float64
+}
+
+// DayCount is one bucket of a day → ingested-item-count histogram (issue
+// #798).
+type DayCount struct {
+	Day   time.Time
+	Count int
 }

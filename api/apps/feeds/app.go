@@ -17,7 +17,9 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/observability"
+	globalrepositories "tools.xdoubleu.com/internal/repositories"
 )
 
 //go:embed migrations/*.sql
@@ -38,8 +40,12 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	mail mailer.Client,
+	appUsersRepo *globalrepositories.AppUsersRepository,
 ) *Feeds {
-	return NewInner(authService, logger, cfg, db, webfetch.New(logger))
+	return NewInner(
+		authService, logger, cfg, db, webfetch.New(logger), mail, appUsersRepo,
+	)
 }
 
 // NewInner allows tests to inject a fake webfetch.Client.
@@ -49,6 +55,8 @@ func NewInner(
 	cfg config.Config,
 	db postgres.DB,
 	webFetchClient webfetch.Client,
+	mail mailer.Client,
+	appUsersRepo *globalrepositories.AppUsersRepository,
 ) *Feeds {
 	//nolint:exhaustruct // jobQueue/Services/feedPollJob initialised below
 	a := &Feeds{
@@ -67,6 +75,9 @@ func NewInner(
 		webFetchClient,
 		cfg.EmailInboundDomain,
 		authService,
+		mail,
+		appUsersRepo,
+		cfg.WebURL,
 	)
 	a.feedPollJob = jobs.NewFeedPollJob(a.Services.Feeds)
 

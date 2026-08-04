@@ -13,7 +13,8 @@ const clientMocks = {
   createFeed: jest.fn().mockResolvedValue({}),
   deleteFeed: jest.fn().mockResolvedValue({}),
   refreshFeed: jest.fn().mockResolvedValue({ ingested: 0 }),
-  updateItem: jest.fn().mockResolvedValue({})
+  updateItem: jest.fn().mockResolvedValue({}),
+  getFeedStats: jest.fn().mockResolvedValue({ stats: [], itemsPerDay: [] })
 }
 
 jest.mock('@/lib/client', () => ({
@@ -32,7 +33,8 @@ import {
   useCreateFeed,
   useDeleteFeed,
   useRefreshFeed,
-  useUpdateItem
+  useUpdateItem,
+  useFeedStats
 } from '@/hooks/useFeeds'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -140,5 +142,22 @@ describe('useFeeds', () => {
     expect(matcher(swrKeys.feedItems(true))).toBe(true)
     expect(matcher(swrKeys.feedItems(false))).toBe(true)
     expect(matcher(swrKeys.feeds)).toBe(false)
+  })
+
+  it('useUpdateItem passes readProgressPct through', async () => {
+    const { result } = renderHook(() => useUpdateItem())
+    await result.current('item-1', { readProgressPct: 42 })
+    expect(clientMocks.updateItem).toHaveBeenCalledWith({
+      itemId: 'item-1',
+      readProgressPct: 42
+    })
+  })
+
+  it('useFeedStats queries the feed stats key', async () => {
+    renderHook(() => useFeedStats())
+    const [key, fetcher] = mockUseSWR.mock.calls[0]!
+    expect(key).toBe(swrKeys.feedStats)
+    await fetcher!()
+    expect(clientMocks.getFeedStats).toHaveBeenCalledWith({})
   })
 })

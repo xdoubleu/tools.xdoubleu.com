@@ -59,17 +59,18 @@ func protoItem(item models.Item) *feedsv1.Item {
 		publishedAt = item.PublishedAt.Format(time.RFC3339)
 	}
 	return &feedsv1.Item{
-		Id:          item.ID.String(),
-		FeedId:      item.FeedID.String(),
-		Title:       item.Title,
-		SourceUrl:   item.SourceURL,
-		ContentHtml: item.ContentHTML,
-		PublishedAt: publishedAt,
-		ReadAt:      readAt,
-		Dismissed:   item.Dismissed,
-		Favourite:   item.Favourite,
-		IngestError: ingestError,
-		CreatedAt:   item.CreatedAt.Format(time.RFC3339),
+		Id:              item.ID.String(),
+		FeedId:          item.FeedID.String(),
+		Title:           item.Title,
+		SourceUrl:       item.SourceURL,
+		ContentHtml:     item.ContentHTML,
+		PublishedAt:     publishedAt,
+		ReadAt:          readAt,
+		Dismissed:       item.Dismissed,
+		Favourite:       item.Favourite,
+		IngestError:     ingestError,
+		CreatedAt:       item.CreatedAt.Format(time.RFC3339),
+		ReadProgressPct: int32(item.ReadProgressPct), //nolint:gosec // clamped [0,100]
 	}
 }
 
@@ -308,11 +309,51 @@ func (h *feedsConnectHandler) UpdateItem(
 
 	item, err := h.app.Services.Feeds.UpdateItem(
 		ctx, user.ID, itemID, req.Msg.Read, req.Msg.Dismissed, req.Msg.Favourite,
+		req.Msg.ReadProgressPct,
 	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
 	}
 	return connect.NewResponse(&feedsv1.UpdateItemResponse{
 		Item: protoItem(*item),
+	}), nil
+}
+
+func (h *feedsConnectHandler) GetFeedStats(
+	ctx context.Context,
+	_ *connect.Request[feedsv1.GetFeedStatsRequest],
+) (*connect.Response[feedsv1.GetFeedStatsResponse], error) {
+	user, cerr := feedUser(ctx)
+	if cerr != nil {
+		return nil, cerr
+	}
+
+	stats, perDay, err := h.app.Services.Feeds.GetStats(ctx, user.ID)
+	if err != nil {
+		return nil, feedErrorToConnect(err)
+	}
+
+	protoStats := make([]*feedsv1.FeedStats, len(stats))
+	for i, s := range stats {
+		protoStats[i] = &feedsv1.FeedStats{
+			FeedId:             s.FeedID.String(),
+			FeedTitle:          s.FeedTitle,
+			ItemCount:          int32(s.ItemCount), //nolint:gosec // small counts
+			AvgIntervalHours:   s.AvgIntervalHours,
+			ReadRate:           s.ReadRate,
+			AvgReadProgressPct: s.AvgReadProgressPct,
+		}
+	}
+	protoDays := make([]*feedsv1.DayCount, len(perDay))
+	for i, d := range perDay {
+		protoDays[i] = &feedsv1.DayCount{
+			Day:   d.Day.Format(time.RFC3339),
+			Count: int32(d.Count), //nolint:gosec // small counts
+		}
+	}
+
+	return connect.NewResponse(&feedsv1.GetFeedStatsResponse{
+		Stats:       protoStats,
+		ItemsPerDay: protoDays,
 	}), nil
 }

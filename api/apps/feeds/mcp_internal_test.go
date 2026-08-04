@@ -11,9 +11,11 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	sharedrepos "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -33,6 +35,8 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 		cfg,
 		pg,
 		mocks.NewMockWebFetchClient(),
+		mailer.New("", "", ""),
+		sharedrepos.NewAppUsersRepository(db),
 	)
 
 	ctx := context.WithValue(

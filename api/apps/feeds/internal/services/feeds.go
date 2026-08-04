@@ -19,6 +19,8 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/models"
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
+	"tools.xdoubleu.com/internal/mailer"
+	globalrepositories "tools.xdoubleu.com/internal/repositories"
 )
 
 // ErrInvalidFeed is returned when a subscribed URL does not parse as RSS/Atom.
@@ -39,6 +41,26 @@ const emailTokenBytes = 32
 // first); older overflow is marked seen without ingesting.
 const maxItemsPerPoll = 20
 
+// errorNotifyThreshold is the number of unbroken poll failures before a
+// problem email is sent (issue #799).
+const errorNotifyThreshold = 3
+
+// quietCheckHistory is how many recent items' published_at feed the
+// quiet-feed cadence heuristic (issue #799).
+const quietCheckHistory = 6
+
+// statsHistoryDays bounds the items-per-day histogram window (issue #798).
+const statsHistoryDays = 90
+
+// ponytail: naive mean/multiplier heuristic — a feed is quiet once it's gone
+// quietGapMultiplier times its own average posting gap without a new item,
+// floored at quietMinGap so a low-volume feed (e.g. weekly) doesn't trip on
+// ordinary variance. Upgrade path: a stddev/median-based model if this
+// proves noisy in practice.
+const quietGapMultiplier = 3
+
+const quietMinGap = 48 * time.Hour
+
 // FeedService manages RSS/Atom subscriptions and email-relay newsletter
 // subscriptions (issue #595), ingesting their items directly as feeds.items
 // rows — items are self-contained and never reference another app's schema.
@@ -48,17 +70,24 @@ type FeedService struct {
 	items         *repositories.ItemsRepository
 	webFetch      webfetch.Client
 	inboundDomain string
+	mail          mailer.Client
+	users         *globalrepositories.AppUsersRepository
+	webURL        string
 }
 
 // NewFeedService constructs a FeedService. inboundDomain is the
 // EMAIL_INBOUND_DOMAIN used to build email feeds' inbound addresses; empty
-// disables CreateEmail (see ErrEmailFeedsNotConfigured).
+// disables CreateEmail (see ErrEmailFeedsNotConfigured). mail/users/webURL
+// back the issue #799 problem-email alert.
 func NewFeedService(
 	logger *slog.Logger,
 	feeds *repositories.FeedsRepository,
 	items *repositories.ItemsRepository,
 	webFetchClient webfetch.Client,
 	inboundDomain string,
+	mail mailer.Client,
+	users *globalrepositories.AppUsersRepository,
+	webURL string,
 ) *FeedService {
 	return &FeedService{
 		logger:        logger,
@@ -66,6 +95,9 @@ func NewFeedService(
 		items:         items,
 		webFetch:      webFetchClient,
 		inboundDomain: inboundDomain,
+		mail:          mail,
+		users:         users,
+		webURL:        webURL,
 	}
 }
 
@@ -215,19 +247,11 @@ func (s *FeedService) IngestEmail(
 		s.logger.WarnContext(ctx, "email feed ingest failed",
 			"feedID", feed.ID, "messageID", messageID, "error", err)
 		errStr := err.Error()
-		if setErr := s.feeds.SetFetchResult(
-			ctx, feed.ID, nil, nil, &errStr,
-		); setErr != nil {
-			s.logger.WarnContext(ctx, "email feed fetch-result update failed",
-				"feedID", feed.ID, "error", setErr)
-		}
+		s.recordFetchResultRaw(ctx, feed.ID, nil, nil, &errStr)
 		return
 	}
 
-	if setErr := s.feeds.SetFetchResult(ctx, feed.ID, nil, nil, nil); setErr != nil {
-		s.logger.WarnContext(ctx, "email feed fetch-result update failed",
-			"feedID", feed.ID, "error", setErr)
-	}
+	s.recordFetchResultRaw(ctx, feed.ID, nil, nil, nil)
 }
 
 // RecordEmailFetchFailure persists a fetch failure for an email feed when the
@@ -241,10 +265,7 @@ func (s *FeedService) RecordEmailFetchFailure(
 	fetchErr error,
 ) {
 	errStr := fetchErr.Error()
-	if err := s.feeds.SetFetchResult(ctx, feedID, nil, nil, &errStr); err != nil {
-		s.logger.WarnContext(ctx, "email feed fetch-result update failed",
-			"feedID", feedID, "error", err)
-	}
+	s.recordFetchResultRaw(ctx, feedID, nil, nil, &errStr)
 }
 
 // Update changes the feed's title.
@@ -257,15 +278,63 @@ func (s *FeedService) Update(
 	return s.feeds.Update(ctx, userID, id, title)
 }
 
-// UpdateItem partially updates an item's read/dismissed/favourite state,
-// scoped to userID. nil fields are left unchanged.
+// UpdateItem partially updates an item's read/dismissed/favourite/
+// read-progress state, scoped to userID. nil fields are left unchanged.
+// readProgressPct is clamped to [0,100] and only ever increases.
 func (s *FeedService) UpdateItem(
 	ctx context.Context,
 	userID string,
 	itemID uuid.UUID,
 	read, dismissed, favourite *bool,
+	readProgressPct *int32,
 ) (*models.Item, error) {
-	return s.items.Update(ctx, userID, itemID, read, dismissed, favourite)
+	if readProgressPct != nil {
+		clamped := clampPct(*readProgressPct)
+		readProgressPct = &clamped
+	}
+	return s.items.Update(
+		ctx,
+		userID,
+		itemID,
+		read,
+		dismissed,
+		favourite,
+		readProgressPct,
+	)
+}
+
+// maxPct is the upper clamp bound for a 0-100 percentage value.
+const maxPct = 100
+
+func clampPct(v int32) int32 {
+	switch {
+	case v < 0:
+		return 0
+	case v > maxPct:
+		return maxPct
+	default:
+		return v
+	}
+}
+
+// GetStats returns per-feed posting-cadence/read-completion stats plus an
+// items-per-day histogram over the trailing statsHistoryDays, for the
+// caller's feeds (issue #798).
+func (s *FeedService) GetStats(
+	ctx context.Context,
+	userID string,
+) ([]models.FeedStats, []models.DayCount, error) {
+	stats, err := s.items.Stats(ctx, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+	perDay, err := s.items.ItemsPerDay(
+		ctx, userID, time.Now().AddDate(0, 0, -statsHistoryDays),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	return stats, perDay, nil
 }
 
 // Delete removes the subscription and every item it ingested (cascade via
@@ -570,11 +639,122 @@ func (s *FeedService) recordFetchResult(
 		msg := fetchErr.Error()
 		errStr = &msg
 	}
-	if err := s.feeds.SetFetchResult(
-		ctx, feedID, etag, lastModified, errStr,
-	); err != nil {
+	s.recordFetchResultRaw(ctx, feedID, etag, lastModified, errStr)
+}
+
+// recordFetchResultRaw persists poll/ingest outcome (shared by RSS/scrape
+// polling and email ingestion) and, on the returned row, checks whether a
+// problem email is due (issue #799).
+func (s *FeedService) recordFetchResultRaw(
+	ctx context.Context,
+	feedID uuid.UUID,
+	etag, lastModified, fetchErr *string,
+) {
+	updated, err := s.feeds.SetFetchResult(ctx, feedID, etag, lastModified, fetchErr)
+	if err != nil {
 		s.logger.WarnContext(ctx, "feed fetch-result update failed",
 			"feedID", feedID, "error", err)
+		return
+	}
+	s.checkFeedHealth(ctx, *updated)
+}
+
+// checkFeedHealth sends a problem email (deduped via notified_at) once a
+// feed either crosses the consecutive-failure threshold or, on a successful
+// poll, looks quiet relative to its own posting cadence; it clears
+// notified_at on recovery from either trigger, since both share the one
+// dedup column (issue #799).
+func (s *FeedService) checkFeedHealth(ctx context.Context, feed models.Feed) {
+	if feed.LastError != nil {
+		if feed.ConsecutiveFailures >= errorNotifyThreshold && feed.NotifiedAt == nil {
+			s.notifyProblem(ctx, feed, "failing to load: "+*feed.LastError)
+		}
+		return
+	}
+
+	times, err := s.items.RecentPublishedAt(ctx, feed.ID, quietCheckHistory)
+	if err != nil {
+		s.logger.WarnContext(ctx, "feed quiet-check lookup failed",
+			"feedID", feed.ID, "error", err)
+		return
+	}
+
+	quiet := isFeedQuiet(times, time.Now())
+	switch {
+	case quiet && feed.NotifiedAt == nil:
+		s.notifyProblem(ctx, feed, "hasn't posted new content in longer than usual")
+	case !quiet && feed.NotifiedAt != nil:
+		if clearErr := s.feeds.ClearNotified(ctx, feed.ID); clearErr != nil {
+			s.logger.WarnContext(ctx, "feed notified-clear failed",
+				"feedID", feed.ID, "error", clearErr)
+		}
+	}
+}
+
+// minQuietHistory is the fewest items needed to establish a cadence for
+// isFeedQuiet; fewer is too little to avoid false positives on brand-new or
+// low-volume feeds.
+const minQuietHistory = 3
+
+// isFeedQuiet reports whether a feed has gone quiet relative to its own
+// recent posting cadence. times need not be sorted.
+func isFeedQuiet(times []time.Time, now time.Time) bool {
+	if len(times) < minQuietHistory {
+		return false
+	}
+
+	sorted := make([]time.Time, len(times))
+	copy(sorted, times)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Before(sorted[j]) })
+
+	var totalGap time.Duration
+	for i := 1; i < len(sorted); i++ {
+		totalGap += sorted[i].Sub(sorted[i-1])
+	}
+	avgGap := totalGap / time.Duration(len(sorted)-1)
+
+	threshold := avgGap * quietGapMultiplier
+	if threshold < quietMinGap {
+		threshold = quietMinGap
+	}
+
+	latest := sorted[len(sorted)-1]
+	return now.Sub(latest) > threshold
+}
+
+// notifyProblem emails the feed owner about a detected problem, deduped via
+// MarkNotified (only recorded once SendTo succeeds, so a failed send is
+// retried on the next poll) — mirrors contacts.sendContactRequestEmail's
+// degrade-not-fail handling of mailer.ErrNotConfigured (issue #799).
+func (s *FeedService) notifyProblem(
+	ctx context.Context,
+	feed models.Feed,
+	reason string,
+) {
+	user, err := s.users.GetByID(ctx, feed.UserID)
+	if err != nil {
+		s.logger.WarnContext(ctx, "feed notify: user lookup failed",
+			"feedID", feed.ID, "error", err)
+		return
+	}
+
+	title := titleOrDefault(feed.Title, feed.URL)
+	subject := fmt.Sprintf("Feed %q needs attention", title)
+	body := fmt.Sprintf(
+		"Your feed %q is %s.\n\nView it: %s/feeds",
+		title, reason, s.webURL,
+	)
+	if err = s.mail.SendTo(ctx, user.Email, subject, body); err != nil {
+		if !errors.Is(err, mailer.ErrNotConfigured) {
+			s.logger.WarnContext(ctx, "feed notify: send failed",
+				"feedID", feed.ID, "error", err)
+		}
+		return
+	}
+
+	if err = s.feeds.MarkNotified(ctx, feed.ID); err != nil {
+		s.logger.WarnContext(ctx, "feed notify: mark-notified failed",
+			"feedID", feed.ID, "error", err)
 	}
 }
 

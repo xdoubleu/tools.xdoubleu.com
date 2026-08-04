@@ -21,7 +21,7 @@ type ItemsRepository struct {
 
 const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html, i.published_at, i.read_at, i.dismissed, i.favourite,
-	i.ingest_error, i.created_at`
+	i.read_progress_pct, i.ingest_error, i.created_at`
 
 func scanItem(row pgx.Row) (*models.Item, error) {
 	var item models.Item
@@ -36,6 +36,7 @@ func scanItem(row pgx.Row) (*models.Item, error) {
 		&item.ReadAt,
 		&item.Dismissed,
 		&item.Favourite,
+		&item.ReadProgressPct,
 		&item.IngestError,
 		&item.CreatedAt,
 	)
@@ -116,16 +117,19 @@ func (repo *ItemsRepository) Insert(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// Update partially updates an item's read/dismissed/favourite state, scoped
-// to the owning user via a join on feeds.feeds — nil pointers leave the
-// corresponding column unchanged. read, when non-nil, sets read_at to now()
-// (true) or clears it (false). Returns database.ErrResourceNotFound when no
-// item matches (unknown id or owned by another user).
+// Update partially updates an item's read/dismissed/favourite/read-progress
+// state, scoped to the owning user via a join on feeds.feeds — nil pointers
+// leave the corresponding column unchanged. read, when non-nil, sets read_at
+// to now() (true) or clears it (false). readProgressPct only ever increases
+// (GREATEST) — re-opening and scrolling less never lowers the recorded
+// completion (issue #798). Returns database.ErrResourceNotFound when no item
+// matches (unknown id or owned by another user).
 func (repo *ItemsRepository) Update(
 	ctx context.Context,
 	userID string,
 	itemID uuid.UUID,
 	read, dismissed, favourite *bool,
+	readProgressPct *int32,
 ) (*models.Item, error) {
 	query := `
 		UPDATE feeds.items i
@@ -135,12 +139,15 @@ func (repo *ItemsRepository) Update(
 		        ELSE NULL
 		      END,
 		    dismissed = COALESCE($4, i.dismissed),
-		    favourite = COALESCE($5, i.favourite)
+		    favourite = COALESCE($5, i.favourite),
+		    read_progress_pct = GREATEST(
+		        i.read_progress_pct, COALESCE($6, i.read_progress_pct)
+		    )
 		FROM feeds.feeds f
 		WHERE i.feed_id = f.id AND f.user_id = $1 AND i.id = $2
 		RETURNING ` + itemColumns
 	item, err := scanItem(repo.db.QueryRow(
-		ctx, query, userID, itemID, read, dismissed, favourite,
+		ctx, query, userID, itemID, read, dismissed, favourite, readProgressPct,
 	))
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -195,4 +202,139 @@ func (repo *ItemsRepository) ListByUser(
 
 	page, hasMore := pagination.Split(out, safeLimit)
 	return page, hasMore, nil
+}
+
+// RecentPublishedAt returns the publish timestamps of the feed's most recent
+// successfully-ingested items, newest first, for the quiet-feed cadence
+// check (issue #799).
+func (repo *ItemsRepository) RecentPublishedAt(
+	ctx context.Context,
+	feedID uuid.UUID,
+	limit int,
+) ([]time.Time, error) {
+	query := `
+		SELECT published_at
+		FROM feeds.items
+		WHERE feed_id = $1 AND ingest_error IS NULL
+		ORDER BY published_at DESC
+		LIMIT $2
+	`
+	rows, err := repo.db.Query(ctx, query, feedID, limit)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []time.Time
+	for rows.Next() {
+		var t time.Time
+		if scanErr := rows.Scan(&t); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out = append(out, t)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
+// Stats aggregates posting cadence and read/completion metrics per feed
+// (issue #798): item count, average interval between items (0 when fewer
+// than 2), read rate (fraction with read_at set), and average read
+// completion percentage.
+func (repo *ItemsRepository) Stats(
+	ctx context.Context,
+	userID string,
+) ([]models.FeedStats, error) {
+	query := `
+		WITH gaps AS (
+			SELECT
+				feed_id,
+				EXTRACT(EPOCH FROM (
+					published_at - LAG(published_at) OVER (
+						PARTITION BY feed_id ORDER BY published_at
+					)
+				)) / 3600.0 AS gap_hours
+			FROM feeds.items
+			WHERE ingest_error IS NULL
+		),
+		avg_gaps AS (
+			SELECT feed_id, AVG(gap_hours) AS avg_interval_hours
+			FROM gaps
+			WHERE gap_hours IS NOT NULL
+			GROUP BY feed_id
+		)
+		SELECT
+			f.id,
+			f.title,
+			COUNT(i.id),
+			COALESCE(ag.avg_interval_hours, 0),
+			COALESCE(AVG(CASE WHEN i.read_at IS NOT NULL THEN 1 ELSE 0 END), 0),
+			COALESCE(AVG(i.read_progress_pct), 0)
+		FROM feeds.feeds f
+		LEFT JOIN feeds.items i ON i.feed_id = f.id AND i.ingest_error IS NULL
+		LEFT JOIN avg_gaps ag ON ag.feed_id = f.id
+		WHERE f.user_id = $1
+		GROUP BY f.id, f.title, ag.avg_interval_hours
+		ORDER BY f.title, f.url
+	`
+	rows, err := repo.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []models.FeedStats
+	for rows.Next() {
+		var s models.FeedStats
+		if scanErr := rows.Scan(
+			&s.FeedID, &s.FeedTitle, &s.ItemCount,
+			&s.AvgIntervalHours, &s.ReadRate, &s.AvgReadProgressPct,
+		); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out = append(out, s)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
+// ItemsPerDay buckets item ingest counts by day, across all of the user's
+// feeds, since the given time — the "when do new items appear" histogram
+// (issue #798). created_at (ingest time) is used rather than published_at,
+// which can be backdated or missing on some feeds.
+func (repo *ItemsRepository) ItemsPerDay(
+	ctx context.Context,
+	userID string,
+	since time.Time,
+) ([]models.DayCount, error) {
+	query := `
+		SELECT date_trunc('day', i.created_at) AS day, COUNT(*)
+		FROM feeds.items i
+		JOIN feeds.feeds f ON f.id = i.feed_id
+		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.created_at >= $2
+		GROUP BY day
+		ORDER BY day
+	`
+	rows, err := repo.db.Query(ctx, query, userID, since)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []models.DayCount
+	for rows.Next() {
+		var d models.DayCount
+		if scanErr := rows.Scan(&d.Day, &d.Count); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out = append(out, d)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
 }

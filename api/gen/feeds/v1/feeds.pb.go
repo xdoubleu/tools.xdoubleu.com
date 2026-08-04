@@ -657,10 +657,13 @@ type Item struct {
 	Dismissed bool   `protobuf:"varint,8,opt,name=dismissed,proto3" json:"dismissed,omitempty"`
 	Favourite bool   `protobuf:"varint,9,opt,name=favourite,proto3" json:"favourite,omitempty"`
 	// The most recent ingest failure for this item, if any.
-	IngestError   string `protobuf:"bytes,10,opt,name=ingest_error,json=ingestError,proto3" json:"ingest_error,omitempty"`
-	CreatedAt     string `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	IngestError string `protobuf:"bytes,10,opt,name=ingest_error,json=ingestError,proto3" json:"ingest_error,omitempty"`
+	CreatedAt   string `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Furthest scroll position reached in the reader, 0-100. Monotonic:
+	// re-opening and scrolling less never lowers it.
+	ReadProgressPct int32 `protobuf:"varint,12,opt,name=read_progress_pct,json=readProgressPct,proto3" json:"read_progress_pct,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Item) Reset() {
@@ -768,6 +771,13 @@ func (x *Item) GetCreatedAt() string {
 		return x.CreatedAt
 	}
 	return ""
+}
+
+func (x *Item) GetReadProgressPct() int32 {
+	if x != nil {
+		return x.ReadProgressPct
+	}
+	return 0
 }
 
 type ListFeedItemsRequest struct {
@@ -894,17 +904,20 @@ func (x *ListFeedItemsResponse) GetHasMore() bool {
 	return false
 }
 
-// UpdateItem partially updates an item's read/dismissed/favourite state —
-// only fields explicitly set are applied; unset fields are left unchanged.
-// read sets read_at to now() when true, clears it when false.
+// UpdateItem partially updates an item's read/dismissed/favourite/
+// read-progress state — only fields explicitly set are applied; unset
+// fields are left unchanged. read sets read_at to now() when true, clears
+// it when false. read_progress_pct is clamped to [0,100] and only ever
+// increases (re-opening and scrolling less never lowers it).
 type UpdateItemRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
-	Read          *bool                  `protobuf:"varint,2,opt,name=read,proto3,oneof" json:"read,omitempty"`
-	Dismissed     *bool                  `protobuf:"varint,3,opt,name=dismissed,proto3,oneof" json:"dismissed,omitempty"`
-	Favourite     *bool                  `protobuf:"varint,4,opt,name=favourite,proto3,oneof" json:"favourite,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ItemId          string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	Read            *bool                  `protobuf:"varint,2,opt,name=read,proto3,oneof" json:"read,omitempty"`
+	Dismissed       *bool                  `protobuf:"varint,3,opt,name=dismissed,proto3,oneof" json:"dismissed,omitempty"`
+	Favourite       *bool                  `protobuf:"varint,4,opt,name=favourite,proto3,oneof" json:"favourite,omitempty"`
+	ReadProgressPct *int32                 `protobuf:"varint,5,opt,name=read_progress_pct,json=readProgressPct,proto3,oneof" json:"read_progress_pct,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateItemRequest) Reset() {
@@ -965,6 +978,13 @@ func (x *UpdateItemRequest) GetFavourite() bool {
 	return false
 }
 
+func (x *UpdateItemRequest) GetReadProgressPct() int32 {
+	if x != nil && x.ReadProgressPct != nil {
+		return *x.ReadProgressPct
+	}
+	return 0
+}
+
 type UpdateItemResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Item          *Item                  `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
@@ -1009,6 +1029,240 @@ func (x *UpdateItemResponse) GetItem() *Item {
 	return nil
 }
 
+// FeedStats aggregates one feed's posting cadence and read/completion
+// metrics (issue #798).
+type FeedStats struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	FeedId    string                 `protobuf:"bytes,1,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
+	FeedTitle string                 `protobuf:"bytes,2,opt,name=feed_title,json=feedTitle,proto3" json:"feed_title,omitempty"`
+	ItemCount int32                  `protobuf:"varint,3,opt,name=item_count,json=itemCount,proto3" json:"item_count,omitempty"`
+	// Mean hours between consecutive items' published_at; 0 when the feed has
+	// fewer than 2 items.
+	AvgIntervalHours float64 `protobuf:"fixed64,4,opt,name=avg_interval_hours,json=avgIntervalHours,proto3" json:"avg_interval_hours,omitempty"`
+	// Fraction (0-1) of items with read_at set.
+	ReadRate float64 `protobuf:"fixed64,5,opt,name=read_rate,json=readRate,proto3" json:"read_rate,omitempty"`
+	// Mean furthest-scroll-reached across items (0-100).
+	AvgReadProgressPct float64 `protobuf:"fixed64,6,opt,name=avg_read_progress_pct,json=avgReadProgressPct,proto3" json:"avg_read_progress_pct,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *FeedStats) Reset() {
+	*x = FeedStats{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FeedStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FeedStats) ProtoMessage() {}
+
+func (x *FeedStats) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FeedStats.ProtoReflect.Descriptor instead.
+func (*FeedStats) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *FeedStats) GetFeedId() string {
+	if x != nil {
+		return x.FeedId
+	}
+	return ""
+}
+
+func (x *FeedStats) GetFeedTitle() string {
+	if x != nil {
+		return x.FeedTitle
+	}
+	return ""
+}
+
+func (x *FeedStats) GetItemCount() int32 {
+	if x != nil {
+		return x.ItemCount
+	}
+	return 0
+}
+
+func (x *FeedStats) GetAvgIntervalHours() float64 {
+	if x != nil {
+		return x.AvgIntervalHours
+	}
+	return 0
+}
+
+func (x *FeedStats) GetReadRate() float64 {
+	if x != nil {
+		return x.ReadRate
+	}
+	return 0
+}
+
+func (x *FeedStats) GetAvgReadProgressPct() float64 {
+	if x != nil {
+		return x.AvgReadProgressPct
+	}
+	return 0
+}
+
+// One day's ingested-item count, for the "when do new items appear"
+// histogram (issue #798).
+type DayCount struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// RFC3339 (midnight UTC).
+	Day           string `protobuf:"bytes,1,opt,name=day,proto3" json:"day,omitempty"`
+	Count         int32  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DayCount) Reset() {
+	*x = DayCount{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DayCount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DayCount) ProtoMessage() {}
+
+func (x *DayCount) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DayCount.ProtoReflect.Descriptor instead.
+func (*DayCount) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *DayCount) GetDay() string {
+	if x != nil {
+		return x.Day
+	}
+	return ""
+}
+
+func (x *DayCount) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type GetFeedStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFeedStatsRequest) Reset() {
+	*x = GetFeedStatsRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFeedStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFeedStatsRequest) ProtoMessage() {}
+
+func (x *GetFeedStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFeedStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetFeedStatsRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{18}
+}
+
+type GetFeedStatsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Stats []*FeedStats           `protobuf:"bytes,1,rep,name=stats,proto3" json:"stats,omitempty"`
+	// Trailing-90-day histogram across all of the caller's feeds.
+	ItemsPerDay   []*DayCount `protobuf:"bytes,2,rep,name=items_per_day,json=itemsPerDay,proto3" json:"items_per_day,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFeedStatsResponse) Reset() {
+	*x = GetFeedStatsResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFeedStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFeedStatsResponse) ProtoMessage() {}
+
+func (x *GetFeedStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFeedStatsResponse.ProtoReflect.Descriptor instead.
+func (*GetFeedStatsResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetFeedStatsResponse) GetStats() []*FeedStats {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+func (x *GetFeedStatsResponse) GetItemsPerDay() []*DayCount {
+	if x != nil {
+		return x.ItemsPerDay
+	}
+	return nil
+}
+
 var File_feeds_v1_feeds_proto protoreflect.FileDescriptor
 
 const file_feeds_v1_feeds_proto_rawDesc = "" +
@@ -1045,7 +1299,7 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\x12RefreshFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\"1\n" +
 	"\x13RefreshFeedResponse\x12\x1a\n" +
-	"\bingested\x18\x01 \x01(\x05R\bingested\"\xc1\x02\n" +
+	"\bingested\x18\x01 \x01(\x05R\bingested\"\xed\x02\n" +
 	"\x04Item\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\afeed_id\x18\x02 \x01(\tR\x06feedId\x12\x14\n" +
@@ -1060,7 +1314,8 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\fingest_error\x18\n" +
 	" \x01(\tR\vingestError\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\v \x01(\tR\tcreatedAt\"\xa4\x01\n" +
+	"created_at\x18\v \x01(\tR\tcreatedAt\x12*\n" +
+	"\x11read_progress_pct\x18\f \x01(\x05R\x0freadProgressPct\"\xa4\x01\n" +
 	"\x14ListFeedItemsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12$\n" +
@@ -1072,24 +1327,42 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\b_feed_id\"X\n" +
 	"\x15ListFeedItemsResponse\x12$\n" +
 	"\x05items\x18\x01 \x03(\v2\x0e.feeds.v1.ItemR\x05items\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xb0\x01\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xf7\x01\n" +
 	"\x11UpdateItemRequest\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x17\n" +
 	"\x04read\x18\x02 \x01(\bH\x00R\x04read\x88\x01\x01\x12!\n" +
 	"\tdismissed\x18\x03 \x01(\bH\x01R\tdismissed\x88\x01\x01\x12!\n" +
-	"\tfavourite\x18\x04 \x01(\bH\x02R\tfavourite\x88\x01\x01B\a\n" +
+	"\tfavourite\x18\x04 \x01(\bH\x02R\tfavourite\x88\x01\x01\x12/\n" +
+	"\x11read_progress_pct\x18\x05 \x01(\x05H\x03R\x0freadProgressPct\x88\x01\x01B\a\n" +
 	"\x05_readB\f\n" +
 	"\n" +
 	"_dismissedB\f\n" +
 	"\n" +
-	"_favourite\"8\n" +
+	"_favouriteB\x14\n" +
+	"\x12_read_progress_pct\"8\n" +
 	"\x12UpdateItemResponse\x12\"\n" +
-	"\x04item\x18\x01 \x01(\v2\x0e.feeds.v1.ItemR\x04item*c\n" +
+	"\x04item\x18\x01 \x01(\v2\x0e.feeds.v1.ItemR\x04item\"\xe0\x01\n" +
+	"\tFeedStats\x12\x17\n" +
+	"\afeed_id\x18\x01 \x01(\tR\x06feedId\x12\x1d\n" +
+	"\n" +
+	"feed_title\x18\x02 \x01(\tR\tfeedTitle\x12\x1d\n" +
+	"\n" +
+	"item_count\x18\x03 \x01(\x05R\titemCount\x12,\n" +
+	"\x12avg_interval_hours\x18\x04 \x01(\x01R\x10avgIntervalHours\x12\x1b\n" +
+	"\tread_rate\x18\x05 \x01(\x01R\breadRate\x121\n" +
+	"\x15avg_read_progress_pct\x18\x06 \x01(\x01R\x12avgReadProgressPct\"2\n" +
+	"\bDayCount\x12\x10\n" +
+	"\x03day\x18\x01 \x01(\tR\x03day\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"\x15\n" +
+	"\x13GetFeedStatsRequest\"y\n" +
+	"\x14GetFeedStatsResponse\x12)\n" +
+	"\x05stats\x18\x01 \x03(\v2\x13.feeds.v1.FeedStatsR\x05stats\x126\n" +
+	"\ritems_per_day\x18\x02 \x03(\v2\x12.feeds.v1.DayCountR\vitemsPerDay*c\n" +
 	"\bFeedKind\x12\x19\n" +
 	"\x15FEED_KIND_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rFEED_KIND_RSS\x10\x01\x12\x13\n" +
 	"\x0fFEED_KIND_EMAIL\x10\x02\x12\x14\n" +
-	"\x10FEED_KIND_SCRAPE\x10\x032\x95\x04\n" +
+	"\x10FEED_KIND_SCRAPE\x10\x032\xe4\x04\n" +
 	"\vFeedService\x12D\n" +
 	"\tListFeeds\x12\x1a.feeds.v1.ListFeedsRequest\x1a\x1b.feeds.v1.ListFeedsResponse\x12G\n" +
 	"\n" +
@@ -1101,7 +1374,8 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\vRefreshFeed\x12\x1c.feeds.v1.RefreshFeedRequest\x1a\x1d.feeds.v1.RefreshFeedResponse\x12P\n" +
 	"\rListFeedItems\x12\x1e.feeds.v1.ListFeedItemsRequest\x1a\x1f.feeds.v1.ListFeedItemsResponse\x12G\n" +
 	"\n" +
-	"UpdateItem\x12\x1b.feeds.v1.UpdateItemRequest\x1a\x1c.feeds.v1.UpdateItemResponseB)Z'tools.xdoubleu.com/gen/feeds/v1;feedsv1b\x06proto3"
+	"UpdateItem\x12\x1b.feeds.v1.UpdateItemRequest\x1a\x1c.feeds.v1.UpdateItemResponse\x12M\n" +
+	"\fGetFeedStats\x12\x1d.feeds.v1.GetFeedStatsRequest\x1a\x1e.feeds.v1.GetFeedStatsResponseB)Z'tools.xdoubleu.com/gen/feeds/v1;feedsv1b\x06proto3"
 
 var (
 	file_feeds_v1_feeds_proto_rawDescOnce sync.Once
@@ -1116,7 +1390,7 @@ func file_feeds_v1_feeds_proto_rawDescGZIP() []byte {
 }
 
 var file_feeds_v1_feeds_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_feeds_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_feeds_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_feeds_v1_feeds_proto_goTypes = []any{
 	(FeedKind)(0),                 // 0: feeds.v1.FeedKind
 	(*Feed)(nil),                  // 1: feeds.v1.Feed
@@ -1135,6 +1409,10 @@ var file_feeds_v1_feeds_proto_goTypes = []any{
 	(*ListFeedItemsResponse)(nil), // 14: feeds.v1.ListFeedItemsResponse
 	(*UpdateItemRequest)(nil),     // 15: feeds.v1.UpdateItemRequest
 	(*UpdateItemResponse)(nil),    // 16: feeds.v1.UpdateItemResponse
+	(*FeedStats)(nil),             // 17: feeds.v1.FeedStats
+	(*DayCount)(nil),              // 18: feeds.v1.DayCount
+	(*GetFeedStatsRequest)(nil),   // 19: feeds.v1.GetFeedStatsRequest
+	(*GetFeedStatsResponse)(nil),  // 20: feeds.v1.GetFeedStatsResponse
 }
 var file_feeds_v1_feeds_proto_depIdxs = []int32{
 	1,  // 0: feeds.v1.ListFeedsResponse.feeds:type_name -> feeds.v1.Feed
@@ -1142,25 +1420,29 @@ var file_feeds_v1_feeds_proto_depIdxs = []int32{
 	1,  // 2: feeds.v1.CreateFeedResponse.feed:type_name -> feeds.v1.Feed
 	12, // 3: feeds.v1.ListFeedItemsResponse.items:type_name -> feeds.v1.Item
 	12, // 4: feeds.v1.UpdateItemResponse.item:type_name -> feeds.v1.Item
-	2,  // 5: feeds.v1.FeedService.ListFeeds:input_type -> feeds.v1.ListFeedsRequest
-	4,  // 6: feeds.v1.FeedService.CreateFeed:input_type -> feeds.v1.CreateFeedRequest
-	6,  // 7: feeds.v1.FeedService.UpdateFeed:input_type -> feeds.v1.UpdateFeedRequest
-	8,  // 8: feeds.v1.FeedService.DeleteFeed:input_type -> feeds.v1.DeleteFeedRequest
-	10, // 9: feeds.v1.FeedService.RefreshFeed:input_type -> feeds.v1.RefreshFeedRequest
-	13, // 10: feeds.v1.FeedService.ListFeedItems:input_type -> feeds.v1.ListFeedItemsRequest
-	15, // 11: feeds.v1.FeedService.UpdateItem:input_type -> feeds.v1.UpdateItemRequest
-	3,  // 12: feeds.v1.FeedService.ListFeeds:output_type -> feeds.v1.ListFeedsResponse
-	5,  // 13: feeds.v1.FeedService.CreateFeed:output_type -> feeds.v1.CreateFeedResponse
-	7,  // 14: feeds.v1.FeedService.UpdateFeed:output_type -> feeds.v1.UpdateFeedResponse
-	9,  // 15: feeds.v1.FeedService.DeleteFeed:output_type -> feeds.v1.DeleteFeedResponse
-	11, // 16: feeds.v1.FeedService.RefreshFeed:output_type -> feeds.v1.RefreshFeedResponse
-	14, // 17: feeds.v1.FeedService.ListFeedItems:output_type -> feeds.v1.ListFeedItemsResponse
-	16, // 18: feeds.v1.FeedService.UpdateItem:output_type -> feeds.v1.UpdateItemResponse
-	12, // [12:19] is the sub-list for method output_type
-	5,  // [5:12] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	17, // 5: feeds.v1.GetFeedStatsResponse.stats:type_name -> feeds.v1.FeedStats
+	18, // 6: feeds.v1.GetFeedStatsResponse.items_per_day:type_name -> feeds.v1.DayCount
+	2,  // 7: feeds.v1.FeedService.ListFeeds:input_type -> feeds.v1.ListFeedsRequest
+	4,  // 8: feeds.v1.FeedService.CreateFeed:input_type -> feeds.v1.CreateFeedRequest
+	6,  // 9: feeds.v1.FeedService.UpdateFeed:input_type -> feeds.v1.UpdateFeedRequest
+	8,  // 10: feeds.v1.FeedService.DeleteFeed:input_type -> feeds.v1.DeleteFeedRequest
+	10, // 11: feeds.v1.FeedService.RefreshFeed:input_type -> feeds.v1.RefreshFeedRequest
+	13, // 12: feeds.v1.FeedService.ListFeedItems:input_type -> feeds.v1.ListFeedItemsRequest
+	15, // 13: feeds.v1.FeedService.UpdateItem:input_type -> feeds.v1.UpdateItemRequest
+	19, // 14: feeds.v1.FeedService.GetFeedStats:input_type -> feeds.v1.GetFeedStatsRequest
+	3,  // 15: feeds.v1.FeedService.ListFeeds:output_type -> feeds.v1.ListFeedsResponse
+	5,  // 16: feeds.v1.FeedService.CreateFeed:output_type -> feeds.v1.CreateFeedResponse
+	7,  // 17: feeds.v1.FeedService.UpdateFeed:output_type -> feeds.v1.UpdateFeedResponse
+	9,  // 18: feeds.v1.FeedService.DeleteFeed:output_type -> feeds.v1.DeleteFeedResponse
+	11, // 19: feeds.v1.FeedService.RefreshFeed:output_type -> feeds.v1.RefreshFeedResponse
+	14, // 20: feeds.v1.FeedService.ListFeedItems:output_type -> feeds.v1.ListFeedItemsResponse
+	16, // 21: feeds.v1.FeedService.UpdateItem:output_type -> feeds.v1.UpdateItemResponse
+	20, // 22: feeds.v1.FeedService.GetFeedStats:output_type -> feeds.v1.GetFeedStatsResponse
+	15, // [15:23] is the sub-list for method output_type
+	7,  // [7:15] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_feeds_v1_feeds_proto_init() }
@@ -1176,7 +1458,7 @@ func file_feeds_v1_feeds_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_feeds_v1_feeds_proto_rawDesc), len(file_feeds_v1_feeds_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   16,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
