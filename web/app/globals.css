@@ -138,8 +138,18 @@ button:not([disabled]) {
   max-width: 100%;
 }
 
+/*
+ * `display:block` + `overflow-x:auto` (the prior attempt) doesn't reliably
+ * cap a <table width="570"> on mobile Safari: the table's <tr>/<td>
+ * children keep their table-row/table-cell display since only the <table>
+ * itself was switched away from table layout, so the engine still has to
+ * generate an anonymous inner table to hold them — and that anonymous
+ * table isn't matched by this selector, so it reverts to the attribute's
+ * width. Forcing `table-layout: fixed` keeps the element a real table (no
+ * anonymous-box fallback) and makes column widths derive purely from the
+ * table's own width, ignoring any HTML `width` attribute/hint entirely.
+ */
 .prose table {
-  display: block;
-  overflow-x: auto;
-  max-width: 100%;
+  width: 100% !important;
+  table-layout: fixed;
 }
