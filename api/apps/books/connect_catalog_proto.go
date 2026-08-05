@@ -1,12 +1,43 @@
 package books
 
 import (
+	"errors"
+	"strings"
+
+	"connectrpc.com/connect"
+
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
 const isbn13Length = 13
+
+// normalizeAndValidateISBN13 strips spaces/hyphens from raw and validates the
+// result is exactly 13 digits, for the admin-facing ISBN-editing RPCs.
+func normalizeAndValidateISBN13(raw string) (string, error) {
+	normalized := strings.Map(func(r rune) rune {
+		if r == '-' || r == ' ' {
+			return -1
+		}
+		return r
+	}, raw)
+	if len(normalized) != isbn13Length {
+		return "", connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("isbn13 must be exactly 13 digits"),
+		)
+	}
+	for _, r := range normalized {
+		if r < '0' || r > '9' {
+			return "", connect.NewError(
+				connect.CodeInvalidArgument,
+				errors.New("isbn13 must contain only digits"),
+			)
+		}
+	}
+	return normalized, nil
+}
 
 // protoSourceProposal maps a services.SourceProposal to its proto view.
 func protoSourceProposal(p services.SourceProposal) *booksv1.SourceBook {

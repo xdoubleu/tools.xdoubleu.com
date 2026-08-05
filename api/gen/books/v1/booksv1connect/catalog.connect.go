@@ -57,6 +57,9 @@ const (
 	// CatalogServiceSetBookISBNProcedure is the fully-qualified name of the CatalogService's
 	// SetBookISBN RPC.
 	CatalogServiceSetBookISBNProcedure = "/books.v1.CatalogService/SetBookISBN"
+	// CatalogServiceUpdateBookProcedure is the fully-qualified name of the CatalogService's UpdateBook
+	// RPC.
+	CatalogServiceUpdateBookProcedure = "/books.v1.CatalogService/UpdateBook"
 	// CatalogServiceGetBookSourcesProcedure is the fully-qualified name of the CatalogService's
 	// GetBookSources RPC.
 	CatalogServiceGetBookSourcesProcedure = "/books.v1.CatalogService/GetBookSources"
@@ -81,6 +84,7 @@ type CatalogServiceClient interface {
 	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
 	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
+	UpdateBook(context.Context, *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error)
 	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
 	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
 	GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error)
@@ -146,6 +150,12 @@ func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(catalogServiceMethods.ByName("SetBookISBN")),
 			connect.WithClientOptions(opts...),
 		),
+		updateBook: connect.NewClient[v1.UpdateBookRequest, v1.UpdateBookResponse](
+			httpClient,
+			baseURL+CatalogServiceUpdateBookProcedure,
+			connect.WithSchema(catalogServiceMethods.ByName("UpdateBook")),
+			connect.WithClientOptions(opts...),
+		),
 		getBookSources: connect.NewClient[v1.GetBookSourcesRequest, v1.GetBookSourcesResponse](
 			httpClient,
 			baseURL+CatalogServiceGetBookSourcesProcedure,
@@ -183,6 +193,7 @@ type catalogServiceClient struct {
 	listResyncProposals     *connect.Client[v1.ListResyncProposalsRequest, v1.ListResyncProposalsResponse]
 	applyResyncChoice       *connect.Client[v1.ApplyResyncChoiceRequest, v1.ApplyResyncChoiceResponse]
 	setBookISBN             *connect.Client[v1.SetBookISBNRequest, v1.SetBookISBNResponse]
+	updateBook              *connect.Client[v1.UpdateBookRequest, v1.UpdateBookResponse]
 	getBookSources          *connect.Client[v1.GetBookSourcesRequest, v1.GetBookSourcesResponse]
 	applyBookSource         *connect.Client[v1.ApplyBookSourceRequest, v1.ApplyBookSourceResponse]
 	getSourceStats          *connect.Client[v1.GetSourceStatsRequest, v1.GetSourceStatsResponse]
@@ -229,6 +240,11 @@ func (c *catalogServiceClient) SetBookISBN(ctx context.Context, req *connect.Req
 	return c.setBookISBN.CallUnary(ctx, req)
 }
 
+// UpdateBook calls books.v1.CatalogService.UpdateBook.
+func (c *catalogServiceClient) UpdateBook(ctx context.Context, req *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error) {
+	return c.updateBook.CallUnary(ctx, req)
+}
+
 // GetBookSources calls books.v1.CatalogService.GetBookSources.
 func (c *catalogServiceClient) GetBookSources(ctx context.Context, req *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error) {
 	return c.getBookSources.CallUnary(ctx, req)
@@ -259,6 +275,7 @@ type CatalogServiceHandler interface {
 	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
 	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
 	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
+	UpdateBook(context.Context, *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error)
 	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
 	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
 	GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error)
@@ -320,6 +337,12 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 		connect.WithSchema(catalogServiceMethods.ByName("SetBookISBN")),
 		connect.WithHandlerOptions(opts...),
 	)
+	catalogServiceUpdateBookHandler := connect.NewUnaryHandler(
+		CatalogServiceUpdateBookProcedure,
+		svc.UpdateBook,
+		connect.WithSchema(catalogServiceMethods.ByName("UpdateBook")),
+		connect.WithHandlerOptions(opts...),
+	)
 	catalogServiceGetBookSourcesHandler := connect.NewUnaryHandler(
 		CatalogServiceGetBookSourcesProcedure,
 		svc.GetBookSources,
@@ -362,6 +385,8 @@ func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.Handler
 			catalogServiceApplyResyncChoiceHandler.ServeHTTP(w, r)
 		case CatalogServiceSetBookISBNProcedure:
 			catalogServiceSetBookISBNHandler.ServeHTTP(w, r)
+		case CatalogServiceUpdateBookProcedure:
+			catalogServiceUpdateBookHandler.ServeHTTP(w, r)
 		case CatalogServiceGetBookSourcesProcedure:
 			catalogServiceGetBookSourcesHandler.ServeHTTP(w, r)
 		case CatalogServiceApplyBookSourceProcedure:
@@ -409,6 +434,10 @@ func (UnimplementedCatalogServiceHandler) ApplyResyncChoice(context.Context, *co
 
 func (UnimplementedCatalogServiceHandler) SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.SetBookISBN is not implemented"))
+}
+
+func (UnimplementedCatalogServiceHandler) UpdateBook(context.Context, *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.UpdateBook is not implemented"))
 }
 
 func (UnimplementedCatalogServiceHandler) GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error) {

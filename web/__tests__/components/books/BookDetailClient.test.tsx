@@ -14,7 +14,8 @@ jest.mock('@/hooks/useBooks', () => ({
   useUpdateBookStatus: () => jest.fn().mockResolvedValue({}),
   useToggleTag: () => jest.fn().mockResolvedValue({}),
   useUpdateFinishedAt: () => jest.fn().mockResolvedValue({}),
-  useGetBookContent: jest.fn(() => ({ data: undefined, error: undefined }))
+  useGetBookContent: jest.fn(() => ({ data: undefined, error: undefined })),
+  useUpdateBook: () => jest.fn().mockResolvedValue({})
 }))
 
 const mockRouterPush = jest.fn()
@@ -27,6 +28,12 @@ jest.mock('@/hooks/useAuth', () => ({
 jest.mock('@/components/books/BookSourceSync', () => {
   return function MockBookSourceSync() {
     return <div data-testid="book-source-sync" />
+  }
+})
+
+jest.mock('@/components/books/BookEditDialog', () => {
+  return function MockBookEditDialog({ open }: { open: boolean }) {
+    return open ? <div data-testid="book-edit-dialog" /> : null
   }
 })
 
@@ -403,6 +410,15 @@ describe('BookDetailClient', () => {
     jest.mocked(useCurrentUser).mockReturnValue({ data: { role: 'admin' }, isLoading: false })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('book-source-sync')).toBeInTheDocument()
+  })
+
+  it('opens the edit dialog when Edit book is clicked for an admin', () => {
+    // @ts-expect-error -- partial mock
+    jest.mocked(useCurrentUser).mockReturnValue({ data: { role: 'admin' }, isLoading: false })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByTestId('book-edit-dialog')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit book' }))
+    expect(screen.getByTestId('book-edit-dialog')).toBeInTheDocument()
   })
 
   it('opens the remove dialog when Remove from library is clicked', () => {

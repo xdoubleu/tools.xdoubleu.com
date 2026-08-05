@@ -20,6 +20,7 @@ import KoboSyncToggle from '@/components/books/KoboSyncToggle'
 import BookPreviewDialog from '@/components/books/BookPreviewDialog'
 import ArticleReaderDialog from '@/components/books/ArticleReaderDialog'
 import RemoveBookDialog from '@/components/books/RemoveBookDialog'
+import BookEditDialog from '@/components/books/BookEditDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -32,6 +33,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   const isAdmin = currentUser?.role === 'admin'
   const [previewFormat, setPreviewFormat] = useState<'pdf' | 'epub' | 'kepub' | null>(null)
   const [removeOpen, setRemoveOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [readerOpen, setReaderOpen] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -153,10 +155,20 @@ export default function BookDetailClient({ id }: { id: string }) {
             )}
           </section>
 
-          {/* Admin: live metadata source sync */}
+          {/* Admin: manual edit + live metadata source sync */}
           {isAdmin && (
             <section className="mt-8">
-              <h2 className="text-lg font-semibold mb-3">Metadata source</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Metadata source</h2>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setEditOpen(true)}
+                >
+                  Edit book
+                </Button>
+              </div>
               <BookSourceSync bookId={userBook.bookId} />
             </section>
           )}
@@ -281,6 +293,15 @@ export default function BookDetailClient({ id }: { id: string }) {
           open={removeOpen}
           onOpenChange={setRemoveOpen}
           onRemoved={() => router.push('/books/library')}
+        />
+      )}
+
+      {book && isAdmin && (
+        <BookEditDialog
+          book={book}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          onSaved={handleSaved}
         />
       )}
     </PageContainer>

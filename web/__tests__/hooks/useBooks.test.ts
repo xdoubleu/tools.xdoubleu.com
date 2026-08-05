@@ -32,6 +32,7 @@ jest.mock('@/lib/client', () => ({
     searchLibrary: jest.fn().mockResolvedValue({ books: [] }),
     searchExternal: jest.fn().mockResolvedValue({ results: [] }),
     setBookISBN: jest.fn().mockResolvedValue({}),
+    updateBook: jest.fn().mockResolvedValue({}),
     listResyncProposals: jest.fn().mockResolvedValue({ proposals: [] }),
     applyResyncChoice: jest.fn().mockResolvedValue({}),
     getBookSources: jest.fn().mockResolvedValue({ proposal: undefined }),
@@ -49,7 +50,10 @@ jest.mock('@/lib/gen/books/v1/library_pb', () => ({
 }))
 jest.mock('@/lib/gen/books/v1/files_pb', () => ({ BookFilesService: {} }))
 jest.mock('@/lib/gen/books/v1/kobo_pb', () => ({ KoboService: {} }))
-jest.mock('@/lib/gen/books/v1/catalog_pb', () => ({ CatalogService: {} }))
+jest.mock('@/lib/gen/books/v1/catalog_pb', () => ({
+  CatalogService: {},
+  UpdateBookRequestSchema: {}
+}))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'https://api.test' }))
 
 import useSWR from 'swr'
@@ -75,6 +79,7 @@ import {
   useListKoboDevices,
   useDisconnectKoboDevice,
   useSetBookISBN,
+  useUpdateBook,
   useResyncProposals,
   useApplyResyncChoice,
   useBookSources,
@@ -184,6 +189,38 @@ describe('useSetBookISBN', () => {
     const { result } = renderHook(() => useSetBookISBN())
     await result.current('book-1', '9780140449112')
     expect(mockSet).toHaveBeenCalledWith({ bookId: 'book-1', isbn13: '9780140449112' })
+  })
+})
+
+describe('useUpdateBook', () => {
+  it('returns a function', () => {
+    const { result } = renderHook(() => useUpdateBook())
+    expect(typeof result.current).toBe('function')
+  })
+
+  it('returns a stable function reference across re-renders', () => {
+    const { result, rerender } = renderHook(() => useUpdateBook())
+    const first = result.current
+    rerender()
+    const second = result.current
+    expect(Object.is(first, second)).toBe(true)
+  })
+
+  it('calls client.updateBook with bookId and metadata', async () => {
+    const mockUpdate = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ updateBook: mockUpdate })
+    const { result } = renderHook(() => useUpdateBook())
+    const metadata = {
+      title: 'New Title',
+      authors: ['New Author'],
+      isbn13: '9780140449112',
+      description: 'New description.',
+      pageCount: 100,
+      coverUrl: 'https://example.com/cover.jpg'
+    }
+    await result.current('book-1', metadata)
+    expect(mockUpdate).toHaveBeenCalledWith({ bookId: 'book-1', metadata })
   })
 })
 
