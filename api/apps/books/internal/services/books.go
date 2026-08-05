@@ -147,17 +147,69 @@ func (s *BookService) SetBookISBN(
 		return err
 	}
 
-	// Pre-check: reject if the ISBN is already assigned to a different row.
-	existing, err := s.books.GetCatalogBookByISBN13(ctx, isbn13)
-	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
-		return err
-	}
-	if existing != nil && existing.ID != book.ID {
-		return database.ErrResourceConflict
+	if conflictErr := s.checkISBNConflict(ctx, bookID, isbn13); conflictErr != nil {
+		return conflictErr
 	}
 
 	book.ISBN13 = &isbn13
 	return s.books.UpdateBookByID(ctx, *book)
+}
+
+// checkISBNConflict rejects isbn13 when it is already assigned to a catalog
+// row other than bookID. Returns database.ErrResourceConflict in that case.
+func (s *BookService) checkISBNConflict(
+	ctx context.Context,
+	bookID uuid.UUID,
+	isbn13 string,
+) error {
+	existing, err := s.books.GetCatalogBookByISBN13(ctx, isbn13)
+	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
+		return err
+	}
+	if existing != nil && existing.ID != bookID {
+		return database.ErrResourceConflict
+	}
+	return nil
+}
+
+// UpdateBook overwrites a catalog book's metadata with the admin-supplied
+// values, and syncs the cover cache to match rawCoverURL — fetching and
+// caching it when non-empty, or clearing the cached cover when empty.
+// Returns database.ErrResourceNotFound when the book doesn't exist, or
+// database.ErrResourceConflict when metadata.ISBN13 is already assigned to
+// another catalog row.
+func (s *BookService) UpdateBook(
+	ctx context.Context,
+	bookID uuid.UUID,
+	metadata models.Book,
+	rawCoverURL string,
+) (*models.Book, error) {
+	if _, err := s.books.GetBookByID(ctx, bookID); err != nil {
+		return nil, err
+	}
+
+	if metadata.ISBN13 != nil {
+		if err := s.checkISBNConflict(ctx, bookID, *metadata.ISBN13); err != nil {
+			return nil, err
+		}
+	}
+
+	metadata.ID = bookID
+	if err := s.books.UpdateBookByID(ctx, metadata); err != nil {
+		return nil, err
+	}
+
+	if rawCoverURL != "" {
+		if cacheErr := s.cacheCoverFromURL(ctx, bookID, rawCoverURL); cacheErr != nil {
+			s.logger.Warn("failed to cache book cover",
+				"bookID", bookID, "err", cacheErr)
+		}
+	} else if clearErr := s.clearCoverCache(ctx, bookID); clearErr != nil {
+		s.logger.Warn("failed to clear book cover cache",
+			"bookID", bookID, "err", clearErr)
+	}
+
+	return s.books.GetBookByID(ctx, bookID)
 }
 
 func (s *BookService) AddToLibrary(

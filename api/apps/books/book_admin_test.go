@@ -371,6 +371,161 @@ func TestSetBookISBN_WithHyphens_NormalisedAndAccepted(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// UpdateBook
+// ---------------------------------------------------------------------------
+
+func TestUpdateBook_NonAdmin_PermissionDenied(t *testing.T) {
+	client := newBooksTestClient(t)
+	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		BookId: "00000000-0000-0000-0000-000000000001",
+		Metadata: &booksv1.Book{
+			Title: "New Title",
+		},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateBook(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
+}
+
+func TestUpdateBook_InvalidUUID_InvalidArgument(t *testing.T) {
+	client := newAdminBooksTestClient(t)
+	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		BookId: "not-a-uuid",
+		Metadata: &booksv1.Book{
+			Title: "New Title",
+		},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateBook(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+}
+
+func TestUpdateBook_InvalidISBN_InvalidArgument(t *testing.T) {
+	ub := addTestBookNoISBN(t, "UpdateBookInvalidISBNTest")
+
+	client := newAdminBooksTestClient(t)
+	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		BookId: ub.BookID.String(),
+		Metadata: &booksv1.Book{
+			Title:  "New Title",
+			Isbn13: "123",
+		},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateBook(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+}
+
+func TestUpdateBook_UnknownBook_NotFound(t *testing.T) {
+	client := newAdminBooksTestClient(t)
+	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		BookId: uuid.New().String(),
+		Metadata: &booksv1.Book{
+			Title: "New Title",
+		},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateBook(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeNotFound, connErr.Code())
+}
+
+func TestUpdateBook_Success_UpdatesAllFields(t *testing.T) {
+	ub := addTestBookNoISBN(t, "UpdateBookSuccessTest")
+	newISBN := isbnFromUUID(ub.BookID)
+
+	client := newAdminBooksTestClient(t)
+	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		BookId: ub.BookID.String(),
+		Metadata: &booksv1.Book{
+			Title:       "Edited Title",
+			Authors:     []string{"Edited Author"},
+			Isbn13:      newISBN,
+			Description: "Edited description.",
+			PageCount:   321,
+			CoverUrl:    "https://example.com/edited-cover.jpg",
+		},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.UpdateBook(context.Background(), req)
+	require.NoError(t, err)
+	require.NotNil(t, resp.Msg.Book)
+	assert.Equal(t, "Edited Title", resp.Msg.Book.Title)
+	assert.Equal(t, []string{"Edited Author"}, resp.Msg.Book.Authors)
+	assert.Equal(t, newISBN, resp.Msg.Book.Isbn13)
+	assert.Equal(t, "Edited description.", resp.Msg.Book.Description)
+	assert.Equal(t, int32(321), resp.Msg.Book.PageCount)
+
+	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	require.NoError(t, err)
+	assert.Equal(t, "Edited Title", book.Title)
+	require.NotNil(t, book.ISBN13)
+	assert.Equal(t, newISBN, *book.ISBN13)
+	require.NotNil(t, book.CoverURL)
+	assert.Equal(t, "https://example.com/edited-cover.jpg", *book.CoverURL)
+}
+
+func TestUpdateBook_EmptyCoverURL_ClearsCover(t *testing.T) {
+	ub := addTestBook(t, "UpdateBookClearCoverTest")
+
+	client := newAdminBooksTestClient(t)
+	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		BookId: ub.BookID.String(),
+		Metadata: &booksv1.Book{
+			Title:   "UpdateBookClearCoverTest",
+			Authors: []string{"Test Author"},
+		},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	_, err := client.UpdateBook(context.Background(), req)
+	require.NoError(t, err)
+
+	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	require.NoError(t, err)
+	assert.Nil(t, book.CoverURL)
+}
+
+func TestUpdateBook_DuplicateISBN_AlreadyExists(t *testing.T) {
+	ubA := addTestBook(t, "UpdateBookDuplicateISBNBookA")
+	ubB := addTestBookNoISBN(t, "UpdateBookDuplicateISBNBookB")
+
+	client := newAdminBooksTestClient(t)
+	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		BookId: ubB.BookID.String(),
+		Metadata: &booksv1.Book{
+			Title:  "UpdateBookDuplicateISBNBookB",
+			Isbn13: "9780140449112", // same ISBN addTestBook uses
+		},
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	require.NotNil(t, ubA)
+
+	_, err := client.UpdateBook(context.Background(), req)
+	require.Error(t, err)
+	var connErr *connect.Error
+	require.ErrorAs(t, err, &connErr)
+	assert.Equal(t, connect.CodeAlreadyExists, connErr.Code())
+}
+
+// ---------------------------------------------------------------------------
 // TestGetBooksByIDs_ReturnsMatchingBooks is a regression test for the pgx
 // UUID-array encoding bug: passing []uuid.UUID directly to ANY($1) produced
 // "cannot find encode plan" because pgx has no registered encoder for that type.

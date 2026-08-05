@@ -985,6 +985,107 @@ func (*SetBookISBNResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{18}
 }
 
+// UpdateBook lets an admin hand-correct a catalog book's metadata directly,
+// bypassing the external-source sync flow.
+type UpdateBookRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	BookId string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
+	// Full replacement for the book's catalog metadata (title, authors,
+	// isbn13, description, page_count, cover_url). An empty cover_url clears
+	// the cover; any other value is fetched and cached as the new cover.
+	Metadata      *Book `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateBookRequest) Reset() {
+	*x = UpdateBookRequest{}
+	mi := &file_books_v1_catalog_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateBookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateBookRequest) ProtoMessage() {}
+
+func (x *UpdateBookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_catalog_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateBookRequest.ProtoReflect.Descriptor instead.
+func (*UpdateBookRequest) Descriptor() ([]byte, []int) {
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *UpdateBookRequest) GetBookId() string {
+	if x != nil {
+		return x.BookId
+	}
+	return ""
+}
+
+func (x *UpdateBookRequest) GetMetadata() *Book {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+type UpdateBookResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Book          *Book                  `protobuf:"bytes,1,opt,name=book,proto3" json:"book,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateBookResponse) Reset() {
+	*x = UpdateBookResponse{}
+	mi := &file_books_v1_catalog_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateBookResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateBookResponse) ProtoMessage() {}
+
+func (x *UpdateBookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_catalog_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateBookResponse.ProtoReflect.Descriptor instead.
+func (*UpdateBookResponse) Descriptor() ([]byte, []int) {
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *UpdateBookResponse) GetBook() *Book {
+	if x != nil {
+		return x.Book
+	}
+	return nil
+}
+
 // GetBookSources live-fetches one book's candidates from every configured
 // source, for the admin book-page source selector. Unlike
 // ListResyncProposals, this works on any book on demand — it doesn't require
@@ -1003,7 +1104,7 @@ type GetBookSourcesRequest struct {
 
 func (x *GetBookSourcesRequest) Reset() {
 	*x = GetBookSourcesRequest{}
-	mi := &file_books_v1_catalog_proto_msgTypes[19]
+	mi := &file_books_v1_catalog_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1015,7 +1116,7 @@ func (x *GetBookSourcesRequest) String() string {
 func (*GetBookSourcesRequest) ProtoMessage() {}
 
 func (x *GetBookSourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[19]
+	mi := &file_books_v1_catalog_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1028,7 +1129,7 @@ func (x *GetBookSourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBookSourcesRequest.ProtoReflect.Descriptor instead.
 func (*GetBookSourcesRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{19}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetBookSourcesRequest) GetBookId() string {
@@ -1061,7 +1162,7 @@ type GetBookSourcesResponse struct {
 
 func (x *GetBookSourcesResponse) Reset() {
 	*x = GetBookSourcesResponse{}
-	mi := &file_books_v1_catalog_proto_msgTypes[20]
+	mi := &file_books_v1_catalog_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1073,7 +1174,7 @@ func (x *GetBookSourcesResponse) String() string {
 func (*GetBookSourcesResponse) ProtoMessage() {}
 
 func (x *GetBookSourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[20]
+	mi := &file_books_v1_catalog_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1086,7 +1187,7 @@ func (x *GetBookSourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBookSourcesResponse.ProtoReflect.Descriptor instead.
 func (*GetBookSourcesResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{20}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetBookSourcesResponse) GetProposal() *ResyncProposal {
@@ -1118,7 +1219,7 @@ type ApplyBookSourceRequest struct {
 
 func (x *ApplyBookSourceRequest) Reset() {
 	*x = ApplyBookSourceRequest{}
-	mi := &file_books_v1_catalog_proto_msgTypes[21]
+	mi := &file_books_v1_catalog_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1130,7 +1231,7 @@ func (x *ApplyBookSourceRequest) String() string {
 func (*ApplyBookSourceRequest) ProtoMessage() {}
 
 func (x *ApplyBookSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[21]
+	mi := &file_books_v1_catalog_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1143,7 +1244,7 @@ func (x *ApplyBookSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyBookSourceRequest.ProtoReflect.Descriptor instead.
 func (*ApplyBookSourceRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{21}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ApplyBookSourceRequest) GetBookId() string {
@@ -1189,7 +1290,7 @@ type ApplyBookSourceResponse struct {
 
 func (x *ApplyBookSourceResponse) Reset() {
 	*x = ApplyBookSourceResponse{}
-	mi := &file_books_v1_catalog_proto_msgTypes[22]
+	mi := &file_books_v1_catalog_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1201,7 +1302,7 @@ func (x *ApplyBookSourceResponse) String() string {
 func (*ApplyBookSourceResponse) ProtoMessage() {}
 
 func (x *ApplyBookSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[22]
+	mi := &file_books_v1_catalog_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1214,7 +1315,7 @@ func (x *ApplyBookSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyBookSourceResponse.ProtoReflect.Descriptor instead.
 func (*ApplyBookSourceResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{22}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{24}
 }
 
 // GetSourceStats reports per-source coverage over the whole catalog, for
@@ -1227,7 +1328,7 @@ type GetSourceStatsRequest struct {
 
 func (x *GetSourceStatsRequest) Reset() {
 	*x = GetSourceStatsRequest{}
-	mi := &file_books_v1_catalog_proto_msgTypes[23]
+	mi := &file_books_v1_catalog_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1239,7 +1340,7 @@ func (x *GetSourceStatsRequest) String() string {
 func (*GetSourceStatsRequest) ProtoMessage() {}
 
 func (x *GetSourceStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[23]
+	mi := &file_books_v1_catalog_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1252,7 +1353,7 @@ func (x *GetSourceStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSourceStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetSourceStatsRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{23}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{25}
 }
 
 type SourceStat struct {
@@ -1272,7 +1373,7 @@ type SourceStat struct {
 
 func (x *SourceStat) Reset() {
 	*x = SourceStat{}
-	mi := &file_books_v1_catalog_proto_msgTypes[24]
+	mi := &file_books_v1_catalog_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1284,7 +1385,7 @@ func (x *SourceStat) String() string {
 func (*SourceStat) ProtoMessage() {}
 
 func (x *SourceStat) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[24]
+	mi := &file_books_v1_catalog_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1297,7 +1398,7 @@ func (x *SourceStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceStat.ProtoReflect.Descriptor instead.
 func (*SourceStat) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{24}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SourceStat) GetSource() string {
@@ -1343,7 +1444,7 @@ type SourceComboStat struct {
 
 func (x *SourceComboStat) Reset() {
 	*x = SourceComboStat{}
-	mi := &file_books_v1_catalog_proto_msgTypes[25]
+	mi := &file_books_v1_catalog_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1355,7 +1456,7 @@ func (x *SourceComboStat) String() string {
 func (*SourceComboStat) ProtoMessage() {}
 
 func (x *SourceComboStat) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[25]
+	mi := &file_books_v1_catalog_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1368,7 +1469,7 @@ func (x *SourceComboStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceComboStat.ProtoReflect.Descriptor instead.
 func (*SourceComboStat) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{25}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *SourceComboStat) GetSources() []string {
@@ -1405,7 +1506,7 @@ type GetSourceStatsResponse struct {
 
 func (x *GetSourceStatsResponse) Reset() {
 	*x = GetSourceStatsResponse{}
-	mi := &file_books_v1_catalog_proto_msgTypes[26]
+	mi := &file_books_v1_catalog_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1417,7 +1518,7 @@ func (x *GetSourceStatsResponse) String() string {
 func (*GetSourceStatsResponse) ProtoMessage() {}
 
 func (x *GetSourceStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[26]
+	mi := &file_books_v1_catalog_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1430,7 +1531,7 @@ func (x *GetSourceStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSourceStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetSourceStatsResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{26}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetSourceStatsResponse) GetSources() []*SourceStat {
@@ -1489,7 +1590,7 @@ type ListBooksInExactSourcesRequest struct {
 
 func (x *ListBooksInExactSourcesRequest) Reset() {
 	*x = ListBooksInExactSourcesRequest{}
-	mi := &file_books_v1_catalog_proto_msgTypes[27]
+	mi := &file_books_v1_catalog_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1501,7 +1602,7 @@ func (x *ListBooksInExactSourcesRequest) String() string {
 func (*ListBooksInExactSourcesRequest) ProtoMessage() {}
 
 func (x *ListBooksInExactSourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[27]
+	mi := &file_books_v1_catalog_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1514,7 +1615,7 @@ func (x *ListBooksInExactSourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBooksInExactSourcesRequest.ProtoReflect.Descriptor instead.
 func (*ListBooksInExactSourcesRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{27}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListBooksInExactSourcesRequest) GetSources() []string {
@@ -1533,7 +1634,7 @@ type ListBooksInExactSourcesResponse struct {
 
 func (x *ListBooksInExactSourcesResponse) Reset() {
 	*x = ListBooksInExactSourcesResponse{}
-	mi := &file_books_v1_catalog_proto_msgTypes[28]
+	mi := &file_books_v1_catalog_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1545,7 +1646,7 @@ func (x *ListBooksInExactSourcesResponse) String() string {
 func (*ListBooksInExactSourcesResponse) ProtoMessage() {}
 
 func (x *ListBooksInExactSourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_catalog_proto_msgTypes[28]
+	mi := &file_books_v1_catalog_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1558,7 +1659,7 @@ func (x *ListBooksInExactSourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBooksInExactSourcesResponse.ProtoReflect.Descriptor instead.
 func (*ListBooksInExactSourcesResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_catalog_proto_rawDescGZIP(), []int{28}
+	return file_books_v1_catalog_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListBooksInExactSourcesResponse) GetBooks() []*Book {
@@ -1626,7 +1727,12 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x12SetBookISBNRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
 	"\x06isbn13\x18\x02 \x01(\tR\x06isbn13\"\x15\n" +
-	"\x13SetBookISBNResponse\"\xb1\x01\n" +
+	"\x13SetBookISBNResponse\"X\n" +
+	"\x11UpdateBookRequest\x12\x17\n" +
+	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12*\n" +
+	"\bmetadata\x18\x02 \x01(\v2\x0e.books.v1.BookR\bmetadata\"8\n" +
+	"\x12UpdateBookResponse\x12\"\n" +
+	"\x04book\x18\x01 \x01(\v2\x0e.books.v1.BookR\x04book\"\xb1\x01\n" +
 	"\x15GetBookSourcesRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12*\n" +
 	"\x0eoverride_title\x18\x02 \x01(\tH\x00R\roverrideTitle\x88\x01\x01\x12,\n" +
@@ -1666,7 +1772,7 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x1eListBooksInExactSourcesRequest\x12\x18\n" +
 	"\asources\x18\x01 \x03(\tR\asources\"G\n" +
 	"\x1fListBooksInExactSourcesResponse\x12$\n" +
-	"\x05books\x18\x01 \x03(\v2\x0e.books.v1.BookR\x05books2\x95\b\n" +
+	"\x05books\x18\x01 \x03(\v2\x0e.books.v1.BookR\x05books2\xde\b\n" +
 	"\x0eCatalogService\x12J\n" +
 	"\vImportBooks\x12\x1c.books.v1.ImportBooksRequest\x1a\x1d.books.v1.ImportBooksResponse\x12S\n" +
 	"\x0eFindDuplicates\x12\x1f.books.v1.FindDuplicatesRequest\x1a .books.v1.FindDuplicatesResponse\x12G\n" +
@@ -1676,7 +1782,9 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\fCancelResync\x12\x1d.books.v1.CancelResyncRequest\x1a\x1e.books.v1.CancelResyncResponse\x12b\n" +
 	"\x13ListResyncProposals\x12$.books.v1.ListResyncProposalsRequest\x1a%.books.v1.ListResyncProposalsResponse\x12\\\n" +
 	"\x11ApplyResyncChoice\x12\".books.v1.ApplyResyncChoiceRequest\x1a#.books.v1.ApplyResyncChoiceResponse\x12J\n" +
-	"\vSetBookISBN\x12\x1c.books.v1.SetBookISBNRequest\x1a\x1d.books.v1.SetBookISBNResponse\x12S\n" +
+	"\vSetBookISBN\x12\x1c.books.v1.SetBookISBNRequest\x1a\x1d.books.v1.SetBookISBNResponse\x12G\n" +
+	"\n" +
+	"UpdateBook\x12\x1b.books.v1.UpdateBookRequest\x1a\x1c.books.v1.UpdateBookResponse\x12S\n" +
 	"\x0eGetBookSources\x12\x1f.books.v1.GetBookSourcesRequest\x1a .books.v1.GetBookSourcesResponse\x12V\n" +
 	"\x0fApplyBookSource\x12 .books.v1.ApplyBookSourceRequest\x1a!.books.v1.ApplyBookSourceResponse\x12S\n" +
 	"\x0eGetSourceStats\x12\x1f.books.v1.GetSourceStatsRequest\x1a .books.v1.GetSourceStatsResponse\x12n\n" +
@@ -1694,7 +1802,7 @@ func file_books_v1_catalog_proto_rawDescGZIP() []byte {
 	return file_books_v1_catalog_proto_rawDescData
 }
 
-var file_books_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_books_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_books_v1_catalog_proto_goTypes = []any{
 	(*ImportBooksRequest)(nil),              // 0: books.v1.ImportBooksRequest
 	(*ImportBooksResponse)(nil),             // 1: books.v1.ImportBooksResponse
@@ -1715,60 +1823,66 @@ var file_books_v1_catalog_proto_goTypes = []any{
 	(*ApplyResyncChoiceResponse)(nil),       // 16: books.v1.ApplyResyncChoiceResponse
 	(*SetBookISBNRequest)(nil),              // 17: books.v1.SetBookISBNRequest
 	(*SetBookISBNResponse)(nil),             // 18: books.v1.SetBookISBNResponse
-	(*GetBookSourcesRequest)(nil),           // 19: books.v1.GetBookSourcesRequest
-	(*GetBookSourcesResponse)(nil),          // 20: books.v1.GetBookSourcesResponse
-	(*ApplyBookSourceRequest)(nil),          // 21: books.v1.ApplyBookSourceRequest
-	(*ApplyBookSourceResponse)(nil),         // 22: books.v1.ApplyBookSourceResponse
-	(*GetSourceStatsRequest)(nil),           // 23: books.v1.GetSourceStatsRequest
-	(*SourceStat)(nil),                      // 24: books.v1.SourceStat
-	(*SourceComboStat)(nil),                 // 25: books.v1.SourceComboStat
-	(*GetSourceStatsResponse)(nil),          // 26: books.v1.GetSourceStatsResponse
-	(*ListBooksInExactSourcesRequest)(nil),  // 27: books.v1.ListBooksInExactSourcesRequest
-	(*ListBooksInExactSourcesResponse)(nil), // 28: books.v1.ListBooksInExactSourcesResponse
-	(*UserBook)(nil),                        // 29: books.v1.UserBook
-	(*Book)(nil),                            // 30: books.v1.Book
+	(*UpdateBookRequest)(nil),               // 19: books.v1.UpdateBookRequest
+	(*UpdateBookResponse)(nil),              // 20: books.v1.UpdateBookResponse
+	(*GetBookSourcesRequest)(nil),           // 21: books.v1.GetBookSourcesRequest
+	(*GetBookSourcesResponse)(nil),          // 22: books.v1.GetBookSourcesResponse
+	(*ApplyBookSourceRequest)(nil),          // 23: books.v1.ApplyBookSourceRequest
+	(*ApplyBookSourceResponse)(nil),         // 24: books.v1.ApplyBookSourceResponse
+	(*GetSourceStatsRequest)(nil),           // 25: books.v1.GetSourceStatsRequest
+	(*SourceStat)(nil),                      // 26: books.v1.SourceStat
+	(*SourceComboStat)(nil),                 // 27: books.v1.SourceComboStat
+	(*GetSourceStatsResponse)(nil),          // 28: books.v1.GetSourceStatsResponse
+	(*ListBooksInExactSourcesRequest)(nil),  // 29: books.v1.ListBooksInExactSourcesRequest
+	(*ListBooksInExactSourcesResponse)(nil), // 30: books.v1.ListBooksInExactSourcesResponse
+	(*UserBook)(nil),                        // 31: books.v1.UserBook
+	(*Book)(nil),                            // 32: books.v1.Book
 }
 var file_books_v1_catalog_proto_depIdxs = []int32{
-	29, // 0: books.v1.DuplicateGroup.entries:type_name -> books.v1.UserBook
+	31, // 0: books.v1.DuplicateGroup.entries:type_name -> books.v1.UserBook
 	2,  // 1: books.v1.FindDuplicatesResponse.groups:type_name -> books.v1.DuplicateGroup
-	30, // 2: books.v1.MergeBooksRequest.resolved_metadata:type_name -> books.v1.Book
+	32, // 2: books.v1.MergeBooksRequest.resolved_metadata:type_name -> books.v1.Book
 	11, // 3: books.v1.ResyncProposal.library:type_name -> books.v1.SourceBook
 	11, // 4: books.v1.ResyncProposal.sources:type_name -> books.v1.SourceBook
 	12, // 5: books.v1.ListResyncProposalsResponse.proposals:type_name -> books.v1.ResyncProposal
-	12, // 6: books.v1.GetBookSourcesResponse.proposal:type_name -> books.v1.ResyncProposal
-	24, // 7: books.v1.GetSourceStatsResponse.sources:type_name -> books.v1.SourceStat
-	25, // 8: books.v1.GetSourceStatsResponse.overlaps:type_name -> books.v1.SourceComboStat
-	25, // 9: books.v1.GetSourceStatsResponse.missed_overlaps:type_name -> books.v1.SourceComboStat
-	30, // 10: books.v1.ListBooksInExactSourcesResponse.books:type_name -> books.v1.Book
-	0,  // 11: books.v1.CatalogService.ImportBooks:input_type -> books.v1.ImportBooksRequest
-	3,  // 12: books.v1.CatalogService.FindDuplicates:input_type -> books.v1.FindDuplicatesRequest
-	5,  // 13: books.v1.CatalogService.MergeBooks:input_type -> books.v1.MergeBooksRequest
-	7,  // 14: books.v1.CatalogService.StartResync:input_type -> books.v1.StartResyncRequest
-	9,  // 15: books.v1.CatalogService.CancelResync:input_type -> books.v1.CancelResyncRequest
-	13, // 16: books.v1.CatalogService.ListResyncProposals:input_type -> books.v1.ListResyncProposalsRequest
-	15, // 17: books.v1.CatalogService.ApplyResyncChoice:input_type -> books.v1.ApplyResyncChoiceRequest
-	17, // 18: books.v1.CatalogService.SetBookISBN:input_type -> books.v1.SetBookISBNRequest
-	19, // 19: books.v1.CatalogService.GetBookSources:input_type -> books.v1.GetBookSourcesRequest
-	21, // 20: books.v1.CatalogService.ApplyBookSource:input_type -> books.v1.ApplyBookSourceRequest
-	23, // 21: books.v1.CatalogService.GetSourceStats:input_type -> books.v1.GetSourceStatsRequest
-	27, // 22: books.v1.CatalogService.ListBooksInExactSources:input_type -> books.v1.ListBooksInExactSourcesRequest
-	1,  // 23: books.v1.CatalogService.ImportBooks:output_type -> books.v1.ImportBooksResponse
-	4,  // 24: books.v1.CatalogService.FindDuplicates:output_type -> books.v1.FindDuplicatesResponse
-	6,  // 25: books.v1.CatalogService.MergeBooks:output_type -> books.v1.MergeBooksResponse
-	8,  // 26: books.v1.CatalogService.StartResync:output_type -> books.v1.StartResyncResponse
-	10, // 27: books.v1.CatalogService.CancelResync:output_type -> books.v1.CancelResyncResponse
-	14, // 28: books.v1.CatalogService.ListResyncProposals:output_type -> books.v1.ListResyncProposalsResponse
-	16, // 29: books.v1.CatalogService.ApplyResyncChoice:output_type -> books.v1.ApplyResyncChoiceResponse
-	18, // 30: books.v1.CatalogService.SetBookISBN:output_type -> books.v1.SetBookISBNResponse
-	20, // 31: books.v1.CatalogService.GetBookSources:output_type -> books.v1.GetBookSourcesResponse
-	22, // 32: books.v1.CatalogService.ApplyBookSource:output_type -> books.v1.ApplyBookSourceResponse
-	26, // 33: books.v1.CatalogService.GetSourceStats:output_type -> books.v1.GetSourceStatsResponse
-	28, // 34: books.v1.CatalogService.ListBooksInExactSources:output_type -> books.v1.ListBooksInExactSourcesResponse
-	23, // [23:35] is the sub-list for method output_type
-	11, // [11:23] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	32, // 6: books.v1.UpdateBookRequest.metadata:type_name -> books.v1.Book
+	32, // 7: books.v1.UpdateBookResponse.book:type_name -> books.v1.Book
+	12, // 8: books.v1.GetBookSourcesResponse.proposal:type_name -> books.v1.ResyncProposal
+	26, // 9: books.v1.GetSourceStatsResponse.sources:type_name -> books.v1.SourceStat
+	27, // 10: books.v1.GetSourceStatsResponse.overlaps:type_name -> books.v1.SourceComboStat
+	27, // 11: books.v1.GetSourceStatsResponse.missed_overlaps:type_name -> books.v1.SourceComboStat
+	32, // 12: books.v1.ListBooksInExactSourcesResponse.books:type_name -> books.v1.Book
+	0,  // 13: books.v1.CatalogService.ImportBooks:input_type -> books.v1.ImportBooksRequest
+	3,  // 14: books.v1.CatalogService.FindDuplicates:input_type -> books.v1.FindDuplicatesRequest
+	5,  // 15: books.v1.CatalogService.MergeBooks:input_type -> books.v1.MergeBooksRequest
+	7,  // 16: books.v1.CatalogService.StartResync:input_type -> books.v1.StartResyncRequest
+	9,  // 17: books.v1.CatalogService.CancelResync:input_type -> books.v1.CancelResyncRequest
+	13, // 18: books.v1.CatalogService.ListResyncProposals:input_type -> books.v1.ListResyncProposalsRequest
+	15, // 19: books.v1.CatalogService.ApplyResyncChoice:input_type -> books.v1.ApplyResyncChoiceRequest
+	17, // 20: books.v1.CatalogService.SetBookISBN:input_type -> books.v1.SetBookISBNRequest
+	19, // 21: books.v1.CatalogService.UpdateBook:input_type -> books.v1.UpdateBookRequest
+	21, // 22: books.v1.CatalogService.GetBookSources:input_type -> books.v1.GetBookSourcesRequest
+	23, // 23: books.v1.CatalogService.ApplyBookSource:input_type -> books.v1.ApplyBookSourceRequest
+	25, // 24: books.v1.CatalogService.GetSourceStats:input_type -> books.v1.GetSourceStatsRequest
+	29, // 25: books.v1.CatalogService.ListBooksInExactSources:input_type -> books.v1.ListBooksInExactSourcesRequest
+	1,  // 26: books.v1.CatalogService.ImportBooks:output_type -> books.v1.ImportBooksResponse
+	4,  // 27: books.v1.CatalogService.FindDuplicates:output_type -> books.v1.FindDuplicatesResponse
+	6,  // 28: books.v1.CatalogService.MergeBooks:output_type -> books.v1.MergeBooksResponse
+	8,  // 29: books.v1.CatalogService.StartResync:output_type -> books.v1.StartResyncResponse
+	10, // 30: books.v1.CatalogService.CancelResync:output_type -> books.v1.CancelResyncResponse
+	14, // 31: books.v1.CatalogService.ListResyncProposals:output_type -> books.v1.ListResyncProposalsResponse
+	16, // 32: books.v1.CatalogService.ApplyResyncChoice:output_type -> books.v1.ApplyResyncChoiceResponse
+	18, // 33: books.v1.CatalogService.SetBookISBN:output_type -> books.v1.SetBookISBNResponse
+	20, // 34: books.v1.CatalogService.UpdateBook:output_type -> books.v1.UpdateBookResponse
+	22, // 35: books.v1.CatalogService.GetBookSources:output_type -> books.v1.GetBookSourcesResponse
+	24, // 36: books.v1.CatalogService.ApplyBookSource:output_type -> books.v1.ApplyBookSourceResponse
+	28, // 37: books.v1.CatalogService.GetSourceStats:output_type -> books.v1.GetSourceStatsResponse
+	30, // 38: books.v1.CatalogService.ListBooksInExactSources:output_type -> books.v1.ListBooksInExactSourcesResponse
+	26, // [26:39] is the sub-list for method output_type
+	13, // [13:26] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_books_v1_catalog_proto_init() }
@@ -1778,15 +1892,15 @@ func file_books_v1_catalog_proto_init() {
 	}
 	file_books_v1_library_proto_init()
 	file_books_v1_catalog_proto_msgTypes[5].OneofWrappers = []any{}
-	file_books_v1_catalog_proto_msgTypes[19].OneofWrappers = []any{}
 	file_books_v1_catalog_proto_msgTypes[21].OneofWrappers = []any{}
+	file_books_v1_catalog_proto_msgTypes[23].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_books_v1_catalog_proto_rawDesc), len(file_books_v1_catalog_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

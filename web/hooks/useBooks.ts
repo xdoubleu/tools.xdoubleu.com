@@ -15,7 +15,7 @@ import {
 } from '@/lib/gen/books/v1/library_pb'
 import { BookFilesService } from '@/lib/gen/books/v1/files_pb'
 import { KoboService } from '@/lib/gen/books/v1/kobo_pb'
-import { CatalogService } from '@/lib/gen/books/v1/catalog_pb'
+import { CatalogService, UpdateBookRequestSchema } from '@/lib/gen/books/v1/catalog_pb'
 import type {
   GetLibraryResponse,
   GetBooksProgressResponse,
@@ -38,6 +38,9 @@ import type {
 export type CreateBookInput = MessageInitShape<typeof CreateBookRequestSchema>
 export type UpdateBookStatusInput = MessageInitShape<typeof UpdateBookStatusRequestSchema>
 export type UpdateProgressInput = MessageInitShape<typeof UpdateProgressRequestSchema>
+export type UpdateBookMetadataInput = NonNullable<
+  MessageInitShape<typeof UpdateBookRequestSchema>['metadata']
+>
 
 export function useLibrary() {
   const client = createServiceClient(LibraryService)
@@ -398,6 +401,14 @@ export function useSetBookISBN() {
   const client = useMemo(() => createServiceClient(CatalogService), [])
   return useCallback(
     (bookId: string, isbn13: string) => client.setBookISBN({ bookId, isbn13 }),
+    [client]
+  )
+}
+
+export function useUpdateBook() {
+  const client = useMemo(() => createServiceClient(CatalogService), [])
+  return useCallback(
+    (bookId: string, metadata: UpdateBookMetadataInput) => client.updateBook({ bookId, metadata }),
     [client]
   )
 }

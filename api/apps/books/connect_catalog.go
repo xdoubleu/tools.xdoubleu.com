@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -306,26 +305,9 @@ func (h *booksConnectHandler) SetBookISBN(
 		return nil, err
 	}
 
-	// Normalize: strip spaces, hyphens, then validate exactly 13 digits.
-	normalized := strings.Map(func(r rune) rune {
-		if r == '-' || r == ' ' {
-			return -1
-		}
-		return r
-	}, req.Msg.Isbn13)
-	if len(normalized) != isbn13Length {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			errors.New("isbn13 must be exactly 13 digits"),
-		)
-	}
-	for _, r := range normalized {
-		if r < '0' || r > '9' {
-			return nil, connect.NewError(
-				connect.CodeInvalidArgument,
-				errors.New("isbn13 must contain only digits"),
-			)
-		}
+	normalized, err := normalizeAndValidateISBN13(req.Msg.Isbn13)
+	if err != nil {
+		return nil, err
 	}
 
 	err = h.app.Services.Books.SetBookISBN(ctx, bookID, normalized)
@@ -343,6 +325,53 @@ func (h *booksConnectHandler) SetBookISBN(
 	}
 
 	return connect.NewResponse(&booksv1.SetBookISBNResponse{}), nil
+}
+
+// UpdateBook lets an admin hand-correct a catalog book's metadata directly.
+func (h *booksConnectHandler) UpdateBook(
+	ctx context.Context,
+	req *connect.Request[booksv1.UpdateBookRequest],
+) (*connect.Response[booksv1.UpdateBookResponse], error) {
+	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata := protoBookToModel(req.Msg.Metadata)
+	if metadata == nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("metadata is required"),
+		)
+	}
+
+	if metadata.ISBN13 != nil {
+		normalized, isbnErr := normalizeAndValidateISBN13(*metadata.ISBN13)
+		if isbnErr != nil {
+			return nil, isbnErr
+		}
+		metadata.ISBN13 = &normalized
+	}
+
+	updated, err := h.app.Services.Books.UpdateBook(
+		ctx, bookID, *metadata, req.Msg.Metadata.CoverUrl,
+	)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("book not found"))
+	}
+	if errors.Is(err, database.ErrResourceConflict) {
+		return nil, connect.NewError(
+			connect.CodeAlreadyExists,
+			errors.New("ISBN is already assigned to another book"),
+		)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&booksv1.UpdateBookResponse{
+		Book: protoBook(updated, h.app.clients.PublicAPIBaseURL),
+	}), nil
 }
 
 // Source name constants shared across the source-stats and exact-sources

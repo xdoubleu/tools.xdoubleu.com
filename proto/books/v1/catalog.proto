@@ -110,6 +110,17 @@ message SetBookISBNRequest {
 }
 message SetBookISBNResponse {}
 
+// UpdateBook lets an admin hand-correct a catalog book's metadata directly,
+// bypassing the external-source sync flow.
+message UpdateBookRequest {
+  string book_id = 1;
+  // Full replacement for the book's catalog metadata (title, authors,
+  // isbn13, description, page_count, cover_url). An empty cover_url clears
+  // the cover; any other value is fetched and cached as the new cover.
+  Book metadata = 2;
+}
+message UpdateBookResponse { Book book = 1; }
+
 // GetBookSources live-fetches one book's candidates from every configured
 // source, for the admin book-page source selector. Unlike
 // ListResyncProposals, this works on any book on demand — it doesn't require
@@ -203,6 +214,7 @@ service CatalogService {
   rpc ListResyncProposals(ListResyncProposalsRequest) returns (ListResyncProposalsResponse);
   rpc ApplyResyncChoice(ApplyResyncChoiceRequest) returns (ApplyResyncChoiceResponse);
   rpc SetBookISBN(SetBookISBNRequest) returns (SetBookISBNResponse);
+  rpc UpdateBook(UpdateBookRequest) returns (UpdateBookResponse);
   rpc GetBookSources(GetBookSourcesRequest) returns (GetBookSourcesResponse);
   rpc ApplyBookSource(ApplyBookSourceRequest) returns (ApplyBookSourceResponse);
   rpc GetSourceStats(GetSourceStatsRequest) returns (GetSourceStatsResponse);
