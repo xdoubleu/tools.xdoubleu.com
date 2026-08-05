@@ -38,4 +38,45 @@ describe('usePaginatedList', () => {
     expect(result.current.items).toEqual([9])
     expect(result.current.hasMore).toBe(false)
   })
+
+  it('merges a revalidated first page instead of dropping loaded pages, when the leading items still match', async () => {
+    // Simulates a background SWR revalidation: same logical items, but a
+    // fresh object per fetch (as a real ConnectRPC response would be) —
+    // reference equality alone would treat this as a genuinely new page.
+    const fetchPage = jest.fn().mockResolvedValue({ items: [{ id: '3' }], hasMore: false })
+    const { result, rerender } = renderHook(
+      ({ initial }: { initial: { items: { id: string }[]; hasMore: boolean } }) =>
+        usePaginatedList(initial, fetchPage, (a, b) => a.id === b.id),
+      { initialProps: { initial: { items: [{ id: '1' }, { id: '2' }], hasMore: true } } }
+    )
+
+    await act(async () => {
+      await result.current.loadMore()
+    })
+    expect(result.current.items).toEqual([{ id: '1' }, { id: '2' }, { id: '3' }])
+
+    // Revalidation returns the same leading items (new object references,
+    // possibly with refreshed fields) — the loaded third page must survive.
+    rerender({ initial: { items: [{ id: '1' }, { id: '2' }], hasMore: true } })
+    expect(result.current.items).toEqual([{ id: '1' }, { id: '2' }, { id: '3' }])
+  })
+
+  it('still fully resets when the revalidated leading items genuinely differ', async () => {
+    const fetchPage = jest.fn().mockResolvedValue({ items: [{ id: '3' }], hasMore: false })
+    const { result, rerender } = renderHook(
+      ({ initial }: { initial: { items: { id: string }[]; hasMore: boolean } }) =>
+        usePaginatedList(initial, fetchPage, (a, b) => a.id === b.id),
+      { initialProps: { initial: { items: [{ id: '1' }, { id: '2' }], hasMore: true } } }
+    )
+
+    await act(async () => {
+      await result.current.loadMore()
+    })
+    expect(result.current.items).toEqual([{ id: '1' }, { id: '2' }, { id: '3' }])
+
+    // e.g. item "1" was marked read and dropped out of an unread-only list.
+    rerender({ initial: { items: [{ id: '2' }], hasMore: false } })
+    expect(result.current.items).toEqual([{ id: '2' }])
+    expect(result.current.hasMore).toBe(false)
+  })
 })
