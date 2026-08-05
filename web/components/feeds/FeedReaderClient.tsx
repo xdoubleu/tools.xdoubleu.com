@@ -42,7 +42,7 @@ export default function FeedReaderClient() {
     hasMore,
     loading: loadingMore,
     loadMore
-  } = usePaginatedList(initialPage, fetchPage)
+  } = usePaginatedList(initialPage, fetchPage, (a, b) => a.id === b.id)
 
   // Marking read revalidates feedItems immediately, so an unread-only fetch
   // drops the item server-side well before the undo window elapses —

@@ -46,7 +46,7 @@ export default function RecipesListClient() {
     hasMore,
     loading: loadingMore,
     loadMore
-  } = usePaginatedList(initialPage, fetchPage)
+  } = usePaginatedList(initialPage, fetchPage, (a, b) => a.id === b.id)
 
   const handleShare = async (contactUserId: string, canEdit: boolean) => {
     await shareBook(contactUserId, canEdit)
