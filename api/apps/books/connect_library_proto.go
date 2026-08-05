@@ -2,6 +2,7 @@ package books
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
@@ -47,6 +48,26 @@ func protoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
 	}
 }
 
+// reconcileOwnDigitalTag derives the own-digital tag from actual attached
+// formats rather than trusting the stored tag, since it can drift out of
+// sync (CSV import setting it verbatim, or a stale tag left over from a
+// removed file/merge).
+func reconcileOwnDigitalTag(tags, formats []string) []string {
+	hasDigital := len(formats) > 0
+	tagged := slices.Contains(tags, models.TagOwnDigital)
+	if hasDigital == tagged {
+		return tags
+	}
+
+	if hasDigital {
+		return append(slices.Clone(tags), models.TagOwnDigital)
+	}
+
+	return slices.DeleteFunc(slices.Clone(tags), func(t string) bool {
+		return t == models.TagOwnDigital
+	})
+}
+
 func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 	finishedAt := make([]string, len(ub.FinishedAt))
 	for i, t := range ub.FinishedAt {
@@ -59,7 +80,7 @@ func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 		BookId:          ub.BookID.String(),
 		Book:            protoBook(ub.Book, coverBaseURL),
 		Status:          ub.Status,
-		Tags:            ub.Tags,
+		Tags:            reconcileOwnDigitalTag(ub.Tags, ub.Formats),
 		Formats:         ub.Formats,
 		Rating:          int32PtrFromInt16(ub.Rating),
 		FinishedAt:      finishedAt,

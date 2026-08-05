@@ -99,7 +99,10 @@ func TestOAuthConnectionsUpsertStoresGrantedScope(t *testing.T) {
 	tok := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
 		AccessToken: "access-1",
 	}).WithExtra(map[string]any{"scope": "org:read project:read"})
-	require.NoError(t, repo.Upsert(t.Context(), models.OAuthProviderSentry, tok, "admin"))
+	require.NoError(
+		t,
+		repo.Upsert(t.Context(), models.OAuthProviderSentry, tok, "admin"),
+	)
 
 	_, conn, err := repo.Get(t.Context(), models.OAuthProviderSentry)
 	require.NoError(t, err)
@@ -110,7 +113,10 @@ func TestOAuthConnectionsUpsertStoresGrantedScope(t *testing.T) {
 	tok2 := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
 		AccessToken: "access-2",
 	}).WithExtra(map[string]any{"scope": "org:read project:read event:write"})
-	require.NoError(t, repo.Upsert(t.Context(), models.OAuthProviderSentry, tok2, "admin"))
+	require.NoError(
+		t,
+		repo.Upsert(t.Context(), models.OAuthProviderSentry, tok2, "admin"),
+	)
 
 	_, conn, err = repo.Get(t.Context(), models.OAuthProviderSentry)
 	require.NoError(t, err)

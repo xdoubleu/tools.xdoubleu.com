@@ -37,3 +37,32 @@ func TestProtoBook_CoverURLUsesBooksPrefix(t *testing.T) {
 
 	assert.Equal(t, "http://api.test/books/api/cover/"+book.ID.String(), pb.CoverUrl)
 }
+
+// TestReconcileOwnDigitalTag_StripsStaleTagWithNoFormats guards against a
+// CSV-imported or otherwise stale own-digital tag surviving in the API
+// response for a book with no attached PDF/EPUB.
+func TestReconcileOwnDigitalTag_StripsStaleTagWithNoFormats(t *testing.T) {
+	got := reconcileOwnDigitalTag([]string{"fantasy", models.TagOwnDigital}, nil)
+
+	assert.Equal(t, []string{"fantasy"}, got)
+}
+
+// TestReconcileOwnDigitalTag_AddsMissingTagWithFormats guards against a
+// book with an uploaded file failing to show as digitally owned because the
+// tag write was skipped or lost.
+func TestReconcileOwnDigitalTag_AddsMissingTagWithFormats(t *testing.T) {
+	got := reconcileOwnDigitalTag([]string{"fantasy"}, []string{"pdf"})
+
+	assert.ElementsMatch(t, []string{"fantasy", models.TagOwnDigital}, got)
+}
+
+func TestReconcileOwnDigitalTag_LeavesConsistentTagsUnchanged(t *testing.T) {
+	withFormat := reconcileOwnDigitalTag(
+		[]string{models.TagOwnDigital},
+		[]string{"epub"},
+	)
+	assert.Equal(t, []string{models.TagOwnDigital}, withFormat)
+
+	withoutFormat := reconcileOwnDigitalTag([]string{"fantasy"}, nil)
+	assert.Equal(t, []string{"fantasy"}, withoutFormat)
+}
