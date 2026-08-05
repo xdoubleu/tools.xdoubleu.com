@@ -316,3 +316,57 @@ func TestDeleteConfig_Success(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
+
+// TestDeleteConfig_ViaListedToken saves a config, then deletes it using the
+// token returned from ListConfigs (as the UI does) rather than the token the
+// caller already holds. This is the round trip that previously silently
+// no-op'd: the DB stored only a one-way hash of the token, so the value
+// ListConfigs handed back could never be used to delete the row it names.
+func TestDeleteConfig_ViaListedToken(t *testing.T) {
+	client := newConnectClient(t)
+	ctx := context.Background()
+	token := uuid.NewString()
+
+	srv := calendarServer(t)
+	defer srv.Close()
+
+	_, err := client.SaveConfig(ctx, connect.NewRequest(&icsproxyv1.SaveConfigRequest{
+		Token:     token,
+		SourceUrl: srv.URL,
+	}))
+	require.NoError(t, err)
+
+	listResp, err := client.ListConfigs(
+		ctx,
+		connect.NewRequest(&icsproxyv1.ListConfigsRequest{Limit: 100}),
+	)
+	require.NoError(t, err)
+
+	var listedToken string
+	for _, cfg := range listResp.Msg.Configs {
+		if cfg.Token == token {
+			listedToken = cfg.Token
+			break
+		}
+	}
+	require.Equal(
+		t,
+		token,
+		listedToken,
+		"ListConfigs must return the same token SaveConfig was given",
+	)
+
+	_, err = client.DeleteConfig(
+		ctx,
+		connect.NewRequest(&icsproxyv1.DeleteConfigRequest{
+			Token: listedToken,
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.GetConfig(ctx, connect.NewRequest(&icsproxyv1.GetConfigRequest{
+		Token: token,
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
