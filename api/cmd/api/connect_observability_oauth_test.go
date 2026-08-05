@@ -85,7 +85,8 @@ func TestListOAuthConnections_AsAdmin_StaleScope(t *testing.T) {
 	for _, c := range resp.Msg.Connections {
 		if c.Provider == string(models.OAuthProviderSentry) {
 			assert.False(
-				t, c.Connected,
+				t,
+				c.Connected,
 				"a connection missing a currently-required scope must show as not connected",
 			)
 		}
