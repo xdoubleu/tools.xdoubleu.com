@@ -2,8 +2,6 @@ package repositories
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
@@ -14,14 +12,6 @@ import (
 
 type CalendarRepository struct {
 	db postgres.DB
-}
-
-// hashToken returns the hex-encoded SHA-256 of the raw token.
-// The hash is stored as the primary key; the raw token is only ever shown to
-// the user at creation time and is never persisted.
-func hashToken(raw string) string {
-	sum := sha256.Sum256([]byte(raw))
-	return hex.EncodeToString(sum[:])
 }
 
 // =====================================================
@@ -46,16 +36,16 @@ func (r *CalendarRepository) UpsertFilterConfig(
 
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO icsproxy.feeds
-		(token_hash, user_id, source_url, hide_event_uids, holiday_uids, hide_series)
+		(token, user_id, source_url, hide_event_uids, holiday_uids, hide_series)
 		VALUES ($1,$2,$3,$4,$5,$6::jsonb)
-		ON CONFLICT (token_hash) DO UPDATE SET
+		ON CONFLICT (token) DO UPDATE SET
 		  source_url=$3,
 		  hide_event_uids=$4,
 		  holiday_uids=$5,
 		  hide_series=$6::jsonb
 		WHERE icsproxy.feeds.user_id = EXCLUDED.user_id
 	`,
-		hashToken(cfg.Token),
+		cfg.Token,
 		cfg.UserID,
 		cfg.SourceURL,
 		cfg.HideEventUIDs,
@@ -76,14 +66,13 @@ func (r *CalendarRepository) GetFilterConfig(
 ) (models.FilterConfig, bool) {
 	var cfg models.FilterConfig
 	var seriesJSON []byte
-	var tokenHash string
 
 	err := r.db.QueryRow(ctx, `
-		SELECT token_hash, user_id, source_url, hide_event_uids, holiday_uids, hide_series
+		SELECT token, user_id, source_url, hide_event_uids, holiday_uids, hide_series
 		FROM icsproxy.feeds
-		WHERE token_hash=$1
-	`, hashToken(token)).Scan(
-		&tokenHash,
+		WHERE token=$1
+	`, token).Scan(
+		&cfg.Token,
 		&cfg.UserID,
 		&cfg.SourceURL,
 		&cfg.HideEventUIDs,
@@ -94,11 +83,6 @@ func (r *CalendarRepository) GetFilterConfig(
 	if err != nil {
 		return cfg, false
 	}
-
-	// Surface the raw token back to the caller so existing code that reads
-	// cfg.Token still works. The raw value is only available in this request
-	// context (from the URL); we do not store it.
-	cfg.Token = token
 
 	if len(seriesJSON) > 0 {
 		_ = json.Unmarshal(seriesJSON, &cfg.HideSeries)
@@ -122,10 +106,10 @@ func (r *CalendarRepository) ListFilterConfigs(
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT token_hash, user_id, source_url, hide_event_uids, holiday_uids, hide_series
+		SELECT token, user_id, source_url, hide_event_uids, holiday_uids, hide_series
 		FROM icsproxy.feeds
 		WHERE user_id = $1
-		ORDER BY created_at DESC, token_hash
+		ORDER BY created_at DESC, token
 		LIMIT $2 OFFSET $3
 	`, userID, sqlLimit, offset)
 	if err != nil {
@@ -180,7 +164,7 @@ func (r *CalendarRepository) ListFilterSummaries(
 	userID string,
 ) ([]FilterSummary, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT token_hash, source_url
+		SELECT token, source_url
 		FROM icsproxy.feeds
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -214,9 +198,9 @@ func (r *CalendarRepository) DeleteFilterConfig(
 ) error {
 	_, err := r.db.Exec(ctx, `
 		DELETE FROM icsproxy.feeds
-		WHERE token_hash = $1
+		WHERE token = $1
 		  AND user_id = $2
-	`, hashToken(token), userID)
+	`, token, userID)
 
 	return err
 }
