@@ -6,8 +6,8 @@ import { ItemSchema } from '@/lib/gen/feeds/v1/feeds_pb'
 const markRead = jest.fn()
 const updateItem = jest.fn()
 
-jest.mock('@/components/feeds/FeedFavouriteButton', () => () => (
-  <div data-testid="favourite-button" />
+jest.mock('@/components/feeds/FeedBookmarkButton', () => () => (
+  <div data-testid="bookmark-button" />
 ))
 jest.mock('@/components/feeds/FeedItemMarkReadButton', () => ({
   __esModule: true,
@@ -104,7 +104,7 @@ describe('ArticleReaderDialog', () => {
       'href',
       'https://example.com/a'
     )
-    expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
+    expect(screen.getByTestId('bookmark-button')).toBeInTheDocument()
     expect(screen.getByTestId('mark-read-button')).toBeInTheDocument()
   })
 

@@ -83,7 +83,7 @@ message Item {
   // RFC3339; empty when unread.
   string read_at = 7;
   bool dismissed = 8;
-  bool favourite = 9;
+  bool bookmarked = 9;
   // The most recent ingest failure for this item, if any.
   string ingest_error = 10;
   string created_at = 11;
@@ -101,13 +101,16 @@ message ListFeedItemsRequest {
   // Restricts results to one feed. Unset returns items from any of the
   // caller's feeds.
   optional string feed_id = 4;
+  // Excludes items without bookmarked set when true. Unset/false returns
+  // both bookmarked and unbookmarked items.
+  optional bool bookmarked_only = 5;
 }
 message ListFeedItemsResponse {
   repeated Item items = 1;
   bool has_more = 2;
 }
 
-// UpdateItem partially updates an item's read/dismissed/favourite/
+// UpdateItem partially updates an item's read/dismissed/bookmarked/
 // read-progress state — only fields explicitly set are applied; unset
 // fields are left unchanged. read sets read_at to now() when true, clears
 // it when false. read_progress_pct is clamped to [0,100] and only ever
@@ -116,7 +119,7 @@ message UpdateItemRequest {
   string item_id = 1;
   optional bool read = 2;
   optional bool dismissed = 3;
-  optional bool favourite = 4;
+  optional bool bookmarked = 4;
   optional int32 read_progress_pct = 5;
 }
 message UpdateItemResponse { Item item = 1; }

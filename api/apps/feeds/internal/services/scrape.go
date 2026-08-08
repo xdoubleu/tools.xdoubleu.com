@@ -445,7 +445,7 @@ func (s *FeedService) ingestDiscoveredLink(
 		publishedAt = link.PublishedAt
 	}
 
-	//nolint:exhaustruct // read/dismissed/favourite/ingest_error start empty
+	//nolint:exhaustruct // read/dismissed/bookmarked/ingest_error start empty
 	item := models.Item{
 		FeedID:      feed.ID,
 		GUID:        guid,

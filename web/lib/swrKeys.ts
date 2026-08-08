@@ -62,8 +62,8 @@ export const swrKeys = {
   gamesIntegrations: '/games/integrations',
 
   feeds: '/feeds',
-  feedItems: (unreadOnly: boolean, feedId?: string) =>
-    `/feeds/items?unread=${unreadOnly}&feed=${feedId ?? ''}`,
+  feedItems: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
+    `/feeds/items?unread=${unreadOnly}&feed=${feedId ?? ''}&bookmarked=${bookmarkedOnly ?? false}`,
   feedStats: '/feeds/stats',
 
   icsFeeds: '/icsproxy',

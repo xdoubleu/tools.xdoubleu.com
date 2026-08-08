@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogClose
 } from '@/components/ui/dialog'
-import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
+import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
 import FeedItemMarkReadButton, {
   type FeedItemMarkReadHandle
 } from '@/components/feeds/FeedItemMarkReadButton'
@@ -107,7 +107,7 @@ export default function ArticleReaderDialog({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <FeedFavouriteButton itemId={item.id} favourite={item.favourite} />
+            <FeedBookmarkButton itemId={item.id} bookmarked={item.bookmarked} />
             <FeedItemMarkReadButton
               ref={markReadRef}
               itemId={item.id}

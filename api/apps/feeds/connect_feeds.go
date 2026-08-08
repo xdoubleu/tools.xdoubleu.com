@@ -67,7 +67,7 @@ func protoItem(item models.Item) *feedsv1.Item {
 		PublishedAt:     publishedAt,
 		ReadAt:          readAt,
 		Dismissed:       item.Dismissed,
-		Favourite:       item.Favourite,
+		Bookmarked:      item.Bookmarked,
 		IngestError:     ingestError,
 		CreatedAt:       item.CreatedAt.Format(time.RFC3339),
 		ReadProgressPct: int32(item.ReadProgressPct), //nolint:gosec // clamped [0,100]
@@ -275,7 +275,7 @@ func (h *feedsConnectHandler) ListFeedItems(
 
 	items, hasMore, err := h.app.Services.Feeds.ListItems(
 		ctx, user.ID, req.Msg.Limit, req.Msg.Offset, req.Msg.GetUnreadOnly(),
-		feedID,
+		feedID, req.Msg.GetBookmarkedOnly(),
 	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
@@ -308,7 +308,7 @@ func (h *feedsConnectHandler) UpdateItem(
 	}
 
 	item, err := h.app.Services.Feeds.UpdateItem(
-		ctx, user.ID, itemID, req.Msg.Read, req.Msg.Dismissed, req.Msg.Favourite,
+		ctx, user.ID, itemID, req.Msg.Read, req.Msg.Dismissed, req.Msg.Bookmarked,
 		req.Msg.ReadProgressPct,
 	)
 	if err != nil {

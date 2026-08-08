@@ -653,9 +653,9 @@ type Item struct {
 	// time.
 	PublishedAt string `protobuf:"bytes,6,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
 	// RFC3339; empty when unread.
-	ReadAt    string `protobuf:"bytes,7,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
-	Dismissed bool   `protobuf:"varint,8,opt,name=dismissed,proto3" json:"dismissed,omitempty"`
-	Favourite bool   `protobuf:"varint,9,opt,name=favourite,proto3" json:"favourite,omitempty"`
+	ReadAt     string `protobuf:"bytes,7,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
+	Dismissed  bool   `protobuf:"varint,8,opt,name=dismissed,proto3" json:"dismissed,omitempty"`
+	Bookmarked bool   `protobuf:"varint,9,opt,name=bookmarked,proto3" json:"bookmarked,omitempty"`
 	// The most recent ingest failure for this item, if any.
 	IngestError string `protobuf:"bytes,10,opt,name=ingest_error,json=ingestError,proto3" json:"ingest_error,omitempty"`
 	CreatedAt   string `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -752,9 +752,9 @@ func (x *Item) GetDismissed() bool {
 	return false
 }
 
-func (x *Item) GetFavourite() bool {
+func (x *Item) GetBookmarked() bool {
 	if x != nil {
-		return x.Favourite
+		return x.Bookmarked
 	}
 	return false
 }
@@ -789,9 +789,12 @@ type ListFeedItemsRequest struct {
 	UnreadOnly *bool `protobuf:"varint,3,opt,name=unread_only,json=unreadOnly,proto3,oneof" json:"unread_only,omitempty"`
 	// Restricts results to one feed. Unset returns items from any of the
 	// caller's feeds.
-	FeedId        *string `protobuf:"bytes,4,opt,name=feed_id,json=feedId,proto3,oneof" json:"feed_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FeedId *string `protobuf:"bytes,4,opt,name=feed_id,json=feedId,proto3,oneof" json:"feed_id,omitempty"`
+	// Excludes items without bookmarked set when true. Unset/false returns
+	// both bookmarked and unbookmarked items.
+	BookmarkedOnly *bool `protobuf:"varint,5,opt,name=bookmarked_only,json=bookmarkedOnly,proto3,oneof" json:"bookmarked_only,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListFeedItemsRequest) Reset() {
@@ -852,6 +855,13 @@ func (x *ListFeedItemsRequest) GetFeedId() string {
 	return ""
 }
 
+func (x *ListFeedItemsRequest) GetBookmarkedOnly() bool {
+	if x != nil && x.BookmarkedOnly != nil {
+		return *x.BookmarkedOnly
+	}
+	return false
+}
+
 type ListFeedItemsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []*Item                `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -904,7 +914,7 @@ func (x *ListFeedItemsResponse) GetHasMore() bool {
 	return false
 }
 
-// UpdateItem partially updates an item's read/dismissed/favourite/
+// UpdateItem partially updates an item's read/dismissed/bookmarked/
 // read-progress state — only fields explicitly set are applied; unset
 // fields are left unchanged. read sets read_at to now() when true, clears
 // it when false. read_progress_pct is clamped to [0,100] and only ever
@@ -914,7 +924,7 @@ type UpdateItemRequest struct {
 	ItemId          string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
 	Read            *bool                  `protobuf:"varint,2,opt,name=read,proto3,oneof" json:"read,omitempty"`
 	Dismissed       *bool                  `protobuf:"varint,3,opt,name=dismissed,proto3,oneof" json:"dismissed,omitempty"`
-	Favourite       *bool                  `protobuf:"varint,4,opt,name=favourite,proto3,oneof" json:"favourite,omitempty"`
+	Bookmarked      *bool                  `protobuf:"varint,4,opt,name=bookmarked,proto3,oneof" json:"bookmarked,omitempty"`
 	ReadProgressPct *int32                 `protobuf:"varint,5,opt,name=read_progress_pct,json=readProgressPct,proto3,oneof" json:"read_progress_pct,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -971,9 +981,9 @@ func (x *UpdateItemRequest) GetDismissed() bool {
 	return false
 }
 
-func (x *UpdateItemRequest) GetFavourite() bool {
-	if x != nil && x.Favourite != nil {
-		return *x.Favourite
+func (x *UpdateItemRequest) GetBookmarked() bool {
+	if x != nil && x.Bookmarked != nil {
+		return *x.Bookmarked
 	}
 	return false
 }
@@ -1299,7 +1309,7 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\x12RefreshFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\"1\n" +
 	"\x13RefreshFeedResponse\x12\x1a\n" +
-	"\bingested\x18\x01 \x01(\x05R\bingested\"\xed\x02\n" +
+	"\bingested\x18\x01 \x01(\x05R\bingested\"\xef\x02\n" +
 	"\x04Item\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\afeed_id\x18\x02 \x01(\tR\x06feedId\x12\x14\n" +
@@ -1309,36 +1319,41 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\fcontent_html\x18\x05 \x01(\tR\vcontentHtml\x12!\n" +
 	"\fpublished_at\x18\x06 \x01(\tR\vpublishedAt\x12\x17\n" +
 	"\aread_at\x18\a \x01(\tR\x06readAt\x12\x1c\n" +
-	"\tdismissed\x18\b \x01(\bR\tdismissed\x12\x1c\n" +
-	"\tfavourite\x18\t \x01(\bR\tfavourite\x12!\n" +
+	"\tdismissed\x18\b \x01(\bR\tdismissed\x12\x1e\n" +
+	"\n" +
+	"bookmarked\x18\t \x01(\bR\n" +
+	"bookmarked\x12!\n" +
 	"\fingest_error\x18\n" +
 	" \x01(\tR\vingestError\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\v \x01(\tR\tcreatedAt\x12*\n" +
-	"\x11read_progress_pct\x18\f \x01(\x05R\x0freadProgressPct\"\xa4\x01\n" +
+	"\x11read_progress_pct\x18\f \x01(\x05R\x0freadProgressPct\"\xe6\x01\n" +
 	"\x14ListFeedItemsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12$\n" +
 	"\vunread_only\x18\x03 \x01(\bH\x00R\n" +
 	"unreadOnly\x88\x01\x01\x12\x1c\n" +
-	"\afeed_id\x18\x04 \x01(\tH\x01R\x06feedId\x88\x01\x01B\x0e\n" +
+	"\afeed_id\x18\x04 \x01(\tH\x01R\x06feedId\x88\x01\x01\x12,\n" +
+	"\x0fbookmarked_only\x18\x05 \x01(\bH\x02R\x0ebookmarkedOnly\x88\x01\x01B\x0e\n" +
 	"\f_unread_onlyB\n" +
 	"\n" +
-	"\b_feed_id\"X\n" +
+	"\b_feed_idB\x12\n" +
+	"\x10_bookmarked_only\"X\n" +
 	"\x15ListFeedItemsResponse\x12$\n" +
 	"\x05items\x18\x01 \x03(\v2\x0e.feeds.v1.ItemR\x05items\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xf7\x01\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xfa\x01\n" +
 	"\x11UpdateItemRequest\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x17\n" +
 	"\x04read\x18\x02 \x01(\bH\x00R\x04read\x88\x01\x01\x12!\n" +
-	"\tdismissed\x18\x03 \x01(\bH\x01R\tdismissed\x88\x01\x01\x12!\n" +
-	"\tfavourite\x18\x04 \x01(\bH\x02R\tfavourite\x88\x01\x01\x12/\n" +
+	"\tdismissed\x18\x03 \x01(\bH\x01R\tdismissed\x88\x01\x01\x12#\n" +
+	"\n" +
+	"bookmarked\x18\x04 \x01(\bH\x02R\n" +
+	"bookmarked\x88\x01\x01\x12/\n" +
 	"\x11read_progress_pct\x18\x05 \x01(\x05H\x03R\x0freadProgressPct\x88\x01\x01B\a\n" +
 	"\x05_readB\f\n" +
 	"\n" +
-	"_dismissedB\f\n" +
-	"\n" +
-	"_favouriteB\x14\n" +
+	"_dismissedB\r\n" +
+	"\v_bookmarkedB\x14\n" +
 	"\x12_read_progress_pct\"8\n" +
 	"\x12UpdateItemResponse\x12\"\n" +
 	"\x04item\x18\x01 \x01(\v2\x0e.feeds.v1.ItemR\x04item\"\xe0\x01\n" +

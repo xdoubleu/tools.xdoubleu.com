@@ -20,7 +20,7 @@ type ItemsRepository struct {
 }
 
 const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
-	i.content_html, i.published_at, i.read_at, i.dismissed, i.favourite,
+	i.content_html, i.published_at, i.read_at, i.dismissed, i.bookmarked,
 	i.read_progress_pct, i.ingest_error, i.created_at`
 
 func scanItem(row pgx.Row) (*models.Item, error) {
@@ -35,7 +35,7 @@ func scanItem(row pgx.Row) (*models.Item, error) {
 		&item.PublishedAt,
 		&item.ReadAt,
 		&item.Dismissed,
-		&item.Favourite,
+		&item.Bookmarked,
 		&item.ReadProgressPct,
 		&item.IngestError,
 		&item.CreatedAt,
@@ -117,7 +117,7 @@ func (repo *ItemsRepository) Insert(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// Update partially updates an item's read/dismissed/favourite/read-progress
+// Update partially updates an item's read/dismissed/bookmarked/read-progress
 // state, scoped to the owning user via a join on feeds.feeds — nil pointers
 // leave the corresponding column unchanged. read, when non-nil, sets read_at
 // to now() (true) or clears it (false). readProgressPct only ever increases
@@ -128,7 +128,7 @@ func (repo *ItemsRepository) Update(
 	ctx context.Context,
 	userID string,
 	itemID uuid.UUID,
-	read, dismissed, favourite *bool,
+	read, dismissed, bookmarked *bool,
 	readProgressPct *int32,
 ) (*models.Item, error) {
 	query := `
@@ -139,7 +139,7 @@ func (repo *ItemsRepository) Update(
 		        ELSE NULL
 		      END,
 		    dismissed = COALESCE($4, i.dismissed),
-		    favourite = COALESCE($5, i.favourite),
+		    bookmarked = COALESCE($5, i.bookmarked),
 		    read_progress_pct = GREATEST(
 		        i.read_progress_pct, COALESCE($6, i.read_progress_pct)
 		    )
@@ -147,7 +147,7 @@ func (repo *ItemsRepository) Update(
 		WHERE i.feed_id = f.id AND f.user_id = $1 AND i.id = $2
 		RETURNING ` + itemColumns
 	item, err := scanItem(repo.db.QueryRow(
-		ctx, query, userID, itemID, read, dismissed, favourite, readProgressPct,
+		ctx, query, userID, itemID, read, dismissed, bookmarked, readProgressPct,
 	))
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -160,13 +160,15 @@ func (repo *ItemsRepository) Update(
 // pagination.Clamp). Error/skip dedup markers (ingest_error set, no title or
 // content) are excluded — they exist only so polling doesn't retry a guid,
 // not for display. unreadOnly, when true, excludes items with a set read_at.
-// feedID, when non-nil, restricts results to that one feed.
+// feedID, when non-nil, restricts results to that one feed. bookmarkedOnly,
+// when true, excludes items without bookmarked set.
 func (repo *ItemsRepository) ListByUser(
 	ctx context.Context,
 	userID string,
 	limit, offset int32,
 	unreadOnly bool,
 	feedID *uuid.UUID,
+	bookmarkedOnly bool,
 ) ([]models.Item, bool, error) {
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
@@ -177,11 +179,12 @@ func (repo *ItemsRepository) ListByUser(
 		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
 		  AND ($4::bool = false OR i.read_at IS NULL)
 		  AND ($5::uuid IS NULL OR i.feed_id = $5)
+		  AND ($6::bool = false OR i.bookmarked = true)
 		ORDER BY i.published_at DESC, i.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
 	rows, err := repo.db.Query(
-		ctx, query, userID, sqlLimit, offset, unreadOnly, feedID,
+		ctx, query, userID, sqlLimit, offset, unreadOnly, feedID, bookmarkedOnly,
 	)
 	if err != nil {
 		return nil, false, postgres.PgxErrorToHTTPError(err)
