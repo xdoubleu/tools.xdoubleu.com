@@ -26,21 +26,26 @@ export function useFeeds() {
   return useSWR<ListFeedsResponse, Error>(swrKeys.feeds, () => client.listFeeds({}))
 }
 
-export function useFeedItems(unreadOnly: boolean, feedId?: string) {
+export function useFeedItems(unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) {
   const client = createServiceClient(FeedService)
-  return useSWR<ListFeedItemsResponse, Error>(swrKeys.feedItems(unreadOnly, feedId), () =>
-    client.listFeedItems({ limit: DEFAULT_PAGE_SIZE, unreadOnly, feedId })
+  return useSWR<ListFeedItemsResponse, Error>(
+    swrKeys.feedItems(unreadOnly, feedId, bookmarkedOnly),
+    () => client.listFeedItems({ limit: DEFAULT_PAGE_SIZE, unreadOnly, feedId, bookmarkedOnly })
   )
 }
 
-export function useFetchFeedItemsPage(unreadOnly: boolean, feedId?: string) {
+export function useFetchFeedItemsPage(
+  unreadOnly: boolean,
+  feedId?: string,
+  bookmarkedOnly?: boolean
+) {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
     (offset: number) =>
       client
-        .listFeedItems({ limit: DEFAULT_PAGE_SIZE, offset, unreadOnly, feedId })
+        .listFeedItems({ limit: DEFAULT_PAGE_SIZE, offset, unreadOnly, feedId, bookmarkedOnly })
         .then((r) => ({ items: r.items, hasMore: r.hasMore })),
-    [client, unreadOnly, feedId]
+    [client, unreadOnly, feedId, bookmarkedOnly]
   )
 }
 
@@ -84,11 +89,11 @@ export function useRefreshFeed() {
 export interface UpdateItemInput {
   read?: boolean
   dismissed?: boolean
-  favourite?: boolean
+  bookmarked?: boolean
   readProgressPct?: number
 }
 
-// useUpdateItem partially updates an item's read/dismissed/favourite/
+// useUpdateItem partially updates an item's read/dismissed/bookmarked/
 // read-progress state (proto3 field-presence, so unset keys are left
 // unchanged server-side).
 export function useUpdateItem() {

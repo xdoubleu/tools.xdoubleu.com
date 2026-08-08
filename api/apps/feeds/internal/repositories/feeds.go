@@ -198,7 +198,7 @@ func (repo *FeedsRepository) Update(
 // Delete removes the feed; its items cascade (feeds.items.feed_id ON DELETE
 // CASCADE) — unlike reading's former FeedsRepository, there is no library
 // linkage to preserve, so deleting a feed always deletes every item it
-// ingested, read/favourited or not.
+// ingested, read/bookmarked or not.
 func (repo *FeedsRepository) Delete(
 	ctx context.Context,
 	userID string,

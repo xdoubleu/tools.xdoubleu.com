@@ -8,9 +8,10 @@ const mockUseFetchFeedItemsPage = jest.fn()
 
 jest.mock('@/hooks/useFeeds', () => ({
   useFeeds: () => mockUseFeeds(),
-  useFeedItems: (unreadOnly: boolean, feedId?: string) => mockUseFeedItems(unreadOnly, feedId),
-  useFetchFeedItemsPage: (unreadOnly: boolean, feedId?: string) =>
-    mockUseFetchFeedItemsPage(unreadOnly, feedId),
+  useFeedItems: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
+    mockUseFeedItems(unreadOnly, feedId, bookmarkedOnly),
+  useFetchFeedItemsPage: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
+    mockUseFetchFeedItemsPage(unreadOnly, feedId, bookmarkedOnly),
   useUpdateItem: () => jest.fn()
 }))
 
@@ -93,7 +94,7 @@ describe('FeedReaderClient', () => {
       isLoading: false
     })
     render(<FeedReaderClient />)
-    expect(mockUseFeedItems).toHaveBeenCalledWith(true, undefined)
+    expect(mockUseFeedItems).toHaveBeenCalledWith(true, undefined, false)
   })
 
   it('filters by the selected feed', () => {
@@ -105,10 +106,10 @@ describe('FeedReaderClient', () => {
     render(<FeedReaderClient />)
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'feed-1' } })
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, 'feed-1')
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, 'feed-1', false)
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } })
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined)
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
   })
 
   it('lists items with their feed title (server already filters read/dismissed)', () => {
@@ -283,10 +284,37 @@ describe('FeedReaderClient', () => {
     render(<FeedReaderClient />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined)
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, false)
 
     fireEvent.click(screen.getByRole('button', { name: 'Show unread only' }))
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined)
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
+  })
+
+  it('toggles to show bookmarked items and back, switching the bookmarked_only query', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show bookmarked' }))
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
+  })
+
+  it('shows an empty state specific to bookmarked items when none match', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show bookmarked' }))
+    expect(screen.getByText('No bookmarked feed items.')).toBeInTheDocument()
   })
 
   it('loads the next page on Load more', async () => {

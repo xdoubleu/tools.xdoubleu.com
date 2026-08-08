@@ -110,15 +110,19 @@ func (s *FeedService) List(
 }
 
 // ListItems returns a page of items ingested by any of the user's feeds.
-// feedID, when non-nil, restricts results to that one feed.
+// feedID, when non-nil, restricts results to that one feed. bookmarkedOnly,
+// when true, excludes items that aren't bookmarked.
 func (s *FeedService) ListItems(
 	ctx context.Context,
 	userID string,
 	limit, offset int32,
 	unreadOnly bool,
 	feedID *uuid.UUID,
+	bookmarkedOnly bool,
 ) ([]models.Item, bool, error) {
-	return s.items.ListByUser(ctx, userID, limit, offset, unreadOnly, feedID)
+	return s.items.ListByUser(
+		ctx, userID, limit, offset, unreadOnly, feedID, bookmarkedOnly,
+	)
 }
 
 // Create validates the URL by fetching and parsing it and stores the feed
@@ -233,7 +237,7 @@ func (s *FeedService) IngestEmail(
 	messageID, subject, htmlBody string,
 ) {
 	guid := "mailto:" + feed.ID.String() + "/" + messageID
-	//nolint:exhaustruct // read/dismissed/favourite/ingest_error start empty
+	//nolint:exhaustruct // read/dismissed/bookmarked/ingest_error start empty
 	item := models.Item{
 		FeedID:      feed.ID,
 		GUID:        guid,
@@ -278,14 +282,14 @@ func (s *FeedService) Update(
 	return s.feeds.Update(ctx, userID, id, title)
 }
 
-// UpdateItem partially updates an item's read/dismissed/favourite/
+// UpdateItem partially updates an item's read/dismissed/bookmarked/
 // read-progress state, scoped to userID. nil fields are left unchanged.
 // readProgressPct is clamped to [0,100] and only ever increases.
 func (s *FeedService) UpdateItem(
 	ctx context.Context,
 	userID string,
 	itemID uuid.UUID,
-	read, dismissed, favourite *bool,
+	read, dismissed, bookmarked *bool,
 	readProgressPct *int32,
 ) (*models.Item, error) {
 	if readProgressPct != nil {
@@ -298,7 +302,7 @@ func (s *FeedService) UpdateItem(
 		itemID,
 		read,
 		dismissed,
-		favourite,
+		bookmarked,
 		readProgressPct,
 	)
 }
@@ -547,7 +551,7 @@ func (s *FeedService) buildItem(
 		publishedAt = *item.PublishedParsed
 	}
 
-	//nolint:exhaustruct // read/dismissed/favourite/ingest_error start empty
+	//nolint:exhaustruct // read/dismissed/bookmarked/ingest_error start empty
 	return &models.Item{
 		FeedID:      feed.ID,
 		GUID:        guid,

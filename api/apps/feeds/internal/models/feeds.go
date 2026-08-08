@@ -53,7 +53,7 @@ type Feed struct {
 
 // Item is one ingested feed entry (feeds.items). A feed and its items only
 // ever belong to one user, so there is no per-user junction table — read/
-// favourite/dismissed state lives directly as columns here.
+// bookmarked/dismissed state lives directly as columns here.
 type Item struct {
 	ID          uuid.UUID
 	FeedID      uuid.UUID
@@ -67,8 +67,8 @@ type Item struct {
 	// ReadAt is nil while unread.
 	ReadAt *time.Time
 	// Dismissed hides the item from the default view without deleting it.
-	Dismissed bool
-	Favourite bool
+	Dismissed  bool
+	Bookmarked bool
 	// ReadProgressPct is the furthest scroll position reached in the reader
 	// (0-100), monotonic — re-opening and scrolling less never lowers it
 	// (issue #798).

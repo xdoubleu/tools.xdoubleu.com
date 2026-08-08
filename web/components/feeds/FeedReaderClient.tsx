@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFeeds, useFeedItems, useFetchFeedItemsPage } from '@/hooks/useFeeds'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
-import FeedFavouriteButton from '@/components/feeds/FeedFavouriteButton'
+import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
@@ -28,11 +28,16 @@ function readAndBumpLastVisit(): number {
 export default function FeedReaderClient() {
   const [showRead, setShowRead] = useState(false)
   const unreadOnly = !showRead
+  const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
   const [selectedFeedId, setSelectedFeedId] = useState<string | undefined>(undefined)
 
   const { data: feedsData } = useFeeds()
-  const { data: itemsData, error, isLoading } = useFeedItems(unreadOnly, selectedFeedId)
-  const fetchPage = useFetchFeedItemsPage(unreadOnly, selectedFeedId)
+  const {
+    data: itemsData,
+    error,
+    isLoading
+  } = useFeedItems(unreadOnly, selectedFeedId, bookmarkedOnly)
+  const fetchPage = useFetchFeedItemsPage(unreadOnly, selectedFeedId, bookmarkedOnly)
   const initialPage = useMemo(
     () => ({ items: itemsData?.items ?? [], hasMore: itemsData?.hasMore ?? false }),
     [itemsData]
@@ -100,11 +105,22 @@ export default function FeedReaderClient() {
         <Button variant="secondary" size="sm" onClick={() => setShowRead((v) => !v)}>
           {showRead ? 'Show unread only' : 'Show read items'}
         </Button>
+        <Button
+          variant={bookmarkedOnly ? 'default' : 'secondary'}
+          size="sm"
+          onClick={() => setBookmarkedOnly((v) => !v)}
+        >
+          {bookmarkedOnly ? 'Show all' : 'Show bookmarked'}
+        </Button>
       </div>
 
       {items.length === 0 ? (
         <p className="py-16 text-center text-sm text-muted">
-          {showRead ? 'No feed items.' : 'No unread feed items.'}
+          {bookmarkedOnly
+            ? 'No bookmarked feed items.'
+            : showRead
+              ? 'No feed items.'
+              : 'No unread feed items.'}
         </p>
       ) : (
         <>
@@ -197,7 +213,7 @@ function FeedReaderCard({
             </Button>
             <div className="flex shrink-0 items-center gap-2">
               {isNew && <Badge variant="default">New</Badge>}
-              <FeedFavouriteButton itemId={item.id} favourite={item.favourite} />
+              <FeedBookmarkButton itemId={item.id} bookmarked={item.bookmarked} />
             </div>
           </div>
           {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}

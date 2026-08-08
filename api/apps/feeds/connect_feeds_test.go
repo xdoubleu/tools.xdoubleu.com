@@ -953,22 +953,22 @@ func TestUpdateItem_Dismiss(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Item.Dismissed)
-	assert.False(t, resp.Msg.Item.Favourite, "unset fields stay unchanged")
+	assert.False(t, resp.Msg.Item.Bookmarked, "unset fields stay unchanged")
 }
 
-func TestUpdateItem_Favourite(t *testing.T) {
+func TestUpdateItem_Bookmarked(t *testing.T) {
 	client := newFeedsClient(t)
 	itemID := createItem(t, client)
 
-	favourite := true
+	bookmarked := true
 	resp, err := client.UpdateItem(
 		context.Background(),
 		connect.NewRequest(&feedsv1.UpdateItemRequest{
-			ItemId: itemID, Favourite: &favourite,
+			ItemId: itemID, Bookmarked: &bookmarked,
 		}),
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Item.Favourite)
+	assert.True(t, resp.Msg.Item.Bookmarked)
 }
 
 func TestListFeedItems_ExcludesDismissed(t *testing.T) {
@@ -1028,6 +1028,49 @@ func TestListFeedItems_UnreadOnly(t *testing.T) {
 		itemIDs(resp.Msg.Items),
 		itemID,
 		"unset unread_only returns read items too",
+	)
+}
+
+func TestListFeedItems_BookmarkedOnly(t *testing.T) {
+	client := newFeedsClient(t)
+	itemID := createItem(t, client)
+
+	bookmarkedOnly := true
+	resp, err := client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(
+			&feedsv1.ListFeedItemsRequest{BookmarkedOnly: &bookmarkedOnly},
+		),
+	)
+	require.NoError(t, err)
+	assert.NotContains(
+		t,
+		itemIDs(resp.Msg.Items),
+		itemID,
+		"unbookmarked item must not be listed when bookmarked_only",
+	)
+
+	bookmarked := true
+	_, err = client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.UpdateItemRequest{
+			ItemId: itemID, Bookmarked: &bookmarked,
+		}),
+	)
+	require.NoError(t, err)
+
+	resp, err = client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(
+			&feedsv1.ListFeedItemsRequest{BookmarkedOnly: &bookmarkedOnly},
+		),
+	)
+	require.NoError(t, err)
+	assert.Contains(
+		t,
+		itemIDs(resp.Msg.Items),
+		itemID,
+		"bookmarked item is listed when bookmarked_only",
 	)
 }
 
