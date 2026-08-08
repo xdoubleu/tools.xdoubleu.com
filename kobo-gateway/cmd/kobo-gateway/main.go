@@ -19,7 +19,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 
-	"tools.xdoubleu.com/gateway/internal/kobogateway"
+	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 )
 
 //nolint:gochecknoglobals //Release is set at build time via -ldflags.

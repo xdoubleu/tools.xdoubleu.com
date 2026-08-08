@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/gateway/internal/kobogateway"
+	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 )
 
 func TestDiffKobosConnect(t *testing.T) {

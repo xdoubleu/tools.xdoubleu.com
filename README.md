@@ -9,7 +9,7 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 ## Tools
 
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress and distribution, favourite games, with background sync jobs and WebSocket live updates.
-- **books** — Book library and e-reader companion. External metadata sync (UniCat, Hardcover) and EPUB/PDF uploads, converted to KEPUB and synced to Kobo devices per-item. Devices sync against `/books/kobo/<token>/…`; devices set up under an older prefix (`/reading/kobo/…` or `/backlog/kobo/…`) must re-run the setup flow. Setup is entirely driven by **kobo-gateway** (`gateway/`), a downloadable macOS menu-bar app the books page drives over a loopback-only HTTP API — built on a macOS CI runner (its menu bar needs cgo + AppKit) and served as a `.dmg` at `/downloads/kobo-gateway.dmg`, so gateway code changes rebuild the *web* image too (see the `gateway` path filter in `main.yml`).
+- **books** — Book library and e-reader companion. External metadata sync (UniCat, Hardcover) and EPUB/PDF uploads, converted to KEPUB and synced to Kobo devices per-item. Devices sync against `/books/kobo/<token>/…`; devices set up under an older prefix (`/reading/kobo/…` or `/backlog/kobo/…`) must re-run the setup flow. Setup is entirely driven by **kobo-gateway** (`kobo-gateway/`), a downloadable macOS menu-bar app the books page drives over a loopback-only HTTP API — built on a macOS CI runner (its menu bar needs cgo + AppKit) and served as a `.dmg` at `/downloads/kobo-gateway.dmg`, so kobo-gateway code changes rebuild the *web* image too (see the `kobo_gateway` path filter in `main.yml`). Unrelated to the separate `gateway/` module below, which routes requests and supervises the `api`/`web` processes inside the merged deploy container.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
@@ -57,12 +57,12 @@ cd api && docker-compose down
 | `make lint/fix` | Auto-fix linting issues |
 | `make scaffold NAME=myapp [DB=true] [JOBS=true]` | Generate new app |
 
-## Gateway Commands (`gateway/`, macOS only)
+## Kobo Gateway Commands (`kobo-gateway/`, macOS only)
 
 | Command | Purpose |
 | --- | --- |
 | `make build` | Build the kobo-gateway binary (needs cgo + Xcode command line tools) |
-| `make dist` | Package into `dist/gateway/`: `KoboGateway.app` → `.dmg`, plus the raw binary |
+| `make dist` | Package into `dist/kobo-gateway/`: `KoboGateway.app` → `.dmg`, plus the raw binary |
 | `make test` | `go test ./...` |
 | `make lint` / `make lint/fix` | `go vet` + `gofmt` |
 
@@ -91,15 +91,15 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 
 Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).
 
-**Deploy shape:** `api` and `web` build into one Docker image (root
-`Dockerfile`) and run as a single DigitalOcean App Platform component
-(issue #558 — App Platform bills per component, and both used to run on
-separate smallest-tier instances). The Go binary is PID 1; it spawns the
-Next.js standalone server as a child process (`WEB_ENABLED=true`,
-`api/cmd/api/web_process.go`) and reverse-proxies every request
-(`api/cmd/api/frontend_proxy.go`), stripping `/api` for the Go mux and
-routing everything else to the Next child — the same split the two-component
-DO ingress used to provide.
+**Deploy shape:** `api`, `web`, and `gateway` build into one Docker image
+(root `Dockerfile`) and run as a single DigitalOcean App Platform component
+(issue #558 — App Platform bills per component, and api/web both used to
+run on separate smallest-tier instances; split into 3 processes in #904).
+`gateway` (`gateway/`, its own Go module) is PID 1; it spawns both `api` and
+the Next.js standalone server as supervised children and reverse-proxies
+every request between them, stripping `/api` for the api child and routing
+everything else to the web child — the same split the two-component DO
+ingress used to provide. `api` itself has no awareness of any of this.
 
 ## Apps MCP server
 
@@ -166,19 +166,23 @@ After scaffolding:
 
 ## Deploy Notes
 
-**Merged single-component deploy (issue #558):** the api and web env vars now
-live on one `app` component in [`do-app.yaml`](do-app.yaml). Four env vars
-are new/relevant to the merge: `WEB_ENABLED=true` (starts the Next.js child),
-`WEB_PORT`/`WEB_NODE_BIN`/`WEB_SERVER_JS` (default `3000`/`node`/
-`/app/web/server.js` — only need overriding for local debugging, not in
-production), and `GOMEMLIMIT=300MiB` (a soft ceiling so the Go GC doesn't
-crowd out the Node child's `NODE_OPTIONS=--max-old-space-size=192` inside the
-shared 512 MB instance). The merge is only cost-neutral-or-better if peak
-memory (steady-state plus a PDF→EPUB conversion) stays under the 512 MB
-instance; if `docker stats` on the deployed image shows it running close to
-that ceiling, move `do-app.yaml`'s `app` component to the 1 GB tier rather
-than let it OOM — at that point the ~$5/mo saving from merging is gone and
-the two-component shape (revert this change) is no worse.
+**Merged single-component deploy (issue #558, split into 3 processes in
+#904):** the api/web/gateway env vars all live on one `app` component in
+[`do-app.yaml`](do-app.yaml). `gateway` (`gateway/`) is PID 1 and spawns
+both `api` and the Next.js child; env vars only needed for local debugging
+(not set in production, defaults match): `WEB_PORT`/`WEB_NODE_BIN`/
+`WEB_SERVER_JS` (`3000`/`node`/`/app/web/server.js`) for the web child, and
+`API_PORT`/`API_BIN_PATH` (`8001`/`/app/bin/api`) for the api child.
+`GOMEMLIMIT=300MiB` is a soft ceiling so the Go GC(s) don't crowd out the
+Node child's `NODE_OPTIONS=--max-old-space-size=192` inside the shared
+512 MB instance — not yet re-tuned for the extra Go runtime #904 added, so
+watch `docker stats` after that deploy specifically. The merge is only
+cost-neutral-or-better if peak memory (steady-state plus a PDF→EPUB
+conversion) stays under the 512 MB instance; if `docker stats` on the
+deployed image shows it running close to that ceiling, move `do-app.yaml`'s
+`app` component to the 1 GB tier rather than let it OOM — at that point the
+~$5/mo saving from merging is gone and the two-component shape (revert this
+change) is no worse.
 
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin

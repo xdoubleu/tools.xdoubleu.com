@@ -1,4 +1,4 @@
-name: Gateway Test Workflow
+name: Gateway Lint Workflow
 
 permissions:
   contents: read
@@ -8,8 +8,8 @@ on:
   workflow_call:
 
 jobs:
-  test:
-    name: Gateway Test
+  lint-go:
+    name: Gateway Go Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -17,11 +17,5 @@ jobs:
         with:
           go-version-file: './gateway/go.mod'
           cache-dependency-path: './gateway/go.sum'
-      - run: make test/cov/report
+      - run: make lint
         working-directory: './gateway'
-      - name: Upload coverage reports to Codecov
-        if: always()
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: gateway

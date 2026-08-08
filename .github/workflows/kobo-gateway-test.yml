@@ -1,4 +1,4 @@
-name: Gateway Test Workflow
+name: Kobo Gateway Test Workflow
 
 permissions:
   contents: read
@@ -9,19 +9,19 @@ on:
 
 jobs:
   test:
-    name: Gateway Test
-    runs-on: ubuntu-latest
+    name: Kobo Gateway Test
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: './gateway/go.mod'
-          cache-dependency-path: './gateway/go.sum'
+          go-version-file: './kobo-gateway/go.mod'
+          cache-dependency-path: './kobo-gateway/go.sum'
       - run: make test/cov/report
-        working-directory: './gateway'
+        working-directory: './kobo-gateway'
       - name: Upload coverage reports to Codecov
         if: always()
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          flags: gateway
+          flags: kobo_gateway

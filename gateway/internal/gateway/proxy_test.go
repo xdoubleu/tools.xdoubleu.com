@@ -1,4 +1,4 @@
-package main
+package gateway
 
 import (
 	"net/http"
@@ -10,12 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
-
-	"tools.xdoubleu.com/internal/config"
 )
 
-// stubUpstreamPort starts an httptest.Server standing in for the Next.js
-// child and returns the port frontendProxy should target.
+// stubUpstreamPort starts an httptest.Server standing in for a child
+// process and returns the port NewHandler should target.
 func stubUpstreamPort(t *testing.T, handler http.Handler) int {
 	t.Helper()
 	ts := httptest.NewServer(handler)
@@ -29,15 +27,7 @@ func stubUpstreamPort(t *testing.T, handler http.Handler) int {
 	return port
 }
 
-func proxyTestApp(webPort int) *Application {
-	//nolint:exhaustruct //only the fields frontendProxy reads are needed
-	return &Application{
-		logger: logging.NewNopLogger(),
-		config: config.Config{WebPort: webPort},
-	}
-}
-
-func TestFrontendProxy_RoutesToAPIHandler(t *testing.T) {
+func TestNewHandler_RoutesToAPI(t *testing.T) {
 	tests := []struct {
 		name        string
 		requestPath string
@@ -46,34 +36,30 @@ func TestFrontendProxy_RoutesToAPIHandler(t *testing.T) {
 		{"health unstripped", "/health", "/health"},
 		{"bare api prefix", "/api", "/"},
 		{"api subpath stripped", "/api/foo/bar", "/foo/bar"},
-		{
-			"preserved double-api quirk",
-			"/api/api/version",
-			"/api/version",
-		},
+		{"preserved double-api quirk", "/api/api/version", "/api/version"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var gotPath string
-			apiHandler := http.HandlerFunc(
+			apiPort := stubUpstreamPort(t, http.HandlerFunc(
 				func(w http.ResponseWriter, r *http.Request) {
 					gotPath = r.URL.Path
 					w.WriteHeader(http.StatusOK)
 				},
-			)
+			))
 			// Upstream must exist but should never be hit for these cases.
-			port := stubUpstreamPort(t, http.HandlerFunc(
+			webPort := stubUpstreamPort(t, http.HandlerFunc(
 				func(w http.ResponseWriter, _ *http.Request) {
-					t.Error("proxy target should not have been reached")
+					t.Error("web proxy should not have been reached")
 					w.WriteHeader(http.StatusOK)
 				},
 			))
-			app := proxyTestApp(port)
+			handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
 
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, tt.requestPath, nil)
-			app.frontendProxy(apiHandler).ServeHTTP(rr, req)
+			handler.ServeHTTP(rr, req)
 
 			assert.Equal(t, http.StatusOK, rr.Code)
 			assert.Equal(t, tt.wantAPIPath, gotPath)
@@ -81,27 +67,27 @@ func TestFrontendProxy_RoutesToAPIHandler(t *testing.T) {
 	}
 }
 
-func TestFrontendProxy_ProxiesEverythingElse(t *testing.T) {
+func TestNewHandler_ProxiesEverythingElseToWeb(t *testing.T) {
 	tests := []string{"/", "/books/123", "/release", "/games/distribution/1"}
 
 	for _, path := range tests {
 		t.Run(path, func(t *testing.T) {
-			apiHandler := http.HandlerFunc(
+			apiPort := stubUpstreamPort(t, http.HandlerFunc(
 				func(_ http.ResponseWriter, _ *http.Request) {
-					t.Error("api handler should not have been reached")
+					t.Error("api proxy should not have been reached")
 				},
-			)
-			port := stubUpstreamPort(t, http.HandlerFunc(
+			))
+			webPort := stubUpstreamPort(t, http.HandlerFunc(
 				func(w http.ResponseWriter, _ *http.Request) {
 					w.Header().Set("X-Proxied", "1")
 					w.WriteHeader(http.StatusOK)
 				},
 			))
-			app := proxyTestApp(port)
+			handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
 
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, path, nil)
-			app.frontendProxy(apiHandler).ServeHTTP(rr, req)
+			handler.ServeHTTP(rr, req)
 
 			assert.Equal(t, http.StatusOK, rr.Code)
 			assert.Equal(t, "1", rr.Header().Get("X-Proxied"))
@@ -109,42 +95,42 @@ func TestFrontendProxy_ProxiesEverythingElse(t *testing.T) {
 	}
 }
 
-func TestFrontendProxy_DeadUpstreamReturns503(t *testing.T) {
+func TestNewHandler_DeadAPIUpstreamReturns503(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) },
 	))
 	u, err := url.Parse(ts.URL)
 	require.NoError(t, err)
-	port, err := strconv.Atoi(u.Port())
+	apiPort, err := strconv.Atoi(u.Port())
 	require.NoError(t, err)
 	ts.Close() // stub is dead before any request reaches it, port refuses connections
-	app := proxyTestApp(port)
+
+	webPort := stubUpstreamPort(t, http.NotFoundHandler())
+	handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
 
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	app.frontendProxy(http.NotFoundHandler()).ServeHTTP(rr, req)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 }
 
-// TestFrontendProxy_VersionQuirkAgainstRealMux exercises the preserved
-// /api/api/version quirk end-to-end against the real api mux (GET
-// /api/version is registered on it directly — see routes.go), not just the
-// routing logic in isolation.
-func TestFrontendProxy_VersionQuirkAgainstRealMux(t *testing.T) {
-	port := stubUpstreamPort(t, http.HandlerFunc(
-		func(_ http.ResponseWriter, _ *http.Request) {},
+func TestNewHandler_DeadWebUpstreamReturns503(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) },
 	))
-	proxied := &Application{ //nolint:exhaustruct //other fields unused here
-		logger: testApp.logger,
-		//nolint:exhaustruct //other fields unused here
-		config: config.Config{WebPort: port, Release: testApp.config.Release},
-	}
+	u, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+	webPort, err := strconv.Atoi(u.Port())
+	require.NoError(t, err)
+	ts.Close()
+
+	apiPort := stubUpstreamPort(t, http.NotFoundHandler())
+	handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
 
 	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/api/version", nil)
-	proxied.frontendProxy(testApp.Routes()).ServeHTTP(rr, req)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "release")
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"tools.xdoubleu.com/gateway/internal/kobogateway"
+	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 )
 
 const sampleConf = `[OneStoreServices]

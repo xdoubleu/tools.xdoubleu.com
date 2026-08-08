@@ -20,6 +20,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       proto: ${{ steps.proto-workflows.outputs.proto }}
       workflows: ${{ steps.proto-workflows.outputs.workflows }}
+      kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
       gateway: ${{ steps.filter.outputs.gateway }}
     steps:
       - uses: actions/checkout@v7
@@ -42,9 +43,17 @@ jobs:
               - 'web/**'
               - '!web/**/*.md'
             # The kobo-gateway binary ships inside the WEB image (served as
-            # a download), so gateway code changes must rebuild web too. It's
-            # its own Go module (gateway/) — cgo + AppKit, built separately
-            # on macOS (see build-gateway.yml), not part of api/.
+            # a download), so kobo-gateway code changes must rebuild web too.
+            # It's its own Go module (kobo-gateway/) — cgo + AppKit, built
+            # separately on macOS (see build-kobo-gateway.yml), not part of
+            # api/.
+            kobo_gateway:
+              - 'kobo-gateway/**'
+              - '!kobo-gateway/**/*.md'
+            # gateway/ is an ordinary Go module (routing + process
+            # supervision, no cgo) that builds as a normal Docker stage
+            # alongside api/web — unlike kobo_gateway above, it doesn't need
+            # to feed build-web.
             gateway:
               - 'gateway/**'
               - '!gateway/**/*.md'
@@ -94,28 +103,43 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.kobo_gateway == 'true' ||
       needs.changes.outputs.workflows == 'true') &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
 
-  # Builds/packages the gateway on a macOS runner (cgo + AppKit, can't
-  # cross-compile from Linux — see build-gateway.yml). Runs whenever the web
-  # image would build, since it always bundles this artifact, plus whenever
-  # gateway sources change on their own (PR-time compile/package check).
+  # gateway/ is a standalone Go module with no proto dependency, unlike
+  # api/web — so this doesn't need proto-check as a gate.
   build-gateway:
+    needs: changes
+    if: |
+      always() &&
+      github.event_name != 'push' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Build Gateway Workflow
+    uses: ./.github/workflows/build-gateway.yml
+    secrets: inherit
+
+  # Builds/packages kobo-gateway on a macOS runner (cgo + AppKit, can't
+  # cross-compile from Linux — see build-kobo-gateway.yml). Runs whenever the
+  # web image would build, since it always bundles this artifact, plus
+  # whenever kobo-gateway sources change on their own (PR-time compile/
+  # package check).
+  build-kobo-gateway:
     needs: changes
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.kobo_gateway == 'true' ||
       needs.changes.outputs.workflows == 'true')
-    name: Build Gateway Workflow
-    uses: ./.github/workflows/build-gateway.yml
+    name: Build Kobo Gateway Workflow
+    uses: ./.github/workflows/build-kobo-gateway.yml
     secrets: inherit
 
   api-lint:
@@ -140,6 +164,17 @@ jobs:
       needs.changes.outputs.workflows == 'true')
     name: Web Lint Workflow
     uses: ./.github/workflows/web-lint.yml
+    secrets: inherit
+
+  gateway-lint:
+    needs: changes
+    if: |
+      github.event_name != 'push' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Gateway Lint Workflow
+    uses: ./.github/workflows/gateway-lint.yml
     secrets: inherit
 
   api-test:
@@ -180,6 +215,18 @@ jobs:
     uses: ./.github/workflows/gateway-test.yml
     secrets: inherit
 
+  kobo-gateway-test:
+    needs: changes
+    # Runs on push to main too (in parallel with docker/deploy, which do not
+    # depend on it) purely to refresh Codecov's default-branch baseline.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.kobo_gateway == 'true' ||
+      needs.changes.outputs.workflows == 'true'
+    name: Kobo Gateway Test Workflow
+    uses: ./.github/workflows/kobo-gateway-test.yml
+    secrets: inherit
+
   # Build-only (no push) validation of the merged Docker image on PRs, so a
   # break that only shows up inside the Dockerfile's narrower file set (e.g.
   # issue #900 — a test file colocated outside the copied dirs) is caught
@@ -189,7 +236,7 @@ jobs:
     needs: changes
     if: |
       github.event_name == 'pull_request' &&
-      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')
+      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')
     name: Docker Build Check Workflow
     uses: ./.github/workflows/docker.yml
     with:
@@ -204,12 +251,15 @@ jobs:
         build-api,
         build-web,
         build-gateway,
+        build-kobo-gateway,
         docker-check,
         api-lint,
         web-lint,
+        gateway-lint,
         api-test,
         web-test,
         gateway-test,
+        kobo-gateway-test,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -238,7 +288,8 @@ jobs:
         if: |
           needs.api-test.result == 'success' ||
           needs.web-test.result == 'success' ||
-          needs.gateway-test.result == 'success'
+          needs.gateway-test.result == 'success' ||
+          needs.kobo-gateway-test.result == 'success'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GH_TOKEN: ${{ github.token }}
@@ -301,7 +352,7 @@ jobs:
       # Union of both former conditions (api ∨ web) — one merged image
       # (issue #558) means any change that would have rebuilt either
       # component now rebuilds the single one.
-      build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true' }}
+      build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
 
   deploy:

@@ -2,14 +2,14 @@
 # Packages the built kobo-gateway binary into KoboGateway.app + a
 # drag-to-Applications kobo-gateway.dmg, plus the raw binary the in-app
 # self-updater fetches. macOS only (sips/iconutil/hdiutil). Run via
-# `make dist` (gateway/Makefile) after `make build`.
+# `make dist` (kobo-gateway/Makefile) after `make build`.
 set -euo pipefail
 
 RELEASE="${RELEASE:-dev}"
-ROOT="$(cd "$(dirname "$0")/../../.." && pwd)" # gateway/
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)" # kobo-gateway/
 BIN="$ROOT/bin/kobo-gateway-darwin-arm64"
 ASSETS="$ROOT/cmd/kobo-gateway/assets"
-DIST="$ROOT/dist/gateway"
+DIST="$ROOT/dist/kobo-gateway"
 APP="$DIST/KoboGateway.app"
 
 if [[ ! -f "$BIN" ]]; then

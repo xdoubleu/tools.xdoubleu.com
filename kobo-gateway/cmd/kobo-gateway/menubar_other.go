@@ -2,7 +2,7 @@
 
 package main
 
-import "tools.xdoubleu.com/gateway/internal/kobogateway"
+import "tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 
 // runUI is a no-op on non-darwin platforms (the menu bar needs AppKit,
 // which only exists on macOS); it just blocks until stop closes, keeping

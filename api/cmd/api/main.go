@@ -135,19 +135,9 @@ func main() {
 
 	app := NewApplication(logger, cfg, db, supabase)
 
-	handler := app.Routes()
-	if cfg.WebEnabled {
-		web, webErr := startWebProcess(app.ctx, logger, cfg)
-		if webErr != nil {
-			panic(webErr)
-		}
-		defer web.Stop()
-		handler = app.frontendProxy(handler)
-	}
-
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      handler,
+		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  httpReadTimeout,
 		WriteTimeout: httpWriteTimeout,
