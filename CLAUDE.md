@@ -91,7 +91,7 @@ Before editing, always create a tracking GitHub issue for the work via the `refi
 
 ## Finishing a Task — Required Final Steps
 
-1. **Lint** — `cd api && make lint/fix` and/or `cd web && npm run lint` (whichever area changed); `cd gateway && make lint/fix` for gateway changes.
+1. **Lint** — `cd api && make lint/fix` and/or `cd web && npm run lint` (whichever area changed); `cd gateway && make lint/fix` for gateway changes. If output lists files under a path like `../../<other-worktree-name>/api/...` that isn't your own worktree, that's `golangci-lint`'s cache bleeding results from a *different*, concurrently-running worktree (same module path `tools.xdoubleu.com` across all worktrees) — not real findings, and not yours to fix. Ignore those lines and re-scope with `make lint/pkg PKG=<changed-dir>` per package you actually touched to confirm your own diff is clean (issue #883).
 2. **Coverage** — target ≥80% on changed code. API: `cd api && docker-compose up -d && make test/cov/report && docker-compose down` (always stop the DB after). Web: `cd web && npm run test:cov`.
 3. **Build** (web changes only) — `cd web && npm run build`. Next.js's server/client boundary check (a Server Component importing anything from a file that pulls in client-only hooks) is enforced **only** by `next build`, not `tsc --noEmit`, ESLint, or Jest — lint/coverage passing does not mean the build passes. Put constants shared across the boundary in a plain `lib/` module with no React imports.
 4. **Open the PR yourself** — don't wait to be asked:
