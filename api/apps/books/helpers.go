@@ -25,10 +25,10 @@ func groupByStatus(
 	userBooks []models.UserBook,
 	registeredShelves []string,
 ) []bookShelf {
-	// Dropped and owned are intentionally excluded here: unlike the other
-	// three statuses they have no dedicated LibraryResponse field, so they
-	// flow through as shelves named "dropped"/"owned" instead of
-	// disappearing from the library.
+	// Dropped is intentionally excluded here: unlike the other three
+	// statuses it has no dedicated LibraryResponse field, so it flows
+	// through as a shelf named "dropped" instead of disappearing from the
+	// library.
 	standard := map[string]bool{
 		models.StatusToRead:  true,
 		models.StatusReading: true,
@@ -53,11 +53,11 @@ func groupByStatus(
 			order = append(order, name)
 		}
 	}
-	// Dropped/owned are always shown, exactly like a fixed built-in shelf,
+	// Dropped is always shown, exactly like a fixed built-in shelf,
 	// regardless of the registry: a shelf already emptied before the shelves
 	// registry existed has no user_books row left to register it from, so
 	// depending on the registry alone can never recover it (issue #593).
-	alwaysShown := []string{models.StatusDropped, models.StatusOwned}
+	alwaysShown := []string{models.StatusDropped}
 	for _, name := range alwaysShown {
 		if _, ok := seen[name]; !ok {
 			seen[name] = nil

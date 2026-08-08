@@ -178,10 +178,10 @@ func TestConnectShelf_PersistsWhenEmptied(t *testing.T) {
 	assert.True(t, found, "temporary-shelf should persist after being emptied")
 }
 
-// TestConnectShelf_DroppedPersistsWhenEmptied covers issue #593: dropped/
-// owned have no dedicated LibraryResponse field (they flow through as
-// ordinary named shelves), so they must be registered like a custom shelf or
-// they vanish once their last book is moved off.
+// TestConnectShelf_DroppedPersistsWhenEmptied covers issue #593: dropped has
+// no dedicated LibraryResponse field (it flows through as an ordinary named
+// shelf), so it must be registered like a custom shelf or it vanishes once
+// its last book is moved off.
 func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
 	book := addTestBook(t, "DroppedShelfBook")
 	require.NotNil(t, book)
@@ -222,12 +222,12 @@ func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
 	assert.True(t, found, "dropped shelf should persist after being emptied")
 }
 
-// TestConnectLibrary_DroppedOwnedAlwaysPresent covers the retroactive half of
+// TestConnectLibrary_DroppedAlwaysPresent covers the retroactive half of
 // issue #593: a shelf already emptied before the shelves registry existed
 // (or simply never touched) has no books.shelves row and no user_books row
-// to derive one from, so GetLibrary must surface "dropped"/"owned" as fixed
-// shelves regardless of registry or book-history state.
-func TestConnectLibrary_DroppedOwnedAlwaysPresent(t *testing.T) {
+// to derive one from, so GetLibrary must surface "dropped" as a fixed shelf
+// regardless of registry or book-history state.
+func TestConnectLibrary_DroppedAlwaysPresent(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -246,7 +246,6 @@ func TestConnectLibrary_DroppedOwnedAlwaysPresent(t *testing.T) {
 		names[models.StatusDropped],
 		"dropped shelf should always be present",
 	)
-	assert.True(t, names[models.StatusOwned], "owned shelf should always be present")
 }
 
 func TestConnectRenameShelf_Success(t *testing.T) {

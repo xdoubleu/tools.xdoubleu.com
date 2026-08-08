@@ -12,7 +12,6 @@ const (
 	StatusReading = "currently-reading"
 	StatusRead    = "read"
 	StatusDropped = "dropped"
-	StatusOwned   = "owned"
 )
 
 const (

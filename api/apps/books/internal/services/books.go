@@ -303,9 +303,9 @@ func (s *BookService) UpdateStatus(
 
 // registerCustomShelf records a custom (non-built-in) status in the shelves
 // registry so it persists even after its last book is moved off it. Built-in
-// statuses are never stored — dropped/owned are always shown regardless of
-// the registry (see groupByStatus), and the other three have their own
-// dedicated LibraryResponse field and can never disappear either way.
+// statuses are never stored — dropped is always shown regardless of the
+// registry (see groupByStatus), and the other three have their own dedicated
+// LibraryResponse field and can never disappear either way.
 func (s *BookService) registerCustomShelf(
 	ctx context.Context,
 	userID, status string,
@@ -392,7 +392,6 @@ var builtInStatuses = map[string]bool{
 	models.StatusReading: true,
 	models.StatusRead:    true,
 	models.StatusDropped: true,
-	models.StatusOwned:   true,
 }
 
 // ListShelves returns every custom shelf name registered for the user,
