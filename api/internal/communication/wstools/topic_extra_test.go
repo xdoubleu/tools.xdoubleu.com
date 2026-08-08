@@ -70,3 +70,13 @@ func TestTopicEnqueueEventDeliversAndUnsubscribesOnClose(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	})
 }
+
+func TestNewSubscriberHasID(t *testing.T) {
+	t.Parallel()
+
+	topic := wstools.NewTopic(
+		t.Context(), logging.NewNopLogger(), "topic", nil, 1, 10, nil,
+	)
+	sub := wstools.NewSubscriber(topic, nil)
+	assert.NotEmpty(t, sub.ID())
+}
