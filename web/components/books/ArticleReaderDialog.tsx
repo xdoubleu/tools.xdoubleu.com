@@ -71,7 +71,7 @@ export default function ArticleReaderDialog({
 
           {html && (
             <div
-              className="prose prose-sm max-w-none text-foreground p-1"
+              className="prose prose-sm max-w-none text-fg p-1"
               // Content originates from ingested third-party HTML — always
               // sanitize before rendering.
               dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}

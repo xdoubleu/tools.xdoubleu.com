@@ -115,7 +115,7 @@ export default function ConflictFieldPicker({
                     key={c.bookId}
                     className={`flex items-center gap-1.5 cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors ${
                       chosen === c.bookId
-                        ? 'border-primary bg-primary/5 text-foreground'
+                        ? 'border-primary bg-primary/5 text-fg'
                         : 'border-border text-muted hover:border-muted'
                     }`}
                   >
