@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/watchparty"
+	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
 )

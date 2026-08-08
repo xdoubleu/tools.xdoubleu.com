@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.0
 	github.com/coder/websocket v1.8.15
 	github.com/getsentry/sentry-go v0.46.2
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/go-shiori/go-readability v0.0.0-20251205110129-5db1dc9836f0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
@@ -21,6 +22,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/pgaskin/kepubify/v4 v4.0.4
 	github.com/pressly/goose/v3 v3.27.3
+	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.1
 	github.com/supabase-community/auth-go v1.5.0
 	github.com/xdoubleu/essentia/v4 v4.0.2
@@ -33,9 +35,9 @@ require (
 )
 
 require (
-	github.com/goddtriffin/helmet v1.0.2 // indirect
-	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/goddtriffin/helmet v1.0.2
+	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
+	github.com/joho/godotenv v1.5.1
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/time v0.15.0
 )
@@ -54,7 +56,6 @@ require (
 	github.com/aws/smithy-go v1.27.3 // indirect
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-pdf/fpdf v0.9.0 // indirect
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
@@ -70,7 +71,6 @@ require (
 	github.com/pgaskin/kepubify/_/go116-zip.go117 v0.0.0-20210611152744-2d89b3182523 // indirect
 	github.com/pgaskin/kepubify/_/html v0.0.0-20211223234002-6ee2cc632cdc // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rs/cors v1.11.1 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/sethvargo/go-retry v0.4.0 // indirect

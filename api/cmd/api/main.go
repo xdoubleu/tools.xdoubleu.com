@@ -15,18 +15,17 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	gotrue "github.com/supabase-community/auth-go"
-	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
-	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
 
 	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
+	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
@@ -34,6 +33,7 @@ import (
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
+	"tools.xdoubleu.com/internal/sentrytools"
 )
 
 //go:embed migrations/*.sql

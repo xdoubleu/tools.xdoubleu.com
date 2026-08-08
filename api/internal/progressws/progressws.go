@@ -10,8 +10,7 @@ import (
 	"sync"
 	"time"
 
-	wstools "github.com/xdoubleu/essentia/v4/pkg/communication/wstools"
-
+	wstools "tools.xdoubleu.com/internal/communication/wstools"
 	"tools.xdoubleu.com/internal/jobqueue"
 )
 

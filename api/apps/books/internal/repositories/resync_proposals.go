@@ -5,9 +5,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 // ResyncProposalRow pairs a catalog book with its stored resync proposals

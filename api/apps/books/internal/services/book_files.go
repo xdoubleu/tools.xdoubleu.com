@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/ebookmeta"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // ErrInvalidFormat is returned when the uploaded file's magic bytes do not

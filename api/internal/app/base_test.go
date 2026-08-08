@@ -6,17 +6,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mocks"
 )
 
 func newTestBase(parentCtx context.Context) app.Base {
 	cfg := config.New(logging.NewNopLogger())
-	cfg.Env = configtools.TestEnv
+	cfg.Env = config.TestEnv
 	cfg.Release = "abcdefg1234567"
 
 	return app.NewBase(

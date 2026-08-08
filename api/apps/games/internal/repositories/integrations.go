@@ -5,7 +5,8 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 type UserIntegrations struct {

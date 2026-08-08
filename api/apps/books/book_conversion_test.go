@@ -14,11 +14,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // fakeEPUBConverter is a test double that returns fixed KEPUB bytes.

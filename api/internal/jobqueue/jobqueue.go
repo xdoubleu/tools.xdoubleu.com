@@ -1,11 +1,11 @@
-// Package jobqueue schedules recurring background jobs. Unlike
-// essentia's threading.JobQueue -- whose AddJob always runs a job
-// immediately and whose due-checking lives only in memory, both reset on
-// every process restart -- it checks global.job_runs (the same table
-// observability.TrackedJob already writes run history to) as the durable
-// record of when a job last succeeded, so a restart doesn't re-run
-// everything regardless of RunEvery. Execution still goes through
-// essentia's threading.WorkerPool, which has no such bug.
+// Package jobqueue schedules recurring background jobs. Unlike the
+// now-removed essentia threading.JobQueue this used to sit on top of --
+// whose AddJob always ran a job immediately and whose due-checking lived
+// only in memory, both reset on every process restart -- it checks
+// global.job_runs (the same table observability.TrackedJob already writes
+// run history to) as the durable record of when a job last succeeded, so a
+// restart doesn't re-run everything regardless of RunEvery. Execution still
+// goes through threading.WorkerPool (issue #912), which has no such bug.
 package jobqueue
 
 import (
@@ -16,16 +16,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
-
+	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 // tickInterval is how often the scheduler checks whether a job is due.
-// ponytail: fixed floor instead of replicating essentia's dynamic
-// smallest-period sleep -- every job's RunEvery is minutes-to-days, so 30s
-// is precise enough; revisit if a job ever needs sub-30s scheduling.
+// ponytail: fixed floor instead of replicating essentia's old
+// dynamic-smallest-period sleep -- every job's RunEvery is minutes-to-days,
+// so 30s is precise enough; revisit if a job ever needs sub-30s scheduling.
 //
 //nolint:gochecknoglobals //overridden directly by tests, see jobqueue_internal_test.go
 var tickInterval = 30 * time.Second

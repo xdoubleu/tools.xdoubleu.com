@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/xdoubleu/essentia/v4/pkg/validate"
+	"tools.xdoubleu.com/internal/validate"
 )
 
 type PreviewDto struct {

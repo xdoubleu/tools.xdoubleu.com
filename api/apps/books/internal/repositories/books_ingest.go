@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 // UpsertBookBySourceURL inserts a catalog row keyed on the canonical source

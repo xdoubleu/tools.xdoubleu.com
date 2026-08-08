@@ -14,10 +14,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 

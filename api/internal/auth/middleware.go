@@ -8,10 +8,10 @@ import (
 	"slices"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 
+	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/errortools"
 	"tools.xdoubleu.com/internal/models"
 )
 

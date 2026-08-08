@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/games/internal/jobs"
+	"tools.xdoubleu.com/internal/logging"
 	internalmodels "tools.xdoubleu.com/internal/models"
 )
 

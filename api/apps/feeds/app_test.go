@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/feeds/internal/mocks"
+	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"

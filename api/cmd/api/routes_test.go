@@ -8,11 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	configtools "github.com/xdoubleu/essentia/v4/pkg/config"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mocks"
 )
 
@@ -195,7 +194,7 @@ func throttledRoutes(t *testing.T) http.Handler {
 
 	logger := logging.NewNopLogger()
 	cfg := config.New(logger)
-	cfg.Env = configtools.TestEnv
+	cfg.Env = config.TestEnv
 	cfg.Throttle = true
 
 	postgresDB, err := postgres.Connect(

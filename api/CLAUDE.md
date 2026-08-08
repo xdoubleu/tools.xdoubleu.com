@@ -94,7 +94,7 @@ apps/<name>/
 
 - **`app`** — `Base` (logger/config/auth embedded into every app), `HTTPError`, `ScrubInternalErrors` (Connect interceptor logging CodeInternal/CodeUnknown and replacing the client-facing message — every `New*ServiceHandler` call must pass it).
 - **`auth`** — see above.
-- **`config`** — centralized config loaded from `.env` via `xdoubleu/essentia/v4`.
+- **`config`** — centralized config, loaded from `.env`/environment variables.
 - **`contacts`** — contact management (editable display names) shared by recipes/mealplans/shoppinglist sharing. `AddByEmail` emails the recipient after the request is persisted; a send failure is logged, never fails the request.
 - **`crypto`** — AES-256-GCM `Sealer`, used to encrypt OAuth tokens at rest.
 - **`mailer`** — thin Resend HTTP client (no SDK). `Send` (fixed recipient) and `SendTo` (arbitrary recipient) share `ErrNotConfigured` degrade-gracefully semantics when the API key/from/to is unset.
@@ -162,7 +162,7 @@ manages both apps' tokens independently through `profile.v1.ProfileService`
 | Auth | `supabase-community/auth-go` |
 | WebSocket | `coder/websocket` |
 | Error tracking | `getsentry/sentry-go` |
-| Job queue | `xdoubleu/essentia/v4` threading.JobQueue |
+| Job queue | `internal/threading` (WorkerPool) + `internal/jobqueue` (scheduling) |
 | MCP | `modelcontextprotocol/go-sdk` |
 | Code generation | `buf` / `protoc-gen-go` / `protoc-gen-connect-go` |
 | Testing | `stretchr/testify` |

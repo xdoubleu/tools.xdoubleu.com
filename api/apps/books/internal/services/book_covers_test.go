@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 // TestCacheCoverFromURL_SlowSourceFailsFast is a regression test for #769: a

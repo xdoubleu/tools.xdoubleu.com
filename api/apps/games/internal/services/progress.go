@@ -8,10 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database"
-
 	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/apps/games/internal/repositories"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/progresshistory"
 )
 

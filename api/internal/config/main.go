@@ -2,10 +2,24 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
+	"os"
+	"strconv"
 
-	"github.com/xdoubleu/essentia/v4/pkg/config"
+	"github.com/joho/godotenv"
+
+	"tools.xdoubleu.com/internal/convert"
 )
+
+// ProdEnv can be used as value when reading out the type of environment.
+const ProdEnv string = "production"
+
+// TestEnv can be used as value when reading out the type of environment.
+const TestEnv string = "test"
+
+// DevEnv can be used as value when reading out the type of environment.
+const DevEnv string = "development"
 
 type Config struct {
 	Env             string
@@ -60,50 +74,145 @@ type Config struct {
 	EmailInboundSecret string
 }
 
+// parser extracts environment variables and parses them to the right type.
+type parser struct {
+	logger *slog.Logger
+}
+
+const errorMessage = "can't convert env var '%s' with value '%s' to %s"
+
+// newParser loads environment variables that could be provided using a
+// .env file (particularly useful during development).
+func newParser(logger *slog.Logger) parser {
+	_ = godotenv.Load()
+
+	return parser{
+		logger: logger,
+	}
+}
+
+func (c parser) baseEnv(key string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return ""
+	}
+
+	return value
+}
+
+func (c parser) logValue(valType string, key string, value any) {
+	strVal, err := convert.AnyToString(value)
+	if err != nil {
+		panic(err)
+	}
+
+	c.logger.Info(
+		fmt.Sprintf("loaded env var '%s'='%s' with type '%s'", key, strVal, valType),
+	)
+}
+
+func (c parser) envStr(key string, defaultValue string) string {
+	value := c.baseEnv(key)
+	if len(value) == 0 {
+		value = defaultValue
+	}
+
+	c.logValue("string", key, value)
+	return value
+}
+
+func (c parser) envInt(key string, defaultValue int) int {
+	value := defaultValue
+
+	strVal := c.baseEnv(key)
+	if len(strVal) != 0 {
+		intVal, err := strconv.Atoi(strVal)
+		if err != nil {
+			panic(fmt.Sprintf(errorMessage, key, strVal, "int"))
+		}
+		value = intVal
+	}
+
+	c.logValue("int", key, value)
+	return value
+}
+
+func (c parser) envFloat(key string, defaultValue float64) float64 {
+	value := defaultValue
+
+	strVal := c.baseEnv(key)
+	if len(strVal) != 0 {
+		floatVal, err := strconv.ParseFloat(strVal, 64)
+		if err != nil {
+			panic(fmt.Sprintf(errorMessage, key, strVal, "float64"))
+		}
+		value = floatVal
+	}
+
+	c.logValue("float64", key, value)
+	return value
+}
+
+func (c parser) envBool(key string, defaultValue bool) bool {
+	value := defaultValue
+
+	strVal := c.baseEnv(key)
+	if len(strVal) != 0 {
+		boolVal, err := strconv.ParseBool(strVal)
+		if err != nil {
+			panic(fmt.Sprintf(errorMessage, key, strVal, "bool"))
+		}
+		value = boolVal
+	}
+
+	c.logValue("bool", key, value)
+	return value
+}
+
 func New(logger *slog.Logger) Config {
 	var cfg Config
 
-	parser := config.New(logger)
+	p := newParser(logger)
 
-	cfg.Env = parser.EnvStr("ENV", config.ProdEnv)
-	cfg.Port = parser.EnvInt("PORT", 8000)
-	cfg.Throttle = parser.EnvBool("THROTTLE", true)
-	cfg.WebURL = parser.EnvStr("WEB_URL", "http://localhost:3000")
-	cfg.APIURL = parser.EnvStr("API_URL", "http://localhost:8000")
-	cfg.SentryDsn = parser.EnvStr("SENTRY_DSN", "")
-	cfg.SentryDsnWeb = parser.EnvStr("SENTRY_DSN_WEB", "")
-	cfg.SampleRate = parser.EnvFloat("SAMPLE_RATE", 1.0)
-	cfg.AccessExpiry = parser.EnvStr("ACCESS_EXPIRY", "1h")
-	cfg.RefreshExpiry = parser.EnvStr("REFRESH_EXPIRY", "7d")
-	cfg.AuthCacheTTL = parser.EnvInt("AUTH_CACHE_TTL", 60)
-	cfg.DBDsn = parser.EnvStr("DB_DSN", "postgres://postgres@localhost/postgres")
-	cfg.Release = parser.EnvStr("RELEASE", config.DevEnv)
+	cfg.Env = p.envStr("ENV", ProdEnv)
+	cfg.Port = p.envInt("PORT", 8000)
+	cfg.Throttle = p.envBool("THROTTLE", true)
+	cfg.WebURL = p.envStr("WEB_URL", "http://localhost:3000")
+	cfg.APIURL = p.envStr("API_URL", "http://localhost:8000")
+	cfg.SentryDsn = p.envStr("SENTRY_DSN", "")
+	cfg.SentryDsnWeb = p.envStr("SENTRY_DSN_WEB", "")
+	cfg.SampleRate = p.envFloat("SAMPLE_RATE", 1.0)
+	cfg.AccessExpiry = p.envStr("ACCESS_EXPIRY", "1h")
+	cfg.RefreshExpiry = p.envStr("REFRESH_EXPIRY", "7d")
+	cfg.AuthCacheTTL = p.envInt("AUTH_CACHE_TTL", 60)
+	cfg.DBDsn = p.envStr("DB_DSN", "postgres://postgres@localhost/postgres")
+	cfg.Release = p.envStr("RELEASE", DevEnv)
 
-	cfg.SupabaseProjRef = parser.EnvStr("SUPABASE_PROJ_REF", "")
-	cfg.SupabaseAPIKey = parser.EnvStr("SUPABASE_API_KEY", "")
+	cfg.SupabaseProjRef = p.envStr("SUPABASE_PROJ_REF", "")
+	cfg.SupabaseAPIKey = p.envStr("SUPABASE_API_KEY", "")
 
-	cfg.SteamAPIKey = parser.EnvStr("STEAM_API_KEY", "")
-	cfg.HardcoverAPIKey = parser.EnvStr("HARDCOVER_API_KEY", "")
+	cfg.SteamAPIKey = p.envStr("STEAM_API_KEY", "")
+	cfg.HardcoverAPIKey = p.envStr("HARDCOVER_API_KEY", "")
 
-	cfg.R2AccountID = parser.EnvStr("R2_ACCOUNT_ID", "")
-	cfg.R2AccessKeyID = parser.EnvStr("R2_ACCESS_KEY_ID", "")
-	cfg.R2SecretKey = parser.EnvStr("R2_SECRET_ACCESS_KEY", "")
-	cfg.R2Bucket = parser.EnvStr("R2_BUCKET", "")
+	cfg.R2AccountID = p.envStr("R2_ACCOUNT_ID", "")
+	cfg.R2AccessKeyID = p.envStr("R2_ACCESS_KEY_ID", "")
+	cfg.R2SecretKey = p.envStr("R2_SECRET_ACCESS_KEY", "")
+	cfg.R2Bucket = p.envStr("R2_BUCKET", "")
 
-	cfg.GithubOAuthClientID = parser.EnvStr("GITHUB_OAUTH_CLIENT_ID", "")
-	cfg.GithubOAuthClientSecret = parser.EnvStr("GITHUB_OAUTH_CLIENT_SECRET", "")
-	cfg.SentryOAuthClientID = parser.EnvStr("SENTRY_OAUTH_CLIENT_ID", "")
-	cfg.SentryOAuthClientSecret = parser.EnvStr("SENTRY_OAUTH_CLIENT_SECRET", "")
-	cfg.DOOAuthClientID = parser.EnvStr("DO_OAUTH_CLIENT_ID", "")
-	cfg.DOOAuthClientSecret = parser.EnvStr("DO_OAUTH_CLIENT_SECRET", "")
-	cfg.EncryptionKey = parser.EnvStr("ENCRYPTION_KEY", "")
+	cfg.GithubOAuthClientID = p.envStr("GITHUB_OAUTH_CLIENT_ID", "")
+	cfg.GithubOAuthClientSecret = p.envStr("GITHUB_OAUTH_CLIENT_SECRET", "")
+	cfg.SentryOAuthClientID = p.envStr("SENTRY_OAUTH_CLIENT_ID", "")
+	cfg.SentryOAuthClientSecret = p.envStr("SENTRY_OAUTH_CLIENT_SECRET", "")
+	cfg.DOOAuthClientID = p.envStr("DO_OAUTH_CLIENT_ID", "")
+	cfg.DOOAuthClientSecret = p.envStr("DO_OAUTH_CLIENT_SECRET", "")
+	cfg.EncryptionKey = p.envStr("ENCRYPTION_KEY", "")
 
-	cfg.ResendAPIKey = parser.EnvStr("RESEND_API_KEY", "")
-	cfg.EmailFrom = parser.EnvStr("EMAIL_FROM", "")
-	cfg.NotifyEmailTo = parser.EnvStr("NOTIFY_EMAIL_TO", "")
+	cfg.ResendAPIKey = p.envStr("RESEND_API_KEY", "")
+	cfg.EmailFrom = p.envStr("EMAIL_FROM", "")
+	cfg.NotifyEmailTo = p.envStr("NOTIFY_EMAIL_TO", "")
 
-	cfg.EmailInboundDomain = parser.EnvStr("EMAIL_INBOUND_DOMAIN", "")
-	cfg.EmailInboundSecret = parser.EnvStr("EMAIL_INBOUND_SECRET", "")
+	cfg.EmailInboundDomain = p.envStr("EMAIL_INBOUND_DOMAIN", "")
+	cfg.EmailInboundSecret = p.envStr("EMAIL_INBOUND_SECRET", "")
 
 	return cfg
 }

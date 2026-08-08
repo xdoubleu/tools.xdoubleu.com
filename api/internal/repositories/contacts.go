@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
+	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/models"
 )
 

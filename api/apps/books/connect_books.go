@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"connectrpc.com/connect"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

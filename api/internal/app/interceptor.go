@@ -6,7 +6,8 @@ import (
 	"log/slog"
 
 	"connectrpc.com/connect"
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
+
+	essentialogger "tools.xdoubleu.com/internal/logging"
 )
 
 // ScrubInternalErrors returns a Connect handler option that logs the original

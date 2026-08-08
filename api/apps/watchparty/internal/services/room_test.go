@@ -11,10 +11,10 @@ import (
 	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/apps/watchparty/internal/services"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 // closedWSConn creates a real websocket connection on the server side and

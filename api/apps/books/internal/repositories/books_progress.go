@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 // UpdateLibraryProgress records reader-reported percent progress on a user_book:

@@ -1,6 +1,6 @@
 package dtos
 
-import "github.com/xdoubleu/essentia/v4/pkg/validate"
+import "tools.xdoubleu.com/internal/validate"
 
 type JoinRoomDto struct {
 	RoomCode string `schema:"roomCode"`

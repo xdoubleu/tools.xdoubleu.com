@@ -6,9 +6,9 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/config"
 
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/models"
 )
 

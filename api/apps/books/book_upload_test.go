@@ -12,7 +12,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/internal/mocks"
@@ -20,6 +19,7 @@ import (
 	bsvc "tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/database"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
 )

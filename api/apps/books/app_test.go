@@ -8,8 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/internal/mocks"
@@ -17,6 +15,8 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
 )

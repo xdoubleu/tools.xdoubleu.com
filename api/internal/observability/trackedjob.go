@@ -9,12 +9,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
-
+	"tools.xdoubleu.com/internal/database/postgres"
+	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 // jobRunsInserter is the slice of JobRunsRepository TrackedJob needs.

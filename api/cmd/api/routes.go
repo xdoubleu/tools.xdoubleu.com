@@ -8,7 +8,6 @@ import (
 
 	"github.com/justinas/alice"
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
-	"github.com/xdoubleu/essentia/v4/pkg/middleware"
 
 	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
@@ -17,6 +16,7 @@ import (
 	"tools.xdoubleu.com/gen/profile/v1/profilev1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/middleware"
 )
 
 // deployLogsWriteDeadline bounds how long the GetDeployLogs response is

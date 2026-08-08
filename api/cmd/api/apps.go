@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/feeds"
@@ -20,6 +19,7 @@ import (
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/repositories"
 )

@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
-
+	"tools.xdoubleu.com/internal/database/postgres"
+	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/repositories"
 )

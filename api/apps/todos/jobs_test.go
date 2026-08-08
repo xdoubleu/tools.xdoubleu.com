@@ -6,10 +6,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/todos/internal/jobs"
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 func TestArchiveJob_NothingToDo(t *testing.T) {

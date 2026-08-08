@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	httptools "github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
+	httptools "tools.xdoubleu.com/internal/communication/httptools"
 )
 
 const healthCheckTimeout = 5 * time.Second

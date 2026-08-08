@@ -6,13 +6,13 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/recipes/internal/repositories"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 //go:embed migrations/*.sql
