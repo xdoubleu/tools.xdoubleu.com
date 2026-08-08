@@ -104,7 +104,7 @@ function NavItem({
         'flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-sm transition-colors',
         active
           ? 'bg-accent/10 text-accent font-medium'
-          : 'text-subtle hover:bg-surface hover:text-foreground'
+          : 'text-subtle hover:bg-surface hover:text-fg'
       )}
     >
       <span className="truncate">{label}</span>
@@ -166,7 +166,7 @@ export default function LibrarySidebar({
             <button
               type="button"
               onClick={onManage}
-              className="w-full text-left px-3 py-2 rounded-xl text-sm text-subtle hover:bg-surface hover:text-foreground transition-colors"
+              className="w-full text-left px-3 py-2 rounded-xl text-sm text-subtle hover:bg-surface hover:text-fg transition-colors"
             >
               Edit shelves & tags
             </button>
@@ -191,7 +191,7 @@ export default function LibrarySidebar({
                 'flex items-center gap-1 shrink-0 px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors',
                 selectedShelfId === shelf.id
                   ? 'bg-accent/10 text-accent font-medium'
-                  : 'bg-surface text-subtle hover:text-foreground'
+                  : 'bg-surface text-subtle hover:text-fg'
               )}
             >
               {shelf.label}
@@ -209,7 +209,7 @@ export default function LibrarySidebar({
                   'flex items-center gap-1 shrink-0 px-2 py-1 rounded-full text-xs whitespace-nowrap transition-colors border',
                   selectedTag === tag.name
                     ? 'bg-accent/10 text-accent border-accent/30 font-medium'
-                    : 'bg-surface text-subtle border-border hover:text-foreground'
+                    : 'bg-surface text-subtle border-border hover:text-fg'
                 )}
               >
                 {tag.name}

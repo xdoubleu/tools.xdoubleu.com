@@ -63,7 +63,7 @@ function SortableHeader({ dir, onSort, children, className, ...props }: Sortable
       <button
         type="button"
         onClick={onSort}
-        className="flex items-center gap-1 text-xs font-medium text-muted hover:text-foreground transition-colors whitespace-nowrap"
+        className="flex items-center gap-1 text-xs font-medium text-muted hover:text-fg transition-colors whitespace-nowrap"
       >
         {children}
         {indicator && (

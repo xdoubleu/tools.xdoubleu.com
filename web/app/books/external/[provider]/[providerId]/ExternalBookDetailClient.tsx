@@ -73,7 +73,7 @@ export default function ExternalBookDetailClient({
           <section className="mt-8">
             <h2 className="text-lg font-semibold mb-2">Description</h2>
             {book.description ? (
-              <div className="prose prose-sm max-w-none text-foreground">
+              <div className="prose prose-sm max-w-none text-fg">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{book.description}</ReactMarkdown>
               </div>
             ) : (
