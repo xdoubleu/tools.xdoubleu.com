@@ -8,7 +8,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/todos/internal/jobs"
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
@@ -16,6 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
 )
 
@@ -26,7 +26,7 @@ type Todos struct {
 	app.Base
 	services   *services.Services
 	repos      *repositories.Repositories
-	jobQueue   *threading.JobQueue
+	jobQueue   *jobqueue.JobQueue
 	archiveJob *observability.TrackedJob
 }
 
@@ -48,7 +48,7 @@ func New(
 
 	const workers = 1
 	const queueSize = 10
-	a.jobQueue = threading.NewJobQueue(a.Ctx, logger, workers, queueSize)
+	a.jobQueue = jobqueue.NewJobQueue(a.Ctx, logger, workers, queueSize, db)
 
 	a.repos = repositories.New(db)
 	a.services = services.New(a.Logger, a.repos, authService)

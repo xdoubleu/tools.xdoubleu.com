@@ -4,12 +4,11 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
-
 	"tools.xdoubleu.com/apps/games/internal/repositories"
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/progressws"
 )
 
@@ -25,7 +24,7 @@ func New(
 	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
-	jobQueue *threading.JobQueue,
+	jobQueue *jobqueue.JobQueue,
 	repositories *repositories.Repositories,
 	steamFactory func(apiKey string) steam.Client,
 	authService auth.Service,

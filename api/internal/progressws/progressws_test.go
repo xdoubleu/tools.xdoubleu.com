@@ -6,14 +6,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/progressws"
 )
 
 // newTestService creates a progressws.Service wired to a real (but idle)
 // JobQueue. It is usable for testing UpdateState / UpdateProgress without a
-// real HTTP connection.
+// real HTTP connection. No job is ever registered, so the queue's nil db is
+// never touched.
 func newTestService(t *testing.T) *progressws.Service {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -22,7 +23,7 @@ func newTestService(t *testing.T) *progressws.Service {
 	const workers = 1
 	const queueSize = 10
 	logger := logging.NewNopLogger()
-	jq := threading.NewJobQueue(ctx, logger, workers, queueSize)
+	jq := jobqueue.NewJobQueue(ctx, logger, workers, queueSize, nil)
 
 	return progressws.NewService(ctx, logger, []string{"*"}, jq)
 }

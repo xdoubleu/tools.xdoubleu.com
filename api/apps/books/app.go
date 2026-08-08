@@ -8,7 +8,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/books/internal/jobs"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
@@ -20,6 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
@@ -36,7 +36,7 @@ type Books struct {
 	Services       *services.Services
 	Repositories   *repositories.Repositories
 	profileShares  *sharedrepos.ProfileSharesRepository
-	jobQueue       *threading.JobQueue
+	jobQueue       *jobqueue.JobQueue
 	resyncBooksJob *jobs.ResyncMetadataJob
 	storageScanJob *jobs.StorageScanJob
 }
@@ -102,7 +102,13 @@ func NewInner(
 
 	const amountOfWorkers = 2
 	const jobQueueSize = 100
-	a.jobQueue = threading.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize)
+	a.jobQueue = jobqueue.NewJobQueue(
+		a.Ctx,
+		logger,
+		amountOfWorkers,
+		jobQueueSize,
+		a.db,
+	)
 
 	a.Repositories = repositories.New(a.db)
 	a.profileShares = sharedrepos.NewProfileSharesRepository(a.db)

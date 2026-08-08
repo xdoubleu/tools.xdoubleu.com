@@ -164,6 +164,36 @@ func TestJobRunsStats(t *testing.T) {
 	assert.WithinDuration(t, now, stats[0].LastRunAt, time.Second)
 }
 
+func TestJobRunsLastSuccessAt(t *testing.T) {
+	clearJobRuns(t)
+	repo := repositories.NewJobRunsRepository(testDB)
+
+	last, err := repo.LastSuccessAt(t.Context(), "steam")
+	require.NoError(t, err)
+	assert.Nil(t, last)
+
+	now := time.Now()
+	require.NoError(t, repo.Insert(t.Context(), models.JobRun{
+		JobID:      "steam",
+		StartedAt:  now.Add(-time.Hour),
+		DurationMs: 1,
+		Success:    true,
+		Error:      "",
+	}))
+	require.NoError(t, repo.Insert(t.Context(), models.JobRun{
+		JobID:      "steam",
+		StartedAt:  now,
+		DurationMs: 1,
+		Success:    false,
+		Error:      "boom",
+	}))
+
+	last, err = repo.LastSuccessAt(t.Context(), "steam")
+	require.NoError(t, err)
+	require.NotNil(t, last)
+	assert.WithinDuration(t, now.Add(-time.Hour), *last, time.Second)
+}
+
 func TestJobRunsInsertPrunesOldRows(t *testing.T) {
 	clearJobRuns(t)
 	repo := repositories.NewJobRunsRepository(testDB)
