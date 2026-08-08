@@ -23,25 +23,18 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/components/books/BookSearchBar', () => {
   return function MockBookSearchBar({
     query,
-    onChange,
-    onAdded
+    onChange
   }: {
     query: string
     onChange: (v: string) => void
-    onAdded: () => void
   }) {
     return (
-      <div>
-        <input
-          data-testid="book-search-bar"
-          value={query}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Search books…"
-        />
-        <button data-testid="trigger-added" onClick={onAdded}>
-          added
-        </button>
-      </div>
+      <input
+        data-testid="book-search-bar"
+        value={query}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search books…"
+      />
     )
   }
 })
@@ -146,13 +139,6 @@ describe('BooksSection', () => {
     render(<BooksSection />)
     expect(screen.getByText('Failed to load books.')).toBeInTheDocument()
     expect(screen.queryByTestId('books-library')).not.toBeInTheDocument()
-  })
-
-  it('calls mutate when search bar triggers onAdded', () => {
-    mockLibrary()
-    render(<BooksSection />)
-    fireEvent.click(screen.getByTestId('trigger-added'))
-    expect(mutate).toHaveBeenCalledWith('/books')
   })
 
   it('calls mutate when BooksLibrary triggers onSaved', () => {

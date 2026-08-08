@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { mutate } from 'swr'
 import { useLibrary, useBooksProgress } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
@@ -14,7 +13,6 @@ import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
-import { swrKeys } from '@/lib/swrKeys'
 
 function ReadingBookCard({ userBook }: { userBook: UserBook }) {
   const book = userBook.book
@@ -56,10 +54,6 @@ export default function BooksDashboard() {
       value: parseInt(progressData.progress?.values?.[idx] ?? '0', 10)
     })) ?? []
 
-  const handleRefresh = () => {
-    void mutate(swrKeys.books)
-  }
-
   if (libLoading && !library) return <p className="text-muted">Loading dashboard…</p>
   if (libError && !library) return <p className="text-danger">Failed to load books.</p>
   if (!library) return null
@@ -73,7 +67,7 @@ export default function BooksDashboard() {
       actions={
         <>
           <div className="mr-auto w-full max-w-md">
-            <BookSearchBar onAdded={handleRefresh} />
+            <BookSearchBar />
           </div>
           <ProfileShareButton app="books" />
           <Button asChild variant="secondary">

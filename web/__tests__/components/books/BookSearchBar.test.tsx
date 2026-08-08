@@ -35,17 +35,14 @@ const LIBRARY_USER_BOOK = {
 }
 
 // ---------------------------------------------------------------------------
-// Standalone mode (dashboard — no query/onChange/hasLibraryResults props)
+// Standalone mode (dashboard — no query/onChange props)
 // ---------------------------------------------------------------------------
 describe('BookSearchBar — standalone mode', () => {
-  const onAdded = jest.fn()
-
   beforeEach(() => {
     mockSearchLibrary.mockReset()
     mockSearchExternal.mockReset()
     mockAddBook.mockReset()
     mockRouterPush.mockReset()
-    onAdded.mockReset()
   })
 
   afterEach(() => {
@@ -53,13 +50,13 @@ describe('BookSearchBar — standalone mode', () => {
   })
 
   it('renders search input', () => {
-    render(<BookSearchBar onAdded={onAdded} />)
+    render(<BookSearchBar />)
     expect(screen.getByPlaceholderText('Search books…')).toBeInTheDocument()
   })
 
   it('shows library results and navigates on click', async () => {
     mockSearchLibrary.mockResolvedValue({ books: [LIBRARY_USER_BOOK] })
-    render(<BookSearchBar onAdded={onAdded} />)
+    render(<BookSearchBar />)
     fireEvent.change(screen.getByPlaceholderText('Search books…'), {
       target: { value: 'My' }
     })
@@ -74,7 +71,7 @@ describe('BookSearchBar — standalone mode', () => {
   it('falls back to OL when library has no results', async () => {
     mockSearchLibrary.mockResolvedValue({ books: [] })
     mockSearchExternal.mockResolvedValue({ results: [EXTERNAL_BOOK] })
-    render(<BookSearchBar onAdded={onAdded} />)
+    render(<BookSearchBar />)
     fireEvent.change(screen.getByPlaceholderText('Search books…'), {
       target: { value: 'Go' }
     })
@@ -87,10 +84,10 @@ describe('BookSearchBar — standalone mode', () => {
     })
   })
 
-  it('opens BookModal when an OL result is clicked', async () => {
+  it('navigates to the external detail page when an OL result is clicked', async () => {
     mockSearchLibrary.mockResolvedValue({ books: [] })
     mockSearchExternal.mockResolvedValue({ results: [{ ...EXTERNAL_BOOK, authors: [] }] })
-    render(<BookSearchBar onAdded={onAdded} />)
+    render(<BookSearchBar />)
     fireEvent.change(screen.getByPlaceholderText('Search books…'), {
       target: { value: 'Go' }
     })
@@ -99,11 +96,26 @@ describe('BookSearchBar — standalone mode', () => {
     })
     await waitFor(() => screen.getByText('Go Book'))
     fireEvent.click(screen.getByText('Go Book'))
-    expect(screen.getByRole('button', { name: 'Add Book' })).toBeInTheDocument()
+    expect(mockRouterPush).toHaveBeenCalledWith('/books/external/hardcover/1')
+  })
+
+  it('renders a result with no providerId as disabled', async () => {
+    mockSearchLibrary.mockResolvedValue({ books: [] })
+    mockSearchExternal.mockResolvedValue({ results: [{ ...EXTERNAL_BOOK, providerId: '' }] })
+    render(<BookSearchBar />)
+    fireEvent.change(screen.getByPlaceholderText('Search books…'), {
+      target: { value: 'Go' }
+    })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+    await waitFor(() => screen.getByText('Go Book'))
+    fireEvent.click(screen.getByText('Go Book'))
+    expect(mockRouterPush).not.toHaveBeenCalled()
   })
 
   it('clears results when query is emptied', () => {
-    render(<BookSearchBar onAdded={onAdded} />)
+    render(<BookSearchBar />)
     const input = screen.getByPlaceholderText('Search books…')
     fireEvent.change(input, { target: { value: 'go' } })
     fireEvent.change(input, { target: { value: '' } })
@@ -117,23 +129,20 @@ describe('BookSearchBar — standalone mode', () => {
 // OL fallback here — BooksLibrary owns result rendering (see its own tests).
 // ---------------------------------------------------------------------------
 describe('BookSearchBar — controlled mode', () => {
-  const onAdded = jest.fn()
-
   beforeEach(() => {
     mockSearchLibrary.mockReset()
     mockSearchExternal.mockReset()
     mockAddBook.mockReset()
-    onAdded.mockReset()
   })
 
   it('renders search input with controlled value', () => {
-    render(<BookSearchBar query="dune" onChange={jest.fn()} onAdded={onAdded} />)
+    render(<BookSearchBar query="dune" onChange={jest.fn()} />)
     expect(screen.getByDisplayValue('dune')).toBeInTheDocument()
   })
 
   it('updates the input immediately but debounces onChange', () => {
     const onChange = jest.fn()
-    render(<BookSearchBar query="" onChange={onChange} onAdded={onAdded} />)
+    render(<BookSearchBar query="" onChange={onChange} />)
     const input = screen.getByPlaceholderText('Search books…')
     fireEvent.change(input, { target: { value: 'dune' } })
     expect(input).toHaveValue('dune')
@@ -145,16 +154,14 @@ describe('BookSearchBar — controlled mode', () => {
   })
 
   it('syncs the input from the query prop (browser back/forward)', () => {
-    const { rerender } = render(
-      <BookSearchBar query="dune" onChange={jest.fn()} onAdded={onAdded} />
-    )
+    const { rerender } = render(<BookSearchBar query="dune" onChange={jest.fn()} />)
     expect(screen.getByDisplayValue('dune')).toBeInTheDocument()
-    rerender(<BookSearchBar query="foundation" onChange={jest.fn()} onAdded={onAdded} />)
+    rerender(<BookSearchBar query="foundation" onChange={jest.fn()} />)
     expect(screen.getByDisplayValue('foundation')).toBeInTheDocument()
   })
 
   it('never searches the library or external providers directly', () => {
-    render(<BookSearchBar query="Go" onChange={jest.fn()} onAdded={onAdded} />)
+    render(<BookSearchBar query="Go" onChange={jest.fn()} />)
     expect(mockSearchLibrary).not.toHaveBeenCalled()
     expect(mockSearchExternal).not.toHaveBeenCalled()
   })

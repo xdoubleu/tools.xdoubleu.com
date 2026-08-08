@@ -35,7 +35,7 @@ export default function BooksSection() {
   return (
     <section>
       <div className="mb-4 w-full max-w-md">
-        <BookSearchBar query={query} onChange={setQuery} onAdded={handleLibraryRefresh} />
+        <BookSearchBar query={query} onChange={setQuery} />
       </div>
 
       {libLoading && <p className="text-muted">Loading books…</p>}
