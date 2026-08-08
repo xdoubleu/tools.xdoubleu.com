@@ -11,4 +11,9 @@ describe('sanitizeArticleHtml', () => {
     expect(result).toContain('src="a.png"')
     expect(result).toContain('alt="x"')
   })
+
+  it('strips nav and header tags (leftover site menus from extraction) (#892)', () => {
+    const result = sanitizeArticleHtml('<nav>Menu</nav><header>Site header</header><p>hi</p>')
+    expect(result).toBe('<p>hi</p>')
+  })
 })
