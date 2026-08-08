@@ -1,5 +1,10 @@
 UNAME_S := $(shell uname -s)
 
+# Worktree-local cache: golangci-lint's default cache dir is a single shared
+# location, so concurrent worktrees (same Go module path) bleed each other's
+# file paths into lint output. Scoping it under CURDIR isolates each worktree.
+export GOLANGCI_LINT_CACHE := $(CURDIR)/.golangci-cache
+
 tools: tools/lint tools/proto
 
 tools/lint: tools/lint/go tools/lint/sql
