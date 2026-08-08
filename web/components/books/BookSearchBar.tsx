@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchLibrary, useSearchExternal } from '@/hooks/useBooks'
 import type { ExternalBookResult } from '@/lib/gen/books/v1/library_pb'
-import BookModal from '@/components/books/BookModal'
 import { Input } from '@/components/ui/input'
 import { MenuItem } from '@/components/ui/menu-item'
 
@@ -19,17 +18,12 @@ import { MenuItem } from '@/components/ui/menu-item'
 //     onChange. The bar is a plain controlled input with no dropdown —
 //     BooksLibrary renders results as cards in the page body instead.
 interface BookSearchBarProps {
-  onAdded: () => void
   // Controlled-mode props (both required together, both omitted for standalone).
   query?: string
   onChange?: (value: string) => void
 }
 
-export default function BookSearchBar({
-  onAdded,
-  query: controlledQuery,
-  onChange
-}: BookSearchBarProps) {
+export default function BookSearchBar({ query: controlledQuery, onChange }: BookSearchBarProps) {
   const isControlled = controlledQuery !== undefined
 
   const router = useRouter()
@@ -55,7 +49,6 @@ export default function BookSearchBar({
   const [libraryHits, setLibraryHits] = useState<LibraryHit[]>([])
   const [externalResults, setExternalResults] = useState<ExternalBookResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [selectedBook, setSelectedBook] = useState<ExternalBookResult | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ---- Standalone mode: debounce → searchLibrary → navigate or OL fallback ----
@@ -164,8 +157,9 @@ export default function BookSearchBar({
               : externalResults.map((book) => (
                   <li key={`${book.provider}-${book.providerId}`}>
                     <MenuItem
+                      disabled={!book.providerId}
                       onClick={() => {
-                        setSelectedBook(book)
+                        router.push(`/books/external/${book.provider}/${book.providerId}`)
                         setExternalResults([])
                         setStandaloneQuery('')
                       }}
@@ -180,17 +174,6 @@ export default function BookSearchBar({
           </ul>
         )}
       </div>
-
-      {selectedBook && (
-        <BookModal
-          book={selectedBook}
-          onClose={() => setSelectedBook(null)}
-          onAdded={() => {
-            setSelectedBook(null)
-            onAdded()
-          }}
-        />
-      )}
     </div>
   )
 }
