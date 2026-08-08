@@ -159,7 +159,6 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
                     <MenuItem
                       disabled={!book.providerId}
                       onClick={() => {
-                        if (!book.providerId) return
                         router.push(`/books/external/${book.provider}/${book.providerId}`)
                         setExternalResults([])
                         setStandaloneQuery('')
