@@ -301,15 +301,14 @@ func normalizeString(s string) string {
 
 // Status rank constants for merge-time consolidation (higher wins).
 // A custom shelf outranks every built-in status because the user deliberately
-// organised the book there.  dropped and owned are ranked lowest — neither
-// signals active reading intent — so they never override any other placement.
+// organised the book there.  dropped is ranked lowest — it signals no active
+// reading intent — so it never overrides any other placement.
 const (
 	statusRankShelf   = 4
 	statusRankRead    = 3
 	statusRankReading = 2
 	statusRankToRead  = 1
 	statusRankDropped = 0
-	statusRankOwned   = 0
 )
 
 // Richness weight constants — bucket sizes ensure that a higher-weight field
@@ -352,8 +351,6 @@ func statusRank(status string) int {
 		return statusRankToRead
 	case models.StatusDropped:
 		return statusRankDropped
-	case models.StatusOwned:
-		return statusRankOwned
 	case "":
 		return 0
 	default:

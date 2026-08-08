@@ -123,15 +123,14 @@ export const ALL_CONFLICT_FIELDS: BookConflictField[] = [
 // Status ranking (mirrors statusRank in book_matching.go)
 // ---------------------------------------------------------------------------
 
-const BUILT_IN_STATUSES = new Set(['to-read', 'currently-reading', 'read', 'dropped', 'owned'])
+const BUILT_IN_STATUSES = new Set(['to-read', 'currently-reading', 'read', 'dropped'])
 
 // Built-in rank map — lower is worse.
 const BUILTIN_RANK: Record<string, number> = {
   read: 3,
   'currently-reading': 2,
   'to-read': 1,
-  dropped: 0,
-  owned: 0
+  dropped: 0
 }
 
 function statusRank(status: string): number {

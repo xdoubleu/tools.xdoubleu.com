@@ -5,12 +5,10 @@ import RemoveBookDialog from '@/components/books/RemoveBookDialog'
 import { UserBookSchema, type UserBook } from '@/lib/gen/books/v1/library_pb'
 
 const mockRemoveBook = jest.fn()
-const mockUpdateBookStatus = jest.fn()
 const mockMutate = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
-  useRemoveBook: () => mockRemoveBook,
-  useUpdateBookStatus: () => mockUpdateBookStatus
+  useRemoveBook: () => mockRemoveBook
 }))
 
 jest.mock('swr', () => ({
@@ -56,7 +54,6 @@ function renderDialog({
 describe('RemoveBookDialog', () => {
   beforeEach(() => {
     mockRemoveBook.mockReset()
-    mockUpdateBookStatus.mockReset()
     mockMutate.mockReset()
   })
 
@@ -103,50 +100,8 @@ describe('RemoveBookDialog', () => {
     expect(screen.getByTestId('remove-book-error')).toHaveTextContent('Failed to remove book')
   })
 
-  it('does not show the mark-owned suggestion for a non-owned book', () => {
-    renderDialog({ userBook: makeUserBook({ tags: [] }) })
+  it('does not show a mark-owned suggestion for a book with own-physical/own-digital tags', () => {
+    renderDialog({ userBook: makeUserBook({ tags: ['own-physical'] }) })
     expect(screen.queryByTestId('remove-book-mark-owned-btn')).not.toBeInTheDocument()
-  })
-
-  it('does not show the mark-owned suggestion when already marked owned', () => {
-    renderDialog({ userBook: makeUserBook({ tags: ['own-physical'], status: 'owned' }) })
-    expect(screen.queryByTestId('remove-book-mark-owned-btn')).not.toBeInTheDocument()
-  })
-
-  it('shows the mark-owned suggestion for an owned, non-owned-status book', () => {
-    renderDialog({ userBook: makeUserBook({ tags: ['own-digital'], status: 'to-read' }) })
-    expect(screen.getByTestId('remove-book-mark-owned-btn')).toBeInTheDocument()
-  })
-
-  it('marks the book as owned instead of removing it', async () => {
-    mockUpdateBookStatus.mockResolvedValue({})
-    mockMutate.mockResolvedValue(undefined)
-    const onOpenChange = jest.fn()
-    const onRemoved = jest.fn()
-    renderDialog({
-      userBook: makeUserBook({ tags: ['own-physical'], status: 'to-read' }),
-      onOpenChange,
-      onRemoved
-    })
-
-    fireEvent.click(screen.getByTestId('remove-book-mark-owned-btn'))
-
-    await waitFor(() =>
-      expect(mockUpdateBookStatus).toHaveBeenCalledWith({ bookId: 'book-1', status: 'owned' })
-    )
-    expect(mockMutate).toHaveBeenCalledWith('/books')
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-    expect(mockRemoveBook).not.toHaveBeenCalled()
-    expect(onRemoved).not.toHaveBeenCalled()
-  })
-
-  it('shows error message when marking as owned fails', async () => {
-    mockUpdateBookStatus.mockRejectedValue(new Error('network error'))
-    renderDialog({ userBook: makeUserBook({ tags: ['own-physical'], status: 'to-read' }) })
-
-    fireEvent.click(screen.getByTestId('remove-book-mark-owned-btn'))
-
-    await waitFor(() => expect(screen.getByTestId('remove-book-error')).toBeInTheDocument())
-    expect(screen.getByTestId('remove-book-error')).toHaveTextContent('Failed to update book')
   })
 })
