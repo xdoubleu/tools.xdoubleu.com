@@ -180,6 +180,23 @@ jobs:
     uses: ./.github/workflows/gateway-test.yml
     secrets: inherit
 
+  # Build-only (no push) validation of the merged Docker image on PRs, so a
+  # break that only shows up inside the Dockerfile's narrower file set (e.g.
+  # issue #900 — a test file colocated outside the copied dirs) is caught
+  # before merge instead of after, when `docker.yml`'s real push-and-deploy
+  # run is the first thing to build it.
+  docker-check:
+    needs: changes
+    if: |
+      github.event_name == 'pull_request' &&
+      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')
+    name: Docker Build Check Workflow
+    uses: ./.github/workflows/docker.yml
+    with:
+      build_app: true
+      push: false
+    secrets: inherit
+
   ci-pass:
     needs:
       [
@@ -187,6 +204,7 @@ jobs:
         build-api,
         build-web,
         build-gateway,
+        docker-check,
         api-lint,
         web-lint,
         api-test,
