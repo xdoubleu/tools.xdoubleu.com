@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useCreateBook } from '@/hooks/useBooks'
+import { useCreateBook, useLibrary } from '@/hooks/useBooks'
 import type { CreateBookInput } from '@/hooks/useBooks'
 import type { ExternalBookResult } from '@/lib/gen/books/v1/library_pb'
 import {
@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { BOOK_STATUSES } from '@/lib/books/bookShelves'
+import { BOOK_STATUSES, BUILT_IN_STATUSES } from '@/lib/books/bookShelves'
 
 interface BookModalProps {
   book: ExternalBookResult | null
@@ -27,6 +27,10 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const addBook = useCreateBook()
+  const { data: libraryData } = useLibrary()
+  const customShelves = (libraryData?.library?.shelves ?? [])
+    .map((s) => s.name)
+    .filter((s) => !BUILT_IN_STATUSES.has(s))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,6 +78,11 @@ export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
               {BOOK_STATUSES.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
+                </option>
+              ))}
+              {customShelves.map((s) => (
+                <option key={s} value={s}>
+                  {s}
                 </option>
               ))}
             </Select>
