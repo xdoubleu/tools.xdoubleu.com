@@ -14,9 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database"
-
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // emailUpstreamTimeout bounds the follow-up call to Resend's "retrieve

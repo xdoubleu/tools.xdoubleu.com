@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/books/internal/jobs"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
 )
 

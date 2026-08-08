@@ -13,11 +13,11 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/models"
 )
 

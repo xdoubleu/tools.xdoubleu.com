@@ -6,7 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/supabase-community/auth-go/types"
-	"github.com/xdoubleu/essentia/v4/pkg/errortools"
+
+	"tools.xdoubleu.com/internal/errortools"
 )
 
 func (service *GoTrueService) UnenrollTOTP(

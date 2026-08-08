@@ -5,10 +5,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 // FeedsRepository stores RSS/Atom subscriptions and email-relay newsletter

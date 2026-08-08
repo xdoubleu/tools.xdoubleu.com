@@ -10,13 +10,13 @@ import (
 	"sync/atomic"
 
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 	"golang.org/x/sync/errgroup"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // ErrProposalNotFound is returned by ApplyResyncChoice when the book has no

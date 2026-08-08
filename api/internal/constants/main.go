@@ -1,6 +1,6 @@
 package constants
 
-import "github.com/xdoubleu/essentia/v4/pkg/contexttools"
+import "tools.xdoubleu.com/internal/contexttools"
 
 const UserContextKey = contexttools.Key("user")
 

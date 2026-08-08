@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 // NotifiedIssuesRepository tracks which Sentry issues / DigitalOcean failed

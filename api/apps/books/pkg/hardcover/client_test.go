@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 const realBaseURL = "https://api.hardcover.app/v1/graphql"

@@ -4,8 +4,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
+
+	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 const (

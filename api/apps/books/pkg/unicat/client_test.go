@@ -10,9 +10,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 // Real UniCat MARCXML response for ISBN 9789463107389 (condensed to essential fields).

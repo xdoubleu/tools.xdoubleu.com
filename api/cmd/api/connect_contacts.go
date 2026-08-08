@@ -7,12 +7,12 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 
 	contactsv1 "tools.xdoubleu.com/gen/contacts/v1"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contacts"
+	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/models"
 )
 

@@ -10,9 +10,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/games/pkg/steam"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/apps/watchparty/internal/models"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 func newBareRoomService() *RoomService {

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	"tools.xdoubleu.com/apps/todos/internal/models"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 type TasksRepository struct {

@@ -1,6 +1,6 @@
 package repositories
 
-import "github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+import "tools.xdoubleu.com/internal/database/postgres"
 
 type Repositories struct {
 	Plans *PlansRepository

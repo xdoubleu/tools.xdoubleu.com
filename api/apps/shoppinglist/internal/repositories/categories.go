@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 type Category struct {

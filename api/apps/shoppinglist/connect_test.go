@@ -9,9 +9,9 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // ── mapError ──────────────────────────────────────────────────────────────────

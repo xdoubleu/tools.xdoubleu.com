@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 
 	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 type Store struct {

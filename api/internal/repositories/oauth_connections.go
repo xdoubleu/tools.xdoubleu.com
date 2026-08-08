@@ -6,11 +6,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/models"
 )
 

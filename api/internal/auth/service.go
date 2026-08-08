@@ -8,12 +8,11 @@ import (
 
 	gotrue "github.com/supabase-community/auth-go"
 	"github.com/supabase-community/auth-go/types"
-	essentiaconfig "github.com/xdoubleu/essentia/v4/pkg/config"
-	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 	"github.com/xhit/go-str2duration/v2"
 	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/errortools"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -63,7 +62,7 @@ func NewService(
 ) *GoTrueService {
 	return &GoTrueService{
 		client:           supabaseClient,
-		useSecureCookies: cfg.Env == essentiaconfig.ProdEnv,
+		useSecureCookies: cfg.Env == config.ProdEnv,
 		accessExpiry:     cfg.AccessExpiry,
 		refreshExpiry:    cfg.RefreshExpiry,
 		appUsersRepo:     appUsersRepo,

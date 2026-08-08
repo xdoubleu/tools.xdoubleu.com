@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
@@ -16,6 +14,8 @@ import (
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

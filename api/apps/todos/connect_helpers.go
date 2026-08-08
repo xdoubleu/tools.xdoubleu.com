@@ -6,12 +6,12 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
 
 	"tools.xdoubleu.com/apps/todos/internal/models"
 	todosv1 "tools.xdoubleu.com/gen/todos/v1"
 	"tools.xdoubleu.com/gen/todos/v1/todosv1connect"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

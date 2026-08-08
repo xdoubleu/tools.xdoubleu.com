@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/internal/jobqueue"
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/progressws"
 )
 

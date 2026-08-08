@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	profilev1 "tools.xdoubleu.com/gen/profile/v1"
 	"tools.xdoubleu.com/gen/profile/v1/profilev1connect"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/models"
 )
 

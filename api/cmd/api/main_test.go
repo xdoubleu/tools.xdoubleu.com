@@ -7,8 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
-
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
 )

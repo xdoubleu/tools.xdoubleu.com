@@ -5,7 +5,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
+
+	"tools.xdoubleu.com/internal/database/postgres"
 )
 
 // Querier is the subset of operations shared by postgres.DB and pgx.Tx. Write

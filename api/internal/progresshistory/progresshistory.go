@@ -9,7 +9,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/database"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // DateFormat is the wire format for progress dates.

@@ -9,9 +9,8 @@ import (
 	"log/slog"
 	"time"
 
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
-
 	"tools.xdoubleu.com/internal/digitalocean"
+	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/sentryapi"
 )

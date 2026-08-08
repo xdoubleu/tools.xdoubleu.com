@@ -10,13 +10,13 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
-	"github.com/xdoubleu/essentia/v4/pkg/contexttools"
-	"github.com/xdoubleu/essentia/v4/pkg/database"
 
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/format"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
