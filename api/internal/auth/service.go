@@ -11,6 +11,7 @@ import (
 	essentiaconfig "github.com/xdoubleu/essentia/v4/pkg/config"
 	"github.com/xdoubleu/essentia/v4/pkg/errortools"
 	"github.com/xhit/go-str2duration/v2"
+	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/models"
@@ -42,6 +43,11 @@ type GoTrueService struct {
 	refreshExpiry    string
 	appUsersRepo     appUsersStore
 	userCache        *userCache
+	// resolveGroup coalesces concurrent resolveUser calls for the same
+	// access token into a single GoTrue round trip — opening several tabs
+	// at once with the same (cache-miss) token used to fire one GoTrue call
+	// per tab (see issue #852).
+	resolveGroup singleflight.Group
 	// SignInRenderer is set by cmd/api after construction to avoid a
 	// circular import between this package and package main (which owns the
 	// templ-generated SignInPage component).
@@ -64,6 +70,7 @@ func NewService(
 		userCache: newUserCache(
 			time.Duration(cfg.AuthCacheTTL) * time.Second,
 		),
+		resolveGroup:   singleflight.Group{},
 		SignInRenderer: nil,
 	}
 }
