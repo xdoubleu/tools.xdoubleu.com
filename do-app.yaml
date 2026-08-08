@@ -12,9 +12,9 @@ domains:
 ingress:
   rules:
     # Everything goes to the single merged component now (issue #558) — the
-    # component's own frontend proxy (api/cmd/api/frontend_proxy.go)
-    # replicates the /api-stripping and /health routing these two ingress
-    # rules used to do.
+    # component's own gateway binary (gateway/internal/gateway) replicates
+    # the /api-stripping and /health routing these two ingress rules used to
+    # do.
     - component:
         name: app
       match:
@@ -44,16 +44,12 @@ services:
       - key: API_URL
         scope: RUN_TIME
         value: https://tools.xdoubleu.com/api
-      # WEB_ENABLED starts the bundled Next.js standalone server as a child
-      # process and front-doors it (api/internal/config, cmd/api/main.go) —
-      # only the merged image sets this.
-      - key: WEB_ENABLED
-        scope: RUN_TIME
-        value: "true"
-      # Soft ceiling so the Go GC doesn't crowd out the Node child before it
-      # can allocate, paired with web_process.go's
-      # NODE_OPTIONS=--max-old-space-size=192. Tune alongside the 512 MB
-      # memory go/no-go check (see api/CLAUDE.md).
+      # Soft ceiling so the Go GC(s) don't crowd out the Node child before it
+      # can allocate, paired with gateway's own
+      # NODE_OPTIONS=--max-old-space-size=192 (gateway/internal/gateway/children.go).
+      # Split into 3 processes in #904 (was 2) — this hasn't been re-tuned
+      # for the extra Go runtime's overhead yet; watch `docker stats` on the
+      # deployed image after that change lands.
       - key: GOMEMLIMIT
         scope: RUN_TIME
         value: 300MiB
@@ -72,14 +68,15 @@ services:
       # DSN for the bundled Next.js child's own Sentry project — kept separate
       # from SENTRY_DSN (the api's) so frontend and backend errors don't land
       # in the same project. Forwarded to the child as its own SENTRY_DSN env
-      # var by web_process.go.
+      # var by gateway (gateway/internal/gateway/children.go).
       - key: SENTRY_DSN_WEB
         scope: RUN_TIME
         type: SECRET
       # Used server-side by the OAuth 2.1 consent page (/oauth/consent) to
       # drive the Supabase authorization endpoints, and passed through to the
-      # Next.js child (cmd/api/web_process.go). SUPABASE_URL is
-      # https://<SUPABASE_PROJ_REF>.supabase.co; the anon key is publishable.
+      # Next.js child by gateway (gateway/internal/gateway/children.go).
+      # SUPABASE_URL is https://<SUPABASE_PROJ_REF>.supabase.co; the anon key
+      # is publishable.
       - key: SUPABASE_URL
         scope: RUN_TIME
         type: SECRET

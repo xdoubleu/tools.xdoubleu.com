@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"tools.xdoubleu.com/gateway/internal/kobogateway"
+	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 )
 
 func TestRunUIStubReturnsOnStop(t *testing.T) {

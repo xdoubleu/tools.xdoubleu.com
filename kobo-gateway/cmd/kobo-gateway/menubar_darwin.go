@@ -20,7 +20,7 @@ import (
 	"github.com/progrium/darwinkit/macos/foundation"
 	"github.com/progrium/darwinkit/objc"
 
-	"tools.xdoubleu.com/gateway/internal/kobogateway"
+	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 )
 
 // iconTemplate is a monochrome PNG rendered as a status-bar template

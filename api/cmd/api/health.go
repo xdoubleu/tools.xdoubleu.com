@@ -10,8 +10,10 @@ import (
 
 const healthCheckTimeout = 5 * time.Second
 
-// healthPath is shared with frontend_proxy.go, which must route it to
-// apiHandler unstripped rather than proxying it to the Next.js child.
+// healthPath matches the literal gateway/internal/gateway/proxy.go routes
+// unstripped to this api process rather than proxying it to the Next.js
+// child — a routing contract between the two independently deployed
+// binaries, not something shared via Go code across the module boundary.
 const healthPath = "/health"
 
 func (app *Application) healthHandler(w http.ResponseWriter, r *http.Request) {

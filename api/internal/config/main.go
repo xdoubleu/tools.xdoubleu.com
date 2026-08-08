@@ -51,21 +51,6 @@ type Config struct {
 	EmailFrom     string
 	NotifyEmailTo string
 
-	// WebEnabled starts the bundled Next.js standalone server as a child
-	// process and front-doors it behind this binary (the merged single-
-	// component deploy shape). false by default so local dev, tests and a
-	// standalone api binary are unaffected — only the merged image sets it.
-	WebEnabled  bool
-	WebPort     int
-	WebNodeBin  string
-	WebServerJS string
-	// SupabaseURL/SupabaseAnonKey are the browser-facing Supabase project
-	// values the Next.js child needs; distinct from SupabaseProjRef/
-	// SupabaseAPIKey above, which are the api's own GoTrue backend
-	// credentials.
-	SupabaseURL     string
-	SupabaseAnonKey string
-
 	// Email-relay newsletter feeds (issue #595): EmailInboundDomain is the
 	// Resend receiving domain used to build a feed's "reading+<token>@domain"
 	// inbound alias; EmailInboundSecret verifies the Resend inbound webhook's
@@ -116,13 +101,6 @@ func New(logger *slog.Logger) Config {
 	cfg.ResendAPIKey = parser.EnvStr("RESEND_API_KEY", "")
 	cfg.EmailFrom = parser.EnvStr("EMAIL_FROM", "")
 	cfg.NotifyEmailTo = parser.EnvStr("NOTIFY_EMAIL_TO", "")
-
-	cfg.WebEnabled = parser.EnvBool("WEB_ENABLED", false)
-	cfg.WebPort = parser.EnvInt("WEB_PORT", 3000)
-	cfg.WebNodeBin = parser.EnvStr("WEB_NODE_BIN", "node")
-	cfg.WebServerJS = parser.EnvStr("WEB_SERVER_JS", "/app/web/server.js")
-	cfg.SupabaseURL = parser.EnvStr("SUPABASE_URL", "")
-	cfg.SupabaseAnonKey = parser.EnvStr("SUPABASE_ANON_KEY", "")
 
 	cfg.EmailInboundDomain = parser.EnvStr("EMAIL_INBOUND_DOMAIN", "")
 	cfg.EmailInboundSecret = parser.EnvStr("EMAIL_INBOUND_SECRET", "")
