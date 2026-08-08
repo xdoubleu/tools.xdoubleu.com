@@ -41,3 +41,7 @@ flags:
     paths:
       - kobo-gateway/
     carryforward: true
+  gateway:
+    paths:
+      - gateway/
+    carryforward: true
