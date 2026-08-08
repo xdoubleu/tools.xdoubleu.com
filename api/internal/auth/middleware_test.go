@@ -2,6 +2,8 @@ package auth_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -65,4 +67,72 @@ func TestResolveUserCoalescesConcurrentCalls(t *testing.T) {
 	wg.Wait()
 
 	require.Equal(t, int32(1), calls.Load())
+}
+
+func newTestAccessService(t *testing.T) *auth.GoTrueService {
+	t.Helper()
+	return auth.NewService(
+		testhelper.NewTestConfig(),
+		mocks.NewMockedGoTrueClient(),
+		nil,
+	)
+}
+
+func callAccess(
+	service *auth.GoTrueService,
+	cookies ...*http.Cookie,
+) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	rec := httptest.NewRecorder()
+	handler := service.Access(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler(rec, req)
+	return rec
+}
+
+func TestAccessNoCookiesUnauthorized(t *testing.T) {
+	rec := callAccess(newTestAccessService(t))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestAccessValidAccessTokenPassesThrough(t *testing.T) {
+	rec := callAccess(
+		newTestAccessService(t),
+		&http.Cookie{Name: "accessToken", Value: "access"},
+	)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+// TestAccessExpiredTokenRefreshesSession guards against issue #809: a
+// session left open long enough for the access token to expire used to 401
+// on every subsequent request even though the refresh token cookie was
+// still valid, since (unlike TemplateAccess) Access never attempted a
+// refresh.
+func TestAccessExpiredTokenRefreshesSession(t *testing.T) {
+	rec := callAccess(
+		newTestAccessService(t),
+		&http.Cookie{Name: "accessToken", Value: "expired"},
+		&http.Cookie{Name: "refreshToken", Value: "refresh"},
+	)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	cookies := rec.Result().Cookies()
+	names := make([]string, 0, len(cookies))
+	for _, c := range cookies {
+		names = append(names, c.Name)
+	}
+	assert.Contains(t, names, "accessToken")
+	assert.Contains(t, names, "refreshToken")
+}
+
+func TestAccessExpiredTokenNoRefreshTokenUnauthorized(t *testing.T) {
+	rec := callAccess(
+		newTestAccessService(t),
+		&http.Cookie{Name: "accessToken", Value: "expired"},
+	)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
