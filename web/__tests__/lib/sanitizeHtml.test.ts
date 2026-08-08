@@ -21,4 +21,24 @@ describe('sanitizeArticleHtml', () => {
     const result = sanitizeArticleHtml('<nav>Menu</nav><header>Site header</header><p>hi</p>')
     expect(result).toBe('<p>hi</p>')
   })
+
+  it('strips a non-semantic share widget list (#906)', () => {
+    const html =
+      '<p>Real intro.</p>' +
+      '<ul role="list">' +
+      '<li></li><li></li><li></li><li></li>' +
+      '<li><div><p>Share</p><p><a href="#">Copy link</a></p><p>https://example.com/post</p></div></li>' +
+      '</ul>' +
+      '<p>Real article body.</p>'
+    const result = sanitizeArticleHtml(html)
+    expect(result).not.toContain('<ul')
+    expect(result).not.toContain('Copy link')
+    expect(result).toContain('Real intro.')
+    expect(result).toContain('Real article body.')
+  })
+
+  it('keeps a real content list with genuine text in every item', () => {
+    const html = '<ul><li>First step</li><li>Second step</li></ul>'
+    expect(sanitizeArticleHtml(html)).toBe(html)
+  })
 })
