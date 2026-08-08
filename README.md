@@ -86,7 +86,7 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 - **RPC**: `connectrpc.com/connect` — proto definitions in `proto/<app>/v1/`; Go stubs committed to `api/gen/`; TypeScript clients generated to `web/lib/gen/` (rebuilt in CI)
 - **Database**: `jackc/pgx/v5` + `pressly/goose/v3` migrations
 - **Authentication**: Supabase GoTrue
-- **Job queue**: `xdoubleu/essentia/v4` for background work
+- **Job queue**: `api/internal/threading` + `api/internal/jobqueue` for background work
 - **Frontend**: Next.js 16, React 19, TypeScript, Tailwind + shadcn/ui
 
 Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).

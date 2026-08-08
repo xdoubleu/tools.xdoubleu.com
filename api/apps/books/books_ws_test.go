@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/test"
+
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func TestRefreshGoodreads(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		getRoutes(),
 		http.MethodGet,
 		"/"+testApp.GetName()+"/api/progress/goodreads/refresh",
@@ -21,7 +22,7 @@ func TestRefreshGoodreads(t *testing.T) {
 }
 
 func TestWebSocketProgress_Unauthenticated(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		getRoutes(),
 		http.MethodGet,
 		"/"+testApp.GetName()+"/api/progress",
@@ -36,7 +37,7 @@ func TestWebSocketProgress_Unauthenticated(t *testing.T) {
 
 /* tests broken
 func TestRefreshSteam_Unauthenticated(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		getRoutes(),
 		http.MethodGet,
 		"/"+testApp.GetName()+"/api/progress/steam/refresh",
@@ -47,7 +48,7 @@ func TestRefreshSteam_Unauthenticated(t *testing.T) {
 }
 
 func TestRefreshGoodreads_Unauthenticated(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		getRoutes(),
 		http.MethodGet,
 		"/"+testApp.GetName()+"/api/progress/goodreads/refresh",

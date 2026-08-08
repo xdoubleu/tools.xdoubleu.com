@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/test"
+
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func TestSecurityHeaders(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodGet,
 		"/api/version",
