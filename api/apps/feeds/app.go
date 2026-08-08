@@ -8,7 +8,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/feeds/internal/jobs"
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
@@ -17,6 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/observability"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
@@ -31,7 +31,7 @@ type Feeds struct {
 	// Services is exported so integration tests can seed data through the
 	// real service layer.
 	Services    *services.Services
-	jobQueue    *threading.JobQueue
+	jobQueue    *jobqueue.JobQueue
 	feedPollJob *jobs.FeedPollJob
 }
 
@@ -66,7 +66,13 @@ func NewInner(
 
 	const amountOfWorkers = 1
 	const jobQueueSize = 10
-	a.jobQueue = threading.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize)
+	a.jobQueue = jobqueue.NewJobQueue(
+		a.Ctx,
+		logger,
+		amountOfWorkers,
+		jobQueueSize,
+		a.db,
+	)
 
 	repos := repositories.New(db)
 	a.Services = services.New(

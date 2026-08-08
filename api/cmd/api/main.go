@@ -19,7 +19,6 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -27,6 +26,7 @@ import (
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
@@ -64,7 +64,7 @@ type Application struct {
 	oauthConnRepo     *repositories.OAuthConnectionsRepository
 	oauthState        *oauthconn.StateStore
 	issueNotifierJob  *jobs.IssueNotifierJob
-	globalJobQueue    *threading.JobQueue
+	globalJobQueue    *jobqueue.JobQueue
 }
 
 //	@title			tools
@@ -321,8 +321,8 @@ func NewApplication(
 		sentryClient:      sentryClient,
 		doClient:          doClient,
 		issueNotifierJob:  issueNotifierJob,
-		globalJobQueue: threading.NewJobQueue(
-			ctx, logger, globalJobQueueWorkers, globalJobQueueSize,
+		globalJobQueue: jobqueue.NewJobQueue(
+			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),
 	}
 

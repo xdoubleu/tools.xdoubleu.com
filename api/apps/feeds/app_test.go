@@ -103,6 +103,17 @@ func ensureGlobalAppUsers(db postgres.DB) {
 			app_name TEXT NOT NULL,
 			PRIMARY KEY (user_id, app_name)
 		)`,
+		// Mirrors cmd/api/migrations/00005_observability.sql so Start()'s
+		// jobqueue.AddJob can look up a job's last successful run before the
+		// cmd/api package has applied the global migrations.
+		`CREATE TABLE IF NOT EXISTS global.job_runs (
+			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+			job_id TEXT NOT NULL,
+			started_at TIMESTAMPTZ NOT NULL,
+			duration_ms BIGINT NOT NULL,
+			success BOOLEAN NOT NULL,
+			error TEXT
+		)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := db.Exec(ctx, stmt); err != nil {

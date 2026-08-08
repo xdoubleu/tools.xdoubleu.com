@@ -4,8 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
-
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
@@ -13,6 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/webfetch"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/progressws"
 )
 
@@ -31,7 +30,7 @@ func New(
 	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
-	jobQueue *threading.JobQueue,
+	jobQueue *jobqueue.JobQueue,
 	repositories *repositories.Repositories,
 	uniCat unicat.Client,
 	hardcoverClient hardcover.Client,

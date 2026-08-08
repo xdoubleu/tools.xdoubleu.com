@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xdoubleu/essentia/v4/pkg/database/postgres"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
 
 	"tools.xdoubleu.com/apps/games/internal/jobs"
 	"tools.xdoubleu.com/apps/games/internal/repositories"
@@ -16,6 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
@@ -31,7 +31,7 @@ type Games struct {
 	Services      *services.Services
 	Repositories  *repositories.Repositories
 	profileShares *sharedrepos.ProfileSharesRepository
-	jobQueue      *threading.JobQueue
+	jobQueue      *jobqueue.JobQueue
 }
 
 func New(
@@ -68,7 +68,13 @@ func NewInner(
 
 	const amountOfWorkers = 1
 	const jobQueueSize = 100
-	a.jobQueue = threading.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize)
+	a.jobQueue = jobqueue.NewJobQueue(
+		a.Ctx,
+		logger,
+		amountOfWorkers,
+		jobQueueSize,
+		a.db,
+	)
 
 	a.Repositories = repositories.New(a.db)
 	a.profileShares = sharedrepos.NewProfileSharesRepository(a.db)

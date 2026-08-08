@@ -37,6 +37,19 @@ func (r *JobRunsRepository) Insert(ctx context.Context, run models.JobRun) error
 	return err
 }
 
+// LastSuccessAt returns the start time of the most recent successful run of
+// jobID, or nil if it has never run successfully.
+func (r *JobRunsRepository) LastSuccessAt(
+	ctx context.Context,
+	jobID string,
+) (*time.Time, error) {
+	var t *time.Time
+	err := r.db.QueryRow(ctx, `
+		SELECT MAX(started_at) FROM global.job_runs WHERE job_id = $1 AND success
+	`, jobID).Scan(&t)
+	return t, err
+}
+
 // Stats aggregates runs per job since the given time.
 func (r *JobRunsRepository) Stats(
 	ctx context.Context,

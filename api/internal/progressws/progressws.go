@@ -11,7 +11,8 @@ import (
 	"time"
 
 	wstools "github.com/xdoubleu/essentia/v4/pkg/communication/wstools"
-	"github.com/xdoubleu/essentia/v4/pkg/threading"
+
+	"tools.xdoubleu.com/internal/jobqueue"
 )
 
 // SubscribeMessageDto is the client → server subscription message: the client
@@ -42,7 +43,7 @@ func (dto SubscribeMessageDto) Validate() (bool, map[string]string) {
 type Service struct {
 	allowedOrigins []string
 	handler        *wstools.WebSocketHandler[SubscribeMessageDto]
-	jobQueue       *threading.JobQueue
+	jobQueue       *jobqueue.JobQueue
 	mu             sync.RWMutex
 	topics         map[string]*wstools.Topic
 }
@@ -51,7 +52,7 @@ func NewService(
 	ctx context.Context,
 	logger *slog.Logger,
 	allowedOrigins []string,
-	jobQueue *threading.JobQueue,
+	jobQueue *jobqueue.JobQueue,
 ) *Service {
 	service := Service{
 		allowedOrigins: allowedOrigins,
