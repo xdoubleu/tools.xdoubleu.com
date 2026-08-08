@@ -7,11 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/test"
+
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func TestVersionEndpointSuccess(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodGet,
 		"/api/version",
@@ -27,7 +28,7 @@ func TestVersionEndpointSuccess(t *testing.T) {
 }
 
 func TestVersionEndpointNoAuth(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodGet,
 		"/api/version",
@@ -43,7 +44,7 @@ func TestVersionEndpointNoAuth(t *testing.T) {
 }
 
 func TestVersionEndpointPostNotAllowed(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodPost,
 		"/api/version",
@@ -54,7 +55,7 @@ func TestVersionEndpointPostNotAllowed(t *testing.T) {
 }
 
 func TestVersionEndpointWithRelease(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodGet,
 		"/api/version",

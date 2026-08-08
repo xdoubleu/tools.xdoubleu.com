@@ -10,13 +10,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/test"
 
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func TestHealthEndpointSuccess(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodGet,
 		"/health",
@@ -31,7 +30,7 @@ func TestHealthEndpointSuccess(t *testing.T) {
 }
 
 func TestHealthEndpointNoAuth(t *testing.T) {
-	tReq := test.CreateRequestTester(
+	tReq := testhelper.CreateRequestTester(
 		testApp.Routes(),
 		http.MethodGet,
 		"/health",
