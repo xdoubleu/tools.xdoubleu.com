@@ -18,6 +18,30 @@ import (
 func strPtr(s string) *string { return &s }
 func intPtr(i int) *int       { return &i }
 
+// TestFilterExternalByQuery_NarrowsByTitleAndAuthor guards bug #853: a query
+// combining title and author words must drop candidates missing either,
+// instead of every title-matching result passing through untouched.
+func TestFilterExternalByQuery_NarrowsByTitleAndAuthor(t *testing.T) {
+	proposals := []SourceProposal{
+		//nolint:exhaustruct // only fields under test
+		{Source: sourceHardcover, Title: "Dune", Authors: []string{"Frank Herbert"}},
+		//nolint:exhaustruct // only fields under test
+		{Source: sourceHardcover, Title: "Dune", Authors: []string{"Someone Else"}},
+		//nolint:exhaustruct // only fields under test
+		{Source: sourceUniCat, Title: "Other Book", Authors: []string{"Frank Herbert"}},
+	}
+
+	out := FilterExternalByQuery("Dune Herbert", proposals)
+	require.Len(t, out, 1)
+	assert.Equal(t, "Frank Herbert", out[0].Authors[0])
+}
+
+func TestFilterExternalByQuery_EmptyQuery_PassesThrough(t *testing.T) {
+	//nolint:exhaustruct // only fields under test
+	proposals := []SourceProposal{{Source: sourceHardcover, Title: "Dune"}}
+	assert.Equal(t, proposals, FilterExternalByQuery("", proposals))
+}
+
 func TestCountDatesOn(t *testing.T) {
 	dates := []time.Time{
 		time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),

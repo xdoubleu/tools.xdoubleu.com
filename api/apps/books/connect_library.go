@@ -120,6 +120,7 @@ func (h *booksConnectHandler) SearchExternal(
 		}), nil
 	}
 	results := h.app.Services.Books.SearchExternal(ctx, req.Msg.Query)
+	results = services.FilterExternalByQuery(req.Msg.Query, results)
 	return connect.NewResponse(&booksv1.SearchExternalResponse{
 		Results: protoExternalBooks(results),
 	}), nil
