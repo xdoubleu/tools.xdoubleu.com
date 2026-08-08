@@ -89,7 +89,9 @@ func (service *GoTrueService) ResolveToken(
 
 // resolveUser returns the DB-enriched user for an access token, consulting
 // the TTL cache first so repeated requests skip the GoTrue round-trip and
-// the enrichment queries.
+// the enrichment queries. Cache misses for the same token are coalesced via
+// resolveGroup so concurrent requests (e.g. several tabs opened at once)
+// share one GoTrue round trip instead of each firing their own.
 func (service *GoTrueService) resolveUser(
 	ctx context.Context,
 	accessToken string,
@@ -98,17 +100,27 @@ func (service *GoTrueService) resolveUser(
 		return &cached, nil
 	}
 
-	user, err := service.GetUser(ctx, accessToken)
-	if err != nil {
-		return nil, err
-	}
+	result, err, _ := service.resolveGroup.Do(accessToken, func() (any, error) {
+		user, err := service.GetUser(ctx, accessToken)
+		if err != nil {
+			return nil, err
+		}
 
-	enriched, err := service.enrichUser(ctx, *user)
+		enriched, err := service.enrichUser(ctx, *user)
+		if err != nil {
+			return nil, err
+		}
+		service.userCache.set(accessToken, enriched)
+		return &enriched, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	service.userCache.set(accessToken, enriched)
-	return &enriched, nil
+	user, ok := result.(*models.User)
+	if !ok {
+		return nil, errors.New("resolveGroup returned unexpected type")
+	}
+	return user, nil
 }
 
 // enrichUser records the user in global.app_users and overlays the DB role

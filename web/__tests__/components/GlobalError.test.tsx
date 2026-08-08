@@ -56,15 +56,21 @@ describe('GlobalError', () => {
     })
   })
 
-  it('calls reset when retry button is clicked', () => {
+  it('does not call reset when retry button is clicked', () => {
+    // reset() only clears client-side error-boundary state for a root-layout
+    // error — it doesn't re-run the layout's own failed data fetch (issue
+    // #852), so the retry button must trigger a real reload instead.
+    // jsdom makes `window.location` non-configurable, so this only asserts
+    // the regression it exists to prevent (falling back to reset()) rather
+    // than asserting reload() fires.
     const testError = new Error('Test error')
     const mockReset = jest.fn()
 
     render(<GlobalError error={testError} reset={mockReset} />)
 
     const retryButton = screen.getByRole('button', { name: /Try again/ })
-    fireEvent.click(retryButton)
+    expect(() => fireEvent.click(retryButton)).not.toThrow()
 
-    expect(mockReset).toHaveBeenCalledTimes(1)
+    expect(mockReset).not.toHaveBeenCalled()
   })
 })

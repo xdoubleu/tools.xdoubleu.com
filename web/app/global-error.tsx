@@ -9,7 +9,7 @@ interface GlobalErrorProps {
   reset: () => void
 }
 
-export default function GlobalError({ error, reset }: GlobalErrorProps) {
+export default function GlobalError({ error }: GlobalErrorProps) {
   useEffect(() => {
     Sentry.captureException(error)
   }, [error])
@@ -20,7 +20,11 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
         <div className="flex min-h-screen flex-col items-center justify-center gap-4">
           <h1 className="text-2xl font-bold">Something went wrong</h1>
           <p className="text-sm text-muted">{error?.message || 'An unexpected error occurred'}</p>
-          <Button onClick={() => reset()}>Try again</Button>
+          {/* Not reset(): a root-layout error means the layout's own data
+              fetch threw, and reset() only clears client error-boundary
+              state without re-running that fetch (see issue #852) — a full
+              reload is what actually retries it. */}
+          <Button onClick={() => window.location.reload()}>Try again</Button>
         </div>
       </body>
     </html>
