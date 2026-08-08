@@ -71,3 +71,5 @@ TypeScript/TSX files over ~300 lines need a split before adding more code:
 ## Testing
 
 Jest + React Testing Library. Target ≥80% coverage on `components/`, `lib/`, `hooks/` (`lib/gen/` excluded). Run `npm run test:cov` for the report.
+
+CI's `codecov/patch` check enforces branch coverage on changed lines, not just statement coverage. `npm run test:cov`'s text-summary "Uncovered Line #s" column only lists lines with 0% statement coverage — a changed line can show up as covered there while an `if`/ternary branch on it is never taken, which still fails `codecov/patch` remotely. Check the per-file "% Branch" column too for any file you touched, not just the line list.
