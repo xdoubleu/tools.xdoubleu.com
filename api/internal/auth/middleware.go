@@ -15,22 +15,20 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
+// Access resolves the current user like TemplateAccess (falling back to
+// refreshTokens when the access-token cookie can't be resolved, e.g. it
+// expired) so a session left idle past the access-token TTL recovers
+// transparently via the still-valid refresh-token cookie instead of every
+// API call 401ing until the browser is reloaded (issue #809).
 func (service *GoTrueService) Access(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenCookie, err := r.Cookie("accessToken")
-
-		if err != nil {
+		user := service.getCurrentUser(r)
+		if user == nil {
+			user = service.refreshTokens(w, r)
+		}
+		if user == nil {
 			httptools.UnauthorizedResponse(w, r,
 				errortools.NewUnauthorizedError(errors.New("no token in cookies")))
-			return
-		}
-
-		user, err := service.resolveUser(
-			r.Context(),
-			tokenCookie.Value,
-		)
-		if err != nil {
-			httptools.HandleError(w, r, err)
 			return
 		}
 
