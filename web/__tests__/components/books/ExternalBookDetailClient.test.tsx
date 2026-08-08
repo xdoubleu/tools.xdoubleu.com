@@ -10,7 +10,8 @@ const mockAddBook = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('@/hooks/useBooks', () => ({
   useExternalBook: jest.fn(),
-  useCreateBook: () => mockAddBook
+  useCreateBook: () => mockAddBook,
+  useLibrary: () => ({ data: undefined })
 }))
 
 const mockRouterPush = jest.fn()

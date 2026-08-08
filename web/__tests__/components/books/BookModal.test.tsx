@@ -2,12 +2,19 @@ import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import BookModal from '@/components/books/BookModal'
-import { ExternalBookResultSchema } from '@/lib/gen/books/v1/library_pb'
+import { useLibrary } from '@/hooks/useBooks'
+import {
+  ExternalBookResultSchema,
+  GetLibraryResponseSchema,
+  LibraryResponseSchema,
+  BookShelfSchema
+} from '@/lib/gen/books/v1/library_pb'
 
 const mockAddBook = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
-  useCreateBook: () => mockAddBook
+  useCreateBook: () => mockAddBook,
+  useLibrary: jest.fn()
 }))
 
 const fakeBook = create(ExternalBookResultSchema, {
@@ -20,9 +27,23 @@ const fakeBook = create(ExternalBookResultSchema, {
   description: 'A great book about Go.'
 })
 
+function makeLibraryData(shelfNames: string[] = []) {
+  return create(GetLibraryResponseSchema, {
+    library: create(LibraryResponseSchema, {
+      shelves: shelfNames.map((name) => create(BookShelfSchema, { name }))
+    })
+  })
+}
+
 describe('BookModal', () => {
   beforeEach(() => {
     mockAddBook.mockReset()
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData(),
+      isLoading: false,
+      error: undefined
+    })
   })
 
   it('renders nothing when book is null', () => {
@@ -40,6 +61,31 @@ describe('BookModal', () => {
     render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     const select = screen.getByLabelText('Status') as HTMLSelectElement
     expect(select.value).toBe('to-read')
+  })
+
+  it('includes custom shelves from the library as selectable options', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData(['book-club']),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
+    const select = screen.getByLabelText('Status') as HTMLSelectElement
+    expect(screen.getByRole('option', { name: 'book-club' })).toBeInTheDocument()
+    fireEvent.change(select, { target: { value: 'book-club' } })
+    expect(select.value).toBe('book-club')
+  })
+
+  it('excludes built-in statuses from the custom shelf options', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData(['read', 'book-club']),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
+    expect(screen.getAllByRole('option', { name: 'Read' })).toHaveLength(1)
   })
 
   it('calls onClose when Cancel button clicked', () => {

@@ -10,7 +10,8 @@ const mockRouterPush = jest.fn()
 jest.mock('@/hooks/useBooks', () => ({
   useSearchLibrary: () => mockSearchLibrary,
   useSearchExternal: () => mockSearchExternal,
-  useCreateBook: () => mockAddBook
+  useCreateBook: () => mockAddBook,
+  useLibrary: () => ({ data: undefined })
 }))
 
 jest.mock('next/navigation', () => ({
