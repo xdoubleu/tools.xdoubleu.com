@@ -119,6 +119,8 @@ Before editing, always create a tracking GitHub issue for the work via the `refi
 
 Because `main` deploys without re-testing, never push directly to `main` — only merge PRs whose CI passed. When editing any `.github/workflows/*.yml`, ensure its own `pull_request` trigger includes `.github/workflows/**` in its `paths` filter (docker-build workflows are the deliberate exception — push-to-main only).
 
+**`ci-pass` fails with "Timed out waiting for Codecov to report" (issue #863's PR):** Codecov's GitHub-app check-suite for the commit can get stuck permanently in `queued` — confirmed via `gh api repos/<repo>/commits/<sha>/check-suites --jq '.check_suites[] | select(.app.slug=="codecov")'` — even though Codecov's own backend finished processing the coverage report (`https://api.codecov.io/api/v2/github/<owner>/repos/<repo>/commits/<sha>/` shows `"state":"complete"`). No `codecov/patch`/`codecov/project` check-run is ever created in that state, so `ci-pass` always times out (10 min) no matter how many times the workflow job itself is rerun. There's no API to rerequest another app's check-suite with a PAT; push a new commit (an empty one is fine) to get Codecov a fresh check-suite.
+
 The **kobo-gateway** app (`gateway/`) ships inside the merged `app` Docker image as a downloadable `.dmg`, built separately on `macos-14` by `build-gateway.yml` and handed to `docker.yml` as an artifact (no `gateway-builder` Docker stage). The `gateway` path filter in `main.yml` feeds `build-web`, `build-gateway`, and `docker.build_app` — keep it in sync if `gateway/` moves.
 
 ## Docs Impact
