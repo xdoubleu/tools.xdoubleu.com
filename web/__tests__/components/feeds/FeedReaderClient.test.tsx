@@ -16,12 +16,21 @@ jest.mock('@/hooks/useFeeds', () => ({
 
 jest.mock(
   '@/components/feeds/ArticleReaderDialog',
-  () => (props: { open: boolean; item: { id: string }; onMarkRead: (itemId: string) => void }) =>
-    props.open ? (
-      <div data-testid="reader-open">
-        <button onClick={() => props.onMarkRead(props.item.id)}>Mark read</button>
-      </div>
-    ) : null
+  () =>
+    (props: {
+      open: boolean
+      item: { id: string }
+      onOpenChange: (open: boolean) => void
+      onMarkRead: (itemId: string) => void
+      onSettled: (itemId: string) => void
+    }) =>
+      props.open ? (
+        <div data-testid="reader-open">
+          <button onClick={() => props.onMarkRead(props.item.id)}>Mark read</button>
+          <button onClick={() => props.onSettled(props.item.id)}>Settle</button>
+          <button onClick={() => props.onOpenChange(false)}>Close reader</button>
+        </div>
+      ) : null
 )
 
 import FeedReaderClient from '@/components/feeds/FeedReaderClient'
@@ -181,6 +190,31 @@ describe('FeedReaderClient', () => {
     rerender(<FeedReaderClient />)
 
     expect(screen.getByText('Item 1')).toBeInTheDocument()
+  })
+
+  it('keeps the reader open when the undo window settles while it is still open (#863)', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    const { rerender } = render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+
+    // Simulate the SWR revalidation dropping the item server-side, then the
+    // undo window elapsing while the reader is still open.
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    rerender(<FeedReaderClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Settle' }))
+    rerender(<FeedReaderClient />)
+
+    expect(screen.getByTestId('reader-open')).toBeInTheDocument()
   })
 
   it('dims already-read items but not unread ones', () => {
