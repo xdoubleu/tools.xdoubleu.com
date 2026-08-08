@@ -75,11 +75,15 @@ type book struct {
 	// ID is only populated by booksByIDsQuery (used to restore Typesense's
 	// relevance order); isbnQuery's nested book{} doesn't select it, so it's
 	// zero there — harmless, since GetByISBN doesn't use ID.
-	ID                int                 `json:"id"`
-	Title             string              `json:"title"`
-	Pages             int                 `json:"pages"`
-	Description       string              `json:"description"`
-	CachedImage       *cachedImage        `json:"cached_image"`
+	ID          int          `json:"id"`
+	Title       string       `json:"title"`
+	Pages       int          `json:"pages"`
+	Description string       `json:"description"`
+	CachedImage *cachedImage `json:"cached_image"`
+	// Editions is only populated by booksByIDsQuery (limit 1, isbn_13 only) —
+	// a work-level record has no ISBN of its own, so Search borrows one
+	// representative edition's ISBN13 to make results linkable.
+	Editions          []edition           `json:"editions"`
 	CachedContributor []cachedContributor `json:"cached_contributors"`
 }
 

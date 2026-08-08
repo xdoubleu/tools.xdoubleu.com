@@ -154,6 +154,37 @@ func TestConnectSearchLibrary_WithResults(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Books)
 }
 
+// TestConnectSearchLibrary_TitleAndAuthorNarrows guards bug #853: a query
+// combining a title word and an author word must match the book (each word
+// found somewhere across title/author), not fail because neither field
+// contains the whole combined string as one substring.
+func TestConnectSearchLibrary_TitleAndAuthorNarrows(t *testing.T) {
+	addTestBookNoISBN(t, "NarrowSearchTitle")
+
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req := connect.NewRequest(&booksv1.SearchLibraryRequest{
+		Query: "NarrowSearchTitle Test",
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.SearchLibrary(ctx, req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.NotEmpty(t, resp.Msg.Books)
+
+	unmatched := connect.NewRequest(&booksv1.SearchLibraryRequest{
+		Query: "NarrowSearchTitle NoSuchAuthor",
+	})
+	unmatched.Header().Set("Cookie", accessToken.String())
+	resp, err = client.SearchLibrary(ctx, unmatched)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.Empty(t, resp.Msg.Books)
+}
+
 func TestConnectSearchLibrary_Pagination(t *testing.T) {
 	addTestBookNoISBN(t, "PaginatedBookOne")
 	addTestBookNoISBN(t, "PaginatedBookTwo")
@@ -215,6 +246,32 @@ func TestConnectSearchExternal_WithQuery(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	// Results may be empty depending on mock data
+}
+
+// TestConnectSearchExternal_TitleAndAuthorNarrows guards bug #853: a query
+// combining a title word with the wrong author must drop the mock's canned
+// "The Odyssey" / "Homer" result, while the matching title+author combination
+// keeps it.
+func TestConnectSearchExternal_TitleAndAuthorNarrows(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	matching := connect.NewRequest(&booksv1.SearchExternalRequest{
+		Query: "Odyssey Homer",
+	})
+	matching.Header().Set("Cookie", accessToken.String())
+	resp, err := client.SearchExternal(ctx, matching)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Results)
+
+	mismatched := connect.NewRequest(&booksv1.SearchExternalRequest{
+		Query: "Odyssey NoSuchAuthor",
+	})
+	mismatched.Header().Set("Cookie", accessToken.String())
+	resp, err = client.SearchExternal(ctx, mismatched)
+	assert.NoError(t, err)
+	assert.Empty(t, resp.Msg.Results)
 }
 
 func TestConnectGetExternalBook_Found(t *testing.T) {

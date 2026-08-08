@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -64,7 +65,11 @@ func (s *BookService) SearchLibrary(
 // SearchExternal searches every configured provider (Hardcover, UniCat) for
 // books matching query and merges their results — no single-provider fallback,
 // each source's matches are kept side by side (same fan-out searchProviders
-// uses for the resync wizard).
+// uses for the resync wizard). Callers driving an interactive, precision-
+// sensitive search (the free-text search bar, the MCP search tool) should
+// narrow the result with FilterExternalByQuery; tryExternalLookup deliberately
+// doesn't, since it wants providers' own best-effort top hit for an inexact,
+// filename-derived title.
 func (s *BookService) SearchExternal(
 	ctx context.Context,
 	query string,
@@ -77,6 +82,38 @@ func (s *BookService) SearchExternal(
 		topCandidates(externalSearchMaxCandidates), nil,
 	)
 	return proposals
+}
+
+// FilterExternalByQuery keeps the proposals whose title+authors account for
+// every normalised word of query, so a multi-word interactive search (e.g.
+// "Dune Herbert") narrows to candidates matching both the title and the
+// author instead of every title match regardless of a typed author — providers
+// alone only search title. Falls through unfiltered when query has no
+// matchable tokens.
+func FilterExternalByQuery(query string, proposals []SourceProposal) []SourceProposal {
+	tokens := titleTokens(query)
+	if len(tokens) == 0 {
+		return proposals
+	}
+
+	out := make([]SourceProposal, 0, len(proposals))
+	for _, p := range proposals {
+		haystack := normalizeString(p.Title + " " + strings.Join(p.Authors, " "))
+		if containsAllTokens(haystack, tokens) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// containsAllTokens reports whether every token is a substring of haystack.
+func containsAllTokens(haystack string, tokens []string) bool {
+	for _, t := range tokens {
+		if !strings.Contains(haystack, t) {
+			return false
+		}
+	}
+	return true
 }
 
 // GetExternal fetches a single book from an external provider by ISBN13 (the

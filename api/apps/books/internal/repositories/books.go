@@ -478,7 +478,11 @@ func (repo *BooksRepository) GetUserBook(
 	return &ub, nil
 }
 
-// SearchLibrary does a case-insensitive substring search across the user's own reading.
+// SearchLibrary does a case-insensitive search across the user's own reading,
+// requiring every whitespace-separated word of query to match the title or an
+// author (in any combination) so a query like "Dune Herbert" narrows to books
+// whose title contains "Dune" AND whose authors contain "Herbert", rather than
+// matching the whole multi-word string as one substring against either field.
 func (repo *BooksRepository) SearchLibrary(
 	ctx context.Context,
 	userID string,
@@ -487,6 +491,7 @@ func (repo *BooksRepository) SearchLibrary(
 	offset int32,
 ) ([]models.UserBook, bool, error) {
 	safeLimit, sqlLimit := pagination.Clamp(limit)
+	tokens := strings.Fields(query)
 
 	q := `
 		SELECT ` + userBookColumns + `
@@ -494,16 +499,19 @@ func (repo *BooksRepository) SearchLibrary(
 		JOIN books.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1
 		  AND (
-		        b.title ILIKE '%' || $2 || '%'
-		        OR EXISTS (
-		            SELECT 1 FROM UNNEST(b.authors) a WHERE a ILIKE '%' || $2 || '%'
+		        SELECT bool_and(
+		            b.title ILIKE '%' || t || '%'
+		            OR EXISTS (
+		                SELECT 1 FROM UNNEST(b.authors) a WHERE a ILIKE '%' || t || '%'
+		            )
 		        )
+		        FROM UNNEST($2::text[]) AS t
 		  )
 		ORDER BY b.title, b.id
 		LIMIT $3 OFFSET $4
 	`
 
-	rows, err := repo.queryUserBooks(ctx, q, userID, query, sqlLimit, offset)
+	rows, err := repo.queryUserBooks(ctx, q, userID, tokens, sqlLimit, offset)
 	if err != nil {
 		return nil, false, err
 	}

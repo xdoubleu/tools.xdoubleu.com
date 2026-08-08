@@ -215,7 +215,8 @@ func TestGetByISBN_TooManyRequests_Retries(t *testing.T) {
 func TestSearch_ReturnsResults(t *testing.T) {
 	books := searchResponse(t, []bookFixture{
 		//nolint:exhaustruct // only fields under test
-		{ID: 1, Title: "Space Odyssey", Authors: []string{"Clarke"}, Pages: 221},
+		{ID: 1, Title: "Space Odyssey", Authors: []string{"Clarke"}, Pages: 221,
+			ISBN13: "9780000000001"},
 		//nolint:exhaustruct // only fields under test
 		{ID: 2, Title: "Another Book", Authors: []string{"Smith"}},
 	})
@@ -234,6 +235,13 @@ func TestSearch_ReturnsResults(t *testing.T) {
 	assert.Equal(t, []string{"Clarke"}, results[0].Authors)
 	require.NotNil(t, results[0].PageCount)
 	assert.Equal(t, 221, *results[0].PageCount)
+
+	// Search results must carry an ISBN13 (borrowed from a representative
+	// edition) so the frontend can link to them; results with no edition
+	// ISBN correctly stay ISBN-less rather than erroring.
+	require.NotNil(t, results[0].ISBN13)
+	assert.Equal(t, "9780000000001", *results[0].ISBN13)
+	assert.Nil(t, results[1].ISBN13)
 }
 
 // TestSearch_PreservesRelevanceOrder guards against the regression where
@@ -450,6 +458,7 @@ type bookFixture struct {
 	Desc    string
 	Pages   int
 	Cover   string
+	ISBN13  string
 }
 
 func contributorsJSON(authors []string, flat bool) []map[string]any {
@@ -474,6 +483,11 @@ func bookJSON(f bookFixture) map[string]any {
 	}
 	if f.Cover != "" {
 		b["cached_image"] = map[string]any{"url": f.Cover}
+	}
+	if f.ISBN13 != "" {
+		b["editions"] = []map[string]any{{"isbn_13": f.ISBN13}}
+	} else {
+		b["editions"] = []map[string]any{}
 	}
 	return b
 }

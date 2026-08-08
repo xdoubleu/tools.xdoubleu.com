@@ -88,6 +88,9 @@ const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
     description
     cached_image
     cached_contributors
+    editions(limit: 1) {
+      isbn_13
+    }
   }
 }`
 
@@ -216,11 +219,12 @@ func editionToExternalBook(e edition) ExternalBook {
 	return out
 }
 
-// bookToExternalBook maps a work-level book record to an ExternalBook.
+// bookToExternalBook maps a work-level book record to an ExternalBook,
+// borrowing the ISBN13 of one representative edition (Search's booksByIDsQuery
+// selects at most one) since work-level records carry no ISBN of their own.
 func bookToExternalBook(b book) ExternalBook {
-	out := ExternalBook{ //nolint:exhaustruct // ISBN13 lives on editions only
-		Title: b.Title,
-	}
+	out := ExternalBook{} //nolint:exhaustruct // fields set below
+	out.Title = b.Title
 
 	authors := make([]string, 0, len(b.CachedContributor))
 	for _, cc := range b.CachedContributor {
@@ -229,6 +233,11 @@ func bookToExternalBook(b book) ExternalBook {
 		}
 	}
 	out.Authors = authors
+
+	if len(b.Editions) > 0 && b.Editions[0].ISBN13 != "" {
+		isbn := b.Editions[0].ISBN13
+		out.ISBN13 = &isbn
+	}
 
 	if b.Description != "" {
 		desc := b.Description
