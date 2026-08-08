@@ -23,7 +23,7 @@
     "@sentry/nextjs": "10.69.0",
     "@supabase/supabase-js": "2.112.0",
     "clsx": "2.1.1",
-    "dompurify": "3.4.12",
+    "dompurify": "3.4.13",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8",
