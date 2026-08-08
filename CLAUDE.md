@@ -123,6 +123,8 @@ Because `main` deploys without re-testing, never push directly to `main` — onl
 
 The **kobo-gateway** app (`gateway/`) ships inside the merged `app` Docker image as a downloadable `.dmg`, built separately on `macos-14` by `build-gateway.yml` and handed to `docker.yml` as an artifact (no `gateway-builder` Docker stage). The `gateway` path filter in `main.yml` feeds `build-web`, `build-gateway`, and `docker.build_app` — keep it in sync if `gateway/` moves.
 
+`.github/workflows/codeql.yml` is a standalone CodeQL "advanced setup" workflow (not chained into `main.yml`), gating `push`/`pull_request` on the same `api/**`/`web/**`/`gateway/**`/`.github/workflows/**` minus `!**/*.md` idiom as the `changes` job — no periodic schedule, only on-demand when code actually changes. GitHub's "default setup" (repo Settings → Code security) is disabled; don't re-enable it, as the two conflict.
+
 ## Docs Impact
 
 When a change touches project structure, packages, Make/npm targets, shared services, or architecture conventions, update this file and `README.md` in the same change.
