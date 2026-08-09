@@ -217,12 +217,38 @@ describe('FeedReaderClient', () => {
     expect(screen.getByTestId('reader-open')).toBeInTheDocument()
     expect(screen.getByText('Item 1').closest('.rounded-2xl')).toHaveClass('opacity-60')
 
-    // Closing the reader now flushes the deferred settle.
+    // Closing the reader now flushes the deferred settle, hiding the item.
     fireEvent.click(screen.getByRole('button', { name: 'Close reader' }))
-    expect(screen.getByText('Item 1').closest('.rounded-2xl')).not.toHaveClass('opacity-60')
+    expect(screen.queryByText('Item 1')).not.toBeInTheDocument()
   })
 
-  it('settles immediately when the undo window elapses after the reader is already closed', () => {
+  it('hides a read item as soon as the reader closes, without waiting out the undo window (#913)', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    const { rerender } = render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+
+    // The mutation's revalidation drops the item from the unread-only fetch.
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    rerender(<FeedReaderClient />)
+    expect(screen.getByText('Item 1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close reader' }))
+    expect(screen.queryByText('Item 1')).not.toBeInTheDocument()
+  })
+
+  it('settles a late undo window without error once the reader is already closed', () => {
+    // The item stays in the fetched page (e.g. the show-read view), so its
+    // card — and its undo timer — outlive the reader being closed.
     mockUseFeedItems.mockReturnValue({
       data: { items: [item('1')], hasMore: false },
       error: undefined,
@@ -233,9 +259,8 @@ describe('FeedReaderClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
     fireEvent.click(screen.getByRole('button', { name: 'Close reader' }))
-    expect(screen.getByText('Item 1').closest('.rounded-2xl')).toHaveClass('opacity-60')
-
     fireEvent.click(screen.getByRole('button', { name: 'Settle' }))
+
     expect(screen.getByText('Item 1').closest('.rounded-2xl')).not.toHaveClass('opacity-60')
   })
 
