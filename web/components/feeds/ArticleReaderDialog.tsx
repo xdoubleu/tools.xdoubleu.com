@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,7 @@ export default function ArticleReaderDialog({
   onSettled
 }: ArticleReaderDialogProps) {
   const html = item.contentHtml
+  const [zoomedSrc, setZoomedSrc] = useState<string | null>(null)
   const markReadRef = useRef<FeedItemMarkReadHandle>(null)
   const updateItem = useUpdateItem()
 
@@ -137,14 +138,45 @@ export default function ArticleReaderDialog({
 
           {html && (
             <div
-              className="prose prose-sm max-w-none text-fg p-1"
+              className="prose prose-sm max-w-none text-fg p-1 [&_img]:cursor-zoom-in"
               // The HTML originates from third-party RSS feeds — always
               // sanitize before rendering.
               dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}
+              // Delegated: article images are raw HTML, so there's no per-image
+              // React node to attach a handler to (issue #941). preventDefault
+              // keeps an image wrapped in a link from navigating away instead.
+              onClick={(e) => {
+                if (!(e.target instanceof HTMLImageElement)) return
+                e.preventDefault()
+                setZoomedSrc(e.target.src)
+              }}
             />
           )}
         </div>
       </DialogContent>
+
+      <Dialog open={zoomedSrc !== null} onOpenChange={() => setZoomedSrc(null)}>
+        {zoomedSrc && (
+          <DialogContent
+            side="fullscreen"
+            className="bg-transparent border-none shadow-none sm:max-w-[90vw]"
+          >
+            <DialogTitle className="sr-only">Enlarged image</DialogTitle>
+            {/* Whole surface closes — no chrome to hunt for on touch. */}
+            <DialogClose
+              aria-label="Close image"
+              className="block h-full w-full cursor-zoom-out p-0"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={zoomedSrc}
+                alt=""
+                className="mx-auto max-h-[90vh] w-auto max-w-full object-contain"
+              />
+            </DialogClose>
+          </DialogContent>
+        )}
+      </Dialog>
     </Dialog>
   )
 }
