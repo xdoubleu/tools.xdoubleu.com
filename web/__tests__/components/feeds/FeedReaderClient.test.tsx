@@ -299,10 +299,28 @@ describe('FeedReaderClient', () => {
     render(<FeedReaderClient />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Show bookmarked' }))
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, true)
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, true)
 
     fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
+  })
+
+  it('keeps read items in the bookmarked view and hides the read/unread toggle', () => {
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Show bookmarked' }))
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, true)
+    expect(screen.queryByRole('button', { name: 'Show unread only' })).toBeNull()
+
+    // The pre-bookmark unread/read choice is restored on the way out.
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
+    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, false)
   })
 
   it('shows an empty state specific to bookmarked items when none match', () => {
