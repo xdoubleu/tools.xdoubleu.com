@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useFeeds, useFeedItems, useFetchFeedItemsPage } from '@/hooks/useFeeds'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
@@ -165,29 +165,22 @@ function FeedReaderCard({
   const noContent = !item.contentHtml
   const handleMarkRead = useCallback(() => onMarkRead(item), [onMarkRead, item])
 
-  // The undo window can settle while the reader is still open (e.g. the
-  // user is reading the last few lines when auto-mark-read fires) — settling
-  // immediately would drop the item from the unread list and unmount this
-  // card's dialog out from under the reader (issue #863). Defer the settle
-  // until the dialog actually closes.
-  const pendingSettleRef = useRef(false)
+  // Settling while the reader is open would drop the item from the unread
+  // list and unmount this card's dialog out from under the reader (issue
+  // #863) — so ignore the undo window elapsing until the reader closes.
   const handleReaderSettled = useCallback(
     (itemId: string) => {
-      if (readerOpen) {
-        pendingSettleRef.current = true
-        return
-      }
-      onSettled(itemId)
+      if (!readerOpen) onSettled(itemId)
     },
     [readerOpen, onSettled]
   )
+  // Closing the reader always settles: a read item lingering (pinned to the
+  // end of the grid) for the rest of the undo window is issue #913. Undo
+  // only ever lives inside the open reader anyway. No-ops when unpinned.
   const handleOpenChange = useCallback(
     (next: boolean) => {
       setReaderOpen(next)
-      if (!next && pendingSettleRef.current) {
-        pendingSettleRef.current = false
-        onSettled(item.id)
-      }
+      if (!next) onSettled(item.id)
     },
     [item.id, onSettled]
   )

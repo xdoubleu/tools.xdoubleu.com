@@ -46,7 +46,11 @@ export function usePaginatedList<T>(
   useEffect(() => {
     setItems((prev) => {
       const lead = prev.slice(0, initial.items.length)
+      // An empty first page is never "the same leading page" — every item is
+      // gone (last unread item read, filter matched nothing), so keeping the
+      // stale ones would leave them on screen forever (issue #913).
       const sameLeadingPage =
+        initial.items.length > 0 &&
         lead.length === initial.items.length &&
         lead.every((item, i) => isSameItemRef.current(item, initial.items[i]))
       return sameLeadingPage

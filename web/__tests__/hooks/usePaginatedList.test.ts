@@ -79,4 +79,16 @@ describe('usePaginatedList', () => {
     expect(result.current.items).toEqual([{ id: '2' }])
     expect(result.current.hasMore).toBe(false)
   })
+
+  it('resets to empty when the revalidated first page has no items (#913)', () => {
+    const fetchPage = jest.fn()
+    const { result, rerender } = renderHook(
+      ({ initial }: { initial: { items: { id: string }[]; hasMore: boolean } }) =>
+        usePaginatedList(initial, fetchPage, (a, b) => a.id === b.id),
+      { initialProps: { initial: { items: [{ id: '1' }], hasMore: false } } }
+    )
+
+    rerender({ initial: { items: [], hasMore: false } })
+    expect(result.current.items).toEqual([])
+  })
 })
