@@ -207,7 +207,9 @@ function FeedReaderCard({
               type="button"
               variant="link"
               onClick={() => setReaderOpen(true)}
-              className="h-auto justify-start p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
+              // justify-start alone only left-aligns the flex item; a wrapped
+              // title's lines still follow the button's UA text-align: center.
+              className="h-auto justify-start p-0 text-left font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
             >
               {item.title}
             </Button>

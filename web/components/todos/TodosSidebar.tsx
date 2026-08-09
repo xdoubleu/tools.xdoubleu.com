@@ -8,7 +8,7 @@ import type { Section, Workspace } from '@/lib/gen/todos/v1/settings_pb'
 
 const navButtonClass = (active: boolean) =>
   cn(
-    'h-auto w-full justify-start rounded-lg px-2 py-2 text-sm font-normal',
+    'h-auto w-full justify-start rounded-lg px-2 py-2 text-left text-sm font-normal',
     active ? 'bg-accent/10 font-medium text-accent hover:bg-accent/10' : 'text-subtle'
   )
 
