@@ -24,7 +24,7 @@ jobs:
   # job; see root Dockerfile and CLAUDE.md's CI section.
   docker-app:
     name: Docker Build & Push App
-    if: workflow_dispatch || inputs.build_app
+    if: github.event_name == 'workflow_dispatch' || inputs.build_app
     runs-on: ubuntu-latest
     permissions:
       contents: read
