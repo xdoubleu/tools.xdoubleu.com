@@ -51,3 +51,9 @@ jobs:
         with:
           name: web-standalone
           path: web/build-artifact
+          # upload-artifact excludes dotfiles/dot-directories by default;
+          # Next's standalone output nests the actual server runtime
+          # (BUILD_ID, server chunks) inside a directory literally named
+          # `.next`, so without this the artifact silently ships
+          # server.js/node_modules but no .next — see issue #934.
+          include-hidden-files: true
