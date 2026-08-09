@@ -16,11 +16,6 @@ import (
 	"tools.xdoubleu.com/gateway/internal/gateway"
 )
 
-// Release is set at build time via -ldflags, same pattern as cmd/api.
-//
-//nolint:gochecknoglobals //Release is set at build time via -ldflags.
-var Release = "dev"
-
 const (
 	httpReadTimeout  = 5 * time.Second
 	httpWriteTimeout = 10 * time.Second
@@ -29,7 +24,6 @@ const (
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	cfg := gateway.New(logger)
-	cfg.Release = Release
 
 	logger = slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))
@@ -37,7 +31,6 @@ func main() {
 
 	ctx := context.Background()
 
-	//nolint:exhaustruct //other fields are optional
 	sentryHub, err := sentrytools.Init(cfg.Env, sentry.ClientOptions{
 		Dsn:         cfg.SentryDsn,
 		Environment: cfg.Env,
@@ -62,7 +55,7 @@ func main() {
 	}
 	defer web.Stop()
 
-	handler := gateway.NewHandler(cfg.APIPort, cfg.WebPort, logger)
+	handler := gateway.NewHandler(cfg.APIPort, cfg.WebPort, cfg.Release, logger)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

@@ -1,3 +1,4 @@
+//nolint:testpackage //exercises unexported apiProcessEnv/webProcessEnv
 package gateway
 
 import (
@@ -32,7 +33,9 @@ func TestAPIProcessEnv_OverridesPortAndKeepsRest(t *testing.T) {
 	assert.Contains(t, env, "PORT=8001")
 	assert.Contains(t, env, "SOME_SECRET=shh")
 	for _, e := range env {
-		assert.NotContains(t, e, "PORT=8000", "gateway's own PORT must not leak to the api child")
+		assert.NotContains(
+			t, e, "PORT=8000", "gateway's own PORT must not leak to the api child",
+		)
 	}
 }
 

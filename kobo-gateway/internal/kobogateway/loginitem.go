@@ -69,7 +69,9 @@ func writeLoginItemPlist(homeDir, execPath string) error {
 		return fmt.Errorf("create LaunchAgents dir: %w", err)
 	}
 
-	if err := os.WriteFile(path, []byte(loginItemPlist(execPath)), loginItemFilePerm); err != nil {
+	if err := os.WriteFile(
+		path, []byte(loginItemPlist(execPath)), loginItemFilePerm,
+	); err != nil {
 		return fmt.Errorf("write login item: %w", err)
 	}
 
@@ -166,7 +168,7 @@ func EnsureInitialLoginItem(markerDir, homeDir, execPath string) error {
 //
 //nolint:gochecknoglobals // test seam, see export_test.go
 var launchctl = func(args ...string) {
-	//nolint:errcheck,gosec // best-effort; the plist file is the source of truth
+	//nolint:errcheck // best-effort; the plist file is the source of truth
 	exec.Command("launchctl", args...).Run()
 }
 

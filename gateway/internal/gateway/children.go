@@ -63,5 +63,6 @@ func webProcessEnv(cfg Config) []string {
 		"SUPABASE_URL=" + cfg.SupabaseURL,
 		"SUPABASE_ANON_KEY=" + cfg.SupabaseAnonKey,
 		"RELEASE=" + cfg.Release,
+		"KOBO_GATEWAY_RELEASE=" + cfg.KoboGatewayRelease,
 	}
 }

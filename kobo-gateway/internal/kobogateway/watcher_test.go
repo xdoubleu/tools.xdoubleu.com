@@ -1,3 +1,4 @@
+//nolint:exhaustruct //test fixtures only set the fields each case exercises
 package kobogateway_test
 
 import (
@@ -73,6 +74,31 @@ func TestKoboTooltip(t *testing.T) {
 	)
 }
 
+func TestKoboTooltipTruncatesLongRelease(t *testing.T) {
+	connected := kobogateway.KoboEvent{
+		Connected: true,
+		Kobo:      kobogateway.Kobo{Serial: "N418ABCD1234"},
+	}
+	assert.Equal(t,
+		"Kobo Gateway abc123d — Kobo connected (N418ABCD1234)",
+		kobogateway.KoboTooltip(connected, "abc123def456ghi789"),
+	)
+}
+
+func TestKoboTooltipPassesThroughShortRelease(t *testing.T) {
+	disconnected := kobogateway.KoboEvent{Connected: false}
+	assert.Equal(t,
+		"Kobo Gateway dev — no Kobo connected",
+		kobogateway.KoboTooltip(disconnected, "dev"),
+	)
+}
+
+func TestShortRelease(t *testing.T) {
+	assert.Equal(t, "abc123d", kobogateway.ShortRelease("abc123def456ghi789"))
+	assert.Equal(t, "dev", kobogateway.ShortRelease("dev"))
+	assert.Equal(t, "abc123", kobogateway.ShortRelease("abc123"))
+}
+
 func TestKoboMenuLine(t *testing.T) {
 	connected := kobogateway.KoboEvent{
 		Connected: true,
@@ -99,7 +125,9 @@ func TestKoboNotification(t *testing.T) {
 	assert.Equal(t, "", body)
 }
 
-func recvEvent(t *testing.T, events <-chan kobogateway.KoboEvent) kobogateway.KoboEvent {
+func recvEvent(
+	t *testing.T, events <-chan kobogateway.KoboEvent,
+) kobogateway.KoboEvent {
 	t.Helper()
 
 	select {

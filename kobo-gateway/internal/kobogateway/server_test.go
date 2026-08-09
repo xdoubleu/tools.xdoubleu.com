@@ -437,7 +437,9 @@ func TestUpdate(t *testing.T) {
 	gateway := newTestServer(t.TempDir(), updater)
 
 	var notifications []string
-	gateway.SetNotifier(func(_, body string) { notifications = append(notifications, body) })
+	gateway.SetNotifier(func(_, body string) {
+		notifications = append(notifications, body)
+	})
 
 	rec := doRequest(gateway.Handler(), http.MethodPost, "/update", testOrigin, `{}`)
 
@@ -464,7 +466,9 @@ func TestUpdateFailure(t *testing.T) {
 	gateway := newTestServer(t.TempDir(), updater)
 
 	var notifications []string
-	gateway.SetNotifier(func(_, body string) { notifications = append(notifications, body) })
+	gateway.SetNotifier(func(_, body string) {
+		notifications = append(notifications, body)
+	})
 
 	rec := doRequest(gateway.Handler(), http.MethodPost, "/update", testOrigin, `{}`)
 

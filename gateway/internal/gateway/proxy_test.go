@@ -1,4 +1,4 @@
-package gateway
+package gateway_test
 
 import (
 	"net/http"
@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xdoubleu/essentia/v4/pkg/logging"
+
+	"tools.xdoubleu.com/gateway/internal/gateway"
 )
 
 // stubUpstreamPort starts an httptest.Server standing in for a child
@@ -55,7 +57,7 @@ func TestNewHandler_RoutesToAPI(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				},
 			))
-			handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
+			handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
 
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, tt.requestPath, nil)
@@ -65,6 +67,27 @@ func TestNewHandler_RoutesToAPI(t *testing.T) {
 			assert.Equal(t, tt.wantAPIPath, gotPath)
 		})
 	}
+}
+
+func TestNewHandler_VersionAnsweredDirectly(t *testing.T) {
+	apiPort := stubUpstreamPort(t, http.HandlerFunc(
+		func(_ http.ResponseWriter, _ *http.Request) {
+			t.Error("api proxy should not have been reached")
+		},
+	))
+	webPort := stubUpstreamPort(t, http.HandlerFunc(
+		func(_ http.ResponseWriter, _ *http.Request) {
+			t.Error("web proxy should not have been reached")
+		},
+	))
+	handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/gateway/version", nil)
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.JSONEq(t, `{"release": "abc1234"}`, rr.Body.String())
 }
 
 func TestNewHandler_ProxiesEverythingElseToWeb(t *testing.T) {
@@ -83,7 +106,7 @@ func TestNewHandler_ProxiesEverythingElseToWeb(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				},
 			))
-			handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
+			handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
 
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, path, nil)
@@ -106,7 +129,7 @@ func TestNewHandler_DeadAPIUpstreamReturns503(t *testing.T) {
 	ts.Close() // stub is dead before any request reaches it, port refuses connections
 
 	webPort := stubUpstreamPort(t, http.NotFoundHandler())
-	handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
+	handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
 
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -126,7 +149,7 @@ func TestNewHandler_DeadWebUpstreamReturns503(t *testing.T) {
 	ts.Close()
 
 	apiPort := stubUpstreamPort(t, http.NotFoundHandler())
-	handler := NewHandler(apiPort, webPort, logging.NewNopLogger())
+	handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
 
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)

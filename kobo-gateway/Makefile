@@ -21,12 +21,14 @@ test/cov: test/cov/report
 	go tool cover -html=coverage.out -o=coverage.html
 	open ./coverage.html
 
-lint:
-	go vet ./...
-	gofmt -l .
+tools/lint:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
-lint/fix:
-	gofmt -w .
+lint: tools/lint
+	golangci-lint run
+
+lint/fix: tools/lint
+	golangci-lint run --fix
 
 # The menu bar needs cgo + the real AppKit/Xcode SDK, so this only builds on
 # macOS (arm64 native — no cross-compile). See

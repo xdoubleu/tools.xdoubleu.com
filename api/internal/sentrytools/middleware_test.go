@@ -14,7 +14,6 @@ import (
 func TestInitSkippedForTestEnv(t *testing.T) {
 	t.Parallel()
 
-	//nolint:exhaustruct //other fields are optional
 	hub, err := sentrytools.Init(
 		config.TestEnv,
 		sentry.ClientOptions{Dsn: "http://x@example.com/1"},
@@ -26,7 +25,6 @@ func TestInitSkippedForTestEnv(t *testing.T) {
 func TestInitSkippedForEmptyDsn(t *testing.T) {
 	t.Parallel()
 
-	//nolint:exhaustruct //other fields are optional
 	hub, err := sentrytools.Init(config.ProdEnv, sentry.ClientOptions{Dsn: ""})
 	require.NoError(t, err)
 	assert.Nil(t, hub)

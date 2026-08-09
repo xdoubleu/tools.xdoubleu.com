@@ -40,12 +40,25 @@ restart, and DO's own restart policy handles the recovery.
   (`os.Environ()`) — it needs DB/Supabase/OAuth/etc. secrets — with only
   `PORT` overridden to `cfg.APIPort` so it doesn't collide with gateway's own
   listener. `cmd/api/main.go` has no idea it's being proxied; it just reads
-  `PORT` like it always has.
+  `PORT` like it always has. This also means `api` inherits `RELEASE`
+  straight from the container env with no code here needed — see below.
 - **web**: an explicit narrow allowlist, not the full environment — it's a
   Node dependency, not code we own. `RELEASE` must always reach it: without
   it `getRelease()` returns `'dev'` in the browser and `gatewayNeedsUpdate`
   (`web/lib/books/gatewayClient.ts`) silently stops detecting installed
-  kobo-gateway updates for every user.
+  kobo-gateway updates for every user. `KOBO_GATEWAY_RELEASE` is forwarded
+  the same way — it's the release actually baked into the bundled
+  kobo-gateway `.dmg`/binary, which can lag behind `RELEASE` (its own build
+  can be cache-skipped when `kobo-gateway/` is unchanged, see root
+  `CLAUDE.md`'s CI section); `gatewayNeedsUpdate` compares against this, not
+  `RELEASE`, so it detects a genuinely newer kobo-gateway build rather than
+  every deploy.
+
+`Config.Release`/`Config.KoboGatewayRelease` (`config.go`) are plain
+env-parsed fields, not compiled-in ldflags globals like `api`'s used to be —
+nothing in this module needs to recompile just because the deploying
+commit's SHA changed. `gateway`'s own build is cacheable for the same
+reason (`build-gateway.yml`).
 
 ## Routing (`proxy.go`)
 
@@ -54,6 +67,10 @@ components got for free before #558 merged them into one billed component:
 
 - `GET /health` → api child, unstripped (DO's health check hits the
   container port directly; web has no health route).
+- `GET /gateway/version` → answered directly by gateway itself (not
+  proxied), `{"release": cfg.Release}` — same unproxied shape as `/health`.
+  Consumed by `web/components/Footer.tsx` to show gateway's own release
+  alongside `web`'s and `api`'s, since the three can now differ.
 - `/api` and `/api/*` → api child, `/api` prefix stripped (so `API_URL`
   stays an absolute `https://.../api` URL and web needs no code changes).
   Preserves an existing quirk on purpose: `GET /api/version` is registered
@@ -70,11 +87,13 @@ gets a logged 503 (`upstreamResponseHeaderTimeout`, 15s), not a hang.
 make run    # go run ./cmd/gateway — spawns real api/web children per your local env vars
 make build  # ./bin/gateway
 make test / make test/cov/report
-make lint / make lint/fix   # go vet + gofmt, same minimal style as kobo-gateway
+make lint / make lint/fix   # golangci-lint, shared root .golangci.yml config
 ```
 
 No cgo/AppKit constraint here (unlike `kobo-gateway/`) — builds and tests
 run on ordinary Linux CI runners, `build-gateway.yml`/`gateway-lint.yml`/
-`gateway-test.yml`, same shape as `api`'s. In the Docker image it's built as
-an ordinary `golang:1.26-alpine` stage (`gateway-builder` in the root
-`Dockerfile`), not handed off as a CI artifact like kobo-gateway's `.dmg`.
+`gateway-test.yml`, same shape as `api`'s. `build-gateway.yml` is now the
+sole producer of the deploy binary (cacheable, see root `CLAUDE.md`'s CI
+section) — the root `Dockerfile` no longer has a `gateway-builder` compile
+stage, it just downloads and `COPY`s the artifact in, same as
+kobo-gateway's `.dmg` always has.

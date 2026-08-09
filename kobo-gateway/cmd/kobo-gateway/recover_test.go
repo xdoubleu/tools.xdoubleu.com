@@ -11,7 +11,7 @@ func TestReportFatalDoesNotPanic(t *testing.T) {
 	assert.NotPanics(t, func() { reportFatal(errors.New("boom")) })
 }
 
-func TestGuardSwallowsPanic(t *testing.T) {
+func TestGuardSwallowsPanic(_ *testing.T) {
 	func() {
 		defer guard("test")
 
@@ -64,7 +64,7 @@ func TestReportAndRepanicRepanics(t *testing.T) {
 	}()
 }
 
-func TestReportAndRepanicNoopWithoutPanic(t *testing.T) {
+func TestReportAndRepanicNoopWithoutPanic(_ *testing.T) {
 	func() {
 		defer reportAndRepanic()
 	}()

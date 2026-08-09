@@ -1,70 +1,29 @@
-FROM golang:1.26-alpine AS go-builder
-
-ARG RELEASE=dev
-
-WORKDIR /app
-
-COPY api/go.mod api/go.sum ./
-RUN go mod download
-
-COPY api/ .
-
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -X main.Release=${RELEASE}" -o ./bin/api ./cmd/api
-
-FROM golang:1.26-alpine AS gateway-builder
-
-ARG RELEASE=dev
-
-WORKDIR /app
-
-COPY gateway/go.mod gateway/go.sum ./
-RUN go mod download
-
-COPY gateway/ .
-
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -X main.Release=${RELEASE}" -o ./bin/gateway ./cmd/gateway
-
-FROM node:24-alpine AS web-builder
-
-ARG RELEASE=dev
-ARG SENTRY_ORG
-ARG SENTRY_PROJECT
-
-WORKDIR /app
-
-COPY web/package.json web/package-lock.json ./
-
-RUN npm ci
-
-COPY web/app app
-COPY web/components components
-COPY web/hooks hooks
-COPY web/lib lib
-COPY web/next.config.ts web/tsconfig.json web/postcss.config.js \
-     web/instrumentation-client.ts \
-     web/sentry.edge.config.ts web/sentry.server.config.ts \
-     web/next-env.d.ts ./
-
-ENV RELEASE=${RELEASE} \
-    SENTRY_ORG=${SENTRY_ORG} \
-    SENTRY_PROJECT=${SENTRY_PROJECT}
-# The auth token is a secret mount (not an ARG) so it never ends up in image
-# layers; without it the Sentry plugin skips the source-map upload.
-RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
-    npm run build
-
+# Assembly-only: api/gateway/web/kobo-gateway are each built and cached by
+# their own CI job (build-api.yml/build-gateway.yml/build-web.yml/
+# build-kobo-gateway.yml — a component whose source didn't change reuses
+# last build's binary instead of recompiling here) and downloaded by
+# docker.yml into the paths this COPYs from before `docker build` runs. No
+# compilation happens in this Dockerfile at all — see root CLAUDE.md's CI
+# section.
+#
 # Merged single-component image (issue #558; split into 3 processes in
-# #904): the `gateway` binary (built above, its own Go module) runs as PID 1
-# and spawns both `api` and `node server.js` as supervised children
-# (gateway/internal/gateway), reverse-proxying between them to replicate the
-# two DO ingress rules the separate api/web components used to get for
-# free — see gateway/CLAUDE.md. The base has to be node:24-alpine rather
-# than distroless because the image now carries the Node runtime regardless
-# — this is the exact base web/Dockerfile validated on before the merge.
-# #588's distroless win survives as a *memory* win (static, CGO-free Go
-# binaries with no Qt/Python peak) rather than an image-size one — see
-# api/CLAUDE.md.
+# #904): the `gateway` binary runs as PID 1 and spawns both `api` and `node
+# server.js` as supervised children (gateway/internal/gateway),
+# reverse-proxying between them to replicate the two DO ingress rules the
+# separate api/web components used to get for free — see gateway/CLAUDE.md.
+# The base has to be node:24-alpine rather than distroless because the
+# image now carries the Node runtime regardless — this is the exact base
+# web/Dockerfile validated on before the merge. #588's distroless win
+# survives as a *memory* win (static, CGO-free Go binaries with no
+# Qt/Python peak) rather than an image-size one — see api/CLAUDE.md.
 FROM node:24-alpine AS server
+
+ARG RELEASE=dev
+# The release actually baked into the bundled kobo-gateway .dmg/binary —
+# can lag behind RELEASE when kobo-gateway's own build was skipped
+# (unchanged source). See build-kobo-gateway.yml and
+# gateway/internal/gateway/config.go.
+ARG KOBO_GATEWAY_RELEASE=dev
 
 # The Go binaries call out to Supabase, R2, GitHub, Sentry, arXiv,
 # Hardcover, UniCat and Resend over HTTPS; distroless/static supplied the CA
@@ -74,13 +33,19 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /app
 
 ENV WEB_SERVER_JS=/app/web/server.js \
-    API_BIN_PATH=/app/bin/api
+    API_BIN_PATH=/app/bin/api \
+    RELEASE=${RELEASE} \
+    KOBO_GATEWAY_RELEASE=${KOBO_GATEWAY_RELEASE}
 
-COPY --from=go-builder /app/bin/api ./bin/api
-COPY --from=gateway-builder /app/bin/gateway ./bin/gateway
+COPY bin/api ./bin/api
+COPY bin/gateway ./bin/gateway
+RUN chmod +x ./bin/api ./bin/gateway
 
-COPY --from=web-builder /app/.next/standalone ./web/
-COPY --from=web-builder /app/.next/static ./web/.next/static
+# Fully-assembled .next/standalone + .next/static, built and combined by
+# build-web.yml — see that workflow for why static is folded in here rather
+# than copied separately (Next's standalone output excludes it by design).
+COPY web-standalone/ ./web/
+
 # Next standalone only serves public/ when it sits next to server.js; see
 # web/CLAUDE.md's "Static Downloads" note — web/public does not exist in the
 # repo otherwise. kobo-gateway.dmg + the raw binary are built on macOS by

@@ -1,6 +1,7 @@
 package kobogateway
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -65,13 +66,17 @@ func EnsureCert(dir string) (tls.Certificate, string, error) {
 	return cert, certPath, nil
 }
 
-func generateCert() (certPEM, keyPEM []byte, err error) {
+// serialBits sizes the certificate serial number's random range, per the
+// CA/Browser Forum baseline requirement of at least 64 bits of entropy.
+const serialBits = 128
+
+func generateCert() ([]byte, []byte, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate key: %w", err)
 	}
 
-	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), serialBits))
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate serial: %w", err)
 	}
@@ -89,7 +94,9 @@ func generateCert() (certPEM, keyPEM []byte, err error) {
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
 	}
 
-	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv)
+	der, err := x509.CreateCertificate(
+		rand.Reader, template, template, &priv.PublicKey, priv,
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("create certificate: %w", err)
 	}
@@ -99,8 +106,8 @@ func generateCert() (certPEM, keyPEM []byte, err error) {
 		return nil, nil, fmt.Errorf("marshal key: %w", err)
 	}
 
-	certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
-	keyPEM = pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
 
 	return certPEM, keyPEM, nil
 }
@@ -132,7 +139,10 @@ func EnsureTrusted(dir, certPath string, out io.Writer) error {
 		return nil
 	}
 
-	cmd := exec.Command("security", trustCertArgs(certPath)...)
+	//nolint:gosec //fixed macOS binary; certPath is our own generated cert, not user input
+	cmd := exec.CommandContext(
+		context.Background(), "security", trustCertArgs(certPath)...,
+	)
 	cmd.Stdout = out
 	cmd.Stderr = out
 	if err := cmd.Run(); err != nil {

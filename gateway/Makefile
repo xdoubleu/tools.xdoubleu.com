@@ -1,10 +1,8 @@
-RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
-
 run:
 	go run ./cmd/gateway
 
 build:
-	go build -ldflags="-w -s -X main.Release=$(RELEASE)" -o=./bin/gateway ./cmd/gateway
+	go build -ldflags="-w -s" -o=./bin/gateway ./cmd/gateway
 
 test:
 	go test ./...
@@ -17,9 +15,11 @@ test/cov: test/cov/report
 	go tool cover -html=coverage.out -o=coverage.html
 	open ./coverage.html
 
-lint:
-	go vet ./...
-	gofmt -l .
+tools/lint:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
-lint/fix:
-	gofmt -w .
+lint: tools/lint
+	golangci-lint run
+
+lint/fix: tools/lint
+	golangci-lint run --fix

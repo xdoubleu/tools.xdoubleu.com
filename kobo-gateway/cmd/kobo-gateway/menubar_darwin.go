@@ -6,6 +6,7 @@ package main
 import "C"
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"os"
@@ -66,6 +67,8 @@ var (
 // init wires the platform-agnostic notify seam (see notify.go) to the real
 // UNUserNotificationCenter call, so server.go's self-update lifecycle
 // notifications (#456) actually reach the menu bar on macOS.
+//
+//nolint:gochecknoinits //only way to wire notify.go's seam before main runs
 func init() {
 	notify = postNotification
 }
@@ -173,12 +176,11 @@ func execUpdatedBinary() error {
 	if appDir := kobogateway.AppBundlePath(executable); appDir != "" {
 		fmt.Fprintln(os.Stdout, "updated, relaunching app bundle…")
 
-		return exec.Command("open", "-n", appDir).Start()
+		return exec.CommandContext(context.Background(), "open", "-n", appDir).Start()
 	}
 
 	fmt.Fprintln(os.Stdout, "updated, restarting into the new binary…")
 
-	//nolint:gosec //re-execs our own path as reported by os.Executable
 	return syscall.Exec(executable, os.Args, os.Environ())
 }
 
@@ -203,8 +205,9 @@ func buildStatusItem(release, homeDir, execPath string) {
 
 	menu := appkit.NewMenu()
 
+	shortRelease := kobogateway.ShortRelease(release)
 	header := appkit.NewMenuItemWithTitleActionKeyEquivalent(
-		fmt.Sprintf("Kobo Gateway %s — for tools.xdoubleu.com", release),
+		fmt.Sprintf("Kobo Gateway %s — for tools.xdoubleu.com", shortRelease),
 		objc.Sel(""), "")
 	header.SetEnabled(false)
 	menu.AddItem(header)
@@ -249,7 +252,8 @@ func buildStatusItem(release, homeDir, execPath string) {
 // pane — the documented URL scheme for opening a specific settings pane
 // programmatically (there's no public API to jump to a single app's page
 // within it, so this lands one level up).
-const notificationSettingsURL = "x-apple.systempreferences:com.apple.preference.notifications"
+const notificationSettingsURL = "x-apple.systempreferences:" +
+	"com.apple.preference.notifications"
 
 // promptEnableNotifications shows a first-launch alert steering the user to
 // enable notifications, backing up requestNotificationAuth's OS prompt —
@@ -305,7 +309,6 @@ func toggleLoginItem(item appkit.MenuItem, homeDir, execPath string) {
 // calls must happen on the main queue, so each event is redispatched there.
 func watchKobos(events <-chan kobogateway.KoboEvent, release string) {
 	for ev := range events {
-		ev := ev
 		dispatch.MainQueue().DispatchAsync(func() {
 			defer guard("applyKoboEvent")
 
@@ -379,7 +382,9 @@ func postNotification(title, body string) {
 	defer guard("postNotification")
 
 	objc.WithAutoreleasePool(func() {
-		content := objc.Call[objc.Object](objc.GetClass("UNMutableNotificationContent"), objc.Sel("new"))
+		content := objc.Call[objc.Object](
+			objc.GetClass("UNMutableNotificationContent"), objc.Sel("new"),
+		)
 		content.Autorelease()
 		objc.Call[objc.Void](content, objc.Sel("setTitle:"), title)
 
