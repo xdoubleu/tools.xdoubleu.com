@@ -25,8 +25,14 @@ comment:
 # session under go test (see kobo-gateway/CLAUDE.md) — it's exercised
 # manually, not by go test, so it's permanently 0% and shouldn't count
 # against patch coverage on every kobo-gateway PR that touches it.
+#
+# gateway/cmd/gateway/main.go wires up config/logging/Sentry and starts the
+# real HTTP server plus both supervised child processes — there's no
+# main_test.go and none of that is meaningfully unit-testable without
+# spinning up real processes, so it's permanently 0% too.
 ignore:
   - "kobo-gateway/cmd/kobo-gateway/menubar_darwin.go"
+  - "gateway/cmd/gateway/main.go"
 
 flags:
   api:
