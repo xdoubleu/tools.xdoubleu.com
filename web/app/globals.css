@@ -153,3 +153,23 @@ button:not([disabled]) {
   width: 100% !important;
   table-layout: fixed;
 }
+
+/*
+ * Third-party HTML is authored for a white page: it ships inline
+ * `style="color:#333"` / legacy `color=`/`bgcolor=` attributes, and
+ * `@tailwindcss/typography` adds its own light-only palette for `a`,
+ * `strong`, headings and `code`. Both survive into dark mode as near-black
+ * text on a near-black background (#921). Nothing a source sets can be
+ * trusted against our surface, so drop its colors entirely — `!important`
+ * to beat inline styles — and re-derive from the theme. Only descendants
+ * are targeted; the container itself keeps whatever `text-*` its call site
+ * chose (e.g. recipes uses `text-subtle`).
+ */
+.prose * {
+  background-color: transparent !important;
+  color: rgb(var(--fg-rgb)) !important;
+}
+
+.prose :is(a, a *) {
+  color: rgb(var(--accent-rgb)) !important;
+}
