@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { getApiUrl } from '@/lib/env'
@@ -58,9 +59,12 @@ export function useSetGameFavourite() {
   return (gameId: number, favourite: boolean) => client.setGameFavourite({ gameId, favourite })
 }
 
+// Stable identity matters here: SteamGameClient's high-poll setInterval effect
+// depends on this function, so a new one per render would restart the timer on
+// every render and the poll would never fire.
 export function useRefreshSteamGame() {
-  const client = createServiceClient(GamesService)
-  return (gameId: number) => client.refreshSteamGame({ gameId })
+  const client = useMemo(() => createServiceClient(GamesService), [])
+  return useCallback((gameId: number) => client.refreshSteamGame({ gameId }), [client])
 }
 
 export function useRefreshSteam() {
