@@ -31,7 +31,7 @@ export default function BookProgressEditor({ userBook, onSaved }: BookProgressEd
     if (isSaving) return
     setIsSaving(true)
     try {
-      await updateProgress({ bookId: userBook.id, progressMode, currentPage, progressPercent })
+      await updateProgress({ bookId: userBook.bookId, progressMode, currentPage, progressPercent })
       mutate(swrKeys.books)
       onSaved?.()
       setEditing(false)

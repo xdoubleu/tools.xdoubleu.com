@@ -34,6 +34,7 @@ function makeBook(
 ) {
   return create(UserBookSchema, {
     id: 'ub-1',
+    bookId: 'book-1',
     status: 'currently-reading',
     progressMode: overrides.progressMode ?? 'pages',
     currentPage: overrides.currentPage ?? 50,
@@ -77,7 +78,7 @@ describe('BookProgressEditor', () => {
 
     await waitFor(() => {
       expect(mockUpdateProgress).toHaveBeenCalledWith({
-        bookId: 'ub-1',
+        bookId: 'book-1',
         progressMode: 'pages',
         currentPage: 120,
         progressPercent: 0
