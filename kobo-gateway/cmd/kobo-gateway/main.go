@@ -201,6 +201,8 @@ func certDir() (string, error) {
 // serve runs the gateway and its menu-bar UI on the main thread until it
 // fails, the user quits from the menu, or a successful self-update asks for
 // a restart (in which case it re-execs the freshly replaced binary).
+//
+//nolint:funlen
 func serve(
 	gateway *kobogateway.Server,
 	cfg kobogateway.Config,
@@ -293,7 +295,26 @@ func serve(
 	// before the headless branch below so go test still exercises it.
 	firstLaunch := kobogateway.IsFirstLaunch(certsDir)
 
-	runOrWaitForUI(cfg, certsDir, stop, koboEvents, firstLaunch, stdout)
+	//nolint:nestif //extracting this only relocates coverage gaps, see git history
+	if headless {
+		<-stop
+	} else {
+		homeDir, _ := os.UserHomeDir()
+		execPath, _ := os.Executable()
+
+		if homeDir != "" && execPath != "" {
+			err = kobogateway.EnsureInitialLoginItem(certsDir, homeDir, execPath)
+			if err != nil {
+				fmt.Fprintln(stdout, "warning: could not register login item:", err)
+			}
+
+			if err = kobogateway.SyncLoginItem(homeDir, execPath); err != nil {
+				fmt.Fprintln(stdout, "warning: could not refresh login item:", err)
+			}
+		}
+
+		runUI(cfg.Release, stop, koboEvents, homeDir, execPath, firstLaunch)
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(
 		context.Background(),
@@ -318,40 +339,4 @@ func serve(
 
 	//nolint:gosec //re-execs our own path as reported by os.Executable
 	return syscall.Exec(executable, os.Args, os.Environ())
-}
-
-// runOrWaitForUI blocks on stop directly under `go test`/headless mode (no
-// window-server session, no login-item registration touching the real
-// ~/Library/LaunchAgents) or otherwise registers the login item and shows
-// the real menu bar.
-func runOrWaitForUI(
-	cfg kobogateway.Config,
-	certsDir string,
-	stop chan struct{},
-	koboEvents <-chan kobogateway.KoboEvent,
-	firstLaunch bool,
-	stdout io.Writer,
-) {
-	if headless {
-		<-stop
-
-		return
-	}
-
-	homeDir, _ := os.UserHomeDir()
-	execPath, _ := os.Executable()
-
-	if homeDir != "" && execPath != "" {
-		err := kobogateway.EnsureInitialLoginItem(certsDir, homeDir, execPath)
-		if err != nil {
-			fmt.Fprintln(stdout, "warning: could not register login item:", err)
-		}
-
-		err = kobogateway.SyncLoginItem(homeDir, execPath)
-		if err != nil {
-			fmt.Fprintln(stdout, "warning: could not refresh login item:", err)
-		}
-	}
-
-	runUI(cfg.Release, stop, koboEvents, homeDir, execPath, firstLaunch)
 }

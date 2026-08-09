@@ -1,6 +1,7 @@
 package gateway_test
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +14,16 @@ import (
 
 	"tools.xdoubleu.com/gateway/internal/gateway"
 )
+
+// brokenResponseWriter fails every Write, to exercise NewHandler's
+// WriteJSON-error logging branch on the /gateway/version route.
+type brokenResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (brokenResponseWriter) Write([]byte) (int, error) {
+	return 0, errors.New("write failed")
+}
 
 // stubUpstreamPort starts an httptest.Server standing in for a child
 // process and returns the port NewHandler should target.
@@ -88,6 +99,21 @@ func TestNewHandler_VersionAnsweredDirectly(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.JSONEq(t, `{"release": "abc1234"}`, rr.Body.String())
+}
+
+func TestNewHandler_VersionLogsWriteFailure(t *testing.T) {
+	apiPort := stubUpstreamPort(t, http.NotFoundHandler())
+	webPort := stubUpstreamPort(t, http.NotFoundHandler())
+	handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/gateway/version", nil)
+
+	// Only assert this doesn't panic — the broken writer's error is logged,
+	// not surfaced to the caller, matching NewHandler's other error paths.
+	assert.NotPanics(t, func() {
+		handler.ServeHTTP(brokenResponseWriter{ResponseWriter: rr}, req)
+	})
 }
 
 func TestNewHandler_ProxiesEverythingElseToWeb(t *testing.T) {

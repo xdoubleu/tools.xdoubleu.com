@@ -69,9 +69,7 @@ func writeLoginItemPlist(homeDir, execPath string) error {
 		return fmt.Errorf("create LaunchAgents dir: %w", err)
 	}
 
-	if err := os.WriteFile(
-		path, []byte(loginItemPlist(execPath)), loginItemFilePerm,
-	); err != nil {
+	if err := os.WriteFile(path, []byte(loginItemPlist(execPath)), loginItemFilePerm); err != nil { //nolint:lll
 		return fmt.Errorf("write login item: %w", err)
 	}
 

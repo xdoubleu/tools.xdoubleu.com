@@ -55,8 +55,11 @@ func New(logger *slog.Logger) Config {
 
 	cfg.Env = parser.EnvStr("ENV", config.ProdEnv)
 	cfg.SentryDsn = parser.EnvStr("SENTRY_DSN", "")
-	cfg.Release = parser.EnvStr("RELEASE", config.DevEnv)
-	cfg.KoboGatewayRelease = parser.EnvStr("KOBO_GATEWAY_RELEASE", config.DevEnv)
+	// "dev" (not config.DevEnv/"development") — web's getRelease() and the
+	// kobo-gateway update-check both hardcode this exact literal as the
+	// "no real deploy" sentinel.
+	cfg.Release = parser.EnvStr("RELEASE", "dev")
+	cfg.KoboGatewayRelease = parser.EnvStr("KOBO_GATEWAY_RELEASE", "dev")
 
 	cfg.Port = parser.EnvInt("PORT", defaultPort)
 	cfg.APIPort = parser.EnvInt("API_PORT", defaultAPIPort)

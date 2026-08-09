@@ -122,6 +122,37 @@ describe('Footer', () => {
     expect(screen.queryByText(/^api /)).not.toBeInTheDocument()
   })
 
+  it('does not render a badge when its fetch returns a non-OK response', async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.endsWith('/api/version')) return Promise.resolve(jsonResponse('', false))
+      return Promise.resolve(jsonResponse(''))
+    })
+
+    render(<Footer />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/xdoubleu/)).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/^api /)).not.toBeInTheDocument()
+  })
+
+  it('does not render a badge when the response body has no release field', async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.endsWith('/api/version'))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+      return Promise.resolve(jsonResponse(''))
+    })
+
+    render(<Footer />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/xdoubleu/)).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/^api /)).not.toBeInTheDocument()
+  })
+
   it('uses responsive Tailwind classes for layout', async () => {
     const { container } = render(<Footer />)
 

@@ -100,6 +100,13 @@ describe('getKoboGatewayRelease', () => {
 
     expect(getKoboGatewayRelease()).toBe('')
   })
+
+  it('defaults to dev when window.__ENV__ itself is undefined', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-type-assertion
+    window.__ENV__ = undefined as any
+
+    expect(getKoboGatewayRelease()).toBe('dev')
+  })
 })
 
 describe('getApiUrl', () => {

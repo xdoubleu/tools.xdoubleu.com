@@ -94,9 +94,7 @@ func generateCert() ([]byte, []byte, error) {
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
 	}
 
-	der, err := x509.CreateCertificate(
-		rand.Reader, template, template, &priv.PublicKey, priv,
-	)
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv) //nolint:lll
 	if err != nil {
 		return nil, nil, fmt.Errorf("create certificate: %w", err)
 	}
@@ -139,10 +137,8 @@ func EnsureTrusted(dir, certPath string, out io.Writer) error {
 		return nil
 	}
 
-	//nolint:gosec //fixed macOS binary; certPath is our own generated cert, not user input
-	cmd := exec.CommandContext(
-		context.Background(), "security", trustCertArgs(certPath)...,
-	)
+	//nolint:gosec,lll //fixed macOS binary; certPath is our own generated cert, not user input
+	cmd := exec.CommandContext(context.Background(), "security", trustCertArgs(certPath)...)
 	cmd.Stdout = out
 	cmd.Stderr = out
 	if err := cmd.Run(); err != nil {
