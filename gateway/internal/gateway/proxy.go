@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
+	"tools.xdoubleu.com/gateway/internal/communication/httptools"
+	"tools.xdoubleu.com/gateway/internal/logging"
 )
 
 // healthPath is the api child's health-check route — routed unstripped,
@@ -70,7 +70,7 @@ func NewHandler(
 			if err := httptools.WriteJSON(
 				w, http.StatusOK, map[string]string{"release": release}, nil,
 			); err != nil {
-				logger.Error("failed to write version response", essentialogger.ErrAttr(err))
+				logger.Error("failed to write version response", logging.ErrAttr(err))
 			}
 		case r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/"):
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
@@ -100,7 +100,7 @@ func newReverseProxy(port int, logger *slog.Logger) *httputil.ReverseProxy {
 			"upstream process unreachable",
 			slog.Int("port", port),
 			slog.String("path", r.URL.Path),
-			essentialogger.ErrAttr(err),
+			logging.ErrAttr(err),
 		)
 		http.Error(w, "upstream process unavailable", http.StatusServiceUnavailable)
 	}

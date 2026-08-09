@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
-	"github.com/xdoubleu/essentia/v4/pkg/sentrytools"
 
+	"tools.xdoubleu.com/gateway/internal/communication/httptools"
 	"tools.xdoubleu.com/gateway/internal/gateway"
+	"tools.xdoubleu.com/gateway/internal/logging"
+	"tools.xdoubleu.com/gateway/internal/sentrytools"
 )
 
 const (
@@ -66,6 +66,6 @@ func main() {
 	}
 	err = httptools.Serve(logger, srv, cfg.Env)
 	if err != nil {
-		logger.Error("failed to serve gateway", essentialogger.ErrAttr(err))
+		logger.Error("failed to serve gateway", logging.ErrAttr(err))
 	}
 }

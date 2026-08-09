@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
+	"tools.xdoubleu.com/gateway/internal/logging"
 )
 
 // childProcessStopTimeout bounds how long Stop waits for a clean exit before
@@ -69,7 +69,7 @@ func (c *ChildProcess) waitAndSignalOnUnexpectedExit(logger *slog.Logger) {
 	}
 
 	logger.Error(
-		c.name+" process exited unexpectedly", essentialogger.ErrAttr(err),
+		c.name+" process exited unexpectedly", logging.ErrAttr(err),
 	)
 	shutdownSignal()
 }
