@@ -1,6 +1,8 @@
 package gateway_test
 
 import (
+	"bytes"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,4 +35,21 @@ func TestNew_ReadsEnvOverrides(t *testing.T) {
 	assert.Equal(t, 9000, cfg.Port)
 	assert.Equal(t, 9001, cfg.APIPort)
 	assert.Equal(t, 9002, cfg.WebPort)
+}
+
+func TestNew_DoesNotLogSentryDsnValues(t *testing.T) {
+	const dsn = "https://public@sentry.example/1"
+	t.Setenv("SENTRY_DSN", dsn)
+	t.Setenv("SENTRY_DSN_WEB", dsn)
+
+	var buf bytes.Buffer
+	cfg := gateway.New(slog.New(slog.NewTextHandler(&buf, nil)))
+
+	assert.Equal(t, dsn, cfg.SentryDsn)
+	assert.Equal(t, dsn, cfg.SentryDsnWeb)
+
+	logs := buf.String()
+	assert.NotContains(t, logs, dsn)
+	assert.Contains(t, logs, "SENTRY_DSN'='<redacted>'")
+	assert.Contains(t, logs, "SENTRY_DSN_WEB'='<redacted>'")
 }

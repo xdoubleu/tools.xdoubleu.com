@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"bytes"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,6 +37,22 @@ func TestEnvIntPanicsOnInvalidValue(t *testing.T) {
 	assert.Panics(t, func() {
 		c.EnvInt("GW_CFG_INT_BAD", 0)
 	})
+}
+
+func TestEnvSecretDoesNotLogValue(t *testing.T) {
+	const secret = "super-secret-dsn"
+	t.Setenv("GW_CFG_SECRET", secret)
+
+	var buf bytes.Buffer
+	c := config.New(slog.New(slog.NewTextHandler(&buf, nil)))
+
+	assert.Equal(t, secret, c.EnvSecret("GW_CFG_SECRET", ""))
+	assert.Empty(t, c.EnvSecret("GW_CFG_SECRET_MISSING", ""))
+
+	logs := buf.String()
+	assert.NotContains(t, logs, secret)
+	assert.Contains(t, logs, "GW_CFG_SECRET'='<redacted>'")
+	assert.Contains(t, logs, "GW_CFG_SECRET_MISSING'='<unset>'")
 }
 
 func TestEnvConstants(t *testing.T) {

@@ -3,10 +3,11 @@ package gateway
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"tools.xdoubleu.com/gateway/internal/logging"
 )
 
 func testConfig() Config {
@@ -43,7 +44,8 @@ func TestNewAPICmd_UsesAPIBinPath(t *testing.T) {
 	cmd := NewAPICmd(context.Background(), testConfig())
 
 	assert.Equal(t, "api-bin", cmd.Args[0])
-	assert.Equal(t, os.Stdout, cmd.Stdout)
+	assert.IsType(t, &logging.PrefixWriter{}, cmd.Stdout)
+	assert.IsType(t, &logging.PrefixWriter{}, cmd.Stderr)
 }
 
 func TestWebProcessEnv(t *testing.T) {
@@ -60,4 +62,6 @@ func TestNewWebCmd_UsesWebNodeBinAndServerJS(t *testing.T) {
 	cmd := NewWebCmd(context.Background(), testConfig())
 
 	assert.Equal(t, []string{"node", "unused"}, cmd.Args)
+	assert.IsType(t, &logging.PrefixWriter{}, cmd.Stdout)
+	assert.IsType(t, &logging.PrefixWriter{}, cmd.Stderr)
 }

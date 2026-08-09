@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+
+	"tools.xdoubleu.com/gateway/internal/logging"
 )
 
 // NewAPICmd builds the api child's command. api is our own trusted binary
@@ -15,8 +17,8 @@ func NewAPICmd(ctx context.Context, cfg Config) *exec.Cmd {
 	//nolint:gosec // cfg.APIBinPath is server-owned config, not user input
 	cmd := exec.CommandContext(ctx, cfg.APIBinPath)
 	cmd.Env = apiProcessEnv(cfg)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = logging.NewPrefixWriter("api", os.Stdout)
+	cmd.Stderr = logging.NewPrefixWriter("api", os.Stderr)
 
 	return cmd
 }
@@ -41,8 +43,8 @@ func NewWebCmd(ctx context.Context, cfg Config) *exec.Cmd {
 	//nolint:gosec // WebNodeBin/WebServerJS are server-owned config, not user input
 	cmd := exec.CommandContext(ctx, cfg.WebNodeBin, cfg.WebServerJS)
 	cmd.Env = webProcessEnv(cfg)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = logging.NewPrefixWriter("web", os.Stdout)
+	cmd.Stderr = logging.NewPrefixWriter("web", os.Stderr)
 
 	return cmd
 }
