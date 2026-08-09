@@ -43,8 +43,3 @@ jobs:
           make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
           echo -n "${{ github.sha }}" > dist/kobo-gateway/RELEASE
         working-directory: './kobo-gateway'
-      - uses: actions/upload-artifact@v7
-        with:
-          name: kobo-gateway-dist
-          path: kobo-gateway/dist/kobo-gateway/
-          retention-days: 7

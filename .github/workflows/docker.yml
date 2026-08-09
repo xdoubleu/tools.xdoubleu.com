@@ -17,10 +17,13 @@ on:
         value: ${{ jobs.docker-app.outputs.built }}
 
 jobs:
-  # Assembly-only — api/gateway/web/kobo-gateway are each built by their own
-  # workflow (build-api.yml/build-gateway.yml/build-web.yml/
-  # build-kobo-gateway.yml), which the caller (main.yml) runs before calling
-  # this one and hands off as artifacts here. No compilation happens in this
+  # Assembly-only — api/gateway/web are each built and pushed to GHCR by
+  # their own workflow (build-api.yml/build-gateway.yml/build-web.yml); the
+  # root Dockerfile's `FROM ghcr.io/.../<component>:latest` always resolves
+  # to whatever was pushed last time that component's subtree actually
+  # changed, so this job needs no cache-key logic for them at all. Only
+  # kobo-gateway (macOS-only, can't be a Docker build stage) is fed in here
+  # via a restored `actions/cache` entry. No compilation happens in this
   # job; see root Dockerfile and CLAUDE.md's CI section.
   docker-app:
     name: Docker Build & Push App
@@ -32,34 +35,36 @@ jobs:
     outputs:
       built: ${{ steps.build.conclusion == 'success' }}
     steps:
+      # Same ref as build-kobo-gateway.yml (PR head branch, not the default
+      # merge commit) so hashFiles('kobo-gateway/**') below reproduces the
+      # exact key that workflow wrote — a mismatched tree would compute a
+      # different hash and always cache-miss.
       - uses: actions/checkout@v7
-
-      - uses: actions/download-artifact@v8
         with:
-          name: api-bin
-          path: bin/
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: gateway-bin
-          path: bin/
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: web-standalone
-          path: web-standalone/
+          ref: ${{ github.head_ref || github.ref_name }}
 
       # kobo-gateway.dmg + the raw binary, built on macOS by
       # build-kobo-gateway.yml (see
-      # kobo-gateway/cmd/kobo-gateway/menubar_darwin.go for why). The root
-      # Dockerfile COPYs these straight into web/public/downloads/. The
-      # RELEASE file records the actual release baked into this artifact —
-      # can be older than this deploy's SHA when kobo-gateway/ was
+      # kobo-gateway/cmd/kobo-gateway/menubar_darwin.go for why). The
+      # RELEASE file records the actual release baked into this cache
+      # entry — can be older than this deploy's SHA when kobo-gateway/ was
       # unchanged and its build was cache-skipped.
-      - uses: actions/download-artifact@v8
+      - uses: actions/cache/restore@v6
+        id: cache-kobo-gateway
         with:
-          name: kobo-gateway-dist
-          path: web/public/downloads/
+          path: kobo-gateway/dist/kobo-gateway
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
+
+      - name: Fail if kobo-gateway's build cache is missing
+        if: steps.cache-kobo-gateway.outputs.cache-hit != 'true'
+        run: |
+          echo "::error::kobo-gateway's build cache is missing for the current source (cold cache or eviction) and build-kobo-gateway.yml didn't run in this workflow. Trigger it via workflow_dispatch to repopulate the cache, then re-run this job." >&2
+          exit 1
+
+      - name: Arrange kobo-gateway files for the Docker build context
+        run: |
+          mkdir -p web/public/downloads
+          cp -r kobo-gateway/dist/kobo-gateway/. web/public/downloads/
 
       - name: Read kobo-gateway's bundled release
         id: kobo-gateway-release

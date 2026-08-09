@@ -92,8 +92,7 @@ make lint / make lint/fix   # golangci-lint, shared root .golangci.yml config
 
 No cgo/AppKit constraint here (unlike `kobo-gateway/`) — builds and tests
 run on ordinary Linux CI runners, `build-gateway.yml`/`gateway-lint.yml`/
-`gateway-test.yml`, same shape as `api`'s. `build-gateway.yml` is now the
-sole producer of the deploy binary (cacheable, see root `CLAUDE.md`'s CI
-section) — the root `Dockerfile` no longer has a `gateway-builder` compile
-stage, it just downloads and `COPY`s the artifact in, same as
-kobo-gateway's `.dmg` always has.
+`gateway-test.yml`, same shape as `api`'s. `gateway/Dockerfile` compiles the
+binary and is built + pushed to its own GHCR repo by `build-gateway.yml`
+(BuildKit-cached, see root `CLAUDE.md`'s CI section); the root `Dockerfile`
+never compiles it, just pulls that image and `COPY --from=`s the binary in.
