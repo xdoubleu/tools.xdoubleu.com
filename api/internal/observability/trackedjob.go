@@ -34,19 +34,6 @@ type TrackedJob struct {
 
 var _ threading.Job = (*TrackedJob)(nil)
 
-// scheduledTrackedJob decorates a threading.Scheduled job, so wrapping it in
-// TrackedJob doesn't hide it from JobQueue's periodic tick.
-type scheduledTrackedJob struct {
-	*TrackedJob
-	scheduled threading.Scheduled
-}
-
-var _ threading.Scheduled = (*scheduledTrackedJob)(nil)
-
-func (j *scheduledTrackedJob) RunEvery() time.Duration {
-	return j.scheduled.RunEvery()
-}
-
 // NewTrackedJob decorates inner. If inner implements threading.Scheduled,
 // the returned Job does too, forwarding RunEvery — otherwise inner is
 // trigger-only and the returned Job stays trigger-only as well.
@@ -111,4 +98,17 @@ func (j *TrackedJob) record(
 			essentialogger.ErrAttr(insertErr),
 		)
 	}
+}
+
+// scheduledTrackedJob decorates a threading.Scheduled job, so wrapping it in
+// TrackedJob doesn't hide it from JobQueue's periodic tick.
+type scheduledTrackedJob struct {
+	*TrackedJob
+	scheduled threading.Scheduled
+}
+
+var _ threading.Scheduled = (*scheduledTrackedJob)(nil)
+
+func (j *scheduledTrackedJob) RunEvery() time.Duration {
+	return j.scheduled.RunEvery()
 }
