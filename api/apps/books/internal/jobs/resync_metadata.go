@@ -13,10 +13,10 @@ import (
 
 // ResyncMetadataJob scans the whole catalog for metadata differences
 // against UniCat and Hardcover, and stores what it finds for
-// the admin resync wizard to review. It is on-demand only, triggered by the
-// admin resync wizard's StartResync RPC (Arm + JobQueue.ForceRun): RunEvery
-// exists only to satisfy JobQueue's interface, and Run() no-ops unless armed,
-// so the 24h scheduler tick never does real work on its own.
+// the admin resync wizard to review. It is trigger-only (RunEvery <= 0): the
+// scheduler tick never runs it, only the admin resync wizard's StartResync
+// RPC does (Arm + JobQueue.ForceRun). The armed guard stays as a second,
+// cheap check against Run() ever being invoked without an Arm() first.
 //
 // force bypasses the skip-if-known cache for every source — see
 // BookService.BuildResyncProposals.
@@ -50,9 +50,9 @@ func (j *ResyncMetadataJob) ID() string {
 	return "resync-books"
 }
 
+// RunEvery <= 0 marks this job trigger-only — see threading.Job.
 func (j *ResyncMetadataJob) RunEvery() time.Duration {
-	const hoursInDay = 24
-	return hoursInDay * time.Hour
+	return 0
 }
 
 // Arm marks the job to scan the whole catalog on the next Run call. force

@@ -145,6 +145,24 @@ func TestForceRunBypassesSchedule(t *testing.T) {
 	waitFor(t, func() bool { return calls.get() >= 1 })
 }
 
+func TestTriggerOnlyJobNeverRunsOnTick(t *testing.T) {
+	old := tickInterval
+	tickInterval = 10 * time.Millisecond
+	t.Cleanup(func() { tickInterval = old })
+
+	q := newTestQueue(t, newFakeRepo())
+	calls := new(atomicInt)
+	job := fakeJob{id: "job-trigger-only", runEvery: 0, calls: calls}
+
+	require.NoError(t, q.AddJob(job, noopCallback))
+
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, 0, calls.get())
+
+	q.ForceRun("job-trigger-only")
+	waitFor(t, func() bool { return calls.get() >= 1 })
+}
+
 func TestFetchJobIDsAndState(t *testing.T) {
 	q := newTestQueue(t, newFakeRepo())
 	calls := new(atomicInt)
