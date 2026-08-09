@@ -81,47 +81,37 @@ jobs:
     uses: ./.github/workflows/proto-check.yml
     secrets: inherit
 
-  # build-api/build-web/build-gateway/build-kobo-gateway are the sole
-  # producers of the merged image's four artifacts (see docker.yml) — they
-  # now run whenever docker-check (PR) or docker (push) will run, not just
-  # when their own subtree changed, since the image always needs a current
-  # copy of all four to assemble. Each one is still cheap when its own
-  # source didn't change: its own workflow caches the build keyed on
-  # hashFiles(<module>/**) and restores instantly instead of recompiling —
-  # see build-api.yml/build-gateway.yml/build-web.yml/build-kobo-gateway.yml
-  # and root CLAUDE.md's CI section.
+  # Each build-* job is gated on its OWN subtree only (issue #948) — unlike
+  # docker-check/docker below, which still need every job's *result* since
+  # the merged image needs a current binary for all four. A job that's
+  # skipped here just means docker.yml restores that component's binary
+  # straight from its actions/cache entry (same key this workflow writes)
+  # instead of a same-run artifact — see docker.yml's docker-app job.
   build-api:
     needs: [changes, proto-check]
     if: |
       always() &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped') &&
       (github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')))
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true')
     name: Build API Workflow
     uses: ./.github/workflows/build-api.yml
     secrets: inherit
 
+  # kobo_gateway is deliberately not in this gate: web's own `npm run
+  # build` has no dependency on kobo-gateway/ source (docker.yml copies the
+  # .dmg into web/public/downloads AFTER build-web.yml already ran).
   build-web:
     needs: [changes, proto-check]
     if: |
       always() &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped') &&
       (github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')))
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.workflows == 'true')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
@@ -133,14 +123,8 @@ jobs:
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')))
+      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.workflows == 'true')
     name: Build Gateway Workflow
     uses: ./.github/workflows/build-gateway.yml
     secrets: inherit
@@ -152,14 +136,8 @@ jobs:
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-        (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' ||
-         needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' ||
-         needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true')))
+      needs.changes.outputs.kobo_gateway == 'true' ||
+      needs.changes.outputs.workflows == 'true')
     name: Build Kobo Gateway Workflow
     uses: ./.github/workflows/build-kobo-gateway.yml
     secrets: inherit
@@ -271,10 +249,10 @@ jobs:
       always() &&
       github.event_name == 'pull_request' &&
       (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true') &&
-      needs.build-api.result == 'success' &&
-      needs.build-web.result == 'success' &&
-      needs.build-gateway.result == 'success' &&
-      needs.build-kobo-gateway.result == 'success'
+      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
+      (needs.build-gateway.result == 'success' || needs.build-gateway.result == 'skipped') &&
+      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped')
     name: Docker Build Check Workflow
     uses: ./.github/workflows/docker.yml
     with:
@@ -386,10 +364,10 @@ jobs:
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      needs.build-api.result == 'success' &&
-      needs.build-web.result == 'success' &&
-      needs.build-gateway.result == 'success' &&
-      needs.build-kobo-gateway.result == 'success'
+      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
+      (needs.build-gateway.result == 'success' || needs.build-gateway.result == 'skipped') &&
+      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped')
     name: Docker Build & Push Workflow
     uses: ./.github/workflows/docker.yml
     with:

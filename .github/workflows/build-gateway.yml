@@ -31,7 +31,3 @@ jobs:
         run: |
           CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ./bin/gateway ./cmd/gateway
         working-directory: './gateway'
-      - uses: actions/upload-artifact@v7
-        with:
-          name: gateway-bin
-          path: gateway/bin/gateway

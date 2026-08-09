@@ -33,7 +33,3 @@ jobs:
         run: |
           CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ./bin/api ./cmd/api
         working-directory: './api'
-      - uses: actions/upload-artifact@v7
-        with:
-          name: api-bin
-          path: api/bin/api
