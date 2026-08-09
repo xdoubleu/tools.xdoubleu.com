@@ -42,41 +42,45 @@
   --glass-opacity: 0.72;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Base surfaces */
-    --bg-rgb: 0 0 0;
-    --surface-rgb: 28 28 30;
-    --card-rgb: 28 28 30;
-    /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
-    --hover-rgb: 44 44 46;
+/*
+ * Dark values key off `data-theme` rather than `prefers-color-scheme`, so the
+ * Appearance setting (auto/light/dark) can force a scheme. The inline script in
+ * `app/layout.tsx` (`themeInitScript` in `lib/theme.ts`) resolves the stored
+ * preference — including `auto` → system — onto <html> before first paint.
+ */
+:root[data-theme='dark'] {
+  /* Base surfaces */
+  --bg-rgb: 0 0 0;
+  --surface-rgb: 28 28 30;
+  --card-rgb: 28 28 30;
+  /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
+  --hover-rgb: 44 44 46;
 
-    /* Text */
-    --fg-rgb: 255 255 255;
-    --muted-rgb: 152 152 157;
-    --subtle-rgb: 174 174 178;
+  /* Text */
+  --fg-rgb: 255 255 255;
+  --muted-rgb: 152 152 157;
+  --subtle-rgb: 174 174 178;
 
-    /* Borders */
-    --border-rgb: 58 58 60;
+  /* Borders */
+  --border-rgb: 58 58 60;
 
-    /* Inputs */
-    --input-rgb: 44 44 46;
-    --input-border-rgb: 72 72 74;
-    --input-text-rgb: 255 255 255;
+  /* Inputs */
+  --input-rgb: 44 44 46;
+  --input-border-rgb: 72 72 74;
+  --input-text-rgb: 255 255 255;
 
-    /* Accent — Apple system blue dark */
-    --accent-rgb: 10 132 255;
-    --accent-hover-rgb: 64 156 255;
+  /* Accent — Apple system blue dark */
+  --accent-rgb: 10 132 255;
+  --accent-hover-rgb: 64 156 255;
 
-    /* Semantic */
-    --success-rgb: 48 209 88;
-    --warn-rgb: 255 159 10;
-    --danger-rgb: 255 69 58;
+  /* Semantic */
+  --success-rgb: 48 209 88;
+  --warn-rgb: 255 159 10;
+  --danger-rgb: 255 69 58;
 
-    /* Glass shell — dark translucent */
-    --glass-rgb: 28 28 30;
-    --glass-opacity: 0.8;
-  }
+  /* Glass shell — dark translucent */
+  --glass-rgb: 28 28 30;
+  --glass-opacity: 0.8;
 }
 
 @theme inline {
