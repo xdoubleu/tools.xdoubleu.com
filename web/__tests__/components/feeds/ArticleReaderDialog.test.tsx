@@ -211,4 +211,48 @@ describe('ArticleReaderDialog', () => {
       jest.useRealTimers()
     }
   })
+
+  it('opens an enlarged pop-up when an article image is clicked', () => {
+    const item = create(ItemSchema, {
+      id: 'item-1',
+      title: 'Article',
+      contentHtml:
+        '<p>Body</p><a href="https://example.com"><img src="https://img.test/a.png" /></a>'
+    })
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: 'Close image' })).not.toBeInTheDocument()
+
+    fireEvent.click(document.querySelector('img')!)
+
+    const zoomed = screen.getByRole('button', { name: 'Close image' })
+    expect(zoomed.querySelector('img')).toHaveAttribute('src', 'https://img.test/a.png')
+
+    fireEvent.click(zoomed)
+    expect(screen.queryByRole('button', { name: 'Close image' })).not.toBeInTheDocument()
+  })
+
+  it('ignores clicks on non-image article content', () => {
+    const item = create(ItemSchema, { id: 'item-1', title: 'Article', contentHtml: '<p>Body</p>' })
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByText('Body'))
+    expect(screen.queryByRole('button', { name: 'Close image' })).not.toBeInTheDocument()
+  })
 })
