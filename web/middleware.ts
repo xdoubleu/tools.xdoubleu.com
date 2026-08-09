@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 
+import { GATEWAY_URL } from '@/lib/books/gatewayClient'
+
 export function middleware() {
   const response = NextResponse.next()
 
-  const connectSrc = ["'self'", '*.sentry.io']
+  // GATEWAY_URL: the books page talks to the local kobo-gateway helper over
+  // loopback HTTPS, which 'self' doesn't cover.
+  const connectSrc = ["'self'", '*.sentry.io', GATEWAY_URL]
   if (process.env.API_URL) connectSrc.push(process.env.API_URL)
 
   const csp = [
