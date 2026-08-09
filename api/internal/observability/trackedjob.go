@@ -34,19 +34,23 @@ type TrackedJob struct {
 
 var _ threading.Job = (*TrackedJob)(nil)
 
-func NewTrackedJob(inner threading.Job, db postgres.DB) *TrackedJob {
-	return &TrackedJob{
+// NewTrackedJob decorates inner. If inner implements threading.Scheduled,
+// the returned Job does too, forwarding RunEvery — otherwise inner is
+// trigger-only and the returned Job stays trigger-only as well.
+func NewTrackedJob(inner threading.Job, db postgres.DB) threading.Job {
+	tj := &TrackedJob{
 		inner: inner,
 		repo:  repositories.NewJobRunsRepository(db),
 	}
+	scheduled, ok := inner.(threading.Scheduled)
+	if !ok {
+		return tj
+	}
+	return &scheduledTrackedJob{TrackedJob: tj, scheduled: scheduled}
 }
 
 func (j *TrackedJob) ID() string {
 	return j.inner.ID()
-}
-
-func (j *TrackedJob) RunEvery() time.Duration {
-	return j.inner.RunEvery()
 }
 
 func (j *TrackedJob) Run(ctx context.Context, logger *slog.Logger) (err error) {
@@ -95,4 +99,17 @@ func (j *TrackedJob) record(
 			essentialogger.ErrAttr(insertErr),
 		)
 	}
+}
+
+// scheduledTrackedJob decorates a threading.Scheduled job, so wrapping it in
+// TrackedJob doesn't hide it from JobQueue's periodic tick.
+type scheduledTrackedJob struct {
+	*TrackedJob
+	scheduled threading.Scheduled
+}
+
+var _ threading.Scheduled = (*scheduledTrackedJob)(nil)
+
+func (j *scheduledTrackedJob) RunEvery() time.Duration {
+	return j.scheduled.RunEvery()
 }

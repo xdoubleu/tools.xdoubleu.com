@@ -27,8 +27,10 @@ function readAndBumpLastVisit(): number {
 
 export default function FeedReaderClient() {
   const [showRead, setShowRead] = useState(false)
-  const unreadOnly = !showRead
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
+  // Bookmarks are a keep-list, not an inbox: a bookmarked item stays relevant
+  // after it's read, so the bookmarked view ignores the unread filter.
+  const unreadOnly = !showRead && !bookmarkedOnly
   const [selectedFeedId, setSelectedFeedId] = useState<string | undefined>(undefined)
 
   const { data: feedsData } = useFeeds()
@@ -102,9 +104,11 @@ export default function FeedReaderClient() {
             </option>
           ))}
         </Select>
-        <Button variant="secondary" size="sm" onClick={() => setShowRead((v) => !v)}>
-          {showRead ? 'Show unread only' : 'Show read items'}
-        </Button>
+        {!bookmarkedOnly && (
+          <Button variant="secondary" size="sm" onClick={() => setShowRead((v) => !v)}>
+            {showRead ? 'Show unread only' : 'Show read items'}
+          </Button>
+        )}
         <Button
           variant={bookmarkedOnly ? 'default' : 'secondary'}
           size="sm"
@@ -200,7 +204,9 @@ function FeedReaderCard({
               type="button"
               variant="link"
               onClick={() => handleOpenChange(true)}
-              className="h-auto justify-start p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
+              // justify-start alone only left-aligns the flex item; a wrapped
+              // title's lines still follow the button's UA text-align: center.
+              className="h-auto justify-start p-0 text-left font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
             >
               {item.title}
             </Button>

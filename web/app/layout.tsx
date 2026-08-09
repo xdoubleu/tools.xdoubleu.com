@@ -7,6 +7,7 @@ import SWRProvider from '@/components/SWRProvider'
 import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
+import { themeInitScript } from '@/lib/theme'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   )
 
   return (
-    <html lang="en">
+    // themeInitScript writes data-theme on <html> before hydration
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta
           name="viewport"
@@ -40,6 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN: process.env.SENTRY_DSN ?? '', RELEASE: process.env.RELEASE ?? 'dev', KOBO_GATEWAY_RELEASE: process.env.KOBO_GATEWAY_RELEASE ?? 'dev' })}`
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `document.addEventListener('gesturestart',function(e){e.preventDefault()});document.addEventListener('gesturechange',function(e){e.preventDefault()});`

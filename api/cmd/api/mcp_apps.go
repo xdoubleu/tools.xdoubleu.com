@@ -65,10 +65,20 @@ func (app *Application) appsMCPRoute() http.Handler {
 
 func (app *Application) appsMCPHandler() http.Handler {
 	srv := app.newAppsMCPServer()
-	//nolint:exhaustruct // Stateless is the only option this read-only server sets
+	// DisableLocalhostProtection: the go-sdk's default DNS-rebinding guard
+	// 403s any request whose accepted-connection local address is loopback
+	// but whose Host header isn't — which is every request here, since
+	// gateway always proxies to api over 127.0.0.1 (see gateway/internal/
+	// gateway/proxy.go) while preserving the original external Host header.
+	// That guard protects locally-run dev MCP servers from malicious
+	// websites; it doesn't apply to this deploy shape, where the only
+	// loopback caller is our own trusted gateway process and the real
+	// security boundary is the Bearer-token check in mcpBearerRoute, which
+	// already wraps this handler.
+	//nolint:exhaustruct // only Stateless/DisableLocalhostProtection are set
 	return mcp.NewStreamableHTTPHandler(
 		func(*http.Request) *mcp.Server { return srv },
-		&mcp.StreamableHTTPOptions{Stateless: true},
+		&mcp.StreamableHTTPOptions{Stateless: true, DisableLocalhostProtection: true},
 	)
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -174,6 +175,35 @@ func TestAppsMCPInvalidToken(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}
+
+// TestAppsMCPHandlerAllowsNonLoopbackHost is issue #944's actual regression:
+// gateway always proxies to api over 127.0.0.1 (see gateway/internal/gateway/
+// proxy.go) while preserving the original external Host header, so the
+// go-sdk's default DNS-rebinding guard (loopback local address + non-loopback
+// Host) 403'd every real request regardless of how valid the caller's Bearer
+// token was. Asserts DisableLocalhostProtection actually took effect by
+// hitting a real listener (loopback local address) with a non-loopback Host.
+func TestAppsMCPHandlerAllowsNonLoopbackHost(t *testing.T) {
+	ts := httptest.NewServer(testApp.appsMCPHandler())
+	t.Cleanup(ts.Close)
+
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodPost, ts.URL, strings.NewReader(`{}`),
+	)
+	require.NoError(t, err)
+	req.Host = "tools.xdoubleu.com"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := ts.Client().Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, http.StatusForbidden, resp.StatusCode)
+	assert.NotContains(t, string(body), "invalid Host header")
 }
 
 func TestAppsMCPListToolsAsAdmin(t *testing.T) {
