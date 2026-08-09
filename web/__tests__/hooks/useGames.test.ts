@@ -22,6 +22,7 @@ import {
   useSteamProgress,
   useRecentlyActiveGames,
   useRefreshSteam,
+  useRefreshSteamGame,
   useIntegrations,
   useSaveIntegrations
 } from '@/hooks/useGames'
@@ -181,5 +182,26 @@ describe('useSaveIntegrations', () => {
     // @ts-expect-error -- partial Integrations message is enough for the test
     await result.current(integrations)
     expect(mockSave).toHaveBeenCalledWith({ integrations })
+  })
+})
+
+describe('useRefreshSteamGame', () => {
+  it('calls client.refreshSteamGame with the game id', async () => {
+    const mockRefresh = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce({ refreshSteamGame: mockRefresh })
+    const { result } = renderHook(() => useRefreshSteamGame())
+    await result.current(1)
+    expect(mockRefresh).toHaveBeenCalledWith({ gameId: 1 })
+  })
+
+  // SteamGameClient's high-poll setInterval effect depends on this function, so an
+  // unstable identity restarts the timer every render and the poll never fires.
+  it('keeps a stable identity across re-renders', () => {
+    const { result, rerender } = renderHook(() => useRefreshSteamGame())
+    const first = result.current
+    rerender()
+    rerender()
+    expect(result.current).toBe(first)
   })
 })
