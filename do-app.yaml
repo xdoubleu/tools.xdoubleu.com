@@ -62,6 +62,24 @@ services:
       - key: SUPABASE_API_KEY
         scope: RUN_TIME
         type: SECRET
+      - key: STEAM_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: HARDCOVER_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: R2_ACCOUNT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: R2_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: R2_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: R2_BUCKET
+        scope: RUN_TIME
+        type: SECRET
       - key: SENTRY_DSN
         scope: RUN_TIME
         type: SECRET
