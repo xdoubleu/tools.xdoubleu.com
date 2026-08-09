@@ -20,6 +20,13 @@ import (
 // api/cmd/api/health.go registers the same literal independently.
 const healthPath = "/health"
 
+// wellKnownPrefix routes RFC 9728/8414 OAuth discovery documents to the api
+// child unstripped — api registers them at this literal path (see
+// api/cmd/api/mcp.go's rootResourceMetadataPath), and per spec they must be
+// reachable at the domain root, not under /api, for a client that discovers
+// them by convention rather than via a WWW-Authenticate resource_metadata URL.
+const wellKnownPrefix = "/.well-known/"
+
 // versionPath answers gateway's own release directly, unproxied — same
 // shape as healthPath — so it stays available even when both children are
 // unready and doesn't need either child's own version endpoint touched.
@@ -41,6 +48,9 @@ const upstreamResponseHeaderTimeout = 15 * time.Second
 //     route.
 //   - GET /gateway/version answers gateway's own release directly, same
 //     shape as /health — not proxied to either child.
+//   - /.well-known/* goes to the api child directly, unstripped — the OAuth
+//     discovery documents it serves there must be reachable at the domain
+//     root per RFC 9728/8414, not under /api.
 //   - /api and /api/* go to the api child with the /api prefix stripped,
 //     exactly like the ingress's `preserve_path_prefix: false` did — so
 //     API_URL stays an absolute https://.../api URL and web/ needs no code
@@ -65,6 +75,8 @@ func NewHandler(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == healthPath:
+			apiProxy.ServeHTTP(w, r)
+		case strings.HasPrefix(r.URL.Path, wellKnownPrefix):
 			apiProxy.ServeHTTP(w, r)
 		case r.URL.Path == versionPath:
 			if err := httptools.WriteJSON(
