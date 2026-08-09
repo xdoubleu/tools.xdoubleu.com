@@ -1,6 +1,6 @@
 'use client'
 
-import { SWRConfig, unstable_serialize, type SWRConfiguration } from 'swr'
+import { SWRConfig, unstable_serialize, type SWRConfigValue } from 'swr'
 import type { Arguments } from 'swr'
 
 // Injects server-fetched data into the SWR cache for the given keys without
@@ -24,7 +24,7 @@ export default function SWRFallback({
 
   return (
     <SWRConfig
-      value={(parent: SWRConfiguration | undefined) => ({
+      value={(parent: SWRConfigValue | undefined) => ({
         ...parent,
         fallback: { ...parent?.fallback, ...merged }
       })}
