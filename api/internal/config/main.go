@@ -121,6 +121,24 @@ func (c parser) envStr(key string, defaultValue string) string {
 	return value
 }
 
+// envSecret behaves like envStr but never logs the actual value, only
+// whether one was set.
+func (c parser) envSecret(key string, defaultValue string) string {
+	value := c.baseEnv(key)
+	if len(value) == 0 {
+		value = defaultValue
+	}
+
+	masked := "<unset>"
+	if len(value) > 0 {
+		masked = "<redacted>"
+	}
+	c.logger.Info(
+		fmt.Sprintf("loaded env var '%s'='%s' with type 'string'", key, masked),
+	)
+	return value
+}
+
 func (c parser) envInt(key string, defaultValue int) int {
 	value := defaultValue
 
@@ -179,43 +197,43 @@ func New(logger *slog.Logger) Config {
 	cfg.Throttle = p.envBool("THROTTLE", true)
 	cfg.WebURL = p.envStr("WEB_URL", "http://localhost:3000")
 	cfg.APIURL = p.envStr("API_URL", "http://localhost:8000")
-	cfg.SentryDsn = p.envStr("SENTRY_DSN", "")
-	cfg.SentryDsnWeb = p.envStr("SENTRY_DSN_WEB", "")
+	cfg.SentryDsn = p.envSecret("SENTRY_DSN", "")
+	cfg.SentryDsnWeb = p.envSecret("SENTRY_DSN_WEB", "")
 	cfg.SampleRate = p.envFloat("SAMPLE_RATE", 1.0)
 	cfg.AccessExpiry = p.envStr("ACCESS_EXPIRY", "1h")
 	cfg.RefreshExpiry = p.envStr("REFRESH_EXPIRY", "7d")
 	cfg.AuthCacheTTL = p.envInt("AUTH_CACHE_TTL", 60)
-	cfg.DBDsn = p.envStr("DB_DSN", "postgres://postgres@localhost/postgres")
+	cfg.DBDsn = p.envSecret("DB_DSN", "postgres://postgres@localhost/postgres")
 	// "dev" (not DevEnv/"development") — web's getRelease() and the
 	// kobo-gateway update-check both hardcode this exact literal as the
 	// "no real deploy" sentinel (see gateway/internal/gateway/config.go).
 	cfg.Release = p.envStr("RELEASE", "dev")
 
 	cfg.SupabaseProjRef = p.envStr("SUPABASE_PROJ_REF", "")
-	cfg.SupabaseAPIKey = p.envStr("SUPABASE_API_KEY", "")
+	cfg.SupabaseAPIKey = p.envSecret("SUPABASE_API_KEY", "")
 
-	cfg.SteamAPIKey = p.envStr("STEAM_API_KEY", "")
-	cfg.HardcoverAPIKey = p.envStr("HARDCOVER_API_KEY", "")
+	cfg.SteamAPIKey = p.envSecret("STEAM_API_KEY", "")
+	cfg.HardcoverAPIKey = p.envSecret("HARDCOVER_API_KEY", "")
 
 	cfg.R2AccountID = p.envStr("R2_ACCOUNT_ID", "")
-	cfg.R2AccessKeyID = p.envStr("R2_ACCESS_KEY_ID", "")
-	cfg.R2SecretKey = p.envStr("R2_SECRET_ACCESS_KEY", "")
+	cfg.R2AccessKeyID = p.envSecret("R2_ACCESS_KEY_ID", "")
+	cfg.R2SecretKey = p.envSecret("R2_SECRET_ACCESS_KEY", "")
 	cfg.R2Bucket = p.envStr("R2_BUCKET", "")
 
 	cfg.GithubOAuthClientID = p.envStr("GITHUB_OAUTH_CLIENT_ID", "")
-	cfg.GithubOAuthClientSecret = p.envStr("GITHUB_OAUTH_CLIENT_SECRET", "")
+	cfg.GithubOAuthClientSecret = p.envSecret("GITHUB_OAUTH_CLIENT_SECRET", "")
 	cfg.SentryOAuthClientID = p.envStr("SENTRY_OAUTH_CLIENT_ID", "")
-	cfg.SentryOAuthClientSecret = p.envStr("SENTRY_OAUTH_CLIENT_SECRET", "")
+	cfg.SentryOAuthClientSecret = p.envSecret("SENTRY_OAUTH_CLIENT_SECRET", "")
 	cfg.DOOAuthClientID = p.envStr("DO_OAUTH_CLIENT_ID", "")
-	cfg.DOOAuthClientSecret = p.envStr("DO_OAUTH_CLIENT_SECRET", "")
-	cfg.EncryptionKey = p.envStr("ENCRYPTION_KEY", "")
+	cfg.DOOAuthClientSecret = p.envSecret("DO_OAUTH_CLIENT_SECRET", "")
+	cfg.EncryptionKey = p.envSecret("ENCRYPTION_KEY", "")
 
-	cfg.ResendAPIKey = p.envStr("RESEND_API_KEY", "")
+	cfg.ResendAPIKey = p.envSecret("RESEND_API_KEY", "")
 	cfg.EmailFrom = p.envStr("EMAIL_FROM", "")
 	cfg.NotifyEmailTo = p.envStr("NOTIFY_EMAIL_TO", "")
 
 	cfg.EmailInboundDomain = p.envStr("EMAIL_INBOUND_DOMAIN", "")
-	cfg.EmailInboundSecret = p.envStr("EMAIL_INBOUND_SECRET", "")
+	cfg.EmailInboundSecret = p.envSecret("EMAIL_INBOUND_SECRET", "")
 
 	return cfg
 }

@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"bytes"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,6 +32,21 @@ func TestNewPanicsOnInvalidFloat(t *testing.T) {
 func TestNewPanicsOnInvalidBool(t *testing.T) {
 	t.Setenv("THROTTLE", "not-a-bool")
 	assert.Panics(t, func() { config.New(logging.NewNopLogger()) })
+}
+
+func TestNewDoesNotLogSecretValues(t *testing.T) {
+	const secret = "super-secret-db-password"
+	t.Setenv("DB_DSN", secret)
+	t.Setenv("ENCRYPTION_KEY", secret)
+
+	var buf bytes.Buffer
+	logger := slog.New(logging.NewBufLogHandler(&buf, nil))
+	config.New(logger)
+
+	logs := buf.String()
+	assert.NotContains(t, logs, secret)
+	assert.Contains(t, logs, "DB_DSN'='<redacted>'")
+	assert.Contains(t, logs, "ENCRYPTION_KEY'='<redacted>'")
 }
 
 func TestNewHonorsOverrides(t *testing.T) {
