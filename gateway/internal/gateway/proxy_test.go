@@ -10,9 +10,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/gateway/internal/gateway"
+	"tools.xdoubleu.com/gateway/internal/logging"
 )
 
 // brokenResponseWriter fails every Write, to exercise NewHandler's

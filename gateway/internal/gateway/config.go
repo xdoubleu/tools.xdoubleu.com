@@ -3,7 +3,7 @@ package gateway
 import (
 	"log/slog"
 
-	"github.com/xdoubleu/essentia/v4/pkg/config"
+	"tools.xdoubleu.com/gateway/internal/config"
 )
 
 const (

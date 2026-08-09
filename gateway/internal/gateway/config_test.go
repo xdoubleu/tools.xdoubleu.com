@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xdoubleu/essentia/v4/pkg/logging"
 
 	"tools.xdoubleu.com/gateway/internal/gateway"
+	"tools.xdoubleu.com/gateway/internal/logging"
 )
 
 func TestNew_Defaults(t *testing.T) {
