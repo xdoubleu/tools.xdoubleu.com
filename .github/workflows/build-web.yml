@@ -19,19 +19,27 @@ jobs:
           cache: 'npm'
           node-version-file: './web/package.json'
           cache-dependency-path: './web/package-lock.json'
-      - run: npm ci
-        working-directory: './web'
       # web reads RELEASE from the container env at runtime (web/lib/env.ts)
       # for its own app code, but next.config.ts still inlines it into
       # NEXT_PUBLIC_RELEASE for the Sentry release tag on server/edge error
       # reports — so a cached/reused build correctly keeps tagging errors
       # with whatever release web/ last actually changed at, same
       # per-component-release philosophy as web/components/Footer.tsx.
+      #
+      # This must run BEFORE `npm ci` — hashFiles('web/**') reads whatever
+      # is on disk, not just git-tracked files, so computing it after `npm
+      # ci` would fold the (gitignored) web/node_modules tree into the key.
+      # docker.yml restores this same cache entry from a checkout that
+      # never runs `npm ci`, so its hashFiles('web/**') must match a
+      # source-only tree or it always misses (issue #948).
       - uses: actions/cache@v6
         id: cache
         with:
           path: web/build-artifact
           key: build-web-${{ hashFiles('web/**') }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+        working-directory: './web'
       - if: steps.cache.outputs.cache-hit != 'true'
         env:
           RELEASE: ${{ github.sha }}
