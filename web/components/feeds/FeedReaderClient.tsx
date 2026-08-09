@@ -199,7 +199,7 @@ function FeedReaderCard({
             <Button
               type="button"
               variant="link"
-              onClick={() => setReaderOpen(true)}
+              onClick={() => handleOpenChange(true)}
               className="h-auto justify-start p-0 font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
             >
               {item.title}

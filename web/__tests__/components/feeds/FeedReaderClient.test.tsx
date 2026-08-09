@@ -246,6 +246,24 @@ describe('FeedReaderClient', () => {
     expect(screen.queryByText('Item 1')).not.toBeInTheDocument()
   })
 
+  it('settles a late undo window without error once the reader is already closed', () => {
+    // The item stays in the fetched page (e.g. the show-read view), so its
+    // card — and its undo timer — outlive the reader being closed.
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close reader' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Settle' }))
+
+    expect(screen.getByText('Item 1').closest('.rounded-2xl')).not.toHaveClass('opacity-60')
+  })
+
   it('dims already-read items but not unread ones', () => {
     mockUseFeedItems.mockReturnValue({
       data: {
