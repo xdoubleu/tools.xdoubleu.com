@@ -65,6 +65,7 @@ func TestNewTrackedJob_ScheduledInnerStaysScheduled(t *testing.T) {
 	scheduled, ok := job.(threading.Scheduled)
 	require.True(t, ok)
 	assert.Equal(t, time.Hour, scheduled.RunEvery())
+	assert.Equal(t, "fake", job.ID())
 }
 
 func TestNewTrackedJob_TriggerOnlyInnerStaysTriggerOnly(t *testing.T) {
@@ -72,6 +73,7 @@ func TestNewTrackedJob_TriggerOnlyInnerStaysTriggerOnly(t *testing.T) {
 
 	_, ok := job.(threading.Scheduled)
 	assert.False(t, ok)
+	assert.Equal(t, "fake", job.ID())
 }
 
 func TestTrackedJobRecordsSuccess(t *testing.T) {
