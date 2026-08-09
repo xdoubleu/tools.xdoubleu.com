@@ -22,11 +22,13 @@ const (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	stdout := logging.NewPrefixWriter("gateway", os.Stdout)
+
+	logger := slog.New(slog.NewTextHandler(stdout, nil))
 	cfg := gateway.New(logger)
 
 	logger = slog.New(sentrytools.NewLogHandler(cfg.Env,
-		slog.NewTextHandler(os.Stdout, nil)))
+		slog.NewTextHandler(stdout, nil)))
 	slog.SetDefault(logger)
 
 	ctx := context.Background()
