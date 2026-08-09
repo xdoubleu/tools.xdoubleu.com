@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/internal/progressws"
@@ -13,10 +12,11 @@ import (
 
 // ResyncMetadataJob scans the whole catalog for metadata differences
 // against UniCat and Hardcover, and stores what it finds for
-// the admin resync wizard to review. It is trigger-only (RunEvery <= 0): the
-// scheduler tick never runs it, only the admin resync wizard's StartResync
-// RPC does (Arm + JobQueue.ForceRun). The armed guard stays as a second,
-// cheap check against Run() ever being invoked without an Arm() first.
+// the admin resync wizard to review. It has no RunEvery method, so it's
+// trigger-only (see threading.Scheduled): the scheduler tick never runs it,
+// only the admin resync wizard's StartResync RPC does (Arm +
+// JobQueue.ForceRun). The armed guard stays as a second, cheap check against
+// Run() ever being invoked without an Arm() first.
 //
 // force bypasses the skip-if-known cache for every source — see
 // BookService.BuildResyncProposals.
@@ -48,11 +48,6 @@ func NewResyncMetadataJob(
 
 func (j *ResyncMetadataJob) ID() string {
 	return "resync-books"
-}
-
-// RunEvery <= 0 marks this job trigger-only — see threading.Job.
-func (j *ResyncMetadataJob) RunEvery() time.Duration {
-	return 0
 }
 
 // Arm marks the job to scan the whole catalog on the next Run call. force

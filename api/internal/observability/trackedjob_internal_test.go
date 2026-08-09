@@ -12,6 +12,7 @@ import (
 
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 type fakeInserter struct {
@@ -24,14 +25,13 @@ func (f *fakeInserter) Insert(_ context.Context, run models.JobRun) error {
 	return f.insertErr
 }
 
+// fakeJob has no RunEvery method, so it's trigger-only — see threading.Scheduled.
 type fakeJob struct {
 	err    error
 	panics bool
 }
 
 func (f fakeJob) ID() string { return "fake" }
-
-func (f fakeJob) RunEvery() time.Duration { return time.Hour }
 
 func (f fakeJob) Run(_ context.Context, _ *slog.Logger) error {
 	if f.panics {
@@ -40,7 +40,13 @@ func (f fakeJob) Run(_ context.Context, _ *slog.Logger) error {
 	return f.err
 }
 
-func newTestTrackedJob(inner fakeJob, repo *fakeInserter) *TrackedJob {
+type fakeScheduledJob struct {
+	fakeJob
+}
+
+func (f fakeScheduledJob) RunEvery() time.Duration { return time.Hour }
+
+func newTestTrackedJob(inner threading.Job, repo *fakeInserter) *TrackedJob {
 	return &TrackedJob{inner: inner, repo: repo}
 }
 
@@ -51,7 +57,21 @@ func TestTrackedJobDelegates(t *testing.T) {
 	)
 
 	assert.Equal(t, "fake", job.ID())
-	assert.Equal(t, time.Hour, job.RunEvery())
+}
+
+func TestNewTrackedJob_ScheduledInnerStaysScheduled(t *testing.T) {
+	job := NewTrackedJob(fakeScheduledJob{fakeJob{err: nil, panics: false}}, nil)
+
+	scheduled, ok := job.(threading.Scheduled)
+	require.True(t, ok)
+	assert.Equal(t, time.Hour, scheduled.RunEvery())
+}
+
+func TestNewTrackedJob_TriggerOnlyInnerStaysTriggerOnly(t *testing.T) {
+	job := NewTrackedJob(fakeJob{err: nil, panics: false}, nil)
+
+	_, ok := job.(threading.Scheduled)
+	assert.False(t, ok)
 }
 
 func TestTrackedJobRecordsSuccess(t *testing.T) {

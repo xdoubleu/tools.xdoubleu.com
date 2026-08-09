@@ -30,18 +30,24 @@ func (r *fakeRepo) LastSuccessAt(_ context.Context, jobID string) (*time.Time, e
 	return r.last[jobID], nil
 }
 
+// fakeJob has no RunEvery method, so it's trigger-only — see threading.Scheduled.
 type fakeJob struct {
-	id       string
-	runEvery time.Duration
-	calls    *atomicInt
+	id    string
+	calls *atomicInt
 }
 
-func (f fakeJob) ID() string              { return f.id }
-func (f fakeJob) RunEvery() time.Duration { return f.runEvery }
+func (f fakeJob) ID() string { return f.id }
 func (f fakeJob) Run(_ context.Context, _ *slog.Logger) error {
 	f.calls.add(1)
 	return nil
 }
+
+type fakeScheduledJob struct {
+	fakeJob
+	runEvery time.Duration
+}
+
+func (f fakeScheduledJob) RunEvery() time.Duration { return f.runEvery }
 
 type atomicInt struct {
 	mu sync.Mutex
@@ -89,7 +95,10 @@ func waitFor(t *testing.T, cond func() bool) {
 func TestAddJobDoesNotRunImmediately(t *testing.T) {
 	q := newTestQueue(t, newFakeRepo())
 	calls := new(atomicInt)
-	job := fakeJob{id: "job-a", runEvery: time.Hour, calls: calls}
+	job := fakeScheduledJob{
+		fakeJob:  fakeJob{id: "job-a", calls: calls},
+		runEvery: time.Hour,
+	}
 
 	require.NoError(t, q.AddJob(job, noopCallback))
 
@@ -104,7 +113,10 @@ func TestJobRunsWhenNeverRunBefore(t *testing.T) {
 
 	q := newTestQueue(t, newFakeRepo())
 	calls := new(atomicInt)
-	job := fakeJob{id: "job-b", runEvery: time.Hour, calls: calls}
+	job := fakeScheduledJob{
+		fakeJob:  fakeJob{id: "job-b", calls: calls},
+		runEvery: time.Hour,
+	}
 
 	require.NoError(t, q.AddJob(job, noopCallback))
 
@@ -122,7 +134,10 @@ func TestJobSkippedWhenRanRecently(t *testing.T) {
 
 	q := newTestQueue(t, repo)
 	calls := new(atomicInt)
-	job := fakeJob{id: "job-c", runEvery: time.Hour, calls: calls}
+	job := fakeScheduledJob{
+		fakeJob:  fakeJob{id: "job-c", calls: calls},
+		runEvery: time.Hour,
+	}
 
 	require.NoError(t, q.AddJob(job, noopCallback))
 
@@ -137,7 +152,10 @@ func TestForceRunBypassesSchedule(t *testing.T) {
 
 	q := newTestQueue(t, repo)
 	calls := new(atomicInt)
-	job := fakeJob{id: "job-d", runEvery: time.Hour, calls: calls}
+	job := fakeScheduledJob{
+		fakeJob:  fakeJob{id: "job-d", calls: calls},
+		runEvery: time.Hour,
+	}
 
 	require.NoError(t, q.AddJob(job, noopCallback))
 	q.ForceRun("job-d")
@@ -152,7 +170,7 @@ func TestTriggerOnlyJobNeverRunsOnTick(t *testing.T) {
 
 	q := newTestQueue(t, newFakeRepo())
 	calls := new(atomicInt)
-	job := fakeJob{id: "job-trigger-only", runEvery: 0, calls: calls}
+	job := fakeJob{id: "job-trigger-only", calls: calls}
 
 	require.NoError(t, q.AddJob(job, noopCallback))
 
@@ -166,7 +184,10 @@ func TestTriggerOnlyJobNeverRunsOnTick(t *testing.T) {
 func TestFetchJobIDsAndState(t *testing.T) {
 	q := newTestQueue(t, newFakeRepo())
 	calls := new(atomicInt)
-	job := fakeJob{id: "job-e", runEvery: time.Hour, calls: calls}
+	job := fakeScheduledJob{
+		fakeJob:  fakeJob{id: "job-e", calls: calls},
+		runEvery: time.Hour,
+	}
 
 	require.NoError(t, q.AddJob(job, noopCallback))
 
@@ -183,7 +204,10 @@ func TestFetchJobIDsAndState(t *testing.T) {
 func TestAddJobRejectsDuplicateID(t *testing.T) {
 	q := newTestQueue(t, newFakeRepo())
 	calls := new(atomicInt)
-	job := fakeJob{id: "job-f", runEvery: time.Hour, calls: calls}
+	job := fakeScheduledJob{
+		fakeJob:  fakeJob{id: "job-f", calls: calls},
+		runEvery: time.Hour,
+	}
 
 	require.NoError(t, q.AddJob(job, noopCallback))
 	require.Error(t, q.AddJob(job, noopCallback))

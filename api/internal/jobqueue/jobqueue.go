@@ -163,14 +163,14 @@ func (qj *queuedJob) isDue() bool {
 	if qj.running.Load() {
 		return false
 	}
-	every := qj.job.RunEvery()
-	if every <= 0 {
-		// RunEvery() <= 0 means trigger-only: the scheduler tick never runs
-		// it, only an explicit ForceRun does.
+	// Jobs that don't implement threading.Scheduled are trigger-only: the
+	// scheduler tick never runs them, only an explicit ForceRun does.
+	scheduled, ok := qj.job.(threading.Scheduled)
+	if !ok {
 		return false
 	}
 	last := qj.lastRun.Load()
-	return last == nil || time.Since(*last) >= every
+	return last == nil || time.Since(*last) >= scheduled.RunEvery()
 }
 
 func (q *JobQueue) runIfNotRunning(qj *queuedJob) {

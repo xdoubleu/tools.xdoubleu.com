@@ -17,6 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 //go:embed migrations/*.sql
@@ -27,7 +28,7 @@ type Todos struct {
 	services   *services.Services
 	repos      *repositories.Repositories
 	jobQueue   *jobqueue.JobQueue
-	archiveJob *observability.TrackedJob
+	archiveJob threading.Job
 }
 
 func New(
