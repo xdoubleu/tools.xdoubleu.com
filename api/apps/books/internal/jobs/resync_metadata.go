@@ -13,9 +13,10 @@ import (
 
 // ResyncMetadataJob scans the whole catalog for metadata differences
 // against UniCat and Hardcover, and stores what it finds for
-// the admin resync wizard to review. It is on-demand only: it must be armed
-// via Arm() before Run() does any work, so the unavoidable startup run
-// (added by JobQueue.AddJob) and the daily scheduler tick are no-ops.
+// the admin resync wizard to review. It is on-demand only, triggered by the
+// admin resync wizard's StartResync RPC (Arm + JobQueue.ForceRun): RunEvery
+// exists only to satisfy JobQueue's interface, and Run() no-ops unless armed,
+// so the 24h scheduler tick never does real work on its own.
 //
 // force bypasses the skip-if-known cache for every source — see
 // BookService.BuildResyncProposals.
