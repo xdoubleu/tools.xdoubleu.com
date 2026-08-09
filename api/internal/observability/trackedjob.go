@@ -42,10 +42,11 @@ func NewTrackedJob(inner threading.Job, db postgres.DB) threading.Job {
 		inner: inner,
 		repo:  repositories.NewJobRunsRepository(db),
 	}
-	if scheduled, ok := inner.(threading.Scheduled); ok {
-		return &scheduledTrackedJob{TrackedJob: tj, scheduled: scheduled}
+	scheduled, ok := inner.(threading.Scheduled)
+	if !ok {
+		return tj
 	}
-	return tj
+	return &scheduledTrackedJob{TrackedJob: tj, scheduled: scheduled}
 }
 
 func (j *TrackedJob) ID() string {
