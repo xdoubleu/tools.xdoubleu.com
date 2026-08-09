@@ -17,15 +17,14 @@ on:
         value: ${{ jobs.docker-app.outputs.built }}
 
 jobs:
-  # Assembly-only — api/gateway/web/kobo-gateway are each built by their own
-  # workflow (build-api.yml/build-gateway.yml/build-web.yml/
-  # build-kobo-gateway.yml), gated on its own subtree changing (#948). A
-  # component whose subtree didn't change in this run never uploads a
-  # same-run artifact, so this job restores each binary directly from the
-  # actions/cache entry that build-*.yml writes, keyed the same way
-  # (hashFiles(<module>/**)) — that entry already holds whatever was built
-  # the last time that module's source actually changed. No compilation
-  # happens in this job; see root Dockerfile and CLAUDE.md's CI section.
+  # Assembly-only — api/gateway/web are each built and pushed to GHCR by
+  # their own workflow (build-api.yml/build-gateway.yml/build-web.yml); the
+  # root Dockerfile's `FROM ghcr.io/.../<component>:latest` always resolves
+  # to whatever was pushed last time that component's subtree actually
+  # changed, so this job needs no cache-key logic for them at all. Only
+  # kobo-gateway (macOS-only, can't be a Docker build stage) is fed in here
+  # via a restored `actions/cache` entry. No compilation happens in this
+  # job; see root Dockerfile and CLAUDE.md's CI section.
   docker-app:
     name: Docker Build & Push App
     if: github.event_name == 'workflow_dispatch' || inputs.build_app
@@ -36,31 +35,13 @@ jobs:
     outputs:
       built: ${{ steps.build.conclusion == 'success' }}
     steps:
-      # Same ref as build-*.yml (PR head branch, not the default merge
-      # commit) so hashFiles(<module>/**) below reproduces the exact keys
-      # those workflows wrote — a mismatched tree would compute a different
-      # hash and always cache-miss.
+      # Same ref as build-kobo-gateway.yml (PR head branch, not the default
+      # merge commit) so hashFiles('kobo-gateway/**') below reproduces the
+      # exact key that workflow wrote — a mismatched tree would compute a
+      # different hash and always cache-miss.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref || github.ref_name }}
-
-      - uses: actions/cache/restore@v6
-        id: cache-api
-        with:
-          path: api/bin/api
-          key: build-api-${{ hashFiles('api/**') }}
-
-      - uses: actions/cache/restore@v6
-        id: cache-gateway
-        with:
-          path: gateway/bin/gateway
-          key: build-gateway-${{ hashFiles('gateway/**') }}
-
-      - uses: actions/cache/restore@v6
-        id: cache-web
-        with:
-          path: web/build-artifact
-          key: build-web-${{ hashFiles('web/**') }}
 
       # kobo-gateway.dmg + the raw binary, built on macOS by
       # build-kobo-gateway.yml (see
@@ -74,29 +55,15 @@ jobs:
           path: kobo-gateway/dist/kobo-gateway
           key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
 
-      - name: Fail if any component's build cache is missing
-        if: |
-          steps.cache-api.outputs.cache-hit != 'true' ||
-          steps.cache-gateway.outputs.cache-hit != 'true' ||
-          steps.cache-web.outputs.cache-hit != 'true' ||
-          steps.cache-kobo-gateway.outputs.cache-hit != 'true'
+      - name: Fail if kobo-gateway's build cache is missing
+        if: steps.cache-kobo-gateway.outputs.cache-hit != 'true'
         run: |
-          echo "::error::A component's build cache is missing for the current source (cold cache or eviction) and its build-*.yml job didn't run in this workflow. Trigger the relevant build-*.yml via workflow_dispatch to repopulate it, then re-run this job." >&2
+          echo "::error::kobo-gateway's build cache is missing for the current source (cold cache or eviction) and build-kobo-gateway.yml didn't run in this workflow. Trigger it via workflow_dispatch to repopulate the cache, then re-run this job." >&2
           exit 1
 
-      # The Dockerfile COPYs from these fixed paths; each cache above
-      # restores to the path build-*.yml built it at, which differs. `cp -r
-      # src/. dest/` (trailing /.) includes dotfiles/dot-directories — web's
-      # standalone output nests the actual server runtime inside a
-      # directory literally named `.next`, which a naive glob copy would
-      # silently drop (see issue #934, previously hit via upload-artifact's
-      # own dotfile exclusion before this switched to cache restore).
-      - name: Arrange restored binaries for the Docker build context
+      - name: Arrange kobo-gateway files for the Docker build context
         run: |
-          mkdir -p bin web-standalone web/public/downloads
-          cp api/bin/api bin/api
-          cp gateway/bin/gateway bin/gateway
-          cp -r web/build-artifact/. web-standalone/
+          mkdir -p web/public/downloads
           cp -r kobo-gateway/dist/kobo-gateway/. web/public/downloads/
 
       - name: Read kobo-gateway's bundled release

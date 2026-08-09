@@ -10,48 +10,39 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref || github.ref_name }}
-      - uses: actions/setup-node@v7
+      - uses: docker/setup-buildx-action@v4
+      # Only needed to push — PRs build (validating the image compiles) but
+      # never push, and node:24-alpine is public, so no auth is needed to
+      # pull it.
+      - if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
         with:
-          cache: 'npm'
-          node-version-file: './web/package.json'
-          cache-dependency-path: './web/package-lock.json'
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       # web reads RELEASE from the container env at runtime (web/lib/env.ts)
       # for its own app code, but next.config.ts still inlines it into
       # NEXT_PUBLIC_RELEASE for the Sentry release tag on server/edge error
-      # reports — so a cached/reused build correctly keeps tagging errors
-      # with whatever release web/ last actually changed at, same
+      # reports — so a reused (unchanged) image correctly keeps tagging
+      # errors with whatever release web/ last actually changed at, same
       # per-component-release philosophy as web/components/Footer.tsx.
-      #
-      # This must run BEFORE `npm ci` — hashFiles('web/**') reads whatever
-      # is on disk, not just git-tracked files, so computing it after `npm
-      # ci` would fold the (gitignored) web/node_modules tree into the key.
-      # docker.yml restores this same cache entry from a checkout that
-      # never runs `npm ci`, so its hashFiles('web/**') must match a
-      # source-only tree or it always misses (issue #948).
-      - uses: actions/cache@v6
-        id: cache
+      - uses: docker/build-push-action@v7
         with:
-          path: web/build-artifact
-          key: build-web-${{ hashFiles('web/**') }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: npm ci
-        working-directory: './web'
-      - if: steps.cache.outputs.cache-hit != 'true'
-        env:
-          RELEASE: ${{ github.sha }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: |
-          npm run build
-          # .next/standalone excludes .next/static by design (Next expects
-          # it served separately); fold it in here so the uploaded artifact
-          # is a single, ready-to-COPY tree — same shape as
-          # build-kobo-gateway.yml's dist/ output.
-          cp -r .next/static .next/standalone/.next/static
-          mv .next/standalone build-artifact
-        working-directory: './web'
+          context: ./web
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/${{ github.repository }}/web:latest
+            ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+          build-args: |
+            RELEASE=${{ github.sha }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
