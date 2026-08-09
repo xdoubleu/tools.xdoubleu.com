@@ -34,15 +34,66 @@ function isJunkListItem(li: Element): boolean {
   })
 }
 
-function stripLeftoverShareWidgets(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
+function stripLeftoverShareWidgets(doc: Document): void {
   doc.querySelectorAll('ul, ol').forEach((list) => {
     const items = list.querySelectorAll(':scope > li')
     if (items.length > 0 && Array.from(items).every(isJunkListItem)) {
       list.remove()
     }
   })
-  return doc.body.innerHTML
+}
+
+// Some sources (e.g. the Claude Blog) open an article with a decorative hero
+// image that carries no information the title doesn't already give (#911).
+// Only the leading image goes — an image with any text before it is part of
+// the article body, and an item whose entire content is one image (a comic
+// feed) keeps it.
+function stripHeroImage(doc: Document): void {
+  const img = doc.querySelector('img')
+  if (img === null || doc.body.textContent!.trim() === '') return
+
+  const before = doc.createRange()
+  before.setStart(doc.body, 0)
+  before.setEndBefore(img)
+  if (before.toString().trim() !== '') return
+
+  // Drop the wrappers the image left empty behind it, not just the <img>.
+  let block: Element = img
+  while (
+    block.parentElement !== null &&
+    block.parentElement !== doc.body &&
+    block.parentElement.childElementCount === 1 &&
+    block.parentElement.textContent!.trim() === ''
+  ) {
+    block = block.parentElement
+  }
+  block.remove()
+}
+
+// Articles are sometimes extracted with a trailing newsletter-signup section
+// still attached (#911 — the Claude Blog's "Transform how your organization
+// operates with Claude" block). A <form> is the reliable marker: article
+// prose has none. From the form, climb to the whole section by walking up
+// while the parent adds little text of its own — every newsletter wrapper
+// does, while the ancestor holding the actual article multiplies it.
+//
+// ponytail: text-growth heuristic, no per-site rules; if a source starts
+// losing real content to it, match the section by marker text instead.
+function stripNewsletterSignups(doc: Document): void {
+  const totalTextLen = doc.body.textContent!.trim().length
+  doc.querySelectorAll('form').forEach((form) => {
+    let block: Element = form
+    for (;;) {
+      // Non-null until the walk reaches <body>, which ends it.
+      const parent = block.parentElement!
+      if (parent === doc.body) break
+      const parentLen = parent.textContent!.trim().length
+      // Never swallow a parent that holds the bulk of the article.
+      if (parentLen > 2 * block.textContent!.trim().length || parentLen > totalTextLen / 2) break
+      block = parent
+    }
+    block.remove()
+  })
 }
 
 export function sanitizeArticleHtml(html: string): string {
@@ -50,5 +101,9 @@ export function sanitizeArticleHtml(html: string): string {
     FORBID_TAGS: ['style', 'nav', 'header'],
     KEEP_CONTENT: false
   })
-  return stripLeftoverShareWidgets(sanitized).replace(/\sloading="lazy"/g, '')
+  const doc = new DOMParser().parseFromString(sanitized, 'text/html')
+  stripLeftoverShareWidgets(doc)
+  stripNewsletterSignups(doc)
+  stripHeroImage(doc)
+  return doc.body.innerHTML.replace(/\sloading="lazy"/g, '')
 }
