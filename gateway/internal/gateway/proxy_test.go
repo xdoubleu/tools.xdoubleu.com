@@ -47,6 +47,10 @@ func TestNewHandler_RoutesToAPI(t *testing.T) {
 		wantAPIPath string
 	}{
 		{"health unstripped", "/health", "/health"},
+		{
+			"well-known unstripped", "/.well-known/oauth-protected-resource",
+			"/.well-known/oauth-protected-resource",
+		},
 		{"bare api prefix", "/api", "/"},
 		{"api subpath stripped", "/api/foo/bar", "/foo/bar"},
 		{"preserved double-api quirk", "/api/api/version", "/api/version"},
