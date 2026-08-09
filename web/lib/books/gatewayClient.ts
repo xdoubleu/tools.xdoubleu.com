@@ -12,7 +12,9 @@
 import { getKoboGatewayRelease } from '@/lib/env'
 
 const GATEWAY_PORT = 41132
-const GATEWAY_URL = `https://127.0.0.1:${GATEWAY_PORT}`
+// Exported so middleware.ts can allow it in the CSP connect-src — without
+// that the browser blocks every request below (issue #960).
+export const GATEWAY_URL = `https://127.0.0.1:${GATEWAY_PORT}`
 
 /**
  * Minimum gateway protocol version this web app can drive. When a probe
